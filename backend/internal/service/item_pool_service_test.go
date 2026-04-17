@@ -531,3 +531,123 @@ func TestItemPoolReject_ReviewedAtIsSet(t *testing.T) {
 	require.True(t, ok, "reviewed_at should be time.Time")
 	assert.False(t, reviewedAt.Before(before), "reviewed_at should be >= time before call")
 }
+
+// ---------------------------------------------------------------------------
+// Tests: Assign — main item team mismatch
+// ---------------------------------------------------------------------------
+
+func TestItemPoolAssign_MainItemTeamMismatch(t *testing.T) {
+	poolItem := &model.ItemPool{
+		Model:  gorm.Model{ID: 5},
+		TeamID: 1,
+		Status: "待分配",
+	}
+	poolRepo := &mockItemPoolRepo{item: poolItem}
+	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{Model: gorm.Model{ID: 20}, TeamID: 99}}
+	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error { return fc(nil) }}
+	svc := NewItemPoolService(poolRepo, nil, mainRepo, dbtx)
+
+	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+		MainItemID: 20,
+		AssigneeID: 30,
+	})
+	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: error mapping — non-ErrRecordNotFound errors pass through
+// ---------------------------------------------------------------------------
+
+func TestItemPoolAssign_PoolItemGenericError(t *testing.T) {
+	poolRepo := &mockItemPoolRepo{findErr: errors.New("generic db error")}
+	svc := NewItemPoolService(poolRepo, nil, nil, nil)
+
+	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+		MainItemID: 20,
+		AssigneeID: 30,
+	})
+	assert.Equal(t, "generic db error", err.Error())
+}
+
+func TestItemPoolAssign_MainItemGenericError(t *testing.T) {
+	poolItem := &model.ItemPool{
+		Model:  gorm.Model{ID: 5},
+		TeamID: 1,
+		Status: "待分配",
+	}
+	poolRepo := &mockItemPoolRepo{item: poolItem}
+	mainRepo := &mockMainItemRepoForPool{findErr: errors.New("main item db error")}
+	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error { return fc(nil) }}
+	svc := NewItemPoolService(poolRepo, nil, mainRepo, dbtx)
+
+	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+		MainItemID: 20,
+		AssigneeID: 30,
+	})
+	assert.Equal(t, "main item db error", err.Error())
+}
+
+func TestItemPoolGet_GenericFindError(t *testing.T) {
+	poolRepo := &mockItemPoolRepo{findErr: errors.New("generic db error")}
+	svc := NewItemPoolService(poolRepo, nil, nil, nil)
+
+	_, err := svc.Get(context.Background(), 1, 5)
+	assert.Equal(t, "generic db error", err.Error())
+}
+
+func TestItemPoolReject_GenericFindError(t *testing.T) {
+	poolRepo := &mockItemPoolRepo{findErr: errors.New("generic db error")}
+	svc := NewItemPoolService(poolRepo, nil, nil, nil)
+
+	err := svc.Reject(context.Background(), 1, 100, 5, "reason")
+	assert.Equal(t, "generic db error", err.Error())
+}
+
+// ---------------------------------------------------------------------------
+// Tests: error mapping — ErrNotFound from repo
+// ---------------------------------------------------------------------------
+
+func TestItemPoolAssign_PoolItemErrNotFound(t *testing.T) {
+	poolRepo := &mockItemPoolRepo{findErr: apperrors.ErrNotFound}
+	svc := NewItemPoolService(poolRepo, nil, nil, nil)
+
+	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+		MainItemID: 20,
+		AssigneeID: 30,
+	})
+	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
+}
+
+func TestItemPoolAssign_MainItemErrNotFound(t *testing.T) {
+	poolItem := &model.ItemPool{
+		Model:  gorm.Model{ID: 5},
+		TeamID: 1,
+		Status: "待分配",
+	}
+	poolRepo := &mockItemPoolRepo{item: poolItem}
+	mainRepo := &mockMainItemRepoForPool{findErr: apperrors.ErrNotFound}
+	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error { return fc(nil) }}
+	svc := NewItemPoolService(poolRepo, nil, mainRepo, dbtx)
+
+	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+		MainItemID: 20,
+		AssigneeID: 30,
+	})
+	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
+}
+
+func TestItemPoolGet_ErrNotFound(t *testing.T) {
+	poolRepo := &mockItemPoolRepo{findErr: apperrors.ErrNotFound}
+	svc := NewItemPoolService(poolRepo, nil, nil, nil)
+
+	_, err := svc.Get(context.Background(), 1, 5)
+	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
+}
+
+func TestItemPoolReject_ErrNotFound(t *testing.T) {
+	poolRepo := &mockItemPoolRepo{findErr: apperrors.ErrNotFound}
+	svc := NewItemPoolService(poolRepo, nil, nil, nil)
+
+	err := svc.Reject(context.Background(), 1, 100, 5, "reason")
+	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
+}
