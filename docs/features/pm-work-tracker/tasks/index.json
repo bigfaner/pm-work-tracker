@@ -628,7 +628,7 @@
       "dependencies": [
         "7.1"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "7.2-axios-api-client.md",
       "record": "records/7.2-axios-api-client.md"
     },
