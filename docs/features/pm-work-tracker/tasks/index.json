@@ -652,7 +652,7 @@
       "dependencies": [
         "7.3"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "7.4-app-routing.md",
       "record": "records/7.4-app-routing.md"
     },
