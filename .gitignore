@@ -32,3 +32,4 @@ go.work.sum
 # .vscode/
 docs/features/pm-work-tracker/tasks/process/*
 frontend/node_modules/*
+tmp/*
