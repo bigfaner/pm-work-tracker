@@ -12,6 +12,7 @@ import TableViewPage from '@/pages/TableViewPage'
 import ItemPoolPage from '@/pages/ItemPoolPage'
 import ReportPage from '@/pages/ReportPage'
 import AdminPage from '@/pages/AdminPage'
+import TeamManagementPage from '@/pages/TeamManagementPage'
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/table" element={<TableViewPage />} />
           <Route path="/item-pool" element={<ItemPoolPage />} />
           <Route path="/report" element={<ReportPage />} />
+          <Route path="/teams/:teamId/settings" element={<TeamManagementPage />} />
         </Route>
       </Route>
       <Route element={<AdminRoute />}>
