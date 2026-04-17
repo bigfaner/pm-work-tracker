@@ -179,7 +179,7 @@
         "6.2",
         "6.3"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "11.6-integration-test-auth-isolation.md",
       "record": "records/11.6-integration-test-auth-isolation.md"
     },
