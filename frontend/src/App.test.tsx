@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth'
 import type { User } from '@/types'
 import App from './App'
@@ -9,6 +10,19 @@ import App from './App'
 // Mock the teams API (called by AppLayout on mount)
 vi.mock('@/api/teams', () => ({
   listTeamsApi: vi.fn().mockResolvedValue([]),
+}))
+
+// Mock the mainItems API (called by ItemViewPage)
+vi.mock('@/api/mainItems', () => ({
+  listMainItemsApi: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 }),
+  createMainItemApi: vi.fn(),
+  updateMainItemApi: vi.fn(),
+  archiveMainItemApi: vi.fn(),
+}))
+
+// Mock the subItems API
+vi.mock('@/api/subItems', () => ({
+  listSubItemsApi: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 }),
 }))
 
 const mockUser: User = {
@@ -29,10 +43,13 @@ const superAdminUser: User = {
 }
 
 function renderApp(initialPath = '/') {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
-    <MemoryRouter initialEntries={[initialPath]}>
-      <App />
-    </MemoryRouter>,
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={[initialPath]}>
+        <App />
+      </MemoryRouter>
+    </QueryClientProvider>,
   )
 }
 
