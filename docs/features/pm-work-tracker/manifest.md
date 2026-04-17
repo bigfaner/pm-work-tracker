@@ -1,6 +1,6 @@
 ---
 feature: "pm-work-tracker"
-status: design
+status: tasks
 ---
 
 # Feature: pm-work-tracker
@@ -17,16 +17,18 @@ status: design
 | PRD Eval | prd-eval.md | 总评 A；背景与目标 B、流程说明 A、功能描述 B、用户故事 A、范围清晰度 A、UI Functions A |
 | Tech Design | design/tech-design.md | React SPA + Go/Gin REST API + GORM（SQLite dev / MySQL prod）；四层架构（Transport/Service/Repository/DB）；6 个核心数据模型；JWT + RBAC + 团队隔离中间件 |
 | API Handbook | design/api-handbook.md | 40+ REST 端点，覆盖 Auth/Teams/MainItems/SubItems/ProgressRecords/ItemPool/Views/Reports/Admin；统一响应信封；16 个错误码 |
-| UI Design | ui/ui-design.md | React 18 + Ant Design v5；11 个页面完整布局/状态/交互/数据绑定规格；全局筛选栏模式；甘特图自定义 CSS Grid 实现 |
+| UI Design | ui/ui-design.md | React 18 + Ant Design v5；11 个页面完整布局/状态/交互/数据绑定规格；全局筛选栏模式；甘特图 frappe-gantt 集成 |
+| Design Eval | design-eval.md | 总评 A；架构清晰度 A、接口与模型 B、错误处理 A、测试策略 A、可拆解性 A、安全考量 A |
+| Task Index | tasks/index.json | 60 个任务，11 组，覆盖后端基础设施/模型/服务/Handler、前端基础/页面、测试；估时约 155h |
 
 ## Traceability
 
 | PRD Section | Design Section | Tasks |
 |-------------|----------------|-------|
-| 5.1 用户认证与权限 | tech-design: AuthService, JWT Flow; api-handbook: Auth endpoints; ui-design: Page 1 登录页 | — |
-| 5.2 团队管理 | tech-design: TeamService; api-handbook: Teams endpoints; ui-design: Page 10 团队管理页, Page 11 超级管理员后台 | — |
-| 5.3 主事项管理 | tech-design: MainItemService, MainItem model; api-handbook: MainItems endpoints; ui-design: Page 2 事项视图, Page 3 主事项详情页 | — |
-| 5.4 子事项管理 | tech-design: SubItemService, SubItem model, ProgressService; api-handbook: SubItems + ProgressRecords endpoints; ui-design: Page 4 子事项详情页 | — |
-| 5.5 事项池 | tech-design: ItemPoolService, ItemPool model; api-handbook: ItemPool endpoints; ui-design: Page 5 事项池 | — |
-| 5.6 视图（周/甘特/表格） | tech-design: ViewService; api-handbook: Views endpoints; ui-design: Page 6 周视图, Page 7 甘特图, Page 8 表格视图 | — |
-| 5.7 周报导出 | tech-design: ReportService; api-handbook: Reports endpoints; ui-design: Page 9 周报导出 | — |
+| 5.1 用户认证与权限 | tech-design: AuthService, JWT Flow; api-handbook: Auth endpoints; ui-design: Page 1 登录页 | 1.5, 3.1, 3.4, 6.2, 8.1 |
+| 5.2 团队管理 | tech-design: TeamService; api-handbook: Teams endpoints; ui-design: Page 10 团队管理页, Page 11 超级管理员后台 | 2.1, 2.4, 4.1, 4.6, 6.3, 6.10, 8.2, 8.3 |
+| 5.3 主事项管理 | tech-design: MainItemService, MainItem model; api-handbook: MainItems endpoints; ui-design: Page 2 事项视图, Page 3 主事项详情页 | 2.2, 2.5, 4.2, 6.4, 9.1, 9.2 |
+| 5.4 子事项管理 | tech-design: SubItemService, SubItem model, ProgressService; api-handbook: SubItems + ProgressRecords endpoints; ui-design: Page 4 子事项详情页 | 2.2, 2.5, 2.6, 4.3, 4.4, 6.5, 6.6, 9.3 |
+| 5.5 事项池 | tech-design: ItemPoolService, ItemPool model; api-handbook: ItemPool endpoints; ui-design: Page 5 事项池 | 2.3, 2.6, 4.5, 6.7, 9.4 |
+| 5.6 视图（周/甘特/表格） | tech-design: ViewService; api-handbook: Views endpoints; ui-design: Page 6 周视图, Page 7 甘特图, Page 8 表格视图 | 5.1, 5.2, 5.3, 6.8, 10.1, 10.2, 10.3 |
+| 5.7 周报导出 | tech-design: ReportService; api-handbook: Reports endpoints; ui-design: Page 9 周报导出 | 5.4, 6.9, 10.4 |
