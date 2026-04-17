@@ -101,8 +101,8 @@ func TestMainItemRepo_Update(t *testing.T) {
 	item := createMainItem(t, db, team.ID, u.ID, "MI-U1", "Update Me", "P1", "待开始")
 
 	fields := map[string]interface{}{
-		"title":   "Updated Title",
-		"status":  "进行中",
+		"title":    "Updated Title",
+		"status":   "进行中",
 		"priority": "P2",
 	}
 	require.NoError(t, repo.Update(ctx, item, fields))

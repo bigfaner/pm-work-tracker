@@ -53,12 +53,12 @@ func TestItemPoolRepo_Create(t *testing.T) {
 
 	u, team := seedItemPoolData(t, db)
 	item := &model.ItemPool{
-		TeamID:          team.ID,
-		Title:           "New Suggestion",
-		Background:      "Some context",
-		ExpectedOutput:  "Expected result",
-		SubmitterID:     u.ID,
-		Status:          "待分配",
+		TeamID:         team.ID,
+		Title:          "New Suggestion",
+		Background:     "Some context",
+		ExpectedOutput: "Expected result",
+		SubmitterID:    u.ID,
+		Status:         "待分配",
 	}
 	require.NoError(t, repo.Create(ctx, item))
 	assert.NotZero(t, item.ID)
