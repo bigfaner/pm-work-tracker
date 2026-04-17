@@ -33,3 +33,5 @@ go.work.sum
 docs/features/pm-work-tracker/tasks/process/*
 frontend/node_modules/*
 tmp/*
+.claude/settings.local.json
+docs/harness-reports/*

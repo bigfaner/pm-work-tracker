@@ -1,6 +1,6 @@
 module pm-work-tracker/backend
 
-go 1.25.0
+go 1.26.1
 
 require (
 	github.com/glebarez/sqlite v1.11.0
