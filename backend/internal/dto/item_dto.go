@@ -57,6 +57,11 @@ type AssignItemPoolReq struct {
 	AssigneeID uint `json:"assigneeId" binding:"required"`
 }
 
+// RejectItemPoolReq is the request DTO for rejecting a pool item.
+type RejectItemPoolReq struct {
+	Reason string `json:"reason" binding:"required,max=200"`
+}
+
 // MainItemCreateReq is the request DTO for creating a main item.
 type MainItemCreateReq struct {
 	Title           string  `json:"title" binding:"required,max=100"`
