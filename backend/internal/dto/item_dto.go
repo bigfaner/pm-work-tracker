@@ -150,6 +150,33 @@ type ProgressRecordDTO struct {
 	CreatedAt   string  `json:"createdAt"`
 }
 
+// Table view DTOs.
+
+// TableFilter holds filter and sort parameters for the table view.
+type TableFilter struct {
+	Type       string   `form:"type" json:"type"`                     // "main"|"sub"|"" (empty = both)
+	Priority   []string `form:"priority" json:"priority"`             // ["P1","P2","P3"]
+	Status     []string `form:"status" json:"status"`
+	AssigneeID *uint    `form:"assigneeId" json:"assigneeId"`
+	SortBy     string   `form:"sortBy" json:"sortBy"`                 // field name
+	SortOrder  string   `form:"sortOrder" json:"sortOrder"`           // "asc"|"desc"
+}
+
+// TableRow represents a single row in the table view (main item or sub-item).
+type TableRow struct {
+	ID              uint    `json:"id"`
+	Type            string  `json:"type"`        // "main"|"sub"
+	Code            string  `json:"code"`
+	Title           string  `json:"title"`
+	Priority        string  `json:"priority"`
+	AssigneeID      *uint   `json:"assigneeId"`
+	AssigneeName    string  `json:"assigneeName"`
+	Status          string  `json:"status"`
+	Completion      float64 `json:"completion"`
+	ExpectedEndDate *string `json:"expectedEndDate"`
+	ActualEndDate   *string `json:"actualEndDate"`
+}
+
 // Gantt view DTOs.
 
 // GanttFilter holds filter parameters for the gantt view.

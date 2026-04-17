@@ -35,6 +35,7 @@ var (
 	ErrCannotRemoveSelf  = &AppError{Code: "CANNOT_REMOVE_SELF", Status: 422, Message: "PM cannot remove themselves"}
 	ErrCannotModifySelf  = &AppError{Code: "CANNOT_MODIFY_SELF", Status: 422, Message: "cannot modify your own permissions"}
 	ErrItemAlreadyProcessed = &AppError{Code: "ITEM_ALREADY_PROCESSED", Status: 422, Message: "item already processed"}
+	ErrNoData               = &AppError{Code: "NO_DATA", Status: 404, Message: "no data to export"}
 )
 
 // RespondError writes a standard error envelope. Non-AppError values fall back to ErrInternal.

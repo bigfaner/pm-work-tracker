@@ -1,7 +1,11 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
+	"fmt"
+	"sort"
 	"time"
 
 	"pm-work-tracker/backend/internal/dto"
@@ -14,12 +18,15 @@ import (
 type ViewService interface {
 	WeeklyView(ctx context.Context, teamID uint, weekStart time.Time) (*dto.WeeklyViewResult, error)
 	GanttView(ctx context.Context, teamID uint, filter dto.GanttFilter) (*dto.GanttResult, error)
+	TableView(ctx context.Context, teamID uint, filter dto.TableFilter, page dto.Pagination) (*dto.PageResult[dto.TableRow], error)
+	TableExportCSV(ctx context.Context, teamID uint, filter dto.TableFilter) ([]byte, error)
 }
 
 type viewService struct {
 	mainItemRepo repository.MainItemRepo
 	subItemRepo  repository.SubItemRepo
 	progressRepo repository.ProgressRepo
+	userRepo     repository.UserRepo
 }
 
 // NewViewService creates a new ViewService.
@@ -28,6 +35,16 @@ func NewViewService(mainItemRepo repository.MainItemRepo, subItemRepo repository
 		mainItemRepo: mainItemRepo,
 		subItemRepo:  subItemRepo,
 		progressRepo: progressRepo,
+	}
+}
+
+// NewViewServiceWithUserRepo creates a new ViewService with user repo for table view.
+func NewViewServiceWithUserRepo(mainItemRepo repository.MainItemRepo, subItemRepo repository.SubItemRepo, progressRepo repository.ProgressRepo, userRepo repository.UserRepo) ViewService {
+	return &viewService{
+		mainItemRepo: mainItemRepo,
+		subItemRepo:  subItemRepo,
+		progressRepo: progressRepo,
+		userRepo:     userRepo,
 	}
 }
 
@@ -231,4 +248,331 @@ func computeIsOverdue(expectedEndDate *time.Time, status string, today time.Time
 		return false
 	}
 	return expectedEndDate.Before(today)
+}
+
+func (s *viewService) TableView(ctx context.Context, teamID uint, filter dto.TableFilter, page dto.Pagination) (*dto.PageResult[dto.TableRow], error) {
+	var rows []dto.TableRow
+
+	// Fetch main items (non-archived only)
+	if filter.Type == "" || filter.Type == "main" {
+		mainItems, err := s.mainItemRepo.ListNonArchivedByTeam(ctx, teamID)
+		if err != nil {
+			return nil, err
+		}
+		for _, mi := range mainItems {
+			if !matchesFilterMain(mi, filter) {
+				continue
+			}
+			rows = append(rows, mainItemToRow(mi))
+		}
+	}
+
+	// Fetch sub-items
+	if filter.Type == "" || filter.Type == "sub" {
+		subItems, err := s.subItemRepo.ListByTeam(ctx, teamID)
+		if err != nil {
+			return nil, err
+		}
+		for _, si := range subItems {
+			if !matchesFilterSub(si, filter) {
+				continue
+			}
+			rows = append(rows, subItemToRow(si))
+		}
+	}
+
+	// Resolve assignee names
+	resolveAssigneeNames(ctx, rows, s.userRepo)
+
+	// Sort
+	sortTableRows(rows, filter)
+
+	// Paginate
+	total := int64(len(rows))
+	start := (page.Page - 1) * page.PageSize
+	if start >= len(rows) {
+		return &dto.PageResult[dto.TableRow]{
+			Items: []dto.TableRow{},
+			Total: total,
+			Page:  page.Page,
+			Size:  page.PageSize,
+		}, nil
+	}
+	end := start + page.PageSize
+	if end > len(rows) {
+		end = len(rows)
+	}
+
+	return &dto.PageResult[dto.TableRow]{
+		Items: rows[start:end],
+		Total: total,
+		Page:  page.Page,
+		Size:  page.PageSize,
+	}, nil
+}
+
+func (s *viewService) TableExportCSV(ctx context.Context, teamID uint, filter dto.TableFilter) ([]byte, error) {
+	// Fetch all matching rows (no pagination)
+	var rows []dto.TableRow
+
+	if filter.Type == "" || filter.Type == "main" {
+		mainItems, err := s.mainItemRepo.ListNonArchivedByTeam(ctx, teamID)
+		if err != nil {
+			return nil, err
+		}
+		for _, mi := range mainItems {
+			if !matchesFilterMain(mi, filter) {
+				continue
+			}
+			rows = append(rows, mainItemToRow(mi))
+		}
+	}
+
+	if filter.Type == "" || filter.Type == "sub" {
+		subItems, err := s.subItemRepo.ListByTeam(ctx, teamID)
+		if err != nil {
+			return nil, err
+		}
+		for _, si := range subItems {
+			if !matchesFilterSub(si, filter) {
+				continue
+			}
+			rows = append(rows, subItemToRow(si))
+		}
+	}
+
+	if len(rows) == 0 {
+		return nil, apperrors.ErrNoData
+	}
+
+	resolveAssigneeNames(ctx, rows, s.userRepo)
+	sortTableRows(rows, filter)
+
+	// Write CSV
+	var buf bytes.Buffer
+	// UTF-8 BOM for Excel compatibility
+	buf.Write([]byte{0xEF, 0xBB, 0xBF})
+
+	writer := csv.NewWriter(&buf)
+	// Header
+	header := []string{"编号", "标题", "类型", "优先级", "负责人", "状态", "完成度", "预期完成时间", "实际完成时间"}
+	if err := writer.Write(header); err != nil {
+		return nil, err
+	}
+
+	for _, row := range rows {
+		record := []string{
+			row.Code,
+			row.Title,
+			row.Type,
+			row.Priority,
+			row.AssigneeName,
+			row.Status,
+			fmt.Sprintf("%.0f", row.Completion),
+			derefString(row.ExpectedEndDate),
+			derefString(row.ActualEndDate),
+		}
+		if err := writer.Write(record); err != nil {
+			return nil, err
+		}
+	}
+
+	writer.Flush()
+	if err := writer.Error(); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func derefString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+func mainItemToRow(mi model.MainItem) dto.TableRow {
+	return dto.TableRow{
+		ID:              mi.ID,
+		Type:            "main",
+		Code:            mi.Code,
+		Title:           mi.Title,
+		Priority:        mi.Priority,
+		AssigneeID:      mi.AssigneeID,
+		Status:          mi.Status,
+		Completion:      mi.Completion,
+		ExpectedEndDate: formatDatePtr(mi.ExpectedEndDate),
+		ActualEndDate:   formatDatePtr(mi.ActualEndDate),
+	}
+}
+
+func subItemToRow(si model.SubItem) dto.TableRow {
+	return dto.TableRow{
+		ID:              si.ID,
+		Type:            "sub",
+		Code:            fmt.Sprintf("SI-%04d", si.ID),
+		Title:           si.Title,
+		Priority:        si.Priority,
+		AssigneeID:      si.AssigneeID,
+		Status:          si.Status,
+		Completion:      si.Completion,
+		ExpectedEndDate: formatDatePtr(si.ExpectedEndDate),
+		ActualEndDate:   formatDatePtr(si.ActualEndDate),
+	}
+}
+
+func formatDatePtr(t *time.Time) *string {
+	if t == nil {
+		return nil
+	}
+	s := t.Format("2006-01-02")
+	return &s
+}
+
+func matchesFilterMain(mi model.MainItem, filter dto.TableFilter) bool {
+	if len(filter.Priority) > 0 && !contains(filter.Priority, mi.Priority) {
+		return false
+	}
+	if len(filter.Status) > 0 && !contains(filter.Status, mi.Status) {
+		return false
+	}
+	if filter.AssigneeID != nil {
+		if mi.AssigneeID == nil || *mi.AssigneeID != *filter.AssigneeID {
+			return false
+		}
+	}
+	return true
+}
+
+func matchesFilterSub(si model.SubItem, filter dto.TableFilter) bool {
+	if len(filter.Priority) > 0 && !contains(filter.Priority, si.Priority) {
+		return false
+	}
+	if len(filter.Status) > 0 && !contains(filter.Status, si.Status) {
+		return false
+	}
+	if filter.AssigneeID != nil {
+		if si.AssigneeID == nil || *si.AssigneeID != *filter.AssigneeID {
+			return false
+		}
+	}
+	return true
+}
+
+func contains(slice []string, val string) bool {
+	for _, s := range slice {
+		if s == val {
+			return true
+		}
+	}
+	return false
+}
+
+// priorityOrder maps priority strings to sortable integers.
+var priorityOrder = map[string]int{"P1": 1, "P2": 2, "P3": 3}
+
+func sortTableRows(rows []dto.TableRow, filter dto.TableFilter) {
+	sort.SliceStable(rows, func(i, j int) bool {
+		switch filter.SortBy {
+		case "completion":
+			return compareWithOrder(rows[i].Completion, rows[j].Completion, filter.SortOrder)
+		case "status":
+			return compareWithOrder(rows[i].Status, rows[j].Status, filter.SortOrder)
+		case "expectedEndDate":
+			return compareDatePtrWithOrder(rows[i].ExpectedEndDate, rows[j].ExpectedEndDate, filter.SortOrder)
+		case "actualEndDate":
+			return compareDatePtrWithOrder(rows[i].ActualEndDate, rows[j].ActualEndDate, filter.SortOrder)
+		case "priority":
+			pi, oki := priorityOrder[rows[i].Priority]
+			pj, okj := priorityOrder[rows[j].Priority]
+			if !oki {
+				pi = 99
+			}
+			if !okj {
+				pj = 99
+			}
+			return compareWithOrder(pi, pj, filter.SortOrder)
+		default:
+			// Default sort: priority DESC, then expectedEndDate ASC
+			pi, oki := priorityOrder[rows[i].Priority]
+			pj, okj := priorityOrder[rows[j].Priority]
+			if !oki {
+				pi = 99
+			}
+			if !okj {
+				pj = 99
+			}
+			if pi != pj {
+				return pi < pj // lower number = higher priority = first (DESC)
+			}
+			// Secondary sort: expectedEndDate ASC
+			return compareDatePtr(rows[i].ExpectedEndDate, rows[j].ExpectedEndDate)
+		}
+	})
+}
+
+func compareWithOrder[T int | float64 | string](a, b T, order string) bool {
+	if order == "desc" {
+		return a > b
+	}
+	return a < b
+}
+
+func compareDatePtrWithOrder(a, b *string, order string) bool {
+	if a == nil && b == nil {
+		return false
+	}
+	if a == nil {
+		return order != "desc" // nil goes last in asc, first in desc
+	}
+	if b == nil {
+		return order == "desc"
+	}
+	if order == "desc" {
+		return *a > *b
+	}
+	return *a < *b
+}
+
+func compareDatePtr(a, b *string) bool {
+	if a == nil && b == nil {
+		return false
+	}
+	if a == nil {
+		return false // nil goes last
+	}
+	if b == nil {
+		return true
+	}
+	return *a < *b
+}
+
+func resolveAssigneeNames(ctx context.Context, rows []dto.TableRow, userRepo repository.UserRepo) {
+	if userRepo == nil {
+		return
+	}
+	// Collect unique assignee IDs
+	assigneeIDs := make(map[uint]struct{})
+	for _, row := range rows {
+		if row.AssigneeID != nil {
+			assigneeIDs[*row.AssigneeID] = struct{}{}
+		}
+	}
+
+	// Resolve names
+	names := make(map[uint]string)
+	for id := range assigneeIDs {
+		user, err := userRepo.FindByID(ctx, id)
+		if err == nil && user != nil {
+			names[id] = user.DisplayName
+		}
+	}
+
+	// Fill names into rows
+	for i := range rows {
+		if rows[i].AssigneeID != nil {
+			rows[i].AssigneeName = names[*rows[i].AssigneeID]
+		}
+	}
 }

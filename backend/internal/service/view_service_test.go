@@ -1,7 +1,9 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
 	"errors"
 	"testing"
 	"time"
@@ -1006,4 +1008,607 @@ func TestGanttView_Overdue_NilExpectedEndDate(t *testing.T) {
 
 	require.Len(t, result.Items, 1)
 	assert.False(t, result.Items[0].IsOverdue)
+}
+
+// ---------------------------------------------------------------------------
+// Mock UserRepo for table view tests
+// ---------------------------------------------------------------------------
+
+type mockViewUserRepo struct {
+	users map[uint]*model.User
+}
+
+func (m *mockViewUserRepo) FindByID(_ context.Context, id uint) (*model.User, error) {
+	if u, ok := m.users[id]; ok {
+		return u, nil
+	}
+	return nil, errors.New("user not found")
+}
+func (m *mockViewUserRepo) FindByUsername(_ context.Context, _ string) (*model.User, error) {
+	return nil, nil
+}
+func (m *mockViewUserRepo) List(_ context.Context) ([]*model.User, error) {
+	return nil, nil
+}
+func (m *mockViewUserRepo) Update(_ context.Context, _ *model.User) error {
+	return nil
+}
+
+// newViewServiceWithUsers creates a ViewService with a user repo for table view tests.
+func newViewServiceWithUsers(mainRepo *mockViewMainItemRepo, subRepo *mockViewSubItemRepo, userRepo *mockViewUserRepo) ViewService {
+	return &viewService{
+		mainItemRepo: mainRepo,
+		subItemRepo:  subRepo,
+		progressRepo: &mockViewProgressRepo{},
+		userRepo:     userRepo,
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Tests: TableView
+// ---------------------------------------------------------------------------
+
+func TestTableView_EmptyTeam_ReturnsEmpty(t *testing.T) {
+	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
+	svc := newViewServiceWithUsers(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewUserRepo{})
+
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+	assert.Empty(t, result.Items)
+	assert.Equal(t, int64(0), result.Total)
+}
+
+func TestTableView_CombinesMainAndSubItems(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	assigneeID := uint(100)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{
+				Model:           gorm.Model{ID: 1},
+				TeamID:          1,
+				Code:            "MI-0001",
+				Title:           "Main Item",
+				Priority:        "P1",
+				AssigneeID:      &assigneeID,
+				Status:          "进行中",
+				Completion:      50,
+				ExpectedEndDate: &endDate,
+			},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{
+				Model:           gorm.Model{ID: 10},
+				TeamID:          1,
+				MainItemID:      1,
+				Title:           "Sub Item",
+				Priority:        "P2",
+				AssigneeID:      &assigneeID,
+				Status:          "待开始",
+				Completion:      0,
+				ExpectedEndDate: &endDate,
+			},
+		},
+	}
+	userRepo := &mockViewUserRepo{
+		users: map[uint]*model.User{
+			100: {Model: gorm.Model{ID: 100}, DisplayName: "Alice"},
+		},
+	}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, userRepo)
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+
+	assert.Equal(t, int64(2), result.Total)
+	require.Len(t, result.Items, 2)
+
+	// Items should be sorted by default: priority DESC (P1 before P2)
+	assert.Equal(t, "main", result.Items[0].Type)
+	assert.Equal(t, "MI-0001", result.Items[0].Code)
+	assert.Equal(t, "Main Item", result.Items[0].Title)
+	assert.Equal(t, "P1", result.Items[0].Priority)
+	assert.Equal(t, "Alice", result.Items[0].AssigneeName)
+
+	assert.Equal(t, "sub", result.Items[1].Type)
+	assert.Equal(t, "P2", result.Items[1].Priority)
+}
+
+func TestTableView_FilterByTypeMain(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+		},
+	}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{Type: "main"}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+
+	assert.Equal(t, int64(1), result.Total)
+	require.Len(t, result.Items, 1)
+	assert.Equal(t, "main", result.Items[0].Type)
+}
+
+func TestTableView_FilterByTypeSub(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+		},
+	}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{Type: "sub"}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+
+	assert.Equal(t, int64(1), result.Total)
+	require.Len(t, result.Items, 1)
+	assert.Equal(t, "sub", result.Items[0].Type)
+}
+
+func TestTableView_FilterByPriority(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "P1 Item", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "P3 Item", Priority: "P3", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{Priority: []string{"P1"}}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+
+	assert.Equal(t, int64(1), result.Total)
+	require.Len(t, result.Items, 1)
+	assert.Equal(t, "P1", result.Items[0].Priority)
+}
+
+func TestTableView_FilterByStatus(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Active", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "Done", Priority: "P1", Status: "已完成", Completion: 100, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{Status: []string{"已完成"}}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+
+	assert.Equal(t, int64(1), result.Total)
+	require.Len(t, result.Items, 1)
+	assert.Equal(t, "已完成", result.Items[0].Status)
+}
+
+func TestTableView_FilterByAssigneeID(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	assignee1 := uint(100)
+	assignee2 := uint(200)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Alice's", Priority: "P1", AssigneeID: &assignee1, Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "Bob's", Priority: "P1", AssigneeID: &assignee2, Status: "进行中", Completion: 30, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{AssigneeID: &assignee1}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+
+	assert.Equal(t, int64(1), result.Total)
+	require.Len(t, result.Items, 1)
+	assert.Equal(t, uint(100), *result.Items[0].AssigneeID)
+}
+
+func TestTableView_Pagination(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "A", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "B", Priority: "P2", Status: "进行中", Completion: 30, ExpectedEndDate: &endDate},
+			{Model: gorm.Model{ID: 3}, TeamID: 1, Code: "MI-0003", Title: "C", Priority: "P3", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 2})
+	require.NoError(t, err)
+
+	assert.Equal(t, int64(3), result.Total)
+	assert.Equal(t, 1, result.Page)
+	assert.Equal(t, 2, result.Size)
+	require.Len(t, result.Items, 2)
+	// Default sort: priority DESC — P1 first, then P2
+	assert.Equal(t, "P1", result.Items[0].Priority)
+	assert.Equal(t, "P2", result.Items[1].Priority)
+}
+
+func TestTableView_DefaultSort_PriorityDescThenExpectedEndDateAsc(t *testing.T) {
+	endDate1 := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	endDate2 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	endDate3 := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "P2 Late", Priority: "P2", Status: "进行中", Completion: 30, ExpectedEndDate: &endDate3},
+			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "P2 Early", Priority: "P2", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate2},
+			{Model: gorm.Model{ID: 3}, TeamID: 1, Code: "MI-0003", Title: "P1", Priority: "P1", Status: "进行中", Completion: 80, ExpectedEndDate: &endDate1},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 3)
+	// P1 first, then P2 items sorted by ExpectedEndDate ASC
+	assert.Equal(t, "P1", result.Items[0].Priority)
+	assert.Equal(t, "P2 Early", result.Items[1].Title)
+	assert.Equal(t, "P2 Late", result.Items[2].Title)
+}
+
+func TestTableView_SortByCompletion_Asc(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "High", Priority: "P1", Status: "进行中", Completion: 80, ExpectedEndDate: &endDate},
+			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "Low", Priority: "P1", Status: "待开始", Completion: 10, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{SortBy: "completion", SortOrder: "asc"}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 2)
+	assert.Equal(t, 10.0, result.Items[0].Completion)
+	assert.Equal(t, 80.0, result.Items[1].Completion)
+}
+
+func TestTableView_SortByCompletion_Desc(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Low", Priority: "P1", Status: "进行中", Completion: 10, ExpectedEndDate: &endDate},
+			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "High", Priority: "P1", Status: "待开始", Completion: 80, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{SortBy: "completion", SortOrder: "desc"}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 2)
+	assert.Equal(t, 80.0, result.Items[0].Completion)
+	assert.Equal(t, 10.0, result.Items[1].Completion)
+}
+
+func TestTableView_SubItemCodeFormat(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+		},
+	}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{Type: "sub"}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 1)
+	// SubItem code should be SI-XXXX format based on its ID
+	assert.Equal(t, "SI-0010", result.Items[0].Code)
+}
+
+func TestTableView_AssigneeNameResolved(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	assigneeID := uint(50)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", AssigneeID: &assigneeID, Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+	userRepo := &mockViewUserRepo{
+		users: map[uint]*model.User{
+			50: {Model: gorm.Model{ID: 50}, DisplayName: "Bob"},
+		},
+	}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, userRepo)
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 1)
+	assert.Equal(t, "Bob", result.Items[0].AssigneeName)
+}
+
+func TestTableView_AssigneeNameEmpty_WhenNoAssignee(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "No Assignee", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 1)
+	assert.Equal(t, "", result.Items[0].AssigneeName)
+	assert.Nil(t, result.Items[0].AssigneeID)
+}
+
+func TestTableView_ExpectedEndDateAndActualEndDateFormatted(t *testing.T) {
+	expectedEnd := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	actualEnd := time.Date(2026, 4, 20, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "已完成", Completion: 100, ExpectedEndDate: &expectedEnd, ActualEndDate: &actualEnd},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 1)
+	require.NotNil(t, result.Items[0].ExpectedEndDate)
+	assert.Equal(t, "2026-05-01", *result.Items[0].ExpectedEndDate)
+	require.NotNil(t, result.Items[0].ActualEndDate)
+	assert.Equal(t, "2026-04-20", *result.Items[0].ActualEndDate)
+}
+
+func TestTableView_NilDates_ReturnNil(t *testing.T) {
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "No Dates", Priority: "P1", Status: "待开始", Completion: 0},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 1)
+	assert.Nil(t, result.Items[0].ExpectedEndDate)
+	assert.Nil(t, result.Items[0].ActualEndDate)
+}
+
+func TestTableView_Page2_ReturnsSecondPage(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "A", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "B", Priority: "P2", Status: "进行中", Completion: 30, ExpectedEndDate: &endDate},
+			{Model: gorm.Model{ID: 3}, TeamID: 1, Code: "MI-0003", Title: "C", Priority: "P3", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{}, dto.Pagination{Page: 2, PageSize: 2})
+	require.NoError(t, err)
+
+	assert.Equal(t, int64(3), result.Total)
+	assert.Equal(t, 2, result.Page)
+	require.Len(t, result.Items, 1)
+	assert.Equal(t, "P3", result.Items[0].Priority)
+}
+
+func TestTableView_MainItemRepoError(t *testing.T) {
+	mainRepo := &mockViewMainItemRepo{listErr: errors.New("db error")}
+	svc := newViewServiceWithUsers(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewUserRepo{})
+
+	_, err := svc.TableView(context.Background(), 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+	assert.Error(t, err)
+}
+
+func TestTableView_SubItemRepoError(t *testing.T) {
+	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
+	subRepo := &mockViewSubItemRepo{listErr: errors.New("db error")}
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+
+	_, err := svc.TableView(context.Background(), 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+	assert.Error(t, err)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: TableExportCSV
+// ---------------------------------------------------------------------------
+
+func TestTableExportCSV_EmptyResult_ReturnsNoDataError(t *testing.T) {
+	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
+	svc := newViewServiceWithUsers(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewUserRepo{})
+
+	_, err := svc.TableExportCSV(context.Background(), 1, dto.TableFilter{})
+	assert.ErrorIs(t, err, apperrors.ErrNoData)
+}
+
+func TestTableExportCSV_ReturnsValidCSV(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	actualEnd := time.Date(2026, 4, 20, 0, 0, 0, 0, time.UTC)
+	assigneeID := uint(100)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{
+				Model:           gorm.Model{ID: 1},
+				TeamID:          1,
+				Code:            "MI-0001",
+				Title:           "Main Item",
+				Priority:        "P1",
+				AssigneeID:      &assigneeID,
+				Status:          "已完成",
+				Completion:      100,
+				ExpectedEndDate: &endDate,
+				ActualEndDate:   &actualEnd,
+			},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+	userRepo := &mockViewUserRepo{
+		users: map[uint]*model.User{
+			100: {Model: gorm.Model{ID: 100}, DisplayName: "Alice"},
+		},
+	}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, userRepo)
+	data, err := svc.TableExportCSV(context.Background(), 1, dto.TableFilter{})
+	require.NoError(t, err)
+
+	// Strip BOM before CSV parsing
+	csvData := bytes.TrimPrefix(data, []byte{0xEF, 0xBB, 0xBF})
+	reader := csv.NewReader(bytes.NewReader(csvData))
+	records, err := reader.ReadAll()
+	require.NoError(t, err)
+
+	// Header + 1 data row
+	require.Len(t, records, 2)
+
+	// Check header
+	assert.Equal(t, []string{"编号", "标题", "类型", "优先级", "负责人", "状态", "完成度", "预期完成时间", "实际完成时间"}, records[0])
+
+	// Check data row
+	assert.Equal(t, "MI-0001", records[1][0])
+	assert.Equal(t, "Main Item", records[1][1])
+	assert.Equal(t, "main", records[1][2])
+	assert.Equal(t, "P1", records[1][3])
+	assert.Equal(t, "Alice", records[1][4])
+	assert.Equal(t, "已完成", records[1][5])
+	assert.Equal(t, "100", records[1][6])
+	assert.Equal(t, "2026-05-01", records[1][7])
+	assert.Equal(t, "2026-04-20", records[1][8])
+}
+
+func TestTableExportCSV_MultipleRows(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+		},
+	}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	data, err := svc.TableExportCSV(context.Background(), 1, dto.TableFilter{})
+	require.NoError(t, err)
+
+	csvData := bytes.TrimPrefix(data, []byte{0xEF, 0xBB, 0xBF})
+	reader := csv.NewReader(bytes.NewReader(csvData))
+	records, err := reader.ReadAll()
+	require.NoError(t, err)
+
+	// Header + 2 data rows
+	require.Len(t, records, 3)
+	assert.Equal(t, "main", records[1][2])
+	assert.Equal(t, "sub", records[2][2])
+}
+
+func TestTableExportCSV_ExportWithFilter(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "P1", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "P3", Priority: "P3", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	data, err := svc.TableExportCSV(context.Background(), 1, dto.TableFilter{Priority: []string{"P1"}})
+	require.NoError(t, err)
+
+	csvData := bytes.TrimPrefix(data, []byte{0xEF, 0xBB, 0xBF})
+	reader := csv.NewReader(bytes.NewReader(csvData))
+	records, err := reader.ReadAll()
+	require.NoError(t, err)
+
+	// Header + 1 data row (only P1)
+	require.Len(t, records, 2)
+	assert.Equal(t, "P1", records[1][3])
+}
+
+func TestTableExportCSV_NilDates_AsEmpty(t *testing.T) {
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "No Dates", Priority: "P1", Status: "待开始", Completion: 0},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	data, err := svc.TableExportCSV(context.Background(), 1, dto.TableFilter{})
+	require.NoError(t, err)
+
+	reader := csv.NewReader(bytes.NewReader(data))
+	records, err := reader.ReadAll()
+	require.NoError(t, err)
+
+	require.Len(t, records, 2)
+	assert.Equal(t, "", records[1][7]) // expectedEndDate
+	assert.Equal(t, "", records[1][8]) // actualEndDate
+}
+
+func TestTableExportCSV_UTF8BOM(t *testing.T) {
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Item", Priority: "P1", Status: "进行中", Completion: 50},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+	data, err := svc.TableExportCSV(context.Background(), 1, dto.TableFilter{})
+	require.NoError(t, err)
+
+	// UTF-8 BOM prefix
+	assert.True(t, bytes.HasPrefix(data, []byte{0xEF, 0xBB, 0xBF}), "CSV should have UTF-8 BOM")
 }
