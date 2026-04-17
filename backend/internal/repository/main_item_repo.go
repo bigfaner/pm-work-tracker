@@ -14,4 +14,5 @@ type MainItemRepo interface {
 	Update(ctx context.Context, item *model.MainItem, fields map[string]interface{}) error
 	List(ctx context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error)
 	NextCode(ctx context.Context, teamID uint) (string, error)
+	CountByTeam(ctx context.Context, teamID uint) (int64, error)
 }

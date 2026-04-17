@@ -116,6 +116,10 @@ func (m *mockMainItemRepoForPool) NextCode(_ context.Context, teamID uint) (stri
 	return "", nil
 }
 
+func (m *mockMainItemRepoForPool) CountByTeam(_ context.Context, _ uint) (int64, error) {
+	return 0, nil
+}
+
 // mockDBTx captures transaction callback execution.
 type mockDBTx struct {
 	txFunc func(fc func(tx *gorm.DB) error) error

@@ -73,14 +73,14 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 	{
 		// Team info
 		teamsGroup.GET("", deps.Team.Get)
-		teamsGroup.PUT("", deps.Team.Update)
-		teamsGroup.DELETE("", deps.Team.Disband)
+		teamsGroup.PUT("", middleware.RequireTeamRole("pm"), deps.Team.Update)
+		teamsGroup.DELETE("", middleware.RequireTeamRole("pm"), deps.Team.Disband)
 
 		// Members
 		teamsGroup.GET("/members", deps.Team.ListMembers)
-		teamsGroup.POST("/members", deps.Team.InviteMember)
-		teamsGroup.DELETE("/members/:userId", deps.Team.RemoveMember)
-		teamsGroup.PUT("/pm", deps.Team.TransferPM)
+		teamsGroup.POST("/members", middleware.RequireTeamRole("pm"), deps.Team.InviteMember)
+		teamsGroup.DELETE("/members/:userId", middleware.RequireTeamRole("pm"), deps.Team.RemoveMember)
+		teamsGroup.PUT("/pm", middleware.RequireTeamRole("pm"), deps.Team.TransferPM)
 
 		// Main items
 		teamsGroup.POST("/main-items", deps.MainItem.Create)

@@ -109,6 +109,12 @@ func (r *mainItemRepo) NextCode(ctx context.Context, teamID uint) (string, error
 	return fmt.Sprintf("MI-%04d", seq+1), nil
 }
 
+func (r *mainItemRepo) CountByTeam(ctx context.Context, teamID uint) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&model.MainItem{}).Where("team_id = ?", teamID).Count(&count).Error
+	return count, err
+}
+
 func applyMainItemFilter(query *gormlib.DB, filter dto.MainItemFilter) *gormlib.DB {
 	if filter.Status != "" {
 		query = query.Where("status = ?", filter.Status)

@@ -20,7 +20,9 @@ type TransactionDB interface {
 type TeamService interface {
 	CreateTeam(ctx context.Context, creatorID uint, req dto.CreateTeamReq) (*model.Team, error)
 	GetTeam(ctx context.Context, teamID uint) (*model.Team, error)
+	GetTeamDetail(ctx context.Context, teamID uint) (*dto.TeamDetailResp, error)
 	ListTeams(ctx context.Context, callerID uint, isSuperAdmin bool) ([]*model.Team, error)
+	UpdateTeam(ctx context.Context, pmID, teamID uint, req dto.UpdateTeamReq) (*model.Team, error)
 	InviteMember(ctx context.Context, pmID, teamID uint, req dto.InviteMemberReq) error
 	RemoveMember(ctx context.Context, pmID, teamID, targetUserID uint) error
 	TransferPM(ctx context.Context, currentPMID, teamID, newPMID uint) error
@@ -30,13 +32,14 @@ type TeamService interface {
 }
 
 type teamService struct {
-	teamRepo repository.TeamRepo
-	userRepo repository.UserRepo
-	db       TransactionDB
+	teamRepo    repository.TeamRepo
+	userRepo    repository.UserRepo
+	mainItemRepo repository.MainItemRepo
+	db          TransactionDB
 }
 
-func NewTeamService(teamRepo repository.TeamRepo, userRepo repository.UserRepo, db TransactionDB) TeamService {
-	return &teamService{teamRepo: teamRepo, userRepo: userRepo, db: db}
+func NewTeamService(teamRepo repository.TeamRepo, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, db TransactionDB) TeamService {
+	return &teamService{teamRepo: teamRepo, userRepo: userRepo, mainItemRepo: mainItemRepo, db: db}
 }
 
 func (s *teamService) CreateTeam(ctx context.Context, creatorID uint, req dto.CreateTeamReq) (*model.Team, error) {
@@ -75,6 +78,63 @@ func (s *teamService) GetTeam(ctx context.Context, teamID uint) (*model.Team, er
 
 func (s *teamService) ListTeams(ctx context.Context, _ uint, _ bool) ([]*model.Team, error) {
 	return s.teamRepo.List(ctx)
+}
+
+func (s *teamService) GetTeamDetail(ctx context.Context, teamID uint) (*dto.TeamDetailResp, error) {
+	team, err := s.teamRepo.FindByID(ctx, teamID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, apperrors.ErrTeamNotFound
+		}
+		return nil, err
+	}
+
+	pm, err := s.userRepo.FindByID(ctx, team.PmID)
+	if err != nil {
+		return nil, err
+	}
+
+	members, err := s.teamRepo.ListMembers(ctx, teamID)
+	if err != nil {
+		return nil, err
+	}
+
+	var mainItemCount int64
+	if s.mainItemRepo != nil {
+		mainItemCount, _ = s.mainItemRepo.CountByTeam(ctx, teamID)
+	}
+
+	return &dto.TeamDetailResp{
+		ID:            team.ID,
+		Name:          team.Name,
+		Description:   team.Description,
+		PmID:          team.PmID,
+		PmDisplayName: pm.DisplayName,
+		MemberCount:   len(members),
+		MainItemCount: int(mainItemCount),
+		CreatedAt:     team.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:     team.UpdatedAt.Format(time.RFC3339),
+	}, nil
+}
+
+func (s *teamService) UpdateTeam(ctx context.Context, pmID, teamID uint, req dto.UpdateTeamReq) (*model.Team, error) {
+	team, err := s.teamRepo.FindByID(ctx, teamID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, apperrors.ErrTeamNotFound
+		}
+		return nil, err
+	}
+	if team.PmID != pmID {
+		return nil, apperrors.ErrForbidden
+	}
+
+	team.Name = req.Name
+	team.Description = req.Description
+	if err := s.teamRepo.Update(ctx, team); err != nil {
+		return nil, err
+	}
+	return team, nil
 }
 
 func (s *teamService) InviteMember(ctx context.Context, pmID, teamID uint, req dto.InviteMemberReq) error {

@@ -395,7 +395,9 @@ func TestAdminRoutes_AllRegistered(t *testing.T) {
 }
 
 // mockTeamRepo is a test double that satisfies repository.TeamRepo.
-type mockTeamRepo struct{}
+type mockTeamRepo struct {
+	member *model.TeamMember
+}
 
 func (m *mockTeamRepo) Create(_ context.Context, _ *model.Team) error { return nil }
 func (m *mockTeamRepo) FindByID(_ context.Context, _ uint) (*model.Team, error) {
@@ -411,6 +413,9 @@ func (m *mockTeamRepo) AddMember(_ context.Context, _ *model.TeamMember) error {
 }
 func (m *mockTeamRepo) RemoveMember(_ context.Context, _, _ uint) error { return nil }
 func (m *mockTeamRepo) FindMember(_ context.Context, _, _ uint) (*model.TeamMember, error) {
+	if m.member != nil {
+		return m.member, nil
+	}
 	return &model.TeamMember{Role: "member"}, nil
 }
 func (m *mockTeamRepo) ListMembers(_ context.Context, _ uint) ([]*dto.TeamMemberDTO, error) {

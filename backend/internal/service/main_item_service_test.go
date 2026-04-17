@@ -71,6 +71,10 @@ func (m *mockMainItemRepo) NextCode(_ context.Context, teamID uint) (string, err
 	return m.nextCodeVal, m.nextErr
 }
 
+func (m *mockMainItemRepo) CountByTeam(_ context.Context, _ uint) (int64, error) {
+	return 0, nil
+}
+
 type mockSubItemRepo struct {
 	subItems []*model.SubItem
 	findErr  error
