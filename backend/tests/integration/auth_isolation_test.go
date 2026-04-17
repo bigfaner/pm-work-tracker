@@ -31,16 +31,19 @@ const testJWTSecret = "test-secret-that-is-at-least-32-bytes!!"
 type seedData struct {
 	userAID      uint
 	userBID      uint
+	memberAID    uint // regular member of teamA (non-PM)
 	superAdminID uint
 	teamAID      uint
 	teamBID      uint
 }
 
 // setupTestDB creates an in-memory SQLite DB, runs migrations, and seeds test data.
+// Each call gets a unique database to avoid cross-test state leakage.
 func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	t.Helper()
 
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	dbName := fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())
+	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
 	require.NoError(t, err)
 
 	// Run migrations
@@ -56,11 +59,14 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	require.NoError(t, err)
 	hashB, err := bcrypt.GenerateFromPassword([]byte("passwordB"), 4)
 	require.NoError(t, err)
+	hashMemberA, err := bcrypt.GenerateFromPassword([]byte("passwordMemberA"), 4)
+	require.NoError(t, err)
 	hashAdmin, err := bcrypt.GenerateFromPassword([]byte("adminPass"), 4)
 	require.NoError(t, err)
 
 	userA := &model.User{Username: "userA", DisplayName: "User A", PasswordHash: string(hashA)}
 	userB := &model.User{Username: "userB", DisplayName: "User B", PasswordHash: string(hashB)}
+	memberA := &model.User{Username: "memberA", DisplayName: "Member A", PasswordHash: string(hashMemberA)}
 	superAdmin := &model.User{
 		Username: "superadmin", DisplayName: "Super Admin",
 		PasswordHash: string(hashAdmin), IsSuperAdmin: true,
@@ -68,6 +74,7 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 
 	require.NoError(t, db.Create(userA).Error)
 	require.NoError(t, db.Create(userB).Error)
+	require.NoError(t, db.Create(memberA).Error)
 	require.NoError(t, db.Create(superAdmin).Error)
 
 	// Seed teams
@@ -82,12 +89,16 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		TeamID: teamA.ID, UserID: userA.ID, Role: "pm", JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
+		TeamID: teamA.ID, UserID: memberA.ID, Role: "member", JoinedAt: now,
+	}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{
 		TeamID: teamB.ID, UserID: userB.ID, Role: "pm", JoinedAt: now,
 	}).Error)
 
 	return db, &seedData{
 		userAID:      userA.ID,
 		userBID:      userB.ID,
+		memberAID:    memberA.ID,
 		superAdminID: superAdmin.ID,
 		teamAID:      teamA.ID,
 		teamBID:      teamB.ID,
