@@ -616,7 +616,7 @@
       "title": "Frontend Project Setup (Vite + React 18 + TS + antd)",
       "priority": "P0",
       "estimatedTime": "2h",
-      "status": "pending",
+      "status": "completed",
       "file": "7.1-frontend-project-setup.md",
       "record": "records/7.1-frontend-project-setup.md"
     },
