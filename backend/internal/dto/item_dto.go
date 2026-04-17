@@ -121,6 +121,7 @@ type MainItemSummaryDTO struct {
 	ID         uint    `json:"id"`
 	Title      string  `json:"title"`
 	Completion float64 `json:"completion"`
+	IsKeyItem  bool    `json:"isKeyItem,omitempty"`
 }
 
 // SubItemSummaryDTO is a lightweight summary of a sub-item.
@@ -210,4 +211,28 @@ type GanttSubItemDTO struct {
 	ExpectedEndDate string  `json:"expectedEndDate"`
 	Completion      float64 `json:"completion"`
 	Status          string  `json:"status"`
+}
+
+// Report view DTOs.
+
+// ReportPreview is the response DTO for the weekly report preview.
+type ReportPreview struct {
+	WeekStart string             `json:"weekStart"`
+	WeekEnd   string             `json:"weekEnd"`
+	Sections  []ReportSectionDTO `json:"sections"`
+}
+
+// ReportSectionDTO groups sub-items under a main item for the report.
+type ReportSectionDTO struct {
+	MainItem MainItemSummaryDTO `json:"mainItem"`
+	SubItems []ReportSubItemDTO `json:"subItems"`
+}
+
+// ReportSubItemDTO represents a sub-item in the weekly report.
+type ReportSubItemDTO struct {
+	ID           uint     `json:"id"`
+	Title        string   `json:"title"`
+	Completion   float64  `json:"completion"`
+	Achievements []string `json:"achievements"`
+	Blockers     []string `json:"blockers"`
 }
