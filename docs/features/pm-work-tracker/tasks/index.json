@@ -118,7 +118,7 @@
       "dependencies": [
         "3.4"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "11.1-test-auth-jwt.md",
       "record": "records/11.1-test-auth-jwt.md"
     },

@@ -7,6 +7,8 @@ import (
 	jwtv5 "github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 )
 
 const testSecret = "test-secret-that-is-at-least-32b"
@@ -37,13 +39,13 @@ func TestSignAndVerify_RoundTrip_AllRoles(t *testing.T) {
 	}
 }
 
-func TestVerify_ExpiredToken(t *testing.T) {
-	// Manually create an expired token
+func TestVerify_ExpiredToken_ReturnsErrUnauthorized(t *testing.T) {
+	// Manually create an expired token using -1*time.Second expiry
 	claims := &Claims{
 		UserID: 1,
 		Role:   "pm",
 		RegisteredClaims: jwtv5.RegisteredClaims{
-			ExpiresAt: jwtv5.NewNumericDate(time.Now().Add(-1 * time.Hour)),
+			ExpiresAt: jwtv5.NewNumericDate(time.Now().Add(-1 * time.Second)),
 			IssuedAt:  jwtv5.NewNumericDate(time.Now().Add(-25 * time.Hour)),
 		},
 	}
@@ -52,30 +54,30 @@ func TestVerify_ExpiredToken(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = Verify(tokenStr, testSecret)
-	assert.Error(t, err)
+	assert.ErrorIs(t, err, apperrors.ErrUnauthorized)
 }
 
-func TestVerify_TamperedSignature(t *testing.T) {
+func TestVerify_TamperedSignature_ReturnsErrUnauthorized(t *testing.T) {
 	tokenStr, err := Sign(1, "member", testSecret)
 	require.NoError(t, err)
 
-	// Tamper with the token by changing one character
+	// Tamper with the token by changing characters at the end
 	tampered := tokenStr[:len(tokenStr)-5] + "XXXXX"
 	_, err = Verify(tampered, testSecret)
-	assert.Error(t, err)
+	assert.ErrorIs(t, err, apperrors.ErrUnauthorized)
 }
 
-func TestVerify_WrongSecret(t *testing.T) {
+func TestVerify_WrongSecret_ReturnsErrUnauthorized(t *testing.T) {
 	tokenStr, err := Sign(1, "pm", testSecret)
 	require.NoError(t, err)
 
 	_, err = Verify(tokenStr, "wrong-secret-that-is-also-32-bytes!!")
-	assert.Error(t, err)
+	assert.ErrorIs(t, err, apperrors.ErrUnauthorized)
 }
 
-func TestVerify_MalformedToken(t *testing.T) {
+func TestVerify_MalformedToken_ReturnsErrUnauthorized(t *testing.T) {
 	_, err := Verify("not-a-valid-token", testSecret)
-	assert.Error(t, err)
+	assert.ErrorIs(t, err, apperrors.ErrUnauthorized)
 }
 
 func TestSign_Sets24hExpiry(t *testing.T) {
