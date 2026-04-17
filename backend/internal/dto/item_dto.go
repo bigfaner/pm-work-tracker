@@ -17,6 +17,28 @@ type SubItemFilter struct {
 	IsKeyItem *bool  `form:"is_key_item"`
 }
 
+// SubItemCreateReq is the request DTO for creating a sub item.
+type SubItemCreateReq struct {
+	MainItemID      uint   `json:"main_item_id" binding:"required"`
+	Title           string `json:"title" binding:"required,max=100"`
+	Description     string `json:"description"`
+	Priority        string `json:"priority" binding:"required,oneof=P1 P2 P3"`
+	AssigneeID      *uint  `json:"assignee_id"`
+	StartDate       *string `json:"start_date"`
+	ExpectedEndDate *string `json:"expected_end_date"`
+}
+
+// SubItemUpdateReq is the request DTO for updating a sub item.
+// Only non-nil fields will be updated.
+type SubItemUpdateReq struct {
+	Title           *string `json:"title"`
+	Description     *string `json:"description"`
+	Priority        *string `json:"priority"`
+	AssigneeID      *uint   `json:"assignee_id"`
+	StartDate       *string `json:"start_date"`
+	ExpectedEndDate *string `json:"expected_end_date"`
+}
+
 // ItemPoolFilter holds filter parameters for listing ItemPool entries.
 type ItemPoolFilter struct {
 	Status string `form:"status"`
