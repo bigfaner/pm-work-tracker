@@ -44,6 +44,19 @@ type ItemPoolFilter struct {
 	Status string `form:"status"`
 }
 
+// SubmitItemPoolReq is the request DTO for submitting an item to the pool.
+type SubmitItemPoolReq struct {
+	Title          string `json:"title" binding:"required,max=100"`
+	Background     string `json:"background"`
+	ExpectedOutput string `json:"expected_output"`
+}
+
+// AssignItemPoolReq is the request DTO for assigning a pool item to a main item.
+type AssignItemPoolReq struct {
+	MainItemID uint `json:"mainItemId" binding:"required"`
+	AssigneeID uint `json:"assigneeId" binding:"required"`
+}
+
 // MainItemCreateReq is the request DTO for creating a main item.
 type MainItemCreateReq struct {
 	Title           string  `json:"title" binding:"required,max=100"`
