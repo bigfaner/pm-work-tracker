@@ -1,10 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
 import type { User } from '@/types'
 import App from './App'
+
+// Mock the teams API (called by AppLayout on mount)
+vi.mock('@/api/teams', () => ({
+  listTeamsApi: vi.fn().mockResolvedValue([]),
+}))
 
 const mockUser: User = {
   id: 1,
