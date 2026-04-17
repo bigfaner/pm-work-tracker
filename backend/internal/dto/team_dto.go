@@ -10,3 +10,15 @@ type TeamMemberDTO struct {
 	DisplayName string `json:"display_name"`
 	Username    string `json:"username"`
 }
+
+// CreateTeamReq is the request DTO for creating a team.
+type CreateTeamReq struct {
+	Name        string `json:"name" binding:"required,max=100"`
+	Description string `json:"description" binding:"max=500"`
+}
+
+// InviteMemberReq is the request DTO for inviting a member to a team.
+type InviteMemberReq struct {
+	Username string `json:"username" binding:"required"`
+	Role     string `json:"role" binding:"required,oneof=member"`
+}
