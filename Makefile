@@ -1,4 +1,8 @@
-.PHONY: dev build test
+.PHONY: dev build test setup lint
+
+setup:
+	git config core.hooksPath .githooks
+	@echo "Git hooks configured."
 
 dev:
 	@echo "Starting backend..."
@@ -13,3 +17,6 @@ build:
 test:
 	cd backend && go test ./...
 	cd frontend && npm test
+
+lint:
+	cd backend && golangci-lint run ./...
