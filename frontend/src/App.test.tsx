@@ -9,12 +9,21 @@ import App from './App'
 
 // Mock the teams API (called by AppLayout on mount)
 vi.mock('@/api/teams', () => ({
-  listTeamsApi: vi.fn().mockResolvedValue([]),
+  listTeamsApi: vi.fn().mockResolvedValue([
+    { id: 1, name: 'Team 1', description: '', pm_id: 1, created_at: '', updated_at: '' },
+  ]),
+  listMembersApi: vi.fn().mockResolvedValue([]),
 }))
 
 // Mock the mainItems API (called by ItemViewPage)
 vi.mock('@/api/mainItems', () => ({
   listMainItemsApi: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 }),
+  getMainItemApi: vi.fn().mockResolvedValue({
+    id: 123, team_id: 1, code: 'MI-0123', title: 'Test', priority: 'P2',
+    proposer_id: 1, assignee_id: null, start_date: null, expected_end_date: null,
+    actual_end_date: null, status: '进行中', completion: 0, is_key_item: false,
+    delay_count: 0, archived_at: null, created_at: '', updated_at: '', subItems: [],
+  }),
   createMainItemApi: vi.fn(),
   updateMainItemApi: vi.fn(),
   archiveMainItemApi: vi.fn(),
