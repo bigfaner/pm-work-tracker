@@ -130,6 +130,9 @@ func (m *mockSubItemRepoForHandler) List(_ context.Context, _ uint, _ uint, _ dt
 func (m *mockSubItemRepoForHandler) ListByMainItem(_ context.Context, _ uint) ([]*model.SubItem, error) {
 	return m.items, m.err
 }
+func (m *mockSubItemRepoForHandler) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
+	return nil, nil
+}
 
 // ---------------------------------------------------------------------------
 // Helpers

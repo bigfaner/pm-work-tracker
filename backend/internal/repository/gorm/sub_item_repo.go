@@ -91,6 +91,14 @@ func (r *subItemRepo) ListByMainItem(ctx context.Context, mainItemID uint) ([]*m
 	return items, err
 }
 
+func (r *subItemRepo) ListByTeam(ctx context.Context, teamID uint) ([]model.SubItem, error) {
+	var items []model.SubItem
+	err := r.db.WithContext(ctx).
+		Where("team_id = ?", teamID).
+		Find(&items).Error
+	return items, err
+}
+
 func applySubItemFilter(query *gormlib.DB, filter dto.SubItemFilter) *gormlib.DB {
 	if filter.Status != "" {
 		query = query.Where("status = ?", filter.Status)

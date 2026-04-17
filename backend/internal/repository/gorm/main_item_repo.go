@@ -115,6 +115,14 @@ func (r *mainItemRepo) CountByTeam(ctx context.Context, teamID uint) (int64, err
 	return count, err
 }
 
+func (r *mainItemRepo) ListNonArchivedByTeam(ctx context.Context, teamID uint) ([]model.MainItem, error) {
+	var items []model.MainItem
+	err := r.db.WithContext(ctx).
+		Where("team_id = ? AND archived_at IS NULL", teamID).
+		Find(&items).Error
+	return items, err
+}
+
 func applyMainItemFilter(query *gormlib.DB, filter dto.MainItemFilter) *gormlib.DB {
 	if filter.Status != "" {
 		query = query.Where("status = ?", filter.Status)

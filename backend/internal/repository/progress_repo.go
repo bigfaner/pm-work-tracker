@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"pm-work-tracker/backend/internal/model"
 )
@@ -14,4 +15,5 @@ type ProgressRepo interface {
 	ListBySubItem(ctx context.Context, teamID uint, subItemID uint) ([]model.ProgressRecord, error)
 	LatestBySubItem(ctx context.Context, subItemID uint) (*model.ProgressRecord, error)
 	UpdateCompletion(ctx context.Context, recordID uint, completion float64) error
+	ListByTeamInRange(ctx context.Context, teamID uint, start, end time.Time) ([]model.ProgressRecord, error)
 }

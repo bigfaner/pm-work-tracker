@@ -92,6 +92,9 @@ func (m *mockSubItemRepoForPool) List(_ context.Context, teamID uint, mainItemID
 func (m *mockSubItemRepoForPool) ListByMainItem(_ context.Context, mainItemID uint) ([]*model.SubItem, error) {
 	return nil, nil
 }
+func (m *mockSubItemRepoForPool) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
+	return nil, nil
+}
 
 // mockMainItemRepoForPool captures FindByID for Assign validation.
 type mockMainItemRepoForPool struct {
@@ -118,6 +121,10 @@ func (m *mockMainItemRepoForPool) NextCode(_ context.Context, teamID uint) (stri
 
 func (m *mockMainItemRepoForPool) CountByTeam(_ context.Context, _ uint) (int64, error) {
 	return 0, nil
+}
+
+func (m *mockMainItemRepoForPool) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
+	return nil, nil
 }
 
 // mockDBTx captures transaction callback execution.

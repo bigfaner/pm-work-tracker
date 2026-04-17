@@ -3,6 +3,7 @@ package gorm
 import (
 	"context"
 	stderrors "errors"
+	"time"
 
 	gormlib "gorm.io/gorm"
 
@@ -75,4 +76,13 @@ func (r *progressRepo) UpdateCompletion(ctx context.Context, recordID uint, comp
 		return errors.ErrNotFound
 	}
 	return nil
+}
+
+func (r *progressRepo) ListByTeamInRange(ctx context.Context, teamID uint, start, end time.Time) ([]model.ProgressRecord, error) {
+	var records []model.ProgressRecord
+	err := r.db.WithContext(ctx).
+		Where("team_id = ? AND created_at >= ? AND created_at < ?", teamID, start, end).
+		Order("created_at ASC").
+		Find(&records).Error
+	return records, err
 }

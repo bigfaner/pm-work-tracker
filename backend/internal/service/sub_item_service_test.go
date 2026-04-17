@@ -69,6 +69,10 @@ func (m *mockSubItemRepoForSubSvc) ListByMainItem(_ context.Context, mainItemID 
 	return nil, nil
 }
 
+func (m *mockSubItemRepoForSubSvc) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
+	return nil, nil
+}
+
 // mockMainItemSvcForSubSvc captures RecalcCompletion calls.
 type mockMainItemSvcForSubSvc struct {
 	recalcCalledWith uint

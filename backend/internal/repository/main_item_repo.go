@@ -15,4 +15,5 @@ type MainItemRepo interface {
 	List(ctx context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error)
 	NextCode(ctx context.Context, teamID uint) (string, error)
 	CountByTeam(ctx context.Context, teamID uint) (int64, error)
+	ListNonArchivedByTeam(ctx context.Context, teamID uint) ([]model.MainItem, error)
 }

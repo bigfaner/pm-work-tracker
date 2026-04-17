@@ -14,4 +14,5 @@ type SubItemRepo interface {
 	Update(ctx context.Context, item *model.SubItem, fields map[string]interface{}) error
 	List(ctx context.Context, teamID uint, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error)
 	ListByMainItem(ctx context.Context, mainItemID uint) ([]*model.SubItem, error)
+	ListByTeam(ctx context.Context, teamID uint) ([]model.SubItem, error)
 }

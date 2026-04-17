@@ -98,3 +98,54 @@ type PageResult[T any] struct {
 	Page  int   `json:"page"`
 	Size  int   `json:"size"`
 }
+
+// Weekly view DTOs.
+
+// WeeklyViewResult is the response DTO for the weekly view.
+type WeeklyViewResult struct {
+	WeekStart string           `json:"weekStart"`
+	WeekEnd   string           `json:"weekEnd"`
+	Groups    []WeeklyGroupDTO `json:"groups"`
+}
+
+// WeeklyGroupDTO groups sub-items under a main item for the weekly view.
+type WeeklyGroupDTO struct {
+	MainItem             MainItemSummaryDTO   `json:"mainItem"`
+	NewlyCompleted       []SubItemWeekDTO     `json:"newlyCompleted"`
+	HasProgress          []SubItemWeekDTO     `json:"hasProgress"`
+	NoChangeFromLastWeek []SubItemSummaryDTO  `json:"noChangeFromLastWeek"`
+}
+
+// MainItemSummaryDTO is a lightweight summary of a main item.
+type MainItemSummaryDTO struct {
+	ID         uint    `json:"id"`
+	Title      string  `json:"title"`
+	Completion float64 `json:"completion"`
+}
+
+// SubItemSummaryDTO is a lightweight summary of a sub-item.
+type SubItemSummaryDTO struct {
+	ID         uint    `json:"id"`
+	Title      string  `json:"title"`
+	Status     string  `json:"status"`
+	Completion float64 `json:"completion"`
+}
+
+// SubItemWeekDTO is a sub-item with its progress records for the week.
+type SubItemWeekDTO struct {
+	ID               uint                  `json:"id"`
+	Title            string                `json:"title"`
+	Status           string                `json:"status"`
+	Completion       float64               `json:"completion"`
+	MainItemID       uint                  `json:"mainItemId"`
+	ProgressThisWeek []ProgressRecordDTO   `json:"progressThisWeek"`
+}
+
+// ProgressRecordDTO is a lightweight progress record for weekly view.
+type ProgressRecordDTO struct {
+	ID          uint    `json:"id"`
+	Completion  float64 `json:"completion"`
+	Achievement string  `json:"achievement"`
+	Blocker     string  `json:"blocker"`
+	CreatedAt   string  `json:"createdAt"`
+}

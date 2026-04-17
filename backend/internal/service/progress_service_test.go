@@ -70,6 +70,10 @@ func (m *mockProgressRepo) UpdateCompletion(_ context.Context, recordID uint, co
 	return m.updateErr
 }
 
+func (m *mockProgressRepo) ListByTeamInRange(_ context.Context, _ uint, _, _ time.Time) ([]model.ProgressRecord, error) {
+	return nil, nil
+}
+
 // compile-time checks
 var _ repository.ProgressRepo = (*mockProgressRepo)(nil)
 
@@ -104,6 +108,10 @@ func (m *mockSubItemRepoForProgress) List(_ context.Context, teamID uint, mainIt
 }
 
 func (m *mockSubItemRepoForProgress) ListByMainItem(_ context.Context, mainItemID uint) ([]*model.SubItem, error) {
+	return nil, nil
+}
+
+func (m *mockSubItemRepoForProgress) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
 	return nil, nil
 }
 

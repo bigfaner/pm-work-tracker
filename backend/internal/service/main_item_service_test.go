@@ -75,6 +75,10 @@ func (m *mockMainItemRepo) CountByTeam(_ context.Context, _ uint) (int64, error)
 	return 0, nil
 }
 
+func (m *mockMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
+	return nil, nil
+}
+
 type mockSubItemRepo struct {
 	subItems []*model.SubItem
 	findErr  error
@@ -101,6 +105,10 @@ func (m *mockSubItemRepo) ListByMainItem(_ context.Context, mainItemID uint) ([]
 		return nil, m.findErr
 	}
 	return m.subItems, nil
+}
+
+func (m *mockSubItemRepo) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
+	return nil, nil
 }
 
 // ---------------------------------------------------------------------------
