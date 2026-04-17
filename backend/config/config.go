@@ -14,6 +14,7 @@ type Config struct {
 	JWTSecret   string
 	CORSOrigins []string
 	Port        string
+	GinMode     string
 }
 
 // LoadConfig reads environment variables and returns a validated Config.
@@ -56,6 +57,9 @@ func LoadConfig() (*Config, error) {
 	if cfg.Port == "" {
 		cfg.Port = "8080"
 	}
+
+	// GinMode (release mode)
+	cfg.GinMode = os.Getenv("GIN_MODE")
 
 	return cfg, nil
 }
