@@ -355,14 +355,14 @@ func TestRecalcCompletion_OneSubItem(t *testing.T) {
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{
 		subItems: []*model.SubItem{
-			{Completion: 75, Weight: 1.0},
+			{Completion: 60, Weight: 1.0},
 		},
 	}
 	svc := NewMainItemService(mainRepo, subRepo)
 
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
-	assert.InDelta(t, float64(75), mainRepo.updatedFields["completion"], 0.001)
+	assert.InDelta(t, float64(60), mainRepo.updatedFields["completion"], 0.001)
 }
 
 func TestRecalcCompletion_MultipleSubItems_EqualWeights(t *testing.T) {
@@ -374,15 +374,17 @@ func TestRecalcCompletion_MultipleSubItems_EqualWeights(t *testing.T) {
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{
 		subItems: []*model.SubItem{
-			{Completion: 50, Weight: 1.0},
-			{Completion: 100, Weight: 1.0},
+			{Completion: 30, Weight: 1.0},
+			{Completion: 60, Weight: 1.0},
+			{Completion: 90, Weight: 1.0},
 		},
 	}
 	svc := NewMainItemService(mainRepo, subRepo)
 
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
-	assert.InDelta(t, float64(75), mainRepo.updatedFields["completion"], 0.001)
+	// Simple average with equal weights: (30+60+90)/3 = 60
+	assert.InDelta(t, float64(60), mainRepo.updatedFields["completion"], 0.001)
 }
 
 func TestRecalcCompletion_AllZeroWeights_FallbackSimpleAvg(t *testing.T) {
@@ -394,17 +396,16 @@ func TestRecalcCompletion_AllZeroWeights_FallbackSimpleAvg(t *testing.T) {
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{
 		subItems: []*model.SubItem{
-			{Completion: 40, Weight: 0},
+			{Completion: 50, Weight: 0},
 			{Completion: 80, Weight: 0},
-			{Completion: 100, Weight: 0},
 		},
 	}
 	svc := NewMainItemService(mainRepo, subRepo)
 
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
-	// Simple average: (40+80+100)/3 = 73.333...
-	assert.InDelta(t, 73.333, mainRepo.updatedFields["completion"], 0.01)
+	// Simple average: (50+80)/2 = 65
+	assert.InDelta(t, float64(65), mainRepo.updatedFields["completion"], 0.001)
 }
 
 func TestRecalcCompletion_VaryingWeights(t *testing.T) {
