@@ -14,6 +14,7 @@ import (
 	"pm-work-tracker/backend/config"
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
+	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	appjwt "pm-work-tracker/backend/internal/pkg/jwt"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 
@@ -39,7 +40,7 @@ func testDeps(t *testing.T) (*Dependencies, *gorm.DB) {
 	return &Dependencies{
 		Config:   cfg,
 		TeamRepo: teamRepo,
-		Auth:     NewAuthHandler(),
+		Auth:     NewAuthHandler(&stubAuthService{}),
 		Team:     NewTeamHandler(),
 		MainItem: NewMainItemHandler(),
 		SubItem:  NewSubItemHandler(),
@@ -86,7 +87,7 @@ func TestHealthCheck_NoAuthRequired(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-func TestAuthRoutes_LoginReturns501(t *testing.T) {
+func TestAuthRoutes_LoginReturns400OnEmptyBody(t *testing.T) {
 	deps, _ := testDeps(t)
 	r := SetupRouter(deps)
 
@@ -95,7 +96,7 @@ func TestAuthRoutes_LoginReturns501(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusNotImplemented, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestAuthRoutes_LogoutRequiresAuth(t *testing.T) {
@@ -108,13 +109,13 @@ func TestAuthRoutes_LogoutRequiresAuth(t *testing.T) {
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 
-	// With auth
+	// With auth — logout is implemented, returns 200
 	token := signTestToken(t, 1, "member")
 	w = httptest.NewRecorder()
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusNotImplemented, w.Code)
+	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestTeamRoutes_RequireAuthAndTeamScope(t *testing.T) {
@@ -417,4 +418,16 @@ func (m *mockTeamRepo) ListMembers(_ context.Context, _ uint) ([]*dto.TeamMember
 }
 func (m *mockTeamRepo) UpdateMember(_ context.Context, _ *model.TeamMember) error {
 	return nil
+}
+
+// stubAuthService is a minimal stub for service.AuthService used by testDeps.
+// It returns ErrUnauthorized on Login (no real auth logic needed for router tests).
+type stubAuthService struct{}
+
+func (s *stubAuthService) Login(_ context.Context, _, _ string) (string, *model.User, error) {
+	return "", nil, apperrors.ErrUnauthorized
+}
+func (s *stubAuthService) Logout(_ context.Context, _ string) error { return nil }
+func (s *stubAuthService) ParseToken(_ context.Context, token string) (*appjwt.Claims, error) {
+	return appjwt.Verify(token, "test-secret-that-is-at-least-32-bytes!!")
 }
