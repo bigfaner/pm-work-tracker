@@ -338,7 +338,7 @@ export interface ReportPreviewResp {
 }
 
 export interface ReportSection {
-  mainItem: { id: number; title: string; completion: number }
+  mainItem: { id: number; title: string; completion: number; isKeyItem?: boolean }
   subItems: ReportSubItem[]
 }
 
