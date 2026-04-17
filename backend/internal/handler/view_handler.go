@@ -46,6 +46,11 @@ func (h *ViewHandler) Weekly(c *gin.Context) {
 		return
 	}
 
+	if weekStart.Weekday() != time.Monday {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
 	teamID := middleware.GetTeamID(c)
 
 	result, err := h.viewSvc.WeeklyView(c.Request.Context(), teamID, weekStart)
@@ -83,10 +88,61 @@ func (h *ViewHandler) Gantt(c *gin.Context) {
 
 // Table handles GET /api/v1/teams/:teamId/views/table
 func (h *ViewHandler) Table(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
+	if h.viewSvc == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
+		return
+	}
+
+	var filter dto.TableFilter
+	if err := c.ShouldBindQuery(&filter); err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	page := dto.Pagination{Page: 1, PageSize: 50}
+	if err := c.ShouldBindQuery(&page); err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+	if page.Page < 1 {
+		page.Page = 1
+	}
+	if page.PageSize < 1 {
+		page.PageSize = 50
+	}
+
+	teamID := middleware.GetTeamID(c)
+
+	result, err := h.viewSvc.TableView(c.Request.Context(), teamID, filter, page)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, result)
 }
 
 // ExportTable handles GET /api/v1/teams/:teamId/views/table/export
 func (h *ViewHandler) ExportTable(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
+	if h.viewSvc == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
+		return
+	}
+
+	var filter dto.TableFilter
+	if err := c.ShouldBindQuery(&filter); err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	teamID := middleware.GetTeamID(c)
+
+	csvBytes, err := h.viewSvc.TableExportCSV(c.Request.Context(), teamID, filter)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	c.Header("Content-Disposition", `attachment; filename="items-export.csv"`)
+	c.Data(http.StatusOK, "text/csv; charset=utf-8", csvBytes)
 }
