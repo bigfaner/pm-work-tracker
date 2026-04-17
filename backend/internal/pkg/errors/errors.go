@@ -29,6 +29,8 @@ var (
 	ErrProgressRegression = &AppError{Code: "PROGRESS_REGRESSION", Status: 422, Message: "completion cannot be lower than previous record"}
 	ErrValidation         = &AppError{Code: "VALIDATION_ERROR", Status: 400, Message: "request validation failed"}
 	ErrInternal           = &AppError{Code: "INTERNAL_ERROR", Status: 500, Message: "internal server error"}
+	ErrNotFound           = &AppError{Code: "NOT_FOUND", Status: 404, Message: "resource not found"}
+	ErrAlreadyExists      = &AppError{Code: "ALREADY_EXISTS", Status: 409, Message: "resource already exists"}
 )
 
 // RespondError writes a standard error envelope. Non-AppError values fall back to ErrInternal.
