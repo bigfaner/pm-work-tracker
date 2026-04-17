@@ -149,3 +149,38 @@ type ProgressRecordDTO struct {
 	Blocker     string  `json:"blocker"`
 	CreatedAt   string  `json:"createdAt"`
 }
+
+// Gantt view DTOs.
+
+// GanttFilter holds filter parameters for the gantt view.
+type GanttFilter struct {
+	Status string `form:"status"`
+}
+
+// GanttResult is the response DTO for the gantt view.
+type GanttResult struct {
+	Items []GanttMainItemDTO `json:"items"`
+}
+
+// GanttMainItemDTO represents a main item in the gantt view.
+type GanttMainItemDTO struct {
+	ID             uint              `json:"id"`
+	Title          string            `json:"title"`
+	Priority       string            `json:"priority"`
+	StartDate      string            `json:"startDate"`
+	ExpectedEndDate string           `json:"expectedEndDate"`
+	Completion     float64           `json:"completion"`
+	Status         string            `json:"status"`
+	IsOverdue      bool              `json:"isOverdue"`
+	SubItems       []GanttSubItemDTO `json:"subItems"`
+}
+
+// GanttSubItemDTO represents a sub-item summary in the gantt view.
+type GanttSubItemDTO struct {
+	ID              uint    `json:"id"`
+	Title           string  `json:"title"`
+	StartDate       string  `json:"startDate"`
+	ExpectedEndDate string  `json:"expectedEndDate"`
+	Completion      float64 `json:"completion"`
+	Status          string  `json:"status"`
+}

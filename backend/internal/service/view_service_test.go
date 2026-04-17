@@ -606,3 +606,404 @@ func TestWeeklyView_SubItemNoProgressEver_NoChange(t *testing.T) {
 	require.Len(t, group.NoChangeFromLastWeek, 1)
 	assert.Equal(t, uint(10), group.NoChangeFromLastWeek[0].ID)
 }
+
+// ---------------------------------------------------------------------------
+// Tests: GanttView
+// ---------------------------------------------------------------------------
+
+func ptrTime(t time.Time) *time.Time { return &t }
+
+func TestGanttView_EmptyTeam_NoItems(t *testing.T) {
+	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+
+	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	require.NoError(t, err)
+	assert.Empty(t, result.Items)
+}
+
+func TestGanttView_BasicStructure(t *testing.T) {
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{
+				Model:           gorm.Model{ID: 1},
+				TeamID:          1,
+				Title:           "Main 1",
+				Priority:        "P1",
+				StartDate:       &startDate,
+				ExpectedEndDate: &endDate,
+				Completion:      45.5,
+				Status:          "进行中",
+			},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+
+	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 1)
+	item := result.Items[0]
+	assert.Equal(t, uint(1), item.ID)
+	assert.Equal(t, "Main 1", item.Title)
+	assert.Equal(t, "P1", item.Priority)
+	assert.Equal(t, "2026-04-01", item.StartDate)
+	assert.Equal(t, "2026-04-30", item.ExpectedEndDate)
+	assert.Equal(t, 45.5, item.Completion)
+	assert.Equal(t, "进行中", item.Status)
+	assert.False(t, item.IsOverdue)
+}
+
+func TestGanttView_OverdueItem(t *testing.T) {
+	// expectedEndDate is in the past, status is not 已完成 or 已关闭
+	pastDate := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+	startDate := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{
+				Model:           gorm.Model{ID: 1},
+				TeamID:          1,
+				Title:           "Overdue Main",
+				Priority:        "P1",
+				StartDate:       &startDate,
+				ExpectedEndDate: &pastDate,
+				Status:          "进行中",
+			},
+		},
+	}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+
+	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 1)
+	assert.True(t, result.Items[0].IsOverdue)
+}
+
+func TestGanttView_Overdue_ExemptWhenCompleted(t *testing.T) {
+	// expectedEndDate is in the past but status is 已完成
+	pastDate := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+	startDate := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+
+	for _, status := range []string{"已完成", "已关闭"} {
+		t.Run(status, func(t *testing.T) {
+			mainRepo := &mockViewMainItemRepo{
+				items: []model.MainItem{
+					{
+						Model:           gorm.Model{ID: 1},
+						TeamID:          1,
+						Title:           "Completed",
+						Priority:        "P1",
+						StartDate:       &startDate,
+						ExpectedEndDate: &pastDate,
+						Status:          status,
+					},
+				},
+			}
+			svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+
+			result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+			require.NoError(t, err)
+
+			require.Len(t, result.Items, 1)
+			assert.False(t, result.Items[0].IsOverdue, "status=%s should not be overdue", status)
+		})
+	}
+}
+
+func TestGanttView_StatusFilter(t *testing.T) {
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "In Progress", Status: "进行中", StartDate: &startDate, ExpectedEndDate: &endDate},
+			{Model: gorm.Model{ID: 2}, TeamID: 1, Title: "Completed", Status: "已完成", StartDate: &startDate, ExpectedEndDate: &endDate},
+			{Model: gorm.Model{ID: 3}, TeamID: 1, Title: "Pending", Status: "待开始", StartDate: &startDate, ExpectedEndDate: &endDate},
+		},
+	}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+
+	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{Status: "进行中"})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 1)
+	assert.Equal(t, uint(1), result.Items[0].ID)
+	assert.Equal(t, "In Progress", result.Items[0].Title)
+}
+
+func TestGanttView_StatusFilterEmpty_ReturnsAll(t *testing.T) {
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "A", Status: "进行中", StartDate: &startDate, ExpectedEndDate: &endDate},
+			{Model: gorm.Model{ID: 2}, TeamID: 1, Title: "B", Status: "已完成", StartDate: &startDate, ExpectedEndDate: &endDate},
+		},
+	}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+
+	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 2)
+}
+
+func TestGanttView_SubItemsNested(t *testing.T) {
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{
+				Model:           gorm.Model{ID: 1},
+				TeamID:          1,
+				Title:           "Main 1",
+				Priority:        "P1",
+				StartDate:       &startDate,
+				ExpectedEndDate: &endDate,
+				Status:          "进行中",
+			},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{
+				Model:           gorm.Model{ID: 10},
+				TeamID:          1,
+				MainItemID:      1,
+				Title:           "Sub A",
+				StartDate:       &startDate,
+				ExpectedEndDate: &endDate,
+				Completion:      80,
+				Status:          "待验收",
+			},
+		},
+	}
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+
+	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 1)
+	require.Len(t, result.Items[0].SubItems, 1)
+	sub := result.Items[0].SubItems[0]
+	assert.Equal(t, uint(10), sub.ID)
+	assert.Equal(t, "Sub A", sub.Title)
+	assert.Equal(t, "2026-04-01", sub.StartDate)
+	assert.Equal(t, "2026-04-30", sub.ExpectedEndDate)
+	assert.Equal(t, 80.0, sub.Completion)
+	assert.Equal(t, "待验收", sub.Status)
+}
+
+func TestGanttView_SubItemsFromOtherMainItemNotIncluded(t *testing.T) {
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", StartDate: &startDate, ExpectedEndDate: &endDate, Status: "进行中"},
+			{Model: gorm.Model{ID: 2}, TeamID: 1, Title: "Main 2", StartDate: &startDate, ExpectedEndDate: &endDate, Status: "进行中"},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub for Main 1", StartDate: &startDate, ExpectedEndDate: &endDate},
+			{Model: gorm.Model{ID: 20}, TeamID: 1, MainItemID: 2, Title: "Sub for Main 2", StartDate: &startDate, ExpectedEndDate: &endDate},
+		},
+	}
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+
+	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 2)
+	require.Len(t, result.Items[0].SubItems, 1)
+	assert.Equal(t, uint(10), result.Items[0].SubItems[0].ID)
+	require.Len(t, result.Items[1].SubItems, 1)
+	assert.Equal(t, uint(20), result.Items[1].SubItems[0].ID)
+}
+
+func TestGanttView_ArchivedItemsExcluded(t *testing.T) {
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+
+	// The repo's ListNonArchivedByTeam already filters out archived items,
+	// so the mock only returns non-archived items.
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{
+				Model:           gorm.Model{ID: 1},
+				TeamID:          1,
+				Title:           "Active",
+				StartDate:       &startDate,
+				ExpectedEndDate: &endDate,
+				Status:          "进行中",
+			},
+		},
+	}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+
+	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 1)
+	assert.Equal(t, uint(1), result.Items[0].ID)
+	assert.Equal(t, "Active", result.Items[0].Title)
+}
+
+func TestGanttView_DatesFormattedAsISO8601(t *testing.T) {
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{
+				Model:           gorm.Model{ID: 1},
+				TeamID:          1,
+				Title:           "Main 1",
+				StartDate:       &startDate,
+				ExpectedEndDate: &endDate,
+				Status:          "进行中",
+			},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{
+				Model:           gorm.Model{ID: 10},
+				TeamID:          1,
+				MainItemID:      1,
+				Title:           "Sub 1",
+				StartDate:       &startDate,
+				ExpectedEndDate: &endDate,
+				Status:          "进行中",
+			},
+		},
+	}
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+
+	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	require.NoError(t, err)
+
+	item := result.Items[0]
+	assert.Equal(t, "2026-04-01", item.StartDate)
+	assert.Equal(t, "2026-04-30", item.ExpectedEndDate)
+	assert.Equal(t, "2026-04-01", item.SubItems[0].StartDate)
+	assert.Equal(t, "2026-04-30", item.SubItems[0].ExpectedEndDate)
+}
+
+func TestGanttView_NilDates_FormatAsEmptyString(t *testing.T) {
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{
+				Model:  gorm.Model{ID: 1},
+				TeamID: 1,
+				Title:  "No dates",
+				Status: "待开始",
+			},
+		},
+	}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+
+	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 1)
+	assert.Equal(t, "", result.Items[0].StartDate)
+	assert.Equal(t, "", result.Items[0].ExpectedEndDate)
+}
+
+func TestGanttView_MainItemRepoError(t *testing.T) {
+	mainRepo := &mockViewMainItemRepo{listErr: errors.New("db error")}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{}, &mockViewProgressRepo{})
+
+	_, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	assert.Error(t, err)
+}
+
+func TestGanttView_SubItemRepoError(t *testing.T) {
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1"},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{listErr: errors.New("db error")}
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+
+	_, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	assert.Error(t, err)
+}
+
+func TestGanttView_SubItemSummaryFieldsOnly(t *testing.T) {
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", StartDate: &startDate, ExpectedEndDate: &endDate, Status: "进行中"},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{
+				Model:           gorm.Model{ID: 10},
+				TeamID:          1,
+				MainItemID:      1,
+				Title:           "Sub A",
+				Description:     "Should not appear in gantt sub-item DTO",
+				Priority:        "P2",
+				AssigneeID:      nil,
+				StartDate:       &startDate,
+				ExpectedEndDate: &endDate,
+				ActualEndDate:   nil,
+				Status:          "进行中",
+				Completion:      60,
+			},
+		},
+	}
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+
+	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 1)
+	require.Len(t, result.Items[0].SubItems, 1)
+	sub := result.Items[0].SubItems[0]
+	// Only these fields should be present
+	assert.Equal(t, uint(10), sub.ID)
+	assert.Equal(t, "Sub A", sub.Title)
+	assert.Equal(t, "2026-04-01", sub.StartDate)
+	assert.Equal(t, "2026-04-30", sub.ExpectedEndDate)
+	assert.Equal(t, 60.0, sub.Completion)
+	assert.Equal(t, "进行中", sub.Status)
+	// GanttSubItemDTO should NOT have isOverdue (v1)
+	// This is enforced by struct definition
+}
+
+func TestGanttView_Overdue_NilExpectedEndDate(t *testing.T) {
+	// No expected end date set — should not be overdue
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{
+				Model:  gorm.Model{ID: 1},
+				TeamID: 1,
+				Title:  "No end date",
+				Status: "进行中",
+			},
+		},
+	}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+
+	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	require.NoError(t, err)
+
+	require.Len(t, result.Items, 1)
+	assert.False(t, result.Items[0].IsOverdue)
+}

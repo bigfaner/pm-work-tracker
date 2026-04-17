@@ -13,6 +13,7 @@ import (
 // ViewService defines read-only view operations.
 type ViewService interface {
 	WeeklyView(ctx context.Context, teamID uint, weekStart time.Time) (*dto.WeeklyViewResult, error)
+	GanttView(ctx context.Context, teamID uint, filter dto.GanttFilter) (*dto.GanttResult, error)
 }
 
 type viewService struct {
@@ -147,4 +148,87 @@ func toSubItemWeekDTO(si model.SubItem, records []model.ProgressRecord) dto.SubI
 		MainItemID:       si.MainItemID,
 		ProgressThisWeek: progressDTOs,
 	}
+}
+
+func (s *viewService) GanttView(ctx context.Context, teamID uint, filter dto.GanttFilter) (*dto.GanttResult, error) {
+	// Fetch all non-archived main items for the team
+	mainItems, err := s.mainItemRepo.ListNonArchivedByTeam(ctx, teamID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Apply status filter if provided
+	if filter.Status != "" {
+		filtered := make([]model.MainItem, 0, len(mainItems))
+		for _, mi := range mainItems {
+			if mi.Status == filter.Status {
+				filtered = append(filtered, mi)
+			}
+		}
+		mainItems = filtered
+	}
+
+	// Fetch all sub-items for the team (single query, avoid N+1)
+	subItems, err := s.subItemRepo.ListByTeam(ctx, teamID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Index sub-items by main item ID
+	subItemsByMain := make(map[uint][]model.SubItem)
+	for _, si := range subItems {
+		subItemsByMain[si.MainItemID] = append(subItemsByMain[si.MainItemID], si)
+	}
+
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+
+	items := make([]dto.GanttMainItemDTO, 0, len(mainItems))
+	for _, mi := range mainItems {
+		subs := subItemsByMain[mi.ID]
+		subDTOs := make([]dto.GanttSubItemDTO, 0, len(subs))
+		for _, si := range subs {
+			subDTOs = append(subDTOs, dto.GanttSubItemDTO{
+				ID:              si.ID,
+				Title:           si.Title,
+				StartDate:       formatDate(si.StartDate),
+				ExpectedEndDate: formatDate(si.ExpectedEndDate),
+				Completion:      si.Completion,
+				Status:          si.Status,
+			})
+		}
+
+		items = append(items, dto.GanttMainItemDTO{
+			ID:              mi.ID,
+			Title:           mi.Title,
+			Priority:        mi.Priority,
+			StartDate:       formatDate(mi.StartDate),
+			ExpectedEndDate: formatDate(mi.ExpectedEndDate),
+			Completion:      mi.Completion,
+			Status:          mi.Status,
+			IsOverdue:       computeIsOverdue(mi.ExpectedEndDate, mi.Status, today),
+			SubItems:        subDTOs,
+		})
+	}
+
+	return &dto.GanttResult{Items: items}, nil
+}
+
+// formatDate returns an ISO8601 date string or empty string for nil.
+func formatDate(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.Format("2006-01-02")
+}
+
+// computeIsOverdue returns true if expectedEndDate is before today and status is not terminal.
+func computeIsOverdue(expectedEndDate *time.Time, status string, today time.Time) bool {
+	if expectedEndDate == nil {
+		return false
+	}
+	if status == "已完成" || status == "已关闭" {
+		return false
+	}
+	return expectedEndDate.Before(today)
 }

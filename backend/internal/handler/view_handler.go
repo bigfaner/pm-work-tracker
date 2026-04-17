@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/middleware"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/service"
@@ -58,7 +59,26 @@ func (h *ViewHandler) Weekly(c *gin.Context) {
 
 // Gantt handles GET /api/v1/teams/:teamId/views/gantt
 func (h *ViewHandler) Gantt(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
+	if h.viewSvc == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
+		return
+	}
+
+	var filter dto.GanttFilter
+	if err := c.ShouldBindQuery(&filter); err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	teamID := middleware.GetTeamID(c)
+
+	result, err := h.viewSvc.GanttView(c.Request.Context(), teamID, filter)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, result)
 }
 
 // Table handles GET /api/v1/teams/:teamId/views/table
