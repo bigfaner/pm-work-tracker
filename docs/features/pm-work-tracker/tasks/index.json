@@ -254,7 +254,7 @@
       "dependencies": [
         "2.2"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.3-progress-itempool-models-migrations.md",
       "record": "records/2.3-progress-itempool-models-migrations.md"
     },
