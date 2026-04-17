@@ -17,6 +17,11 @@ type SubItemFilter struct {
 	IsKeyItem *bool  `form:"is_key_item"`
 }
 
+// ItemPoolFilter holds filter parameters for listing ItemPool entries.
+type ItemPoolFilter struct {
+	Status string `form:"status"`
+}
+
 // Pagination holds page parameters.
 type Pagination struct {
 	Page     int `form:"page" json:"page"`
