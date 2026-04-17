@@ -51,3 +51,13 @@ type TeamDetailResp struct {
 	CreatedAt     string `json:"createdAt"`
 	UpdatedAt     string `json:"updatedAt"`
 }
+
+// AdminTeamDTO is the response DTO for admin team listing with aggregated counts.
+type AdminTeamDTO struct {
+	ID            uint   `json:"id"`
+	Name          string `json:"name"`
+	PMDisplayName string `json:"pmDisplayName"`
+	MemberCount   int    `json:"memberCount"`
+	MainItemCount int    `json:"mainItemCount"`
+	CreatedAt     string `json:"createdAt"`
+}

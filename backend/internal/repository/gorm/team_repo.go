@@ -106,6 +106,20 @@ func (r *teamRepo) UpdateMember(ctx context.Context, member *model.TeamMember) e
 	return r.db.WithContext(ctx).Save(member).Error
 }
 
+func (r *teamRepo) ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error) {
+	var results []*dto.AdminTeamDTO
+	err := r.db.WithContext(ctx).
+		Table("teams").
+		Select("teams.id, teams.name, users.display_name as pm_display_name, "+
+			"(SELECT COUNT(*) FROM team_members WHERE team_members.team_id = teams.id) as member_count, "+
+			"(SELECT COUNT(*) FROM main_items WHERE main_items.team_id = teams.id AND main_items.deleted_at IS NULL) as main_item_count, "+
+			"teams.created_at").
+		Joins("LEFT JOIN users ON users.id = teams.pm_id").
+		Where("teams.deleted_at IS NULL").
+		Scan(&results).Error
+	return results, err
+}
+
 // isDuplicateKeyError checks if the error is a unique constraint violation.
 func isDuplicateKeyError(err error) bool {
 	if err == nil {

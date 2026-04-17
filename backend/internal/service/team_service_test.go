@@ -109,6 +109,10 @@ func (m *mockTeamRepo) UpdateMember(_ context.Context, member *model.TeamMember)
 	return m.updateErr
 }
 
+func (m *mockTeamRepo) ListAllTeams(_ context.Context) ([]*dto.AdminTeamDTO, error) {
+	return nil, nil
+}
+
 // mockTeamUserRepo is a separate mock for UserRepo used in team_service tests.
 type mockTeamUserRepo struct {
 	user *model.User

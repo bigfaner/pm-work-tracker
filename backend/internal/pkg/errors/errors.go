@@ -32,7 +32,8 @@ var (
 	ErrNotFound           = &AppError{Code: "NOT_FOUND", Status: 404, Message: "resource not found"}
 	ErrAlreadyExists      = &AppError{Code: "ALREADY_EXISTS", Status: 409, Message: "resource already exists"}
 	ErrAlreadyMember      = &AppError{Code: "ALREADY_MEMBER", Status: 422, Message: "user is already a team member"}
-	ErrCannotRemoveSelf    = &AppError{Code: "CANNOT_REMOVE_SELF", Status: 422, Message: "PM cannot remove themselves"}
+	ErrCannotRemoveSelf  = &AppError{Code: "CANNOT_REMOVE_SELF", Status: 422, Message: "PM cannot remove themselves"}
+	ErrCannotModifySelf  = &AppError{Code: "CANNOT_MODIFY_SELF", Status: 422, Message: "cannot modify your own permissions"}
 	ErrItemAlreadyProcessed = &AppError{Code: "ITEM_ALREADY_PROCESSED", Status: 422, Message: "item already processed"}
 )
 

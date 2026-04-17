@@ -83,6 +83,14 @@ func (m *mockTeamRepo) UpdateMember(ctx context.Context, member *model.TeamMembe
 	return args.Error(0)
 }
 
+func (m *mockTeamRepo) ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*dto.AdminTeamDTO), args.Error(1)
+}
+
 // compile-time check that mockTeamRepo satisfies TeamRepo
 var _ repository.TeamRepo = (*mockTeamRepo)(nil)
 
