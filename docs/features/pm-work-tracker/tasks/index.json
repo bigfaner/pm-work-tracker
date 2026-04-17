@@ -230,7 +230,7 @@
       "dependencies": [
         "1.2"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.1-user-team-models-migrations.md",
       "record": "records/2.1-user-team-models-migrations.md"
     },
