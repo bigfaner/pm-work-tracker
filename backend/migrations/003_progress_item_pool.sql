@@ -1,0 +1,13 @@
+-- 003_progress_item_pool.sql: ProgressRecord & ItemPool models
+-- Note: Both progress_records and item_pools tables were created in 001_init.sql
+-- with all required indexes. This migration is a placeholder to record that
+-- the GORM model structs (ProgressRecord, ItemPool) are now defined.
+--
+-- progress_records: append-only (no updated_at, no deleted_at)
+--   Composite index: (sub_item_id, created_at)
+-- item_pools: soft-delete via gorm.Model
+--   Status values: 待分配 | 已分配 | 已拒绝
+--   Composite index: (team_id, status)
+--   Default status: 待分配
+-- No schema changes needed.
+SELECT 1;

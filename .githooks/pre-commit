@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# .githooks/pre-commit — lint staged files before commit
+bash "$(git rev-parse --show-toplevel)/scripts/lint-staged.sh"

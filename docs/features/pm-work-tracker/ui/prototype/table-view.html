@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>表格视图 - PM Work Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .avatar-name { display: flex; align-items: center; gap: 8px; }
+    .avatar-name .name { color: var(--text-primary); }
+    .title-link { color: var(--color-primary); cursor: pointer; }
+    .title-link:hover { color: var(--color-primary-hover); text-decoration: underline; }
+    .tag-p1 { color: #d46b08; border-color: #ffd591; background: #fff7e6; }
+    .tag-p2 { color: #1677ff; border-color: #91caff; background: #e6f4ff; }
+    .tag-p3 { color: #8c8c8c; border-color: var(--border-color); background: #fafafa; }
+    .tag-status-doing { color: #1677ff; border-color: #91caff; background: #e6f4ff; }
+    .tag-status-done { color: #389e0d; border-color: #b7eb8f; background: #f6ffed; }
+    .tag-status-review { color: #d48806; border-color: #ffe58f; background: #fffbe6; }
+    .tag-status-todo { color: #8c8c8c; border-color: var(--border-color); background: #fafafa; }
+    .date-overdue { color: var(--color-error); font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">P</div>
+        <span class="sidebar-brand">PM Work Tracker</span>
+      </div>
+      <div class="sidebar-team">
+        <select>
+          <option>产品研发组</option>
+        </select>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="main-items.html">
+          <i class="nav-icon">📋</i><span>事项视图</span>
+        </a>
+        <a class="nav-item" href="weekly-view.html">
+          <i class="nav-icon">📅</i><span>周视图</span>
+        </a>
+        <a class="nav-item" href="gantt-view.html">
+          <i class="nav-icon">📊</i><span>甘特图</span>
+        </a>
+        <a class="nav-item active" href="table-view.html">
+          <i class="nav-icon">📑</i><span>表格视图</span>
+        </a>
+        <a class="nav-item" href="item-pool.html">
+          <i class="nav-icon">🏊</i><span>事项池</span>
+        </a>
+        <a class="nav-item" href="weekly-report.html">
+          <i class="nav-icon">📝</i><span>周报导出</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">张</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">张伟</div>
+          <div class="sidebar-user-role">PM</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="page-header">
+        <h2>表格视图</h2>
+        <button class="btn btn-primary" id="btnExportCsv">导出 CSV</button>
+      </div>
+
+      <div class="filter-bar">
+        <select class="form-select" id="filterType">
+          <option value="">全部类型</option>
+          <option value="main">主事项</option>
+          <option value="sub">子事项</option>
+        </select>
+        <select class="form-select" id="filterPriority">
+          <option value="">全部优先级</option>
+          <option value="P1">P1</option>
+          <option value="P2">P2</option>
+          <option value="P3">P3</option>
+        </select>
+        <select class="form-select" id="filterAssignee">
+          <option value="">全部负责人</option>
+          <option value="李伟">李伟</option>
+          <option value="张明">张明</option>
+          <option value="王芳">王芳</option>
+          <option value="陈静">陈静</option>
+          <option value="赵磊">赵磊</option>
+        </select>
+        <select class="form-select" id="filterStatus">
+          <option value="">全部状态</option>
+          <option value="进行中">进行中</option>
+          <option value="已完成">已完成</option>
+          <option value="待评审">待评审</option>
+          <option value="未开始">未开始</option>
+        </select>
+        <button class="btn" id="btnReset">重置</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>类型</th>
+                <th>编号</th>
+                <th>标题</th>
+                <th>优先级</th>
+                <th>负责人</th>
+                <th>完成度</th>
+                <th>状态</th>
+                <th>预期完成时间</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- Row 1 -->
+              <tr>
+                <td><span class="tag tag-blue">主事项</span></td>
+                <td class="text-mono">MI-001</td>
+                <td><a class="title-link" href="mainitem-detail.html">用户认证模块开发</a></td>
+                <td><span class="tag tag-p1">P1</span></td>
+                <td>
+                  <div class="avatar-name">
+                    <span class="avatar avatar-sm">李</span>
+                    <span class="name">李伟</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="progress-wrapper">
+                    <div class="progress-bar"><div class="progress-fill" style="width:52%"></div></div>
+                    <span class="progress-text">52%</span>
+                  </div>
+                </td>
+                <td><span class="tag tag-status-doing">进行中</span></td>
+                <td>2026-04-30</td>
+              </tr>
+              <!-- Row 2 - overdue -->
+              <tr class="row-overdue">
+                <td><span class="tag tag-default">子事项</span></td>
+                <td class="text-mono">SI-001</td>
+                <td><a class="title-link" href="subitem-detail.html">用户注册接口开发</a></td>
+                <td><span class="tag tag-p2">P2</span></td>
+                <td>
+                  <div class="avatar-name">
+                    <span class="avatar avatar-sm">张</span>
+                    <span class="name">张明</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="progress-wrapper">
+                    <div class="progress-bar"><div class="progress-fill warning" style="width:60%"></div></div>
+                    <span class="progress-text">60%</span>
+                  </div>
+                </td>
+                <td><span class="tag tag-status-doing">进行中</span></td>
+                <td class="date-overdue">2026-04-15</td>
+              </tr>
+              <!-- Row 3 -->
+              <tr>
+                <td><span class="tag tag-default">子事项</span></td>
+                <td class="text-mono">SI-002</td>
+                <td><a class="title-link" href="subitem-detail.html">登录鉴权实现</a></td>
+                <td><span class="tag tag-p2">P2</span></td>
+                <td>
+                  <div class="avatar-name">
+                    <span class="avatar avatar-sm">王</span>
+                    <span class="name">王芳</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="progress-wrapper">
+                    <div class="progress-bar"><div class="progress-fill" style="width:45%"></div></div>
+                    <span class="progress-text">45%</span>
+                  </div>
+                </td>
+                <td><span class="tag tag-status-doing">进行中</span></td>
+                <td>2026-04-25</td>
+              </tr>
+              <!-- Row 4 -->
+              <tr>
+                <td><span class="tag tag-default">子事项</span></td>
+                <td class="text-mono">SI-003</td>
+                <td><a class="title-link" href="subitem-detail.html">权限管理模块</a></td>
+                <td><span class="tag tag-p2">P2</span></td>
+                <td>
+                  <div class="avatar-name">
+                    <span class="avatar avatar-sm">李</span>
+                    <span class="name">李伟</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="progress-wrapper">
+                    <div class="progress-bar"><div class="progress-fill" style="width:80%"></div></div>
+                    <span class="progress-text">80%</span>
+                  </div>
+                </td>
+                <td><span class="tag tag-status-review">待评审</span></td>
+                <td>2026-04-30</td>
+              </tr>
+              <!-- Row 5 -->
+              <tr>
+                <td><span class="tag tag-blue">主事项</span></td>
+                <td class="text-mono">MI-002</td>
+                <td><a class="title-link" href="mainitem-detail.html">移动端适配</a></td>
+                <td><span class="tag tag-p2">P2</span></td>
+                <td>
+                  <div class="avatar-name">
+                    <span class="avatar avatar-sm">陈</span>
+                    <span class="name">陈静</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="progress-wrapper">
+                    <div class="progress-bar"><div class="progress-fill" style="width:30%"></div></div>
+                    <span class="progress-text">30%</span>
+                  </div>
+                </td>
+                <td><span class="tag tag-status-doing">进行中</span></td>
+                <td>2026-05-15</td>
+              </tr>
+              <!-- Row 6 -->
+              <tr>
+                <td><span class="tag tag-default">子事项</span></td>
+                <td class="text-mono">SI-004</td>
+                <td><a class="title-link" href="subitem-detail.html">响应式布局</a></td>
+                <td><span class="tag tag-p3">P3</span></td>
+                <td>
+                  <div class="avatar-name">
+                    <span class="avatar avatar-sm">赵</span>
+                    <span class="name">赵磊</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="progress-wrapper">
+                    <div class="progress-bar"><div class="progress-fill" style="width:50%"></div></div>
+                    <span class="progress-text">50%</span>
+                  </div>
+                </td>
+                <td><span class="tag tag-status-doing">进行中</span></td>
+                <td>2026-04-30</td>
+              </tr>
+              <!-- Row 7 -->
+              <tr>
+                <td><span class="tag tag-blue">主事项</span></td>
+                <td class="text-mono">MI-003</td>
+                <td><a class="title-link" href="mainitem-detail.html">数据报表系统</a></td>
+                <td><span class="tag tag-p1">P1</span></td>
+                <td>
+                  <div class="avatar-name">
+                    <span class="avatar avatar-sm">李</span>
+                    <span class="name">李伟</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="progress-wrapper">
+                    <div class="progress-bar"><div class="progress-fill success" style="width:100%"></div></div>
+                    <span class="progress-text">100%</span>
+                  </div>
+                </td>
+                <td><span class="tag tag-status-done">已完成</span></td>
+                <td>2026-04-10</td>
+              </tr>
+              <!-- Row 8 -->
+              <tr>
+                <td><span class="tag tag-default">子事项</span></td>
+                <td class="text-mono">SI-006</td>
+                <td><a class="title-link" href="subitem-detail.html">数据可视化</a></td>
+                <td><span class="tag tag-p2">P2</span></td>
+                <td>
+                  <div class="avatar-name">
+                    <span class="avatar avatar-sm">王</span>
+                    <span class="name">王芳</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="progress-wrapper">
+                    <div class="progress-bar"><div class="progress-fill" style="width:90%"></div></div>
+                    <span class="progress-text">90%</span>
+                  </div>
+                </td>
+                <td><span class="tag tag-status-review">待评审</span></td>
+                <td>2026-04-10</td>
+              </tr>
+              <!-- Row 9 -->
+              <tr>
+                <td><span class="tag tag-blue">主事项</span></td>
+                <td class="text-mono">MI-004</td>
+                <td><a class="title-link" href="mainitem-detail.html">性能优化项目</a></td>
+                <td><span class="tag tag-p2">P2</span></td>
+                <td>
+                  <div class="avatar-name">
+                    <span class="avatar avatar-sm">陈</span>
+                    <span class="name">陈静</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="progress-wrapper">
+                    <div class="progress-bar"><div class="progress-fill" style="width:15%"></div></div>
+                    <span class="progress-text">15%</span>
+                  </div>
+                </td>
+                <td><span class="tag tag-status-doing">进行中</span></td>
+                <td>2026-06-30</td>
+              </tr>
+              <!-- Row 10 -->
+              <tr>
+                <td><span class="tag tag-default">子事项</span></td>
+                <td class="text-mono">SI-007</td>
+                <td><a class="title-link" href="subitem-detail.html">首页加载优化</a></td>
+                <td><span class="tag tag-p1">P1</span></td>
+                <td>
+                  <div class="avatar-name">
+                    <span class="avatar avatar-sm">赵</span>
+                    <span class="name">赵磊</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="progress-wrapper">
+                    <div class="progress-bar"><div class="progress-fill" style="width:20%"></div></div>
+                    <span class="progress-text">20%</span>
+                  </div>
+                </td>
+                <td><span class="tag tag-status-doing">进行中</span></td>
+                <td>2026-05-15</td>
+              </tr>
+              <!-- Row 11 -->
+              <tr>
+                <td><span class="tag tag-default">子事项</span></td>
+                <td class="text-mono">SI-008</td>
+                <td><a class="title-link" href="subitem-detail.html">API响应缓存</a></td>
+                <td><span class="tag tag-p3">P3</span></td>
+                <td>
+                  <div class="avatar-name">
+                    <span class="avatar avatar-sm">张</span>
+                    <span class="name">张明</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="progress-wrapper">
+                    <div class="progress-bar"><div class="progress-fill" style="width:10%"></div></div>
+                    <span class="progress-text">10%</span>
+                  </div>
+                </td>
+                <td><span class="tag tag-status-todo">未开始</span></td>
+                <td>2026-06-15</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-pagination">
+          <span>共 11 条</span>
+          <div class="page-btns">
+            <button class="page-btn" disabled>&lt;</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn" disabled>&gt;</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+  (function() {
+    // Export CSV button
+    document.getElementById('btnExportCsv').addEventListener('click', function() {
+      showToast('CSV 已导出');
+    });
+
+    // Reset filters
+    document.getElementById('btnReset').addEventListener('click', function() {
+      document.getElementById('filterType').value = '';
+      document.getElementById('filterPriority').value = '';
+      document.getElementById('filterAssignee').value = '';
+      document.getElementById('filterStatus').value = '';
+      // Show all rows
+      var rows = document.querySelectorAll('#tableBody tr');
+      rows.forEach(function(row) { row.style.display = ''; });
+    });
+
+    // Filter change handlers
+    var filters = ['filterType', 'filterPriority', 'filterAssignee', 'filterStatus'];
+    filters.forEach(function(id) {
+      document.getElementById(id).addEventListener('change', applyFilters);
+    });
+
+    function applyFilters() {
+      var typeVal = document.getElementById('filterType').value;
+      var prioVal = document.getElementById('filterPriority').value;
+      var assignVal = document.getElementById('filterAssignee').value;
+      var statusVal = document.getElementById('filterStatus').value;
+
+      var rows = document.querySelectorAll('#tableBody tr');
+      rows.forEach(function(row) {
+        var show = true;
+
+        if (typeVal) {
+          var typeTag = row.querySelector('td:first-child .tag');
+          if (typeVal === 'main' && typeTag && !typeTag.classList.contains('tag-blue')) show = false;
+          if (typeVal === 'sub' && typeTag && typeTag.classList.contains('tag-blue')) show = false;
+        }
+
+        if (prioVal) {
+          var prioTag = row.querySelector('td:nth-child(4) .tag');
+          if (prioTag && prioTag.textContent.trim() !== prioVal) show = false;
+        }
+
+        if (assignVal) {
+          var nameEl = row.querySelector('.avatar-name .name');
+          if (nameEl && nameEl.textContent.trim() !== assignVal) show = false;
+        }
+
+        if (statusVal) {
+          var statusTag = row.querySelector('td:nth-child(7) .tag');
+          if (statusTag && statusTag.textContent.trim() !== statusVal) show = false;
+        }
+
+        row.style.display = show ? '' : 'none';
+      });
+    }
+  })();
+  </script>
+</body>
+</html>

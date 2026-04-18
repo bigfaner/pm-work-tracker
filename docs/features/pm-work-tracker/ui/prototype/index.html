@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PM 工作事项追踪 — 原型导航</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .hub { max-width: 960px; margin: 0 auto; padding: 48px 24px; }
+    .hub-header { text-align: center; margin-bottom: 48px; }
+    .hub-header h1 { margin-bottom: 8px; }
+    .hub-header p { color: var(--text-secondary); }
+    .hub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .page-card {
+      background: var(--bg-container);
+      border: 1px solid var(--border-color-light);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      transition: box-shadow 0.2s, border-color 0.2s;
+      display: block;
+      color: inherit;
+    }
+    .page-card:hover { box-shadow: var(--shadow-md); border-color: var(--color-primary); text-decoration: none; }
+    .page-card-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--color-primary-bg);
+      color: var(--color-primary);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      margin-bottom: 12px;
+    }
+    .page-card h3 { margin: 0 0 8px; font-size: var(--font-size-lg); color: var(--text-primary); }
+    .page-card p { margin: 0; font-size: var(--font-size-sm); color: var(--text-secondary); line-height: 1.6; }
+    .page-card .tags { margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .page-card .tags .tag { font-size: 11px; height: 20px; padding: 0 6px; }
+    .hub-footer { text-align: center; margin-top: 48px; color: var(--text-tertiary); font-size: var(--font-size-sm); }
+  </style>
+</head>
+<body>
+  <div class="hub">
+    <div class="hub-header">
+      <h1>PM 工作事项追踪系统</h1>
+      <p>交互原型 — 点击页面卡片查看对应页面设计</p>
+    </div>
+
+    <div class="hub-grid">
+      <a href="login.html" class="page-card">
+        <div class="page-card-num">1</div>
+        <h3>登录页</h3>
+        <p>账号密码登录，错误提示，登录成功跳转</p>
+        <div class="tags"><span class="tag tag-blue">表单</span><span class="tag tag-default">独立布局</span></div>
+      </a>
+
+      <a href="main-items.html" class="page-card">
+        <div class="page-card-num">2</div>
+        <h3>事项视图</h3>
+        <p>主事项折叠列表，筛选栏，新建/编辑/归档操作</p>
+        <div class="tags"><span class="tag tag-blue">首页</span><span class="tag tag-default">列表</span></div>
+      </a>
+
+      <a href="mainitem-detail.html" class="page-card">
+        <div class="page-card-num">3</div>
+        <h3>主事项详情页</h3>
+        <p>基础信息、进度环图、成果卡点聚合、子事项表格</p>
+        <div class="tags"><span class="tag tag-default">详情</span><span class="tag tag-orange">P1</span></div>
+      </a>
+
+      <a href="subitem-detail.html" class="page-card">
+        <div class="page-card-num">4</div>
+        <h3>子事项详情页</h3>
+        <p>子事项信息、进度时间线、追加进度记录</p>
+        <div class="tags"><span class="tag tag-default">详情</span><span class="tag tag-green">进度</span></div>
+      </a>
+
+      <a href="item-pool.html" class="page-card">
+        <div class="page-card-num">5</div>
+        <h3>事项池</h3>
+        <p>成员提交事项，PM 审核分配或拒绝，状态筛选</p>
+        <div class="tags"><span class="tag tag-blue">审核</span><span class="tag tag-default">分配</span></div>
+      </a>
+
+      <a href="weekly-view.html" class="page-card">
+        <div class="page-card-num">6</div>
+        <h3>周视图</h3>
+        <p>按周聚合子事项计划与实际进度，本周 vs 上周对比</p>
+        <div class="tags"><span class="tag tag-blue">视图</span><span class="tag tag-green">对比</span></div>
+      </a>
+
+      <a href="gantt-view.html" class="page-card">
+        <div class="page-card-num">7</div>
+        <h3>甘特图视图</h3>
+        <p>时间轴展示主/子事项，展开折叠，今日标记线</p>
+        <div class="tags"><span class="tag tag-blue">视图</span><span class="tag tag-orange">交互</span></div>
+      </a>
+
+      <a href="table-view.html" class="page-card">
+        <div class="page-card-num">8</div>
+        <h3>表格视图</h3>
+        <p>全量事项表格，排序筛选，CSV 导出</p>
+        <div class="tags"><span class="tag tag-blue">表格</span><span class="tag tag-default">导出</span></div>
+      </a>
+
+      <a href="weekly-report.html" class="page-card">
+        <div class="page-card-num">9</div>
+        <h3>周报导出</h3>
+        <p>选择周 → 生成预览 → 导出 Markdown 文件</p>
+        <div class="tags"><span class="tag tag-blue">导出</span><span class="tag tag-default">报告</span></div>
+      </a>
+
+      <a href="team-management.html" class="page-card">
+        <div class="page-card-num">10</div>
+        <h3>团队管理</h3>
+        <p>成员列表、邀请、转让 PM、解散团队</p>
+        <div class="tags"><span class="tag tag-blue">管理</span><span class="tag tag-red">权限</span></div>
+      </a>
+
+      <a href="admin.html" class="page-card">
+        <div class="page-card-num">11</div>
+        <h3>超级管理员后台</h3>
+        <p>全局用户管理、创建团队权限、团队只读查看</p>
+        <div class="tags"><span class="tag tag-red">超级管理员</span><span class="tag tag-default">全局</span></div>
+      </a>
+    </div>
+
+    <div class="hub-footer">
+      PM Work Tracker Prototype &mdash; ui-design.md &rarr; HTML
+    </div>
+  </div>
+</body>
+</html>

@@ -30,3 +30,10 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+docs/features/pm-work-tracker/tasks/process/*
+frontend/node_modules/*
+tmp/*
+.claude/settings.local.json
+docs/harness-reports/*
+frontend/coverage/*
+frontend/dist/*

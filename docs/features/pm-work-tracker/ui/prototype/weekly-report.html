@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>周报导出 - PM Work Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">P</div>
+        <span class="sidebar-brand">PM Work Tracker</span>
+      </div>
+      <div class="sidebar-team">
+        <select>
+          <option>产品研发组</option>
+        </select>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="main-items.html"><i class="nav-icon">📋</i><span>事项视图</span></a>
+        <a class="nav-item" href="weekly-view.html"><i class="nav-icon">📅</i><span>周视图</span></a>
+        <a class="nav-item" href="gantt-view.html"><i class="nav-icon">📊</i><span>甘特图</span></a>
+        <a class="nav-item" href="table-view.html"><i class="nav-icon">📑</i><span>表格视图</span></a>
+        <a class="nav-item" href="item-pool.html"><i class="nav-icon">📥</i><span>事项池</span></a>
+        <a class="nav-item active" href="weekly-report.html"><i class="nav-icon">📝</i><span>周报导出</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">张</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">张伟</div>
+          <div class="sidebar-user-role">超级管理员</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" style="max-width: 900px;">
+      <div class="page-header">
+        <h2>周报导出</h2>
+      </div>
+
+      <!-- Config Card -->
+      <div class="card mb-20">
+        <div class="card-body">
+          <div class="form-inline">
+            <div class="form-group mb-0">
+              <label class="form-label">选择周次</label>
+              <input type="week" class="form-input" value="2026-W16" style="width: 200px;">
+            </div>
+            <button class="btn btn-primary" style="margin-top: 24px;">生成预览</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview Card -->
+      <div class="card">
+        <div class="card-header">
+          <h4>预览</h4>
+          <button class="btn btn-primary" onclick="showToast('周报已导出')">导出 Markdown</button>
+        </div>
+        <div class="card-body">
+          <div class="report-preview">
+## 2026年第16周 工作周报
+
+### MI-001 用户认证模块开发 (完成度 52%)
+
+- SI-001 用户注册接口开发 &mdash; 张明 &mdash; 进行中
+  - 成果: 完成单元测试覆盖
+
+- SI-002 登录鉴权实现 &mdash; 王芳 &mdash; 进行中
+  - 卡点: OAuth回调地址配置问题
+
+### MI-003 数据报表系统 (完成度 100%)
+
+- SI-004 首页Banner设计 &mdash; 王芳 &mdash; 已完成
+
+---
+导出时间 2026-04-18
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

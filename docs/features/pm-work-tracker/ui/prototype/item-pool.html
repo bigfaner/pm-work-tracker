@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>事项池 — PM 工作事项追踪</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .pool-item { margin-bottom: 12px; }
+    .pool-item-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .pool-item-title { font-weight: var(--font-weight-medium); font-size: var(--font-size-base); }
+    .pool-item-meta { display: flex; align-items: center; gap: 8px; font-size: var(--font-size-sm); }
+    .pool-item-body {
+      color: var(--text-secondary);
+      font-size: var(--font-size-sm);
+      line-height: 1.6;
+      max-height: 44px;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+    }
+    .pool-item-body.expanded { max-height: none; }
+    .pool-item-body:not(.expanded)::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 22px;
+      background: linear-gradient(transparent, var(--bg-container));
+    }
+    .pool-item-footer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: var(--font-size-sm);
+    }
+    .border-left-pool { border-left: 3px solid var(--color-primary); }
+    .pool-card { transition: box-shadow 0.2s, opacity 0.2s; }
+    .filter-count { color: var(--text-tertiary); font-size: var(--font-size-sm); margin-left: 8px; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">P</div>
+        <span class="sidebar-brand">PM 追踪</span>
+      </div>
+      <div class="sidebar-team">
+        <select>
+          <option>产品研发组</option>
+        </select>
+      </div>
+      <div class="sidebar-nav">
+        <a href="main-items.html" class="nav-item"><i class="nav-icon">&#9776;</i><span>事项视图</span></a>
+        <a href="weekly-view.html" class="nav-item"><i class="nav-icon">&#9783;</i><span>周视图</span></a>
+        <a href="gantt-view.html" class="nav-item"><i class="nav-icon">&#9638;</i><span>甘特图</span></a>
+        <a href="table-view.html" class="nav-item"><i class="nav-icon">&#9776;</i><span>表格视图</span></a>
+        <a href="item-pool.html" class="nav-item active"><i class="nav-icon">&#9744;</i><span>事项池</span></a>
+        <a href="weekly-report.html" class="nav-item"><i class="nav-icon">&#9998;</i><span>周报导出</span></a>
+      </div>
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">张</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">张伟</div>
+          <div class="sidebar-user-role">PM</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <h2>事项池</h2>
+        <button class="btn btn-primary" data-modal="modal-submit-pool">提交到事项池</button>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <div class="radio-group" id="pool-filter">
+          <button class="radio-btn active" data-value="all">全部<span class="filter-count" id="count-all">4</span></button>
+          <button class="radio-btn" data-value="pending">待分配<span class="filter-count" id="count-pending">2</span></button>
+          <button class="radio-btn" data-value="assigned">已分配<span class="filter-count" id="count-assigned">1</span></button>
+          <button class="radio-btn" data-value="rejected">已拒绝<span class="filter-count" id="count-rejected">1</span></button>
+        </div>
+      </div>
+
+      <!-- Pool Item List -->
+      <div id="pool-list">
+
+        <!-- Item 1: 待分配 — 国际化多语言支持 -->
+        <div class="pool-item card card-hoverable pool-card border-left-pool" data-status="pending">
+          <div class="card-header">
+            <div class="pool-item-header">
+              <span class="pool-item-title">国际化多语言支持</span>
+              <span class="tag tag-blue">待分配</span>
+            </div>
+            <div class="pool-item-meta">
+              <span class="text-secondary">李明</span>
+              <span class="text-tertiary">&middot;</span>
+              <span class="text-tertiary">2天前提交</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="pool-item-body" onclick="this.classList.toggle('expanded')">
+              <strong>背景：</strong>产品已收到多个海外客户的多语言需求，当前系统仅支持中文界面。需要评估 i18n 改造范围，包括前端文案抽离、后端错误消息国际化、日期/货币格式适配等。<br>
+              <strong>预期产出：</strong>多语言方案设计文档，前端 i18n 框架选型报告，完成中英双语 POC 验证。
+            </div>
+          </div>
+          <div class="card-footer pool-item-footer">
+            <button class="btn btn-primary btn-sm" data-modal="modal-assign">分配</button>
+            <button class="btn btn-danger btn-sm" data-modal="modal-reject">拒绝</button>
+          </div>
+        </div>
+
+        <!-- Item 2: 待分配 — 消息通知系统设计 -->
+        <div class="pool-item card card-hoverable pool-card border-left-pool" data-status="pending">
+          <div class="card-header">
+            <div class="pool-item-header">
+              <span class="pool-item-title">消息通知系统设计</span>
+              <span class="tag tag-blue">待分配</span>
+            </div>
+            <div class="pool-item-meta">
+              <span class="text-secondary">王芳</span>
+              <span class="text-tertiary">&middot;</span>
+              <span class="text-tertiary">1天前提交</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="pool-item-body" onclick="this.classList.toggle('expanded')">
+              <strong>背景：</strong>当前系统缺乏统一的消息通知机制，重要事项变更（如进度更新、分配调整）依赖人工沟通，效率低下且容易遗漏。需要一个站内通知系统，支持邮件/企微推送。<br>
+              <strong>预期产出：</strong>通知系统架构设计文档，消息模板规范，站内信 MVP 功能上线。
+            </div>
+          </div>
+          <div class="card-footer pool-item-footer">
+            <button class="btn btn-primary btn-sm" data-modal="modal-assign">分配</button>
+            <button class="btn btn-danger btn-sm" data-modal="modal-reject">拒绝</button>
+          </div>
+        </div>
+
+        <!-- Item 3: 已分配 — API 文档自动生成 -->
+        <div class="pool-item card card-hoverable pool-card opacity-70" data-status="assigned">
+          <div class="card-header">
+            <div class="pool-item-header">
+              <span class="pool-item-title">API 文档自动生成</span>
+              <span class="tag tag-green">已分配</span>
+            </div>
+            <div class="pool-item-meta">
+              <span class="text-secondary">陈静</span>
+              <span class="text-tertiary">&middot;</span>
+              <span class="text-tertiary">5天前提交</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="pool-item-body expanded">
+              <strong>背景：</strong>后端接口文档目前使用 Word 手动维护，与代码实现经常不同步，导致前后端协作效率低。希望引入 Swagger/OpenAPI 自动生成方案。<br>
+              <strong>预期产出：</strong>自动文档生成流水线搭建完成，核心 API 文档覆盖率 > 80%。
+            </div>
+          </div>
+          <div class="card-footer pool-item-footer">
+            <span class="text-secondary">已挂载至：</span>
+            <a href="mainitem-detail.html">MI-003 数据报表系统</a>
+            <span class="text-secondary" style="margin-left: 8px;">负责人：</span>
+            <span>陈静</span>
+          </div>
+        </div>
+
+        <!-- Item 4: 已拒绝 — 区块链存证功能 -->
+        <div class="pool-item card card-hoverable pool-card opacity-70" data-status="rejected">
+          <div class="card-header">
+            <div class="pool-item-header">
+              <span class="pool-item-title">区块链存证功能</span>
+              <span class="tag tag-red">已拒绝</span>
+            </div>
+            <div class="pool-item-meta">
+              <span class="text-secondary">张明</span>
+              <span class="text-tertiary">&middot;</span>
+              <span class="text-tertiary">1周前提交</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="pool-item-body expanded">
+              <strong>背景：</strong>部分客户要求对关键操作日志进行区块链存证，以保证数据不可篡改，满足审计合规需求。<br>
+              <strong>预期产出：</strong>区块链存证技术方案，链上数据查询接口，合规审计报告模板。
+            </div>
+          </div>
+          <div class="card-footer pool-item-footer">
+            <span style="color: #8c8c8c;">拒绝原因：当前阶段不在产品规划内</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: 提交到事项池 -->
+  <div class="modal-overlay" id="modal-submit-pool">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>提交到事项池</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label"><span class="required">*</span> 标题</label>
+          <input class="form-input" type="text" placeholder="请输入事项标题">
+        </div>
+        <div class="form-group">
+          <label class="form-label">背景</label>
+          <textarea class="form-textarea" rows="3" placeholder="描述提交该事项的背景和原因"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">预期产出</label>
+          <textarea class="form-textarea" rows="3" placeholder="描述希望达成的产出或目标"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('modal-submit-pool')">取消</button>
+        <button class="btn btn-primary">提交</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: 分配 -->
+  <div class="modal-overlay" id="modal-assign">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>分配事项</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label"><span class="required">*</span> 挂载主事项</label>
+          <select class="form-select">
+            <option value="">请选择主事项</option>
+            <option>MI-001 用户认证系统</option>
+            <option>MI-002 支付模块</option>
+            <option>MI-003 数据报表系统</option>
+            <option>MI-004 基础设施优化</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label"><span class="required">*</span> 负责人</label>
+          <select class="form-select">
+            <option value="">请选择负责人</option>
+            <option>张明</option>
+            <option>王芳</option>
+            <option>陈静</option>
+            <option>李明</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('modal-assign')">取消</button>
+        <button class="btn btn-primary">确认分配</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: 拒绝 -->
+  <div class="modal-overlay" id="modal-reject">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>拒绝事项</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label"><span class="required">*</span> 拒绝原因</label>
+          <textarea class="form-textarea" rows="4" placeholder="请说明拒绝原因"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('modal-reject')">取消</button>
+        <button class="btn btn-danger">确认拒绝</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    // Pool filter functionality
+    (function() {
+      var filterGroup = document.getElementById('pool-filter');
+      if (!filterGroup) return;
+
+      var cards = document.querySelectorAll('#pool-list .pool-item');
+
+      filterGroup.addEventListener('change', function(e) {
+        var value = e.detail.value;
+        cards.forEach(function(card) {
+          if (value === 'all') {
+            card.style.display = '';
+          } else {
+            card.style.display = card.getAttribute('data-status') === value ? '' : 'none';
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

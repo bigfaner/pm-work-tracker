@@ -4,16 +4,13 @@
   "design": "design/tech-design.md",
   "created": "2026-04-17",
   "status": "planning",
-  "statusEnum": ["pending", "in_progress", "completed", "blocked", "skipped"],
-  "priorityEnum": ["P0", "P1", "P2"],
   "tasks": {
     "1.1-project-scaffolding": {
       "id": "1.1",
       "title": "Project Scaffolding",
       "priority": "P0",
       "estimatedTime": "2h",
-      "dependencies": [],
-      "status": "pending",
+      "status": "completed",
       "file": "1.1-project-scaffolding.md",
       "record": "records/1.1-project-scaffolding.md"
     },
@@ -22,18 +19,22 @@
       "title": "Database Setup (GORM + SQLite/MySQL dual-driver)",
       "priority": "P0",
       "estimatedTime": "2h",
-      "dependencies": ["1.1"],
-      "status": "pending",
+      "dependencies": [
+        "1.1"
+      ],
+      "status": "completed",
       "file": "1.2-database-setup.md",
       "record": "records/1.2-database-setup.md"
     },
     "1.3-config-and-environment": {
       "id": "1.3",
-      "title": "Config & Environment Loader",
+      "title": "Config \u0026 Environment Loader",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["1.1"],
-      "status": "pending",
+      "dependencies": [
+        "1.1"
+      ],
+      "status": "completed",
       "file": "1.3-config-and-environment.md",
       "record": "records/1.3-config-and-environment.md"
     },
@@ -42,8 +43,10 @@
       "title": "Shared Error Types (AppError)",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["1.1"],
-      "status": "pending",
+      "dependencies": [
+        "1.1"
+      ],
+      "status": "completed",
       "file": "1.4-shared-error-types.md",
       "record": "records/1.4-shared-error-types.md"
     },
@@ -52,438 +55,22 @@
       "title": "JWT Utilities (sign, verify, Claims)",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["1.3"],
-      "status": "pending",
+      "dependencies": [
+        "1.3"
+      ],
+      "status": "completed",
       "file": "1.5-jwt-utilities.md",
       "record": "records/1.5-jwt-utilities.md"
-    },
-    "2.1-user-team-models-migrations": {
-      "id": "2.1",
-      "title": "User & Team Models + Migrations",
-      "priority": "P0",
-      "estimatedTime": "2h",
-      "dependencies": ["1.2"],
-      "status": "pending",
-      "file": "2.1-user-team-models-migrations.md",
-      "record": "records/2.1-user-team-models-migrations.md"
-    },
-    "2.2-mainitem-subitem-models-migrations": {
-      "id": "2.2",
-      "title": "MainItem & SubItem Models + Migrations",
-      "priority": "P0",
-      "estimatedTime": "2h",
-      "dependencies": ["2.1"],
-      "status": "pending",
-      "file": "2.2-mainitem-subitem-models-migrations.md",
-      "record": "records/2.2-mainitem-subitem-models-migrations.md"
-    },
-    "2.3-progress-itempool-models-migrations": {
-      "id": "2.3",
-      "title": "ProgressRecord & ItemPool Models + Migrations",
-      "priority": "P0",
-      "estimatedTime": "2h",
-      "dependencies": ["2.2"],
-      "status": "pending",
-      "file": "2.3-progress-itempool-models-migrations.md",
-      "record": "records/2.3-progress-itempool-models-migrations.md"
-    },
-    "2.4-user-team-repo": {
-      "id": "2.4",
-      "title": "UserRepo & TeamRepo (interfaces + GORM impl)",
-      "priority": "P0",
-      "estimatedTime": "3h",
-      "dependencies": ["2.1"],
-      "status": "pending",
-      "file": "2.4-user-team-repo.md",
-      "record": "records/2.4-user-team-repo.md"
-    },
-    "2.5-mainitem-subitem-repo": {
-      "id": "2.5",
-      "title": "MainItemRepo & SubItemRepo (interfaces + GORM impl)",
-      "priority": "P0",
-      "estimatedTime": "3h",
-      "dependencies": ["2.2"],
-      "status": "pending",
-      "file": "2.5-mainitem-subitem-repo.md",
-      "record": "records/2.5-mainitem-subitem-repo.md"
-    },
-    "2.6-progress-itempool-repo": {
-      "id": "2.6",
-      "title": "ProgressRepo & ItemPoolRepo (interfaces + GORM impl)",
-      "priority": "P0",
-      "estimatedTime": "3h",
-      "dependencies": ["2.3"],
-      "status": "pending",
-      "file": "2.6-progress-itempool-repo.md",
-      "record": "records/2.6-progress-itempool-repo.md"
-    },
-    "3.1-auth-middleware": {
-      "id": "3.1",
-      "title": "AuthMiddleware (JWT validation, inject user)",
-      "priority": "P0",
-      "estimatedTime": "2h",
-      "dependencies": ["1.5", "2.4"],
-      "status": "pending",
-      "file": "3.1-auth-middleware.md",
-      "record": "records/3.1-auth-middleware.md"
-    },
-    "3.2-team-scope-middleware": {
-      "id": "3.2",
-      "title": "TeamScopeMiddleware (membership check, inject teamID)",
-      "priority": "P0",
-      "estimatedTime": "2h",
-      "dependencies": ["3.1", "2.4"],
-      "status": "pending",
-      "file": "3.2-team-scope-middleware.md",
-      "record": "records/3.2-team-scope-middleware.md"
-    },
-    "3.3-rbac-helpers": {
-      "id": "3.3",
-      "title": "RBAC Helpers (RequireRole, RequireTeamRole)",
-      "priority": "P0",
-      "estimatedTime": "1h",
-      "dependencies": ["3.2"],
-      "status": "pending",
-      "file": "3.3-rbac-helpers.md",
-      "record": "records/3.3-rbac-helpers.md"
-    },
-    "3.4-auth-service": {
-      "id": "3.4",
-      "title": "AuthService Implementation (Login, ParseToken)",
-      "priority": "P0",
-      "estimatedTime": "2h",
-      "dependencies": ["1.5", "2.4", "1.4"],
-      "status": "pending",
-      "file": "3.4-auth-service.md",
-      "record": "records/3.4-auth-service.md"
-    },
-    "4.1-team-service": {
-      "id": "4.1",
-      "title": "TeamService Implementation",
-      "priority": "P0",
-      "estimatedTime": "4h",
-      "dependencies": ["2.4", "1.4"],
-      "status": "pending",
-      "file": "4.1-team-service.md",
-      "record": "records/4.1-team-service.md"
-    },
-    "4.2-main-item-service": {
-      "id": "4.2",
-      "title": "MainItemService Implementation",
-      "priority": "P0",
-      "estimatedTime": "4h",
-      "dependencies": ["2.5", "1.4"],
-      "status": "pending",
-      "file": "4.2-main-item-service.md",
-      "record": "records/4.2-main-item-service.md"
-    },
-    "4.3-sub-item-service": {
-      "id": "4.3",
-      "title": "SubItemService Implementation (ChangeStatus, delay-count, auto-upgrade)",
-      "priority": "P0",
-      "estimatedTime": "4h",
-      "dependencies": ["2.5", "4.2", "1.4"],
-      "status": "pending",
-      "file": "4.3-sub-item-service.md",
-      "record": "records/4.3-sub-item-service.md"
-    },
-    "4.4-progress-service": {
-      "id": "4.4",
-      "title": "ProgressService Implementation (Append, CorrectCompletion)",
-      "priority": "P0",
-      "estimatedTime": "3h",
-      "dependencies": ["2.6", "4.3", "1.4"],
-      "status": "pending",
-      "file": "4.4-progress-service.md",
-      "record": "records/4.4-progress-service.md"
-    },
-    "4.5-item-pool-service": {
-      "id": "4.5",
-      "title": "ItemPoolService Implementation (Submit, Assign tx, Reject)",
-      "priority": "P0",
-      "estimatedTime": "3h",
-      "dependencies": ["2.6", "4.3", "1.4"],
-      "status": "pending",
-      "file": "4.5-item-pool-service.md",
-      "record": "records/4.5-item-pool-service.md"
-    },
-    "4.6-admin-service": {
-      "id": "4.6",
-      "title": "AdminService Implementation",
-      "priority": "P1",
-      "estimatedTime": "2h",
-      "dependencies": ["2.4", "1.4"],
-      "status": "pending",
-      "file": "4.6-admin-service.md",
-      "record": "records/4.6-admin-service.md"
-    },
-    "5.1-view-service-weekly": {
-      "id": "5.1",
-      "title": "ViewService: WeeklyView Query",
-      "priority": "P1",
-      "estimatedTime": "3h",
-      "dependencies": ["4.3", "4.4"],
-      "status": "pending",
-      "file": "5.1-view-service-weekly.md",
-      "record": "records/5.1-view-service-weekly.md"
-    },
-    "5.2-view-service-gantt": {
-      "id": "5.2",
-      "title": "ViewService: GanttView Query",
-      "priority": "P1",
-      "estimatedTime": "2h",
-      "dependencies": ["4.2", "4.3"],
-      "status": "pending",
-      "file": "5.2-view-service-gantt.md",
-      "record": "records/5.2-view-service-gantt.md"
-    },
-    "5.3-view-service-table": {
-      "id": "5.3",
-      "title": "ViewService: TableView Query + CSV Export",
-      "priority": "P1",
-      "estimatedTime": "3h",
-      "dependencies": ["4.2", "4.3"],
-      "status": "pending",
-      "file": "5.3-view-service-table.md",
-      "record": "records/5.3-view-service-table.md"
-    },
-    "5.4-report-service": {
-      "id": "5.4",
-      "title": "ReportService: Weekly Preview + Markdown Export",
-      "priority": "P1",
-      "estimatedTime": "3h",
-      "dependencies": ["5.1"],
-      "status": "pending",
-      "file": "5.4-report-service.md",
-      "record": "records/5.4-report-service.md"
-    },
-    "6.1-gin-router-setup": {
-      "id": "6.1",
-      "title": "Gin Router Setup (route groups, middleware wiring, health)",
-      "priority": "P0",
-      "estimatedTime": "2h",
-      "dependencies": ["3.1", "3.2", "3.3"],
-      "status": "pending",
-      "file": "6.1-gin-router-setup.md",
-      "record": "records/6.1-gin-router-setup.md"
-    },
-    "6.2-auth-handlers": {
-      "id": "6.2",
-      "title": "Auth Handlers (POST /login, POST /logout)",
-      "priority": "P0",
-      "estimatedTime": "2h",
-      "dependencies": ["6.1", "3.4"],
-      "status": "pending",
-      "file": "6.2-auth-handlers.md",
-      "record": "records/6.2-auth-handlers.md"
-    },
-    "6.3-team-handlers": {
-      "id": "6.3",
-      "title": "Team Handlers (CRUD + member management + PM transfer)",
-      "priority": "P0",
-      "estimatedTime": "3h",
-      "dependencies": ["6.1", "4.1"],
-      "status": "pending",
-      "file": "6.3-team-handlers.md",
-      "record": "records/6.3-team-handlers.md"
-    },
-    "6.4-main-item-handlers": {
-      "id": "6.4",
-      "title": "MainItem Handlers (CRUD + archive + list with filters)",
-      "priority": "P0",
-      "estimatedTime": "3h",
-      "dependencies": ["6.1", "4.2"],
-      "status": "pending",
-      "file": "6.4-main-item-handlers.md",
-      "record": "records/6.4-main-item-handlers.md"
-    },
-    "6.5-sub-item-handlers": {
-      "id": "6.5",
-      "title": "SubItem Handlers (CRUD + status + assignee + list)",
-      "priority": "P0",
-      "estimatedTime": "3h",
-      "dependencies": ["6.1", "4.3"],
-      "status": "pending",
-      "file": "6.5-sub-item-handlers.md",
-      "record": "records/6.5-sub-item-handlers.md"
-    },
-    "6.6-progress-handlers": {
-      "id": "6.6",
-      "title": "ProgressRecord Handlers (append + PM correction + list)",
-      "priority": "P0",
-      "estimatedTime": "2h",
-      "dependencies": ["6.1", "4.4"],
-      "status": "pending",
-      "file": "6.6-progress-handlers.md",
-      "record": "records/6.6-progress-handlers.md"
-    },
-    "6.7-item-pool-handlers": {
-      "id": "6.7",
-      "title": "ItemPool Handlers (submit + assign + reject + list)",
-      "priority": "P0",
-      "estimatedTime": "2h",
-      "dependencies": ["6.1", "4.5"],
-      "status": "pending",
-      "file": "6.7-item-pool-handlers.md",
-      "record": "records/6.7-item-pool-handlers.md"
-    },
-    "6.8-view-handlers": {
-      "id": "6.8",
-      "title": "View Handlers (weekly, gantt, table, CSV export)",
-      "priority": "P1",
-      "estimatedTime": "2h",
-      "dependencies": ["6.1", "5.1", "5.2", "5.3"],
-      "status": "pending",
-      "file": "6.8-view-handlers.md",
-      "record": "records/6.8-view-handlers.md"
-    },
-    "6.9-report-handlers": {
-      "id": "6.9",
-      "title": "Report Handlers (preview + Markdown export)",
-      "priority": "P1",
-      "estimatedTime": "2h",
-      "dependencies": ["6.1", "5.4"],
-      "status": "pending",
-      "file": "6.9-report-handlers.md",
-      "record": "records/6.9-report-handlers.md"
-    },
-    "6.10-admin-handlers": {
-      "id": "6.10",
-      "title": "Admin Handlers (user list + permission toggle + team list)",
-      "priority": "P1",
-      "estimatedTime": "2h",
-      "dependencies": ["6.1", "4.6"],
-      "status": "pending",
-      "file": "6.10-admin-handlers.md",
-      "record": "records/6.10-admin-handlers.md"
-    },
-    "7.1-frontend-project-setup": {
-      "id": "7.1",
-      "title": "Frontend Project Setup (Vite + React 18 + TS + antd)",
-      "priority": "P0",
-      "estimatedTime": "2h",
-      "dependencies": [],
-      "status": "pending",
-      "file": "7.1-frontend-project-setup.md",
-      "record": "records/7.1-frontend-project-setup.md"
-    },
-    "7.2-axios-api-client": {
-      "id": "7.2",
-      "title": "Axios API Client (base URL, auth header, error interceptor)",
-      "priority": "P0",
-      "estimatedTime": "2h",
-      "dependencies": ["7.1"],
-      "status": "pending",
-      "file": "7.2-axios-api-client.md",
-      "record": "records/7.2-axios-api-client.md"
-    },
-    "7.3-auth-store": {
-      "id": "7.3",
-      "title": "Auth Store (Zustand: token, user, login/logout)",
-      "priority": "P0",
-      "estimatedTime": "1h",
-      "dependencies": ["7.1"],
-      "status": "pending",
-      "file": "7.3-auth-store.md",
-      "record": "records/7.3-auth-store.md"
-    },
-    "7.4-app-routing": {
-      "id": "7.4",
-      "title": "App Routing (React Router, protected routes, role guards)",
-      "priority": "P0",
-      "estimatedTime": "2h",
-      "dependencies": ["7.3"],
-      "status": "pending",
-      "file": "7.4-app-routing.md",
-      "record": "records/7.4-app-routing.md"
-    },
-    "7.5-app-shell": {
-      "id": "7.5",
-      "title": "App Shell (sidebar layout, nav menu, team switcher)",
-      "priority": "P0",
-      "estimatedTime": "3h",
-      "dependencies": ["7.4"],
-      "status": "pending",
-      "file": "7.5-app-shell.md",
-      "record": "records/7.5-app-shell.md"
-    },
-    "8.1-login-page": {
-      "id": "8.1",
-      "title": "Login Page",
-      "priority": "P0",
-      "estimatedTime": "2h",
-      "dependencies": ["7.3", "7.4"],
-      "status": "pending",
-      "file": "8.1-login-page.md",
-      "record": "records/8.1-login-page.md"
-    },
-    "8.2-team-management-page": {
-      "id": "8.2",
-      "title": "Team Management Page",
-      "priority": "P1",
-      "estimatedTime": "4h",
-      "dependencies": ["7.5"],
-      "status": "pending",
-      "file": "8.2-team-management-page.md",
-      "record": "records/8.2-team-management-page.md"
-    },
-    "8.3-superadmin-page": {
-      "id": "8.3",
-      "title": "SuperAdmin Backend Page",
-      "priority": "P1",
-      "estimatedTime": "3h",
-      "dependencies": ["7.5"],
-      "status": "pending",
-      "file": "8.3-superadmin-page.md",
-      "record": "records/8.3-superadmin-page.md"
-    },
-    "9.1-item-view-page": {
-      "id": "9.1",
-      "title": "事项视图 Page (MainItem list, accordion, filter bar)",
-      "priority": "P0",
-      "estimatedTime": "4h",
-      "dependencies": ["7.5"],
-      "status": "pending",
-      "file": "9.1-item-view-page.md",
-      "record": "records/9.1-item-view-page.md"
-    },
-    "9.2-main-item-detail-page": {
-      "id": "9.2",
-      "title": "主事项详情页 (detail header, aggregate, SubItem table)",
-      "priority": "P0",
-      "estimatedTime": "3h",
-      "dependencies": ["9.1"],
-      "status": "pending",
-      "file": "9.2-main-item-detail-page.md",
-      "record": "records/9.2-main-item-detail-page.md"
-    },
-    "9.3-sub-item-detail-page": {
-      "id": "9.3",
-      "title": "子事项详情页 (progress timeline, append drawer, PM correction)",
-      "priority": "P0",
-      "estimatedTime": "4h",
-      "dependencies": ["9.2"],
-      "status": "pending",
-      "file": "9.3-sub-item-detail-page.md",
-      "record": "records/9.3-sub-item-detail-page.md"
-    },
-    "9.4-item-pool-page": {
-      "id": "9.4",
-      "title": "事项池 Page (table, submit drawer, assign modal, reject modal)",
-      "priority": "P1",
-      "estimatedTime": "4h",
-      "dependencies": ["7.5"],
-      "status": "pending",
-      "file": "9.4-item-pool-page.md",
-      "record": "records/9.4-item-pool-page.md"
     },
     "10.1-weekly-view-page": {
       "id": "10.1",
       "title": "周视图 Page (week picker, grouped cards, plan vs actual)",
       "priority": "P1",
       "estimatedTime": "4h",
-      "dependencies": ["7.5"],
-      "status": "pending",
+      "dependencies": [
+        "7.5"
+      ],
+      "status": "completed",
       "file": "10.1-weekly-view-page.md",
       "record": "records/10.1-weekly-view-page.md"
     },
@@ -492,8 +79,10 @@
       "title": "甘特图 Page (frappe-gantt, expand/collapse SubItem rows)",
       "priority": "P1",
       "estimatedTime": "4h",
-      "dependencies": ["7.5"],
-      "status": "pending",
+      "dependencies": [
+        "7.5"
+      ],
+      "status": "completed",
       "file": "10.2-gantt-view-page.md",
       "record": "records/10.2-gantt-view-page.md"
     },
@@ -502,8 +91,10 @@
       "title": "表格视图 Page (antd Table, sort/filter, CSV export)",
       "priority": "P1",
       "estimatedTime": "3h",
-      "dependencies": ["7.5"],
-      "status": "pending",
+      "dependencies": [
+        "7.5"
+      ],
+      "status": "completed",
       "file": "10.3-table-view-page.md",
       "record": "records/10.3-table-view-page.md"
     },
@@ -512,8 +103,10 @@
       "title": "周报导出 Page (week picker, Markdown preview, export)",
       "priority": "P1",
       "estimatedTime": "3h",
-      "dependencies": ["7.5"],
-      "status": "pending",
+      "dependencies": [
+        "7.5"
+      ],
+      "status": "completed",
       "file": "10.4-report-export-page.md",
       "record": "records/10.4-report-export-page.md"
     },
@@ -522,8 +115,10 @@
       "title": "Backend Unit Tests: AuthService + JWT Utilities",
       "priority": "P1",
       "estimatedTime": "2h",
-      "dependencies": ["3.4"],
-      "status": "pending",
+      "dependencies": [
+        "3.4"
+      ],
+      "status": "completed",
       "file": "11.1-test-auth-jwt.md",
       "record": "records/11.1-test-auth-jwt.md"
     },
@@ -532,8 +127,10 @@
       "title": "Backend Unit Tests: MainItemService (RecalcCompletion)",
       "priority": "P1",
       "estimatedTime": "2h",
-      "dependencies": ["4.2"],
-      "status": "pending",
+      "dependencies": [
+        "4.2"
+      ],
+      "status": "completed",
       "file": "11.2-test-main-item-service.md",
       "record": "records/11.2-test-main-item-service.md"
     },
@@ -542,8 +139,10 @@
       "title": "Backend Unit Tests: SubItemService (ChangeStatus, delay-count)",
       "priority": "P1",
       "estimatedTime": "2h",
-      "dependencies": ["4.3"],
-      "status": "pending",
+      "dependencies": [
+        "4.3"
+      ],
+      "status": "completed",
       "file": "11.3-test-sub-item-service.md",
       "record": "records/11.3-test-sub-item-service.md"
     },
@@ -552,8 +151,10 @@
       "title": "Backend Unit Tests: ProgressService (regression check, PM correction)",
       "priority": "P1",
       "estimatedTime": "2h",
-      "dependencies": ["4.4"],
-      "status": "pending",
+      "dependencies": [
+        "4.4"
+      ],
+      "status": "completed",
       "file": "11.4-test-progress-service.md",
       "record": "records/11.4-test-progress-service.md"
     },
@@ -562,8 +163,10 @@
       "title": "Backend Unit Tests: ItemPoolService (assign transaction)",
       "priority": "P1",
       "estimatedTime": "2h",
-      "dependencies": ["4.5"],
-      "status": "pending",
+      "dependencies": [
+        "4.5"
+      ],
+      "status": "completed",
       "file": "11.5-test-item-pool-service.md",
       "record": "records/11.5-test-item-pool-service.md"
     },
@@ -572,8 +175,11 @@
       "title": "Backend Integration Tests: Auth Flow + Team Isolation",
       "priority": "P1",
       "estimatedTime": "3h",
-      "dependencies": ["6.2", "6.3"],
-      "status": "pending",
+      "dependencies": [
+        "6.2",
+        "6.3"
+      ],
+      "status": "completed",
       "file": "11.6-integration-test-auth-isolation.md",
       "record": "records/11.6-integration-test-auth-isolation.md"
     },
@@ -582,8 +188,10 @@
       "title": "Backend Integration Tests: Progress Append → MainItem Completion",
       "priority": "P1",
       "estimatedTime": "2h",
-      "dependencies": ["6.6"],
-      "status": "pending",
+      "dependencies": [
+        "6.6"
+      ],
+      "status": "completed",
       "file": "11.7-integration-test-progress-completion.md",
       "record": "records/11.7-integration-test-progress-completion.md"
     },
@@ -592,8 +200,11 @@
       "title": "Frontend Unit Tests: Form Validation + Auth Store",
       "priority": "P1",
       "estimatedTime": "2h",
-      "dependencies": ["7.3", "8.1"],
-      "status": "pending",
+      "dependencies": [
+        "7.3",
+        "8.1"
+      ],
+      "status": "completed",
       "file": "11.8-frontend-unit-tests.md",
       "record": "records/11.8-frontend-unit-tests.md"
     },
@@ -602,10 +213,557 @@
       "title": "Frontend Integration Tests: Key Page Flows with MSW Mocks",
       "priority": "P2",
       "estimatedTime": "3h",
-      "dependencies": ["9.1", "9.4", "11.8"],
-      "status": "pending",
+      "dependencies": [
+        "9.1",
+        "9.4",
+        "11.8"
+      ],
+      "status": "completed",
       "file": "11.9-frontend-integration-tests.md",
       "record": "records/11.9-frontend-integration-tests.md"
+    },
+    "2.1-user-team-models-migrations": {
+      "id": "2.1",
+      "title": "User \u0026 Team Models + Migrations",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1.2"
+      ],
+      "status": "completed",
+      "file": "2.1-user-team-models-migrations.md",
+      "record": "records/2.1-user-team-models-migrations.md"
+    },
+    "2.2-mainitem-subitem-models-migrations": {
+      "id": "2.2",
+      "title": "MainItem \u0026 SubItem Models + Migrations",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "2.1"
+      ],
+      "status": "completed",
+      "file": "2.2-mainitem-subitem-models-migrations.md",
+      "record": "records/2.2-mainitem-subitem-models-migrations.md"
+    },
+    "2.3-progress-itempool-models-migrations": {
+      "id": "2.3",
+      "title": "ProgressRecord \u0026 ItemPool Models + Migrations",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "2.2"
+      ],
+      "status": "completed",
+      "file": "2.3-progress-itempool-models-migrations.md",
+      "record": "records/2.3-progress-itempool-models-migrations.md"
+    },
+    "2.4-user-team-repo": {
+      "id": "2.4",
+      "title": "UserRepo \u0026 TeamRepo (interfaces + GORM impl)",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "2.1"
+      ],
+      "status": "completed",
+      "file": "2.4-user-team-repo.md",
+      "record": "records/2.4-user-team-repo.md"
+    },
+    "2.5-mainitem-subitem-repo": {
+      "id": "2.5",
+      "title": "MainItemRepo \u0026 SubItemRepo (interfaces + GORM impl)",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "2.2"
+      ],
+      "status": "completed",
+      "file": "2.5-mainitem-subitem-repo.md",
+      "record": "records/2.5-mainitem-subitem-repo.md"
+    },
+    "2.6-progress-itempool-repo": {
+      "id": "2.6",
+      "title": "ProgressRepo \u0026 ItemPoolRepo (interfaces + GORM impl)",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "2.3"
+      ],
+      "status": "completed",
+      "file": "2.6-progress-itempool-repo.md",
+      "record": "records/2.6-progress-itempool-repo.md"
+    },
+    "3.1-auth-middleware": {
+      "id": "3.1",
+      "title": "AuthMiddleware (JWT validation, inject user)",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1.5",
+        "2.4"
+      ],
+      "status": "completed",
+      "file": "3.1-auth-middleware.md",
+      "record": "records/3.1-auth-middleware.md"
+    },
+    "3.2-team-scope-middleware": {
+      "id": "3.2",
+      "title": "TeamScopeMiddleware (membership check, inject teamID)",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "3.1",
+        "2.4"
+      ],
+      "status": "completed",
+      "file": "3.2-team-scope-middleware.md",
+      "record": "records/3.2-team-scope-middleware.md"
+    },
+    "3.3-rbac-helpers": {
+      "id": "3.3",
+      "title": "RBAC Helpers (RequireRole, RequireTeamRole)",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "3.2"
+      ],
+      "status": "completed",
+      "file": "3.3-rbac-helpers.md",
+      "record": "records/3.3-rbac-helpers.md"
+    },
+    "3.4-auth-service": {
+      "id": "3.4",
+      "title": "AuthService Implementation (Login, ParseToken)",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1.5",
+        "2.4",
+        "1.4"
+      ],
+      "status": "completed",
+      "file": "3.4-auth-service.md",
+      "record": "records/3.4-auth-service.md"
+    },
+    "4.1-team-service": {
+      "id": "4.1",
+      "title": "TeamService Implementation",
+      "priority": "P0",
+      "estimatedTime": "4h",
+      "dependencies": [
+        "2.4",
+        "1.4"
+      ],
+      "status": "completed",
+      "file": "4.1-team-service.md",
+      "record": "records/4.1-team-service.md"
+    },
+    "4.2-main-item-service": {
+      "id": "4.2",
+      "title": "MainItemService Implementation",
+      "priority": "P0",
+      "estimatedTime": "4h",
+      "dependencies": [
+        "2.5",
+        "1.4"
+      ],
+      "status": "completed",
+      "file": "4.2-main-item-service.md",
+      "record": "records/4.2-main-item-service.md"
+    },
+    "4.3-sub-item-service": {
+      "id": "4.3",
+      "title": "SubItemService Implementation (ChangeStatus, delay-count, auto-upgrade)",
+      "priority": "P0",
+      "estimatedTime": "4h",
+      "dependencies": [
+        "2.5",
+        "4.2",
+        "1.4"
+      ],
+      "status": "completed",
+      "file": "4.3-sub-item-service.md",
+      "record": "records/4.3-sub-item-service.md"
+    },
+    "4.4-progress-service": {
+      "id": "4.4",
+      "title": "ProgressService Implementation (Append, CorrectCompletion)",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "2.6",
+        "4.3",
+        "1.4"
+      ],
+      "status": "completed",
+      "file": "4.4-progress-service.md",
+      "record": "records/4.4-progress-service.md"
+    },
+    "4.5-item-pool-service": {
+      "id": "4.5",
+      "title": "ItemPoolService Implementation (Submit, Assign tx, Reject)",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "2.6",
+        "4.3",
+        "1.4"
+      ],
+      "status": "completed",
+      "file": "4.5-item-pool-service.md",
+      "record": "records/4.5-item-pool-service.md"
+    },
+    "4.6-admin-service": {
+      "id": "4.6",
+      "title": "AdminService Implementation",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "2.4",
+        "1.4"
+      ],
+      "status": "completed",
+      "file": "4.6-admin-service.md",
+      "record": "records/4.6-admin-service.md"
+    },
+    "5.1-view-service-weekly": {
+      "id": "5.1",
+      "title": "ViewService: WeeklyView Query",
+      "priority": "P1",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "4.3",
+        "4.4"
+      ],
+      "status": "completed",
+      "file": "5.1-view-service-weekly.md",
+      "record": "records/5.1-view-service-weekly.md"
+    },
+    "5.2-view-service-gantt": {
+      "id": "5.2",
+      "title": "ViewService: GanttView Query",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "4.2",
+        "4.3"
+      ],
+      "status": "completed",
+      "file": "5.2-view-service-gantt.md",
+      "record": "records/5.2-view-service-gantt.md"
+    },
+    "5.3-view-service-table": {
+      "id": "5.3",
+      "title": "ViewService: TableView Query + CSV Export",
+      "priority": "P1",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "4.2",
+        "4.3"
+      ],
+      "status": "completed",
+      "file": "5.3-view-service-table.md",
+      "record": "records/5.3-view-service-table.md"
+    },
+    "5.4-report-service": {
+      "id": "5.4",
+      "title": "ReportService: Weekly Preview + Markdown Export",
+      "priority": "P1",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "5.1"
+      ],
+      "status": "completed",
+      "file": "5.4-report-service.md",
+      "record": "records/5.4-report-service.md"
+    },
+    "6.1-gin-router-setup": {
+      "id": "6.1",
+      "title": "Gin Router Setup (route groups, middleware wiring, health)",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "3.1",
+        "3.2",
+        "3.3"
+      ],
+      "status": "completed",
+      "file": "6.1-gin-router-setup.md",
+      "record": "records/6.1-gin-router-setup.md"
+    },
+    "6.10-admin-handlers": {
+      "id": "6.10",
+      "title": "Admin Handlers (user list + permission toggle + team list)",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "6.1",
+        "4.6"
+      ],
+      "status": "completed",
+      "file": "6.10-admin-handlers.md",
+      "record": "records/6.10-admin-handlers.md"
+    },
+    "6.2-auth-handlers": {
+      "id": "6.2",
+      "title": "Auth Handlers (POST /login, POST /logout)",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "6.1",
+        "3.4"
+      ],
+      "status": "completed",
+      "file": "6.2-auth-handlers.md",
+      "record": "records/6.2-auth-handlers.md"
+    },
+    "6.3-team-handlers": {
+      "id": "6.3",
+      "title": "Team Handlers (CRUD + member management + PM transfer)",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "6.1",
+        "4.1"
+      ],
+      "status": "completed",
+      "file": "6.3-team-handlers.md",
+      "record": "records/6.3-team-handlers.md"
+    },
+    "6.4-main-item-handlers": {
+      "id": "6.4",
+      "title": "MainItem Handlers (CRUD + archive + list with filters)",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "6.1",
+        "4.2"
+      ],
+      "status": "completed",
+      "file": "6.4-main-item-handlers.md",
+      "record": "records/6.4-main-item-handlers.md"
+    },
+    "6.5-sub-item-handlers": {
+      "id": "6.5",
+      "title": "SubItem Handlers (CRUD + status + assignee + list)",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "6.1",
+        "4.3"
+      ],
+      "status": "completed",
+      "file": "6.5-sub-item-handlers.md",
+      "record": "records/6.5-sub-item-handlers.md"
+    },
+    "6.6-progress-handlers": {
+      "id": "6.6",
+      "title": "ProgressRecord Handlers (append + PM correction + list)",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "6.1",
+        "4.4"
+      ],
+      "status": "completed",
+      "file": "6.6-progress-handlers.md",
+      "record": "records/6.6-progress-handlers.md"
+    },
+    "6.7-item-pool-handlers": {
+      "id": "6.7",
+      "title": "ItemPool Handlers (submit + assign + reject + list)",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "6.1",
+        "4.5"
+      ],
+      "status": "completed",
+      "file": "6.7-item-pool-handlers.md",
+      "record": "records/6.7-item-pool-handlers.md"
+    },
+    "6.8-view-handlers": {
+      "id": "6.8",
+      "title": "View Handlers (weekly, gantt, table, CSV export)",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "6.1",
+        "5.1",
+        "5.2",
+        "5.3"
+      ],
+      "status": "completed",
+      "file": "6.8-view-handlers.md",
+      "record": "records/6.8-view-handlers.md"
+    },
+    "6.9-report-handlers": {
+      "id": "6.9",
+      "title": "Report Handlers (preview + Markdown export)",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "6.1",
+        "5.4"
+      ],
+      "status": "completed",
+      "file": "6.9-report-handlers.md",
+      "record": "records/6.9-report-handlers.md"
+    },
+    "7.1-frontend-project-setup": {
+      "id": "7.1",
+      "title": "Frontend Project Setup (Vite + React 18 + TS + antd)",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "status": "completed",
+      "file": "7.1-frontend-project-setup.md",
+      "record": "records/7.1-frontend-project-setup.md"
+    },
+    "7.2-axios-api-client": {
+      "id": "7.2",
+      "title": "Axios API Client (base URL, auth header, error interceptor)",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "7.1"
+      ],
+      "status": "completed",
+      "file": "7.2-axios-api-client.md",
+      "record": "records/7.2-axios-api-client.md"
+    },
+    "7.3-auth-store": {
+      "id": "7.3",
+      "title": "Auth Store (Zustand: token, user, login/logout)",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "7.1"
+      ],
+      "status": "completed",
+      "file": "7.3-auth-store.md",
+      "record": "records/7.3-auth-store.md"
+    },
+    "7.4-app-routing": {
+      "id": "7.4",
+      "title": "App Routing (React Router, protected routes, role guards)",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "7.3"
+      ],
+      "status": "completed",
+      "file": "7.4-app-routing.md",
+      "record": "records/7.4-app-routing.md"
+    },
+    "7.5-app-shell": {
+      "id": "7.5",
+      "title": "App Shell (sidebar layout, nav menu, team switcher)",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "7.4"
+      ],
+      "status": "completed",
+      "file": "7.5-app-shell.md",
+      "record": "records/7.5-app-shell.md"
+    },
+    "8.1-login-page": {
+      "id": "8.1",
+      "title": "Login Page",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "7.3",
+        "7.4"
+      ],
+      "status": "completed",
+      "file": "8.1-login-page.md",
+      "record": "records/8.1-login-page.md"
+    },
+    "8.2-team-management-page": {
+      "id": "8.2",
+      "title": "Team Management Page",
+      "priority": "P1",
+      "estimatedTime": "4h",
+      "dependencies": [
+        "7.5"
+      ],
+      "status": "completed",
+      "file": "8.2-team-management-page.md",
+      "record": "records/8.2-team-management-page.md"
+    },
+    "8.3-superadmin-page": {
+      "id": "8.3",
+      "title": "SuperAdmin Backend Page",
+      "priority": "P1",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "7.5"
+      ],
+      "status": "completed",
+      "file": "8.3-superadmin-page.md",
+      "record": "records/8.3-superadmin-page.md"
+    },
+    "9.1-item-view-page": {
+      "id": "9.1",
+      "title": "事项视图 Page (MainItem list, accordion, filter bar)",
+      "priority": "P0",
+      "estimatedTime": "4h",
+      "dependencies": [
+        "7.5"
+      ],
+      "status": "completed",
+      "file": "9.1-item-view-page.md",
+      "record": "records/9.1-item-view-page.md"
+    },
+    "9.2-main-item-detail-page": {
+      "id": "9.2",
+      "title": "主事项详情页 (detail header, aggregate, SubItem table)",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "9.1"
+      ],
+      "status": "completed",
+      "file": "9.2-main-item-detail-page.md",
+      "record": "records/9.2-main-item-detail-page.md"
+    },
+    "9.3-sub-item-detail-page": {
+      "id": "9.3",
+      "title": "子事项详情页 (progress timeline, append drawer, PM correction)",
+      "priority": "P0",
+      "estimatedTime": "4h",
+      "dependencies": [
+        "9.2"
+      ],
+      "status": "completed",
+      "file": "9.3-sub-item-detail-page.md",
+      "record": "records/9.3-sub-item-detail-page.md"
+    },
+    "9.4-item-pool-page": {
+      "id": "9.4",
+      "title": "事项池 Page (table, submit drawer, assign modal, reject modal)",
+      "priority": "P1",
+      "estimatedTime": "4h",
+      "dependencies": [
+        "7.5"
+      ],
+      "status": "completed",
+      "file": "9.4-item-pool-page.md",
+      "record": "records/9.4-item-pool-page.md"
     }
-  }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
 }

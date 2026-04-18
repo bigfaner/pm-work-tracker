@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>周视图 — PM 工作事项追踪</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .week-picker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .week-picker input[type="week"] {
+      height: 32px;
+      padding: 4px 11px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-base);
+      color: var(--text-primary);
+      background: var(--bg-container);
+      outline: none;
+    }
+    .week-picker input[type="week"]:focus {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+    }
+    .summary-bar {
+      display: flex;
+      gap: 48px;
+      padding: 16px 24px;
+      background: var(--bg-container);
+      border: 1px solid var(--border-color-light);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      margin-bottom: 24px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      margin-top: 24px;
+    }
+    .section-header:first-of-type { margin-top: 0; }
+    .section-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .section-dot.green { background: var(--color-success); }
+    .section-dot.blue { background: var(--color-primary); }
+    .section-dot.gray { background: var(--text-quaternary); }
+    .section-title { font-size: var(--font-size-base); font-weight: var(--font-weight-medium); }
+    .week-card .card-body { padding: 16px 24px; }
+    .week-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .week-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .week-card-title a { font-weight: var(--font-weight-medium); }
+    .week-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: var(--font-size-sm);
+    }
+    .week-record-progress {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .week-record-text { color: var(--text-primary); font-size: var(--font-size-sm); }
+    .week-record-blocker { color: var(--color-warning); font-size: var(--font-size-sm); }
+    .week-record-time { color: var(--text-tertiary); font-size: var(--font-size-sm); }
+    .week-section-collapse .collapse-header { padding: 8px 16px; font-size: var(--font-size-sm); }
+    .week-section-collapse .collapse-body { padding: 0 16px 12px; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">P</div>
+        <span class="sidebar-brand">PM 追踪</span>
+      </div>
+      <div class="sidebar-team">
+        <select>
+          <option>产品研发组</option>
+        </select>
+      </div>
+      <div class="sidebar-nav">
+        <a href="main-items.html" class="nav-item"><i class="nav-icon">&#9776;</i><span>事项视图</span></a>
+        <a href="weekly-view.html" class="nav-item active"><i class="nav-icon">&#9783;</i><span>周视图</span></a>
+        <a href="gantt-view.html" class="nav-item"><i class="nav-icon">&#9638;</i><span>甘特图</span></a>
+        <a href="table-view.html" class="nav-item"><i class="nav-icon">&#9776;</i><span>表格视图</span></a>
+        <a href="item-pool.html" class="nav-item"><i class="nav-icon">&#9744;</i><span>事项池</span></a>
+        <a href="weekly-report.html" class="nav-item"><i class="nav-icon">&#9998;</i><span>周报导出</span></a>
+      </div>
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">张</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">张伟</div>
+          <div class="sidebar-user-role">PM</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <h2>周视图</h2>
+        <div class="week-picker">
+          <label class="text-secondary">选择周：</label>
+          <input type="week" id="week-input" value="2026-W16">
+        </div>
+      </div>
+
+      <!-- Week Summary Bar -->
+      <div class="summary-bar">
+        <div class="statistic">
+          <div class="statistic-title">本周更新事项</div>
+          <div class="statistic-value">3</div>
+        </div>
+        <div class="statistic">
+          <div class="statistic-title">本周新完成</div>
+          <div class="statistic-value" style="color: var(--color-success);">1</div>
+        </div>
+        <div class="statistic">
+          <div class="statistic-title">阻塞中</div>
+          <div class="statistic-value" style="color: var(--color-error);">0</div>
+        </div>
+      </div>
+
+      <!-- Section: 本周新完成 -->
+      <div class="section-header">
+        <span class="section-dot green"></span>
+        <span class="section-title">本周新完成</span>
+      </div>
+
+      <!-- WeekItemCard: SI-004 已完成 -->
+      <div class="card mb-12 week-card">
+        <div class="card-body">
+          <div class="week-card-header">
+            <div class="week-card-title">
+              <a href="subitem-detail.html">SI-004 首页Banner设计</a>
+              <span class="text-tertiary">&mdash;</span>
+              <a href="mainitem-detail.html" class="text-secondary">MI-003 数据报表系统</a>
+            </div>
+            <div class="week-card-meta">
+              <div class="avatar avatar-sm">王</div>
+              <span>王芳</span>
+              <span class="tag tag-green">已完成</span>
+            </div>
+          </div>
+          <div class="week-plan-actual">
+            <div>
+              <div class="week-column-title">计划</div>
+              <div class="week-plan">完成首页 Banner 的视觉设计，包括深色/浅色两套方案，输出 Figma 设计稿并完成团队评审。</div>
+            </div>
+            <div>
+              <div class="week-column-title">实际</div>
+              <div class="week-actual">
+                <div class="week-record">
+                  <div class="week-record-progress">
+                    <div class="progress-wrapper">
+                      <div class="progress-bar progress-sm"><div class="progress-fill success" style="width: 100%"></div></div>
+                      <span class="progress-text">100%</span>
+                    </div>
+                  </div>
+                  <div class="week-record-text">完成深色和浅色两套 Banner 方案设计，已通过团队评审</div>
+                  <div class="week-record-time">2026-04-16 周四</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <hr class="divider"><span></span></hr>
+
+      <!-- Section: 本周有进度更新 -->
+      <div class="section-header">
+        <span class="section-dot blue"></span>
+        <span class="section-title">本周有进度更新</span>
+      </div>
+
+      <!-- WeekItemCard: SI-001 进行中 -->
+      <div class="card mb-12 week-card">
+        <div class="card-body">
+          <div class="week-card-header">
+            <div class="week-card-title">
+              <a href="subitem-detail.html">SI-001 用户注册接口开发</a>
+              <span class="text-tertiary">&mdash;</span>
+              <a href="mainitem-detail.html" class="text-secondary">MI-001 用户认证系统</a>
+            </div>
+            <div class="week-card-meta">
+              <div class="avatar avatar-sm">张</div>
+              <span>张明</span>
+              <span class="tag tag-blue">进行中</span>
+            </div>
+          </div>
+          <div class="week-plan-actual">
+            <div>
+              <div class="week-column-title">计划</div>
+              <div class="week-plan">完成用户注册接口的核心逻辑开发，包括参数校验、密码加密存储、手机号/邮箱注册流程。完成单元测试编写，覆盖率 > 80%。</div>
+            </div>
+            <div>
+              <div class="week-column-title">实际</div>
+              <div class="week-actual">
+                <div class="week-record">
+                  <div class="week-record-progress">
+                    <span class="text-tertiary" style="font-size: 12px;">50% &rarr; 60%</span>
+                    <div class="progress-wrapper">
+                      <div class="progress-bar progress-sm"><div class="progress-fill" style="width: 60%"></div></div>
+                      <span class="progress-text">60%</span>
+                    </div>
+                  </div>
+                  <div class="week-record-text">完成单元测试编写，覆盖注册参数校验和密码加密流程</div>
+                  <div class="week-record-time">2026-04-15 周三</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WeekItemCard: SI-002 进行中 (有卡点) -->
+      <div class="card mb-12 week-card">
+        <div class="card-body">
+          <div class="week-card-header">
+            <div class="week-card-title">
+              <a href="subitem-detail.html">SI-002 登录鉴权实现</a>
+              <span class="text-tertiary">&mdash;</span>
+              <a href="mainitem-detail.html" class="text-secondary">MI-001 用户认证系统</a>
+            </div>
+            <div class="week-card-meta">
+              <div class="avatar avatar-sm">王</div>
+              <span>王芳</span>
+              <span class="tag tag-blue">进行中</span>
+            </div>
+          </div>
+          <div class="week-plan-actual">
+            <div>
+              <div class="week-column-title">计划</div>
+              <div class="week-plan">完成登录鉴权模块开发，包括 JWT Token 签发与刷新机制、OAuth 2.0 第三方登录对接（微信、企微），完成联调测试。</div>
+            </div>
+            <div>
+              <div class="week-column-title">实际</div>
+              <div class="week-actual">
+                <div class="week-record">
+                  <div class="week-record-progress">
+                    <span class="text-tertiary" style="font-size: 12px;">30% &rarr; 45%</span>
+                    <div class="progress-wrapper">
+                      <div class="progress-bar progress-sm"><div class="progress-fill" style="width: 45%"></div></div>
+                      <span class="progress-text">45%</span>
+                    </div>
+                  </div>
+                  <div class="week-record-text">完成 JWT 签发和 Token 刷新逻辑</div>
+                  <div class="week-record-blocker">卡点：OAuth 回调地址配置需要运维配合，企业微信回调域名审核中</div>
+                  <div class="week-record-time">2026-04-17 周五</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: 上周完成，本周无变化 (collapsed) -->
+      <div class="collapse week-section-collapse" style="margin-top: 24px;">
+        <div class="collapse-header">
+          <div class="flex items-center gap-8">
+            <span class="section-dot gray"></span>
+            <span class="section-title">上周完成，本周无变化</span>
+            <span class="text-tertiary" style="font-size: 12px;">(1)</span>
+          </div>
+          <i class="collapse-arrow">&#9654;</i>
+        </div>
+        <div class="collapse-body">
+          <!-- WeekItemCard: SI-005 已完成 -->
+          <div class="card mb-8 week-card">
+            <div class="card-body">
+              <div class="week-card-header">
+                <div class="week-card-title">
+                  <a href="subitem-detail.html">SI-005 数据库索引优化</a>
+                  <span class="text-tertiary">&mdash;</span>
+                  <a href="mainitem-detail.html" class="text-secondary">MI-004 基础设施优化</a>
+                </div>
+                <div class="week-card-meta">
+                  <div class="avatar avatar-sm">陈</div>
+                  <span>陈静</span>
+                  <span class="tag tag-green">已完成</span>
+                </div>
+              </div>
+              <div class="week-plan-actual">
+                <div>
+                  <div class="week-column-title">计划</div>
+                  <div class="week-plan">对慢查询 Top 20 进行分析，添加缺失索引，优化 JOIN 查询，将平均查询时间降低至 50ms 以下。</div>
+                </div>
+                <div>
+                  <div class="week-column-title">实际</div>
+                  <div class="week-actual">
+                    <div class="week-record">
+                      <div class="week-record-progress">
+                        <div class="progress-wrapper">
+                          <div class="progress-bar progress-sm"><div class="progress-fill success" style="width: 100%"></div></div>
+                          <span class="progress-text">100%</span>
+                        </div>
+                      </div>
+                      <div class="week-record-text">完成全部慢查询优化，平均查询时间降至 35ms</div>
+                      <div class="week-record-time">2026-04-11 周五（上周）</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -18,6 +18,7 @@ status: tasks
 | Tech Design | design/tech-design.md | React SPA + Go/Gin REST API + GORM（SQLite dev / MySQL prod）；四层架构（Transport/Service/Repository/DB）；6 个核心数据模型；JWT + RBAC + 团队隔离中间件 |
 | API Handbook | design/api-handbook.md | 40+ REST 端点，覆盖 Auth/Teams/MainItems/SubItems/ProgressRecords/ItemPool/Views/Reports/Admin；统一响应信封；16 个错误码 |
 | UI Design | ui/ui-design.md | React 18 + Ant Design v5；11 个页面完整布局/状态/交互/数据绑定规格；全局筛选栏模式；甘特图 frappe-gantt 集成 |
+| Prototype | ui/prototype/ | 14 文件交互原型（index + styles.css + app.js + 11 页面 HTML）；vanilla HTML/CSS/JS；Ant Design v5 风格；导航跳转/弹窗/筛选/Tab 等交互可用 |
 | Design Eval | design-eval.md | 总评 A；架构清晰度 A、接口与模型 B、错误处理 A、测试策略 A、可拆解性 A、安全考量 A |
 | Task Index | tasks/index.json | 60 个任务，11 组，覆盖后端基础设施/模型/服务/Handler、前端基础/页面、测试；估时约 155h |
 

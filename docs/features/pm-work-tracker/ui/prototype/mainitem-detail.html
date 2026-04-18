@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>主事项详情 - PM Work Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">P</div>
+        <span class="sidebar-brand">PM Work Tracker</span>
+      </div>
+      <div class="sidebar-team">
+        <select>
+          <option selected>产品研发组</option>
+        </select>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="main-items.html">
+          <i class="nav-icon">&#9776;</i>
+          <span>事项视图</span>
+        </a>
+        <a class="nav-item" href="weekly-view.html">
+          <i class="nav-icon">&#128197;</i>
+          <span>周视图</span>
+        </a>
+        <a class="nav-item" href="gantt-view.html">
+          <i class="nav-icon">&#9608;</i>
+          <span>甘特图</span>
+        </a>
+        <a class="nav-item" href="table-view.html">
+          <i class="nav-icon">&#8863;</i>
+          <span>表格视图</span>
+        </a>
+        <a class="nav-item" href="item-pool.html">
+          <i class="nav-icon">&#128230;</i>
+          <span>事项池</span>
+        </a>
+        <a class="nav-item" href="weekly-report.html">
+          <i class="nav-icon">&#128196;</i>
+          <span>周报导出</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">张</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">张伟</div>
+          <div class="sidebar-user-role">PM</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Breadcrumb -->
+      <div class="breadcrumb">
+        <a href="main-items.html">事项视图</a>
+        <span class="separator">/</span>
+        <span class="current">用户认证模块开发</span>
+      </div>
+
+      <!-- Page Header -->
+      <div class="page-header mb-16">
+        <div class="flex items-center gap-8">
+          <span class="tag tag-mono">MI-001</span>
+          <h2>用户认证模块开发</h2>
+          <span class="tag tag-orange">P1</span>
+          <span class="tag tag-blue">进行中</span>
+        </div>
+        <div class="flex items-center gap-8">
+          <button class="btn" data-modal="modal-edit-mainitem">编辑</button>
+          <div class="dropdown">
+            <button class="btn" data-dropdown>更多 &darr;</button>
+            <div class="dropdown-menu">
+              <div class="dropdown-item">复制</div>
+              <div class="dropdown-item">归档</div>
+              <div class="dropdown-item danger">删除</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Section: flex row -->
+      <div class="flex flex-row gap-16 mb-16">
+        <!-- Meta Card -->
+        <div class="card flex-1">
+          <div class="card-body">
+            <div class="descriptions">
+              <table class="descriptions-table">
+                <tr>
+                  <th>负责人</th>
+                  <td>
+                    <div class="flex items-center gap-8">
+                      <span class="avatar avatar-sm" style="background:#fa8c16;">李</span>
+                      <span>李伟</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <th>预期完成时间</th>
+                  <td>2026-04-30</td>
+                </tr>
+                <tr>
+                  <th>创建时间</th>
+                  <td>2026-03-15</td>
+                </tr>
+                <tr>
+                  <th>最后更新</th>
+                  <td>2026-04-15</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress Card -->
+        <div class="card" style="width:280px;">
+          <div class="card-body text-center">
+            <div class="progress-circle" style="margin:0 auto 12px;">
+              <svg width="120" height="120" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#f0f0f0" stroke-width="8" />
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#1677ff" stroke-width="8"
+                        stroke-dasharray="314.16" stroke-dashoffset="150.8"
+                        stroke-linecap="round" />
+              </svg>
+              <span class="progress-circle-text">52%</span>
+            </div>
+            <div class="text-secondary text-sm">3 个子事项 / 1 个已完成</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Section: collapsible -->
+      <div class="card mb-16">
+        <div class="collapse open">
+          <div class="collapse-header">
+            <h4>成果 &amp; 卡点汇总</h4>
+            <i class="collapse-arrow">&#9654;</i>
+          </div>
+          <div class="collapse-body" style="padding:16px 24px 24px;">
+            <h4 class="mb-8">成果汇总</h4>
+            <ul style="list-style:disc;padding-left:20px;color:var(--text-primary);line-height:1.8;">
+              <li>完成注册API基础框架搭建</li>
+              <li>实现邮箱验证逻辑</li>
+              <li>完成单元测试覆盖</li>
+              <li>登录鉴权基础架构设计完成</li>
+              <li>权限管理RBAC模型搭建完成</li>
+            </ul>
+            <h4 class="mb-8 mt-16">卡点汇总</h4>
+            <ul style="list-style:disc;padding-left:20px;color:var(--color-error);line-height:1.8;">
+              <li>邮件服务偶发超时</li>
+              <li>SSO对接方案待第三方确认</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- SubItem Section -->
+      <div class="card">
+        <div class="card-header">
+          <h4>子事项列表</h4>
+          <button class="btn btn-primary btn-sm" data-modal="modal-add-subitem">+ 新增子事项</button>
+        </div>
+        <div class="card-body">
+          <!-- Filter Bar -->
+          <div class="filter-bar">
+            <select class="form-select">
+              <option value="">优先级：全部</option>
+              <option>P1</option>
+              <option>P2</option>
+              <option>P3</option>
+            </select>
+            <select class="form-select">
+              <option value="">状态：全部</option>
+              <option>进行中</option>
+              <option>待评审</option>
+              <option>已完成</option>
+            </select>
+            <select class="form-select">
+              <option value="">负责人：全部</option>
+              <option>张明</option>
+              <option>王芳</option>
+              <option>李伟</option>
+            </select>
+          </div>
+
+          <!-- Table -->
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>标题</th>
+                  <th>负责人</th>
+                  <th>完成度</th>
+                  <th>状态</th>
+                  <th>预期完成时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><a href="subitem-detail.html">用户注册接口开发</a></td>
+                  <td>
+                    <div class="flex items-center gap-8">
+                      <span class="avatar avatar-sm" style="background:#1677ff;">张</span>
+                      <span>张明</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="progress-wrapper">
+                      <div class="progress-bar" style="width:100px;">
+                        <div class="progress-fill" style="width:60%;"></div>
+                      </div>
+                      <span class="progress-text">60%</span>
+                    </div>
+                  </td>
+                  <td><span class="tag tag-blue">进行中</span></td>
+                  <td>2026-04-25</td>
+                  <td>
+                    <button class="btn btn-link btn-sm">编辑</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><a href="subitem-detail.html">登录鉴权实现</a></td>
+                  <td>
+                    <div class="flex items-center gap-8">
+                      <span class="avatar avatar-sm" style="background:#52c41a;">王</span>
+                      <span>王芳</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="progress-wrapper">
+                      <div class="progress-bar" style="width:100px;">
+                        <div class="progress-fill" style="width:45%;"></div>
+                      </div>
+                      <span class="progress-text">45%</span>
+                    </div>
+                  </td>
+                  <td><span class="tag tag-blue">进行中</span></td>
+                  <td>2026-04-28</td>
+                  <td>
+                    <button class="btn btn-link btn-sm">编辑</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><a href="subitem-detail.html">权限管理模块</a></td>
+                  <td>
+                    <div class="flex items-center gap-8">
+                      <span class="avatar avatar-sm" style="background:#fa8c16;">李</span>
+                      <span>李伟</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="progress-wrapper">
+                      <div class="progress-bar" style="width:100px;">
+                        <div class="progress-fill" style="width:80%;"></div>
+                      </div>
+                      <span class="progress-text">80%</span>
+                    </div>
+                  </td>
+                  <td><span class="tag tag-orange">待评审</span></td>
+                  <td>2026-04-20</td>
+                  <td>
+                    <button class="btn btn-link btn-sm">编辑</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal: Edit MainItem -->
+  <div class="modal-overlay" id="modal-edit-mainitem">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3>编辑主事项</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label"><span class="required">*</span> 标题</label>
+          <input class="form-input" type="text" value="用户认证模块开发">
+        </div>
+        <div class="form-input-group">
+          <div class="form-group">
+            <label class="form-label"><span class="required">*</span> 优先级</label>
+            <select class="form-select">
+              <option>P1</option>
+              <option>P2</option>
+              <option>P3</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label"><span class="required">*</span> 负责人</label>
+            <select class="form-select">
+              <option>李伟</option>
+              <option>张明</option>
+              <option>王芳</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-input-group">
+          <div class="form-group">
+            <label class="form-label"><span class="required">*</span> 状态</label>
+            <select class="form-select">
+              <option>进行中</option>
+              <option>待评审</option>
+              <option>已完成</option>
+              <option>已暂停</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">预期完成时间</label>
+            <input class="form-input" type="date" value="2026-04-30">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">描述</label>
+          <textarea class="form-textarea" rows="4" placeholder="事项描述">完成用户认证模块的设计与开发，包括注册、登录鉴权、权限管理等子模块。</textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('modal-edit-mainitem')">取消</button>
+        <button class="btn btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add SubItem -->
+  <div class="modal-overlay" id="modal-add-subitem">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>新增子事项</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label"><span class="required">*</span> 标题</label>
+          <input class="form-input" type="text" placeholder="请输入子事项标题">
+        </div>
+        <div class="form-input-group">
+          <div class="form-group">
+            <label class="form-label"><span class="required">*</span> 优先级</label>
+            <select class="form-select">
+              <option>P1</option>
+              <option selected>P2</option>
+              <option>P3</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label"><span class="required">*</span> 负责人</label>
+            <select class="form-select">
+              <option value="">请选择</option>
+              <option>张明</option>
+              <option>王芳</option>
+              <option>李伟</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">预期完成时间</label>
+          <input class="form-input" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">描述</label>
+          <textarea class="form-textarea" rows="3" placeholder="子事项描述"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('modal-add-subitem')">取消</button>
+        <button class="btn btn-primary">创建</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
