@@ -6,8 +6,9 @@ import (
 	"strings"
 )
 
-// Config holds all application configuration loaded from environment variables.
-type Config struct {
+// LegacyConfig holds all application configuration loaded from environment variables.
+// Deprecated: use the new nested Config struct instead. Removed in task 1.2.
+type LegacyConfig struct {
 	DBDriver    string
 	DBPath      string
 	DatabaseURL string
@@ -17,9 +18,10 @@ type Config struct {
 	GinMode     string
 }
 
-// LoadConfig reads environment variables and returns a validated Config.
-func LoadConfig() (*Config, error) {
-	cfg := &Config{}
+// LoadConfig reads environment variables and returns a validated LegacyConfig.
+// Deprecated: use the new config loading in task 1.2.
+func LoadConfig() (*LegacyConfig, error) {
+	cfg := &LegacyConfig{}
 
 	// DBDriver with default
 	cfg.DBDriver = os.Getenv("DB_DRIVER")

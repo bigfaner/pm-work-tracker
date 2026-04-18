@@ -347,7 +347,7 @@ func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engi
 	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)
 	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
 
-	cfg := &config.Config{
+	cfg := &config.LegacyConfig{
 		JWTSecret:   testJWTSecret,
 		CORSOrigins: []string{"http://localhost:3000"},
 		GinMode:     "test",

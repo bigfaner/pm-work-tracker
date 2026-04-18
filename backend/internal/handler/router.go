@@ -17,7 +17,7 @@ import (
 // Dependencies holds all services and configuration needed by the router.
 // Handlers are wired here to avoid global state.
 type Dependencies struct {
-	Config     *config.Config
+	Config     *config.LegacyConfig
 	TeamRepo   repository.TeamRepo
 	Auth       *AuthHandler
 	Team       *TeamHandler

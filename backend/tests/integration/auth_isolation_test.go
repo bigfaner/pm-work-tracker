@@ -129,7 +129,7 @@ func setupTestRouter(t *testing.T) (*gin.Engine, *seedData) {
 	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)
 	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
 
-	cfg := &config.Config{
+	cfg := &config.LegacyConfig{
 		JWTSecret:   testJWTSecret,
 		CORSOrigins: []string{"http://localhost:3000"},
 		GinMode:     "test",

@@ -31,7 +31,7 @@ func testDeps(t *testing.T) (*Dependencies, *gorm.DB) {
 
 	teamRepo := gormrepo.NewGormTeamRepo(db)
 
-	cfg := &config.Config{
+	cfg := &config.LegacyConfig{
 		JWTSecret:   "test-secret-that-is-at-least-32-bytes!!",
 		CORSOrigins: []string{"http://localhost:3000"},
 		GinMode:     "test",

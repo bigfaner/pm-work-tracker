@@ -27,10 +27,13 @@ go.work.sum
 # env file
 .env
 
+# config files (keep only .example)
+backend/config.yaml
+
 # Editor/IDE
 # .idea/
 # .vscode/
-docs/features/pm-work-tracker/tasks/process/*
+docs/features/*/tasks/process/*
 frontend/node_modules/*
 tmp/*
 .claude/settings.local.json
