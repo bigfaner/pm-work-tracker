@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>邀请成员 — PM Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="toast-container"></div>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-brand"><h2>PM Tracker</h2><p>工作事项追踪</p></div>
+    <select class="sidebar-team"><option>产品研发团队</option><option>设计团队</option></select>
+    <div class="sidebar-nav">
+      <a href="permission-demo.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>事项清单</a>
+      <a href="team-invite.html" class="active"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>团队管理</a>
+    </div>
+    <div class="sidebar-user"><div class="sidebar-avatar">张</div><div class="sidebar-user-info"><div class="sidebar-user-name">张明</div><div class="sidebar-user-role">PM</div></div></div>
+  </nav>
+
+  <div class="main-content">
+    <div class="page-header">
+      <h1>团队管理</h1>
+      <button class="btn btn-primary" onclick="openModal('modal-invite')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+        邀请成员
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>产品研发团队 — 成员列表</h3>
+        <span style="font-size:13px;color:var(--text-tertiary);">共 6 人</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>姓名</th>
+            <th>账号</th>
+            <th>角色</th>
+            <th>加入时间</th>
+            <th style="text-align:right">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div class="avatar avatar-sm avatar-primary">张</div>
+                <span style="font-weight:500;">张明</span>
+              </div>
+            </td>
+            <td><span class="font-mono" style="font-size:12px;">zhangming</span></td>
+            <td><span class="badge badge-primary">PM</span></td>
+            <td style="color:var(--text-tertiary);font-size:12px;">2026-03-01</td>
+            <td style="text-align:right;color:var(--text-tertiary);">&mdash;</td>
+          </tr>
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div class="avatar avatar-sm avatar-primary">李</div>
+                <span style="font-weight:500;">李芳</span>
+              </div>
+            </td>
+            <td><span class="font-mono" style="font-size:12px;">lifang</span></td>
+            <td><span class="badge badge-slate">Member</span></td>
+            <td style="color:var(--text-tertiary);font-size:12px;">2026-03-05</td>
+            <td style="text-align:right;">
+              <button class="btn btn-ghost btn-sm" onclick="openModal('modal-change-role')">变更角色</button>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div class="avatar avatar-sm avatar-primary">王</div>
+                <span style="font-weight:500;">王磊</span>
+              </div>
+            </td>
+            <td><span class="font-mono" style="font-size:12px;">wanglei</span></td>
+            <td><span class="badge badge-slate">Member</span></td>
+            <td style="color:var(--text-tertiary);font-size:12px;">2026-03-10</td>
+            <td style="text-align:right;">
+              <button class="btn btn-ghost btn-sm" onclick="openModal('modal-change-role')">变更角色</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Invite Member -->
+<div class="modal-overlay" id="modal-invite">
+  <div class="modal modal-md">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <h2>邀请成员到「产品研发团队」</h2>
+        <button class="btn btn-ghost btn-icon" onclick="closeModal('modal-invite')" style="margin:-8px -8px 0 0;">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;">
+        <label class="input-label">用户账号 *</label>
+        <input type="text" class="input" placeholder="搜索用户名或账号..." id="invite-search" oninput="filterUsers(this.value)">
+        <div id="search-results" style="margin-top:4px;border:1px solid var(--border);border-radius:8px;max-height:160px;overflow-y:auto;display:none;">
+          <div class="dropdown-item" onclick="selectUser('赵云','zhaoyun')">
+            <div class="avatar avatar-sm avatar-primary" style="width:24px;height:24px;font-size:10px;">赵</div>
+            <span>赵云</span>
+            <span style="color:var(--text-tertiary);font-size:12px;">zhaoyun</span>
+          </div>
+          <div class="dropdown-item" onclick="selectUser('陈静','chenjing')">
+            <div class="avatar avatar-sm avatar-primary" style="width:24px;height:24px;font-size:10px;">陈</div>
+            <span>陈静</span>
+            <span style="color:var(--text-tertiary);font-size:12px;">chenjing</span>
+          </div>
+          <div class="dropdown-item" onclick="selectUser('周伟','zhouwei')">
+            <div class="avatar avatar-sm avatar-primary" style="width:24px;height:24px;font-size:10px;">周</div>
+            <span>周伟</span>
+            <span style="color:var(--text-tertiary);font-size:12px;">zhouwei</span>
+          </div>
+        </div>
+        <div id="no-results" style="display:none;padding:12px;text-align:center;color:var(--text-tertiary);font-size:13px;">未找到匹配用户</div>
+      </div>
+
+      <div id="selected-user" style="display:none;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--primary-50);border-radius:8px;border:1px solid var(--primary-200);">
+          <div class="avatar avatar-sm avatar-primary" id="selected-avatar" style="width:24px;height:24px;font-size:10px;"></div>
+          <span id="selected-name" style="font-weight:500;font-size:13px;"></span>
+          <span id="selected-account" style="color:var(--text-tertiary);font-size:12px;" class="font-mono"></span>
+          <button class="btn btn-ghost" style="margin-left:auto;padding:2px 6px;font-size:12px;" onclick="clearUser()">✕</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label class="input-label">角色 *</label>
+        <select class="input">
+          <option value="3" selected>PM — 团队管理权限</option>
+          <option value="4">Member — 基础成员权限</option>
+          <option value="5">Viewer — 只读查看者</option>
+          <option value="6">Tester — 测试人员</option>
+        </select>
+        <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">superadmin 角色不出现在邀请选项中</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-invite')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-invite'); showToast('邀请已发送')">发送邀请</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Change Role -->
+<div class="modal-overlay" id="modal-change-role">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <h2>变更成员角色</h2>
+        <button class="btn btn-ghost btn-icon" onclick="closeModal('modal-change-role')" style="margin:-8px -8px 0 0;">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px;background:var(--bg-alt);border-radius:8px;">
+        <div class="avatar avatar-sm avatar-primary">李</div>
+        <div>
+          <div style="font-weight:500;font-size:13px;">李芳</div>
+          <div style="font-size:12px;color:var(--text-tertiary);" class="font-mono">lifang</div>
+        </div>
+        <span class="badge badge-slate" style="margin-left:auto;">当前：Member</span>
+      </div>
+      <div>
+        <label class="input-label">新角色 *</label>
+        <select class="input">
+          <option value="2">PM — 团队管理权限</option>
+          <option value="3" selected>Member — 基础成员权限</option>
+          <option value="4">Viewer — 只读查看者</option>
+          <option value="5">Tester — 测试人员</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-change-role')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-change-role'); showToast('角色已变更')">确认变更</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+function filterUsers(val) {
+  var results = document.getElementById('search-results');
+  var noResults = document.getElementById('no-results');
+  if (val.length < 1) { results.style.display = 'none'; noResults.style.display = 'none'; return; }
+  // Demo: show all for any input
+  if (val.length > 0) {
+    results.style.display = 'block';
+    noResults.style.display = 'none';
+  }
+}
+function selectUser(name, account) {
+  document.getElementById('invite-search').style.display = 'none';
+  document.getElementById('search-results').style.display = 'none';
+  var sel = document.getElementById('selected-user');
+  sel.style.display = 'block';
+  document.getElementById('selected-avatar').textContent = name.charAt(0);
+  document.getElementById('selected-name').textContent = name;
+  document.getElementById('selected-account').textContent = account;
+}
+function clearUser() {
+  document.getElementById('invite-search').style.display = '';
+  document.getElementById('invite-search').value = '';
+  document.getElementById('selected-user').style.display = 'none';
+}
+</script>
+</body>
+</html>

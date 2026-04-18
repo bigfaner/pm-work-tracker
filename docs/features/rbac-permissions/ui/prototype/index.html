@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RBAC 权限原型 — PM Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { background: var(--bg); }
+    .proto-index { max-width: 800px; margin: 0 auto; padding: 60px 24px; }
+    .proto-index h1 { font-size: 28px; margin-bottom: 8px; }
+    .proto-index > p { color: var(--text-tertiary); margin-bottom: 32px; font-size: 15px; }
+    .proto-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+    .proto-card { display: block; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 24px; transition: all 0.15s; box-shadow: var(--shadow); }
+    .proto-card:hover { box-shadow: var(--shadow-md); border-color: var(--primary-200); }
+    .proto-card h3 { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+    .proto-card p { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+    .proto-card .tag { display: inline-block; margin-top: 12px; font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--primary-50); color: var(--primary-700); }
+  </style>
+</head>
+<body>
+<div class="proto-index">
+  <h1>RBAC 权限体系 — UI 原型</h1>
+  <p>角色管理、权限浏览、邀请角色选择的原型页面。点击卡片跳转。</p>
+
+  <div class="proto-grid">
+    <a href="admin-roles.html" class="proto-card">
+      <h3>角色管理</h3>
+      <p>超级管理员后台新增"角色管理"tab：角色列表、创建/编辑/删除角色、权限码勾选表单。</p>
+      <span class="tag">UI Function 1 &amp; 2</span>
+    </a>
+    <a href="admin-permissions.html" class="proto-card">
+      <h3>权限码浏览</h3>
+      <p>按资源分组展示所有系统权限码，只读视图，供管理员了解权限全貌。</p>
+      <span class="tag">UI Function 3</span>
+    </a>
+    <a href="team-invite.html" class="proto-card">
+      <h3>邀请成员 — 角色选择</h3>
+      <p>团队管理页面邀请成员流程中新增角色选择下拉框，默认选中 member。</p>
+      <span class="tag">UI Function 4</span>
+    </a>
+    <a href="permission-demo.html" class="proto-card">
+      <h3>权限驱动渲染演示</h3>
+      <p>展示不同角色（superadmin / PM / member）看到的侧边栏和页面差异。</p>
+      <span class="tag">UI Function 5</span>
+    </a>
+  </div>
+</div>
+</body>
+</html>
