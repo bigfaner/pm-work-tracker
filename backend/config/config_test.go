@@ -22,6 +22,7 @@ func writeTempYAML(t *testing.T, content string) (string, func()) {
 
 func TestLoadConfig_DefaultsWhenNoFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "nonexistent.yaml")
+	t.Setenv("AUTH_JWT_SECRET", "this-is-exactly-thirty-two-bytes-long!!")
 	cfg, err := LoadConfig(path)
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
@@ -41,7 +42,7 @@ func TestLoadConfig_DefaultsWhenNoFile(t *testing.T) {
 	assert.Equal(t, Duration(time.Hour), cfg.Database.ConnMaxLifetime)
 
 	// Auth defaults
-	assert.Equal(t, "", cfg.Auth.JWTSecret)
+	assert.Equal(t, "this-is-exactly-thirty-two-bytes-long!!", cfg.Auth.JWTSecret)
 	assert.Equal(t, Duration(24*time.Hour), cfg.Auth.JWTExpiry)
 
 	// Logging defaults
@@ -134,6 +135,8 @@ func TestLoadConfig_SpecificFieldOverride(t *testing.T) {
 	yaml := `
 server:
   port: "3000"
+auth:
+  jwt_secret: "this-is-exactly-thirty-two-bytes-long!!"
 `
 	path, cleanup := writeTempYAML(t, yaml)
 	defer cleanup()
@@ -304,6 +307,7 @@ func TestLoadConfig_IntegratedWithEnvOverrides(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "nonexistent.yaml")
 	t.Setenv("SERVER_PORT", "7070")
 	t.Setenv("LOGGING_LEVEL", "warn")
+	t.Setenv("AUTH_JWT_SECRET", "this-is-exactly-thirty-two-bytes-long!!")
 
 	cfg, err := LoadConfig(path)
 	require.NoError(t, err)
@@ -315,6 +319,183 @@ func TestLoadConfig_IntegratedWithEnvOverrides(t *testing.T) {
 	assert.Equal(t, "sqlite", cfg.Database.Driver)
 }
 
+// --- validate tests ---
+
+func validConfig() *Config {
+	cfg := defaultConfig()
+	cfg.Auth.JWTSecret = "this-is-exactly-thirty-two-bytes-long!!"
+	return cfg
+}
+
+func TestValidate_AllFieldsValid(t *testing.T) {
+	cfg := validConfig()
+	assert.NoError(t, cfg.validate())
+}
+
+func TestValidate_JWTSecretTooShort(t *testing.T) {
+	cfg := validConfig()
+	cfg.Auth.JWTSecret = "short"
+	err := cfg.validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "auth.jwt_secret must be at least 32 bytes, got 5")
+}
+
+func TestValidate_JWTSecretExactly32Bytes(t *testing.T) {
+	cfg := validConfig()
+	cfg.Auth.JWTSecret = "12345678901234567890123456789012" // exactly 32 bytes
+	assert.NoError(t, cfg.validate())
+}
+
+func TestValidate_JWTSecretEmpty(t *testing.T) {
+	cfg := validConfig()
+	cfg.Auth.JWTSecret = ""
+	err := cfg.validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "auth.jwt_secret must be at least 32 bytes, got 0")
+}
+
+func TestValidate_PortTooLow(t *testing.T) {
+	cfg := validConfig()
+	cfg.Server.Port = "80"
+	err := cfg.validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "server.port must be between 1024 and 65535, got 80")
+}
+
+func TestValidate_PortTooHigh(t *testing.T) {
+	cfg := validConfig()
+	cfg.Server.Port = "70000"
+	err := cfg.validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "server.port must be between 1024 and 65535, got 70000")
+}
+
+func TestValidate_PortBoundary1024(t *testing.T) {
+	cfg := validConfig()
+	cfg.Server.Port = "1024"
+	assert.NoError(t, cfg.validate())
+}
+
+func TestValidate_PortBoundary65535(t *testing.T) {
+	cfg := validConfig()
+	cfg.Server.Port = "65535"
+	assert.NoError(t, cfg.validate())
+}
+
+func TestValidate_PortNotANumber(t *testing.T) {
+	cfg := validConfig()
+	cfg.Server.Port = "abc"
+	err := cfg.validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "server.port must be between 1024 and 65535, got abc")
+}
+
+func TestValidate_InvalidDriver(t *testing.T) {
+	cfg := validConfig()
+	cfg.Database.Driver = "postgres"
+	err := cfg.validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), `database.driver must be sqlite or mysql, got "postgres"`)
+}
+
+func TestValidate_DriverSqlite(t *testing.T) {
+	cfg := validConfig()
+	cfg.Database.Driver = "sqlite"
+	assert.NoError(t, cfg.validate())
+}
+
+func TestValidate_DriverMysql(t *testing.T) {
+	cfg := validConfig()
+	cfg.Database.Driver = "mysql"
+	assert.NoError(t, cfg.validate())
+}
+
+func TestValidate_InvalidLoggingLevel(t *testing.T) {
+	cfg := validConfig()
+	cfg.Logging.Level = "verbose"
+	err := cfg.validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "logging.level must be one of: debug, info, warn, error")
+}
+
+func TestValidate_LoggingLevelDebug(t *testing.T) {
+	cfg := validConfig()
+	cfg.Logging.Level = "debug"
+	assert.NoError(t, cfg.validate())
+}
+
+func TestValidate_LoggingLevelWarn(t *testing.T) {
+	cfg := validConfig()
+	cfg.Logging.Level = "warn"
+	assert.NoError(t, cfg.validate())
+}
+
+func TestValidate_LoggingLevelError(t *testing.T) {
+	cfg := validConfig()
+	cfg.Logging.Level = "error"
+	assert.NoError(t, cfg.validate())
+}
+
+func TestValidate_InvalidLoggingFormat(t *testing.T) {
+	cfg := validConfig()
+	cfg.Logging.Format = "xml"
+	err := cfg.validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "logging.format must be json or text")
+}
+
+func TestValidate_ReadTimeoutZero(t *testing.T) {
+	cfg := validConfig()
+	cfg.Server.ReadTimeout = 0
+	err := cfg.validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "server.read_timeout must be positive")
+}
+
+func TestValidate_WriteTimeoutNegative(t *testing.T) {
+	cfg := validConfig()
+	cfg.Server.WriteTimeout = Duration(-1)
+	err := cfg.validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "server.write_timeout must be positive")
+}
+
+func TestValidate_ConnMaxLifetimeZero(t *testing.T) {
+	cfg := validConfig()
+	cfg.Database.ConnMaxLifetime = 0
+	err := cfg.validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "database.conn_max_lifetime must be positive")
+}
+
+func TestValidate_JWTExpiryZero(t *testing.T) {
+	cfg := validConfig()
+	cfg.Auth.JWTExpiry = 0
+	err := cfg.validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "auth.jwt_expiry must be positive")
+}
+
+func TestLoadConfig_CallsValidate(t *testing.T) {
+	// Loading defaults (jwt_secret is empty) should trigger validation error
+	path := filepath.Join(t.TempDir(), "nonexistent.yaml")
+	cfg, err := LoadConfig(path)
+	assert.Nil(t, cfg)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "config validation")
+}
+
+func TestLoadConfig_ValidAfterEnvOverride(t *testing.T) {
+	// Provide JWT secret via env so validation passes
+	path := filepath.Join(t.TempDir(), "nonexistent.yaml")
+	t.Setenv("AUTH_JWT_SECRET", "this-is-exactly-thirty-two-bytes-long!!")
+
+	cfg, err := LoadConfig(path)
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.Equal(t, "this-is-exactly-thirty-two-bytes-long!!", cfg.Auth.JWTSecret)
+}
+
 func TestLoadConfig_DurationFieldFromString(t *testing.T) {
 	yaml := `
 server:
@@ -323,6 +504,7 @@ server:
 database:
   conn_max_lifetime: 30m
 auth:
+  jwt_secret: "this-is-exactly-thirty-two-bytes-long!!"
   jwt_expiry: 72h
 `
 	path, cleanup := writeTempYAML(t, yaml)
