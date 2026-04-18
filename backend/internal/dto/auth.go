@@ -11,6 +11,8 @@ type UserDTO struct {
 	ID            uint   `json:"id"`
 	Username      string `json:"username"`
 	DisplayName   string `json:"displayName"`
+	Email         string `json:"email"`
+	Status        string `json:"status"`
 	IsSuperAdmin  bool   `json:"isSuperAdmin"`
 	CanCreateTeam bool   `json:"canCreateTeam"`
 }

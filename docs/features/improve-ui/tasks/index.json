@@ -19,7 +19,7 @@
       "title": "Backend User Model Extension",
       "priority": "P0",
       "estimatedTime": "1-2h",
-      "status": "pending",
+      "status": "completed",
       "file": "1.2-backend-user-model.md",
       "record": "records/1.2-backend-user-model.md"
     },

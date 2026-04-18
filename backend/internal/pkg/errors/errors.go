@@ -36,6 +36,11 @@ var (
 	ErrCannotModifySelf  = &AppError{Code: "CANNOT_MODIFY_SELF", Status: 422, Message: "cannot modify your own permissions"}
 	ErrItemAlreadyProcessed = &AppError{Code: "ITEM_ALREADY_PROCESSED", Status: 422, Message: "item already processed"}
 	ErrNoData               = &AppError{Code: "NO_DATA", Status: 422, Message: "no data to export"}
+	ErrUserExists           = &AppError{Code: "USER_EXISTS", Status: 422, Message: "username already exists"}
+	ErrUserNotFound         = &AppError{Code: "USER_NOT_FOUND", Status: 404, Message: "user not found"}
+	ErrUserDisabled         = &AppError{Code: "USER_DISABLED", Status: 403, Message: "user account is disabled"}
+	ErrCannotDisableSelf    = &AppError{Code: "CANNOT_DISABLE_SELF", Status: 422, Message: "cannot disable your own account"}
+	ErrFutureWeekNotAllowed = &AppError{Code: "FUTURE_WEEK_NOT_ALLOWED", Status: 422, Message: "cannot create progress for future weeks"}
 )
 
 // RespondError writes a standard error envelope. Non-AppError values fall back to ErrInternal.

@@ -50,6 +50,8 @@ func userToDTO(u *model.User) dto.UserDTO {
 		ID:            u.ID,
 		Username:      u.Username,
 		DisplayName:   u.DisplayName,
+		Email:         u.Email,
+		Status:        u.Status,
 		IsSuperAdmin:  u.IsSuperAdmin,
 		CanCreateTeam: u.CanCreateTeam,
 	}
