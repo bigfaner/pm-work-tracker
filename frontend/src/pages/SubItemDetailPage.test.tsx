@@ -604,6 +604,45 @@ describe('SubItemDetailPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('completion-error')).toBeInTheDocument()
     })
+    expect(screen.getByTestId('completion-error')).toHaveTextContent(
+      '完成度不能低于上一次记录的最大值 50%',
+    )
+    expect(mockAppendProgress).not.toHaveBeenCalled()
+  })
+
+  it('blocks append when completion is negative', async () => {
+    const user = userEvent.setup()
+    renderPage(memberUser)
+    await waitFor(() => {
+      expect(screen.getByTestId('append-progress-btn')).toBeInTheDocument()
+    })
+    await user.click(screen.getByTestId('append-progress-btn'))
+    await waitFor(() => {
+      expect(screen.getByTestId('append-modal')).toBeInTheDocument()
+    })
+    const input = screen.getByTestId('append-form-completion')
+    // InputNumber with min=0 clamps negative values
+    fireEvent.change(input, { target: { value: '-5' } })
+    await user.click(screen.getByTestId('append-modal-submit'))
+    // API should not be called since InputNumber min=0 blocks the value
+    expect(mockAppendProgress).not.toHaveBeenCalled()
+  })
+
+  it('blocks append when completion exceeds 100', async () => {
+    const user = userEvent.setup()
+    renderPage(memberUser)
+    await waitFor(() => {
+      expect(screen.getByTestId('append-progress-btn')).toBeInTheDocument()
+    })
+    await user.click(screen.getByTestId('append-progress-btn'))
+    await waitFor(() => {
+      expect(screen.getByTestId('append-modal')).toBeInTheDocument()
+    })
+    const input = screen.getByTestId('append-form-completion')
+    // InputNumber with max=100 clamps values above 100
+    fireEvent.change(input, { target: { value: '150' } })
+    await user.click(screen.getByTestId('append-modal-submit'))
+    // API should not be called since InputNumber max=100 blocks the value
     expect(mockAppendProgress).not.toHaveBeenCalled()
   })
 })

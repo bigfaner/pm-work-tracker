@@ -70,6 +70,27 @@ describe('LoginPage', () => {
       expect(screen.getByText('请输入账号')).toBeInTheDocument()
       expect(screen.getByText('请输入密码')).toBeInTheDocument()
     })
+    // Should NOT call loginApi when validation fails
+    expect(mockLoginApi).not.toHaveBeenCalled()
+  })
+
+  it('calls loginApi exactly once with valid credentials', async () => {
+    mockLoginApi.mockResolvedValue({ token: 'jwt-token-123', user: mockUser })
+
+    const user = userEvent.setup()
+    renderLoginPage()
+
+    await user.type(screen.getByLabelText('账号'), 'testuser')
+    await user.type(screen.getByLabelText('密码'), 'password123')
+    await user.click(getSubmitButton())
+
+    await waitFor(() => {
+      expect(mockLoginApi).toHaveBeenCalledTimes(1)
+    })
+    expect(mockLoginApi).toHaveBeenCalledWith({
+      username: 'testuser',
+      password: 'password123',
+    })
   })
 
   it('shows loading state on submit button while request is in flight', async () => {
