@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>事项视图 - PM 工作事项追踪</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">PM</div>
+        <span class="sidebar-brand">PM Tracker</span>
+      </div>
+      <div class="sidebar-team">
+        <select>
+          <option>产品研发组</option>
+          <option>基础架构组</option>
+          <option>数据平台组</option>
+        </select>
+      </div>
+      <div class="sidebar-nav">
+        <a href="main-items.html" class="nav-item active">
+          <i class="nav-icon">&#x1F4CB;</i>
+          <span>事项视图</span>
+        </a>
+        <a href="weekly-view.html" class="nav-item">
+          <i class="nav-icon">&#x1F4C5;</i>
+          <span>周视图</span>
+        </a>
+        <a href="gantt-view.html" class="nav-item">
+          <i class="nav-icon">&#x1F4CA;</i>
+          <span>甘特图</span>
+        </a>
+        <a href="table-view.html" class="nav-item">
+          <i class="nav-icon">&#x1F4C3;</i>
+          <span>表格视图</span>
+        </a>
+        <a href="item-pool.html" class="nav-item">
+          <i class="nav-icon">&#x1F4E6;</i>
+          <span>事项池</span>
+        </a>
+        <a href="weekly-report.html" class="nav-item">
+          <i class="nav-icon">&#x1F4DD;</i>
+          <span>周报导出</span>
+        </a>
+      </div>
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">张</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">张明</div>
+          <div class="sidebar-user-role">项目经理</div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="page-header">
+        <h2>事项视图</h2>
+        <button class="btn btn-primary" data-modal="modal-new-item">
+          <span>+</span> 新建主事项
+        </button>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <select class="form-select">
+          <option value="">优先级：全部</option>
+          <option value="P1">P1 - 紧急</option>
+          <option value="P2">P2 - 重要</option>
+          <option value="P3">P3 - 普通</option>
+        </select>
+        <select class="form-select">
+          <option value="">状态：全部</option>
+          <option value="in_progress">进行中</option>
+          <option value="completed">已完成</option>
+          <option value="overdue">已逾期</option>
+          <option value="pending">待开始</option>
+        </select>
+        <select class="form-select">
+          <option value="">负责人：全部</option>
+          <option value="张明">张明</option>
+          <option value="李华">李华</option>
+          <option value="王芳">王芳</option>
+          <option value="赵强">赵强</option>
+          <option value="刘洋">刘洋</option>
+        </select>
+        <button class="btn">重置</button>
+      </div>
+
+      <!-- Main Item List -->
+      <div class="main-item-list">
+
+        <!-- Item 1: Expanded -->
+        <div class="collapse open" style="margin-bottom:8px;">
+          <div class="collapse-header">
+            <div class="flex items-center gap-12 flex-1" style="min-width:0;">
+              <span class="collapse-arrow">&#9654;</span>
+              <span class="tag tag-mono">MI-001</span>
+              <span class="font-medium truncate" style="max-width:200px;">用户认证模块开发</span>
+              <span class="tag tag-orange">P1</span>
+              <span class="tag tag-orange" style="display:inline-flex;align-items:center;gap:4px;"><span style="width:6px;height:6px;border-radius:50%;background:#d46b08;display:inline-block;"></span>P1</span>
+              <div class="avatar avatar-sm" title="李华">李</div>
+              <div class="progress-wrapper" style="width:120px;">
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width:65%;"></div>
+                </div>
+                <span class="progress-text">65%</span>
+              </div>
+              <span class="tag tag-blue">进行中</span>
+              <span class="text-sm text-secondary nowrap">2026-04-30</span>
+            </div>
+            <div class="dropdown">
+              <button class="btn btn-ghost btn-sm" data-dropdown>...</button>
+              <div class="dropdown-menu">
+                <div class="dropdown-item">编辑</div>
+                <div class="dropdown-item">新建子事项</div>
+                <div class="dropdown-item danger">删除</div>
+              </div>
+            </div>
+          </div>
+          <div class="collapse-body" style="padding-top:12px;">
+            <!-- Sub Items -->
+            <div style="display:flex;align-items:center;padding:8px 12px;gap:12px;border-bottom:1px solid var(--border-color-light);">
+              <span class="tag tag-mono" style="font-size:11px;">SI-001</span>
+              <a href="#" style="flex:1;min-width:0;" class="truncate">登录/注册接口实现</a>
+              <span class="text-sm text-secondary nowrap">李华</span>
+              <div class="progress-wrapper" style="width:100px;">
+                <div class="progress-bar progress-sm">
+                  <div class="progress-fill success" style="width:100%;"></div>
+                </div>
+                <span class="progress-text">100%</span>
+              </div>
+              <span class="tag tag-green" style="font-size:11px;">已完成</span>
+              <span class="text-sm text-secondary nowrap">2026-04-10</span>
+            </div>
+            <div style="display:flex;align-items:center;padding:8px 12px;gap:12px;border-bottom:1px solid var(--border-color-light);">
+              <span class="tag tag-mono" style="font-size:11px;">SI-002</span>
+              <a href="#" style="flex:1;min-width:0;" class="truncate">OAuth2.0 第三方登录集成</a>
+              <span class="text-sm text-secondary nowrap">李华</span>
+              <div class="progress-wrapper" style="width:100px;">
+                <div class="progress-bar progress-sm">
+                  <div class="progress-fill" style="width:50%;"></div>
+                </div>
+                <span class="progress-text">50%</span>
+              </div>
+              <span class="tag tag-blue" style="font-size:11px;">进行中</span>
+              <span class="text-sm text-secondary nowrap">2026-04-25</span>
+            </div>
+            <div style="display:flex;align-items:center;padding:8px 12px;gap:12px;">
+              <span class="tag tag-mono" style="font-size:11px;">SI-003</span>
+              <a href="#" style="flex:1;min-width:0;" class="truncate">权限管理与角色控制</a>
+              <span class="text-sm text-secondary nowrap">王芳</span>
+              <div class="progress-wrapper" style="width:100px;">
+                <div class="progress-bar progress-sm">
+                  <div class="progress-fill" style="width:30%;"></div>
+                </div>
+                <span class="progress-text">30%</span>
+              </div>
+              <span class="tag tag-blue" style="font-size:11px;">进行中</span>
+              <span class="text-sm text-secondary nowrap">2026-04-30</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 2 -->
+        <div class="collapse" style="margin-bottom:8px;">
+          <div class="collapse-header">
+            <div class="flex items-center gap-12 flex-1" style="min-width:0;">
+              <span class="collapse-arrow">&#9654;</span>
+              <span class="tag tag-mono">MI-002</span>
+              <span class="font-medium truncate" style="max-width:200px;">数据报表系统</span>
+              <span class="tag tag-blue">P2</span>
+              <div class="avatar avatar-sm" title="王芳">王</div>
+              <div class="progress-wrapper" style="width:120px;">
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width:40%;"></div>
+                </div>
+                <span class="progress-text">40%</span>
+              </div>
+              <span class="tag tag-blue">进行中</span>
+              <span class="text-sm nowrap" style="color:var(--color-error);">2026-04-15</span>
+            </div>
+            <div class="dropdown">
+              <button class="btn btn-ghost btn-sm" data-dropdown>...</button>
+              <div class="dropdown-menu">
+                <div class="dropdown-item">编辑</div>
+                <div class="dropdown-item">新建子事项</div>
+                <div class="dropdown-item danger">删除</div>
+              </div>
+            </div>
+          </div>
+          <div class="collapse-body" style="padding-top:12px;">
+            <div style="display:flex;align-items:center;padding:8px 12px;gap:12px;border-bottom:1px solid var(--border-color-light);">
+              <span class="tag tag-mono" style="font-size:11px;">SI-004</span>
+              <a href="#" style="flex:1;min-width:0;" class="truncate">报表数据查询接口</a>
+              <span class="text-sm text-secondary nowrap">王芳</span>
+              <div class="progress-wrapper" style="width:100px;">
+                <div class="progress-bar progress-sm">
+                  <div class="progress-fill success" style="width:100%;"></div>
+                </div>
+                <span class="progress-text">100%</span>
+              </div>
+              <span class="tag tag-green" style="font-size:11px;">已完成</span>
+              <span class="text-sm text-secondary nowrap">2026-04-05</span>
+            </div>
+            <div style="display:flex;align-items:center;padding:8px 12px;gap:12px;border-bottom:1px solid var(--border-color-light);">
+              <span class="tag tag-mono" style="font-size:11px;">SI-005</span>
+              <a href="#" style="flex:1;min-width:0;" class="truncate">图表可视化组件开发</a>
+              <span class="text-sm text-secondary nowrap">刘洋</span>
+              <div class="progress-wrapper" style="width:100px;">
+                <div class="progress-bar progress-sm">
+                  <div class="progress-fill warning" style="width:20%;"></div>
+                </div>
+                <span class="progress-text">20%</span>
+              </div>
+              <span class="tag tag-yellow" style="font-size:11px;">延期</span>
+              <span class="text-sm nowrap" style="color:var(--color-error);">2026-04-12</span>
+            </div>
+            <div style="display:flex;align-items:center;padding:8px 12px;gap:12px;">
+              <span class="tag tag-mono" style="font-size:11px;">SI-006</span>
+              <a href="#" style="flex:1;min-width:0;" class="truncate">PDF/Excel 导出功能</a>
+              <span class="text-sm text-secondary nowrap">王芳</span>
+              <div class="progress-wrapper" style="width:100px;">
+                <div class="progress-bar progress-sm">
+                  <div class="progress-fill" style="width:0%;"></div>
+                </div>
+                <span class="progress-text">0%</span>
+              </div>
+              <span class="tag tag-gray" style="font-size:11px;">待开始</span>
+              <span class="text-sm text-secondary nowrap">2026-04-28</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 3 -->
+        <div class="collapse" style="margin-bottom:8px;">
+          <div class="collapse-header">
+            <div class="flex items-center gap-12 flex-1" style="min-width:0;">
+              <span class="collapse-arrow">&#9654;</span>
+              <span class="tag tag-mono">MI-003</span>
+              <span class="font-medium truncate" style="max-width:200px;">移动端适配</span>
+              <span class="tag tag-blue">P2</span>
+              <div class="avatar avatar-sm" title="赵强">赵</div>
+              <div class="progress-wrapper" style="width:120px;">
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width:80%;"></div>
+                </div>
+                <span class="progress-text">80%</span>
+              </div>
+              <span class="tag tag-blue">进行中</span>
+              <span class="text-sm text-secondary nowrap">2026-05-10</span>
+            </div>
+            <div class="dropdown">
+              <button class="btn btn-ghost btn-sm" data-dropdown>...</button>
+              <div class="dropdown-menu">
+                <div class="dropdown-item">编辑</div>
+                <div class="dropdown-item">新建子事项</div>
+                <div class="dropdown-item danger">删除</div>
+              </div>
+            </div>
+          </div>
+          <div class="collapse-body" style="padding-top:12px;">
+            <div style="display:flex;align-items:center;padding:8px 12px;gap:12px;border-bottom:1px solid var(--border-color-light);">
+              <span class="tag tag-mono" style="font-size:11px;">SI-007</span>
+              <a href="#" style="flex:1;min-width:0;" class="truncate">响应式布局适配</a>
+              <span class="text-sm text-secondary nowrap">赵强</span>
+              <div class="progress-wrapper" style="width:100px;">
+                <div class="progress-bar progress-sm">
+                  <div class="progress-fill success" style="width:100%;"></div>
+                </div>
+                <span class="progress-text">100%</span>
+              </div>
+              <span class="tag tag-green" style="font-size:11px;">已完成</span>
+              <span class="text-sm text-secondary nowrap">2026-04-08</span>
+            </div>
+            <div style="display:flex;align-items:center;padding:8px 12px;gap:12px;">
+              <span class="tag tag-mono" style="font-size:11px;">SI-008</span>
+              <a href="#" style="flex:1;min-width:0;" class="truncate">移动端手势操作与交互优化</a>
+              <span class="text-sm text-secondary nowrap">赵强</span>
+              <div class="progress-wrapper" style="width:100px;">
+                <div class="progress-bar progress-sm">
+                  <div class="progress-fill" style="width:60%;"></div>
+                </div>
+                <span class="progress-text">60%</span>
+              </div>
+              <span class="tag tag-blue" style="font-size:11px;">进行中</span>
+              <span class="text-sm text-secondary nowrap">2026-05-10</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 4 -->
+        <div class="collapse" style="margin-bottom:8px;">
+          <div class="collapse-header">
+            <div class="flex items-center gap-12 flex-1" style="min-width:0;">
+              <span class="collapse-arrow">&#9654;</span>
+              <span class="tag tag-mono">MI-004</span>
+              <span class="font-medium truncate" style="max-width:200px;">性能优化项目</span>
+              <span class="tag tag-gray">P3</span>
+              <div class="avatar avatar-sm" title="张明">张</div>
+              <div class="progress-wrapper" style="width:120px;">
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width:15%;"></div>
+                </div>
+                <span class="progress-text">15%</span>
+              </div>
+              <span class="tag tag-blue">进行中</span>
+              <span class="text-sm nowrap" style="color:var(--color-error);">2026-04-10</span>
+            </div>
+            <div class="dropdown">
+              <button class="btn btn-ghost btn-sm" data-dropdown>...</button>
+              <div class="dropdown-menu">
+                <div class="dropdown-item">编辑</div>
+                <div class="dropdown-item">新建子事项</div>
+                <div class="dropdown-item danger">删除</div>
+              </div>
+            </div>
+          </div>
+          <div class="collapse-body" style="padding-top:12px;">
+            <div style="display:flex;align-items:center;padding:8px 12px;gap:12px;border-bottom:1px solid var(--border-color-light);">
+              <span class="tag tag-mono" style="font-size:11px;">SI-009</span>
+              <a href="#" style="flex:1;min-width:0;" class="truncate">首屏加载性能优化</a>
+              <span class="text-sm text-secondary nowrap">张明</span>
+              <div class="progress-wrapper" style="width:100px;">
+                <div class="progress-bar progress-sm">
+                  <div class="progress-fill" style="width:30%;"></div>
+                </div>
+                <span class="progress-text">30%</span>
+              </div>
+              <span class="tag tag-blue" style="font-size:11px;">进行中</span>
+              <span class="text-sm nowrap" style="color:var(--color-error);">2026-04-10</span>
+            </div>
+            <div style="display:flex;align-items:center;padding:8px 12px;gap:12px;border-bottom:1px solid var(--border-color-light);">
+              <span class="tag tag-mono" style="font-size:11px;">SI-010</span>
+              <a href="#" style="flex:1;min-width:0;" class="truncate">数据库查询慢SQL优化</a>
+              <span class="text-sm text-secondary nowrap">刘洋</span>
+              <div class="progress-wrapper" style="width:100px;">
+                <div class="progress-bar progress-sm">
+                  <div class="progress-fill" style="width:0%;"></div>
+                </div>
+                <span class="progress-text">0%</span>
+              </div>
+              <span class="tag tag-gray" style="font-size:11px;">待开始</span>
+              <span class="text-sm nowrap" style="color:var(--color-error);">2026-04-08</span>
+            </div>
+            <div style="display:flex;align-items:center;padding:8px 12px;gap:12px;">
+              <span class="tag tag-mono" style="font-size:11px;">SI-011</span>
+              <a href="#" style="flex:1;min-width:0;" class="truncate">CDN 静态资源加速部署</a>
+              <span class="text-sm text-secondary nowrap">张明</span>
+              <div class="progress-wrapper" style="width:100px;">
+                <div class="progress-bar progress-sm">
+                  <div class="progress-fill" style="width:10%;"></div>
+                </div>
+                <span class="progress-text">10%</span>
+              </div>
+              <span class="tag tag-blue" style="font-size:11px;">进行中</span>
+              <span class="text-sm text-secondary nowrap">2026-05-15</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end main-item-list -->
+    </div><!-- end main-content -->
+  </div><!-- end app-layout -->
+
+  <!-- New Main Item Modal -->
+  <div class="modal-overlay" id="modal-new-item">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>新建主事项</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label"><span class="required">*</span>标题</label>
+          <input type="text" class="form-input" id="new-item-title" placeholder="请输入事项标题" required>
+        </div>
+        <div class="form-input-group">
+          <div class="form-group">
+            <label class="form-label">优先级</label>
+            <select class="form-select" id="new-item-priority">
+              <option value="P1">P1 - 紧急</option>
+              <option value="P2" selected>P2 - 重要</option>
+              <option value="P3">P3 - 普通</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">负责人</label>
+            <select class="form-select" id="new-item-assignee">
+              <option value="张明">张明</option>
+              <option value="李华">李华</option>
+              <option value="王芳">王芳</option>
+              <option value="赵强">赵强</option>
+              <option value="刘洋">刘洋</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">预期完成时间</label>
+          <input type="date" class="form-input" id="new-item-due">
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">描述</label>
+          <textarea class="form-textarea" id="new-item-desc" rows="3" placeholder="请输入事项描述（可选）"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="modal-cancel-btn">取消</button>
+        <button class="btn btn-primary" id="modal-confirm-btn">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    (function() {
+      var confirmBtn = document.getElementById('modal-confirm-btn');
+      var cancelBtn = document.getElementById('modal-cancel-btn');
+      var titleInput = document.getElementById('new-item-title');
+
+      confirmBtn.addEventListener('click', function() {
+        var title = titleInput.value.trim();
+        if (!title) {
+          titleInput.classList.add('error');
+          titleInput.focus();
+          return;
+        }
+        titleInput.classList.remove('error');
+        closeModal('modal-new-item');
+        showToast('创建成功');
+
+        // Reset form
+        document.getElementById('new-item-title').value = '';
+        document.getElementById('new-item-priority').value = 'P2';
+        document.getElementById('new-item-assignee').value = '张明';
+        document.getElementById('new-item-due').value = '';
+        document.getElementById('new-item-desc').value = '';
+      });
+
+      cancelBtn.addEventListener('click', function() {
+        closeModal('modal-new-item');
+      });
+
+      // Clear error state on input
+      titleInput.addEventListener('input', function() {
+        titleInput.classList.remove('error');
+      });
+    })();
+  </script>
+</body>
+</html>

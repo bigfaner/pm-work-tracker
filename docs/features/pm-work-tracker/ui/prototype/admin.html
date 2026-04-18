@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>超级管理员后台 - PM Work Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">P</div>
+        <span class="sidebar-brand">PM Work Tracker</span>
+      </div>
+      <div class="sidebar-team">
+        <select>
+          <option>产品研发组</option>
+        </select>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="main-items.html"><i class="nav-icon">📋</i><span>事项视图</span></a>
+        <a class="nav-item" href="weekly-view.html"><i class="nav-icon">📅</i><span>周视图</span></a>
+        <a class="nav-item" href="gantt-view.html"><i class="nav-icon">📊</i><span>甘特图</span></a>
+        <a class="nav-item" href="table-view.html"><i class="nav-icon">📑</i><span>表格视图</span></a>
+        <a class="nav-item" href="item-pool.html"><i class="nav-icon">📥</i><span>事项池</span></a>
+        <a class="nav-item" href="weekly-report.html"><i class="nav-icon">📝</i><span>周报导出</span></a>
+        <div style="flex:1;"></div>
+        <a class="nav-item active" href="admin.html"><i class="nav-icon">⚙</i><span>管理后台</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">张</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">张伟</div>
+          <div class="sidebar-user-role">超级管理员</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="page-header">
+        <h2>超级管理员后台</h2>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tabs-nav">
+          <button class="tab-btn active" data-tab="users">用户管理</button>
+          <button class="tab-btn" data-tab="teams">团队列表</button>
+        </div>
+
+        <!-- Tab: User Management -->
+        <div class="tab-panel active" data-panel="users">
+          <div class="filter-bar">
+            <input type="text" class="form-input" placeholder="搜索用户名/账号" style="width: 240px;">
+            <select class="form-select">
+              <option value="">创建团队权限: 全部</option>
+              <option value="yes">有权限</option>
+              <option value="no">无权限</option>
+            </select>
+          </div>
+
+          <div class="card">
+            <div class="card-body" style="padding: 0;">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>姓名</th>
+                      <th>账号</th>
+                      <th>所属团队</th>
+                      <th>创建团队权限</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- User 1: self row -->
+                    <tr>
+                      <td>
+                        <div class="flex items-center gap-8">
+                          <div class="avatar avatar-sm">张</div>
+                          <span>张伟</span>
+                        </div>
+                      </td>
+                      <td class="text-mono">zhangwei</td>
+                      <td>
+                        <span class="tag tag-blue">产品研发组</span>
+                        <span class="tag tag-default">设计组</span>
+                      </td>
+                      <td><button class="switch active disabled"></button></td>
+                      <td>&mdash;</td>
+                    </tr>
+                    <!-- User 2 -->
+                    <tr>
+                      <td>
+                        <div class="flex items-center gap-8">
+                          <div class="avatar avatar-sm" style="background:#52c41a;">李</div>
+                          <span>李伟</span>
+                        </div>
+                      </td>
+                      <td class="text-mono">liwei</td>
+                      <td>
+                        <span class="tag tag-blue">产品研发组</span>
+                      </td>
+                      <td>
+                        <button class="switch active" data-confirm-switch data-user="李伟"></button>
+                      </td>
+                      <td>
+                        <button class="btn btn-sm btn-link" onclick="showToast('查看用户详情')">查看</button>
+                      </td>
+                    </tr>
+                    <!-- User 3 -->
+                    <tr>
+                      <td>
+                        <div class="flex items-center gap-8">
+                          <div class="avatar avatar-sm" style="background:#fa8c16;">张</div>
+                          <span>张明</span>
+                        </div>
+                      </td>
+                      <td class="text-mono">zhangming</td>
+                      <td>
+                        <span class="tag tag-blue">产品研发组</span>
+                      </td>
+                      <td>
+                        <button class="switch" data-confirm-switch data-user="张明"></button>
+                      </td>
+                      <td>
+                        <button class="btn btn-sm btn-link" onclick="showToast('查看用户详情')">查看</button>
+                      </td>
+                    </tr>
+                    <!-- User 4 -->
+                    <tr>
+                      <td>
+                        <div class="flex items-center gap-8">
+                          <div class="avatar avatar-sm" style="background:#eb2f96;">王</div>
+                          <span>王芳</span>
+                        </div>
+                      </td>
+                      <td class="text-mono">wangfang</td>
+                      <td>
+                        <span class="tag tag-blue">产品研发组</span>
+                      </td>
+                      <td>
+                        <button class="switch" data-confirm-switch data-user="王芳"></button>
+                      </td>
+                      <td>
+                        <button class="btn btn-sm btn-link" onclick="showToast('查看用户详情')">查看</button>
+                      </td>
+                    </tr>
+                    <!-- User 5: 2 teams -->
+                    <tr>
+                      <td>
+                        <div class="flex items-center gap-8">
+                          <div class="avatar avatar-sm" style="background:#722ed1;">陈</div>
+                          <span>陈静</span>
+                        </div>
+                      </td>
+                      <td class="text-mono">chenjing</td>
+                      <td>
+                        <span class="tag tag-blue">产品研发组</span>
+                        <span class="tag tag-default">设计组</span>
+                      </td>
+                      <td>
+                        <button class="switch" data-confirm-switch data-user="陈静"></button>
+                      </td>
+                      <td>
+                        <button class="btn btn-sm btn-link" onclick="showToast('查看用户详情')">查看</button>
+                      </td>
+                    </tr>
+                    <!-- User 6: no teams -->
+                    <tr>
+                      <td>
+                        <div class="flex items-center gap-8">
+                          <div class="avatar avatar-sm" style="background:#13c2c2;">赵</div>
+                          <span>赵磊</span>
+                        </div>
+                      </td>
+                      <td class="text-mono">zhaolei</td>
+                      <td>
+                        <span class="text-tertiary">-</span>
+                      </td>
+                      <td>
+                        <button class="switch" data-confirm-switch data-user="赵磊"></button>
+                      </td>
+                      <td>
+                        <button class="btn btn-sm btn-link" onclick="showToast('查看用户详情')">查看</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: Team List -->
+        <div class="tab-panel" data-panel="teams">
+          <div class="filter-bar">
+            <input type="text" class="form-input" placeholder="搜索团队名称" style="width: 240px;">
+          </div>
+
+          <div class="card">
+            <div class="card-body" style="padding: 0;">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>团队名称</th>
+                      <th>PM</th>
+                      <th>成员数</th>
+                      <th>主事项数</th>
+                      <th>创建时间</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><a href="#">产品研发组</a></td>
+                      <td>
+                        <div class="flex items-center gap-8">
+                          <div class="avatar avatar-sm">张</div>
+                          <span>张伟</span>
+                        </div>
+                      </td>
+                      <td>5</td>
+                      <td>4</td>
+                      <td>2026-01-15</td>
+                      <td>
+                        <button class="btn btn-sm btn-link" onclick="showToast('查看团队详情')">查看</button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><a href="#">设计组</a></td>
+                      <td>
+                        <div class="flex items-center gap-8">
+                          <div class="avatar avatar-sm" style="background:#52c41a;">刘</div>
+                          <span>刘洋</span>
+                        </div>
+                      </td>
+                      <td>3</td>
+                      <td>2</td>
+                      <td>2026-02-20</td>
+                      <td>
+                        <button class="btn btn-sm btn-link" onclick="showToast('查看团队详情')">查看</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    // Override default switch behavior for confirm-switches
+    document.querySelectorAll('[data-confirm-switch]').forEach(function(sw) {
+      // Add a capturing listener that runs before app.js's bubble listener
+      sw.addEventListener('click', function(e) {
+        e.stopImmediatePropagation();
+        var userName = sw.getAttribute('data-user');
+        var isActive = sw.classList.contains('active');
+        var action = isActive ? '关闭' : '开启';
+        showConfirm('确定要' + action + ' ' + userName + ' 的创建团队权限吗？', function() {
+          sw.classList.toggle('active');
+          showToast('权限已更新');
+        });
+      }, true); // capture phase
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>甘特图 - PM Work Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .gantt-label-row.main-item { cursor: pointer; font-weight: 500; }
+    .gantt-label-row.main-item:hover { background: #fafafa; }
+    .gantt-label-row .tag { font-size: 11px; height: 18px; padding: 0 4px; }
+    .gantt-label-row .label-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .gantt-row.sub-row { display: none; }
+    .gantt-row.sub-row.visible { display: block; }
+    .gantt-label-row.sub-row { display: none; }
+    .gantt-label-row.sub-row.visible { display: flex; }
+    .gantt-bar .bar-label {
+      position: absolute;
+      left: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: calc(100% - 12px);
+    }
+    .gantt-bar.no-data .bar-label {
+      color: var(--text-tertiary);
+      font-size: 12px;
+      left: 8px;
+    }
+    .gantt-month-row { display: flex; height: 20px; border-bottom: 1px solid var(--border-color-light); }
+    .gantt-month-cell {
+      flex-shrink: 0;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      line-height: 20px;
+      border-right: 1px solid #f5f5f5;
+    }
+    .gantt-day-row { display: flex; height: 20px; }
+    .gantt-bar .bar-percent {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: rgba(255,255,255,0.85);
+      white-space: nowrap;
+    }
+    .date-range-input {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    .date-range-input input[type="date"] {
+      height: 32px;
+      padding: 4px 11px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+    .date-range-input input[type="date"]:focus {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+      outline: none;
+    }
+    .gantt-today-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--color-primary);
+      opacity: 0.5;
+      z-index: 5;
+      pointer-events: none;
+    }
+    .gantt-today-line::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -4px;
+      width: 10px;
+      height: 10px;
+      background: var(--color-primary);
+      border-radius: 50%;
+      opacity: 0.8;
+    }
+    .gantt-today-label {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      color: var(--color-primary);
+      white-space: nowrap;
+      z-index: 6;
+      background: var(--color-primary-bg);
+      padding: 0 4px;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">P</div>
+        <span class="sidebar-brand">PM Work Tracker</span>
+      </div>
+      <div class="sidebar-team">
+        <select>
+          <option>产品研发组</option>
+        </select>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="main-items.html">
+          <i class="nav-icon">📋</i><span>事项视图</span>
+        </a>
+        <a class="nav-item" href="weekly-view.html">
+          <i class="nav-icon">📅</i><span>周视图</span>
+        </a>
+        <a class="nav-item active" href="gantt-view.html">
+          <i class="nav-icon">📊</i><span>甘特图</span>
+        </a>
+        <a class="nav-item" href="table-view.html">
+          <i class="nav-icon">📑</i><span>表格视图</span>
+        </a>
+        <a class="nav-item" href="item-pool.html">
+          <i class="nav-icon">🏊</i><span>事项池</span>
+        </a>
+        <a class="nav-item" href="weekly-report.html">
+          <i class="nav-icon">📝</i><span>周报导出</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">张</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">张伟</div>
+          <div class="sidebar-user-role">PM</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" style="overflow:hidden;">
+      <div class="page-header">
+        <h2>甘特图</h2>
+        <div class="date-range-input">
+          <input type="date" value="2026-03-23" id="dateStart">
+          <span>至</span>
+          <input type="date" value="2026-05-10" id="dateEnd">
+        </div>
+      </div>
+
+      <div class="gantt-container" id="ganttContainer">
+        <!-- Label Panel -->
+        <div class="gantt-labels" id="ganttLabels">
+          <div class="gantt-label-row main-item" data-group="mi001">
+            <i class="collapse-toggle" data-target="mi001">▶</i>
+            <span class="tag tag-blue tag-mono">MI-001</span>
+            <span class="label-title">用户认证模块开发</span>
+          </div>
+          <div class="gantt-label-row sub sub-row" data-group="mi001">
+            <span class="tag tag-default tag-mono">SI-001</span>
+            <span class="label-title">用户注册接口</span>
+          </div>
+          <div class="gantt-label-row sub sub-row" data-group="mi001">
+            <span class="tag tag-default tag-mono">SI-002</span>
+            <span class="label-title">登录鉴权实现</span>
+          </div>
+          <div class="gantt-label-row sub sub-row" data-group="mi001">
+            <span class="tag tag-default tag-mono">SI-003</span>
+            <span class="label-title">权限管理模块</span>
+          </div>
+          <div class="gantt-label-row main-item" data-group="mi002">
+            <i class="collapse-toggle" data-target="mi002">▶</i>
+            <span class="tag tag-blue tag-mono">MI-002</span>
+            <span class="label-title">移动端适配</span>
+          </div>
+          <div class="gantt-label-row sub sub-row" data-group="mi002">
+            <span class="tag tag-default tag-mono">SI-004</span>
+            <span class="label-title">响应式布局</span>
+          </div>
+          <div class="gantt-label-row sub sub-row" data-group="mi002">
+            <span class="tag tag-default tag-mono">SI-005</span>
+            <span class="label-title">触屏交互优化</span>
+          </div>
+          <div class="gantt-label-row main-item" data-group="mi003">
+            <i class="collapse-toggle" data-target="mi003" style="visibility:hidden;">▶</i>
+            <span class="tag tag-blue tag-mono">MI-003</span>
+            <span class="label-title">数据报表系统</span>
+          </div>
+          <div class="gantt-label-row main-item" data-group="mi004">
+            <i class="collapse-toggle" data-target="mi004" style="visibility:hidden;">▶</i>
+            <span class="tag tag-blue tag-mono">MI-004</span>
+            <span class="label-title">性能优化项目</span>
+          </div>
+        </div>
+
+        <!-- Timeline Panel -->
+        <div class="gantt-timeline" id="ganttTimeline">
+          <div class="gantt-header" id="ganttHeader">
+            <!-- Month row and day row generated by JS -->
+          </div>
+          <div class="gantt-body" id="ganttBody">
+            <!-- Rows generated by JS -->
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+  (function() {
+    // --- Date range config ---
+    var RANGE_START = new Date(2026, 2, 23); // Mar 23 2026
+    var RANGE_END   = new Date(2026, 4, 10); // May 10 2026
+    var DAY_WIDTH   = 28;
+    var TODAY       = new Date(2026, 3, 18); // Apr 18 2026
+
+    function daysBetween(a, b) {
+      return Math.round((b - a) / 86400000);
+    }
+
+    function totalDays() {
+      return daysBetween(RANGE_START, RANGE_END) + 1;
+    }
+
+    // --- Build header ---
+    var total = totalDays();
+    var headerEl = document.getElementById('ganttHeader');
+
+    // Month row
+    var monthRow = document.createElement('div');
+    monthRow.className = 'gantt-month-row';
+    var d = new Date(RANGE_START);
+    while (d <= RANGE_END) {
+      var currentMonth = d.getMonth();
+      var currentYear = d.getFullYear();
+      var monthStart = new Date(d);
+      while (d.getMonth() === currentMonth && d <= RANGE_END) {
+        d.setDate(d.getDate() + 1);
+      }
+      var monthEnd = new Date(d);
+      if (monthEnd > RANGE_END) monthEnd = new Date(RANGE_END);
+      monthEnd.setDate(monthEnd.getDate() + 1);
+      var span = daysBetween(monthStart, monthEnd);
+      var cell = document.createElement('div');
+      cell.className = 'gantt-month-cell';
+      cell.style.width = (span * DAY_WIDTH) + 'px';
+      cell.textContent = currentYear + '年' + (currentMonth + 1) + '月';
+      monthRow.appendChild(cell);
+    }
+    headerEl.appendChild(monthRow);
+
+    // Day row
+    var dayRow = document.createElement('div');
+    dayRow.className = 'gantt-day-row';
+    for (var i = 0; i < total; i++) {
+      var day = new Date(RANGE_START);
+      day.setDate(day.getDate() + i);
+      var dayCell = document.createElement('div');
+      dayCell.className = 'gantt-day';
+      var dow = day.getDay();
+      if (dow === 0 || dow === 6) dayCell.classList.add('weekend');
+      dayCell.textContent = day.getDate();
+      dayRow.appendChild(dayCell);
+    }
+    headerEl.appendChild(dayRow);
+
+    // --- Build body rows ---
+    var bodyEl = document.getElementById('ganttBody');
+    var bodyWidth = total * DAY_WIDTH;
+    bodyEl.style.width = bodyWidth + 'px';
+    headerEl.style.width = bodyWidth + 'px';
+
+    // Mock data: [group, isSub, startDate, endDate, percent, status, barClass]
+    var rows = [
+      { group: 'mi001', sub: false, start: new Date(2026, 2, 15), end: new Date(2026, 3, 30), pct: 52, status: '进行中', cls: '' },
+      { group: 'mi001', sub: true,  start: new Date(2026, 2, 15), end: new Date(2026, 3, 15), pct: 60, status: '进行中', cls: '' },
+      { group: 'mi001', sub: true,  start: new Date(2026, 2, 20), end: new Date(2026, 3, 25), pct: 45, status: '进行中', cls: '' },
+      { group: 'mi001', sub: true,  start: new Date(2026, 3, 1),  end: new Date(2026, 3, 30), pct: 80, status: '待评审', cls: '' },
+      { group: 'mi002', sub: false, start: new Date(2026, 3, 1),  end: new Date(2026, 4, 15), pct: 30, status: '进行中', cls: '' },
+      { group: 'mi002', sub: true,  start: new Date(2026, 3, 1),  end: new Date(2026, 3, 30), pct: 50, status: '进行中', cls: '' },
+      { group: 'mi002', sub: true,  start: new Date(2026, 3, 15), end: new Date(2026, 4, 15), pct: 10, status: '未开始', cls: '' },
+      { group: 'mi003', sub: false, start: new Date(2026, 2, 1),  end: new Date(2026, 3, 10), pct: 100, status: '已完成', cls: 'completed' },
+      { group: 'mi004', sub: false, start: null, end: null, pct: 0, status: '未设置时间', cls: 'no-data' },
+    ];
+
+    rows.forEach(function(r) {
+      var row = document.createElement('div');
+      row.className = 'gantt-row' + (r.sub ? ' sub-row' : '');
+      row.setAttribute('data-group', r.group);
+
+      if (r.start && r.end) {
+        var startOffset = daysBetween(RANGE_START, r.start);
+        var endOffset = daysBetween(RANGE_START, r.end);
+        if (startOffset < 0) startOffset = 0;
+        if (endOffset > total) endOffset = total;
+
+        var bar = document.createElement('div');
+        bar.className = 'gantt-bar tooltip-trigger' + (r.cls ? ' ' + r.cls : '');
+        bar.style.left = (startOffset * DAY_WIDTH) + 'px';
+        bar.style.width = ((endOffset - startOffset + 1) * DAY_WIDTH) + 'px';
+
+        var fill = document.createElement('div');
+        fill.className = 'fill';
+        fill.style.width = r.pct + '%';
+        bar.appendChild(fill);
+
+        var label = document.createElement('span');
+        label.className = 'bar-percent';
+        label.textContent = r.pct + '%';
+        bar.appendChild(label);
+
+        var tooltip = document.createElement('div');
+        tooltip.className = 'tooltip';
+        tooltip.textContent = r.status + ' · 完成 ' + r.pct + '% · ' +
+          (r.start.getMonth()+1) + '/' + r.start.getDate() + ' - ' +
+          (r.end.getMonth()+1) + '/' + r.end.getDate();
+        bar.appendChild(tooltip);
+
+        row.appendChild(bar);
+      } else {
+        // No dates — dashed placeholder
+        var bar = document.createElement('div');
+        bar.className = 'gantt-bar no-data';
+        bar.style.left = '14px';
+        bar.style.width = '120px';
+        var label = document.createElement('span');
+        label.className = 'bar-label';
+        label.textContent = '未设置时间';
+        bar.appendChild(label);
+        row.appendChild(bar);
+      }
+
+      bodyEl.appendChild(row);
+    });
+
+    // --- Today marker ---
+    var todayOffset = daysBetween(RANGE_START, TODAY);
+    if (todayOffset >= 0 && todayOffset < total) {
+      var todayLine = document.createElement('div');
+      todayLine.className = 'gantt-today-line';
+      todayLine.style.left = (todayOffset * DAY_WIDTH + 14) + 'px';
+      bodyEl.appendChild(todayLine);
+
+      // Also add today label in header
+      var todayLabel = document.createElement('div');
+      todayLabel.className = 'gantt-today-label';
+      todayLabel.textContent = '今天';
+      todayLabel.style.position = 'absolute';
+      todayLabel.style.left = (todayOffset * DAY_WIDTH + 14) + 'px';
+      todayLabel.style.top = '0';
+      headerEl.style.position = 'relative';
+      headerEl.appendChild(todayLabel);
+    }
+
+    // --- Collapse toggle ---
+    document.querySelectorAll('.collapse-toggle').forEach(function(toggle) {
+      toggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var target = toggle.getAttribute('data-target');
+        var isOpen = toggle.textContent.trim() === '▼';
+        toggle.textContent = isOpen ? '▶' : '▼';
+
+        document.querySelectorAll('.sub-row[data-group="' + target + '"]').forEach(function(row) {
+          row.classList.toggle('visible', !isOpen);
+        });
+        // Also toggle label rows
+        document.querySelectorAll('.gantt-label-row.sub-row[data-group="' + target + '"]').forEach(function(row) {
+          row.classList.toggle('visible', !isOpen);
+        });
+      });
+    });
+
+    // Click on main-item row label also toggles
+    document.querySelectorAll('.gantt-label-row.main-item').forEach(function(row) {
+      row.addEventListener('click', function() {
+        var toggle = row.querySelector('.collapse-toggle');
+        if (toggle && toggle.style.visibility !== 'hidden') {
+          toggle.click();
+        }
+      });
+    });
+
+    // --- Scroll sync ---
+    var labels = document.getElementById('ganttLabels');
+    var timeline = document.getElementById('ganttTimeline');
+    var syncing = false;
+
+    labels.addEventListener('scroll', function() {
+      if (syncing) return;
+      syncing = true;
+      timeline.scrollTop = labels.scrollTop;
+      syncing = false;
+    });
+
+    timeline.addEventListener('scroll', function() {
+      if (syncing) return;
+      syncing = true;
+      labels.scrollTop = timeline.scrollTop;
+      syncing = false;
+    });
+  })();
+  </script>
+</body>
+</html>

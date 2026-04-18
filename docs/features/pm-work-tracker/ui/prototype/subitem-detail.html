@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>子事项详情 - PM Work Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">P</div>
+        <span class="sidebar-brand">PM Work Tracker</span>
+      </div>
+      <div class="sidebar-team">
+        <select>
+          <option selected>产品研发组</option>
+        </select>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="main-items.html">
+          <i class="nav-icon">&#9776;</i>
+          <span>事项视图</span>
+        </a>
+        <a class="nav-item" href="weekly-view.html">
+          <i class="nav-icon">&#128197;</i>
+          <span>周视图</span>
+        </a>
+        <a class="nav-item" href="gantt-view.html">
+          <i class="nav-icon">&#9608;</i>
+          <span>甘特图</span>
+        </a>
+        <a class="nav-item" href="table-view.html">
+          <i class="nav-icon">&#8863;</i>
+          <span>表格视图</span>
+        </a>
+        <a class="nav-item" href="item-pool.html">
+          <i class="nav-icon">&#128230;</i>
+          <span>事项池</span>
+        </a>
+        <a class="nav-item" href="weekly-report.html">
+          <i class="nav-icon">&#128196;</i>
+          <span>周报导出</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">张</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">张伟</div>
+          <div class="sidebar-user-role">PM</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Breadcrumb -->
+      <div class="breadcrumb">
+        <a href="main-items.html">事项视图</a>
+        <span class="separator">/</span>
+        <a href="mainitem-detail.html">用户认证模块开发</a>
+        <span class="separator">/</span>
+        <span class="current">用户注册接口开发</span>
+      </div>
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <h2>用户注册接口开发</h2>
+        <button class="btn btn-primary" data-modal="modal-append-progress">+ 追加进度</button>
+      </div>
+
+      <!-- Info Card -->
+      <div class="card mb-16">
+        <div class="card-body">
+          <div class="descriptions">
+            <table class="descriptions-table">
+              <tr>
+                <th>编号</th>
+                <td><span class="tag tag-mono">SI-001</span></td>
+                <th>所属主事项</th>
+                <td><a href="mainitem-detail.html">用户认证模块开发</a></td>
+              </tr>
+              <tr>
+                <th>优先级</th>
+                <td><span class="tag tag-blue">P2</span></td>
+                <th>负责人</th>
+                <td>
+                  <div class="flex items-center gap-8">
+                    <span class="avatar avatar-sm" style="background:#1677ff;">张</span>
+                    <span>张明</span>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <th>状态</th>
+                <td><span class="tag tag-blue">进行中</span></td>
+                <th>预期完成时间</th>
+                <td>2026-04-25</td>
+              </tr>
+              <tr>
+                <th>当前完成度</th>
+                <td>
+                  <div class="progress-wrapper">
+                    <div class="progress-bar">
+                      <div class="progress-fill" style="width:60%;"></div>
+                    </div>
+                    <span class="progress-text">60%</span>
+                  </div>
+                </td>
+                <td></td>
+                <td></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress Summary Card -->
+      <div class="card mb-16">
+        <div class="card-header">
+          <h4>进度概览</h4>
+        </div>
+        <div class="card-body">
+          <div class="progress-wrapper">
+            <span class="text-secondary" style="white-space:nowrap;">总进度</span>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:60%;"></div>
+            </div>
+            <span class="progress-text">60%</span>
+          </div>
+          <div class="text-secondary text-sm mt-16">最近更新：2026-04-15 by 张明</div>
+        </div>
+      </div>
+
+      <!-- Progress Timeline Card -->
+      <div class="card">
+        <div class="card-header">
+          <h4>进度记录</h4>
+        </div>
+        <div class="card-body">
+          <ul class="timeline">
+            <!-- Record 1 -->
+            <li class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <div class="timeline-header">
+                  <span class="timeline-time">2026-04-01</span>
+                  <span class="timeline-author">张明</span>
+                  <div class="progress-wrapper" style="margin-left:auto;">
+                    <div class="progress-bar progress-sm" style="width:80px;">
+                      <div class="progress-fill" style="width:30%;"></div>
+                    </div>
+                    <span class="progress-text">30%</span>
+                  </div>
+                </div>
+                <div class="timeline-body">
+                  <div class="field-label">成果</div>
+                  <div class="field-content">完成注册API基础框架搭建</div>
+                </div>
+              </div>
+            </li>
+
+            <!-- Record 2 -->
+            <li class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <div class="timeline-header">
+                  <span class="timeline-time">2026-04-08</span>
+                  <span class="timeline-author">张明</span>
+                  <div class="progress-wrapper" style="margin-left:auto;">
+                    <div class="progress-bar progress-sm" style="width:80px;">
+                      <div class="progress-fill" style="width:50%;"></div>
+                    </div>
+                    <span class="progress-text">50%</span>
+                  </div>
+                </div>
+                <div class="timeline-body">
+                  <div class="field-label">成果</div>
+                  <div class="field-content">实现邮箱验证逻辑</div>
+                  <div class="field-label">卡点</div>
+                  <div class="field-content" style="color:var(--color-error);">邮件服务偶发超时</div>
+                </div>
+              </div>
+            </li>
+
+            <!-- Record 3 -->
+            <li class="timeline-item">
+              <div class="timeline-dot active"></div>
+              <div class="timeline-content">
+                <div class="timeline-header">
+                  <span class="timeline-time">2026-04-15</span>
+                  <span class="timeline-author">张明</span>
+                  <div class="progress-wrapper" style="margin-left:auto;">
+                    <div class="progress-bar progress-sm" style="width:80px;">
+                      <div class="progress-fill" style="width:60%;"></div>
+                    </div>
+                    <span class="progress-text">60%</span>
+                  </div>
+                </div>
+                <div class="timeline-body">
+                  <div class="field-label">成果</div>
+                  <div class="field-content">完成单元测试覆盖</div>
+                  <div class="field-label">经验</div>
+                  <div class="field-content" style="color:var(--color-success);">mock邮件服务加速测试</div>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal: Append Progress -->
+  <div class="modal-overlay" id="modal-append-progress">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>追加进度</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label"><span class="required">*</span> 完成度</label>
+          <input class="form-input" type="number" min="0" max="100" placeholder="请输入 0-100 的整数">
+          <div class="form-hint">不能低于上一条记录的完成度（当前：60%）</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">成果</label>
+          <textarea class="form-textarea" rows="3" placeholder="描述本次取得的成果"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">卡点</label>
+          <textarea class="form-textarea" rows="3" placeholder="描述遇到的问题或阻碍"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">经验</label>
+          <textarea class="form-textarea" rows="3" placeholder="记录有价值的经验总结"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('modal-append-progress')">取消</button>
+        <button class="btn btn-primary">提交</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

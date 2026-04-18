@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>团队管理 - PM Work Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">P</div>
+        <span class="sidebar-brand">PM Work Tracker</span>
+      </div>
+      <div class="sidebar-team">
+        <select>
+          <option>产品研发组</option>
+        </select>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="main-items.html"><i class="nav-icon">📋</i><span>事项视图</span></a>
+        <a class="nav-item" href="weekly-view.html"><i class="nav-icon">📅</i><span>周视图</span></a>
+        <a class="nav-item" href="gantt-view.html"><i class="nav-icon">📊</i><span>甘特图</span></a>
+        <a class="nav-item" href="table-view.html"><i class="nav-icon">📑</i><span>表格视图</span></a>
+        <a class="nav-item" href="item-pool.html"><i class="nav-icon">📥</i><span>事项池</span></a>
+        <a class="nav-item" href="weekly-report.html"><i class="nav-icon">📝</i><span>周报导出</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">张</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">张伟</div>
+          <div class="sidebar-user-role">超级管理员</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" style="max-width: 960px;">
+      <div class="page-header">
+        <h2>团队管理</h2>
+        <button class="btn btn-primary" data-modal="inviteModal">邀请成员</button>
+      </div>
+
+      <!-- Team Info Card -->
+      <div class="card mb-20">
+        <div class="card-body">
+          <table class="descriptions-table">
+            <tr>
+              <th>团队名称</th>
+              <td>产品研发组</td>
+              <th>PM</th>
+              <td>张伟</td>
+            </tr>
+            <tr>
+              <th>成员数</th>
+              <td>5</td>
+              <th>创建时间</th>
+              <td>2026-01-15</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Member Table -->
+      <div class="card mb-20">
+        <div class="card-body" style="padding: 0;">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>姓名</th>
+                  <th>账号</th>
+                  <th>角色</th>
+                  <th>加入时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Self row -->
+                <tr>
+                  <td>
+                    <div class="flex items-center gap-8">
+                      <div class="avatar avatar-sm">张</div>
+                      <span>张伟</span>
+                    </div>
+                  </td>
+                  <td class="text-mono">zhangwei</td>
+                  <td><span class="tag tag-blue">PM</span></td>
+                  <td>2026-01-15</td>
+                  <td>&mdash;</td>
+                </tr>
+                <!-- Other PM -->
+                <tr>
+                  <td>
+                    <div class="flex items-center gap-8">
+                      <div class="avatar avatar-sm" style="background:#52c41a;">李</div>
+                      <span>李伟</span>
+                    </div>
+                  </td>
+                  <td class="text-mono">liwei</td>
+                  <td><span class="tag tag-blue">PM</span></td>
+                  <td>2026-01-20</td>
+                  <td>
+                    <div class="dropdown">
+                      <button class="btn btn-sm btn-ghost" data-dropdown>操作 <span style="font-size:10px;">&#9662;</span></button>
+                      <div class="dropdown-menu">
+                        <div class="dropdown-item danger" onclick="showConfirm('确定要移除成员 李伟 吗？', function(){ showToast('已移除成员') })">移除成员</div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <!-- Regular members -->
+                <tr>
+                  <td>
+                    <div class="flex items-center gap-8">
+                      <div class="avatar avatar-sm" style="background:#fa8c16;">张</div>
+                      <span>张明</span>
+                    </div>
+                  </td>
+                  <td class="text-mono">zhangming</td>
+                  <td><span class="tag tag-default">成员</span></td>
+                  <td>2026-02-01</td>
+                  <td>
+                    <div class="dropdown">
+                      <button class="btn btn-sm btn-ghost" data-dropdown>操作 <span style="font-size:10px;">&#9662;</span></button>
+                      <div class="dropdown-menu">
+                        <div class="dropdown-item" onclick="showConfirm('确定将 张明 设为PM吗？', function(){ showToast('已设为PM') })">设为PM</div>
+                        <div class="dropdown-item danger" onclick="showConfirm('确定要移除成员 张明 吗？', function(){ showToast('已移除成员') })">移除成员</div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="flex items-center gap-8">
+                      <div class="avatar avatar-sm" style="background:#eb2f96;">王</div>
+                      <span>王芳</span>
+                    </div>
+                  </td>
+                  <td class="text-mono">wangfang</td>
+                  <td><span class="tag tag-default">成员</span></td>
+                  <td>2026-02-15</td>
+                  <td>
+                    <div class="dropdown">
+                      <button class="btn btn-sm btn-ghost" data-dropdown>操作 <span style="font-size:10px;">&#9662;</span></button>
+                      <div class="dropdown-menu">
+                        <div class="dropdown-item" onclick="showConfirm('确定将 王芳 设为PM吗？', function(){ showToast('已设为PM') })">设为PM</div>
+                        <div class="dropdown-item danger" onclick="showConfirm('确定要移除成员 王芳 吗？', function(){ showToast('已移除成员') })">移除成员</div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="flex items-center gap-8">
+                      <div class="avatar avatar-sm" style="background:#722ed1;">陈</div>
+                      <span>陈静</span>
+                    </div>
+                  </td>
+                  <td class="text-mono">chenjing</td>
+                  <td><span class="tag tag-default">成员</span></td>
+                  <td>2026-03-01</td>
+                  <td>
+                    <div class="dropdown">
+                      <button class="btn btn-sm btn-ghost" data-dropdown>操作 <span style="font-size:10px;">&#9662;</span></button>
+                      <div class="dropdown-menu">
+                        <div class="dropdown-item" onclick="showConfirm('确定将 陈静 设为PM吗？', function(){ showToast('已设为PM') })">设为PM</div>
+                        <div class="dropdown-item danger" onclick="showConfirm('确定要移除成员 陈静 吗？', function(){ showToast('已移除成员') })">移除成员</div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="card" style="border-color: #ff4d4f;">
+        <div class="card-header" style="border-bottom-color: #ffccc7;">
+          <h4 style="color: #ff4d4f;">危险操作</h4>
+        </div>
+        <div class="card-body">
+          <div class="flex items-center justify-between">
+            <div>
+              <div style="font-weight: 500;">解散团队</div>
+              <div class="text-secondary text-sm">解散后所有数据将无法恢复，所有成员将被移除。</div>
+            </div>
+            <button class="btn btn-danger btn-ghost" data-modal="dissolveModal">解散团队</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Invite Member Modal -->
+  <div class="modal-overlay" id="inviteModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>邀请成员</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label"><span class="required">*</span>搜索用户</label>
+          <select class="form-select">
+            <option value="">请选择用户...</option>
+            <option value="zhaolei">赵磊 (zhaolei)</option>
+            <option value="liuyang">刘洋 (liuyang)</option>
+          </select>
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label"><span class="required">*</span>角色</label>
+          <div class="radio-group">
+            <button class="radio-btn active" data-value="pm">PM</button>
+            <button class="radio-btn" data-value="member">成员</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('inviteModal')">取消</button>
+        <button class="btn btn-primary" onclick="closeModal('inviteModal'); showToast('邀请已发送')">确认邀请</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dissolve Team Modal -->
+  <div class="modal-overlay" id="dissolveModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>解散团队</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning" style="margin-bottom: 16px;">
+          <i class="alert-icon">&#9888;</i>
+          <span>此操作不可恢复，团队下所有事项和数据将被永久删除。</span>
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">请输入团队名称确认</label>
+          <input type="text" class="form-input" id="dissolveInput" placeholder="请输入「产品研发组」" oninput="checkDissolveInput()">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('dissolveModal')">取消</button>
+        <button class="btn btn-danger-fill" id="dissolveBtn" disabled onclick="closeModal('dissolveModal'); showToast('团队已解散')">解散团队</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    function checkDissolveInput() {
+      var input = document.getElementById('dissolveInput');
+      var btn = document.getElementById('dissolveBtn');
+      btn.disabled = input.value !== '产品研发组';
+    }
+  </script>
+</body>
+</html>
