@@ -35,3 +35,5 @@ frontend/node_modules/*
 tmp/*
 .claude/settings.local.json
 docs/harness-reports/*
+frontend/coverage/*
+frontend/dist/*
