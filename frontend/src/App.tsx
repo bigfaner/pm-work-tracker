@@ -13,6 +13,7 @@ import ItemPoolPage from '@/pages/ItemPoolPage'
 import ReportPage from '@/pages/ReportPage'
 import AdminPage from '@/pages/AdminPage'
 import TeamManagementPage from '@/pages/TeamManagementPage'
+import UserManagementPage from '@/pages/UserManagementPage'
 
 export default function App() {
   return (
@@ -35,7 +36,7 @@ export default function App() {
       </Route>
       <Route element={<AdminRoute />}>
         <Route element={<AppLayout />}>
-          <Route path="/users" element={<AdminPage />} />
+          <Route path="/users" element={<UserManagementPage />} />
         </Route>
       </Route>
     </Routes>

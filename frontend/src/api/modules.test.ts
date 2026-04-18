@@ -262,7 +262,7 @@ describe('API modules', () => {
   describe('admin', () => {
     it('listUsersApi should GET /admin/users', async () => {
       mockClient.get.mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 })
-      await adminApi.listUsersApi(1, 20)
+      await adminApi.listUsersApi({ page: 1, pageSize: 20 })
       expect(mockClient.get).toHaveBeenCalledWith('/admin/users', { params: { page: 1, pageSize: 20 } })
     })
 

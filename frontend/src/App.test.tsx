@@ -182,10 +182,10 @@ describe('App Routing', () => {
       expect(screen.getByTestId('item-view-page')).toBeInTheDocument()
     })
 
-    it('renders AdminPage at /users for super admin', () => {
+    it('renders UserManagementPage at /users for super admin', () => {
       useAuthStore.getState().setAuth('token', superAdminUser)
       renderApp('/users')
-      expect(screen.getByTestId('admin-page')).toBeInTheDocument()
+      expect(screen.getByTestId('user-management-page')).toBeInTheDocument()
     })
 
     it('redirects /users to /login for unauthenticated user', () => {

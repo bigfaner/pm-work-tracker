@@ -13,8 +13,8 @@ import type {
   GetUserResp,
 } from '@/types'
 
-export function listUsersApi(page?: number, pageSize?: number): Promise<PageResult<AdminUser>> {
-  return client.get<never, PageResult<AdminUser>>('/admin/users', { params: { page, pageSize } })
+export function listUsersApi(params?: { page?: number; pageSize?: number; search?: string; canCreateTeam?: string }): Promise<PageResult<AdminUser>> {
+  return client.get<never, PageResult<AdminUser>>('/admin/users', { params })
 }
 
 export function setCanCreateTeamApi(userId: number, req: SetCanCreateTeamReq): Promise<void> {
