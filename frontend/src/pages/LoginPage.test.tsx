@@ -49,6 +49,12 @@ describe('LoginPage', () => {
     expect(screen.getByTestId('login-page')).toBeInTheDocument()
   })
 
+  it('renders logo/title and subtitle', () => {
+    renderLoginPage()
+    expect(screen.getByText('PM Tracker')).toBeInTheDocument()
+    expect(screen.getByText('工作事项追踪系统')).toBeInTheDocument()
+  })
+
   it('renders username and password fields', () => {
     renderLoginPage()
     expect(screen.getByLabelText('账号')).toBeInTheDocument()
@@ -60,15 +66,38 @@ describe('LoginPage', () => {
     expect(getSubmitButton()).toBeInTheDocument()
   })
 
+  it('disables submit button when both fields are empty', () => {
+    renderLoginPage()
+    expect(getSubmitButton()).toBeDisabled()
+  })
+
+  it('disables submit button when only username is filled', async () => {
+    const user = userEvent.setup()
+    renderLoginPage()
+    await user.type(screen.getByLabelText('账号'), 'testuser')
+    expect(getSubmitButton()).toBeDisabled()
+  })
+
+  it('disables submit button when only password is filled', async () => {
+    const user = userEvent.setup()
+    renderLoginPage()
+    await user.type(screen.getByLabelText('密码'), 'password')
+    expect(getSubmitButton()).toBeDisabled()
+  })
+
+  it('enables submit button when both fields are non-empty', async () => {
+    const user = userEvent.setup()
+    renderLoginPage()
+    await user.type(screen.getByLabelText('账号'), 'testuser')
+    await user.type(screen.getByLabelText('密码'), 'password')
+    expect(getSubmitButton()).not.toBeDisabled()
+  })
+
   it('does not call loginApi when submitting empty form', async () => {
     const user = userEvent.setup()
     renderLoginPage()
-    await user.click(getSubmitButton())
-
-    // The form has required fields but uses plain HTML, so the browser
-    // validation will prevent submission. Since jsdom doesn't fully
-    // implement constraint validation, we check that the API is not called
-    // because our handleSubmit checks for empty fields.
+    // Button is disabled, but even if somehow clicked
+    expect(getSubmitButton()).toBeDisabled()
     expect(mockLoginApi).not.toHaveBeenCalled()
   })
 
@@ -140,6 +169,26 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('账号或密码错误')).toBeInTheDocument()
+    })
+  })
+
+  it('shows specific error for USER_DISABLED on 403 response', async () => {
+    const error = new Error('Forbidden') as any
+    error.response = {
+      status: 403,
+      data: { code: 'USER_DISABLED', message: '账号已被禁用' },
+    }
+    mockLoginApi.mockRejectedValue(error)
+
+    const user = userEvent.setup()
+    renderLoginPage()
+
+    await user.type(screen.getByLabelText('账号'), 'disabled')
+    await user.type(screen.getByLabelText('密码'), 'password')
+    await user.click(getSubmitButton())
+
+    await waitFor(() => {
+      expect(screen.getByText('账号已被禁用，请联系管理员')).toBeInTheDocument()
     })
   })
 
@@ -267,5 +316,40 @@ describe('LoginPage', () => {
         password: 'password123',
       })
     })
+  })
+
+  it('shows loading state on button during login', async () => {
+    // Create a promise we can control
+    let resolveLogin: (value: any) => void
+    mockLoginApi.mockReturnValue(new Promise((resolve) => { resolveLogin = resolve }))
+
+    const user = userEvent.setup()
+    renderLoginPage()
+
+    await user.type(screen.getByLabelText('账号'), 'testuser')
+    await user.type(screen.getByLabelText('密码'), 'password123')
+    await user.click(getSubmitButton())
+
+    // Button should show loading text and be disabled
+    expect(getSubmitButton()).toHaveTextContent('登录中...')
+    expect(getSubmitButton()).toBeDisabled()
+
+    // Resolve to clean up
+    resolveLogin!({ token: 'jwt-token-123', user: mockUser })
+    await waitFor(() => {
+      expect(screen.queryByText('登录中...')).not.toBeInTheDocument()
+    })
+  })
+
+  it('uses no antd imports', () => {
+    // Verify the component module can be loaded without antd
+    const fs = require('fs')
+    const path = require('path')
+    const source = fs.readFileSync(
+      path.resolve(__dirname, 'LoginPage.tsx'),
+      'utf-8',
+    )
+    expect(source).not.toContain('antd')
+    expect(source).not.toContain('ant-design')
   })
 })
