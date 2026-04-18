@@ -13,7 +13,7 @@ import (
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 )
 
-func TestLogin_DisabledUser_ReturnsErrUserDisabled(t *testing.T) {
+func TestLogin_DisabledUserCorrectPassword_ReturnsErrUserDisabled(t *testing.T) {
 	repo := new(mockUserRepo)
 	repo.On("FindByUsername", mock.Anything, "disabled").
 		Return(&model.User{
@@ -30,6 +30,25 @@ func TestLogin_DisabledUser_ReturnsErrUserDisabled(t *testing.T) {
 	var appErr *apperrors.AppError
 	require.ErrorAs(t, err, &appErr)
 	assert.Equal(t, 403, appErr.Status)
+	assert.Equal(t, "USER_DISABLED", appErr.Code)
+	repo.AssertExpectations(t)
+}
+
+func TestLogin_DisabledUserWrongPassword_ReturnsErrUnauthorized(t *testing.T) {
+	// Wrong password for a disabled user must still return the generic
+	// UNAUTHORIZED error — never reveal account status on bad credentials.
+	repo := new(mockUserRepo)
+	repo.On("FindByUsername", mock.Anything, "disabled").
+		Return(&model.User{
+			Model:        gorm.Model{ID: 10},
+			Username:     "disabled",
+			PasswordHash: prehashedPassword123,
+			Status:       "disabled",
+		}, nil)
+
+	svc := NewAuthService(repo, testJWTSecret)
+	_, _, err := svc.Login(context.Background(), "disabled", "wrong-password")
+	assert.ErrorIs(t, err, apperrors.ErrUnauthorized)
 	repo.AssertExpectations(t)
 }
 

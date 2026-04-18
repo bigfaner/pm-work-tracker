@@ -38,7 +38,7 @@ var (
 	ErrNoData               = &AppError{Code: "NO_DATA", Status: 422, Message: "no data to export"}
 	ErrUserExists           = &AppError{Code: "USER_EXISTS", Status: 422, Message: "username already exists"}
 	ErrUserNotFound         = &AppError{Code: "USER_NOT_FOUND", Status: 404, Message: "user not found"}
-	ErrUserDisabled         = &AppError{Code: "USER_DISABLED", Status: 403, Message: "user account is disabled"}
+	ErrUserDisabled         = &AppError{Code: "USER_DISABLED", Status: 403, Message: "账号已被禁用"}
 	ErrCannotDisableSelf    = &AppError{Code: "CANNOT_DISABLE_SELF", Status: 422, Message: "cannot disable your own account"}
 	ErrFutureWeekNotAllowed = &AppError{Code: "FUTURE_WEEK_NOT_ALLOWED", Status: 422, Message: "cannot create progress for future weeks"}
 )
