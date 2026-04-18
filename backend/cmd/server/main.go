@@ -12,7 +12,7 @@ import (
 
 func main() {
 	// 1. Load config
-	cfg, err := config.LoadConfig()
+	cfg, err := config.LoadConfig("config.yaml")
 	if err != nil {
 		log.Fatalf("config error: %v", err)
 	}
@@ -28,7 +28,7 @@ func main() {
 	userRepo := gormrepo.NewGormUserRepo(db)
 
 	// 4. Init services
-	authSvc := service.NewAuthService(userRepo, cfg.JWTSecret)
+	authSvc := service.NewAuthService(userRepo, cfg.Auth.JWTSecret)
 
 	// 5. Init handlers
 	deps := &handler.Dependencies{
@@ -49,7 +49,7 @@ func main() {
 	r := handler.SetupRouter(deps)
 
 	// 7. Start server
-	addr := fmt.Sprintf(":%s", cfg.Port)
+	addr := fmt.Sprintf(":%s", cfg.Server.Port)
 	log.Printf("starting server on %s", addr)
 	if err := r.Run(addr); err != nil {
 		log.Fatalf("server error: %v", err)

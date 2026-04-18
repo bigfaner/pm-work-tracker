@@ -3,65 +3,27 @@ package config
 import (
 	"fmt"
 	"os"
-	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
-// LegacyConfig holds all application configuration loaded from environment variables.
-// Deprecated: use the new nested Config struct instead. Removed in task 1.2.
-type LegacyConfig struct {
-	DBDriver    string
-	DBPath      string
-	DatabaseURL string
-	JWTSecret   string
-	CORSOrigins []string
-	Port        string
-	GinMode     string
-}
+// LoadConfig reads a YAML config file from the given path and returns a Config.
+// If the file does not exist, defaults are used. If the file exists but has
+// invalid YAML syntax, an error is returned.
+func LoadConfig(path string) (*Config, error) {
+	cfg := defaultConfig()
 
-// LoadConfig reads environment variables and returns a validated LegacyConfig.
-// Deprecated: use the new config loading in task 1.2.
-func LoadConfig() (*LegacyConfig, error) {
-	cfg := &LegacyConfig{}
-
-	// DBDriver with default
-	cfg.DBDriver = os.Getenv("DB_DRIVER")
-	if cfg.DBDriver == "" {
-		cfg.DBDriver = "sqlite"
-	}
-
-	// DBPath with default
-	cfg.DBPath = os.Getenv("DB_PATH")
-	if cfg.DBPath == "" {
-		cfg.DBPath = "./data/dev.db"
-	}
-
-	// DatabaseURL (required for mysql, optional otherwise)
-	cfg.DatabaseURL = os.Getenv("DATABASE_URL")
-
-	// JWTSecret (required, min 32 bytes)
-	cfg.JWTSecret = os.Getenv("JWT_SECRET")
-	if len(cfg.JWTSecret) < 32 {
-		return nil, fmt.Errorf("JWT_SECRET must be at least 32 bytes, got %d", len(cfg.JWTSecret))
-	}
-
-	// CORSOrigins parsed from comma-separated env var
-	if raw := os.Getenv("CORS_ORIGINS"); raw != "" {
-		for _, origin := range strings.Split(raw, ",") {
-			trimmed := strings.TrimSpace(origin)
-			if trimmed != "" {
-				cfg.CORSOrigins = append(cfg.CORSOrigins, trimmed)
-			}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return cfg, nil
 		}
+		return nil, fmt.Errorf("read config file: %w", err)
 	}
 
-	// Port with default
-	cfg.Port = os.Getenv("PORT")
-	if cfg.Port == "" {
-		cfg.Port = "8080"
+	if err := yaml.Unmarshal(data, cfg); err != nil {
+		return nil, fmt.Errorf("parse config file: %w", err)
 	}
-
-	// GinMode (release mode)
-	cfg.GinMode = os.Getenv("GIN_MODE")
 
 	return cfg, nil
 }
