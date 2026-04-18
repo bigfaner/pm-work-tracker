@@ -173,6 +173,148 @@ auth:
 	assert.Equal(t, "mypassword", cfg.Auth.InitialAdmin.Password)
 }
 
+// --- applyEnvOverrides tests ---
+
+func TestApplyEnvOverrides_StringField(t *testing.T) {
+	cfg := defaultConfig()
+	t.Setenv("SERVER_PORT", "3000")
+	t.Setenv("LOGGING_LEVEL", "debug")
+
+	err := applyEnvOverrides(cfg)
+	require.NoError(t, err)
+
+	assert.Equal(t, "3000", cfg.Server.Port)
+	assert.Equal(t, "debug", cfg.Logging.Level)
+}
+
+func TestApplyEnvOverrides_IntField(t *testing.T) {
+	cfg := defaultConfig()
+	t.Setenv("DATABASE_MAX_OPEN_CONNS", "25")
+	t.Setenv("DATABASE_MAX_IDLE_CONNS", "12")
+
+	err := applyEnvOverrides(cfg)
+	require.NoError(t, err)
+
+	assert.Equal(t, 25, cfg.Database.MaxOpenConns)
+	assert.Equal(t, 12, cfg.Database.MaxIdleConns)
+}
+
+func TestApplyEnvOverrides_Int64Field(t *testing.T) {
+	cfg := defaultConfig()
+	t.Setenv("SERVER_MAX_BODY_SIZE", "20971520")
+
+	err := applyEnvOverrides(cfg)
+	require.NoError(t, err)
+
+	assert.Equal(t, int64(20971520), cfg.Server.MaxBodySize)
+}
+
+func TestApplyEnvOverrides_DurationField(t *testing.T) {
+	cfg := defaultConfig()
+	t.Setenv("SERVER_READ_TIMEOUT", "60s")
+	t.Setenv("AUTH_JWT_EXPIRY", "48h")
+
+	err := applyEnvOverrides(cfg)
+	require.NoError(t, err)
+
+	assert.Equal(t, Duration(60*time.Second), cfg.Server.ReadTimeout)
+	assert.Equal(t, Duration(48*time.Hour), cfg.Auth.JWTExpiry)
+}
+
+func TestApplyEnvOverrides_SliceField(t *testing.T) {
+	cfg := defaultConfig()
+	t.Setenv("CORS_ORIGINS", "http://localhost:3000, https://example.com")
+
+	err := applyEnvOverrides(cfg)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"http://localhost:3000", "https://example.com"}, cfg.CORS.Origins)
+}
+
+func TestApplyEnvOverrides_NestedStructField(t *testing.T) {
+	cfg := defaultConfig()
+	t.Setenv("AUTH_INITIAL_ADMIN_USERNAME", "superadmin")
+	t.Setenv("AUTH_INITIAL_ADMIN_PASSWORD", "secret123")
+
+	err := applyEnvOverrides(cfg)
+	require.NoError(t, err)
+
+	assert.Equal(t, "superadmin", cfg.Auth.InitialAdmin.Username)
+	assert.Equal(t, "secret123", cfg.Auth.InitialAdmin.Password)
+}
+
+func TestApplyEnvOverrides_EmptyEnvVar(t *testing.T) {
+	cfg := defaultConfig()
+	cfg.Server.Port = "9090"
+	// Set env var to empty — should NOT override
+	t.Setenv("SERVER_PORT", "")
+
+	err := applyEnvOverrides(cfg)
+	require.NoError(t, err)
+
+	assert.Equal(t, "9090", cfg.Server.Port, "empty env var should not override existing value")
+}
+
+func TestApplyEnvOverrides_UnsetEnvVar(t *testing.T) {
+	cfg := defaultConfig()
+	cfg.Server.Port = "9090"
+	// Ensure env var is not set at all
+	os.Unsetenv("SERVER_PORT")
+
+	err := applyEnvOverrides(cfg)
+	require.NoError(t, err)
+
+	assert.Equal(t, "9090", cfg.Server.Port, "unset env var should not override existing value")
+}
+
+func TestApplyEnvOverrides_InvalidInt(t *testing.T) {
+	cfg := defaultConfig()
+	t.Setenv("DATABASE_MAX_OPEN_CONNS", "not-a-number")
+
+	err := applyEnvOverrides(cfg)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "DATABASE_MAX_OPEN_CONNS")
+	assert.Contains(t, err.Error(), "cannot parse")
+}
+
+func TestApplyEnvOverrides_InvalidInt64(t *testing.T) {
+	cfg := defaultConfig()
+	t.Setenv("SERVER_MAX_BODY_SIZE", "not-a-number")
+
+	err := applyEnvOverrides(cfg)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "SERVER_MAX_BODY_SIZE")
+	assert.Contains(t, err.Error(), "cannot parse")
+}
+
+func TestApplyEnvOverrides_InvalidDuration(t *testing.T) {
+	cfg := defaultConfig()
+	t.Setenv("SERVER_READ_TIMEOUT", "not-a-duration")
+
+	err := applyEnvOverrides(cfg)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "SERVER_READ_TIMEOUT")
+	assert.Contains(t, err.Error(), "cannot parse")
+}
+
+func TestLoadConfig_IntegratedWithEnvOverrides(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "nonexistent.yaml")
+	t.Setenv("SERVER_PORT", "7070")
+	t.Setenv("LOGGING_LEVEL", "warn")
+
+	cfg, err := LoadConfig(path)
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	assert.Equal(t, "7070", cfg.Server.Port)
+	assert.Equal(t, "warn", cfg.Logging.Level)
+	// Defaults for non-overridden fields should still be present
+	assert.Equal(t, "sqlite", cfg.Database.Driver)
+}
+
 func TestLoadConfig_DurationFieldFromString(t *testing.T) {
 	yaml := `
 server:
