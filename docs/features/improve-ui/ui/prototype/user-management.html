@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用户管理 — PM Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-brand"><h2>PM Tracker</h2><p>工作事项追踪</p></div>
+    <select class="sidebar-team"><option>产品研发团队</option><option>设计团队</option></select>
+    <div class="sidebar-nav">
+      <a href="main-items.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>事项清单</a>
+      <a href="weekly-view.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>每周进展</a>
+      <a href="gantt-view.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M3 8h12M3 12h18M3 16h8"/></svg>整体进度</a>
+      <a href="item-pool.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>待办事项</a>
+      <a href="weekly-report.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>周报导出</a>
+      <a href="user-management.html" class="active" style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>用户管理</a>
+      <a href="team-management.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>团队管理</a>
+    </div>
+    <div class="sidebar-user"><div class="sidebar-avatar">张</div><div class="sidebar-user-info"><div class="sidebar-user-name">张明</div><div class="sidebar-user-role">PM</div></div></div>
+  </nav>
+
+  <div class="main-content">
+    <div class="page-header">
+      <h1>用户管理</h1>
+    </div>
+
+    <div class="filter-bar">
+        <input type="text" class="input" placeholder="搜索用户名/账号" style="width:240px;height:36px;">
+        <select class="input" style="width:auto;min-width:160px;height:36px;">
+          <option value="">创建团队权限：全部</option>
+          <option>有权限</option>
+          <option>无权限</option>
+        </select>
+        <div style="flex:1;"></div>
+        <button class="btn btn-primary" style="height:36px;" onclick="showAddUserForm()">+ 添加用户</button>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>姓名</th>
+              <th>账号</th>
+              <th>邮箱</th>
+              <th>所属团队</th>
+              <th>创建团队权限</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div class="avatar avatar-sm avatar-primary">张</div>
+                  <span style="font-weight:500;">张明</span>
+                </div>
+              </td>
+              <td><span class="font-mono" style="font-size:12px;">zhangming</span></td>
+              <td style="font-size:13px;">zhangming@example.com</td>
+              <td>
+                <span class="badge badge-primary">产品研发团队</span>
+              </td>
+              <td>
+                <label style="position:relative;display:inline-block;width:40px;height:22px;">
+                  <input type="checkbox" checked style="opacity:0;width:0;height:0;" onchange="showToast('权限已更新')">
+                  <span style="position:absolute;cursor:pointer;inset:0;background:var(--success);border-radius:22px;transition:0.3s;"></span>
+                </label>
+              </td>
+              <td><span class="badge badge-success">启用</span></td>
+              <td>
+                <div style="display:flex;gap:8px;">
+                  <a href="#" class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="editUser('张明','zhangming','zhangming@example.com','产品研发团队',true)">编辑</a>
+                  <a href="#" class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="changeStatus('张明','启用')">修改状态</a>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div class="avatar avatar-sm avatar-primary">李</div>
+                  <span style="font-weight:500;">李华</span>
+                </div>
+              </td>
+              <td><span class="font-mono" style="font-size:12px;">lihua</span></td>
+              <td style="font-size:13px;">lihua@example.com</td>
+              <td>
+                <span class="badge badge-primary">产品研发团队</span>
+              </td>
+              <td>
+                <label style="position:relative;display:inline-block;width:40px;height:22px;">
+                  <input type="checkbox" checked style="opacity:0;width:0;height:0;" onchange="showToast('权限已更新')">
+                  <span style="position:absolute;cursor:pointer;inset:0;background:var(--success);border-radius:22px;transition:0.3s;"></span>
+                </label>
+              </td>
+              <td><span class="badge badge-success">启用</span></td>
+              <td>
+                <div style="display:flex;gap:8px;">
+                  <a href="#" class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="editUser('李华','lihua','lihua@example.com','产品研发团队',true)">编辑</a>
+                  <a href="#" class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="changeStatus('李华','启用')">修改状态</a>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div class="avatar avatar-sm avatar-primary">王</div>
+                  <span style="font-weight:500;">王芳</span>
+                </div>
+              </td>
+              <td><span class="font-mono" style="font-size:12px;">wangfang</span></td>
+              <td style="font-size:13px;">wangfang@example.com</td>
+              <td>
+                <span class="badge badge-primary">产品研发团队</span>
+              </td>
+              <td>
+                <label style="position:relative;display:inline-block;width:40px;height:22px;">
+                  <input type="checkbox" style="opacity:0;width:0;height:0;" onchange="showToast('权限已更新')">
+                  <span style="position:absolute;cursor:pointer;inset:0;background:#cbd5e1;border-radius:22px;transition:0.3s;"></span>
+                </label>
+              </td>
+              <td><span class="badge badge-success">启用</span></td>
+              <td>
+                <div style="display:flex;gap:8px;">
+                  <a href="#" class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="editUser('王芳','wangfang','wangfang@example.com','产品研发团队',false)">编辑</a>
+                  <a href="#" class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="changeStatus('王芳','启用')">修改状态</a>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div class="avatar avatar-sm avatar-primary">赵</div>
+                  <span style="font-weight:500;">赵强</span>
+                </div>
+              </td>
+              <td><span class="font-mono" style="font-size:12px;">zhaoqiang</span></td>
+              <td style="font-size:13px;">zhaoqiang@example.com</td>
+              <td>
+                <span class="badge badge-primary">产品研发团队</span>
+              </td>
+              <td>
+                <label style="position:relative;display:inline-block;width:40px;height:22px;">
+                  <input type="checkbox" style="opacity:0;width:0;height:0;" onchange="showToast('权限已更新')">
+                  <span style="position:absolute;cursor:pointer;inset:0;background:#cbd5e1;border-radius:22px;transition:0.3s;"></span>
+                </label>
+              </td>
+              <td><span class="badge" style="background:#fef3c7;color:#92400e;font-size:11px;padding:2px 8px;border-radius:9999px;">停用</span></td>
+              <td>
+                <div style="display:flex;gap:8px;">
+                  <a href="#" class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="editUser('赵强','zhaoqiang','zhaoqiang@example.com','产品研发团队',false)">编辑</a>
+                  <a href="#" class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="changeStatus('赵强','停用')">修改状态</a>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div class="avatar avatar-sm avatar-primary">陈</div>
+                  <span style="font-weight:500;">陈静</span>
+                </div>
+              </td>
+              <td><span class="font-mono" style="font-size:12px;">chenjing</span></td>
+              <td style="font-size:13px;">chenjing@example.com</td>
+              <td>
+                <span class="badge badge-primary">产品研发团队</span>
+                <span class="badge badge-slate" style="margin-left:4px;">设计团队</span>
+              </td>
+              <td>
+                <label style="position:relative;display:inline-block;width:40px;height:22px;">
+                  <input type="checkbox" checked style="opacity:0;width:0;height:0;" onchange="showToast('权限已更新')">
+                  <span style="position:absolute;cursor:pointer;inset:0;background:var(--success);border-radius:22px;transition:0.3s;"></span>
+                </label>
+              </td>
+              <td><span class="badge badge-success">启用</span></td>
+              <td>
+                <div style="display:flex;gap:8px;">
+                  <a href="#" class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="editUser('陈静','chenjing','chenjing@example.com','产品研发团队',true)">编辑</a>
+                  <a href="#" class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="changeStatus('陈静','启用')">修改状态</a>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div class="avatar avatar-sm avatar-primary">刘</div>
+                  <span style="font-weight:500;">刘洋</span>
+                </div>
+              </td>
+              <td><span class="font-mono" style="font-size:12px;">liuyang</span></td>
+              <td style="font-size:13px;">liuyang@example.com</td>
+              <td>
+                <span class="badge badge-slate">设计团队</span>
+              </td>
+              <td>
+                <label style="position:relative;display:inline-block;width:40px;height:22px;">
+                  <input type="checkbox" style="opacity:0;width:0;height:0;" onchange="showToast('权限已更新')">
+                  <span style="position:absolute;cursor:pointer;inset:0;background:#cbd5e1;border-radius:22px;transition:0.3s;"></span>
+                </label>
+              </td>
+              <td><span class="badge" style="background:#fef3c7;color:#92400e;font-size:11px;padding:2px 8px;border-radius:9999px;">停用</span></td>
+              <td>
+                <div style="display:flex;gap:8px;">
+                  <a href="#" class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="editUser('刘洋','liuyang','liuyang@example.com','设计团队',false)">编辑</a>
+                  <a href="#" class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="changeStatus('刘洋','停用')">修改状态</a>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination" id="page-container"></div>
+      </div>
+  </div>
+</div>
+
+<!-- 添加用户弹窗 -->
+<div id="addUserModal" class="modal-overlay">
+  <div class="modal modal-md">
+    <div class="modal-header"><h2>添加用户</h2></div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:16px;">
+      <div>
+        <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;">姓名 <span style="color:var(--danger);">*</span></label>
+        <input type="text" class="input" style="width:100%;height:36px;" placeholder="请输入姓名">
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;">账号 <span style="color:var(--danger);">*</span></label>
+        <input type="text" class="input" style="width:100%;height:36px;" placeholder="请输入账号">
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;">邮箱 <span style="color:var(--danger);">*</span></label>
+        <input type="email" class="input" style="width:100%;height:36px;" placeholder="请输入邮箱">
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;">所属团队</label>
+        <select class="input" style="width:100%;height:36px;">
+          <option>产品研发团队</option>
+          <option>设计团队</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;">创建团队权限</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox"> 允许创建团队
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('addUserModal')">取消</button>
+      <button class="btn btn-primary" onclick="showToast('用户已添加');closeModal('addUserModal');">确认添加</button>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑用户弹窗 -->
+<div id="editUserModal" class="modal-overlay">
+  <div class="modal modal-md">
+    <div class="modal-header"><h2>编辑用户</h2></div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:16px;">
+      <div>
+        <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;">姓名 <span style="color:var(--danger);">*</span></label>
+        <input type="text" class="input" style="width:100%;height:36px;" id="editName">
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;">账号 <span style="color:var(--danger);">*</span></label>
+        <input type="text" class="input" style="width:100%;height:36px;" id="editAccount">
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;">邮箱 <span style="color:var(--danger);">*</span></label>
+        <input type="email" class="input" style="width:100%;height:36px;" id="editEmail">
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;">所属团队</label>
+        <select class="input" style="width:100%;height:36px;" id="editTeam">
+          <option>产品研发团队</option>
+          <option>设计团队</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;">创建团队权限</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="editCreateTeam"> 允许创建团队
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('editUserModal')">取消</button>
+      <button class="btn btn-primary" onclick="showToast('用户信息已更新');closeModal('editUserModal');">保存修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- 修改状态弹窗 -->
+<div id="statusModal" class="modal-overlay">
+  <div class="modal modal-sm">
+    <div class="modal-header"><h2>修改用户状态</h2></div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:16px;">
+      <div>
+        <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;">用户</label>
+        <div id="statusUserName" style="font-size:14px;font-weight:500;padding:4px 0;"></div>
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;">当前状态</label>
+        <div id="statusCurrent" style="padding:4px 0;"></div>
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;">新状态 <span style="color:var(--danger);">*</span></label>
+        <select class="input" style="width:100%;height:36px;" id="statusNew">
+          <option value="启用">启用</option>
+          <option value="停用">停用</option>
+        </select>
+      </div>
+      <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:12px;font-size:13px;color:#92400e;">
+        <strong>注意：</strong>停用用户后该用户将无法登录系统，但数据不会被删除。
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('statusModal')">取消</button>
+      <button class="btn btn-primary" onclick="showToast('状态已更新');closeModal('statusModal');">确认修改</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+function showAddUserForm() {
+  openModal('addUserModal');
+}
+function editUser(name, account, email, team, canCreate) {
+  document.getElementById('editName').value = name;
+  document.getElementById('editAccount').value = account;
+  document.getElementById('editEmail').value = email;
+  document.getElementById('editTeam').value = team;
+  document.getElementById('editCreateTeam').checked = canCreate;
+  openModal('editUserModal');
+}
+function changeStatus(name, currentStatus) {
+  document.getElementById('statusUserName').textContent = name;
+  document.getElementById('statusCurrent').innerHTML = currentStatus === '启用'
+    ? '<span class="badge badge-success">启用</span>'
+    : '<span class="badge" style="background:#fef3c7;color:#92400e;font-size:11px;padding:2px 8px;border-radius:9999px;">停用</span>';
+  document.getElementById('statusNew').value = currentStatus === '启用' ? '停用' : '启用';
+  openModal('statusModal');
+}
+(function() {
+  var PAGE_SIZE = 5;
+  var rows = document.querySelectorAll('tbody tr');
+  var currentPage = 1;
+  var container = document.getElementById('page-container');
+
+  function render() {
+    var totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    if (currentPage > totalPages) currentPage = totalPages;
+    rows.forEach(function(row, i) {
+      row.style.display = (i >= (currentPage - 1) * PAGE_SIZE && i < currentPage * PAGE_SIZE) ? '' : 'none';
+    });
+
+    container.innerHTML = '';
+
+    var prevBtn = document.createElement('button');
+    prevBtn.className = 'btn btn-secondary btn-sm';
+    prevBtn.innerHTML = '&lt;';
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.onclick = function() { currentPage--; render(); };
+    container.appendChild(prevBtn);
+
+    for (var p = 1; p <= totalPages; p++) {
+      var pb = document.createElement('button');
+      pb.className = p === currentPage ? 'btn btn-sm' : 'btn btn-secondary btn-sm';
+      if (p === currentPage) { pb.style.background = 'var(--primary-600)'; pb.style.color = '#fff'; }
+      pb.style.minWidth = '32px';
+      pb.textContent = p;
+      (function(page) { pb.onclick = function() { currentPage = page; render(); }; })(p);
+      container.appendChild(pb);
+    }
+
+    var nextBtn = document.createElement('button');
+    nextBtn.className = 'btn btn-secondary btn-sm';
+    nextBtn.innerHTML = '&gt;';
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.onclick = function() { currentPage++; render(); };
+    container.appendChild(nextBtn);
+
+    var info = document.createElement('span');
+    info.innerHTML = '\u6BCF\u9875 <select id="page-size-select"><option value="5"' + (PAGE_SIZE===5?' selected':'') + '>5</option><option value="10"' + (PAGE_SIZE===10?' selected':'') + '>10</option><option value="20"' + (PAGE_SIZE===20?' selected':'') + '>20</option><option value="50"' + (PAGE_SIZE===50?' selected':'') + '>50</option></select> \u6761\uFF0C\u5171 ' + rows.length + ' \u6761';
+    container.appendChild(info);
+
+    document.getElementById('page-size-select').onchange = function() {
+      PAGE_SIZE = parseInt(this.value);
+      currentPage = 1;
+      render();
+    };
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>子事项详情 — PM Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-brand"><h2>PM Tracker</h2><p>工作事项追踪</p></div>
+    <select class="sidebar-team"><option>产品研发团队</option><option>设计团队</option></select>
+    <div class="sidebar-nav">
+      <a href="main-items.html" class="active"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>事项清单</a>
+      <a href="weekly-view.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>每周进展</a>
+      <a href="gantt-view.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M3 8h12M3 12h18M3 16h8"/></svg>整体进度</a>
+      <a href="item-pool.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>待办事项</a>
+      <a href="weekly-report.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>周报导出</a>
+      <a href="user-management.html" style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>用户管理</a>
+      <a href="team-management.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>团队管理</a>
+    </div>
+    <div class="sidebar-user"><div class="sidebar-avatar">张</div><div class="sidebar-user-info"><div class="sidebar-user-name">张明</div><div class="sidebar-user-role">PM</div></div></div>
+  </nav>
+
+  <div class="main-content">
+    <!-- Breadcrumb -->
+    <div class="breadcrumb" style="margin-bottom:16px;">
+      <a href="main-items.html">事项清单</a>
+      <span>/</span>
+      <a href="mainitem-detail.html">用户认证模块开发</a>
+      <span>/</span>
+      <span>JWT Token 集成</span>
+    </div>
+
+    <!-- Title Bar -->
+    <div class="page-header">
+      <h1 style="margin:0;">JWT Token 集成</h1>
+      <button class="btn btn-primary" onclick="openModal('modal-append')">追加进度</button>
+    </div>
+
+    <!-- Info Card (4-col grid) -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;">
+        <div>
+          <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:4px;">编号</div>
+          <span class="badge badge-slate font-mono">SI-001-02</span>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:4px;">所属主事项</div>
+          <a href="mainitem-detail.html" style="font-size:13px;font-weight:500;">用户认证模块开发</a>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:4px;">优先级</div>
+          <span class="badge badge-warning">P2</span>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:4px;">负责人</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="avatar avatar-sm avatar-primary">王</div>
+            <span style="font-size:13px;font-weight:500;">王芳</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:4px;">状态</div>
+          <span class="badge badge-primary">进行中</span>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:4px;">预期完成时间</div>
+          <span style="font-size:13px;">04-18</span>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:4px;">当前完成度</div>
+          <span style="font-size:13px;font-weight:600;">80%</span>
+        </div>
+        <div style="grid-column:1/-1;">
+          <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:4px;">描述</div>
+          <span style="font-size:13px;color:var(--text-secondary);line-height:1.6;">实现 JWT Token 的签发、验证、刷新与黑名单机制，支持 AccessToken + RefreshToken 双 Token 模式，确保与现有认证体系无缝集成。</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-body">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span style="font-size:13px;color:var(--text-secondary);white-space:nowrap;">总进度</span>
+          <div class="progress" style="flex:1;">
+            <div class="progress-fill" style="width:80%;background:var(--primary-500);"></div>
+          </div>
+          <span style="font-size:13px;font-weight:600;">80%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress Timeline -->
+    <div class="card">
+      <div class="card-header">
+        <h3>进度记录</h3>
+      </div>
+      <div class="card-body">
+        <div class="timeline">
+          <!-- Record 1 -->
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div style="margin-bottom:4px;">
+              <span style="font-size:12px;color:var(--text-tertiary);">2026-04-01</span>
+              <span style="font-size:12px;color:var(--text-tertiary);margin-left:8px;">10%</span>
+            </div>
+            <div style="font-size:13px;color:var(--text-secondary);">
+              <div style="margin-top:4px;"><strong style="color:var(--success);">成果：</strong>完成 JWT Token 签发逻辑的基础代码框架搭建</div>
+            </div>
+          </div>
+          <!-- Record 2 -->
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div style="margin-bottom:4px;">
+              <span style="font-size:12px;color:var(--text-tertiary);">2026-04-08</span>
+              <span style="font-size:12px;color:var(--text-tertiary);margin-left:8px;">40%</span>
+            </div>
+            <div style="font-size:13px;color:var(--text-secondary);">
+              <div style="margin-top:4px;"><strong style="color:var(--success);">成果：</strong>Token 刷新机制实现，AccessToken + RefreshToken 双 Token 模式</div>
+              <div style="margin-top:4px;"><strong style="color:var(--error);">卡点：</strong>Redis 集群偶发连接超时，影响 Token 黑名单方案</div>
+            </div>
+          </div>
+          <!-- Record 3 -->
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div style="margin-bottom:4px;">
+              <span style="font-size:12px;color:var(--text-tertiary);">2026-04-15</span>
+              <span style="font-size:12px;color:var(--text-tertiary);margin-left:8px;">80%</span>
+            </div>
+            <div style="font-size:13px;color:var(--text-secondary);">
+              <div style="margin-top:4px;"><strong style="color:var(--success);">成果：</strong>Token 黑名单方案实现完成，集成测试通过</div>
+              <div style="margin-top:4px;"><strong style="color:var(--error);">卡点：</strong>部分旧接口 Token 格式兼容问题待修复</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Append Progress Modal -->
+<div class="modal-overlay" id="modal-append">
+  <div class="modal modal-md">
+    <div class="modal-header"><h2>追加进度</h2></div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;">
+        <label class="input-label">完成度 <span style="color:var(--error);">*</span></label>
+        <input type="number" class="input" min="0" max="100" placeholder="请输入 0-100 的整数">
+        <div style="font-size:12px;color:var(--text-tertiary);margin-top:4px;">不能低于上一条记录的完成度（当前：80%）</div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label class="input-label">成果</label>
+        <textarea class="input" rows="3" placeholder="描述本次取得的成果"></textarea>
+      </div>
+      <div>
+        <label class="input-label">卡点</label>
+        <textarea class="input" rows="3" placeholder="描述遇到的问题或阻碍"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-append')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-append');showToast('进度追加成功')">提交</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

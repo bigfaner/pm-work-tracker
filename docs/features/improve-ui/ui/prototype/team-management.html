@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>团队管理 — PM Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-brand"><h2>PM Tracker</h2><p>工作事项追踪</p></div>
+    <select class="sidebar-team"><option>产品研发团队</option><option>设计团队</option></select>
+    <div class="sidebar-nav">
+      <a href="main-items.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>事项清单</a>
+      <a href="weekly-view.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>每周进展</a>
+      <a href="gantt-view.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M3 8h12M3 12h18M3 16h8"/></svg>整体进度</a>
+      <a href="item-pool.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>待办事项</a>
+      <a href="weekly-report.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>周报导出</a>
+      <a href="user-management.html" style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>用户管理</a>
+      <a href="team-management.html" class="active"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>团队管理</a>
+    </div>
+    <div class="sidebar-user"><div class="sidebar-avatar">张</div><div class="sidebar-user-info"><div class="sidebar-user-name">张明</div><div class="sidebar-user-role">PM</div></div></div>
+  </nav>
+
+  <div class="main-content">
+    <div class="page-header">
+      <h1>团队管理</h1>
+      <button class="btn btn-primary" onclick="openModal('modal-create-team')">创建团队</button>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>团队名称</th>
+            <th>简介</th>
+            <th>PM</th>
+            <th>成员数</th>
+            <th>创建时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="team-detail.html" style="font-weight:500;">产品研发团队</a></td>
+            <td style="max-width:200px;color:var(--text-secondary);font-size:13px;">负责核心产品的研发与迭代</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div class="avatar avatar-sm avatar-primary">张</div>
+                <span>张明</span>
+              </div>
+            </td>
+            <td>5</td>
+            <td>2026/03/01</td>
+            <td><button class="btn btn-ghost btn-sm" onclick="openModal('modal-add-member')">添加成员</button></td>
+          </tr>
+          <tr>
+            <td><a href="team-detail.html" style="font-weight:500;">设计团队</a></td>
+            <td style="max-width:200px;color:var(--text-secondary);font-size:13px;">负责 UI/UX 设计与交互体验优化</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div class="avatar avatar-sm avatar-primary">刘</div>
+                <span>刘洋</span>
+              </div>
+            </td>
+            <td>3</td>
+            <td>2026/03/15</td>
+            <td><button class="btn btn-ghost btn-sm" onclick="openModal('modal-add-member')">添加成员</button></td>
+          </tr>
+          <tr>
+            <td><a href="team-detail.html" style="font-weight:500;">基础架构团队</a></td>
+            <td style="max-width:200px;color:var(--text-secondary);font-size:13px;">负责底层基础设施与运维体系建设</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div class="avatar avatar-sm avatar-primary">周</div>
+                <span>周磊</span>
+              </div>
+            </td>
+            <td>4</td>
+            <td>2026/04/01</td>
+            <td><button class="btn btn-ghost btn-sm" onclick="openModal('modal-add-member')">添加成员</button></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="pagination">
+        <button class="btn btn-sm btn-secondary" disabled>&lt;</button>
+        <button class="btn btn-sm btn-primary">1</button>
+        <button class="btn btn-sm btn-secondary" disabled>&gt;</button>
+        <span>每页 <select><option>5</option><option selected>10</option><option>20</option><option>50</option></select> 条，共 3 条</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Member Modal -->
+<div class="modal-overlay" id="modal-add-member">
+  <div class="modal modal-md">
+    <div class="modal-header"><h2>添加成员</h2></div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;">
+        <label class="input-label">选择用户 <span style="color:var(--error);">*</span></label>
+        <select class="input">
+          <option value="">请选择用户...</option>
+          <option>刘洋 (liuyang)</option>
+          <option>周磊 (zhoulei)</option>
+        </select>
+      </div>
+      <div>
+        <label class="input-label">角色 <span style="color:var(--error);">*</span></label>
+        <select class="input">
+          <option>PM</option>
+          <option selected>成员</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-member')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-add-member');showToast('成员已添加')">确认添加</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Team Modal -->
+<div class="modal-overlay" id="modal-create-team">
+  <div class="modal modal-md">
+    <div class="modal-header"><h2>创建团队</h2></div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;">
+        <label class="input-label">团队名称 <span style="color:var(--error);">*</span></label>
+        <input type="text" class="input" placeholder="请输入团队名称">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label class="input-label">指定 PM <span style="color:var(--error);">*</span></label>
+        <select class="input">
+          <option value="">请选择...</option>
+          <option>张明</option><option>李华</option><option>王芳</option><option>赵强</option><option>陈静</option>
+        </select>
+      </div>
+      <div>
+        <label class="input-label">简介</label>
+        <textarea class="input" rows="3" placeholder="请输入团队简介（选填）"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-create-team')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-create-team');showToast('团队已创建')">确认创建</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

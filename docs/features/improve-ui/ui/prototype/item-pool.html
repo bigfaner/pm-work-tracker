@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>待办事项 — PM Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-brand"><h2>PM Tracker</h2><p>工作事项追踪</p></div>
+    <select class="sidebar-team"><option>产品研发团队</option><option>设计团队</option></select>
+    <div class="sidebar-nav">
+      <a href="main-items.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>事项清单</a>
+      <a href="weekly-view.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>每周进展</a>
+      <a href="gantt-view.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M3 8h12M3 12h18M3 16h8"/></svg>整体进度</a>
+      <a href="item-pool.html" class="active"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>待办事项</a>
+      <a href="weekly-report.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>周报导出</a>
+      <a href="user-management.html" style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>用户管理</a>
+      <a href="team-management.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>团队管理</a>
+    </div>
+    <div class="sidebar-user"><div class="sidebar-avatar">张</div><div class="sidebar-user-info"><div class="sidebar-user-name">张明</div><div class="sidebar-user-role">PM</div></div></div>
+  </nav>
+
+  <div class="main-content">
+    <div class="page-header">
+      <h1>待办事项</h1>
+      <button class="btn btn-primary" onclick="openModal('modal-submit')">新增待办事项</button>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <input id="poolSearch" class="input" type="text" placeholder="搜索标题或编号..." style="width:auto;min-width:360px;height:36px;" oninput="filterPool()">
+      <select id="poolStatus" class="input" style="width:auto;min-width:120px;height:36px;" onchange="filterPool()">
+        <option value="">状态：全部</option>
+        <option value="pending">待分配</option>
+        <option value="assigned">已分配</option>
+        <option value="rejected">已拒绝</option>
+      </select>
+    </div>
+
+    <!-- Pool Items -->
+    <div id="pool-list">
+      <!-- Item 1: 待分配 -->
+      <div class="card pool-item" data-status="pending" style="margin-bottom:12px;border-left:3px solid var(--primary-500);">
+        <div class="card-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge badge-slate" style="font-family:monospace;font-size:12px;">POOL-001</span>
+            <span class="pool-title" style="font-weight:500;">移动端适配需求</span>
+            <span class="badge badge-primary">待分配</span>
+          </div>
+          <span style="font-size:12px;color:var(--text-tertiary);">2天前提交</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--text-secondary);">当前系统在移动端浏览器下布局错位，需进行全面的响应式适配。包括导航栏折叠、表格横向滚动、表单元素适配等。</p>
+        </div>
+        <div class="card-footer" style="display:flex;justify-content:flex-end;gap:8px;">
+          <button class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="openModal('modal-to-main')">转为主事项</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="openModal('modal-to-sub')">转为子事项</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--error)" onclick="openModal('modal-reject')">拒绝</button>
+        </div>
+      </div>
+
+      <!-- Item 2: 待分配 -->
+      <div class="card pool-item" data-status="pending" style="margin-bottom:12px;border-left:3px solid var(--primary-500);">
+        <div class="card-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge badge-slate" style="font-family:monospace;font-size:12px;">POOL-002</span>
+            <span class="pool-title" style="font-weight:500;">用户反馈收集功能</span>
+            <span class="badge badge-primary">待分配</span>
+          </div>
+          <span style="font-size:12px;color:var(--text-tertiary);">3天前提交</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--text-secondary);">需要一个系统化的用户反馈收集机制，包括应用内反馈表单、反馈分类和优先级标注功能。</p>
+        </div>
+        <div class="card-footer" style="display:flex;justify-content:flex-end;gap:8px;">
+          <button class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="openModal('modal-to-main')">转为主事项</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="openModal('modal-to-sub')">转为子事项</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--error)" onclick="openModal('modal-reject')">拒绝</button>
+        </div>
+      </div>
+
+      <!-- Item 3: 已分配 -->
+      <div class="card pool-item" data-status="assigned" style="margin-bottom:12px;opacity:0.7;">
+        <div class="card-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge badge-slate" style="font-family:monospace;font-size:12px;">POOL-003</span>
+            <span class="pool-title" style="font-weight:500;">性能优化建议</span>
+            <span class="badge badge-success">已分配</span>
+          </div>
+          <span style="font-size:12px;color:var(--text-tertiary);">5天前提交</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">首页加载时间超过 3 秒，建议进行前端资源压缩、图片懒加载、接口缓存等优化。</p>
+          <div style="font-size:13px;color:var(--text-secondary);">
+            已转为子事项挂载至：<a href="mainitem-detail.html" style="font-weight:500;">用户认证模块开发</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Item 4: 已拒绝 -->
+      <div class="card pool-item" data-status="rejected" style="margin-bottom:12px;opacity:0.7;">
+        <div class="card-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge badge-slate" style="font-family:monospace;font-size:12px;">POOL-004</span>
+            <span class="pool-title" style="font-weight:500;">旧版 API 废弃</span>
+            <span class="badge badge-slate">已拒绝</span>
+          </div>
+          <span style="font-size:12px;color:var(--text-tertiary);">1周前提交</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">v1 版本 API 仍有部分客户端在使用，建议制定废弃计划并通知相关方。</p>
+          <div style="font-size:13px;color:var(--text-tertiary);">拒绝原因：优先级不足，安排至下个季度处理</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scroll Load Sentinel -->
+    <div id="pool-sentinel" style="text-align:center;padding:16px 0;">
+      <span id="pool-loading" style="display:none;font-size:13px;color:var(--text-tertiary);">加载中...</span>
+      <span id="pool-nomore" style="display:none;font-size:13px;color:var(--text-tertiary);">没有更多了</span>
+    </div>
+  </div>
+</div>
+
+<!-- Submit Modal -->
+<div class="modal-overlay" id="modal-submit">
+  <div class="modal modal-md">
+    <div class="modal-header"><h2>新增待办事项</h2></div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;">
+        <label class="input-label">标题 <span style="color:var(--error);">*</span></label>
+        <input type="text" class="input" placeholder="请输入事项标题">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label class="input-label">背景</label>
+        <textarea class="input" rows="3" placeholder="描述提交该事项的背景和原因"></textarea>
+      </div>
+      <div>
+        <label class="input-label">预期产出</label>
+        <textarea class="input" rows="3" placeholder="描述希望达成的产出或目标"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-submit')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-submit');showToast('提交成功')">提交</button>
+    </div>
+  </div>
+</div>
+
+<!-- Convert to Main Item Modal -->
+<div class="modal-overlay" id="modal-to-main">
+  <div class="modal modal-md">
+    <div class="modal-header"><h2>转为主事项</h2></div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;">
+        <label class="input-label">标题 <span style="color:var(--error);">*</span></label>
+        <input type="text" class="input" value="移动端适配需求">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div>
+          <label class="input-label">优先级</label>
+          <select class="input"><option>P1</option><option selected>P2</option><option>P3</option></select>
+        </div>
+        <div>
+          <label class="input-label">负责人</label>
+          <select class="input"><option value="">请选择</option><option>张明</option><option>李华</option><option>王芳</option><option>赵强</option><option>陈静</option></select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div>
+          <label class="input-label">开始时间</label>
+          <input type="date" class="input">
+        </div>
+        <div>
+          <label class="input-label">预期完成时间</label>
+          <input type="date" class="input">
+        </div>
+      </div>
+      <div>
+        <label class="input-label">描述</label>
+        <textarea class="input" rows="3">当前系统在移动端浏览器下布局错位，需进行全面的响应式适配。包括导航栏折叠、表格横向滚动、表单元素适配等。</textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-to-main')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-to-main');showToast('已转为主事项')">确认转换</button>
+    </div>
+  </div>
+</div>
+
+<!-- Convert to Sub Item Modal -->
+<div class="modal-overlay" id="modal-to-sub">
+  <div class="modal modal-md">
+    <div class="modal-header"><h2>转为子事项</h2></div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;">
+        <label class="input-label">挂载主事项 <span style="color:var(--error);">*</span></label>
+        <select class="input">
+          <option value="">请选择主事项</option>
+          <option>MI-001 用户认证模块开发</option>
+          <option>MI-002 数据看板设计</option>
+          <option>MI-003 API接口文档编写</option>
+        </select>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label class="input-label">标题 <span style="color:var(--error);">*</span></label>
+        <input type="text" class="input" value="移动端适配需求">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div>
+          <label class="input-label">优先级</label>
+          <select class="input"><option>P1</option><option selected>P2</option><option>P3</option></select>
+        </div>
+        <div>
+          <label class="input-label">负责人</label>
+          <select class="input"><option value="">请选择</option><option>张明</option><option>李华</option><option>王芳</option><option>赵强</option><option>陈静</option></select>
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label class="input-label">预期完成时间</label>
+        <input type="date" class="input">
+      </div>
+      <div>
+        <label class="input-label">描述</label>
+        <textarea class="input" rows="3">当前系统在移动端浏览器下布局错位，需进行全面的响应式适配。包括导航栏折叠、表格横向滚动、表单元素适配等。</textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-to-sub')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-to-sub');showToast('已转为子事项')">确认转换</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal-overlay" id="modal-reject">
+  <div class="modal modal-md">
+    <div class="modal-header"><h2>拒绝事项</h2></div>
+    <div class="modal-body">
+      <div>
+        <label class="input-label">拒绝原因 <span style="color:var(--error);">*</span></label>
+        <textarea class="input" rows="4" placeholder="请说明拒绝原因"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-reject')">取消</button>
+      <button class="btn btn-danger" onclick="closeModal('modal-reject');showToast('已拒绝','error')">确认拒绝</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+var poolNextId = 5;
+var poolHasMore = true;
+var poolLoading = false;
+
+var poolFakeData = [
+  { title: '暗色模式支持', desc: '增加暗色模式主题切换功能，减少长时间使用的视觉疲劳。', days: 1 },
+  { title: '多语言国际化', desc: '支持中英文切换，方便跨国团队协作使用。', days: 4 },
+  { title: '批量导入事项', desc: '支持通过 Excel/CSV 文件批量导入工作事项，减少手动录入。', days: 6 },
+  { title: '通知提醒优化', desc: '优化站内通知机制，支持邮件和浏览器推送提醒。', days: 2 },
+  { title: '数据导出功能', desc: '支持将事项列表、周报等数据导出为 Excel 或 PDF 格式。', days: 3 },
+  { title: '权限粒度细化', desc: '细化团队成员的权限控制，支持按项目/模块分配操作权限。', days: 7 },
+  { title: '看板视图', desc: '增加看板拖拽视图，支持拖拽方式快速调整事项状态。', days: 5 },
+  { title: '评论与讨论', desc: '在事项详情页增加评论功能，方便团队就具体问题进行讨论。', days: 2 },
+  { title: '自动化规则', desc: '支持设置自动化规则，如到期提醒、状态自动流转等。', days: 4 },
+  { title: '时间追踪', desc: '集成工时记录功能，帮助团队统计每项工作的实际耗时。', days: 6 },
+];
+
+function createPoolItem(id, item) {
+  var daysLabel = item.days === 1 ? '1天前提交' : item.days + '天前提交';
+  return '<div class="card pool-item" data-status="pending" style="margin-bottom:12px;border-left:3px solid var(--primary-500);">'
+    + '<div class="card-header">'
+    + '  <div style="display:flex;align-items:center;gap:8px;">'
+    + '    <span class="badge badge-slate" style="font-family:monospace;font-size:12px;">POOL-' + String(id).padStart(3,'0') + '</span>'
+    + '    <span class="pool-title" style="font-weight:500;">' + item.title + '</span>'
+    + '    <span class="badge badge-primary">待分配</span>'
+    + '  </div>'
+    + '  <span style="font-size:12px;color:var(--text-tertiary);">' + daysLabel + '</span>'
+    + '</div>'
+    + '<div class="card-body">'
+    + '  <p style="font-size:13px;color:var(--text-secondary);">' + item.desc + '</p>'
+    + '</div>'
+    + '<div class="card-footer" style="display:flex;justify-content:flex-end;gap:8px;">'
+    + '  <button class="btn btn-primary btn-sm" onclick="openModal(\'modal-to-main\')">转为主事项</button>'
+    + '  <button class="btn btn-primary btn-sm" onclick="openModal(\'modal-to-sub\')">转为子事项</button>'
+    + '  <button class="btn btn-danger btn-sm" onclick="openModal(\'modal-reject\')">拒绝</button>'
+    + '</div>'
+    + '</div>';
+}
+
+function loadPoolItems() {
+  if (poolLoading || !poolHasMore) return;
+  poolLoading = true;
+  document.getElementById('pool-loading').style.display = '';
+  setTimeout(function() {
+    var list = document.getElementById('pool-list');
+    for (var i = 0; i < 3; i++) {
+      if (poolNextId > 4 + poolFakeData.length) { poolHasMore = false; break; }
+      var idx = (poolNextId - 5) % poolFakeData.length;
+      list.insertAdjacentHTML('beforeend', createPoolItem(poolNextId, poolFakeData[idx]));
+      poolNextId++;
+    }
+    poolLoading = false;
+    document.getElementById('pool-loading').style.display = 'none';
+    if (!poolHasMore) document.getElementById('pool-nomore').style.display = '';
+  }, 600);
+}
+
+var poolObserver = new IntersectionObserver(function(entries) {
+  if (entries[0].isIntersecting) loadPoolItems();
+}, { rootMargin: '200px' });
+poolObserver.observe(document.getElementById('pool-sentinel'));
+
+function filterPool() {
+  var q = document.getElementById('poolSearch').value.trim().toLowerCase();
+  var status = document.getElementById('poolStatus').value;
+  document.querySelectorAll('.pool-item').forEach(function(card) {
+    var titleEl = card.querySelector('.pool-title');
+    var idEl = card.querySelector('.badge-slate');
+    var title = titleEl ? titleEl.textContent.toLowerCase() : '';
+    var id = idEl ? idEl.textContent.toLowerCase() : '';
+    var matchText = !q || title.indexOf(q) !== -1 || id.indexOf(q) !== -1;
+    var matchStatus = !status || card.getAttribute('data-status') === status;
+    card.style.display = matchText && matchStatus ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>
