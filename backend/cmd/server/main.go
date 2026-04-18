@@ -18,7 +18,7 @@ func main() {
 	}
 
 	// 2. Init DB
-	db, err := config.InitDB()
+	db, err := config.InitDB(&cfg.Database)
 	if err != nil {
 		log.Fatalf("database error: %v", err)
 	}
