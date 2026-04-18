@@ -1,1 +1,49 @@
 @import 'tailwindcss';
+
+@theme {
+  /* Primary */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+
+  /* Backgrounds */
+  --color-bg: #ffffff;
+  --color-bg-alt: #f8fafc;
+
+  /* Borders */
+  --color-border: #e2e8f0;
+  --color-border-dark: #cbd5e1;
+
+  /* Text */
+  --color-primary: #0f172a;
+  --color-secondary: #475569;
+  --color-tertiary: #94a3b8;
+
+  /* Semantic */
+  --color-success: #059669;
+  --color-success-bg: #ecfdf5;
+  --color-success-text: #047857;
+  --color-warning: #d97706;
+  --color-warning-bg: #fffbeb;
+  --color-warning-text: #92400e;
+  --color-error: #dc2626;
+  --color-error-bg: #fef2f2;
+  --color-error-text: #991b1b;
+
+  /* Animations */
+  --animate-slide-in: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
