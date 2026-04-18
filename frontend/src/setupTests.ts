@@ -10,7 +10,15 @@ vi.mock('frappe-gantt', () => ({
   },
 }))
 
-// Mock window.matchMedia for antd responsive components
+// Mock pointer capture APIs (not implemented in jsdom, needed by @radix-ui/react-select)
+HTMLElement.prototype.hasPointerCapture = vi.fn().mockReturnValue(false)
+HTMLElement.prototype.setPointerCapture = vi.fn()
+HTMLElement.prototype.releasePointerCapture = vi.fn()
+
+// Mock scrollIntoView (not implemented in jsdom, needed by Radix UI Select)
+Element.prototype.scrollIntoView = vi.fn()
+
+// Mock window.matchMedia (required by various Radix UI components)
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({
