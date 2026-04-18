@@ -13,6 +13,7 @@ import (
 
 	"pm-work-tracker/backend/config"
 	"pm-work-tracker/backend/internal/handler"
+	"pm-work-tracker/backend/internal/migration"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 	"pm-work-tracker/backend/internal/service"
 )
@@ -41,7 +42,13 @@ func run(configPath string) error {
 		return fmt.Errorf("database error: %w", err)
 	}
 
-	// 3. Seed admin user
+	// 3. Run migrations
+	runner := migration.NewRunner(db, "migrations")
+	if err := runner.Run(); err != nil {
+		return fmt.Errorf("migration error: %w", err)
+	}
+
+	// 4. Seed admin user
 	if err := config.SeedAdmin(db, &cfg.Auth); err != nil {
 		log.Printf("warning: seed admin: %v", err)
 	}
