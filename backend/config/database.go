@@ -2,33 +2,44 @@ package config
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-func InitDB() (*gorm.DB, error) {
-	driver := os.Getenv("DB_DRIVER")
-	if driver == "" {
-		driver = "sqlite"
-	}
+func InitDB(cfg *DatabaseConfig) (*gorm.DB, error) {
+	var dialector gorm.Dialector
 
-	switch driver {
-	case "sqlite":
-		path := os.Getenv("DB_PATH")
+	switch cfg.Driver {
+	case "sqlite", "":
+		path := cfg.Path
 		if path == "" {
 			path = "./data/dev.db"
 		}
-		return gorm.Open(sqlite.Open(path), &gorm.Config{})
+		dialector = sqlite.Open(path)
 	case "mysql":
-		dsn := os.Getenv("DATABASE_URL")
-		if dsn == "" {
-			return nil, fmt.Errorf("DATABASE_URL env var is required for mysql driver")
+		if cfg.URL == "" {
+			return nil, fmt.Errorf("mysql driver requires a non-empty url")
 		}
-		return gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		dialector = mysql.Open(cfg.URL)
 	default:
-		return nil, fmt.Errorf("unsupported DB_DRIVER: %s (use 'sqlite' or 'mysql')", driver)
+		return nil, fmt.Errorf("unsupported driver: %s (use 'sqlite' or 'mysql')", cfg.Driver)
 	}
+
+	db, err := gorm.Open(dialector, &gorm.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("open database: %w", err)
+	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("get underlying sql.DB: %w", err)
+	}
+
+	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
+	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
+	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime.Value())
+
+	return db, nil
 }

@@ -32,9 +32,15 @@ func testDeps(t *testing.T) (*Dependencies, *gorm.DB) {
 	teamRepo := gormrepo.NewGormTeamRepo(db)
 
 	cfg := &config.Config{
-		JWTSecret:   "test-secret-that-is-at-least-32-bytes!!",
-		CORSOrigins: []string{"http://localhost:3000"},
-		GinMode:     "test",
+		Auth: config.AuthConfig{
+			JWTSecret: "test-secret-that-is-at-least-32-bytes!!",
+		},
+		CORS: config.CORSConfig{
+			Origins: []string{"http://localhost:3000"},
+		},
+		Server: config.ServerConfig{
+			GinMode: "test",
+		},
 	}
 
 	return &Dependencies{
@@ -233,7 +239,7 @@ func TestCORS_HeadersSet(t *testing.T) {
 
 func TestCORS_RejectUnknownOrigin(t *testing.T) {
 	deps, _ := testDeps(t)
-	deps.Config.CORSOrigins = []string{"http://localhost:3000"}
+	deps.Config.CORS.Origins = []string{"http://localhost:3000"}
 	r := SetupRouter(deps)
 
 	w := httptest.NewRecorder()
@@ -248,7 +254,7 @@ func TestCORS_RejectUnknownOrigin(t *testing.T) {
 
 func TestCORS_WildcardWhenNoOriginsConfigured(t *testing.T) {
 	deps, _ := testDeps(t)
-	deps.Config.CORSOrigins = nil
+	deps.Config.CORS.Origins = nil
 	r := SetupRouter(deps)
 
 	w := httptest.NewRecorder()

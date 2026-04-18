@@ -33,7 +33,7 @@ type Dependencies struct {
 // SetupRouter creates a Gin engine with all route groups, middleware chains,
 // and handler stubs registered.
 func SetupRouter(deps *Dependencies) *gin.Engine {
-	if deps.Config != nil && deps.Config.GinMode == "release" {
+	if deps.Config != nil && deps.Config.Server.GinMode == "release" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
@@ -61,13 +61,13 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 	{
 		// Rate limit login: 10 req/min per IP
 		authGroup.POST("/login", rateLimitMiddleware(10, time.Minute), deps.Auth.Login)
-		authGroup.POST("/logout", middleware.AuthMiddleware(deps.Config.JWTSecret), deps.Auth.Logout)
+		authGroup.POST("/logout", middleware.AuthMiddleware(deps.Config.Auth.JWTSecret), deps.Auth.Logout)
 	}
 
 	// Team-scoped routes (require auth + team membership)
 	teamsGroup := v1.Group("/teams/:teamId")
 	teamsGroup.Use(
-		middleware.AuthMiddleware(deps.Config.JWTSecret),
+		middleware.AuthMiddleware(deps.Config.Auth.JWTSecret),
 		middleware.TeamScopeMiddleware(deps.TeamRepo),
 	)
 	{
@@ -123,13 +123,13 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 	}
 
 	// Team list/create routes (outside :teamId group, auth only)
-	v1.POST("/teams", middleware.AuthMiddleware(deps.Config.JWTSecret), deps.Team.Create)
-	v1.GET("/teams", middleware.AuthMiddleware(deps.Config.JWTSecret), deps.Team.List)
+	v1.POST("/teams", middleware.AuthMiddleware(deps.Config.Auth.JWTSecret), deps.Team.Create)
+	v1.GET("/teams", middleware.AuthMiddleware(deps.Config.Auth.JWTSecret), deps.Team.List)
 
 	// Admin routes (superadmin only)
 	adminGroup := v1.Group("/admin")
 	adminGroup.Use(
-		middleware.AuthMiddleware(deps.Config.JWTSecret),
+		middleware.AuthMiddleware(deps.Config.Auth.JWTSecret),
 		middleware.RequireRole("superadmin"),
 	)
 	{
@@ -149,8 +149,8 @@ func healthCheck(c *gin.Context) {
 // corsOrigins returns the list of allowed CORS origins from config.
 // Falls back to "*" if none configured.
 func corsOrigins(deps *Dependencies) []string {
-	if deps.Config != nil && len(deps.Config.CORSOrigins) > 0 {
-		return deps.Config.CORSOrigins
+	if deps.Config != nil && len(deps.Config.CORS.Origins) > 0 {
+		return deps.Config.CORS.Origins
 	}
 	return []string{"*"}
 }

@@ -348,9 +348,15 @@ func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engi
 	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
 
 	cfg := &config.Config{
-		JWTSecret:   testJWTSecret,
-		CORSOrigins: []string{"http://localhost:3000"},
-		GinMode:     "test",
+		Auth: config.AuthConfig{
+			JWTSecret: testJWTSecret,
+		},
+		CORS: config.CORSConfig{
+			Origins: []string{"http://localhost:3000"},
+		},
+		Server: config.ServerConfig{
+			GinMode: "test",
+		},
 	}
 
 	deps := &handler.Dependencies{
