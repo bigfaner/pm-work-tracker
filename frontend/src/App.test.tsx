@@ -176,20 +176,20 @@ describe('App Routing', () => {
   })
 
   describe('Admin route', () => {
-    it('redirects /admin to /items for non-admin authenticated user', () => {
+    it('redirects /users to /items for non-admin authenticated user', () => {
       useAuthStore.getState().setAuth('token', mockUser)
-      renderApp('/admin')
+      renderApp('/users')
       expect(screen.getByTestId('item-view-page')).toBeInTheDocument()
     })
 
-    it('renders AdminPage at /admin for super admin', () => {
+    it('renders AdminPage at /users for super admin', () => {
       useAuthStore.getState().setAuth('token', superAdminUser)
-      renderApp('/admin')
+      renderApp('/users')
       expect(screen.getByTestId('admin-page')).toBeInTheDocument()
     })
 
-    it('redirects /admin to /login for unauthenticated user', () => {
-      renderApp('/admin')
+    it('redirects /users to /login for unauthenticated user', () => {
+      renderApp('/users')
       expect(screen.getByTestId('login-page')).toBeInTheDocument()
     })
   })

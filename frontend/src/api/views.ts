@@ -1,8 +1,8 @@
 import client from './client'
-import type { TableFilter, WeeklyViewResp, GanttViewResp, TableRow, PageResult } from '@/types'
+import type { TableFilter, WeeklyViewResp, WeeklyViewResponse, GanttViewResp, TableRow, PageResult } from '@/types'
 
-export function getWeeklyViewApi(teamId: number, weekStart: string): Promise<WeeklyViewResp> {
-  return client.get<never, WeeklyViewResp>(`/teams/${teamId}/views/weekly`, { params: { weekStart } })
+export function getWeeklyViewApi(teamId: number, weekStart: string): Promise<WeeklyViewResponse> {
+  return client.get<never, WeeklyViewResponse>(`/teams/${teamId}/views/weekly`, { params: { weekStart } })
 }
 
 export function getGanttViewApi(teamId: number, status?: string): Promise<GanttViewResp> {

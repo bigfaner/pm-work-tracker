@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import AdminRoute from '@/components/AdminRoute'
-import AppLayout from '@/components/AppLayout'
+import AppLayout from '@/components/layout/AppLayout'
 import LoginPage from '@/pages/LoginPage'
 import ItemViewPage from '@/pages/ItemViewPage'
 import MainItemDetailPage from '@/pages/MainItemDetailPage'
@@ -29,12 +29,13 @@ export default function App() {
           <Route path="/table" element={<TableViewPage />} />
           <Route path="/item-pool" element={<ItemPoolPage />} />
           <Route path="/report" element={<ReportPage />} />
-          <Route path="/teams/:teamId/settings" element={<TeamManagementPage />} />
+          <Route path="/teams/:teamId" element={<TeamManagementPage />} />
+          <Route path="/teams" element={<AdminPage />} />
         </Route>
       </Route>
       <Route element={<AdminRoute />}>
         <Route element={<AppLayout />}>
-          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/users" element={<AdminPage />} />
         </Route>
       </Route>
     </Routes>

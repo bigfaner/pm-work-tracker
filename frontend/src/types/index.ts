@@ -1,11 +1,20 @@
 // Domain models
 
+export interface TeamSummary {
+  id: number
+  name: string
+  role: string
+}
+
 export interface User {
   id: number
   username: string
   display_name: string
+  email?: string
   is_super_admin: boolean
   can_create_team: boolean
+  status?: 'enabled' | 'disabled'
+  teams?: TeamSummary[]
   created_at: string
   updated_at: string
 }
@@ -355,8 +364,11 @@ export interface AdminUser {
   id: number
   username: string
   displayName: string
+  email?: string
   canCreateTeam: boolean
   isSuperAdmin: boolean
+  status?: 'enabled' | 'disabled'
+  teams?: TeamSummary[]
 }
 
 export interface SetCanCreateTeamReq {
@@ -370,4 +382,105 @@ export interface AdminTeam {
   memberCount: number
   mainItemCount: number
   createdAt: string
+}
+
+export interface CreateUserReq {
+  username: string
+  displayName: string
+  email?: string
+  teamId?: number
+  canCreateTeam?: boolean
+}
+
+export interface CreateUserResp {
+  id: number
+  username: string
+  displayName: string
+  email: string
+  canCreateTeam: boolean
+  status: string
+  teams: TeamSummary[]
+  initialPassword: string
+}
+
+export interface UpdateUserReq {
+  displayName?: string
+  email?: string
+  canCreateTeam?: boolean
+  teamId?: number
+}
+
+export interface UpdateUserResp {
+  id: number
+  username: string
+  displayName: string
+  email: string
+  canCreateTeam: boolean
+  status: string
+  teams: TeamSummary[]
+}
+
+export interface ToggleUserStatusReq {
+  status: 'enabled' | 'disabled'
+}
+
+export interface ToggleUserStatusResp {
+  id: number
+  username: string
+  status: string
+}
+
+export interface GetUserResp {
+  id: number
+  username: string
+  displayName: string
+  email: string
+  canCreateTeam: boolean
+  isSuperAdmin: boolean
+  status: string
+  teams: TeamSummary[]
+}
+
+// Weekly view (enhanced)
+export interface MainItemSummary {
+  id: number
+  title: string
+  priority: string
+  startDate: string
+  expectedEndDate: string
+  completion: number
+  subItemCount: number
+}
+
+export interface WeeklyViewResponse {
+  weekStart: string
+  weekEnd: string
+  stats: {
+    activeSubItems: number
+    newlyCompleted: number
+    inProgress: number
+    blocked: number
+  }
+  groups: WeeklyComparisonGroup[]
+}
+
+export interface WeeklyComparisonGroup {
+  mainItem: MainItemSummary
+  lastWeek: SubItemSnapshot[]
+  thisWeek: SubItemSnapshot[]
+  completedNoChange: SubItemSnapshot[]
+}
+
+export interface SubItemSnapshot {
+  id: number
+  title: string
+  priority: string
+  status: string
+  assigneeName: string
+  expectedEndDate: string
+  completion: number
+  progressDescription: string
+  delta?: number
+  isNew?: boolean
+  justCompleted?: boolean
 }
