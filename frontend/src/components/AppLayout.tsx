@@ -1,43 +1,25 @@
 import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { Layout, Menu, Select, Avatar, Dropdown } from 'antd'
-import {
-  UnorderedListOutlined,
-  CalendarOutlined,
-  FundOutlined,
-  TableOutlined,
-  InboxOutlined,
-  ExportOutlined,
-  SettingOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-  LogoutOutlined,
-} from '@ant-design/icons'
-import type { MenuProps } from 'antd'
 import { useAuthStore } from '@/store/auth'
 import { useTeamStore } from '@/store/team'
 import { listTeamsApi } from '@/api/teams'
 
-const { Sider } = Layout
-
 const navItems = [
-  { key: '/items', label: '事项视图', icon: <UnorderedListOutlined /> },
-  { key: '/weekly', label: '周视图', icon: <CalendarOutlined /> },
-  { key: '/gantt', label: '甘特图', icon: <FundOutlined /> },
-  { key: '/table', label: '表格视图', icon: <TableOutlined /> },
-  { key: '/item-pool', label: '事项池', icon: <InboxOutlined /> },
-  { key: '/report', label: '周报导出', icon: <ExportOutlined /> },
+  { key: '/items', label: '事项视图' },
+  { key: '/weekly', label: '周视图' },
+  { key: '/gantt', label: '甘特图' },
+  { key: '/table', label: '表格视图' },
+  { key: '/item-pool', label: '事项池' },
+  { key: '/report', label: '周报导出' },
 ]
 
 export default function AppLayout() {
-  const [collapsed, setCollapsed] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
 
   const { user, clearAuth, isSuperAdmin } = useAuthStore()
   const { teams, currentTeamId, setCurrentTeam, setTeams } = useTeamStore()
 
-  // Fetch teams on mount
   useEffect(() => {
     listTeamsApi()
       .then((data) => {
@@ -46,151 +28,74 @@ export default function AppLayout() {
           setCurrentTeam(data[0].id)
         }
       })
-      .catch(() => {
-        // Silently handle - error already shown by API client interceptor
-      })
+      .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
-    navigate(key)
-  }
-
-  const handleTeamChange = (teamId: number) => {
-    setCurrentTeam(teamId)
-  }
+  const activeKey = '/' + location.pathname.split('/').filter(Boolean)[0]
 
   const handleLogout = () => {
     clearAuth()
     navigate('/login')
   }
 
-  const dropdownItems: MenuProps['items'] = [
-    {
-      key: 'logout',
-      icon: <LogoutOutlined />,
-      label: '退出登录',
-      onClick: handleLogout,
-    },
-  ]
-
-  // Determine active menu key from current path
-  const activeKey = '/' + location.pathname.split('/').filter(Boolean)[0]
-
-  const allMenuItems = isSuperAdmin
-    ? [
-        ...navItems,
-        { type: 'divider' as const },
-        { key: '/admin', label: '管理后台', icon: <SettingOutlined /> },
-      ]
+  const allNavItems = isSuperAdmin
+    ? [...navItems, { key: '/admin', label: '管理后台' }]
     : navItems
 
   return (
-    <Layout data-testid="app-layout" style={{ minHeight: '100vh' }}>
-      <Sider
-        data-testid="sidebar"
-        width={220}
-        collapsedWidth={64}
-        collapsed={collapsed}
-        trigger={null}
-        style={{
-          position: 'fixed',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'auto',
-        }}
-      >
-        {/* Top: Logo + Team switcher */}
-        <div style={{ padding: '16px 12px 8px' }}>
-          <div
-            style={{
-              fontSize: collapsed ? 14 : 16,
-              fontWeight: 700,
-              color: '#fff',
-              textAlign: 'center',
-              marginBottom: 12,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-            }}
-          >
-            {collapsed ? 'PM' : 'PM Tracker'}
-          </div>
-          {!collapsed && (
-            <Select
-              data-testid="team-switcher"
-              value={currentTeamId ?? undefined}
-              onChange={handleTeamChange}
-              style={{ width: 180 }}
-              placeholder="选择团队"
-              options={teams.map((t) => ({ value: t.id, label: t.name }))}
-            />
-          )}
+    <div data-testid="app-layout" style={{ display: 'flex', minHeight: '100vh' }}>
+      <div data-testid="sidebar" style={{ width: 220, position: 'fixed', left: 0, top: 0, bottom: 0, background: '#001529', color: '#fff', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+        <div style={{ padding: '16px 12px 8px', textAlign: 'center', fontWeight: 700, fontSize: 16 }}>
+          PM Tracker
         </div>
-
-        {/* Navigation */}
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[activeKey]}
-          items={allMenuItems}
-          onClick={handleMenuClick}
-          style={{ flex: 1, borderRight: 0 }}
-        />
-
-        {/* Bottom: User section + Collapse toggle */}
-        <div style={{ padding: '12px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <Dropdown menu={{ items: dropdownItems }} placement="topRight" trigger={['click']}>
+        <div style={{ padding: '0 12px 12px' }}>
+          <select
+            data-testid="team-switcher"
+            value={currentTeamId ?? ''}
+            onChange={(e) => setCurrentTeam(Number(e.target.value))}
+            style={{ width: '100%', padding: '4px 8px', borderRadius: 4, border: 'none' }}
+          >
+            {teams.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+        <nav style={{ flex: 1, padding: '0 8px' }}>
+          {allNavItems.map((item) => (
             <div
+              key={item.key}
+              data-testid={`nav-${item.key.slice(1)}`}
+              onClick={() => navigate(item.key)}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
+                padding: '10px 16px',
+                borderRadius: 6,
                 cursor: 'pointer',
-                color: '#fff',
+                color: activeKey === item.key ? '#fff' : 'rgba(255,255,255,0.65)',
+                background: activeKey === item.key ? '#1677ff' : 'transparent',
+                marginBottom: 4,
               }}
             >
-              <Avatar size="small" style={{ backgroundColor: '#1677ff', flexShrink: 0 }}>
-                {user?.display_name?.charAt(0) ?? '?'}
-              </Avatar>
-              {!collapsed && (
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {user?.display_name}
-                </span>
-              )}
+              {item.label}
             </div>
-          </Dropdown>
-          <div
-            data-testid="sidebar-toggle"
-            onClick={() => setCollapsed(!collapsed)}
-            style={{
-              color: '#fff',
-              cursor: 'pointer',
-              textAlign: 'center',
-              marginTop: 12,
-              fontSize: 16,
-            }}
-          >
-            {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+          ))}
+        </nav>
+        <div style={{ padding: 12, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <div data-testid="sidebar-user" style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#fff' }}>
+            <span style={{ width: 28, height: 28, borderRadius: '50%', background: '#1677ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>
+              {user?.display_name?.charAt(0) ?? '?'}
+            </span>
+            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.display_name}
+            </span>
+            <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
+              退出
+            </button>
           </div>
         </div>
-      </Sider>
-
-      {/* Content area */}
-      <Layout style={{ marginLeft: collapsed ? 64 : 220, transition: 'margin-left 0.2s' }}>
-        <div
-          data-testid="content-area"
-          style={{
-            padding: 24,
-            maxWidth: 1440,
-            width: '100%',
-            margin: '0 auto',
-          }}
-        >
-          <Outlet />
-        </div>
-      </Layout>
-    </Layout>
+      </div>
+      <div data-testid="content-area" style={{ marginLeft: 220, flex: 1, padding: 24 }}>
+        <Outlet />
+      </div>
+    </div>
   )
 }

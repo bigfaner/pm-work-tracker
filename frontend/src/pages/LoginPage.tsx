@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams, Navigate } from 'react-router-dom'
-import { Card, Form, Input, Button, Alert } from 'antd'
-import { UserOutlined, LockOutlined } from '@ant-design/icons'
 import { loginApi } from '@/api/auth'
 import { useAuthStore } from '@/store/auth'
 
@@ -12,17 +10,20 @@ export default function LoginPage() {
   const [searchParams] = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [form] = Form.useForm()
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
 
   if (isAuthenticated) {
     return <Navigate replace to="/items" />
   }
 
-  const onFinish = async (values: { username: string; password: string }) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!username || !password) return
     setLoading(true)
     setError(null)
     try {
-      const resp = await loginApi(values)
+      const resp = await loginApi({ username, password })
       setAuth(resp.token, resp.user)
       const redirect = searchParams.get('redirect') || '/items'
       navigate(redirect)
@@ -30,7 +31,7 @@ export default function LoginPage() {
       const status = err?.response?.status
       if (status === 401) {
         setError('账号或密码错误')
-        form.setFieldValue('password', '')
+        setPassword('')
       } else if (status === 400) {
         setError('请求参数校验失败')
       } else {
@@ -42,72 +43,48 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      data-testid="login-page"
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        background: '#f0f2f5',
-      }}
-    >
-      <Card
-        style={{
-          width: 400,
-          padding: '40px 32px',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-        }}
-      >
+    <div data-testid="login-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f0f2f5' }}>
+      <div style={{ width: 400, padding: '40px 32px', background: '#fff', borderRadius: 8, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>
-            PM 工作事项追踪
-          </h2>
+          <h2 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>PM 工作事项追踪</h2>
         </div>
-        <Form form={form} layout="vertical" onFinish={onFinish}>
-          <Form.Item
-            label="账号"
-            name="username"
-            rules={[{ required: true, message: '请输入账号' }]}
-          >
-            <Input
-              prefix={<UserOutlined />}
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 16 }}>
+            <label htmlFor="login-username" style={{ display: 'block', marginBottom: 4 }}>账号</label>
+            <input
+              id="login-username"
+              data-testid="login-username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               placeholder="请输入账号"
-              size="large"
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d9d9d9', borderRadius: 6, fontSize: 16 }}
             />
-          </Form.Item>
-          <Form.Item
-            label="密码"
-            name="password"
-            rules={[{ required: true, message: '请输入密码' }]}
-          >
-            <Input.Password
-              prefix={<LockOutlined />}
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label htmlFor="login-password" style={{ display: 'block', marginBottom: 4 }}>密码</label>
+            <input
+              id="login-password"
+              data-testid="login-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="请输入密码"
-              size="large"
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d9d9d9', borderRadius: 6, fontSize: 16 }}
             />
-          </Form.Item>
+          </div>
           {error && (
-            <Alert
-              type="error"
-              showIcon
-              message={error}
-              style={{ marginBottom: 16 }}
-            />
+            <div data-testid="login-error" style={{ color: '#ff4d4f', marginBottom: 16 }}>{error}</div>
           )}
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              block
-              size="large"
-              loading={loading}
-            >
-              登录
-            </Button>
-          </Form.Item>
-        </Form>
-      </Card>
+          <button
+            type="submit"
+            disabled={loading}
+            data-testid="login-submit"
+            style={{ width: '100%', padding: '8px 16px', background: '#1677ff', color: '#fff', border: 'none', borderRadius: 6, fontSize: 16, cursor: loading ? 'not-allowed' : 'pointer' }}
+          >
+            {loading ? '登录中...' : '登录'}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }

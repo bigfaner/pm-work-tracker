@@ -20,7 +20,7 @@ vi.mock('./client', () => ({
   },
 }))
 
-const mockClient = vi.mocked(client)
+const mockClient = vi.mocked(client, true)
 
 describe('API modules', () => {
   beforeEach(() => {

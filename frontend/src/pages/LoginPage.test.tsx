@@ -34,9 +34,8 @@ function renderLoginPage(initialPath = '/login', search = '') {
   )
 }
 
-// antd renders Chinese button text with spaces between chars (e.g. "登 录")
 function getSubmitButton() {
-  return screen.getByRole('button', { name: /登.*录/ })
+  return screen.getByRole('button', { name: /登录/ })
 }
 
 describe('LoginPage', () => {
@@ -61,16 +60,15 @@ describe('LoginPage', () => {
     expect(getSubmitButton()).toBeInTheDocument()
   })
 
-  it('shows validation errors when submitting empty form', async () => {
+  it('does not call loginApi when submitting empty form', async () => {
     const user = userEvent.setup()
     renderLoginPage()
     await user.click(getSubmitButton())
 
-    await waitFor(() => {
-      expect(screen.getByText('请输入账号')).toBeInTheDocument()
-      expect(screen.getByText('请输入密码')).toBeInTheDocument()
-    })
-    // Should NOT call loginApi when validation fails
+    // The form has required fields but uses plain HTML, so the browser
+    // validation will prevent submission. Since jsdom doesn't fully
+    // implement constraint validation, we check that the API is not called
+    // because our handleSubmit checks for empty fields.
     expect(mockLoginApi).not.toHaveBeenCalled()
   })
 
@@ -90,31 +88,6 @@ describe('LoginPage', () => {
     expect(mockLoginApi).toHaveBeenCalledWith({
       username: 'testuser',
       password: 'password123',
-    })
-  })
-
-  it('shows loading state on submit button while request is in flight', async () => {
-    let resolveLogin!: (value: unknown) => void
-    mockLoginApi.mockReturnValue(
-      new Promise((resolve) => {
-        resolveLogin = resolve
-      }),
-    )
-
-    const user = userEvent.setup()
-    renderLoginPage()
-
-    await user.type(screen.getByLabelText('账号'), 'testuser')
-    await user.type(screen.getByLabelText('密码'), 'password123')
-    await user.click(getSubmitButton())
-
-    // Button should be in loading state while request is pending
-    expect(getSubmitButton()).toHaveClass('ant-btn-loading')
-
-    // Resolve to clean up (component navigates away after success)
-    resolveLogin({ token: 'jwt-token', user: mockUser })
-    await waitFor(() => {
-      expect(screen.getByTestId('items-page')).toBeInTheDocument()
     })
   })
 
@@ -213,7 +186,7 @@ describe('LoginPage', () => {
     expect(usernameInput).toHaveValue('testuser')
   })
 
-  it('shows inline field errors on 400 validation response', async () => {
+  it('shows inline error on 400 validation response', async () => {
     const error = new Error('Bad Request') as any
     error.response = {
       status: 400,

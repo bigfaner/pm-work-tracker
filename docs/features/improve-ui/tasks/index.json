@@ -4,16 +4,13 @@
   "design": "design/tech-design.md",
   "created": "2026-04-19",
   "status": "planning",
-  "statusEnum": ["pending", "in_progress", "completed", "blocked", "skipped"],
-  "priorityEnum": ["P0", "P1", "P2"],
   "tasks": {
     "1.1-frontend-toolchain": {
       "id": "1.1",
       "title": "Frontend Toolchain Migration",
       "priority": "P0",
       "estimatedTime": "2-3h",
-      "dependencies": [],
-      "status": "pending",
+      "status": "completed",
       "file": "1.1-frontend-toolchain.md",
       "record": "records/1.1-frontend-toolchain.md"
     },
@@ -22,7 +19,6 @@
       "title": "Backend User Model Extension",
       "priority": "P0",
       "estimatedTime": "1-2h",
-      "dependencies": [],
       "status": "pending",
       "file": "1.2-backend-user-model.md",
       "record": "records/1.2-backend-user-model.md"
@@ -32,7 +28,9 @@
       "title": "shadcn/ui Base Components",
       "priority": "P0",
       "estimatedTime": "3-4h",
-      "dependencies": ["1.1"],
+      "dependencies": [
+        "1.1"
+      ],
       "status": "pending",
       "file": "2.1-shadcn-base-components.md",
       "record": "records/2.1-shadcn-base-components.md"
@@ -42,7 +40,9 @@
       "title": "Layout + Shared Business Components",
       "priority": "P0",
       "estimatedTime": "3-4h",
-      "dependencies": ["2.1"],
+      "dependencies": [
+        "2.1"
+      ],
       "status": "pending",
       "file": "2.2-layout-shared-components.md",
       "record": "records/2.2-layout-shared-components.md"
@@ -52,7 +52,9 @@
       "title": "Admin User CRUD Endpoints",
       "priority": "P0",
       "estimatedTime": "3-4h",
-      "dependencies": ["1.2"],
+      "dependencies": [
+        "1.2"
+      ],
       "status": "pending",
       "file": "3.1-admin-user-crud.md",
       "record": "records/3.1-admin-user-crud.md"
@@ -62,7 +64,10 @@
       "title": "Login Disabled User Check",
       "priority": "P1",
       "estimatedTime": "1-2h",
-      "dependencies": ["1.2", "3.1"],
+      "dependencies": [
+        "1.2",
+        "3.1"
+      ],
       "status": "pending",
       "file": "3.2-login-status-check.md",
       "record": "records/3.2-login-status-check.md"
@@ -72,7 +77,9 @@
       "title": "Weekly Comparison API Refactoring",
       "priority": "P0",
       "estimatedTime": "3-4h",
-      "dependencies": ["1.2"],
+      "dependencies": [
+        "1.2"
+      ],
       "status": "pending",
       "file": "3.3-weekly-comparison-api.md",
       "record": "records/3.3-weekly-comparison-api.md"
@@ -82,7 +89,9 @@
       "title": "Login + Weekly Report Pages",
       "priority": "P1",
       "estimatedTime": "2-3h",
-      "dependencies": ["2.2"],
+      "dependencies": [
+        "2.2"
+      ],
       "status": "pending",
       "file": "4.1-login-weekly-report-pages.md",
       "record": "records/4.1-login-weekly-report-pages.md"
@@ -92,7 +101,9 @@
       "title": "Main Item + Sub Item Detail Pages",
       "priority": "P1",
       "estimatedTime": "3-4h",
-      "dependencies": ["2.2"],
+      "dependencies": [
+        "2.2"
+      ],
       "status": "pending",
       "file": "4.2-detail-pages.md",
       "record": "records/4.2-detail-pages.md"
@@ -102,7 +113,9 @@
       "title": "Item Pool Page",
       "priority": "P1",
       "estimatedTime": "2-3h",
-      "dependencies": ["2.2"],
+      "dependencies": [
+        "2.2"
+      ],
       "status": "pending",
       "file": "4.3-item-pool-page.md",
       "record": "records/4.3-item-pool-page.md"
@@ -112,7 +125,9 @@
       "title": "Gantt View Page",
       "priority": "P1",
       "estimatedTime": "2-3h",
-      "dependencies": ["2.2"],
+      "dependencies": [
+        "2.2"
+      ],
       "status": "pending",
       "file": "4.4-gantt-view-page.md",
       "record": "records/4.4-gantt-view-page.md"
@@ -122,7 +137,9 @@
       "title": "Team Management Page",
       "priority": "P1",
       "estimatedTime": "2-3h",
-      "dependencies": ["2.2"],
+      "dependencies": [
+        "2.2"
+      ],
       "status": "pending",
       "file": "4.5-team-management-page.md",
       "record": "records/4.5-team-management-page.md"
@@ -132,7 +149,9 @@
       "title": "Item List Page (Summary/Detail View Switch)",
       "priority": "P0",
       "estimatedTime": "3-4h",
-      "dependencies": ["2.2"],
+      "dependencies": [
+        "2.2"
+      ],
       "status": "pending",
       "file": "5.1-item-list-page.md",
       "record": "records/5.1-item-list-page.md"
@@ -142,7 +161,9 @@
       "title": "Table View Page (Independent)",
       "priority": "P1",
       "estimatedTime": "2-3h",
-      "dependencies": ["2.2"],
+      "dependencies": [
+        "2.2"
+      ],
       "status": "pending",
       "file": "5.2-table-view-page.md",
       "record": "records/5.2-table-view-page.md"
@@ -152,7 +173,10 @@
       "title": "Weekly View Page (Comparison Layout)",
       "priority": "P0",
       "estimatedTime": "3-4h",
-      "dependencies": ["2.2", "3.3"],
+      "dependencies": [
+        "2.2",
+        "3.3"
+      ],
       "status": "pending",
       "file": "5.3-weekly-view-page.md",
       "record": "records/5.3-weekly-view-page.md"
@@ -162,7 +186,10 @@
       "title": "User Management Page (Independent Route)",
       "priority": "P0",
       "estimatedTime": "3-4h",
-      "dependencies": ["2.2", "3.1"],
+      "dependencies": [
+        "2.2",
+        "3.1"
+      ],
       "status": "pending",
       "file": "5.4-user-management-page.md",
       "record": "records/5.4-user-management-page.md"
@@ -172,7 +199,9 @@
       "title": "Team Detail Page (Independent Route)",
       "priority": "P0",
       "estimatedTime": "3-4h",
-      "dependencies": ["2.2"],
+      "dependencies": [
+        "2.2"
+      ],
       "status": "pending",
       "file": "5.5-team-detail-page.md",
       "record": "records/5.5-team-detail-page.md"
@@ -182,10 +211,30 @@
       "title": "Backend + Frontend Test Updates",
       "priority": "P1",
       "estimatedTime": "4h",
-      "dependencies": ["3.1", "3.2", "3.3", "5.1", "5.3", "5.4", "5.5"],
+      "dependencies": [
+        "3.1",
+        "3.2",
+        "3.3",
+        "5.1",
+        "5.3",
+        "5.4",
+        "5.5"
+      ],
       "status": "pending",
       "file": "6.1-tests.md",
       "record": "records/6.1-tests.md"
     }
-  }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
 }

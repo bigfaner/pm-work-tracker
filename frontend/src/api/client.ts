@@ -1,6 +1,10 @@
 import axios from 'axios'
-import { message } from 'antd'
 import { useAuthStore } from '@/store/auth'
+
+// TODO: Replace with proper toast system in later task
+const message = {
+  error: (msg: string) => console.error('[API Error]', msg),
+}
 
 const client = axios.create({
   baseURL: '/api/v1',
