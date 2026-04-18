@@ -610,8 +610,380 @@ func TestWeeklyView_SubItemNoProgressEver_NoChange(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Tests: GanttView
+// Tests: WeeklyComparison
 // ---------------------------------------------------------------------------
+
+func TestWeeklyComparison_RejectsNonMonday(t *testing.T) {
+	svc := NewViewService(&mockViewMainItemRepo{}, &mockViewSubItemRepo{}, &mockViewProgressRepo{})
+
+	tuesday := time.Date(2026, 4, 14, 0, 0, 0, 0, time.UTC)
+	_, err := svc.WeeklyComparison(context.Background(), 1, tuesday)
+	assert.ErrorIs(t, err, apperrors.ErrValidation)
+}
+
+func TestWeeklyComparison_RejectsFutureWeek(t *testing.T) {
+	svc := NewViewService(&mockViewMainItemRepo{}, &mockViewSubItemRepo{}, &mockViewProgressRepo{})
+
+	// A future Monday
+	futureMonday := time.Date(2099, 1, 5, 0, 0, 0, 0, time.UTC)
+	_, err := svc.WeeklyComparison(context.Background(), 1, futureMonday)
+	assert.ErrorIs(t, err, apperrors.ErrFutureWeekNotAllowed)
+}
+
+func TestWeeklyComparison_AcceptsMonday(t *testing.T) {
+	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+
+	monday := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	result, err := svc.WeeklyComparison(context.Background(), 1, monday)
+	require.NoError(t, err)
+	assert.Equal(t, "2026-04-13", result.WeekStart)
+	assert.Equal(t, "2026-04-19", result.WeekEnd)
+}
+
+func TestWeeklyComparison_EmptyTeam_NoGroups(t *testing.T) {
+	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+
+	monday := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	result, err := svc.WeeklyComparison(context.Background(), 1, monday)
+	require.NoError(t, err)
+	assert.Empty(t, result.Groups)
+	assert.Equal(t, dto.WeeklyStats{}, result.Stats)
+}
+
+func TestWeeklyComparison_StatsCounts(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	completedDate := time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "In Progress", Status: "进行中", Completion: 60},
+			{Model: gorm.Model{ID: 11}, TeamID: 1, MainItemID: 1, Title: "Blocked", Status: "阻塞中", Completion: 30},
+			{Model: gorm.Model{ID: 12}, TeamID: 1, MainItemID: 1, Title: "Completed", Status: "已完成", Completion: 100, ActualEndDate: &completedDate},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 60, CreatedAt: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
+			{ID: 101, SubItemID: 12, TeamID: 1, Completion: 100, CreatedAt: time.Date(2026, 4, 15, 10, 0, 0, 0, time.UTC)},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Equal(t, 3, result.Stats.ActiveSubItems) // 2 non-completed + 1 just-completed
+	assert.Equal(t, 1, result.Stats.NewlyCompleted)  // sub 12
+	assert.Equal(t, 1, result.Stats.InProgress)      // sub 10
+	assert.Equal(t, 1, result.Stats.Blocked)         // sub 11
+}
+
+func TestWeeklyComparison_DeltaComputation(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	lastWeekStart := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 70},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			// Last week: completion was 40
+			{ID: 90, SubItemID: 10, TeamID: 1, Completion: 40, CreatedAt: lastWeekStart.AddDate(0, 0, 2)},
+			// This week: completion is 70
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 70, CreatedAt: weekStart.AddDate(0, 0, 1)},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	require.Len(t, result.Groups, 1)
+	group := result.Groups[0]
+
+	// Should have lastWeek snapshot
+	require.Len(t, group.LastWeek, 1)
+	assert.Equal(t, 40.0, group.LastWeek[0].Completion)
+
+	// Should have thisWeek snapshot with delta
+	require.Len(t, group.ThisWeek, 1)
+	assert.Equal(t, 70.0, group.ThisWeek[0].Completion)
+	assert.Equal(t, 30.0, group.ThisWeek[0].Delta) // 70 - 40
+	assert.False(t, group.ThisWeek[0].IsNew)
+	assert.False(t, group.ThisWeek[0].JustCompleted)
+}
+
+func TestWeeklyComparison_IsNew(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "New Sub", Status: "待开始", Completion: 0},
+		},
+	}
+	// Only this week progress, no last week progress
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 0, CreatedAt: weekStart.AddDate(0, 0, 1)},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	require.Len(t, result.Groups, 1)
+	group := result.Groups[0]
+
+	require.Len(t, group.ThisWeek, 1)
+	assert.True(t, group.ThisWeek[0].IsNew)
+	assert.Empty(t, group.LastWeek)
+}
+
+func TestWeeklyComparison_JustCompleted(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	completedDate := time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 100},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{
+				Model:         gorm.Model{ID: 10},
+				TeamID:        1,
+				MainItemID:    1,
+				Title:         "Just Done",
+				Status:        "已完成",
+				Completion:    100,
+				ActualEndDate: &completedDate,
+			},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 100, CreatedAt: completedDate},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	require.Len(t, result.Groups, 1)
+	group := result.Groups[0]
+
+	require.Len(t, group.ThisWeek, 1)
+	assert.True(t, group.ThisWeek[0].JustCompleted)
+}
+
+func TestWeeklyComparison_CompletedNoChange(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	// Completed before this week
+	oldEndDate := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 100},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{
+				Model:         gorm.Model{ID: 10},
+				TeamID:        1,
+				MainItemID:    1,
+				Title:         "Old Completed",
+				Status:        "已完成",
+				Completion:    100,
+				ActualEndDate: &oldEndDate,
+			},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	require.Len(t, result.Groups, 1)
+	group := result.Groups[0]
+
+	assert.Empty(t, group.ThisWeek)
+	require.Len(t, group.CompletedNoChange, 1)
+	assert.Equal(t, uint(10), group.CompletedNoChange[0].ID)
+}
+
+func TestWeeklyComparison_GroupsSortedByPriority(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "P3 Item", Priority: "P3", Completion: 10},
+			{Model: gorm.Model{ID: 2}, TeamID: 1, Title: "P1 Item", Priority: "P1", Completion: 50},
+			{Model: gorm.Model{ID: 3}, TeamID: 1, Title: "P2 Item", Priority: "P2", Completion: 30},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub 1", Status: "进行中", Completion: 10},
+			{Model: gorm.Model{ID: 20}, TeamID: 1, MainItemID: 2, Title: "Sub 2", Status: "进行中", Completion: 50},
+			{Model: gorm.Model{ID: 30}, TeamID: 1, MainItemID: 3, Title: "Sub 3", Status: "进行中", Completion: 30},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	require.Len(t, result.Groups, 3)
+	assert.Equal(t, "P1 Item", result.Groups[0].MainItem.Title)
+	assert.Equal(t, "P2 Item", result.Groups[1].MainItem.Title)
+	assert.Equal(t, "P3 Item", result.Groups[2].MainItem.Title)
+}
+
+func TestWeeklyComparison_MainItemSummary(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{
+				Model:           gorm.Model{ID: 1},
+				TeamID:          1,
+				Title:           "Main 1",
+				Priority:        "P1",
+				StartDate:       &startDate,
+				ExpectedEndDate: &endDate,
+				Completion:      58,
+			},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 60},
+			{Model: gorm.Model{ID: 11}, TeamID: 1, MainItemID: 1, Title: "Sub B", Status: "待开始", Completion: 0},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	require.Len(t, result.Groups, 1)
+	mi := result.Groups[0].MainItem
+	assert.Equal(t, uint(1), mi.ID)
+	assert.Equal(t, "Main 1", mi.Title)
+	assert.Equal(t, "P1", mi.Priority)
+	assert.Equal(t, "2026-04-01", mi.StartDate)
+	assert.Equal(t, "2026-04-30", mi.ExpectedEndDate)
+	assert.Equal(t, 58.0, mi.Completion)
+	assert.Equal(t, 2, mi.SubItemCount)
+}
+
+func TestWeeklyComparison_MainItemWithNoSubItems_Omitted(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Empty Main", Completion: 0},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
+	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+	assert.Empty(t, result.Groups)
+}
+
+func TestWeeklyComparison_ProgressDescriptionFromLatestRecord(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 60},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{
+				ID:         100,
+				SubItemID:  10,
+				TeamID:     1,
+				Completion: 60,
+				Achievement: "Token sign done",
+				Blocker:     "Blacklist WIP",
+				CreatedAt:   weekStart.AddDate(0, 0, 1),
+			},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	require.Len(t, result.Groups, 1)
+	require.Len(t, result.Groups[0].ThisWeek, 1)
+	assert.Equal(t, "Token sign done; Blacklist WIP", result.Groups[0].ThisWeek[0].ProgressDescription)
+}
+
+func TestWeeklyComparison_RepoErrors(t *testing.T) {
+	monday := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	// MainItemRepo error
+	svc := NewViewService(&mockViewMainItemRepo{listErr: errors.New("db error")}, &mockViewSubItemRepo{}, &mockViewProgressRepo{})
+	_, err := svc.WeeklyComparison(context.Background(), 1, monday)
+	assert.Error(t, err)
+
+	// SubItemRepo error
+	svc = NewViewService(
+		&mockViewMainItemRepo{items: []model.MainItem{{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1"}}},
+		&mockViewSubItemRepo{listErr: errors.New("db error")},
+		&mockViewProgressRepo{},
+	)
+	_, err = svc.WeeklyComparison(context.Background(), 1, monday)
+	assert.Error(t, err)
+
+	// ProgressRepo error
+	svc = NewViewService(
+		&mockViewMainItemRepo{items: []model.MainItem{{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1"}}},
+		&mockViewSubItemRepo{items: []model.SubItem{{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A"}}},
+		&mockViewProgressRepo{listErr: errors.New("db error")},
+	)
+	_, err = svc.WeeklyComparison(context.Background(), 1, monday)
+	assert.Error(t, err)
+}
 
 func ptrTime(t time.Time) *time.Time { return &t }
 

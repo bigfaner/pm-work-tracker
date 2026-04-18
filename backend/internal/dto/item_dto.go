@@ -101,7 +101,58 @@ type PageResult[T any] struct {
 
 // Weekly view DTOs.
 
+// WeeklyViewResponse is the response DTO for the weekly comparison view.
+type WeeklyViewResponse struct {
+	WeekStart string                 `json:"weekStart"`
+	WeekEnd   string                 `json:"weekEnd"`
+	Stats     WeeklyStats            `json:"stats"`
+	Groups    []WeeklyComparisonGroup `json:"groups"`
+}
+
+// WeeklyStats holds summary statistics for the weekly view.
+type WeeklyStats struct {
+	ActiveSubItems int `json:"activeSubItems"`
+	NewlyCompleted int `json:"newlyCompleted"`
+	InProgress     int `json:"inProgress"`
+	Blocked        int `json:"blocked"`
+}
+
+// WeeklyComparisonGroup groups sub-items under a main item with week comparison.
+type WeeklyComparisonGroup struct {
+	MainItem          WeeklyMainItemSummary `json:"mainItem"`
+	LastWeek          []SubItemSnapshot     `json:"lastWeek"`
+	ThisWeek          []SubItemSnapshot     `json:"thisWeek"`
+	CompletedNoChange []SubItemSnapshot     `json:"completedNoChange"`
+}
+
+// WeeklyMainItemSummary is a summary of a main item for the weekly comparison view.
+type WeeklyMainItemSummary struct {
+	ID              uint    `json:"id"`
+	Title           string  `json:"title"`
+	Priority        string  `json:"priority"`
+	StartDate       string  `json:"startDate"`
+	ExpectedEndDate string  `json:"expectedEndDate"`
+	Completion      float64 `json:"completion"`
+	SubItemCount    int     `json:"subItemCount"`
+}
+
+// SubItemSnapshot represents a sub-item snapshot in the weekly comparison view.
+type SubItemSnapshot struct {
+	ID                  uint    `json:"id"`
+	Title               string  `json:"title"`
+	Priority            string  `json:"priority"`
+	Status              string  `json:"status"`
+	AssigneeName        string  `json:"assigneeName"`
+	ExpectedEndDate     string  `json:"expectedEndDate"`
+	Completion          float64 `json:"completion"`
+	ProgressDescription string  `json:"progressDescription"`
+	Delta               float64 `json:"delta"`
+	IsNew               bool    `json:"isNew"`
+	JustCompleted       bool    `json:"justCompleted"`
+}
+
 // WeeklyViewResult is the response DTO for the weekly view.
+// Deprecated: Use WeeklyViewResponse for the new comparison format.
 type WeeklyViewResult struct {
 	WeekStart string           `json:"weekStart"`
 	WeekEnd   string           `json:"weekEnd"`

@@ -26,6 +26,10 @@ type mockViewService struct {
 		result *dto.WeeklyViewResult
 		err    error
 	}
+	comparisonResult struct {
+		result *dto.WeeklyViewResponse
+		err    error
+	}
 	ganttResult struct {
 		result *dto.GanttResult
 		err    error
@@ -44,6 +48,8 @@ type mockViewService struct {
 	lastTeamID    uint
 	lastWeekStart time.Time
 
+	comparisonCalled bool
+
 	ganttCalled bool
 	lastFilter  dto.GanttFilter
 
@@ -60,6 +66,13 @@ func (m *mockViewService) WeeklyView(_ context.Context, teamID uint, weekStart t
 	m.lastTeamID = teamID
 	m.lastWeekStart = weekStart
 	return m.weeklyResult.result, m.weeklyResult.err
+}
+
+func (m *mockViewService) WeeklyComparison(_ context.Context, teamID uint, weekStart time.Time) (*dto.WeeklyViewResponse, error) {
+	m.comparisonCalled = true
+	m.lastTeamID = teamID
+	m.lastWeekStart = weekStart
+	return m.comparisonResult.result, m.comparisonResult.err
 }
 
 func (m *mockViewService) GanttView(_ context.Context, teamID uint, filter dto.GanttFilter) (*dto.GanttResult, error) {
@@ -108,10 +121,11 @@ func monday() string {
 
 func TestWeeklyView_Success(t *testing.T) {
 	svc := &mockViewService{}
-	svc.weeklyResult.result = &dto.WeeklyViewResult{
+	svc.comparisonResult.result = &dto.WeeklyViewResponse{
 		WeekStart: "2026-04-13",
 		WeekEnd:   "2026-04-19",
-		Groups:    []dto.WeeklyGroupDTO{},
+		Stats:     dto.WeeklyStats{},
+		Groups:    []dto.WeeklyComparisonGroup{},
 	}
 
 	deps := depsWithViewSvc(t, svc)
@@ -135,7 +149,7 @@ func TestWeeklyView_Success(t *testing.T) {
 	assert.Equal(t, "2026-04-13", data["weekStart"])
 	assert.Equal(t, "2026-04-19", data["weekEnd"])
 
-	assert.True(t, svc.weeklyCalled)
+	assert.True(t, svc.comparisonCalled)
 	assert.Equal(t, uint(10), svc.lastTeamID)
 }
 
@@ -192,7 +206,7 @@ func TestWeeklyView_NotAMonday(t *testing.T) {
 
 func TestWeeklyView_ServiceError(t *testing.T) {
 	svc := &mockViewService{}
-	svc.weeklyResult.err = errors.New("db error")
+	svc.comparisonResult.err = errors.New("db error")
 
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
@@ -204,6 +218,27 @@ func TestWeeklyView_ServiceError(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestWeeklyView_FutureWeekNotAllowed(t *testing.T) {
+	svc := &mockViewService{}
+	deps := depsWithViewSvc(t, svc)
+	r := SetupRouter(deps)
+
+	token := signTestToken(t, 5, "member")
+	// Use a future Monday: 2099-01-05
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/weekly?weekStart=2099-01-05", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "FUTURE_WEEK_NOT_ALLOWED", resp["code"])
+	assert.False(t, svc.comparisonCalled)
 }
 
 // ---------------------------------------------------------------------------
