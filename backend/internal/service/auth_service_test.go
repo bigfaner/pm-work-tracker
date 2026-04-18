@@ -51,6 +51,11 @@ func (m *mockUserRepo) Update(ctx context.Context, user *model.User) error {
 	return args.Error(0)
 }
 
+func (m *mockUserRepo) Create(ctx context.Context, user *model.User) error {
+	args := m.Called(ctx, user)
+	return args.Error(0)
+}
+
 // Pre-computed bcrypt hash for "password123" at cost 12.
 // Generated once with bcrypt.GenerateFromPassword; avoids bcrypt calls in unit tests.
 const prehashedPassword123 = "$2a$12$PFlK4EXT4SpV6eUDJsR99.kCTqzF47MXGJJuhiG9CszXkURn9JR92"

@@ -113,6 +113,10 @@ func (m *mockTeamRepo) ListAllTeams(_ context.Context) ([]*dto.AdminTeamDTO, err
 	return nil, nil
 }
 
+func (m *mockTeamRepo) FindTeamsByUserIDs(_ context.Context, _ []uint) (map[uint][]dto.TeamSummary, error) {
+	return map[uint][]dto.TeamSummary{}, nil
+}
+
 // mockTeamUserRepo is a separate mock for UserRepo used in team_service tests.
 type mockTeamUserRepo struct {
 	user *model.User
@@ -132,6 +136,10 @@ func (m *mockTeamUserRepo) List(_ context.Context) ([]*model.User, error) {
 }
 
 func (m *mockTeamUserRepo) Update(_ context.Context, _ *model.User) error {
+	return nil
+}
+
+func (m *mockTeamUserRepo) Create(_ context.Context, _ *model.User) error {
 	return nil
 }
 

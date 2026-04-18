@@ -91,6 +91,14 @@ func (m *mockTeamRepo) ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, e
 	return args.Get(0).([]*dto.AdminTeamDTO), args.Error(1)
 }
 
+func (m *mockTeamRepo) FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[uint][]dto.TeamSummary, error) {
+	args := m.Called(ctx, userIDs)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(map[uint][]dto.TeamSummary), args.Error(1)
+}
+
 // compile-time check that mockTeamRepo satisfies TeamRepo
 var _ repository.TeamRepo = (*mockTeamRepo)(nil)
 

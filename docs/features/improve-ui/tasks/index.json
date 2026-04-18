@@ -55,7 +55,7 @@
       "dependencies": [
         "1.2"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.1-admin-user-crud.md",
       "record": "records/3.1-admin-user-crud.md"
     },

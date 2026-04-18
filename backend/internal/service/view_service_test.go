@@ -1034,6 +1034,10 @@ func (m *mockViewUserRepo) Update(_ context.Context, _ *model.User) error {
 	return nil
 }
 
+func (m *mockViewUserRepo) Create(_ context.Context, _ *model.User) error {
+	return nil
+}
+
 // newViewServiceWithUsers creates a ViewService with a user repo for table view tests.
 func newViewServiceWithUsers(mainRepo *mockViewMainItemRepo, subRepo *mockViewSubItemRepo, userRepo *mockViewUserRepo) ViewService {
 	return &viewService{

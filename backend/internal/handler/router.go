@@ -134,6 +134,10 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 	)
 	{
 		adminGroup.GET("/users", deps.Admin.ListUsers)
+		adminGroup.POST("/users", deps.Admin.CreateUser)
+		adminGroup.GET("/users/:userId", deps.Admin.GetUser)
+		adminGroup.PUT("/users/:userId", deps.Admin.UpdateUser)
+		adminGroup.PUT("/users/:userId/status", deps.Admin.ToggleUserStatus)
 		adminGroup.PUT("/users/:userId/can-create-team", deps.Admin.UpdateCanCreateTeam)
 		adminGroup.GET("/teams", deps.Admin.ListTeams)
 	}

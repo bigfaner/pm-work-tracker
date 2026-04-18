@@ -186,6 +186,10 @@ func (m *mockUserRepoForHandler) Update(_ context.Context, _ *model.User) error 
 	return nil
 }
 
+func (m *mockUserRepoForHandler) Create(_ context.Context, _ *model.User) error {
+	return nil
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------

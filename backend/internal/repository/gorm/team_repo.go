@@ -128,3 +128,37 @@ func isDuplicateKeyError(err error) bool {
 	msg := err.Error()
 	return strings.Contains(msg, "UNIQUE constraint failed") || strings.Contains(msg, "Duplicate entry")
 }
+
+func (r *teamRepo) FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[uint][]dto.TeamSummary, error) {
+	if len(userIDs) == 0 {
+		return map[uint][]dto.TeamSummary{}, nil
+	}
+
+	type row struct {
+		UserID  uint
+		TeamID  uint
+		Name    string
+		Role    string
+	}
+
+	var rows []row
+	err := r.db.WithContext(ctx).
+		Table("team_members").
+		Select("team_members.user_id, team_members.team_id, teams.name, team_members.role").
+		Joins("JOIN teams ON teams.id = team_members.team_id").
+		Where("team_members.user_id IN ?", userIDs).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[uint][]dto.TeamSummary)
+	for _, r := range rows {
+		result[r.UserID] = append(result[r.UserID], dto.TeamSummary{
+			ID:   r.TeamID,
+			Name: r.Name,
+			Role: r.Role,
+		})
+	}
+	return result, nil
+}
