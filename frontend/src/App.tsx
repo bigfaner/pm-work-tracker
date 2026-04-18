@@ -11,7 +11,6 @@ import GanttViewPage from '@/pages/GanttViewPage'
 import TableViewPage from '@/pages/TableViewPage'
 import ItemPoolPage from '@/pages/ItemPoolPage'
 import ReportPage from '@/pages/ReportPage'
-import AdminPage from '@/pages/AdminPage'
 import TeamManagementPage from '@/pages/TeamManagementPage'
 import TeamDetailPage from '@/pages/TeamDetailPage'
 import UserManagementPage from '@/pages/UserManagementPage'
@@ -32,7 +31,7 @@ export default function App() {
           <Route path="/item-pool" element={<ItemPoolPage />} />
           <Route path="/report" element={<ReportPage />} />
           <Route path="/teams/:teamId" element={<TeamDetailPage />} />
-          <Route path="/teams" element={<AdminPage />} />
+          <Route path="/teams" element={<TeamManagementPage />} />
         </Route>
       </Route>
       <Route element={<AdminRoute />}>
