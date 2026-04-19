@@ -45,3 +45,7 @@ export function removeMemberApi(teamId: number, userId: number): Promise<void> {
 export function transferPmApi(teamId: number, req: TransferPMReq): Promise<void> {
   return client.put<never, void>(`/teams/${teamId}/pm`, req)
 }
+
+export function changeMemberRoleApi(teamId: number, memberId: number, req: { roleId: number }): Promise<void> {
+  return client.put<never, void>(`/teams/${teamId}/members/${memberId}/role`, req)
+}

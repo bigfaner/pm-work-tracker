@@ -80,8 +80,8 @@ describe('API modules', () => {
 
     it('inviteMemberApi should POST to /teams/:id/members', async () => {
       mockClient.post.mockResolvedValue(undefined)
-      await teamsApi.inviteMemberApi(5, { username: 'u', role: 'member' })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/5/members', { username: 'u', role: 'member' })
+      await teamsApi.inviteMemberApi(5, { username: 'u', roleId: 3 })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams/5/members', { username: 'u', roleId: 3 })
     })
 
     it('removeMemberApi should DELETE /teams/:teamId/members/:userId', async () => {

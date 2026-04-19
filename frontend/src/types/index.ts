@@ -207,7 +207,7 @@ export interface DeleteTeamReq {
 
 export interface InviteMemberReq {
   username: string
-  role: string
+  roleId: number
 }
 
 export interface TransferPMReq {
@@ -230,6 +230,8 @@ export interface TeamMemberResp {
   teamId: number
   userId: number
   role: string
+  roleId: number
+  roleName: string
   joinedAt: string
   displayName: string
   username: string

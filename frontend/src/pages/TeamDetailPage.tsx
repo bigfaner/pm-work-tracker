@@ -8,7 +8,9 @@ import {
   removeMemberApi,
   deleteTeamApi,
   inviteMemberApi,
+  changeMemberRoleApi,
 } from '@/api/teams'
+import { listRolesApi } from '@/api/roles'
 import type { TeamMemberResp } from '@/types'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 import { PermissionGuard } from '@/components/PermissionGuard'
@@ -41,6 +43,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import UserAvatar from '@/components/shared/UserAvatar'
 import { useToast } from '@/components/ui/toast'
+import { useAuthStore } from '@/store/auth'
 
 // --- Helpers ---
 
@@ -71,7 +74,24 @@ export default function TeamDetailPage() {
     enabled: !!numericTeamId,
   })
 
+  // Roles list (exclude superadmin)
+  const { data: rolesData } = useQuery({
+    queryKey: ['roles'],
+    queryFn: () => listRolesApi({ pageSize: 100 }),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const roles = useMemo(() => {
+    if (!rolesData?.items) return []
+    return rolesData.items.filter((r) => r.name !== 'superadmin')
+  }, [rolesData])
+
+  const defaultRoleId = roles.find((r) => r.name === 'member')?.id ?? roles[0]?.id
+
   const isLoading = teamLoading || membersLoading
+
+  // Current user info for PM self-check
+  const currentUser = useAuthStore((s) => s.user)
 
   // --- Filter state ---
 
@@ -96,9 +116,12 @@ export default function TeamDetailPage() {
   const [removeTarget, setRemoveTarget] = useState<TeamMemberResp | null>(null)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteUsername, setInviteUsername] = useState('')
-  const [inviteRole, setInviteRole] = useState('member')
+  const [inviteRoleId, setInviteRoleId] = useState<number | undefined>(undefined)
   const [disbandOpen, setDisbandOpen] = useState(false)
   const [disbandInput, setDisbandInput] = useState('')
+
+  // Inline role editing state
+  const [editingMemberId, setEditingMemberId] = useState<number | null>(null)
 
   // --- Mutations ---
 
@@ -123,13 +146,13 @@ export default function TeamDetailPage() {
   })
 
   const inviteMutation = useMutation({
-    mutationFn: () => inviteMemberApi(numericTeamId, { username: inviteUsername, role: inviteRole }),
+    mutationFn: () => inviteMemberApi(numericTeamId, { username: inviteUsername, roleId: inviteRoleId! }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['team', numericTeamId] })
       qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
       setInviteOpen(false)
       setInviteUsername('')
-      setInviteRole('member')
+      setInviteRoleId(undefined)
       addToast('成员已添加', 'success')
     },
     onError: (err: any) => {
@@ -139,6 +162,20 @@ export default function TeamDetailPage() {
       } else {
         addToast('添加失败，请稍后重试', 'error')
       }
+    },
+  })
+
+  const changeRoleMutation = useMutation({
+    mutationFn: ({ memberId, roleId }: { memberId: number; roleId: number }) =>
+      changeMemberRoleApi(numericTeamId, memberId, { roleId }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
+      setEditingMemberId(null)
+      addToast('角色已更新', 'success')
+    },
+    onError: () => {
+      setEditingMemberId(null)
+      addToast('角色变更失败，请稍后重试', 'error')
     },
   })
 
@@ -178,11 +215,8 @@ export default function TeamDetailPage() {
     )
   }
 
-  // Find non-members from available users (for invite dialog)
-  // We'll use a simple approach: show users not in current member list
-  // The actual available users would come from a search API, but for simplicity
-  // we allow typing a username
-  const memberUsernames = new Set(members.map((m) => m.username))
+  const isPm = (member: TeamMemberResp) => member.role === 'pm'
+  const isSelf = (member: TeamMemberResp) => member.userId === currentUser?.id
 
   return (
     <div data-testid="team-detail-page">
@@ -231,7 +265,7 @@ export default function TeamDetailPage() {
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[15px] font-semibold text-primary">成员列表</h3>
         <PermissionGuard code="team:invite">
-          <Button size="sm" onClick={() => setInviteOpen(true)}>添加成员</Button>
+          <Button size="sm" onClick={() => { setInviteOpen(true); setInviteRoleId(defaultRoleId) }}>添加成员</Button>
         </PermissionGuard>
       </div>
 
@@ -276,17 +310,58 @@ export default function TeamDetailPage() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  {member.role === 'pm' ? (
-                    <Badge variant="primary">PM</Badge>
+                  {editingMemberId === member.userId ? (
+                    <Select
+                      value={String(member.roleId)}
+                      onValueChange={(val) => {
+                        const newRoleId = Number(val)
+                        if (newRoleId !== member.roleId) {
+                          changeRoleMutation.mutate({ memberId: member.userId, roleId: newRoleId })
+                        } else {
+                          setEditingMemberId(null)
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-[120px]" data-testid="inline-role-select">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roles.map((role) => (
+                          <SelectItem key={role.id} value={String(role.id)}>
+                            {role.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   ) : (
-                    <Badge variant="default">成员</Badge>
+                    <div className="flex items-center gap-2">
+                      {isPm(member) ? (
+                        <Badge variant="primary">PM</Badge>
+                      ) : (
+                        <Badge variant="default">{member.roleName || '成员'}</Badge>
+                      )}
+                      <PermissionGuard code="team:invite">
+                        {!isPm(member) && !isSelf(member) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary-600"
+                            onClick={() => setEditingMemberId(member.userId)}
+                            disabled={changeRoleMutation.isPending}
+                            data-testid="change-role-btn"
+                          >
+                            变更
+                          </Button>
+                        )}
+                      </PermissionGuard>
+                    </div>
                   )}
                 </TableCell>
                 <TableCell>
                   <span className="text-sm text-primary">{formatDate(member.joinedAt)}</span>
                 </TableCell>
                 <TableCell>
-                  {member.role === 'pm' ? (
+                  {isPm(member) ? (
                     <span className="text-tertiary">&mdash;</span>
                   ) : (
                     <div className="flex gap-1">
@@ -379,7 +454,7 @@ export default function TeamDetailPage() {
       </Dialog>
 
       {/* Invite Member Dialog */}
-      <Dialog open={inviteOpen} onOpenChange={(open) => { setInviteOpen(open); if (!open) { setInviteUsername(''); setInviteRole('member') } }}>
+      <Dialog open={inviteOpen} onOpenChange={(open) => { setInviteOpen(open); if (!open) { setInviteUsername(''); setInviteRoleId(undefined) } }}>
         <DialogContent size="md">
           <DialogHeader>
             <DialogTitle>添加成员</DialogTitle>
@@ -400,13 +475,19 @@ export default function TeamDetailPage() {
                 <label className="block text-sm font-medium text-primary mb-1">
                   角色 <span className="text-error">*</span>
                 </label>
-                <Select value={inviteRole} onValueChange={setInviteRole}>
-                  <SelectTrigger>
-                    <SelectValue />
+                <Select
+                  value={inviteRoleId != null ? String(inviteRoleId) : ''}
+                  onValueChange={(v) => setInviteRoleId(Number(v))}
+                >
+                  <SelectTrigger data-testid="invite-role-select">
+                    <SelectValue placeholder="选择角色" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pm">PM</SelectItem>
-                    <SelectItem value="member">成员</SelectItem>
+                    {roles.map((role) => (
+                      <SelectItem key={role.id} value={String(role.id)}>
+                        {role.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -416,7 +497,8 @@ export default function TeamDetailPage() {
             <Button variant="secondary" onClick={() => setInviteOpen(false)}>取消</Button>
             <Button
               onClick={() => inviteMutation.mutate()}
-              disabled={!inviteUsername.trim() || inviteMutation.isPending}
+              disabled={!inviteUsername.trim() || inviteRoleId == null || inviteMutation.isPending}
+              data-testid="invite-submit-btn"
             >
               确认添加
             </Button>
