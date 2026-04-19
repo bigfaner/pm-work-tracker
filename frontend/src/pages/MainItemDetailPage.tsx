@@ -282,7 +282,7 @@ export default function MainItemDetailPage() {
                 <ProgressBar value={completion} size="default" showPercentage className="mb-5" />
                 <div className="grid grid-cols-2 gap-5">
                   <div>
-                    <div className="text-[13px] font-medium mb-2 text-emerald-600">成果汇总</div>
+                    <div className="text-[13px] font-medium mb-2 text-success-text">成果汇总</div>
                     <ul className="text-[13px] text-secondary pl-4 list-disc leading-relaxed">
                       {(item as any).achievements?.map((a: string, i: number) => (
                         <li key={i}>{a}</li>
@@ -290,7 +290,7 @@ export default function MainItemDetailPage() {
                     </ul>
                   </div>
                   <div>
-                    <div className="text-[13px] font-medium mb-2 text-red-600">卡点汇总</div>
+                    <div className="text-[13px] font-medium mb-2 text-error-text">卡点汇总</div>
                     <ul className="text-[13px] text-secondary pl-4 list-disc leading-relaxed">
                       {(item as any).blockers?.map((b: string, i: number) => (
                         <li key={i}>{b}</li>

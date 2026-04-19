@@ -1008,7 +1008,7 @@ function DetailView({
                     </TableCell>
                   </TableRow>
                   {subs?.map((sub) => (
-                    <TableRow key={`sub-${sub.id}`} className="bg-slate-50/60">
+                    <TableRow key={`sub-${sub.id}`} className="bg-bg-alt/60">
                       <TableCell>
                         <span className="font-mono text-[11px] text-tertiary ml-4">SI-{String(item.id).padStart(3, '0')}-{String(sub.id).slice(-2)}</span>
                       </TableCell>

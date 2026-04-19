@@ -273,7 +273,7 @@ describe('WeeklyViewPage', () => {
     renderPage()
     await waitFor(() => {
       const stat2 = screen.getByTestId('stat-newly-completed')
-      expect(stat2).toHaveClass('text-emerald-600')
+      expect(stat2).toHaveClass('text-success-text')
     })
   })
 
@@ -289,7 +289,7 @@ describe('WeeklyViewPage', () => {
     renderPage()
     await waitFor(() => {
       const stat4 = screen.getByTestId('stat-blocked')
-      expect(stat4).toHaveClass('text-red-600')
+      expect(stat4).toHaveClass('text-error')
     })
   })
 
@@ -449,7 +449,7 @@ describe('WeeklyViewPage', () => {
       expect(deltaBadges.length).toBeGreaterThanOrEqual(1)
       // Verify green styling
       const badge = deltaBadges[0]
-      expect(badge).toHaveClass('text-emerald-700')
+      expect(badge).toHaveClass('text-success-text')
     })
   })
 
@@ -467,7 +467,7 @@ describe('WeeklyViewPage', () => {
       const newBadges = screen.getAllByText('NEW')
       expect(newBadges.length).toBeGreaterThanOrEqual(1)
       const badge = newBadges[0]
-      expect(badge).toHaveClass('text-amber-700')
+      expect(badge).toHaveClass('text-warning-text')
     })
   })
 

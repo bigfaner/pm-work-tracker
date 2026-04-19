@@ -7,21 +7,21 @@ describe('PriorityBadge', () => {
     render(<PriorityBadge priority="P1" />)
     const badge = screen.getByText('P1')
     expect(badge).toBeInTheDocument()
-    expect(badge.className).toContain('text-red')
+    expect(badge.className).toContain('text-error-text')
   })
 
-  it('renders P2 with medium priority variant (amber)', () => {
+  it('renders P2 with medium priority variant (warning)', () => {
     render(<PriorityBadge priority="P2" />)
     const badge = screen.getByText('P2')
     expect(badge).toBeInTheDocument()
-    expect(badge.className).toContain('text-amber')
+    expect(badge.className).toContain('text-warning-text')
   })
 
-  it('renders P3 with low priority variant (gray/slate)', () => {
+  it('renders P3 with low priority variant (secondary)', () => {
     render(<PriorityBadge priority="P3" />)
     const badge = screen.getByText('P3')
     expect(badge).toBeInTheDocument()
-    expect(badge.className).toContain('text-slate')
+    expect(badge.className).toContain('text-secondary')
   })
 
   it('renders unknown priority with default variant', () => {

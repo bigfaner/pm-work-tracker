@@ -227,12 +227,12 @@ export default function SubItemDetailPage() {
                         <div className="text-[13px] text-secondary">
                           {record.achievement && (
                             <div className="mt-1">
-                              <strong className="text-emerald-600">成果：</strong>{record.achievement}
+                              <strong className="text-success-text">成果：</strong>{record.achievement}
                             </div>
                           )}
                           {record.blocker && (
                             <div className="mt-1">
-                              <strong className="text-red-600">卡点：</strong>{record.blocker}
+                              <strong className="text-error-text">卡点：</strong>{record.blocker}
                             </div>
                           )}
                         </div>

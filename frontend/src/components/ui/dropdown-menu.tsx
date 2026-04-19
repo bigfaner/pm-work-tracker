@@ -35,7 +35,7 @@ const DropdownMenuItem = React.forwardRef<
     className={cn(
       'relative flex cursor-default select-none items-center gap-2 rounded-sm px-3 py-2 text-[13px] text-secondary outline-none transition-colors',
       'focus:bg-bg-alt focus:text-primary',
-      danger && 'text-error focus:text-error focus:bg-red-50',
+      danger && 'text-error focus:text-error focus:bg-error-bg',
       className
     )}
     {...props}

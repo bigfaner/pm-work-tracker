@@ -500,7 +500,7 @@ export default function UserManagementPage() {
                 </Badge>
               </div>
               {statusUser?.status === 'enabled' && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                <div className="bg-warning-bg border border-warning-text/20 rounded-lg p-3 text-sm text-warning-text">
                   <strong>注意：</strong>禁用用户后该用户将无法登录系统，但数据不会被删除。
                 </div>
               )}

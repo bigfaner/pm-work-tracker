@@ -7,9 +7,9 @@ interface ToastProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const toastVariants = {
   default: 'bg-white border-border text-primary',
-  success: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-  error: 'bg-red-50 border-red-200 text-red-800',
-  warning: 'bg-amber-50 border-amber-200 text-amber-800',
+  success: 'bg-success-bg border-success-text/20 text-success-text',
+  error: 'bg-error-bg border-error-text/20 text-error-text',
+  warning: 'bg-warning-bg border-warning-text/20 text-warning-text',
 }
 
 function Toast({ variant = 'default', className, ...props }: ToastProps) {

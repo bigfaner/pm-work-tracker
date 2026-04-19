@@ -150,7 +150,7 @@ function StatsBar({ stats }: StatsBarProps) {
         <div className="text-[13px] text-tertiary">本周活跃子事项</div>
       </div>
       <div className="rounded-xl border border-border bg-white p-4 text-center">
-        <div className="text-2xl font-semibold text-emerald-600" data-testid="stat-newly-completed">
+        <div className="text-2xl font-semibold text-success-text" data-testid="stat-newly-completed">
           {stats.newlyCompleted}
         </div>
         <div className="text-[13px] text-tertiary">本周新完成</div>
@@ -162,7 +162,7 @@ function StatsBar({ stats }: StatsBarProps) {
         <div className="text-[13px] text-tertiary">进度推进中</div>
       </div>
       <div className="rounded-xl border border-border bg-white p-4 text-center">
-        <div className="text-2xl font-semibold text-red-600" data-testid="stat-blocked">
+        <div className="text-2xl font-semibold text-error" data-testid="stat-blocked">
           {stats.blocked}
         </div>
         <div className="text-[13px] text-tertiary">阻塞中</div>
@@ -323,17 +323,17 @@ function SubItemRow({ item, mainItemId, showDelta }: SubItemRowProps) {
           计划 {formatDate(item.expectedEndDate)}
         </span>
         {showDelta && item.delta != null && item.delta > 0 && !item.justCompleted && (
-          <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-px rounded">
+          <span className="text-[11px] font-semibold text-success-text bg-success-bg px-1.5 py-px rounded">
             +{item.delta}%
           </span>
         )}
         {showDelta && item.justCompleted && (
-          <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-px rounded">
+          <span className="text-[11px] font-semibold text-success-text bg-success-bg px-1.5 py-px rounded">
             完成 ✓
           </span>
         )}
         {showDelta && item.isNew && (
-          <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-px rounded">
+          <span className="text-[11px] font-semibold text-warning-text bg-warning-bg px-1.5 py-px rounded">
             NEW
           </span>
         )}
@@ -343,10 +343,10 @@ function SubItemRow({ item, mainItemId, showDelta }: SubItemRowProps) {
           {item.progressRecords.map((record) => (
             <div key={record.id} className="text-xs text-tertiary">
               {record.achievement && (
-                <span className="text-emerald-700">成果：{record.achievement}</span>
+                <span className="text-success-text">成果：{record.achievement}</span>
               )}
               {record.blocker && (
-                <span className="ml-2 text-red-600">卡点：{record.blocker}</span>
+                <span className="ml-2 text-error">卡点：{record.blocker}</span>
               )}
             </div>
           ))}

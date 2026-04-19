@@ -281,7 +281,7 @@ describe('TableViewPage', () => {
     renderPage()
     await waitFor(() => {
       const overdueDate = screen.getByTestId('expected-date-1')
-      expect(overdueDate).toHaveClass('text-red-600')
+      expect(overdueDate).toHaveClass('text-error')
     })
   })
 
@@ -289,7 +289,7 @@ describe('TableViewPage', () => {
     renderPage()
     await waitFor(() => {
       const normalDate = screen.getByTestId('expected-date-4')
-      expect(normalDate).not.toHaveClass('text-red-600')
+      expect(normalDate).not.toHaveClass('text-error')
     })
   })
 

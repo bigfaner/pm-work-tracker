@@ -193,7 +193,7 @@ describe('ItemPoolPage', () => {
       expect(screen.getByText('性能优化建议')).toBeInTheDocument()
     })
     const card = screen.getByTestId('pool-item-3')
-    expect(card.className).toContain('border-l-slate-400')
+    expect(card.className).toContain('border-l-tertiary')
     expect(card.className).toContain('opacity-70')
   })
 
@@ -203,7 +203,7 @@ describe('ItemPoolPage', () => {
       expect(screen.getByText('旧版API废弃')).toBeInTheDocument()
     })
     const card = screen.getByTestId('pool-item-4')
-    expect(card.className).toContain('border-l-red-400')
+    expect(card.className).toContain('border-l-error')
     expect(card.className).toContain('opacity-70')
   })
 

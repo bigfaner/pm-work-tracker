@@ -39,8 +39,8 @@ const POOL_STATUS_OPTIONS = [
 
 const STATUS_BORDER: Record<string, string> = {
   '待分配': 'border-l-4 border-l-blue-500',
-  '已分配': 'border-l-4 border-l-slate-400 opacity-70',
-  '已拒绝': 'border-l-4 border-l-red-400 opacity-70',
+  '已分配': 'border-l-4 border-l-tertiary opacity-70',
+  '已拒绝': 'border-l-4 border-l-error opacity-70',
 }
 
 const STATUS_BADGE_VARIANT: Record<string, 'primary' | 'success' | 'default'> = {
