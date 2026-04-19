@@ -69,7 +69,7 @@ func (s *teamService) CreateTeam(ctx context.Context, creatorID uint, req dto.Cr
 func (s *teamService) GetTeam(ctx context.Context, teamID uint) (*model.Team, error) {
 	team, err := s.teamRepo.FindByID(ctx, teamID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if err == apperrors.ErrNotFound {
 			return nil, apperrors.ErrTeamNotFound
 		}
 		return nil, err
@@ -84,7 +84,7 @@ func (s *teamService) ListTeams(ctx context.Context, _ uint, _ bool) ([]*model.T
 func (s *teamService) GetTeamDetail(ctx context.Context, teamID uint) (*dto.TeamDetailResp, error) {
 	team, err := s.teamRepo.FindByID(ctx, teamID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if err == apperrors.ErrNotFound {
 			return nil, apperrors.ErrTeamNotFound
 		}
 		return nil, err
@@ -121,7 +121,7 @@ func (s *teamService) GetTeamDetail(ctx context.Context, teamID uint) (*dto.Team
 func (s *teamService) UpdateTeam(ctx context.Context, pmID, teamID uint, req dto.UpdateTeamReq) (*model.Team, error) {
 	team, err := s.teamRepo.FindByID(ctx, teamID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if err == apperrors.ErrNotFound {
 			return nil, apperrors.ErrTeamNotFound
 		}
 		return nil, err
@@ -141,25 +141,23 @@ func (s *teamService) UpdateTeam(ctx context.Context, pmID, teamID uint, req dto
 func (s *teamService) InviteMember(ctx context.Context, pmID, teamID uint, req dto.InviteMemberReq) error {
 	team, err := s.teamRepo.FindByID(ctx, teamID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if err == apperrors.ErrNotFound {
 			return apperrors.ErrTeamNotFound
 		}
 		return err
 	}
-	if team.PmID != pmID {
-		return apperrors.ErrForbidden
-	}
+	_ = team.PmID // permission is enforced by RequirePermission middleware
 
 	user, err := s.userRepo.FindByUsername(ctx, req.Username)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if err == apperrors.ErrNotFound {
 			return apperrors.ErrNotFound
 		}
 		return err
 	}
 
 	existing, err := s.teamRepo.FindMember(ctx, teamID, user.ID)
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && err != apperrors.ErrNotFound {
 		return err
 	}
 	if existing != nil {
@@ -178,7 +176,7 @@ func (s *teamService) InviteMember(ctx context.Context, pmID, teamID uint, req d
 func (s *teamService) RemoveMember(ctx context.Context, pmID, teamID, targetUserID uint) error {
 	team, err := s.teamRepo.FindByID(ctx, teamID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if err == apperrors.ErrNotFound {
 			return apperrors.ErrTeamNotFound
 		}
 		return err
@@ -196,7 +194,7 @@ func (s *teamService) RemoveMember(ctx context.Context, pmID, teamID, targetUser
 func (s *teamService) TransferPM(ctx context.Context, currentPMID, teamID, newPMID uint) error {
 	team, err := s.teamRepo.FindByID(ctx, teamID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if err == apperrors.ErrNotFound {
 			return apperrors.ErrTeamNotFound
 		}
 		return err
@@ -208,7 +206,7 @@ func (s *teamService) TransferPM(ctx context.Context, currentPMID, teamID, newPM
 	// Verify new PM is a team member
 	newPMMember, err := s.teamRepo.FindMember(ctx, teamID, newPMID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if err == apperrors.ErrNotFound {
 			return apperrors.ErrNotTeamMember
 		}
 		return err
@@ -241,7 +239,7 @@ func (s *teamService) TransferPM(ctx context.Context, currentPMID, teamID, newPM
 func (s *teamService) DisbandTeam(ctx context.Context, callerID uint, teamID uint, confirmName string) error {
 	team, err := s.teamRepo.FindByID(ctx, teamID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if err == apperrors.ErrNotFound {
 			return apperrors.ErrTeamNotFound
 		}
 		return err
@@ -259,7 +257,7 @@ func (s *teamService) DisbandTeam(ctx context.Context, callerID uint, teamID uin
 func (s *teamService) UpdateMemberRole(ctx context.Context, pmID, teamID, targetUserID uint, role string) error {
 	team, err := s.teamRepo.FindByID(ctx, teamID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if err == apperrors.ErrNotFound {
 			return apperrors.ErrTeamNotFound
 		}
 		return err
@@ -270,7 +268,7 @@ func (s *teamService) UpdateMemberRole(ctx context.Context, pmID, teamID, target
 
 	member, err := s.teamRepo.FindMember(ctx, teamID, targetUserID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if err == apperrors.ErrNotFound {
 			return apperrors.ErrNotTeamMember
 		}
 		return err

@@ -87,7 +87,7 @@ func TestRoleCRUD_FullFlow(t *testing.T) {
 	adminToken := loginAs(t, r, "superadmin", "adminPass")
 
 	// CREATE
-	body := `{"name":"custom-role","description":"A custom role","permission_codes":["team:read","main_item:read"]}`
+	body := `{"name":"custom-role","description":"A custom role","permissionCodes":["team:read","main_item:read"]}`
 	w := makeRequest(t, r, http.MethodPost, "/api/v1/admin/roles", body, adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
@@ -96,7 +96,7 @@ func TestRoleCRUD_FullFlow(t *testing.T) {
 	createData := createResp["data"].(map[string]interface{})
 	roleID := uint(createData["id"].(float64))
 	assert.Equal(t, "custom-role", createData["name"])
-	assert.Equal(t, false, createData["is_preset"])
+	assert.Equal(t, false, createData["isPreset"])
 
 	// READ (list)
 	w = makeRequest(t, r, http.MethodGet, "/api/v1/admin/roles", "", adminToken)
@@ -117,7 +117,7 @@ func TestRoleCRUD_FullFlow(t *testing.T) {
 	assert.Len(t, perms, 2)
 
 	// UPDATE
-	updateBody := `{"description":"Updated description","permission_codes":["team:read","main_item:read","main_item:create"]}`
+	updateBody := `{"description":"Updated description","permissionCodes":["team:read","main_item:read","main_item:create"]}`
 	w = makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%d", roleID), updateBody, adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 	var updateResp map[string]interface{}
@@ -258,7 +258,7 @@ func TestSuperAdmin_CanManageRoles(t *testing.T) {
 	adminToken := loginAs(t, r, "superadmin", "adminPass")
 
 	// Create a role
-	body := `{"name":"test-role","description":"test","permission_codes":["team:read"]}`
+	body := `{"name":"test-role","description":"test","permissionCodes":["team:read"]}`
 	w := makeRequest(t, r, http.MethodPost, "/api/v1/admin/roles", body, adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
@@ -303,7 +303,7 @@ func TestRoleEdit_ImmediateEffectOnNextRequest(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// Create a new custom role with NO team:read or main_item:read
-	customRoleBody := `{"name":"minimal-role","description":"minimal","permission_codes":["sub_item:read"]}`
+	customRoleBody := `{"name":"minimal-role","description":"minimal","permissionCodes":["sub_item:read"]}`
 	w = makeRequest(t, r, http.MethodPost, "/api/v1/admin/roles", customRoleBody, adminToken)
 	require.Equal(t, http.StatusOK, w.Code)
 	var createResp map[string]interface{}
@@ -337,7 +337,7 @@ func TestDeleteRole_WithUsers_Rejected(t *testing.T) {
 
 	// PM role (id=pmRoleID) is in use by members, but it's preset so cannot be deleted.
 	// Create a custom role and assign it to a member.
-	customRoleBody := `{"name":"deleteme-role","description":"to be deleted","permission_codes":["team:read"]}`
+	customRoleBody := `{"name":"deleteme-role","description":"to be deleted","permissionCodes":["team:read"]}`
 	w := makeRequest(t, r, http.MethodPost, "/api/v1/admin/roles", customRoleBody, adminToken)
 	require.Equal(t, http.StatusOK, w.Code)
 	var createResp map[string]interface{}
@@ -366,7 +366,7 @@ func TestDeleteRole_WithoutUsers_Succeeds(t *testing.T) {
 	adminToken := loginAs(t, r, "superadmin", "adminPass")
 
 	// Create a custom role with no users
-	body := `{"name":"unused-role","description":"no users","permission_codes":["team:read"]}`
+	body := `{"name":"unused-role","description":"no users","permissionCodes":["team:read"]}`
 	w := makeRequest(t, r, http.MethodPost, "/api/v1/admin/roles", body, adminToken)
 	require.Equal(t, http.StatusOK, w.Code)
 	var createResp map[string]interface{}
@@ -430,8 +430,8 @@ func TestUserPermissions_ReturnsCorrectPermissions(t *testing.T) {
 	var resp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	permData := resp["data"].(map[string]interface{})
-	assert.Equal(t, false, permData["is_superadmin"])
-	teamPerms := permData["team_permissions"].(map[string]interface{})
+	assert.Equal(t, false, permData["isSuperAdmin"])
+	teamPerms := permData["teamPermissions"].(map[string]interface{})
 	assert.NotEmpty(t, teamPerms)
 }
 
@@ -446,7 +446,7 @@ func TestUserPermissions_SuperAdmin(t *testing.T) {
 	var resp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	permData := resp["data"].(map[string]interface{})
-	assert.Equal(t, true, permData["is_superadmin"])
+	assert.Equal(t, true, permData["isSuperAdmin"])
 }
 
 // ========== Permission Codes Registry Tests ==========

@@ -45,6 +45,9 @@ func (h *ViewHandler) Weekly(c *gin.Context) {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
 	}
+	// Normalize to local timezone so weekday and future-check match user's perspective
+	loc := time.Now().Location()
+	weekStart = time.Date(weekStart.Year(), weekStart.Month(), weekStart.Day(), 0, 0, 0, 0, loc)
 
 	if weekStart.Weekday() != time.Monday {
 		apperrors.RespondError(c, apperrors.ErrValidation)
@@ -53,7 +56,7 @@ func (h *ViewHandler) Weekly(c *gin.Context) {
 
 	// Validate weekStart is not in the future
 	now := time.Now()
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 	if weekStart.After(today) {
 		apperrors.RespondError(c, apperrors.ErrFutureWeekNotAllowed)
 		return

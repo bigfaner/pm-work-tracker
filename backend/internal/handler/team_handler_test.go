@@ -162,7 +162,7 @@ func (m *mockTeamService) ListMembers(_ context.Context, teamID uint) ([]*dto.Te
 }
 
 // ---------------------------------------------------------------------------
-// Mock UserRepo for CanCreateTeam check
+// Mock UserRepo for handler tests
 // ---------------------------------------------------------------------------
 
 type mockUserRepoForHandler struct {
@@ -213,7 +213,7 @@ func TestCreateTeam_Success(t *testing.T) {
 	svc.createTeamResult.team.ID = 10
 
 	userRepo := &mockUserRepoForHandler{
-		user: &model.User{CanCreateTeam: true},
+		user: &model.User{},
 	}
 	userRepo.user.ID = 1
 
@@ -245,7 +245,7 @@ func TestCreateTeam_Success(t *testing.T) {
 func TestCreateTeam_UserCannotCreateTeam(t *testing.T) {
 	svc := &mockTeamService{}
 	userRepo := &mockUserRepoForHandler{
-		user: &model.User{CanCreateTeam: false},
+		user: &model.User{},
 	}
 	userRepo.user.ID = 1
 
@@ -265,13 +265,13 @@ func TestCreateTeam_UserCannotCreateTeam(t *testing.T) {
 	assert.False(t, svc.createCalled)
 }
 
-func TestCreateTeam_SuperAdminBypassesCanCreateTeam(t *testing.T) {
+func TestCreateTeam_SuperAdminCanCreate(t *testing.T) {
 	svc := &mockTeamService{}
 	svc.createTeamResult.team = &model.Team{Name: "Alpha", PmID: 1}
 	svc.createTeamResult.team.ID = 10
 
 	userRepo := &mockUserRepoForHandler{
-		user: &model.User{CanCreateTeam: false},
+		user: &model.User{},
 	}
 	userRepo.user.ID = 1
 
@@ -293,7 +293,7 @@ func TestCreateTeam_SuperAdminBypassesCanCreateTeam(t *testing.T) {
 func TestCreateTeam_InvalidBody(t *testing.T) {
 	svc := &mockTeamService{}
 	userRepo := &mockUserRepoForHandler{
-		user: &model.User{CanCreateTeam: true},
+		user: &model.User{},
 	}
 	userRepo.user.ID = 1
 

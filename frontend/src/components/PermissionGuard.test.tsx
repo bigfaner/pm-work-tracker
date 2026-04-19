@@ -11,7 +11,7 @@ describe('PermissionGuard', () => {
 
   it('renders children when permission is granted', () => {
     const perms: PermissionData = {
-      isSuperadmin: false,
+      isSuperAdmin: false,
       teamPermissions: { 1: ['team:read'] },
     }
     useAuthStore.getState().setPermissions(perms)
@@ -26,7 +26,7 @@ describe('PermissionGuard', () => {
 
   it('returns null when permission is denied', () => {
     const perms: PermissionData = {
-      isSuperadmin: false,
+      isSuperAdmin: false,
       teamPermissions: { 1: ['team:read'] },
     }
     useAuthStore.getState().setPermissions(perms)
@@ -41,7 +41,7 @@ describe('PermissionGuard', () => {
 
   it('renders children for superadmin regardless of code', () => {
     const perms: PermissionData = {
-      isSuperadmin: true,
+      isSuperAdmin: true,
       teamPermissions: {},
     }
     useAuthStore.getState().setPermissions(perms)
@@ -65,7 +65,7 @@ describe('PermissionGuard', () => {
 
   it('checks any team when teamId is omitted', () => {
     const perms: PermissionData = {
-      isSuperadmin: false,
+      isSuperAdmin: false,
       teamPermissions: {
         1: ['team:read'],
         2: ['team:write'],

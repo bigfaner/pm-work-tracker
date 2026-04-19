@@ -19,7 +19,7 @@ func setupTeamTestDB(t *testing.T) *gormlib.DB {
 	t.Helper()
 	db, err := gormlib.Open(sqlite.Open(":memory:"), &gormlib.Config{})
 	require.NoError(t, err)
-	require.NoError(t, db.AutoMigrate(&model.User{}, &model.Team{}, &model.TeamMember{}))
+	require.NoError(t, db.AutoMigrate(&model.User{}, &model.Team{}, &model.Role{}, &model.TeamMember{}))
 	return db
 }
 

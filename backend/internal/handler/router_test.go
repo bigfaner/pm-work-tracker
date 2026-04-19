@@ -459,7 +459,6 @@ func TestAdminRoutes_AllRegistered(t *testing.T) {
 		path   string
 	}{
 		{"GET", "/api/v1/admin/users"},
-		{"PUT", "/api/v1/admin/users/1/can-create-team"},
 		{"GET", "/api/v1/admin/teams"},
 	}
 

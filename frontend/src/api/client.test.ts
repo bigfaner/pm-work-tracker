@@ -36,7 +36,6 @@ describe('API Client', () => {
         username: 'testuser',
         displayName: 'Test User',
         isSuperAdmin: false,
-        canCreateTeam: false,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
       })
@@ -94,7 +93,6 @@ describe('API Client', () => {
         username: 'u',
         displayName: 'U',
         isSuperAdmin: false,
-        canCreateTeam: false,
         createdAt: '',
         updatedAt: '',
       })

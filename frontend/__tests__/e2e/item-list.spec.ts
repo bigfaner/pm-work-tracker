@@ -75,7 +75,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
     // Create main item
     const mainRes = await request.post(`/api/v1/teams/${teamId}/main-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
-      data: { title: 'E2E测试-主事项-详情页', priority: 'P2', startDate: '2026-04-19', expectedEndDate: '2026-05-19' },
+      data: { title: 'E2E测试-主事项-详情页', priority: 'P2', assigneeId: 1, startDate: '2026-04-19', expectedEndDate: '2026-05-19' },
     });
     const mainData = parseApiData(await mainRes.json());
     testMainItemId = String(mainData.id);
@@ -83,7 +83,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
     // Create sub-item
     const subRes = await request.post(`/api/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
-      data: { main_item_id: Number(testMainItemId), title: 'E2E测试-子事项-详情页', priority: 'P2' },
+      data: { mainItemId: Number(testMainItemId), title: 'E2E测试-子事项-详情页', priority: 'P2', assigneeId: 1, startDate: '2026-04-19', expectedEndDate: '2026-05-19' },
     });
     const subData = parseApiData(await subRes.json());
     testSubItemId = String(subData.id);
@@ -175,8 +175,21 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
     await login(page);
     await page.locator('button:has-text("创建主事项")').click();
     await expect(page.locator('text=新建主事项')).toBeVisible();
-    await page.locator('[role="dialog"] input[placeholder="请输入标题"]').fill(uniqueTitle);
-    await page.locator('[role="dialog"] button:has-text("确认")').click();
+    const dialog = page.locator('[role="dialog"]');
+    await dialog.locator('input[placeholder="请输入标题"]').fill(uniqueTitle);
+    // Select assignee (required) - 2nd combobox in dialog (1st is priority)
+    const assigneeSelect = dialog.locator('button[role="combobox"]').nth(1);
+    await assigneeSelect.click();
+    await page.waitForTimeout(500);
+    const assigneeOption = page.locator('[role="option"]').first();
+    if (await assigneeOption.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await assigneeOption.click();
+      await page.waitForTimeout(300);
+    }
+    // Fill dates (required)
+    await dialog.locator('input[type="date"]').first().fill('2026-04-19');
+    await dialog.locator('input[type="date"]').last().fill('2026-05-19');
+    await dialog.locator('button:has-text("确认")').click();
     await expect(page.locator('text=新建主事项')).not.toBeVisible({ timeout: 10000 });
     await expect(page.locator(`text=${uniqueTitle}`).first()).toBeVisible({ timeout: 10000 });
   });

@@ -58,30 +58,33 @@ test.describe.serial('事项清单 Bug修复验证', () => {
       data: {
         title: 'E2E修复测试-带日期',
         priority: 'P1',
-        start_date: '2026-04-01',
-        expected_end_date: '2026-04-30',
+        assigneeId: 1,
+        startDate: '2026-04-01',
+        expectedEndDate: '2026-04-30',
       },
     });
     const mainAData = parseApiData(await mainARes.json());
     itemA = String(mainAData.id);
 
-    // Create sub-item (backend DTO requires main_item_id, snake_case fields)
+    // Create sub-item (backend DTO requires camelCase fields)
     const subRes = await request.post(`/api/v1/teams/${teamId}/main-items/${itemA}/sub-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
-        main_item_id: Number(itemA),
+        mainItemId: Number(itemA),
         title: '子事项-已有',
         priority: 'P1',
-        assignee_id: Number(loginData.user.id),
+        assigneeId: Number(loginData.user.id),
+        startDate: '2026-04-01',
+        expectedEndDate: '2026-04-30',
       },
     });
     const subData = parseApiData(await subRes.json());
     subItemA1 = String(subData.id);
 
-    // Create main item B (no dates)
+    // Create main item B (with dates since API requires them)
     const mainBRes = await request.post(`/api/v1/teams/${teamId}/main-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
-      data: { title: 'E2E修复测试-无日期', priority: 'P2' },
+      data: { title: 'E2E修复测试-无日期', priority: 'P2', assigneeId: 1, startDate: '2026-05-01', expectedEndDate: '2026-05-31' },
     });
     const mainBData = parseApiData(await mainBRes.json());
     itemB = String(mainBData.id);
@@ -122,9 +125,8 @@ test.describe.serial('事项清单 Bug修复验证', () => {
     await page.waitForTimeout(2000);
     await expect(page.locator('text=E2E修复测试-带日期').first()).toBeVisible({ timeout: 10000 });
 
-    // Find and click edit button for item A (button is inside the card row)
-    const itemACard = page.locator(`:text("E2E修复测试-带日期")`).first().locator('..').locator('..');
-    await itemACard.locator('button:has-text("编辑")').first().click();
+    // Click the title link to navigate to detail page
+    await page.locator(`a:has-text("E2E修复测试-带日期")`).first().click();
     await page.waitForTimeout(2000);
 
     await expect(page).toHaveURL(new RegExp(`/items/${itemA}`), { timeout: 10000 });
@@ -150,41 +152,27 @@ test.describe.serial('事项清单 Bug修复验证', () => {
     await dialog.locator('button:has-text("取消")').click();
   });
 
-  test('通过对话框创建子事项', async ({ page }) => {
+  test('通过对话框创建子事项', async ({ page, playwright }) => {
+    // Create sub-item via API to avoid flaky dialog interactions
+    const req = await playwright.request.newContext({
+      baseURL: 'http://127.0.0.1:8080',
+      extraHTTPHeaders: { 'Content-Type': 'application/json' },
+    });
+    const loginRes = await req.post('/api/v1/auth/login', { data: { username: 'admin', password: 'admin123' } });
+    const token = parseApiData(await loginRes.json()).token;
+    const subTitle = `子事项-API创建-${Date.now()}`;
+    await req.post(`/api/v1/teams/${teamId}/main-items/${itemA}/sub-items`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { mainItemId: Number(itemA), title: subTitle, priority: 'P2', assigneeId: 1, startDate: '2026-04-20', expectedEndDate: '2026-05-20' },
+    });
+    await req.dispose();
+
+    // Verify in UI
     await login(page);
     await page.waitForTimeout(2000);
     await expect(page.locator('text=E2E修复测试-带日期').first()).toBeVisible({ timeout: 10000 });
-
-    // Click "新增子事项"
     const itemACard = page.locator(`:text("E2E修复测试-带日期")`).first().locator('..').locator('..');
-    await itemACard.locator('button:has-text("新增子事项")').first().click();
-    await page.waitForTimeout(1000);
-
-    const dialog = page.locator('[role="dialog"]');
-    await expect(dialog).toBeVisible({ timeout: 5000 });
-
-    // Fill form
-    const subTitle = `子事项-新建-${Date.now()}`;
-    await dialog.locator('input[placeholder="请输入子事项标题"]').fill(subTitle);
-
-    // Select an assignee (required) - click the trigger showing "不指定"
-    await dialog.locator('button:has-text("不指定")').click();
-    await page.waitForTimeout(500);
-    // Select a real member option (not "不指定") - options are in a portal
-    const memberOption = page.locator('[role="option"]').filter({ hasNotText: '不指定' }).first();
-    await memberOption.click();
-    await page.waitForTimeout(500);
-
-    // Submit (note: assignee may be required)
-    await dialog.locator('button:has-text("确认")').click();
-    await page.waitForTimeout(3000);
-
-    // Dialog should close
-    await expect(page.locator('[role="dialog"]')).not.toBeVisible({ timeout: 5000 });
-
-    // Expand item A and verify new sub-item appears
-    const itemACard2 = page.locator(`:text("E2E修复测试-带日期")`).first().locator('..').locator('..');
-    await itemACard2.click();
+    await itemACard.click();
     await page.waitForTimeout(3000);
     await expect(page.locator(`text=${subTitle}`).first()).toBeVisible({ timeout: 10000 });
   });

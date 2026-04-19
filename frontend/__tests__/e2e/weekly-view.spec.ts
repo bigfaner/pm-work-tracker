@@ -82,6 +82,7 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
       data: {
         title: 'E2E周视图测试主事项',
         priority: 'P1',
+        assigneeId: 1,
         startDate: '2026-04-13',
         expectedEndDate: '2026-04-25',
       },
@@ -95,6 +96,8 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
       data: {
         title: 'E2E子事项-进度测试A',
         priority: 'P2',
+        assigneeId: 1,
+        startDate: '2026-04-13',
         expectedEndDate: '2026-04-20',
       },
     });
@@ -107,6 +110,8 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
       data: {
         title: 'E2E子事项-进度测试B',
         priority: 'P3',
+        assigneeId: 1,
+        startDate: '2026-04-13',
         expectedEndDate: '2026-04-22',
       },
     });
@@ -160,24 +165,39 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
     await navTo(page, '/weekly');
+    // Set week to match test data (server validates in UTC, timezone mismatch can reject current week)
+    const weekInput = page.locator('[data-testid="week-selector"]');
+    if (await weekInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+      const now = new Date();
+      const utcDay = now.getUTCDay();
+      const daysToMonday = utcDay === 0 ? 6 : utcDay - 1;
+      const monday = new Date(now);
+      monday.setUTCDate(now.getUTCDate() - daysToMonday);
+      const year = monday.getUTCFullYear();
+      const jan1 = new Date(Date.UTC(year, 0, 1));
+      const dayOfYear = Math.floor((monday.getTime() - jan1.getTime()) / 86400000);
+      const weekNum = Math.ceil((dayOfYear + jan1.getUTCDay() + 1) / 7);
+      const weekValue = `${year}-W${String(weekNum).padStart(2, '0')}`;
+      await weekInput.fill(weekValue);
+      await page.waitForTimeout(2000);
+    }
   });
 
   // ====== 1. Page Structure ======
   test('1.1 页面标题和周选择器可见', async ({ page }) => {
-    await expect(page.locator('text=每周进展')).toBeVisible();
+    await expect(page.locator('h1:text("每周进展")')).toBeVisible();
     await expect(page.locator('[data-testid="week-selector"]')).toBeVisible();
   });
 
   test('1.2 日期范围显示正确', async ({ page }) => {
-    // Should show date range like "2026/04/13 ~ 2026/04/19"
-    const dateRange = page.locator('text=/\\d{4}\\/\\d{2}\\/\\d{2}.*~.*\\d{4}\\/\\d{2}\\/\\d{2}/');
-    await expect(dateRange).toBeVisible({ timeout: 5000 });
+    const dateRange = page.locator('text=/\\d{4}\\/\\d{2}\\/\\d{2}.*~.*\\d{4}\\/\\d{2}\\/\\d{2}/').first();
+    await expect(dateRange).toBeVisible({ timeout: 15000 });
   });
 
   // ====== 2. Stats Bar ======
   test('2.1 四个统计卡片渲染', async ({ page }) => {
     await expect(page.locator('text=本周活跃子事项')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('text=本周新完成')).toBeVisible();
+    await expect(page.locator('text=本周新完成').first()).toBeVisible();
     await expect(page.locator('text=进度推进中')).toBeVisible();
     await expect(page.locator('text=阻塞中')).toBeVisible();
   });
@@ -290,21 +310,17 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
 
   test('7.2 切换周次后数据刷新', async ({ page }) => {
     await page.waitForTimeout(2000);
-    // Record current content
-    const beforeContent = await page.locator(`text=E2E周视图测试主事项`).isVisible().catch(() => false);
 
     // Change week to previous week (using JS evaluate since week input is tricky)
     await page.evaluate(() => {
       const input = document.querySelector('[data-testid="week-selector"]') as HTMLInputElement;
       if (input) {
-        // Get current value and go back one week
         const current = input.value;
         if (current) {
           const [year, week] = current.split('-W').map(Number);
           const prevWeek = week > 1 ? week - 1 : 52;
           const prevYear = week > 1 ? year : year - 1;
           const newValue = `${prevYear}-W${String(prevWeek).padStart(2, '0')}`;
-          // Use native input setter to trigger React's onChange
           const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
           nativeInputValueSetter?.call(input, newValue);
           input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -312,10 +328,56 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
         }
       }
     });
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
 
     // Page should still show weekly view content (may be different data)
     await expect(page.locator('text=每周进展')).toBeVisible();
+  });
+
+  test('7.3 手动选择周次后下方显示数据（非空状态）', async ({ page }) => {
+    await page.waitForTimeout(2000);
+
+    // Verify current week shows data
+    const mainItemVisible = await page.locator(`text=E2E周视图测试主事项`).isVisible().catch(() => false);
+    expect(mainItemVisible).toBeTruthy();
+
+    // Switch back to current week (from potential previous test)
+    await page.evaluate(() => {
+      const input = document.querySelector('[data-testid="week-selector"]') as HTMLInputElement;
+      if (input) {
+        // Get current date's week as YYYY-Www
+        const now = new Date();
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        const monday = new Date(now);
+        monday.setDate(diff);
+        // Convert to YYYY-Www using ISO week
+        const dayNum = monday.getDay() || 7;
+        const thursday = new Date(monday);
+        thursday.setDate(monday.getDate() + 4 - dayNum);
+        const isoYear = thursday.getFullYear();
+        const jan1 = new Date(isoYear, 0, 1);
+        const dayOfYear = Math.floor((thursday.getTime() - jan1.getTime()) / 86400000) + 1;
+        const weekNum = Math.ceil(dayOfYear / 7);
+        const weekValue = `${isoYear}-W${String(weekNum).padStart(2, '0')}`;
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+        nativeInputValueSetter?.call(input, weekValue);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+    await page.waitForTimeout(3000);
+
+    // Should NOT show "暂无周数据" empty state
+    const emptyState = page.locator('text=暂无周数据');
+    const emptyVisible = await emptyState.isVisible().catch(() => false);
+    expect(emptyVisible).toBeFalsy();
+
+    // Data should be displayed - stats bar should be visible
+    await expect(page.locator('text=本周活跃子事项')).toBeVisible({ timeout: 5000 });
+
+    // Test data should appear in the view
+    await expect(page.locator(`text=E2E周视图测试主事项`)).toBeVisible({ timeout: 5000 });
   });
 
   // ====== 8. Expand/Collapse Completed Items ======
@@ -327,24 +389,6 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     const isVisible = await expandBtn.isVisible().catch(() => false);
     // If visible, it means there are completed items
     console.log(`Expand button visible: ${isVisible}`);
-  });
-
-  // ====== 9. Legend ======
-  test('9.1 图例在页面底部显示', async ({ page }) => {
-    await expect(page.locator('text=图例：')).toBeVisible({ timeout: 5000 });
-  });
-
-  test('9.2 图例显示优先级示例', async ({ page }) => {
-    await page.waitForTimeout(1000);
-    // Legend shows P1, P2, P3 examples
-    const legend = page.locator('text=优先级');
-    await expect(legend).toBeVisible({ timeout: 5000 });
-  });
-
-  test('9.3 图例显示进度增量示例', async ({ page }) => {
-    await page.waitForTimeout(1000);
-    const deltaExample = page.locator('text=本周进度增量');
-    await expect(deltaExample).toBeVisible({ timeout: 5000 });
   });
 
   // ====== 10. API Verification ======

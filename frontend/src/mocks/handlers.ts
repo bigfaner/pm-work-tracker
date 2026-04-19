@@ -16,7 +16,6 @@ export const seedUser: User = {
   username: 'testuser',
   displayName: 'Test User',
   isSuperAdmin: false,
-  canCreateTeam: false,
 }
 
 export const seedMembers: TeamMemberResp[] = [

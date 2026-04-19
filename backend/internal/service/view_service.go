@@ -194,8 +194,11 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 		subItemsByMain[si.MainItemID] = append(subItemsByMain[si.MainItemID], si)
 	}
 
-	// Determine which sub-items were active in each week
-	// A sub-item is "active" in a week if it had progress records OR if it currently exists and is not completed before that week
+	// Determine which sub-items were active in each week.
+	// A sub-item is "active" in a week if:
+	//   1. It was created before or during that week (CreatedAt < weekEnd+1day)
+	//   2. It was not completed before that week (ActualEndDate == nil || ActualEndDate >= weekStart)
+	//   3. OR it had progress records in that week
 	lastWeekActive := make(map[uint]struct{})
 	thisWeekActive := make(map[uint]struct{})
 
@@ -206,10 +209,12 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 		if _, ok := thisWeekProgress[si.ID]; ok {
 			thisWeekActive[si.ID] = struct{}{}
 		}
-		// Sub-items that exist and aren't completed before the week are also "active"
-		if si.Status != "已完成" && si.Status != "已关闭" {
-			thisWeekActive[si.ID] = struct{}{}
+		// Check if sub-item existed and was not completed before each week
+		if isActiveInWeek(si, lastWeekStart, lastWeekEnd) {
 			lastWeekActive[si.ID] = struct{}{}
+		}
+		if isActiveInWeek(si, weekStart, weekEnd) {
+			thisWeekActive[si.ID] = struct{}{}
 		}
 	}
 
@@ -372,6 +377,11 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 			}
 		}
 
+		// Skip main items with no active sub-items in this week's view
+		if len(group.ThisWeek) == 0 && len(group.LastWeek) == 0 && len(group.CompletedNoChange) == 0 {
+			continue
+		}
+
 		groups = append(groups, group)
 	}
 
@@ -411,6 +421,19 @@ func isNewlyCompleted(si model.SubItem, weekStart, weekEnd time.Time) bool {
 	}
 	end := *si.ActualEndDate
 	return !end.Before(weekStart) && !end.After(weekEnd)
+}
+
+// isActiveInWeek checks if a sub-item was active during a given week.
+// Active means: created before the week ends, and not completed before the week starts.
+func isActiveInWeek(si model.SubItem, weekStart, weekEnd time.Time) bool {
+	weekEndNextDay := weekEnd.AddDate(0, 0, 1)
+	if si.CreatedAt.After(weekEndNextDay) || si.CreatedAt.Equal(weekEndNextDay) {
+		return false
+	}
+	if si.ActualEndDate != nil && si.ActualEndDate.Before(weekStart) {
+		return false
+	}
+	return true
 }
 
 // toSubItemWeekDTO converts a SubItem + its week progress records into a SubItemWeekDTO.

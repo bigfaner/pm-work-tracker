@@ -1,7 +1,6 @@
 import client from './client'
 import type {
   AdminUser,
-  SetCanCreateTeamReq,
   AdminTeam,
   PageResult,
   CreateUserReq,
@@ -13,12 +12,8 @@ import type {
   GetUserResp,
 } from '@/types'
 
-export function listUsersApi(params?: { page?: number; pageSize?: number; search?: string; canCreateTeam?: string }): Promise<PageResult<AdminUser>> {
+export function listUsersApi(params?: { page?: number; pageSize?: number; search?: string }): Promise<PageResult<AdminUser>> {
   return client.get<never, PageResult<AdminUser>>('/admin/users', { params })
-}
-
-export function setCanCreateTeamApi(userId: number, req: SetCanCreateTeamReq): Promise<void> {
-  return client.put<never, void>(`/admin/users/${userId}/can-create-team`, req)
 }
 
 export function listAdminTeamsApi(page?: number, pageSize?: number): Promise<PageResult<AdminTeam>> {

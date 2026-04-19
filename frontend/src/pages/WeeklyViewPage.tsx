@@ -10,16 +10,26 @@ import ProgressBar from '@/components/shared/ProgressBar'
 
 // --- Helpers ---
 
+function toLocalDateString(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function formatDate(date: string) {
   return date.replace(/-/g, '/')
 }
 
 function getWeekNumber(dateStr: string): number {
-  const d = new Date(dateStr)
-  const startOfYear = new Date(d.getFullYear(), 0, 1)
-  const diff = d.getTime() - startOfYear.getTime()
-  const oneWeek = 604800000
-  return Math.ceil((diff / oneWeek) + ((startOfYear.getDay() + 1) / 7))
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  const dayNum = date.getDay() || 7
+  const thursday = new Date(date)
+  thursday.setDate(date.getDate() + 4 - dayNum)
+  const jan1 = new Date(thursday.getFullYear(), 0, 1)
+  const dayOfYear = Math.floor((thursday.getTime() - jan1.getTime()) / 86400000) + 1
+  return Math.ceil(dayOfYear / 7)
 }
 
 function getCurrentWeekStart(): string {
@@ -28,16 +38,20 @@ function getCurrentWeekStart(): string {
   const diff = now.getDate() - day + (day === 0 ? -6 : 1)
   const monday = new Date(now)
   monday.setDate(diff)
-  return monday.toISOString().slice(0, 10)
+  return toLocalDateString(monday)
 }
 
 function toWeekInputValue(weekStart: string): string {
-  const d = new Date(weekStart)
-  const year = d.getFullYear()
-  const jan1 = new Date(year, 0, 1)
-  const days = Math.floor((d.getTime() - jan1.getTime()) / 86400000)
-  const weekNum = Math.ceil((days + jan1.getDay() + 1) / 7)
-  return `${year}-W${String(weekNum).padStart(2, '0')}`
+  const [y, m, d] = weekStart.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  const dayNum = date.getDay() || 7
+  const thursday = new Date(date)
+  thursday.setDate(date.getDate() + 4 - dayNum)
+  const isoYear = thursday.getFullYear()
+  const jan1 = new Date(isoYear, 0, 1)
+  const dayOfYear = Math.floor((thursday.getTime() - jan1.getTime()) / 86400000) + 1
+  const weekNum = Math.ceil(dayOfYear / 7)
+  return `${isoYear}-W${String(weekNum).padStart(2, '0')}`
 }
 
 // --- Main Component ---
@@ -57,15 +71,16 @@ export default function WeeklyViewPage() {
   const handleWeekChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
     if (!val) return
-    // Convert YYYY-Www to YYYY-MM-DD (Monday of that week)
     const [yearStr, weekStr] = val.split('-W')
     const year = parseInt(yearStr)
     const week = parseInt(weekStr)
-    const jan1 = new Date(year, 0, 1)
-    const dayOfWeek = jan1.getDay()
-    const offset = dayOfWeek <= 4 ? 1 - dayOfWeek : 8 - dayOfWeek
-    const monday = new Date(year, 0, offset + (week - 1) * 7)
-    setWeekStart(monday.toISOString().slice(0, 10))
+    // ISO week 1 always contains Jan 4
+    const jan4 = new Date(year, 0, 4)
+    const dow = jan4.getDay() || 7 // Mon=1...Sun=7
+    const mondayW1 = new Date(year, 0, 4 - dow + 1)
+    const target = new Date(mondayW1)
+    target.setDate(mondayW1.getDate() + (week - 1) * 7)
+    setWeekStart(toLocalDateString(target))
   }, [])
 
   return (
@@ -97,7 +112,7 @@ export default function WeeklyViewPage() {
 
           {isLoading ? (
             <div className="py-8 text-center text-tertiary text-sm">加载中...</div>
-          ) : !data || data.groups.length === 0 ? (
+          ) : !data || !data.groups || data.groups.length === 0 ? (
             <div className="py-12 text-center">
               <p className="text-tertiary text-sm">暂无周数据</p>
             </div>
@@ -111,8 +126,6 @@ export default function WeeklyViewPage() {
                 <ComparisonCard key={group.mainItem.id} group={group} weekStart={weekStart} />
               ))}
 
-              {/* Legend */}
-              <Legend />
             </>
           )}
         </>
@@ -343,34 +356,6 @@ function SubItemRow({ item, mainItemId, showDelta }: SubItemRowProps) {
           {item.completion}% · {item.progressDescription}
         </div>
       ) : null}
-    </div>
-  )
-}
-
-// --- Legend ---
-
-function Legend() {
-  return (
-    <div className="flex items-center gap-4 py-3 text-xs text-tertiary flex-wrap">
-      <span>图例：</span>
-      <span className="flex items-center gap-1">
-        <PriorityBadge priority="P1" className="text-[10px]" />
-        <PriorityBadge priority="P2" className="text-[10px]" />
-        <PriorityBadge priority="P3" className="text-[10px]" />
-        优先级
-      </span>
-      <span className="flex items-center gap-1">
-        <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-px rounded">+30%</span>
-        本周进度增量
-      </span>
-      <span className="flex items-center gap-1">
-        <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-px rounded">完成 ✓</span>
-        本周新完成
-      </span>
-      <span className="flex items-center gap-1">
-        <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-px rounded">NEW</span>
-        本周新增事项
-      </span>
     </div>
   )
 }

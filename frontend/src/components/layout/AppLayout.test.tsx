@@ -16,7 +16,6 @@ const mockUser: User = {
   username: 'testuser',
   displayName: 'Test User',
   isSuperAdmin: false,
-  canCreateTeam: false,
 }
 
 const mockTeams: Team[] = [

@@ -10,8 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
     username        VARCHAR(64)  NOT NULL,
     display_name    VARCHAR(64)  NOT NULL,
     password_hash   VARCHAR(255) NOT NULL,
-    is_super_admin  BOOLEAN      NOT NULL DEFAULT FALSE,
-    can_create_team BOOLEAN      NOT NULL DEFAULT FALSE
+    is_super_admin  BOOLEAN      NOT NULL DEFAULT FALSE
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at);

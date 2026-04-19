@@ -1,7 +1,7 @@
 // Permission types
 
 export interface PermissionData {
-  isSuperadmin: boolean
+  isSuperAdmin: boolean
   teamPermissions: Record<number, string[]>
 }
 
@@ -68,7 +68,6 @@ export interface User {
   displayName: string
   email?: string
   isSuperAdmin: boolean
-  canCreateTeam: boolean
   status?: 'enabled' | 'disabled'
   teams?: TeamSummary[]
 }
@@ -444,14 +443,9 @@ export interface AdminUser {
   username: string
   displayName: string
   email?: string
-  canCreateTeam: boolean
   isSuperAdmin: boolean
   status?: 'enabled' | 'disabled'
   teams?: TeamSummary[]
-}
-
-export interface SetCanCreateTeamReq {
-  canCreateTeam: boolean
 }
 
 export interface AdminTeam {
@@ -468,7 +462,6 @@ export interface CreateUserReq {
   displayName: string
   email?: string
   teamId?: number
-  canCreateTeam?: boolean
 }
 
 export interface CreateUserResp {
@@ -476,7 +469,6 @@ export interface CreateUserResp {
   username: string
   displayName: string
   email: string
-  canCreateTeam: boolean
   status: string
   teams: TeamSummary[]
   initialPassword: string
@@ -485,7 +477,6 @@ export interface CreateUserResp {
 export interface UpdateUserReq {
   displayName?: string
   email?: string
-  canCreateTeam?: boolean
   teamId?: number
 }
 
@@ -494,7 +485,6 @@ export interface UpdateUserResp {
   username: string
   displayName: string
   email: string
-  canCreateTeam: boolean
   status: string
   teams: TeamSummary[]
 }
@@ -514,7 +504,6 @@ export interface GetUserResp {
   username: string
   displayName: string
   email: string
-  canCreateTeam: boolean
   isSuperAdmin: boolean
   status: string
   teams: TeamSummary[]

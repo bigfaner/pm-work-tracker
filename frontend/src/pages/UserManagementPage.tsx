@@ -49,7 +49,6 @@ export default function UserManagementPage() {
 
   // Filter state
   const [searchText, setSearchText] = useState('')
-  const [canCreateTeamFilter, setCanCreateTeamFilter] = useState<string>('')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
@@ -59,7 +58,6 @@ export default function UserManagementPage() {
     username: '',
     displayName: '',
     email: '',
-    canCreateTeam: false,
   })
   const [createError, setCreateError] = useState('')
 
@@ -73,7 +71,6 @@ export default function UserManagementPage() {
   const [editForm, setEditForm] = useState<UpdateUserReq & { displayName: string; email: string }>({
     displayName: '',
     email: '',
-    canCreateTeam: false,
   })
 
   // Toggle status dialog
@@ -84,13 +81,12 @@ export default function UserManagementPage() {
   // --- Data fetching ---
 
   const { data: usersData, isLoading, isFetching } = useQuery({
-    queryKey: ['adminUsers', currentPage, pageSize, searchText, canCreateTeamFilter],
+    queryKey: ['adminUsers', currentPage, pageSize, searchText],
     queryFn: () =>
       listUsersApi({
         page: currentPage,
         pageSize,
         ...(searchText.trim() && { search: searchText.trim() }),
-        ...(canCreateTeamFilter && { canCreateTeam: canCreateTeamFilter }),
       }),
   })
 
@@ -110,11 +106,6 @@ export default function UserManagementPage() {
     setCurrentPage(1)
   }, [])
 
-  const handleFilterChange = useCallback((value: string) => {
-    setCanCreateTeamFilter(value === '_all' ? '' : value)
-    setCurrentPage(1)
-  }, [])
-
   const handlePageSizeChange = useCallback((size: number) => {
     setPageSize(size)
     setCurrentPage(1)
@@ -127,7 +118,7 @@ export default function UserManagementPage() {
     onSuccess: (resp) => {
       qc.invalidateQueries({ queryKey: ['adminUsers'] })
       setCreateOpen(false)
-      setCreateForm({ username: '', displayName: '', email: '', canCreateTeam: false })
+      setCreateForm({ username: '', displayName: '', email: '' })
       setCreateError('')
       setInitialPassword(resp.initialPassword)
       setPasswordOpen(true)
@@ -190,7 +181,6 @@ export default function UserManagementPage() {
       displayName: createForm.displayName.trim(),
       ...(createForm.email.trim() && { email: createForm.email.trim() }),
       ...(createForm.teamId && { teamId: createForm.teamId }),
-      canCreateTeam: createForm.canCreateTeam,
     })
   }, [createForm, createMutation])
 
@@ -199,7 +189,6 @@ export default function UserManagementPage() {
     setEditForm({
       displayName: user.displayName,
       email: user.email || '',
-      canCreateTeam: user.canCreateTeam,
     })
     setEditOpen(true)
   }, [])
@@ -211,7 +200,6 @@ export default function UserManagementPage() {
       req: {
         displayName: editForm.displayName.trim(),
         ...(editForm.email.trim() && { email: editForm.email.trim() }),
-        canCreateTeam: editForm.canCreateTeam,
       },
     })
   }, [editUserId, editForm, editMutation])
@@ -251,16 +239,6 @@ export default function UserManagementPage() {
           onChange={(e) => handleSearchChange(e.target.value)}
           className="w-[240px]"
         />
-        <Select value={canCreateTeamFilter || '_all'} onValueChange={handleFilterChange}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="创建团队权限：全部" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="_all">创建团队权限：全部</SelectItem>
-            <SelectItem value="true">有权限</SelectItem>
-            <SelectItem value="false">无权限</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* User Table */}
@@ -279,7 +257,6 @@ export default function UserManagementPage() {
                 <TableHead>账号</TableHead>
                 <TableHead>邮箱</TableHead>
                 <TableHead>所属团队</TableHead>
-                <TableHead>创建团队权限</TableHead>
                 <TableHead>状态</TableHead>
                 <TableHead>操作</TableHead>
               </TableRow>
@@ -309,11 +286,6 @@ export default function UserManagementPage() {
                         <span className="text-tertiary text-xs">-</span>
                       )}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className={user.canCreateTeam ? 'text-emerald-600' : 'text-tertiary'}>
-                      {user.canCreateTeam ? '有权限' : '无权限'}
-                    </span>
                   </TableCell>
                   <TableCell>
                     <Badge variant={user.status === 'enabled' ? 'success' : 'warning'}>
@@ -410,17 +382,6 @@ export default function UserManagementPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-primary">
-                  <input
-                    type="checkbox"
-                    checked={createForm.canCreateTeam}
-                    onChange={(e) => setCreateForm((f) => ({ ...f, canCreateTeam: e.target.checked }))}
-                    className="w-4 h-4 rounded border-border-dark"
-                  />
-                  允许创建团队
-                </label>
-              </div>
             </div>
             {createError && (
               <p className="mt-3 text-sm text-error">{createError}</p>
@@ -504,17 +465,6 @@ export default function UserManagementPage() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div>
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-primary">
-                  <input
-                    type="checkbox"
-                    checked={editForm.canCreateTeam}
-                    onChange={(e) => setEditForm((f) => ({ ...f, canCreateTeam: e.target.checked }))}
-                    className="w-4 h-4 rounded border-border-dark"
-                  />
-                  允许创建团队
-                </label>
               </div>
             </div>
           </DialogBody>

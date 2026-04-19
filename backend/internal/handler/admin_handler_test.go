@@ -22,12 +22,11 @@ import (
 // ---------------------------------------------------------------------------
 
 type mockAdminService struct {
-	listUsersResult struct {
+		listUsersResult struct {
 		users []*model.User
 		err   error
 	}
-	setCanCreateTeamErr error
-	listAllTeamsResult  struct {
+	listAllTeamsResult struct {
 		teams []*dto.AdminTeamDTO
 		err   error
 	}
@@ -56,31 +55,25 @@ type mockAdminService struct {
 	}
 
 	// capture calls
-	listUsersCalled        bool
-	setCanCreateTeamCalled bool
-	lastSuperAdminID       uint
-	lastTargetUserID       uint
-	lastCanCreate          bool
-	listAllTeamsCalled     bool
+	listUsersCalled    bool
+	listAllTeamsCalled bool
 
 	// new captures
-	lastListUsersSearch        string
-	lastListUsersCanCreateTeam *bool
-	lastListUsersPage          int
-	lastListUsersPageSize      int
-	lastGetUserID              uint
-	lastCreateUserReq          *dto.CreateUserReq
-	lastUpdateUserID           uint
-	lastUpdateUserReq          *dto.UpdateUserReq
-	lastToggleCallerID         uint
-	lastToggleTargetID         uint
-	lastToggleStatus           string
+	lastListUsersSearch   string
+	lastListUsersPage     int
+	lastListUsersPageSize int
+	lastGetUserID         uint
+	lastCreateUserReq     *dto.CreateUserReq
+	lastUpdateUserID      uint
+	lastUpdateUserReq     *dto.UpdateUserReq
+	lastToggleCallerID    uint
+	lastToggleTargetID    uint
+	lastToggleStatus      string
 }
 
-func (m *mockAdminService) ListUsers(_ context.Context, search string, canCreateTeam *bool, page, pageSize int) ([]*dto.AdminUserDTO, int, error) {
+func (m *mockAdminService) ListUsers(_ context.Context, search string, page, pageSize int) ([]*dto.AdminUserDTO, int, error) {
 	m.listUsersCalled = true
 	m.lastListUsersSearch = search
-	m.lastListUsersCanCreateTeam = canCreateTeam
 	m.lastListUsersPage = page
 	m.lastListUsersPageSize = pageSize
 	return m.listUsersFilteredResult.items, m.listUsersFilteredResult.total, m.listUsersFilteredResult.err
@@ -107,14 +100,6 @@ func (m *mockAdminService) ToggleUserStatus(_ context.Context, callerID, targetU
 	m.lastToggleTargetID = targetUserID
 	m.lastToggleStatus = status
 	return m.toggleUserStatusResult.user, m.toggleUserStatusResult.err
-}
-
-func (m *mockAdminService) SetCanCreateTeam(_ context.Context, superAdminID, targetUserID uint, canCreate bool) error {
-	m.setCanCreateTeamCalled = true
-	m.lastSuperAdminID = superAdminID
-	m.lastTargetUserID = targetUserID
-	m.lastCanCreate = canCreate
-	return m.setCanCreateTeamErr
 }
 
 func (m *mockAdminService) ListAllTeams(_ context.Context) ([]*dto.AdminTeamDTO, error) {
@@ -147,8 +132,8 @@ func signSuperAdminToken(t *testing.T, userID uint) string {
 func TestAdminListUsers_Success(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.listUsersFilteredResult.items = []*dto.AdminUserDTO{
-		{ID: 1, Username: "alice", DisplayName: "Alice", CanCreateTeam: true, IsSuperAdmin: true, Status: "enabled", Teams: []dto.TeamSummary{}},
-		{ID: 2, Username: "bob", DisplayName: "Bob", CanCreateTeam: false, Status: "enabled", Teams: []dto.TeamSummary{}},
+		{ID: 1, Username: "alice", DisplayName: "Alice", IsSuperAdmin: true, Status: "enabled", Teams: []dto.TeamSummary{}},
+		{ID: 2, Username: "bob", DisplayName: "Bob", Status: "enabled", Teams: []dto.TeamSummary{}},
 	}
 	svc.listUsersFilteredResult.total = 2
 
@@ -179,7 +164,6 @@ func TestAdminListUsers_Success(t *testing.T) {
 	assert.Equal(t, float64(1), user0["id"])
 	assert.Equal(t, "alice", user0["username"])
 	assert.Equal(t, "Alice", user0["displayName"])
-	assert.Equal(t, true, user0["canCreateTeam"])
 	assert.Equal(t, true, user0["isSuperAdmin"])
 
 	assert.Equal(t, float64(2), data["total"])
@@ -205,25 +189,6 @@ func TestAdminListUsers_WithSearch(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "alice", svc.lastListUsersSearch)
-}
-
-func TestAdminListUsers_WithCanCreateTeamFilter(t *testing.T) {
-	svc := &mockAdminService{}
-	svc.listUsersFilteredResult.items = []*dto.AdminUserDTO{}
-	svc.listUsersFilteredResult.total = 0
-
-	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
-
-	token := signSuperAdminToken(t, 1)
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users?canCreateTeam=true", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	require.NotNil(t, svc.lastListUsersCanCreateTeam)
-	assert.True(t, *svc.lastListUsersCanCreateTeam)
 }
 
 func TestAdminListUsers_DefaultPageSize(t *testing.T) {
@@ -273,7 +238,6 @@ func TestAdminCreateUser_Success(t *testing.T) {
 		DisplayName:     "New User",
 		Email:           "new@test.com",
 		Status:          "enabled",
-		CanCreateTeam:   false,
 		Teams:           []dto.TeamSummary{{ID: 10, Name: "Team A", Role: "member"}},
 		InitialPassword: "Abc123XYZdef",
 	}
@@ -353,14 +317,13 @@ func TestAdminCreateUser_ValidationFail(t *testing.T) {
 func TestAdminGetUser_Success(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.getUserResult.user = &dto.AdminUserDTO{
-		ID:            5,
-		Username:      "bob",
-		DisplayName:   "Bob",
-		Email:         "bob@test.com",
-		Status:        "enabled",
-		IsSuperAdmin:  false,
-		CanCreateTeam: true,
-		Teams:         []dto.TeamSummary{{ID: 1, Name: "Team A", Role: "member"}},
+		ID:           5,
+		Username:     "bob",
+		DisplayName:  "Bob",
+		Email:        "bob@test.com",
+		Status:       "enabled",
+		IsSuperAdmin: false,
+		Teams:        []dto.TeamSummary{{ID: 1, Name: "Team A", Role: "member"}},
 	}
 
 	deps := depsWithAdminSvc(t, svc)
@@ -428,13 +391,12 @@ func TestAdminGetUser_InvalidId(t *testing.T) {
 func TestAdminUpdateUser_Success(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.updateUserResult.user = &dto.AdminUserDTO{
-		ID:            5,
-		Username:      "bob",
-		DisplayName:   "Robert",
-		Email:         "robert@test.com",
-		Status:        "enabled",
-		CanCreateTeam: true,
-		Teams:         []dto.TeamSummary{{ID: 2, Name: "Team B", Role: "member"}},
+		ID:          5,
+		Username:    "bob",
+		DisplayName: "Robert",
+		Email:       "robert@test.com",
+		Status:      "enabled",
+		Teams:       []dto.TeamSummary{{ID: 2, Name: "Team B", Role: "member"}},
 	}
 
 	deps := depsWithAdminSvc(t, svc)
@@ -553,129 +515,6 @@ func TestAdminToggleUserStatus_UserNotFound(t *testing.T) {
 	body := `{"status":"disabled"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/999/status", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusNotFound, w.Code)
-}
-
-// ---------------------------------------------------------------------------
-// Tests: PUT /api/v1/admin/users/:userId/can-create-team
-// ---------------------------------------------------------------------------
-
-func TestAdminUpdateCanCreateTeam_Success(t *testing.T) {
-	svc := &mockAdminService{}
-
-	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
-
-	token := signSuperAdminToken(t, 1)
-	body := `{"canCreateTeam":true}`
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/can-create-team", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.True(t, svc.setCanCreateTeamCalled)
-	assert.Equal(t, uint(1), svc.lastSuperAdminID)
-	assert.Equal(t, uint(5), svc.lastTargetUserID)
-	assert.True(t, svc.lastCanCreate)
-}
-
-func TestAdminUpdateCanCreateTeam_CannotModifySelf(t *testing.T) {
-	svc := &mockAdminService{}
-	svc.setCanCreateTeamErr = apperrors.ErrCannotModifySelf
-
-	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
-
-	token := signSuperAdminToken(t, 1)
-	body := `{"canCreateTeam":true}`
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/1/can-create-team", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
-
-	var resp map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	require.NoError(t, err)
-	assert.Equal(t, "CANNOT_MODIFY_SELF", resp["code"])
-}
-
-func TestAdminUpdateCanCreateTeam_InvalidUserId(t *testing.T) {
-	svc := &mockAdminService{}
-
-	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
-
-	token := signSuperAdminToken(t, 1)
-	body := `{"canCreateTeam":true}`
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/abc/can-create-team", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-
-	var resp map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	require.NoError(t, err)
-	assert.Equal(t, "VALIDATION_ERROR", resp["code"])
-}
-
-func TestAdminUpdateCanCreateTeam_InvalidBody(t *testing.T) {
-	svc := &mockAdminService{}
-
-	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
-
-	token := signSuperAdminToken(t, 1)
-	body := `{}`
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/can-create-team", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestAdminUpdateCanCreateTeam_Revoke(t *testing.T) {
-	svc := &mockAdminService{}
-
-	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
-
-	token := signSuperAdminToken(t, 1)
-	body := `{"canCreateTeam":false}`
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/can-create-team", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.False(t, svc.lastCanCreate)
-}
-
-func TestAdminUpdateCanCreateTeam_TargetNotFound(t *testing.T) {
-	svc := &mockAdminService{}
-	svc.setCanCreateTeamErr = apperrors.ErrNotFound
-
-	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
-
-	token := signSuperAdminToken(t, 1)
-	body := `{"canCreateTeam":true}`
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/999/can-create-team", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)

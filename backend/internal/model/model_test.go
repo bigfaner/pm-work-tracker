@@ -30,7 +30,6 @@ func TestUser_PasswordHashNotSerialized(t *testing.T) {
 		DisplayName:    "Alice",
 		PasswordHash:   "secret-hash",
 		IsSuperAdmin:   false,
-		CanCreateTeam:  false,
 	}
 
 	data, err := json.Marshal(u)
@@ -61,22 +60,6 @@ func TestUser_AutoMigrateCreatesCorrectSchema(t *testing.T) {
 	assert.Error(t, err, "duplicate username should be rejected")
 }
 
-func TestUser_CanCreateTeamDefaultsFalse(t *testing.T) {
-	db := setupTestDB(t)
-	err := db.AutoMigrate(&model.User{})
-	require.NoError(t, err)
-
-	u := model.User{
-		Username:     "bob",
-		DisplayName:  "Bob",
-		PasswordHash: "h",
-	}
-	require.NoError(t, db.Create(&u).Error)
-
-	var fetched model.User
-	db.First(&fetched, "username = ?", "bob")
-	assert.False(t, fetched.CanCreateTeam, "CanCreateTeam should default to false")
-}
 
 func TestTeam_TableName(t *testing.T) {
 	team := model.Team{}

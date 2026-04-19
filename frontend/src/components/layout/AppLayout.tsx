@@ -1,11 +1,13 @@
 import { useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import { useTeamStore } from '@/store/team'
+import { useAuthStore } from '@/store/auth'
 import { listTeamsApi } from '@/api/teams'
 import Sidebar from './Sidebar'
 
 export default function AppLayout() {
   const { teams, currentTeamId, setCurrentTeam, setTeams } = useTeamStore()
+  const fetchPermissions = useAuthStore((s) => s.fetchPermissions)
 
   useEffect(() => {
     listTeamsApi()
@@ -17,6 +19,10 @@ export default function AppLayout() {
       })
       .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    fetchPermissions()
+  }, [fetchPermissions])
 
   return (
     <div data-testid="app-layout" className="flex min-h-screen">

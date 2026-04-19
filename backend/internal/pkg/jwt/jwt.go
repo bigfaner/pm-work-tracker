@@ -11,7 +11,7 @@ import (
 
 // Claims extends jwt.RegisteredClaims with application-specific fields.
 type Claims struct {
-	UserID   uint   `json:"user_id"`
+	UserID   uint   `json:"userId"`
 	Username string `json:"username"`
 	jwtv5.RegisteredClaims
 }

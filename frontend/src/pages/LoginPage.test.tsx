@@ -17,7 +17,6 @@ const mockUser: User = {
   username: 'testuser',
   displayName: 'Test User',
   isSuperAdmin: false,
-  canCreateTeam: false,
 }
 
 function renderLoginPage(initialPath = '/login', search = '') {

@@ -39,7 +39,6 @@ const mockUser: User = {
   username: 'testuser',
   displayName: 'Test User',
   isSuperAdmin: false,
-  canCreateTeam: false,
 }
 
 const superAdminUser: User = {
@@ -183,7 +182,7 @@ describe('App Routing', () => {
     it('renders UserManagementPage at /users for super admin', () => {
       useAuthStore.getState().setAuth('token', superAdminUser)
       useAuthStore.getState().setPermissions({
-        isSuperadmin: true,
+        isSuperAdmin: true,
         teamPermissions: {},
       })
       renderApp('/users')

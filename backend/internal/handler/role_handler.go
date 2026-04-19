@@ -51,7 +51,7 @@ func (h *RoleHandler) ListRoles(c *gin.Context) {
 type CreateRoleReq struct {
 	Name            string   `json:"name" binding:"required"`
 	Description     string   `json:"description"`
-	PermissionCodes []string `json:"permission_codes" binding:"required,min=1"`
+	PermissionCodes []string `json:"permissionCodes" binding:"required,min=1"`
 }
 
 // CreateRole handles POST /api/v1/admin/roles
@@ -106,7 +106,7 @@ func (h *RoleHandler) GetRole(c *gin.Context) {
 type UpdateRoleReq struct {
 	Name            *string  `json:"name,omitempty"`
 	Description     *string  `json:"description,omitempty"`
-	PermissionCodes []string `json:"permission_codes,omitempty"`
+	PermissionCodes []string `json:"permissionCodes,omitempty"`
 }
 
 // UpdateRole handles PUT /api/v1/admin/roles/:id

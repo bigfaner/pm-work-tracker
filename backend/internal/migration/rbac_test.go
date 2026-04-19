@@ -38,9 +38,9 @@ func seedPreRBACData(t *testing.T, db *gorm.DB) {
 	t.Helper()
 
 	// Create users
-	u1 := model.User{Username: "admin", DisplayName: "Admin", PasswordHash: "h", IsSuperAdmin: true, CanCreateTeam: true}
+	u1 := model.User{Username: "admin", DisplayName: "Admin", PasswordHash: "h", IsSuperAdmin: true}
 	require.NoError(t, db.Create(&u1).Error)
-	u2 := model.User{Username: "pm1", DisplayName: "PM 1", PasswordHash: "h", CanCreateTeam: true}
+	u2 := model.User{Username: "pm1", DisplayName: "PM 1", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u2).Error)
 	u3 := model.User{Username: "member1", DisplayName: "Member 1", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u3).Error)
@@ -139,25 +139,6 @@ func TestMigrateToRBAC_TeamMemberRoleMigrated(t *testing.T) {
 	require.NoError(t, db.Where("user_id = ? AND team_id = ?", 3, 1).First(&memberUser).Error)
 	require.NotNil(t, memberUser.RoleID)
 	assert.Equal(t, uint(3), *memberUser.RoleID, "member user should have role_id=3")
-}
-
-func TestMigrateToRBAC_UsersCanCreateTeamRemoved(t *testing.T) {
-	db := setupRBACTestDB(t)
-	seedPreRBACData(t, db)
-	sqlDB, err := db.DB()
-	require.NoError(t, err)
-	defer sqlDB.Close()
-
-	err = MigrateToRBAC(db)
-	require.NoError(t, err)
-
-	// users table should no longer have can_create_team column
-	assert.False(t, HasColumn(db, "users", "can_create_team"),
-		"can_create_team column should be removed from users table")
-
-	// but should still have is_super_admin
-	assert.True(t, HasColumn(db, "users", "is_super_admin"),
-		"is_super_admin column should still exist")
 }
 
 func TestMigrateToRBAC_TeamMembersRoleColumnRemoved(t *testing.T) {
@@ -304,9 +285,9 @@ func TestMigrateToRBAC_EmptyDBSucceeds(t *testing.T) {
 	assert.Equal(t, int64(3), roleCount, "all 3 preset roles should be seeded")
 
 	// Verify tables created
-	assert.True(t, tableExists(db, "users"))
+	assert.True(t, tableExists(db, "roles"))
+	assert.True(t, tableExists(db, "role_permissions"))
 	assert.True(t, tableExists(db, "team_members"))
-	assert.False(t, HasColumn(db, "users", "can_create_team"))
 	assert.False(t, HasColumn(db, "team_members", "role"))
 }
 
@@ -319,7 +300,7 @@ func TestMigrateToRBAC_TransactionRollback(t *testing.T) {
 	defer sqlDB.Close()
 
 	// Seed only a user (no team_members)
-	u := model.User{Username: "testuser", DisplayName: "Test", PasswordHash: "h", CanCreateTeam: true}
+	u := model.User{Username: "testuser", DisplayName: "Test", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
 
 	// Run migration — should succeed since no team_members to migrate
@@ -432,7 +413,7 @@ func TestVerifyPresetRoleCodes_FailsOnMissingCode(t *testing.T) {
 }
 
 func TestMigrateToRBAC_UsersTableAlreadyMigrated(t *testing.T) {
-	// Test that if users table already lacks can_create_team, migration is a no-op for that step
+	// Test that re-running migration is idempotent
 	db := setupRBACTestDB(t)
 	seedPreRBACData(t, db)
 	sqlDB, err := db.DB()
@@ -442,8 +423,6 @@ func TestMigrateToRBAC_UsersTableAlreadyMigrated(t *testing.T) {
 	// Run migration once
 	require.NoError(t, MigrateToRBAC(db))
 
-	// Verify can_create_team is gone
-	assert.False(t, HasColumn(db, "users", "can_create_team"))
 
 	// Verify users are still there
 	var users []model.User

@@ -95,9 +95,10 @@ func (r *teamRepo) ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMem
 	var results []*dto.TeamMemberDTO
 	err := r.db.WithContext(ctx).
 		Table("team_members").
-		Select("team_members.id, team_members.team_id, team_members.user_id, team_members.role, team_members.joined_at, users.display_name, users.username").
-		Joins("LEFT JOIN users ON users.id = team_members.user_id").
-		Where("team_members.team_id = ?", teamID).
+		Select("team_members.id, team_members.team_id, team_members.user_id, roles.name as role, team_members.joined_at, users.display_name, users.username").
+			Joins("LEFT JOIN users ON users.id = team_members.user_id").
+			Joins("LEFT JOIN roles ON roles.id = team_members.role_id").
+			Where("team_members.team_id = ?", teamID).
 		Scan(&results).Error
 	return results, err
 }
@@ -144,8 +145,9 @@ func (r *teamRepo) FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[
 	var rows []row
 	err := r.db.WithContext(ctx).
 		Table("team_members").
-		Select("team_members.user_id, team_members.team_id, teams.name, team_members.role").
-		Joins("JOIN teams ON teams.id = team_members.team_id").
+		Select("team_members.user_id, team_members.team_id, teams.name, roles.name as role").
+			Joins("JOIN teams ON teams.id = team_members.team_id").
+			Joins("JOIN roles ON roles.id = team_members.role_id").
 		Where("team_members.user_id IN ?", userIDs).
 		Scan(&rows).Error
 	if err != nil {

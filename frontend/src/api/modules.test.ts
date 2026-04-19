@@ -266,11 +266,6 @@ describe('API modules', () => {
       expect(mockClient.get).toHaveBeenCalledWith('/admin/users', { params: { page: 1, pageSize: 20 } })
     })
 
-    it('setCanCreateTeamApi should PUT /admin/users/:id/can-create-team', async () => {
-      mockClient.put.mockResolvedValue(undefined)
-      await adminApi.setCanCreateTeamApi(5, { canCreateTeam: true })
-      expect(mockClient.put).toHaveBeenCalledWith('/admin/users/5/can-create-team', { canCreateTeam: true })
-    })
 
     it('listAdminTeamsApi should GET /admin/teams', async () => {
       mockClient.get.mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 })

@@ -48,6 +48,11 @@ func run(configPath string) error {
 		return fmt.Errorf("migration error: %w", err)
 	}
 
+	// 3b. RBAC migration (roles, role_permissions, preset roles)
+	if err := migration.MigrateToRBAC(db); err != nil {
+		return fmt.Errorf("rbac migration error: %w", err)
+	}
+
 	// 4. Seed admin user
 	if err := config.SeedAdmin(db, &cfg.Auth); err != nil {
 		log.Printf("warning: seed admin: %v", err)
@@ -71,22 +76,26 @@ func run(configPath string) error {
 	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)
 	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
 	adminSvc := service.NewAdminService(userRepo, teamRepo)
+	roleRepo := gormrepo.NewGormRoleRepo(db)
+	roleSvc := service.NewRoleService(roleRepo, userRepo)
 
 	// 6. Init handlers
 	deps := &handler.Dependencies{
-		Config:   cfg,
-		TeamRepo: teamRepo,
-		UserRepo: userRepo,
-		RoleRepo: gormrepo.NewGormRoleRepo(db),
-		Auth:     handler.NewAuthHandler(authSvc),
-		Team:     handler.NewTeamHandlerWithDeps(teamSvc, userRepo),
-		MainItem: handler.NewMainItemHandlerWithDeps(mainItemSvc, userRepo, subItemRepo),
-		SubItem:  handler.NewSubItemHandlerWithDeps(subItemSvc),
-		Progress: handler.NewProgressHandlerWithDeps(progressSvc, userRepo),
-		ItemPool: handler.NewItemPoolHandlerWithDeps(itemPoolSvc, userRepo, mainItemRepo),
-		View:     handler.NewViewHandlerWithDeps(viewSvc),
-		Report:   handler.NewReportHandlerWithDeps(reportSvc),
-		Admin:    handler.NewAdminHandlerWithDeps(adminSvc),
+		Config:     cfg,
+		TeamRepo:   teamRepo,
+		UserRepo:   userRepo,
+		RoleRepo:   roleRepo,
+		Auth:       handler.NewAuthHandler(authSvc),
+		Team:       handler.NewTeamHandlerWithDeps(teamSvc, userRepo),
+		MainItem:   handler.NewMainItemHandlerWithDeps(mainItemSvc, userRepo, subItemRepo),
+		SubItem:    handler.NewSubItemHandlerWithDeps(subItemSvc),
+		Progress:   handler.NewProgressHandlerWithDeps(progressSvc, userRepo),
+		ItemPool:   handler.NewItemPoolHandlerWithDeps(itemPoolSvc, userRepo, mainItemRepo),
+		View:       handler.NewViewHandlerWithDeps(viewSvc),
+		Report:     handler.NewReportHandlerWithDeps(reportSvc),
+		Admin:      handler.NewAdminHandlerWithDeps(adminSvc),
+		Role:       handler.NewRoleHandlerWithDeps(roleSvc),
+		Permission: handler.NewPermissionHandlerWithDeps(roleSvc),
 	}
 
 	// 7. Setup router

@@ -55,8 +55,8 @@ func Test001Init_UserTableHasCorrectSchema(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test unique index on username
-	db.Exec("INSERT INTO users (username, display_name, password_hash, is_super_admin, can_create_team, created_at, updated_at) VALUES ('user1', 'User One', 'hash1', 0, 0, datetime('now'), datetime('now'))")
-	err = db.Exec("INSERT INTO users (username, display_name, password_hash, is_super_admin, can_create_team, created_at, updated_at) VALUES ('user1', 'User Two', 'hash2', 0, 0, datetime('now'), datetime('now'))").Error
+	db.Exec("INSERT INTO users (username, display_name, password_hash, is_super_admin, created_at, updated_at) VALUES ('user1', 'User One', 'hash1', 0, datetime('now'), datetime('now'))")
+	err = db.Exec("INSERT INTO users (username, display_name, password_hash, is_super_admin, created_at, updated_at) VALUES ('user1', 'User Two', 'hash2', 0, datetime('now'), datetime('now'))").Error
 	assert.Error(t, err, "duplicate username should be rejected")
 }
 
@@ -72,7 +72,7 @@ func Test001Init_TeamMemberUniqueIndex(t *testing.T) {
 	require.NoError(t, err)
 
 	// Insert team and users
-	db.Exec("INSERT INTO users (username, display_name, password_hash, is_super_admin, can_create_team, created_at, updated_at) VALUES ('u1', 'U1', 'h', 0, 0, datetime('now'), datetime('now'))")
+	db.Exec("INSERT INTO users (username, display_name, password_hash, is_super_admin, created_at, updated_at) VALUES ('u1', 'U1', 'h', 0, datetime('now'), datetime('now'))")
 	db.Exec("INSERT INTO teams (name, pm_id, created_at, updated_at) VALUES ('Team1', 1, datetime('now'), datetime('now'))")
 
 	// First member OK

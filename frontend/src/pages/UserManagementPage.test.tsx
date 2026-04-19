@@ -36,22 +36,22 @@ function renderPage() {
 const seedUsers = [
   {
     id: 1, username: 'zhangming', displayName: '张明', email: 'zhangming@example.com',
-    canCreateTeam: true, isSuperAdmin: true, status: 'enabled',
+    isSuperAdmin: true, status: 'enabled',
     teams: [{ id: 1, name: '产品研发团队', role: 'pm' }],
   },
   {
     id: 2, username: 'lihua', displayName: '李华', email: 'lihua@example.com',
-    canCreateTeam: true, isSuperAdmin: false, status: 'enabled',
+    isSuperAdmin: false, status: 'enabled',
     teams: [{ id: 1, name: '产品研发团队', role: 'member' }],
   },
   {
     id: 3, username: 'wangfang', displayName: '王芳', email: 'wangfang@example.com',
-    canCreateTeam: false, isSuperAdmin: false, status: 'enabled',
+    isSuperAdmin: false, status: 'enabled',
     teams: [{ id: 1, name: '产品研发团队', role: 'member' }],
   },
   {
     id: 4, username: 'zhaoqiang', displayName: '赵强', email: 'zhaoqiang@example.com',
-    canCreateTeam: false, isSuperAdmin: false, status: 'disabled',
+    isSuperAdmin: false, status: 'disabled',
     teams: [{ id: 2, name: '设计团队', role: 'member' }],
   },
 ]
@@ -66,7 +66,6 @@ function setupHandlers() {
     http.get('/api/v1/admin/users', ({ request }) => {
       const url = new URL(request.url)
       const search = url.searchParams.get('search')
-      const canCreateTeam = url.searchParams.get('canCreateTeam')
       const page = Number(url.searchParams.get('page') || 1)
       const pageSizeParam = Number(url.searchParams.get('pageSize') || 10)
 
@@ -76,11 +75,6 @@ function setupHandlers() {
         filtered = filtered.filter(
           (u) => u.username.toLowerCase().includes(q) || u.displayName.toLowerCase().includes(q),
         )
-      }
-      if (canCreateTeam === 'true') {
-        filtered = filtered.filter((u) => u.canCreateTeam)
-      } else if (canCreateTeam === 'false') {
-        filtered = filtered.filter((u) => !u.canCreateTeam)
       }
 
       const start = (page - 1) * pageSizeParam
@@ -119,7 +113,6 @@ function setupHandlers() {
           username,
           displayName: body.displayName,
           email: body.email || '',
-          canCreateTeam: body.canCreateTeam || false,
           status: 'enabled',
           teams: [],
           initialPassword: 'Abc123456789',
@@ -217,17 +210,6 @@ describe('UserManagementPage', () => {
     expect(editButtons.length).toBe(4)
     const statusButtons = screen.getAllByText('修改状态')
     expect(statusButtons.length).toBe(4)
-  })
-
-  it('displays canCreateTeam permission for each user', async () => {
-    renderPage()
-    await waitFor(() => {
-      expect(screen.getByText('张明')).toBeInTheDocument()
-    })
-    const permissionYes = screen.getAllByText('有权限')
-    const permissionNo = screen.getAllByText('无权限')
-    expect(permissionYes.length).toBe(2) // zhangming, lihua
-    expect(permissionNo.length).toBe(2) // wangfang, zhaoqiang
   })
 
   // --- Search ---
@@ -425,39 +407,6 @@ describe('UserManagementPage', () => {
     renderPage()
     await waitFor(() => {
       expect(screen.getByText(/共 4 条/)).toBeInTheDocument()
-    })
-  })
-
-  // --- canCreateTeam filter ---
-
-  it('filters by canCreateTeam permission via API', async () => {
-    // Directly test that the API is called with correct filter params
-    let capturedParams: Record<string, string> = {}
-    server.use(
-      http.get('/api/v1/admin/users', ({ request }) => {
-        const url = new URL(request.url)
-        capturedParams = Object.fromEntries(url.searchParams.entries())
-        const filtered = seedUsers.filter((u) => u.canCreateTeam)
-        return HttpResponse.json({
-          code: 0,
-          data: { items: filtered, total: filtered.length, page: 1, pageSize: 10 },
-        })
-      }),
-      http.get('/api/v1/admin/teams', () => {
-        return HttpResponse.json({
-          code: 0,
-          data: { items: seedTeams, total: seedTeams.length, page: 1, pageSize: 100 },
-        })
-      }),
-    )
-
-    // Render with pre-filtered data (simulates filter being applied)
-    renderPage()
-    await waitFor(() => {
-      expect(screen.getByText('张明')).toBeInTheDocument()
-      expect(screen.getByText('李华')).toBeInTheDocument()
-      expect(screen.queryByText('王芳')).not.toBeInTheDocument()
-      expect(screen.queryByText('赵强')).not.toBeInTheDocument()
     })
   })
 })

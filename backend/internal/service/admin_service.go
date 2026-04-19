@@ -15,12 +15,11 @@ import (
 
 // AdminService defines admin-only operations.
 type AdminService interface {
-	ListUsers(ctx context.Context, search string, canCreateTeam *bool, page, pageSize int) ([]*dto.AdminUserDTO, int, error)
+	ListUsers(ctx context.Context, search string, page, pageSize int) ([]*dto.AdminUserDTO, int, error)
 	GetUser(ctx context.Context, userID uint) (*dto.AdminUserDTO, error)
 	CreateUser(ctx context.Context, req *dto.CreateUserReq) (*dto.AdminUserDTO, error)
 	UpdateUser(ctx context.Context, userID uint, req *dto.UpdateUserReq) (*dto.AdminUserDTO, error)
 	ToggleUserStatus(ctx context.Context, callerID, targetUserID uint, status string) (*dto.AdminUserDTO, error)
-	SetCanCreateTeam(ctx context.Context, superAdminID, targetUserID uint, canCreate bool) error
 	ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error)
 }
 
@@ -48,7 +47,7 @@ func generatePassword(length int) (string, error) {
 	return string(b), nil
 }
 
-func (s *adminService) ListUsers(ctx context.Context, search string, canCreateTeam *bool, page, pageSize int) ([]*dto.AdminUserDTO, int, error) {
+func (s *adminService) ListUsers(ctx context.Context, search string, page, pageSize int) ([]*dto.AdminUserDTO, int, error) {
 	users, err := s.userRepo.List(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -61,9 +60,6 @@ func (s *adminService) ListUsers(ctx context.Context, search string, canCreateTe
 			if !containsIgnoreCase(u.Username, search) && !containsIgnoreCase(u.DisplayName, search) {
 				continue
 			}
-		}
-		if canCreateTeam != nil && u.CanCreateTeam != *canCreateTeam {
-			continue
 		}
 		filtered = append(filtered, u)
 	}
@@ -144,9 +140,6 @@ func (s *adminService) CreateUser(ctx context.Context, req *dto.CreateUserReq) (
 		PasswordHash: string(hash),
 		Status:       "enabled",
 	}
-	if req.CanCreateTeam != nil {
-		user.CanCreateTeam = *req.CanCreateTeam
-	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
 		return nil, err
@@ -181,7 +174,6 @@ func (s *adminService) CreateUser(ctx context.Context, req *dto.CreateUserReq) (
 		DisplayName:     user.DisplayName,
 		Email:           user.Email,
 		Status:          user.Status,
-		CanCreateTeam:   user.CanCreateTeam,
 		Teams:           teams,
 		InitialPassword: password,
 	}, nil
@@ -198,9 +190,6 @@ func (s *adminService) UpdateUser(ctx context.Context, userID uint, req *dto.Upd
 	}
 	if req.Email != nil {
 		user.Email = *req.Email
-	}
-	if req.CanCreateTeam != nil {
-		user.CanCreateTeam = *req.CanCreateTeam
 	}
 
 	if err := s.userRepo.Update(ctx, user); err != nil {
@@ -265,20 +254,6 @@ func (s *adminService) ToggleUserStatus(ctx context.Context, callerID, targetUse
 	return modelToAdminUserDTO(user, teamsMap[targetUserID]), nil
 }
 
-func (s *adminService) SetCanCreateTeam(ctx context.Context, superAdminID, targetUserID uint, canCreate bool) error {
-	if superAdminID == targetUserID {
-		return apperrors.ErrCannotModifySelf
-	}
-
-	user, err := s.userRepo.FindByID(ctx, targetUserID)
-	if err != nil {
-		return err
-	}
-
-	user.CanCreateTeam = canCreate
-	return s.userRepo.Update(ctx, user)
-}
-
 func (s *adminService) ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error) {
 	return s.teamRepo.ListAllTeams(ctx)
 }
@@ -288,14 +263,13 @@ func modelToAdminUserDTO(u *model.User, teams []dto.TeamSummary) *dto.AdminUserD
 		teams = []dto.TeamSummary{}
 	}
 	return &dto.AdminUserDTO{
-		ID:            u.ID,
-		Username:      u.Username,
-		DisplayName:   u.DisplayName,
-		Email:         u.Email,
-		Status:        u.Status,
-		IsSuperAdmin:  u.IsSuperAdmin,
-		CanCreateTeam: u.CanCreateTeam,
-		Teams:         teams,
+		ID:           u.ID,
+		Username:     u.Username,
+		DisplayName:  u.DisplayName,
+		Email:        u.Email,
+		Status:       u.Status,
+		IsSuperAdmin: u.IsSuperAdmin,
+		Teams:        teams,
 	}
 }
 

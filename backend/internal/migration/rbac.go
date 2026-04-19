@@ -13,7 +13,7 @@ const rbacMigrationVersion = "rbac_001"
 
 // MigrateToRBAC runs the RBAC data migration in a single database transaction.
 // It creates new tables, seeds preset roles, migrates team_members.role strings
-// to role_id, and removes users.can_create_team.
+// to role_id,.
 // It is idempotent: re-running produces no side effects (tracked via schema_migrations).
 func MigrateToRBAC(db *gorm.DB) error {
 	if err := ensureSchemaMigrationsTable(db); err != nil {
@@ -70,10 +70,7 @@ func runRBACMigration(tx *gorm.DB) error {
 		return fmt.Errorf("rebuild team_members: %w", err)
 	}
 
-	// 4. Rebuild users table (remove can_create_team column) for SQLite
-	if err := rebuildUsersTable(tx); err != nil {
-		return fmt.Errorf("rebuild users: %w", err)
-	}
+	// 4. Users table: can_create_team column removed (handled by RBAC team:create permission).
 
 	return nil
 }
@@ -226,66 +223,6 @@ func rebuildTeamMembersTable(tx *gorm.DB, roleMap map[string]uint) error {
 	return nil
 }
 
-func rebuildUsersTable(tx *gorm.DB) error {
-	if !tableExists(tx, "users") {
-		// Fresh install: create users table without can_create_team
-		return tx.Exec(`
-			CREATE TABLE users (
-				id             INTEGER PRIMARY KEY AUTOINCREMENT,
-				created_at     DATETIME,
-				updated_at     DATETIME,
-				deleted_at     DATETIME,
-				username       VARCHAR(64) UNIQUE NOT NULL,
-				display_name   VARCHAR(64) NOT NULL,
-				password_hash  VARCHAR(255) NOT NULL,
-				email          VARCHAR(100),
-				status         VARCHAR(10) NOT NULL DEFAULT 'enabled',
-				is_super_admin BOOLEAN NOT NULL DEFAULT FALSE
-			)
-		`).Error
-	}
-
-	// Check if can_create_team column exists (if not, table is already migrated)
-	if !HasColumn(tx, "users", "can_create_team") {
-		return nil // already rebuilt or never had the column
-	}
-
-	// SQLite doesn't support DROP COLUMN; rebuild without can_create_team
-	if err := tx.Exec(`
-		CREATE TABLE users_new (
-			id             INTEGER PRIMARY KEY AUTOINCREMENT,
-			created_at     DATETIME,
-			updated_at     DATETIME,
-			deleted_at     DATETIME,
-			username       VARCHAR(64) UNIQUE NOT NULL,
-			display_name   VARCHAR(64) NOT NULL,
-			password_hash  VARCHAR(255) NOT NULL,
-			email          VARCHAR(100),
-			status         VARCHAR(10) NOT NULL DEFAULT 'enabled',
-			is_super_admin BOOLEAN NOT NULL DEFAULT FALSE
-		)
-	`).Error; err != nil {
-		return fmt.Errorf("create users_new: %w", err)
-	}
-
-	if err := tx.Exec(`
-		INSERT INTO users_new (id, created_at, updated_at, deleted_at, username, display_name, password_hash, email, status, is_super_admin)
-		SELECT id, created_at, updated_at, deleted_at, username, display_name, password_hash, email, status, is_super_admin
-		FROM users
-	`).Error; err != nil {
-		return fmt.Errorf("copy users data: %w", err)
-	}
-
-	if err := tx.Exec("DROP TABLE users").Error; err != nil {
-		return fmt.Errorf("drop old users: %w", err)
-	}
-
-	if err := tx.Exec("ALTER TABLE users_new RENAME TO users").Error; err != nil {
-		return fmt.Errorf("rename users_new: %w", err)
-	}
-
-	return nil
-}
 
 // CountPermissionsForRole returns the number of permission codes bound to a role.
 // Exported for testing convenience.

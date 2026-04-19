@@ -134,7 +134,7 @@ describe('SubItemDetailPage', () => {
   beforeEach(() => {
     useTeamStore.setState({ currentTeamId: 1, teams: [{ id: 1, name: 'Test Team', description: '', pmId: 1, createdAt: '', updatedAt: '' }] })
     useAuthStore.getState().setPermissions({
-      isSuperadmin: false,
+      isSuperAdmin: false,
       teamPermissions: { 1: ['progress:update'] },
     })
     setupHandlers()

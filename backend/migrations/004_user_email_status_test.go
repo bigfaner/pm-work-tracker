@@ -27,8 +27,8 @@ func Test004_AddsEmailAndStatusColumns(t *testing.T) {
 	require.NoError(t, err)
 
 	// Insert a user and verify the new columns work
-	err = db.Exec(`INSERT INTO users (username, display_name, password_hash, is_super_admin, can_create_team, email, status, created_at, updated_at)
-		VALUES ('testuser', 'Test User', 'hash', 0, 0, 'test@example.com', 'enabled', datetime('now'), datetime('now'))`).Error
+	err = db.Exec(`INSERT INTO users (username, display_name, password_hash, is_super_admin, email, status, created_at, updated_at)
+		VALUES ('testuser', 'Test User', 'hash', 0, 'test@example.com', 'enabled', datetime('now'), datetime('now'))`).Error
 	require.NoError(t, err)
 
 	// Verify email and status columns exist and have correct values
@@ -58,8 +58,8 @@ func Test004_DefaultStatusIsEnabled(t *testing.T) {
 	require.NoError(t, err)
 
 	// Insert without specifying status - should default to 'enabled'
-	err = db.Exec(`INSERT INTO users (username, display_name, password_hash, is_super_admin, can_create_team, email, created_at, updated_at)
-		VALUES ('defaultuser', 'Default User', 'hash', 0, 0, '', datetime('now'), datetime('now'))`).Error
+	err = db.Exec(`INSERT INTO users (username, display_name, password_hash, is_super_admin, email, created_at, updated_at)
+		VALUES ('defaultuser', 'Default User', 'hash', 0, '', datetime('now'), datetime('now'))`).Error
 	require.NoError(t, err)
 
 	var status string
@@ -80,8 +80,8 @@ func Test004_ExistingUsersNotAffected(t *testing.T) {
 	require.NoError(t, err)
 
 	// Insert a user BEFORE migration
-	err = db.Exec(`INSERT INTO users (username, display_name, password_hash, is_super_admin, can_create_team, created_at, updated_at)
-		VALUES ('olduser', 'Old User', 'hash', 0, 0, datetime('now'), datetime('now'))`).Error
+	err = db.Exec(`INSERT INTO users (username, display_name, password_hash, is_super_admin, created_at, updated_at)
+		VALUES ('olduser', 'Old User', 'hash', 0, datetime('now'), datetime('now'))`).Error
 	require.NoError(t, err)
 
 	// Apply 004

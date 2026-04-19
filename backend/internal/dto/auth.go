@@ -8,13 +8,12 @@ type LoginReq struct {
 
 // UserDTO is the user object returned in login responses.
 type UserDTO struct {
-	ID            uint   `json:"id"`
-	Username      string `json:"username"`
-	DisplayName   string `json:"displayName"`
-	Email         string `json:"email"`
-	Status        string `json:"status"`
-	IsSuperAdmin  bool   `json:"isSuperAdmin"`
-	CanCreateTeam bool   `json:"canCreateTeam"`
+	ID           uint   `json:"id"`
+	Username     string `json:"username"`
+	DisplayName  string `json:"displayName"`
+	Email        string `json:"email"`
+	Status       string `json:"status"`
+	IsSuperAdmin bool   `json:"isSuperAdmin"`
 }
 
 // LoginResp is the response DTO for a successful login.
@@ -32,19 +31,17 @@ type TeamSummary struct {
 
 // CreateUserReq is the request DTO for creating a user.
 type CreateUserReq struct {
-	Username      string `json:"username" binding:"required,min=3,max=64"`
-	DisplayName   string `json:"displayName" binding:"required,min=1,max=64"`
-	Email         string `json:"email" binding:"omitempty,max=100"`
-	TeamID        *uint  `json:"teamId"`
-	CanCreateTeam *bool  `json:"canCreateTeam"`
+	Username    string `json:"username" binding:"required,min=3,max=64"`
+	DisplayName string `json:"displayName" binding:"required,min=1,max=64"`
+	Email       string `json:"email" binding:"omitempty,max=100"`
+	TeamID      *uint  `json:"teamId"`
 }
 
 // UpdateUserReq is the request DTO for updating a user.
 type UpdateUserReq struct {
-	DisplayName   *string `json:"displayName" binding:"omitempty,min=1,max=64"`
-	Email         *string `json:"email" binding:"omitempty,max=100"`
-	CanCreateTeam *bool   `json:"canCreateTeam"`
-	TeamID        *uint   `json:"teamId"`
+	DisplayName *string `json:"displayName" binding:"omitempty,min=1,max=64"`
+	Email       *string `json:"email" binding:"omitempty,max=100"`
+	TeamID      *uint   `json:"teamId"`
 }
 
 // UpdateUserStatusReq is the request DTO for toggling user status.
@@ -60,7 +57,6 @@ type AdminUserDTO struct {
 	Email           string        `json:"email"`
 	Status          string        `json:"status"`
 	IsSuperAdmin    bool          `json:"isSuperAdmin"`
-	CanCreateTeam   bool          `json:"canCreateTeam"`
 	Teams           []TeamSummary `json:"teams"`
 	InitialPassword string        `json:"initialPassword,omitempty"`
 }

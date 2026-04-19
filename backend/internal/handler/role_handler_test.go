@@ -170,7 +170,7 @@ func TestCreateRole_Success(t *testing.T) {
 	r, _ := rbacTestEnv(t)
 
 	token := rbacSignSuperToken(t)
-	body := `{"name":"viewer","description":"read-only viewer","permission_codes":["team:read","main_item:read"]}`
+	body := `{"name":"viewer","description":"read-only viewer","permissionCodes":["team:read","main_item:read"]}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/roles", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -184,7 +184,7 @@ func TestCreateRole_Success(t *testing.T) {
 	assert.Equal(t, float64(0), resp["code"])
 	data := resp["data"].(map[string]interface{})
 	assert.Equal(t, "viewer", data["name"])
-	assert.Equal(t, false, data["is_preset"])
+	assert.Equal(t, false, data["isPreset"])
 }
 
 func TestCreateRole_ValidationError(t *testing.T) {
@@ -192,7 +192,7 @@ func TestCreateRole_ValidationError(t *testing.T) {
 
 	token := rbacSignSuperToken(t)
 	// Missing name
-	body := `{"description":"no name","permission_codes":["team:read"]}`
+	body := `{"description":"no name","permissionCodes":["team:read"]}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/roles", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -206,7 +206,7 @@ func TestCreateRole_EmptyPermissionCodes(t *testing.T) {
 	r, _ := rbacTestEnv(t)
 
 	token := rbacSignSuperToken(t)
-	body := `{"name":"norole","description":"empty perms","permission_codes":[]}`
+	body := `{"name":"norole","description":"empty perms","permissionCodes":[]}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/roles", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -220,7 +220,7 @@ func TestCreateRole_DuplicateName(t *testing.T) {
 	r, _ := rbacTestEnv(t)
 
 	token := rbacSignSuperToken(t)
-	body := `{"name":"pm","description":"duplicate","permission_codes":["team:read"]}`
+	body := `{"name":"pm","description":"duplicate","permissionCodes":["team:read"]}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/roles", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -238,7 +238,7 @@ func TestCreateRole_InvalidPermissionCode(t *testing.T) {
 	r, _ := rbacTestEnv(t)
 
 	token := rbacSignSuperToken(t)
-	body := `{"name":"badrole","description":"bad perm","permission_codes":["nonexistent:action"]}`
+	body := `{"name":"badrole","description":"bad perm","permissionCodes":["nonexistent:action"]}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/roles", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -269,7 +269,7 @@ func TestGetRole_Success(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	data := resp["data"].(map[string]interface{})
 	assert.Equal(t, "pm", data["name"])
-	assert.Equal(t, true, data["is_preset"])
+	assert.Equal(t, true, data["isPreset"])
 }
 
 func TestGetRole_NotFound(t *testing.T) {
@@ -295,7 +295,7 @@ func TestUpdateRole_Success(t *testing.T) {
 	require.NoError(t, db.Where("name = ?", "custom1").First(&customRole).Error)
 
 	token := rbacSignSuperToken(t)
-	body := `{"description":"updated desc","permission_codes":["team:read"]}`
+	body := `{"description":"updated desc","permissionCodes":["team:read"]}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%d", customRole.ID), strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -451,7 +451,7 @@ func TestGetUserPermissions_Success_SuperAdmin(t *testing.T) {
 	var resp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	data := resp["data"].(map[string]interface{})
-	assert.Equal(t, true, data["is_superadmin"])
+	assert.Equal(t, true, data["isSuperAdmin"])
 }
 
 func TestGetUserPermissions_Success_RegularUser(t *testing.T) {
@@ -468,8 +468,8 @@ func TestGetUserPermissions_Success_RegularUser(t *testing.T) {
 	var resp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	data := resp["data"].(map[string]interface{})
-	assert.Equal(t, false, data["is_superadmin"])
-	perms := data["team_permissions"].(map[string]interface{})
+	assert.Equal(t, false, data["isSuperAdmin"])
+	perms := data["teamPermissions"].(map[string]interface{})
 	assert.Empty(t, perms)
 }
 
@@ -497,7 +497,7 @@ func TestRoleRoutes_AllRegistered(t *testing.T) {
 		w := httptest.NewRecorder()
 		var body *strings.Reader
 		if route.method == "POST" || route.method == "PUT" {
-			body = strings.NewReader(`{"name":"test","permission_codes":["team:read"]}`)
+			body = strings.NewReader(`{"name":"test","permissionCodes":["team:read"]}`)
 		} else {
 			body = strings.NewReader("")
 		}

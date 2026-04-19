@@ -146,7 +146,6 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 		adminGroup.GET("/users/:userId", deps.perm("user:read"), deps.Admin.GetUser)
 		adminGroup.PUT("/users/:userId", deps.perm("user:update"), deps.Admin.UpdateUser)
 		adminGroup.PUT("/users/:userId/status", deps.perm("user:update"), deps.Admin.ToggleUserStatus)
-		adminGroup.PUT("/users/:userId/can-create-team", deps.perm("user:update"), deps.Admin.UpdateCanCreateTeam)
 		adminGroup.GET("/teams", deps.perm("user:read"), deps.Admin.ListTeams)
 
 		// Role management

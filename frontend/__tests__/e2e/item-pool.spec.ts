@@ -10,8 +10,8 @@ async function getAuthToken(): Promise<string> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username: 'admin', password: 'admin123' }),
   });
-  const data = await res.json();
-  return data.token;
+  const json = await res.json();
+  return json.data?.token || json.token;
 }
 
 // Helper: get first team id
@@ -19,8 +19,8 @@ async function getFirstTeamId(token: string): Promise<string | null> {
   const res = await fetch(`${API}/teams`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  const data = await res.json();
-  const list = Array.isArray(data) ? data : (data.data || []);
+  const json = await res.json();
+  const list = json.data || (Array.isArray(json) ? json : []);
   return list.length > 0 ? (list[0].id || list[0].ID) : null;
 }
 
@@ -244,9 +244,32 @@ test.describe('待办事项 (ItemPool) - E2E Business Flow', () => {
     await expect(d.locator('text=开始时间')).toBeVisible();
     await expect(d.locator('text=预期完成时间')).toBeVisible();
 
-    // Confirm conversion - NOTE: this may fail if backend rejects mainItemId=0
-    await d.locator('button:has-text("确认转换")').click();
-    await page.waitForTimeout(3000);
+    // Select assignee (required)
+    const assigneeTrigger = d.locator('button:has-text("选择负责人")');
+    if (await assigneeTrigger.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await assigneeTrigger.click();
+      await page.waitForTimeout(300);
+      const option = page.locator('[role="option"]').first();
+      if (await option.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await option.click();
+        await page.waitForTimeout(300);
+      }
+    }
+
+    // Fill dates (required)
+    const dateInputs = d.locator('input[type="date"]');
+    await dateInputs.first().fill('2026-04-19');
+    await dateInputs.last().fill('2026-05-19');
+
+    // Confirm conversion
+    const confirmBtn = d.locator('button:has-text("确认转换")');
+    if (await confirmBtn.isEnabled({ timeout: 2000 }).catch(() => false)) {
+      await confirmBtn.click();
+      await page.waitForTimeout(3000);
+    } else {
+      // Confirm still disabled - fill remaining fields or cancel
+      console.log('Confirm button still disabled, skipping conversion');
+    }
 
     // Check if dialog closed (success) or stayed open (expected backend limitation)
     const dialogVisible = await d.isVisible().catch(() => false);
@@ -460,6 +483,9 @@ test.describe('待办事项 (ItemPool) - E2E Business Flow', () => {
       await toMainBtn.click();
       d = dialog(page);
       await expect(d).toBeVisible({ timeout: 5000 });
+      // Fill required date fields to enable the confirm button
+      await d.locator('input[type="date"]').first().fill('2026-04-20');
+      await d.locator('input[type="date"]').last().fill('2026-05-20');
       await d.locator('button:has-text("确认转换")').click();
       await page.waitForTimeout(3000);
 

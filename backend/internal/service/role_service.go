@@ -24,10 +24,10 @@ type RoleListItem struct {
 	ID              uint   `json:"id"`
 	Name            string `json:"name"`
 	Description     string `json:"description"`
-	IsPreset        bool   `json:"is_preset"`
-	PermissionCount int    `json:"permission_count"`
-	MemberCount     int64  `json:"member_count"`
-	CreatedAt       string `json:"created_at"`
+	IsPreset        bool   `json:"isPreset"`
+	PermissionCount int    `json:"permissionCount"`
+	MemberCount     int64  `json:"memberCount"`
+	CreatedAt       string `json:"createdAt"`
 }
 
 // RoleDetail is the response shape for a single role with full permission list.
@@ -35,10 +35,10 @@ type RoleDetail struct {
 	ID          uint               `json:"id"`
 	Name        string             `json:"name"`
 	Description string             `json:"description"`
-	IsPreset    bool               `json:"is_preset"`
+	IsPreset    bool               `json:"isPreset"`
 	Permissions []PermissionItem   `json:"permissions"`
-	MemberCount int64              `json:"member_count"`
-	CreatedAt   string             `json:"created_at"`
+	MemberCount int64              `json:"memberCount"`
+	CreatedAt   string             `json:"createdAt"`
 }
 
 // PermissionItem describes a single permission code in a role.
@@ -51,20 +51,20 @@ type PermissionItem struct {
 type CreateRoleReq struct {
 	Name            string   `json:"name"`
 	Description     string   `json:"description"`
-	PermissionCodes []string `json:"permission_codes"`
+	PermissionCodes []string `json:"permissionCodes"`
 }
 
 // UpdateRoleReq is the request payload for updating a role.
 type UpdateRoleReq struct {
 	Name            *string  `json:"name,omitempty"`
 	Description     *string  `json:"description,omitempty"`
-	PermissionCodes []string `json:"permission_codes,omitempty"`
+	PermissionCodes []string `json:"permissionCodes,omitempty"`
 }
 
 // UserPermissions is the response shape for a user's permission map.
 type UserPermissions struct {
-	IsSuperAdmin    bool              `json:"is_superadmin"`
-	TeamPermissions map[uint][]string `json:"team_permissions"`
+	IsSuperAdmin    bool              `json:"isSuperAdmin"`
+	TeamPermissions map[uint][]string `json:"teamPermissions"`
 }
 
 // RoleService defines business logic for role management.

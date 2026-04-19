@@ -67,7 +67,7 @@ describe('ReportPage', () => {
     useTeamStore.getState().setCurrentTeam(1)
     useTeamStore.getState().setTeams(mockTeams)
     useAuthStore.getState().setPermissions({
-      isSuperadmin: false,
+      isSuperAdmin: false,
       teamPermissions: { 1: ['report:export'] },
     })
     mockGetPreview.mockReset()

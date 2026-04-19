@@ -18,12 +18,12 @@ import (
 // ---------------------------------------------------------------------------
 
 type mockAdminUserRepo struct {
-	users     []*model.User
-	user      *model.User
-	err       error
-	created   *model.User
-	updated   *model.User
-	findErr   error // separate error for FindByUsername
+	users   []*model.User
+	user    *model.User
+	err     error
+	created *model.User
+	updated *model.User
+	findErr error // separate error for FindByUsername
 }
 
 func (m *mockAdminUserRepo) FindByID(_ context.Context, _ uint) (*model.User, error) {
@@ -63,14 +63,14 @@ func (m *mockAdminUserRepo) Update(_ context.Context, user *model.User) error {
 
 // mockAdminTeamRepo implements repository.TeamRepo for admin service tests.
 type mockAdminTeamRepo struct {
-	teams         []*dto.AdminTeamDTO
-	listAllErr    error
-	teamByID      *model.Team
-	teamByIDErr   error
-	addMemberErr  error
+	teams           []*dto.AdminTeamDTO
+	listAllErr      error
+	teamByID        *model.Team
+	teamByIDErr     error
+	addMemberErr    error
 	removeMemberErr error
-	teamsByUserIDs map[uint][]dto.TeamSummary
-	teamsByUIDErr error
+	teamsByUserIDs  map[uint][]dto.TeamSummary
+	teamsByUIDErr   error
 }
 
 func (m *mockAdminTeamRepo) Create(_ context.Context, _ *model.Team) error      { return nil }
@@ -115,13 +115,13 @@ func (m *mockAdminTeamRepo) FindTeamsByUserIDs(_ context.Context, _ []uint) (map
 func TestAdminListUsers_Success(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
 		users: []*model.User{
-			{BaseModel: model.BaseModel{ID: 1}, Username: "alice", DisplayName: "Alice", CanCreateTeam: true},
-			{BaseModel: model.BaseModel{ID: 2}, Username: "bob", DisplayName: "Bob", CanCreateTeam: false},
+			{BaseModel: model.BaseModel{ID: 1}, Username: "alice", DisplayName: "Alice"},
+			{BaseModel: model.BaseModel{ID: 2}, Username: "bob", DisplayName: "Bob"},
 		},
 	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
 
-	items, total, err := svc.ListUsers(context.Background(), "", nil, 1, 20)
+	items, total, err := svc.ListUsers(context.Background(), "", 1, 20)
 	require.NoError(t, err)
 	assert.Equal(t, 2, total)
 	assert.Len(t, items, 2)
@@ -133,7 +133,7 @@ func TestAdminListUsers_Empty(t *testing.T) {
 	userRepo := &mockAdminUserRepo{users: []*model.User{}}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
 
-	items, total, err := svc.ListUsers(context.Background(), "", nil, 1, 20)
+	items, total, err := svc.ListUsers(context.Background(), "", 1, 20)
 	require.NoError(t, err)
 	assert.Equal(t, 0, total)
 	assert.Empty(t, items)
@@ -143,7 +143,7 @@ func TestAdminListUsers_RepoError(t *testing.T) {
 	userRepo := &mockAdminUserRepo{err: errors.New("db error")}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
 
-	_, _, err := svc.ListUsers(context.Background(), "", nil, 1, 20)
+	_, _, err := svc.ListUsers(context.Background(), "", 1, 20)
 	assert.Error(t, err)
 }
 
@@ -157,29 +157,12 @@ func TestAdminListUsers_SearchFilter(t *testing.T) {
 	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
 
-	items, total, err := svc.ListUsers(context.Background(), "alice", nil, 1, 20)
+	items, total, err := svc.ListUsers(context.Background(), "alice", 1, 20)
 	require.NoError(t, err)
 	assert.Equal(t, 2, total)
 	assert.Len(t, items, 2)
 	assert.Equal(t, "alice", items[0].Username)
 	assert.Equal(t, "charlie", items[1].Username)
-}
-
-func TestAdminListUsers_CanCreateTeamFilter(t *testing.T) {
-	userRepo := &mockAdminUserRepo{
-		users: []*model.User{
-			{BaseModel: model.BaseModel{ID: 1}, Username: "alice", CanCreateTeam: true},
-			{BaseModel: model.BaseModel{ID: 2}, Username: "bob", CanCreateTeam: false},
-		},
-	}
-	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
-
-	canCreate := true
-	items, total, err := svc.ListUsers(context.Background(), "", &canCreate, 1, 20)
-	require.NoError(t, err)
-	assert.Equal(t, 1, total)
-	assert.Len(t, items, 1)
-	assert.Equal(t, "alice", items[0].Username)
 }
 
 func TestAdminListUsers_Pagination(t *testing.T) {
@@ -193,7 +176,7 @@ func TestAdminListUsers_Pagination(t *testing.T) {
 	userRepo := &mockAdminUserRepo{users: users}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
 
-	items, total, err := svc.ListUsers(context.Background(), "", nil, 2, 2)
+	items, total, err := svc.ListUsers(context.Background(), "", 2, 2)
 	require.NoError(t, err)
 	assert.Equal(t, 5, total)
 	assert.Len(t, items, 2)
@@ -214,7 +197,7 @@ func TestAdminListUsers_WithTeams(t *testing.T) {
 	}
 	svc := NewAdminService(userRepo, teamRepo)
 
-	items, total, err := svc.ListUsers(context.Background(), "", nil, 1, 20)
+	items, total, err := svc.ListUsers(context.Background(), "", 1, 20)
 	require.NoError(t, err)
 	assert.Equal(t, 1, total)
 	require.Len(t, items, 1)
@@ -270,13 +253,11 @@ func TestAdminCreateUser_Success(t *testing.T) {
 	svc := NewAdminService(userRepo, teamRepo)
 
 	teamID := uint(10)
-	canCreate := true
 	req := &dto.CreateUserReq{
-		Username:      "newuser",
-		DisplayName:   "New User",
-		Email:         "new@test.com",
-		TeamID:        &teamID,
-		CanCreateTeam: &canCreate,
+		Username:    "newuser",
+		DisplayName: "New User",
+		Email:       "new@test.com",
+		TeamID:      &teamID,
 	}
 
 	user, err := svc.CreateUser(context.Background(), req)
@@ -285,7 +266,6 @@ func TestAdminCreateUser_Success(t *testing.T) {
 	assert.Equal(t, "New User", user.DisplayName)
 	assert.Equal(t, "new@test.com", user.Email)
 	assert.Equal(t, "enabled", user.Status)
-	assert.True(t, user.CanCreateTeam)
 	assert.NotEmpty(t, user.InitialPassword)
 	assert.Len(t, user.InitialPassword, 12)
 
@@ -431,57 +411,6 @@ func TestAdminToggleUserStatus_UserNotFound(t *testing.T) {
 
 	_, err := svc.ToggleUserStatus(context.Background(), 1, 999, "disabled")
 	assert.ErrorIs(t, err, apperrors.ErrNotFound)
-}
-
-// ---------------------------------------------------------------------------
-// Tests: SetCanCreateTeam
-// ---------------------------------------------------------------------------
-
-func TestSetCanCreateTeam_CannotModifySelf(t *testing.T) {
-	userRepo := &mockAdminUserRepo{}
-	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
-
-	err := svc.SetCanCreateTeam(context.Background(), 1, 1, true)
-	assert.ErrorIs(t, err, apperrors.ErrCannotModifySelf)
-}
-
-func TestSetCanCreateTeam_TargetNotFound(t *testing.T) {
-	userRepo := &mockAdminUserRepo{findErr: errors.New("not found")}
-	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
-
-	err := svc.SetCanCreateTeam(context.Background(), 1, 99, true)
-	assert.Error(t, err)
-}
-
-func TestSetCanCreateTeam_Success(t *testing.T) {
-	targetUser := &model.User{
-		BaseModel:     model.BaseModel{ID: 5},
-		Username:      "bob",
-		DisplayName:   "Bob",
-		CanCreateTeam: false,
-	}
-	userRepo := &mockAdminUserRepo{user: targetUser}
-	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
-
-	err := svc.SetCanCreateTeam(context.Background(), 1, 5, true)
-	require.NoError(t, err)
-	assert.True(t, targetUser.CanCreateTeam)
-	assert.Equal(t, userRepo.updated, targetUser)
-}
-
-func TestSetCanCreateTeam_Revoke(t *testing.T) {
-	targetUser := &model.User{
-		BaseModel:     model.BaseModel{ID: 5},
-		Username:      "bob",
-		DisplayName:   "Bob",
-		CanCreateTeam: true,
-	}
-	userRepo := &mockAdminUserRepo{user: targetUser}
-	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
-
-	err := svc.SetCanCreateTeam(context.Background(), 1, 5, false)
-	require.NoError(t, err)
-	assert.False(t, targetUser.CanCreateTeam)
 }
 
 // ---------------------------------------------------------------------------

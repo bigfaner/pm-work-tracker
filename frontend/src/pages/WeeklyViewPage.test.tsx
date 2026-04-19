@@ -533,12 +533,37 @@ describe('WeeklyViewPage', () => {
     })
   })
 
-  // --- Legend ---
 
-  it('renders legend at the bottom', async () => {
+  // --- Week selector change produces correct Monday ---
+
+  it('week selector change sends correct Monday date to API', async () => {
+    const user = userEvent.setup()
+    const requests: string[] = []
+    server.use(
+      http.get('/api/v1/teams/:teamId/views/weekly', ({ request }) => {
+        const url = new URL(request.url)
+        const weekStart = url.searchParams.get('weekStart') || ''
+        requests.push(weekStart)
+        return HttpResponse.json({ code: 0, data: mockWeeklyResponse })
+      }),
+    )
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText('图例：')).toBeInTheDocument()
+      expect(screen.getByText('用户认证模块开发')).toBeInTheDocument()
     })
+    requests.length = 0
+
+    // Simulate selecting week 15 of 2026
+    const weekInput = screen.getByTestId('week-selector') as HTMLInputElement
+    const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set!
+    nativeSetter.call(weekInput, '2026-W15')
+    weekInput.dispatchEvent(new Event('input', { bubbles: true }))
+    weekInput.dispatchEvent(new Event('change', { bubbles: true }))
+
+    await waitFor(() => {
+      expect(requests.length).toBeGreaterThanOrEqual(1)
+    })
+    // ISO W15 of 2026 starts Monday April 6
+    expect(requests[requests.length - 1]).toBe('2026-04-06')
   })
 })

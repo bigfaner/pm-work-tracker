@@ -49,7 +49,6 @@ func TestLogin_Success(t *testing.T) {
 		Username:      "alice",
 		DisplayName:   "Alice",
 		IsSuperAdmin:  true,
-		CanCreateTeam: true,
 	}
 	// GORM Model has ID field
 	authSvc.loginResult.user.ID = 1
@@ -79,12 +78,10 @@ func TestLogin_Success(t *testing.T) {
 	user, ok := data["user"].(map[string]interface{})
 	require.True(t, ok, "user should be an object")
 
-	// Response shape per task: id, username, displayName, isSuperAdmin, canCreateTeam
 	assert.Equal(t, float64(1), user["id"])
 	assert.Equal(t, "alice", user["username"])
 	assert.Equal(t, "Alice", user["displayName"])
 	assert.Equal(t, true, user["isSuperAdmin"])
-	assert.Equal(t, true, user["canCreateTeam"])
 }
 
 func TestLogin_MissingUsername_Returns400(t *testing.T) {

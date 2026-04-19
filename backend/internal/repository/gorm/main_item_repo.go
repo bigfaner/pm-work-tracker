@@ -90,6 +90,7 @@ func (r *mainItemRepo) NextCode(ctx context.Context, teamID uint) (string, error
 	var maxCode *string
 	err := r.db.WithContext(ctx).
 		Model(&model.MainItem{}).
+		Unscoped().
 		Where("team_id = ?", teamID).
 		Select("MAX(code)").
 		Scan(&maxCode).Error

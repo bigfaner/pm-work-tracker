@@ -984,6 +984,75 @@ func TestWeeklyComparison_RepoErrors(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestWeeklyComparison_SubItemCreatedAfterWeek_NotActive(t *testing.T) {
+	// Viewing week April 6-12, but sub-item was created April 14 (after that week)
+	weekStart := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{
+				BaseModel:  model.BaseModel{ID: 10, CreatedAt: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
+				TeamID:     1,
+				MainItemID: 1,
+				Title:      "Future Sub",
+				Status:     "进行中",
+				Completion: 60,
+			},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	// Main item with no active sub-items in the viewed week should be omitted entirely
+	assert.Empty(t, result.Groups)
+}
+
+func TestWeeklyComparison_SubItemCompletedBeforeWeek_NotActive(t *testing.T) {
+	// Viewing week April 13-19, but sub-item was completed April 10 (before that week)
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	actualEnd := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 100},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{
+				BaseModel:      model.BaseModel{ID: 10, CreatedAt: time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)},
+				TeamID:         1,
+				MainItemID:     1,
+				Title:          "Old Completed Sub",
+				Status:         "已完成",
+				Completion:     100,
+				ActualEndDate:  &actualEnd,
+			},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	require.Len(t, result.Groups, 1)
+	group := result.Groups[0]
+	// Sub-item completed before the week should go to completedNoChange, not thisWeek
+	assert.Empty(t, group.ThisWeek)
+	assert.Empty(t, group.LastWeek)
+	require.Len(t, group.CompletedNoChange, 1)
+	assert.Equal(t, uint(10), group.CompletedNoChange[0].ID)
+}
+
 func ptrTime(t time.Time) *time.Time { return &t }
 
 func TestGanttView_EmptyTeam_NoItems(t *testing.T) {

@@ -12,7 +12,6 @@ const mockUser: User = {
   username: 'testuser',
   displayName: '张明',
   isSuperAdmin: false,
-  canCreateTeam: false,
 }
 
 const superAdminUser: User = {
@@ -69,7 +68,7 @@ describe('Sidebar', () => {
   it('renders navigation items with correct labels', () => {
     // Set permissions so 甘特图 is visible
     useAuthStore.getState().setPermissions({
-      isSuperadmin: false,
+      isSuperAdmin: false,
       teamPermissions: { 1: ['view:gantt'] },
     })
     renderWithRouter()
@@ -105,7 +104,7 @@ describe('Sidebar', () => {
     useAuthStore.getState().clearAuth()
     useAuthStore.getState().setAuth('token', superAdminUser)
     useAuthStore.getState().setPermissions({
-      isSuperadmin: true,
+      isSuperAdmin: true,
       teamPermissions: {},
     })
     renderWithRouter()
@@ -145,7 +144,7 @@ describe('Sidebar', () => {
     useAuthStore.getState().clearAuth()
     useAuthStore.getState().setAuth('token', superAdminUser)
     useAuthStore.getState().setPermissions({
-      isSuperadmin: true,
+      isSuperAdmin: true,
       teamPermissions: {},
     })
     renderWithRouter()

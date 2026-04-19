@@ -25,7 +25,6 @@ describe('Permission-driven UI', () => {
       username: 'testuser',
       displayName: 'Test User',
       isSuperAdmin: false,
-      canCreateTeam: false,
     })
     useTeamStore.getState().setTeams([])
     useTeamStore.getState().setCurrentTeam(null)
@@ -33,7 +32,7 @@ describe('Permission-driven UI', () => {
 
   describe('Sidebar - view:gantt permission', () => {
     it('hides gantt nav item when user lacks view:gantt permission', async () => {
-      useAuthStore.getState().setPermissions({ isSuperadmin: false, teamPermissions: {} })
+      useAuthStore.getState().setPermissions({ isSuperAdmin: false, teamPermissions: {} })
       const { default: Sidebar } = await import('@/components/layout/Sidebar')
       render(
         <MemoryRouter>
@@ -47,7 +46,7 @@ describe('Permission-driven UI', () => {
 
     it('shows gantt nav item when user has view:gantt permission', async () => {
       useAuthStore.getState().setPermissions({
-        isSuperadmin: false,
+        isSuperAdmin: false,
         teamPermissions: { 1: ['view:gantt'] },
       })
       const { default: Sidebar } = await import('@/components/layout/Sidebar')
@@ -65,7 +64,7 @@ describe('Permission-driven UI', () => {
   describe('Sidebar - admin items use permission codes', () => {
     it('shows user management when user has user:read permission', async () => {
       useAuthStore.getState().setPermissions({
-        isSuperadmin: false,
+        isSuperAdmin: false,
         teamPermissions: { 1: ['user:read'] },
       })
       const { default: Sidebar } = await import('@/components/layout/Sidebar')
@@ -81,7 +80,7 @@ describe('Permission-driven UI', () => {
 
     it('shows role management when user has user:manage_role permission', async () => {
       useAuthStore.getState().setPermissions({
-        isSuperadmin: false,
+        isSuperAdmin: false,
         teamPermissions: { 1: ['user:manage_role'] },
       })
       const { default: Sidebar } = await import('@/components/layout/Sidebar')
@@ -98,7 +97,7 @@ describe('Permission-driven UI', () => {
 
   describe('TeamManagementPage - team:create permission', () => {
     it('hides create team button without team:create permission', async () => {
-      useAuthStore.getState().setPermissions({ isSuperadmin: false, teamPermissions: {} })
+      useAuthStore.getState().setPermissions({ isSuperAdmin: false, teamPermissions: {} })
       server.use(http.get('/api/v1/teams', () => HttpResponse.json({ code: 0, data: [] })))
       const { default: TeamManagementPage } = await import('@/pages/TeamManagementPage')
       render(
@@ -113,7 +112,7 @@ describe('Permission-driven UI', () => {
 
     it('shows create team button with team:create permission', async () => {
       useAuthStore.getState().setPermissions({
-        isSuperadmin: false,
+        isSuperAdmin: false,
         teamPermissions: { 1: ['team:create'] },
       })
       server.use(http.get('/api/v1/teams', () => HttpResponse.json({ code: 0, data: [] })))
@@ -167,14 +166,14 @@ describe('Permission-driven UI', () => {
     }
 
     it('hides invite button without team:invite permission', async () => {
-      useAuthStore.getState().setPermissions({ isSuperadmin: false, teamPermissions: { 1: [] } })
+      useAuthStore.getState().setPermissions({ isSuperAdmin: false, teamPermissions: { 1: [] } })
       await renderTeamDetail()
       await waitFor(() => expect(screen.getByText('成员列表')).toBeInTheDocument())
       expect(screen.queryByText('添加成员')).not.toBeInTheDocument()
     })
 
     it('hides dissolve button without team:delete permission', async () => {
-      useAuthStore.getState().setPermissions({ isSuperadmin: false, teamPermissions: { 1: [] } })
+      useAuthStore.getState().setPermissions({ isSuperAdmin: false, teamPermissions: { 1: [] } })
       await renderTeamDetail()
       await waitFor(() => expect(screen.getByText('成员列表')).toBeInTheDocument())
       // The "解散团队" label still appears, but the danger button should not
@@ -184,7 +183,7 @@ describe('Permission-driven UI', () => {
 
     it('shows invite button with team:invite permission', async () => {
       useAuthStore.getState().setPermissions({
-        isSuperadmin: false,
+        isSuperAdmin: false,
         teamPermissions: { 1: ['team:invite'] },
       })
       await renderTeamDetail()

@@ -147,12 +147,11 @@ describe('TeamDetailPage', () => {
     setupHandlers()
     // Set user and permissions atomically to avoid race conditions
     useAuthStore.setState({
-      user: { id: 1, username: 'zhangming', displayName: '张明', isSuperAdmin: false, canCreateTeam: true },
       isAuthenticated: true,
       isSuperAdmin: false,
       token: 'test-token',
       permissions: {
-        isSuperadmin: false,
+        isSuperAdmin: false,
         teamPermissions: { 1: ['team:invite', 'team:remove', 'team:transfer', 'team:delete'] },
       },
       permissionsLoadedAt: Date.now(),

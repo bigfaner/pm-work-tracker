@@ -20,7 +20,6 @@ describe('shared TypeScript interfaces', () => {
       username: 'testuser',
       displayName: 'Test User',
       isSuperAdmin: false,
-      canCreateTeam: false,
     }
     expect(user.username).toBe('testuser')
     expect(user.isSuperAdmin).toBe(false)
@@ -140,10 +139,10 @@ describe('shared TypeScript interfaces', () => {
 
   it('should define a valid PermissionData', () => {
     const permData: PermissionData = {
-      isSuperadmin: false,
+      isSuperAdmin: false,
       teamPermissions: { 1: ['team:read', 'team:write'] },
     }
-    expect(permData.isSuperadmin).toBe(false)
+    expect(permData.isSuperAdmin).toBe(false)
     expect(permData.teamPermissions[1]).toContain('team:read')
   })
 
