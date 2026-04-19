@@ -94,6 +94,7 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     const sub1Resp = await request.post(`/api/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
+        mainItemId: Number(testMainItemId),
         title: 'E2E子事项-进度测试A',
         priority: 'P2',
         assigneeId: 1,
@@ -108,6 +109,7 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     const sub2Resp = await request.post(`/api/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
+        mainItemId: Number(testMainItemId),
         title: 'E2E子事项-进度测试B',
         priority: 'P3',
         assigneeId: 1,
@@ -178,7 +180,13 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
       const dayOfYear = Math.floor((monday.getTime() - jan1.getTime()) / 86400000);
       const weekNum = Math.ceil((dayOfYear + jan1.getUTCDay() + 1) / 7);
       const weekValue = `${year}-W${String(weekNum).padStart(2, '0')}`;
-      await weekInput.fill(weekValue);
+      // Use evaluate to reliably set the week input value and trigger React's onChange
+      await weekInput.evaluate((input: HTMLInputElement, val: string) => {
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+        nativeInputValueSetter?.call(input, val);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }, weekValue);
       await page.waitForTimeout(2000);
     }
   });
