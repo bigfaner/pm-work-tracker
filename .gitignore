@@ -41,8 +41,7 @@ docs/harness-reports/*
 frontend/coverage/*
 frontend/dist/*
 frontend/.vite/deps/*
-docs/features/*/testing/scripts/node_modules/*
-docs/features/*/testing/results/screenshots/*
+**/node_modules/*
 docs/features/*/testing/results/*
 backend/data/*
 frontend/test-results/*

@@ -1,0 +1,11 @@
+{
+  "name": "pm-work-tracker-e2e-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:api": "tsx api.spec.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  }
+}
