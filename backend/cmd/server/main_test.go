@@ -168,14 +168,14 @@ func TestRun_WiredRouterHealthCheck(t *testing.T) {
 		UserRepo: userRepo,
 		RoleRepo: gormrepo.NewGormRoleRepo(db),
 		Auth:     handler.NewAuthHandler(authSvc),
-		Team:     handler.NewTeamHandler(),
-		MainItem: handler.NewMainItemHandler(),
-		SubItem:  handler.NewSubItemHandler(),
+		Team:     handler.NewTeamHandler(&handler.StubTeamSvc{}, &handler.StubRouterRepoUser{}),
+		MainItem: handler.NewMainItemHandler(&handler.StubMainItemSvc{}, &handler.StubRouterRepoUser{}, &handler.StubRouterRepoSubItem{}),
+		SubItem:  handler.NewSubItemHandler(&handler.StubSubItemSvc{}),
 		Progress: handler.NewProgressHandler(),
-		ItemPool: handler.NewItemPoolHandler(),
+		ItemPool: handler.NewItemPoolHandler(&handler.StubItemPoolSvc{}, &handler.StubRouterRepoUser{}, &handler.StubRouterRepoMainItem{}),
 		View:     handler.NewViewHandler(),
 		Report:   handler.NewReportHandler(),
-		Admin:    handler.NewAdminHandler(),
+		Admin:    handler.NewAdminHandler(&handler.StubAdminSvc{}),
 	}
 
 	r := handler.SetupRouter(deps)

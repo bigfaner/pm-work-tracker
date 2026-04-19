@@ -115,7 +115,7 @@ func (m *mockAdminService) ListAllTeams(_ context.Context) ([]*dto.AdminTeamDTO,
 func depsWithAdminSvc(t *testing.T, svc *mockAdminService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.Admin = NewAdminHandlerWithDeps(svc)
+	deps.Admin = NewAdminHandler(svc)
 	return deps
 }
 

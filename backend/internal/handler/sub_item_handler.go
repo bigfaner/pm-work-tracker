@@ -18,13 +18,11 @@ type SubItemHandler struct {
 	svc service.SubItemService
 }
 
-// NewSubItemHandler creates a new SubItemHandler (stub, for router setup before service is ready).
-func NewSubItemHandler() *SubItemHandler {
-	return &SubItemHandler{}
-}
-
-// NewSubItemHandlerWithDeps creates a new SubItemHandler with service dependency.
-func NewSubItemHandlerWithDeps(svc service.SubItemService) *SubItemHandler {
+// NewSubItemHandler creates a new SubItemHandler with service dependency.
+func NewSubItemHandler(svc service.SubItemService) *SubItemHandler {
+	if svc == nil {
+		panic("sub_item_handler: subItemService must not be nil")
+	}
 	return &SubItemHandler{svc: svc}
 }
 
@@ -71,11 +69,6 @@ func parseItemIDAsUint(c *gin.Context) (uint, bool) {
 
 // Create handles POST /api/v1/teams/:teamId/main-items/:itemId/sub-items
 func (h *SubItemHandler) Create(c *gin.Context) {
-	if h.svc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	teamID := middleware.GetTeamID(c)
 	callerID := middleware.GetUserID(c)
 
@@ -96,11 +89,6 @@ func (h *SubItemHandler) Create(c *gin.Context) {
 
 // List handles GET /api/v1/teams/:teamId/main-items/:itemId/sub-items
 func (h *SubItemHandler) List(c *gin.Context) {
-	if h.svc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	teamID := middleware.GetTeamID(c)
 
 	mainIDStr := c.Param("itemId")
@@ -149,11 +137,6 @@ func (h *SubItemHandler) List(c *gin.Context) {
 
 // Get handles GET /api/v1/teams/:teamId/sub-items/:subId
 func (h *SubItemHandler) Get(c *gin.Context) {
-	if h.svc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	subID, ok := parseSubID(c)
 	if !ok {
 		return
@@ -172,11 +155,6 @@ func (h *SubItemHandler) Get(c *gin.Context) {
 
 // Update handles PUT /api/v1/teams/:teamId/sub-items/:subId
 func (h *SubItemHandler) Update(c *gin.Context) {
-	if h.svc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	subID, ok := parseSubID(c)
 	if !ok {
 		return
@@ -225,11 +203,6 @@ func (h *SubItemHandler) Update(c *gin.Context) {
 
 // ChangeStatus handles PUT /api/v1/teams/:teamId/sub-items/:subId/status
 func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
-	if h.svc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	subID, ok := parseSubID(c)
 	if !ok {
 		return
@@ -273,11 +246,6 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 
 // Assign handles PUT /api/v1/teams/:teamId/sub-items/:subId/assignee
 func (h *SubItemHandler) Assign(c *gin.Context) {
-	if h.svc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	subID, ok := parseSubID(c)
 	if !ok {
 		return

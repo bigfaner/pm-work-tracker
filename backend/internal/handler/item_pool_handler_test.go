@@ -120,7 +120,7 @@ func depsWithItemPoolSvc(t *testing.T, svc *mockItemPoolService, userRepo reposi
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	deps.ItemPool = NewItemPoolHandlerWithDeps(svc, userRepo, nil)
+	deps.ItemPool = NewItemPoolHandler(svc, userRepo, &mockMainItemRepoForPool{})
 	return deps
 }
 
@@ -129,7 +129,7 @@ func depsWithItemPoolMemberRole(t *testing.T, svc *mockItemPoolService, userRepo
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "member", RoleID: ptrUint(2)}}
-	deps.ItemPool = NewItemPoolHandlerWithDeps(svc, userRepo, nil)
+	deps.ItemPool = NewItemPoolHandler(svc, userRepo, &mockMainItemRepoForPool{})
 	return deps
 }
 
@@ -839,4 +839,27 @@ func TestAssignItemPool_ReturnsSubItemId(t *testing.T) {
 	data, ok := resp["data"].(map[string]interface{})
 	require.True(t, ok)
 	assert.Equal(t, float64(123), data["subItemId"])
+}
+
+// mockMainItemRepoForPool is a minimal mock for repository.MainItemRepo used by item pool tests.
+type mockMainItemRepoForPool struct{}
+
+func (m *mockMainItemRepoForPool) Create(_ context.Context, _ *model.MainItem) error { return nil }
+func (m *mockMainItemRepoForPool) FindByID(_ context.Context, _ uint) (*model.MainItem, error) {
+	return nil, nil
+}
+func (m *mockMainItemRepoForPool) Update(_ context.Context, _ *model.MainItem, _ map[string]interface{}) error {
+	return nil
+}
+func (m *mockMainItemRepoForPool) List(_ context.Context, _ uint, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+	return nil, nil
+}
+func (m *mockMainItemRepoForPool) NextCode(_ context.Context, _ uint) (string, error) {
+	return "", nil
+}
+func (m *mockMainItemRepoForPool) CountByTeam(_ context.Context, _ uint) (int64, error) {
+	return 0, nil
+}
+func (m *mockMainItemRepoForPool) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
+	return nil, nil
 }

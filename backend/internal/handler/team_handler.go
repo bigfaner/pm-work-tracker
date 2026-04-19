@@ -20,24 +20,20 @@ type TeamHandler struct {
 	userRepo repository.UserRepo
 }
 
-// NewTeamHandler creates a new TeamHandler (stub, for router setup before service is ready).
-func NewTeamHandler() *TeamHandler {
-	return &TeamHandler{}
-}
-
-// NewTeamHandlerWithDeps creates a new TeamHandler with service and repo dependencies.
-func NewTeamHandlerWithDeps(teamSvc service.TeamService, userRepo repository.UserRepo) *TeamHandler {
+// NewTeamHandler creates a new TeamHandler with service and repo dependencies.
+func NewTeamHandler(teamSvc service.TeamService, userRepo repository.UserRepo) *TeamHandler {
+	if teamSvc == nil {
+		panic("team_handler: teamService must not be nil")
+	}
+	if userRepo == nil {
+		panic("team_handler: userRepo must not be nil")
+	}
 	return &TeamHandler{teamSvc: teamSvc, userRepo: userRepo}
 }
 
 // Create handles POST /api/v1/teams
 // Permission check (team:create) is handled by RequirePermission middleware.
 func (h *TeamHandler) Create(c *gin.Context) {
-	if h.teamSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	userID := middleware.GetUserID(c)
 
 	var req dto.CreateTeamReq
@@ -57,11 +53,6 @@ func (h *TeamHandler) Create(c *gin.Context) {
 
 // List handles GET /api/v1/teams
 func (h *TeamHandler) List(c *gin.Context) {
-	if h.teamSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	userID := middleware.GetUserID(c)
 	isSuperAdmin := middleware.IsSuperAdmin(c)
 
@@ -80,11 +71,6 @@ func (h *TeamHandler) List(c *gin.Context) {
 
 // Get handles GET /api/v1/teams/:teamId
 func (h *TeamHandler) Get(c *gin.Context) {
-	if h.teamSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	teamID := middleware.GetTeamID(c)
 
 	detail, err := h.teamSvc.GetTeamDetail(c.Request.Context(), teamID)
@@ -98,11 +84,6 @@ func (h *TeamHandler) Get(c *gin.Context) {
 
 // Update handles PUT /api/v1/teams/:teamId
 func (h *TeamHandler) Update(c *gin.Context) {
-	if h.teamSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	teamID := middleware.GetTeamID(c)
 	pmID := middleware.GetUserID(c)
 
@@ -123,11 +104,6 @@ func (h *TeamHandler) Update(c *gin.Context) {
 
 // Disband handles DELETE /api/v1/teams/:teamId
 func (h *TeamHandler) Disband(c *gin.Context) {
-	if h.teamSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	teamID := middleware.GetTeamID(c)
 	callerID := middleware.GetUserID(c)
 
@@ -148,11 +124,6 @@ func (h *TeamHandler) Disband(c *gin.Context) {
 
 // ListMembers handles GET /api/v1/teams/:teamId/members
 func (h *TeamHandler) ListMembers(c *gin.Context) {
-	if h.teamSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	teamID := middleware.GetTeamID(c)
 
 	members, err := h.teamSvc.ListMembers(c.Request.Context(), teamID)
@@ -166,11 +137,6 @@ func (h *TeamHandler) ListMembers(c *gin.Context) {
 
 // InviteMember handles POST /api/v1/teams/:teamId/members
 func (h *TeamHandler) InviteMember(c *gin.Context) {
-	if h.teamSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	teamID := middleware.GetTeamID(c)
 	pmID := middleware.GetUserID(c)
 
@@ -191,11 +157,6 @@ func (h *TeamHandler) InviteMember(c *gin.Context) {
 
 // RemoveMember handles DELETE /api/v1/teams/:teamId/members/:userId
 func (h *TeamHandler) RemoveMember(c *gin.Context) {
-	if h.teamSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	teamID := middleware.GetTeamID(c)
 	pmID := middleware.GetUserID(c)
 
@@ -217,11 +178,6 @@ func (h *TeamHandler) RemoveMember(c *gin.Context) {
 
 // TransferPM handles PUT /api/v1/teams/:teamId/pm
 func (h *TeamHandler) TransferPM(c *gin.Context) {
-	if h.teamSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	teamID := middleware.GetTeamID(c)
 	pmID := middleware.GetUserID(c)
 

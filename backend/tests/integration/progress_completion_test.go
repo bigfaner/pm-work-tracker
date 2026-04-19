@@ -365,14 +365,14 @@ func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engi
 		UserRepo: userRepo,
 		RoleRepo: gormrepo.NewGormRoleRepo(db),
 		Auth:     handler.NewAuthHandler(authSvc),
-		Team:     handler.NewTeamHandlerWithDeps(teamSvc, userRepo),
-		MainItem: handler.NewMainItemHandlerWithDeps(mainItemSvc, userRepo, subItemRepo),
-		SubItem:  handler.NewSubItemHandlerWithDeps(subItemSvc),
+		Team:     handler.NewTeamHandler(teamSvc, userRepo),
+		MainItem: handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
+		SubItem:  handler.NewSubItemHandler(subItemSvc),
 		Progress: handler.NewProgressHandlerWithDeps(progressSvc, userRepo),
-		ItemPool: handler.NewItemPoolHandlerWithDeps(itemPoolSvc, userRepo, nil),
+		ItemPool: handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
 		View:     handler.NewViewHandlerWithDeps(viewSvc),
 		Report:   handler.NewReportHandlerWithDeps(reportSvc),
-		Admin:    handler.NewAdminHandlerWithDeps(adminSvc),
+		Admin:    handler.NewAdminHandler(adminSvc),
 	}
 
 	r := handler.SetupRouter(deps)

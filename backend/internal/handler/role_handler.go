@@ -15,23 +15,16 @@ type RoleHandler struct {
 	roleSvc service.RoleService
 }
 
-// NewRoleHandler creates a RoleHandler stub (nil service → 501 responses).
-func NewRoleHandler() *RoleHandler {
-	return &RoleHandler{}
-}
-
-// NewRoleHandlerWithDeps creates a RoleHandler wired to a real RoleService.
-func NewRoleHandlerWithDeps(roleSvc service.RoleService) *RoleHandler {
+// NewRoleHandler creates a RoleHandler wired to a RoleService.
+func NewRoleHandler(roleSvc service.RoleService) *RoleHandler {
+	if roleSvc == nil {
+		panic("role_handler: roleService must not be nil")
+	}
 	return &RoleHandler{roleSvc: roleSvc}
 }
 
 // ListRoles handles GET /api/v1/admin/roles
 func (h *RoleHandler) ListRoles(c *gin.Context) {
-	if h.roleSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	items, err := h.roleSvc.ListRoles(c.Request.Context())
 	if err != nil {
 		apperrors.RespondError(c, err)
@@ -56,11 +49,6 @@ type CreateRoleReq struct {
 
 // CreateRole handles POST /api/v1/admin/roles
 func (h *RoleHandler) CreateRole(c *gin.Context) {
-	if h.roleSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	var req CreateRoleReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
@@ -82,11 +70,6 @@ func (h *RoleHandler) CreateRole(c *gin.Context) {
 
 // GetRole handles GET /api/v1/admin/roles/:id
 func (h *RoleHandler) GetRole(c *gin.Context) {
-	if h.roleSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	roleID, err := parseRoleID(c)
 	if err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
@@ -111,11 +94,6 @@ type UpdateRoleReq struct {
 
 // UpdateRole handles PUT /api/v1/admin/roles/:id
 func (h *RoleHandler) UpdateRole(c *gin.Context) {
-	if h.roleSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	roleID, err := parseRoleID(c)
 	if err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
@@ -143,11 +121,6 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 
 // DeleteRole handles DELETE /api/v1/admin/roles/:id
 func (h *RoleHandler) DeleteRole(c *gin.Context) {
-	if h.roleSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	roleID, err := parseRoleID(c)
 	if err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)

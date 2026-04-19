@@ -144,7 +144,7 @@ func depsWithMainItemSvc(t *testing.T, svc *mockMainItemService, userRepo reposi
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	deps.MainItem = NewMainItemHandlerWithDeps(svc, userRepo, subItemRepo)
+	deps.MainItem = NewMainItemHandler(svc, userRepo, subItemRepo)
 	return deps
 }
 
@@ -153,7 +153,7 @@ func depsWithMemberRoleMainItem(t *testing.T, svc *mockMainItemService, userRepo
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "member", RoleID: ptrUint(2)}}
-	deps.MainItem = NewMainItemHandlerWithDeps(svc, userRepo, subItemRepo)
+	deps.MainItem = NewMainItemHandler(svc, userRepo, subItemRepo)
 	return deps
 }
 
