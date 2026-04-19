@@ -76,6 +76,8 @@ func run(configPath string) error {
 	deps := &handler.Dependencies{
 		Config:   cfg,
 		TeamRepo: teamRepo,
+		UserRepo: userRepo,
+		RoleRepo: gormrepo.NewGormRoleRepo(db),
 		Auth:     handler.NewAuthHandler(authSvc),
 		Team:     handler.NewTeamHandlerWithDeps(teamSvc, userRepo),
 		MainItem: handler.NewMainItemHandlerWithDeps(mainItemSvc, userRepo, subItemRepo),

@@ -13,8 +13,8 @@ import (
 // It must run after AuthMiddleware in the middleware chain.
 //
 // It extracts teamId from the URL, checks membership (or SuperAdmin bypass),
-// and injects teamID + callerTeamRole into the Gin context.
-func TeamScopeMiddleware(teamRepo repository.TeamRepo) gin.HandlerFunc {
+// and injects teamID, callerTeamRole, and permCodes into the Gin context.
+func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleRepo) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 1. Parse teamId from URL param
 		teamIDStr := c.Param("teamId")
@@ -26,18 +26,16 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo) gin.HandlerFunc {
 		}
 		teamIDUint := uint(teamID)
 
-		// 2. Get caller identity from context (set by AuthMiddleware)
-		userRole := GetUserRole(c)
-
-		// 3. SuperAdmin bypasses membership check
-		if userRole == "superadmin" {
+		// 2. SuperAdmin bypasses membership check
+		if IsSuperAdmin(c) {
 			c.Set("teamID", teamIDUint)
 			c.Set("callerTeamRole", "superadmin")
+			c.Set("permCodes", []string{})
 			c.Next()
 			return
 		}
 
-		// 4. Look up TeamMember record
+		// 3. Look up TeamMember record
 		userID := GetUserID(c)
 		member, err := teamRepo.FindMember(c.Request.Context(), teamIDUint, userID)
 		if err != nil {
@@ -46,9 +44,22 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo) gin.HandlerFunc {
 			return
 		}
 
-		// 5. Inject teamID and callerTeamRole into context
+		// 4. Load permission codes from role
+		var permCodes []string
+		if member.RoleID != nil {
+			codes, err := roleRepo.ListPermissions(c.Request.Context(), *member.RoleID)
+			if err != nil {
+				c.Abort()
+				apperrors.RespondError(c, apperrors.ErrInternal)
+				return
+			}
+			permCodes = codes
+		}
+
+		// 5. Inject teamID, callerTeamRole, and permCodes into context
 		c.Set("teamID", teamIDUint)
 		c.Set("callerTeamRole", member.Role)
+		c.Set("permCodes", permCodes)
 		c.Next()
 	}
 }

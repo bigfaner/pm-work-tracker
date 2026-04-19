@@ -165,6 +165,8 @@ func TestRun_WiredRouterHealthCheck(t *testing.T) {
 	deps := &handler.Dependencies{
 		Config:   cfg,
 		TeamRepo: teamRepo,
+		UserRepo: userRepo,
+		RoleRepo: gormrepo.NewGormRoleRepo(db),
 		Auth:     handler.NewAuthHandler(authSvc),
 		Team:     handler.NewTeamHandler(),
 		MainItem: handler.NewMainItemHandler(),

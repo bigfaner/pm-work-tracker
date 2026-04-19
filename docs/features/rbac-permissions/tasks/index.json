@@ -69,7 +69,7 @@
       "dependencies": [
         "2.1"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "4.1-permission-middleware.md",
       "record": "records/4.1-permission-middleware.md"
     },

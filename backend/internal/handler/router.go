@@ -19,6 +19,8 @@ import (
 type Dependencies struct {
 	Config     *config.Config
 	TeamRepo   repository.TeamRepo
+	UserRepo   repository.UserRepo
+	RoleRepo   repository.RoleRepo
 	Auth       *AuthHandler
 	Team       *TeamHandler
 	MainItem   *MainItemHandler
@@ -61,14 +63,14 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 	{
 		// Rate limit login: 10 req/min per IP
 		authGroup.POST("/login", rateLimitMiddleware(10, time.Minute), deps.Auth.Login)
-		authGroup.POST("/logout", middleware.AuthMiddleware(deps.Config.Auth.JWTSecret), deps.Auth.Logout)
+		authGroup.POST("/logout", middleware.AuthMiddleware(deps.Config.Auth.JWTSecret, deps.UserRepo), deps.Auth.Logout)
 	}
 
 	// Team-scoped routes (require auth + team membership)
 	teamsGroup := v1.Group("/teams/:teamId")
 	teamsGroup.Use(
-		middleware.AuthMiddleware(deps.Config.Auth.JWTSecret),
-		middleware.TeamScopeMiddleware(deps.TeamRepo),
+		middleware.AuthMiddleware(deps.Config.Auth.JWTSecret, deps.UserRepo),
+		middleware.TeamScopeMiddleware(deps.TeamRepo, deps.RoleRepo),
 	)
 	{
 		// Team info
@@ -124,13 +126,13 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 	}
 
 	// Team list/create routes (outside :teamId group, auth only)
-	v1.POST("/teams", middleware.AuthMiddleware(deps.Config.Auth.JWTSecret), deps.Team.Create)
-	v1.GET("/teams", middleware.AuthMiddleware(deps.Config.Auth.JWTSecret), deps.Team.List)
+	v1.POST("/teams", middleware.AuthMiddleware(deps.Config.Auth.JWTSecret, deps.UserRepo), deps.Team.Create)
+	v1.GET("/teams", middleware.AuthMiddleware(deps.Config.Auth.JWTSecret, deps.UserRepo), deps.Team.List)
 
 	// Admin routes (superadmin only)
 	adminGroup := v1.Group("/admin")
 	adminGroup.Use(
-		middleware.AuthMiddleware(deps.Config.Auth.JWTSecret),
+		middleware.AuthMiddleware(deps.Config.Auth.JWTSecret, deps.UserRepo),
 		middleware.RequireRole("superadmin"),
 	)
 	{

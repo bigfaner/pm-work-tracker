@@ -102,38 +102,117 @@ func (m *mockTeamRepo) FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (
 // compile-time check that mockTeamRepo satisfies TeamRepo
 var _ repository.TeamRepo = (*mockTeamRepo)(nil)
 
-// capturedTeamContext captures teamID and callerTeamRole from the Gin context.
-type capturedTeamContext struct {
-	teamID   uint
-	teamRole string
+// mockRoleRepo is a testify mock for RoleRepo.
+type mockRoleRepo struct {
+	mock.Mock
 }
 
-// setupTeamScopeRouter creates a test router with AuthMiddleware + TeamScopeMiddleware
-// and a dummy handler that captures teamID and callerTeamRole.
-func setupTeamScopeRouter(teamRepo repository.TeamRepo) (*gin.Engine, *capturedTeamContext) {
+func (m *mockRoleRepo) List(ctx context.Context) ([]model.Role, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]model.Role), args.Error(1)
+}
+
+func (m *mockRoleRepo) FindByID(ctx context.Context, id uint) (*model.Role, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Role), args.Error(1)
+}
+
+func (m *mockRoleRepo) FindByName(ctx context.Context, name string) (*model.Role, error) {
+	args := m.Called(ctx, name)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Role), args.Error(1)
+}
+
+func (m *mockRoleRepo) Create(ctx context.Context, role *model.Role) error {
+	args := m.Called(ctx, role)
+	return args.Error(0)
+}
+
+func (m *mockRoleRepo) Update(ctx context.Context, role *model.Role) error {
+	args := m.Called(ctx, role)
+	return args.Error(0)
+}
+
+func (m *mockRoleRepo) Delete(ctx context.Context, id uint) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *mockRoleRepo) ListPermissions(ctx context.Context, roleID uint) ([]string, error) {
+	args := m.Called(ctx, roleID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]string), args.Error(1)
+}
+
+func (m *mockRoleRepo) SetPermissions(ctx context.Context, roleID uint, codes []string) error {
+	args := m.Called(ctx, roleID, codes)
+	return args.Error(0)
+}
+
+func (m *mockRoleRepo) CountMembersByRoleID(ctx context.Context, roleID uint) (int64, error) {
+	args := m.Called(ctx, roleID)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *mockRoleRepo) HasPermission(ctx context.Context, userID uint, code string) (bool, error) {
+	args := m.Called(ctx, userID, code)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *mockRoleRepo) GetUserTeamPermissions(ctx context.Context, userID uint) (map[uint][]string, error) {
+	args := m.Called(ctx, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(map[uint][]string), args.Error(1)
+}
+
+var _ repository.RoleRepo = (*mockRoleRepo)(nil)
+
+// capturedTeamContext captures teamID, callerTeamRole, and permCodes from the Gin context.
+type capturedTeamContext struct {
+	teamID    uint
+	teamRole  string
+	permCodes []string
+}
+
+// setupTeamScopeRouter creates a test router with a simulated AuthMiddleware + TeamScopeMiddleware
+// and a dummy handler that captures teamID, callerTeamRole, and permCodes.
+func setupTeamScopeRouter(teamRepo repository.TeamRepo, roleRepo repository.RoleRepo) (*gin.Engine, *capturedTeamContext) {
 	r := gin.New()
 	cc := &capturedTeamContext{}
 
-	// Simulate AuthMiddleware by setting userID and userRole from query params
+	// Simulate AuthMiddleware by setting userID, isSuperAdmin from query params
 	r.Use(func(c *gin.Context) {
 		uid := c.Query("userID")
-		role := c.Query("userRole")
+		isAdmin := c.Query("isSuperAdmin")
 		if uid != "" {
 			var id uint
 			fmt.Sscanf(uid, "%d", &id)
 			c.Set("userID", id)
 		}
-		if role != "" {
-			c.Set("userRole", role)
+		if isAdmin == "true" {
+			c.Set("isSuperAdmin", true)
 		}
 		c.Next()
 	})
 
-	r.Use(TeamScopeMiddleware(teamRepo))
+	r.Use(TeamScopeMiddleware(teamRepo, roleRepo))
 
 	r.GET("/api/v1/teams/:teamId/items", func(c *gin.Context) {
 		cc.teamID = GetTeamID(c)
 		cc.teamRole = GetCallerTeamRole(c)
+		cc.permCodes = GetPermCodes(c)
 		c.Status(http.StatusOK)
 	})
 
@@ -141,11 +220,12 @@ func setupTeamScopeRouter(teamRepo repository.TeamRepo) (*gin.Engine, *capturedT
 }
 
 func TestTeamScopeMiddleware_InvalidTeamID(t *testing.T) {
-	repo := new(mockTeamRepo)
-	r, _ := setupTeamScopeRouter(repo)
+	teamRepo := new(mockTeamRepo)
+	roleRepo := new(mockRoleRepo)
+	r, _ := setupTeamScopeRouter(teamRepo, roleRepo)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/abc/items?userID=1&userRole=member", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/abc/items?userID=1", nil)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -153,12 +233,13 @@ func TestTeamScopeMiddleware_InvalidTeamID(t *testing.T) {
 }
 
 func TestTeamScopeMiddleware_NonMember_Returns403(t *testing.T) {
-	repo := new(mockTeamRepo)
-	repo.On("FindMember", mock.Anything, uint(1), uint(2)).Return(nil, fmt.Errorf("not found"))
-	r, _ := setupTeamScopeRouter(repo)
+	teamRepo := new(mockTeamRepo)
+	roleRepo := new(mockRoleRepo)
+	teamRepo.On("FindMember", mock.Anything, uint(1), uint(2)).Return(nil, fmt.Errorf("not found"))
+	r, _ := setupTeamScopeRouter(teamRepo, roleRepo)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/1/items?userID=2&userRole=member", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/1/items?userID=2", nil)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusForbidden, w.Code)
@@ -166,54 +247,63 @@ func TestTeamScopeMiddleware_NonMember_Returns403(t *testing.T) {
 }
 
 func TestTeamScopeMiddleware_Member_SetsContext(t *testing.T) {
-	repo := new(mockTeamRepo)
-	repo.On("FindMember", mock.Anything, uint(5), uint(10)).Return(&model.TeamMember{
+	roleID := uint(3)
+	teamRepo := new(mockTeamRepo)
+	roleRepo := new(mockRoleRepo)
+	teamRepo.On("FindMember", mock.Anything, uint(5), uint(10)).Return(&model.TeamMember{
 		TeamID: 5,
 		UserID: 10,
 		Role:   "pm",
+		RoleID: &roleID,
 	}, nil)
-	r, cc := setupTeamScopeRouter(repo)
+	roleRepo.On("ListPermissions", mock.Anything, uint(3)).Return([]string{"team:update", "team:invite"}, nil)
+	r, cc := setupTeamScopeRouter(teamRepo, roleRepo)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/5/items?userID=10&userRole=pm", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/5/items?userID=10", nil)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, uint(5), cc.teamID)
 	assert.Equal(t, "pm", cc.teamRole)
+	assert.Equal(t, []string{"team:update", "team:invite"}, cc.permCodes)
 }
 
 func TestTeamScopeMiddleware_SuperAdmin_BypassesMembership(t *testing.T) {
-	repo := new(mockTeamRepo)
-	// FindMember should NOT be called for superadmin
-	r, cc := setupTeamScopeRouter(repo)
+	teamRepo := new(mockTeamRepo)
+	roleRepo := new(mockRoleRepo)
+	r, cc := setupTeamScopeRouter(teamRepo, roleRepo)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/99/items?userID=1&userRole=superadmin", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/99/items?userID=1&isSuperAdmin=true", nil)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, uint(99), cc.teamID)
 	assert.Equal(t, "superadmin", cc.teamRole)
-	repo.AssertNotCalled(t, "FindMember", mock.Anything, mock.Anything, mock.Anything)
+	assert.Equal(t, []string{}, cc.permCodes)
+	teamRepo.AssertNotCalled(t, "FindMember", mock.Anything, mock.Anything, mock.Anything)
 }
 
-func TestTeamScopeMiddleware_MemberRole_RegularMember(t *testing.T) {
-	repo := new(mockTeamRepo)
-	repo.On("FindMember", mock.Anything, uint(3), uint(7)).Return(&model.TeamMember{
+func TestTeamScopeMiddleware_MemberNoRoleID_SetsEmptyPermCodes(t *testing.T) {
+	teamRepo := new(mockTeamRepo)
+	roleRepo := new(mockRoleRepo)
+	teamRepo.On("FindMember", mock.Anything, uint(3), uint(7)).Return(&model.TeamMember{
 		TeamID: 3,
 		UserID: 7,
 		Role:   "member",
+		RoleID: nil,
 	}, nil)
-	r, cc := setupTeamScopeRouter(repo)
+	r, cc := setupTeamScopeRouter(teamRepo, roleRepo)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/3/items?userID=7&userRole=member", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/3/items?userID=7", nil)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, uint(3), cc.teamID)
 	assert.Equal(t, "member", cc.teamRole)
+	assert.Nil(t, cc.permCodes)
 }
 
 func TestGetTeamID_NoValue(t *testing.T) {

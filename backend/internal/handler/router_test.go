@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -30,6 +31,39 @@ func testDeps(t *testing.T) (*Dependencies, *gorm.DB) {
 	require.NoError(t, err)
 
 	teamRepo := gormrepo.NewGormTeamRepo(db)
+	userRepo := gormrepo.NewGormUserRepo(db)
+	roleRepo := gormrepo.NewGormRoleRepo(db)
+
+	// Auto-migrate required tables so AuthMiddleware can query users
+	err = db.AutoMigrate(&model.User{})
+	require.NoError(t, err)
+
+	// Seed test users so AuthMiddleware can load them.
+	// ID=1: regular member (used by most handler tests)
+	// ID=5: regular member (used by item pool and other handler tests)
+	require.NoError(t, db.Create(&model.User{
+		Username:     "testuser1",
+		DisplayName:  "Test User 1",
+		IsSuperAdmin: false,
+	}).Error)
+	require.NoError(t, db.Create(&model.User{
+		Username:     "testmember5",
+		DisplayName:  "Test Member 5",
+		IsSuperAdmin: false,
+	}).Error)
+	// Ensure we have user ID=5 by creating users until we reach it
+	for i := 3; i <= 5; i++ {
+		var count int64
+		db.Model(&model.User{}).Count(&count)
+		if count >= 5 {
+			break
+		}
+		db.Create(&model.User{
+			Username:     fmt.Sprintf("testuser%d", i),
+			DisplayName:  fmt.Sprintf("Test User %d", i),
+			IsSuperAdmin: false,
+		})
+	}
 
 	cfg := &config.Config{
 		Auth: config.AuthConfig{
@@ -46,6 +80,8 @@ func testDeps(t *testing.T) (*Dependencies, *gorm.DB) {
 	return &Dependencies{
 		Config:   cfg,
 		TeamRepo: teamRepo,
+		UserRepo: userRepo,
+		RoleRepo: roleRepo,
 		Auth:     NewAuthHandler(&stubAuthService{}),
 		Team:     NewTeamHandler(),
 		MainItem: NewMainItemHandler(),

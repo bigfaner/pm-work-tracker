@@ -362,6 +362,8 @@ func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engi
 	deps := &handler.Dependencies{
 		Config:   cfg,
 		TeamRepo: teamRepo,
+		UserRepo: userRepo,
+		RoleRepo: gormrepo.NewGormRoleRepo(db),
 		Auth:     handler.NewAuthHandler(authSvc),
 		Team:     handler.NewTeamHandlerWithDeps(teamSvc, userRepo),
 		MainItem: handler.NewMainItemHandlerWithDeps(mainItemSvc, userRepo, subItemRepo),
