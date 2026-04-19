@@ -2,22 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import client from './client'
 import { useAuthStore } from '@/store/auth'
 
-// Mock antd message
-vi.mock('antd', () => ({
-  message: {
-    error: vi.fn(),
-  },
-}))
-
-// Import the mocked message
-import { message } from 'antd'
-
-const mockMessage = vi.mocked(message)
-
 describe('API Client', () => {
   beforeEach(() => {
     useAuthStore.getState().clearAuth()
     vi.clearAllMocks()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
     // Reset window.location.href mock
     const originalLocation = window.location
     Object.defineProperty(window, 'location', {
@@ -45,11 +34,11 @@ describe('API Client', () => {
       useAuthStore.getState().setAuth('test-jwt-token', {
         id: 1,
         username: 'testuser',
-        display_name: 'Test User',
-        is_super_admin: false,
-        can_create_team: false,
-        created_at: '2026-01-01T00:00:00Z',
-        updated_at: '2026-01-01T00:00:00Z',
+        displayName: 'Test User',
+        isSuperAdmin: false,
+        canCreateTeam: false,
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
       })
 
       // Access the request interceptor directly through client
@@ -103,11 +92,11 @@ describe('API Client', () => {
       useAuthStore.getState().setAuth('token', {
         id: 1,
         username: 'u',
-        display_name: 'U',
-        is_super_admin: false,
-        can_create_team: false,
-        created_at: '',
-        updated_at: '',
+        displayName: 'U',
+        isSuperAdmin: false,
+        canCreateTeam: false,
+        createdAt: '',
+        updatedAt: '',
       })
 
       const handler = getRejectHandler()
@@ -118,36 +107,36 @@ describe('API Client', () => {
       expect(window.location.href).toBe('/login')
     })
 
-    it('should show error message on 403', async () => {
+    it('should log error on 403', async () => {
       const handler = getRejectHandler()
       const error = { response: { status: 403, data: {} } }
 
       await expect(handler(error)).rejects.toBe(error)
-      expect(mockMessage.error).toHaveBeenCalledWith('权限不足')
+      expect(console.error).toHaveBeenCalledWith('[API Error]', '权限不足')
     })
 
-    it('should show error message on 404', async () => {
+    it('should log error on 404', async () => {
       const handler = getRejectHandler()
       const error = { response: { status: 404, data: {} } }
 
       await expect(handler(error)).rejects.toBe(error)
-      expect(mockMessage.error).toHaveBeenCalledWith('资源不存在')
+      expect(console.error).toHaveBeenCalledWith('[API Error]', '资源不存在')
     })
 
-    it('should re-throw 422 errors without showing message', async () => {
+    it('should re-throw 422 errors without logging message', async () => {
       const handler = getRejectHandler()
       const error = { response: { status: 422, data: { code: 'VALIDATION_ERROR', message: 'bad' } } }
 
       await expect(handler(error)).rejects.toBe(error)
-      expect(mockMessage.error).not.toHaveBeenCalled()
+      expect(console.error).not.toHaveBeenCalled()
     })
 
-    it('should show error message on 500', async () => {
+    it('should log error on 500', async () => {
       const handler = getRejectHandler()
       const error = { response: { status: 500, data: {} } }
 
       await expect(handler(error)).rejects.toBe(error)
-      expect(mockMessage.error).toHaveBeenCalledWith('服务器错误，请稍后重试')
+      expect(console.error).toHaveBeenCalledWith('[API Error]', '服务器错误，请稍后重试')
     })
 
     it('should pass through network errors without response', async () => {
@@ -155,7 +144,7 @@ describe('API Client', () => {
       const error = new Error('Network Error')
 
       await expect(handler(error)).rejects.toThrow('Network Error')
-      expect(mockMessage.error).not.toHaveBeenCalled()
+      expect(console.error).not.toHaveBeenCalled()
     })
   })
 })

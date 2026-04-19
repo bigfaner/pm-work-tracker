@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -14,6 +15,8 @@ import (
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 )
+
+func uintPtr(v uint) *uint { return &v }
 
 // ---------------------------------------------------------------------------
 // Mock repos for ItemPoolService tests
@@ -132,7 +135,7 @@ type mockDBTx struct {
 	txFunc func(fc func(tx *gorm.DB) error) error
 }
 
-func (m *mockDBTx) Transaction(fc func(tx *gorm.DB) error) error {
+func (m *mockDBTx) Transaction(fc func(tx *gorm.DB) error, _ ...*sql.TxOptions) error {
 	return m.txFunc(fc)
 }
 
@@ -175,7 +178,7 @@ func TestItemPoolSubmit_RepoError(t *testing.T) {
 
 func TestItemPoolAssign_Success(t *testing.T) {
 	poolItem := &model.ItemPool{
-		Model:   gorm.Model{ID: 5},
+		BaseModel:   model.BaseModel{ID: 5},
 		TeamID:  1,
 		Title:   "Pool item",
 		Status:  "待分配",
@@ -183,7 +186,7 @@ func TestItemPoolAssign_Success(t *testing.T) {
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	subRepo := &mockSubItemRepoForPool{}
-	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{Model: gorm.Model{ID: 20}, TeamID: 1}}
+	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{BaseModel: model.BaseModel{ID: 20}, TeamID: 1}}
 
 	txExecuted := false
 	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error {
@@ -194,7 +197,9 @@ func TestItemPoolAssign_Success(t *testing.T) {
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
-		AssigneeID: 30,
+		AssigneeID: uintPtr(30),
+			StartDate:       strPtr("2024-01-01"),
+			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	require.NoError(t, err)
 	assert.True(t, txExecuted, "should execute within a transaction")
@@ -203,7 +208,7 @@ func TestItemPoolAssign_Success(t *testing.T) {
 	assert.Equal(t, "已分配", poolRepo.updatedFields["status"])
 	assert.Equal(t, uint(20), poolRepo.updatedFields["assigned_main_id"])
 	assert.Equal(t, uint(10), poolRepo.updatedFields["assigned_sub_id"]) // SubItem.ID set to 10 by mock
-	assert.Equal(t, uint(30), poolRepo.updatedFields["assignee_id"])
+	assert.Equal(t, uintPtr(30), poolRepo.updatedFields["assignee_id"])
 	assert.Equal(t, uint(100), poolRepo.updatedFields["reviewer_id"])
 	assert.NotNil(t, poolRepo.updatedFields["reviewed_at"])
 
@@ -217,7 +222,7 @@ func TestItemPoolAssign_Success(t *testing.T) {
 
 func TestItemPoolAssign_SubItemInheritsBackgroundAsDescription(t *testing.T) {
 	poolItem := &model.ItemPool{
-		Model:      gorm.Model{ID: 5},
+		BaseModel:      model.BaseModel{ID: 5},
 		TeamID:     1,
 		Title:      "Pool item",
 		Background: "some background info",
@@ -225,13 +230,15 @@ func TestItemPoolAssign_SubItemInheritsBackgroundAsDescription(t *testing.T) {
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	subRepo := &mockSubItemRepoForPool{}
-	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{Model: gorm.Model{ID: 20}, TeamID: 1}}
+	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{BaseModel: model.BaseModel{ID: 20}, TeamID: 1}}
 	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error { return fc(nil) }}
 	svc := NewItemPoolService(poolRepo, subRepo, mainRepo, dbtx)
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
-		AssigneeID: 30,
+		AssigneeID: uintPtr(30),
+			StartDate:       strPtr("2024-01-01"),
+			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "some background info", subRepo.createdItem.Description)
@@ -247,14 +254,16 @@ func TestItemPoolAssign_PoolItemNotFound(t *testing.T) {
 
 	err := svc.Assign(context.Background(), 1, 100, 99, dto.AssignItemPoolReq{
 		MainItemID: 20,
-		AssigneeID: 30,
+		AssigneeID: uintPtr(30),
+			StartDate:       strPtr("2024-01-01"),
+			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
 }
 
 func TestItemPoolAssign_AlreadyProcessed_AlreadyAssigned(t *testing.T) {
 	poolItem := &model.ItemPool{
-		Model:  gorm.Model{ID: 5},
+		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
 		Status: "已分配",
 	}
@@ -263,14 +272,16 @@ func TestItemPoolAssign_AlreadyProcessed_AlreadyAssigned(t *testing.T) {
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
-		AssigneeID: 30,
+		AssigneeID: uintPtr(30),
+			StartDate:       strPtr("2024-01-01"),
+			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrItemAlreadyProcessed)
 }
 
 func TestItemPoolAssign_AlreadyProcessed_Rejected(t *testing.T) {
 	poolItem := &model.ItemPool{
-		Model:  gorm.Model{ID: 5},
+		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
 		Status: "已拒绝",
 	}
@@ -279,14 +290,16 @@ func TestItemPoolAssign_AlreadyProcessed_Rejected(t *testing.T) {
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
-		AssigneeID: 30,
+		AssigneeID: uintPtr(30),
+			StartDate:       strPtr("2024-01-01"),
+			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrItemAlreadyProcessed)
 }
 
 func TestItemPoolAssign_MainItemNotFound(t *testing.T) {
 	poolItem := &model.ItemPool{
-		Model:  gorm.Model{ID: 5},
+		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
 		Status: "待分配",
 	}
@@ -297,14 +310,16 @@ func TestItemPoolAssign_MainItemNotFound(t *testing.T) {
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 99,
-		AssigneeID: 30,
+		AssigneeID: uintPtr(30),
+			StartDate:       strPtr("2024-01-01"),
+			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
 }
 
 func TestItemPoolAssign_TeamMismatch(t *testing.T) {
 	poolItem := &model.ItemPool{
-		Model:  gorm.Model{ID: 5},
+		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 2,
 		Status: "待分配",
 	}
@@ -313,7 +328,9 @@ func TestItemPoolAssign_TeamMismatch(t *testing.T) {
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
-		AssigneeID: 30,
+		AssigneeID: uintPtr(30),
+			StartDate:       strPtr("2024-01-01"),
+			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrForbidden)
 }
@@ -324,14 +341,14 @@ func TestItemPoolAssign_TeamMismatch(t *testing.T) {
 
 func TestItemPoolAssign_RollbackOnSubItemCreateError(t *testing.T) {
 	poolItem := &model.ItemPool{
-		Model:   gorm.Model{ID: 5},
+		BaseModel:   model.BaseModel{ID: 5},
 		TeamID:  1,
 		Title:   "Pool item",
 		Status:  "待分配",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	subRepo := &mockSubItemRepoForPool{createErr: errors.New("sub item creation failed")}
-	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{Model: gorm.Model{ID: 20}, TeamID: 1}}
+	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{BaseModel: model.BaseModel{ID: 20}, TeamID: 1}}
 
 	txCallbackExecuted := false
 	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error {
@@ -342,7 +359,9 @@ func TestItemPoolAssign_RollbackOnSubItemCreateError(t *testing.T) {
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
-		AssigneeID: 30,
+		AssigneeID: uintPtr(30),
+			StartDate:       strPtr("2024-01-01"),
+			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.Error(t, err)
 	assert.True(t, txCallbackExecuted, "should have attempted the transaction")
@@ -355,7 +374,7 @@ func TestItemPoolAssign_RollbackOnSubItemCreateError(t *testing.T) {
 
 func TestItemPoolReject_Success(t *testing.T) {
 	poolItem := &model.ItemPool{
-		Model:   gorm.Model{ID: 5},
+		BaseModel:   model.BaseModel{ID: 5},
 		TeamID:  1,
 		Status:  "待分配",
 	}
@@ -373,7 +392,7 @@ func TestItemPoolReject_Success(t *testing.T) {
 
 func TestItemPoolReject_AlreadyProcessed(t *testing.T) {
 	poolItem := &model.ItemPool{
-		Model:  gorm.Model{ID: 5},
+		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
 		Status: "已分配",
 	}
@@ -394,7 +413,7 @@ func TestItemPoolReject_NotFound(t *testing.T) {
 
 func TestItemPoolReject_TeamMismatch(t *testing.T) {
 	poolItem := &model.ItemPool{
-		Model:  gorm.Model{ID: 5},
+		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 2,
 		Status: "待分配",
 	}
@@ -411,7 +430,7 @@ func TestItemPoolReject_TeamMismatch(t *testing.T) {
 
 func TestItemPoolGet_Success(t *testing.T) {
 	poolItem := &model.ItemPool{
-		Model:  gorm.Model{ID: 5},
+		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
 		Title:  "My Pool Item",
 	}
@@ -433,7 +452,7 @@ func TestItemPoolGet_NotFound(t *testing.T) {
 
 func TestItemPoolGet_TeamMismatch(t *testing.T) {
 	poolItem := &model.ItemPool{
-		Model:  gorm.Model{ID: 5},
+		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 2,
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
@@ -449,8 +468,8 @@ func TestItemPoolGet_TeamMismatch(t *testing.T) {
 
 func TestItemPoolList_Success(t *testing.T) {
 	items := []model.ItemPool{
-		{Model: gorm.Model{ID: 1}, Title: "Pool 1"},
-		{Model: gorm.Model{ID: 2}, Title: "Pool 2"},
+		{BaseModel: model.BaseModel{ID: 1}, Title: "Pool 1"},
+		{BaseModel: model.BaseModel{ID: 2}, Title: "Pool 2"},
 	}
 	poolRepo := &mockItemPoolRepo{items: items}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
@@ -463,7 +482,7 @@ func TestItemPoolList_Success(t *testing.T) {
 
 func TestItemPoolList_WithStatusFilter(t *testing.T) {
 	items := []model.ItemPool{
-		{Model: gorm.Model{ID: 1}, Title: "Pool 1", Status: "待分配"},
+		{BaseModel: model.BaseModel{ID: 1}, Title: "Pool 1", Status: "待分配"},
 	}
 	poolRepo := &mockItemPoolRepo{items: items}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
@@ -487,21 +506,23 @@ func TestItemPoolList_RepoError(t *testing.T) {
 
 func TestItemPoolAssign_ReviewedAtIsSet(t *testing.T) {
 	poolItem := &model.ItemPool{
-		Model:  gorm.Model{ID: 5},
+		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
 		Title:  "Pool item",
 		Status: "待分配",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	subRepo := &mockSubItemRepoForPool{}
-	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{Model: gorm.Model{ID: 20}, TeamID: 1}}
+	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{BaseModel: model.BaseModel{ID: 20}, TeamID: 1}}
 	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error { return fc(nil) }}
 	svc := NewItemPoolService(poolRepo, subRepo, mainRepo, dbtx)
 
 	before := time.Now()
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
-		AssigneeID: 30,
+		AssigneeID: uintPtr(30),
+			StartDate:       strPtr("2024-01-01"),
+			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	require.NoError(t, err)
 
@@ -516,7 +537,7 @@ func TestItemPoolAssign_ReviewedAtIsSet(t *testing.T) {
 
 func TestItemPoolReject_ReviewedAtIsSet(t *testing.T) {
 	poolItem := &model.ItemPool{
-		Model:  gorm.Model{ID: 5},
+		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
 		Status: "待分配",
 	}
@@ -538,18 +559,20 @@ func TestItemPoolReject_ReviewedAtIsSet(t *testing.T) {
 
 func TestItemPoolAssign_MainItemTeamMismatch(t *testing.T) {
 	poolItem := &model.ItemPool{
-		Model:  gorm.Model{ID: 5},
+		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
 		Status: "待分配",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
-	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{Model: gorm.Model{ID: 20}, TeamID: 99}}
+	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{BaseModel: model.BaseModel{ID: 20}, TeamID: 99}}
 	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error { return fc(nil) }}
 	svc := NewItemPoolService(poolRepo, nil, mainRepo, dbtx)
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
-		AssigneeID: 30,
+		AssigneeID: uintPtr(30),
+			StartDate:       strPtr("2024-01-01"),
+			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
 }
@@ -564,14 +587,16 @@ func TestItemPoolAssign_PoolItemGenericError(t *testing.T) {
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
-		AssigneeID: 30,
+		AssigneeID: uintPtr(30),
+			StartDate:       strPtr("2024-01-01"),
+			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.Equal(t, "generic db error", err.Error())
 }
 
 func TestItemPoolAssign_MainItemGenericError(t *testing.T) {
 	poolItem := &model.ItemPool{
-		Model:  gorm.Model{ID: 5},
+		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
 		Status: "待分配",
 	}
@@ -582,7 +607,9 @@ func TestItemPoolAssign_MainItemGenericError(t *testing.T) {
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
-		AssigneeID: 30,
+		AssigneeID: uintPtr(30),
+			StartDate:       strPtr("2024-01-01"),
+			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.Equal(t, "main item db error", err.Error())
 }
@@ -613,14 +640,16 @@ func TestItemPoolAssign_PoolItemErrNotFound(t *testing.T) {
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
-		AssigneeID: 30,
+		AssigneeID: uintPtr(30),
+			StartDate:       strPtr("2024-01-01"),
+			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
 }
 
 func TestItemPoolAssign_MainItemErrNotFound(t *testing.T) {
 	poolItem := &model.ItemPool{
-		Model:  gorm.Model{ID: 5},
+		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
 		Status: "待分配",
 	}
@@ -631,7 +660,9 @@ func TestItemPoolAssign_MainItemErrNotFound(t *testing.T) {
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
-		AssigneeID: 30,
+		AssigneeID: uintPtr(30),
+			StartDate:       strPtr("2024-01-01"),
+			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
 }

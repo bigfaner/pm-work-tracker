@@ -40,21 +40,128 @@ func (h *AdminHandler) ListUsers(c *gin.Context) {
 		return
 	}
 
-	page, pageSize := parsePagination(c, 50)
+	page, pageSize := parsePagination(c, 20)
 
-	users, err := h.adminSvc.ListUsers(c.Request.Context())
+	search := c.Query("search")
+	var canCreateTeam *bool
+	if cct := c.Query("canCreateTeam"); cct != "" {
+		v := cct == "true"
+		canCreateTeam = &v
+	}
+
+	items, total, err := h.adminSvc.ListUsers(c.Request.Context(), search, canCreateTeam, page, pageSize)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
 	}
 
-	items := paginateUsers(users, page, pageSize)
 	apperrors.RespondOK(c, gin.H{
 		"items":    items,
-		"total":    len(users),
+		"total":    total,
 		"page":     page,
 		"pageSize": pageSize,
 	})
+}
+
+// CreateUser handles POST /api/v1/admin/users
+func (h *AdminHandler) CreateUser(c *gin.Context) {
+	if h.adminSvc == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
+		return
+	}
+
+	var req dto.CreateUserReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	user, err := h.adminSvc.CreateUser(c.Request.Context(), &req)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": user})
+}
+
+// GetUser handles GET /api/v1/admin/users/:userId
+func (h *AdminHandler) GetUser(c *gin.Context) {
+	if h.adminSvc == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
+		return
+	}
+
+	userID, err := parseUserID(c)
+	if err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	user, err := h.adminSvc.GetUser(c.Request.Context(), userID)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, user)
+}
+
+// UpdateUser handles PUT /api/v1/admin/users/:userId
+func (h *AdminHandler) UpdateUser(c *gin.Context) {
+	if h.adminSvc == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
+		return
+	}
+
+	userID, err := parseUserID(c)
+	if err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	var req dto.UpdateUserReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	user, err := h.adminSvc.UpdateUser(c.Request.Context(), userID, &req)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, user)
+}
+
+// ToggleUserStatus handles PUT /api/v1/admin/users/:userId/status
+func (h *AdminHandler) ToggleUserStatus(c *gin.Context) {
+	if h.adminSvc == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
+		return
+	}
+
+	userID, err := parseUserID(c)
+	if err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	var req dto.UpdateUserStatusReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	callerID := middleware.GetUserID(c)
+	user, err := h.adminSvc.ToggleUserStatus(c.Request.Context(), callerID, userID, req.Status)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, user)
 }
 
 // UpdateCanCreateTeam handles PUT /api/v1/admin/users/:userId/can-create-team
@@ -64,9 +171,7 @@ func (h *AdminHandler) UpdateCanCreateTeam(c *gin.Context) {
 		return
 	}
 
-	// Parse userId path param as uint
-	userIDStr := c.Param("userId")
-	userID, err := strconv.ParseUint(userIDStr, 10, 64)
+	userID, err := parseUserID(c)
 	if err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
@@ -109,6 +214,16 @@ func (h *AdminHandler) ListTeams(c *gin.Context) {
 		"page":     page,
 		"pageSize": pageSize,
 	})
+}
+
+// parseUserID extracts userId from the URL path parameter.
+func parseUserID(c *gin.Context) (uint, error) {
+	userIDStr := c.Param("userId")
+	userID, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return uint(userID), nil
 }
 
 // parsePagination extracts page and pageSize from query params with defaults.

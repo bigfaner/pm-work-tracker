@@ -11,7 +11,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
@@ -33,6 +32,29 @@ type mockAdminService struct {
 		err   error
 	}
 
+	// New method results
+	listUsersFilteredResult struct {
+		items []*dto.AdminUserDTO
+		total int
+		err   error
+	}
+	getUserResult struct {
+		user *dto.AdminUserDTO
+		err  error
+	}
+	createUserResult struct {
+		user *dto.AdminUserDTO
+		err  error
+	}
+	updateUserResult struct {
+		user *dto.AdminUserDTO
+		err  error
+	}
+	toggleUserStatusResult struct {
+		user *dto.AdminUserDTO
+		err  error
+	}
+
 	// capture calls
 	listUsersCalled        bool
 	setCanCreateTeamCalled bool
@@ -40,11 +62,51 @@ type mockAdminService struct {
 	lastTargetUserID       uint
 	lastCanCreate          bool
 	listAllTeamsCalled     bool
+
+	// new captures
+	lastListUsersSearch        string
+	lastListUsersCanCreateTeam *bool
+	lastListUsersPage          int
+	lastListUsersPageSize      int
+	lastGetUserID              uint
+	lastCreateUserReq          *dto.CreateUserReq
+	lastUpdateUserID           uint
+	lastUpdateUserReq          *dto.UpdateUserReq
+	lastToggleCallerID         uint
+	lastToggleTargetID         uint
+	lastToggleStatus           string
 }
 
-func (m *mockAdminService) ListUsers(_ context.Context) ([]*model.User, error) {
+func (m *mockAdminService) ListUsers(_ context.Context, search string, canCreateTeam *bool, page, pageSize int) ([]*dto.AdminUserDTO, int, error) {
 	m.listUsersCalled = true
-	return m.listUsersResult.users, m.listUsersResult.err
+	m.lastListUsersSearch = search
+	m.lastListUsersCanCreateTeam = canCreateTeam
+	m.lastListUsersPage = page
+	m.lastListUsersPageSize = pageSize
+	return m.listUsersFilteredResult.items, m.listUsersFilteredResult.total, m.listUsersFilteredResult.err
+}
+
+func (m *mockAdminService) GetUser(_ context.Context, userID uint) (*dto.AdminUserDTO, error) {
+	m.lastGetUserID = userID
+	return m.getUserResult.user, m.getUserResult.err
+}
+
+func (m *mockAdminService) CreateUser(_ context.Context, req *dto.CreateUserReq) (*dto.AdminUserDTO, error) {
+	m.lastCreateUserReq = req
+	return m.createUserResult.user, m.createUserResult.err
+}
+
+func (m *mockAdminService) UpdateUser(_ context.Context, userID uint, req *dto.UpdateUserReq) (*dto.AdminUserDTO, error) {
+	m.lastUpdateUserID = userID
+	m.lastUpdateUserReq = req
+	return m.updateUserResult.user, m.updateUserResult.err
+}
+
+func (m *mockAdminService) ToggleUserStatus(_ context.Context, callerID, targetUserID uint, status string) (*dto.AdminUserDTO, error) {
+	m.lastToggleCallerID = callerID
+	m.lastToggleTargetID = targetUserID
+	m.lastToggleStatus = status
+	return m.toggleUserStatusResult.user, m.toggleUserStatusResult.err
 }
 
 func (m *mockAdminService) SetCanCreateTeam(_ context.Context, superAdminID, targetUserID uint, canCreate bool) error {
@@ -84,10 +146,11 @@ func signSuperAdminToken(t *testing.T, userID uint) string {
 
 func TestAdminListUsers_Success(t *testing.T) {
 	svc := &mockAdminService{}
-	svc.listUsersResult.users = []*model.User{
-		{Model: gorm.Model{ID: 1}, Username: "alice", DisplayName: "Alice", CanCreateTeam: true, IsSuperAdmin: true},
-		{Model: gorm.Model{ID: 2}, Username: "bob", DisplayName: "Bob", CanCreateTeam: false, IsSuperAdmin: false},
+	svc.listUsersFilteredResult.items = []*dto.AdminUserDTO{
+		{ID: 1, Username: "alice", DisplayName: "Alice", CanCreateTeam: true, IsSuperAdmin: true, Status: "enabled", Teams: []dto.TeamSummary{}},
+		{ID: 2, Username: "bob", DisplayName: "Bob", CanCreateTeam: false, Status: "enabled", Teams: []dto.TeamSummary{}},
 	}
+	svc.listUsersFilteredResult.total = 2
 
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps)
@@ -121,58 +184,52 @@ func TestAdminListUsers_Success(t *testing.T) {
 
 	assert.Equal(t, float64(2), data["total"])
 	assert.Equal(t, float64(1), data["page"])
-	assert.Equal(t, float64(50), data["pageSize"])
+	assert.Equal(t, float64(20), data["pageSize"])
 }
 
-func TestAdminListUsers_Pagination(t *testing.T) {
-	// Create 5 users, request page 2 with pageSize=2
-	users := []*model.User{
-		{Model: gorm.Model{ID: 1}, Username: "u1", DisplayName: "User 1"},
-		{Model: gorm.Model{ID: 2}, Username: "u2", DisplayName: "User 2"},
-		{Model: gorm.Model{ID: 3}, Username: "u3", DisplayName: "User 3"},
-		{Model: gorm.Model{ID: 4}, Username: "u4", DisplayName: "User 4"},
-		{Model: gorm.Model{ID: 5}, Username: "u5", DisplayName: "User 5"},
-	}
-
+func TestAdminListUsers_WithSearch(t *testing.T) {
 	svc := &mockAdminService{}
-	svc.listUsersResult.users = users
+	svc.listUsersFilteredResult.items = []*dto.AdminUserDTO{
+		{ID: 1, Username: "alice", DisplayName: "Alice"},
+	}
+	svc.listUsersFilteredResult.total = 1
 
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps)
 
 	token := signSuperAdminToken(t, 1)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users?page=2&pageSize=2", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users?search=alice", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-
-	var resp map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	require.NoError(t, err)
-
-	data, ok := resp["data"].(map[string]interface{})
-	require.True(t, ok)
-
-	items := data["items"].([]interface{})
-	assert.Len(t, items, 2)
-	assert.Equal(t, float64(5), data["total"])
-	assert.Equal(t, float64(2), data["page"])
-	assert.Equal(t, float64(2), data["pageSize"])
-
-	// Should be users 3 and 4 (index 2 and 3)
-	item0 := items[0].(map[string]interface{})
-	assert.Equal(t, "u3", item0["username"])
-	item1 := items[1].(map[string]interface{})
-	assert.Equal(t, "u4", item1["username"])
+	assert.Equal(t, "alice", svc.lastListUsersSearch)
 }
 
-func TestAdminListUsers_DefaultPagination(t *testing.T) {
+func TestAdminListUsers_WithCanCreateTeamFilter(t *testing.T) {
 	svc := &mockAdminService{}
-	svc.listUsersResult.users = []*model.User{
-		{Model: gorm.Model{ID: 1}, Username: "alice", DisplayName: "Alice"},
-	}
+	svc.listUsersFilteredResult.items = []*dto.AdminUserDTO{}
+	svc.listUsersFilteredResult.total = 0
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps)
+
+	token := signSuperAdminToken(t, 1)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users?canCreateTeam=true", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	require.NotNil(t, svc.lastListUsersCanCreateTeam)
+	assert.True(t, *svc.lastListUsersCanCreateTeam)
+}
+
+func TestAdminListUsers_DefaultPageSize(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.listUsersFilteredResult.items = []*dto.AdminUserDTO{}
+	svc.listUsersFilteredResult.total = 0
 
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps)
@@ -184,44 +241,13 @@ func TestAdminListUsers_DefaultPagination(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-
-	var resp map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	require.NoError(t, err)
-
-	data := resp["data"].(map[string]interface{})
-	assert.Equal(t, float64(1), data["page"])
-	assert.Equal(t, float64(50), data["pageSize"])
-}
-
-func TestAdminListUsers_Empty(t *testing.T) {
-	svc := &mockAdminService{}
-	svc.listUsersResult.users = []*model.User{}
-
-	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
-
-	token := signSuperAdminToken(t, 1)
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	var resp map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	require.NoError(t, err)
-
-	data := resp["data"].(map[string]interface{})
-	items := data["items"].([]interface{})
-	assert.Empty(t, items)
-	assert.Equal(t, float64(0), data["total"])
+	assert.Equal(t, 20, svc.lastListUsersPageSize)
+	assert.Equal(t, 1, svc.lastListUsersPage)
 }
 
 func TestAdminListUsers_ServiceError(t *testing.T) {
 	svc := &mockAdminService{}
-	svc.listUsersResult.err = errors.New("db error")
+	svc.listUsersFilteredResult.err = errors.New("db error")
 
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps)
@@ -233,6 +259,305 @@ func TestAdminListUsers_ServiceError(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: POST /api/v1/admin/users (CreateUser)
+// ---------------------------------------------------------------------------
+
+func TestAdminCreateUser_Success(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.createUserResult.user = &dto.AdminUserDTO{
+		ID:              3,
+		Username:        "newuser",
+		DisplayName:     "New User",
+		Email:           "new@test.com",
+		Status:          "enabled",
+		CanCreateTeam:   false,
+		Teams:           []dto.TeamSummary{{ID: 10, Name: "Team A", Role: "member"}},
+		InitialPassword: "Abc123XYZdef",
+	}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"username":"newuser","displayName":"New User","email":"new@test.com","teamId":10}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/users", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, float64(0), resp["code"])
+
+	data, ok := resp["data"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "newuser", data["username"])
+	assert.Equal(t, "Abc123XYZdef", data["initialPassword"])
+	assert.NotNil(t, svc.lastCreateUserReq)
+	assert.Equal(t, "newuser", svc.lastCreateUserReq.Username)
+	require.NotNil(t, svc.lastCreateUserReq.TeamID)
+	assert.Equal(t, uint(10), *svc.lastCreateUserReq.TeamID)
+}
+
+func TestAdminCreateUser_DuplicateUsername(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.createUserResult.err = apperrors.ErrUserExists
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"username":"existing","displayName":"Existing"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/users", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "USER_EXISTS", resp["code"])
+}
+
+func TestAdminCreateUser_ValidationFail(t *testing.T) {
+	svc := &mockAdminService{}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/users", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: GET /api/v1/admin/users/:userId (GetUser)
+// ---------------------------------------------------------------------------
+
+func TestAdminGetUser_Success(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.getUserResult.user = &dto.AdminUserDTO{
+		ID:            5,
+		Username:      "bob",
+		DisplayName:   "Bob",
+		Email:         "bob@test.com",
+		Status:        "enabled",
+		IsSuperAdmin:  false,
+		CanCreateTeam: true,
+		Teams:         []dto.TeamSummary{{ID: 1, Name: "Team A", Role: "member"}},
+	}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps)
+
+	token := signSuperAdminToken(t, 1)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users/5", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, uint(5), svc.lastGetUserID)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+
+	data, ok := resp["data"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "bob", data["username"])
+	assert.Equal(t, "bob@test.com", data["email"])
+}
+
+func TestAdminGetUser_NotFound(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.getUserResult.err = apperrors.ErrUserNotFound
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps)
+
+	token := signSuperAdminToken(t, 1)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users/999", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "USER_NOT_FOUND", resp["code"])
+}
+
+func TestAdminGetUser_InvalidId(t *testing.T) {
+	svc := &mockAdminService{}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps)
+
+	token := signSuperAdminToken(t, 1)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users/abc", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: PUT /api/v1/admin/users/:userId (UpdateUser)
+// ---------------------------------------------------------------------------
+
+func TestAdminUpdateUser_Success(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.updateUserResult.user = &dto.AdminUserDTO{
+		ID:            5,
+		Username:      "bob",
+		DisplayName:   "Robert",
+		Email:         "robert@test.com",
+		Status:        "enabled",
+		CanCreateTeam: true,
+		Teams:         []dto.TeamSummary{{ID: 2, Name: "Team B", Role: "member"}},
+	}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"displayName":"Robert","email":"robert@test.com"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, uint(5), svc.lastUpdateUserID)
+	require.NotNil(t, svc.lastUpdateUserReq.DisplayName)
+	assert.Equal(t, "Robert", *svc.lastUpdateUserReq.DisplayName)
+}
+
+func TestAdminUpdateUser_NotFound(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.updateUserResult.err = apperrors.ErrUserNotFound
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"displayName":"Robert"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/999", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: PUT /api/v1/admin/users/:userId/status (ToggleUserStatus)
+// ---------------------------------------------------------------------------
+
+func TestAdminToggleUserStatus_DisableSuccess(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.toggleUserStatusResult.user = &dto.AdminUserDTO{
+		ID:       5,
+		Username: "bob",
+		Status:   "disabled",
+		Teams:    []dto.TeamSummary{},
+	}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"status":"disabled"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/status", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, uint(1), svc.lastToggleCallerID)
+	assert.Equal(t, uint(5), svc.lastToggleTargetID)
+	assert.Equal(t, "disabled", svc.lastToggleStatus)
+}
+
+func TestAdminToggleUserStatus_CannotDisableSelf(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.toggleUserStatusResult.err = apperrors.ErrCannotDisableSelf
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"status":"disabled"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/1/status", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "CANNOT_DISABLE_SELF", resp["code"])
+}
+
+func TestAdminToggleUserStatus_InvalidStatus(t *testing.T) {
+	svc := &mockAdminService{}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"status":"suspended"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/status", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestAdminToggleUserStatus_UserNotFound(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.toggleUserStatusResult.err = apperrors.ErrUserNotFound
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"status":"disabled"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/999/status", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 // ---------------------------------------------------------------------------

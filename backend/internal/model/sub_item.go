@@ -2,14 +2,12 @@ package model
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
 // SubItem status values (8 total):
 // 待开始, 进行中, 阻塞中, 挂起, 已延期, 待验收, 已完成, 已关闭
 type SubItem struct {
-	gorm.Model
+	BaseModel
 	TeamID          uint       `gorm:"not null;index" json:"team_id"`
 	MainItemID      uint       `gorm:"not null;index" json:"main_item_id"`
 	Title           string     `gorm:"type:varchar(100);not null" json:"title"`

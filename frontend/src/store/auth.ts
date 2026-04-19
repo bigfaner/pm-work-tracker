@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type { User } from '@/types'
 
 interface AuthState {
@@ -6,22 +7,36 @@ interface AuthState {
   user: User | null
   isAuthenticated: boolean
   isSuperAdmin: boolean
-  setAuth: (token: string, user: User) => void
+  _hasHydrated: boolean
+  setAuth: (token: string, user: any) => void
   clearAuth: () => void
+  _setHasHydrated: (v: boolean) => void
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  token: null,
-  user: null,
-  isAuthenticated: false,
-  isSuperAdmin: false,
-  setAuth: (token, user) =>
-    set({
-      token,
-      user,
-      isAuthenticated: token !== null,
-      isSuperAdmin: user?.is_super_admin === true,
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      token: null,
+      user: null,
+      isAuthenticated: false,
+      isSuperAdmin: false,
+      _hasHydrated: false,
+      setAuth: (token, user) =>
+        set({
+          token,
+          user,
+          isAuthenticated: token !== null,
+          isSuperAdmin: (user?.isSuperAdmin ?? user?.isSuperAdmin) === true,
+        }),
+      clearAuth: () =>
+        set({ token: null, user: null, isAuthenticated: false, isSuperAdmin: false, _hasHydrated: true }),
+      _setHasHydrated: (v) => set({ _hasHydrated: v }),
     }),
-  clearAuth: () =>
-    set({ token: null, user: null, isAuthenticated: false, isSuperAdmin: false }),
-}))
+    {
+      name: 'auth-storage',
+      onRehydrateStorage: () => (state) => {
+        state?._setHasHydrated(true)
+      },
+    },
+  ),
+)

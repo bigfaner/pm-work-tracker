@@ -51,9 +51,17 @@ func (h *ViewHandler) Weekly(c *gin.Context) {
 		return
 	}
 
+	// Validate weekStart is not in the future
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	if weekStart.After(today) {
+		apperrors.RespondError(c, apperrors.ErrFutureWeekNotAllowed)
+		return
+	}
+
 	teamID := middleware.GetTeamID(c)
 
-	result, err := h.viewSvc.WeeklyView(c.Request.Context(), teamID, weekStart)
+	result, err := h.viewSvc.WeeklyComparison(c.Request.Context(), teamID, weekStart)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

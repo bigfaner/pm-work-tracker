@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import AdminRoute from '@/components/AdminRoute'
-import AppLayout from '@/components/AppLayout'
+import AppLayout from '@/components/layout/AppLayout'
 import LoginPage from '@/pages/LoginPage'
 import ItemViewPage from '@/pages/ItemViewPage'
 import MainItemDetailPage from '@/pages/MainItemDetailPage'
@@ -11,8 +11,9 @@ import GanttViewPage from '@/pages/GanttViewPage'
 import TableViewPage from '@/pages/TableViewPage'
 import ItemPoolPage from '@/pages/ItemPoolPage'
 import ReportPage from '@/pages/ReportPage'
-import AdminPage from '@/pages/AdminPage'
 import TeamManagementPage from '@/pages/TeamManagementPage'
+import TeamDetailPage from '@/pages/TeamDetailPage'
+import UserManagementPage from '@/pages/UserManagementPage'
 
 export default function App() {
   return (
@@ -29,12 +30,13 @@ export default function App() {
           <Route path="/table" element={<TableViewPage />} />
           <Route path="/item-pool" element={<ItemPoolPage />} />
           <Route path="/report" element={<ReportPage />} />
-          <Route path="/teams/:teamId/settings" element={<TeamManagementPage />} />
+          <Route path="/teams/:teamId" element={<TeamDetailPage />} />
+          <Route path="/teams" element={<TeamManagementPage />} />
         </Route>
       </Route>
       <Route element={<AdminRoute />}>
         <Route element={<AppLayout />}>
-          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/users" element={<UserManagementPage />} />
         </Route>
       </Route>
     </Routes>

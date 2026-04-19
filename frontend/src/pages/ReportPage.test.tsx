@@ -2,387 +2,192 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ReportPage from './ReportPage'
-import { useAuthStore } from '@/store/auth'
 import { useTeamStore } from '@/store/team'
-import type { User, Team, ReportPreviewResp } from '@/types'
+import type { Team } from '@/types'
 
-// --- Mocks ---
-
+// Mock the report API
 const mockGetPreview = vi.fn()
-const mockExportMarkdown = vi.fn()
-
+const mockExportReport = vi.fn()
 vi.mock('@/api/reports', () => ({
   getWeeklyReportPreviewApi: (...args: unknown[]) => mockGetPreview(...args),
-  exportWeeklyReportApi: (...args: unknown[]) => mockExportMarkdown(...args),
+  exportWeeklyReportApi: (...args: unknown[]) => mockExportReport(...args),
 }))
 
-// --- Test Data ---
+const mockTeams: Team[] = [
+  {
+    id: 1,
+    name: '产品研发团队',
+    description: '',
+    pmId: 1,
+  createdAt: '2024-01-01',
+  updatedAt: '2024-01-01',
+  },
+]
 
-const mockUser: User = {
-  id: 1,
-  username: 'pmuser',
-  display_name: 'PM User',
-  is_super_admin: false,
-  can_create_team: false,
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
-}
-
-const mockTeam: Team = {
-  id: 1,
-  name: 'Team Alpha',
-  description: '',
-  pm_id: 1,
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
-}
-
-const mockPreview: ReportPreviewResp = {
-  weekStart: '2026-04-13',
-  weekEnd: '2026-04-19',
+const mockPreview = {
+  weekStart: '2026-04-14',
+  weekEnd: '2026-04-20',
   sections: [
     {
-      mainItem: { id: 1, title: 'Main Item A', completion: 60, isKeyItem: true },
+      mainItem: { id: 1, title: '用户认证模块开发', completion: 65, isKeyItem: true },
       subItems: [
         {
-          id: 10,
-          title: 'Sub Item A1',
-          completion: 80,
-          achievements: ['完成了 SDK 初始化', '联调通过'],
-          blockers: ['正式环境证书申请中'],
-        },
-      ],
-    },
-    {
-      mainItem: { id: 2, title: 'Main Item B', completion: 30 },
-      subItems: [
-        {
-          id: 20,
-          title: 'Sub Item B1',
-          completion: 50,
-          achievements: [],
+          id: 1,
+          title: '登录页开发',
+          completion: 100,
+          achievements: ['登录页开发完成，已通过联调测试'],
           blockers: [],
+        },
+        {
+          id: 2,
+          title: 'JWT Token 集成',
+          completion: 80,
+          achievements: ['Token 签发完成，黑名单机制联调中'],
+          blockers: ['旧接口 Token 格式兼容问题待修复'],
         },
       ],
     },
   ],
 }
 
-// --- Helpers ---
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-    },
-  })
-}
-
-function renderPage(user: User = mockUser) {
-  useAuthStore.getState().setAuth('token', user)
-  const qc = createQueryClient()
+function renderReportPage() {
   return render(
-    <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={['/report']}>
-        <Routes>
-          <Route path="/report" element={<ReportPage />} />
-        </Routes>
-      </MemoryRouter>
-    </QueryClientProvider>,
+    <MemoryRouter initialEntries={[{ pathname: '/report' }]}>
+      <Routes>
+        <Route path="/report" element={<ReportPage />} />
+      </Routes>
+    </MemoryRouter>,
   )
 }
 
-// --- Tests ---
-
 describe('ReportPage', () => {
   beforeEach(() => {
-    useAuthStore.getState().clearAuth()
-    useAuthStore.getState().setAuth('token', mockUser)
-    useTeamStore.getState().setTeams([mockTeam])
     useTeamStore.getState().setCurrentTeam(1)
-
+    useTeamStore.getState().setTeams(mockTeams)
     mockGetPreview.mockReset()
-    mockExportMarkdown.mockReset()
+    mockExportReport.mockReset()
   })
 
-  // --- Basic rendering ---
-
-  it('renders page with data-testid', () => {
-    renderPage()
+  it('renders page with data-testid', async () => {
+    const { default: ReportPage } = await import('./ReportPage')
+    render(<ReportPage />)
     expect(screen.getByTestId('report-page')).toBeInTheDocument()
   })
 
   it('renders page title 周报导出', () => {
-    renderPage()
+    renderReportPage()
     expect(screen.getByText('周报导出')).toBeInTheDocument()
   })
 
-  // --- Week picker ---
-
-  it('renders a week picker', () => {
-    renderPage()
-    expect(screen.getByTestId('week-picker')).toBeInTheDocument()
+  it('renders week selector input', () => {
+    renderReportPage()
+    const weekInput = screen.getByLabelText('选择周次')
+    expect(weekInput).toBeInTheDocument()
+    expect(weekInput).toHaveAttribute('type', 'week')
   })
 
-  // --- Preview button ---
-
-  it('renders 生成预览 button', () => {
-    renderPage()
-    expect(screen.getByTestId('preview-btn')).toBeInTheDocument()
+  it('renders generate preview button', () => {
+    renderReportPage()
+    expect(screen.getByRole('button', { name: '生成预览' })).toBeInTheDocument()
   })
 
-  // --- Export button ---
-
-  it('renders 导出 Markdown button in preview card header', () => {
-    renderPage()
-    expect(screen.getByTestId('export-btn')).toBeInTheDocument()
-  })
-
-  // --- Empty initial state ---
-
-  it('shows empty state with placeholder text on initial load', () => {
-    renderPage()
-    expect(screen.getByTestId('preview-empty')).toBeInTheDocument()
-    expect(screen.getByText('请选择周次后点击预览')).toBeInTheDocument()
-  })
-
-  // --- Preview: loading state ---
-
-  it('shows skeleton loading while fetching preview', async () => {
-    let resolvePromise!: (v: unknown) => void
-    mockGetPreview.mockReturnValue(new Promise((resolve) => { resolvePromise = resolve }))
-
-    const user = userEvent.setup()
-    renderPage()
-
-    await user.click(screen.getByTestId('preview-btn'))
-
-    await waitFor(() => {
-      expect(screen.getByTestId('preview-loading')).toBeInTheDocument()
-    })
-
-    resolvePromise(mockPreview)
-  })
-
-  // --- Preview: success renders structured content ---
-
-  it('renders preview sections with main item titles and completion', async () => {
+  it('calls preview API when generate button clicked', async () => {
     mockGetPreview.mockResolvedValue(mockPreview)
-
     const user = userEvent.setup()
-    renderPage()
+    renderReportPage()
 
-    await user.click(screen.getByTestId('preview-btn'))
+    await user.click(screen.getByRole('button', { name: '生成预览' }))
 
     await waitFor(() => {
-      expect(screen.getByText('Main Item A')).toBeInTheDocument()
+      expect(mockGetPreview).toHaveBeenCalled()
     })
-    expect(screen.getByText('Main Item B')).toBeInTheDocument()
-    expect(screen.getByText(/60%/)).toBeInTheDocument()
-    expect(screen.getByText(/30%/)).toBeInTheDocument()
   })
 
-  it('renders sub-items within sections', async () => {
+  it('renders preview content after successful API call', async () => {
     mockGetPreview.mockResolvedValue(mockPreview)
-
     const user = userEvent.setup()
-    renderPage()
+    renderReportPage()
 
-    await user.click(screen.getByTestId('preview-btn'))
+    await user.click(screen.getByRole('button', { name: '生成预览' }))
 
     await waitFor(() => {
-      expect(screen.getByText('Sub Item A1')).toBeInTheDocument()
+      expect(screen.getByText(/用户认证模块开发/)).toBeInTheDocument()
     })
-    expect(screen.getByText('Sub Item B1')).toBeInTheDocument()
   })
 
-  it('renders achievements as bullet list', async () => {
+  it('renders export button in preview card header', async () => {
     mockGetPreview.mockResolvedValue(mockPreview)
-
     const user = userEvent.setup()
-    renderPage()
+    renderReportPage()
 
-    await user.click(screen.getByTestId('preview-btn'))
+    await user.click(screen.getByRole('button', { name: '生成预览' }))
 
     await waitFor(() => {
-      expect(screen.getByText('完成了 SDK 初始化')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: '导出 Markdown' })).toBeInTheDocument()
     })
-    expect(screen.getByText('联调通过')).toBeInTheDocument()
   })
 
-  it('renders blockers as bullet list', async () => {
+  it('calls export API when export button clicked', async () => {
+    const blob = new Blob(['markdown content'], { type: 'text/markdown' })
     mockGetPreview.mockResolvedValue(mockPreview)
-
-    const user = userEvent.setup()
-    renderPage()
-
-    await user.click(screen.getByTestId('preview-btn'))
-
-    await waitFor(() => {
-      expect(screen.getByText('正式环境证书申请中')).toBeInTheDocument()
-    })
-  })
-
-  // --- Key item tag ---
-
-  it('shows 重点 Tag for key items', async () => {
-    mockGetPreview.mockResolvedValue(mockPreview)
-
-    const user = userEvent.setup()
-    renderPage()
-
-    await user.click(screen.getByTestId('preview-btn'))
-
-    await waitFor(() => {
-      expect(screen.getByText('重点')).toBeInTheDocument()
-    })
-  })
-
-  // --- NO_DATA response: warning ---
-
-  it('shows warning and empty state when API returns NO_DATA', async () => {
-    mockGetPreview.mockRejectedValue({
-      response: { status: 422, data: { code: 'NO_DATA', message: '所选周暂无数据' } },
-    })
-
-    const user = userEvent.setup()
-    renderPage()
-
-    await user.click(screen.getByTestId('preview-btn'))
-
-    await waitFor(() => {
-      expect(screen.getByTestId('preview-empty')).toBeInTheDocument()
-    })
-  })
-
-  // --- Export: loading state ---
-
-  it('shows loading on export button while exporting', async () => {
-    mockGetPreview.mockResolvedValue(mockPreview)
-    let resolveExport!: (v: unknown) => void
-    mockExportMarkdown.mockReturnValue(new Promise((resolve) => { resolveExport = resolve }))
+    mockExportReport.mockResolvedValue(blob)
 
     // Mock URL.createObjectURL
-    const mockCreateObjectURL = vi.fn(() => 'blob:test')
-    const mockRevokeObjectURL = vi.fn()
-    const origCreate = globalThis.URL.createObjectURL
-    const origRevoke = globalThis.URL.revokeObjectURL
-    globalThis.URL.createObjectURL = mockCreateObjectURL
-    globalThis.URL.revokeObjectURL = mockRevokeObjectURL
+    const mockUrl = 'blob:mock-url'
+    const originalCreateObjectURL = URL.createObjectURL
+    const originalRevokeObjectURL = URL.revokeObjectURL
+    URL.createObjectURL = vi.fn(() => mockUrl)
+    URL.revokeObjectURL = vi.fn()
+
+    // Mock createElement for download link
+    const mockAnchor = { click: vi.fn(), remove: vi.fn(), href: '', download: '' }
+    const originalCreateElement = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      if (tag === 'a') return mockAnchor as any
+      return originalCreateElement(tag)
+    })
 
     const user = userEvent.setup()
-    renderPage()
+    renderReportPage()
 
-    // First preview
-    await user.click(screen.getByTestId('preview-btn'))
+    await user.click(screen.getByRole('button', { name: '生成预览' }))
     await waitFor(() => {
-      expect(screen.getByText('Main Item A')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: '导出 Markdown' })).toBeInTheDocument()
     })
 
-    // Then export
-    const exportBtn = screen.getByTestId('export-btn')
-    await user.click(exportBtn)
+    await user.click(screen.getByRole('button', { name: '导出 Markdown' }))
 
     await waitFor(() => {
-      expect(exportBtn).toHaveClass('ant-btn-loading')
+      expect(mockExportReport).toHaveBeenCalledWith(1, expect.any(String))
     })
-
-    resolveExport(new Blob(['# Report'], { type: 'text/markdown' }))
 
     // Cleanup
-    globalThis.URL.createObjectURL = origCreate
-    globalThis.URL.revokeObjectURL = origRevoke
+    URL.createObjectURL = originalCreateObjectURL
+    URL.revokeObjectURL = originalRevokeObjectURL
+    vi.restoreAllMocks()
   })
 
-  // --- Export: success triggers download ---
-
-  it('triggers file download on successful export', async () => {
-    mockGetPreview.mockResolvedValue(mockPreview)
-    const mdBlob = new Blob(['# Weekly Report'], { type: 'text/markdown' })
-    mockExportMarkdown.mockResolvedValue(mdBlob)
-
-    const mockCreateObjectURL = vi.fn(() => 'blob:test')
-    const mockRevokeObjectURL = vi.fn()
-    const origCreate = globalThis.URL.createObjectURL
-    const origRevoke = globalThis.URL.revokeObjectURL
-    globalThis.URL.createObjectURL = mockCreateObjectURL
-    globalThis.URL.revokeObjectURL = mockRevokeObjectURL
-
-    const mockClick = vi.fn()
-    const origCreateElement = document.createElement.bind(document)
-    const createSpy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
-      const el = origCreateElement(tag)
-      if (tag === 'a') {
-        el.click = mockClick
-      }
-      return el
-    })
-
+  it('shows error when no team is selected', async () => {
+    useTeamStore.getState().setCurrentTeam(null)
     const user = userEvent.setup()
-    renderPage()
+    renderReportPage()
 
-    // First preview
-    await user.click(screen.getByTestId('preview-btn'))
-    await waitFor(() => {
-      expect(screen.getByText('Main Item A')).toBeInTheDocument()
-    })
-
-    // Then export
-    await user.click(screen.getByTestId('export-btn'))
+    await user.click(screen.getByRole('button', { name: '生成预览' }))
 
     await waitFor(() => {
-      expect(mockExportMarkdown).toHaveBeenCalled()
-    })
-    expect(mockCreateObjectURL).toHaveBeenCalled()
-
-    // Cleanup
-    globalThis.URL.createObjectURL = origCreate
-    globalThis.URL.revokeObjectURL = origRevoke
-    createSpy.mockRestore()
-  })
-
-  // --- Export: NO_DATA shows warning ---
-
-  it('shows warning when exporting with NO_DATA', async () => {
-    mockGetPreview.mockResolvedValue(mockPreview)
-    mockExportMarkdown.mockRejectedValue({
-      response: { status: 422, data: { code: 'NO_DATA', message: '所选周暂无数据' } },
-    })
-
-    const user = userEvent.setup()
-    renderPage()
-
-    // First preview
-    await user.click(screen.getByTestId('preview-btn'))
-    await waitFor(() => {
-      expect(screen.getByText('Main Item A')).toBeInTheDocument()
-    })
-
-    // Then export
-    await user.click(screen.getByTestId('export-btn'))
-
-    await waitFor(() => {
-      expect(mockExportMarkdown).toHaveBeenCalled()
+      expect(screen.getByText(/请先选择团队/)).toBeInTheDocument()
     })
   })
 
-  // --- Preview called with correct weekStart ---
-
-  it('calls preview API with weekStart when preview button is clicked', async () => {
-    mockGetPreview.mockResolvedValue(mockPreview)
-
-    const user = userEvent.setup()
-    renderPage()
-
-    await user.click(screen.getByTestId('preview-btn'))
-
-    await waitFor(() => {
-      expect(mockGetPreview).toHaveBeenCalledWith(1, expect.any(String))
-    })
-    const weekStartArg = mockGetPreview.mock.calls[0][1] as string
-    // Should be a Monday ISO date
-    expect(weekStartArg).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  it('uses no antd imports', () => {
+    const fs = require('fs')
+    const path = require('path')
+    const source = fs.readFileSync(
+      path.resolve(__dirname, 'ReportPage.tsx'),
+      'utf-8',
+    )
+    expect(source).not.toContain('antd')
+    expect(source).not.toContain('ant-design')
   })
 })

@@ -169,7 +169,7 @@ func TestCreateSubItem_Success(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := `{"main_item_id":1,"title":"Test SubItem","priority":"P2"}`
+	body := `{"mainItemId":1,"title":"Test SubItem","priority":"P2","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/sub-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -202,7 +202,7 @@ func TestCreateSubItem_MemberCanCreate(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := `{"main_item_id":1,"title":"Test SubItem","priority":"P2"}`
+	body := `{"mainItemId":1,"title":"Test SubItem","priority":"P2","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/sub-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -239,7 +239,7 @@ func TestCreateSubItem_ServiceError(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := `{"main_item_id":1,"title":"Test","priority":"P2"}`
+	body := `{"mainItemId":1,"title":"Test","priority":"P2","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/sub-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -267,7 +267,7 @@ func TestListSubItems_Success(t *testing.T) {
 
 	token := signTestToken(t, 5, "member")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/1/sub-items?page=1&page_size=20", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/1/sub-items?page=1&pageSize=20", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -293,7 +293,7 @@ func TestListSubItems_WithFilters(t *testing.T) {
 
 	token := signTestToken(t, 5, "member")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/1/sub-items?priority=P2&status=进行中&page=2&page_size=10", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/1/sub-items?priority=P2&status=进行中&page=2&pageSize=10", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -652,7 +652,7 @@ func TestAssignSubItem_Success(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := `{"assignee_id":3}`
+	body := `{"assigneeId":3}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/assignee", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -673,7 +673,7 @@ func TestAssignSubItem_RequiresPM(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := `{"assignee_id":3}`
+	body := `{"assigneeId":3}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/assignee", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -691,7 +691,7 @@ func TestAssignSubItem_InvalidID(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := `{"assignee_id":3}`
+	body := `{"assigneeId":3}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/abc/assignee", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -728,7 +728,7 @@ func TestAssignSubItem_ItemNotFound(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := `{"assignee_id":3}`
+	body := `{"assigneeId":3}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/999/assignee", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -746,7 +746,7 @@ func TestAssignSubItem_SuperAdminBypass(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "superadmin")
-	body := `{"assignee_id":3}`
+	body := `{"assigneeId":3}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/assignee", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -831,7 +831,7 @@ func TestCreateSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := fmt.Sprintf(`{"main_item_id":1,"title":"New SubItem","priority":"P2","assignee_id":%d}`, assigneeID)
+	body := fmt.Sprintf(`{"mainItemId":1,"title":"New SubItem","priority":"P2","assigneeId":%d,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, assigneeID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/sub-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

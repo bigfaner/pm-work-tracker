@@ -124,6 +124,7 @@ func TestSubItemCreate_Success(t *testing.T) {
 	})).Return(nil)
 
 	item, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
+		AssigneeID:      42,
 		MainItemID: 5,
 		Title:      "Sub task A",
 		Priority:   "P2",
@@ -134,7 +135,8 @@ func TestSubItemCreate_Success(t *testing.T) {
 	assert.Equal(t, "待开始", item.Status)
 	assert.Equal(t, "Sub task A", item.Title)
 	assert.Equal(t, "P2", item.Priority)
-	assert.Nil(t, item.AssigneeID)
+	assert.NotNil(t, item.AssigneeID)
+	assert.Equal(t, uint(42), *item.AssigneeID)
 
 	repo.AssertExpectations(t)
 }
@@ -162,7 +164,7 @@ func TestSubItemCreate_RepoError(t *testing.T) {
 
 func TestSubItemUpdate_Success(t *testing.T) {
 	existing := &model.SubItem{
-		Model:  gorm.Model{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
 		Title:  "Old Title",
 	}
@@ -185,7 +187,7 @@ func TestSubItemUpdate_Success(t *testing.T) {
 
 func TestSubItemUpdate_TeamMismatch(t *testing.T) {
 	existing := &model.SubItem{
-		Model:  gorm.Model{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 2,
 	}
 	repo := new(mockSubItemRepoTM)
@@ -219,7 +221,7 @@ func TestSubItemUpdate_NotFound(t *testing.T) {
 
 func TestSubItemUpdate_NoFields_Noop(t *testing.T) {
 	existing := &model.SubItem{
-		Model:  gorm.Model{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
 	}
 	repo := new(mockSubItemRepoTM)
@@ -294,7 +296,7 @@ func TestChangeStatus_待验收_to_进行中(t *testing.T) {
 func testValidTransitionTM(t *testing.T, from, to string) {
 	t.Helper()
 	existing := &model.SubItem{
-		Model:      gorm.Model{ID: 1},
+		BaseModel:      model.BaseModel{ID: 1},
 		TeamID:     1,
 		MainItemID: 5,
 		Status:     from,
@@ -329,7 +331,7 @@ func TestChangeStatus_Invalid_已完成_to_anything(t *testing.T) {
 	for _, target := range []string{"待开始", "进行中", "阻塞中", "挂起", "已延期", "待验收", "已关闭"} {
 		t.Run("已完成->"+target, func(t *testing.T) {
 			existing := &model.SubItem{
-				Model:  gorm.Model{ID: 1},
+				BaseModel:  model.BaseModel{ID: 1},
 				TeamID: 1,
 				Status: "已完成",
 			}
@@ -351,7 +353,7 @@ func TestChangeStatus_Invalid_已关闭_to_anything(t *testing.T) {
 	for _, target := range []string{"待开始", "进行中", "阻塞中", "挂起", "已延期", "待验收", "已完成"} {
 		t.Run("已关闭->"+target, func(t *testing.T) {
 			existing := &model.SubItem{
-				Model:  gorm.Model{ID: 1},
+				BaseModel:  model.BaseModel{ID: 1},
 				TeamID: 1,
 				Status: "已关闭",
 			}
@@ -392,7 +394,7 @@ func TestChangeStatus_SameStatus(t *testing.T) {
 func testInvalidTransitionTM(t *testing.T, from, to string) {
 	t.Helper()
 	existing := &model.SubItem{
-		Model:  gorm.Model{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
 		Status: from,
 	}
@@ -414,7 +416,7 @@ func testInvalidTransitionTM(t *testing.T, from, to string) {
 
 func TestChangeStatus_已延期_IncrementsDelayCount(t *testing.T) {
 	existing := &model.SubItem{
-		Model:      gorm.Model{ID: 1},
+		BaseModel:      model.BaseModel{ID: 1},
 		TeamID:     1,
 		Status:     "进行中",
 		DelayCount: 0,
@@ -440,7 +442,7 @@ func TestChangeStatus_已延期_IncrementsDelayCount(t *testing.T) {
 
 func TestChangeStatus_已延期_AutoUpgradeAtCount2(t *testing.T) {
 	existing := &model.SubItem{
-		Model:      gorm.Model{ID: 1},
+		BaseModel:      model.BaseModel{ID: 1},
 		TeamID:     1,
 		Status:     "进行中",
 		DelayCount: 1,
@@ -466,7 +468,7 @@ func TestChangeStatus_已延期_AutoUpgradeAtCount2(t *testing.T) {
 
 func TestChangeStatus_已延期_AutoUpgradeAtCount3(t *testing.T) {
 	existing := &model.SubItem{
-		Model:      gorm.Model{ID: 1},
+		BaseModel:      model.BaseModel{ID: 1},
 		TeamID:     1,
 		Status:     "进行中",
 		DelayCount: 2,
@@ -497,7 +499,7 @@ func TestChangeStatus_已延期_AutoUpgradeAtCount3(t *testing.T) {
 
 func TestChangeStatus_已完成_SetsActualEndDate(t *testing.T) {
 	existing := &model.SubItem{
-		Model:      gorm.Model{ID: 1},
+		BaseModel:      model.BaseModel{ID: 1},
 		TeamID:     1,
 		MainItemID: 5,
 		Status:     "待验收",
@@ -521,7 +523,7 @@ func TestChangeStatus_已完成_SetsActualEndDate(t *testing.T) {
 
 func TestChangeStatus_已完成_RecalcCompletion_CalledWithCorrectMainItemID(t *testing.T) {
 	existing := &model.SubItem{
-		Model:      gorm.Model{ID: 1},
+		BaseModel:      model.BaseModel{ID: 1},
 		TeamID:     1,
 		MainItemID: 42,
 		Status:     "待验收",
@@ -544,7 +546,7 @@ func TestChangeStatus_已完成_RecalcCompletion_CalledWithCorrectMainItemID(t *
 
 func TestChangeStatus_已完成_RecalcError(t *testing.T) {
 	existing := &model.SubItem{
-		Model:      gorm.Model{ID: 1},
+		BaseModel:      model.BaseModel{ID: 1},
 		TeamID:     1,
 		MainItemID: 5,
 		Status:     "待验收",
@@ -583,7 +585,7 @@ func TestChangeStatus_NotFound(t *testing.T) {
 
 func TestChangeStatus_TeamMismatch(t *testing.T) {
 	existing := &model.SubItem{
-		Model:  gorm.Model{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 2,
 		Status: "待开始",
 	}
@@ -605,7 +607,7 @@ func TestChangeStatus_TeamMismatch(t *testing.T) {
 
 func TestSubItemAssign_Success(t *testing.T) {
 	existing := &model.SubItem{
-		Model:  gorm.Model{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
 	}
 	repo := new(mockSubItemRepoTM)
@@ -639,7 +641,7 @@ func TestSubItemAssign_NotFound(t *testing.T) {
 
 func TestSubItemAssign_TeamMismatch(t *testing.T) {
 	existing := &model.SubItem{
-		Model:  gorm.Model{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 2,
 	}
 	repo := new(mockSubItemRepoTM)
@@ -660,7 +662,7 @@ func TestSubItemAssign_TeamMismatch(t *testing.T) {
 
 func TestSubItemGet_Success(t *testing.T) {
 	existing := &model.SubItem{
-		Model:  gorm.Model{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
 		Title:  "Sub 1",
 	}
@@ -696,8 +698,8 @@ func TestSubItemGet_NotFound(t *testing.T) {
 
 func TestSubItemList_Success(t *testing.T) {
 	items := []model.SubItem{
-		{Model: gorm.Model{ID: 1}, Title: "Sub 1"},
-		{Model: gorm.Model{ID: 2}, Title: "Sub 2"},
+		{BaseModel: model.BaseModel{ID: 1}, Title: "Sub 1"},
+		{BaseModel: model.BaseModel{ID: 2}, Title: "Sub 2"},
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -716,7 +718,7 @@ func TestSubItemList_Success(t *testing.T) {
 
 func TestSubItemList_WithMainItemFilter(t *testing.T) {
 	items := []model.SubItem{
-		{Model: gorm.Model{ID: 1}, Title: "Sub 1"},
+		{BaseModel: model.BaseModel{ID: 1}, Title: "Sub 1"},
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)

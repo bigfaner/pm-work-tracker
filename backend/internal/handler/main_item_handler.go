@@ -8,10 +8,10 @@ import (
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/middleware"
-	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/repository"
 	"pm-work-tracker/backend/internal/service"
+	"pm-work-tracker/backend/internal/vo"
 )
 
 // MainItemHandler handles main item endpoints.
@@ -77,7 +77,7 @@ func (h *MainItemHandler) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": mainItemToDTO(item)})
+	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": vo.NewMainItemVO(item)})
 }
 
 // List handles GET /api/v1/teams/:teamId/main-items
@@ -113,7 +113,16 @@ func (h *MainItemHandler) List(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, result)
+	voItems := make([]vo.MainItemVO, 0, len(result.Items))
+	for i := range result.Items {
+		voItems = append(voItems, vo.NewMainItemVO(&result.Items[i]))
+	}
+	apperrors.RespondOK(c, gin.H{
+		"items": voItems,
+		"total": result.Total,
+		"page":  result.Page,
+		"size":  result.Size,
+	})
 }
 
 // Get handles GET /api/v1/teams/:teamId/main-items/:itemId
@@ -134,13 +143,31 @@ func (h *MainItemHandler) Get(c *gin.Context) {
 		return
 	}
 
-	resp := mainItemToDTO(item)
+	itemVO := vo.NewMainItemVO(item)
 
 	// Fetch subItems summary
 	subItems, _ := h.subItemRepo.ListByMainItem(c.Request.Context(), itemID)
-	resp["subItems"] = subItemsToSummaryDTOs(subItems)
 
-	apperrors.RespondOK(c, resp)
+	apperrors.RespondOK(c, gin.H{
+		"id":              itemVO.ID,
+		"teamId":          itemVO.TeamID,
+		"code":            itemVO.Code,
+		"title":           itemVO.Title,
+		"priority":        itemVO.Priority,
+		"proposerId":      itemVO.ProposerID,
+		"assigneeId":      itemVO.AssigneeID,
+		"startDate":       itemVO.StartDate,
+		"expectedEndDate": itemVO.ExpectedEndDate,
+		"actualEndDate":   itemVO.ActualEndDate,
+		"status":          itemVO.Status,
+		"completion":      itemVO.Completion,
+		"isKeyItem":       itemVO.IsKeyItem,
+		"delayCount":      itemVO.DelayCount,
+		"archivedAt":      itemVO.ArchivedAt,
+		"createdAt":       itemVO.CreatedAt,
+		"updatedAt":       itemVO.UpdatedAt,
+		"subItems":        vo.NewSubItemSummaryVOs(subItems),
+	})
 }
 
 // Update handles PUT /api/v1/teams/:teamId/main-items/:itemId
@@ -181,7 +208,7 @@ func (h *MainItemHandler) Update(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, mainItemToDTO(updated))
+	apperrors.RespondOK(c, vo.NewMainItemVO(updated))
 }
 
 // Archive handles POST /api/v1/teams/:teamId/main-items/:itemId/archive
@@ -210,45 +237,4 @@ func (h *MainItemHandler) Archive(c *gin.Context) {
 	}
 
 	apperrors.RespondOK(c, nil)
-}
-
-// mainItemToDTO converts a model.MainItem to a response map matching the Data Contract.
-func mainItemToDTO(item *model.MainItem) gin.H {
-	m := gin.H{
-		"id":               item.ID,
-		"code":             item.Code,
-		"title":            item.Title,
-		"priority":         item.Priority,
-		"proposerId":       item.ProposerID,
-		"assigneeId":       item.AssigneeID,
-		"status":           item.Status,
-		"completion":       item.Completion,
-		"isKeyItem":        item.IsKeyItem,
-		"delayCount":       item.DelayCount,
-		"archivedAt":       item.ArchivedAt,
-		"startDate":        item.StartDate,
-		"expectedEndDate":  item.ExpectedEndDate,
-		"actualEndDate":    item.ActualEndDate,
-		"createdAt":        item.CreatedAt,
-		"updatedAt":        item.UpdatedAt,
-	}
-	return m
-}
-
-// subItemsToSummaryDTOs converts sub items to a summary array for the Get response.
-func subItemsToSummaryDTOs(items []*model.SubItem) []gin.H {
-	result := make([]gin.H, 0, len(items))
-	for _, si := range items {
-		result = append(result, gin.H{
-			"id":              si.ID,
-			"title":           si.Title,
-			"status":          si.Status,
-			"completion":      si.Completion,
-			"assigneeId":      si.AssigneeID,
-			"priority":        si.Priority,
-			"startDate":       si.StartDate,
-			"expectedEndDate": si.ExpectedEndDate,
-		})
-	}
-	return result
 }

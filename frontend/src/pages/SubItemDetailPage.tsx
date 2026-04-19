@@ -1,434 +1,302 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTeamStore } from '@/store/team'
+import { getMainItemApi } from '@/api/mainItems'
+import { getSubItemApi } from '@/api/subItems'
+import { listProgressApi, appendProgressApi } from '@/api/progress'
+import { listMembersApi } from '@/api/teams'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogBody,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Card, CardHeader, CardContent } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
 import {
   Breadcrumb,
-  Card,
-  Descriptions,
-  Tag,
-  Progress,
-  Timeline,
-  Button,
-  Modal,
-  Form,
-  InputNumber,
-  Input,
-  Tooltip,
-  Skeleton,
-  Empty,
-  message,
-} from 'antd'
-import { CheckOutlined, CloseOutlined, EditOutlined } from '@ant-design/icons'
-import dayjs from 'dayjs'
-import { useAuthStore } from '@/store/auth'
-import { useTeamStore } from '@/store/team'
-import { getSubItemApi } from '@/api/subItems'
-import { getMainItemApi } from '@/api/mainItems'
-import { listProgressApi, appendProgressApi, correctCompletionApi } from '@/api/progress'
-import { listMembersApi } from '@/api/teams'
-import type { SubItem, MainItem, ProgressRecord, TeamMemberResp } from '@/types'
+  BreadcrumbItem,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
+import StatusBadge from '@/components/shared/StatusBadge'
+import PriorityBadge from '@/components/shared/PriorityBadge'
+import UserAvatar from '@/components/shared/UserAvatar'
 
-const { TextArea } = Input
-
-const PRIORITY_COLOR_MAP: Record<string, string> = {
-  P1: 'orange',
-  P2: 'blue',
-  P3: 'default',
-}
-
-const STATUS_TAG_COLOR_MAP: Record<string, string> = {
-  '未开始': 'default',
-  '进行中': 'processing',
-  '待评审': 'warning',
-  '已完成': 'success',
-  '已关闭': 'default',
-  '阻塞中': 'error',
-  '延期': 'orange',
-  '归档': 'default',
-}
-
-function progressStrokeColor(status: string): string {
-  if (status === '已完成') return '#52c41a'
-  if (status === '阻塞中') return '#ff4d4f'
-  if (status === '延期') return '#fa8c16'
-  return '#1677ff'
-}
-
-interface AppendFormValues {
-  completion: number
-  achievement?: string
-  blocker?: string
-  lesson?: string
-}
+// --- Main Component ---
 
 export default function SubItemDetailPage() {
   const { mainItemId, subItemId } = useParams<{ mainItemId: string; subItemId: string }>()
-  const { user } = useAuthStore()
-  const { currentTeamId, teams } = useTeamStore()
-  const queryClient = useQueryClient()
+  const teamId = useTeamStore((s) => s.currentTeamId)
+  const qc = useQueryClient()
   const mId = Number(mainItemId)
   const sId = Number(subItemId)
 
-  const [appendModalOpen, setAppendModalOpen] = useState(false)
-  const [editingRecordId, setEditingRecordId] = useState<number | null>(null)
-  const [editValue, setEditValue] = useState<number>(0)
-  const [appendForm] = Form.useForm<AppendFormValues>()
-  const [completionError, setCompletionError] = useState<string | null>(null)
+  // State
+  const [appendOpen, setAppendOpen] = useState(false)
+  const [appendForm, setAppendForm] = useState({ completion: '', achievement: '', blocker: '' })
 
-  const currentTeam = useMemo(
-    () => teams.find((t) => t.id === currentTeamId),
-    [teams, currentTeamId],
-  )
-  const isPM = useMemo(
-    () => !!user && !!currentTeam && user.id === currentTeam.pm_id,
-    [user, currentTeam],
-  )
+  // --- Data fetching ---
 
-  // Fetch sub-item detail
-  const { data: subItem, isLoading: loadingSub } = useQuery({
-    queryKey: ['subItem', currentTeamId, sId],
-    queryFn: () => getSubItemApi(currentTeamId!, sId),
-    enabled: !!currentTeamId && !!sId,
+  const { data: subItem, isLoading: subLoading } = useQuery({
+    queryKey: ['subItem', teamId, sId],
+    queryFn: () => getSubItemApi(teamId!, sId),
+    enabled: !!teamId && !!sId,
   })
 
-  // Fetch main item for breadcrumb link
   const { data: mainItem } = useQuery({
-    queryKey: ['mainItem', currentTeamId, mId],
-    queryFn: () => getMainItemApi(currentTeamId!, mId),
-    enabled: !!currentTeamId && !!mId,
+    queryKey: ['mainItem', teamId, mId],
+    queryFn: () => getMainItemApi(teamId!, mId),
+    enabled: !!teamId && !!mId,
   })
 
-  // Fetch members for display names
-  const { data: membersData } = useQuery({
-    queryKey: ['teamMembers', currentTeamId],
-    queryFn: () => listMembersApi(currentTeamId!),
-    enabled: !!currentTeamId,
+  const { data: progressRecords } = useQuery({
+    queryKey: ['progress', teamId, sId],
+    queryFn: () => listProgressApi(teamId!, sId),
+    enabled: !!teamId && !!sId,
   })
 
-  const memberNameMap = useMemo(() => {
-    const map = new Map<number, string>()
-    for (const m of membersData ?? []) {
-      map.set(m.userId, m.displayName)
-    }
-    return map
-  }, [membersData])
-
-  // Fetch progress records
-  const { data: progressRecords = [], isLoading: loadingProgress } = useQuery({
-    queryKey: ['progress', currentTeamId, sId],
-    queryFn: () => listProgressApi(currentTeamId!, sId),
-    enabled: !!currentTeamId && !!sId,
+  const { data: members } = useQuery({
+    queryKey: ['members', teamId],
+    queryFn: () => listMembersApi(teamId!),
+    enabled: !!teamId,
   })
 
-  const sortedRecords = useMemo(
-    () => [...progressRecords].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
-    [progressRecords],
+  const memberName = useCallback(
+    (assigneeId: number | null) => {
+      if (!assigneeId || !members) return '-'
+      const m = members.find((m) => m.userId === assigneeId)
+      return m ? m.displayName : 'Unknown'
+    },
+    [members],
   )
 
-  const maxCompletion = useMemo(() => {
-    if (sortedRecords.length === 0) return 0
-    return Math.max(...sortedRecords.map((r) => r.completion))
-  }, [sortedRecords])
+  // Last completion value for validation
+  const lastCompletion = progressRecords && progressRecords.length > 0
+    ? progressRecords[progressRecords.length - 1].completion
+    : 0
 
-  const isAssignee = useMemo(
-    () => !!user && !!subItem && user.id === subItem.assignee_id,
-    [user, subItem],
-  )
+  // --- Mutations ---
 
-  const canAppend = isPM || isAssignee
-
-  const isOverdue = useCallback((item: SubItem): boolean => {
-    if (!item.expected_end_date) return false
-    if (item.status === '已完成' || item.status === '已关闭') return false
-    return dayjs().isAfter(dayjs(item.expected_end_date))
-  }, [])
+  const appendMutation = useMutation({
+    mutationFn: (req: { completion: number; achievement?: string; blocker?: string }) =>
+      appendProgressApi(teamId!, sId, req),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['progress', teamId, sId] })
+      qc.invalidateQueries({ queryKey: ['subItem', teamId, sId] })
+      setAppendOpen(false)
+      setAppendForm({ completion: '', achievement: '', blocker: '' })
+    },
+  })
 
   // --- Handlers ---
 
-  const handleOpenAppend = useCallback(() => {
-    appendForm.resetFields()
-    setCompletionError(null)
-    setAppendModalOpen(true)
-  }, [appendForm])
+  const handleAppend = useCallback(() => {
+    const val = Number(appendForm.completion)
+    if (isNaN(val) || val < 0 || val > 100) return
+    if (val < lastCompletion) return
+    appendMutation.mutate({
+      completion: val,
+      ...(appendForm.achievement && { achievement: appendForm.achievement }),
+      ...(appendForm.blocker && { blocker: appendForm.blocker }),
+    })
+  }, [appendForm, lastCompletion, appendMutation])
 
-  const handleAppendSubmit = useCallback(async () => {
-    try {
-      const values = await appendForm.validateFields()
-      if (values.completion < maxCompletion) {
-        setCompletionError(`完成度不能低于上一次记录的最大值 ${maxCompletion}%`)
-        return
-      }
-      setCompletionError(null)
-      await appendProgressApi(currentTeamId!, sId, {
-        completion: values.completion,
-        achievement: values.achievement,
-        blocker: values.blocker,
-        lesson: values.lesson,
-      })
-      message.success('追加进度成功')
-      setAppendModalOpen(false)
-      queryClient.invalidateQueries({ queryKey: ['progress', currentTeamId, sId] })
-      queryClient.invalidateQueries({ queryKey: ['subItem', currentTeamId, sId] })
-    } catch {
-      // validation errors handled by form
-    }
-  }, [appendForm, currentTeamId, sId, maxCompletion, queryClient])
+  // Sorted progress records: reverse chronological
+  const sortedRecords = [...(progressRecords || [])].reverse()
 
-  const handleStartPMEdit = useCallback((record: ProgressRecord) => {
-    setEditingRecordId(record.id)
-    setEditValue(record.completion)
-  }, [])
-
-  const handleConfirmPMEdit = useCallback(async (recordId: number) => {
-    try {
-      await correctCompletionApi(currentTeamId!, recordId, { completion: editValue })
-      message.success('修正完成度成功')
-      setEditingRecordId(null)
-      queryClient.invalidateQueries({ queryKey: ['progress', currentTeamId, sId] })
-      queryClient.invalidateQueries({ queryKey: ['subItem', currentTeamId, sId] })
-    } catch {
-      message.error('修正失败')
-    }
-  }, [currentTeamId, editValue, sId, queryClient])
-
-  const handleCancelPMEdit = useCallback(() => {
-    setEditingRecordId(null)
-  }, [])
+  // Sub item code
+  const subCode = subItem ? `SI-${String(mId).padStart(3, '0')}-${String(sId).slice(-2)}` : ''
 
   // --- Render ---
 
-  if (loadingSub) {
-    return (
-      <div data-testid="sub-item-detail-page">
-        <div data-testid="detail-skeleton">
-          <Skeleton active paragraph={{ rows: 6 }} />
-        </div>
-      </div>
-    )
-  }
+  if (!teamId) return <div className="p-6 text-tertiary">请先选择团队</div>
 
-  if (!subItem) return null
-
-  const overdue = isOverdue(subItem)
+  const isLoading = subLoading
 
   return (
     <div data-testid="sub-item-detail-page">
-      {/* Breadcrumb */}
-      <Breadcrumb
-        data-testid="breadcrumb"
-        items={[
-          { title: <Link to="/items">事项视图</Link> },
-          { title: <Link to={`/items/${mId}`} data-testid="breadcrumb-main-link">{mainItem?.title ?? '...'}</Link> },
-          { title: subItem.title },
-        ]}
-        style={{ marginBottom: 16 }}
-      />
+      {isLoading ? (
+        <div className="py-8 text-center text-tertiary text-sm">加载中...</div>
+      ) : !subItem ? (
+        <div className="py-8 text-center text-tertiary text-sm">子事项不存在</div>
+      ) : (
+        <>
+          {/* Breadcrumb */}
+          <Breadcrumb className="mb-4">
+            <BreadcrumbItem href="/items">事项清单</BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem href={`/items/${mId}`}>
+              {mainItem?.title || `主事项 #${mId}`}
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem isCurrent>{subItem.title}</BreadcrumbItem>
+          </Breadcrumb>
 
-      {/* Info Card */}
-      <Card data-testid="info-card" style={{ marginBottom: 24 }}>
-        <Descriptions column={3} bordered size="middle">
-          <Descriptions.Item label="编号">
-            <span style={{ fontFamily: 'monospace' }}>SI-{String(subItem.id).padStart(4, '0')}</span>
-          </Descriptions.Item>
-          <Descriptions.Item label="所属主事项">
-            <Link to={`/items/${mId}`} data-testid="main-item-link">
-              {mainItem?.title ?? '...'}
-            </Link>
-          </Descriptions.Item>
-          <Descriptions.Item label="优先级">
-            <Tag color={PRIORITY_COLOR_MAP[subItem.priority]}>{subItem.priority}</Tag>
-          </Descriptions.Item>
-          <Descriptions.Item label="负责人">
-            {subItem.assignee_id ? (memberNameMap.get(subItem.assignee_id) || '-') : '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="状态">
-            <Tag color={STATUS_TAG_COLOR_MAP[subItem.status]}>{subItem.status}</Tag>
-          </Descriptions.Item>
-          <Descriptions.Item label="预期完成时间">
-            {subItem.expected_end_date ? (
-              overdue ? (
-                <Tooltip title="已超期">
-                  <span data-testid="overdue-date" style={{ color: '#ff4d4f' }}>
-                    {dayjs(subItem.expected_end_date).format('YYYY-MM-DD')}
-                  </span>
-                </Tooltip>
-              ) : (
-                <span>{dayjs(subItem.expected_end_date).format('YYYY-MM-DD')}</span>
-              )
-            ) : '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="当前完成度">
-            <Progress type="line" percent={subItem.completion} size="small" style={{ width: 150 }} />
-          </Descriptions.Item>
-        </Descriptions>
-      </Card>
-
-      {/* Progress Summary Bar */}
-      <Card title="完成度概览" style={{ marginBottom: 24 }}>
-        <div data-testid="progress-summary">
-          <Progress
-            type="line"
-            percent={subItem.completion}
-            strokeColor={progressStrokeColor(subItem.status)}
-            style={{ width: '100%' }}
-          />
-        </div>
-      </Card>
-
-      {/* Progress Timeline */}
-      <Card
-        title="进度记录"
-        extra={
-          canAppend && (
-            <Button
-              type="primary"
-              data-testid="append-progress-btn"
-              onClick={handleOpenAppend}
-            >
-              追加进度
-            </Button>
-          )
-        }
-      >
-        {loadingProgress ? (
-          <Skeleton active paragraph={{ rows: 3 }} />
-        ) : sortedRecords.length === 0 ? (
-          <div data-testid="timeline-empty">
-            <Empty description="暂无进度记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          {/* Title Bar */}
+          <div className="flex items-center justify-between mb-5">
+            <h1 className="text-xl font-semibold text-primary m-0">{subItem.title}</h1>
+            <Button onClick={() => setAppendOpen(true)}>追加进度</Button>
           </div>
-        ) : (
-          <div data-testid="progress-timeline">
-            <Timeline
-              mode="left"
-              items={sortedRecords.map((record) => {
-                const timeLabel = dayjs(record.created_at).format('MM-DD HH:mm')
-                const authorName = memberNameMap.get(record.author_id) || `User#${record.author_id}`
 
-                return {
-                  key: record.id,
-                  label: (
-                    <span>
-                      {timeLabel} {authorName}
-                    </span>
-                  ),
-                  children: (
-                    <div data-testid={`timeline-item-${record.id}`}>
-                      {/* Completion row with inline PM edit */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                        <span style={{ fontWeight: 500 }}>完成度:</span>
-                        {editingRecordId === record.id ? (
-                          <>
-                            <InputNumber
-                              data-testid={`pm-edit-input-${record.id}`}
-                              min={0}
-                              max={100}
-                              value={editValue}
-                              onChange={(v) => setEditValue(v ?? 0)}
-                              size="small"
-                              style={{ width: 80 }}
-                            />
-                            <CheckOutlined
-                              data-testid={`pm-edit-confirm-${record.id}`}
-                              style={{ color: '#52c41a', cursor: 'pointer' }}
-                              onClick={() => handleConfirmPMEdit(record.id)}
-                            />
-                            <CloseOutlined
-                              data-testid={`pm-edit-cancel-${record.id}`}
-                              style={{ color: '#ff4d4f', cursor: 'pointer' }}
-                              onClick={handleCancelPMEdit}
-                            />
-                          </>
-                        ) : (
-                          <>
-                            <div data-testid={`timeline-progress-${record.id}`} style={{ width: 200 }}>
-                              <Progress type="line" percent={record.completion} size="small" />
+          {/* Info Card (4-col grid) */}
+          <Card className="mb-5">
+            <CardContent>
+              <div className="grid grid-cols-4 gap-4">
+                <div>
+                  <div className="text-xs text-tertiary mb-1">编号</div>
+                  <span className="font-mono text-xs bg-bg-alt px-1.5 py-0.5 rounded">{subCode}</span>
+                </div>
+                <div>
+                  <div className="text-xs text-tertiary mb-1">所属主事项</div>
+                  <Link to={`/items/${mId}`} className="text-[13px] font-medium text-primary hover:text-primary-600">
+                    {mainItem?.title || `主事项 #${mId}`}
+                  </Link>
+                </div>
+                <div>
+                  <div className="text-xs text-tertiary mb-1">优先级</div>
+                  <PriorityBadge priority={subItem.priority} />
+                </div>
+                <div>
+                  <div className="text-xs text-tertiary mb-1">负责人</div>
+                  <div className="flex items-center gap-2">
+                    <UserAvatar name={memberName(subItem.assigneeId)} size="sm" />
+                    <span className="text-[13px] font-medium">{memberName(subItem.assigneeId)}</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-tertiary mb-1">状态</div>
+                  <StatusBadge status={subItem.status} />
+                </div>
+                <div>
+                  <div className="text-xs text-tertiary mb-1">预期完成时间</div>
+                  <span className="text-[13px]">{subItem.expectedEndDate ? subItem.expectedEndDate.slice(5) : '-'}</span>
+                </div>
+                <div>
+                  <div className="text-xs text-tertiary mb-1">当前完成度</div>
+                  <span className="text-[13px] font-semibold">{subItem.completion}%</span>
+                </div>
+                <div className="col-span-4">
+                  <div className="text-xs text-tertiary mb-1">描述</div>
+                  <span className="text-[13px] text-secondary leading-relaxed">{subItem.description || '暂无描述'}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Progress Bar */}
+          <Card className="mb-5">
+            <CardContent>
+              <div className="flex items-center gap-3">
+                <span className="text-[13px] text-secondary whitespace-nowrap">总进度</span>
+                <Progress value={subItem.completion} className="flex-1" />
+                <span className="text-[13px] font-semibold">{subItem.completion}%</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Progress Timeline */}
+          <Card>
+            <CardHeader>
+              <h3 className="text-sm font-semibold text-primary m-0">进度记录</h3>
+            </CardHeader>
+            <CardContent>
+              {sortedRecords.length === 0 ? (
+                <div className="text-tertiary text-sm">暂无进度记录</div>
+              ) : (
+                <div className="relative pl-6 border-l-2 border-border space-y-5">
+                  {sortedRecords.map((record) => {
+                    const date = new Date(record.createdAt)
+                    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+                    return (
+                      <div key={record.id} className="relative">
+                        {/* Timeline dot */}
+                        <div className="absolute -left-[25px] top-1 w-2.5 h-2.5 rounded-full bg-primary-500 border-2 border-white" />
+                        <div className="mb-1">
+                          <span className="text-xs text-tertiary">{dateStr}</span>
+                          <span className="text-xs text-tertiary ml-2">{record.completion}%</span>
+                        </div>
+                        <div className="text-[13px] text-secondary">
+                          {record.achievement && (
+                            <div className="mt-1">
+                              <strong className="text-emerald-600">成果：</strong>{record.achievement}
                             </div>
-                            {isPM && (
-                              <EditOutlined
-                                data-testid={`pm-edit-trigger-${record.id}`}
-                                style={{ color: '#1677ff', cursor: 'pointer' }}
-                                onClick={() => handleStartPMEdit(record)}
-                              />
-                            )}
-                          </>
-                        )}
-                        {record.is_pm_correct && (
-                          <Tag color="orange" style={{ marginLeft: 4 }}>PM已修正</Tag>
-                        )}
+                          )}
+                          {record.blocker && (
+                            <div className="mt-1">
+                              <strong className="text-red-600">卡点：</strong>{record.blocker}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      {/* Text blocks */}
-                      {record.achievement && (
-                        <div style={{ marginBottom: 4 }}>
-                          <span style={{ fontWeight: 500, color: '#52c41a' }}>成果: </span>
-                          <span>{record.achievement}</span>
-                        </div>
-                      )}
-                      {record.blocker && (
-                        <div style={{ marginBottom: 4 }}>
-                          <span style={{ fontWeight: 500, color: '#ff4d4f' }}>卡点: </span>
-                          <span>{record.blocker}</span>
-                        </div>
-                      )}
-                      {record.lesson && (
-                        <div style={{ marginBottom: 4 }}>
-                          <span style={{ fontWeight: 500, color: '#1677ff' }}>经验: </span>
-                          <span>{record.lesson}</span>
-                        </div>
-                      )}
-                    </div>
-                  ),
-                }
-              })}
-            />
-          </div>
-        )}
-      </Card>
+                    )
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-      {/* Append Progress Modal */}
-      <Modal
-        title="追加进度"
-        open={appendModalOpen}
-        onCancel={() => setAppendModalOpen(false)}
-        onOk={handleAppendSubmit}
-        width={480}
-        data-testid="append-modal"
-        okText="确认"
-        cancelText="取消"
-        okButtonProps={{ 'data-testid': 'append-modal-submit' }}
-      >
-        <Form form={appendForm} layout="vertical">
-          <Form.Item
-            name="completion"
-            label="完成度"
-            rules={[{ required: true, message: '请输入完成度' }]}
-            validateStatus={completionError ? 'error' : undefined}
-            help={
-              completionError ? (
-                <span data-testid="completion-error">{completionError}</span>
-              ) : (
-                <span data-testid="completion-helper-text">当前最大完成度: {maxCompletion}%</span>
-              )
-            }
-          >
-            <InputNumber
-              data-testid="append-form-completion"
-              min={0}
-              max={100}
-              style={{ width: '100%' }}
-              placeholder="请输入完成度 (0-100)"
-            />
-          </Form.Item>
-          <Form.Item name="achievement" label="成果">
-            <TextArea data-testid="append-form-achievement" rows={3} placeholder="请输入成果" />
-          </Form.Item>
-          <Form.Item name="blocker" label="卡点">
-            <TextArea data-testid="append-form-blocker" rows={3} placeholder="请输入卡点" />
-          </Form.Item>
-          <Form.Item name="lesson" label="经验">
-            <TextArea data-testid="append-form-lesson" rows={3} placeholder="请输入经验" />
-          </Form.Item>
-        </Form>
-      </Modal>
+          {/* Append Progress Dialog */}
+          <Dialog open={appendOpen} onOpenChange={setAppendOpen}>
+            <DialogContent size="md">
+              <DialogHeader>
+                <DialogTitle>追加进度</DialogTitle>
+              </DialogHeader>
+              <DialogBody>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-primary mb-1">
+                    完成度 <span className="text-error">*</span>
+                  </label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    placeholder="请输入 0-100 的整数"
+                    value={appendForm.completion}
+                    onChange={(e) => setAppendForm((f) => ({ ...f, completion: e.target.value }))}
+                  />
+                  <div className="text-xs text-tertiary mt-1">
+                    不能低于上一条记录的完成度（当前：{lastCompletion}%）
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-primary mb-1">成果</label>
+                  <textarea
+                    className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                    rows={3}
+                    placeholder="描述本次取得的成果"
+                    value={appendForm.achievement}
+                    onChange={(e) => setAppendForm((f) => ({ ...f, achievement: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-1">卡点</label>
+                  <textarea
+                    className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                    rows={3}
+                    placeholder="描述遇到的问题或阻碍"
+                    value={appendForm.blocker}
+                    onChange={(e) => setAppendForm((f) => ({ ...f, blocker: e.target.value }))}
+                  />
+                </div>
+              </DialogBody>
+              <DialogFooter>
+                <Button variant="secondary" onClick={() => setAppendOpen(false)}>取消</Button>
+                <Button
+                  onClick={handleAppend}
+                  disabled={!appendForm.completion || appendMutation.isPending}
+                >
+                  提交
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
     </div>
   )
 }

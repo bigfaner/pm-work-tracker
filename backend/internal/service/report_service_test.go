@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
@@ -22,12 +21,12 @@ import (
 func TestReportService_Preview_NoProgressRecords_ReturnsNoData(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 0},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "待开始", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "待开始", Completion: 0},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
@@ -43,12 +42,12 @@ func TestReportService_Preview_WithProgressRecords(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 60},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 60},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 60},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 60},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -92,12 +91,12 @@ func TestReportService_Preview_AchievementsAndBlockers(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 40},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 40},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 40},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 40},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -143,15 +142,15 @@ func TestReportService_Preview_GroupsByMainItem(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
-			{Model: gorm.Model{ID: 2}, TeamID: 1, Title: "Main 2", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "Main 2", Completion: 30},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 50},
-			{Model: gorm.Model{ID: 20}, TeamID: 1, MainItemID: 2, Title: "Sub B", Completion: 30},
-			{Model: gorm.Model{ID: 21}, TeamID: 1, MainItemID: 2, Title: "Sub C", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 20}, TeamID: 1, MainItemID: 2, Title: "Sub B", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 21}, TeamID: 1, MainItemID: 2, Title: "Sub C", Completion: 30},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -180,13 +179,13 @@ func TestReportService_Preview_SubItemNoProgressThisWeek_NotIncluded(t *testing.
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 50},
-			{Model: gorm.Model{ID: 11}, TeamID: 1, MainItemID: 1, Title: "Sub B", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 11}, TeamID: 1, MainItemID: 1, Title: "Sub B", Completion: 0},
 		},
 	}
 	// Only Sub A has progress this week; Sub B has none
@@ -211,14 +210,14 @@ func TestReportService_Preview_MainItemWithNoSubItemProgress_Omitted(t *testing.
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
-			{Model: gorm.Model{ID: 2}, TeamID: 1, Title: "Main 2", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "Main 2", Completion: 0},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 50},
-			{Model: gorm.Model{ID: 20}, TeamID: 1, MainItemID: 2, Title: "Sub B", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 20}, TeamID: 1, MainItemID: 2, Title: "Sub B", Completion: 0},
 		},
 	}
 	// Only Sub A (MainItem 1) has progress
@@ -263,12 +262,12 @@ func TestReportService_ExportMarkdown_Format(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "主事项A", Completion: 60, IsKeyItem: true},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "主事项A", Completion: 60, IsKeyItem: true},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "子事项A1", Completion: 60},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "子事项A1", Completion: 60},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -311,12 +310,12 @@ func TestReportService_ExportMarkdown_NoKeyItem_NoPrefix(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "普通事项", Completion: 30, IsKeyItem: false},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "普通事项", Completion: 30, IsKeyItem: false},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "子事项", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "子事项", Completion: 30},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -339,12 +338,12 @@ func TestReportService_ExportMarkdown_EmptyAchievementsAndBlockers(t *testing.T)
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 10},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 10},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 10},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 10},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -369,14 +368,14 @@ func TestReportService_ExportMarkdown_MultipleSections(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
-			{Model: gorm.Model{ID: 2}, TeamID: 1, Title: "Main 2", Completion: 80, IsKeyItem: true},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "Main 2", Completion: 80, IsKeyItem: true},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 50},
-			{Model: gorm.Model{ID: 20}, TeamID: 1, MainItemID: 2, Title: "Sub B", Completion: 80},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 20}, TeamID: 1, MainItemID: 2, Title: "Sub B", Completion: 80},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -404,12 +403,12 @@ func TestReportService_ExportMarkdown_FilenameFormat(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Completion: 50},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -432,12 +431,12 @@ func TestReportService_ExportMarkdown_BlockersSectionLabel(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 30},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 30},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{

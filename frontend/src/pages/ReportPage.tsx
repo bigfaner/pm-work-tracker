@@ -1,228 +1,175 @@
-import { useState, useCallback, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import {
-  Card,
-  Button,
-  DatePicker,
-  Empty,
-  Tag,
-  Progress,
-  Skeleton,
-  message,
-} from 'antd'
-import { DownloadOutlined } from '@ant-design/icons'
-import dayjs from 'dayjs'
-import isoWeek from 'dayjs/plugin/isoWeek'
-import { useTeamStore } from '@/store/team'
+import { useState } from 'react'
 import { getWeeklyReportPreviewApi, exportWeeklyReportApi } from '@/api/reports'
-import type { ReportPreviewResp, ReportSection, ReportSubItem } from '@/types'
+import { useTeamStore } from '@/store/team'
+import { useAuthStore } from '@/store/auth'
+import { Card, CardHeader, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import type { ReportPreviewResp } from '@/types'
 
-dayjs.extend(isoWeek)
-
-function getMondayOfWeek(d: dayjs.Dayjs): dayjs.Dayjs {
-  return d.isoWeekday(1)
+function formatWeekLabel(weekValue: string): string {
+  if (!weekValue) return ''
+  const [year, week] = weekValue.split('-W')
+  const weekNum = parseInt(week, 10)
+  // Calculate start date of the ISO week
+  const jan4 = new Date(parseInt(year, 10), 0, 4)
+  const dayOfWeek = jan4.getDay() || 7
+  const startOfYear = new Date(parseInt(year, 10), 0, 1)
+  const weekStart = new Date(startOfYear)
+  weekStart.setDate(jan4.getDate() - dayOfWeek + 1 + (weekNum - 1) * 7)
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekStart.getDate() + 6)
+  const fmt = (d: Date) => `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return `${year}年第${weekNum}周 (${fmt(weekStart)} ~ ${fmt(weekEnd)})`
 }
 
-function ReportSectionView({ section }: { section: ReportSection }) {
-  return (
-    <div style={{ marginBottom: 24 }}>
-      <h3 style={{ marginBottom: 12 }}>
-        {section.mainItem.isKeyItem && (
-          <Tag color="orange" style={{ marginRight: 8 }}>重点</Tag>
-        )}
-        {section.mainItem.title}
-        {' '}
-        <span style={{ color: '#8c8c8c', fontWeight: 400, fontSize: 14 }}>
-          (完成度 {Math.round(section.mainItem.completion)}%)
-        </span>
-      </h3>
-      {section.subItems.map((sub) => (
-        <SubItemView key={sub.id} sub={sub} />
-      ))}
-    </div>
-  )
-}
+function renderMarkdown(preview: ReportPreviewResp): string {
+  const [year, week] = preview.weekStart.split('-')
+  const weekNum = (() => {
+    const d = new Date(preview.weekStart)
+    const start = new Date(d.getFullYear(), 0, 1)
+    const diff = d.getTime() - start.getTime()
+    return Math.ceil((diff / 86400000 + start.getDay() + 1) / 7)
+  })()
+  let md = `## ${year}年第${weekNum}周 工作周报\n\n`
 
-function SubItemView({ sub }: { sub: ReportSubItem }) {
-  return (
-    <div style={{ marginBottom: 12, paddingLeft: 16 }}>
-      <div style={{ marginBottom: 4, fontWeight: 500 }}>{sub.title}</div>
-      <Progress percent={Math.round(sub.completion)} size="small" style={{ width: 200, marginBottom: 4 }} />
-      {sub.achievements.length > 0 && (
-        <div style={{ marginBottom: 4 }}>
-          <span style={{ fontWeight: 500 }}>成果：</span>
-          <ul style={{ margin: '4px 0', paddingLeft: 20 }}>
-            {sub.achievements.map((a, i) => (
-              <li key={i}>{a}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {sub.blockers.length > 0 && (
-        <div>
-          <span style={{ fontWeight: 500 }}>卡点：</span>
-          <ul style={{ margin: '4px 0', paddingLeft: 20 }}>
-            {sub.blockers.map((b, i) => (
-              <li key={i}>{b}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  )
-}
+  for (const section of preview.sections) {
+    md += `### ${section.mainItem.title}\n`
+    md += `完成度：${section.mainItem.completion}%\n\n`
+    for (const sub of section.subItems) {
+      const status = sub.completion === 100 ? '已完成' : `进行中 (${sub.completion}%)`
+      md += `  - **${sub.title}** -- ${status}\n`
+      for (const a of sub.achievements) {
+        md += `    成果：${a}\n`
+      }
+      for (const b of sub.blockers) {
+        md += `    卡点：${b}\n`
+      }
+      md += '\n'
+    }
+  }
 
-function PreviewSkeleton() {
-  return (
-    <div data-testid="preview-loading">
-      {[1, 2, 3].map((i) => (
-        <div key={i} style={{ marginBottom: 24 }}>
-          <Skeleton.Input active style={{ width: 300, height: 24, marginBottom: 12 }} />
-          <div style={{ paddingLeft: 16 }}>
-            <Skeleton active paragraph={{ rows: 3 }} />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
+  const user = useAuthStore.getState().user
+  const now = new Date().toISOString().slice(0, 10)
+  md += `---\n导出时间 ${now} by ${user?.displayName || ''}\n`
+  return md
 }
 
 export default function ReportPage() {
-  const { currentTeamId } = useTeamStore()
-  const [selectedWeek, setSelectedWeek] = useState<dayjs.Dayjs>(getMondayOfWeek(dayjs()))
-  const [previewTriggered, setPreviewTriggered] = useState(false)
-  const [exporting, setExporting] = useState(false)
-  const [previewData, setPreviewData] = useState<ReportPreviewResp | null>(null)
-
-  const weekStartStr = useMemo(() => selectedWeek.format('YYYY-MM-DD'), [selectedWeek])
-
-  const {
-    refetch: fetchPreview,
-    isFetching: previewLoading,
-  } = useQuery({
-    queryKey: ['reportPreview', currentTeamId, weekStartStr],
-    queryFn: async () => {
-      const data = await getWeeklyReportPreviewApi(currentTeamId!, weekStartStr)
-      setPreviewData(data)
-      return data
-    },
-    enabled: false,
+  const currentTeamId = useTeamStore((s) => s.currentTeamId)
+  const [weekValue, setWeekValue] = useState(() => {
+    const now = new Date()
+    const startOfYear = new Date(now.getFullYear(), 0, 1)
+    const diff = now.getTime() - startOfYear.getTime()
+    const weekNum = Math.ceil((diff / 86400000 + startOfYear.getDay() + 1) / 7)
+    return `${now.getFullYear()}-W${String(weekNum).padStart(2, '0')}`
   })
+  const [preview, setPreview] = useState<ReportPreviewResp | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handlePreview = useCallback(async () => {
-    setPreviewTriggered(true)
-    setPreviewData(null)
-    try {
-      await fetchPreview()
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { code?: string } } }
-      if (error?.response?.data?.code === 'NO_DATA') {
-        message.warning('所选周暂无数据')
-      }
+  const handlePreview = async () => {
+    if (!currentTeamId) {
+      setError('请先选择团队')
+      return
     }
-  }, [fetchPreview])
-
-  const handleExport = useCallback(async () => {
-    if (!currentTeamId || !previewData) return
-    setExporting(true)
+    setError(null)
+    setLoading(true)
     try {
+      // Convert week input value to weekStart date (Monday of that week)
+      const [year, week] = weekValue.split('-W')
+      const jan4 = new Date(parseInt(year, 10), 0, 4)
+      const dayOfWeek = jan4.getDay() || 7
+      const startOfYear = new Date(parseInt(year, 10), 0, 1)
+      const weekStart = new Date(startOfYear)
+      weekStart.setDate(jan4.getDate() - dayOfWeek + 1 + (parseInt(week, 10) - 1) * 7)
+      const weekStartStr = weekStart.toISOString().slice(0, 10)
+
+      const resp = await getWeeklyReportPreviewApi(currentTeamId, weekStartStr)
+      setPreview(resp)
+    } catch (err: any) {
+      setError(err?.response?.data?.message || '获取预览失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleExport = async () => {
+    if (!currentTeamId || !preview) return
+    try {
+      const [year, week] = weekValue.split('-W')
+      const jan4 = new Date(parseInt(year, 10), 0, 4)
+      const dayOfWeek = jan4.getDay() || 7
+      const startOfYear = new Date(parseInt(year, 10), 0, 1)
+      const weekStart = new Date(startOfYear)
+      weekStart.setDate(jan4.getDate() - dayOfWeek + 1 + (parseInt(week, 10) - 1) * 7)
+      const weekStartStr = weekStart.toISOString().slice(0, 10)
+
       const blob = await exportWeeklyReportApi(currentTeamId, weekStartStr)
-      const url = URL.createObjectURL(new Blob([blob], { type: 'text/markdown' }))
+      const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `weekly-report-${weekStartStr}.md`
+      a.download = `weekly-report-${weekValue}.md`
       a.click()
+      a.remove()
       URL.revokeObjectURL(url)
-      message.success('周报已导出')
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { code?: string } } }
-      if (error?.response?.data?.code === 'NO_DATA') {
-        message.warning('所选周暂无数据')
-      } else {
-        message.error('导出失败')
-      }
-    } finally {
-      setExporting(false)
+    } catch {
+      // Export failed silently - user can retry
     }
-  }, [currentTeamId, previewData, weekStartStr])
-
-  const handleWeekChange = useCallback((date: dayjs.Dayjs | null) => {
-    if (date) {
-      setSelectedWeek(getMondayOfWeek(date))
-      setPreviewTriggered(false)
-      setPreviewData(null)
-    }
-  }, [])
+  }
 
   return (
     <div data-testid="report-page">
-      {/* Page Header */}
-      <h2 style={{ marginBottom: 16 }}>周报导出</h2>
+      <div className="page-header">
+        <h1>周报导出</h1>
+      </div>
 
       {/* Config Card */}
-      <Card style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <DatePicker
-            data-testid="week-picker"
-            picker="week"
-            defaultValue={selectedWeek}
-            onChange={handleWeekChange}
-            disabledDate={(d) => d && d.isAfter(dayjs(), 'day')}
-          />
-          <Button
-            data-testid="preview-btn"
-            onClick={handlePreview}
-            loading={previewLoading}
-          >
-            生成预览
+      <Card className="mb-5">
+        <CardContent className="flex items-end gap-4">
+          <div>
+            <label htmlFor="week-input" className="block text-sm font-medium text-secondary mb-1.5">
+              选择周次
+            </label>
+            <Input
+              id="week-input"
+              type="week"
+              value={weekValue}
+              onChange={(e) => setWeekValue(e.target.value)}
+              className="w-[180px]"
+            />
+          </div>
+          <div className="text-sm text-secondary pb-2">
+            {formatWeekLabel(weekValue)}
+          </div>
+          <Button onClick={handlePreview} disabled={loading}>
+            {loading ? '生成中...' : '生成预览'}
           </Button>
-        </div>
+        </CardContent>
       </Card>
+
+      {error && (
+        <div className="bg-error-bg border border-red-200 rounded-lg px-4 py-2.5 text-sm text-error-text mb-4">
+          {error}
+        </div>
+      )}
 
       {/* Preview Card */}
-      <Card
-        title="预览"
-        extra={
-          <Button
-            data-testid="export-btn"
-            type="primary"
-            icon={<DownloadOutlined />}
-            onClick={handleExport}
-            loading={exporting}
-            disabled={exporting || !previewData}
-          >
-            导出 Markdown
-          </Button>
-        }
-      >
-        {previewLoading && <PreviewSkeleton />}
-
-        {!previewLoading && !previewTriggered && (
-          <div data-testid="preview-empty">
-            <Empty description="请选择周次后点击预览" />
-          </div>
-        )}
-
-        {!previewLoading && previewTriggered && !previewData && (
-          <div data-testid="preview-empty">
-            <Empty description="所选周暂无数据，无法导出" />
-          </div>
-        )}
-
-        {!previewLoading && previewData && (
-          <div data-testid="preview-content">
-            <h2 style={{ marginBottom: 16 }}>
-              {selectedWeek.format('YYYY')}年第{selectedWeek.isoWeek()}周 工作周报
-            </h2>
-            {previewData.sections.map((section) => (
-              <ReportSectionView key={section.mainItem.id} section={section} />
-            ))}
-            <div style={{ color: '#8c8c8c', fontSize: 12, marginTop: 24 }}>
-              导出时间：{dayjs().format('YYYY-MM-DD HH:mm')}
-            </div>
-          </div>
-        )}
-      </Card>
+      {preview && (
+        <Card>
+          <CardHeader>
+            <h3>预览</h3>
+            <Button variant="primary" size="sm" onClick={handleExport}>
+              导出 Markdown
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <pre className="font-mono text-[13px] leading-[1.8] text-secondary whitespace-pre-wrap bg-bg-alt p-5 rounded-lg border border-border">
+              {renderMarkdown(preview)}
+            </pre>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

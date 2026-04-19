@@ -8,9 +8,9 @@ import (
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/middleware"
-	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/service"
+	"pm-work-tracker/backend/internal/vo"
 )
 
 // SubItemHandler handles sub item endpoints.
@@ -80,7 +80,7 @@ func (h *SubItemHandler) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": subItemToDTO(item)})
+	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": vo.NewSubItemVO(item)})
 }
 
 // List handles GET /api/v1/teams/:teamId/main-items/:itemId/sub-items
@@ -124,7 +124,16 @@ func (h *SubItemHandler) List(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, result)
+	voItems := make([]vo.SubItemVO, 0, len(result.Items))
+	for i := range result.Items {
+		voItems = append(voItems, vo.NewSubItemVO(&result.Items[i]))
+	}
+	apperrors.RespondOK(c, gin.H{
+		"items": voItems,
+		"total": result.Total,
+		"page":  result.Page,
+		"size":  result.Size,
+	})
 }
 
 // Get handles GET /api/v1/teams/:teamId/sub-items/:subId
@@ -147,7 +156,7 @@ func (h *SubItemHandler) Get(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, subItemToDTO(item))
+	apperrors.RespondOK(c, vo.NewSubItemVO(item))
 }
 
 // Update handles PUT /api/v1/teams/:teamId/sub-items/:subId
@@ -199,7 +208,7 @@ func (h *SubItemHandler) Update(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, subItemToDTO(updated))
+	apperrors.RespondOK(c, vo.NewSubItemVO(updated))
 }
 
 // ChangeStatus handles PUT /api/v1/teams/:teamId/sub-items/:subId/status
@@ -271,7 +280,7 @@ func (h *SubItemHandler) Assign(c *gin.Context) {
 	pmID := middleware.GetUserID(c)
 
 	var req struct {
-		AssigneeID uint `json:"assignee_id" binding:"required"`
+		AssigneeID uint `json:"assigneeId" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
@@ -285,26 +294,4 @@ func (h *SubItemHandler) Assign(c *gin.Context) {
 	}
 
 	apperrors.RespondOK(c, nil)
-}
-
-// subItemToDTO converts a model.SubItem to a response map matching the Data Contract.
-func subItemToDTO(item *model.SubItem) gin.H {
-	return gin.H{
-		"id":               item.ID,
-		"mainItemId":       item.MainItemID,
-		"title":            item.Title,
-		"description":      item.Description,
-		"priority":         item.Priority,
-		"assigneeId":       item.AssigneeID,
-		"startDate":        item.StartDate,
-		"expectedEndDate":  item.ExpectedEndDate,
-		"actualEndDate":    item.ActualEndDate,
-		"status":           item.Status,
-		"completion":       item.Completion,
-		"isKeyItem":        item.IsKeyItem,
-		"delayCount":       item.DelayCount,
-		"weight":           item.Weight,
-		"createdAt":        item.CreatedAt,
-		"updatedAt":        item.UpdatedAt,
-	}
 }

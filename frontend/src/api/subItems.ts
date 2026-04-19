@@ -10,7 +10,16 @@ import type {
 } from '@/types'
 
 export function createSubItemApi(teamId: number, mainId: number, req: CreateSubItemReq): Promise<SubItem> {
-  return client.post<never, SubItem>(`/teams/${teamId}/main-items/${mainId}/sub-items`, req)
+  const body: Record<string, unknown> = {
+    main_item_id: mainId,
+    title: req.title,
+    priority: req.priority,
+    assignee_id: req.assigneeId,
+    start_date: req.startDate,
+    expected_end_date: req.expectedEndDate,
+  }
+  if (req.description) body.description = req.description
+  return client.post<never, SubItem>(`/teams/${teamId}/main-items/${mainId}/sub-items`, body)
 }
 
 export function listSubItemsApi(teamId: number, mainId: number, filter?: SubItemFilter): Promise<PageResult<SubItem>> {

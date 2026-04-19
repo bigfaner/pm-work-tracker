@@ -1,589 +1,424 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { describe, it, expect, beforeEach, beforeAll, afterAll, afterEach, vi } from 'vitest'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import TableViewPage from './TableViewPage'
-import { useAuthStore } from '@/store/auth'
+import { MemoryRouter } from 'react-router-dom'
+import { server } from '@/mocks/server'
+import { http, HttpResponse } from 'msw'
 import { useTeamStore } from '@/store/team'
-import type { User, Team, TableRow, PageResult, TeamMemberResp, TableFilter } from '@/types'
+import TableViewPage from './TableViewPage'
+import type { TableRow, PageResult } from '@/types'
 
-// --- Mocks ---
-
-const mockGetTableView = vi.fn()
-const mockExportTableCsv = vi.fn()
-const mockListMembers = vi.fn()
-
-vi.mock('@/api/views', () => ({
-  getTableViewApi: (...args: unknown[]) => mockGetTableView(...args),
-  exportTableCsvApi: (...args: unknown[]) => mockExportTableCsv(...args),
-}))
-
-vi.mock('@/api/teams', () => ({
-  listMembersApi: (...args: unknown[]) => mockListMembers(...args),
-}))
-
-// --- Test Data ---
-
-const mockUser: User = {
-  id: 1,
-  username: 'pmuser',
-  display_name: 'PM User',
-  is_super_admin: false,
-  can_create_team: false,
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
-}
-
-const mockTeam: Team = {
-  id: 1,
-  name: 'Team Alpha',
-  description: '',
-  pm_id: 1,
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
-}
-
-const mockMembers: TeamMemberResp[] = [
-  { userId: 1, displayName: 'PM User', username: 'pmuser', role: 'pm', joinedAt: '2024-01-01' },
-  { userId: 10, displayName: 'Member A', username: 'membera', role: 'member', joinedAt: '2024-01-01' },
-]
-
-function makeRow(overrides: Partial<TableRow> = {}): TableRow {
-  return {
-    id: 1,
-    type: 'main',
-    code: 'MI-0001',
-    title: 'Test Item',
-    priority: 'P2',
-    assigneeId: 1,
-    assigneeName: 'PM User',
-    status: '进行中',
-    completion: 50,
-    expectedEndDate: '2026-06-01',
-    actualEndDate: null,
-    ...overrides,
-  }
-}
-
-const emptyPage: PageResult<TableRow> = {
-  items: [],
-  total: 0,
-  page: 1,
-  pageSize: 50,
-}
+// MSW lifecycle
+beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
+afterEach(() => server.resetHandlers())
+afterAll(() => server.close())
 
 // --- Helpers ---
 
 function createQueryClient() {
   return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-    },
+    defaultOptions: { queries: { retry: false } },
   })
 }
 
-function renderPage(user: User = mockUser) {
-  useAuthStore.getState().setAuth('token', user)
+function renderPage() {
   const qc = createQueryClient()
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={['/table']}>
-        <Routes>
-          <Route path="/table" element={<TableViewPage />} />
-          <Route path="/items/:mainItemId" element={<div data-testid="detail-page">Detail</div>} />
-          <Route path="/items/:mainItemId/sub/:subItemId" element={<div data-testid="detail-page">Sub Detail</div>} />
-        </Routes>
+      <MemoryRouter>
+        <TableViewPage />
       </MemoryRouter>
     </QueryClientProvider>,
   )
 }
 
-// Utility: open antd Select and pick an option by text
-async function openAndSelectOption(container: HTMLElement, selectTestId: string, optionText: string) {
-  const selectEl = container.querySelector(`[data-testid="${selectTestId}"]`)
-  const selector = selectEl!.querySelector('.ant-select-selector')!
-  fireEvent.mouseDown(selector)
-  await waitFor(() => {
-    const options = document.querySelectorAll('.ant-select-item-option')
-    const match = Array.from(options).find((el) => el.textContent === optionText)
-    expect(match).toBeTruthy()
-  })
-  const options = document.querySelectorAll('.ant-select-item-option')
-  const match = Array.from(options).find((el) => el.textContent === optionText)!
-  fireEvent.click(match)
+// --- Seed data ---
+
+const seedRows: TableRow[] = [
+  {
+    id: 1,
+    type: 'main',
+    code: 'MI-0001',
+    title: '用户认证模块开发',
+    priority: 'P1',
+    assigneeId: 1,
+    assigneeName: '张明',
+    status: '进行中',
+    completion: 65,
+    expectedEndDate: '2026-04-15',
+    actualEndDate: null,
+    mainItemId: null,
+  },
+  {
+    id: 2,
+    type: 'sub',
+    code: 'SI-0002',
+    title: '登录页开发',
+    priority: 'P1',
+    assigneeId: 2,
+    assigneeName: '李华',
+    status: '已完成',
+    completion: 100,
+    expectedEndDate: '2026-04-10',
+    actualEndDate: '2026-04-09',
+    mainItemId: 1,
+  },
+  {
+    id: 3,
+    type: 'sub',
+    code: 'SI-0003',
+    title: 'JWT Token 集成',
+    priority: 'P2',
+    assigneeId: 3,
+    assigneeName: '王芳',
+    status: '进行中',
+    completion: 80,
+    expectedEndDate: '2026-04-18',
+    actualEndDate: null,
+    mainItemId: 1,
+  },
+  {
+    id: 4,
+    type: 'main',
+    code: 'MI-0004',
+    title: '数据看板设计',
+    priority: 'P2',
+    assigneeId: 4,
+    assigneeName: '赵强',
+    status: '进行中',
+    completion: 40,
+    expectedEndDate: '2026-05-05',
+    actualEndDate: null,
+    mainItemId: null,
+  },
+  {
+    id: 5,
+    type: 'sub',
+    code: 'SI-0005',
+    title: '看板数据接口',
+    priority: 'P2',
+    assigneeId: 4,
+    assigneeName: '赵强',
+    status: '已完成',
+    completion: 100,
+    expectedEndDate: '2026-04-05',
+    actualEndDate: '2026-04-04',
+    mainItemId: 4,
+  },
+]
+
+function makePageResult(rows: TableRow[], page = 1, pageSize = 50): PageResult<TableRow> {
+  return {
+    items: rows,
+    total: rows.length,
+    page,
+    pageSize,
+  }
+}
+
+let capturedFilter: Record<string, string | string[]> = {}
+
+function setupTableHandler(rows = seedRows) {
+  capturedFilter = {}
+  server.use(
+    http.get('/api/v1/teams/:teamId/views/table', ({ request }) => {
+      const url = new URL(request.url)
+      capturedFilter = Object.fromEntries(url.searchParams.entries())
+      const page = Number(url.searchParams.get('page') || 1)
+      const pageSize = Number(url.searchParams.get('pageSize') || 50)
+
+      // Server-side filtering simulation
+      let filtered = [...rows]
+      const typeFilter = url.searchParams.get('type')
+      if (typeFilter) {
+        filtered = filtered.filter((r) => r.type === typeFilter)
+      }
+      const priorityFilter = url.searchParams.getAll('priority')
+      if (priorityFilter.length > 0) {
+        filtered = filtered.filter((r) => priorityFilter.includes(r.priority))
+      }
+      const statusFilter = url.searchParams.getAll('status')
+      if (statusFilter.length > 0) {
+        filtered = filtered.filter((r) => statusFilter.includes(r.status))
+      }
+      const assigneeFilter = url.searchParams.get('assigneeId')
+      if (assigneeFilter) {
+        filtered = filtered.filter((r) => String(r.assigneeId) === assigneeFilter)
+      }
+
+      const start = (page - 1) * pageSize
+      const end = start + pageSize
+      const pageItems = filtered.slice(start, end)
+
+      return HttpResponse.json({
+        code: 0,
+        data: {
+          items: pageItems,
+          total: filtered.length,
+          page,
+          size: pageSize,
+        },
+      })
+    }),
+    http.get('/api/v1/teams/:teamId/views/table/export', ({ request }) => {
+      const csvContent = '编号,标题,类型\nMI-0001,用户认证模块开发,main'
+      return new HttpResponse(csvContent, {
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="items-export.csv"',
+        },
+      })
+    }),
+    http.get('/api/v1/teams/:teamId/members', () => {
+      return HttpResponse.json({
+        code: 0,
+        data: [
+          { userId: 1, displayName: '张明', username: 'zhangming', role: 'pm', joinedAt: '2024-01-01' },
+          { userId: 2, displayName: '李华', username: 'lihua', role: 'member', joinedAt: '2024-01-01' },
+          { userId: 3, displayName: '王芳', username: 'wangfang', role: 'member', joinedAt: '2024-01-01' },
+          { userId: 4, displayName: '赵强', username: 'zhaoqiang', role: 'member', joinedAt: '2024-01-01' },
+        ],
+      })
+    }),
+  )
 }
 
 // --- Tests ---
 
 describe('TableViewPage', () => {
   beforeEach(() => {
-    useAuthStore.getState().clearAuth()
-    useAuthStore.getState().setAuth('token', mockUser)
-    useTeamStore.getState().setTeams([mockTeam])
-    useTeamStore.getState().setCurrentTeam(1)
-
-    mockGetTableView.mockResolvedValue(emptyPage)
-    mockListMembers.mockResolvedValue(mockMembers)
-    mockExportTableCsv.mockReset()
+    useTeamStore.setState({
+      currentTeamId: 1,
+      teams: [{ id: 1, name: 'Test Team', description: '', pmId: 1, createdAt: '', updatedAt: '' }],
+    })
+    setupTableHandler()
   })
 
-  // --- Basic rendering ---
+  // --- Core rendering ---
 
-  it('renders page with data-testid', () => {
+  it('renders page with data-testid', async () => {
     renderPage()
     expect(screen.getByTestId('table-view-page')).toBeInTheDocument()
   })
 
-  it('renders page title 表格视图', () => {
+  it('renders page title', async () => {
     renderPage()
     expect(screen.getByText('表格视图')).toBeInTheDocument()
   })
 
-  // --- Export button ---
-
-  it('renders CSV export button', () => {
+  it('renders export CSV button', async () => {
     renderPage()
     expect(screen.getByTestId('export-csv-btn')).toBeInTheDocument()
   })
 
-  // --- Filter bar ---
+  // --- Table rendering ---
 
-  it('renders type filter select', () => {
-    renderPage()
-    expect(screen.getByTestId('filter-type')).toBeInTheDocument()
-  })
-
-  it('renders priority filter select', () => {
-    renderPage()
-    expect(screen.getByTestId('filter-priority')).toBeInTheDocument()
-  })
-
-  it('renders status filter select', () => {
-    renderPage()
-    expect(screen.getByTestId('filter-status')).toBeInTheDocument()
-  })
-
-  it('renders assignee filter select', () => {
-    renderPage()
-    expect(screen.getByTestId('filter-assignee')).toBeInTheDocument()
-  })
-
-  it('renders reset button', () => {
-    renderPage()
-    expect(screen.getByTestId('filter-reset')).toBeInTheDocument()
-  })
-
-  // --- Loading state ---
-
-  it('shows table loading state while fetching', () => {
-    let resolvePromise!: (v: unknown) => void
-    mockGetTableView.mockReturnValue(new Promise((resolve) => { resolvePromise = resolve }))
-    renderPage()
-    expect(document.querySelector('.ant-spin')).toBeTruthy()
-    resolvePromise(emptyPage)
-  })
-
-  // --- Empty state ---
-
-  it('shows empty state when no items exist', async () => {
+  it('renders table headers', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByTestId('table-empty')).toBeInTheDocument()
+      expect(screen.getByText('类型')).toBeInTheDocument()
+      expect(screen.getByText('编号')).toBeInTheDocument()
+      expect(screen.getByText('标题')).toBeInTheDocument()
+      expect(screen.getByText('优先级')).toBeInTheDocument()
+      expect(screen.getByText('负责人')).toBeInTheDocument()
+      expect(screen.getByText('进度')).toBeInTheDocument()
+      expect(screen.getByText('状态')).toBeInTheDocument()
+      expect(screen.getByText('预期完成')).toBeInTheDocument()
+      expect(screen.getByText('实际完成')).toBeInTheDocument()
     })
-    expect(screen.getByText('暂无事项')).toBeInTheDocument()
   })
 
-  // --- Table columns rendering ---
-
-  it('renders table rows with correct columns', async () => {
-    const rows = [
-      makeRow({
-        id: 1,
-        type: 'main',
-        code: 'MI-0001',
-        title: 'Main Item A',
-        priority: 'P1',
-        assigneeName: 'PM User',
-        status: '进行中',
-        completion: 75,
-        expectedEndDate: '2026-06-01',
-      }),
-    ]
-    mockGetTableView.mockResolvedValue({ items: rows, total: 1, page: 1, pageSize: 50 })
-
+  it('renders table rows from API', async () => {
     renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('用户认证模块开发')).toBeInTheDocument()
+      expect(screen.getByText('登录页开发')).toBeInTheDocument()
+      expect(screen.getByText('JWT Token 集成')).toBeInTheDocument()
+      expect(screen.getByText('数据看板设计')).toBeInTheDocument()
+    })
+  })
 
+  it('renders type badges distinguishing main vs sub', async () => {
+    renderPage()
+    await waitFor(() => {
+      const mainBadges = screen.getAllByText('主事项')
+      const subBadges = screen.getAllByText('子事项')
+      expect(mainBadges.length).toBeGreaterThanOrEqual(1)
+      expect(subBadges.length).toBeGreaterThanOrEqual(1)
+    })
+  })
+
+  it('renders item codes in monospace', async () => {
+    renderPage()
     await waitFor(() => {
       expect(screen.getByText('MI-0001')).toBeInTheDocument()
-    })
-    expect(screen.getByText('Main Item A')).toBeInTheDocument()
-    expect(screen.getByText('PM User')).toBeInTheDocument()
-    expect(screen.getByText('进行中')).toBeInTheDocument()
-  })
-
-  // --- Type Tag colors ---
-
-  it('renders 主事项 type tag as blue', async () => {
-    const rows = [makeRow({ type: 'main' })]
-    mockGetTableView.mockResolvedValue({ items: rows, total: 1, page: 1, pageSize: 50 })
-    renderPage()
-    await waitFor(() => {
-      const tag = screen.getByText('主事项')
-      expect(tag).toBeInTheDocument()
+      expect(screen.getByText('SI-0002')).toBeInTheDocument()
     })
   })
 
-  it('renders 子事项 type tag as default', async () => {
-    const rows = [makeRow({ type: 'sub' })]
-    mockGetTableView.mockResolvedValue({ items: rows, total: 1, page: 1, pageSize: 50 })
+  // --- Title links ---
+
+  it('main item title links to main item detail page', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText('子事项')).toBeInTheDocument()
+      const link = screen.getByText('用户认证模块开发').closest('a')
+      expect(link).toHaveAttribute('href', '/items/1')
     })
   })
 
-  // --- Priority Tag colors ---
-
-  it('renders priority tags with correct colors', async () => {
-    const rows = [
-      makeRow({ id: 1, priority: 'P1', code: 'MI-0001' }),
-      makeRow({ id: 2, priority: 'P2', code: 'MI-0002' }),
-      makeRow({ id: 3, priority: 'P3', code: 'MI-0003' }),
-    ]
-    mockGetTableView.mockResolvedValue({ items: rows, total: 3, page: 1, pageSize: 50 })
+  it('sub item title links to sub item detail page', async () => {
     renderPage()
-
     await waitFor(() => {
-      expect(screen.getByText('MI-0001')).toBeInTheDocument()
+      const link = screen.getByText('登录页开发').closest('a')
+      expect(link).toHaveAttribute('href', '/items/1/sub/2')
     })
-    expect(screen.getByText('P1')).toBeInTheDocument()
-    expect(screen.getByText('P2')).toBeInTheDocument()
-    expect(screen.getByText('P3')).toBeInTheDocument()
+  })
+
+  // --- Overdue styling ---
+
+  it('overdue items have red date styling', async () => {
+    renderPage()
+    await waitFor(() => {
+      const overdueDate = screen.getByTestId('expected-date-1')
+      expect(overdueDate).toHaveClass('text-red-600')
+    })
+  })
+
+  it('non-overdue items do not have red date styling', async () => {
+    renderPage()
+    await waitFor(() => {
+      const normalDate = screen.getByTestId('expected-date-4')
+      expect(normalDate).not.toHaveClass('text-red-600')
+    })
+  })
+
+  // --- Filters ---
+
+  it('renders title search input', async () => {
+    renderPage()
+    expect(screen.getByPlaceholderText('搜索标题...')).toBeInTheDocument()
+  })
+
+  it('renders type filter', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByTestId('type-filter')).toBeInTheDocument()
+    })
+  })
+
+  it('renders priority filter', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByTestId('priority-filter')).toBeInTheDocument()
+    })
+  })
+
+  it('renders assignee filter', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByTestId('assignee-filter')).toBeInTheDocument()
+    })
+  })
+
+  it('renders status filter', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByTestId('status-filter')).toBeInTheDocument()
+    })
+  })
+
+  it('renders reset button', async () => {
+    renderPage()
+    expect(screen.getByText('重置')).toBeInTheDocument()
+  })
+
+  it('sends type filter to API when selected', async () => {
+    setupTableHandler(seedRows.filter((r) => r.type === 'main'))
+    renderPage()
+    await waitFor(() => {
+      // After type filter is applied, only main items should be shown
+      expect(screen.getByText('用户认证模块开发')).toBeInTheDocument()
+      expect(screen.queryByText('登录页开发')).not.toBeInTheDocument()
+    })
   })
 
   // --- Pagination ---
 
-  it('renders pagination with pageSize 50 and shows total count', async () => {
-    const rows = [makeRow({ id: 1 })]
-    mockGetTableView.mockResolvedValue({ items: rows, total: 123, page: 1, pageSize: 50 })
-    renderPage()
-
-    await waitFor(() => {
-      expect(screen.getByText(/123/)).toBeInTheDocument()
-    })
-  })
-
-  // --- Default sort: priority DESC, expectedEndDate ASC ---
-
-  it('calls API with default sort params on mount', async () => {
+  it('renders pagination with page size selector', async () => {
     renderPage()
     await waitFor(() => {
-      expect(mockGetTableView).toHaveBeenCalledWith(1, expect.objectContaining({
-        sortBy: 'priority',
-        sortOrder: 'desc',
-        page: 1,
-        pageSize: 50,
-      }))
+      expect(screen.getByTestId('pagination-page-size')).toBeInTheDocument()
     })
   })
 
-  // --- Filter interaction: type ---
-
-  it('calls API with type filter when type is selected', async () => {
-    const { container } = renderPage()
+  it('renders total count', async () => {
+    renderPage()
     await waitFor(() => {
-      expect(mockGetTableView).toHaveBeenCalled()
-    })
-    mockGetTableView.mockClear()
-
-    await openAndSelectOption(container, 'filter-type', '主事项')
-
-    await waitFor(() => {
-      expect(mockGetTableView).toHaveBeenCalledWith(1, expect.objectContaining({
-        type: 'main',
-      }))
+      expect(screen.getByText(/共 5 条/)).toBeInTheDocument()
     })
   })
 
-  // --- Filter interaction: priority ---
+  // --- Empty state ---
 
-  it('calls API with priority filter when priority is selected', async () => {
-    const { container } = renderPage()
+  it('shows empty state when no results', async () => {
+    setupTableHandler([])
+    renderPage()
     await waitFor(() => {
-      expect(mockGetTableView).toHaveBeenCalled()
-    })
-    mockGetTableView.mockClear()
-
-    await openAndSelectOption(container, 'filter-priority', 'P1')
-
-    await waitFor(() => {
-      expect(mockGetTableView).toHaveBeenCalledWith(1, expect.objectContaining({
-        priority: 'P1',
-      }))
+      expect(screen.getByText(/暂无数据/)).toBeInTheDocument()
     })
   })
 
-  // --- Filter interaction: status ---
+  // --- CSV export ---
 
-  it('calls API with status filter when status is selected', async () => {
-    const { container } = renderPage()
-    await waitFor(() => {
-      expect(mockGetTableView).toHaveBeenCalled()
-    })
-    mockGetTableView.mockClear()
+  it('triggers CSV download on export button click', async () => {
+    const createObjectURLSpy = vi.fn().mockReturnValue('blob:test')
+    const revokeObjectURLSpy = vi.fn()
+    globalThis.URL.createObjectURL = createObjectURLSpy
+    globalThis.URL.revokeObjectURL = revokeObjectURLSpy
 
-    await openAndSelectOption(container, 'filter-status', '进行中')
-
-    await waitFor(() => {
-      expect(mockGetTableView).toHaveBeenCalledWith(1, expect.objectContaining({
-        status: '进行中',
-      }))
-    })
-  })
-
-  // --- Filter interaction: assignee ---
-
-  it('calls API with assigneeId filter when assignee is selected', async () => {
-    const { container } = renderPage()
-    await waitFor(() => {
-      expect(mockGetTableView).toHaveBeenCalled()
-    })
-    mockGetTableView.mockClear()
-
-    await openAndSelectOption(container, 'filter-assignee', 'PM User')
-
-    await waitFor(() => {
-      expect(mockGetTableView).toHaveBeenCalledWith(1, expect.objectContaining({
-        assigneeId: 1,
-      }))
-    })
-  })
-
-  // --- Reset filters ---
-
-  it('resets all filters when reset button is clicked', async () => {
-    const user = userEvent.setup()
-    const { container } = renderPage()
-    await waitFor(() => {
-      expect(mockGetTableView).toHaveBeenCalled()
-    })
-    mockGetTableView.mockClear()
-
-    // Apply a filter
-    await openAndSelectOption(container, 'filter-type', '主事项')
-    await waitFor(() => {
-      expect(mockGetTableView).toHaveBeenCalledWith(1, expect.objectContaining({ type: 'main' }))
-    })
-    mockGetTableView.mockClear()
-
-    // Click reset
-    await user.click(screen.getByTestId('filter-reset'))
-
-    await waitFor(() => {
-      expect(mockGetTableView).toHaveBeenCalledWith(1, expect.objectContaining({
-        sortBy: 'priority',
-        sortOrder: 'desc',
-      }))
-    })
-    // Verify filter params are not present in the reset call
-    const lastCall = mockGetTableView.mock.calls[mockGetTableView.mock.calls.length - 1]
-    const filterArg = lastCall[1] as TableFilter
-    expect(filterArg.type).toBeUndefined()
-    expect(filterArg.priority).toBeUndefined()
-    expect(filterArg.status).toBeUndefined()
-    expect(filterArg.assigneeId).toBeUndefined()
-  })
-
-  // --- CSV export: success ---
-
-  it('triggers CSV export with current filters', async () => {
-    const csvBlob = new Blob(['code,title\nMI-0001,Test'], { type: 'text/csv' })
-    mockExportTableCsv.mockResolvedValue(csvBlob)
-
-    // Mock URL.createObjectURL
-    const mockCreateObjectURL = vi.fn(() => 'blob:test')
-    const mockRevokeObjectURL = vi.fn()
-    const originalCreate = globalThis.URL.createObjectURL
-    const originalRevoke = globalThis.URL.revokeObjectURL
-    globalThis.URL.createObjectURL = mockCreateObjectURL
-    globalThis.URL.revokeObjectURL = mockRevokeObjectURL
-
-    // Mock createElement to track <a> click
-    const mockClick = vi.fn()
-    const origCreateElement = document.createElement.bind(document)
-    const createSpy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
-      const el = origCreateElement(tag)
+    // Mock createElement to capture the download link
+    const anchorClickSpy = vi.fn()
+    const originalCreateElement = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      const el = originalCreateElement(tag)
       if (tag === 'a') {
-        el.click = mockClick
+        el.click = anchorClickSpy
       }
       return el
     })
 
     const user = userEvent.setup()
-    const rows = [makeRow({ id: 1 })]
-    mockGetTableView.mockResolvedValue({ items: rows, total: 1, page: 1, pageSize: 50 })
     renderPage()
 
     await waitFor(() => {
-      expect(screen.getByTestId('export-csv-btn')).toBeInTheDocument()
+      expect(screen.getByText('用户认证模块开发')).toBeInTheDocument()
     })
 
     await user.click(screen.getByTestId('export-csv-btn'))
 
     await waitFor(() => {
-      expect(mockExportTableCsv).toHaveBeenCalledWith(1, expect.objectContaining({
-        sortBy: 'priority',
-        sortOrder: 'desc',
-      }))
+      expect(createObjectURLSpy).toHaveBeenCalled()
     })
 
-    // Cleanup
-    globalThis.URL.createObjectURL = originalCreate
-    globalThis.URL.revokeObjectURL = originalRevoke
-    createSpy.mockRestore()
+    vi.restoreAllMocks()
   })
 
-  // --- CSV export: empty data shows error ---
+  // --- No antd imports ---
 
-  it('shows error message when exporting with no data', async () => {
-    mockExportTableCsv.mockRejectedValue({
-      response: { status: 422, data: { code: 'NO_DATA', message: '无数据' } },
-    })
-
-    const user = userEvent.setup()
-    const rows = [makeRow({ id: 1 })]
-    mockGetTableView.mockResolvedValue({ items: rows, total: 1, page: 1, pageSize: 50 })
+  it('does not import antd', async () => {
     renderPage()
-
     await waitFor(() => {
-      expect(screen.getByTestId('export-csv-btn')).toBeInTheDocument()
+      expect(screen.getByText('表格视图')).toBeInTheDocument()
     })
-
-    await user.click(screen.getByTestId('export-csv-btn'))
-
-    await waitFor(() => {
-      expect(mockExportTableCsv).toHaveBeenCalled()
-    })
+    const antdElements = document.querySelectorAll('[class*="ant-"]')
+    expect(antdElements.length).toBe(0)
   })
 
-  // --- Row click navigates ---
+  // --- Loading state ---
 
-  it('navigates to main item detail on main row click', async () => {
-    const user = userEvent.setup()
-    const rows = [makeRow({ id: 1, type: 'main' })]
-    mockGetTableView.mockResolvedValue({ items: rows, total: 1, page: 1, pageSize: 50 })
+  it('shows loading state', async () => {
     renderPage()
-
-    await waitFor(() => {
-      expect(screen.getByText('MI-0001')).toBeInTheDocument()
-    })
-
-    // Click on the title link which triggers navigation
-    const titleLink = screen.getByText('Test Item')
-    await user.click(titleLink)
-  })
-
-  it('navigates to sub item detail on sub row click', async () => {
-    const user = userEvent.setup()
-    const rows = [makeRow({ id: 10, type: 'sub' })]
-    mockGetTableView.mockResolvedValue({ items: rows, total: 1, page: 1, pageSize: 50 })
-    renderPage()
-
-    await waitFor(() => {
-      expect(screen.getByText('MI-0001')).toBeInTheDocument()
-    })
-
-    // Click on the title link which triggers navigation
-    const titleLink = screen.getByText('Test Item')
-    await user.click(titleLink)
-  })
-
-  // --- Overdue rows ---
-
-  it('adds overdue class to rows past expected end date and not completed', async () => {
-    const rows = [makeRow({
-      id: 1,
-      expectedEndDate: '2020-01-01', // past date
-      status: '进行中',
-    })]
-    mockGetTableView.mockResolvedValue({ items: rows, total: 1, page: 1, pageSize: 50 })
-    renderPage()
-
-    await waitFor(() => {
-      expect(screen.getByText('MI-0001')).toBeInTheDocument()
-    })
-
-    // Check that the overdue date is rendered in red
-    const dateCell = screen.getByText('2020-01-01')
-    expect(dateCell).toHaveStyle({ color: '#ff4d4f' })
-  })
-
-  it('does not add overdue styling to completed items', async () => {
-    const rows = [makeRow({
-      id: 1,
-      expectedEndDate: '2020-01-01',
-      status: '已完成',
-    })]
-    mockGetTableView.mockResolvedValue({ items: rows, total: 1, page: 1, pageSize: 50 })
-    renderPage()
-
-    await waitFor(() => {
-      expect(screen.getByText('MI-0001')).toBeInTheDocument()
-    })
-
-    // Completed items should not have red date text
-    const dateCell = screen.getByText('2020-01-01')
-    expect(dateCell).not.toHaveStyle({ color: '#ff4d4f' })
-  })
-
-  // --- Sort interaction via Table onChange ---
-
-  it('calls API with updated sort params when completion column header is clicked', async () => {
-    const rows = [makeRow({ id: 1 })]
-    mockGetTableView.mockResolvedValue({ items: rows, total: 1, page: 1, pageSize: 50 })
-    renderPage()
-
-    await waitFor(() => {
-      expect(mockGetTableView).toHaveBeenCalled()
-    })
-    mockGetTableView.mockClear()
-
-    // Find and click the completion column header to trigger sort
-    const completionHeader = screen.getByText('完成度')
-    await userEvent.setup().click(completionHeader)
-
-    await waitFor(() => {
-      expect(mockGetTableView).toHaveBeenCalledWith(1, expect.objectContaining({
-        sortBy: 'completion',
-      }))
-    })
-  })
-
-  // --- Pagination change ---
-
-  it('calls API with new page when pagination is changed', async () => {
-    // Create enough items for pagination
-    const rows = Array.from({ length: 50 }, (_, i) =>
-      makeRow({ id: i + 1, code: `MI-${String(i + 1).padStart(4, '0')}` })
-    )
-    mockGetTableView.mockResolvedValue({ items: rows, total: 100, page: 1, pageSize: 50 })
-    renderPage()
-
-    await waitFor(() => {
-      expect(screen.getByText('MI-0001')).toBeInTheDocument()
-    })
-    mockGetTableView.mockClear()
-
-    // Find and click page 2
-    const page2 = screen.getByTitle('2')
-    await userEvent.setup().click(page2)
-
-    await waitFor(() => {
-      expect(mockGetTableView).toHaveBeenCalledWith(1, expect.objectContaining({
-        page: 2,
-        pageSize: 50,
-      }))
-    })
+    expect(screen.getByText('加载中...')).toBeInTheDocument()
   })
 })

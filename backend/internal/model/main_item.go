@@ -2,15 +2,14 @@ package model
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
 type MainItem struct {
-	gorm.Model
+	BaseModel
 	TeamID          uint       `gorm:"not null;index" json:"team_id"`
 	Code            string     `gorm:"type:varchar(10);not null;uniqueIndex" json:"code"`
 	Title           string     `gorm:"type:varchar(100);not null" json:"title"`
+	Description     string     `gorm:"type:text;not null;default:''" json:"description"`
 	Priority        string     `gorm:"type:varchar(5);not null" json:"priority"`
 	ProposerID      uint       `gorm:"not null" json:"proposer_id"`
 	AssigneeID      *uint      `gorm:"index" json:"assignee_id"`

@@ -2,6 +2,7 @@ import client from './client'
 import type {
   SubmitItemPoolReq,
   AssignItemPoolReq,
+  ConvertToMainItemReq,
   RejectItemPoolReq,
   ItemPoolFilter,
   ItemPool,
@@ -23,6 +24,10 @@ export function getItemPoolApi(teamId: number, poolId: number): Promise<ItemPool
 
 export function assignItemPoolApi(teamId: number, poolId: number, req: AssignItemPoolReq): Promise<AssignItemPoolResp> {
   return client.post<never, AssignItemPoolResp>(`/teams/${teamId}/item-pool/${poolId}/assign`, req)
+}
+
+export function convertToMainApi(teamId: number, poolId: number, req: ConvertToMainItemReq): Promise<{ mainItemId: number }> {
+  return client.post<never, { mainItemId: number }>(`/teams/${teamId}/item-pool/${poolId}/convert-to-main`, req)
 }
 
 export function rejectItemPoolApi(teamId: number, poolId: number, req: RejectItemPoolReq): Promise<ItemPool> {

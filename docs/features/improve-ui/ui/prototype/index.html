@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PM Tracker — Prototype</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .hub { max-width: 900px; margin: 0 auto; padding: 60px 24px; }
+    .hub h1 { font-size: 28px; margin-bottom: 8px; }
+    .hub > p { color: var(--text-tertiary); margin-bottom: 32px; }
+    .hub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+    .hub-card { display: block; padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); box-shadow: var(--shadow-sm); transition: all 0.15s; }
+    .hub-card:hover { box-shadow: var(--shadow-md); border-color: var(--primary-200); }
+    .hub-card h3 { font-size: 15px; font-weight: 500; margin-bottom: 4px; color: var(--text-primary); }
+    .hub-card p { font-size: 13px; color: var(--text-tertiary); }
+    .hub-card .badge { margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="hub">
+    <h1>PM Tracker Prototype</h1>
+    <p>Tailwind UI style — 11 pages</p>
+    <div class="hub-grid">
+      <a href="login.html" class="hub-card">
+        <span class="badge badge-primary">Page 1</span>
+        <h3>Login</h3>
+        <p>Account/password login page</p>
+      </a>
+      <a href="main-items.html" class="hub-card">
+        <span class="badge badge-primary">Page 2</span>
+        <h3>Main Items</h3>
+        <p>Default item list view with expand/collapse</p>
+      </a>
+      <a href="mainitem-detail.html" class="hub-card">
+        <span class="badge badge-primary">Page 3</span>
+        <h3>Main Item Detail</h3>
+        <p>Item detail with sub-items and progress</p>
+      </a>
+      <a href="subitem-detail.html" class="hub-card">
+        <span class="badge badge-primary">Page 4</span>
+        <h3>Sub Item Detail</h3>
+        <p>Progress records timeline</p>
+      </a>
+      <a href="item-pool.html" class="hub-card">
+        <span class="badge badge-primary">Page 5</span>
+        <h3>Item Pool</h3>
+        <p>Pending items inbox with assign/reject</p>
+      </a>
+      <a href="weekly-view.html" class="hub-card">
+        <span class="badge badge-primary">Page 6</span>
+        <h3>Weekly View</h3>
+        <p>Week-over-week progress comparison</p>
+      </a>
+      <a href="gantt-view.html" class="hub-card">
+        <span class="badge badge-primary">Page 7</span>
+        <h3>Gantt Chart</h3>
+        <p>Timeline view with expandable sub-items</p>
+      </a>
+      <a href="table-view.html" class="hub-card">
+        <span class="badge badge-primary">Page 8</span>
+        <h3>Table View</h3>
+        <p>Full data table with sort/filter/export</p>
+      </a>
+      <a href="weekly-report.html" class="hub-card">
+        <span class="badge badge-primary">Page 9</span>
+        <h3>Weekly Report</h3>
+        <p>Preview and export markdown report</p>
+      </a>
+      <a href="team-management.html" class="hub-card">
+        <span class="badge badge-primary">Page 10</span>
+        <h3>Team Management</h3>
+        <p>Member list, invite, role management</p>
+      </a>
+      <a href="user-management.html" class="hub-card">
+        <span class="badge badge-warning">Page 11</span>
+        <h3>Admin Panel</h3>
+        <p>Super admin: users and teams</p>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

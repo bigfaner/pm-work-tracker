@@ -1,0 +1,1260 @@
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>每周进展 — PM Tracker</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="styles.css" />
+	</head>
+	<body>
+		<div class="app-layout">
+			<nav class="sidebar">
+				<div class="sidebar-brand">
+					<h2>PM Tracker</h2>
+					<p>工作事项追踪</p>
+				</div>
+				<select class="sidebar-team">
+					<option>产品研发团队</option>
+					<option>设计团队</option>
+				</select>
+				<div class="sidebar-nav">
+					<a href="main-items.html"
+						><svg
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+							/></svg
+						>事项清单</a
+					>
+					<a href="weekly-view.html" class="active"
+						><svg
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+							/></svg
+						>每周进展</a
+					>
+					<a href="gantt-view.html"
+						><svg
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M3 4h18M3 8h12M3 12h18M3 16h8"
+							/></svg
+						>整体进度</a
+					>
+					<a href="item-pool.html"
+						><svg
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+							/></svg
+						>待办事项</a
+					>
+					<a href="weekly-report.html"
+						><svg
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+							/></svg
+						>周报导出</a
+					>
+					<a
+						href="user-management.html"
+						style="
+							margin-top: 16px;
+							border-top: 1px solid var(--border);
+							padding-top: 16px;
+						"
+						><svg
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+							/></svg
+						>用户管理</a
+					>
+					<a href="team-management.html"
+						><svg
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+							/></svg
+						>团队管理</a
+					>
+				</div>
+				<div class="sidebar-user">
+					<div class="sidebar-avatar">张</div>
+					<div class="sidebar-user-info">
+						<div class="sidebar-user-name">张明</div>
+						<div class="sidebar-user-role">PM</div>
+					</div>
+				</div>
+			</nav>
+
+			<div class="main-content">
+				<div class="page-header">
+					<h1>每周进展</h1>
+					<div style="display: flex; align-items: center; gap: 8px">
+						<span style="font-size: 13px; color: var(--text-secondary)"
+							>选择周次：</span
+						>
+						<input
+							type="week"
+							class="input"
+							value="2026-W16"
+							style="width: 180px"
+						/>
+						<span style="font-size: 13px; color: var(--text-secondary)"
+							>2026/04/14 ~ 2026/04/20</span
+						>
+					</div>
+				</div>
+
+				<!-- Stats Row -->
+				<div
+					style="
+						display: grid;
+						grid-template-columns: 1fr 1fr 1fr 1fr;
+						gap: 16px;
+						margin-bottom: 24px;
+					"
+				>
+					<div class="card">
+						<div class="card-body" style="text-align: center">
+							<div style="font-size: 24px; font-weight: 600">5</div>
+							<div style="font-size: 13px; color: var(--text-tertiary)">
+								本周活跃子事项
+							</div>
+						</div>
+					</div>
+					<div class="card">
+						<div class="card-body" style="text-align: center">
+							<div
+								style="font-size: 24px; font-weight: 600; color: var(--success)"
+							>
+								2
+							</div>
+							<div style="font-size: 13px; color: var(--text-tertiary)">
+								本周新完成
+							</div>
+						</div>
+					</div>
+					<div class="card">
+						<div class="card-body" style="text-align: center">
+							<div
+								style="
+									font-size: 24px;
+									font-weight: 600;
+									color: var(--primary-500);
+								"
+							>
+								3
+							</div>
+							<div style="font-size: 13px; color: var(--text-tertiary)">
+								进度推进中
+							</div>
+						</div>
+					</div>
+					<div class="card">
+						<div class="card-body" style="text-align: center">
+							<div
+								style="font-size: 24px; font-weight: 600; color: var(--error)"
+							>
+								1
+							</div>
+							<div style="font-size: 13px; color: var(--text-tertiary)">
+								阻塞中
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Comparison: MI-001 用户认证模块开发 -->
+				<div class="card" style="margin-bottom: 20px">
+					<div class="card-header" style="background: var(--bg-alt)">
+						<div
+							style="
+								display: flex;
+								align-items: center;
+								gap: 8px;
+								flex-wrap: wrap;
+							"
+						>
+							<a
+								href="mainitem-detail.html"
+								style="font-weight: 600; font-size: 15px"
+								>MI-001 用户认证模块开发</a
+							>
+							<span class="badge badge-amber" style="font-size: 11px">P1</span>
+							<span
+								style="
+									font-size: 12px;
+									color: var(--text-tertiary);
+									white-space: nowrap;
+								"
+								>计划 04/01~04/25</span
+							>
+							<span class="badge badge-primary">4 个子事项</span>
+							<button
+								class="btn btn-ghost btn-icon"
+								style="width: 28px; height: 28px; margin-left: -4px"
+								title="已完成、无变化的子事项已被折叠，点击展开所有子事项"
+								onclick="
+									var expanded = false;
+									['mi001-completed-left', 'mi001-completed-right'].forEach(
+										function (id) {
+											var el = document.getElementById(id);
+											var show = el.style.display === 'none';
+											el.style.display = show ? 'block' : 'none';
+											if (show) expanded = true;
+										}
+									);
+									this.querySelector('svg').style.transform = expanded ? 'rotate(180deg)' : '';
+									this.querySelector('svg').style.transition = 'transform 0.2s';
+									this.title = expanded ? '折叠已完成、无变化的子事项' : '已完成、无变化的子事项已被折叠，点击展开所有子事项';
+								"
+							>
+								<svg
+									width="16"
+									height="16"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M17 11l-5-5-5 5M17 18l-5-5-5 5"
+									/>
+								</svg>
+							</button>
+						</div>
+						<div style="display: flex; align-items: center; gap: 12px">
+							<div class="progress" style="width: 120px">
+								<div
+									class="progress-fill"
+									style="width: 58%; background: var(--primary-500)"
+								></div>
+							</div>
+							<span style="font-size: 13px; font-weight: 500">58%</span>
+						</div>
+					</div>
+					<div class="card-body" style="padding: 0">
+						<div style="display: grid; grid-template-columns: 1fr 1px 1fr">
+							<!-- Left: Last Week -->
+							<div style="padding: 16px 20px; background: #fafbfc">
+								<div
+									style="
+										font-size: 12px;
+										font-weight: 600;
+										color: var(--text-tertiary);
+										text-transform: uppercase;
+										letter-spacing: 0.05em;
+										margin-bottom: 12px;
+									"
+								>
+									上周 (W15)
+								</div>
+								<div style="display: flex; flex-direction: column; gap: 10px">
+									<div
+										style="
+											display: flex;
+											align-items: center;
+											gap: 6px;
+											flex-wrap: wrap;
+										"
+									>
+										<span class="badge badge-primary" style="font-size: 11px"
+											>进行中</span
+										>
+										<span class="badge badge-warning" style="font-size: 10px"
+											>P2</span
+										>
+										<span style="font-size: 13px"
+											>SI-001-02 JWT Token 集成</span
+										>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--text-tertiary);
+												white-space: nowrap;
+											"
+											>计划 04/08~04/18</span
+										>
+									</div>
+									<div
+										style="
+											padding-left: 56px;
+											font-size: 12px;
+											color: var(--text-tertiary);
+											margin-top: -6px;
+										"
+									>
+										40% &middot; Token 签发逻辑开发中
+									</div>
+									<div
+										style="
+											display: flex;
+											align-items: center;
+											gap: 6px;
+											flex-wrap: wrap;
+										"
+									>
+										<span class="badge badge-primary" style="font-size: 11px"
+											>进行中</span
+										>
+										<span class="badge badge-warning" style="font-size: 10px"
+											>P2</span
+										>
+										<span style="font-size: 13px">SI-001-03 权限中间件</span>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--text-tertiary);
+												white-space: nowrap;
+											"
+											>计划 04/10~04/21</span
+										>
+									</div>
+									<div
+										style="
+											padding-left: 56px;
+											font-size: 12px;
+											color: var(--text-tertiary);
+											margin-top: -6px;
+										"
+									>
+										20% &middot; 基础结构搭建中
+									</div>
+								</div>
+								<!-- Collapsed: no-change completed items -->
+								<div
+									id="mi001-completed-left"
+									style="
+										display: none;
+										margin-top: 10px;
+										padding-top: 10px;
+										border-top: 1px dashed var(--border);
+									"
+								>
+									<div
+										style="
+											font-size: 12px;
+											color: var(--text-tertiary);
+											margin-bottom: 6px;
+										"
+									>
+										已完成无变化
+									</div>
+									<div
+										style="
+											display: flex;
+											align-items: center;
+											gap: 6px;
+											flex-wrap: wrap;
+											opacity: 0.7;
+										"
+									>
+										<span class="badge badge-success" style="font-size: 11px"
+											>已完成</span
+										>
+										<span class="badge badge-amber" style="font-size: 10px"
+											>P1</span
+										>
+										<span style="font-size: 13px">SI-001-01 登录页开发</span>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--text-tertiary);
+												white-space: nowrap;
+											"
+											>计划 04/01~04/10 实际完成时间 04/09</span
+										>
+									</div>
+								</div>
+							</div>
+							<!-- Divider -->
+							<div style="background: var(--border)"></div>
+							<!-- Right: This Week -->
+							<div style="padding: 16px 20px">
+								<div
+									style="
+										font-size: 12px;
+										font-weight: 600;
+										color: var(--primary-700);
+										text-transform: uppercase;
+										letter-spacing: 0.05em;
+										margin-bottom: 12px;
+									"
+								>
+									本周 (W16)
+								</div>
+								<div style="display: flex; flex-direction: column; gap: 10px">
+									<!-- 进行中 -->
+									<div
+										style="
+											display: flex;
+											align-items: center;
+											gap: 6px;
+											flex-wrap: wrap;
+										"
+									>
+										<span class="badge badge-primary" style="font-size: 11px"
+											>进行中</span
+										>
+										<span class="badge badge-warning" style="font-size: 10px"
+											>P2</span
+										>
+										<span style="font-size: 13px"
+											>SI-001-02 JWT Token 集成</span
+										>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--text-tertiary);
+												white-space: nowrap;
+											"
+											>计划 04/08~04/18</span
+										>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--success);
+												font-weight: 600;
+												background: #ecfdf5;
+												padding: 1px 6px;
+												border-radius: 4px;
+											"
+											>+30%</span
+										>
+									</div>
+									<div
+										style="
+											padding-left: 56px;
+											font-size: 12px;
+											color: var(--text-tertiary);
+											margin-top: -6px;
+										"
+									>
+										70% &middot; Token 签发完成，黑名单联调中
+									</div>
+									<div
+										style="
+											display: flex;
+											align-items: center;
+											gap: 6px;
+											flex-wrap: wrap;
+										"
+									>
+										<span class="badge badge-primary" style="font-size: 11px"
+											>进行中</span
+										>
+										<span class="badge badge-warning" style="font-size: 10px"
+											>P2</span
+										>
+										<span style="font-size: 13px">SI-001-03 权限中间件</span>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--text-tertiary);
+												white-space: nowrap;
+											"
+											>计划 04/10~04/21</span
+										>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--success);
+												font-weight: 600;
+												background: #ecfdf5;
+												padding: 1px 6px;
+												border-radius: 4px;
+											"
+											>+25%</span
+										>
+									</div>
+									<div
+										style="
+											padding-left: 56px;
+											font-size: 12px;
+											color: var(--text-tertiary);
+											margin-top: -6px;
+										"
+									>
+										45% &middot; 中间件完成，RBAC 冲突待讨论
+									</div>
+									<!-- 新增 -->
+									<div
+										style="
+											display: flex;
+											align-items: center;
+											gap: 6px;
+											flex-wrap: wrap;
+										"
+									>
+										<span class="badge badge-warning" style="font-size: 11px"
+											>新增</span
+										>
+										<span class="badge badge-amber" style="font-size: 10px"
+											>P1</span
+										>
+										<span style="font-size: 13px"
+											>SI-001-04 OAuth2 第三方登录</span
+										>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--text-tertiary);
+												white-space: nowrap;
+											"
+											>计划 04/18~04/25</span
+										>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--warning);
+												font-weight: 600;
+												background: #fffbeb;
+												padding: 1px 6px;
+												border-radius: 4px;
+											"
+											>NEW</span
+										>
+									</div>
+									<div
+										style="
+											padding-left: 56px;
+											font-size: 12px;
+											color: var(--text-tertiary);
+											margin-top: -6px;
+										"
+									>
+										20% &middot; 方案设计完成，待开发
+									</div>
+								</div>
+								<!-- Collapsed: no-change completed items -->
+								<div
+									id="mi001-completed-right"
+									style="
+										display: none;
+										margin-top: 10px;
+										padding-top: 10px;
+										border-top: 1px dashed var(--border);
+									"
+								>
+									<div
+										style="
+											font-size: 12px;
+											color: var(--text-tertiary);
+											margin-bottom: 6px;
+										"
+									>
+										已完成无变化
+									</div>
+									<div
+										style="
+											display: flex;
+											align-items: center;
+											gap: 6px;
+											flex-wrap: wrap;
+											opacity: 0.7;
+										"
+									>
+										<span class="badge badge-success" style="font-size: 11px"
+											>已完成</span
+										>
+										<span class="badge badge-amber" style="font-size: 10px"
+											>P1</span
+										>
+										<span style="font-size: 13px">SI-001-01 登录页开发</span>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--text-tertiary);
+												white-space: nowrap;
+											"
+											>计划 04/01~04/10 实际完成时间 04/09</span
+										>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Comparison: MI-002 数据看板设计 -->
+				<div class="card" style="margin-bottom: 20px">
+					<div class="card-header" style="background: var(--bg-alt)">
+						<div
+							style="
+								display: flex;
+								align-items: center;
+								gap: 8px;
+								flex-wrap: wrap;
+							"
+						>
+							<a
+								href="mainitem-detail.html"
+								style="font-weight: 600; font-size: 15px"
+								>MI-002 数据看板设计</a
+							>
+							<span class="badge badge-primary" style="font-size: 11px"
+								>P2</span
+							>
+							<span
+								style="
+									font-size: 12px;
+									color: var(--text-tertiary);
+									white-space: nowrap;
+								"
+								>计划 04/05~04/20 实际完成时间 04/16</span
+							>
+							<span class="badge badge-primary">3 个子事项</span>
+							<button
+								class="btn btn-ghost btn-icon"
+								style="width: 28px; height: 28px; margin-left: -4px"
+								title="已完成、无变化的子事项已被折叠，点击展开所有子事项"
+								onclick="
+									var expanded = false;
+									['mi002-completed-left', 'mi002-completed-right'].forEach(
+										function (id) {
+											var el = document.getElementById(id);
+											var show = el.style.display === 'none';
+											el.style.display = show ? 'block' : 'none';
+											if (show) expanded = true;
+										}
+									);
+									this.querySelector('svg').style.transform = expanded ? 'rotate(180deg)' : '';
+									this.querySelector('svg').style.transition = 'transform 0.2s';
+									this.title = expanded ? '折叠已完成、无变化的子事项' : '已完成、无变化的子事项已被折叠，点击展开所有子事项';
+								"
+							>
+								<svg
+									width="16"
+									height="16"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M17 11l-5-5-5 5M17 18l-5-5-5 5"
+									/>
+								</svg>
+							</button>
+						</div>
+						<div style="display: flex; align-items: center; gap: 12px">
+							<div class="progress" style="width: 120px">
+								<div
+									class="progress-fill"
+									style="width: 80%; background: var(--success)"
+								></div>
+							</div>
+							<span
+								style="font-size: 13px; font-weight: 500; color: var(--success)"
+								>80%</span
+							>
+						</div>
+					</div>
+					<div class="card-body" style="padding: 0">
+						<div style="display: grid; grid-template-columns: 1fr 1px 1fr">
+							<div style="padding: 16px 20px; background: #fafbfc">
+								<div
+									style="
+										font-size: 12px;
+										font-weight: 600;
+										color: var(--text-tertiary);
+										text-transform: uppercase;
+										letter-spacing: 0.05em;
+										margin-bottom: 12px;
+									"
+								>
+									上周 (W15)
+								</div>
+								<div style="display: flex; flex-direction: column; gap: 10px">
+									<div
+										style="
+											display: flex;
+											align-items: center;
+											gap: 6px;
+											flex-wrap: wrap;
+										"
+									>
+										<span class="badge badge-primary" style="font-size: 11px"
+											>进行中</span
+										>
+										<span class="badge badge-amber" style="font-size: 10px"
+											>P1</span
+										>
+										<span style="font-size: 13px">SI-002-03 数据看板前端</span>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--text-tertiary);
+												white-space: nowrap;
+											"
+											>计划 04/08~04/18</span
+										>
+									</div>
+									<div
+										style="
+											padding-left: 56px;
+											font-size: 12px;
+											color: var(--text-tertiary);
+											margin-top: -6px;
+										"
+									>
+										55% &middot; 基础组件开发中
+									</div>
+								</div>
+								<!-- Collapsed: no-change completed items -->
+								<div
+									id="mi002-completed-left"
+									style="
+										display: none;
+										margin-top: 10px;
+										padding-top: 10px;
+										border-top: 1px dashed var(--border);
+									"
+								>
+									<div
+										style="
+											font-size: 12px;
+											color: var(--text-tertiary);
+											margin-bottom: 6px;
+										"
+									>
+										已完成无变化
+									</div>
+									<div
+										style="
+											display: flex;
+											align-items: center;
+											gap: 6px;
+											flex-wrap: wrap;
+											opacity: 0.7;
+										"
+									>
+										<span class="badge badge-success" style="font-size: 11px"
+											>已完成</span
+										>
+										<span class="badge badge-warning" style="font-size: 10px"
+											>P2</span
+										>
+										<span style="font-size: 13px"
+											>SI-002-01 数据看板需求分析</span
+										>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--text-tertiary);
+												white-space: nowrap;
+											"
+											>计划 04/05~04/12 实际完成时间 04/11</span
+										>
+									</div>
+								</div>
+							</div>
+							<div style="background: var(--border)"></div>
+							<div style="padding: 16px 20px">
+								<div
+									style="
+										font-size: 12px;
+										font-weight: 600;
+										color: var(--primary-700);
+										text-transform: uppercase;
+										letter-spacing: 0.05em;
+										margin-bottom: 12px;
+									"
+								>
+									本周 (W16)
+								</div>
+								<div style="display: flex; flex-direction: column; gap: 10px">
+									<!-- 本周完成 -->
+									<div
+										style="
+											display: flex;
+											align-items: center;
+											gap: 6px;
+											flex-wrap: wrap;
+										"
+									>
+										<span class="badge badge-success" style="font-size: 11px"
+											>已完成</span
+										>
+										<span class="badge badge-amber" style="font-size: 10px"
+											>P1</span
+										>
+										<span style="font-size: 13px">SI-002-03 数据看板前端</span>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--text-tertiary);
+												white-space: nowrap;
+											"
+											>计划 04/08~04/18 实际完成时间 04/16</span
+										>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--success);
+												font-weight: 600;
+												background: #ecfdf5;
+												padding: 1px 6px;
+												border-radius: 4px;
+											"
+											>完成 &#10003;</span
+										>
+									</div>
+									<div
+										style="
+											padding-left: 56px;
+											font-size: 12px;
+											color: var(--text-tertiary);
+											margin-top: -6px;
+										"
+									>
+										100% &middot; 图表渲染性能达标
+									</div>
+									<!-- 新增 -->
+									<div
+										style="
+											display: flex;
+											align-items: center;
+											gap: 6px;
+											flex-wrap: wrap;
+										"
+									>
+										<span class="badge badge-primary" style="font-size: 11px"
+											>进行中</span
+										>
+										<span class="badge badge-warning" style="font-size: 10px"
+											>P2</span
+										>
+										<span style="font-size: 13px">SI-002-02 看板数据接口</span>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--text-tertiary);
+												white-space: nowrap;
+											"
+											>计划 04/14~04/20</span
+										>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--warning);
+												font-weight: 600;
+												background: #fffbeb;
+												padding: 1px 6px;
+												border-radius: 4px;
+											"
+											>NEW</span
+										>
+									</div>
+									<div
+										style="
+											padding-left: 56px;
+											font-size: 12px;
+											color: var(--text-tertiary);
+											margin-top: -6px;
+										"
+									>
+										80% &middot; 接口开发完成，性能优化中
+									</div>
+								</div>
+								<!-- Collapsed: no-change completed items -->
+								<div
+									id="mi002-completed-right"
+									style="
+										display: none;
+										margin-top: 10px;
+										padding-top: 10px;
+										border-top: 1px dashed var(--border);
+									"
+								>
+									<div
+										style="
+											font-size: 12px;
+											color: var(--text-tertiary);
+											margin-bottom: 6px;
+										"
+									>
+										已完成无变化
+									</div>
+									<div
+										style="
+											display: flex;
+											align-items: center;
+											gap: 6px;
+											flex-wrap: wrap;
+											opacity: 0.7;
+										"
+									>
+										<span class="badge badge-success" style="font-size: 11px"
+											>已完成</span
+										>
+										<span class="badge badge-warning" style="font-size: 10px"
+											>P2</span
+										>
+										<span style="font-size: 13px"
+											>SI-002-01 数据看板需求分析</span
+										>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--text-tertiary);
+												white-space: nowrap;
+											"
+											>计划 04/05~04/12 实际完成时间 04/11</span
+										>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Comparison: MI-003 API文档编写 -->
+				<div class="card" style="margin-bottom: 20px">
+					<div class="card-header" style="background: var(--bg-alt)">
+						<div
+							style="
+								display: flex;
+								align-items: center;
+								gap: 8px;
+								flex-wrap: wrap;
+							"
+						>
+							<a
+								href="mainitem-detail.html"
+								style="font-weight: 600; font-size: 15px"
+								>MI-003 API文档编写</a
+							>
+							<span class="badge badge-slate" style="font-size: 11px">P3</span>
+							<span
+								style="
+									font-size: 12px;
+									color: var(--text-tertiary);
+									white-space: nowrap;
+								"
+								>计划 04/10~04/28</span
+							>
+							<span class="badge badge-primary">2 个子事项</span>
+							<button
+								class="btn btn-ghost btn-icon"
+								style="width: 28px; height: 28px; margin-left: -4px"
+								title="展示所有子事项"
+							>
+								<svg
+									width="16"
+									height="16"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M17 11l-5-5-5 5M17 18l-5-5-5 5"
+									/>
+								</svg>
+							</button>
+						</div>
+						<div style="display: flex; align-items: center; gap: 12px">
+							<div class="progress" style="width: 120px">
+								<div
+									class="progress-fill"
+									style="width: 45%; background: var(--primary-500)"
+								></div>
+							</div>
+							<span style="font-size: 13px; font-weight: 500">45%</span>
+						</div>
+					</div>
+					<div class="card-body" style="padding: 0">
+						<div style="display: grid; grid-template-columns: 1fr 1px 1fr">
+							<div style="padding: 16px 20px; background: #fafbfc">
+								<div
+									style="
+										font-size: 12px;
+										font-weight: 600;
+										color: var(--text-tertiary);
+										text-transform: uppercase;
+										letter-spacing: 0.05em;
+										margin-bottom: 12px;
+									"
+								>
+									上周 (W15)
+								</div>
+								<div style="display: flex; flex-direction: column; gap: 10px">
+									<div
+										style="
+											display: flex;
+											align-items: center;
+											gap: 6px;
+											flex-wrap: wrap;
+										"
+									>
+										<span class="badge badge-primary" style="font-size: 11px"
+											>进行中</span
+										>
+										<span class="badge badge-slate" style="font-size: 10px"
+											>P3</span
+										>
+										<span style="font-size: 13px"
+											>SI-003-01 API 文档框架搭建</span
+										>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--text-tertiary);
+												white-space: nowrap;
+											"
+											>计划 04/10~04/22</span
+										>
+									</div>
+									<div
+										style="
+											padding-left: 56px;
+											font-size: 12px;
+											color: var(--text-tertiary);
+											margin-top: -6px;
+										"
+									>
+										35% &middot; Swagger 初始化中
+									</div>
+								</div>
+							</div>
+							<div style="background: var(--border)"></div>
+							<div style="padding: 16px 20px">
+								<div
+									style="
+										font-size: 12px;
+										font-weight: 600;
+										color: var(--primary-700);
+										text-transform: uppercase;
+										letter-spacing: 0.05em;
+										margin-bottom: 12px;
+									"
+								>
+									本周 (W16)
+								</div>
+								<div style="display: flex; flex-direction: column; gap: 10px">
+									<!-- 进行中 -->
+									<div
+										style="
+											display: flex;
+											align-items: center;
+											gap: 6px;
+											flex-wrap: wrap;
+										"
+									>
+										<span class="badge badge-primary" style="font-size: 11px"
+											>进行中</span
+										>
+										<span class="badge badge-slate" style="font-size: 10px"
+											>P3</span
+										>
+										<span style="font-size: 13px"
+											>SI-003-01 API 文档框架搭建</span
+										>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--text-tertiary);
+												white-space: nowrap;
+											"
+											>计划 04/10~04/22</span
+										>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--success);
+												font-weight: 600;
+												background: #ecfdf5;
+												padding: 1px 6px;
+												border-radius: 4px;
+											"
+											>+25%</span
+										>
+									</div>
+									<div
+										style="
+											padding-left: 56px;
+											font-size: 12px;
+											color: var(--text-tertiary);
+											margin-top: -6px;
+										"
+									>
+										60% &middot; Swagger 集成完成，60% 接口已覆盖
+									</div>
+									<!-- 新增 -->
+									<div
+										style="
+											display: flex;
+											align-items: center;
+											gap: 6px;
+											flex-wrap: wrap;
+										"
+									>
+										<span class="badge badge-warning" style="font-size: 11px"
+											>新增</span
+										>
+										<span class="badge badge-slate" style="font-size: 10px"
+											>P3</span
+										>
+										<span style="font-size: 13px">SI-003-02 接口参数文档</span>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--text-tertiary);
+												white-space: nowrap;
+											"
+											>计划 04/16~04/28</span
+										>
+										<span
+											style="
+												font-size: 11px;
+												color: var(--warning);
+												font-weight: 600;
+												background: #fffbeb;
+												padding: 1px 6px;
+												border-radius: 4px;
+											"
+											>NEW</span
+										>
+									</div>
+									<div
+										style="
+											padding-left: 56px;
+											font-size: 12px;
+											color: var(--text-tertiary);
+											margin-top: -6px;
+										"
+									>
+										30% &middot; 核心接口参数文档编写中
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Legend -->
+				<div
+					style="
+						display: flex;
+						align-items: center;
+						gap: 16px;
+						padding: 12px 0;
+						font-size: 12px;
+						color: var(--text-tertiary);
+						flex-wrap: wrap;
+					"
+				>
+					<span>图例：</span>
+					<span style="display: flex; align-items: center; gap: 4px"
+						><span class="badge badge-amber" style="font-size: 10px">P1</span
+						><span class="badge badge-warning" style="font-size: 10px">P2</span
+						><span class="badge badge-slate" style="font-size: 10px">P3</span>
+						优先级</span
+					>
+					<span style="display: flex; align-items: center; gap: 4px"
+						><span
+							style="
+								font-size: 11px;
+								color: var(--success);
+								font-weight: 600;
+								background: #ecfdf5;
+								padding: 1px 6px;
+								border-radius: 4px;
+							"
+							>+30%</span
+						>
+						本周进度增量</span
+					>
+					<span style="display: flex; align-items: center; gap: 4px"
+						><span
+							style="
+								font-size: 11px;
+								color: var(--success);
+								font-weight: 600;
+								background: #ecfdf5;
+								padding: 1px 6px;
+								border-radius: 4px;
+							"
+							>完成 &#10003;</span
+						>
+						本周新完成</span
+					>
+					<span style="display: flex; align-items: center; gap: 4px"
+						><span
+							style="
+								font-size: 11px;
+								color: var(--warning);
+								font-weight: 600;
+								background: #fffbeb;
+								padding: 1px 6px;
+								border-radius: 4px;
+							"
+							>NEW</span
+						>
+						本周新增事项</span
+					>
+				</div>
+			</div>
+		</div>
+
+		<script src="app.js"></script>
+	</body>
+</html>

@@ -433,6 +433,9 @@ func (m *mockTeamRepo) UpdateMember(_ context.Context, _ *model.TeamMember) erro
 func (m *mockTeamRepo) ListAllTeams(_ context.Context) ([]*dto.AdminTeamDTO, error) {
 	return nil, nil
 }
+func (m *mockTeamRepo) FindTeamsByUserIDs(_ context.Context, _ []uint) (map[uint][]dto.TeamSummary, error) {
+	return map[uint][]dto.TeamSummary{}, nil
+}
 
 // stubAuthService is a minimal stub for service.AuthService used by testDeps.
 // It returns ErrUnauthorized on Login (no real auth logic needed for router tests).

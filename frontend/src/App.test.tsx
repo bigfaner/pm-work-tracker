@@ -10,7 +10,7 @@ import App from './App'
 // Mock the teams API (called by AppLayout on mount)
 vi.mock('@/api/teams', () => ({
   listTeamsApi: vi.fn().mockResolvedValue([
-    { id: 1, name: 'Team 1', description: '', pm_id: 1, created_at: '', updated_at: '' },
+    { id: 1, name: 'Team 1', description: '', pmId: 1, createdAt: '', updatedAt: '' },
   ]),
   listMembersApi: vi.fn().mockResolvedValue([]),
 }))
@@ -19,10 +19,10 @@ vi.mock('@/api/teams', () => ({
 vi.mock('@/api/mainItems', () => ({
   listMainItemsApi: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 }),
   getMainItemApi: vi.fn().mockResolvedValue({
-    id: 123, team_id: 1, code: 'MI-0123', title: 'Test', priority: 'P2',
-    proposer_id: 1, assignee_id: null, start_date: null, expected_end_date: null,
-    actual_end_date: null, status: '进行中', completion: 0, is_key_item: false,
-    delay_count: 0, archived_at: null, created_at: '', updated_at: '', subItems: [],
+    id: 123, teamId: 1, code: 'MI-0123', title: 'Test', priority: 'P2',
+    proposerId: 1, assigneeId: null, startDate: null, expectedEndDate: null,
+    actualEndDate: null, status: '进行中', completion: 0, isKeyItem: false,
+    delayCount: 0, archivedAt: null, createdAt: '', updatedAt: '', subItems: [],
   }),
   createMainItemApi: vi.fn(),
   updateMainItemApi: vi.fn(),
@@ -37,18 +37,16 @@ vi.mock('@/api/subItems', () => ({
 const mockUser: User = {
   id: 1,
   username: 'testuser',
-  display_name: 'Test User',
-  is_super_admin: false,
-  can_create_team: false,
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
+  displayName: 'Test User',
+  isSuperAdmin: false,
+  canCreateTeam: false,
 }
 
 const superAdminUser: User = {
   ...mockUser,
   id: 2,
   username: 'admin',
-  is_super_admin: true,
+  isSuperAdmin: true,
 }
 
 function renderApp(initialPath = '/') {
@@ -176,20 +174,20 @@ describe('App Routing', () => {
   })
 
   describe('Admin route', () => {
-    it('redirects /admin to /items for non-admin authenticated user', () => {
+    it('redirects /users to /items for non-admin authenticated user', () => {
       useAuthStore.getState().setAuth('token', mockUser)
-      renderApp('/admin')
+      renderApp('/users')
       expect(screen.getByTestId('item-view-page')).toBeInTheDocument()
     })
 
-    it('renders AdminPage at /admin for super admin', () => {
+    it('renders UserManagementPage at /users for super admin', () => {
       useAuthStore.getState().setAuth('token', superAdminUser)
-      renderApp('/admin')
-      expect(screen.getByTestId('admin-page')).toBeInTheDocument()
+      renderApp('/users')
+      expect(screen.getByTestId('user-management-page')).toBeInTheDocument()
     })
 
-    it('redirects /admin to /login for unauthenticated user', () => {
-      renderApp('/admin')
+    it('redirects /users to /login for unauthenticated user', () => {
+      renderApp('/users')
       expect(screen.getByTestId('login-page')).toBeInTheDocument()
     })
   })

@@ -1,607 +1,449 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor, within, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll, afterEach } from 'vitest'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import ItemViewPage from './ItemViewPage'
-import { useAuthStore } from '@/store/auth'
+import { MemoryRouter } from 'react-router-dom'
+import { server } from '@/mocks/server'
+import { http, HttpResponse } from 'msw'
 import { useTeamStore } from '@/store/team'
-import type { User, Team, MainItem, SubItem, PageResult, TeamMemberResp } from '@/types'
+import ItemViewPage from './ItemViewPage'
 
-// --- Mocks ---
-
-const mockListMainItems = vi.fn()
-const mockCreateMainItem = vi.fn()
-const mockUpdateMainItem = vi.fn()
-const mockArchiveMainItem = vi.fn()
-const mockListSubItems = vi.fn()
-const mockListMembers = vi.fn()
-
-vi.mock('@/api/mainItems', () => ({
-  listMainItemsApi: (...args: unknown[]) => mockListMainItems(...args),
-  createMainItemApi: (...args: unknown[]) => mockCreateMainItem(...args),
-  updateMainItemApi: (...args: unknown[]) => mockUpdateMainItem(...args),
-  archiveMainItemApi: (...args: unknown[]) => mockArchiveMainItem(...args),
-}))
-
-vi.mock('@/api/subItems', () => ({
-  listSubItemsApi: (...args: unknown[]) => mockListSubItems(...args),
-}))
-
-vi.mock('@/api/teams', () => ({
-  listMembersApi: (...args: unknown[]) => mockListMembers(...args),
-}))
-
-// --- Test Data ---
-
-const mockUser: User = {
-  id: 1,
-  username: 'pmuser',
-  display_name: 'PM User',
-  is_super_admin: false,
-  can_create_team: false,
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
-}
-
-const memberUser: User = {
-  ...mockUser,
-  id: 10,
-  username: 'member',
-  display_name: 'Member User',
-}
-
-const mockTeam: Team = {
-  id: 1,
-  name: 'Team Alpha',
-  description: '',
-  pm_id: 1,
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
-}
-
-const mockMembers: TeamMemberResp[] = [
-  { userId: 1, displayName: 'PM User', username: 'pmuser', role: 'pm', joinedAt: '2024-01-01' },
-  { userId: 10, displayName: 'Member User', username: 'member', role: 'member', joinedAt: '2024-01-01' },
-]
-
-function makeMainItem(overrides: Partial<MainItem> = {}): MainItem {
-  return {
-    id: 1,
-    team_id: 1,
-    code: 'MI-0001',
-    title: 'Test Main Item',
-    priority: 'P2',
-    proposer_id: 1,
-    assignee_id: 1,
-    start_date: null,
-    expected_end_date: null,
-    actual_end_date: null,
-    status: '进行中',
-    completion: 50,
-    is_key_item: false,
-    delay_count: 0,
-    archived_at: null,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    ...overrides,
-  }
-}
-
-function makeSubItem(overrides: Partial<SubItem> = {}): SubItem {
-  return {
-    id: 1,
-    team_id: 1,
-    main_item_id: 1,
-    title: 'Test Sub Item',
-    description: '',
-    priority: 'P2',
-    assignee_id: 1,
-    start_date: null,
-    expected_end_date: null,
-    actual_end_date: null,
-    status: '进行中',
-    completion: 60,
-    is_key_item: false,
-    delay_count: 0,
-    weight: 1,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    ...overrides,
-  }
-}
-
-const emptyPageResult: PageResult<MainItem> = {
-  items: [],
-  total: 0,
-  page: 1,
-  pageSize: 20,
-}
+// MSW lifecycle
+beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
+afterEach(() => server.resetHandlers())
+afterAll(() => server.close())
 
 // --- Helpers ---
 
 function createQueryClient() {
   return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-    },
+    defaultOptions: { queries: { retry: false } },
   })
 }
 
-function renderPage(user: User = mockUser, teamId: number | null = 1) {
-  // Set auth to the provided user
-  useAuthStore.getState().setAuth('token', user)
+function renderPage() {
   const qc = createQueryClient()
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={['/items']}>
-        <Routes>
-          <Route path="/items" element={<ItemViewPage />} />
-          <Route path="/items/:mainItemId" element={<div data-testid="detail-page">Detail</div>} />
-          <Route path="/items/:mainItemId/sub/:subItemId" element={<div data-testid="sub-detail">Sub Detail</div>} />
-        </Routes>
+      <MemoryRouter>
+        <ItemViewPage />
       </MemoryRouter>
     </QueryClientProvider>,
   )
 }
 
-// Helper to open antd Select dropdown and select an option
-// antd v5 Select needs mouseDown on the selector to open the dropdown
-async function openAndSelectOption(selectTestId: string, optionText: string) {
-  const selectEl = screen.getByTestId(selectTestId)
-  const selector = selectEl.querySelector('.ant-select-selector')!
-  fireEvent.mouseDown(selector)
-  // Wait for dropdown to render in portal
-  await waitFor(() => {
-    const options = document.querySelectorAll('.ant-select-item-option')
-    const match = Array.from(options).find((el) => el.textContent === optionText)
-    expect(match).toBeTruthy()
-  })
-  const options = document.querySelectorAll('.ant-select-item-option')
-  const match = Array.from(options).find((el) => el.textContent === optionText)!
-  fireEvent.click(match)
-}
+// --- Seed data ---
 
-// --- Tests ---
+const seedMainItems = [
+  {
+    id: 1, teamId: 1, code: 'MI-0001', title: 'Alpha Task', priority: 'P1',
+    proposerId: 1, assigneeId: 1, startDate: '2026-04-01', expectedEndDate: '2026-04-15',
+    actualEndDate: null, status: '进行中', completion: 65, isKeyItem: false,
+    delayCount: 0, archivedAt: null,
+    createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-01T00:00:00Z',
+    subItems: [
+      {
+        id: 11, teamId: 1, mainItemId: 1, title: 'Sub Alpha 1', description: '',
+        priority: 'P1', assigneeId: 2, startDate: '2026-04-01', expectedEndDate: '2026-04-10',
+        actualEndDate: '2026-04-09', status: '已完成', completion: 100, isKeyItem: false,
+        delayCount: 0, weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-09T00:00:00Z',
+      },
+      {
+        id: 12, teamId: 1, mainItemId: 1, title: 'Sub Alpha 2', description: '',
+        priority: 'P2', assigneeId: 3, startDate: '2026-04-08', expectedEndDate: '2026-04-18',
+        actualEndDate: null, status: '进行中', completion: 80, isKeyItem: false,
+        delayCount: 0, weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-08T00:00:00Z',
+      },
+    ],
+  },
+  {
+    id: 2, teamId: 1, code: 'MI-0002', title: 'Beta Task', priority: 'P2',
+    proposerId: 1, assigneeId: 2, startDate: '2026-04-15', expectedEndDate: '2026-04-25',
+    actualEndDate: null, status: '进行中', completion: 40, isKeyItem: false,
+    delayCount: 0, archivedAt: null,
+    createdAt: '2026-04-15T00:00:00Z', updatedAt: '2026-04-15T00:00:00Z',
+    subItems: [],
+  },
+  {
+    id: 3, teamId: 1, code: 'MI-0003', title: 'Gamma Task', priority: 'P3',
+    proposerId: 1, assigneeId: 3, startDate: '2026-04-05', expectedEndDate: '2026-04-12',
+    actualEndDate: '2026-04-12', status: '已完成', completion: 100, isKeyItem: false,
+    delayCount: 0, archivedAt: null,
+    createdAt: '2026-04-05T00:00:00Z', updatedAt: '2026-04-12T00:00:00Z',
+    subItems: [],
+  },
+]
+
+const seedMembers = [
+  { userId: 1, displayName: 'Test User', username: 'testuser', role: 'pm', joinedAt: '2024-01-01' },
+  { userId: 2, displayName: 'Alice', username: 'alice', role: 'member', joinedAt: '2024-01-01' },
+  { userId: 3, displayName: 'Bob', username: 'bob', role: 'member', joinedAt: '2024-01-01' },
+]
+
+function setupHandlers() {
+  server.use(
+    // List main items (with subItems embedded)
+    http.get('/api/v1/teams/:teamId/main-items', () => {
+      return HttpResponse.json({ code: 0, data: { items: seedMainItems, total: seedMainItems.length, page: 1, pageSize: 20 } })
+    }),
+
+    // Get single main item with sub items
+    http.get('/api/v1/teams/:teamId/main-items/:itemId', ({ params }) => {
+      const item = seedMainItems.find(i => i.id === Number(params.itemId))
+      if (!item) return HttpResponse.json({ code: 'NOT_FOUND', message: 'not found' }, { status: 404 })
+      return HttpResponse.json({ code: 0, data: item })
+    }),
+
+    // List sub-items for a main item
+    http.get('/api/v1/teams/:teamId/main-items/:mainId/sub-items', ({ params }) => {
+      const item = seedMainItems.find(i => i.id === Number(params.mainId))
+      const subs = item?.subItems || []
+      return HttpResponse.json({ code: 0, data: { items: subs, total: subs.length, page: 1, pageSize: 20 } })
+    }),
+
+    // List members for assignee filter
+    http.get('/api/v1/teams/:teamId/members', () => {
+      return HttpResponse.json({ code: 0, data: seedMembers })
+    }),
+
+    // Update main item status
+    http.put('/api/v1/teams/:teamId/main-items/:itemId', async ({ request }) => {
+      const body = await request.json() as Record<string, unknown>
+      return HttpResponse.json({ code: 0, data: { ...seedMainItems[0], ...body } })
+    }),
+
+    // Create main item
+    http.post('/api/v1/teams/:teamId/main-items', async ({ request }) => {
+      const body = await request.json() as Record<string, unknown>
+      return HttpResponse.json({
+        code: 0,
+        data: {
+          id: 100, teamId: 1, code: 'MI-0100', priority: 'P2', proposerId: 1,
+          assigneeId: null, startDate: null, expectedEndDate: null, actualEndDate: null,
+          status: '未开始', completion: 0, isKeyItem: false, delayCount: 0, archivedAt: null,
+          createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+          ...body,
+        },
+      })
+    }),
+
+    // Create sub-item
+    http.post('/api/v1/teams/:teamId/main-items/:mainId/sub-items', async ({ request }) => {
+      const body = await request.json() as Record<string, unknown>
+      return HttpResponse.json({
+        code: 0,
+        data: {
+          id: 200, teamId: 1, mainItemId: Number(body.main_item_id), description: '',
+          priority: 'P2', assigneeId: null, startDate: null, expectedEndDate: null, actualEndDate: null,
+          status: '未开始', completion: 0, isKeyItem: false, delayCount: 0, weight: 1,
+          createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+          ...body,
+        },
+      })
+    }),
+  )
+}
 
 describe('ItemViewPage', () => {
   beforeEach(() => {
-    useAuthStore.getState().clearAuth()
-    useAuthStore.getState().setAuth('token', mockUser)
-    useTeamStore.getState().setTeams([mockTeam])
-    useTeamStore.getState().setCurrentTeam(1)
-
-    mockListMainItems.mockResolvedValue(emptyPageResult)
-    mockListMembers.mockResolvedValue(mockMembers)
-    mockCreateMainItem.mockReset()
-    mockUpdateMainItem.mockReset()
-    mockArchiveMainItem.mockReset()
-    mockListSubItems.mockReset()
+    useTeamStore.setState({ currentTeamId: 1, teams: [{ id: 1, name: 'Test Team', description: '', pmId: 1, createdAt: '', updatedAt: '' }] })
+    setupHandlers()
   })
 
-  // --- Basic rendering ---
+  // --- Core rendering ---
 
-  it('renders page with data-testid', () => {
+  it('renders page header with title and view toggle', async () => {
     renderPage()
-    expect(screen.getByTestId('item-view-page')).toBeInTheDocument()
+    expect(screen.getByText('事项清单')).toBeInTheDocument()
+    expect(screen.getByText('汇总')).toBeInTheDocument()
+    expect(screen.getByText('明细')).toBeInTheDocument()
+    // Wait for data to load
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+    })
   })
 
-  it('renders page title 事项视图', () => {
+  it('renders create button', async () => {
     renderPage()
-    expect(screen.getByText('事项视图')).toBeInTheDocument()
+    expect(screen.getByText('创建主事项')).toBeInTheDocument()
+  })
+
+  // --- Summary view (default) ---
+
+  it('shows summary view by default with cards', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      expect(screen.getByText('Beta Task')).toBeInTheDocument()
+      expect(screen.getByText('Gamma Task')).toBeInTheDocument()
+    })
+  })
+
+  it('shows item codes and priority badges in summary view', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('MI-0001')).toBeInTheDocument()
+      expect(screen.getByText('MI-0002')).toBeInTheDocument()
+    })
+  })
+
+  it('expands sub-items when clicking a summary card', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+    })
+
+    // Click to expand the first card
+    const expandBtn = screen.getByTestId('expand-card-1')
+    await user.click(expandBtn)
+
+    await waitFor(() => {
+      expect(screen.getByText('Sub Alpha 1')).toBeInTheDocument()
+      expect(screen.getByText('Sub Alpha 2')).toBeInTheDocument()
+    })
+  })
+
+  // --- Detail view ---
+
+  it('switches to detail view when clicking toggle', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('明细'))
+
+    // Detail view should have a table
+    await waitFor(() => {
+      expect(screen.getByTestId('detail-table')).toBeInTheDocument()
+      // Should show items in table format
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+    })
+  })
+
+  it('shows table headers in detail view', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('明细'))
+
+    await waitFor(() => {
+      expect(screen.getByText('编号')).toBeInTheDocument()
+      expect(screen.getByText('优先级')).toBeInTheDocument()
+      expect(screen.getByText('标题')).toBeInTheDocument()
+      expect(screen.getByText('负责人')).toBeInTheDocument()
+      expect(screen.getByText('进度')).toBeInTheDocument()
+      expect(screen.getByText('状态')).toBeInTheDocument()
+    })
   })
 
   // --- Filter bar ---
 
-  it('renders filter bar with priority, status, assignee selects and reset button', () => {
+  it('renders filter bar with search, status, and assignee', async () => {
     renderPage()
-    expect(screen.getByTestId('filter-priority')).toBeInTheDocument()
-    expect(screen.getByTestId('filter-status')).toBeInTheDocument()
-    expect(screen.getByTestId('filter-assignee')).toBeInTheDocument()
-    expect(screen.getByTestId('filter-reset')).toBeInTheDocument()
-  })
-
-  it('renders priority select with P1/P2/P3 options', async () => {
-    renderPage()
-    await openAndSelectOption('filter-priority', 'P1')
     await waitFor(() => {
-      expect(mockListMainItems).toHaveBeenCalledWith(1, expect.objectContaining({ priority: 'P1' }))
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
     })
+    expect(screen.getByPlaceholderText('搜索标题或编号...')).toBeInTheDocument()
+    expect(screen.getByText('重置')).toBeInTheDocument()
   })
 
-  it('renders status select with 8 options', async () => {
-    renderPage()
-    await openAndSelectOption('filter-status', '进行中')
-    await waitFor(() => {
-      expect(mockListMainItems).toHaveBeenCalledWith(1, expect.objectContaining({ status: '进行中' }))
-    })
-  })
+  // --- Shared filter state ---
 
-  it('resets all filters on reset button click', async () => {
+  it('preserves filter state when switching views', async () => {
     const user = userEvent.setup()
     renderPage()
-    // Select a priority filter
-    await openAndSelectOption('filter-priority', 'P1')
-    // Click reset
-    await user.click(screen.getByTestId('filter-reset'))
-    // After reset, the list API should be called with default filter (archived: false only)
     await waitFor(() => {
-      const calls = mockListMainItems.mock.calls
-      const lastCall = calls[calls.length - 1]
-      // Filter should only have archived:false (no priority/status/assigneeId keys)
-      expect(lastCall[0]).toBe(1)
-      expect(lastCall[1]).toEqual({ archived: false })
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
     })
-  })
 
-  // --- Loading state ---
+    // Type in search
+    const searchInput = screen.getByPlaceholderText('搜索标题或编号...')
+    await user.type(searchInput, 'Alpha')
 
-  it('shows skeleton loading state while fetching items', () => {
-    let resolvePromise!: (v: unknown) => void
-    mockListMainItems.mockReturnValue(new Promise((resolve) => { resolvePromise = resolve }))
-    renderPage()
-    expect(screen.getByTestId('main-items-skeleton')).toBeInTheDocument()
-    resolvePromise(emptyPageResult)
+    // Switch to detail view
+    await user.click(screen.getByText('明细'))
+
+    // Search value should be preserved
+    expect(screen.getByPlaceholderText('搜索标题或编号...')).toHaveValue('Alpha')
   })
 
   // --- Empty state ---
 
   it('shows empty state when no items exist', async () => {
-    renderPage()
-    await waitFor(() => {
-      expect(screen.getByTestId('empty-state')).toBeInTheDocument()
-    })
-    expect(screen.getByText('暂无事项')).toBeInTheDocument()
-  })
-
-  it('shows create button in empty state for PM user', async () => {
-    renderPage()
-    await waitFor(() => {
-      expect(screen.getByTestId('empty-create-btn')).toBeInTheDocument()
-    })
-  })
-
-  it('does not show create button in empty state for member user', async () => {
-    renderPage(memberUser)
-    await waitFor(() => {
-      expect(screen.queryByTestId('empty-create-btn')).not.toBeInTheDocument()
-    })
-  })
-
-  // --- Filter empty state ---
-
-  it('shows filter empty state when filters return no results', async () => {
-    // Initially returns items
-    mockListMainItems.mockResolvedValue({
-      items: [makeMainItem()],
-      total: 1,
-      page: 1,
-      pageSize: 20,
-    })
-    renderPage()
-
-    // Wait for items to load
-    await waitFor(() => {
-      expect(screen.getByText('Test Main Item')).toBeInTheDocument()
-    })
-
-    // Now simulate filter returning empty
-    mockListMainItems.mockResolvedValue(emptyPageResult)
-
-    // Apply a filter
-    await openAndSelectOption('filter-priority', 'P1')
-
-    await waitFor(() => {
-      expect(screen.getByTestId('filter-empty-state')).toBeInTheDocument()
-    })
-    expect(screen.getByText('没有符合条件的事项')).toBeInTheDocument()
-    expect(screen.getByTestId('filter-reset-btn')).toBeInTheDocument()
-  })
-
-  // --- Main item list ---
-
-  it('renders main item list with correct data in collapse panels', async () => {
-    const items = [
-      makeMainItem({ id: 1, code: 'MI-0001', title: 'Item 1', priority: 'P2', status: '进行中', completion: 50 }),
-      makeMainItem({ id: 2, code: 'MI-0002', title: 'Item 2', priority: 'P3', status: '未开始', completion: 0 }),
-    ]
-    mockListMainItems.mockResolvedValue({ items, total: 2, page: 1, pageSize: 20 })
-    renderPage()
-
-    await waitFor(() => {
-      expect(screen.getByText('Item 1')).toBeInTheDocument()
-      expect(screen.getByText('Item 2')).toBeInTheDocument()
-    })
-    expect(screen.getByText('MI-0001')).toBeInTheDocument()
-    expect(screen.getByText('MI-0002')).toBeInTheDocument()
-  })
-
-  // --- P1 badge ---
-
-  it('shows badge dot for P1 items', async () => {
-    const items = [makeMainItem({ id: 1, code: 'MI-0001', title: 'P1 Item', priority: 'P1' })]
-    mockListMainItems.mockResolvedValue({ items, total: 1, page: 1, pageSize: 20 })
-    renderPage()
-
-    await waitFor(() => {
-      expect(screen.getByText('P1 Item')).toBeInTheDocument()
-    })
-    expect(screen.getByTestId('p1-badge-1')).toBeInTheDocument()
-  })
-
-  it('does not show badge dot for non-P1 items', async () => {
-    const items = [makeMainItem({ id: 1, code: 'MI-0001', title: 'P2 Item', priority: 'P2' })]
-    mockListMainItems.mockResolvedValue({ items, total: 1, page: 1, pageSize: 20 })
-    renderPage()
-
-    await waitFor(() => {
-      expect(screen.getByText('P2 Item')).toBeInTheDocument()
-    })
-    expect(screen.queryByTestId('p1-badge-1')).not.toBeInTheDocument()
-  })
-
-  // --- Overdue highlight ---
-
-  it('highlights overdue items with red color and tooltip', async () => {
-    const pastDate = new Date()
-    pastDate.setDate(pastDate.getDate() - 5)
-    const items = [
-      makeMainItem({
-        id: 1,
-        code: 'MI-0001',
-        title: 'Overdue Item',
-        expected_end_date: pastDate.toISOString(),
-        status: '进行中',
+    server.use(
+      http.get('/api/v1/teams/:teamId/main-items', () => {
+        return HttpResponse.json({ code: 0, data: { items: [], total: 0, page: 1, pageSize: 20 } })
       }),
-    ]
-    mockListMainItems.mockResolvedValue({ items, total: 1, page: 1, pageSize: 20 })
-    renderPage()
-
-    await waitFor(() => {
-      expect(screen.getByText('Overdue Item')).toBeInTheDocument()
-    })
-    const dateEl = screen.getByTestId('overdue-date-1')
-    expect(dateEl).toBeInTheDocument()
-    expect(dateEl).toHaveStyle({ color: '#ff4d4f' })
-  })
-
-  it('does not highlight items that are completed even if overdue', async () => {
-    const pastDate = new Date()
-    pastDate.setDate(pastDate.getDate() - 5)
-    const items = [
-      makeMainItem({
-        id: 1,
-        code: 'MI-0001',
-        title: 'Completed Item',
-        expected_end_date: pastDate.toISOString(),
-        status: '已完成',
-      }),
-    ]
-    mockListMainItems.mockResolvedValue({ items, total: 1, page: 1, pageSize: 20 })
-    renderPage()
-
-    await waitFor(() => {
-      expect(screen.getByText('Completed Item')).toBeInTheDocument()
-    })
-    expect(screen.queryByTestId('overdue-date-1')).not.toBeInTheDocument()
-  })
-
-  // --- Sub-items lazy load on expand ---
-
-  it('sub-items are not fetched on page load (lazy loading)', async () => {
-    const subItems = [makeSubItem({ id: 1, main_item_id: 1, title: 'Sub Task 1' })]
-    mockListSubItems.mockResolvedValue({ items: subItems, total: 1, page: 1, pageSize: 20 })
-
-    const items = [makeMainItem({ id: 1, code: 'MI-0001', title: 'Item With Sub' })]
-    mockListMainItems.mockResolvedValue({ items, total: 1, page: 1, pageSize: 20 })
-    renderPage()
-
-    await waitFor(() => {
-      expect(screen.getByText('Item With Sub')).toBeInTheDocument()
-    })
-
-    // Sub-items should NOT be fetched until panel is expanded
-    expect(mockListSubItems).not.toHaveBeenCalled()
-  })
-
-  it('renders sub-items when panel content is shown', async () => {
-    const subItems = [
-      makeSubItem({ id: 1, main_item_id: 1, title: 'Sub Task 1', status: '进行中', completion: 60 }),
-      makeSubItem({ id: 2, main_item_id: 1, title: 'Sub Task 2', status: '未开始', completion: 0 }),
-    ]
-    mockListSubItems.mockResolvedValue({ items: subItems, total: 2, page: 1, pageSize: 20 })
-
-    // Test by directly importing SubItemList and rendering it
-    // This validates that the sub-item data is rendered correctly
-    const { SubItemList } = await import('./ItemViewPage')
-    const qc = createQueryClient()
-    render(
-      <QueryClientProvider client={qc}>
-        <SubItemList teamId={1} mainItemId={1} />
-      </QueryClientProvider>,
     )
 
-    await waitFor(() => {
-      expect(screen.getByText('Sub Task 1')).toBeInTheDocument()
-      expect(screen.getByText('Sub Task 2')).toBeInTheDocument()
-    })
-    expect(mockListSubItems).toHaveBeenCalledWith(1, 1)
-  })
-
-  // --- Create button visibility ---
-
-  it('shows create button for PM user', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByTestId('create-main-item-btn')).toBeInTheDocument()
+      expect(screen.getByText(/暂无事项/)).toBeInTheDocument()
     })
   })
 
-  it('hides create button for non-PM member', async () => {
-    renderPage(memberUser)
-    await waitFor(() => {
-      expect(screen.queryByTestId('create-main-item-btn')).not.toBeInTheDocument()
-    })
-  })
+  // --- Create main item dialog ---
 
-  // --- Create modal ---
-
-  it('opens create modal on button click', async () => {
+  it('opens create dialog when clicking create button', async () => {
     const user = userEvent.setup()
     renderPage()
     await waitFor(() => {
-      expect(screen.getByTestId('create-main-item-btn')).toBeInTheDocument()
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
     })
-    await user.click(screen.getByTestId('create-main-item-btn'))
-    expect(screen.getByTestId('main-item-modal')).toBeInTheDocument()
+
+    await user.click(screen.getByText('创建主事项'))
+
+    await waitFor(() => {
+      expect(screen.getByText('新建主事项')).toBeInTheDocument()
+    })
   })
 
-  it('create modal has title, priority, assignee, date, description fields', async () => {
+  // --- No antd imports ---
+
+  it('does not import antd', async () => {
+    // This is a build-time check - if the component renders without antd, it passes
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('事项清单')).toBeInTheDocument()
+    })
+    // No antd classes should be present
+    const antdElements = document.querySelectorAll('[class*="ant-"]')
+    expect(antdElements.length).toBe(0)
+  })
+
+  // --- Navigation ---
+
+  it('has a clickable title that links to detail page', async () => {
+    renderPage()
+    await waitFor(() => {
+      const link = screen.getByText('Alpha Task').closest('a')
+      expect(link).toHaveAttribute('href', '/items/1')
+    })
+  })
+
+  // --- Inline status change ---
+
+  it('shows status badge in summary cards', async () => {
+    renderPage()
+    await waitFor(() => {
+      // Each main item should show its status
+      const statuses = screen.getAllByText('进行中')
+      expect(statuses.length).toBeGreaterThanOrEqual(2)
+    })
+  })
+
+  // --- Create sub-item dialog (e2e) ---
+
+  it('create sub-item dialog has required fields: priority, startDate, expectedEndDate', async () => {
     const user = userEvent.setup()
     renderPage()
     await waitFor(() => {
-      expect(screen.getByTestId('create-main-item-btn')).toBeInTheDocument()
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
     })
-    await user.click(screen.getByTestId('create-main-item-btn'))
 
-    expect(screen.getByTestId('form-title')).toBeInTheDocument()
-    expect(screen.getByTestId('form-priority')).toBeInTheDocument()
-    expect(screen.getByTestId('form-assignee')).toBeInTheDocument()
-    expect(screen.getByTestId('form-expected-end-date')).toBeInTheDocument()
-    expect(screen.getByTestId('form-description')).toBeInTheDocument()
-  })
-
-  it('submits create form and calls API', async () => {
-    const user = userEvent.setup()
-    mockCreateMainItem.mockResolvedValue(makeMainItem({ id: 99 }))
-    renderPage()
-    await waitFor(() => {
-      expect(screen.getByTestId('create-main-item-btn')).toBeInTheDocument()
-    })
-    await user.click(screen.getByTestId('create-main-item-btn'))
-
-    // Fill required fields
-    await user.type(screen.getByTestId('form-title'), 'New Item')
-    // Select priority from dropdown
-    await openAndSelectOption('form-priority', 'P1')
-
-    // Submit
-    await user.click(screen.getByTestId('modal-submit-btn'))
+    // Click "新增子事项" on the first card
+    const addSubBtns = screen.getAllByRole('button', { name: /新增子事项/ })
+    await user.click(addSubBtns[0])
 
     await waitFor(() => {
-      expect(mockCreateMainItem).toHaveBeenCalledWith(1, expect.objectContaining({
-        title: 'New Item',
-        priority: 'P1',
-      }))
+      const dialogTitles = screen.getAllByText(/新增子事项/).filter(el => el.closest('[role="dialog"]'))
+      expect(dialogTitles.length).toBe(1)
     })
+
+    // Priority should have required marker
+    const priorityLabels = screen.getAllByText(/优先级/)
+    const priorityWithRequired = priorityLabels.find(el => el.closest('label')?.innerHTML.includes('*'))
+    expect(priorityWithRequired).toBeTruthy()
+
+    // Start date field should exist with required marker
+    const startDateLabels = screen.getAllByText(/开始时间/)
+    const startDateWithRequired = startDateLabels.find(el => el.closest('label')?.innerHTML.includes('*'))
+    expect(startDateWithRequired).toBeTruthy()
+
+    // Expected end date should have required marker
+    const endDateLabels = screen.getAllByText(/预期完成时间/)
+    const endDateWithRequired = endDateLabels.find(el => el.closest('label')?.innerHTML.includes('*'))
+    expect(endDateWithRequired).toBeTruthy()
   })
 
-  it('shows validation error for empty title', async () => {
+  it('create sub-item submit is disabled when required fields are empty', async () => {
     const user = userEvent.setup()
     renderPage()
     await waitFor(() => {
-      expect(screen.getByTestId('create-main-item-btn')).toBeInTheDocument()
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
     })
-    await user.click(screen.getByTestId('create-main-item-btn'))
 
-    // Submit without filling
-    await user.click(screen.getByTestId('modal-submit-btn'))
+    const addSubBtns = screen.getAllByRole('button', { name: /新增子事项/ })
+    await user.click(addSubBtns[0])
 
     await waitFor(() => {
-      expect(screen.getByText('请输入标题')).toBeInTheDocument()
+      const dialogTitles = screen.getAllByText(/新增子事项/).filter(el => el.closest('[role="dialog"]'))
+      expect(dialogTitles.length).toBe(1)
     })
+
+    // Fill only title, leave other required fields empty
+    await user.type(screen.getByPlaceholderText('请输入子事项标题'), 'Test Sub')
+
+    const submitBtn = screen.getByRole('button', { name: '确认' })
+    expect(submitBtn).toBeDisabled()
   })
 
-  // --- Edit action ---
-
-  it('opens edit modal with pre-filled data from dropdown', async () => {
-    const items = [makeMainItem({ id: 1, code: 'MI-0001', title: 'Edit Me', priority: 'P2' })]
-    mockListMainItems.mockResolvedValue({ items, total: 1, page: 1, pageSize: 20 })
-    mockUpdateMainItem.mockResolvedValue(makeMainItem({ id: 1, title: 'Updated' }))
-
+  it('create sub-item submit is enabled when all required fields are filled', async () => {
     const user = userEvent.setup()
     renderPage()
-
     await waitFor(() => {
-      expect(screen.getByText('Edit Me')).toBeInTheDocument()
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
     })
 
-    // Click the actions dropdown
-    await user.click(screen.getByTestId('actions-dropdown-1'))
-
-    // Find the edit menu item
-    const editMenuItem = await screen.findByText('编辑')
-    await user.click(editMenuItem)
+    const addSubBtns = screen.getAllByRole('button', { name: /新增子事项/ })
+    await user.click(addSubBtns[0])
 
     await waitFor(() => {
-      expect(screen.getByTestId('main-item-modal')).toBeInTheDocument()
-    })
-    // Title should be pre-filled
-    const titleInput = screen.getByTestId('form-title') as HTMLInputElement
-    expect(titleInput.value).toBe('Edit Me')
-  })
-
-  // --- Archive action ---
-
-  it('shows warning when archiving item not in valid status', async () => {
-    const items = [makeMainItem({ id: 200, code: 'MI-0200', title: 'In Progress', status: '进行中' })]
-    mockListMainItems.mockResolvedValue({ items, total: 1, page: 1, pageSize: 20 })
-
-    const user = userEvent.setup()
-    renderPage()
-
-    await waitFor(() => {
-      expect(screen.getByText('In Progress')).toBeInTheDocument()
+      const dialogTitles = screen.getAllByText(/新增子事项/).filter(el => el.closest('[role="dialog"]'))
+      expect(dialogTitles.length).toBe(1)
     })
 
-    await user.click(screen.getByTestId('actions-dropdown-200'))
-    const archiveMenuItem = await screen.findByText('归档')
-    await user.click(archiveMenuItem)
+    // Fill all required fields
+    await user.type(screen.getByPlaceholderText('请输入子事项标题'), 'Test Sub')
 
-    await waitFor(() => {
-      const notice = document.querySelector('.ant-message-notice')
-      expect(notice).toBeTruthy()
+    // Select priority
+    const priorityLabels = screen.getAllByText(/优先级/)
+    const priorityLabelInDialog = priorityLabels.find(el => el.closest('label')?.innerHTML.includes('*'))
+    const priorityContainer = priorityLabelInDialog!.closest('div')?.parentElement
+    const selectTrigger = priorityContainer?.querySelector('button')
+    await user.click(selectTrigger!)
+    await user.click(screen.getByRole('option', { name: 'P2' }))
+
+    // Select assignee
+    const allSelects = document.querySelectorAll('[role="dialog"] button[role="combobox"], [role="dialog"] button[data-state]')
+    const assigneeBtn = Array.from(allSelects).find(btn => btn.textContent?.includes('不指定'))
+    if (assigneeBtn) {
+      await user.click(assigneeBtn)
+      await waitFor(() => {
+        expect(screen.getByRole('option', { name: 'Test User' })).toBeInTheDocument()
+      })
+      await user.click(screen.getByRole('option', { name: 'Test User' }))
+    }
+
+    // Fill date inputs
+    const allDateInputs = document.querySelectorAll('input[type="date"]')
+    const dialogDateInputs = Array.from(allDateInputs).filter(input => {
+      const label = input.closest('div')?.querySelector('label')
+      return label && (label.textContent?.includes('开始时间') || label.textContent?.includes('预期完成时间'))
     })
-    expect(mockArchiveMainItem).not.toHaveBeenCalled()
-  })
-
-  it('shows archive confirmation and calls archive API for completed item', async () => {
-    const items = [makeMainItem({ id: 100, code: 'MI-0100', title: 'Archive Me', status: '已完成' })]
-    mockListMainItems.mockResolvedValue({ items, total: 1, page: 1, pageSize: 20 })
-    mockArchiveMainItem.mockResolvedValue(undefined)
-
-    const user = userEvent.setup()
-    renderPage()
+    expect(dialogDateInputs.length).toBe(2)
+    fireEvent.change(dialogDateInputs[0], { target: { value: '2026-04-20' } })
+    fireEvent.change(dialogDateInputs[1], { target: { value: '2026-04-30' } })
 
     await waitFor(() => {
-      expect(screen.getByText('Archive Me')).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByTestId('actions-dropdown-100'))
-    const archiveMenuItem = await screen.findByText('归档')
-    await user.click(archiveMenuItem)
-
-    // Confirm dialog should appear - antd Modal.confirm renders in portal
-    const confirmDialog = await screen.findByRole('dialog')
-    expect(confirmDialog).toBeInTheDocument()
-
-    // antd Modal.confirm OK button text is "OK" by default (no ConfigProvider locale)
-    const okBtn = within(confirmDialog).getByRole('button', { name: 'OK' })
-    await user.click(okBtn)
-
-    await waitFor(() => {
-      expect(mockArchiveMainItem).toHaveBeenCalledWith(1, 100)
-    })
-  })
-
-  // --- Archived items filtered by default ---
-
-  it('calls API with archived=false to exclude archived items', async () => {
-    renderPage()
-    await waitFor(() => {
-      expect(mockListMainItems).toHaveBeenCalledWith(1, expect.objectContaining({
-        archived: false,
-      }))
+      const submitBtn = screen.getByRole('button', { name: '确认' })
+      expect(submitBtn).toBeEnabled()
     })
   })
 })

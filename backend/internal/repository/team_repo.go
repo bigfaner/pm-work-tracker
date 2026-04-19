@@ -24,4 +24,5 @@ type TeamRepo interface {
 
 	// Admin operations
 	ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error)
+	FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[uint][]dto.TeamSummary, error)
 }

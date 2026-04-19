@@ -1,501 +1,669 @@
-import { useState, useMemo, useCallback } from 'react'
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import {
-  Radio,
-  Card,
-  Tag,
-  Button,
-  Modal,
-  Form,
-  Input,
-  Select,
-  Empty,
-  Skeleton,
-  Typography,
-  message,
-} from 'antd'
-import { PlusOutlined } from '@ant-design/icons'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
-import 'dayjs/locale/zh-cn'
-import { useAuthStore } from '@/store/auth'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import { Link } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
-import {
-  listItemPoolApi,
-  submitItemPoolApi,
-  assignItemPoolApi,
-  rejectItemPoolApi,
-} from '@/api/itemPool'
-import { listMembersApi } from '@/api/teams'
+import { listItemPoolApi, submitItemPoolApi, assignItemPoolApi, convertToMainApi, rejectItemPoolApi } from '@/api/itemPool'
 import { listMainItemsApi } from '@/api/mainItems'
-import type { ItemPool, ItemPoolFilter, SubmitItemPoolReq, AssignItemPoolReq, RejectItemPoolReq } from '@/types'
+import { listMembersApi } from '@/api/teams'
+import type { ItemPool, AssignItemPoolReq, ConvertToMainItemReq } from '@/types'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogBody,
+  DialogFooter,
+} from '@/components/ui/dialog'
 
-dayjs.extend(relativeTime)
-dayjs.locale('zh-cn')
+// --- Constants ---
 
-const { TextArea } = Input
-const { Paragraph } = Typography
+const POOL_BATCH_SIZE = 5
+const POOL_STATUS_OPTIONS = [
+  { value: '待分配', label: '待分配' },
+  { value: '已分配', label: '已分配' },
+  { value: '已拒绝', label: '已拒绝' },
+]
 
-const POOL_STATUS_TAG_COLOR: Record<string, string> = {
-  '待分配': 'blue',
-  '已分配': 'green',
-  '已拒绝': 'red',
+const STATUS_BORDER: Record<string, string> = {
+  '待分配': 'border-l-4 border-l-blue-500',
+  '已分配': 'border-l-4 border-l-slate-400 opacity-70',
+  '已拒绝': 'border-l-4 border-l-red-400 opacity-70',
 }
 
-interface SubmitFormValues {
-  title: string
-  background?: string
-  expectedOutput?: string
+const STATUS_BADGE_VARIANT: Record<string, 'primary' | 'success' | 'default'> = {
+  '待分配': 'primary',
+  '已分配': 'success',
+  '已拒绝': 'default',
 }
 
-interface AssignFormValues {
-  mainItemId: number
-  assigneeId: number
+const STATUS_LABEL: Record<string, string> = {
+  '待分配': '待分配',
+  '已分配': '已分配',
+  '已拒绝': '已拒绝',
 }
 
-interface RejectFormValues {
-  reason: string
-}
+// --- Pool Item Card ---
 
 interface PoolItemCardProps {
   item: ItemPool
-  isPM: boolean
-  memberNames: Record<number, string>
-  mainItemOptions: { value: number; label: string; title: string }[]
-  onAssign: (item: ItemPool) => void
+  onConvertToMain: (item: ItemPool) => void
+  onConvertToSub: (item: ItemPool) => void
   onReject: (item: ItemPool) => void
 }
 
-function PoolItemCard({ item, isPM, memberNames, mainItemOptions, onAssign, onReject }: PoolItemCardProps) {
+function PoolItemCard({ item, onConvertToMain, onConvertToSub, onReject }: PoolItemCardProps) {
   const isPending = item.status === '待分配'
-  const isAssigned = item.status === '已分配'
-  const isRejected = item.status === '已拒绝'
-  const grayed = isAssigned || isRejected
-
-  const assignedMainTitle = useMemo(() => {
-    if (!item.assigned_main_id) return ''
-    const m = mainItemOptions.find((o) => o.value === item.assigned_main_id)
-    return m?.title ?? ''
-  }, [item.assigned_main_id, mainItemOptions])
 
   return (
-    <Card
-      data-testid={`pool-card-${item.id}`}
-      hoverable
-      size="small"
-      style={{
-        marginBottom: 12,
-        opacity: grayed ? 0.7 : 1,
-        borderLeft: isPending ? '3px solid #1677ff' : 'none',
-      }}
+    <div
+      data-testid={`pool-item-${item.id}`}
+      className={`rounded-xl border border-border bg-white shadow-sm ${STATUS_BORDER[item.status] || ''}`}
     >
-      {/* Header: title + status tag + submitter + time */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <span style={{ fontWeight: 500, flex: 1 }}>{item.title}</span>
-        <Tag color={POOL_STATUS_TAG_COLOR[item.status]}>{item.status}</Tag>
-        <span style={{ color: '#8c8c8c', fontSize: 12 }}>
-          {memberNames[item.submitter_id] ?? ''} {dayjs(item.created_at).fromNow()}
-        </span>
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-3">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs text-tertiary bg-bg-alt px-1.5 py-0.5 rounded">
+            POOL-{String(item.id).padStart(3, '0')}
+          </span>
+          <span className="text-sm font-medium text-primary">{item.title}</span>
+          <Badge variant={STATUS_BADGE_VARIANT[item.status]}>{STATUS_LABEL[item.status]}</Badge>
+        </div>
+        <span className="text-xs text-tertiary">{formatRelativeTime(item.createdAt)}</span>
       </div>
 
-      {/* Body: background + expected output */}
-      {(item.background || item.expected_output) && (
-        <div style={{ marginBottom: 8 }}>
-          {item.background && (
-            <div style={{ marginBottom: 4 }}>
-              <span style={{ color: '#8c8c8c', fontSize: 12 }}>背景: </span>
-              <Paragraph
-                ellipsis={{ rows: 2, expandable: true, symbol: '展开' }}
-                style={{ display: 'inline', marginBottom: 0 }}
-              >
-                {item.background}
-              </Paragraph>
-            </div>
-          )}
-          {item.expected_output && (
-            <div>
-              <span style={{ color: '#8c8c8c', fontSize: 12 }}>预期产出: </span>
-              <Paragraph
-                ellipsis={{ rows: 2, expandable: true, symbol: '展开' }}
-                style={{ display: 'inline', marginBottom: 0 }}
-              >
-                {item.expected_output}
-              </Paragraph>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Body */}
+      <div className="px-5 pb-3">
+        {item.background && (
+          <p className="text-[13px] text-secondary">
+            <span className="text-tertiary">背景：</span>{item.background}
+          </p>
+        )}
+        {item.expectedOutput && (
+          <p className="text-[13px] text-secondary mt-1">
+            <span className="text-tertiary">预期产出：</span>{item.expectedOutput}
+          </p>
+        )}
+        {item.status === '已分配' && item.assignedMainId && (
+          <div className="mt-2 text-[13px] text-secondary">
+            {item.assignedSubId ? '已转为子事项挂载至：' : '已转为主事项：'}
+            <Link to={`/items/${item.assignedMainId}`} className="font-medium text-primary-600 hover:text-primary-700">
+              {item.assignedMainCode ? `${item.assignedMainCode} ${item.assignedMainTitle}` : `主事项 #${item.assignedMainId}`}
+            </Link>
+          </div>
+        )}
+        {item.status === '已拒绝' && item.rejectReason && (
+          <div className="mt-2 text-[13px] text-tertiary">
+            拒绝原因：{item.rejectReason}
+          </div>
+        )}
+      </div>
 
-      {/* Footer by status */}
-      {isPending && isPM && (
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <Button
-            type="primary"
-            size="small"
-            data-testid={`assign-btn-${item.id}`}
-            onClick={() => onAssign(item)}
-          >
-            分配
+      {/* Actions (only for pending items) */}
+      {isPending && (
+        <div className="flex justify-end gap-2 px-5 py-2 border-t border-border/50">
+          <Button variant="ghost" size="sm" className="text-primary-600" data-testid={`to-main-${item.id}`} onClick={() => onConvertToMain(item)}>
+            转为主事项
           </Button>
-          <Button
-            danger
-            size="small"
-            data-testid={`reject-btn-${item.id}`}
-            onClick={() => onReject(item)}
-          >
+          <Button variant="ghost" size="sm" className="text-primary-600" data-testid={`to-sub-${item.id}`} onClick={() => onConvertToSub(item)}>
+            转为子事项
+          </Button>
+          <Button variant="ghost" size="sm" className="text-error" data-testid={`reject-${item.id}`} onClick={() => onReject(item)}>
             拒绝
           </Button>
         </div>
       )}
-      {isAssigned && (
-        <div style={{ color: '#8c8c8c', fontSize: 12 }}>
-          已挂载至:
-          {item.assigned_main_id ? (
-            <a href={`/items/${item.assigned_main_id}`} style={{ marginLeft: 4 }}>
-              {assignedMainTitle}
-            </a>
-          ) : (
-            <span style={{ marginLeft: 4 }}>-</span>
-          )}
-          {item.assignee_id ? (
-            <span style={{ marginLeft: 8 }}>负责人: {memberNames[item.assignee_id] ?? ''}</span>
-          ) : null}
-        </div>
-      )}
-      {isRejected && item.reject_reason && (
-        <div style={{ color: '#8c8c8c', fontSize: 12 }}>
-          拒绝原因: {item.reject_reason}
-        </div>
-      )}
-    </Card>
+    </div>
   )
 }
 
-export default function ItemPoolPage() {
-  const { user } = useAuthStore()
-  const { currentTeamId, teams } = useTeamStore()
-  const queryClient = useQueryClient()
+// --- Main Component ---
 
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined)
-  const [submitModalOpen, setSubmitModalOpen] = useState(false)
-  const [assignModalOpen, setAssignModalOpen] = useState(false)
-  const [rejectModalOpen, setRejectModalOpen] = useState(false)
+export default function ItemPoolPage() {
+  const teamId = useTeamStore((s) => s.currentTeamId)
+  const qc = useQueryClient()
+
+  // Filter state
+  const [searchText, setSearchText] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('')
+
+  // Infinite scroll
+  const [visibleCount, setVisibleCount] = useState(POOL_BATCH_SIZE)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+
+  // Dialogs
+  const [submitOpen, setSubmitOpen] = useState(false)
+  const [toMainOpen, setToMainOpen] = useState(false)
+  const [toSubOpen, setToSubOpen] = useState(false)
+  const [rejectOpen, setRejectOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<ItemPool | null>(null)
 
-  const [submitForm] = Form.useForm<SubmitFormValues>()
-  const [assignForm] = Form.useForm<AssignFormValues>()
-  const [rejectForm] = Form.useForm<RejectFormValues>()
+  // Form states
+  const [submitForm, setSubmitForm] = useState({ title: '', background: '', expectedOutput: '' })
+  const [toMainForm, setToMainForm] = useState({ priority: 'P2', assigneeId: '', startDate: '', expectedEndDate: '' })
+  const [toSubForm, setToSubForm] = useState({ parentItemId: '', priority: 'P2', assigneeId: '', startDate: '', expectedEndDate: '' })
+  const [rejectForm, setRejectForm] = useState({ reason: '' })
 
-  const currentTeam = useMemo(
-    () => teams.find((t) => t.id === currentTeamId),
-    [teams, currentTeamId],
-  )
-  const isPM = useMemo(
-    () => !!user && !!currentTeam && user.id === currentTeam.pm_id,
-    [user, currentTeam],
-  )
+  // --- Data fetching ---
 
-  // Fetch members
+  const { data: poolData, isLoading } = useQuery({
+    queryKey: ['itemPool', teamId],
+    queryFn: () => listItemPoolApi(teamId!),
+    enabled: !!teamId,
+  })
+
   const { data: membersData } = useQuery({
-    queryKey: ['teamMembers', currentTeamId],
-    queryFn: () => listMembersApi(currentTeamId!),
-    enabled: !!currentTeamId,
-  })
-  const memberNames = useMemo(() => {
-    const map: Record<number, string> = {}
-    for (const m of membersData ?? []) {
-      map[m.userId] = m.displayName
-    }
-    return map
-  }, [membersData])
-
-  const memberOptions = useMemo(
-    () => (membersData ?? []).map((m) => ({ value: m.userId, label: m.displayName })),
-    [membersData],
-  )
-
-  // Fetch pool items
-  const filter: ItemPoolFilter = useMemo(() => {
-    const f: ItemPoolFilter = {}
-    if (statusFilter) f.status = statusFilter
-    return f
-  }, [statusFilter])
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['itemPool', currentTeamId, filter],
-    queryFn: () => listItemPoolApi(currentTeamId!, filter),
-    enabled: !!currentTeamId,
+    queryKey: ['members', teamId],
+    queryFn: () => listMembersApi(teamId!),
+    enabled: !!teamId,
   })
 
-  // Fetch main items for assign modal
   const { data: mainItemsData } = useQuery({
-    queryKey: ['mainItems', currentTeamId, { archived: false }],
-    queryFn: () => listMainItemsApi(currentTeamId!, { archived: false }),
-    enabled: !!currentTeamId,
+    queryKey: ['mainItems', teamId],
+    queryFn: () => listMainItemsApi(teamId!),
+    enabled: !!teamId,
   })
-  const mainItemOptions = useMemo(
-    () => (mainItemsData?.items ?? []).map((m) => ({
-      value: m.id,
-      label: `${m.code} ${m.title}`,
-      title: m.title,
-    })),
-    [mainItemsData],
-  )
 
-  const items = data?.items ?? []
+  const members = membersData || []
+  const mainItems = mainItemsData?.items || []
+  const allItems: ItemPool[] = poolData?.items || []
 
-  // Mutations
+  // --- Client-side filtering ---
+
+  const filteredItems = useMemo(() => {
+    let items = allItems
+    if (searchText.trim()) {
+      const q = searchText.trim().toLowerCase()
+      items = items.filter(
+        (item) =>
+          item.title.toLowerCase().includes(q) ||
+          `pool-${String(item.id).padStart(3, '0')}`.includes(q),
+      )
+    }
+    if (statusFilter) {
+      items = items.filter((item) => item.status === statusFilter)
+    }
+    return items
+  }, [allItems, searchText, statusFilter])
+
+  // --- Infinite scroll ---
+
+  const visibleItems = filteredItems.slice(0, visibleCount)
+  const hasMore = filteredItems.length > visibleCount
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          setVisibleCount((prev) => prev + POOL_BATCH_SIZE)
+        }
+      },
+      { rootMargin: '200px' },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasMore])
+
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(POOL_BATCH_SIZE)
+  }, [searchText, statusFilter])
+
+  // --- Mutations ---
+
   const submitMutation = useMutation({
-    mutationFn: (req: SubmitItemPoolReq) => submitItemPoolApi(currentTeamId!, req),
+    mutationFn: (req: { title: string; background?: string; expectedOutput?: string }) =>
+      submitItemPoolApi(teamId!, req),
     onSuccess: () => {
-      message.success('已提交到事项池')
-      setSubmitModalOpen(false)
-      submitForm.resetFields()
-      queryClient.invalidateQueries({ queryKey: ['itemPool', currentTeamId] })
+      qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
+      setSubmitOpen(false)
+      setSubmitForm({ title: '', background: '', expectedOutput: '' })
     },
   })
 
   const assignMutation = useMutation({
     mutationFn: ({ poolId, req }: { poolId: number; req: AssignItemPoolReq }) =>
-      assignItemPoolApi(currentTeamId!, poolId, req),
+      assignItemPoolApi(teamId!, poolId, req),
     onSuccess: () => {
-      message.success('已分配')
-      setAssignModalOpen(false)
-      assignForm.resetFields()
+      qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
+      qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
+      setToSubOpen(false)
       setSelectedItem(null)
-      queryClient.invalidateQueries({ queryKey: ['itemPool', currentTeamId] })
+    },
+  })
+
+  const convertToMainMutation = useMutation({
+    mutationFn: ({ poolId, req }: { poolId: number; req: ConvertToMainItemReq }) =>
+      convertToMainApi(teamId!, poolId, req),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
+      qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
+      setToMainOpen(false)
+      setSelectedItem(null)
     },
   })
 
   const rejectMutation = useMutation({
-    mutationFn: ({ poolId, req }: { poolId: number; req: RejectItemPoolReq }) =>
-      rejectItemPoolApi(currentTeamId!, poolId, req),
+    mutationFn: ({ poolId, req }: { poolId: number; req: { reason: string } }) =>
+      rejectItemPoolApi(teamId!, poolId, req),
     onSuccess: () => {
-      message.success('已拒绝')
-      setRejectModalOpen(false)
-      rejectForm.resetFields()
+      qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
+      setRejectOpen(false)
+      setRejectForm({ reason: '' })
       setSelectedItem(null)
-      queryClient.invalidateQueries({ queryKey: ['itemPool', currentTeamId] })
     },
   })
 
-  // Handlers
-  const handleOpenAssign = useCallback((item: ItemPool) => {
-    setSelectedItem(item)
-    assignForm.resetFields()
-    setAssignModalOpen(true)
-  }, [assignForm])
+  // --- Handlers ---
 
-  const handleOpenReject = useCallback((item: ItemPool) => {
+  const openConvertToMain = useCallback((item: ItemPool) => {
     setSelectedItem(item)
-    rejectForm.resetFields()
-    setRejectModalOpen(true)
-  }, [rejectForm])
+    setToMainForm({ priority: 'P2', assigneeId: '', startDate: '', expectedEndDate: '' })
+    setToMainOpen(true)
+  }, [])
 
-  const handleSubmitOk = useCallback(async () => {
-    try {
-      const values = await submitForm.validateFields()
-      submitMutation.mutate({
-        title: values.title,
-        background: values.background,
-        expectedOutput: values.expectedOutput,
-      })
-    } catch {
-      // validation errors
-    }
+  const openConvertToSub = useCallback((item: ItemPool) => {
+    setSelectedItem(item)
+    setToSubForm({ parentItemId: '', priority: 'P2', assigneeId: '', startDate: '', expectedEndDate: '' })
+    setToSubOpen(true)
+  }, [])
+
+  const openReject = useCallback((item: ItemPool) => {
+    setSelectedItem(item)
+    setRejectForm({ reason: '' })
+    setRejectOpen(true)
+  }, [])
+
+  const resetFilters = useCallback(() => {
+    setSearchText('')
+    setStatusFilter('')
+  }, [])
+
+  const handleSubmit = useCallback(() => {
+    if (!submitForm.title.trim()) return
+    submitMutation.mutate({
+      title: submitForm.title.trim(),
+      ...(submitForm.background && { background: submitForm.background }),
+      ...(submitForm.expectedOutput && { expectedOutput: submitForm.expectedOutput }),
+    })
   }, [submitForm, submitMutation])
 
-  const handleAssignOk = useCallback(async () => {
-    try {
-      const values = await assignForm.validateFields()
-      assignMutation.mutate({
-        poolId: selectedItem!.id,
-        req: { mainItemId: values.mainItemId, assigneeId: values.assigneeId },
-      })
-    } catch {
-      // validation errors
-    }
-  }, [assignForm, assignMutation, selectedItem])
+  const handleToMain = useCallback(() => {
+    if (!selectedItem) return
+    convertToMainMutation.mutate({
+      poolId: selectedItem.id,
+      req: {
+        priority: toMainForm.priority || 'P2',
+        assigneeId: toMainForm.assigneeId ? Number(toMainForm.assigneeId) : 0,
+        startDate: toMainForm.startDate || '',
+        expectedEndDate: toMainForm.expectedEndDate || '',
+      },
+    })
+  }, [selectedItem, toMainForm, convertToMainMutation])
 
-  const handleRejectOk = useCallback(async () => {
-    try {
-      const values = await rejectForm.validateFields()
-      rejectMutation.mutate({
-        poolId: selectedItem!.id,
-        req: { reason: values.reason },
-      })
-    } catch {
-      // validation errors
-    }
-  }, [rejectForm, rejectMutation, selectedItem])
+  const handleToSub = useCallback(() => {
+    if (!selectedItem || !toSubForm.parentItemId) return
+    assignMutation.mutate({
+      poolId: selectedItem.id,
+      req: {
+        mainItemId: Number(toSubForm.parentItemId),
+        assigneeId: toSubForm.assigneeId ? Number(toSubForm.assigneeId) : 0,
+        priority: toSubForm.priority || 'P2',
+        startDate: toSubForm.startDate || '',
+        expectedEndDate: toSubForm.expectedEndDate || '',
+      },
+    })
+  }, [selectedItem, toSubForm, assignMutation])
+
+  const handleReject = useCallback(() => {
+    if (!selectedItem || !rejectForm.reason.trim()) return
+    rejectMutation.mutate({
+      poolId: selectedItem.id,
+      req: { reason: rejectForm.reason.trim() },
+    })
+  }, [selectedItem, rejectForm, rejectMutation])
+
+  // --- Render ---
 
   return (
     <div data-testid="item-pool-page">
-      {/* Page Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>事项池</h2>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          data-testid="submit-pool-btn"
-          onClick={() => {
-            submitForm.resetFields()
-            setSubmitModalOpen(true)
-          }}
-        >
-          提交到事项池
-        </Button>
-      </div>
+      {!teamId && <div className="p-6 text-tertiary">请先选择团队</div>}
+      {teamId && (
+        <>
+          {/* Page Header */}
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-xl font-semibold text-primary">待办事项</h1>
+            <Button size="sm" onClick={() => setSubmitOpen(true)}>
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              新增待办事项
+            </Button>
+          </div>
 
-      {/* Filter Bar */}
-      <div style={{ marginBottom: 16 }}>
-        <Radio.Group
-          data-testid="status-filter"
-          buttonStyle="solid"
-          value={statusFilter ?? '全部'}
-          onChange={(e) => {
-            setStatusFilter(e.target.value === '全部' ? undefined : e.target.value)
-          }}
-        >
-          <Radio.Button value="全部">全部</Radio.Button>
-          <Radio.Button value="待分配">待分配</Radio.Button>
-          <Radio.Button value="已分配">已分配</Radio.Button>
-          <Radio.Button value="已拒绝">已拒绝</Radio.Button>
-        </Radio.Group>
-      </div>
+          {/* Filter Bar */}
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <Input
+              placeholder="搜索标题或编号..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="w-[360px]"
+            />
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v === '_all' ? '' : v)}>
+              <SelectTrigger className="w-[140px]" data-testid="pool-status-filter">
+                <SelectValue placeholder="状态：全部" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">状态：全部</SelectItem>
+                {POOL_STATUS_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="secondary" size="sm" onClick={resetFilters}>
+              重置
+            </Button>
+          </div>
 
-      {/* Content */}
-      {isLoading ? (
-        <div data-testid="pool-skeleton">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} size="small" style={{ marginBottom: 12 }}>
-              <Skeleton active paragraph={{ rows: 2 }} />
-            </Card>
-          ))}
-        </div>
-      ) : items.length === 0 && !statusFilter ? (
-        <div data-testid="pool-empty">
-          <Empty description="事项池暂无内容" />
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              submitForm.resetFields()
-              setSubmitModalOpen(true)
-            }}
-          >
-            提交到事项池
-          </Button>
-        </div>
-      ) : items.length === 0 && statusFilter ? (
-        <div data-testid="pool-filter-empty">
-          <Empty description="该状态下暂无事项" />
-        </div>
-      ) : (
-        items.map((item) => (
-          <PoolItemCard
-            key={item.id}
-            item={item}
-            isPM={isPM}
-            memberNames={memberNames}
-            mainItemOptions={mainItemOptions}
-            onAssign={handleOpenAssign}
-            onReject={handleOpenReject}
-          />
-        ))
+          {/* Content */}
+          {isLoading ? (
+            <div className="py-8 text-center text-tertiary text-sm">加载中...</div>
+          ) : filteredItems.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-tertiary text-sm">暂无待办事项</p>
+              <Button variant="secondary" size="sm" className="mt-3" onClick={() => setSubmitOpen(true)}>
+                提交第一个待办事项
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {visibleItems.map((item) => (
+                <PoolItemCard
+                  key={item.id}
+                  item={item}
+                  onConvertToMain={openConvertToMain}
+                  onConvertToSub={openConvertToSub}
+                  onReject={openReject}
+                />
+              ))}
+
+              {/* Infinite scroll sentinel */}
+              <div ref={sentinelRef} className="py-4 text-center">
+                {hasMore ? (
+                  <span className="text-xs text-tertiary">加载中...</span>
+                ) : (
+                  <span className="text-xs text-tertiary">-- 没有更多了 --</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Submit Dialog */}
+          <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
+            <DialogContent size="md">
+              <DialogHeader>
+                <DialogTitle>新增待办事项</DialogTitle>
+              </DialogHeader>
+              <DialogBody>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-primary mb-1">
+                    标题 <span className="text-error">*</span>
+                  </label>
+                  <Input
+                    placeholder="请输入事项标题"
+                    value={submitForm.title}
+                    onChange={(e) => setSubmitForm((f) => ({ ...f, title: e.target.value }))}
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-primary mb-1">背景</label>
+                  <textarea
+                    className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 min-h-[72px] resize-y"
+                    rows={3}
+                    placeholder="描述提交该事项的背景和原因"
+                    value={submitForm.background}
+                    onChange={(e) => setSubmitForm((f) => ({ ...f, background: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-1">预期产出</label>
+                  <textarea
+                    className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 min-h-[72px] resize-y"
+                    rows={3}
+                    placeholder="描述希望达成的产出或目标"
+                    value={submitForm.expectedOutput}
+                    onChange={(e) => setSubmitForm((f) => ({ ...f, expectedOutput: e.target.value }))}
+                  />
+                </div>
+              </DialogBody>
+              <DialogFooter>
+                <Button variant="secondary" onClick={() => setSubmitOpen(false)}>取消</Button>
+                <Button onClick={handleSubmit} disabled={!submitForm.title.trim() || submitMutation.isPending}>
+                  提交
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Convert to Main Item Dialog */}
+          <Dialog open={toMainOpen} onOpenChange={setToMainOpen}>
+            <DialogContent size="lg">
+              <DialogHeader>
+                <DialogTitle>转为主事项</DialogTitle>
+              </DialogHeader>
+              <DialogBody>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-primary mb-1">
+                    标题 <span className="text-error">*</span>
+                  </label>
+                  <Input value={selectedItem?.title || ''} readOnly />
+                </div>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-1">优先级</label>
+                    <Select value={toMainForm.priority} onValueChange={(v) => setToMainForm((f) => ({ ...f, priority: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="P1">P1</SelectItem>
+                        <SelectItem value="P2">P2</SelectItem>
+                        <SelectItem value="P3">P3</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-1">负责人</label>
+                    <Select value={toMainForm.assigneeId || '_none'} onValueChange={(v) => setToMainForm((f) => ({ ...f, assigneeId: v === '_none' ? '' : v }))}>
+                      <SelectTrigger><SelectValue placeholder="请选择" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">请选择</SelectItem>
+                        {members.map((m) => (
+                          <SelectItem key={m.userId} value={String(m.userId)}>{m.displayName}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-1">开始时间 <span className="text-error">*</span></label>
+                    <Input
+                      type="date"
+                      value={toMainForm.startDate}
+                      onChange={(e) => setToMainForm((f) => ({ ...f, startDate: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-1">预期完成时间 <span className="text-error">*</span></label>
+                    <Input
+                      type="date"
+                      value={toMainForm.expectedEndDate}
+                      onChange={(e) => setToMainForm((f) => ({ ...f, expectedEndDate: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-1">描述</label>
+                  <textarea
+                    className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 min-h-[72px] resize-y"
+                    rows={3}
+                    value={selectedItem?.background || ''}
+                    readOnly
+                  />
+                </div>
+              </DialogBody>
+              <DialogFooter>
+                <Button variant="secondary" onClick={() => setToMainOpen(false)}>取消</Button>
+                <Button onClick={handleToMain} disabled={!toMainForm.startDate || !toMainForm.expectedEndDate || convertToMainMutation.isPending}>确认转换</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Convert to Sub Item Dialog */}
+          <Dialog open={toSubOpen} onOpenChange={setToSubOpen}>
+            <DialogContent size="lg">
+              <DialogHeader>
+                <DialogTitle>转为子事项</DialogTitle>
+              </DialogHeader>
+              <DialogBody>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-primary mb-1">
+                    挂载主事项 <span className="text-error">*</span>
+                  </label>
+                  <Select value={toSubForm.parentItemId || '_none'} onValueChange={(v) => setToSubForm((f) => ({ ...f, parentItemId: v === '_none' ? '' : v }))}>
+                    <SelectTrigger><SelectValue placeholder="请选择主事项" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">请选择主事项</SelectItem>
+                      {mainItems.map((mi) => (
+                        <SelectItem key={mi.id} value={String(mi.id)}>
+                          {mi.code} {mi.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-primary mb-1">
+                    标题 <span className="text-error">*</span>
+                  </label>
+                  <Input value={selectedItem?.title || ''} readOnly />
+                </div>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-1">优先级</label>
+                    <Select value={toSubForm.priority} onValueChange={(v) => setToSubForm((f) => ({ ...f, priority: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="P1">P1</SelectItem>
+                        <SelectItem value="P2">P2</SelectItem>
+                        <SelectItem value="P3">P3</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-1">负责人</label>
+                    <Select value={toSubForm.assigneeId || '_none'} onValueChange={(v) => setToSubForm((f) => ({ ...f, assigneeId: v === '_none' ? '' : v }))}>
+                      <SelectTrigger><SelectValue placeholder="请选择" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">请选择</SelectItem>
+                        {members.map((m) => (
+                          <SelectItem key={m.userId} value={String(m.userId)}>{m.displayName}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-1">开始时间 <span className="text-error">*</span></label>
+                    <Input
+                      type="date"
+                      value={toSubForm.startDate}
+                      onChange={(e) => setToSubForm((f) => ({ ...f, startDate: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-1">预期完成时间 <span className="text-error">*</span></label>
+                    <Input
+                      type="date"
+                      value={toSubForm.expectedEndDate}
+                      onChange={(e) => setToSubForm((f) => ({ ...f, expectedEndDate: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-1">描述</label>
+                  <textarea
+                    className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 min-h-[72px] resize-y"
+                    rows={3}
+                    value={selectedItem?.background || ''}
+                    readOnly
+                  />
+                </div>
+              </DialogBody>
+              <DialogFooter>
+                <Button variant="secondary" onClick={() => setToSubOpen(false)}>取消</Button>
+                <Button onClick={handleToSub} disabled={!toSubForm.parentItemId || !toSubForm.startDate || !toSubForm.expectedEndDate || assignMutation.isPending}>确认转换</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Reject Dialog */}
+          <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+            <DialogContent size="md">
+              <DialogHeader>
+                <DialogTitle>拒绝事项</DialogTitle>
+              </DialogHeader>
+              <DialogBody>
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-1">
+                    拒绝原因 <span className="text-error">*</span>
+                  </label>
+                  <textarea
+                    className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 min-h-[96px] resize-y"
+                    rows={4}
+                    placeholder="请说明拒绝原因"
+                    value={rejectForm.reason}
+                    onChange={(e) => setRejectForm({ reason: e.target.value })}
+                  />
+                </div>
+              </DialogBody>
+              <DialogFooter>
+                <Button variant="secondary" onClick={() => setRejectOpen(false)}>取消</Button>
+                <Button variant="danger" onClick={handleReject} disabled={!rejectForm.reason.trim() || rejectMutation.isPending}>确认拒绝</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
       )}
-
-      {/* Submit Modal */}
-      <Modal
-        title="提交到事项池"
-        open={submitModalOpen}
-        onCancel={() => setSubmitModalOpen(false)}
-        onOk={handleSubmitOk}
-        width={520}
-        data-testid="submit-pool-modal"
-        okText="确认"
-        cancelText="取消"
-        okButtonProps={{ 'data-testid': 'submit-pool-ok', loading: submitMutation.isPending }}
-      >
-        <Form form={submitForm} layout="vertical">
-          <Form.Item
-            name="title"
-            label="标题"
-            rules={[{ required: true, message: '请填写标题' }]}
-          >
-            <Input data-testid="form-pool-title" maxLength={100} showCount />
-          </Form.Item>
-          <Form.Item name="background" label="背景">
-            <TextArea data-testid="form-pool-background" rows={3} />
-          </Form.Item>
-          <Form.Item name="expectedOutput" label="预期产出">
-            <TextArea data-testid="form-pool-expected-output" rows={3} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* Assign Modal */}
-      <Modal
-        title="分配事项"
-        open={assignModalOpen}
-        onCancel={() => { setAssignModalOpen(false); setSelectedItem(null) }}
-        onOk={handleAssignOk}
-        width={480}
-        data-testid="assign-modal"
-        okText="确认"
-        cancelText="取消"
-        okButtonProps={{ 'data-testid': 'assign-ok', loading: assignMutation.isPending }}
-      >
-        <Form form={assignForm} layout="vertical">
-          <Form.Item
-            name="mainItemId"
-            label="挂载主事项"
-            rules={[{ required: true, message: '请选择挂载的主事项' }]}
-          >
-            <Select
-              data-testid="form-assign-main-item"
-              showSearch
-              placeholder="请选择主事项"
-              options={mainItemOptions}
-            />
-          </Form.Item>
-          <Form.Item
-            name="assigneeId"
-            label="负责人"
-            rules={[{ required: true, message: '请选择负责人' }]}
-          >
-            <Select
-              data-testid="form-assign-assignee"
-              showSearch
-              placeholder="请选择负责人"
-              options={memberOptions}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* Reject Modal */}
-      <Modal
-        title="拒绝事项"
-        open={rejectModalOpen}
-        onCancel={() => { setRejectModalOpen(false); setSelectedItem(null) }}
-        onOk={handleRejectOk}
-        width={400}
-        data-testid="reject-modal"
-        okText="确认"
-        cancelText="取消"
-        okButtonProps={{ 'data-testid': 'reject-ok', loading: rejectMutation.isPending }}
-      >
-        <Form form={rejectForm} layout="vertical">
-          <Form.Item
-            name="reason"
-            label="拒绝原因"
-            rules={[{ required: true, message: '请填写拒绝原因' }]}
-          >
-            <TextArea data-testid="form-reject-reason" rows={3} maxLength={200} showCount />
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   )
+}
+
+// --- Utility ---
+
+function formatRelativeTime(dateStr: string): string {
+  const now = new Date()
+  const date = new Date(dateStr)
+  const diffMs = now.getTime() - date.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  if (diffDays === 0) return '今天提交'
+  if (diffDays === 1) return '1天前提交'
+  if (diffDays < 7) return `${diffDays}天前提交`
+  if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7)
+    return `${weeks}周前提交`
+  }
+  return date.toLocaleDateString('zh-CN')
 }

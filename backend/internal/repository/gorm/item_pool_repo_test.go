@@ -120,7 +120,7 @@ func TestItemPoolRepo_Update_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	_, team := seedItemPoolData(t, db)
-	fakeItem := &model.ItemPool{Model: gormlib.Model{ID: 9999}, TeamID: team.ID}
+	fakeItem := &model.ItemPool{BaseModel: model.BaseModel{ID: 9999}, TeamID: team.ID}
 	fields := map[string]interface{}{"status": "已分配"}
 	err := repo.Update(ctx, fakeItem, fields)
 	assert.ErrorIs(t, err, pkgerrors.ErrNotFound)

@@ -11,6 +11,7 @@ import (
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/repository"
 	"pm-work-tracker/backend/internal/service"
+	"pm-work-tracker/backend/internal/vo"
 )
 
 // ProgressHandler handles progress record endpoints.
@@ -90,7 +91,7 @@ func (h *ProgressHandler) Append(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": progressRecordToDTO(record, h.userRepo, c)})
+	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": progressRecordToVO(record, h.userRepo, c)})
 }
 
 // List handles GET /api/v1/teams/:teamId/sub-items/:subId/progress
@@ -113,7 +114,7 @@ func (h *ProgressHandler) List(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, progressRecordsToDTOs(records, h.userRepo, c))
+	apperrors.RespondOK(c, progressRecordsToVOs(records, h.userRepo, c))
 }
 
 // CorrectCompletion handles PATCH /api/v1/teams/:teamId/progress/:recordId/completion
@@ -159,9 +160,8 @@ func (h *ProgressHandler) CorrectCompletion(c *gin.Context) {
 	apperrors.RespondOK(c, nil)
 }
 
-// progressRecordToDTO converts a model.ProgressRecord to a response map matching the Data Contract.
-// It resolves authorName by looking up the user.
-func progressRecordToDTO(record *model.ProgressRecord, userRepo repository.UserRepo, c *gin.Context) gin.H {
+// progressRecordToVO converts a model.ProgressRecord to a ProgressRecordVO.
+func progressRecordToVO(record *model.ProgressRecord, userRepo repository.UserRepo, c *gin.Context) vo.ProgressRecordVO {
 	authorName := ""
 	if userRepo != nil {
 		user, err := userRepo.FindByID(c.Request.Context(), record.AuthorID)
@@ -169,26 +169,14 @@ func progressRecordToDTO(record *model.ProgressRecord, userRepo repository.UserR
 			authorName = user.DisplayName
 		}
 	}
-
-	return gin.H{
-		"id":          record.ID,
-		"subItemId":   record.SubItemID,
-		"authorId":    record.AuthorID,
-		"authorName":  authorName,
-		"completion":  record.Completion,
-		"achievement": record.Achievement,
-		"blocker":     record.Blocker,
-		"lesson":      record.Lesson,
-		"isPMCorrect": record.IsPMCorrect,
-		"createdAt":   record.CreatedAt,
-	}
+	return vo.NewProgressRecordVO(record, authorName)
 }
 
-// progressRecordsToDTOs converts a slice of ProgressRecord to DTO maps.
-func progressRecordsToDTOs(records []model.ProgressRecord, userRepo repository.UserRepo, c *gin.Context) []gin.H {
-	result := make([]gin.H, 0, len(records))
+// progressRecordsToVOs converts a slice of ProgressRecord to ProgressRecordVO.
+func progressRecordsToVOs(records []model.ProgressRecord, userRepo repository.UserRepo, c *gin.Context) []vo.ProgressRecordVO {
+	result := make([]vo.ProgressRecordVO, 0, len(records))
 	for i := range records {
-		result = append(result, progressRecordToDTO(&records[i], userRepo, c))
+		result = append(result, progressRecordToVO(&records[i], userRepo, c))
 	}
 	return result
 }

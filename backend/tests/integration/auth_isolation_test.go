@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -149,7 +150,7 @@ func setupTestRouter(t *testing.T) (*gin.Engine, *seedData) {
 		MainItem: handler.NewMainItemHandlerWithDeps(mainItemSvc, userRepo, subItemRepo),
 		SubItem:  handler.NewSubItemHandlerWithDeps(subItemSvc),
 		Progress: handler.NewProgressHandlerWithDeps(progressSvc, userRepo),
-		ItemPool: handler.NewItemPoolHandlerWithDeps(itemPoolSvc, userRepo),
+		ItemPool: handler.NewItemPoolHandlerWithDeps(itemPoolSvc, userRepo, nil),
 		View:     handler.NewViewHandlerWithDeps(viewSvc),
 		Report:   handler.NewReportHandlerWithDeps(reportSvc),
 		Admin:    handler.NewAdminHandlerWithDeps(adminSvc),
@@ -421,15 +422,13 @@ func signTokenWithClaims(t *testing.T, claims *appjwt.Claims) string {
 // teamTransactor wraps *gorm.DB to satisfy service.TransactionDB.
 type teamTransactor struct{ db *gorm.DB }
 
-func (t teamTransactor) Transaction(fc func(tx interface{}) error) error {
-	return t.db.Transaction(func(db *gorm.DB) error {
-		return fc(db)
-	})
+func (t teamTransactor) Transaction(fc func(tx *gorm.DB) error, opts ...*sql.TxOptions) error {
+	return t.db.Transaction(fc, opts...)
 }
 
 // poolTransactor wraps *gorm.DB to satisfy service.dbTransactor.
 type poolTransactor struct{ db *gorm.DB }
 
-func (p poolTransactor) Transaction(fc func(tx *gorm.DB) error) error {
+func (p poolTransactor) Transaction(fc func(tx *gorm.DB) error, _ ...*sql.TxOptions) error {
 	return p.db.Transaction(fc)
 }

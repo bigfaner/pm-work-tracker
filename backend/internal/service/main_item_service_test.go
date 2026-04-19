@@ -157,7 +157,7 @@ func TestMainItemCreate_RepoCreateError(t *testing.T) {
 
 func TestMainItemUpdate_Success(t *testing.T) {
 	existing := &model.MainItem{
-		Model:  gorm.Model{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
 		Title:  "Old Title",
 	}
@@ -177,7 +177,7 @@ func TestMainItemUpdate_Success(t *testing.T) {
 
 func TestMainItemUpdate_TeamMismatch(t *testing.T) {
 	existing := &model.MainItem{
-		Model:  gorm.Model{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 2, // different team
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
@@ -207,7 +207,7 @@ func TestMainItemUpdate_NotFound(t *testing.T) {
 
 func TestMainItemArchive_Success(t *testing.T) {
 	existing := &model.MainItem{
-		Model:  gorm.Model{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
 		Status: "已完成",
 	}
@@ -222,7 +222,7 @@ func TestMainItemArchive_Success(t *testing.T) {
 
 func TestMainItemArchive_ClosedStatus(t *testing.T) {
 	existing := &model.MainItem{
-		Model:  gorm.Model{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
 		Status: "已关闭",
 	}
@@ -236,7 +236,7 @@ func TestMainItemArchive_ClosedStatus(t *testing.T) {
 
 func TestMainItemArchive_NotAllowed_InProgress(t *testing.T) {
 	existing := &model.MainItem{
-		Model:  gorm.Model{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
 		Status: "进行中",
 	}
@@ -250,7 +250,7 @@ func TestMainItemArchive_NotAllowed_InProgress(t *testing.T) {
 
 func TestMainItemArchive_NotAllowed_Pending(t *testing.T) {
 	existing := &model.MainItem{
-		Model:  gorm.Model{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
 		Status: "待开始",
 	}
@@ -277,8 +277,8 @@ func TestMainItemArchive_NotFound(t *testing.T) {
 
 func TestMainItemList_Success(t *testing.T) {
 	items := []model.MainItem{
-		{Model: gorm.Model{ID: 1}, Title: "Item 1"},
-		{Model: gorm.Model{ID: 2}, Title: "Item 2"},
+		{BaseModel: model.BaseModel{ID: 1}, Title: "Item 1"},
+		{BaseModel: model.BaseModel{ID: 2}, Title: "Item 2"},
 	}
 	mainRepo := &mockMainItemRepo{items: items}
 	subRepo := &mockSubItemRepo{}
@@ -305,7 +305,7 @@ func TestMainItemList_RepoError(t *testing.T) {
 
 func TestMainItemGet_Success(t *testing.T) {
 	existing := &model.MainItem{
-		Model:  gorm.Model{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
 		Title:  "Item 1",
 	}
@@ -333,7 +333,7 @@ func TestMainItemGet_NotFound(t *testing.T) {
 
 func TestRecalcCompletion_ZeroSubItems(t *testing.T) {
 	existing := &model.MainItem{
-		Model:      gorm.Model{ID: 1},
+		BaseModel:      model.BaseModel{ID: 1},
 		TeamID:     1,
 		Completion: 50,
 	}
@@ -348,7 +348,7 @@ func TestRecalcCompletion_ZeroSubItems(t *testing.T) {
 
 func TestRecalcCompletion_OneSubItem(t *testing.T) {
 	existing := &model.MainItem{
-		Model:      gorm.Model{ID: 1},
+		BaseModel:      model.BaseModel{ID: 1},
 		TeamID:     1,
 		Completion: 0,
 	}
@@ -367,7 +367,7 @@ func TestRecalcCompletion_OneSubItem(t *testing.T) {
 
 func TestRecalcCompletion_MultipleSubItems_EqualWeights(t *testing.T) {
 	existing := &model.MainItem{
-		Model:      gorm.Model{ID: 1},
+		BaseModel:      model.BaseModel{ID: 1},
 		TeamID:     1,
 		Completion: 0,
 	}
@@ -389,7 +389,7 @@ func TestRecalcCompletion_MultipleSubItems_EqualWeights(t *testing.T) {
 
 func TestRecalcCompletion_AllZeroWeights_FallbackSimpleAvg(t *testing.T) {
 	existing := &model.MainItem{
-		Model:      gorm.Model{ID: 1},
+		BaseModel:      model.BaseModel{ID: 1},
 		TeamID:     1,
 		Completion: 0,
 	}
@@ -410,7 +410,7 @@ func TestRecalcCompletion_AllZeroWeights_FallbackSimpleAvg(t *testing.T) {
 
 func TestRecalcCompletion_VaryingWeights(t *testing.T) {
 	existing := &model.MainItem{
-		Model:      gorm.Model{ID: 1},
+		BaseModel:      model.BaseModel{ID: 1},
 		TeamID:     1,
 		Completion: 0,
 	}

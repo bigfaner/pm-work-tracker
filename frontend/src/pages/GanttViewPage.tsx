@@ -1,214 +1,539 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef, Fragment } from 'react'
+import { RotateCcw } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { Select, Empty, Spin } from 'antd'
 import { useTeamStore } from '@/store/team'
 import { getGanttViewApi } from '@/api/views'
 import type { GanttMainItem } from '@/types'
-import Gantt from 'frappe-gantt'
-import dayjs from 'dayjs'
+import './gantt-overrides.css'
 
-const STATUS_OPTIONS = [
-  { value: '', label: '全部状态' },
-  { value: '待开始', label: '待开始' },
-  { value: '进行中', label: '进行中' },
-  { value: '阻塞中', label: '阻塞中' },
-  { value: '挂起', label: '挂起' },
-  { value: '已延期', label: '已延期' },
-  { value: '待验收', label: '待验收' },
-  { value: '已完成', label: '已完成' },
-  { value: '已关闭', label: '已关闭' },
-]
+// --- Constants ---
 
-const PRIORITY_CLASS_MAP: Record<string, string> = {
-  P1: 'bar-p1',
-  P2: 'bar-p2',
-  P3: 'bar-p3',
-}
+const DAY_WIDTH = 28
+const ROW_HEIGHT = 40
+const ITEMS_PER_PAGE = 20
 
-const today = () => dayjs().format('YYYY-MM-DD')
+// --- Helpers ---
 
-function toGanttTask(item: GanttMainItem) {
-  const classes: string[] = []
-  if (item.isOverdue) {
-    classes.push('bar-overdue')
-  } else {
-    const cls = PRIORITY_CLASS_MAP[item.priority]
-    if (cls) classes.push(cls)
-  }
+function getDateRange(items: GanttMainItem[]): { start: Date; end: Date } {
+  const now = new Date()
+  // Default: current week ±2 weeks
+  const defaultStart = new Date(now)
+  defaultStart.setDate(defaultStart.getDate() - 14)
+  const defaultEnd = new Date(now)
+  defaultEnd.setDate(defaultEnd.getDate() + 14)
 
-  return {
-    id: String(item.id),
-    name: item.title,
-    start: item.startDate || today(),
-    end: item.expectedEndDate || today(),
-    progress: Math.round(item.completion),
-    custom_class: classes.join(' '),
-  }
-}
+  let minDate = defaultStart
+  let maxDate = defaultEnd
 
-function toGanttSubTask(subItem: GanttMainItem['subItems'][number], parentId: number) {
-  return {
-    id: `sub-${subItem.id}`,
-    name: `  └ ${subItem.title}`,
-    start: subItem.startDate || today(),
-    end: subItem.expectedEndDate || today(),
-    progress: Math.round(subItem.completion),
-    custom_class: 'bar-sub',
-    dependencies: [String(parentId)],
-  }
-}
-
-function buildTaskList(items: GanttMainItem[], expandedIds: Set<number>) {
-  const tasks: ReturnType<typeof toGanttTask>[] = []
   for (const item of items) {
-    tasks.push(toGanttTask(item))
-    if (expandedIds.has(item.id) && item.subItems.length > 0) {
-      for (const sub of item.subItems) {
-        tasks.push(toGanttSubTask(sub, item.id))
+    if (item.startDate) {
+      const s = new Date(item.startDate)
+      if (s < minDate) minDate = s
+    }
+    if (item.expectedEndDate) {
+      const e = new Date(item.expectedEndDate)
+      if (e > maxDate) maxDate = e
+    }
+    for (const sub of item.subItems) {
+      if (sub.startDate) {
+        const s = new Date(sub.startDate)
+        if (s < minDate) minDate = s
+      }
+      if (sub.expectedEndDate) {
+        const e = new Date(sub.expectedEndDate)
+        if (e > maxDate) maxDate = e
       }
     }
   }
-  return tasks
+
+  return { start: minDate, end: maxDate }
 }
+
+function daysBetween(a: Date, b: Date): number {
+  return Math.round((b.getTime() - a.getTime()) / 86400000)
+}
+
+function formatDateInput(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
+
+function getBarClass(item: { isOverdue?: boolean; status: string; startDate: string | null }): string {
+  if (!item.startDate) return 'no-data'
+  if (item.isOverdue) return 'overdue'
+  if (item.status === '已完成') return 'completed'
+  return ''
+}
+
+// --- Main Component ---
 
 export default function GanttViewPage() {
-  const { currentTeamId } = useTeamStore()
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined)
-  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
-  const ganttRef = useRef<Gantt | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const teamId = useTeamStore((s) => s.currentTeamId)
+  const [searchKeyword, setSearchKeyword] = useState('')
+  const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
+  const [loadedCount, setLoadedCount] = useState(ITEMS_PER_PAGE)
+  const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['ganttView', currentTeamId, statusFilter],
-    queryFn: () => getGanttViewApi(currentTeamId!, statusFilter || undefined),
-    enabled: !!currentTeamId,
+    queryKey: ['ganttView', teamId],
+    queryFn: () => getGanttViewApi(teamId!),
+    enabled: !!teamId,
   })
 
-  const items = data?.items ?? []
+  const allItems = data?.items ?? []
 
-  // Base tasks: main items only (collapsed state)
-  const baseTasks = useMemo(() => buildTaskList(items, new Set()), [items])
+  // Compute date range from data or user input
+  const rangeStart = useMemo(() => {
+    if (dateRange?.start) return new Date(dateRange.start)
+    if (allItems.length > 0) return getDateRange(allItems).start
+    const d = new Date()
+    d.setDate(d.getDate() - 14)
+    return d
+  }, [dateRange, allItems])
 
-  // Full task list with expanded sub-items
-  const ganttTasks = useMemo(() => buildTaskList(items, expandedIds), [items, expandedIds])
+  const rangeEnd = useMemo(() => {
+    if (dateRange?.end) return new Date(dateRange.end)
+    if (allItems.length > 0) return getDateRange(allItems).end
+    const d = new Date()
+    d.setDate(d.getDate() + 14)
+    return d
+  }, [dateRange, allItems])
 
-  // Initialize frappe-gantt when base data arrives
-  useEffect(() => {
-    if (baseTasks.length === 0 || !containerRef.current) return
-
-    const container = containerRef.current
-    container.innerHTML = '<svg></svg>'
-
-    ganttRef.current = new Gantt(container, baseTasks, {
-      view_mode: 'Day',
-      date_format: 'YYYY-MM-DD',
-      custom_popup_html: undefined,
+  // Filter items by search keyword
+  const filteredItems = useMemo(() => {
+    if (!searchKeyword.trim()) return allItems
+    const kw = searchKeyword.toLowerCase()
+    return allItems.filter((item) => {
+      if (item.title.toLowerCase().includes(kw)) return true
+      return item.subItems.some((sub) => sub.title.toLowerCase().includes(kw))
     })
+  }, [allItems, searchKeyword])
 
-    return () => {
-      if (container) {
-        container.innerHTML = ''
-      }
-      ganttRef.current = null
-    }
-  }, [baseTasks])
+  // Pagination
+  const visibleItems = useMemo(() => {
+    return filteredItems.slice(0, loadedCount)
+  }, [filteredItems, loadedCount])
 
-  // Refresh when expand/collapse changes (after initial render)
-  const isInitialMount = useRef(true)
+  const hasMore = filteredItems.length > loadedCount
+
+  // Reset loaded count when filter changes
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false
-      return
-    }
-    if (ganttRef.current) {
-      ganttRef.current.refresh(ganttTasks)
-    }
-  }, [ganttTasks])
+    setLoadedCount(ITEMS_PER_PAGE)
+  }, [searchKeyword])
 
-  const toggleExpand = useCallback((mainItemId: number) => {
-    setExpandedIds((prev) => {
+  // Toggle expand
+  const toggleExpand = useCallback((itemId: number) => {
+    setExpandedGroups((prev) => {
       const next = new Set(prev)
-      if (next.has(mainItemId)) {
-        next.delete(mainItemId)
-      } else {
-        next.add(mainItemId)
-      }
+      if (next.has(itemId)) next.delete(itemId)
+      else next.add(itemId)
       return next
     })
   }, [])
 
-  const handleStatusChange = useCallback((value: string) => {
-    setStatusFilter(value || undefined)
-    setExpandedIds(new Set())
+  const totalDays = daysBetween(rangeStart, rangeEnd) + 1
+
+  const handleDateStartChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value
+    setDateRange((prev) => prev ? { ...prev, start: v } : { start: v, end: '' })
   }, [])
 
+  const handleDateEndChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value
+    setDateRange((prev) => prev ? { ...prev, end: v } : { start: '', end: v })
+  }, [])
+
+  const handleLoadMore = useCallback(() => {
+    setLoadedCount((prev) => prev + ITEMS_PER_PAGE)
+  }, [])
+
+  if (!teamId) {
+    return (
+      <div data-testid="gantt-view-page">
+        <div className="p-6 text-tertiary">请先选择团队</div>
+      </div>
+    )
+  }
+
   return (
-    <div data-testid="gantt-view-page">
+    <div data-testid="gantt-view-page" className="gantt-page">
       {/* Page Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>甘特图</h2>
-        <Select
-          data-testid="gantt-status-filter"
-          style={{ width: 160 }}
-          placeholder="筛选状态"
-          allowClear
-          options={STATUS_OPTIONS}
-          onChange={handleStatusChange}
-        />
+      <div className="gantt-page-header">
+        <h1 className="text-xl font-semibold text-primary">整体进度</h1>
+        <div className="flex items-center gap-2 text-[13px] text-secondary">
+          <input
+            type="date"
+            data-testid="date-start"
+            className="h-8 rounded-md border border-border bg-white px-2 text-sm"
+            value={dateRange?.start ?? formatDateInput(rangeStart)}
+            onChange={handleDateStartChange}
+          />
+          <span>至</span>
+          <input
+            type="date"
+            data-testid="date-end"
+            className="h-8 rounded-md border border-border bg-white px-2 text-sm"
+            value={dateRange?.end ?? formatDateInput(rangeEnd)}
+            onChange={handleDateEndChange}
+          />
+          <button
+            data-testid="reset-date-btn"
+            className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-border bg-white text-secondary hover:text-primary-500 hover:border-primary-500 transition-colors"
+            title="重置时间"
+            onClick={() => setDateRange(null)}
+          >
+            <RotateCcw className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      {/* Content */}
       {isLoading ? (
-        <div data-testid="gantt-loading" style={{ textAlign: 'center', padding: 60 }}>
-          <Spin size="large" />
-        </div>
-      ) : items.length === 0 ? (
-        <div data-testid="gantt-empty-state">
-          <Empty description="暂无事项数据" />
+        <div className="py-8 text-center text-tertiary text-sm">加载中...</div>
+      ) : allItems.length === 0 ? (
+        <div className="py-12 text-center">
+          <p className="text-tertiary text-sm">暂无甘特图数据</p>
         </div>
       ) : (
-        <div>
-          {/* Main item rows with expand/collapse */}
-          <div style={{ marginBottom: 16 }}>
+        <GanttChart
+          items={visibleItems}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          totalDays={totalDays}
+          expandedGroups={expandedGroups}
+          searchKeyword={searchKeyword}
+          onToggleExpand={toggleExpand}
+          onSearchChange={setSearchKeyword}
+          hasMore={hasMore}
+          onLoadMore={handleLoadMore}
+        />
+      )}
+    </div>
+  )
+}
+
+// --- Gantt Chart Component ---
+
+interface GanttChartProps {
+  items: GanttMainItem[]
+  rangeStart: Date
+  rangeEnd: Date
+  totalDays: number
+  expandedGroups: Set<number>
+  searchKeyword: string
+  onToggleExpand: (id: number) => void
+  onSearchChange: (kw: string) => void
+  hasMore: boolean
+  onLoadMore: () => void
+}
+
+function GanttChart({
+  items,
+  rangeStart,
+  rangeEnd,
+  totalDays,
+  expandedGroups,
+  searchKeyword,
+  onToggleExpand,
+  onSearchChange,
+  hasMore,
+  onLoadMore,
+}: GanttChartProps) {
+  const bodyWidth = totalDays * DAY_WIDTH
+  const headerInnerRef = useRef<HTMLDivElement>(null)
+  const bodyInnerRef = useRef<HTMLDivElement>(null)
+  const hscrollRef = useRef<HTMLDivElement>(null)
+
+  // Sync header & body horizontal position with scrollbar proxy
+  const handleHScroll = useCallback(() => {
+    if (hscrollRef.current) {
+      const offset = -hscrollRef.current.scrollLeft
+      if (headerInnerRef.current) headerInnerRef.current.style.transform = `translateX(${offset}px)`
+      if (bodyInnerRef.current) bodyInnerRef.current.style.transform = `translateX(${offset}px)`
+    }
+  }, [])
+
+  // Auto-expand groups when search is active
+  const effectiveExpanded = useMemo(() => {
+    if (!searchKeyword.trim()) return expandedGroups
+    // When searching, expand all groups that have matching items
+    const expanded = new Set(expandedGroups)
+    for (const item of items) {
+      const kw = searchKeyword.toLowerCase()
+      const hasMatchingSub = item.subItems.some((sub) => sub.title.toLowerCase().includes(kw))
+      if (hasMatchingSub) expanded.add(item.id)
+    }
+    return expanded
+  }, [expandedGroups, searchKeyword, items])
+
+  return (
+    <div data-testid="gantt-container" className="gantt-container">
+      <div className="gantt-inner">
+          {/* Label Panel (sticky left) */}
+          <div className="gantt-labels">
+            <div className="gantt-label-header">
+              <input
+                type="text"
+                className="label-search"
+                placeholder="搜索事项标题…"
+                value={searchKeyword}
+                onChange={(e) => onSearchChange(e.target.value)}
+              />
+            </div>
             {items.map((item) => (
-              <div
+              <GanttLabelRow
                 key={item.id}
-                data-testid={`gantt-row-${item.id}`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '6px 12px',
-                  borderBottom: '1px solid #f0f0f0',
-                  cursor: item.subItems.length > 0 ? 'pointer' : 'default',
-                }}
-                onClick={() => item.subItems.length > 0 && toggleExpand(item.id)}
-              >
-                {item.subItems.length > 0 && (
-                  <span data-testid={`gantt-expand-${item.id}`} style={{ fontSize: 12, color: '#999' }}>
-                    {expandedIds.has(item.id) ? '▼' : '▶'}
-                  </span>
-                )}
-                <span style={{ flex: 1, fontWeight: 500 }}>{item.title}</span>
-                <span style={{ fontSize: 13, color: '#666' }}>{item.completion}%</span>
-              </div>
+                item={item}
+                isExpanded={effectiveExpanded.has(item.id)}
+                onToggle={() => onToggleExpand(item.id)}
+              />
             ))}
+            {hasMore && (
+              <button
+                data-testid="load-more-btn"
+                className="load-more-btn"
+                onClick={onLoadMore}
+              >
+                加载更多
+              </button>
+            )}
           </div>
 
-          {/* Gantt chart */}
-          <div
-            ref={containerRef}
-            data-testid="gantt-chart-container"
-            style={{ overflow: 'auto' }}
-          />
+          {/* Timeline Panel */}
+          <div className="gantt-timeline">
+            <div className="gantt-header">
+              <div className="gantt-header-inner" ref={headerInnerRef} style={{ width: bodyWidth }}>
+                <GanttHeaderContent rangeStart={rangeStart} totalDays={totalDays} />
+              </div>
+            </div>
+            <div className="gantt-body">
+              <div className="gantt-body-inner" ref={bodyInnerRef} style={{ width: bodyWidth, position: 'relative' }}>
+                {items.map((item) => (
+                  <Fragment key={item.id}>
+                    <GanttTimelineRow
+                      itemId={item.id}
+                      subId={undefined}
+                      startDate={item.startDate}
+                      endDate={item.expectedEndDate}
+                      completion={item.completion}
+                      barClass={getBarClass(item)}
+                      rangeStart={rangeStart}
+                      totalDays={totalDays}
+                      isSub={false}
+                      isExpanded={effectiveExpanded.has(item.id)}
+                    />
+                    {item.subItems.map((sub) => (
+                      <GanttTimelineRow
+                        key={sub.id}
+                        itemId={item.id}
+                        subId={sub.id}
+                        startDate={sub.startDate}
+                        endDate={sub.expectedEndDate}
+                        completion={sub.completion}
+                        barClass={getBarClass({ status: sub.status, startDate: sub.startDate })}
+                        rangeStart={rangeStart}
+                        totalDays={totalDays}
+                        isSub={true}
+                        isExpanded={effectiveExpanded.has(item.id)}
+                      />
+                    ))}
+                  </Fragment>
+                ))}
+                <TodayLine rangeStart={rangeStart} totalDays={totalDays} />
+              </div>
+            </div>
+            <div className="gantt-hscroll" ref={hscrollRef} onScroll={handleHScroll}>
+              <div style={{ width: bodyWidth, height: 1 }} />
+            </div>
+          </div>
+        </div>
+      </div>
+  )
+}
+
+// --- Label Row ---
+
+interface GanttLabelRowProps {
+  item: GanttMainItem
+  isExpanded: boolean
+  onToggle: () => void
+}
+
+function GanttLabelRow({ item, isExpanded, onToggle }: GanttLabelRowProps) {
+  const hasSubs = item.subItems.length > 0
+
+  return (
+    <>
+      <div className="gantt-label-row main-item" onClick={hasSubs ? onToggle : undefined}>
+        <button
+          data-testid={`collapse-toggle-${item.id}`}
+          data-hidden={hasSubs ? undefined : 'true'}
+          className="collapse-toggle"
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggle()
+          }}
+          style={{ visibility: hasSubs ? 'visible' : 'hidden' }}
+        >
+          {isExpanded ? '\u25BC' : '\u25B6'}
+        </button>
+        <span className="label-title">{item.title}</span>
+      </div>
+      {item.subItems.map((sub) => (
+        <div
+          key={sub.id}
+          className={`gantt-label-row sub ${isExpanded ? 'visible' : ''}`}
+          style={{ display: isExpanded ? undefined : 'none' }}
+        >
+          <span className="label-title">{sub.title}</span>
+        </div>
+      ))}
+    </>
+  )
+}
+
+// --- Timeline Row ---
+
+interface GanttTimelineRowProps {
+  itemId: number
+  subId?: number
+  startDate: string | null
+  endDate: string | null
+  completion: number
+  barClass: string
+  rangeStart: Date
+  totalDays: number
+  isSub: boolean
+  isExpanded: boolean
+}
+
+function GanttTimelineRow({
+  itemId,
+  subId,
+  startDate,
+  endDate,
+  completion,
+  barClass,
+  rangeStart,
+  totalDays,
+  isSub,
+  isExpanded,
+}: GanttTimelineRowProps) {
+  const rowId = subId ?? itemId
+  const hidden = isSub && !isExpanded
+
+  const barStyle = useMemo(() => {
+    if (!startDate || !endDate) return null
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    let startOffset = daysBetween(rangeStart, start)
+    let endOffset = daysBetween(rangeStart, end)
+    if (startOffset < 0) startOffset = 0
+    if (endOffset > totalDays) endOffset = totalDays
+    return {
+      left: startOffset * DAY_WIDTH,
+      width: (endOffset - startOffset + 1) * DAY_WIDTH,
+    }
+  }, [startDate, endDate, rangeStart, totalDays])
+
+  return (
+    <div
+      data-testid={`timeline-row-${rowId}`}
+      className={`gantt-row ${hidden ? 'gantt-row-hidden' : ''}`}
+      style={{ display: hidden ? 'none' : undefined }}
+    >
+      {barStyle ? (
+        <div
+          data-testid={`gantt-bar-${rowId}`}
+          className={`gantt-bar ${barClass}`}
+          style={{ left: barStyle.left, width: barStyle.width }}
+        >
+          <div className="gantt-bar-fill" style={{ width: `${completion}%` }} />
+          <span className="gantt-bar-percent">{completion}%</span>
+        </div>
+      ) : (
+        <div
+          data-testid={`gantt-bar-${rowId}`}
+          className="gantt-bar no-data"
+          style={{ left: 14, width: 120 }}
+        >
+          <span className="gantt-bar-label">未设置时间</span>
         </div>
       )}
-
-      {/* Inline styles for frappe-gantt and bar coloring */}
-      <style>{`
-        .gantt .grid-background{fill:none}.gantt .grid-header{fill:#fff;stroke:#e0e0e0;stroke-width:1.4}.gantt .grid-row{fill:#fff}.gantt .grid-row:nth-child(even){fill:#f5f5f5}.gantt .row-line{stroke:#ebeff2}.gantt .tick{stroke:#e0e0e0;stroke-width:.2}.gantt .tick.thick{stroke-width:.4}.gantt .today-highlight{fill:#fcf8e3;opacity:.5}.gantt .arrow{fill:none;stroke:#666;stroke-width:1.4}.gantt .bar{fill:#b8c2cc;stroke:#8D99A6;stroke-width:0;transition:stroke-width .3s ease;user-select:none}.gantt .bar-progress{fill:#a3a3ff}.gantt .bar-invalid{fill:transparent;stroke:#8D99A6;stroke-width:1;stroke-dasharray:5}.gantt .bar-invalid~.bar-label{fill:#555}.gantt .bar-label{fill:#fff;dominant-baseline:central;text-anchor:middle;font-size:12px;font-weight:lighter}.gantt .bar-label.big{fill:#555;text-anchor:start}.gantt .handle{fill:#ddd;cursor:ew-resize;opacity:0;visibility:hidden;transition:opacity .3s ease}.gantt .bar-wrapper{cursor:pointer;outline:none}.gantt .bar-wrapper:hover .bar{fill:#a9b5c1}.gantt .bar-wrapper:hover .bar-progress{fill:#8a8aff}.gantt .bar-wrapper:hover .handle{visibility:visible;opacity:1}.gantt .bar-wrapper.active .bar{fill:#a9b5c1}.gantt .bar-wrapper.active .bar-progress{fill:#8a8aff}.gantt .lower-text,.gantt .upper-text{font-size:12px;text-anchor:middle}.gantt .upper-text{fill:#555}.gantt .lower-text{fill:#333}.gantt .hide{display:none}.gantt-container{position:relative;overflow:auto;font-size:12px}.gantt-container .popup-wrapper{position:absolute;top:0;left:0;background:rgba(0,0,0,.8);padding:0;color:#959da5;border-radius:3px}.gantt-container .popup-wrapper .title{border-bottom:3px solid #a3a3ff;padding:10px}.gantt-container .popup-wrapper .subtitle{padding:10px;color:#dfe2e5}.gantt-container .popup-wrapper .pointer{position:absolute;height:5px;margin:0 0 0 -5px;border:5px solid transparent;border-top-color:rgba(0,0,0,.8)}
-        .bar-p1 .bar{fill:#fa8c16!important}.bar-p2 .bar{fill:#1677ff!important}.bar-p3 .bar{fill:#d9d9d9!important}.bar-overdue .bar{fill:#ff4d4f!important}.bar-sub .bar{fill:#95de64!important}
-      `}</style>
     </div>
+  )
+}
+
+// --- Today Line ---
+
+function TodayLine({ rangeStart, totalDays }: { rangeStart: Date; totalDays: number }) {
+  const today = new Date()
+  const offset = daysBetween(rangeStart, today)
+  if (offset < 0 || offset >= totalDays) return null
+
+  return (
+    <div
+      data-testid="gantt-today-line"
+      className="gantt-today"
+      style={{ left: offset * DAY_WIDTH + DAY_WIDTH / 2 }}
+    >
+      <span className="gantt-today-tip">今天</span>
+    </div>
+  )
+}
+
+// --- Gantt Header Content ---
+
+function GanttHeaderContent({ rangeStart, totalDays }: { rangeStart: Date; totalDays: number }) {
+  // Build month cells
+  const months: { label: string; width: number }[] = useMemo(() => {
+    const result: { label: string; width: number }[] = []
+    const d = new Date(rangeStart)
+    while (d <= new Date(rangeStart.getTime() + totalDays * 86400000)) {
+      const currentMonth = d.getMonth()
+      const currentYear = d.getFullYear()
+      const monthStart = new Date(d)
+      while (d.getMonth() === currentMonth) {
+        d.setDate(d.getDate() + 1)
+      }
+      let monthEnd = new Date(d)
+      const rangeEndDate = new Date(rangeStart.getTime() + totalDays * 86400000)
+      if (monthEnd > rangeEndDate) monthEnd = new Date(rangeEndDate)
+      const span = daysBetween(monthStart, monthEnd) + 1
+      result.push({
+        label: `${currentYear}/${String(currentMonth + 1).padStart(2, '0')}`,
+        width: span * DAY_WIDTH,
+      })
+    }
+    return result
+  }, [rangeStart, totalDays])
+
+  // Build day cells
+  const days: { date: number; isWeekend: boolean }[] = useMemo(() => {
+    return Array.from({ length: totalDays }, (_, i) => {
+      const d = new Date(rangeStart)
+      d.setDate(d.getDate() + i)
+      const dow = d.getDay()
+      return { date: d.getDate(), isWeekend: dow === 0 || dow === 6 }
+    })
+  }, [rangeStart, totalDays])
+
+  return (
+    <>
+      {/* Month row */}
+      <div className="gantt-month-row">
+        {months.map((m, i) => (
+          <div key={i} className="gantt-month-cell" style={{ width: m.width }}>
+            {m.label}
+          </div>
+        ))}
+      </div>
+      {/* Day row */}
+      <div className="gantt-day-row">
+        {days.map((d, i) => (
+          <div key={i} className={`gantt-day ${d.isWeekend ? 'weekend' : 'weekday'}`}>
+            {d.date}
+          </div>
+        ))}
+      </div>
+    </>
   )
 }

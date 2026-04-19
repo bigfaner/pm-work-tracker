@@ -1,0 +1,1935 @@
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>事项 — PM Tracker</title>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="styles.css" />
+	</head>
+	<body>
+		<div class="app-layout">
+			<!-- Sidebar -->
+			<nav class="sidebar">
+				<div class="sidebar-brand">
+					<h2>PM Tracker</h2>
+					<p>工作事项追踪</p>
+				</div>
+				<select class="sidebar-team">
+					<option>产品研发团队</option>
+					<option>设计团队</option>
+				</select>
+				<div class="sidebar-nav">
+					<a href="main-items.html" class="active">
+						<svg
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+							/>
+						</svg>
+						事项清单
+					</a>
+					<a href="weekly-view.html">
+						<svg
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+							/>
+						</svg>
+						每周进展
+					</a>
+					<a href="gantt-view.html">
+						<svg
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M3 4h18M3 8h12M3 12h18M3 16h8"
+							/>
+						</svg>
+						整体进度
+					</a>
+					<a href="item-pool.html">
+						<svg
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+							/>
+						</svg>
+						待办事项
+					</a>
+					<a href="weekly-report.html">
+						<svg
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+							/>
+						</svg>
+						周报导出
+					</a>
+					<a
+						href="user-management.html"
+						style="
+							margin-top: 16px;
+							border-top: 1px solid var(--border);
+							padding-top: 16px;
+						"
+					>
+						<svg
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+							/>
+						</svg>
+						用户管理
+					</a>
+					<a href="team-management.html">
+						<svg
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+							/>
+						</svg>
+						团队管理
+					</a>
+				</div>
+				<div class="sidebar-user">
+					<div class="sidebar-avatar">张</div>
+					<div class="sidebar-user-info">
+						<div class="sidebar-user-name">张明</div>
+						<div class="sidebar-user-role">PM</div>
+					</div>
+					<button
+						class="btn btn-ghost btn-icon"
+						style="width: 28px; height: 28px"
+					>
+						<svg
+							width="16"
+							height="16"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+							/>
+						</svg>
+					</button>
+				</div>
+			</nav>
+
+			<!-- Main Content -->
+			<div class="main-content">
+				<div class="page-header">
+					<div style="display: flex; align-items: center; gap: 12px">
+						<h1>事项清单</h1>
+						<div
+							style="
+								display: inline-flex;
+								border: 1px solid var(--border);
+								border-radius: var(--radius-sm);
+								overflow: hidden;
+							"
+						>
+							<button
+								class="btn btn-sm view-toggle active"
+								id="btn-summary"
+								onclick="switchView('summary')"
+							>
+								汇总
+							</button>
+							<button
+								class="btn btn-sm view-toggle"
+								id="btn-detail"
+								onclick="switchView('detail')"
+							>
+								明细
+							</button>
+						</div>
+					</div>
+					<button class="btn btn-primary" onclick="openModal('createModal')">
+						<svg
+							width="16"
+							height="16"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M12 4v16m8-8H4"
+							/>
+						</svg>
+						新增主事项
+					</button>
+				</div>
+
+				<!-- Filter Bar -->
+				<div class="filter-bar">
+					<input
+						id="titleSearch"
+						class="input"
+						type="text"
+						placeholder="搜索标题或编号..."
+						style="width: 360px"
+						oninput="filterAll()"
+					/>
+					<select
+						id="filterType"
+						class="input"
+						style="width: 120px; display: none"
+						onchange="filterAll()"
+					>
+						<option value="">类型：全部</option>
+						<option value="main">主事项</option>
+						<option value="sub">子事项</option>
+					</select>
+					<select
+						id="filterPriority"
+						class="input"
+						style="width: 120px; display: none"
+						onchange="filterAll()"
+					>
+						<option value="">优先级：全部</option>
+						<option>P1</option>
+						<option>P2</option>
+						<option>P3</option>
+					</select>
+					<select
+						id="filterStatus"
+						class="input"
+						style="width: 140px"
+						onchange="filterAll()"
+					>
+						<option value="">状态：全部</option>
+						<option>未开始</option>
+						<option>进行中</option>
+						<option>待评审</option>
+						<option>已完成</option>
+						<option>已关闭</option>
+						<option>阻塞中</option>
+						<option>延期</option>
+					</select>
+					<select
+						id="filterAssignee"
+						class="input"
+						style="width: 140px"
+						onchange="filterAll()"
+					>
+						<option value="">负责人：全部</option>
+						<option>张明</option>
+						<option>李华</option>
+						<option>王芳</option>
+						<option>赵强</option>
+					</select>
+					<button class="btn btn-secondary" onclick="resetFilters()">
+						重置
+					</button>
+				</div>
+
+				<!-- Summary View -->
+				<div id="view-summary">
+					<!-- Card 1: MI-001 -->
+					<div
+						onclick="toggleExpand(this)"
+						class="card mb-3"
+						data-type="main"
+						style="cursor: pointer; position: relative"
+					>
+						<span
+							class="badge badge-error"
+							style="
+								position: absolute;
+								top: -1px;
+								left: -1px;
+								border-radius: 0 0 var(--radius-sm) 0;
+								font-size: 11px;
+								padding: 2px 8px;
+							"
+							>逾期</span
+						>
+						<div
+							style="
+								display: flex;
+								align-items: center;
+								gap: 12px;
+								padding: 16px 20px;
+							"
+						>
+							<svg
+								class="expand-icon"
+								width="16"
+								height="16"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="var(--text-tertiary)"
+								stroke-width="2"
+								style="transition: transform 0.2s; flex-shrink: 0"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									d="M9 5l7 7-7 7"
+								/>
+							</svg>
+							<span
+								class="badge badge-slate"
+								style="font-family: var(--font-mono, monospace)"
+								>MI-001</span
+							>
+							<span class="badge badge-amber" style="font-size: 11px">P1</span>
+							<div
+								style="
+									display: flex;
+									align-items: center;
+									gap: 8px;
+									flex: 1;
+									min-width: 0;
+								"
+							>
+								<span
+									class="item-title"
+									style="
+										font-size: 14px;
+										font-weight: 500;
+										cursor: pointer;
+										overflow: hidden;
+										text-overflow: ellipsis;
+										white-space: nowrap;
+									"
+									onclick="
+										event.stopPropagation();
+										window.location = 'mainitem-detail.html';
+									"
+									>用户认证模块开发</span
+								>
+								<span
+									style="
+										font-size: 12px;
+										color: var(--text-tertiary);
+										white-space: nowrap;
+									"
+									>计划 04/01~04/15</span
+								>
+							</div>
+							<div style="display: flex; align-items: center; gap: 6px">
+								<div class="avatar avatar-sm avatar-primary">张</div>
+								<span style="font-size: 13px; color: var(--text-secondary)"
+									>张明</span
+								>
+							</div>
+							<div
+								style="
+									width: 112px;
+									display: flex;
+									align-items: center;
+									gap: 8px;
+								"
+							>
+								<div class="progress" style="flex: 1">
+									<div
+										class="progress-fill"
+										style="width: 65%; background: #f59e0b"
+									></div>
+								</div>
+								<span style="font-size: 12px; color: var(--text-tertiary)"
+									>65%</span
+								>
+							</div>
+							<div class="dropdown" onclick="event.stopPropagation()">
+								<span
+									class="badge badge-primary status-badge"
+									style="cursor: pointer"
+									onclick="toggleStatusMenu(this)"
+									>进行中</span
+								>
+								<div class="dropdown-menu">
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '未开始', 'badge-slate')"
+									>
+										未开始
+									</div>
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '进行中', 'badge-primary')"
+									>
+										进行中
+									</div>
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '待评审', 'badge-amber')"
+									>
+										待评审
+									</div>
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '已完成', 'badge-success')"
+									>
+										已完成
+									</div>
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '阻塞中', 'badge-error')"
+									>
+										阻塞中
+									</div>
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '延期', 'badge-error')"
+									>
+										延期
+									</div>
+								</div>
+							</div>
+							<div
+								style="display: flex; gap: 4px"
+								onclick="event.stopPropagation()"
+							>
+								<button
+									class="btn btn-ghost btn-sm" style="color:var(--primary-600)"
+									onclick="openModal('createSubModal')"
+								>
+									添加子事项
+								</button>
+								<button
+									class="btn btn-ghost btn-sm" style="color:var(--primary-600)"
+									onclick="
+										event.stopPropagation();
+										window.location = 'mainitem-detail.html';
+									"
+								>
+									编辑
+								</button>
+								<button
+									class="btn btn-ghost btn-sm" style="color:var(--error)"
+									onclick="showToast('已归档')"
+								>
+									归档
+								</button>
+							</div>
+						</div>
+						<div
+							class="expand-content"
+							style="
+								display: none;
+								border-top: 1px solid var(--border);
+								padding: 12px 20px 12px 48px;
+							"
+						>
+							<div
+								style="
+									display: flex;
+									align-items: center;
+									gap: 12px;
+									padding: 8px 0;
+									border-bottom: 1px solid #f1f5f9;
+								"
+							>
+								<span
+									class="badge badge-slate"
+									style="font-size: 11px; font-family: monospace"
+									>SI-001-01</span
+								>
+								<span class="badge badge-amber" style="font-size: 10px"
+									>P1</span
+								>
+								<a
+									href="subitem-detail.html"
+									style="font-size: 13px; color: var(--primary-600)"
+									>登录页开发</a
+								>
+								<span
+									style="
+										font-size: 11px;
+										color: var(--text-tertiary);
+										white-space: nowrap;
+									"
+									>计划 04/01~04/10 实际完成时间 04/09</span
+								>
+								<span
+									style="
+										margin-left: auto;
+										font-size: 13px;
+										color: var(--text-secondary);
+									"
+									>李华</span
+								>
+								<div style="width: 80px">
+									<div class="progress progress-sm">
+										<div
+											class="progress-fill"
+											style="width: 100%; background: #10b981"
+										></div>
+									</div>
+								</div>
+								<span class="badge badge-success" style="font-size: 11px"
+									>已完成</span
+								>
+								<button
+									class="btn btn-ghost btn-sm"
+									onclick="
+										event.stopPropagation();
+										openModal('modal-append');
+									"
+								>
+									追加进度
+								</button>
+							</div>
+							<div
+								style="
+									display: flex;
+									align-items: center;
+									gap: 12px;
+									padding: 8px 0;
+									border-bottom: 1px solid #f1f5f9;
+								"
+							>
+								<span
+									class="badge badge-slate"
+									style="font-size: 11px; font-family: monospace"
+									>SI-001-02</span
+								>
+								<span class="badge badge-warning" style="font-size: 10px"
+									>P2</span
+								>
+								<a
+									href="subitem-detail.html"
+									style="font-size: 13px; color: var(--primary-600)"
+									>JWT Token 集成</a
+								>
+								<span
+									style="
+										font-size: 11px;
+										color: var(--text-tertiary);
+										white-space: nowrap;
+									"
+									>计划 04/08~04/18</span
+								>
+								<span
+									style="
+										margin-left: auto;
+										font-size: 13px;
+										color: var(--text-secondary);
+									"
+									>王芳</span
+								>
+								<div style="width: 80px">
+									<div class="progress progress-sm">
+										<div
+											class="progress-fill"
+											style="width: 80%; background: #f59e0b"
+										></div>
+									</div>
+								</div>
+								<span class="badge badge-primary" style="font-size: 11px"
+									>进行中</span
+								>
+								<button
+									class="btn btn-ghost btn-sm"
+									onclick="
+										event.stopPropagation();
+										openModal('modal-append');
+									"
+								>
+									追加进度
+								</button>
+							</div>
+							<div
+								style="
+									display: flex;
+									align-items: center;
+									gap: 12px;
+									padding: 8px 0;
+								"
+							>
+								<span
+									class="badge badge-slate"
+									style="font-size: 11px; font-family: monospace"
+									>SI-001-03</span
+								>
+								<span class="badge badge-warning" style="font-size: 10px"
+									>P2</span
+								>
+								<a
+									href="subitem-detail.html"
+									style="font-size: 13px; color: var(--primary-600)"
+									>权限中间件</a
+								>
+								<span
+									style="
+										font-size: 11px;
+										color: var(--text-tertiary);
+										white-space: nowrap;
+									"
+									>计划 04/12~04/20</span
+								>
+								<span
+									style="
+										margin-left: auto;
+										font-size: 13px;
+										color: var(--text-secondary);
+									"
+									>赵强</span
+								>
+								<div style="width: 80px">
+									<div class="progress progress-sm">
+										<div
+											class="progress-fill"
+											style="width: 30%; background: #f59e0b"
+										></div>
+									</div>
+								</div>
+								<span class="badge badge-primary" style="font-size: 11px"
+									>进行中</span
+								>
+								<button
+									class="btn btn-ghost btn-sm"
+									onclick="
+										event.stopPropagation();
+										openModal('modal-append');
+									"
+								>
+									追加进度
+								</button>
+							</div>
+						</div>
+					</div>
+
+					<!-- Card 2: MI-002 -->
+					<div
+						onclick="toggleExpand(this)"
+						class="card mb-3"
+						data-type="main"
+						style="cursor: pointer"
+					>
+						<div
+							style="
+								display: flex;
+								align-items: center;
+								gap: 12px;
+								padding: 16px 20px;
+							"
+						>
+							<svg
+								class="expand-icon"
+								width="16"
+								height="16"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="var(--text-tertiary)"
+								stroke-width="2"
+								style="transition: transform 0.2s; flex-shrink: 0"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									d="M9 5l7 7-7 7"
+								/>
+							</svg>
+							<span class="badge badge-slate" style="font-family: monospace"
+								>MI-002</span
+							>
+							<span class="badge badge-primary" style="font-size: 11px"
+								>P2</span
+							>
+							<div
+								style="
+									display: flex;
+									align-items: center;
+									gap: 8px;
+									flex: 1;
+									min-width: 0;
+								"
+							>
+								<span
+									class="item-title"
+									style="font-size: 14px; font-weight: 500"
+									>数据看板设计</span
+								>
+								<span
+									style="
+										font-size: 12px;
+										color: var(--text-tertiary);
+										white-space: nowrap;
+									"
+									>计划 04/15~04/25</span
+								>
+							</div>
+							<div style="display: flex; align-items: center; gap: 6px">
+								<div
+									class="avatar avatar-sm"
+									style="background: #ecfdf5; color: #047857"
+								>
+									李
+								</div>
+								<span style="font-size: 13px; color: var(--text-secondary)"
+									>李华</span
+								>
+							</div>
+							<div
+								style="
+									width: 112px;
+									display: flex;
+									align-items: center;
+									gap: 8px;
+								"
+							>
+								<div class="progress" style="flex: 1">
+									<div
+										class="progress-fill"
+										style="width: 40%; background: #f59e0b"
+									></div>
+								</div>
+								<span style="font-size: 12px; color: var(--text-tertiary)"
+									>40%</span
+								>
+							</div>
+							<div class="dropdown" onclick="event.stopPropagation()">
+								<span
+									class="badge badge-primary status-badge"
+									style="cursor: pointer"
+									onclick="toggleStatusMenu(this)"
+									>进行中</span
+								>
+								<div class="dropdown-menu">
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '未开始', 'badge-slate')"
+									>
+										未开始
+									</div>
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '进行中', 'badge-primary')"
+									>
+										进行中
+									</div>
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '待评审', 'badge-amber')"
+									>
+										待评审
+									</div>
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '已完成', 'badge-success')"
+									>
+										已完成
+									</div>
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '阻塞中', 'badge-error')"
+									>
+										阻塞中
+									</div>
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '延期', 'badge-error')"
+									>
+										延期
+									</div>
+								</div>
+							</div>
+							<div
+								style="display: flex; gap: 4px"
+								onclick="event.stopPropagation()"
+							>
+								<button
+									class="btn btn-ghost btn-sm" style="color:var(--primary-600)"
+									onclick="openModal('createSubModal')"
+								>
+									添加子事项
+								</button>
+								<button
+									class="btn btn-ghost btn-sm" style="color:var(--primary-600)"
+									onclick="
+										event.stopPropagation();
+										window.location = 'mainitem-detail.html';
+									"
+								>
+									编辑
+								</button>
+								<button
+									class="btn btn-ghost btn-sm" style="color:var(--error)"
+									onclick="showToast('已归档')"
+								>
+									归档
+								</button>
+							</div>
+						</div>
+						<div
+							class="expand-content"
+							style="
+								display: none;
+								border-top: 1px solid var(--border);
+								padding: 12px 20px 12px 48px;
+							"
+						>
+							<div
+								style="
+									display: flex;
+									align-items: center;
+									gap: 12px;
+									padding: 8px 0;
+								"
+							>
+								<span
+									class="badge badge-slate"
+									style="font-size: 11px; font-family: monospace"
+									>SI-002-01</span
+								>
+								<span class="badge badge-warning" style="font-size: 10px"
+									>P2</span
+								>
+								<a
+									href="subitem-detail.html"
+									style="font-size: 13px; color: var(--primary-600)"
+									>原型设计</a
+								>
+								<span
+									style="
+										font-size: 11px;
+										color: var(--text-tertiary);
+										white-space: nowrap;
+									"
+									>计划 04/15~04/22</span
+								>
+								<span
+									style="
+										margin-left: auto;
+										font-size: 13px;
+										color: var(--text-secondary);
+									"
+									>李华</span
+								>
+								<div style="width: 80px">
+									<div class="progress progress-sm">
+										<div
+											class="progress-fill"
+											style="width: 70%; background: #f59e0b"
+										></div>
+									</div>
+								</div>
+								<span class="badge badge-primary" style="font-size: 11px"
+									>进行中</span
+								>
+								<button
+									class="btn btn-ghost btn-sm"
+									onclick="
+										event.stopPropagation();
+										openModal('modal-append');
+									"
+								>
+									追加进度
+								</button>
+							</div>
+						</div>
+					</div>
+
+					<!-- Card 3: MI-003 -->
+					<div
+						onclick="toggleExpand(this)"
+						class="card mb-3"
+						data-type="main"
+						style="cursor: pointer"
+					>
+						<div
+							style="
+								display: flex;
+								align-items: center;
+								gap: 12px;
+								padding: 16px 20px;
+							"
+						>
+							<svg
+								class="expand-icon"
+								width="16"
+								height="16"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="var(--text-tertiary)"
+								stroke-width="2"
+								style="transition: transform 0.2s; flex-shrink: 0"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									d="M9 5l7 7-7 7"
+								/>
+							</svg>
+							<span class="badge badge-slate" style="font-family: monospace"
+								>MI-003</span
+							>
+							<span class="badge badge-slate" style="font-size: 11px">P3</span>
+							<div
+								style="
+									display: flex;
+									align-items: center;
+									gap: 8px;
+									flex: 1;
+									min-width: 0;
+								"
+							>
+								<span
+									class="item-title"
+									style="font-size: 14px; font-weight: 500"
+									>API 接口文档编写</span
+								>
+								<span
+									style="
+										font-size: 12px;
+										color: var(--text-tertiary);
+										white-space: nowrap;
+									"
+									>计划 04/05~04/12 实际完成时间 04/12</span
+								>
+							</div>
+							<div style="display: flex; align-items: center; gap: 6px">
+								<div
+									class="avatar avatar-sm"
+									style="background: #fef2f2; color: #991b1b"
+								>
+									王
+								</div>
+								<span style="font-size: 13px; color: var(--text-secondary)"
+									>王芳</span
+								>
+							</div>
+							<div
+								style="
+									width: 112px;
+									display: flex;
+									align-items: center;
+									gap: 8px;
+								"
+							>
+								<div class="progress" style="flex: 1">
+									<div
+										class="progress-fill"
+										style="width: 100%; background: #10b981"
+									></div>
+								</div>
+								<span style="font-size: 12px; color: var(--text-tertiary)"
+									>100%</span
+								>
+							</div>
+							<div class="dropdown" onclick="event.stopPropagation()">
+								<span
+									class="badge badge-success status-badge"
+									style="cursor: pointer"
+									onclick="toggleStatusMenu(this)"
+									>已完成</span
+								>
+								<div class="dropdown-menu">
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '未开始', 'badge-slate')"
+									>
+										未开始
+									</div>
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '进行中', 'badge-primary')"
+									>
+										进行中
+									</div>
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '待评审', 'badge-amber')"
+									>
+										待评审
+									</div>
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '已完成', 'badge-success')"
+									>
+										已完成
+									</div>
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '阻塞中', 'badge-error')"
+									>
+										阻塞中
+									</div>
+									<div
+										class="dropdown-item"
+										onclick="changeStatus(this, '延期', 'badge-error')"
+									>
+										延期
+									</div>
+								</div>
+							</div>
+							<div
+								style="display: flex; gap: 4px"
+								onclick="event.stopPropagation()"
+							>
+								<button
+									class="btn btn-ghost btn-sm" style="color:var(--primary-600)"
+									onclick="openModal('createSubModal')"
+								>
+									添加子事项
+								</button>
+								<button
+									class="btn btn-ghost btn-sm" style="color:var(--primary-600)"
+									onclick="
+										event.stopPropagation();
+										window.location = 'mainitem-detail.html';
+									"
+								>
+									编辑
+								</button>
+								<button
+									class="btn btn-ghost btn-sm" style="color:var(--error)"
+									onclick="showToast('已归档')"
+								>
+									归档
+								</button>
+							</div>
+						</div>
+						<div
+							class="expand-content"
+							style="
+								display: none;
+								border-top: 1px solid var(--border);
+								padding: 12px 20px 12px 48px;
+							"
+						>
+							<div
+								style="
+									display: flex;
+									align-items: center;
+									gap: 12px;
+									padding: 8px 0;
+								"
+							>
+								<span
+									class="badge badge-slate"
+									style="font-size: 11px; font-family: monospace"
+									>SI-003-01</span
+								>
+								<span class="badge badge-slate" style="font-size: 10px"
+									>P3</span
+								>
+								<a
+									href="subitem-detail.html"
+									style="font-size: 13px; color: var(--primary-600)"
+									>接口文档撰写</a
+								>
+								<span
+									style="
+										font-size: 11px;
+										color: var(--text-tertiary);
+										white-space: nowrap;
+									"
+									>计划 04/05~04/12 实际完成时间 04/12</span
+								>
+								<span
+									style="
+										margin-left: auto;
+										font-size: 13px;
+										color: var(--text-secondary);
+									"
+									>王芳</span
+								>
+								<div style="width: 80px">
+									<div class="progress progress-sm">
+										<div
+											class="progress-fill"
+											style="width: 100%; background: #10b981"
+										></div>
+									</div>
+								</div>
+								<span class="badge badge-success" style="font-size: 11px"
+									>已完成</span
+								>
+								<button
+									class="btn btn-ghost btn-sm"
+									onclick="
+										event.stopPropagation();
+										openModal('modal-append');
+									"
+								>
+									追加进度
+								</button>
+							</div>
+						</div>
+					</div>
+					<div id="scroll-sentinel" style="padding:16px 0;text-align:center">
+						<div id="scroll-loader" style="display:none">
+							<div class="skeleton" style="height:72px;margin-bottom:8px"></div>
+							<span style="font-size:12px;color:var(--text-tertiary)">加载中...</span>
+						</div>
+						<span id="scroll-end" style="display:none;font-size:12px;color:var(--text-tertiary)">— 没有更多了 —</span>
+					</div>
+				</div>
+
+				<!-- Detail View -->
+				<div id="view-detail" style="display: none">
+					<div class="card">
+						<table>
+							<thead>
+								<tr>
+									<th>编号</th>
+									<th>优先级</th>
+									<th>标题</th>
+									<th>负责人</th>
+									<th>进度</th>
+									<th>状态</th>
+									<th>开始时间</th>
+									<th>预期完成时间</th>
+									<th>实际完成时间</th>
+									<th>操作</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr data-type="main">
+									<td>
+										<span class="font-mono" style="font-size: 12px"
+											>MI-001</span
+										>
+										<span class="badge badge-error" style="font-size: 10px"
+											>逾期</span
+										>
+									</td>
+									<td><span class="badge badge-amber">P1</span></td>
+									<td>
+										<a href="mainitem-detail.html" style="font-weight: 500"
+											>用户认证模块开发</a
+										>
+									</td>
+									<td>张明</td>
+									<td><span style="font-size: 12px">65%</span></td>
+																		<td>
+										<div class="dropdown">
+										<span class="badge badge-primary status-badge" style="cursor:pointer" onclick="toggleStatusMenu(this)">进行中</span>
+										<div class="dropdown-menu">
+										<div class="dropdown-item" onclick="changeStatus(this,'未开始','badge-slate')">未开始</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'进行中','badge-primary')">进行中</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'待评审','badge-amber')">待评审</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'已完成','badge-success')">已完成</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'阻塞中','badge-error')">阻塞中</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'延期','badge-error')">延期</div>
+										</div>
+										</div>
+									</td>
+									<td>2026/04/01</td>
+									<td>2026/04/15</td>
+									<td>—</td>
+									<td style="white-space: nowrap">
+										<button
+											class="btn btn-ghost btn-sm" style="color:var(--primary-600)"
+											onclick="openModal('createSubModal')"
+										>
+											添加子事项
+										</button>
+										<button
+											class="btn btn-ghost btn-sm"
+											onclick="window.location = 'mainitem-detail.html'"
+										>
+											编辑
+										</button>
+										<button
+											class="btn btn-ghost btn-sm" style="color:var(--error)"
+											onclick="showToast('已归档')"
+										>
+											归档
+										</button>
+									</td>
+								</tr>
+								<tr data-type="sub">
+									<td>
+										<span class="font-mono" style="font-size: 12px"
+											>SI-001-01</span
+										>
+									</td>
+									<td>
+										<span class="badge badge-amber" style="font-size: 11px"
+											>P1</span
+										>
+									</td>
+									<td><a href="subitem-detail.html">登录页开发</a></td>
+									<td>李华</td>
+									<td><span style="font-size: 12px">100%</span></td>
+																		<td>
+										<div class="dropdown">
+										<span class="badge badge-success status-badge" style="cursor:pointer" onclick="toggleStatusMenu(this)">已完成</span>
+										<div class="dropdown-menu">
+										<div class="dropdown-item" onclick="changeStatus(this,'未开始','badge-slate')">未开始</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'进行中','badge-primary')">进行中</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'待评审','badge-amber')">待评审</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'已完成','badge-success')">已完成</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'阻塞中','badge-error')">阻塞中</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'延期','badge-error')">延期</div>
+										</div>
+										</div>
+									</td>
+									<td>2026/04/01</td>
+									<td>2026/04/10</td>
+									<td>2026/04/09</td>
+									<td style="white-space: nowrap">
+										<button
+											class="btn btn-ghost btn-sm"
+											onclick="openModal('modal-append')"
+										>
+											追加进度
+										</button>
+									</td>
+								</tr>
+								<tr data-type="sub">
+									<td>
+										<span class="font-mono" style="font-size: 12px"
+											>SI-001-02</span
+										>
+									</td>
+									<td>
+										<span class="badge badge-warning" style="font-size: 11px"
+											>P2</span
+										>
+									</td>
+									<td><a href="subitem-detail.html">JWT Token 集成</a></td>
+									<td>王芳</td>
+									<td><span style="font-size: 12px">80%</span></td>
+																		<td>
+										<div class="dropdown">
+										<span class="badge badge-primary status-badge" style="cursor:pointer" onclick="toggleStatusMenu(this)">进行中</span>
+										<div class="dropdown-menu">
+										<div class="dropdown-item" onclick="changeStatus(this,'未开始','badge-slate')">未开始</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'进行中','badge-primary')">进行中</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'待评审','badge-amber')">待评审</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'已完成','badge-success')">已完成</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'阻塞中','badge-error')">阻塞中</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'延期','badge-error')">延期</div>
+										</div>
+										</div>
+									</td>
+									<td>2026/04/08</td>
+									<td>2026/04/18</td>
+									<td>—</td>
+									<td style="white-space: nowrap">
+										<button
+											class="btn btn-ghost btn-sm"
+											onclick="openModal('modal-append')"
+										>
+											追加进度
+										</button>
+									</td>
+								</tr>
+								<tr data-type="sub">
+									<td>
+										<span class="font-mono" style="font-size: 12px"
+											>SI-001-03</span
+										>
+									</td>
+									<td>
+										<span class="badge badge-warning" style="font-size: 11px"
+											>P2</span
+										>
+									</td>
+									<td><a href="subitem-detail.html">权限中间件</a></td>
+									<td>赵强</td>
+									<td><span style="font-size: 12px">30%</span></td>
+																		<td>
+										<div class="dropdown">
+										<span class="badge badge-primary status-badge" style="cursor:pointer" onclick="toggleStatusMenu(this)">进行中</span>
+										<div class="dropdown-menu">
+										<div class="dropdown-item" onclick="changeStatus(this,'未开始','badge-slate')">未开始</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'进行中','badge-primary')">进行中</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'待评审','badge-amber')">待评审</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'已完成','badge-success')">已完成</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'阻塞中','badge-error')">阻塞中</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'延期','badge-error')">延期</div>
+										</div>
+										</div>
+									</td>
+									<td>2026/04/12</td>
+									<td>2026/04/20</td>
+									<td>—</td>
+									<td style="white-space: nowrap">
+										<button
+											class="btn btn-ghost btn-sm"
+											onclick="openModal('modal-append')"
+										>
+											追加进度
+										</button>
+									</td>
+								</tr>
+								<tr data-type="main">
+									<td>
+										<span class="font-mono" style="font-size: 12px"
+											>MI-002</span
+										>
+									</td>
+									<td><span class="badge badge-primary">P2</span></td>
+									<td>
+										<a href="mainitem-detail.html" style="font-weight: 500"
+											>数据看板设计</a
+										>
+									</td>
+									<td>李华</td>
+									<td><span style="font-size: 12px">40%</span></td>
+																		<td>
+										<div class="dropdown">
+										<span class="badge badge-primary status-badge" style="cursor:pointer" onclick="toggleStatusMenu(this)">进行中</span>
+										<div class="dropdown-menu">
+										<div class="dropdown-item" onclick="changeStatus(this,'未开始','badge-slate')">未开始</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'进行中','badge-primary')">进行中</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'待评审','badge-amber')">待评审</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'已完成','badge-success')">已完成</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'阻塞中','badge-error')">阻塞中</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'延期','badge-error')">延期</div>
+										</div>
+										</div>
+									</td>
+									<td>2026/04/15</td>
+									<td>2026/04/25</td>
+									<td>—</td>
+									<td style="white-space: nowrap">
+										<button
+											class="btn btn-ghost btn-sm" style="color:var(--primary-600)"
+											onclick="openModal('createSubModal')"
+										>
+											添加子事项
+										</button>
+										<button
+											class="btn btn-ghost btn-sm"
+											onclick="window.location = 'mainitem-detail.html'"
+										>
+											编辑
+										</button>
+										<button
+											class="btn btn-ghost btn-sm" style="color:var(--error)"
+											onclick="showToast('已归档')"
+										>
+											归档
+										</button>
+									</td>
+								</tr>
+								<tr data-type="sub">
+									<td>
+										<span class="font-mono" style="font-size: 12px"
+											>SI-002-01</span
+										>
+									</td>
+									<td>
+										<span class="badge badge-warning" style="font-size: 11px"
+											>P2</span
+										>
+									</td>
+									<td><a href="subitem-detail.html">原型设计</a></td>
+									<td>李华</td>
+									<td><span style="font-size: 12px">70%</span></td>
+																		<td>
+										<div class="dropdown">
+										<span class="badge badge-primary status-badge" style="cursor:pointer" onclick="toggleStatusMenu(this)">进行中</span>
+										<div class="dropdown-menu">
+										<div class="dropdown-item" onclick="changeStatus(this,'未开始','badge-slate')">未开始</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'进行中','badge-primary')">进行中</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'待评审','badge-amber')">待评审</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'已完成','badge-success')">已完成</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'阻塞中','badge-error')">阻塞中</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'延期','badge-error')">延期</div>
+										</div>
+										</div>
+									</td>
+									<td>2026/04/15</td>
+									<td>2026/04/22</td>
+									<td>—</td>
+									<td style="white-space: nowrap">
+										<button
+											class="btn btn-ghost btn-sm"
+											onclick="openModal('modal-append')"
+										>
+											追加进度
+										</button>
+									</td>
+								</tr>
+								<tr data-type="main">
+									<td>
+										<span class="font-mono" style="font-size: 12px"
+											>MI-003</span
+										>
+									</td>
+									<td><span class="badge badge-slate">P3</span></td>
+									<td>
+										<a href="mainitem-detail.html" style="font-weight: 500"
+											>API 接口文档编写</a
+										>
+									</td>
+									<td>王芳</td>
+									<td><span style="font-size: 12px">100%</span></td>
+																		<td>
+										<div class="dropdown">
+										<span class="badge badge-success status-badge" style="cursor:pointer" onclick="toggleStatusMenu(this)">已完成</span>
+										<div class="dropdown-menu">
+										<div class="dropdown-item" onclick="changeStatus(this,'未开始','badge-slate')">未开始</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'进行中','badge-primary')">进行中</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'待评审','badge-amber')">待评审</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'已完成','badge-success')">已完成</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'阻塞中','badge-error')">阻塞中</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'延期','badge-error')">延期</div>
+										</div>
+										</div>
+									</td>
+									<td>2026/04/05</td>
+									<td>2026/04/12</td>
+									<td>2026/04/12</td>
+									<td style="white-space: nowrap">
+										<button
+											class="btn btn-ghost btn-sm" style="color:var(--primary-600)"
+											onclick="openModal('createSubModal')"
+										>
+											添加子事项
+										</button>
+										<button
+											class="btn btn-ghost btn-sm"
+											onclick="window.location = 'mainitem-detail.html'"
+										>
+											编辑
+										</button>
+										<button
+											class="btn btn-ghost btn-sm" style="color:var(--error)"
+											onclick="showToast('已归档')"
+										>
+											归档
+										</button>
+									</td>
+								</tr>
+								<tr data-type="sub">
+									<td>
+										<span class="font-mono" style="font-size: 12px"
+											>SI-003-01</span
+										>
+									</td>
+									<td>
+										<span class="badge badge-slate" style="font-size: 11px"
+											>P3</span
+										>
+									</td>
+									<td><a href="subitem-detail.html">接口文档撰写</a></td>
+									<td>王芳</td>
+									<td><span style="font-size: 12px">100%</span></td>
+																		<td>
+										<div class="dropdown">
+										<span class="badge badge-success status-badge" style="cursor:pointer" onclick="toggleStatusMenu(this)">已完成</span>
+										<div class="dropdown-menu">
+										<div class="dropdown-item" onclick="changeStatus(this,'未开始','badge-slate')">未开始</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'进行中','badge-primary')">进行中</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'待评审','badge-amber')">待评审</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'已完成','badge-success')">已完成</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'阻塞中','badge-error')">阻塞中</div>
+										<div class="dropdown-item" onclick="changeStatus(this,'延期','badge-error')">延期</div>
+										</div>
+										</div>
+									</td>
+									<td>2026/04/05</td>
+									<td>2026/04/12</td>
+									<td>2026/04/12</td>
+									<td style="white-space: nowrap">
+										<button
+											class="btn btn-ghost btn-sm"
+											onclick="openModal('modal-append')"
+										>
+											追加进度
+										</button>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					<div class="pagination" id="detail-pagination"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Create Main Item Modal -->
+		<div class="modal-overlay" id="createModal">
+			<div class="modal modal-lg">
+				<div class="modal-header"><h2>新建主事项</h2></div>
+				<div class="modal-body">
+					<div style="margin-bottom: 16px">
+						<label class="input-label"
+							>标题 <span style="color: var(--error)">*</span></label
+						>
+						<input class="input" placeholder="请输入标题" maxlength="100" />
+					</div>
+					<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
+						<div>
+							<label class="input-label"
+								>优先级 <span style="color: var(--error)">*</span></label
+							>
+							<select class="input">
+								<option>P1</option>
+								<option>P2</option>
+								<option>P3</option>
+							</select>
+						</div>
+						<div>
+							<label class="input-label">负责人</label>
+							<select class="input">
+								<option>张明</option>
+								<option>李华</option>
+								<option>王芳</option>
+								<option>赵强</option>
+							</select>
+						</div>
+					</div>
+					<div
+						style="
+							display: grid;
+							grid-template-columns: 1fr 1fr;
+							gap: 16px;
+							margin-top: 16px;
+						"
+					>
+						<div>
+							<label class="input-label">开始时间</label>
+							<input class="input" type="date" />
+						</div>
+						<div>
+							<label class="input-label">预期完成时间</label>
+							<input class="input" type="date" />
+						</div>
+					</div>
+					<div style="margin-top: 16px">
+						<label class="input-label">描述</label>
+						<textarea class="input" rows="3" placeholder="可选描述"></textarea>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button class="btn btn-secondary" onclick="closeModal('createModal')">
+						取消
+					</button>
+					<button
+						class="btn btn-primary"
+						onclick="
+							closeModal('createModal');
+							showToast('创建成功');
+						"
+					>
+						确认
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Create Sub Item Modal -->
+		<div class="modal-overlay" id="createSubModal">
+			<div class="modal modal-md">
+				<div class="modal-header"><h2>新增子事项</h2></div>
+				<div class="modal-body">
+					<div style="margin-bottom: 16px">
+						<label class="input-label"
+							>标题 <span style="color: var(--error)">*</span></label
+						>
+						<input type="text" class="input" placeholder="请输入子事项标题" />
+					</div>
+					<div
+						style="
+							display: grid;
+							grid-template-columns: 1fr 1fr;
+							gap: 12px;
+							margin-bottom: 16px;
+						"
+					>
+						<div>
+							<label class="input-label">优先级</label>
+							<select class="input">
+								<option>P1</option>
+								<option selected>P2</option>
+								<option>P3</option>
+							</select>
+						</div>
+						<div>
+							<label class="input-label">负责人</label>
+							<select class="input">
+								<option>张明</option>
+								<option>李华</option>
+								<option>王芳</option>
+								<option>赵强</option>
+								<option>陈静</option>
+							</select>
+						</div>
+					</div>
+					<div style="margin-bottom: 16px">
+						<label class="input-label">预期完成时间</label>
+						<input type="date" class="input" />
+					</div>
+					<div>
+						<label class="input-label">描述</label>
+						<textarea
+							class="input"
+							rows="3"
+							placeholder="请输入子事项描述（可选）"
+						></textarea>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button
+						class="btn btn-secondary"
+						onclick="closeModal('createSubModal')"
+					>
+						取消
+					</button>
+					<button
+						class="btn btn-primary"
+						onclick="
+							closeModal('createSubModal');
+							showToast('子事项创建成功');
+						"
+					>
+						确认
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Append Progress Modal -->
+		<div class="modal-overlay" id="modal-append">
+			<div class="modal modal-md">
+				<div class="modal-header"><h2>追加进度</h2></div>
+				<div class="modal-body">
+					<div style="margin-bottom: 16px">
+						<label class="input-label"
+							>完成度 <span style="color: var(--error)">*</span></label
+						>
+						<input
+							type="number"
+							class="input"
+							min="0"
+							max="100"
+							placeholder="请输入 0-100 的整数"
+						/>
+						<div
+							style="
+								font-size: 12px;
+								color: var(--text-tertiary);
+								margin-top: 4px;
+							"
+						>
+							不能低于上一条记录的完成度（当前：80%）
+						</div>
+					</div>
+					<div style="margin-bottom: 16px">
+						<label class="input-label">成果</label>
+						<textarea
+							class="input"
+							rows="3"
+							placeholder="描述本次取得的成果"
+						></textarea>
+					</div>
+					<div>
+						<label class="input-label">卡点</label>
+						<textarea
+							class="input"
+							rows="3"
+							placeholder="描述遇到的问题或阻碍"
+						></textarea>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button
+						class="btn btn-secondary"
+						onclick="closeModal('modal-append')"
+					>
+						取消
+					</button>
+					<button
+						class="btn btn-primary"
+						onclick="
+							closeModal('modal-append');
+							showToast('进度追加成功');
+						"
+					>
+						提交
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="toast-container"></div>
+		<style>
+			.view-toggle {
+				border: none;
+				border-radius: 0;
+				background: transparent;
+				color: var(--text-secondary);
+				font-size: 13px;
+				padding: 4px 12px;
+				cursor: pointer;
+			}
+			.view-toggle.active {
+				background: var(--primary-500);
+				color: #fff;
+			}
+			.view-toggle:hover:not(.active) {
+				background: var(--bg-alt);
+			}
+		</style>
+		<script>
+			function switchView(mode) {
+				document.getElementById('view-summary').style.display =
+					mode === 'summary' ? '' : 'none';
+				document.getElementById('view-detail').style.display =
+					mode === 'detail' ? '' : 'none';
+				document.getElementById('filterType').style.display =
+					mode === 'detail' ? '' : 'none';
+				document
+					.getElementById('btn-summary')
+					.classList.toggle('active', mode === 'summary');
+				document
+					.getElementById('btn-detail')
+					.classList.toggle('active', mode === 'detail');
+				if (mode === 'summary')
+					document.getElementById('filterType').value = '';
+				filterAll();
+			}
+
+			function filterAll() {
+				var q = document
+					.getElementById('titleSearch')
+					.value.trim()
+					.toLowerCase();
+				var type = document.getElementById('filterType').value;
+
+				// Summary view: filter cards
+				document
+					.querySelectorAll('#view-summary .card.mb-3')
+					.forEach(function (card) {
+						var t = card.querySelector('.item-title');
+						var idEl = card.querySelector(
+							'.badge-slate[style*="monospace"],.badge-slate[style*="font-mono"]'
+						);
+						var title = t ? t.textContent.toLowerCase() : '';
+						var id = idEl ? idEl.textContent.toLowerCase() : '';
+						var matchText =
+							!q || title.indexOf(q) !== -1 || id.indexOf(q) !== -1;
+						var matchType = !type || card.getAttribute('data-type') === type;
+						card.style.display = matchText && matchType ? '' : 'none';
+					});
+
+				// Detail view: filter table rows
+				document
+					.querySelectorAll('#view-detail tbody tr')
+					.forEach(function (row) {
+						var titleEl = row.querySelector('a');
+						var idEl = row.querySelector('.font-mono');
+						var title = titleEl ? titleEl.textContent.toLowerCase() : '';
+						var id = idEl ? idEl.textContent.toLowerCase() : '';
+						var matchText =
+							!q || title.indexOf(q) !== -1 || id.indexOf(q) !== -1;
+						var matchType = !type || row.getAttribute('data-type') === type;
+						row.style.display = matchText && matchType ? '' : 'none';
+					});
+			}
+
+			function resetFilters() {
+				document.getElementById('titleSearch').value = '';
+				document.getElementById('filterType').value = '';
+				document.getElementById('filterPriority').value = '';
+				document.getElementById('filterStatus').value = '';
+				document.getElementById('filterAssignee').value = '';
+				if (mode === 'summary')
+					document.getElementById('filterType').value = '';
+				filterAll();
+			}
+
+			function toggleStatusMenu(badge) {
+				var menu = badge.nextElementSibling;
+				document.querySelectorAll('.dropdown-menu.open').forEach(function (d) {
+					if (d !== menu) d.classList.remove('open');
+				});
+				if (menu) menu.classList.toggle('open');
+			}
+
+			function changeStatus(el, status, badgeClass) {
+				var dropdown = el.closest('.dropdown');
+				var badge = dropdown.querySelector('.status-badge');
+				badge.textContent = status;
+				badge.className = 'badge ' + badgeClass + ' status-badge';
+				badge.style.cursor = 'pointer';
+				dropdown.querySelector('.dropdown-menu').classList.remove('open');
+			}
+
+				// === Summary View: Infinite Scroll ===
+				(function() {
+					var BATCH = 5;
+					var page = 0;
+					var loading = false;
+					var done = false;
+					var mockItems = [
+						{ id:'MI-004', title:'性能优化', pri:'P2', priCls:'badge-primary', who:'赵强', whoBg:'#fef2f2', whoFg:'#991b1b', pct:20, status:'进行中', stCls:'badge-primary', dates:'计划 04/20~05/05' },
+						{ id:'MI-005', title:'移动端适配', pri:'P2', priCls:'badge-primary', who:'张明', whoBg:'', whoFg:'', pct:0, status:'未开始', stCls:'badge-slate', dates:'计划 05/01~05/15' },
+						{ id:'MI-006', title:'国际化支持', pri:'P3', priCls:'badge-slate', who:'王芳', whoBg:'#fef2f2', whoFg:'#991b1b', pct:10, status:'进行中', stCls:'badge-primary', dates:'计划 04/25~05/10' },
+						{ id:'MI-007', title:'自动化测试', pri:'P2', priCls:'badge-primary', who:'李华', whoBg:'#ecfdf5', whoFg:'#047857', pct:55, status:'进行中', stCls:'badge-primary', dates:'计划 04/10~04/28' },
+						{ id:'MI-008', title:'CI/CD 流水线', pri:'P3', priCls:'badge-slate', who:'赵强', whoBg:'#fef2f2', whoFg:'#991b1b', pct:0, status:'未开始', stCls:'badge-slate', dates:'计划 05/05~05/20' },
+						{ id:'MI-009', title:'数据备份方案', pri:'P1', priCls:'badge-amber', who:'张明', whoBg:'', whoFg:'', pct:30, status:'进行中', stCls:'badge-primary', dates:'计划 04/18~04/25' },
+						{ id:'MI-010', title:'日志系统重构', pri:'P3', priCls:'badge-slate', who:'王芳', whoBg:'#fef2f2', whoFg:'#991b1b', pct:0, status:'未开始', stCls:'badge-slate', dates:'计划 05/10~05/25' },
+					];
+
+					function buildCard(d) {
+						var avatarStyle = d.whoBg ? 'background:'+d.whoBg+';color:'+d.whoFg : 'background:var(--primary-100);color:var(--primary-700)';
+						var barColor = d.pct === 100 ? '#10b981' : d.pct === 0 ? '#e2e8f0' : '#f59e0b';
+						return '<div onclick="toggleExpand(this)" class="card mb-3" data-type="main" style="cursor:pointer">'
+							+ '<div style="display:flex;align-items:center;gap:12px;padding:16px 20px">'
+							+ '<svg class="expand-icon" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-tertiary)" stroke-width="2" style="transition:transform .2s;flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>'
+							+ '<span class="badge badge-slate" style="font-family:monospace">' + d.id + '</span>'
+							+ '<span class="badge ' + d.priCls + '" style="font-size:11px">' + d.pri + '</span>'
+							+ '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">'
+							+ '<span class="item-title" style="font-size:14px;font-weight:500">' + d.title + '</span>'
+							+ '<span style="font-size:12px;color:var(--text-tertiary);white-space:nowrap">' + d.dates + '</span>'
+							+ '</div>'
+							+ '<div style="display:flex;align-items:center;gap:6px">'
+							+ '<div class="avatar avatar-sm" style="' + avatarStyle + '">' + d.who[0] + '</div>'
+							+ '<span style="font-size:13px;color:var(--text-secondary)">' + d.who + '</span>'
+							+ '</div>'
+							+ '<div style="width:112px;display:flex;align-items:center;gap:8px">'
+							+ '<div class="progress" style="flex:1"><div class="progress-fill" style="width:' + d.pct + '%;background:' + barColor + '"></div></div>'
+							+ '<span style="font-size:12px;color:var(--text-tertiary)">' + d.pct + '%</span>'
+							+ '</div>'
+							+ '<div class="dropdown" onclick="event.stopPropagation()">'
+							+ '<span class="badge ' + d.stCls + ' status-badge" style="cursor:pointer" onclick="toggleStatusMenu(this)">' + d.status + '</span>'
+							+ '<div class="dropdown-menu">'
+							+ '<div class="dropdown-item" onclick="changeStatus(this,\'未开始\',\'badge-slate\')">未开始</div>'
+							+ '<div class="dropdown-item" onclick="changeStatus(this,\'进行中\',\'badge-primary\')">进行中</div>'
+							+ '<div class="dropdown-item" onclick="changeStatus(this,\'已完成\',\'badge-success\')">已完成</div>'
+							+ '</div></div>'
+							+ '<div style="display:flex;gap:4px" onclick="event.stopPropagation()">'
+							+ '<button class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="openModal(\'createSubModal\')">添加子事项</button>'
+							+ '<button class="btn btn-ghost btn-sm" style="color:var(--primary-600)" onclick="event.stopPropagation();window.location=\'mainitem-detail.html\'">编辑</button>'
+							+ '<button class="btn btn-ghost btn-sm" style="color:var(--error)" onclick="showToast(\'已归档\')">归档</button>'
+							+ '</div></div></div>';
+					}
+
+					function loadMore() {
+						if (loading || done) return;
+						loading = true;
+						document.getElementById('scroll-loader').style.display = '';
+						setTimeout(function() {
+							var container = document.getElementById('view-summary');
+							var sentinel = document.getElementById('scroll-sentinel');
+							var start = page * BATCH;
+							var end = Math.min(start + BATCH, mockItems.length);
+							for (var i = start; i < end; i++) {
+								var wrapper = document.createElement('div');
+								wrapper.innerHTML = buildCard(mockItems[i]);
+								container.insertBefore(wrapper.firstElementChild, sentinel);
+							}
+							page++;
+							loading = false;
+							document.getElementById('scroll-loader').style.display = 'none';
+							if (end >= mockItems.length) {
+								done = true;
+								document.getElementById('scroll-end').style.display = '';
+							}
+						}, 500);
+					}
+
+					var io = new IntersectionObserver(function(entries) {
+						if (entries[0].isIntersecting) loadMore();
+					}, { rootMargin: '200px' });
+					document.addEventListener('DOMContentLoaded', function() {
+						var s = document.getElementById('scroll-sentinel');
+						if (s) io.observe(s);
+					});
+				})();
+
+				// === Detail View: Pagination ===
+					var PAGE_SZ = 5, curPage = 1;
+					var detailContainer = document.getElementById('detail-pagination');
+					function getTotalPages() {
+						return Math.max(1, Math.ceil(document.querySelectorAll('#view-detail tbody tr').length / PAGE_SZ));
+					}
+					function renderPage() {
+						var rows = document.querySelectorAll('#view-detail tbody tr');
+						var total = rows.length, pages = getTotalPages();
+						if (curPage > pages) curPage = pages;
+						var start = (curPage - 1) * PAGE_SZ, end = start + PAGE_SZ;
+						rows.forEach(function(r, i) { r.style.display = (i >= start && i < end) ? '' : 'none'; });
+						detailContainer.innerHTML = '';
+						var prevBtn = document.createElement('button');
+						prevBtn.className = 'btn btn-ghost btn-sm';
+						prevBtn.textContent = '上一页';
+						prevBtn.disabled = curPage <= 1;
+						prevBtn.onclick = function() { goPage(-1); };
+						detailContainer.appendChild(prevBtn);
+						for (var p = 1; p <= pages; p++) {
+							var pb = document.createElement('button');
+							pb.className = 'btn btn-sm view-toggle' + (p===curPage?' active':'');
+							pb.textContent = p;
+							(function(pg) { pb.onclick = function() { goPage(0, pg); }; })(p);
+							detailContainer.appendChild(pb);
+						}
+						var nextBtn = document.createElement('button');
+						nextBtn.className = 'btn btn-ghost btn-sm';
+						nextBtn.textContent = '下一页';
+						nextBtn.disabled = curPage >= pages;
+						nextBtn.onclick = function() { goPage(1); };
+						detailContainer.appendChild(nextBtn);
+						var info = document.createElement('span');
+						info.innerHTML = '每页 <select id="detail-page-size"><option value="5"' + (PAGE_SZ===5?' selected':'') + '>5</option><option value="10"' + (PAGE_SZ===10?' selected':'') + '>10</option><option value="20"' + (PAGE_SZ===20?' selected':'') + '>20</option><option value="50"' + (PAGE_SZ===50?' selected':'') + '>50</option></select> 条，共 ' + total + ' 条';
+						detailContainer.appendChild(info);
+						document.getElementById('detail-page-size').onchange = function() {
+							PAGE_SZ = parseInt(this.value);
+							curPage = 1;
+							renderPage();
+						};
+					}
+					function goPage(delta, absolute) {
+						var pages = getTotalPages();
+						curPage = absolute ? Math.max(1, Math.min(pages, absolute)) : Math.max(1, Math.min(pages, curPage + delta));
+						renderPage();
+					}
+					document.addEventListener('DOMContentLoaded', renderPage);
+		</script>
+		<script src="app.js"></script>
+	</body>
+</html>

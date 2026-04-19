@@ -40,3 +40,8 @@ tmp/*
 docs/harness-reports/*
 frontend/coverage/*
 frontend/dist/*
+frontend/.vite/deps/*
+**/node_modules/*
+docs/features/*/testing/results/*
+backend/data/*
+frontend/test-results/*

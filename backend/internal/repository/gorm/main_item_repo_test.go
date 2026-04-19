@@ -120,7 +120,7 @@ func TestMainItemRepo_Update_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	_, team := seedMainItemTeam(t, db)
-	fakeItem := &model.MainItem{Model: gormlib.Model{ID: 9999}, TeamID: team.ID}
+	fakeItem := &model.MainItem{BaseModel: model.BaseModel{ID: 9999}, TeamID: team.ID}
 	fields := map[string]interface{}{"title": "Nope"}
 	err := repo.Update(ctx, fakeItem, fields)
 	assert.ErrorIs(t, err, pkgerrors.ErrNotFound)

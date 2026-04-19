@@ -20,7 +20,7 @@ vi.mock('./client', () => ({
   },
 }))
 
-const mockClient = vi.mocked(client)
+const mockClient = vi.mocked(client, true)
 
 describe('API modules', () => {
   beforeEach(() => {
@@ -100,8 +100,8 @@ describe('API modules', () => {
   describe('mainItems', () => {
     it('createMainItemApi should POST /teams/:id/main-items', async () => {
       mockClient.post.mockResolvedValue({})
-      await mainItemsApi.createMainItemApi(1, { title: 'Item', priority: 'P0' })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/1/main-items', { title: 'Item', priority: 'P0' })
+      await mainItemsApi.createMainItemApi(1, { title: 'Item', priority: 'P0', assigneeId: 0, startDate: '', expectedEndDate: '' })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams/1/main-items', { title: 'Item', priority: 'P0', assignee_id: 0, start_date: '', expected_end_date: '' })
     })
 
     it('listMainItemsApi should GET /teams/:id/main-items with params', async () => {
@@ -132,8 +132,8 @@ describe('API modules', () => {
   describe('subItems', () => {
     it('createSubItemApi should POST to correct URL', async () => {
       mockClient.post.mockResolvedValue({})
-      await subItemsApi.createSubItemApi(1, 2, { title: 'Sub', priority: 'P1', assigneeId: 3 })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/1/main-items/2/sub-items', { title: 'Sub', priority: 'P1', assigneeId: 3 })
+      await subItemsApi.createSubItemApi(1, 2, { title: 'Sub', priority: 'P1', assigneeId: 3, startDate: '', expectedEndDate: '' })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams/1/main-items/2/sub-items', { main_item_id: 2, title: 'Sub', priority: 'P1', assignee_id: 3, start_date: '', expected_end_date: '' })
     })
 
     it('listSubItemsApi should GET with params', async () => {
@@ -208,8 +208,8 @@ describe('API modules', () => {
 
     it('assignItemPoolApi should POST to assign endpoint', async () => {
       mockClient.post.mockResolvedValue({ subItemId: 10 })
-      await itemPoolApi.assignItemPoolApi(1, 3, { mainItemId: 2, assigneeId: 5 })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/1/item-pool/3/assign', { mainItemId: 2, assigneeId: 5 })
+      await itemPoolApi.assignItemPoolApi(1, 3, { mainItemId: 2, assigneeId: 5, priority: 'P2', startDate: '', expectedEndDate: '' })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams/1/item-pool/3/assign', { mainItemId: 2, assigneeId: 5, priority: 'P2', startDate: '', expectedEndDate: '' })
     })
 
     it('rejectItemPoolApi should POST to reject endpoint', async () => {
@@ -262,7 +262,7 @@ describe('API modules', () => {
   describe('admin', () => {
     it('listUsersApi should GET /admin/users', async () => {
       mockClient.get.mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 })
-      await adminApi.listUsersApi(1, 20)
+      await adminApi.listUsersApi({ page: 1, pageSize: 20 })
       expect(mockClient.get).toHaveBeenCalledWith('/admin/users', { params: { page: 1, pageSize: 20 } })
     })
 

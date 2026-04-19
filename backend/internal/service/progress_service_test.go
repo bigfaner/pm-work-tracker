@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
@@ -159,7 +158,7 @@ var _ MainItemService = (*mockMainItemSvcForProgress)(nil)
 func TestProgressAppend_FirstRecord_NoRegression(t *testing.T) {
 	progressRepo := &mockProgressRepo{latest: nil}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{Model: gorm.Model{ID: 5}, MainItemID: 10, Completion: 0},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 0},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -178,7 +177,7 @@ func TestProgressAppend_RegressionDetected(t *testing.T) {
 		latest: &model.ProgressRecord{Completion: 50.0},
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{Model: gorm.Model{ID: 5}, MainItemID: 10, Completion: 50},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 50},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -193,7 +192,7 @@ func TestProgressAppend_EqualCompletion_NoRegression(t *testing.T) {
 		latest: &model.ProgressRecord{Completion: 50.0},
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{Model: gorm.Model{ID: 5}, MainItemID: 10, Completion: 50},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 50},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -209,7 +208,7 @@ func TestProgressAppend_HigherCompletion_Passes(t *testing.T) {
 		latest: &model.ProgressRecord{Completion: 50.0},
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{Model: gorm.Model{ID: 5}, MainItemID: 10, Completion: 50},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 50},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -225,7 +224,7 @@ func TestProgressAppend_PMCanBypassRegression(t *testing.T) {
 		latest: &model.ProgressRecord{Completion: 80.0},
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{Model: gorm.Model{ID: 5}, MainItemID: 10, Completion: 80},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 80},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -239,7 +238,7 @@ func TestProgressAppend_PMCanBypassRegression(t *testing.T) {
 func TestProgressAppend_UpdatesSubItemCompletion(t *testing.T) {
 	progressRepo := &mockProgressRepo{}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{Model: gorm.Model{ID: 5}, MainItemID: 10, Completion: 0},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 0},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -254,7 +253,7 @@ func TestProgressAppend_UpdatesSubItemCompletion(t *testing.T) {
 func TestProgressAppend_TriggersRecalcCompletion(t *testing.T) {
 	progressRepo := &mockProgressRepo{}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{Model: gorm.Model{ID: 5}, MainItemID: 10, Completion: 0},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 0},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -280,7 +279,7 @@ func TestProgressAppend_SubItemNotFound(t *testing.T) {
 func TestProgressAppend_LatestBySubItemError(t *testing.T) {
 	progressRepo := &mockProgressRepo{latestErr: errors.New("db error")}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{Model: gorm.Model{ID: 5}, MainItemID: 10},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -293,7 +292,7 @@ func TestProgressAppend_LatestBySubItemError(t *testing.T) {
 func TestProgressAppend_CreateError(t *testing.T) {
 	progressRepo := &mockProgressRepo{createErr: errors.New("db error")}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{Model: gorm.Model{ID: 5}, MainItemID: 10},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -320,7 +319,7 @@ func TestProgressCorrectCompletion_Success(t *testing.T) {
 		records: []model.ProgressRecord{*record},
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{Model: gorm.Model{ID: 5}, MainItemID: 10, Completion: 50},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 50},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -345,7 +344,7 @@ func TestProgressCorrectCompletion_IsLatest_SyncsSubItem(t *testing.T) {
 		latest:  record,
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{Model: gorm.Model{ID: 5}, MainItemID: 10, Completion: 50},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 50},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -376,7 +375,7 @@ func TestProgressCorrectCompletion_NotLatest_SyncsToLatest(t *testing.T) {
 		latest:  latestRecord,
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{Model: gorm.Model{ID: 5}, MainItemID: 10, Completion: 90},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 90},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -402,7 +401,7 @@ func TestProgressCorrectCompletion_TriggersRecalc(t *testing.T) {
 		latest:  record,
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{Model: gorm.Model{ID: 5}, MainItemID: 10, Completion: 50},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 50},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -437,7 +436,7 @@ func TestProgressCorrectCompletion_UpdateError(t *testing.T) {
 		updateErr: errors.New("db error"),
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{Model: gorm.Model{ID: 5}, MainItemID: 10},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 

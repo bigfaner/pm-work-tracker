@@ -53,3 +53,7 @@ func (r *userRepo) List(ctx context.Context) ([]*model.User, error) {
 func (r *userRepo) Update(ctx context.Context, user *model.User) error {
 	return r.db.WithContext(ctx).Save(user).Error
 }
+
+func (r *userRepo) Create(ctx context.Context, user *model.User) error {
+	return r.db.WithContext(ctx).Create(user).Error
+}

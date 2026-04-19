@@ -14,14 +14,12 @@ describe('shared TypeScript interfaces', () => {
     const user: User = {
       id: 1,
       username: 'testuser',
-      display_name: 'Test User',
-      is_super_admin: false,
-      can_create_team: false,
-      created_at: '2026-01-01T00:00:00Z',
-      updated_at: '2026-01-01T00:00:00Z',
+      displayName: 'Test User',
+      isSuperAdmin: false,
+      canCreateTeam: false,
     }
     expect(user.username).toBe('testuser')
-    expect(user.is_super_admin).toBe(false)
+    expect(user.isSuperAdmin).toBe(false)
   })
 
   it('should define a valid Team', () => {
@@ -29,9 +27,9 @@ describe('shared TypeScript interfaces', () => {
       id: 1,
       name: 'Team Alpha',
       description: 'A team',
-      pm_id: 1,
-      created_at: '2026-01-01T00:00:00Z',
-      updated_at: '2026-01-01T00:00:00Z',
+      pmId: 1,
+      createdAt: '2024-01-01',
+      updatedAt: '2024-01-01',
     }
     expect(team.name).toBe('Team Alpha')
   })
@@ -39,12 +37,14 @@ describe('shared TypeScript interfaces', () => {
   it('should define a valid TeamMember', () => {
     const member: TeamMember = {
       id: 1,
-      team_id: 1,
-      user_id: 1,
+      teamId: 1,
+      userId: 1,
       role: 'member',
-      joined_at: '2026-01-01T00:00:00Z',
-      created_at: '2026-01-01T00:00:00Z',
-      updated_at: '2026-01-01T00:00:00Z',
+      joinedAt: '2026-01-01T00:00:00Z',
+      displayName: 'Test User',
+      username: 'testuser',
+      createdAt: '2024-01-01',
+      updatedAt: '2024-01-01',
     }
     expect(member.role).toBe('member')
   })
@@ -52,22 +52,22 @@ describe('shared TypeScript interfaces', () => {
   it('should define a valid MainItem', () => {
     const item: MainItem = {
       id: 1,
-      team_id: 1,
+      teamId: 1,
       code: 'A001',
       title: 'Feature A',
       priority: 'P0',
-      proposer_id: 1,
-      assignee_id: null,
-      start_date: null,
-      expected_end_date: null,
-      actual_end_date: null,
+      proposerId: 1,
+      assigneeId: null,
+      startDate: null,
+      expectedEndDate: null,
+      actualEndDate: null,
       status: '待开始',
       completion: 0,
-      is_key_item: false,
-      delay_count: 0,
-      archived_at: null,
-      created_at: '2026-01-01T00:00:00Z',
-      updated_at: '2026-01-01T00:00:00Z',
+      isKeyItem: false,
+      delayCount: 0,
+      archivedAt: null,
+      createdAt: '2024-01-01',
+      updatedAt: '2024-01-01',
     }
     expect(item.code).toBe('A001')
   })
@@ -75,22 +75,22 @@ describe('shared TypeScript interfaces', () => {
   it('should define a valid SubItem', () => {
     const sub: SubItem = {
       id: 1,
-      team_id: 1,
-      main_item_id: 1,
+      teamId: 1,
+      mainItemId: 1,
       title: 'Sub task',
       description: 'Details',
       priority: 'P1',
-      assignee_id: 2,
-      start_date: '2026-01-01T00:00:00Z',
-      expected_end_date: '2026-01-15T00:00:00Z',
-      actual_end_date: null,
+      assigneeId: 2,
+      startDate: '2026-01-01T00:00:00Z',
+      expectedEndDate: '2026-01-15T00:00:00Z',
+      actualEndDate: null,
       status: '进行中',
       completion: 50,
-      is_key_item: true,
-      delay_count: 0,
+      isKeyItem: true,
+      delayCount: 0,
       weight: 1.5,
-      created_at: '2026-01-01T00:00:00Z',
-      updated_at: '2026-01-01T00:00:00Z',
+      createdAt: '2024-01-01',
+      updatedAt: '2024-01-01',
     }
     expect(sub.weight).toBe(1.5)
   })
@@ -98,15 +98,15 @@ describe('shared TypeScript interfaces', () => {
   it('should define a valid ProgressRecord', () => {
     const record: ProgressRecord = {
       id: 1,
-      sub_item_id: 1,
-      team_id: 1,
-      author_id: 1,
+      subItemId: 1,
+      teamId: 1,
+      authorId: 1,
       completion: 60,
       achievement: 'Done something',
       blocker: '',
       lesson: '',
-      is_pm_correct: false,
-      created_at: '2026-01-01T00:00:00Z',
+      isPMCorrect: false,
+      createdAt: '2024-01-01',
     }
     expect(record.completion).toBe(60)
   })
@@ -114,20 +114,22 @@ describe('shared TypeScript interfaces', () => {
   it('should define a valid ItemPool', () => {
     const pool: ItemPool = {
       id: 1,
-      team_id: 1,
+      teamId: 1,
       title: 'Pool item',
       background: 'Context',
-      expected_output: 'Result',
-      submitter_id: 1,
+      expectedOutput: 'Result',
+      submitterId: 1,
       status: '待分配',
-      assigned_main_id: null,
-      assigned_sub_id: null,
-      assignee_id: null,
-      reject_reason: '',
-      reviewed_at: null,
-      reviewer_id: null,
-      created_at: '2026-01-01T00:00:00Z',
-      updated_at: '2026-01-01T00:00:00Z',
+      assignedMainId: null,
+      assignedSubId: null,
+      assignedMainCode: '',
+      assignedMainTitle: '',
+      assigneeId: null,
+      rejectReason: '',
+      reviewedAt: null,
+      reviewerId: null,
+      createdAt: '2024-01-01',
+      updatedAt: '2024-01-01',
     }
     expect(pool.status).toBe('待分配')
   })

@@ -97,6 +97,10 @@ func (m *mockItemPoolService) Assign(_ context.Context, teamID, pmID, poolID uin
 	return m.assignResult.err
 }
 
+func (m *mockItemPoolService) ConvertToMain(_ context.Context, teamID, pmID, poolItemID uint, req dto.ConvertToMainItemReq) (*model.MainItem, error) {
+	return nil, nil
+}
+
 func (m *mockItemPoolService) Reject(_ context.Context, teamID, pmID, poolID uint, reason string) error {
 	m.rejectCalled = true
 	m.lastTeamID = teamID
@@ -109,12 +113,14 @@ func (m *mockItemPoolService) Reject(_ context.Context, teamID, pmID, poolID uin
 // Helpers
 // ---------------------------------------------------------------------------
 
+func ptrUint(v uint) *uint { return &v }
+
 // depsWithItemPoolSvc wires a mock ItemPoolService into test deps.
 func depsWithItemPoolSvc(t *testing.T, svc *mockItemPoolService, userRepo repository.UserRepo) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm"}}
-	deps.ItemPool = NewItemPoolHandlerWithDeps(svc, userRepo)
+	deps.ItemPool = NewItemPoolHandlerWithDeps(svc, userRepo, nil)
 	return deps
 }
 
@@ -123,7 +129,7 @@ func depsWithItemPoolMemberRole(t *testing.T, svc *mockItemPoolService, userRepo
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "member"}}
-	deps.ItemPool = NewItemPoolHandlerWithDeps(svc, userRepo)
+	deps.ItemPool = NewItemPoolHandlerWithDeps(svc, userRepo, nil)
 	return deps
 }
 
@@ -153,7 +159,7 @@ func TestSubmitItemPool_Success(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := `{"title":"Test Pool Item","background":"some bg","expected_output":"some output"}`
+	body := `{"title":"Test Pool Item","background":"some bg","expectedOutput":"some output"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -258,7 +264,7 @@ func TestListItemPool_Success(t *testing.T) {
 
 	token := signTestToken(t, 5, "member")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool?page=1&page_size=20", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool?page=1&pageSize=20", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -286,7 +292,7 @@ func TestListItemPool_WithStatusFilter(t *testing.T) {
 
 	token := signTestToken(t, 5, "member")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool?status=待分配&page=1&page_size=10", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool?status=待分配&page=1&pageSize=10", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -420,7 +426,7 @@ func TestAssignItemPool_Success(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := `{"mainItemId":1,"assigneeId":3}`
+	body := `{"mainItemId":1,"assigneeId":3,"startDate":"2026-01-01","expectedEndDate":"2026-02-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -441,7 +447,7 @@ func TestAssignItemPool_Success(t *testing.T) {
 	assert.True(t, svc.assignCalled)
 	assert.Equal(t, uint(10), svc.lastTeamID)
 	assert.Equal(t, uint(1), svc.lastAssignReq.MainItemID)
-	assert.Equal(t, uint(3), svc.lastAssignReq.AssigneeID)
+	assert.Equal(t, ptrUint(3), svc.lastAssignReq.AssigneeID)
 }
 
 func TestAssignItemPool_RequiresPM(t *testing.T) {
@@ -453,7 +459,7 @@ func TestAssignItemPool_RequiresPM(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := `{"mainItemId":1,"assigneeId":3}`
+	body := `{"mainItemId":1,"assigneeId":3,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -472,7 +478,7 @@ func TestAssignItemPool_InvalidPoolID(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := `{"mainItemId":1,"assigneeId":3}`
+	body := `{"mainItemId":1,"assigneeId":3,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/abc/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -512,7 +518,7 @@ func TestAssignItemPool_AlreadyProcessed(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := `{"mainItemId":1,"assigneeId":3}`
+	body := `{"mainItemId":1,"assigneeId":3,"startDate":"2026-01-01","expectedEndDate":"2026-02-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -552,7 +558,7 @@ func TestAssignItemPool_SuperAdminBypass(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "superadmin")
-	body := `{"mainItemId":1,"assigneeId":3}`
+	body := `{"mainItemId":1,"assigneeId":3,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -764,7 +770,7 @@ func TestSubmitItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := `{"title":"优化首页加载速度","background":"用户反馈首页加载超过 3 秒","expected_output":"首页 LCP < 1.5 秒"}`
+	body := `{"title":"优化首页加载速度","background":"用户反馈首页加载超过 3 秒","expectedOutput":"首页 LCP < 1.5 秒"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -816,7 +822,7 @@ func TestAssignItemPool_ReturnsSubItemId(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := fmt.Sprintf(`{"mainItemId":%d,"assigneeId":%d}`, assignedMainID, assigneeID)
+	body := fmt.Sprintf(`{"mainItemId":%d,"assigneeId":%d,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, assignedMainID, assigneeID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
