@@ -8,6 +8,7 @@ import { listProgressApi, appendProgressApi } from '@/api/progress'
 import { listMembersApi } from '@/api/teams'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
@@ -268,8 +269,7 @@ export default function SubItemDetailPage() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-primary mb-1">成果</label>
-                  <textarea
-                    className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                  <Textarea
                     rows={3}
                     placeholder="描述本次取得的成果"
                     value={appendForm.achievement}
@@ -278,8 +278,7 @@ export default function SubItemDetailPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-primary mb-1">卡点</label>
-                  <textarea
-                    className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                  <Textarea
                     rows={3}
                     placeholder="描述遇到的问题或阻碍"
                     value={appendForm.blocker}

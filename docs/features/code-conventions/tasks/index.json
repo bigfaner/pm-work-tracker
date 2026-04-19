@@ -73,7 +73,7 @@
       "title": "Create Textarea component and migrate usage",
       "priority": "P0",
       "estimatedTime": "2h",
-      "status": "pending",
+      "status": "completed",
       "file": "3.1-textarea-component.md",
       "record": "records/3.1-textarea-component.md"
     },
