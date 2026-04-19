@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
@@ -116,8 +115,8 @@ func (m *mockAdminTeamRepo) FindTeamsByUserIDs(_ context.Context, _ []uint) (map
 func TestAdminListUsers_Success(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
 		users: []*model.User{
-			{Model: gorm.Model{ID: 1}, Username: "alice", DisplayName: "Alice", CanCreateTeam: true},
-			{Model: gorm.Model{ID: 2}, Username: "bob", DisplayName: "Bob", CanCreateTeam: false},
+			{BaseModel: model.BaseModel{ID: 1}, Username: "alice", DisplayName: "Alice", CanCreateTeam: true},
+			{BaseModel: model.BaseModel{ID: 2}, Username: "bob", DisplayName: "Bob", CanCreateTeam: false},
 		},
 	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
@@ -151,9 +150,9 @@ func TestAdminListUsers_RepoError(t *testing.T) {
 func TestAdminListUsers_SearchFilter(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
 		users: []*model.User{
-			{Model: gorm.Model{ID: 1}, Username: "alice", DisplayName: "Alice Wonderland"},
-			{Model: gorm.Model{ID: 2}, Username: "bob", DisplayName: "Bob Builder"},
-			{Model: gorm.Model{ID: 3}, Username: "charlie", DisplayName: "Alice Cooper"},
+			{BaseModel: model.BaseModel{ID: 1}, Username: "alice", DisplayName: "Alice Wonderland"},
+			{BaseModel: model.BaseModel{ID: 2}, Username: "bob", DisplayName: "Bob Builder"},
+			{BaseModel: model.BaseModel{ID: 3}, Username: "charlie", DisplayName: "Alice Cooper"},
 		},
 	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
@@ -169,8 +168,8 @@ func TestAdminListUsers_SearchFilter(t *testing.T) {
 func TestAdminListUsers_CanCreateTeamFilter(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
 		users: []*model.User{
-			{Model: gorm.Model{ID: 1}, Username: "alice", CanCreateTeam: true},
-			{Model: gorm.Model{ID: 2}, Username: "bob", CanCreateTeam: false},
+			{BaseModel: model.BaseModel{ID: 1}, Username: "alice", CanCreateTeam: true},
+			{BaseModel: model.BaseModel{ID: 2}, Username: "bob", CanCreateTeam: false},
 		},
 	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
@@ -185,11 +184,11 @@ func TestAdminListUsers_CanCreateTeamFilter(t *testing.T) {
 
 func TestAdminListUsers_Pagination(t *testing.T) {
 	users := []*model.User{
-		{Model: gorm.Model{ID: 1}, Username: "u1"},
-		{Model: gorm.Model{ID: 2}, Username: "u2"},
-		{Model: gorm.Model{ID: 3}, Username: "u3"},
-		{Model: gorm.Model{ID: 4}, Username: "u4"},
-		{Model: gorm.Model{ID: 5}, Username: "u5"},
+		{BaseModel: model.BaseModel{ID: 1}, Username: "u1"},
+		{BaseModel: model.BaseModel{ID: 2}, Username: "u2"},
+		{BaseModel: model.BaseModel{ID: 3}, Username: "u3"},
+		{BaseModel: model.BaseModel{ID: 4}, Username: "u4"},
+		{BaseModel: model.BaseModel{ID: 5}, Username: "u5"},
 	}
 	userRepo := &mockAdminUserRepo{users: users}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
@@ -205,7 +204,7 @@ func TestAdminListUsers_Pagination(t *testing.T) {
 func TestAdminListUsers_WithTeams(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
 		users: []*model.User{
-			{Model: gorm.Model{ID: 1}, Username: "alice", DisplayName: "Alice"},
+			{BaseModel: model.BaseModel{ID: 1}, Username: "alice", DisplayName: "Alice"},
 		},
 	}
 	teamRepo := &mockAdminTeamRepo{
@@ -230,7 +229,7 @@ func TestAdminListUsers_WithTeams(t *testing.T) {
 
 func TestAdminGetUser_Success(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{Model: gorm.Model{ID: 5}, Username: "bob", DisplayName: "Bob", Email: "bob@test.com", Status: "enabled"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", DisplayName: "Bob", Email: "bob@test.com", Status: "enabled"},
 	}
 	teamRepo := &mockAdminTeamRepo{
 		teamsByUserIDs: map[uint][]dto.TeamSummary{
@@ -263,7 +262,7 @@ func TestAdminGetUser_NotFound(t *testing.T) {
 func TestAdminCreateUser_Success(t *testing.T) {
 	userRepo := &mockAdminUserRepo{}
 	teamRepo := &mockAdminTeamRepo{
-		teamByID: &model.Team{Model: gorm.Model{ID: 10}, Name: "Team A"},
+		teamByID: &model.Team{BaseModel: model.BaseModel{ID: 10}, Name: "Team A"},
 		teamsByUserIDs: map[uint][]dto.TeamSummary{
 			100: {{ID: 10, Name: "Team A", Role: "member"}},
 		},
@@ -298,7 +297,7 @@ func TestAdminCreateUser_Success(t *testing.T) {
 func TestAdminCreateUser_DuplicateUsername(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
 		users: []*model.User{
-			{Model: gorm.Model{ID: 1}, Username: "existing"},
+			{BaseModel: model.BaseModel{ID: 1}, Username: "existing"},
 		},
 	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
@@ -352,7 +351,7 @@ func TestAdminCreateUser_NoTeam(t *testing.T) {
 
 func TestAdminUpdateUser_Success(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{Model: gorm.Model{ID: 5}, Username: "bob", DisplayName: "Bob", Email: "bob@test.com"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", DisplayName: "Bob", Email: "bob@test.com"},
 	}
 	teamRepo := &mockAdminTeamRepo{
 		teamsByUserIDs: map[uint][]dto.TeamSummary{
@@ -389,7 +388,7 @@ func TestAdminUpdateUser_NotFound(t *testing.T) {
 
 func TestAdminToggleUserStatus_DisableSuccess(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{Model: gorm.Model{ID: 5}, Username: "bob", Status: "enabled"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", Status: "enabled"},
 	}
 	teamRepo := &mockAdminTeamRepo{
 		teamsByUserIDs: map[uint][]dto.TeamSummary{},
@@ -404,7 +403,7 @@ func TestAdminToggleUserStatus_DisableSuccess(t *testing.T) {
 
 func TestAdminToggleUserStatus_EnableSuccess(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{Model: gorm.Model{ID: 5}, Username: "bob", Status: "disabled"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", Status: "disabled"},
 	}
 	teamRepo := &mockAdminTeamRepo{
 		teamsByUserIDs: map[uint][]dto.TeamSummary{},
@@ -418,7 +417,7 @@ func TestAdminToggleUserStatus_EnableSuccess(t *testing.T) {
 
 func TestAdminToggleUserStatus_CannotDisableSelf(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{Model: gorm.Model{ID: 1}, Username: "admin", Status: "enabled"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 1}, Username: "admin", Status: "enabled"},
 	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
 
@@ -456,7 +455,7 @@ func TestSetCanCreateTeam_TargetNotFound(t *testing.T) {
 
 func TestSetCanCreateTeam_Success(t *testing.T) {
 	targetUser := &model.User{
-		Model:         gorm.Model{ID: 5},
+		BaseModel:     model.BaseModel{ID: 5},
 		Username:      "bob",
 		DisplayName:   "Bob",
 		CanCreateTeam: false,
@@ -472,7 +471,7 @@ func TestSetCanCreateTeam_Success(t *testing.T) {
 
 func TestSetCanCreateTeam_Revoke(t *testing.T) {
 	targetUser := &model.User{
-		Model:         gorm.Model{ID: 5},
+		BaseModel:     model.BaseModel{ID: 5},
 		Username:      "bob",
 		DisplayName:   "Bob",
 		CanCreateTeam: true,

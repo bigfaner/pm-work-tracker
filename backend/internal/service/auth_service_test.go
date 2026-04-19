@@ -67,7 +67,7 @@ func TestLogin_CorrectCredentials_ReturnsToken(t *testing.T) {
 	repo := new(mockUserRepo)
 	repo.On("FindByUsername", mock.Anything, "alice").
 		Return(&model.User{
-			Model:        gorm.Model{ID: 1},
+			BaseModel:        model.BaseModel{ID: 1},
 			Username:     "alice",
 			PasswordHash: prehashedPassword123,
 			IsSuperAdmin: false,
@@ -91,7 +91,7 @@ func TestLogin_SuperAdmin_RoleIsSuperAdmin(t *testing.T) {
 	repo := new(mockUserRepo)
 	repo.On("FindByUsername", mock.Anything, "admin").
 		Return(&model.User{
-			Model:        gorm.Model{ID: 5},
+			BaseModel:        model.BaseModel{ID: 5},
 			Username:     "admin",
 			PasswordHash: prehashedPassword123,
 			IsSuperAdmin: true,
@@ -112,7 +112,7 @@ func TestLogin_WrongPassword_ReturnsErrUnauthorized(t *testing.T) {
 	repo := new(mockUserRepo)
 	repo.On("FindByUsername", mock.Anything, "alice").
 		Return(&model.User{
-			Model:        gorm.Model{ID: 1},
+			BaseModel:        model.BaseModel{ID: 1},
 			Username:     "alice",
 			PasswordHash: prehashedPassword123,
 		}, nil)

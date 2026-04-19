@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
@@ -17,7 +16,7 @@ func TestLogin_DisabledUserCorrectPassword_ReturnsErrUserDisabled(t *testing.T) 
 	repo := new(mockUserRepo)
 	repo.On("FindByUsername", mock.Anything, "disabled").
 		Return(&model.User{
-			Model:        gorm.Model{ID: 10},
+			BaseModel:    model.BaseModel{ID: 10},
 			Username:     "disabled",
 			PasswordHash: prehashedPassword123,
 			Status:       "disabled",
@@ -40,7 +39,7 @@ func TestLogin_DisabledUserWrongPassword_ReturnsErrUnauthorized(t *testing.T) {
 	repo := new(mockUserRepo)
 	repo.On("FindByUsername", mock.Anything, "disabled").
 		Return(&model.User{
-			Model:        gorm.Model{ID: 10},
+			BaseModel:    model.BaseModel{ID: 10},
 			Username:     "disabled",
 			PasswordHash: prehashedPassword123,
 			Status:       "disabled",
@@ -56,7 +55,7 @@ func TestLogin_EnabledUser_Succeeds(t *testing.T) {
 	repo := new(mockUserRepo)
 	repo.On("FindByUsername", mock.Anything, "active").
 		Return(&model.User{
-			Model:        gorm.Model{ID: 11},
+			BaseModel:    model.BaseModel{ID: 11},
 			Username:     "active",
 			PasswordHash: prehashedPassword123,
 			Status:       "enabled",
@@ -75,7 +74,7 @@ func TestLogin_DefaultStatus_Succeeds(t *testing.T) {
 	repo := new(mockUserRepo)
 	repo.On("FindByUsername", mock.Anything, "legacy").
 		Return(&model.User{
-			Model:        gorm.Model{ID: 12},
+			BaseModel:    model.BaseModel{ID: 12},
 			Username:     "legacy",
 			PasswordHash: prehashedPassword123,
 			Status:       "",

@@ -185,7 +185,7 @@ func TestCreateMainItem_Success(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := `{"title":"Test Item","priority":"P1"}`
+	body := `{"title":"Test Item","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -220,7 +220,7 @@ func TestCreateMainItem_WithOptionalFields(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := `{"title":"Test Item","priority":"P1","assignee_id":3,"start_date":"2026-04-01","expected_end_date":"2026-04-30","is_key_item":true}`
+	body := `{"title":"Test Item","priority":"P1","assigneeId":3,"startDate":"2026-04-01","expectedEndDate":"2026-04-30","isKeyItem":true}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -229,8 +229,7 @@ func TestCreateMainItem_WithOptionalFields(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.True(t, svc.createCalled)
-	assert.NotNil(t, svc.lastCreateReq.AssigneeID)
-	assert.Equal(t, uint(3), *svc.lastCreateReq.AssigneeID)
+	assert.Equal(t, uint(3), svc.lastCreateReq.AssigneeID)
 	assert.True(t, svc.lastCreateReq.IsKeyItem)
 }
 
@@ -244,7 +243,7 @@ func TestCreateMainItem_RequiresPM(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := `{"title":"Test Item","priority":"P1"}`
+	body := `{"title":"Test Item","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -287,7 +286,7 @@ func TestCreateMainItem_ServiceError(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "member")
-	body := `{"title":"Test","priority":"P1"}`
+	body := `{"title":"Test","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -318,7 +317,7 @@ func TestListMainItems_Success(t *testing.T) {
 
 	token := signTestToken(t, 5, "member")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items?page=1&page_size=20", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items?page=1&pageSize=20", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -347,7 +346,7 @@ func TestListMainItems_WithFilters(t *testing.T) {
 
 	token := signTestToken(t, 5, "member")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items?priority=P1&status=进行中&page=2&page_size=10", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items?priority=P1&status=进行中&page=2&pageSize=10", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -689,7 +688,7 @@ func TestCreateMainItem_SuperAdminBypass(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "superadmin")
-	body := `{"title":"Test","priority":"P1"}`
+	body := `{"title":"Test","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

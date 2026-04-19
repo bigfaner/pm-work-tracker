@@ -348,7 +348,7 @@ func TestTableView_WithFilters(t *testing.T) {
 
 	token := signTestToken(t, 5, "member")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/table?type=main&priority=P1&priority=P2&status=进行中&page=2&page_size=10&sortBy=completion&sortOrder=desc", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/table?type=main&priority=P1&priority=P2&status=进行中&page=2&pageSize=10&sortBy=completion&sortOrder=desc", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 

@@ -197,7 +197,7 @@ func TestItemPool_Assign_Success(t *testing.T) {
 	poolID, mainItemID := seedPoolData(t, db, data.teamAID, data.userAID)
 
 	// Assign the pool item
-	body := fmt.Sprintf(`{"mainItemId":%d,"assigneeId":%d}`, mainItemID, data.userAID)
+	body := fmt.Sprintf(`{"mainItemId":%d,"assigneeId":%d,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, mainItemID, data.userAID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
 		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamAID, poolID),
@@ -231,7 +231,7 @@ func TestItemPool_Assign_Rollback_OnInvalidMainItem(t *testing.T) {
 
 	// Assign with a non-existent mainItemID to trigger failure
 	invalidMainID := uint(99999)
-	body := fmt.Sprintf(`{"mainItemId":%d,"assigneeId":%d}`, invalidMainID, data.userAID)
+	body := fmt.Sprintf(`{"mainItemId":%d,"assigneeId":%d,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, invalidMainID, data.userAID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
 		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamAID, poolID),
@@ -367,7 +367,7 @@ func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engi
 		MainItem: handler.NewMainItemHandlerWithDeps(mainItemSvc, userRepo, subItemRepo),
 		SubItem:  handler.NewSubItemHandlerWithDeps(subItemSvc),
 		Progress: handler.NewProgressHandlerWithDeps(progressSvc, userRepo),
-		ItemPool: handler.NewItemPoolHandlerWithDeps(itemPoolSvc, userRepo),
+		ItemPool: handler.NewItemPoolHandlerWithDeps(itemPoolSvc, userRepo, nil),
 		View:     handler.NewViewHandlerWithDeps(viewSvc),
 		Report:   handler.NewReportHandlerWithDeps(reportSvc),
 		Admin:    handler.NewAdminHandlerWithDeps(adminSvc),

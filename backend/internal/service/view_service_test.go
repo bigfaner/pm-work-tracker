@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
@@ -175,13 +174,13 @@ func TestWeeklyView_NewlyCompleted(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				Model:        gorm.Model{ID: 10},
+				BaseModel:        model.BaseModel{ID: 10},
 				TeamID:       1,
 				MainItemID:   1,
 				Title:        "Sub A",
@@ -226,13 +225,13 @@ func TestWeeklyView_HasProgress(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				Model:      gorm.Model{ID: 10},
+				BaseModel:      model.BaseModel{ID: 10},
 				TeamID:     1,
 				MainItemID: 1,
 				Title:      "Sub A",
@@ -276,13 +275,13 @@ func TestWeeklyView_NoChangeFromLastWeek(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 30},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				Model:      gorm.Model{ID: 10},
+				BaseModel:      model.BaseModel{ID: 10},
 				TeamID:     1,
 				MainItemID: 1,
 				Title:      "Sub A",
@@ -315,7 +314,7 @@ func TestWeeklyView_MainItemWithNoSubItems_Omitted(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Empty Main", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Empty Main", Completion: 0},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -337,15 +336,15 @@ func TestWeeklyView_MixedScenario(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 80},
-			{Model: gorm.Model{ID: 2}, TeamID: 1, Title: "Main 2", Completion: 20},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 80},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "Main 2", Completion: 20},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			// Main 1: sub-item completed this week
 			{
-				Model:         gorm.Model{ID: 10},
+				BaseModel:         model.BaseModel{ID: 10},
 				TeamID:        1,
 				MainItemID:    1,
 				Title:         "Sub Completed",
@@ -355,7 +354,7 @@ func TestWeeklyView_MixedScenario(t *testing.T) {
 			},
 			// Main 1: sub-item with progress
 			{
-				Model:      gorm.Model{ID: 11},
+				BaseModel:      model.BaseModel{ID: 11},
 				TeamID:     1,
 				MainItemID: 1,
 				Title:      "Sub In Progress",
@@ -364,7 +363,7 @@ func TestWeeklyView_MixedScenario(t *testing.T) {
 			},
 			// Main 2: sub-item with no change
 			{
-				Model:      gorm.Model{ID: 20},
+				BaseModel:      model.BaseModel{ID: 20},
 				TeamID:     1,
 				MainItemID: 2,
 				Title:      "Sub Dormant",
@@ -429,13 +428,13 @@ func TestWeeklyView_CompletedBeforeThisWeek_NoChange(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 100},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 100},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				Model:         gorm.Model{ID: 10},
+				BaseModel:         model.BaseModel{ID: 10},
 				TeamID:        1,
 				MainItemID:    1,
 				Title:         "Sub Old Completed",
@@ -474,7 +473,7 @@ func TestWeeklyView_MainItemRepoError(t *testing.T) {
 func TestWeeklyView_SubItemRepoError(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1"},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1"},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{listErr: errors.New("db error")}
@@ -488,12 +487,12 @@ func TestWeeklyView_SubItemRepoError(t *testing.T) {
 func TestWeeklyView_ProgressRepoError(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1"},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1"},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A"},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A"},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{listErr: errors.New("db error")}
@@ -529,13 +528,13 @@ func TestWeeklyView_NewlyCompleted_ActualEndDateOutsideWeek(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 100},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 100},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				Model:         gorm.Model{ID: 10},
+				BaseModel:         model.BaseModel{ID: 10},
 				TeamID:        1,
 				MainItemID:    1,
 				Title:         "Sub A",
@@ -580,13 +579,13 @@ func TestWeeklyView_SubItemNoProgressEver_NoChange(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 0},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				Model:      gorm.Model{ID: 10},
+				BaseModel:      model.BaseModel{ID: 10},
 				TeamID:     1,
 				MainItemID: 1,
 				Title:      "Sub A",
@@ -658,14 +657,14 @@ func TestWeeklyComparison_StatsCounts(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "In Progress", Status: "进行中", Completion: 60},
-			{Model: gorm.Model{ID: 11}, TeamID: 1, MainItemID: 1, Title: "Blocked", Status: "阻塞中", Completion: 30},
-			{Model: gorm.Model{ID: 12}, TeamID: 1, MainItemID: 1, Title: "Completed", Status: "已完成", Completion: 100, ActualEndDate: &completedDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "In Progress", Status: "进行中", Completion: 60},
+			{BaseModel: model.BaseModel{ID: 11}, TeamID: 1, MainItemID: 1, Title: "Blocked", Status: "阻塞中", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 12}, TeamID: 1, MainItemID: 1, Title: "Completed", Status: "已完成", Completion: 100, ActualEndDate: &completedDate},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -691,12 +690,12 @@ func TestWeeklyComparison_DeltaComputation(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 70},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 70},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -732,12 +731,12 @@ func TestWeeklyComparison_IsNew(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "New Sub", Status: "待开始", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "New Sub", Status: "待开始", Completion: 0},
 		},
 	}
 	// Only this week progress, no last week progress
@@ -765,13 +764,13 @@ func TestWeeklyComparison_JustCompleted(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 100},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 100},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				Model:         gorm.Model{ID: 10},
+				BaseModel:         model.BaseModel{ID: 10},
 				TeamID:        1,
 				MainItemID:    1,
 				Title:         "Just Done",
@@ -805,13 +804,13 @@ func TestWeeklyComparison_CompletedNoChange(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 100},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 100},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				Model:         gorm.Model{ID: 10},
+				BaseModel:         model.BaseModel{ID: 10},
 				TeamID:        1,
 				MainItemID:    1,
 				Title:         "Old Completed",
@@ -840,16 +839,16 @@ func TestWeeklyComparison_GroupsSortedByPriority(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "P3 Item", Priority: "P3", Completion: 10},
-			{Model: gorm.Model{ID: 2}, TeamID: 1, Title: "P1 Item", Priority: "P1", Completion: 50},
-			{Model: gorm.Model{ID: 3}, TeamID: 1, Title: "P2 Item", Priority: "P2", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "P3 Item", Priority: "P3", Completion: 10},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "P1 Item", Priority: "P1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Title: "P2 Item", Priority: "P2", Completion: 30},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub 1", Status: "进行中", Completion: 10},
-			{Model: gorm.Model{ID: 20}, TeamID: 1, MainItemID: 2, Title: "Sub 2", Status: "进行中", Completion: 50},
-			{Model: gorm.Model{ID: 30}, TeamID: 1, MainItemID: 3, Title: "Sub 3", Status: "进行中", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub 1", Status: "进行中", Completion: 10},
+			{BaseModel: model.BaseModel{ID: 20}, TeamID: 1, MainItemID: 2, Title: "Sub 2", Status: "进行中", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 30}, TeamID: 1, MainItemID: 3, Title: "Sub 3", Status: "进行中", Completion: 30},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
@@ -872,7 +871,7 @@ func TestWeeklyComparison_MainItemSummary(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				Model:           gorm.Model{ID: 1},
+				BaseModel:           model.BaseModel{ID: 1},
 				TeamID:          1,
 				Title:           "Main 1",
 				Priority:        "P1",
@@ -884,8 +883,8 @@ func TestWeeklyComparison_MainItemSummary(t *testing.T) {
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 60},
-			{Model: gorm.Model{ID: 11}, TeamID: 1, MainItemID: 1, Title: "Sub B", Status: "待开始", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 60},
+			{BaseModel: model.BaseModel{ID: 11}, TeamID: 1, MainItemID: 1, Title: "Sub B", Status: "待开始", Completion: 0},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
@@ -910,7 +909,7 @@ func TestWeeklyComparison_MainItemWithNoSubItems_Omitted(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Empty Main", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Empty Main", Completion: 0},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -927,12 +926,12 @@ func TestWeeklyComparison_ProgressDescriptionFromLatestRecord(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 60},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 60},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -968,7 +967,7 @@ func TestWeeklyComparison_RepoErrors(t *testing.T) {
 
 	// SubItemRepo error
 	svc = NewViewService(
-		&mockViewMainItemRepo{items: []model.MainItem{{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1"}}},
+		&mockViewMainItemRepo{items: []model.MainItem{{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1"}}},
 		&mockViewSubItemRepo{listErr: errors.New("db error")},
 		&mockViewProgressRepo{},
 	)
@@ -977,8 +976,8 @@ func TestWeeklyComparison_RepoErrors(t *testing.T) {
 
 	// ProgressRepo error
 	svc = NewViewService(
-		&mockViewMainItemRepo{items: []model.MainItem{{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1"}}},
-		&mockViewSubItemRepo{items: []model.SubItem{{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A"}}},
+		&mockViewMainItemRepo{items: []model.MainItem{{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1"}}},
+		&mockViewSubItemRepo{items: []model.SubItem{{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A"}}},
 		&mockViewProgressRepo{listErr: errors.New("db error")},
 	)
 	_, err = svc.WeeklyComparison(context.Background(), 1, monday)
@@ -1003,7 +1002,7 @@ func TestGanttView_BasicStructure(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				Model:           gorm.Model{ID: 1},
+				BaseModel:           model.BaseModel{ID: 1},
 				TeamID:          1,
 				Title:           "Main 1",
 				Priority:        "P1",
@@ -1040,7 +1039,7 @@ func TestGanttView_OverdueItem(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				Model:           gorm.Model{ID: 1},
+				BaseModel:           model.BaseModel{ID: 1},
 				TeamID:          1,
 				Title:           "Overdue Main",
 				Priority:        "P1",
@@ -1069,7 +1068,7 @@ func TestGanttView_Overdue_ExemptWhenCompleted(t *testing.T) {
 			mainRepo := &mockViewMainItemRepo{
 				items: []model.MainItem{
 					{
-						Model:           gorm.Model{ID: 1},
+						BaseModel:           model.BaseModel{ID: 1},
 						TeamID:          1,
 						Title:           "Completed",
 						Priority:        "P1",
@@ -1096,9 +1095,9 @@ func TestGanttView_StatusFilter(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "In Progress", Status: "进行中", StartDate: &startDate, ExpectedEndDate: &endDate},
-			{Model: gorm.Model{ID: 2}, TeamID: 1, Title: "Completed", Status: "已完成", StartDate: &startDate, ExpectedEndDate: &endDate},
-			{Model: gorm.Model{ID: 3}, TeamID: 1, Title: "Pending", Status: "待开始", StartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "In Progress", Status: "进行中", StartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "Completed", Status: "已完成", StartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Title: "Pending", Status: "待开始", StartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 	}
 	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
@@ -1117,8 +1116,8 @@ func TestGanttView_StatusFilterEmpty_ReturnsAll(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "A", Status: "进行中", StartDate: &startDate, ExpectedEndDate: &endDate},
-			{Model: gorm.Model{ID: 2}, TeamID: 1, Title: "B", Status: "已完成", StartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "A", Status: "进行中", StartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "B", Status: "已完成", StartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 	}
 	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
@@ -1136,7 +1135,7 @@ func TestGanttView_SubItemsNested(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				Model:           gorm.Model{ID: 1},
+				BaseModel:           model.BaseModel{ID: 1},
 				TeamID:          1,
 				Title:           "Main 1",
 				Priority:        "P1",
@@ -1149,7 +1148,7 @@ func TestGanttView_SubItemsNested(t *testing.T) {
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				Model:           gorm.Model{ID: 10},
+				BaseModel:           model.BaseModel{ID: 10},
 				TeamID:          1,
 				MainItemID:      1,
 				Title:           "Sub A",
@@ -1182,14 +1181,14 @@ func TestGanttView_SubItemsFromOtherMainItemNotIncluded(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", StartDate: &startDate, ExpectedEndDate: &endDate, Status: "进行中"},
-			{Model: gorm.Model{ID: 2}, TeamID: 1, Title: "Main 2", StartDate: &startDate, ExpectedEndDate: &endDate, Status: "进行中"},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", StartDate: &startDate, ExpectedEndDate: &endDate, Status: "进行中"},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "Main 2", StartDate: &startDate, ExpectedEndDate: &endDate, Status: "进行中"},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub for Main 1", StartDate: &startDate, ExpectedEndDate: &endDate},
-			{Model: gorm.Model{ID: 20}, TeamID: 1, MainItemID: 2, Title: "Sub for Main 2", StartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub for Main 1", StartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 20}, TeamID: 1, MainItemID: 2, Title: "Sub for Main 2", StartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 	}
 	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
@@ -1213,7 +1212,7 @@ func TestGanttView_ArchivedItemsExcluded(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				Model:           gorm.Model{ID: 1},
+				BaseModel:           model.BaseModel{ID: 1},
 				TeamID:          1,
 				Title:           "Active",
 				StartDate:       &startDate,
@@ -1239,7 +1238,7 @@ func TestGanttView_DatesFormattedAsISO8601(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				Model:           gorm.Model{ID: 1},
+				BaseModel:           model.BaseModel{ID: 1},
 				TeamID:          1,
 				Title:           "Main 1",
 				StartDate:       &startDate,
@@ -1251,7 +1250,7 @@ func TestGanttView_DatesFormattedAsISO8601(t *testing.T) {
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				Model:           gorm.Model{ID: 10},
+				BaseModel:           model.BaseModel{ID: 10},
 				TeamID:          1,
 				MainItemID:      1,
 				Title:           "Sub 1",
@@ -1277,7 +1276,7 @@ func TestGanttView_NilDates_FormatAsEmptyString(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				Model:  gorm.Model{ID: 1},
+				BaseModel:  model.BaseModel{ID: 1},
 				TeamID: 1,
 				Title:  "No dates",
 				Status: "待开始",
@@ -1305,7 +1304,7 @@ func TestGanttView_MainItemRepoError(t *testing.T) {
 func TestGanttView_SubItemRepoError(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1"},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1"},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{listErr: errors.New("db error")}
@@ -1321,13 +1320,13 @@ func TestGanttView_SubItemSummaryFieldsOnly(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Title: "Main 1", StartDate: &startDate, ExpectedEndDate: &endDate, Status: "进行中"},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", StartDate: &startDate, ExpectedEndDate: &endDate, Status: "进行中"},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				Model:           gorm.Model{ID: 10},
+				BaseModel:           model.BaseModel{ID: 10},
 				TeamID:          1,
 				MainItemID:      1,
 				Title:           "Sub A",
@@ -1366,7 +1365,7 @@ func TestGanttView_Overdue_NilExpectedEndDate(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				Model:  gorm.Model{ID: 1},
+				BaseModel:  model.BaseModel{ID: 1},
 				TeamID: 1,
 				Title:  "No end date",
 				Status: "进行中",
@@ -1441,7 +1440,7 @@ func TestTableView_CombinesMainAndSubItems(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				Model:           gorm.Model{ID: 1},
+				BaseModel:           model.BaseModel{ID: 1},
 				TeamID:          1,
 				Code:            "MI-0001",
 				Title:           "Main Item",
@@ -1456,7 +1455,7 @@ func TestTableView_CombinesMainAndSubItems(t *testing.T) {
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				Model:           gorm.Model{ID: 10},
+				BaseModel:           model.BaseModel{ID: 10},
 				TeamID:          1,
 				MainItemID:      1,
 				Title:           "Sub Item",
@@ -1470,7 +1469,7 @@ func TestTableView_CombinesMainAndSubItems(t *testing.T) {
 	}
 	userRepo := &mockViewUserRepo{
 		users: map[uint]*model.User{
-			100: {Model: gorm.Model{ID: 100}, DisplayName: "Alice"},
+			100: {BaseModel: model.BaseModel{ID: 100}, DisplayName: "Alice"},
 		},
 	}
 
@@ -1497,12 +1496,12 @@ func TestTableView_FilterByTypeMain(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 
@@ -1520,12 +1519,12 @@ func TestTableView_FilterByTypeSub(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 
@@ -1543,8 +1542,8 @@ func TestTableView_FilterByPriority(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "P1 Item", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
-			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "P3 Item", Priority: "P3", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "P1 Item", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "P3 Item", Priority: "P3", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1563,8 +1562,8 @@ func TestTableView_FilterByStatus(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Active", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
-			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "Done", Priority: "P1", Status: "已完成", Completion: 100, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Active", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "Done", Priority: "P1", Status: "已完成", Completion: 100, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1585,8 +1584,8 @@ func TestTableView_FilterByAssigneeID(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Alice's", Priority: "P1", AssigneeID: &assignee1, Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
-			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "Bob's", Priority: "P1", AssigneeID: &assignee2, Status: "进行中", Completion: 30, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Alice's", Priority: "P1", AssigneeID: &assignee1, Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "Bob's", Priority: "P1", AssigneeID: &assignee2, Status: "进行中", Completion: 30, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1605,9 +1604,9 @@ func TestTableView_Pagination(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "A", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
-			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "B", Priority: "P2", Status: "进行中", Completion: 30, ExpectedEndDate: &endDate},
-			{Model: gorm.Model{ID: 3}, TeamID: 1, Code: "MI-0003", Title: "C", Priority: "P3", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "A", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "B", Priority: "P2", Status: "进行中", Completion: 30, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Code: "MI-0003", Title: "C", Priority: "P3", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1632,9 +1631,9 @@ func TestTableView_DefaultSort_PriorityDescThenExpectedEndDateAsc(t *testing.T) 
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "P2 Late", Priority: "P2", Status: "进行中", Completion: 30, ExpectedEndDate: &endDate3},
-			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "P2 Early", Priority: "P2", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate2},
-			{Model: gorm.Model{ID: 3}, TeamID: 1, Code: "MI-0003", Title: "P1", Priority: "P1", Status: "进行中", Completion: 80, ExpectedEndDate: &endDate1},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "P2 Late", Priority: "P2", Status: "进行中", Completion: 30, ExpectedEndDate: &endDate3},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "P2 Early", Priority: "P2", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate2},
+			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Code: "MI-0003", Title: "P1", Priority: "P1", Status: "进行中", Completion: 80, ExpectedEndDate: &endDate1},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1655,8 +1654,8 @@ func TestTableView_SortByCompletion_Asc(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "High", Priority: "P1", Status: "进行中", Completion: 80, ExpectedEndDate: &endDate},
-			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "Low", Priority: "P1", Status: "待开始", Completion: 10, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "High", Priority: "P1", Status: "进行中", Completion: 80, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "Low", Priority: "P1", Status: "待开始", Completion: 10, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1675,8 +1674,8 @@ func TestTableView_SortByCompletion_Desc(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Low", Priority: "P1", Status: "进行中", Completion: 10, ExpectedEndDate: &endDate},
-			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "High", Priority: "P1", Status: "待开始", Completion: 80, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Low", Priority: "P1", Status: "进行中", Completion: 10, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "High", Priority: "P1", Status: "待开始", Completion: 80, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1696,7 +1695,7 @@ func TestTableView_SubItemCodeFormat(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 
@@ -1715,13 +1714,13 @@ func TestTableView_AssigneeNameResolved(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", AssigneeID: &assigneeID, Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", AssigneeID: &assigneeID, Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
 	userRepo := &mockViewUserRepo{
 		users: map[uint]*model.User{
-			50: {Model: gorm.Model{ID: 50}, DisplayName: "Bob"},
+			50: {BaseModel: model.BaseModel{ID: 50}, DisplayName: "Bob"},
 		},
 	}
 
@@ -1738,7 +1737,7 @@ func TestTableView_AssigneeNameEmpty_WhenNoAssignee(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "No Assignee", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "No Assignee", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1758,7 +1757,7 @@ func TestTableView_ExpectedEndDateAndActualEndDateFormatted(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "已完成", Completion: 100, ExpectedEndDate: &expectedEnd, ActualEndDate: &actualEnd},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "已完成", Completion: 100, ExpectedEndDate: &expectedEnd, ActualEndDate: &actualEnd},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1777,7 +1776,7 @@ func TestTableView_ExpectedEndDateAndActualEndDateFormatted(t *testing.T) {
 func TestTableView_NilDates_ReturnNil(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "No Dates", Priority: "P1", Status: "待开始", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "No Dates", Priority: "P1", Status: "待开始", Completion: 0},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1796,9 +1795,9 @@ func TestTableView_Page2_ReturnsSecondPage(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "A", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
-			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "B", Priority: "P2", Status: "进行中", Completion: 30, ExpectedEndDate: &endDate},
-			{Model: gorm.Model{ID: 3}, TeamID: 1, Code: "MI-0003", Title: "C", Priority: "P3", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "A", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "B", Priority: "P2", Status: "进行中", Completion: 30, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Code: "MI-0003", Title: "C", Priority: "P3", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1850,7 +1849,7 @@ func TestTableExportCSV_ReturnsValidCSV(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				Model:           gorm.Model{ID: 1},
+				BaseModel:           model.BaseModel{ID: 1},
 				TeamID:          1,
 				Code:            "MI-0001",
 				Title:           "Main Item",
@@ -1866,7 +1865,7 @@ func TestTableExportCSV_ReturnsValidCSV(t *testing.T) {
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
 	userRepo := &mockViewUserRepo{
 		users: map[uint]*model.User{
-			100: {Model: gorm.Model{ID: 100}, DisplayName: "Alice"},
+			100: {BaseModel: model.BaseModel{ID: 100}, DisplayName: "Alice"},
 		},
 	}
 
@@ -1903,12 +1902,12 @@ func TestTableExportCSV_MultipleRows(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{Model: gorm.Model{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 
@@ -1932,8 +1931,8 @@ func TestTableExportCSV_ExportWithFilter(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "P1", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
-			{Model: gorm.Model{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "P3", Priority: "P3", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "P1", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "P3", Priority: "P3", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1955,7 +1954,7 @@ func TestTableExportCSV_ExportWithFilter(t *testing.T) {
 func TestTableExportCSV_NilDates_AsEmpty(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "No Dates", Priority: "P1", Status: "待开始", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "No Dates", Priority: "P1", Status: "待开始", Completion: 0},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1976,7 +1975,7 @@ func TestTableExportCSV_NilDates_AsEmpty(t *testing.T) {
 func TestTableExportCSV_UTF8BOM(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{Model: gorm.Model{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Item", Priority: "P1", Status: "进行中", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Item", Priority: "P1", Status: "进行中", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
