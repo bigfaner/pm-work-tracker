@@ -30,6 +30,8 @@ type Dependencies struct {
 	View       *ViewHandler
 	Report     *ReportHandler
 	Admin      *AdminHandler
+	Role       *RoleHandler
+	Permission *PermissionHandler
 }
 
 // SetupRouter creates a Gin engine with all route groups, middleware chains,
@@ -143,7 +145,20 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 		adminGroup.PUT("/users/:userId/status", deps.Admin.ToggleUserStatus)
 		adminGroup.PUT("/users/:userId/can-create-team", deps.Admin.UpdateCanCreateTeam)
 		adminGroup.GET("/teams", deps.Admin.ListTeams)
-	}
+
+			// Role management
+			adminGroup.GET("/roles", deps.Role.ListRoles)
+			adminGroup.POST("/roles", deps.Role.CreateRole)
+			adminGroup.GET("/roles/:id", deps.Role.GetRole)
+			adminGroup.PUT("/roles/:id", deps.Role.UpdateRole)
+			adminGroup.DELETE("/roles/:id", deps.Role.DeleteRole)
+
+			// Permission code registry
+			adminGroup.GET("/permissions", deps.Permission.ListPermissionCodes)
+		}
+
+	// User-facing: current user's permissions (auth only, no permission code required)
+	v1.GET("/me/permissions", middleware.AuthMiddleware(deps.Config.Auth.JWTSecret, deps.UserRepo), deps.Permission.GetUserPermissions)
 
 	return r
 }

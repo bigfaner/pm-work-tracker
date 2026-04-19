@@ -90,7 +90,9 @@ func testDeps(t *testing.T) (*Dependencies, *gorm.DB) {
 		ItemPool: NewItemPoolHandler(),
 		View:     NewViewHandler(),
 		Report:   NewReportHandler(),
-		Admin:    NewAdminHandler(),
+		Admin:      NewAdminHandler(),
+		Role:       NewRoleHandler(),
+		Permission: NewPermissionHandler(),
 	}, db
 }
 
