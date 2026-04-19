@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { PrioritySelectItems } from '@/components/shared/PrioritySelect'
 import {
   Dialog,
   DialogContent,
@@ -478,9 +479,7 @@ export default function ItemPoolPage() {
                     <Select value={toMainForm.priority} onValueChange={(v) => setToMainForm((f) => ({ ...f, priority: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="P1">P1</SelectItem>
-                        <SelectItem value="P2">P2</SelectItem>
-                        <SelectItem value="P3">P3</SelectItem>
+                        <PrioritySelectItems />
                       </SelectContent>
                     </Select>
                   </div>
@@ -566,9 +565,7 @@ export default function ItemPoolPage() {
                     <Select value={toSubForm.priority} onValueChange={(v) => setToSubForm((f) => ({ ...f, priority: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="P1">P1</SelectItem>
-                        <SelectItem value="P2">P2</SelectItem>
-                        <SelectItem value="P3">P3</SelectItem>
+                        <PrioritySelectItems />
                       </SelectContent>
                     </Select>
                   </div>

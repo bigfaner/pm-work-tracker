@@ -82,7 +82,7 @@
       "title": "Create PrioritySelect component and migrate usage",
       "priority": "P0",
       "estimatedTime": "1.5h",
-      "status": "pending",
+      "status": "completed",
       "file": "3.2-priority-select.md",
       "record": "records/3.2-priority-select.md"
     },

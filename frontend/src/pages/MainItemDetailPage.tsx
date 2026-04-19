@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { PrioritySelectItems } from '@/components/shared/PrioritySelect'
 import {
   Dialog,
   DialogContent,
@@ -394,9 +395,7 @@ export default function MainItemDetailPage() {
                     <Select value={editForm.priority} onValueChange={(v) => setEditForm((f) => ({ ...f, priority: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="P1">P1</SelectItem>
-                        <SelectItem value="P2">P2</SelectItem>
-                        <SelectItem value="P3">P3</SelectItem>
+                        <PrioritySelectItems />
                       </SelectContent>
                     </Select>
                   </div>
@@ -475,9 +474,7 @@ export default function MainItemDetailPage() {
                     <Select value={subForm.priority} onValueChange={(v) => setSubForm((f) => ({ ...f, priority: v }))}>
                       <SelectTrigger><SelectValue placeholder="请选择优先级" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="P1">P1</SelectItem>
-                        <SelectItem value="P2">P2</SelectItem>
-                        <SelectItem value="P3">P3</SelectItem>
+                        <PrioritySelectItems />
                       </SelectContent>
                     </Select>
                   </div>
