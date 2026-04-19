@@ -11,6 +11,7 @@ import {
 } from '@/api/teams'
 import type { TeamMemberResp } from '@/types'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
+import { PermissionGuard } from '@/components/PermissionGuard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -229,7 +230,9 @@ export default function TeamDetailPage() {
       {/* Member List Section */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[15px] font-semibold text-primary">成员列表</h3>
-        <Button size="sm" onClick={() => setInviteOpen(true)}>添加成员</Button>
+        <PermissionGuard code="team:invite">
+          <Button size="sm" onClick={() => setInviteOpen(true)}>添加成员</Button>
+        </PermissionGuard>
       </div>
 
       {/* Filters */}
@@ -287,22 +290,26 @@ export default function TeamDetailPage() {
                     <span className="text-tertiary">&mdash;</span>
                   ) : (
                     <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-primary-600"
-                        onClick={() => setTransferTarget(member)}
-                      >
-                        设为PM
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-error"
-                        onClick={() => setRemoveTarget(member)}
-                      >
-                        移除
-                      </Button>
+                      <PermissionGuard code="team:transfer">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-primary-600"
+                          onClick={() => setTransferTarget(member)}
+                        >
+                          设为PM
+                        </Button>
+                      </PermissionGuard>
+                      <PermissionGuard code="team:remove">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-error"
+                          onClick={() => setRemoveTarget(member)}
+                        >
+                          移除
+                        </Button>
+                      </PermissionGuard>
                     </div>
                   )}
                 </TableCell>
@@ -322,7 +329,9 @@ export default function TeamDetailPage() {
             <div className="font-medium text-primary">解散团队</div>
             <div className="text-[13px] text-secondary">解散后所有数据将无法恢复，所有成员将被移除。</div>
           </div>
-          <Button variant="danger" onClick={() => setDisbandOpen(true)}>解散团队</Button>
+          <PermissionGuard code="team:delete">
+            <Button variant="danger" onClick={() => setDisbandOpen(true)}>解散团队</Button>
+          </PermissionGuard>
         </div>
       </div>
 

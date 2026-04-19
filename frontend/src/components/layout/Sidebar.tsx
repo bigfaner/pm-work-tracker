@@ -24,7 +24,7 @@ import {
 const navItems = [
   { key: '/items', label: '事项清单', icon: LayoutGrid },
   { key: '/weekly', label: '每周进展', icon: Calendar },
-  { key: '/gantt', label: '整体进度', icon: AlignLeft },
+  { key: '/gantt', label: '整体进度', icon: AlignLeft, permission: 'view:gantt' },
   { key: '/item-pool', label: '待办事项', icon: Inbox },
   { key: '/report', label: '周报导出', icon: FileDown },
 ]
@@ -40,7 +40,7 @@ export default function Sidebar() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const { user, clearAuth, isSuperAdmin } = useAuthStore()
+  const { user, clearAuth } = useAuthStore()
   const { teams, currentTeamId, setCurrentTeam } = useTeamStore()
 
   const activeKey = '/' + location.pathname.split('/').filter(Boolean)[0]
@@ -89,7 +89,7 @@ export default function Sidebar() {
         {navItems.map((item, idx) => {
           const Icon = item.icon
           const isActive = activeKey === item.key
-          return (
+          const navLink = (
             <a
               key={item.key}
               href={item.key}
@@ -104,6 +104,14 @@ export default function Sidebar() {
               {item.label}
             </a>
           )
+          if (item.permission) {
+            return (
+              <PermissionGuard key={item.key} code={item.permission}>
+                {navLink}
+              </PermissionGuard>
+            )
+          }
+          return navLink
         })}
 
         {adminItems.map((item, idx) => {
@@ -142,7 +150,7 @@ export default function Sidebar() {
                 isActive
                   ? 'bg-primary-50 text-primary-700'
                   : 'text-secondary hover:bg-bg-alt hover:text-primary'
-              } ${!isSuperAdmin ? 'mt-4 pt-4 border-t border-border' : ''}`}
+              } mt-4 pt-4 border-t border-border`}
             >
               <Icon className="w-[18px] h-[18px] shrink-0" />
               {item.label}

@@ -182,6 +182,10 @@ describe('App Routing', () => {
 
     it('renders UserManagementPage at /users for super admin', () => {
       useAuthStore.getState().setAuth('token', superAdminUser)
+      useAuthStore.getState().setPermissions({
+        isSuperadmin: true,
+        teamPermissions: {},
+      })
       renderApp('/users')
       expect(screen.getByTestId('user-management-page')).toBeInTheDocument()
     })

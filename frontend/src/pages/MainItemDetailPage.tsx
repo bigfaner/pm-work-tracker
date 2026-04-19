@@ -40,6 +40,7 @@ import {
   TableCell,
 } from '@/components/ui/table'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
+import { PermissionGuard } from '@/components/PermissionGuard'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -198,12 +199,14 @@ export default function MainItemDetailPage() {
             <PriorityBadge priority={item.priority} />
             <StatusBadge status={item.status} />
             <div className="flex-1" />
-            <Button variant="secondary" onClick={() => setEditOpen(true)}>
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              编辑
-            </Button>
+            <PermissionGuard code="main_item:update">
+              <Button variant="secondary" onClick={() => setEditOpen(true)}>
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                编辑
+              </Button>
+            </PermissionGuard>
           </div>
 
           {/* Info Grid */}

@@ -7,6 +7,7 @@ import { server } from '@/mocks/server'
 import { http, HttpResponse } from 'msw'
 import { ToastProvider } from '@/components/ui/toast'
 import TeamDetailPage from './TeamDetailPage'
+import { useAuthStore } from '@/store/auth'
 
 // MSW lifecycle
 beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
@@ -126,6 +127,10 @@ function setupHandlers() {
 describe('TeamDetailPage', () => {
   beforeEach(() => {
     setupHandlers()
+    useAuthStore.getState().setPermissions({
+      isSuperadmin: false,
+      teamPermissions: { 1: ['team:invite', 'team:remove', 'team:transfer', 'team:delete'] },
+    })
   })
 
   // --- Breadcrumb navigation ---

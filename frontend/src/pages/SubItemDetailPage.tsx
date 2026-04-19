@@ -17,6 +17,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
+import { PermissionGuard } from '@/components/PermissionGuard'
 import { Progress } from '@/components/ui/progress'
 import {
   Breadcrumb,
@@ -140,7 +141,9 @@ export default function SubItemDetailPage() {
           {/* Title Bar */}
           <div className="flex items-center justify-between mb-5">
             <h1 className="text-xl font-semibold text-primary m-0">{subItem.title}</h1>
-            <Button onClick={() => setAppendOpen(true)}>追加进度</Button>
+            <PermissionGuard code="progress:update">
+              <Button onClick={() => setAppendOpen(true)}>追加进度</Button>
+            </PermissionGuard>
           </div>
 
           {/* Info Card (4-col grid) */}

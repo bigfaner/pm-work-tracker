@@ -6,6 +6,7 @@ import { listItemPoolApi, submitItemPoolApi, assignItemPoolApi, convertToMainApi
 import { listMainItemsApi } from '@/api/mainItems'
 import { listMembersApi } from '@/api/teams'
 import type { ItemPool, AssignItemPoolReq, ConvertToMainItemReq } from '@/types'
+import { PermissionGuard } from '@/components/PermissionGuard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -110,17 +111,19 @@ function PoolItemCard({ item, onConvertToMain, onConvertToSub, onReject }: PoolI
 
       {/* Actions (only for pending items) */}
       {isPending && (
-        <div className="flex justify-end gap-2 px-5 py-2 border-t border-border/50">
-          <Button variant="ghost" size="sm" className="text-primary-600" data-testid={`to-main-${item.id}`} onClick={() => onConvertToMain(item)}>
-            转为主事项
-          </Button>
-          <Button variant="ghost" size="sm" className="text-primary-600" data-testid={`to-sub-${item.id}`} onClick={() => onConvertToSub(item)}>
-            转为子事项
-          </Button>
-          <Button variant="ghost" size="sm" className="text-error" data-testid={`reject-${item.id}`} onClick={() => onReject(item)}>
-            拒绝
-          </Button>
-        </div>
+        <PermissionGuard code="item_pool:review">
+          <div className="flex justify-end gap-2 px-5 py-2 border-t border-border/50">
+            <Button variant="ghost" size="sm" className="text-primary-600" data-testid={`to-main-${item.id}`} onClick={() => onConvertToMain(item)}>
+              转为主事项
+            </Button>
+            <Button variant="ghost" size="sm" className="text-primary-600" data-testid={`to-sub-${item.id}`} onClick={() => onConvertToSub(item)}>
+              转为子事项
+            </Button>
+            <Button variant="ghost" size="sm" className="text-error" data-testid={`reject-${item.id}`} onClick={() => onReject(item)}>
+              拒绝
+            </Button>
+          </div>
+        </PermissionGuard>
       )}
     </div>
   )

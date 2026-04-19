@@ -67,6 +67,11 @@ describe('Sidebar', () => {
   })
 
   it('renders navigation items with correct labels', () => {
+    // Set permissions so 甘特图 is visible
+    useAuthStore.getState().setPermissions({
+      isSuperadmin: false,
+      teamPermissions: { 1: ['view:gantt'] },
+    })
     renderWithRouter()
     expect(screen.getByText('事项清单')).toBeInTheDocument()
     expect(screen.getByText('每周进展')).toBeInTheDocument()
@@ -129,11 +134,11 @@ describe('Sidebar', () => {
     expect(useAuthStore.getState().isAuthenticated).toBe(false)
   })
 
-  it('renders 6 standard nav items for regular user', () => {
+  it('renders 5 standard nav items for regular user without view:gantt', () => {
     renderWithRouter()
     const navLinks = screen.getAllByRole('link')
-    // 6 standard: items, weekly, gantt, item-pool, report, teams
-    expect(navLinks.length).toBe(6)
+    // 5 standard (no gantt): items, weekly, item-pool, report, teams
+    expect(navLinks.length).toBe(5)
   })
 
   it('renders 8 nav items (including user mgmt and roles) for SuperAdmin', () => {

@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo, Fragment } from 'rea
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
+import { PermissionGuard } from '@/components/PermissionGuard'
 import { listMainItemsApi, createMainItemApi, updateMainItemApi } from '@/api/mainItems'
 import { listSubItemsApi, createSubItemApi } from '@/api/subItems'
 import { appendProgressApi } from '@/api/progress'
@@ -385,12 +386,14 @@ export default function ItemViewPage() {
             </button>
           </div>
         </div>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          创建主事项
-        </Button>
+        <PermissionGuard code="main_item:create">
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            创建主事项
+          </Button>
+        </PermissionGuard>
       </div>
 
       {/* Filter Bar */}
@@ -896,7 +899,9 @@ function SummaryView({
                       <ProgressBar value={sub.completion} size="sm" />
                     </div>
                     <StatusBadge status={sub.status} />
-                    <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5" onClick={() => onAppendProgress(sub.id, sub.title)}>追加进度</Button>
+                    <PermissionGuard code="progress:update">
+                      <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5" onClick={() => onAppendProgress(sub.id, sub.title)}>追加进度</Button>
+                    </PermissionGuard>
                   </div>
                 ))}
               </div>
@@ -1035,7 +1040,9 @@ function DetailView({
                       <TableCell className="text-xs">{formatDate(sub.actualEndDate)}</TableCell>
                       <TableCell>
                         <div className="flex gap-1 whitespace-nowrap">
-                          <Button variant="ghost" size="sm" onClick={() => onAppendProgress(sub.id, sub.title)}>追加进度</Button>
+                          <PermissionGuard code="progress:update">
+                            <Button variant="ghost" size="sm" onClick={() => onAppendProgress(sub.id, sub.title)}>追加进度</Button>
+                          </PermissionGuard>
                         </div>
                       </TableCell>
                     </TableRow>

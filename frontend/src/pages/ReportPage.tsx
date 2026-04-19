@@ -3,6 +3,7 @@ import { getWeeklyReportPreviewApi, exportWeeklyReportApi } from '@/api/reports'
 import { useTeamStore } from '@/store/team'
 import { useAuthStore } from '@/store/auth'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
+import { PermissionGuard } from '@/components/PermissionGuard'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import type { ReportPreviewResp } from '@/types'
@@ -159,9 +160,11 @@ export default function ReportPage() {
         <Card>
           <CardHeader>
             <h3>预览</h3>
-            <Button variant="primary" size="sm" onClick={handleExport}>
-              导出 Markdown
-            </Button>
+            <PermissionGuard code="report:export">
+              <Button variant="primary" size="sm" onClick={handleExport}>
+                导出 Markdown
+              </Button>
+            </PermissionGuard>
           </CardHeader>
           <CardContent>
             <pre className="font-mono text-[13px] leading-[1.8] text-secondary whitespace-pre-wrap bg-bg-alt p-5 rounded-lg border border-border">

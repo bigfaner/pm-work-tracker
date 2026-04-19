@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import ReportPage from './ReportPage'
 import { useTeamStore } from '@/store/team'
+import { useAuthStore } from '@/store/auth'
 import type { Team } from '@/types'
 
 // Mock the report API
@@ -65,6 +66,10 @@ describe('ReportPage', () => {
   beforeEach(() => {
     useTeamStore.getState().setCurrentTeam(1)
     useTeamStore.getState().setTeams(mockTeams)
+    useAuthStore.getState().setPermissions({
+      isSuperadmin: false,
+      teamPermissions: { 1: ['report:export'] },
+    })
     mockGetPreview.mockReset()
     mockExportReport.mockReset()
   })

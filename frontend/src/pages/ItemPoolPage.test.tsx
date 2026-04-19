@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { server } from '@/mocks/server'
 import { http, HttpResponse } from 'msw'
 import { useTeamStore } from '@/store/team'
+import { useAuthStore } from '@/store/auth'
 import ItemPoolPage from './ItemPoolPage'
 
 // MSW lifecycle
@@ -145,6 +146,10 @@ function setupHandlers() {
 describe('ItemPoolPage', () => {
   beforeEach(() => {
     useTeamStore.setState({ currentTeamId: 1, teams: [{ id: 1, name: 'Test Team', description: '', pmId: 1, createdAt: '', updatedAt: '' }] })
+    useAuthStore.getState().setPermissions({
+      isSuperadmin: false,
+      teamPermissions: { 1: ['item_pool:review'] },
+    })
     setupHandlers()
   })
 

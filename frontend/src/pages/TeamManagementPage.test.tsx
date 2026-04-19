@@ -32,6 +32,7 @@ function renderPage() {
 
 // Lazy import to ensure MSW is ready
 const { default: TeamManagementPage } = await import('./TeamManagementPage')
+const { useAuthStore } = await import('@/store/auth')
 
 // --- Seed data ---
 
@@ -96,6 +97,10 @@ function setupHandlers() {
 describe('TeamManagementPage', () => {
   beforeEach(() => {
     setupHandlers()
+    useAuthStore.getState().setPermissions({
+      isSuperadmin: false,
+      teamPermissions: { 1: ['team:create'] },
+    })
   })
 
   // --- Core rendering ---

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listTeamsApi, createTeamApi } from '@/api/teams'
 import type { Team } from '@/types'
+import { PermissionGuard } from '@/components/PermissionGuard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -77,12 +78,14 @@ export default function TeamManagementPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold text-primary">团队管理</h1>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          创建团队
-        </Button>
+        <PermissionGuard code="team:create">
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            创建团队
+          </Button>
+        </PermissionGuard>
       </div>
 
       {/* Team Table */}

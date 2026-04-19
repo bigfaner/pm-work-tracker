@@ -1,6 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import AdminRoute from '@/components/AdminRoute'
 import PermissionRoute from '@/components/PermissionRoute'
 import AppLayout from '@/components/layout/AppLayout'
 import LoginPage from '@/pages/LoginPage'
@@ -36,7 +35,7 @@ export default function App() {
           <Route path="/teams" element={<TeamManagementPage />} />
         </Route>
       </Route>
-      <Route element={<AdminRoute />}>
+      <Route element={<PermissionRoute code="user:read" />}>
         <Route element={<AppLayout />}>
           <Route path="/users" element={<UserManagementPage />} />
         </Route>

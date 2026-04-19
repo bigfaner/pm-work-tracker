@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { server } from '@/mocks/server'
 import { http, HttpResponse } from 'msw'
 import { useTeamStore } from '@/store/team'
+import { useAuthStore } from '@/store/auth'
 import ItemViewPage from './ItemViewPage'
 
 // MSW lifecycle
@@ -147,6 +148,10 @@ function setupHandlers() {
 describe('ItemViewPage', () => {
   beforeEach(() => {
     useTeamStore.setState({ currentTeamId: 1, teams: [{ id: 1, name: 'Test Team', description: '', pmId: 1, createdAt: '', updatedAt: '' }] })
+    useAuthStore.getState().setPermissions({
+      isSuperadmin: false,
+      teamPermissions: { 1: ['main_item:create', 'progress:update'] },
+    })
     setupHandlers()
   })
 
