@@ -57,7 +57,6 @@ const seedUsers = [
 ]
 
 const seedTeams = [
-  { id: 1, name: '产品研发团队', pm: { displayName: '张明' }, memberCount: 3, mainItemCount: 5, createdAt: '2024-01-01' },
   { id: 2, name: '设计团队', pm: { displayName: '李华' }, memberCount: 2, mainItemCount: 2, createdAt: '2024-02-01' },
 ]
 

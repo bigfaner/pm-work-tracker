@@ -17,11 +17,9 @@ afterAll(() => server.close())
 const mockUser: User = {
   id: 1,
   username: 'testuser',
-  display_name: 'Test User',
-  is_super_admin: false,
-  can_create_team: false,
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
+  displayName: 'Test User',
+  isSuperAdmin: false,
+  canCreateTeam: false,
 }
 
 function getLoginButton() {

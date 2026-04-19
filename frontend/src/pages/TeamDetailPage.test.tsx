@@ -44,10 +44,11 @@ const seedTeamDetail = {
   name: '产品研发团队',
   description: '负责核心产品的研发与迭代',
   pmId: 1,
-  pm: { displayName: '张明' },
+  pmDisplayName: '张明',
   memberCount: 5,
   mainItemCount: 3,
   createdAt: '2026-03-01T00:00:00Z',
+  updatedAt: '2026-03-01T00:00:00Z',
 }
 
 const seedMembers = [

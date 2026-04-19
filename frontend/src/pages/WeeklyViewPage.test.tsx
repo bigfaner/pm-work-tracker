@@ -65,6 +65,7 @@ const mockWeeklyResponse: WeeklyViewResponse = {
           expectedEndDate: '2026-04-18',
           completion: 40,
           progressDescription: 'Token 签发逻辑开发中',
+          progressRecords: [],
         },
         {
           id: 11,
@@ -75,6 +76,7 @@ const mockWeeklyResponse: WeeklyViewResponse = {
           expectedEndDate: '2026-04-21',
           completion: 20,
           progressDescription: '基础结构搭建中',
+          progressRecords: [],
         },
       ],
       thisWeek: [
@@ -87,6 +89,10 @@ const mockWeeklyResponse: WeeklyViewResponse = {
           expectedEndDate: '2026-04-18',
           completion: 70,
           progressDescription: 'Token 签发完成，黑名单联调中',
+          progressRecords: [
+            { id: 1, subItemId: 10, teamId: 1, authorId: 2, completion: 60, achievement: 'Token 签发完成', blocker: '', lesson: '', isPMCorrect: false, createdAt: '2026-04-15T10:00:00Z' },
+            { id: 2, subItemId: 10, teamId: 1, authorId: 2, completion: 70, achievement: '黑名单联调中', blocker: 'Redis 连接超时', lesson: '', isPMCorrect: false, createdAt: '2026-04-17T14:00:00Z' },
+          ],
           delta: 30,
           isNew: false,
           justCompleted: false,
@@ -100,6 +106,9 @@ const mockWeeklyResponse: WeeklyViewResponse = {
           expectedEndDate: '2026-04-21',
           completion: 45,
           progressDescription: '中间件完成，RBAC 冲突待讨论',
+          progressRecords: [
+            { id: 3, subItemId: 11, teamId: 1, authorId: 3, completion: 45, achievement: '中间件完成', blocker: 'RBAC 冲突待讨论', lesson: '', isPMCorrect: false, createdAt: '2026-04-16T09:00:00Z' },
+          ],
           delta: 25,
           isNew: false,
           justCompleted: false,
@@ -113,6 +122,7 @@ const mockWeeklyResponse: WeeklyViewResponse = {
           expectedEndDate: '2026-04-25',
           completion: 0,
           progressDescription: '',
+          progressRecords: [],
           delta: 0,
           isNew: true,
           justCompleted: false,
@@ -128,6 +138,7 @@ const mockWeeklyResponse: WeeklyViewResponse = {
           expectedEndDate: '2026-04-10',
           completion: 100,
           progressDescription: '',
+          progressRecords: [],
         },
       ],
     },
@@ -151,6 +162,7 @@ const mockWeeklyResponse: WeeklyViewResponse = {
           expectedEndDate: '2026-04-18',
           completion: 55,
           progressDescription: '基础组件开发中',
+          progressRecords: [],
         },
       ],
       thisWeek: [
@@ -163,6 +175,9 @@ const mockWeeklyResponse: WeeklyViewResponse = {
           expectedEndDate: '2026-04-18',
           completion: 100,
           progressDescription: '图表渲染性能达标',
+          progressRecords: [
+            { id: 4, subItemId: 20, teamId: 1, authorId: 4, completion: 100, achievement: '图表渲染性能达标', blocker: '', lesson: '', isPMCorrect: false, createdAt: '2026-04-14T11:00:00Z' },
+          ],
           delta: 45,
           isNew: false,
           justCompleted: true,
@@ -176,6 +191,7 @@ const mockWeeklyResponse: WeeklyViewResponse = {
           expectedEndDate: '2026-04-20',
           completion: 80,
           progressDescription: '接口开发完成，性能优化中',
+          progressRecords: [],
           delta: 0,
           isNew: true,
           justCompleted: false,
@@ -206,7 +222,7 @@ describe('WeeklyViewPage', () => {
   beforeEach(() => {
     useTeamStore.setState({
       currentTeamId: 1,
-      teams: [{ id: 1, name: 'Test Team', description: '', pm_id: 1, created_at: '', updated_at: '' }],
+      teams: [{ id: 1, name: 'Test Team', description: '', pmId: 1, createdAt: '', updatedAt: '' }],
     })
     setupWeeklyHandler()
   })
@@ -372,11 +388,55 @@ describe('WeeklyViewPage', () => {
     })
   })
 
-  it('renders sub-item progress descriptions', async () => {
+  it('renders sub-item progress records on separate lines', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText(/Token 签发完成/)).toBeInTheDocument()
-      expect(screen.getByText(/中间件完成/)).toBeInTheDocument()
+      // Achievement text shown with prefix
+      expect(screen.getByText(/成果：Token 签发完成/)).toBeInTheDocument()
+      expect(screen.getByText(/成果：黑名单联调中/)).toBeInTheDocument()
+      // Blocker text shown with prefix
+      expect(screen.getByText(/卡点：Redis 连接超时/)).toBeInTheDocument()
+      expect(screen.getByText(/卡点：RBAC 冲突待讨论/)).toBeInTheDocument()
+    })
+  })
+
+  it('falls back to progressDescription when progressRecords is empty', async () => {
+    // Override: use items with empty progressRecords but non-empty progressDescription
+    setupWeeklyHandler({
+      weekStart: '2026-04-13',
+      weekEnd: '2026-04-19',
+      stats: { activeSubItems: 1, newlyCompleted: 0, inProgress: 1, blocked: 0 },
+      groups: [{
+        mainItem: {
+          id: 99,
+          title: 'Fallback测试',
+          priority: 'P2',
+          startDate: '2026-04-13',
+          expectedEndDate: '2026-04-19',
+          completion: 50,
+          subItemCount: 1,
+        },
+        lastWeek: [],
+        thisWeek: [{
+          id: 90,
+          title: '回退测试子事项',
+          priority: 'P2',
+          status: '进行中',
+          assigneeName: '测试',
+          expectedEndDate: '2026-04-19',
+          completion: 50,
+          progressDescription: '后端未更新时的描述',
+          progressRecords: [],
+          delta: 0,
+          isNew: false,
+          justCompleted: false,
+        }],
+        completedNoChange: [],
+      }],
+    })
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText(/50%.*后端未更新时的描述/)).toBeInTheDocument()
     })
   })
 

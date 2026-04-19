@@ -122,7 +122,7 @@ describe('GanttViewPage', () => {
   beforeEach(() => {
     useTeamStore.setState({
       currentTeamId: 1,
-      teams: [{ id: 1, name: 'Test Team', description: '', pm_id: 1, created_at: '', updated_at: '' }],
+      teams: [{ id: 1, name: 'Test Team', description: '', pmId: 1, createdAt: '', updatedAt: '' }],
     })
     setupGanttHandler()
   })
@@ -409,9 +409,7 @@ describe('GanttViewPage', () => {
     await waitFor(() => {
       const container = screen.getByTestId('gantt-container')
       expect(container).toHaveClass('gantt-container')
-      const scroll = container.querySelector('.gantt-scroll')
-      expect(scroll).toBeInTheDocument()
-      const inner = scroll!.querySelector('.gantt-inner')
+      const inner = container.querySelector('.gantt-inner')
       expect(inner).toBeInTheDocument()
     })
   })

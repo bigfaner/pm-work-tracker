@@ -34,11 +34,11 @@ describe('API Client', () => {
       useAuthStore.getState().setAuth('test-jwt-token', {
         id: 1,
         username: 'testuser',
-        display_name: 'Test User',
-        is_super_admin: false,
-        can_create_team: false,
-        created_at: '2026-01-01T00:00:00Z',
-        updated_at: '2026-01-01T00:00:00Z',
+        displayName: 'Test User',
+        isSuperAdmin: false,
+        canCreateTeam: false,
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
       })
 
       // Access the request interceptor directly through client
@@ -92,11 +92,11 @@ describe('API Client', () => {
       useAuthStore.getState().setAuth('token', {
         id: 1,
         username: 'u',
-        display_name: 'U',
-        is_super_admin: false,
-        can_create_team: false,
-        created_at: '',
-        updated_at: '',
+        displayName: 'U',
+        isSuperAdmin: false,
+        canCreateTeam: false,
+        createdAt: '',
+        updatedAt: '',
       })
 
       const handler = getRejectHandler()

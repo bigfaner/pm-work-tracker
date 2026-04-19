@@ -10,19 +10,17 @@ import type { User, Team } from '@/types'
 const mockUser: User = {
   id: 1,
   username: 'testuser',
-  display_name: '张明',
-  is_super_admin: false,
-  can_create_team: false,
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
+  displayName: '张明',
+  isSuperAdmin: false,
+  canCreateTeam: false,
 }
 
 const superAdminUser: User = {
   ...mockUser,
   id: 2,
   username: 'admin',
-  display_name: 'Admin',
-  is_super_admin: true,
+  displayName: 'Admin',
+  isSuperAdmin: true,
 }
 
 const mockTeams: Team[] = [
@@ -30,17 +28,17 @@ const mockTeams: Team[] = [
     id: 1,
     name: '产品研发团队',
     description: '',
-    pm_id: 1,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
+    pmId: 1,
+  createdAt: '2024-01-01',
+  updatedAt: '2024-01-01',
   },
   {
     id: 2,
     name: '设计团队',
     description: '',
-    pm_id: 2,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
+    pmId: 2,
+    createdAt: '2024-01-01',
+    updatedAt: '2024-01-01',
   },
 ]
 

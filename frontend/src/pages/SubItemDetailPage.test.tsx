@@ -43,42 +43,42 @@ const seedMembers = [
 ]
 
 const seedMainItem = {
-  id: 1, team_id: 1, code: 'MI-0001', title: 'Alpha Task', priority: 'P1',
-  proposer_id: 1, assignee_id: 1, start_date: '2026-03-20', expected_end_date: '2026-04-15',
-  actual_end_date: null, status: '进行中', completion: 65, is_key_item: false,
-  delay_count: 0, archived_at: null,
-  created_at: '2026-03-20T00:00:00Z', updated_at: '2026-04-01T00:00:00Z',
+  id: 1, teamId: 1, code: 'MI-0001', title: 'Alpha Task', priority: 'P1',
+  proposerId: 1, assigneeId: 1, startDate: '2026-03-20', expectedEndDate: '2026-04-15',
+  actualEndDate: null, status: '进行中', completion: 65, isKeyItem: false,
+  delayCount: 0, archivedAt: null,
+  createdAt: '2026-03-20T00:00:00Z', updatedAt: '2026-04-01T00:00:00Z',
   subItems: [],
 }
 
 const seedSubItem = {
-  id: 12, team_id: 1, main_item_id: 1, title: 'Sub Alpha 2', description: 'JWT Token implementation',
-  priority: 'P2', assignee_id: 3, start_date: '2026-04-08', expected_end_date: '2026-04-18',
-  actual_end_date: null, status: '进行中', completion: 80, is_key_item: false,
-  delay_count: 0, weight: 1,
-  created_at: '2026-04-01T00:00:00Z', updated_at: '2026-04-08T00:00:00Z',
+  id: 12, teamId: 1, mainItemId: 1, title: 'Sub Alpha 2', description: 'JWT Token implementation',
+  priority: 'P2', assigneeId: 3, startDate: '2026-04-08', expectedEndDate: '2026-04-18',
+  actualEndDate: null, status: '进行中', completion: 80, isKeyItem: false,
+  delayCount: 0, weight: 1,
+  createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-08T00:00:00Z',
 }
 
 const seedProgressRecords = [
   {
-    id: 1, sub_item_id: 12, team_id: 1, author_id: 3, completion: 10,
+    id: 1, subItemId: 12, teamId: 1, authorId: 3, completion: 10,
     achievement: '完成 JWT Token 签发逻辑的基础代码框架搭建',
-    blocker: '', lesson: '', is_pm_correct: false,
-    created_at: '2026-04-01T10:00:00Z',
+    blocker: '', lesson: '', isPMCorrect: false,
+    createdAt: '2026-04-01T10:00:00Z',
   },
   {
-    id: 2, sub_item_id: 12, team_id: 1, author_id: 3, completion: 40,
+    id: 2, subItemId: 12, teamId: 1, authorId: 3, completion: 40,
     achievement: 'Token 刷新机制实现，AccessToken + RefreshToken 双 Token 模式',
     blocker: 'Redis 集群偶发连接超时，影响 Token 黑名单方案',
-    lesson: '', is_pm_correct: false,
-    created_at: '2026-04-08T10:00:00Z',
+    lesson: '', isPMCorrect: false,
+    createdAt: '2026-04-08T10:00:00Z',
   },
   {
-    id: 3, sub_item_id: 12, team_id: 1, author_id: 3, completion: 80,
+    id: 3, subItemId: 12, teamId: 1, authorId: 3, completion: 80,
     achievement: 'Token 黑名单方案实现完成，集成测试通过',
     blocker: '部分旧接口 Token 格式兼容问题待修复',
-    lesson: '', is_pm_correct: false,
-    created_at: '2026-04-15T10:00:00Z',
+    lesson: '', isPMCorrect: false,
+    createdAt: '2026-04-15T10:00:00Z',
   },
 ]
 
@@ -119,9 +119,9 @@ function setupHandlers() {
       return HttpResponse.json({
         code: 0,
         data: {
-          id: 4, sub_item_id: 12, team_id: 1, author_id: 1,
-          lesson: '', is_pm_correct: false,
-          created_at: new Date().toISOString(),
+          id: 4, subItemId: 12, teamId: 1, authorId: 1,
+          lesson: '', isPMCorrect: false,
+          createdAt: new Date().toISOString(),
           ...body,
         },
       })
@@ -131,7 +131,7 @@ function setupHandlers() {
 
 describe('SubItemDetailPage', () => {
   beforeEach(() => {
-    useTeamStore.setState({ currentTeamId: 1, teams: [{ id: 1, name: 'Test Team', description: '', pm_id: 1, created_at: '', updated_at: '' }] })
+    useTeamStore.setState({ currentTeamId: 1, teams: [{ id: 1, name: 'Test Team', description: '', pmId: 1, createdAt: '', updatedAt: '' }] })
     setupHandlers()
   })
 

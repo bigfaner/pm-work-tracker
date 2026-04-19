@@ -190,7 +190,7 @@ describe('TableViewPage', () => {
   beforeEach(() => {
     useTeamStore.setState({
       currentTeamId: 1,
-      teams: [{ id: 1, name: 'Test Team', description: '', pm_id: 1, created_at: '', updated_at: '' }],
+      teams: [{ id: 1, name: 'Test Team', description: '', pmId: 1, createdAt: '', updatedAt: '' }],
     })
     setupTableHandler()
   })
