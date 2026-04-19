@@ -12,12 +12,14 @@ import (
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/repository"
 	"pm-work-tracker/backend/internal/service"
+	"pm-work-tracker/backend/internal/vo"
 )
 
 // ItemPoolHandler handles item pool endpoints.
 type ItemPoolHandler struct {
-	svc      service.ItemPoolService
-	userRepo repository.UserRepo
+	svc         service.ItemPoolService
+	userRepo    repository.UserRepo
+	mainItemRepo repository.MainItemRepo
 }
 
 // NewItemPoolHandler creates a new ItemPoolHandler (stub, for router setup before service is ready).
@@ -26,8 +28,8 @@ func NewItemPoolHandler() *ItemPoolHandler {
 }
 
 // NewItemPoolHandlerWithDeps creates a new ItemPoolHandler with service and repo dependencies.
-func NewItemPoolHandlerWithDeps(svc service.ItemPoolService, userRepo repository.UserRepo) *ItemPoolHandler {
-	return &ItemPoolHandler{svc: svc, userRepo: userRepo}
+func NewItemPoolHandlerWithDeps(svc service.ItemPoolService, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo) *ItemPoolHandler {
+	return &ItemPoolHandler{svc: svc, userRepo: userRepo, mainItemRepo: mainItemRepo}
 }
 
 // Submit handles POST /api/v1/teams/:teamId/item-pool
@@ -52,7 +54,7 @@ func (h *ItemPoolHandler) Submit(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": itemPoolToDTO(item, h.userRepo, c)})
+	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": itemPoolToVO(item, h.userRepo, h.mainItemRepo, c)})
 }
 
 // List handles GET /api/v1/teams/:teamId/item-pool
@@ -88,7 +90,16 @@ func (h *ItemPoolHandler) List(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, result)
+	voItems := make([]vo.ItemPoolVO, 0, len(result.Items))
+	for i := range result.Items {
+		voItems = append(voItems, itemPoolToVO(&result.Items[i], h.userRepo, h.mainItemRepo, c))
+	}
+	apperrors.RespondOK(c, gin.H{
+		"items": voItems,
+		"total": result.Total,
+		"page":  result.Page,
+		"size":  result.Size,
+	})
 }
 
 // Get handles GET /api/v1/teams/:teamId/item-pool/:poolId
@@ -111,7 +122,7 @@ func (h *ItemPoolHandler) Get(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, itemPoolToDTO(item, h.userRepo, c))
+	apperrors.RespondOK(c, itemPoolToVO(item, h.userRepo, h.mainItemRepo, c))
 }
 
 // Assign handles POST /api/v1/teams/:teamId/item-pool/:poolId/assign
@@ -148,7 +159,37 @@ func (h *ItemPoolHandler) Assign(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": 0, "data": gin.H{"subItemId": updated.AssignedSubID}})
+	c.JSON(http.StatusOK, gin.H{"code": 0, "data": gin.H{"mainItemId": updated.AssignedMainID, "subItemId": updated.AssignedSubID}})
+}
+
+// ConvertToMain handles POST /api/v1/teams/:teamId/item-pool/:poolId/convert-to-main
+func (h *ItemPoolHandler) ConvertToMain(c *gin.Context) {
+	if h.svc == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
+		return
+	}
+
+	poolID, ok := parsePoolID(c)
+	if !ok {
+		return
+	}
+
+	teamID := middleware.GetTeamID(c)
+	pmID := middleware.GetUserID(c)
+
+	var req dto.ConvertToMainItemReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	mainItem, err := h.svc.ConvertToMain(c.Request.Context(), teamID, pmID, poolID, req)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 0, "data": gin.H{"mainItemId": mainItem.ID}})
 }
 
 // Reject handles POST /api/v1/teams/:teamId/item-pool/:poolId/reject
@@ -185,7 +226,7 @@ func (h *ItemPoolHandler) Reject(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, itemPoolToDTO(updated, h.userRepo, c))
+	apperrors.RespondOK(c, itemPoolToVO(updated, h.userRepo, h.mainItemRepo, c))
 }
 
 // parsePoolID extracts and validates the poolId path param as uint.
@@ -199,30 +240,20 @@ func parsePoolID(c *gin.Context) (uint, bool) {
 	return uint(id), true
 }
 
-// itemPoolToDTO converts a model.ItemPool to a response map matching the Data Contract.
-// Includes submitterName via user lookup.
-func itemPoolToDTO(item *model.ItemPool, userRepo repository.UserRepo, c *gin.Context) gin.H {
-	m := gin.H{
-		"id":              item.ID,
-		"title":           item.Title,
-		"background":      item.Background,
-		"expectedOutput":  item.ExpectedOutput,
-		"submitterId":     item.SubmitterID,
-		"status":          item.Status,
-		"assignedMainId":  item.AssignedMainID,
-		"assignedSubId":   item.AssignedSubID,
-		"assigneeId":      item.AssigneeID,
-		"rejectReason":    item.RejectReason,
-		"reviewedAt":      item.ReviewedAt,
-		"createdAt":       item.CreatedAt,
-	}
-
-	// Look up submitter name
+// itemPoolToVO converts a model.ItemPool to an ItemPoolVO.
+func itemPoolToVO(item *model.ItemPool, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, c *gin.Context) vo.ItemPoolVO {
+	submitterName := ""
 	if userRepo != nil && item.SubmitterID > 0 {
 		if user, err := userRepo.FindByID(c.Request.Context(), item.SubmitterID); err == nil && user != nil {
-			m["submitterName"] = user.DisplayName
+			submitterName = user.DisplayName
 		}
 	}
-
-	return m
+	v := vo.NewItemPoolVO(item, submitterName)
+	if mainItemRepo != nil && item.AssignedMainID != nil {
+		if mi, err := mainItemRepo.FindByID(c.Request.Context(), *item.AssignedMainID); err == nil && mi != nil {
+			v.AssignedMainCode = mi.Code
+			v.AssignedMainTitle = mi.Title
+		}
+	}
+	return v
 }

@@ -2,13 +2,11 @@ package model
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
 // ItemPool status values: 待分配, 已分配, 已拒绝
 type ItemPool struct {
-	gorm.Model
+	BaseModel
 	TeamID         uint       `gorm:"not null;index" json:"team_id"`
 	Title          string     `gorm:"type:varchar(100);not null" json:"title"`
 	Background     string     `gorm:"type:text" json:"background"`

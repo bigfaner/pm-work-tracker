@@ -2,12 +2,10 @@ package model
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
 type Team struct {
-	gorm.Model
+	BaseModel
 	Name        string `gorm:"type:varchar(100);not null" json:"name"`
 	Description string `gorm:"type:varchar(500)" json:"description"`
 	PmID        uint   `gorm:"not null" json:"pm_id"`

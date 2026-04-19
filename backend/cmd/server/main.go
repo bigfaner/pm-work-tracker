@@ -56,23 +56,35 @@ func run(configPath string) error {
 	// 4. Init repositories
 	teamRepo := gormrepo.NewGormTeamRepo(db)
 	userRepo := gormrepo.NewGormUserRepo(db)
+	mainItemRepo := gormrepo.NewGormMainItemRepo(db)
+	subItemRepo := gormrepo.NewGormSubItemRepo(db)
+	progressRepo := gormrepo.NewGormProgressRepo(db)
+	itemPoolRepo := gormrepo.NewGormItemPoolRepo(db)
 
 	// 5. Init services
 	authSvc := service.NewAuthService(userRepo, cfg.Auth.JWTSecret)
+	teamSvc := service.NewTeamService(teamRepo, userRepo, mainItemRepo, db)
+	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo)
+	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc)
+	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc)
+	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, db)
+	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)
+	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
+	adminSvc := service.NewAdminService(userRepo, teamRepo)
 
 	// 6. Init handlers
 	deps := &handler.Dependencies{
 		Config:   cfg,
 		TeamRepo: teamRepo,
 		Auth:     handler.NewAuthHandler(authSvc),
-		Team:     handler.NewTeamHandler(),
-		MainItem: handler.NewMainItemHandler(),
-		SubItem:  handler.NewSubItemHandler(),
-		Progress: handler.NewProgressHandler(),
-		ItemPool: handler.NewItemPoolHandler(),
-		View:     handler.NewViewHandler(),
-		Report:   handler.NewReportHandler(),
-		Admin:    handler.NewAdminHandler(),
+		Team:     handler.NewTeamHandlerWithDeps(teamSvc, userRepo),
+		MainItem: handler.NewMainItemHandlerWithDeps(mainItemSvc, userRepo, subItemRepo),
+		SubItem:  handler.NewSubItemHandlerWithDeps(subItemSvc),
+		Progress: handler.NewProgressHandlerWithDeps(progressSvc, userRepo),
+		ItemPool: handler.NewItemPoolHandlerWithDeps(itemPoolSvc, userRepo, mainItemRepo),
+		View:     handler.NewViewHandlerWithDeps(viewSvc),
+		Report:   handler.NewReportHandlerWithDeps(reportSvc),
+		Admin:    handler.NewAdminHandlerWithDeps(adminSvc),
 	}
 
 	// 7. Setup router

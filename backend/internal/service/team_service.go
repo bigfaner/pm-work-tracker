@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"gorm.io/gorm"
@@ -14,7 +15,7 @@ import (
 
 // TransactionDB abstracts the gorm.DB.Transaction method for testability.
 type TransactionDB interface {
-	Transaction(fc func(tx interface{}) error) error
+	Transaction(fc func(tx *gorm.DB) error, opts ...*sql.TxOptions) error
 }
 
 type TeamService interface {
@@ -214,7 +215,7 @@ func (s *teamService) TransferPM(ctx context.Context, currentPMID, teamID, newPM
 	}
 
 	// Atomic transfer via transaction
-	return s.db.Transaction(func(_ interface{}) error {
+	return s.db.Transaction(func(_ *gorm.DB) error {
 		// Update team PM
 		team.PmID = newPMID
 		if err := s.teamRepo.Update(ctx, team); err != nil {

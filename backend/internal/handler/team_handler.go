@@ -81,7 +81,11 @@ func (h *TeamHandler) List(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, teams)
+	dtos := make([]gin.H, len(teams))
+	for i, t := range teams {
+		dtos[i] = teamToDTO(t)
+	}
+	apperrors.RespondOK(c, dtos)
 }
 
 // Get handles GET /api/v1/teams/:teamId

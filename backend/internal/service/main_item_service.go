@@ -41,14 +41,26 @@ func (s *mainItemService) Create(ctx context.Context, teamID, pmID uint, req dto
 	}
 
 	item := &model.MainItem{
-		TeamID:     teamID,
-		Code:       code,
-		Title:      req.Title,
-		Priority:   req.Priority,
-		ProposerID: pmID,
-		AssigneeID: req.AssigneeID,
-		IsKeyItem:  req.IsKeyItem,
-		Status:     "待开始",
+		TeamID:      teamID,
+		Code:        code,
+		Title:       req.Title,
+		Description: req.Description,
+		Priority:    req.Priority,
+		ProposerID:  pmID,
+		AssigneeID:  &req.AssigneeID,
+		IsKeyItem:   req.IsKeyItem,
+		Status:      "待开始",
+	}
+
+	if req.StartDate != nil {
+		if t, err := time.Parse("2006-01-02", *req.StartDate); err == nil {
+			item.StartDate = &t
+		}
+	}
+	if req.ExpectedEndDate != nil {
+		if t, err := time.Parse("2006-01-02", *req.ExpectedEndDate); err == nil {
+			item.ExpectedEndDate = &t
+		}
 	}
 
 	if err := s.mainItemRepo.Create(ctx, item); err != nil {

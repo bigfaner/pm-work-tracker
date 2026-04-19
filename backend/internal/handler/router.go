@@ -109,6 +109,7 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 		teamsGroup.GET("/item-pool", deps.ItemPool.List)
 		teamsGroup.GET("/item-pool/:poolId", deps.ItemPool.Get)
 		teamsGroup.POST("/item-pool/:poolId/assign", middleware.RequireTeamRole("pm"), deps.ItemPool.Assign)
+		teamsGroup.POST("/item-pool/:poolId/convert-to-main", middleware.RequireTeamRole("pm"), deps.ItemPool.ConvertToMain)
 		teamsGroup.POST("/item-pool/:poolId/reject", middleware.RequireTeamRole("pm"), deps.ItemPool.Reject)
 
 		// Views

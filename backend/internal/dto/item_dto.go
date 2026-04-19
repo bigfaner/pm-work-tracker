@@ -4,8 +4,8 @@ package dto
 type MainItemFilter struct {
 	Status    string `form:"status"`
 	Priority  string `form:"priority"`
-	AssigneeID *uint `form:"assignee_id"`
-	IsKeyItem *bool  `form:"is_key_item"`
+	AssigneeID *uint `form:"assigneeId"`
+	IsKeyItem *bool  `form:"isKeyItem"`
 	Archived  bool   `form:"archived"`
 }
 
@@ -13,19 +13,19 @@ type MainItemFilter struct {
 type SubItemFilter struct {
 	Status    string `form:"status"`
 	Priority  string `form:"priority"`
-	AssigneeID *uint `form:"assignee_id"`
-	IsKeyItem *bool  `form:"is_key_item"`
+	AssigneeID *uint `form:"assigneeId"`
+	IsKeyItem *bool  `form:"isKeyItem"`
 }
 
 // SubItemCreateReq is the request DTO for creating a sub item.
 type SubItemCreateReq struct {
-	MainItemID      uint   `json:"main_item_id" binding:"required"`
-	Title           string `json:"title" binding:"required,max=100"`
-	Description     string `json:"description"`
-	Priority        string `json:"priority" binding:"required,oneof=P1 P2 P3"`
-	AssigneeID      *uint  `json:"assignee_id"`
-	StartDate       *string `json:"start_date"`
-	ExpectedEndDate *string `json:"expected_end_date"`
+	MainItemID      uint    `json:"mainItemId" binding:"required"`
+	Title           string  `json:"title" binding:"required,max=100"`
+	Description     string  `json:"description"`
+	Priority        string  `json:"priority" binding:"required,oneof=P1 P2 P3"`
+	AssigneeID      uint    `json:"assigneeId" binding:"required"`
+	StartDate       *string `json:"startDate" binding:"required"`
+	ExpectedEndDate *string `json:"expectedEndDate" binding:"required"`
 }
 
 // SubItemUpdateReq is the request DTO for updating a sub item.
@@ -34,9 +34,9 @@ type SubItemUpdateReq struct {
 	Title           *string `json:"title"`
 	Description     *string `json:"description"`
 	Priority        *string `json:"priority"`
-	AssigneeID      *uint   `json:"assignee_id"`
-	StartDate       *string `json:"start_date"`
-	ExpectedEndDate *string `json:"expected_end_date"`
+	AssigneeID      *uint   `json:"assigneeId"`
+	StartDate       *string `json:"startDate"`
+	ExpectedEndDate *string `json:"expectedEndDate"`
 }
 
 // ItemPoolFilter holds filter parameters for listing ItemPool entries.
@@ -48,13 +48,24 @@ type ItemPoolFilter struct {
 type SubmitItemPoolReq struct {
 	Title          string `json:"title" binding:"required,max=100"`
 	Background     string `json:"background"`
-	ExpectedOutput string `json:"expected_output"`
+	ExpectedOutput string `json:"expectedOutput"`
 }
 
-// AssignItemPoolReq is the request DTO for assigning a pool item to a main item.
+// AssignItemPoolReq is the request DTO for assigning a pool item to an existing main item as sub-item.
 type AssignItemPoolReq struct {
-	MainItemID uint `json:"mainItemId" binding:"required"`
-	AssigneeID uint `json:"assigneeId" binding:"required"`
+	MainItemID      uint    `json:"mainItemId" binding:"required"`
+	AssigneeID      *uint   `json:"assigneeId" binding:"required"`
+	Priority        string  `json:"priority"`
+	StartDate       *string `json:"startDate" binding:"required"`
+	ExpectedEndDate *string `json:"expectedEndDate" binding:"required"`
+}
+
+// ConvertToMainItemReq is the request DTO for converting a pool item to a new main item.
+type ConvertToMainItemReq struct {
+	Priority        string  `json:"priority" binding:"required,oneof=P0 P1 P2 P3"`
+	AssigneeID      *uint   `json:"assigneeId" binding:"required"`
+	StartDate       *string `json:"startDate" binding:"required"`
+	ExpectedEndDate *string `json:"expectedEndDate" binding:"required"`
 }
 
 // RejectItemPoolReq is the request DTO for rejecting a pool item.
@@ -65,11 +76,12 @@ type RejectItemPoolReq struct {
 // MainItemCreateReq is the request DTO for creating a main item.
 type MainItemCreateReq struct {
 	Title           string  `json:"title" binding:"required,max=100"`
+	Description     string  `json:"description"`
 	Priority        string  `json:"priority" binding:"required,oneof=P0 P1 P2 P3"`
-	AssigneeID      *uint   `json:"assignee_id"`
-	StartDate       *string `json:"start_date"`
-	ExpectedEndDate *string `json:"expected_end_date"`
-	IsKeyItem       bool    `json:"is_key_item"`
+	AssigneeID      uint    `json:"assigneeId" binding:"required"`
+	StartDate       *string `json:"startDate" binding:"required"`
+	ExpectedEndDate *string `json:"expectedEndDate" binding:"required"`
+	IsKeyItem       bool    `json:"isKeyItem"`
 }
 
 // MainItemUpdateReq is the request DTO for updating a main item.
@@ -77,18 +89,18 @@ type MainItemCreateReq struct {
 type MainItemUpdateReq struct {
 	Title           *string `json:"title"`
 	Priority        *string `json:"priority"`
-	AssigneeID      *uint   `json:"assignee_id"`
-	StartDate       *string `json:"start_date"`
-	ExpectedEndDate *string `json:"expected_end_date"`
-	ActualEndDate   *string `json:"actual_end_date"`
+	AssigneeID      *uint   `json:"assigneeId"`
+	StartDate       *string `json:"startDate"`
+	ExpectedEndDate *string `json:"expectedEndDate"`
+	ActualEndDate   *string `json:"actualEndDate"`
 	Status          *string `json:"status"`
-	IsKeyItem       *bool   `json:"is_key_item"`
+	IsKeyItem       *bool   `json:"isKeyItem"`
 }
 
 // Pagination holds page parameters.
 type Pagination struct {
 	Page     int `form:"page" json:"page"`
-	PageSize int `form:"page_size" json:"page_size"`
+	PageSize int `form:"pageSize" json:"pageSize"`
 }
 
 // PageResult is a generic paginated result.
@@ -138,17 +150,18 @@ type WeeklyMainItemSummary struct {
 
 // SubItemSnapshot represents a sub-item snapshot in the weekly comparison view.
 type SubItemSnapshot struct {
-	ID                  uint    `json:"id"`
-	Title               string  `json:"title"`
-	Priority            string  `json:"priority"`
-	Status              string  `json:"status"`
-	AssigneeName        string  `json:"assigneeName"`
-	ExpectedEndDate     string  `json:"expectedEndDate"`
-	Completion          float64 `json:"completion"`
-	ProgressDescription string  `json:"progressDescription"`
-	Delta               float64 `json:"delta"`
-	IsNew               bool    `json:"isNew"`
-	JustCompleted       bool    `json:"justCompleted"`
+	ID                  uint                `json:"id"`
+	Title               string              `json:"title"`
+	Priority            string              `json:"priority"`
+	Status              string              `json:"status"`
+	AssigneeName        string              `json:"assigneeName"`
+	ExpectedEndDate     string              `json:"expectedEndDate"`
+	Completion          float64             `json:"completion"`
+	ProgressDescription string              `json:"progressDescription"`
+	ProgressRecords     []ProgressRecordDTO `json:"progressRecords"`
+	Delta               float64             `json:"delta"`
+	IsNew               bool                `json:"isNew"`
+	JustCompleted       bool                `json:"justCompleted"`
 }
 
 // WeeklyViewResult is the response DTO for the weekly view.

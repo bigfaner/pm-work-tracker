@@ -47,14 +47,25 @@ var allowedTransitions = map[string]map[string]bool{
 
 func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req dto.SubItemCreateReq) (*model.SubItem, error) {
 	item := &model.SubItem{
-		TeamID:     teamID,
-		MainItemID: req.MainItemID,
-		Title:      req.Title,
+		TeamID:      teamID,
+		MainItemID:  req.MainItemID,
+		Title:       req.Title,
 		Description: req.Description,
-		Priority:   req.Priority,
-		AssigneeID: req.AssigneeID,
-		Status:     "待开始",
-		Weight:     1.0,
+		Priority:    req.Priority,
+		AssigneeID:  &req.AssigneeID,
+		Status:      "待开始",
+		Weight:      1.0,
+	}
+
+	if req.StartDate != nil {
+		if t, err := time.Parse("2006-01-02", *req.StartDate); err == nil {
+			item.StartDate = &t
+		}
+	}
+	if req.ExpectedEndDate != nil {
+		if t, err := time.Parse("2006-01-02", *req.ExpectedEndDate); err == nil {
+			item.ExpectedEndDate = &t
+		}
 	}
 
 	if err := s.subItemRepo.Create(ctx, item); err != nil {

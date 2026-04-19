@@ -1,25 +1,33 @@
-/* --- Gantt View Page Overrides --- */
-/* Matches prototype: gantt-view.html */
+/* --- Gantt View Page --- */
 
-/* Container: full viewport height with border */
-.gantt-container {
-  display: block;
-  height: calc(100vh - 180px);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  overflow: hidden;
+/* Page layout: flex column to fill main content area */
+.gantt-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 48px); /* 48px = main p-6 (24px top + 24px bottom) */
 }
 
-/* Scroll wrapper: handles both horizontal and vertical scroll */
-.gantt-scroll {
-  height: 100%;
-  overflow: auto;
+.gantt-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+/* Container: flex-grow, vertical scroll only, border */
+.gantt-container {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Inner flex: label panel + timeline side by side */
 .gantt-inner {
   display: flex;
-  min-width: fit-content;
 }
 
 /* --- Label Panel (sticky left) --- */
@@ -122,19 +130,37 @@
 /* --- Timeline Panel --- */
 .gantt-timeline {
   flex: 1;
-  overflow: visible;
+  min-width: 0;
   position: relative;
 }
 
-/* --- Timeline Header --- */
+/* --- Timeline Header (sticky top, content synced via JS transform) --- */
 .gantt-header {
-  display: block !important;
-  height: auto !important;
   position: sticky;
   top: 0;
   z-index: 15;
   background: var(--color-bg-alt);
   border-bottom: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.gantt-header-inner {
+  /* width set inline; transform set by JS on body scroll */
+}
+
+/* --- Timeline Body (clipped, content translated via JS) --- */
+.gantt-body {
+  overflow: hidden;
+}
+
+/* --- Horizontal Scrollbar Proxy (sticky at bottom of container) --- */
+.gantt-hscroll {
+  position: sticky;
+  bottom: 0;
+  overflow-x: auto;
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  z-index: 15;
 }
 
 .gantt-month-row {

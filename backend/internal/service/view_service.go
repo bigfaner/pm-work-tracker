@@ -308,6 +308,20 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 				ProgressDescription: latestProgressDesc[si.ID],
 			}
 
+			// Populate individual progress records for this week
+			if records, ok := thisWeekProgress[si.ID]; ok && len(records) > 0 {
+				snapshot.ProgressRecords = make([]dto.ProgressRecordDTO, 0, len(records))
+				for _, pr := range records {
+					snapshot.ProgressRecords = append(snapshot.ProgressRecords, dto.ProgressRecordDTO{
+						ID:          pr.ID,
+						Completion:  pr.Completion,
+						Achievement: pr.Achievement,
+						Blocker:     pr.Blocker,
+						CreatedAt:   pr.CreatedAt.Format(time.RFC3339),
+					})
+				}
+			}
+
 			if isJustCompleted {
 				snapshot.JustCompleted = true
 			}
@@ -439,6 +453,22 @@ func (s *viewService) GanttView(ctx context.Context, teamID uint, filter dto.Gan
 		}
 		mainItems = filtered
 	}
+
+	// Sort main items: priority ASC (P1 first), then created_at ASC
+	sort.SliceStable(mainItems, func(i, j int) bool {
+		pi, oki := priorityOrder[mainItems[i].Priority]
+		pj, okj := priorityOrder[mainItems[j].Priority]
+		if !oki {
+			pi = 99
+		}
+		if !okj {
+			pj = 99
+		}
+		if pi != pj {
+			return pi < pj
+		}
+		return mainItems[i].CreatedAt.Before(mainItems[j].CreatedAt)
+	})
 
 	// Fetch all sub-items for the team (single query, avoid N+1)
 	subItems, err := s.subItemRepo.ListByTeam(ctx, teamID)
