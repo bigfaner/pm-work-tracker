@@ -12,6 +12,7 @@ feature: "rbac-permissions"
 - 权限码浏览视图（超级管理员专用）
 - 团队成员角色选择（邀请流程中的角色选择步骤）
 - 权限驱动的 UI 渲染（按钮/菜单/页面的条件显示）
+- 创建团队按钮的权限控制
 
 ## UI Function 1: 角色列表页
 
@@ -44,12 +45,13 @@ feature: "rbac-permissions"
 |-------|---------|---------|
 | Loading | 骨架屏/加载动画 | 页面首次加载 |
 | Populated | 角色列表表格 | 数据加载完成 |
-| Empty | 空状态提示"暂无角色，请创建第一个角色" | 系统初始化未完成 |
+| Empty | 空状态提示"暂无自定义角色" | 仅有预置角色 |
 | Error | 错误提示 | 加载失败 |
 
 ### Validation Rules
 
-- 预置角色（superadmin、pm、member）不可删除，删除按钮置灰
+- superadmin 预置角色不可编辑/删除，操作按钮不显示
+- pm/member 预置角色可编辑权限勾选，不可删除
 - 有用户使用的角色不可删除，删除按钮置灰并显示 Tooltip 提示
 
 ---
@@ -167,11 +169,13 @@ feature: "rbac-permissions"
 
 ### User Interaction Flow
 
-1. 用户登录成功 → 前端请求用户权限数据
-2. 前端存储权限映射 { team_id: [permission_codes] }
+1. 用户登录成功 → 前端请求 `/api/me/permissions` 获取权限数据
+2. 前端存储权限映射 { is_superadmin, team_permissions: { team_id: [codes] } }
 3. 页面渲染时，每个受控 UI 元素检查当前上下文的权限码
 4. 有权限则显示，无权限则隐藏（不是禁用/置灰）
 5. 跨团队操作时使用对应团队的权限集
+6. 非团队上下文的操作（如创建团队）检查用户任意团队角色是否包含该权限码
+7. 角色变更后，前端在下次路由切换时重新请求 `/api/me/permissions` 刷新权限缓存；若用户停留在当前页面，通过轮询（5 分钟间隔）检测权限变更
 
 ### Data Requirements
 
@@ -191,5 +195,84 @@ feature: "rbac-permissions"
 ### Validation Rules
 
 - superadmin 用户显示所有 UI 元素，无需逐项检查
-- 非团队上下文的操作（如创建团队）使用全局权限检查
-- 权限数据缓存在前端，角色变更时需刷新
+- 非团队上下文的操作（如创建团队）检查用户任意团队角色是否包含 `team:create`
+- 权限数据缓存在前端，角色变更时在路由切换或轮询时自动刷新
+
+---
+
+## UI Function 6: 变更已有成员角色
+
+### Description
+
+PM 或超级管理员修改团队中已有成员的角色。
+
+### User Interaction Flow
+
+1. PM 查看团队成员列表，每个成员行显示当前角色
+2. 点击成员角色旁的"变更"按钮 → 打开角色选择下拉
+3. 从角色列表中选择新角色（排除 superadmin）
+4. 确认变更 → 系统更新角色 → 成员权限即时生效
+5. 前端刷新该成员的角色显示，被变更成员的 UI 在下次权限刷新时更新
+
+### Data Requirements
+
+| Field | Type | Source | Notes |
+|-------|------|--------|-------|
+| 当前角色 | string | team_members 关联 | 只读显示 |
+| 新角色 | string | 系统角色列表 | 下拉选择，排除 superadmin |
+
+### States
+
+| State | Display | Trigger |
+|-------|---------|---------|
+| Viewing | 角色名称 + "变更"按钮 | 查看成员列表 |
+| Selecting | 角色下拉选择器 | 点击"变更" |
+| Saving | 确认按钮 loading | 提交中 |
+| Error | 错误提示（如角色不存在） | 保存失败 |
+
+### Validation Rules
+
+- 不能将成员角色变更为 superadmin
+- PM 不能变更自己的角色（需超级管理员操作）
+- 必须选择一个有效角色
+
+### Data Requirements
+
+| Field | Type | Source | Notes |
+|-------|------|--------|-------|
+| is_superadmin | boolean | `/api/me/permissions` | 全局权限标记 |
+| team_permissions | map | `/api/me/permissions` | { team_id: [codes] } |
+
+### States
+
+| State | Display | Trigger |
+|-------|---------|---------|
+| Permitted | 正常显示按钮/菜单 | 用户拥有所需权限码 |
+| Not Permitted | 完全隐藏（不占空间） | 用户缺少所需权限码 |
+| Superadmin | 显示所有 UI 元素 | is_superadmin = true |
+
+### Validation Rules
+
+- superadmin 用户显示所有 UI 元素，无需逐项检查
+- 非团队上下文的操作（如创建团队）检查用户任意团队角色是否包含 `team:create`
+- 权限数据缓存在前端，角色变更时在路由切换或轮询时自动刷新
+
+### 受控 UI 元素映射
+
+| UI 元素 | 所需权限码 | 当前位置 |
+|---------|-----------|---------|
+| 用户管理菜单 | user:read | 侧边栏导航 |
+| 创建团队按钮 | team:create | 团队列表页 |
+| 邀请成员按钮 | team:invite | 团队详情页 |
+| 移除成员按钮 | team:remove | 团队详情页 |
+| 转让 PM 按钮 | team:transfer | 团队详情页 |
+| 编辑团队信息 | team:update | 团队详情页 |
+| 解散团队 | team:delete | 团队详情页 |
+| 创建主事项按钮 | main_item:create | 事项列表页 |
+| 编辑主事项 | main_item:update | 事项列表页 |
+| 归档主事项 | main_item:archive | 事项列表页 |
+| 分配子事项负责人 | sub_item:assign | 子事项详情 |
+| 审核事项池 | item_pool:review | 事项池页面 |
+| 修正进度 | progress:update | 进度详情 |
+| 甘特图菜单 | view:gantt | 侧边栏/视图切换 |
+| 导出周报 | report:export | 周报页面 |

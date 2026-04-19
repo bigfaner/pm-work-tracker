@@ -3,430 +3,628 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>角色管理 — PM Tracker</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>角色管理 — RBAC 权限体系</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="toast-container"></div>
-<div class="app-layout">
-  <nav class="sidebar">
-    <div class="sidebar-brand"><h2>PM Tracker</h2><p>工作事项追踪</p></div>
-    <select class="sidebar-team"><option>产品研发团队</option><option>设计团队</option></select>
-    <div class="sidebar-nav">
-      <a href="permission-demo.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>事项清单</a>
-      <a href="permission-demo.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>周视图</a>
-      <a href="permission-demo.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>团队管理</a>
-    </div>
-    <div class="sidebar-admin"><a href="admin-roles.html" class="active"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>管理后台</a></div>
-    <div class="sidebar-user"><div class="sidebar-avatar">管</div><div class="sidebar-user-info"><div class="sidebar-user-name">管理员</div><div class="sidebar-user-role">Superadmin</div></div></div>
-  </nav>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-brand">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></svg>
+        PM Work Tracker
+      </div>
+      <div class="sidebar-nav">
+        <div class="sidebar-section-label">导航</div>
+        <a href="#" class="sidebar-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          首页
+        </a>
+        <a href="#" class="sidebar-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg>
+          事项清单
+        </a>
+        <a href="#" class="sidebar-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          每周进展
+        </a>
 
-  <div class="main-content">
-    <div class="page-header">
-      <h1>管理后台</h1>
-    </div>
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-section-label">管理</div>
+        <a href="admin-roles.html" class="sidebar-link active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          角色管理
+        </a>
+        <a href="#" class="sidebar-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          用户管理
+        </a>
+      </div>
+    </nav>
 
-    <div class="tabs">
-      <div class="tab" data-tab="users" onclick="switchTab(this)">用户管理</div>
-      <div class="tab" data-tab="teams" onclick="switchTab(this)">团队列表</div>
-      <div class="tab active" data-tab="roles" onclick="switchTab(this)">角色管理</div>
-    </div>
-
-    <!-- Tab: Roles -->
-    <div data-tab-panel="users" style="display:none">
-      <div class="empty-state"><p>用户管理面板（已有功能，此处省略）</p></div>
-    </div>
-    <div data-tab-panel="teams" style="display:none">
-      <div class="empty-state"><p>团队列表面板（已有功能，此处省略）</p></div>
-    </div>
-    <div data-tab-panel="roles">
-      <div class="filter-bar">
-        <input type="text" class="input" placeholder="搜索角色名称..." style="width:240px;height:36px;">
-        <select class="input" style="width:auto;min-width:160px;height:36px;">
-          <option value="">全部角色</option>
-          <option value="preset">预置角色</option>
-          <option value="custom">自定义角色</option>
-        </select>
-        <div style="flex:1"></div>
-        <button class="btn btn-secondary btn-sm" onclick="switchView('roles','roles-list','permissions-view'); return false;">查看权限列表</button>
-        <button class="btn btn-primary btn-sm" onclick="openModal('modal-create')">+ 创建角色</button>
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="breadcrumb">首页 &gt; 角色管理</div>
+          <h1>角色管理</h1>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn btn-outline" onclick="openDialog('permission-browse-dialog')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            查看权限列表
+          </button>
+          <button class="btn btn-default" onclick="openCreateRoleDialog()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            创建角色
+          </button>
+        </div>
       </div>
 
-      <!-- Role List View -->
-      <div id="roles-list">
-        <div class="card">
+      <div class="page-body">
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <input class="input" type="text" placeholder="搜索角色名称..." style="width: 240px;" id="role-search">
+          <select class="select" id="role-type-filter">
+            <option value="all">全部角色</option>
+            <option value="preset">预置角色</option>
+            <option value="custom">自定义角色</option>
+          </select>
+        </div>
+
+        <!-- Role Table — Populated State -->
+        <div class="table-wrapper" id="role-table-populated">
           <table>
             <thead>
               <tr>
                 <th>角色名称</th>
                 <th>描述</th>
-                <th>权限数</th>
+                <th>权限数量</th>
                 <th>使用人数</th>
+                <th>类型</th>
                 <th>创建时间</th>
-                <th style="text-align:right">操作</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-weight:500;">superadmin</span>
-                    <span class="badge badge-slate">预置</span>
-                  </div>
-                </td>
-                <td>系统最高权限角色</td>
-                <td><span class="badge badge-primary">全部</span></td>
+                <td><strong>superadmin</strong></td>
+                <td class="text-muted">超级管理员，拥有所有权限</td>
+                <td>全部</td>
                 <td>1</td>
-                <td style="color:var(--text-tertiary);font-size:12px;">2026-04-01</td>
-                <td style="text-align:right;color:var(--text-tertiary);">&mdash;</td>
+                <td><span class="badge badge-secondary">预置</span></td>
+                <td class="text-muted">2026/01/01</td>
+                <td><span class="text-muted text-sm">—</span></td>
               </tr>
               <tr>
-                <td>
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-weight:500;">pm</span>
-                    <span class="badge badge-slate">预置</span>
-                  </div>
-                </td>
-                <td>团队管理权限</td>
-                <td><span class="badge badge-primary">8</span></td>
+                <td><strong>pm</strong></td>
+                <td class="text-muted">项目经理，管理团队和事项</td>
+                <td>18</td>
                 <td>5</td>
-                <td style="color:var(--text-tertiary);font-size:12px;">2026-04-01</td>
-                <td style="text-align:right;">
-                  <button class="btn btn-ghost btn-sm" onclick="openModal('modal-edit')">编辑</button>
+                <td><span class="badge badge-secondary">预置</span></td>
+                <td class="text-muted">2026/01/01</td>
+                <td>
+                  <button class="btn btn-ghost btn-sm" onclick="openEditRoleDialog('pm')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    编辑
+                  </button>
                 </td>
               </tr>
               <tr>
+                <td><strong>member</strong></td>
+                <td class="text-muted">普通成员，可查看和创建子事项</td>
+                <td>9</td>
+                <td>23</td>
+                <td><span class="badge badge-secondary">预置</span></td>
+                <td class="text-muted">2026/01/01</td>
                 <td>
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-weight:500;">member</span>
-                    <span class="badge badge-slate">预置</span>
-                  </div>
-                </td>
-                <td>基础成员权限</td>
-                <td><span class="badge badge-primary">4</span></td>
-                <td>12</td>
-                <td style="color:var(--text-tertiary);font-size:12px;">2026-04-01</td>
-                <td style="text-align:right;">
-                  <button class="btn btn-ghost btn-sm" onclick="openModal('modal-edit')">编辑</button>
+                  <button class="btn btn-ghost btn-sm" onclick="openEditRoleDialog('member')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    编辑
+                  </button>
                 </td>
               </tr>
               <tr>
+                <td><strong>observer</strong></td>
+                <td class="text-muted">观察者，仅可查看事项和进度</td>
+                <td>5</td>
+                <td>3</td>
+                <td><span class="badge badge-outline">自定义</span></td>
+                <td class="text-muted">2026/03/15</td>
                 <td>
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-weight:500;">viewer</span>
+                  <div class="flex gap-2">
+                    <button class="btn btn-ghost btn-sm" onclick="openEditRoleDialog('observer')">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      编辑
+                    </button>
+                    <button class="btn btn-ghost btn-sm" style="color: var(--destructive);">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      删除
+                    </button>
                   </div>
                 </td>
-                <td>只读查看者</td>
-                <td><span class="badge badge-primary">3</span></td>
+              </tr>
+              <tr>
+                <td><strong>developer</strong></td>
+                <td class="text-muted">开发人员，可创建和管理子事项</td>
+                <td>11</td>
                 <td>0</td>
-                <td style="color:var(--text-tertiary);font-size:12px;">2026-04-15</td>
-                <td style="text-align:right;">
-                  <button class="btn btn-ghost btn-sm" onclick="openModal('modal-edit')">编辑</button>
-                  <button class="btn btn-ghost btn-sm" style="color:var(--error);" onclick="openModal('modal-delete')">删除</button>
-                </td>
-              </tr>
-              <tr>
+                <td><span class="badge badge-outline">自定义</span></td>
+                <td class="text-muted">2026/04/10</td>
                 <td>
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-weight:500;">tester</span>
+                  <div class="flex gap-2">
+                    <button class="btn btn-ghost btn-sm" onclick="openEditRoleDialog('developer')">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      编辑
+                    </button>
+                    <button class="btn btn-ghost btn-sm" style="color: var(--destructive);">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      删除
+                    </button>
                   </div>
-                </td>
-                <td>测试人员（含创建/删除子项权限）</td>
-                <td><span class="badge badge-primary">6</span></td>
-                <td>2</td>
-                <td style="color:var(--text-tertiary);font-size:12px;">2026-04-16</td>
-                <td style="text-align:right;">
-                  <button class="btn btn-ghost btn-sm" onclick="openModal('modal-edit')">编辑</button>
-                  <button class="btn btn-ghost btn-sm" style="color:var(--text-tertiary);opacity:0.5;cursor:not-allowed;" disabled title="该角色正在被 2 个用户使用，无法删除">删除</button>
                 </td>
               </tr>
             </tbody>
           </table>
-          <div class="pagination">
-            <span>共 5 个角色</span>
-            <div style="display:flex;gap:4px;">
-              <button class="btn btn-ghost btn-sm" disabled>&lt;</button>
-              <button class="btn btn-sm" style="background:var(--primary-50);color:var(--primary-700);">1</button>
-              <button class="btn btn-ghost btn-sm" disabled>&gt;</button>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+          <span>共 5 个角色</span>
+          <div class="pagination-btns">
+            <button class="pagination-btn" disabled>&lt;</button>
+            <button class="pagination-btn active">1</button>
+            <button class="pagination-btn" disabled>&gt;</button>
+          </div>
+        </div>
+
+        <!-- Loading State (hidden by default) -->
+        <div class="table-wrapper hidden" id="role-table-loading">
+          <table>
+            <thead>
+              <tr>
+                <th>角色名称</th>
+                <th>描述</th>
+                <th>权限数量</th>
+                <th>使用人数</th>
+                <th>类型</th>
+                <th>创建时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="loading-row"><td><div class="skeleton skeleton-text w-60"></div></td><td><div class="skeleton skeleton-text w-80"></div></td><td><div class="skeleton skeleton-text w-40"></div></td><td><div class="skeleton skeleton-text w-40"></div></td><td><div class="skeleton skeleton-text w-60"></div></td><td><div class="skeleton skeleton-text w-60"></div></td><td><div class="skeleton skeleton-text w-40"></div></td></tr>
+              <tr class="loading-row"><td><div class="skeleton skeleton-text w-60"></div></td><td><div class="skeleton skeleton-text w-80"></div></td><td><div class="skeleton skeleton-text w-40"></div></td><td><div class="skeleton skeleton-text w-40"></div></td><td><div class="skeleton skeleton-text w-60"></div></td><td><div class="skeleton skeleton-text w-60"></div></td><td><div class="skeleton skeleton-text w-40"></div></td></tr>
+              <tr class="loading-row"><td><div class="skeleton skeleton-text w-60"></div></td><td><div class="skeleton skeleton-text w-80"></div></td><td><div class="skeleton skeleton-text w-40"></div></td><td><div class="skeleton skeleton-text w-40"></div></td><td><div class="skeleton skeleton-text w-60"></div></td><td><div class="skeleton skeleton-text w-60"></div></td><td><div class="skeleton skeleton-text w-40"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Empty State (hidden by default) -->
+        <div class="empty-state hidden" id="role-table-empty">
+          <h3>暂无自定义角色</h3>
+          <p>系统预置了 superadmin、pm、member 三个角色，您可以创建自定义角色来满足特定需求。</p>
+          <button class="btn btn-default" onclick="openCreateRoleDialog()">创建角色</button>
+        </div>
+
+        <!-- Error State (hidden by default) -->
+        <div class="hidden" id="role-table-error">
+          <div class="alert alert-error">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            加载角色列表失败，请检查网络连接后重试
+            <button class="btn btn-sm btn-outline ml-2" style="margin-left: auto;">重试</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+       Dialog: Create/Edit Role (Component 2)
+       ============================================ -->
+  <div class="dialog-overlay" id="role-edit-dialog">
+    <div class="dialog dialog-lg">
+      <div class="dialog-header">
+        <h2 id="role-dialog-title">创建角色</h2>
+        <button class="dialog-close" onclick="closeDialog('role-edit-dialog')">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <div class="form-group">
+          <label class="form-label">角色名称 <span class="required">*</span></label>
+          <input class="input input-full" type="text" id="role-name-input" placeholder="输入角色名称（2-50 字符）" maxlength="50">
+          <div class="form-error hidden" id="role-name-error">角色名称已存在</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">描述</label>
+          <textarea class="input input-full" id="role-desc-input" placeholder="描述此角色的职责和用途（选填）" maxlength="200"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">权限配置 <span class="required">*</span></label>
+          <div class="form-hint" style="margin-bottom: 12px;">至少选择 1 个权限</div>
+
+          <!-- Permission Group: 团队管理 -->
+          <div style="margin-bottom: 8px;">
+            <div class="collapsible-header" aria-expanded="true">
+              <span>团队管理 <span class="text-muted text-sm" data-counter="team"> (0/7)</span></span>
+              <svg class="collapsible-arrow open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <div class="collapsible-body open" data-group="team">
+              <div class="checkbox-group">
+                <label class="checkbox-item"><input type="checkbox" value="team:create" onchange="updateCheckboxCount('team')"> <span>创建团队</span> <span class="code">team:create</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="team:read" onchange="updateCheckboxCount('team')"> <span>查看团队</span> <span class="code">team:read</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="team:update" onchange="updateCheckboxCount('team')"> <span>编辑团队</span> <span class="code">team:update</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="team:delete" onchange="updateCheckboxCount('team')"> <span>解散团队</span> <span class="code">team:delete</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="team:invite" onchange="updateCheckboxCount('team')"> <span>邀请成员</span> <span class="code">team:invite</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="team:remove" onchange="updateCheckboxCount('team')"> <span>移除成员</span> <span class="code">team:remove</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="team:transfer" onchange="updateCheckboxCount('team')"> <span>转让 PM</span> <span class="code">team:transfer</span></label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Permission Group: 主事项 -->
+          <div style="margin-bottom: 8px;">
+            <div class="collapsible-header" aria-expanded="true">
+              <span>主事项 <span class="text-muted text-sm" data-counter="main_item"> (0/4)</span></span>
+              <svg class="collapsible-arrow open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <div class="collapsible-body open" data-group="main_item">
+              <div class="checkbox-group">
+                <label class="checkbox-item"><input type="checkbox" value="main_item:create" onchange="updateCheckboxCount('main_item')"> <span>创建</span> <span class="code">main_item:create</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="main_item:read" onchange="updateCheckboxCount('main_item')"> <span>查看</span> <span class="code">main_item:read</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="main_item:update" onchange="updateCheckboxCount('main_item')"> <span>编辑</span> <span class="code">main_item:update</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="main_item:archive" onchange="updateCheckboxCount('main_item')"> <span>归档</span> <span class="code">main_item:archive</span></label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Permission Group: 子事项 -->
+          <div style="margin-bottom: 8px;">
+            <div class="collapsible-header" aria-expanded="true">
+              <span>子事项 <span class="text-muted text-sm" data-counter="sub_item"> (0/5)</span></span>
+              <svg class="collapsible-arrow open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <div class="collapsible-body open" data-group="sub_item">
+              <div class="checkbox-group">
+                <label class="checkbox-item"><input type="checkbox" value="sub_item:create" onchange="updateCheckboxCount('sub_item')"> <span>创建</span> <span class="code">sub_item:create</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="sub_item:read" onchange="updateCheckboxCount('sub_item')"> <span>查看</span> <span class="code">sub_item:read</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="sub_item:update" onchange="updateCheckboxCount('sub_item')"> <span>编辑</span> <span class="code">sub_item:update</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="sub_item:assign" onchange="updateCheckboxCount('sub_item')"> <span>分配负责人</span> <span class="code">sub_item:assign</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="sub_item:change_status" onchange="updateCheckboxCount('sub_item')"> <span>变更状态</span> <span class="code">sub_item:change_status</span></label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Permission Group: 进度管理 -->
+          <div style="margin-bottom: 8px;">
+            <div class="collapsible-header" aria-expanded="true">
+              <span>进度管理 <span class="text-muted text-sm" data-counter="progress"> (0/3)</span></span>
+              <svg class="collapsible-arrow open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <div class="collapsible-body open" data-group="progress">
+              <div class="checkbox-group">
+                <label class="checkbox-item"><input type="checkbox" value="progress:create" onchange="updateCheckboxCount('progress')"> <span>创建进度</span> <span class="code">progress:create</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="progress:read" onchange="updateCheckboxCount('progress')"> <span>查看进度</span> <span class="code">progress:read</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="progress:update" onchange="updateCheckboxCount('progress')"> <span>修正进度</span> <span class="code">progress:update</span></label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Permission Group: 事项池 -->
+          <div style="margin-bottom: 8px;">
+            <div class="collapsible-header" aria-expanded="true">
+              <span>事项池 <span class="text-muted text-sm" data-counter="item_pool"> (0/2)</span></span>
+              <svg class="collapsible-arrow open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <div class="collapsible-body open" data-group="item_pool">
+              <div class="checkbox-group">
+                <label class="checkbox-item"><input type="checkbox" value="item_pool:submit" onchange="updateCheckboxCount('item_pool')"> <span>提交事项</span> <span class="code">item_pool:submit</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="item_pool:review" onchange="updateCheckboxCount('item_pool')"> <span>审核事项</span> <span class="code">item_pool:review</span></label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Permission Group: 视图 -->
+          <div style="margin-bottom: 8px;">
+            <div class="collapsible-header" aria-expanded="true">
+              <span>视图 <span class="text-muted text-sm" data-counter="view"> (0/3)</span></span>
+              <svg class="collapsible-arrow open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <div class="collapsible-body open" data-group="view">
+              <div class="checkbox-group">
+                <label class="checkbox-item"><input type="checkbox" value="view:weekly" onchange="updateCheckboxCount('view')"> <span>周视图</span> <span class="code">view:weekly</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="view:gantt" onchange="updateCheckboxCount('view')"> <span>甘特图</span> <span class="code">view:gantt</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="view:table" onchange="updateCheckboxCount('view')"> <span>表格视图</span> <span class="code">view:table</span></label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Permission Group: 周报 -->
+          <div style="margin-bottom: 8px;">
+            <div class="collapsible-header" aria-expanded="true">
+              <span>周报 <span class="text-muted text-sm" data-counter="report"> (0/1)</span></span>
+              <svg class="collapsible-arrow open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <div class="collapsible-body open" data-group="report">
+              <div class="checkbox-group">
+                <label class="checkbox-item"><input type="checkbox" value="report:export" onchange="updateCheckboxCount('report')"> <span>导出周报</span> <span class="code">report:export</span></label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Permission Group: 用户管理 -->
+          <div style="margin-bottom: 8px;">
+            <div class="collapsible-header" aria-expanded="true">
+              <span>用户管理 <span class="text-muted text-sm" data-counter="user"> (0/3)</span></span>
+              <svg class="collapsible-arrow open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <div class="collapsible-body open" data-group="user">
+              <div class="checkbox-group">
+                <label class="checkbox-item"><input type="checkbox" value="user:read" onchange="updateCheckboxCount('user')"> <span>查看用户</span> <span class="code">user:read</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="user:update" onchange="updateCheckboxCount('user')"> <span>编辑用户</span> <span class="code">user:update</span></label>
+                <label class="checkbox-item"><input type="checkbox" value="user:manage_role" onchange="updateCheckboxCount('user')"> <span>管理角色</span> <span class="code">user:manage_role</span></label>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- Permission Browse View (hidden by default) -->
-      <div id="permissions-view" style="display:none;">
-        <div style="margin-bottom:16px;">
-          <button class="btn btn-ghost btn-sm" onclick="switchView('roles','permissions-view','roles-list')">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-            返回角色列表
-          </button>
-        </div>
-        <h2 style="margin-bottom:16px;">系统权限码列表</h2>
-
-        <div class="perm-group">
-          <div class="perm-group-header" onclick="togglePermGroup(this)">
-            <span>team <span style="color:var(--text-tertiary);font-weight:400;">(4 项)</span></span>
-            <span class="arrow open">&#9654;</span>
-          </div>
-          <div class="perm-group-body">
-            <div class="perm-row"><span class="perm-code">team:create</span><span class="perm-desc">创建团队</span></div>
-            <div class="perm-row"><span class="perm-code">team:read</span><span class="perm-desc">查看团队信息</span></div>
-            <div class="perm-row"><span class="perm-code">team:update</span><span class="perm-desc">编辑团队信息</span></div>
-            <div class="perm-row"><span class="perm-code">team:invite</span><span class="perm-desc">邀请成员</span></div>
-          </div>
-        </div>
-
-        <div class="perm-group">
-          <div class="perm-group-header" onclick="togglePermGroup(this)">
-            <span>main_item <span style="color:var(--text-tertiary);font-weight:400;">(5 项)</span></span>
-            <span class="arrow open">&#9654;</span>
-          </div>
-          <div class="perm-group-body">
-            <div class="perm-row"><span class="perm-code">main_item:create</span><span class="perm-desc">创建事项</span></div>
-            <div class="perm-row"><span class="perm-code">main_item:read</span><span class="perm-desc">查看事项</span></div>
-            <div class="perm-row"><span class="perm-code">main_item:update</span><span class="perm-desc">编辑事项</span></div>
-            <div class="perm-row"><span class="perm-code">main_item:delete</span><span class="perm-desc">删除事项</span></div>
-            <div class="perm-row"><span class="perm-code">main_item:assign</span><span class="perm-desc">分配事项负责人</span></div>
-          </div>
-        </div>
-
-        <div class="perm-group">
-          <div class="perm-group-header" onclick="togglePermGroup(this)">
-            <span>sub_item <span style="color:var(--text-tertiary);font-weight:400;">(4 项)</span></span>
-            <span class="arrow open">&#9654;</span>
-          </div>
-          <div class="perm-group-body">
-            <div class="perm-row"><span class="perm-code">sub_item:create</span><span class="perm-desc">创建子项</span></div>
-            <div class="perm-row"><span class="perm-code">sub_item:read</span><span class="perm-desc">查看子项</span></div>
-            <div class="perm-row"><span class="perm-code">sub_item:update</span><span class="perm-desc">编辑子项</span></div>
-            <div class="perm-row"><span class="perm-code">sub_item:delete</span><span class="perm-desc">删除子项</span></div>
-          </div>
-        </div>
-
-        <div class="perm-group">
-          <div class="perm-group-header" onclick="togglePermGroup(this)">
-            <span>report <span style="color:var(--text-tertiary);font-weight:400;">(2 项)</span></span>
-            <span class="arrow open">&#9654;</span>
-          </div>
-          <div class="perm-group-body">
-            <div class="perm-row"><span class="perm-code">report:read</span><span class="perm-desc">查看周报</span></div>
-            <div class="perm-row"><span class="perm-code">report:export</span><span class="perm-desc">导出周报</span></div>
-          </div>
-        </div>
-
-        <div class="perm-group">
-          <div class="perm-group-header" onclick="togglePermGroup(this)">
-            <span>view <span style="color:var(--text-tertiary);font-weight:400;">(2 项)</span></span>
-            <span class="arrow open">&#9654;</span>
-          </div>
-          <div class="perm-group-body">
-            <div class="perm-row"><span class="perm-code">view:weekly</span><span class="perm-desc">查看周视图</span></div>
-            <div class="perm-row"><span class="perm-code">view:gantt</span><span class="perm-desc">查看甘特图</span></div>
-          </div>
-        </div>
+      <div class="dialog-footer">
+        <button class="btn btn-secondary" onclick="closeDialog('role-edit-dialog')">取消</button>
+        <button class="btn btn-default" onclick="saveRole()">保存</button>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Modal: Create Role -->
-<div class="modal-overlay" id="modal-create">
-  <div class="modal modal-lg">
-    <div class="modal-header">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <h2>创建角色</h2>
-        <button class="btn btn-ghost btn-icon" onclick="closeModal('modal-create')" style="margin:-8px -8px 0 0;">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
+  <!-- ============================================
+       Dialog: Permission Browse (Component 3)
+       ============================================ -->
+  <div class="dialog-overlay" id="permission-browse-dialog">
+    <div class="dialog dialog-md">
+      <div class="dialog-header">
+        <h2>系统权限列表</h2>
+        <button class="dialog-close" onclick="closeDialog('permission-browse-dialog')">&times;</button>
       </div>
-    </div>
-    <div class="modal-body">
-      <div style="margin-bottom:16px;">
-        <label class="input-label">角色名称 *</label>
-        <input type="text" class="input" placeholder="例如：viewer、tester">
+      <div class="dialog-body" style="padding: 12px 20px;">
+        <!-- Permission groups (read-only) -->
+        <div style="margin-bottom: 8px;">
+          <div class="collapsible-header" aria-expanded="true">
+            <span>团队管理 (7)</span>
+            <svg class="collapsible-arrow open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="collapsible-body open">
+            <table style="font-size: 13px;">
+              <thead><tr><th>权限码</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td><code>team:create</code></td><td>创建团队</td></tr>
+                <tr><td><code>team:read</code></td><td>查看团队</td></tr>
+                <tr><td><code>team:update</code></td><td>编辑团队信息</td></tr>
+                <tr><td><code>team:delete</code></td><td>解散团队</td></tr>
+                <tr><td><code>team:invite</code></td><td>邀请成员</td></tr>
+                <tr><td><code>team:remove</code></td><td>移除成员</td></tr>
+                <tr><td><code>team:transfer</code></td><td>转让 PM</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 8px;">
+          <div class="collapsible-header" aria-expanded="true">
+            <span>主事项 (4)</span>
+            <svg class="collapsible-arrow open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="collapsible-body open">
+            <table style="font-size: 13px;">
+              <thead><tr><th>权限码</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td><code>main_item:create</code></td><td>创建主事项</td></tr>
+                <tr><td><code>main_item:read</code></td><td>查看主事项</td></tr>
+                <tr><td><code>main_item:update</code></td><td>编辑主事项</td></tr>
+                <tr><td><code>main_item:archive</code></td><td>归档主事项</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 8px;">
+          <div class="collapsible-header" aria-expanded="true">
+            <span>子事项 (5)</span>
+            <svg class="collapsible-arrow open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="collapsible-body open">
+            <table style="font-size: 13px;">
+              <thead><tr><th>权限码</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td><code>sub_item:create</code></td><td>创建子事项</td></tr>
+                <tr><td><code>sub_item:read</code></td><td>查看子事项</td></tr>
+                <tr><td><code>sub_item:update</code></td><td>编辑子事项</td></tr>
+                <tr><td><code>sub_item:assign</code></td><td>分配负责人</td></tr>
+                <tr><td><code>sub_item:change_status</code></td><td>变更状态</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 8px;">
+          <div class="collapsible-header" aria-expanded="true">
+            <span>进度管理 (3)</span>
+            <svg class="collapsible-arrow open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="collapsible-body open">
+            <table style="font-size: 13px;">
+              <thead><tr><th>权限码</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td><code>progress:create</code></td><td>创建进度</td></tr>
+                <tr><td><code>progress:read</code></td><td>查看进度</td></tr>
+                <tr><td><code>progress:update</code></td><td>修正进度</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 8px;">
+          <div class="collapsible-header" aria-expanded="true">
+            <span>事项池 (2)</span>
+            <svg class="collapsible-arrow open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="collapsible-body open">
+            <table style="font-size: 13px;">
+              <thead><tr><th>权限码</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td><code>item_pool:submit</code></td><td>提交到事项池</td></tr>
+                <tr><td><code>item_pool:review</code></td><td>审核事项池</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 8px;">
+          <div class="collapsible-header" aria-expanded="true">
+            <span>视图 (3)</span>
+            <svg class="collapsible-arrow open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="collapsible-body open">
+            <table style="font-size: 13px;">
+              <thead><tr><th>权限码</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td><code>view:weekly</code></td><td>周视图</td></tr>
+                <tr><td><code>view:gantt</code></td><td>甘特图</td></tr>
+                <tr><td><code>view:table</code></td><td>表格视图</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 8px;">
+          <div class="collapsible-header" aria-expanded="true">
+            <span>周报 (1)</span>
+            <svg class="collapsible-arrow open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="collapsible-body open">
+            <table style="font-size: 13px;">
+              <thead><tr><th>权限码</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td><code>report:export</code></td><td>导出周报</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 8px;">
+          <div class="collapsible-header" aria-expanded="true">
+            <span>用户管理 (3)</span>
+            <svg class="collapsible-arrow open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="collapsible-body open">
+            <table style="font-size: 13px;">
+              <thead><tr><th>权限码</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td><code>user:read</code></td><td>查看用户</td></tr>
+                <tr><td><code>user:update</code></td><td>编辑用户</td></tr>
+                <tr><td><code>user:manage_role</code></td><td>管理角色</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-      <div style="margin-bottom:20px;">
-        <label class="input-label">描述</label>
-        <textarea class="input" rows="2" placeholder="角色的简要描述（选填）"></textarea>
+      <div class="dialog-footer">
+        <button class="btn btn-secondary" onclick="closeDialog('permission-browse-dialog')">关闭</button>
       </div>
-      <div>
-        <label class="input-label" style="margin-bottom:12px;">权限配置 * <span style="font-weight:400;color:var(--text-tertiary);">— 至少选择一个权限</span></label>
-
-        <div class="perm-group">
-          <div class="perm-group-header" onclick="togglePermGroup(this)">
-            <span>team <span class="perm-count">(0/4)</span></span>
-            <span class="arrow open">&#9654;</span>
-          </div>
-          <div class="perm-group-body">
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">team:create</span><span class="perm-desc">创建团队</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">team:read</span><span class="perm-desc">查看团队信息</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">team:update</span><span class="perm-desc">编辑团队信息</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">team:invite</span><span class="perm-desc">邀请成员</span></div>
-          </div>
-        </div>
-
-        <div class="perm-group">
-          <div class="perm-group-header" onclick="togglePermGroup(this)">
-            <span>main_item <span class="perm-count">(0/5)</span></span>
-            <span class="arrow open">&#9654;</span>
-          </div>
-          <div class="perm-group-body">
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">main_item:create</span><span class="perm-desc">创建事项</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">main_item:read</span><span class="perm-desc">查看事项</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">main_item:update</span><span class="perm-desc">编辑事项</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">main_item:delete</span><span class="perm-desc">删除事项</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">main_item:assign</span><span class="perm-desc">分配事项负责人</span></div>
-          </div>
-        </div>
-
-        <div class="perm-group">
-          <div class="perm-group-header" onclick="togglePermGroup(this)">
-            <span>sub_item <span class="perm-count">(0/4)</span></span>
-            <span class="arrow">&#9654;</span>
-          </div>
-          <div class="perm-group-body" style="display:none;">
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">sub_item:create</span><span class="perm-desc">创建子项</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">sub_item:read</span><span class="perm-desc">查看子项</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">sub_item:update</span><span class="perm-desc">编辑子项</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">sub_item:delete</span><span class="perm-desc">删除子项</span></div>
-          </div>
-        </div>
-
-        <div class="perm-group">
-          <div class="perm-group-header" onclick="togglePermGroup(this)">
-            <span>report <span class="perm-count">(0/2)</span></span>
-            <span class="arrow">&#9654;</span>
-          </div>
-          <div class="perm-group-body" style="display:none;">
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">report:read</span><span class="perm-desc">查看周报</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">report:export</span><span class="perm-desc">导出周报</span></div>
-          </div>
-        </div>
-
-        <div class="perm-group">
-          <div class="perm-group-header" onclick="togglePermGroup(this)">
-            <span>view <span class="perm-count">(0/2)</span></span>
-            <span class="arrow">&#9654;</span>
-          </div>
-          <div class="perm-group-body" style="display:none;">
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">view:weekly</span><span class="perm-desc">查看周视图</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">view:gantt</span><span class="perm-desc">查看甘特图</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-create')">取消</button>
-      <button class="btn btn-primary" onclick="closeModal('modal-create'); showToast('角色已创建')">保存</button>
     </div>
   </div>
-</div>
 
-<!-- Modal: Edit Role (preset — pm) -->
-<div class="modal-overlay" id="modal-edit">
-  <div class="modal modal-lg">
-    <div class="modal-header">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <h2>编辑角色</h2>
-        <button class="btn btn-ghost btn-icon" onclick="closeModal('modal-edit')" style="margin:-8px -8px 0 0;">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
+  <!-- ============================================
+       Dialog: Confirm Delete
+       ============================================ -->
+  <div class="dialog-overlay" id="confirm-delete-dialog">
+    <div class="dialog dialog-sm">
+      <div class="dialog-header">
+        <h2>确认删除</h2>
+        <button class="dialog-close" onclick="closeDialog('confirm-delete-dialog')">&times;</button>
       </div>
-    </div>
-    <div class="modal-body">
-      <div style="margin-bottom:16px;">
-        <label class="input-label">角色名称</label>
-        <input type="text" class="input" value="pm" readonly style="background:var(--bg-alt);color:var(--text-tertiary);">
-        <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">预置角色名称不可修改</div>
+      <div class="dialog-body">
+        <p>确定要删除角色 <strong>developer</strong> 吗？此操作不可撤销。</p>
       </div>
-      <div style="margin-bottom:20px;">
-        <label class="input-label">描述</label>
-        <textarea class="input" rows="2">团队管理权限</textarea>
+      <div class="dialog-footer">
+        <button class="btn btn-secondary" onclick="closeDialog('confirm-delete-dialog')">取消</button>
+        <button class="btn btn-destructive" onclick="closeDialog('confirm-delete-dialog'); showToast('角色已删除')">删除</button>
       </div>
-      <div>
-        <label class="input-label" style="margin-bottom:12px;">权限配置 *</label>
-
-        <div class="perm-group">
-          <div class="perm-group-header" onclick="togglePermGroup(this)">
-            <span>team <span class="perm-count">(4/4)</span></span>
-            <span class="arrow open">&#9654;</span>
-          </div>
-          <div class="perm-group-body">
-            <div class="perm-row"><input type="checkbox" class="perm-check" checked><span class="perm-code">team:create</span><span class="perm-desc">创建团队</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check" checked><span class="perm-code">team:read</span><span class="perm-desc">查看团队信息</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check" checked><span class="perm-code">team:update</span><span class="perm-desc">编辑团队信息</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check" checked><span class="perm-code">team:invite</span><span class="perm-desc">邀请成员</span></div>
-          </div>
-        </div>
-
-        <div class="perm-group">
-          <div class="perm-group-header" onclick="togglePermGroup(this)">
-            <span>main_item <span class="perm-count">(4/5)</span></span>
-            <span class="arrow open">&#9654;</span>
-          </div>
-          <div class="perm-group-body">
-            <div class="perm-row"><input type="checkbox" class="perm-check" checked><span class="perm-code">main_item:create</span><span class="perm-desc">创建事项</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check" checked><span class="perm-code">main_item:read</span><span class="perm-desc">查看事项</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check" checked><span class="perm-code">main_item:update</span><span class="perm-desc">编辑事项</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check" checked><span class="perm-code">main_item:delete</span><span class="perm-desc">删除事项</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">main_item:assign</span><span class="perm-desc">分配事项负责人</span></div>
-          </div>
-        </div>
-
-        <div class="perm-group">
-          <div class="perm-group-header" onclick="togglePermGroup(this)">
-            <span>sub_item <span class="perm-count">(0/4)</span></span>
-            <span class="arrow">&#9654;</span>
-          </div>
-          <div class="perm-group-body" style="display:none;">
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">sub_item:create</span><span class="perm-desc">创建子项</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">sub_item:read</span><span class="perm-desc">查看子项</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">sub_item:update</span><span class="perm-desc">编辑子项</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">sub_item:delete</span><span class="perm-desc">删除子项</span></div>
-          </div>
-        </div>
-
-        <div class="perm-group">
-          <div class="perm-group-header" onclick="togglePermGroup(this)">
-            <span>report <span class="perm-count">(0/2)</span></span>
-            <span class="arrow">&#9654;</span>
-          </div>
-          <div class="perm-group-body" style="display:none;">
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">report:read</span><span class="perm-desc">查看周报</span></div>
-            <div class="perm-row"><input type="checkbox" class="perm-check"><span class="perm-code">report:export</span><span class="perm-desc">导出周报</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-edit')">取消</button>
-      <button class="btn btn-primary" onclick="closeModal('modal-edit'); showToast('角色已更新')">保存</button>
     </div>
   </div>
-</div>
 
-<!-- Modal: Delete Confirm -->
-<div class="modal-overlay" id="modal-delete">
-  <div class="modal modal-sm">
-    <div class="modal-body">
-      <div class="confirm-body">
-        <div class="icon">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:24px;height:24px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
-        </div>
-        <h3 style="margin-bottom:8px;">删除角色</h3>
-        <p style="color:var(--text-secondary);font-size:14px;margin-bottom:4px;">确定删除角色「viewer」？</p>
-        <p style="color:var(--text-tertiary);font-size:12px;">此操作不可撤销。</p>
-      </div>
-    </div>
-    <div class="modal-footer" style="justify-content:center;">
-      <button class="btn btn-secondary" onclick="closeModal('modal-delete')">取消</button>
-      <button class="btn btn-danger" onclick="closeModal('modal-delete'); showToast('角色已删除')">删除</button>
-    </div>
-  </div>
-</div>
+  <script src="app.js"></script>
+  <script>
+    function openCreateRoleDialog() {
+      document.getElementById('role-dialog-title').textContent = '创建角色';
+      document.getElementById('role-name-input').value = '';
+      document.getElementById('role-name-input').disabled = false;
+      document.getElementById('role-desc-input').value = '';
+      document.getElementById('role-name-error').classList.add('hidden');
+      // Uncheck all
+      document.querySelectorAll('#role-edit-dialog input[type="checkbox"]').forEach(cb => cb.checked = false);
+      document.querySelectorAll('[data-counter]').forEach(el => {
+        const match = el.textContent.match(/\(0\/(\d+)\)/);
+        if (match) el.textContent = `(0/${match[1]})`;
+      });
+      openDialog('role-edit-dialog');
+    }
 
-<script src="app.js"></script>
+    function openEditRoleDialog(roleName) {
+      document.getElementById('role-dialog-title').textContent = '编辑角色: ' + roleName;
+      const isPreset = ['superadmin', 'pm', 'member'].includes(roleName);
+      document.getElementById('role-name-input').value = roleName;
+      document.getElementById('role-name-input').disabled = isPreset;
+      document.getElementById('role-desc-input').value = getRoleDescription(roleName);
+      document.getElementById('role-name-error').classList.add('hidden');
+      // Check appropriate permissions
+      const perms = getRolePermissions(roleName);
+      document.querySelectorAll('#role-edit-dialog input[type="checkbox"]').forEach(cb => {
+        cb.checked = perms.includes(cb.value);
+      });
+      document.querySelectorAll('[data-group]').forEach(group => {
+        updateCheckboxCount(group.dataset.group);
+      });
+      openDialog('role-edit-dialog');
+    }
+
+    function saveRole() {
+      const name = document.getElementById('role-name-input').value;
+      if (name.length < 2) {
+        document.getElementById('role-name-error').textContent = '角色名称至少 2 个字符';
+        document.getElementById('role-name-error').classList.remove('hidden');
+        return;
+      }
+      closeDialog('role-edit-dialog');
+      showToast('角色已保存');
+    }
+
+    function getRoleDescription(name) {
+      const descs = {
+        'superadmin': '超级管理员，拥有所有权限',
+        'pm': '项目经理，管理团队和事项',
+        'member': '普通成员，可查看和创建子事项',
+        'observer': '观察者，仅可查看事项和进度',
+        'developer': '开发人员，可创建和管理子事项'
+      };
+      return descs[name] || '';
+    }
+
+    function getRolePermissions(name) {
+      const perms = {
+        'superadmin': [],
+        'pm': ['team:invite','team:remove','team:update','team:delete','team:transfer',
+               'main_item:create','main_item:update','main_item:archive',
+               'sub_item:create','sub_item:read','sub_item:update','sub_item:assign','sub_item:change_status',
+               'progress:create','progress:read','progress:update',
+               'item_pool:submit','item_pool:review',
+               'view:weekly','view:gantt','view:table',
+               'report:export','user:read','user:update','user:manage_role'],
+        'member': ['team:read','main_item:read','sub_item:create','sub_item:read','sub_item:update',
+                   'progress:read','item_pool:submit','view:weekly','view:table','report:export'],
+        'observer': ['team:read','main_item:read','sub_item:read','progress:read','view:weekly'],
+        'developer': ['main_item:read','sub_item:create','sub_item:read','sub_item:update','sub_item:assign',
+                      'progress:create','progress:read','progress:update','view:weekly','view:table','report:export']
+      };
+      return perms[name] || [];
+    }
+  </script>
 </body>
 </html>

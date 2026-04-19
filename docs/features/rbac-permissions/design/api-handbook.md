@@ -1,5 +1,5 @@
 ---
-created: 2026-04-18
+created: 2026-04-19
 related: design/tech-design.md
 ---
 
@@ -7,22 +7,22 @@ related: design/tech-design.md
 
 ## API Overview
 
-新增 8 个端点（6 个角色管理 + 1 个权限列表 + 1 个用户权限），修改 2 个现有端点（邀请成员、变更角色），删除 1 个端点（can-create-team）。
+新增 6 个管理端接口（角色 CRUD + 权限码列表）和 1 个用户端接口（当前用户权限查询）。修改 2 个现有接口（邀请成员、变更角色）。所有管理端接口需要 `user:manage_role` 权限。
 
-## Endpoints
+## New Endpoints
 
 ### List Roles
 
 **Method**: `GET`
 **Path**: `/api/v1/admin/roles`
-**Auth**: RequireSuperAdmin
+**Auth**: `user:manage_role`
 
-#### Request (Query Parameters)
+#### Request
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| search | string | No | 按角色名称模糊匹配 |
-| preset | string | No | `all`(default) / `true` / `false` |
+| search | string | No | 按角色名称模糊搜索 |
+| is_preset | string | No | 筛选："all"(default) / "preset" / "custom" |
 | page | int | No | 页码，默认 1 |
 | page_size | int | No | 每页条数，默认 20 |
 
@@ -34,13 +34,13 @@ related: design/tech-design.md
   "data": {
     "items": [
       {
-        "id": 1,
-        "name": "superadmin",
-        "description": "系统最高权限角色",
+        "id": 2,
+        "name": "pm",
+        "description": "团队管理权限",
         "is_preset": true,
-        "permission_count": 0,
-        "member_count": 1,
-        "created_at": "2026-04-18T00:00:00Z"
+        "permission_count": 22,
+        "member_count": 5,
+        "created_at": "2026-04-19T00:00:00Z"
       }
     ],
     "total": 3,
@@ -56,25 +56,17 @@ related: design/tech-design.md
 
 **Method**: `POST`
 **Path**: `/api/v1/admin/roles`
-**Auth**: RequireSuperAdmin
+**Auth**: `user:manage_role`
 
 #### Request
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| name | string | Yes | 2-50 字符，不可重复 |
-| description | string | No | 最多 200 字符 |
-| permission_codes | string[] | Yes | 至少 1 个，必须是系统定义的权限码 |
+| name | string | Yes | 角色名称，2-50 字符，不可重名 |
+| description | string | No | 角色描述，最多 200 字符 |
+| permission_codes | string[] | Yes | 权限码列表，至少 1 个 |
 
-```json
-{
-  "name": "viewer",
-  "description": "只读查看者",
-  "permission_codes": ["main_item:read", "sub_item:read", "view:weekly"]
-}
-```
-
-#### Response (201)
+#### Response (200)
 
 ```json
 {
@@ -84,7 +76,9 @@ related: design/tech-design.md
     "name": "viewer",
     "description": "只读查看者",
     "is_preset": false,
-    "created_at": "2026-04-18T10:00:00Z"
+    "permission_count": 3,
+    "member_count": 0,
+    "created_at": "2026-04-19T12:00:00Z"
   }
 }
 ```
@@ -93,16 +87,17 @@ related: design/tech-design.md
 
 | Status | Code | Description |
 |--------|------|-------------|
-| 400 | VALIDATION_ERROR | 参数校验失败 |
-| 409 | ROLE_DUPLICATE | 角色名称已存在 |
+| 400 | `ERR_INVALID_PERMISSION_CODE` | 包含不存在的权限码 |
+| 409 | `ERR_ROLE_NAME_EXISTS` | 角色名称已存在 |
+| 422 | `ERR_VALIDATION` | 名称长度不符或无权限码 |
 
 ---
 
 ### Get Role
 
 **Method**: `GET`
-**Path**: `/api/v1/admin/roles/:roleId`
-**Auth**: RequireSuperAdmin
+**Path**: `/api/v1/admin/roles/:id`
+**Auth**: `user:manage_role`
 
 #### Response (200)
 
@@ -115,12 +110,11 @@ related: design/tech-design.md
     "description": "团队管理权限",
     "is_preset": true,
     "permissions": [
-      {"code": "team:create", "resource": "team", "action": "create", "description": "创建团队"},
-      {"code": "team:read", "resource": "team", "action": "read", "description": "查看团队信息"}
+      {"code": "team:create", "description": "创建团队"},
+      {"code": "team:read", "description": "查看团队信息"}
     ],
     "member_count": 5,
-    "created_at": "2026-04-18T00:00:00Z",
-    "updated_at": "2026-04-18T00:00:00Z"
+    "created_at": "2026-04-19T00:00:00Z"
   }
 }
 ```
@@ -129,31 +123,23 @@ related: design/tech-design.md
 
 | Status | Code | Description |
 |--------|------|-------------|
-| 404 | ROLE_NOT_FOUND | 角色不存在 |
+| 404 | `ERR_ROLE_NOT_FOUND` | 角色不存在 |
 
 ---
 
 ### Update Role
 
 **Method**: `PUT`
-**Path**: `/api/v1/admin/roles/:roleId`
-**Auth**: RequireSuperAdmin
+**Path**: `/api/v1/admin/roles/:id`
+**Auth**: `user:manage_role`
 
 #### Request
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| name | string | No | 2-50 字符，不可与其他角色重复 |
-| description | string | No | 最多 200 字符 |
-| permission_codes | string[] | No | 替换权限列表，至少 1 个 |
-
-```json
-{
-  "name": "viewer",
-  "description": "只读查看者（含甘特图）",
-  "permission_codes": ["main_item:read", "sub_item:read", "view:weekly", "view:gantt"]
-}
-```
+| name | string | No | 角色名称（预置角色不可修改名称） |
+| description | string | No | 角色描述 |
+| permission_codes | string[] | No | 权限码列表（至少 1 个） |
 
 #### Response (200)
 
@@ -163,9 +149,15 @@ related: design/tech-design.md
   "data": {
     "id": 4,
     "name": "viewer",
-    "description": "只读查看者（含甘特图）",
+    "description": "只读查看者（含导出）",
     "is_preset": false,
-    "updated_at": "2026-04-18T11:00:00Z"
+    "permissions": [
+      {"code": "team:read", "description": "查看团队信息"},
+      {"code": "main_item:read", "description": "查看主事项"},
+      {"code": "report:export", "description": "导出周报"}
+    ],
+    "member_count": 0,
+    "created_at": "2026-04-19T12:00:00Z"
   }
 }
 ```
@@ -174,18 +166,21 @@ related: design/tech-design.md
 
 | Status | Code | Description |
 |--------|------|-------------|
-| 404 | ROLE_NOT_FOUND | 角色不存在 |
-| 409 | ROLE_DUPLICATE | 角色名称已存在 |
+| 403 | `ERR_PRESET_ROLE_IMMUTABLE` | superadmin 预置角色不可编辑 |
+| 404 | `ERR_ROLE_NOT_FOUND` | 角色不存在 |
+| 409 | `ERR_ROLE_NAME_EXISTS` | 角色名称已存在 |
 
-> 预置角色（pm、member）可编辑权限码，但不可修改 name。superadmin 角色不可编辑（返回 409 ROLE_PRESET）。
+**预置角色编辑规则**：
+- `superadmin`：不可编辑名称、描述、权限（返回 403）
+- `pm`/`member`：可编辑描述和权限勾选，不可修改名称，不可删除
 
 ---
 
 ### Delete Role
 
 **Method**: `DELETE`
-**Path**: `/api/v1/admin/roles/:roleId`
-**Auth**: RequireSuperAdmin
+**Path**: `/api/v1/admin/roles/:id`
+**Auth**: `user:manage_role`
 
 #### Response (200)
 
@@ -200,17 +195,16 @@ related: design/tech-design.md
 
 | Status | Code | Description |
 |--------|------|-------------|
-| 404 | ROLE_NOT_FOUND | 角色不存在 |
-| 409 | ROLE_PRESET | 预置角色不可删除 |
-| 409 | ROLE_IN_USE | 角色正在被 N 个用户使用 |
+| 403 | `ERR_PRESET_ROLE_IMMUTABLE` | 预置角色不可删除 |
+| 422 | `ERR_ROLE_IN_USE` | 角色正在被 N 个用户使用 |
 
 ---
 
-### List Permissions
+### List Permission Codes
 
 **Method**: `GET`
 **Path**: `/api/v1/admin/permissions`
-**Auth**: RequireSuperAdmin
+**Auth**: `user:manage_role`
 
 #### Response (200)
 
@@ -225,6 +219,13 @@ related: design/tech-design.md
         {"code": "team:read", "description": "查看团队信息"},
         {"code": "team:update", "description": "编辑团队信息"}
       ]
+    },
+    {
+      "resource": "main_item",
+      "actions": [
+        {"code": "main_item:create", "description": "创建主事项"},
+        {"code": "main_item:read", "description": "查看主事项"}
+      ]
     }
   ]
 }
@@ -236,7 +237,7 @@ related: design/tech-design.md
 
 **Method**: `GET`
 **Path**: `/api/v1/me/permissions`
-**Auth**: AuthMiddleware
+**Auth**: 认证用户即可（无特定权限码要求）
 
 #### Response (200)
 
@@ -245,34 +246,35 @@ related: design/tech-design.md
   "code": 0,
   "data": {
     "is_superadmin": false,
-    "team_roles": {
-      "1": "pm",
-      "3": "member"
-    },
     "team_permissions": {
-      "1": ["team:create", "team:read", "team:update", "..."],
-      "3": ["main_item:read", "sub_item:read", "..."]
+      "1": ["team:read", "team:update", "team:invite", "main_item:create"],
+      "3": ["team:read", "main_item:read", "sub_item:create"]
     }
   }
 }
 ```
 
-> `team_roles` 和 `team_permissions` 的 key 是 teamID（字符串形式的 uint）。
+**说明**：
+- `is_superadmin`：对应用户的 `IsSuperAdmin` 标记
+- `team_permissions`：key 为 team ID（字符串），value 为该团队角色拥有的权限码数组
+- SuperAdmin 用户返回 `is_superadmin: true`，`team_permissions` 可以为空（前端知道是 superadmin 即可）
 
 ---
 
-### Invite Team Member (Modified)
+## Modified Endpoints
+
+### Invite Member (Modified)
 
 **Method**: `POST`
 **Path**: `/api/v1/teams/:teamId/members`
-**Auth**: AuthMiddleware + RequirePermission(team:invite)
+**Auth**: `team:invite`
 
-#### Request
+#### Request (Changed)
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | username | string | Yes | 用户账号 |
-| role_id | uint | Yes | 角色ID，从系统角色列表中选择 |
+| role_id | uint | Yes | 角色 ID（从系统角色列表中选择，不可为 superadmin） |
 
 ```json
 {
@@ -281,94 +283,123 @@ related: design/tech-design.md
 }
 ```
 
-> 变更：`role` 字符串字段替换为 `role_id` 数字字段。
+#### Response (200)
+
+Unchanged.
 
 #### Error Responses
 
 | Status | Code | Description |
 |--------|------|-------------|
-| 400 | VALIDATION_ERROR | role_id 不存在 |
-| 404 | USER_NOT_FOUND | 用户不存在 |
-| 409 | ALREADY_MEMBER | 用户已在团队中 |
+| 400 | `ERR_VALIDATION` | role_id 不能为 superadmin 角色ID |
+| 404 | `ERR_USER_NOT_FOUND` | 用户不存在 |
+| 404 | `ERR_ROLE_NOT_FOUND` | 角色不存在 |
+| 422 | `ERR_ALREADY_MEMBER` | 用户已是团队成员 |
 
 ---
 
-### Change Team Member Role (New)
+### Change Member Role (Modified)
 
 **Method**: `PUT`
-**Path**: `/api/v1/teams/:teamId/members/:userId/role`
-**Auth**: AuthMiddleware + RequirePermission(team:invite)
+**Path**: `/api/v1/teams/:teamId/members/:memberId/role`
+**Auth**: `team:invite`
 
-#### Request
+#### Request (Changed)
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| role_id | uint | Yes | 新角色ID |
+| role_id | uint | Yes | 新角色 ID |
 
 ```json
 {
-  "role_id": 2
+  "role_id": 4
 }
 ```
 
 #### Response (200)
 
-```json
-{
-  "code": 0,
-  "data": {
-    "user_id": 5,
-    "team_id": 1,
-    "role_id": 2,
-    "role_name": "pm"
-  }
-}
-```
+Unchanged.
 
 #### Error Responses
 
 | Status | Code | Description |
 |--------|------|-------------|
-| 400 | VALIDATION_ERROR | role_id 不存在 |
-| 403 | NOT_TEAM_MEMBER | 目标用户不在该团队中 |
-| 409 | ROLE_PRESET | 不能变更 superadmin 全局角色 |
+| 404 | `ERR_ROLE_NOT_FOUND` | 角色不存在 |
+| 403 | `ERR_CANNOT_MODIFY_SELF` | 不能变更自己的角色 |
+
+---
+
+### Create Team (Modified)
+
+**Method**: `POST`
+**Path**: `/api/v1/teams`
+**Auth**: `team:create`（非团队上下文权限）
+
+**变更**：从检查 `User.CanCreateTeam` 改为检查 `team:create` 权限码。SuperAdmin 自动拥有。
+
+#### Request
+
+Unchanged.
+
+#### Response
+
+Unchanged.
 
 ---
 
 ## Data Contracts
 
-### RoleListItem
+### RoleDetailResp
 
-| Field | Type | Description |
-|-------|------|-------------|
-| id | uint | 角色 ID |
-| name | string | 角色名称 |
-| description | string | 描述 |
-| is_preset | bool | 是否预置角色 |
-| permission_count | int | 权限码数量 |
-| member_count | int | 使用该角色的成员数 |
-| created_at | datetime | 创建时间 |
+```go
+type RoleDetailResp struct {
+    ID              uint              `json:"id"`
+    Name            string            `json:"name"`
+    Description     string            `json:"description"`
+    IsPreset        bool              `json:"is_preset"`
+    Permissions     []PermissionItem  `json:"permissions,omitempty"`
+    PermissionCount int               `json:"permission_count"`
+    MemberCount     int64             `json:"member_count"`
+    CreatedAt       time.Time         `json:"created_at"`
+}
+```
+
+### PermissionItem
+
+```go
+type PermissionItem struct {
+    Code        string `json:"code"`
+    Description string `json:"description"`
+}
+```
 
 ### PermissionGroup
 
-| Field | Type | Description |
-|-------|------|-------------|
-| resource | string | 资源名（如 team） |
-| actions | PermissionAction[] | 该资源下的操作列表 |
+```go
+type PermissionGroup struct {
+    Resource string           `json:"resource"`
+    Actions  []PermissionItem `json:"actions"`
+}
+```
 
-### PermissionAction
+### UserPermissionsResp
 
-| Field | Type | Description |
-|-------|------|-------------|
-| code | string | 权限码（如 team:create） |
-| description | string | 操作描述 |
+```go
+type UserPermissionsResp struct {
+    IsSuperAdmin    bool              `json:"is_superadmin"`
+    TeamPermissions map[uint][]string `json:"team_permissions"`
+}
+```
 
 ## Error Codes
 
 | Code | HTTP Status | Description |
 |------|-------------|-------------|
-| ROLE_NOT_FOUND | 404 | 角色不存在 |
-| ROLE_DUPLICATE | 409 | 角色名称已存在 |
-| ROLE_PRESET | 409 | 预置角色不可删除/编辑 |
-| ROLE_IN_USE | 409 | 角色正在被使用 |
-| PERMISSION_DENIED | 403 | 权限不足 |
+| `ERR_ROLE_NOT_FOUND` | 404 | 角色不存在 |
+| `ERR_ROLE_NAME_EXISTS` | 409 | 角色名称已被使用 |
+| `ERR_ROLE_IN_USE` | 422 | 角色正在被使用，无法删除 |
+| `ERR_PRESET_ROLE_IMMUTABLE` | 403 | 预置角色不可编辑或删除 |
+| `ERR_INVALID_PERMISSION_CODE` | 400 | 提交了不存在的权限码 |
+| `ERR_CANNOT_MODIFY_SELF` | 403 | 不能修改自己的角色 |
+| `ERR_ALREADY_MEMBER` | 422 | 用户已是团队成员 |
+| `ERR_FORBIDDEN` | 403 | 缺少所需权限码 |

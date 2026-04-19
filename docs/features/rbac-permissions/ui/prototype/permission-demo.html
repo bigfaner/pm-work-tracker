@@ -3,197 +3,190 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>权限驱动渲染演示 — PM Tracker</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>权限驱动渲染 — RBAC 权限体系</title>
   <link rel="stylesheet" href="styles.css">
-  <style>
-    .role-switcher { display: flex; gap: 8px; margin-bottom: 24px; padding: 12px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
-    .role-switcher span { font-size: 12px; color: var(--text-tertiary); display: flex; align-items: center; margin-right: 8px; font-weight: 500; }
-    .role-btn { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 500; border: 1px solid var(--border); background: var(--bg); color: var(--text-secondary); cursor: pointer; transition: all 0.15s; }
-    .role-btn:hover { border-color: var(--primary-200); }
-    .role-btn.active { background: var(--primary-600); color: #fff; border-color: var(--primary-600); }
-    .perm-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-family: 'JetBrains Mono', ui-monospace, monospace; }
-    .perm-tag.on { background: #ecfdf5; color: #047857; }
-    .perm-tag.off { background: #fef2f2; color: #991b1b; text-decoration: line-through; opacity: 0.6; }
-  </style>
 </head>
 <body>
-<div class="toast-container"></div>
-<div class="app-layout">
-  <nav class="sidebar" id="sidebar">
-    <div class="sidebar-brand"><h2>PM Tracker</h2><p>工作事项追踪</p></div>
-    <select class="sidebar-team"><option>产品研发团队</option><option>设计团队</option></select>
-    <div class="sidebar-nav" id="sidebar-nav">
-      <!-- Nav items will be toggled by role switcher -->
-      <a href="#" id="nav-items" data-perm="main_item:read">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-        事项
-      </a>
-      <a href="#" id="nav-weekly" data-perm="view:weekly">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        周视图
-      </a>
-      <a href="#" id="nav-gantt" data-perm="view:gantt">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M3 8h12M3 12h18M3 16h8"/></svg>
-        甘特图
-      </a>
-      <a href="team-invite.html" id="nav-team" data-perm="team:read" style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px;">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-        团队管理
-      </a>
-    </div>
-    <div class="sidebar-admin" id="nav-admin" data-perm="is_superadmin">
-      <a href="admin-roles.html"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>管理后台</a>
-    </div>
-    <div class="sidebar-user"><div class="sidebar-avatar" id="user-avatar">张</div><div class="sidebar-user-info"><div class="sidebar-user-name" id="user-name">张明</div><div class="sidebar-user-role" id="user-role">PM</div></div></div>
-  </nav>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-brand">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></svg>
+        PM Work Tracker
+      </div>
+      <div class="sidebar-nav">
+        <div class="sidebar-section-label">导航</div>
+        <a href="#" class="sidebar-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          首页
+        </a>
+        <a href="#" class="sidebar-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg>
+          事项清单
+        </a>
+        <a href="#" class="sidebar-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          每周进展
+        </a>
+        <a href="#" class="sidebar-link demo-element" data-permission="view:gantt">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          甘特图 <span class="perm-code">view:gantt</span> <span class="perm-status">✓</span>
+        </a>
 
-  <div class="main-content">
-    <div class="role-switcher">
-      <span>切换角色视角：</span>
-      <button class="role-btn" onclick="setRole('superadmin')">Superadmin</button>
-      <button class="role-btn active" onclick="setRole('pm')">PM</button>
-      <button class="role-btn" onclick="setRole('member')">Member</button>
-      <button class="role-btn" onclick="setRole('viewer')">Viewer</button>
-    </div>
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-section-label">管理</div>
+        <a href="admin-roles.html" class="sidebar-link demo-element" data-permission="user:manage_role">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          角色管理 <span class="perm-code">user:manage_role</span> <span class="perm-status">✓</span>
+        </a>
+        <a href="#" class="sidebar-link demo-element" data-permission="user:read">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          用户管理 <span class="perm-code">user:read</span> <span class="perm-status">✓</span>
+        </a>
+      </div>
+    </nav>
 
-    <div class="page-header">
-      <h1 id="page-title">事项列表</h1>
-      <div>
-        <button class="btn btn-primary" id="btn-create-item" data-perm="main_item:create" onclick="showToast('功能演示：创建事项')">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-          创建事项
-        </button>
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="breadcrumb">演示 &gt; 权限驱动渲染</div>
+          <h1>权限驱动 UI 渲染</h1>
+        </div>
+      </div>
+
+      <div class="page-body">
+        <!-- Role Selector (Demo Control) -->
+        <div class="role-selector-bar">
+          <label>模拟角色：</label>
+          <select class="select" id="demo-role-select" onchange="switchRole(this.value)">
+            <option value="superadmin">superadmin</option>
+            <option value="pm" selected>pm</option>
+            <option value="member">member</option>
+          </select>
+          <span class="text-muted text-sm" id="demo-hint">切换角色查看下方 UI 元素的显示/隐藏变化</span>
+        </div>
+
+        <!-- Sidebar Permissions -->
+        <div class="demo-section">
+          <h4>侧边栏导航项</h4>
+          <div class="demo-element" data-permission="view:gantt">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            甘特图菜单项 <span class="perm-code">view:gantt</span> <span class="perm-status">✓</span>
+          </div>
+          <div class="demo-element" data-permission="user:read">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            用户管理菜单项 <span class="perm-code">user:read</span> <span class="perm-status">✓</span>
+          </div>
+          <div class="demo-element" data-permission="user:manage_role">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            角色管理菜单项 <span class="perm-code">user:manage_role</span> <span class="perm-status">✓</span>
+          </div>
+        </div>
+
+        <!-- Team Management Permissions -->
+        <div class="demo-section">
+          <h4>团队管理操作</h4>
+          <div class="demo-element" data-permission="team:create">
+            <button class="btn btn-sm btn-outline">创建团队</button>
+            <span class="perm-code">team:create</span> <span class="perm-status">✓</span>
+          </div>
+          <div class="demo-element" data-permission="team:invite">
+            <button class="btn btn-sm btn-outline">邀请成员</button>
+            <span class="perm-code">team:invite</span> <span class="perm-status">✓</span>
+          </div>
+          <div class="demo-element" data-permission="team:remove">
+            <button class="btn btn-sm btn-ghost" style="color: var(--destructive);">移除成员</button>
+            <span class="perm-code">team:remove</span> <span class="perm-status">✓</span>
+          </div>
+          <div class="demo-element" data-permission="team:transfer">
+            <button class="btn btn-sm btn-ghost">转让 PM</button>
+            <span class="perm-code">team:transfer</span> <span class="perm-status">✓</span>
+          </div>
+          <div class="demo-element" data-permission="team:update">
+            <button class="btn btn-sm btn-outline">编辑团队信息</button>
+            <span class="perm-code">team:update</span> <span class="perm-status">✓</span>
+          </div>
+          <div class="demo-element" data-permission="team:delete">
+            <button class="btn btn-sm btn-ghost" style="color: var(--destructive);">解散团队</button>
+            <span class="perm-code">team:delete</span> <span class="perm-status">✓</span>
+          </div>
+        </div>
+
+        <!-- Item Permissions -->
+        <div class="demo-section">
+          <h4>事项操作</h4>
+          <div class="demo-element" data-permission="main_item:create">
+            <button class="btn btn-sm btn-default">创建主事项</button>
+            <span class="perm-code">main_item:create</span> <span class="perm-status">✓</span>
+          </div>
+          <div class="demo-element" data-permission="main_item:update">
+            <button class="btn btn-sm btn-outline">编辑主事项</button>
+            <span class="perm-code">main_item:update</span> <span class="perm-status">✓</span>
+          </div>
+          <div class="demo-element" data-permission="main_item:archive">
+            <button class="btn btn-sm btn-outline">归档主事项</button>
+            <span class="perm-code">main_item:archive</span> <span class="perm-status">✓</span>
+          </div>
+          <div class="demo-element" data-permission="sub_item:assign">
+            <button class="btn btn-sm btn-outline">分配负责人</button>
+            <span class="perm-code">sub_item:assign</span> <span class="perm-status">✓</span>
+          </div>
+        </div>
+
+        <!-- Other Permissions -->
+        <div class="demo-section">
+          <h4>其他操作</h4>
+          <div class="demo-element" data-permission="item_pool:review">
+            <button class="btn btn-sm btn-outline">审核事项池</button>
+            <span class="perm-code">item_pool:review</span> <span class="perm-status">✓</span>
+          </div>
+          <div class="demo-element" data-permission="progress:update">
+            <button class="btn btn-sm btn-outline">修正进度</button>
+            <span class="perm-code">progress:update</span> <span class="perm-status">✓</span>
+          </div>
+          <div class="demo-element" data-permission="report:export">
+            <button class="btn btn-sm btn-outline">导出周报</button>
+            <span class="perm-code">report:export</span> <span class="perm-status">✓</span>
+          </div>
+        </div>
+
+        <!-- How it works -->
+        <div class="card mt-4">
+          <div class="card-header">
+            <h3 style="font-size: 14px;">实现原理</h3>
+          </div>
+          <div class="card-body">
+            <div style="font-size: 13px; color: var(--muted-foreground); line-height: 1.7;">
+              <p><strong>usePermission(code)</strong> — Hook 从 auth store 读取权限数据：</p>
+              <ul style="margin: 8px 0 12px 20px;">
+                <li>isSuperadmin = true → 直接返回 true</li>
+                <li>在团队上下文 → 检查 teamPermissions[currentTeamId] 是否包含 code</li>
+                <li>非团队上下文 → 检查所有团队权限合集是否包含 code</li>
+              </ul>
+              <p><strong>&lt;PermissionGuard code="..."&gt;</strong> — 包裹组件：</p>
+              <ul style="margin: 8px 0 12px 20px;">
+                <li>有权限 → 渲染子组件</li>
+                <li>无权限 → 不渲染（不占空间，非置灰）</li>
+              </ul>
+              <p><strong>权限刷新时机：</strong></p>
+              <ul style="margin: 8px 0 0 20px;">
+                <li>登录后请求 GET /api/me/permissions</li>
+                <li>路由切换时检查缓存（5 分钟过期）</li>
+                <li>团队切换时立即刷新</li>
+                <li>角色变更后 5 分钟轮询检测</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-
-    <div class="card" id="items-table">
-      <table>
-        <thead>
-          <tr>
-            <th>事项名称</th>
-            <th>负责人</th>
-            <th>状态</th>
-            <th>截止日期</th>
-            <th style="text-align:right">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><span style="font-weight:500;">用户认证模块重构</span></td>
-            <td>张明</td>
-            <td><span class="badge badge-warning">进行中</span></td>
-            <td style="color:var(--text-tertiary);font-size:12px;">2026-04-25</td>
-            <td style="text-align:right;">
-              <button class="btn btn-ghost btn-sm action-btn" data-perm="main_item:update">编辑</button>
-              <button class="btn btn-ghost btn-sm action-btn" data-perm="main_item:delete" style="color:var(--error);">删除</button>
-            </td>
-          </tr>
-          <tr>
-            <td><span style="font-weight:500;">API 文档编写</span></td>
-            <td>李芳</td>
-            <td><span class="badge badge-success">已完成</span></td>
-            <td style="color:var(--text-tertiary);font-size:12px;">2026-04-18</td>
-            <td style="text-align:right;">
-              <button class="btn btn-ghost btn-sm action-btn" data-perm="main_item:update">编辑</button>
-              <button class="btn btn-ghost btn-sm action-btn" data-perm="main_item:delete" style="color:var(--error);">删除</button>
-            </td>
-          </tr>
-          <tr>
-            <td><span style="font-weight:500;">性能优化 - 首屏加载</span></td>
-            <td>王磊</td>
-            <td><span class="badge badge-slate">待开始</span></td>
-            <td style="color:var(--text-tertiary);font-size:12px;">2026-05-01</td>
-            <td style="text-align:right;">
-              <button class="btn btn-ghost btn-sm action-btn" data-perm="main_item:update">编辑</button>
-              <button class="btn btn-ghost btn-sm action-btn" data-perm="main_item:delete" style="color:var(--error);">删除</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Permission Status Panel -->
-    <div style="margin-top:24px;padding:16px 20px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
-      <h3 style="margin-bottom:12px;">当前权限状态</h3>
-      <div id="perm-status" style="display:flex;flex-wrap:wrap;gap:6px;font-size:12px;"></div>
-    </div>
   </div>
-</div>
 
-<script src="app.js"></script>
-<script>
-var ROLES = {
-  superadmin: {
-    name: '管理员', avatar: '管', role: 'Superadmin',
-    perms: ['team:create','team:read','team:update','team:invite','main_item:create','main_item:read','main_item:update','main_item:delete','main_item:assign','sub_item:create','sub_item:read','sub_item:update','sub_item:delete','report:read','report:export','view:weekly','view:gantt'],
-    is_superadmin: true
-  },
-  pm: {
-    name: '张明', avatar: '张', role: 'PM',
-    perms: ['team:read','team:update','team:invite','main_item:create','main_item:read','main_item:update','main_item:delete','main_item:assign','sub_item:read','sub_item:update','report:read','report:export','view:weekly','view:gantt'],
-    is_superadmin: false
-  },
-  member: {
-    name: '王磊', avatar: '王', role: 'Member',
-    perms: ['main_item:read','main_item:update','sub_item:create','sub_item:read','sub_item:update','sub_item:delete','view:weekly'],
-    is_superadmin: false
-  },
-  viewer: {
-    name: '赵云', avatar: '赵', role: 'Viewer',
-    perms: ['main_item:read','sub_item:read','view:weekly'],
-    is_superadmin: false
-  }
-};
-
-var ALL_PERMS = ['team:create','team:read','team:update','team:invite','main_item:create','main_item:read','main_item:update','main_item:delete','main_item:assign','sub_item:create','sub_item:read','sub_item:update','sub_item:delete','report:read','report:export','view:weekly','view:gantt'];
-
-var currentRole = 'pm';
-
-function setRole(role) {
-  currentRole = role;
-  var r = ROLES[role];
-  var perms = r.perms;
-
-  // Update role switcher buttons
-  document.querySelectorAll('.role-btn').forEach(function(b) { b.classList.remove('active'); });
-  document.querySelector('.role-btn[onclick="setRole(\'' + role + '\')"]').classList.add('active');
-
-  // Update user info
-  document.getElementById('user-avatar').textContent = r.avatar;
-  document.getElementById('user-name').textContent = r.name;
-  document.getElementById('user-role').textContent = r.role;
-
-  // Toggle nav items
-  document.getElementById('nav-items').style.display = r.is_superadmin || perms.indexOf('main_item:read') >= 0 ? '' : 'none';
-  document.getElementById('nav-weekly').style.display = r.is_superadmin || perms.indexOf('view:weekly') >= 0 ? '' : 'none';
-  document.getElementById('nav-gantt').style.display = r.is_superadmin || perms.indexOf('view:gantt') >= 0 ? '' : 'none';
-  document.getElementById('nav-team').style.display = r.is_superadmin || perms.indexOf('team:read') >= 0 ? '' : 'none';
-  document.getElementById('nav-admin').style.display = r.is_superadmin ? '' : 'none';
-
-  // Toggle action buttons
-  document.querySelectorAll('[data-perm]').forEach(function(el) {
-    var perm = el.getAttribute('data-perm');
-    if (perm === 'is_superadmin') return;
-    var has = r.is_superadmin || perms.indexOf(perm) >= 0;
-    el.style.display = has ? '' : 'none';
-  });
-
-  // Update permission status
-  var statusEl = document.getElementById('perm-status');
-  statusEl.innerHTML = '';
-  ALL_PERMS.forEach(function(p) {
-    var has = r.is_superadmin || perms.indexOf(p) >= 0;
-    var tag = document.createElement('span');
-    tag.className = 'perm-tag ' + (has ? 'on' : 'off');
-    tag.textContent = p;
-    statusEl.appendChild(tag);
-  });
-}
-
-// Init
-setRole('pm');
-</script>
+  <script src="app.js"></script>
+  <script>
+    // Initialize with PM role
+    switchRole('pm');
+  </script>
 </body>
 </html>

@@ -1,0 +1,141 @@
+{
+  "feature": "rbac-permissions",
+  "prd": "prd/prd-spec.md",
+  "design": "design/tech-design.md",
+  "created": "2026-04-19",
+  "status": "planning",
+  "statusEnum": ["pending", "in_progress", "completed", "blocked", "skipped"],
+  "priorityEnum": ["P0", "P1", "P2"],
+  "tasks": {
+    "1.1-permission-registry": {
+      "id": "1.1",
+      "title": "Permission Code Registry",
+      "priority": "P0",
+      "estimatedTime": "1-2h",
+      "dependencies": [],
+      "status": "pending",
+      "file": "1.1-permission-registry.md",
+      "record": "records/1.1-permission-registry.md"
+    },
+    "1.2-data-models": {
+      "id": "1.2",
+      "title": "Data Models (Role, RolePermission, TeamMember Changes)",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [],
+      "status": "pending",
+      "file": "1.2-data-models.md",
+      "record": "records/1.2-data-models.md"
+    },
+    "1.3-seed-and-migration": {
+      "id": "1.3",
+      "title": "Seed Data & RBAC Migration Script",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": ["1.1", "1.2"],
+      "status": "pending",
+      "file": "1.3-seed-and-migration.md",
+      "record": "records/1.3-seed-and-migration.md"
+    },
+    "2.1-role-repo": {
+      "id": "2.1",
+      "title": "RoleRepo Implementation",
+      "priority": "P0",
+      "estimatedTime": "2-3h",
+      "dependencies": ["1.2"],
+      "status": "pending",
+      "file": "2.1-role-repo.md",
+      "record": "records/2.1-role-repo.md"
+    },
+    "3.1-role-service": {
+      "id": "3.1",
+      "title": "RoleService Implementation",
+      "priority": "P0",
+      "estimatedTime": "2-3h",
+      "dependencies": ["2.1", "1.1"],
+      "status": "pending",
+      "file": "3.1-role-service.md",
+      "record": "records/3.1-role-service.md"
+    },
+    "4.1-permission-middleware": {
+      "id": "4.1",
+      "title": "Permission Middleware",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": ["2.1"],
+      "status": "pending",
+      "file": "4.1-permission-middleware.md",
+      "record": "records/4.1-permission-middleware.md"
+    },
+    "4.2-role-permission-handlers": {
+      "id": "4.2",
+      "title": "Role & Permission Handlers",
+      "priority": "P0",
+      "estimatedTime": "2-3h",
+      "dependencies": ["3.1", "4.1"],
+      "status": "pending",
+      "file": "4.2-role-permission-handlers.md",
+      "record": "records/4.2-role-permission-handlers.md"
+    },
+    "4.3-router-handler-refactor": {
+      "id": "4.3",
+      "title": "Router & Existing Handler Refactor",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": ["4.1"],
+      "status": "pending",
+      "file": "4.3-router-handler-refactor.md",
+      "record": "records/4.3-router-handler-refactor.md"
+    },
+    "5.1-permission-infra": {
+      "id": "5.1",
+      "title": "Frontend Permission Infrastructure",
+      "priority": "P0",
+      "estimatedTime": "2-3h",
+      "dependencies": ["4.2"],
+      "status": "pending",
+      "file": "5.1-permission-infra.md",
+      "record": "records/5.1-permission-infra.md"
+    },
+    "5.2-role-management-ui": {
+      "id": "5.2",
+      "title": "Role Management UI",
+      "priority": "P1",
+      "estimatedTime": "3-4h",
+      "dependencies": ["5.1"],
+      "status": "pending",
+      "file": "5.2-role-management-ui.md",
+      "record": "records/5.2-role-management-ui.md"
+    },
+    "5.3-permission-driven-ui": {
+      "id": "5.3",
+      "title": "Permission-Driven UI Rendering",
+      "priority": "P1",
+      "estimatedTime": "2-3h",
+      "dependencies": ["5.1"],
+      "status": "pending",
+      "file": "5.3-permission-driven-ui.md",
+      "record": "records/5.3-permission-driven-ui.md"
+    },
+    "5.4-member-role-ui": {
+      "id": "5.4",
+      "title": "Member Role UI (Invite + Change Role)",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": ["5.1", "4.3"],
+      "status": "pending",
+      "file": "5.4-member-role-ui.md",
+      "record": "records/5.4-member-role-ui.md"
+    },
+    "6.1-e2e-integration": {
+      "id": "6.1",
+      "title": "End-to-End Integration Tests",
+      "priority": "P1",
+      "estimatedTime": "2-3h",
+      "dependencies": ["4.3", "5.4"],
+      "status": "pending",
+      "file": "6.1-e2e-integration.md",
+      "record": "records/6.1-e2e-integration.md"
+    }
+  }
+}

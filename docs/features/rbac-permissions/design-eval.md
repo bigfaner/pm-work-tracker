@@ -1,203 +1,210 @@
 ---
-date: "2026-04-18"
-design_path: design/tech-design.md
-prd_path: prd/prd-spec.md
-evaluator: Claude (automated)
+feature: rbac-permissions
+evaluated_at: 2026-04-19
 ---
 
-# Design 评估报告
+# Design Evaluation Report: RBAC 权限体系
 
----
+## 1. Summary Table
 
-## 总评: A
+| Dimension | Grade | Notes |
+|-----------|-------|-------|
+| Architecture Clarity | A | Layer placement explicit, diagram present, dependencies listed, consistent with codebase |
+| Interface & Model Definitions | A | All interfaces typed with concrete signatures, all models concrete with SQL DDL |
+| Error Handling | A | Custom error codes defined, HTTP status mapped, propagation strategy clear |
+| Testing Strategy | B | Per-layer plan with test types and tooling; coverage target present but integration test tooling not named |
+| Breakdown-Readiness | A | All components enumerable, tasks clearly derivable, PRD fully covered |
+| Security Considerations | A | Threat model identifies 5 threats, each with concrete mitigations |
+| **Overall** | **A** | All required dimensions A/B, 4 A's, Breakdown-Readiness A |
 
-```
-╔═══════════════════════════════════════════════════════════════════╗
-║                      DESIGN QUALITY REPORT                        ║
-╠═══════════════════════════════════════════════════════════════════╣
-║                                                                   ║
-║  1. 架构清晰度 (Architecture Clarity)               Grade: A     ║
-║     ├── 层级归属明确                                [A]           ║
-║     ├── 组件图存在                                  [A]           ║
-║     └── 依赖关系列出                                [A]           ║
-║                                                                   ║
-║  2. 接口与模型定义 (Interface & Model)               Grade: B     ║
-║     ├── 接口有类型签名                              [A]           ║
-║     ├── 模型有字段类型和约束                         [A]           ║
-║     └── 可直接驱动实现                              [B]           ║
-║                                                                   ║
-║  3. 错误处理 (Error Handling)                        Grade: A     ║
-║     ├── 错误类型定义                                [A]           ║
-║     ├── 传播策略清晰                                [A]           ║
-║     └── HTTP 状态码映射                             [A]           ║
-║                                                                   ║
-║  4. 测试策略 (Testing Strategy)                      Grade: B     ║
-║     ├── 按层级分解                                  [A]           ║
-║     ├── 覆盖率目标                                  [A]           ║
-║     └── 测试工具指定                                [C]           ║
-║                                                                   ║
-║  5. 可拆解性 (Breakdown-Readiness) ★                Grade: A     ║
-║     ├── 组件可枚举                                  [A]           ║
-║     ├── 任务可推导                                  [A]           ║
-║     └── PRD 验收标准覆盖                            [A]           ║
-║                                                                   ║
-║  6. 安全考量 (Security)                              Grade: A     ║
-║     ├── 威胁模型                                    [A]           ║
-║     └── 缓解措施                                    [A]           ║
-║                                                                   ║
-╚═══════════════════════════════════════════════════════════════════╝
-```
+## 2. Structure Check
 
-★ Breakdown-Readiness 是关键门控维度，直接决定能否进入 `/breakdown-tasks`
+| Section | Required | Present | Notes |
+|---------|----------|---------|-------|
+| Overview | Yes | Yes | High-level approach, tech stack, and change scope table |
+| Architecture | Yes | Yes | Layer placement, component diagram (ASCII), middleware chain, dependencies table |
+| Interfaces | Yes | Yes | PermissionCodeRegistry, RoleService, RoleRepo, UserPermissions -- all with typed signatures |
+| Data Models | Yes | Yes | Role, RolePermission DDL; TeamMember/User modifications; ER diagram; seed data |
+| Error Handling | Yes | Yes | 5 new error codes with HTTP status mapping; permission denied response format |
+| Testing Strategy | Yes | Yes | Unit tests per component, integration test scenarios, coverage targets (85%/90%) |
+| Security Considerations | Yes (PRD has auth) | Yes | 5-row threat model table, defense-in-depth layers |
+| Open Questions | Optional | Yes | 2 open items (SQLite migration, polling interval) |
+| Alternatives Considered | Optional | Yes | 4 alternatives with pros/cons/why-not |
 
----
+**All required sections present.**
 
-## 结构完整性
+## 3. Detailed Findings
 
-| Section                  | 状态      | 备注 |
-| ------------------------ | --------- | ---- |
-| Overview + 技术栈        | ✅     | 概述了 5 个核心变更，技术栈 Go/Gin 明确 |
-| Architecture (层级+图)   | ✅     | 层级表 + 组件图 + 依赖说明 |
-| Interfaces               | ✅     | 5 个接口完整定义（Permission Registry, RoleRepo, Cache, RoleService, Middleware） |
-| Data Models              | ✅     | 2 新表 + 3 修改表 + ER 图 |
-| Error Handling           | ✅     | 5 个错误类型 + 状态码映射 |
-| Testing Strategy         | ✅     | 单元测试 7 组件 + 集成测试 5 场景 + 覆盖率目标 |
-| Security Considerations  | ✅     | 威胁模型表 + 4 项缓解措施 |
-| Open Questions           | ✅     | 1 条（rate limiting） |
-| Alternatives Considered  | ✅     | 3 个替代方案对比表 |
+### Dimension 1: Architecture Clarity -- Grade A
 
----
+**Evidence:**
+- Layer placement is explicit with a file-tree mapping (tech-design.md lines 28-43): router, middleware, handler, service, repository, and pkg/permissions are each named with their responsibility.
+- ASCII component diagram (lines 47-69) shows the data flow: Router -> RequirePermission -> Handler, with TeamScopeMiddleware loading perm codes, all flowing down to Repository Layer and Database.
+- Middleware chain (lines 72-93) documents the exact request flow through AuthMiddleware -> TeamScopeMiddleware -> RequirePermission(code) with numbered steps for each middleware's behavior.
+- Dependencies table (lines 96-103) lists 4 existing packages; explicitly states "No new external dependencies needed."
+- Consistent with codebase: router.go confirms the gin-based routing pattern, middleware/auth.go confirms JWT-based AuthMiddleware, middleware/rbac.go confirms RequireRole/RequireTeamRole pattern that will be replaced, middleware/team_scope.go confirms TeamScopeMiddleware pattern that will be extended.
 
-## 1. 架构清晰度 - Grade: A
+### Dimension 2: Interface & Model Definitions -- Grade A
 
-| 检查项 | 状态 | 备注 |
-|--------|------|------|
-| 明确说明所属层级 | ✅ | 层级表将 7 个组件映射到 handler/service/repository/model/middleware/pkg 层 |
-| 有组件图（ASCII/文字） | ✅ | ASCII 组件图展示 handler→service→repo→DB 流向，及 middleware↔cache↔table 关系 |
-| 数据流向可追踪 | ✅ | 请求从 handler 经 service 到 repo，middleware 从 cache 读取权限，变更触发 cache 刷新 |
-| 内外部依赖列出 | ✅ | 明确声明"无新增外部依赖"，缓存用 sync.RWMutex + map |
-| 与项目现有架构一致 | ✅ | 完全遵循现有的 Go/Gin Handler→Service→Repository→Model 分层 |
+**Evidence:**
+- `PermissionCodeRegistry` (lines 109-138): typed as `map[string][]ActionDef` with `AllCodes()` and `ValidateCode()` function signatures. Example codes provided inline.
+- `RoleService` interface (lines 143-153): 7 methods with typed params and return values (`ctx context.Context`, `uint`, `*Role`, `CreateRoleReq`, `UpdateRoleReq`, `*UserPermissions`).
+- `RoleRepo` interface (lines 157-173): 10 methods covering CRUD, permission bindings (`ListPermissions`, `SetPermissions`), and usage counting (`CountMembersByRoleID`).
+- `UserPermissions` response struct (lines 177-182): concrete Go struct with JSON tags.
+- Data Models (lines 185-267): Full SQL DDL for `roles` and `role_permissions` tables, ALTER statements for `team_members` and `users`, ER diagram, and seed data table.
+- API Handbook complements with Go response structs: `RoleDetailResp`, `PermissionItem`, `PermissionGroup`, `UserPermissionsResp` (api-handbook.md lines 352-393).
+- Frontend types defined: `PermissionMap`, `Role`, `PermissionGroup` (tech-design.md lines 403-532).
+- A developer can implement directly from these definitions without guessing.
 
-**问题**: 无
-**建议**: 无
+### Dimension 3: Error Handling -- Grade A
 
----
+**Evidence:**
+- 5 new error codes defined with HTTP status mapping (tech-design.md lines 537-545): `ERR_ROLE_NOT_FOUND` (404), `ERR_ROLE_NAME_EXISTS` (409), `ERR_ROLE_IN_USE` (422), `ERR_PRESET_ROLE_IMMUTABLE` (403), `ERR_INVALID_PERMISSION_CODE` (400).
+- API Handbook adds 3 more codes (lines 395-405): `ERR_CANNOT_MODIFY_SELF` (403), `ERR_ALREADY_MEMBER` (422), `ERR_FORBIDDEN` (403).
+- Permission denied response format is explicit with JSON example (line 549-554).
+- Propagation strategy is clear: middleware returns 403, handler does business-rule checks (e.g., assignee), service does ownership checks.
+- Consistent with existing error pattern: codebase uses `apperrors.RespondError(c, apperrors.ErrForbidden)` which matches the design's approach.
 
-## 2. 接口与模型定义 - Grade: B
+### Dimension 4: Testing Strategy -- Grade B
 
-| 检查项 | 状态 | 备注 |
-|--------|------|------|
-| 接口方法有参数类型 | ✅ | 所有接口方法均有 context.Context、具体 struct/基本类型参数 |
-| 接口方法有返回类型 | ✅ | 所有方法均有明确的返回类型（*model.Role, int64, error 等） |
-| 模型字段有类型 | ✅ | 所有模型字段均有 Go 类型 + GORM tag |
-| 模型字段有约束（not null、index 等） | ✅ | uniqueIndex、not null、size、foreignKey、复合索引均已标注 |
-| 所有主要组件都有定义 | ✅ | 7 个组件均有接口或函数签名 |
-| 开发者可直接编码，无需猜测 | ⚠️ | CreateRoleReq 和 UpdateRoleReq 在 tech-design 中仅被引用但未定义结构体字段 |
+**Evidence:**
+- Unit tests specified per component with file paths (lines 561-568): 6 test files covering permissions registry, middleware, service, repo, and JWT.
+- Integration tests specified with 4 scenarios (lines 571-577): role CRUD, invite with role selection, permission-driven access, data migration.
+- Coverage target: >=85% for new code, >=90% for modified middleware (line 580).
+- Tooling implicitly named via file paths (Go standard testing), but integration test tooling (e.g., test HTTP server setup, test database) is not explicitly named.
 
-**问题**:
-1. `CreateRoleReq` 和 `UpdateRoleReq` 在 RoleService 接口中引用，但 tech-design 未定义这两个 struct 的字段。api-handbook 中有对应的 JSON 字段描述（name, description, permission_codes），但开发者需要在两份文档间交叉参照才能确定 Go struct 定义。
-2. `AppError` struct 仅在错误类型示例中隐含（`&AppError{Code, Message, Status}`），未给出完整定义。
+**Gap:** Integration test infrastructure (how to set up test DB, test HTTP server for API integration tests) is not specified. This is minor since Go's `httptest` package is standard practice, but naming it would strengthen the plan.
 
-**建议**:
-1. 在 Interfaces 部分补充 `CreateRoleReq` 和 `UpdateRoleReq` 的 Go struct 定义，与 api-handbook 中的字段保持一致。
-2. 补充 `AppError` 的完整 struct 定义（或引用现有代码位置）。
+### Dimension 5: Breakdown-Readiness -- Grade A
 
----
+**Evidence:**
+- Enumerable components:
+  - 2 new DB tables: `roles`, `role_permissions`
+  - 2 DB schema modifications: `team_members` (add `role_id`), `users` (drop `can_create_team`)
+  - 1 new Go package: `pkg/permissions` (codes.go)
+  - 1 new middleware: `RequirePermission`
+  - 3 modified middlewares: AuthMiddleware, TeamScopeMiddleware, remove rbac.go
+  - 2 new handlers: `role_handler.go`, `permission_handler.go`
+  - 1 new service: `role_service.go`
+  - 1 new repository: `role_repo.go`
+  - 5 modified handlers (invite member, JWT claims, assignee pattern)
+  - 3 frontend additions: `PermissionGuard`, `useHasPermission`, permission types
+  - 1 frontend store modification: auth.ts
+  - 6 new API endpoints + 3 modified endpoints
+  - 1 data migration script
+  - 1 seed data initialization
 
-## 3. 错误处理 - Grade: A
+- PRD traceability: All 10 user stories and their acceptance criteria are addressed. See Section 4 for the full matrix.
 
-| 检查项 | 状态 | 备注 |
-|--------|------|------|
-| 自定义错误类型或错误码定义 | ✅ | 5 个 AppError 实例：ROLE_NOT_FOUND, ROLE_IN_USE, ROLE_PRESET, ROLE_DUPLICATE, PERMISSION_DENIED |
-| 层间传播策略明确 | ✅ | middleware 层返回 403 + PERMISSION_DENIED；service 层返回领域错误；handler 层映射为 HTTP 响应 |
-| HTTP 状态码与错误类型映射 | ✅ | 404/409/403 各有对应错误码，api-handbook 中每个端点均有 Error Responses 表 |
-| 调用方行为说明 | ✅ | 中间件不通过时返回 403 body 含 code: "PERMISSION_DENIED"；superadmin bypass 逻辑清晰 |
+- No ambiguous ownership: every file, interface, and model has a clear owner (middleware, handler, service, repository, or frontend).
 
-**问题**: 无
-**建议**: 无
+### Dimension 6: Security Considerations -- Grade A
 
----
+**Evidence:**
+- Threat model (lines 587-594) identifies 5 threats with concrete mitigations:
+  1. Frontend bypass -> RequirePermission middleware enforces server-side
+  2. Permission code injection -> Go code validates code legitimacy
+  3. Privilege escalation -> Role CRUD superadmin-only; DB-loaded permissions
+  4. Horizontal privilege escalation -> TeamScopeMiddleware isolates by teamID
+  5. Role deletion risk -> Usage count check before deletion
+- Defense-in-depth pattern (lines 597-602): 3 layers documented (Router Middleware, Handler assignee check, Service ownership check).
+- PRD security requirements (PRD section 8) are all addressed: backend as final authority, code-defined permission codes, JWT without permission fields, real-time DB queries.
 
-## 4. 测试策略 - Grade: B
+### Codebase Consistency Findings
 
-| 层级 | 测试类型 | 工具 | 覆盖率目标 | 状态 |
-|------|----------|------|------------|------|
-| permissions | 单元测试 | 未指定 | ≥ 80% | ✅ |
-| permcache | 单元测试 | 未指定 | ≥ 80% | ✅ |
-| middleware/rbac | 单元测试 | 未指定 | ≥ 80% | ✅ |
-| service/role_service | 单元测试 | 未指定 | ≥ 80% | ✅ |
-| repository/role_repo | 单元测试 | 未指定 | ≥ 80% | ✅ |
-| 角色 CRUD API | 集成测试 | 未指定 | — | ✅ |
-| 团队邀请带角色 | 集成测试 | 未指定 | — | ✅ |
-| 权限变更传播 | 集成测试 | 未指定 | — | ✅ |
-| 数据迁移 | 集成测试 | 未指定 | — | ✅ |
-| 预置角色保护 | 集成测试 | 未指定 | — | ✅ |
+Comparing the design against actual source files:
 
-**问题**:
-1. 未明确指定测试工具/框架（如标准库 `testing`、`testify`、`httptest`、SQLite 内存数据库等）。
-2. 未说明 mock/stub 策略（RoleRepo 接口在测试中如何 mock）。
+| Design Assertion | Codebase Reality | Consistent? |
+|-----------------|-------------------|-------------|
+| Replace `RequireRole`/`RequireTeamRole` in middleware/rbac.go | File exists with both functions | Yes |
+| AuthMiddleware sets `userRole` from JWT Claims.Role | auth.go line 38: `c.Set("userRole", claims.Role)` | Yes |
+| JWT Claims has `Role` field to remove | jwt.go line 15: `Role string` field exists | Yes |
+| TeamMember has `Role string` field to replace with `RoleID` | team.go line 22: `Role string` field exists | Yes |
+| User has `CanCreateTeam bool` to remove | user.go line 12: `CanCreateTeam bool` exists | Yes |
+| Admin routes use `RequireRole("superadmin")` | router.go line 134: confirmed | Yes |
+| Frontend auth store has `isSuperAdmin` boolean | auth.ts line 9: `isSuperAdmin: boolean` | Yes |
+| Frontend User type has `canCreateTeam` | types/index.ts line 15: `canCreateTeam: boolean` | Yes |
+| Design says new JWT Claims: `{UserID, Username}` | Current: `{UserID, Role}` -- Role replaced by Username | Yes |
+| Design says AuthMiddleware sets `username` | Current sets `userRole` -- will change | Yes |
 
-**建议**:
-1. 补充测试工具说明，例如："单元测试使用 Go 标准 `testing` 包 + `testify/assert`；集成测试使用 `httptest` + SQLite 内存数据库"。
-2. 考虑在 `/breakdown-tasks` 时将 mock 策略作为任务细节补充。
+**All design assertions are consistent with the current codebase.** No contradictions found.
 
----
+## 4. PRD Traceability Matrix
 
-## 5. 可拆解性 - Grade: A ★
+### PRD Sections Coverage
 
-| 检查项 | 状态 | 备注 |
-|--------|------|------|
-| 组件/模块可枚举（能列出清单） | ✅ | 7 个新组件 + 3 个修改组件，文件路径和包名均明确 |
-| 每个接口 → 可推导出实现任务 | ✅ | RoleRepo(7方法)、Cache(4方法)、RoleService(7方法)、3个中间件函数均可直接对应实现任务 |
-| 每个数据模型 → 可推导出 schema/迁移任务 | ✅ | 迁移 SQL 已完整写出（12 步），可直接使用 |
-| 无模糊边界（"共享逻辑"等） | ✅ | 各组件职责清晰，无模糊的"共享逻辑"描述 |
-| PRD 验收标准在设计中均有体现 | ✅ | 详见下方追踪表 |
+| PRD Section | Design Coverage | Status |
+|-------------|----------------|--------|
+| 5.1 角色管理（超级管理员） | Router permission mapping, RoleService CRUD, RoleHandler, UI components 1-3 | Covered |
+| 5.2 团队成员角色管理 | InviteMemberReq change (roleId), ChangeMemberRole endpoint, UI component 4 & 6 | Covered |
+| 5.3 前端权限渲染 | PermissionGuard, useHasPermission, refresh strategy, UI component 5 | Covered |
+| 5.4 预置角色定义 | Seed data table (3 preset roles), preset immutability rules in RoleService | Covered |
+| 5.5 数据迁移 | Migration strategy described (SQLite rebuild), not a separate script spec but approach documented | Covered |
+| 5.6 JWT Claims | Claims struct change documented (remove Role, add Username) | Covered |
+| 5.7 关联改动 | All 6 items addressed: invite flow, middleware replacement, nav, admin, team create, store | Covered |
 
-**未覆盖的 PRD 验收标准** (如有):
-- 无遗漏。所有 PRD 功能描述（5.1-5.7）在 tech-design 和 api-handbook 中均有对应设计。
+### User Story Acceptance Criteria Coverage
 
-**PRD → Design 追踪表**:
+| Story | AC Count | Covered | Notes |
+|-------|----------|---------|-------|
+| Story 1: 超级管理员在线管理角色 | 8 | 8 | RoleService CRUD + preset protection rules + permission list endpoint |
+| Story 2: PM 在邀请成员时指定角色 | 5 | 5 | InviteMemberReq with roleId + role list endpoint excluding superadmin |
+| Story 3: 前端根据权限动态渲染 UI | 7 | 7 | PermissionGuard + useHasPermission + team-scoped permission checking |
+| Story 4: 现有数据无缝迁移到 RBAC | 7 | 7 | Migration strategy with transaction + idempotency + field removal |
+| Story 5: 团队创建权限控制 | 3 | 3 | team:create permission code + PermissionGuard on button |
+| Story 6: PM 的权限驱动操作 | 5 | 5 | All permission codes mapped to routes in router changes table |
+| Story 7: Member 的受限操作 | 6 | 6 | Permission codes + assignee pattern preserved |
+| Story 8: 跨团队权限隔离 | 3 | 3 | TeamScopeMiddleware per-team isolation + team-scoped PermissionMap |
+| Story 9: 后端权限强制执行 | 4 | 4 | RequirePermission middleware as Layer 1 defense |
+| Story 10: 角色编辑即时生效 | 3 | 3 | DB-based permission loading (not JWT) + frontend refresh strategy |
 
-| PRD 需求 | Design 对应 |
-|----------|------------|
-| 5.1 角色管理（CRUD + 权限列表） | RoleRepo + RoleService + RoleHandler + 5 个 admin 路由 + api-handbook 5 个端点 |
-| 5.2 团队成员角色管理 | 修改 TeamMember 模型 + PUT members/:userId/role + 修改邀请接口 |
-| 5.3 前端权限渲染 | GET /me/permissions + UserPermissionsResp |
-| 5.4 预置角色定义 | 迁移步骤 3 + Appendix 权限分配清单 |
-| 5.5 数据迁移 | Data Migration 节（完整 SQL）+ 回滚方案 |
-| 5.6 JWT Claims | JWT Changes 节（旧→新 Claims 对比） |
-| 5.7 关联性需求改动 | Middleware Route Mapping 节（30+ 路由映射表） |
+**Total: 51/51 acceptance criteria covered.**
 
-**问题**: 无
-**建议**: 无
+### UI Functions Traceability
 
----
+| UI Function | Design Coverage | Status |
+|-------------|----------------|--------|
+| UI Function 1: 角色列表页 | UI Design Component 1 (RoleManagementPage) | Covered |
+| UI Function 2: 角色编辑表单 | UI Design Component 2 (RoleEditDialog) | Covered |
+| UI Function 3: 权限码浏览视图 | UI Design Component 3 (PermissionBrowseDialog) | Covered |
+| UI Function 4: 邀请成员角色选择 | UI Design Component 4 (invite member Dialog extension) | Covered |
+| UI Function 5: 权限驱动的 UI 渲染 | UI Design Component 5 (usePermission + PermissionGuard) | Covered |
+| UI Function 6: 变更已有成员角色 | UI Design Component 6 (inline role change in member list) | Covered |
 
-## 6. 安全考量 - Grade: A
+## 5. Action Items
 
-| 检查项 | 状态 | 备注 |
-|--------|------|------|
-| 威胁模型识别 | ✅ | 4 项威胁：JWT 泄露、权限提升、未授权访问、缓存不一致 |
-| 缓解措施具体 | ✅ | 每项威胁有对应缓解措施；4 条总体缓解原则 |
-| 与功能风险面匹配 | ✅ | JWT 精简、superadmin DB 查询、RequireSuperAdmin 中间件、事务迁移 |
+### Mandatory Fixes (none required for proceeding)
 
-**问题**: 无
-**建议**: 无
+No blocking issues found. All required dimensions pass at A or B.
 
----
+### Optional Improvements
 
-## 优先改进项
+| Priority | Item | Rationale |
+|----------|------|-----------|
+| P2 | Name integration test tooling explicitly | Add `net/http/httptest` and test DB setup approach to testing strategy section. Minor gap, standard Go practice. |
+| P2 | Specify data migration script as a separate component | The migration approach (SQLite rebuild) is described but not broken out as a named task with its own interface. Adding a `Migration` function signature would make task breakdown even more straightforward. |
+| P3 | Add `ActionDef` struct definition | The `PermissionCodeRegistry` uses `[]ActionDef` but `ActionDef` struct is not explicitly defined in the design. It is inferable from context (`Code` and `Description` fields shown in usage) but would be more complete if shown. |
+| P3 | Clarify `RequirePermission` for non-team routes | The middleware chain doc (line 92) says "If non-team context -> query DB: any role of this user has the code". The specific repo method for this query is not named in `RoleRepo`. Adding a `HasPermission(ctx, userID, code string) (bool, error)` method would close this gap. |
 
-| 优先级 | 维度 | 问题 | 建议操作 |
-|--------|------|------|----------|
-| P1 | 接口与模型 | CreateRoleReq/UpdateRoleReq struct 未在 tech-design 中定义 | 在 Interfaces 部分补充 Go struct 定义 |
-| P2 | 测试策略 | 未指定测试工具和 mock 策略 | 补充 testing/testify/httptest 等工具说明 |
-| P2 | 接口与模型 | AppError 完整 struct 定义缺失 | 补充 AppError struct 或引用现有代码位置 |
+## 6. Verdict
 
----
+**Overall Grade: A**
 
-## 结论
+- All 6 required dimensions pass at A or B.
+- 4 out of 6 dimensions are A (Architecture, Interfaces/Models, Error Handling, Security, Breakdown-Readiness).
+- Breakdown-Readiness is A: all components are enumerable, tasks are clearly derivable, PRD is fully covered (51/51 AC).
+- Design is consistent with the actual codebase across all checked files.
+- API Handbook provides complete endpoint specifications with request/response examples and error code tables.
+- UI Design document provides 6 detailed component specifications with layout, states, interactions, and data binding.
 
-- **可以进入 `/breakdown-tasks`**: 是
-- **预计可拆解任务数**: ~12-15 个（7 个新组件实现 + 迁移脚本 + 路由映射改造 + JWT 改造 + 缓存实现 + 测试）
-- **建议**: 设计质量优秀，架构清晰、PRD 覆盖完整、可直接驱动任务拆解。P1 问题（补充 DTO struct 定义）可在 breakdown 阶段顺带解决，不阻塞任务拆解。
+**Breakdown-Readiness: A -- can proceed to /breakdown-tasks.**
+
+Top 3 strengths:
+1. Complete PRD traceability with 51/51 acceptance criteria covered.
+2. All interfaces are typed and directly implementable -- a developer can code from the design without guessing.
+3. Full codebase consistency: every design assertion about current code matches the actual source.
+
+Top 3 minor gaps (non-blocking):
+1. Integration test tooling not explicitly named.
+2. `ActionDef` struct not explicitly defined (inferable).
+3. Non-team-context permission query method not named in RoleRepo interface.

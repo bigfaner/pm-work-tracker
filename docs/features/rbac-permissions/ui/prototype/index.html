@@ -3,50 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RBAC 权限原型 — PM Tracker</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>RBAC 权限体系 — 原型导航</title>
   <link rel="stylesheet" href="styles.css">
-  <style>
-    body { background: var(--bg); }
-    .proto-index { max-width: 800px; margin: 0 auto; padding: 60px 24px; }
-    .proto-index h1 { font-size: 28px; margin-bottom: 8px; }
-    .proto-index > p { color: var(--text-tertiary); margin-bottom: 32px; font-size: 15px; }
-    .proto-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
-    .proto-card { display: block; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 24px; transition: all 0.15s; box-shadow: var(--shadow); }
-    .proto-card:hover { box-shadow: var(--shadow-md); border-color: var(--primary-200); }
-    .proto-card h3 { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
-    .proto-card p { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
-    .proto-card .tag { display: inline-block; margin-top: 12px; font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--primary-50); color: var(--primary-700); }
-  </style>
 </head>
 <body>
-<div class="proto-index">
-  <h1>RBAC 权限体系 — UI 原型</h1>
-  <p>角色管理、权限浏览、邀请角色选择的原型页面。点击卡片跳转。</p>
+  <div class="index-layout">
+    <div class="index-header">
+      <h1>RBAC 权限体系 — UI 原型</h1>
+      <p>以下页面展示了 RBAC 权限系统的交互原型，基于 Shadcn 设计风格。点击卡片进入对应页面。</p>
+    </div>
 
-  <div class="proto-grid">
-    <a href="admin-roles.html" class="proto-card">
-      <h3>角色管理</h3>
-      <p>超级管理员后台新增"角色管理"tab：角色列表、创建/编辑/删除角色、权限码勾选表单。</p>
-      <span class="tag">UI Function 1 &amp; 2</span>
-    </a>
-    <a href="admin-permissions.html" class="proto-card">
-      <h3>权限码浏览</h3>
-      <p>按资源分组展示所有系统权限码，只读视图，供管理员了解权限全貌。</p>
-      <span class="tag">UI Function 3</span>
-    </a>
-    <a href="team-invite.html" class="proto-card">
-      <h3>邀请成员 — 角色选择</h3>
-      <p>团队管理页面邀请成员流程中新增角色选择下拉框，默认选中 member。</p>
-      <span class="tag">UI Function 4</span>
-    </a>
-    <a href="permission-demo.html" class="proto-card">
-      <h3>权限驱动渲染演示</h3>
-      <p>展示不同角色（superadmin / PM / member）看到的侧边栏和页面差异。</p>
-      <span class="tag">UI Function 5</span>
-    </a>
+    <div class="page-grid">
+      <!-- Page 1: Role Management -->
+      <a href="admin-roles.html" class="page-card">
+        <div class="page-card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3>角色管理</h3>
+        <p>超级管理员管理系统角色：创建、编辑、删除自定义角色，配置权限码勾选，浏览权限全貌。</p>
+      </a>
+
+      <!-- Page 2: Team Invite with Role -->
+      <a href="team-invite.html" class="page-card">
+        <div class="page-card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        </div>
+        <h3>邀请成员 &amp; 角色管理</h3>
+        <p>PM 邀请成员加入团队并指定角色，变更已有成员的角色。展示团队成员列表及权限控制。</p>
+      </a>
+
+      <!-- Page 3: Permission Demo -->
+      <a href="permission-demo.html" class="page-card">
+        <div class="page-card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <h3>权限驱动渲染</h3>
+        <p>切换角色查看 UI 元素的显示/隐藏效果。展示 usePermission Hook 和 PermissionGuard 的行为。</p>
+      </a>
+    </div>
   </div>
-</div>
 </body>
 </html>

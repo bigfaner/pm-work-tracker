@@ -1,5 +1,5 @@
 ---
-created: 2026-04-18
+created: 2026-04-19
 source: prd/prd-ui-functions.md
 status: Draft
 ---
@@ -8,294 +8,428 @@ status: Draft
 
 ## Design System
 
-Tailwind UI — Indigo 主色，Inter 字体，专业温暖 SaaS 风格。沿用现有 `styles.css` 中的 CSS 变量和组件样式。
+- **Framework**: React 18 + TypeScript
+- **Component Library**: shadcn/ui 风格组件（Radix UI 基础 + Tailwind CSS）
+- **已有 UI 原语**: `Table`, `Dialog`, `Input`, `Select`, `Button`, `Badge`, `Pagination`, `PaginationPageSize`, `Breadcrumb`, `Tooltip`, `Tabs`
+- **已有共享组件**: `ConfirmDialog`, `UserAvatar`, `StatusBadge`
+- **状态管理**: zustand (auth store, team store)
+- **数据获取**: @tanstack/react-query (useQuery, useMutation)
+- **样式**: Tailwind CSS v4，主题变量定义在 `src/index.css`
 
-核心 token：
-- Primary: `#4f46e5` (primary-600)，按钮/链接
-- 背景: `#ffffff` / `#f8fafc` 交替
-- 文字: `#0f172a` (primary) / `#475569` (secondary) / `#94a3b8` (tertiary)
-- 圆角: 6px (input) / 8px (button) / 12px (card)
-- 阴影: `0 1px 3px rgba(0,0,0,0.1)` (card)
+### 新增 UI 原语
 
-## Component: 角色列表页
+| 组件 | 说明 |
+|------|------|
+| `CheckboxGroup` | 分组复选框，用于权限码勾选 |
+| `CollapsibleSection` | 可折叠区块，用于权限码分组展示 |
 
-> UI Function 1 — 超级管理员在管理后台查看和管理所有角色。
+---
+
+## Component 1: 角色列表页 (RoleManagementPage)
+
+> 对应 UI Function 1，路由 `/roles`
 
 ### Layout Structure
 
-在现有 `admin.html` 的 tabs 中新增"角色管理"tab，与"用户管理""团队列表"并列。
-
 ```
-┌──────────────────────────────────────────────┐
-│ [用户管理]  [团队列表]  [角色管理]            │  ← tabs
-├──────────────────────────────────────────────┤
-│ 筛选栏: [搜索角色名]  [预置/自定义 ▾]        │
-│                            [+ 创建角色]      │
-├──────────────────────────────────────────────┤
-│ 表格:                                        │
-│ 角色名称 | 描述 | 权限数 | 使用人数 | 操作   │
-│ ─────────────────────────────────────────    │
-│ superadmin | 系统最高权限 | — | 1 | —       │  ← 预置，无操作
-│ pm         | 团队管理权限 | 8  | 5 | 编辑   │  ← 预置，仅可编辑
-│ member     | 基础成员权限 | 4  | 12| 编辑   │
-│ viewer     | 只读查看者   | 3  | 0 | 编辑 删│  ← 自定义
-├──────────────────────────────────────────────┤
-│ 分页: < 1 2 3 >                              │
-└──────────────────────────────────────────────┘
+AppLayout
+└── main content area
+    ├── Page Header
+    │   ├── Breadcrumb: "首页 > 角色管理"
+    │   ├── Title: "角色管理"
+    │   └── Button: "创建角色" (right-aligned)
+    ├── Filter Bar
+    │   ├── Input (搜索角色名称)
+    │   └── Select (预置筛选: 全部/预置/自定义)
+    ├── Table (角色列表)
+    │   ├── Header: 角色名称 | 描述 | 权限数量 | 使用人数 | 类型 | 创建时间 | 操作
+    │   └── Row: {name} | {description} | {permCount} | {userCount} | Badge(preset/custom) | {createdAt} | EditBtn DeleteBtn
+    └── Pagination
 ```
-
-角色名称列：预置角色后附加 `badge-slate` 标记"预置"，自定义角色无标记。
 
 ### States
 
 | State | Visual | Behavior |
 |-------|--------|----------|
-| Loading | 表格行显示骨架屏（3-4 行灰色条纹，pulse 动画） | 首次进入 tab 或刷新 |
-| Populated | 完整数据表格 | 数据加载完成 |
-| Empty | 居中插图 + "暂无自定义角色" + "创建角色"按钮 | 仅有预置角色时 |
-| Error | 红色 alert 横幅 "加载失败，请重试" + 重试按钮 | API 返回错误 |
+| Loading | 表格行显示骨架屏（3-5 行） | 筛选栏不可操作 |
+| Populated | 完整数据表格 | 支持排序、翻页、筛选 |
+| Empty | 居中提示"暂无自定义角色" + 创建按钮 | 仅在筛选无结果时显示 |
+| Error | 表格上方红色错误提示条 | 提供"重试"按钮 |
 
 ### Interactions
 
 | Trigger | Action | Feedback |
 |---------|--------|----------|
-| 点击"创建角色" | 打开角色编辑表单（模态框） | 模态框从右侧滑入或 fade-in |
-| 点击"编辑" | 打开预填的角色编辑表单（模态框） | 同上 |
-| 点击"删除" | 显示确认弹窗 | 弹窗标题"删除角色"，内容"确定删除角色「{name}」？此操作不可撤销"，红色"删除"+ 灰色"取消" |
-| 删除成功 | 关闭弹窗，刷新列表 | 右上角绿色 toast "角色已删除" |
-| 搜索输入 | 防抖 300ms 后筛选列表 | 列表实时更新 |
-| 预置/自定义筛选 | 切换下拉，刷新列表 | 立即生效 |
+| 点击"创建角色" | 打开角色编辑 Dialog（创建模式） | Dialog 弹出 |
+| 点击角色名称/编辑按钮 | 打开角色编辑 Dialog（编辑模式） | Dialog 弹出，预填数据 |
+| 点击"删除"按钮 | 打开 ConfirmDialog | 显示角色名称和使用人数，有用户时提示无法删除 |
+| 输入搜索关键字 | 防抖 300ms 后筛选列表 | 表格实时更新 |
+| 切换预置筛选 | 立即筛选列表 | 表格更新 |
 
 ### Data Binding
 
 | UI Element | Data Field | Source |
 |------------|-----------|--------|
-| 角色名称 | `name` | `GET /api/v1/admin/roles` → `items[].name` |
-| "预置"标记 | `is_preset` | `items[].is_preset` |
-| 描述 | `description` | `items[].description` |
-| 权限数 | `permission_count` | `items[].permission_count` |
-| 使用人数 | `member_count` | `items[].member_count` |
-| 编辑按钮 | `is_preset` + 排除 superadmin | `is_preset && name !== "superadmin"` → 可编辑 |
-| 删除按钮 | `is_preset === false && member_count === 0` | 不可用时隐藏（非禁用） |
+| 角色名称列 | `role.name` | GET /api/roles |
+| 描述列 | `role.description` | GET /api/roles |
+| 权限数量列 | `role.permissionCount` | GET /api/roles (后端关联计数) |
+| 使用人数列 | `role.memberCount` | GET /api/roles (后端关联计数) |
+| 类型 Badge | `role.isPreset` | true → "预置" Badge variant=secondary; false → "自定义" |
+| 创建时间列 | `role.createdAt` | 格式化 YYYY/MM/DD |
+| 删除按钮 | disabled when `role.isPreset \|\| role.memberCount > 0` | Tooltip 提示原因 |
 
 ---
 
-## Component: 角色编辑表单
+## Component 2: 角色编辑表单 (RoleEditDialog)
 
-> UI Function 2 — 创建或编辑角色的模态框表单。
+> 对应 UI Function 2，Dialog 组件
 
 ### Layout Structure
 
-模态框（overlay + 居中卡片），最大宽度 640px，最大高度 80vh，内容可滚动。
-
 ```
-┌─────────────────────────────────────┐
-│ 创建角色 / 编辑角色            [✕]  │
-├─────────────────────────────────────┤
-│ 角色名称 *                          │
-│ [________________________]          │
-│                                     │
-│ 描述                                │
-│ [________________________]          │
-│ [________________________]          │
-│                                     │
-│ 权限配置 *                          │
-│ ┌─ team ──────────────────────┐     │
-│ │ ☑ team:create  创建团队     │     │
-│ │ ☑ team:read    查看团队信息 │     │
-│ │ ☐ team:update  编辑团队信息 │     │
-│ │ ☐ team:invite  邀请成员     │     │
-│ └─────────────────────────────┘     │
-│ ┌─ main_item ─────────────────┐     │
-│ │ ☐ main_item:create 创建事项 │     │
-│ │ ...                         │     │
-│ └─────────────────────────────┘     │
-│ ...更多资源组（折叠/展开）          │
-├─────────────────────────────────────┤
-│                     [取消] [保存]   │
-└─────────────────────────────────────┘
+Dialog (size="lg")
+├── DialogHeader
+│   └── DialogTitle: "创建角色" | "编辑角色: {name}"
+├── DialogBody
+│   ├── Form Field: 角色名称
+│   │   ├── label + 必填标记
+│   │   └── Input
+│   ├── Form Field: 描述
+│   │   ├── label
+│   │   └── textarea (native)
+│   ├── Form Field: 权限配置
+│   │   ├── label + "至少选择 1 个权限"
+│   │   └── Permission Checkbox Groups
+│   │       ├── CollapsibleSection "团队管理"
+│   │       │   └── Checkbox: team:create, team:read, ...
+│   │       ├── CollapsibleSection "主事项"
+│   │       │   └── Checkbox: main_item:create, ...
+│   │       └── ... (按资源分组)
+│   └── Error Message (条件渲染)
+└── DialogFooter
+    ├── Button (variant="secondary"): 取消
+    └── Button (loading when saving): 保存
 ```
-
-权限分组区域：每个资源为一个 collapsible section，标题显示资源名和已选数量（如 "team (2/4)"），默认全部展开。编辑预置角色时，名称字段 readonly。
 
 ### States
 
 | State | Visual | Behavior |
 |-------|--------|----------|
-| Creating | 空表单，标题"创建角色"，名称和描述为空 | 从"创建角色"按钮进入 |
-| Editing | 预填已有数据，标题"编辑角色" | 从角色列表"编辑"进入 |
-| Saving | "保存"按钮显示 spinner + "保存中..."，表单不可编辑 | 提交请求进行中 |
-| Error | 表单顶部红色 alert 横幅 | 保存失败（409 重名等） |
+| Creating | 空表单，标题"创建角色"，所有权限未勾选 | 用户从零填写 |
+| Editing (预置角色) | 名称/描述只读，权限可勾选 | 标题"编辑角色: {name}"，名称字段 disabled |
+| Editing (自定义角色) | 全部可编辑，预填已有数据 | 标题"编辑角色: {name}" |
+| Saving | 保存按钮显示 loading spinner | 不可重复点击 |
+| Error | DialogBody 顶部显示红色错误文本 | 保留表单数据不丢失 |
+| Name Conflict | 角色名称输入框下方错误提示"角色名称已存在" | 不关闭 Dialog |
 
 ### Interactions
 
 | Trigger | Action | Feedback |
 |---------|--------|----------|
-| 名称输入 | 实时校验长度 | 超出范围时输入框变红 |
-| 权限勾选 | 更新资源组的已选计数 | 资源标题 "(2/4)" 实时更新 |
-| 点击资源组标题 | 折叠/展开该组 | 180° 箭头旋转动画 |
-| 点击"保存" | 校验 → 提交 | 校验失败高亮错误字段 |
-| 保存成功 | 关闭模态框，刷新角色列表 | 绿色 toast "角色已创建"/"角色已更新" |
-| 点击"取消"或"✕" | 关闭模态框 | 表单有修改时弹出确认"放弃编辑？" |
+| 输入角色名称 | 实时校验长度（2-50 字符） | 不符合时显示校验提示 |
+| 勾选/取消权限 | 更新权限列表 | 分组标题显示已选数量 "团队管理 (3/5)" |
+| 点击折叠标题 | 展开/折叠该分组 | 箭头旋转动画 |
+| 点击"保存" | 校验 → 提交 API → 成功关闭 Dialog | 成功后 invalidate roles query 并 toast 提示 |
+| 点击"取消" | 关闭 Dialog | 不保存，不提示（表单无确认丢失逻辑） |
 
 ### Data Binding
 
 | UI Element | Data Field | Source |
 |------------|-----------|--------|
-| 名称输入 | `name` | 创建时空；编辑时 `GET /api/v1/admin/roles/:id` → `name` |
-| 描述输入 | `description` | 同上 |
-| 权限勾选 | `permission_codes` | 编辑时预填 `permissions[].code` |
-| 资源分组 | `resource` | `GET /api/v1/admin/permissions` → 按 `resource` 分组 |
-| 保存提交 | POST/PUT body | `{ name, description, permission_codes }` |
+| 角色名称 Input | `form.name: string` | useState |
+| 描述 textarea | `form.description: string` | useState |
+| 权限复选框组 | `form.permissionCodes: string[]` | useState |
+| 创建模式 | POST /api/roles `{ name, description, permissionCodes }` | useMutation |
+| 编辑模式 | PUT /api/roles/:id `{ name, description, permissionCodes }` | useMutation |
+
+### 权限分组定义
+
+| 分组名 | 权限码 |
+|--------|--------|
+| 团队管理 | team:create, team:read, team:update, team:delete, team:invite, team:remove, team:transfer |
+| 主事项 | main_item:create, main_item:read, main_item:update, main_item:archive |
+| 子事项 | sub_item:create, sub_item:read, sub_item:update, sub_item:assign, sub_item:change_status |
+| 进度管理 | progress:create, progress:read, progress:update |
+| 事项池 | item_pool:submit, item_pool:review |
+| 视图 | view:weekly, view:gantt, view:table |
+| 周报 | report:export |
+| 用户管理 | user:read, user:update, user:manage_role |
 
 ---
 
-## Component: 权限码浏览视图
+## Component 3: 权限码浏览视图 (PermissionBrowseDialog)
 
-> UI Function 3 — 只读展示所有系统权限码，按资源分组。
+> 对应 UI Function 3，Dialog 组件
 
 ### Layout Structure
 
-在角色管理 tab 内，"创建角色"按钮旁放"查看权限列表"按钮。点击后切换到权限浏览视图（同 tab 内切换，非新页面）。
-
 ```
-┌──────────────────────────────────────────────┐
-│ [← 返回角色列表]              查看权限列表    │
-├──────────────────────────────────────────────┤
-│ ┌─ team (4 项) ─────────────────────────┐    │
-│ │ 权限码              │ 操作描述         │    │
-│ │ team:create         │ 创建团队         │    │
-│ │ team:read           │ 查看团队信息     │    │
-│ │ team:update         │ 编辑团队信息     │    │
-│ │ team:invite         │ 邀请成员         │    │
-│ └───────────────────────────────────────┘    │
-│ ┌─ main_item (4 项) ────────────────────┐    │
-│ │ ...                                   │    │
-│ └───────────────────────────────────────┘    │
-└──────────────────────────────────────────────┘
+Dialog (size="md")
+├── DialogHeader
+│   └── DialogTitle: "系统权限列表"
+├── DialogBody
+│   └── Permission Groups (只读)
+│       ├── CollapsibleSection "团队管理" (默认展开)
+│       │   └── Table (2 列)
+│       │       ├── Header: 权限码 | 说明
+│       │       └── Row: team:create | 创建团队
+│       ├── CollapsibleSection "主事项"
+│       │   └── ...
+│       └── ... (8 个分组)
+└── DialogFooter
+    └── Button (variant="secondary"): 关闭
 ```
-
-每个资源组为一个 card，权限码用 `font-mono` 样式显示。
 
 ### States
 
 | State | Visual | Behavior |
 |-------|--------|----------|
-| Loading | 卡片骨架屏 | 首次加载 |
-| Populated | 分组卡片列表 | 加载完成 |
-
-无需 empty 和 error 状态（权限码由系统定义，始终存在）。
+| Loading | 分组区域骨架屏 | — |
+| Populated | 完整权限列表，按分组折叠展示 | 默认全部展开 |
 
 ### Interactions
 
 | Trigger | Action | Feedback |
 |---------|--------|----------|
-| 点击"← 返回角色列表" | 切换回角色列表视图 | 无动画，直接切换 |
-| 点击"查看权限列表" | 切换到权限浏览视图 | 加载 `GET /api/v1/admin/permissions` |
+| 点击分组标题 | 展开/折叠该分组 | 箭头旋转 |
+| 点击"关闭" | 关闭 Dialog | — |
 
 ### Data Binding
 
 | UI Element | Data Field | Source |
 |------------|-----------|--------|
-| 资源组标题 | `resource` | `GET /api/v1/admin/permissions` → `resource` |
-| 权限码 | `actions[].code` | `font-mono` 显示 |
-| 操作描述 | `actions[].description` | 普通文本 |
+| 分组标题 | 资源名称（如"团队管理"） | 前端硬编码（权限码由代码定义） |
+| 权限码列 | 权限码字符串 | 前端硬编码 |
+| 说明列 | 操作描述 | 前端硬编码 |
+
+> 权限码列表是系统代码定义的常量，不需要从 API 获取。前端维护一份权限码元数据即可。
 
 ---
 
-## Component: 邀请成员时的角色选择
+## Component 4: 邀请成员角色选择
 
-> UI Function 4 — 在邀请流程中增加角色选择下拉。
+> 对应 UI Function 4，嵌入现有邀请成员 Dialog
 
 ### Layout Structure
 
-在现有团队管理页面的邀请流程中，"邀请成员"按钮打开的模态框/面板内，新增角色选择下拉框。
+在现有 TeamDetailPage 的邀请 Dialog 中增加角色选择字段：
 
 ```
-┌─────────────────────────────────┐
-│ 邀请成员到「产品研发团队」  [✕] │
-├─────────────────────────────────┤
-│ 用户账号                        │
-│ [搜索用户名/账号________]       │
-│ ┌ 搜索结果 ──────────────┐     │
-│ │ 张三 (zhangsan)         │     │
-│ │ 李四 (lisi)             │     │
-│ └─────────────────────────┘     │
-│                                 │
-│ 角色 *                          │
-│ [▼ PM - 团队管理权限_____]      │  ← 新增
-│                                 │
-│              [取消] [发送邀请]   │
-└─────────────────────────────────┘
+Dialog (inviteMember)
+├── DialogHeader
+│   └── DialogTitle: "邀请成员"
+├── DialogBody
+│   ├── Form Field: 搜索用户
+│   │   └── Input (搜索框)
+│   ├── 搜索结果列表（条件渲染）
+│   │   └── 搜索结果项 (用户名 + 选择按钮)
+│   ├── Form Field: 角色 ← 新增
+│   │   └── Select (角色下拉)
+│   │       ├── SelectTrigger
+│   │       └── SelectContent
+│   │           └── SelectItem: {role.name} (排除 superadmin)
+│   └── Error Message
+└── DialogFooter
+    ├── Button (variant="secondary"): 取消
+    └── Button: 确认邀请
 ```
-
-角色下拉显示 `name — description` 格式，默认选中"member"角色。superadmin 角色不出现在列表中。
 
 ### States
 
 | State | Visual | Behavior |
 |-------|--------|----------|
-| Searching | 下拉列表显示 spinner | 输入搜索关键字时 |
-| No Results | "未找到匹配用户" | 搜索无结果 |
-| Selected | 用户名 + 角色选择 | 选中用户后 |
-| Inviting | "发送邀请"按钮 loading | 提交中 |
+| Searching | Input 下方显示搜索结果下拉列表 | 防抖 300ms 搜索 |
+| No Results | "未找到匹配用户" 提示 | Input 下方 |
+| Selected | 用户名显示 + 角色下拉可用 | 角色默认选中第一个非 superadmin 角色 |
+| Saving | 确认按钮 loading | 不可重复点击 |
+| Error | 错误提示 | 保留表单数据 |
 
 ### Interactions
 
 | Trigger | Action | Feedback |
 |---------|--------|----------|
-| 搜索用户 | 防抖搜索，展示下拉结果 | 结果列表实时更新 |
-| 选择用户 | 填入用户名，启用角色下拉 | 角色下拉变为可操作 |
-| 切换角色 | 更新选中角色 | 无特殊反馈 |
-| 点击"发送邀请" | 提交 `{ username, role_id }` | 成功后关闭模态框 + toast |
+| 输入搜索关键字 | 防抖 300ms 搜索用户 | 下拉列表更新 |
+| 选择用户 | 显示用户名，激活角色选择 | 角色下拉默认选中 member |
+| 选择角色 | 更新选中角色 | — |
+| 点击"确认邀请" | 校验 → 提交 API → 成功关闭 Dialog | 成功后 invalidate members query 并 toast |
 
 ### Data Binding
 
 | UI Element | Data Field | Source |
 |------------|-----------|--------|
-| 角色下拉列表 | `id`, `name`, `description` | `GET /api/v1/admin/roles`（排除 superadmin） |
-| 提交数据 | `username`, `role_id` | `POST /api/v1/teams/:teamId/members` |
+| 搜索结果 | `searchResults: User[]` | GET /api/users/search?q={keyword} |
+| 选中用户 | `selectedUser: User` | useState |
+| 角色下拉 | `roles` (排除 superadmin) | GET /api/roles |
+| 选中角色 | `selectedRoleId: number` | useState, 默认 member 角色ID |
+| 提交 | POST /api/teams/:id/members `{ userId, roleId }` | useMutation |
 
 ---
 
-## Component: 权限驱动的 UI 渲染
+## Component 5: 权限驱动的 UI 渲染
 
-> UI Function 5 — 前端根据用户权限动态显示/隐藏 UI 元素。
+> 对应 UI Function 5，全局渲染逻辑
 
 ### Layout Structure
 
-非可见组件，属于前端渲染逻辑层。
+不新增页面组件，而是通过权限 Hook 和 Wrapper 影响现有 UI。
 
-### 受控 UI 元素映射
+### 权限数据结构
 
-| UI 元素 | 所需权限 | 所在页面 |
-|---------|----------|----------|
-| "创建团队"按钮 | `team:create` | 主页 / 导航 |
-| "邀请成员"按钮 | `team:invite` | 团队管理 |
-| "编辑团队信息"按钮 | `team:update` | 团队管理 |
-| "创建事项"按钮 | `main_item:create` | 事项列表 |
-| "编辑事项"按钮 | `main_item:update` | 事项详情 |
-| "删除事项"按钮 | `main_item:delete` | 事项详情 |
-| "创建子项"按钮 | `sub_item:create` | 事项详情 |
-| "编辑子项"按钮 | `sub_item:update` | 子项详情 |
-| "删除子项"按钮 | `sub_item:delete` | 子项详情 |
-| "管理后台"导航入口 | `is_superadmin` | 侧边栏 |
-| "导出周报"按钮 | `report:export` | 周视图 |
-| "甘特图"导航入口 | `view:gantt` | 侧边栏 |
-| "变更成员角色"按钮 | `team:invite` | 团队管理 |
+```typescript
+interface PermissionData {
+  isSuperadmin: boolean
+  teamPermissions: Record<number, string[]>  // teamId → permissionCodes
+}
+```
 
-### Implementation Rules
+### 新增 Hook: usePermission
 
-1. **完全隐藏**（`display: none`），不是禁用或置灰。用户看不到无权限的 UI 元素
-2. **superadmin 绕过**：`is_superadmin === true` 时显示所有 UI 元素，无需逐项检查权限码
-3. **团队上下文**：使用当前选中团队的 `team_permissions[teamId]` 权限集
-4. **全局操作**：创建团队等非团队上下文的操作，检查所有团队权限的并集或 `is_superadmin`
-5. **缓存策略**：登录后请求 `GET /api/v1/me/permissions` 并缓存至内存；角色变更时重新请求刷新
+```typescript
+function usePermission(code: string): boolean
+```
+
+逻辑：
+1. 从 auth store 读取 `permissionData`
+2. 若 `isSuperadmin === true`，返回 true
+3. 若当前在团队上下文（team store 中有 currentTeamId），检查 `teamPermissions[currentTeamId]` 是否包含 code
+4. 若不在团队上下文（如创建团队按钮），检查用户所有团队的权限合集是否包含 code
+
+### 新增组件: PermissionGuard
+
+```tsx
+<PermissionGuard code="team:invite">
+  <Button>邀请成员</Button>
+</PermissionGuard>
+```
+
+- 有权限：渲染子组件
+- 无权限：不渲染（不占空间）
+
+### 受控 UI 元素改动
+
+| 现有位置 | UI 元素 | 权限码 | 改动方式 |
+|---------|---------|--------|---------|
+| Sidebar.tsx | "用户管理"菜单项 | `user:read` | PermissionGuard 包裹 |
+| Sidebar.tsx | "甘特图"菜单项 | `view:gantt` | PermissionGuard 包裹 |
+| TeamManagementPage.tsx | "创建团队"按钮 | `team:create` | PermissionGuard 包裹（非团队上下文检查） |
+| TeamDetailPage.tsx | "邀请成员"按钮 | `team:invite` | PermissionGuard 包裹 |
+| TeamDetailPage.tsx | "移除成员"按钮 | `team:remove` | PermissionGuard 包裹 |
+| TeamDetailPage.tsx | "转让 PM"按钮 | `team:transfer` | PermissionGuard 包裹 |
+| TeamDetailPage.tsx | "编辑团队"按钮 | `team:update` | PermissionGuard 包裹 |
+| TeamDetailPage.tsx | "解散团队"按钮 | `team:delete` | PermissionGuard 包裹 |
+| ItemViewPage.tsx | "创建主事项"按钮 | `main_item:create` | PermissionGuard 包裹 |
+| MainItemDetailPage.tsx | "编辑"按钮 | `main_item:update` | PermissionGuard 包裹 |
+| MainItemDetailPage.tsx | "归档"按钮 | `main_item:archive` | PermissionGuard 包裹 |
+| SubItemDetailPage.tsx | "分配负责人"按钮 | `sub_item:assign` | PermissionGuard 包裹 |
+| ItemPoolPage.tsx | "审核"按钮 | `item_pool:review` | PermissionGuard 包裹 |
+| 进度详情 | "修正进度"按钮 | `progress:update` | PermissionGuard 包裹 |
+| ReportPage.tsx | "导出周报"按钮 | `report:export` | PermissionGuard 包裹 |
+
+### 权限获取与缓存
+
+| 时机 | 行为 |
+|------|------|
+| 登录成功后 | 调用 `GET /api/me/permissions`，存入 auth store |
+| 路由切换时 | 检查缓存时间，超过 5 分钟则重新请求 |
+| 团队切换时 | 立即刷新权限数据（不同团队权限可能不同） |
+| 角色变更后（被变更用户） | 5 分钟轮询间隔检测到权限变化，自动刷新 |
+
+---
+
+## Component 6: 变更成员角色
+
+> 对应 UI Function 6，嵌入现有 TeamDetailPage
+
+### Layout Structure
+
+在现有团队成员列表的每行中修改角色显示：
+
+```
+TableRow (团队成员)
+├── TableCell: UserAvatar + 用户名
+├── TableCell: 角色 ← 改造
+│   ├── 文本: {roleName}
+│   └── Button (variant="ghost", size="sm"): "变更" ← 仅 PM/超管可见
+│       └── 点击 → 内联角色 Select
+└── TableCell: 操作 (移除按钮)
+```
+
+内联变更交互：
+
+```
+点击"变更"
+  → 角色文本替换为 Select (排除 superadmin)
+  → 选择新角色
+  → 自动提交（或显示确认按钮）
+  → 成功：恢复文本显示，toast 提示
+  → 失败：错误提示，恢复原角色文本
+```
 
 ### States
 
 | State | Visual | Behavior |
 |-------|--------|----------|
-| Permitted | 正常显示 | 用户拥有所需权限码 |
-| Not Permitted | `display: none`（不占空间） | 用户缺少权限码 |
-| Superadmin | 显示所有 | `is_superadmin = true` |
+| Viewing | 角色名称文本 + "变更"按钮 | 默认状态 |
+| Selecting | 角色文本替换为 Select 下拉 | 聚焦到 Select |
+| Saving | Select 置灰 + loading spinner | 等待 API 响应 |
+| Error | 原角色文本恢复 + toast 错误提示 | 自动退出 Selecting 状态 |
+
+### Interactions
+
+| Trigger | Action | Feedback |
+|---------|--------|----------|
+| 点击"变更" | 行内显示角色 Select | Select 自动展开 |
+| 选择新角色 | 立即提交变更 API | 行内 loading |
+| 变更成功 | 恢复文本显示新角色名 | toast "角色已更新" |
+| 变更失败 | 恢复原角色名 | toast 错误信息 |
+| 点击 Select 外部 | 取消变更，恢复原文本 | 无 API 调用 |
+
+### Data Binding
+
+| UI Element | Data Field | Source |
+|------------|-----------|--------|
+| 当前角色 | `member.roleName` | teamMembers query |
+| 变更按钮 | visible when `hasPermission('team:invite')` | usePermission |
+| 角色 Select | `roles` (排除 superadmin) | GET /api/roles |
+| 提交变更 | PUT /api/teams/:id/members/:userId/role `{ roleId }` | useMutation |
+
+### Validation Rules
+
+- PM 不能变更自己的角色（"变更"按钮不显示在 PM 自己的行上）
+- superadmin 角色不出现在下拉列表中
+- 必须选择与当前角色不同的新角色才触发提交
+
+---
+
+## 路由与导航变更
+
+### 新增路由
+
+| 路由 | 组件 | 权限 |
+|------|------|------|
+| `/roles` | RoleManagementPage | `user:manage_role` |
+
+### Sidebar 变更
+
+```
+现有结构:
+  标准导航项 (事项清单, 每周进展, ...)
+  --- 分隔线 ---
+  adminItems (用户管理) ← 仅 isSuperAdmin
+
+变更后:
+  标准导航项 (事项清单, 每周进展, ...)
+  --- 分隔线 ---
+  管理区:
+    角色管理 ← PermissionGuard(user:manage_role)
+    用户管理 ← PermissionGuard(user:read)
+```
+
+"角色管理"菜单项使用 `Shield` 图标 (lucide-react)。
+
+### AdminRoute 替换
+
+现有 `AdminRoute` 组件基于 `isSuperAdmin` 布尔值。RBAC 上线后：
+- `/users` 路由的权限检查改为 `RequirePermission("user:read")`
+- `/roles` 路由的权限检查改为 `RequirePermission("user:manage_role")`
+- `AdminRoute` 组件替换为 `PermissionRoute` 组件，接收 `code` prop
