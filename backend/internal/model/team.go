@@ -20,6 +20,7 @@ type TeamMember struct {
 	TeamID    uint      `gorm:"not null;uniqueIndex:idx_team_user" json:"team_id"`
 	UserID    uint      `gorm:"not null;uniqueIndex:idx_team_user" json:"user_id"`
 	Role      string    `gorm:"type:varchar(20);not null;default:'member'" json:"role"`
+	RoleID    *uint     `gorm:"uniqueIndex:idx_team_role" json:"role_id"`
 	JoinedAt  time.Time `gorm:"not null" json:"joined_at"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

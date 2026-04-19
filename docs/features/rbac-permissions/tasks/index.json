@@ -19,7 +19,7 @@
       "title": "Data Models (Role, RolePermission, TeamMember Changes)",
       "priority": "P0",
       "estimatedTime": "2h",
-      "status": "pending",
+      "status": "completed",
       "file": "1.2-data-models.md",
       "record": "records/1.2-data-models.md"
     },
