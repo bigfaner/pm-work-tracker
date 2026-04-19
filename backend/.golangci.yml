@@ -17,8 +17,17 @@ linters:
     - unconvert
     - unparam
     - whitespace
+    - tagliatelle
+    - dupl
 
 linters-settings:
+  tagliatelle:
+    rules:
+      json: camel
+
+  dupl:
+    threshold: 80
+
   govet:
     enable-all: true
     disable:
