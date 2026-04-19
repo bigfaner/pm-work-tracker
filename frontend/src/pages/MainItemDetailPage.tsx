@@ -66,8 +66,8 @@ export default function MainItemDetailPage() {
   const [expanded, setExpanded] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [createSubOpen, setCreateSubOpen] = useState(false)
-  const [editForm, setEditForm] = useState({ title: '', priority: '', expectedEndDate: '' })
-  const [subForm, setSubForm] = useState({ title: '', priority: 'P2', assigneeId: '', expectedEndDate: '', description: '' })
+  const [editForm, setEditForm] = useState({ title: '', priority: '', assigneeId: '', status: '', expectedEndDate: '', actualEndDate: '' })
+  const [subForm, setSubForm] = useState({ title: '', priority: '', assigneeId: '', startDate: '', expectedEndDate: '', description: '' })
 
   // --- Data fetching ---
 
@@ -98,7 +98,10 @@ export default function MainItemDetailPage() {
       setEditForm({
         title: item.title,
         priority: item.priority,
-        expectedEndDate: item.expected_end_date || '',
+        assigneeId: item.assigneeId ? String(item.assigneeId) : '',
+        status: item.status,
+        expectedEndDate: item.expectedEndDate || '',
+        actualEndDate: item.actualEndDate || '',
       })
     }
   }, [item])
@@ -106,7 +109,7 @@ export default function MainItemDetailPage() {
   // --- Mutations ---
 
   const updateMutation = useMutation({
-    mutationFn: (req: { title?: string; priority?: string; expectedEndDate?: string | null }) =>
+    mutationFn: (req: { title?: string; priority?: string; assigneeId?: number | null; status?: string; expectedEndDate?: string | null; actualEndDate?: string | null }) =>
       updateMainItemApi(teamId!, itemId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
@@ -115,12 +118,12 @@ export default function MainItemDetailPage() {
   })
 
   const createSubMutation = useMutation({
-    mutationFn: (req: { title: string; priority: string; assigneeId: number; expectedEndDate?: string; description?: string }) =>
+    mutationFn: (req: { title: string; priority: string; assigneeId: number; startDate?: string; expectedEndDate?: string; description?: string }) =>
       createSubItemApi(teamId!, itemId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       setCreateSubOpen(false)
-      setSubForm({ title: '', priority: 'P2', assigneeId: '', expectedEndDate: '', description: '' })
+      setSubForm({ title: '', priority: '', assigneeId: '', startDate: '', expectedEndDate: '', description: '' })
     },
   })
 
@@ -139,17 +142,21 @@ export default function MainItemDetailPage() {
     updateMutation.mutate({
       title: editForm.title.trim(),
       priority: editForm.priority,
+      assigneeId: editForm.assigneeId ? Number(editForm.assigneeId) : null,
+      status: editForm.status,
       expectedEndDate: editForm.expectedEndDate || null,
+      actualEndDate: editForm.actualEndDate || null,
     })
   }, [editForm, updateMutation])
 
   const handleCreateSub = useCallback(() => {
-    if (!subForm.title.trim() || !subForm.assigneeId) return
+    if (!subForm.title.trim() || !subForm.priority || !subForm.assigneeId || !subForm.startDate || !subForm.expectedEndDate) return
     createSubMutation.mutate({
       title: subForm.title.trim(),
       priority: subForm.priority,
-      assigneeId: Number(subForm.assigneeId),
-      ...(subForm.expectedEndDate && { expectedEndDate: subForm.expectedEndDate }),
+      assigneeId: subForm.assigneeId ? Number(subForm.assigneeId) : 0,
+      startDate: subForm.startDate,
+      expectedEndDate: subForm.expectedEndDate,
       ...(subForm.description && { description: subForm.description }),
     })
   }, [subForm, createSubMutation])
@@ -197,21 +204,6 @@ export default function MainItemDetailPage() {
               </svg>
               编辑
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="secondary">
-                  归档
-                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem>标记为已完成</DropdownMenuItem>
-                <DropdownMenuItem>归档事项</DropdownMenuItem>
-                <DropdownMenuItem danger>删除事项</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
 
           {/* Info Grid */}
@@ -221,21 +213,21 @@ export default function MainItemDetailPage() {
                 <div>
                   <div className="text-xs text-tertiary mb-1">负责人</div>
                   <div className="flex items-center gap-2">
-                    <UserAvatar name={memberName(item.assignee_id)} size="sm" />
-                    <span className="text-[13px] font-medium">{memberName(item.assignee_id)}</span>
+                    <UserAvatar name={memberName(item.assigneeId)} size="sm" />
+                    <span className="text-[13px] font-medium">{memberName(item.assigneeId)}</span>
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">预期完成时间</div>
-                  <span className="text-[13px] font-medium text-error">{formatDate(item.expected_end_date)}</span>
+                  <span className="text-[13px] font-medium text-error">{formatDate(item.expectedEndDate)}</span>
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">开始时间</div>
-                  <span className="text-[13px]">{formatDate(item.start_date)}</span>
+                  <span className="text-[13px]">{formatDate(item.startDate)}</span>
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">实际完成时间</div>
-                  <span className="text-[13px] text-tertiary">{formatDate(item.actual_end_date)}</span>
+                  <span className="text-[13px] text-tertiary">{formatDate(item.actualEndDate)}</span>
                 </div>
               </div>
             </CardContent>
@@ -341,7 +333,7 @@ export default function MainItemDetailPage() {
                             {sub.title}
                           </Link>
                         </TableCell>
-                        <TableCell>{memberName(sub.assignee_id)}</TableCell>
+                        <TableCell>{memberName(sub.assigneeId)}</TableCell>
                         <TableCell>
                           <ProgressBar value={sub.completion} size="sm" showPercentage />
                         </TableCell>
@@ -365,9 +357,9 @@ export default function MainItemDetailPage() {
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
-                        <TableCell className="text-xs">{formatDate(sub.start_date)}</TableCell>
-                        <TableCell className="text-xs">{formatDate(sub.expected_end_date)}</TableCell>
-                        <TableCell className="text-xs text-tertiary">{formatDate(sub.actual_end_date)}</TableCell>
+                        <TableCell className="text-xs">{formatDate(sub.startDate)}</TableCell>
+                        <TableCell className="text-xs">{formatDate(sub.expectedEndDate)}</TableCell>
+                        <TableCell className="text-xs text-tertiary">{formatDate(sub.actualEndDate)}</TableCell>
                       </TableRow>
                     )
                   })}
@@ -405,24 +397,46 @@ export default function MainItemDetailPage() {
                     </Select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-primary mb-1">状态</label>
-                    <Select value={item.status} disabled>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                    <label className="block text-sm font-medium text-primary mb-1">负责人</label>
+                    <Select value={editForm.assigneeId || '_none'} onValueChange={(v) => setEditForm((f) => ({ ...f, assigneeId: v === '_none' ? '' : v }))}>
+                      <SelectTrigger><SelectValue placeholder="选择负责人" /></SelectTrigger>
                       <SelectContent>
-                        {STATUS_OPTIONS.map((s) => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        <SelectItem value="_none">不指定</SelectItem>
+                        {members?.map((m) => (
+                          <SelectItem key={m.userId} value={String(m.userId)}>{m.displayName}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-primary mb-1">预期完成时间</label>
-                  <Input
-                    type="date"
-                    value={editForm.expectedEndDate}
-                    onChange={(e) => setEditForm((f) => ({ ...f, expectedEndDate: e.target.value }))}
-                  />
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-primary mb-1">状态</label>
+                  <Select value={editForm.status} onValueChange={(v) => setEditForm((f) => ({ ...f, status: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-1">预期完成时间</label>
+                    <Input
+                      type="date"
+                      value={editForm.expectedEndDate}
+                      onChange={(e) => setEditForm((f) => ({ ...f, expectedEndDate: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-1">实际完成时间</label>
+                    <Input
+                      type="date"
+                      value={editForm.actualEndDate}
+                      onChange={(e) => setEditForm((f) => ({ ...f, actualEndDate: e.target.value }))}
+                    />
+                  </div>
                 </div>
               </DialogBody>
               <DialogFooter>
@@ -451,9 +465,11 @@ export default function MainItemDetailPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-primary mb-1">优先级</label>
+                    <label className="block text-sm font-medium text-primary mb-1">
+                      优先级 <span className="text-error">*</span>
+                    </label>
                     <Select value={subForm.priority} onValueChange={(v) => setSubForm((f) => ({ ...f, priority: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="请选择优先级" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="P1">P1</SelectItem>
                         <SelectItem value="P2">P2</SelectItem>
@@ -462,7 +478,9 @@ export default function MainItemDetailPage() {
                     </Select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-primary mb-1">负责人</label>
+                    <label className="block text-sm font-medium text-primary mb-1">
+                      负责人 <span className="text-error">*</span>
+                    </label>
                     <Select value={subForm.assigneeId || '_none'} onValueChange={(v) => setSubForm((f) => ({ ...f, assigneeId: v === '_none' ? '' : v }))}>
                       <SelectTrigger><SelectValue placeholder="选择负责人" /></SelectTrigger>
                       <SelectContent>
@@ -474,13 +492,27 @@ export default function MainItemDetailPage() {
                     </Select>
                   </div>
                 </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-primary mb-1">预期完成时间</label>
-                  <Input
-                    type="date"
-                    value={subForm.expectedEndDate}
-                    onChange={(e) => setSubForm((f) => ({ ...f, expectedEndDate: e.target.value }))}
-                  />
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-1">
+                      开始时间 <span className="text-error">*</span>
+                    </label>
+                    <Input
+                      type="date"
+                      value={subForm.startDate}
+                      onChange={(e) => setSubForm((f) => ({ ...f, startDate: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-1">
+                      预期完成时间 <span className="text-error">*</span>
+                    </label>
+                    <Input
+                      type="date"
+                      value={subForm.expectedEndDate}
+                      onChange={(e) => setSubForm((f) => ({ ...f, expectedEndDate: e.target.value }))}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-primary mb-1">描述</label>
@@ -495,7 +527,7 @@ export default function MainItemDetailPage() {
               </DialogBody>
               <DialogFooter>
                 <Button variant="secondary" onClick={() => setCreateSubOpen(false)}>取消</Button>
-                <Button onClick={handleCreateSub} disabled={!subForm.title.trim() || createSubMutation.isPending}>确认</Button>
+                <Button onClick={handleCreateSub} disabled={!subForm.title.trim() || !subForm.priority || !subForm.assigneeId || !subForm.startDate || !subForm.expectedEndDate || createSubMutation.isPending}>确认</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

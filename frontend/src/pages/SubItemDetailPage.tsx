@@ -164,8 +164,8 @@ export default function SubItemDetailPage() {
                 <div>
                   <div className="text-xs text-tertiary mb-1">负责人</div>
                   <div className="flex items-center gap-2">
-                    <UserAvatar name={memberName(subItem.assignee_id)} size="sm" />
-                    <span className="text-[13px] font-medium">{memberName(subItem.assignee_id)}</span>
+                    <UserAvatar name={memberName(subItem.assigneeId)} size="sm" />
+                    <span className="text-[13px] font-medium">{memberName(subItem.assigneeId)}</span>
                   </div>
                 </div>
                 <div>
@@ -174,7 +174,7 @@ export default function SubItemDetailPage() {
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">预期完成时间</div>
-                  <span className="text-[13px]">{subItem.expected_end_date ? subItem.expected_end_date.slice(5) : '-'}</span>
+                  <span className="text-[13px]">{subItem.expectedEndDate ? subItem.expectedEndDate.slice(5) : '-'}</span>
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">当前完成度</div>
@@ -210,7 +210,7 @@ export default function SubItemDetailPage() {
               ) : (
                 <div className="relative pl-6 border-l-2 border-border space-y-5">
                   {sortedRecords.map((record) => {
-                    const date = new Date(record.created_at)
+                    const date = new Date(record.createdAt)
                     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
                     return (
                       <div key={record.id} className="relative">

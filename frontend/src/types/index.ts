@@ -9,104 +9,108 @@ export interface TeamSummary {
 export interface User {
   id: number
   username: string
-  display_name: string
+  displayName: string
   email?: string
-  is_super_admin: boolean
-  can_create_team: boolean
+  isSuperAdmin: boolean
+  canCreateTeam: boolean
   status?: 'enabled' | 'disabled'
   teams?: TeamSummary[]
-  created_at: string
-  updated_at: string
 }
 
 export interface Team {
   id: number
   name: string
   description: string
-  pm_id: number
-  created_at: string
-  updated_at: string
+  pmId: number
+  createdAt: string
+  updatedAt: string
 }
 
 export interface TeamMember {
   id: number
-  team_id: number
-  user_id: number
+  teamId: number
+  userId: number
   role: string
-  joined_at: string
-  created_at: string
-  updated_at: string
+  joinedAt: string
+  displayName: string
+  username: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface MainItem {
   id: number
-  team_id: number
+  teamId: number
   code: string
   title: string
   priority: string
-  proposer_id: number
-  assignee_id: number | null
-  start_date: string | null
-  expected_end_date: string | null
-  actual_end_date: string | null
+  proposerId: number
+  assigneeId: number | null
+  startDate: string | null
+  expectedEndDate: string | null
+  actualEndDate: string | null
   status: string
   completion: number
-  is_key_item: boolean
-  delay_count: number
-  archived_at: string | null
-  created_at: string
-  updated_at: string
+  isKeyItem: boolean
+  delayCount: number
+  archivedAt: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface SubItem {
   id: number
-  team_id: number
-  main_item_id: number
+  teamId: number
+  mainItemId: number
   title: string
   description: string
   priority: string
-  assignee_id: number | null
-  start_date: string | null
-  expected_end_date: string | null
-  actual_end_date: string | null
+  assigneeId: number | null
+  startDate: string | null
+  expectedEndDate: string | null
+  actualEndDate: string | null
   status: string
   completion: number
-  is_key_item: boolean
-  delay_count: number
+  isKeyItem: boolean
+  delayCount: number
   weight: number
-  created_at: string
-  updated_at: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface ProgressRecord {
   id: number
-  sub_item_id: number
-  team_id: number
-  author_id: number
+  subItemId: number
+  teamId: number
+  authorId: number
+  authorName?: string
   completion: number
   achievement: string
   blocker: string
   lesson: string
-  is_pm_correct: boolean
-  created_at: string
+  isPMCorrect: boolean
+  createdAt: string
 }
 
 export interface ItemPool {
   id: number
-  team_id: number
+  teamId: number
   title: string
   background: string
-  expected_output: string
-  submitter_id: number
+  expectedOutput: string
+  submitterId: number
+  submitterName?: string
   status: string
-  assigned_main_id: number | null
-  assigned_sub_id: number | null
-  assignee_id: number | null
-  reject_reason: string
-  reviewed_at: string | null
-  reviewer_id: number | null
-  created_at: string
-  updated_at: string
+  assignedMainId: number | null
+  assignedSubId: number | null
+  assignedMainCode: string
+  assignedMainTitle: string
+  assigneeId: number | null
+  rejectReason: string
+  reviewedAt: string | null
+  reviewerId: number | null
+  createdAt: string
+  updatedAt: string
 }
 
 // Paginated result
@@ -159,27 +163,30 @@ export interface TeamDetailResp {
   name: string
   description: string
   pmId: number
-  pm: { displayName: string }
+  pmDisplayName: string
   memberCount: number
   mainItemCount: number
   createdAt: string
 }
 
 export interface TeamMemberResp {
+  id: number
+  teamId: number
   userId: number
-  displayName: string
-  username: string
   role: string
   joinedAt: string
+  displayName: string
+  username: string
 }
 
 // MainItems
 export interface CreateMainItemReq {
   title: string
+  description?: string
   priority: string
-  assigneeId?: number
-  startDate?: string
-  expectedEndDate?: string
+  assigneeId: number
+  startDate: string
+  expectedEndDate: string
 }
 
 export interface UpdateMainItemReq {
@@ -188,6 +195,8 @@ export interface UpdateMainItemReq {
   assigneeId?: number | null
   startDate?: string | null
   expectedEndDate?: string | null
+  actualEndDate?: string | null
+  status?: string
 }
 
 export interface MainItemFilter {
@@ -254,6 +263,16 @@ export interface SubmitItemPoolReq {
 export interface AssignItemPoolReq {
   mainItemId: number
   assigneeId: number
+  priority?: string
+  startDate: string
+  expectedEndDate: string
+}
+
+export interface ConvertToMainItemReq {
+  priority: string
+  assigneeId: number
+  startDate: string
+  expectedEndDate: string
 }
 
 export interface RejectItemPoolReq {
@@ -267,6 +286,7 @@ export interface ItemPoolFilter {
 }
 
 export interface AssignItemPoolResp {
+  mainItemId: number
   subItemId: number
 }
 
@@ -481,6 +501,7 @@ export interface SubItemSnapshot {
   expectedEndDate: string
   completion: number
   progressDescription: string
+  progressRecords: ProgressRecord[]
   delta?: number
   isNew?: boolean
   justCompleted?: boolean

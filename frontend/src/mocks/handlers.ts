@@ -14,36 +14,34 @@ import type {
 export const seedUser: User = {
   id: 1,
   username: 'testuser',
-  display_name: 'Test User',
-  is_super_admin: false,
-  can_create_team: false,
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
+  displayName: 'Test User',
+  isSuperAdmin: false,
+  canCreateTeam: false,
 }
 
 export const seedMembers: TeamMemberResp[] = [
-  { userId: 1, displayName: 'Test User', username: 'testuser', role: 'pm', joinedAt: '2024-01-01' },
+  { id: 1, teamId: 1, userId: 1, displayName: 'Test User', username: 'testuser', role: 'pm', joinedAt: '2024-01-01' },
 ]
 
 export function makeMainItem(overrides: Partial<MainItem> = {}): MainItem {
   return {
     id: 1,
-    team_id: 1,
+    teamId: 1,
     code: 'MI-0001',
     title: 'Test Main Item',
     priority: 'P2',
-    proposer_id: 1,
-    assignee_id: 1,
-    start_date: null,
-    expected_end_date: null,
-    actual_end_date: null,
+    proposerId: 1,
+    assigneeId: 1,
+    startDate: null,
+    expectedEndDate: null,
+    actualEndDate: null,
     status: '进行中',
     completion: 50,
-    is_key_item: false,
-    delay_count: 0,
-    archived_at: null,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
+    isKeyItem: false,
+    delayCount: 0,
+    archivedAt: null,
+    createdAt: '2024-06-01T10:00:00Z',
+    updatedAt: '2024-06-01T10:00:00Z',
     ...overrides,
   }
 }
@@ -51,20 +49,22 @@ export function makeMainItem(overrides: Partial<MainItem> = {}): MainItem {
 export function makeItemPool(overrides: Partial<ItemPool> = {}): ItemPool {
   return {
     id: 1,
-    team_id: 1,
+    teamId: 1,
     title: 'Test Pool Item',
     background: '',
-    expected_output: '',
-    submitter_id: 1,
+    expectedOutput: '',
+    submitterId: 1,
     status: '待分配',
-    assigned_main_id: null,
-    assigned_sub_id: null,
-    assignee_id: null,
-    reject_reason: '',
-    reviewed_at: null,
-    reviewer_id: null,
-    created_at: '2024-06-01T10:00:00Z',
-    updated_at: '2024-06-01T10:00:00Z',
+    assignedMainId: null,
+    assignedSubId: null,
+    assignedMainCode: '',
+    assignedMainTitle: '',
+    assigneeId: null,
+    rejectReason: '',
+    reviewedAt: null,
+    reviewerId: null,
+    createdAt: '2024-06-01T10:00:00Z',
+    updatedAt: '2024-06-01T10:00:00Z',
     ...overrides,
   }
 }
@@ -122,8 +122,8 @@ export const handlers = [
 
     let items = [
       makeItemPool({ id: 1, title: 'Pending Item', status: '待分配' }),
-      makeItemPool({ id: 2, title: 'Assigned Item', status: '已分配', assigned_main_id: 1, assignee_id: 1 }),
-      makeItemPool({ id: 3, title: 'Rejected Item', status: '已拒绝', reject_reason: 'Not suitable' }),
+      makeItemPool({ id: 2, title: 'Assigned Item', status: '已分配', assignedMainId: 1, assigneeId: 1 }),
+      makeItemPool({ id: 3, title: 'Rejected Item', status: '已拒绝', rejectReason: 'Not suitable' }),
     ]
 
     if (status) {
@@ -137,7 +137,7 @@ export const handlers = [
   // Item pool: assign
   http.post('/api/v1/teams/:teamId/item-pool/:poolId/assign', async ({ params }) => {
     const poolId = Number(params.poolId)
-    const resp: AssignItemPoolResp = { subItemId: 1000 + poolId }
+    const resp: AssignItemPoolResp = { mainItemId: 100 + poolId, subItemId: 1000 + poolId }
     return HttpResponse.json({ code: 0, data: resp })
   }),
 

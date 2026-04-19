@@ -51,7 +51,7 @@ function renderMarkdown(preview: ReportPreviewResp): string {
 
   const user = useAuthStore.getState().user
   const now = new Date().toISOString().slice(0, 10)
-  md += `---\n导出时间 ${now} by ${user?.display_name || ''}\n`
+  md += `---\n导出时间 ${now} by ${user?.displayName || ''}\n`
   return md
 }
 

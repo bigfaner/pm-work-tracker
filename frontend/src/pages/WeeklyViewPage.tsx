@@ -167,7 +167,10 @@ interface ComparisonCardProps {
 
 function ComparisonCard({ group, weekStart }: ComparisonCardProps) {
   const [expanded, setExpanded] = useState(false)
-  const { mainItem, lastWeek, thisWeek, completedNoChange } = group
+  const { mainItem } = group
+  const lastWeek = group.lastWeek ?? []
+  const thisWeek = group.thisWeek ?? []
+  const completedNoChange = group.completedNoChange ?? []
 
   const weekNum = getWeekNumber(weekStart)
   const hasCompleted = completedNoChange.length > 0
@@ -229,7 +232,7 @@ function ComparisonCard({ group, weekStart }: ComparisonCardProps) {
           </div>
           <div className="flex flex-col gap-2.5">
             {lastWeek.map((item) => (
-              <SubItemRow key={item.id} item={item} />
+              <SubItemRow key={item.id} item={item} mainItemId={mainItem.id} />
             ))}
             {lastWeek.length === 0 && (
               <div className="text-xs text-tertiary">无活跃事项</div>
@@ -243,7 +246,7 @@ function ComparisonCard({ group, weekStart }: ComparisonCardProps) {
                 <div key={item.id} className="flex items-center gap-1.5 flex-wrap opacity-70">
                   <StatusBadge status={item.status} className="text-[11px]" />
                   <PriorityBadge priority={item.priority} className="text-[10px]" />
-                  <span className="text-[13px]">{item.title}</span>
+                  <Link to={`/items/${mainItem.id}/sub/${item.id}`} className="text-[13px] text-text hover:text-primary-600">{item.title}</Link>
                 </div>
               ))}
             </div>
@@ -260,7 +263,7 @@ function ComparisonCard({ group, weekStart }: ComparisonCardProps) {
           </div>
           <div className="flex flex-col gap-2.5">
             {thisWeek.map((item) => (
-              <SubItemRow key={item.id} item={item} showDelta />
+              <SubItemRow key={item.id} item={item} mainItemId={mainItem.id} showDelta />
             ))}
             {thisWeek.length === 0 && (
               <div className="text-xs text-tertiary">无活跃事项</div>
@@ -274,7 +277,7 @@ function ComparisonCard({ group, weekStart }: ComparisonCardProps) {
                 <div key={item.id} className="flex items-center gap-1.5 flex-wrap opacity-70">
                   <StatusBadge status={item.status} className="text-[11px]" />
                   <PriorityBadge priority={item.priority} className="text-[10px]" />
-                  <span className="text-[13px]">{item.title}</span>
+                  <Link to={`/items/${mainItem.id}/sub/${item.id}`} className="text-[13px] text-text hover:text-primary-600">{item.title}</Link>
                 </div>
               ))}
             </div>
@@ -289,16 +292,17 @@ function ComparisonCard({ group, weekStart }: ComparisonCardProps) {
 
 interface SubItemRowProps {
   item: SubItemSnapshot
+  mainItemId: number
   showDelta?: boolean
 }
 
-function SubItemRow({ item, showDelta }: SubItemRowProps) {
+function SubItemRow({ item, mainItemId, showDelta }: SubItemRowProps) {
   return (
-    <div>
+    <div className="py-1">
       <div className="flex items-center gap-1.5 flex-wrap">
         <StatusBadge status={item.status} className="text-[11px]" />
         <PriorityBadge priority={item.priority} className="text-[10px]" />
-        <span className="text-[13px]">{item.title}</span>
+        <Link to={`/items/${mainItemId}/sub/${item.id}`} className="text-[13px] text-text hover:text-primary-600">{item.title}</Link>
         <span className="text-[11px] text-tertiary whitespace-nowrap">
           {item.assigneeName}
         </span>
@@ -321,11 +325,24 @@ function SubItemRow({ item, showDelta }: SubItemRowProps) {
           </span>
         )}
       </div>
-      {item.progressDescription && (
-        <div className="pl-14 text-xs text-tertiary -mt-1">
+      {item.progressRecords && item.progressRecords.length > 0 ? (
+        <div className="pl-14 mt-1.5 flex flex-col gap-1">
+          {item.progressRecords.map((record) => (
+            <div key={record.id} className="text-xs text-tertiary">
+              {record.achievement && (
+                <span className="text-emerald-700">成果：{record.achievement}</span>
+              )}
+              {record.blocker && (
+                <span className="ml-2 text-red-600">卡点：{record.blocker}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : item.progressDescription ? (
+        <div className="pl-14 text-xs text-tertiary mt-1 py-1">
           {item.completion}% · {item.progressDescription}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

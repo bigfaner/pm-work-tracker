@@ -83,7 +83,7 @@ export default function UserManagementPage() {
 
   // --- Data fetching ---
 
-  const { data: usersData, isLoading } = useQuery({
+  const { data: usersData, isLoading, isFetching } = useQuery({
     queryKey: ['adminUsers', currentPage, pageSize, searchText, canCreateTeamFilter],
     queryFn: () =>
       listUsersApi({
@@ -264,7 +264,7 @@ export default function UserManagementPage() {
       </div>
 
       {/* User Table */}
-      {isLoading ? (
+      {isLoading || (isFetching && !usersData) ? (
         <div className="py-8 text-center text-tertiary text-sm">加载中...</div>
       ) : users.length === 0 ? (
         <div className="py-12 text-center">

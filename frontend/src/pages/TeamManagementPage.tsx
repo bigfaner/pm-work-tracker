@@ -121,7 +121,7 @@ export default function TeamManagementPage() {
                   </TableCell>
                   <TableCell>
                     <span className="text-[13px] text-secondary">
-                      {formatDate(team.created_at)}
+                      {formatDate(team.createdAt)}
                     </span>
                   </TableCell>
                 </TableRow>

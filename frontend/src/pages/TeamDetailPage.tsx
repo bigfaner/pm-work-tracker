@@ -207,8 +207,8 @@ export default function TeamDetailPage() {
           <div>
             <div className="text-xs text-tertiary mb-1">PM</div>
             <div className="flex items-center gap-2">
-              <UserAvatar name={team.pm.displayName} size="sm" />
-              <span className="text-sm font-medium text-primary">{team.pm.displayName}</span>
+              <UserAvatar name={team.pmDisplayName} size="sm" />
+              <span className="text-sm font-medium text-primary">{team.pmDisplayName}</span>
             </div>
           </div>
           <div>

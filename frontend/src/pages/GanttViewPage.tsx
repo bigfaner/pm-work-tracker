@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef, Fragment } from 'react'
+import { RotateCcw } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { getGanttViewApi } from '@/api/views'
@@ -154,9 +155,9 @@ export default function GanttViewPage() {
   }
 
   return (
-    <div data-testid="gantt-view-page">
+    <div data-testid="gantt-view-page" className="gantt-page">
       {/* Page Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="gantt-page-header">
         <h1 className="text-xl font-semibold text-primary">整体进度</h1>
         <div className="flex items-center gap-2 text-[13px] text-secondary">
           <input
@@ -174,6 +175,14 @@ export default function GanttViewPage() {
             value={dateRange?.end ?? formatDateInput(rangeEnd)}
             onChange={handleDateEndChange}
           />
+          <button
+            data-testid="reset-date-btn"
+            className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-border bg-white text-secondary hover:text-primary-500 hover:border-primary-500 transition-colors"
+            title="重置时间"
+            onClick={() => setDateRange(null)}
+          >
+            <RotateCcw className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -229,6 +238,18 @@ function GanttChart({
   onLoadMore,
 }: GanttChartProps) {
   const bodyWidth = totalDays * DAY_WIDTH
+  const headerInnerRef = useRef<HTMLDivElement>(null)
+  const bodyInnerRef = useRef<HTMLDivElement>(null)
+  const hscrollRef = useRef<HTMLDivElement>(null)
+
+  // Sync header & body horizontal position with scrollbar proxy
+  const handleHScroll = useCallback(() => {
+    if (hscrollRef.current) {
+      const offset = -hscrollRef.current.scrollLeft
+      if (headerInnerRef.current) headerInnerRef.current.style.transform = `translateX(${offset}px)`
+      if (bodyInnerRef.current) bodyInnerRef.current.style.transform = `translateX(${offset}px)`
+    }
+  }, [])
 
   // Auto-expand groups when search is active
   const effectiveExpanded = useMemo(() => {
@@ -245,8 +266,7 @@ function GanttChart({
 
   return (
     <div data-testid="gantt-container" className="gantt-container">
-      <div className="gantt-scroll">
-        <div className="gantt-inner">
+      <div className="gantt-inner">
           {/* Label Panel (sticky left) */}
           <div className="gantt-labels">
             <div className="gantt-label-header">
@@ -279,46 +299,53 @@ function GanttChart({
 
           {/* Timeline Panel */}
           <div className="gantt-timeline">
-            <GanttHeader rangeStart={rangeStart} totalDays={totalDays} bodyWidth={bodyWidth} />
-            <div className="gantt-body" style={{ width: bodyWidth, position: 'relative' }}>
-              {items.map((item) => (
-                <GanttTimelineRow
-                  key={item.id}
-                  itemId={item.id}
-                  subId={undefined}
-                  startDate={item.startDate}
-                  endDate={item.expectedEndDate}
-                  completion={item.completion}
-                  barClass={getBarClass(item)}
-                  rangeStart={rangeStart}
-                  totalDays={totalDays}
-                  isSub={false}
-                  isExpanded={effectiveExpanded.has(item.id)}
-                />
-              ))}
-              {items.flatMap((item) =>
-                item.subItems.map((sub) => (
-                  <GanttTimelineRow
-                    key={sub.id}
-                    itemId={item.id}
-                    subId={sub.id}
-                    startDate={sub.startDate}
-                    endDate={sub.expectedEndDate}
-                    completion={sub.completion}
-                    barClass={getBarClass({ status: sub.status, startDate: sub.startDate })}
-                    rangeStart={rangeStart}
-                    totalDays={totalDays}
-                    isSub={true}
-                    isExpanded={effectiveExpanded.has(item.id)}
-                  />
-                )),
-              )}
-              <TodayLine rangeStart={rangeStart} totalDays={totalDays} />
+            <div className="gantt-header">
+              <div className="gantt-header-inner" ref={headerInnerRef} style={{ width: bodyWidth }}>
+                <GanttHeaderContent rangeStart={rangeStart} totalDays={totalDays} />
+              </div>
+            </div>
+            <div className="gantt-body">
+              <div className="gantt-body-inner" ref={bodyInnerRef} style={{ width: bodyWidth, position: 'relative' }}>
+                {items.map((item) => (
+                  <Fragment key={item.id}>
+                    <GanttTimelineRow
+                      itemId={item.id}
+                      subId={undefined}
+                      startDate={item.startDate}
+                      endDate={item.expectedEndDate}
+                      completion={item.completion}
+                      barClass={getBarClass(item)}
+                      rangeStart={rangeStart}
+                      totalDays={totalDays}
+                      isSub={false}
+                      isExpanded={effectiveExpanded.has(item.id)}
+                    />
+                    {item.subItems.map((sub) => (
+                      <GanttTimelineRow
+                        key={sub.id}
+                        itemId={item.id}
+                        subId={sub.id}
+                        startDate={sub.startDate}
+                        endDate={sub.expectedEndDate}
+                        completion={sub.completion}
+                        barClass={getBarClass({ status: sub.status, startDate: sub.startDate })}
+                        rangeStart={rangeStart}
+                        totalDays={totalDays}
+                        isSub={true}
+                        isExpanded={effectiveExpanded.has(item.id)}
+                      />
+                    ))}
+                  </Fragment>
+                ))}
+                <TodayLine rangeStart={rangeStart} totalDays={totalDays} />
+              </div>
+            </div>
+            <div className="gantt-hscroll" ref={hscrollRef} onScroll={handleHScroll}>
+              <div style={{ width: bodyWidth, height: 1 }} />
             </div>
           </div>
         </div>
       </div>
-    </div>
   )
 }
 
@@ -453,9 +480,9 @@ function TodayLine({ rangeStart, totalDays }: { rangeStart: Date; totalDays: num
   )
 }
 
-// --- Gantt Header ---
+// --- Gantt Header Content ---
 
-function GanttHeader({ rangeStart, totalDays, bodyWidth }: { rangeStart: Date; totalDays: number; bodyWidth: number }) {
+function GanttHeaderContent({ rangeStart, totalDays }: { rangeStart: Date; totalDays: number }) {
   // Build month cells
   const months: { label: string; width: number }[] = useMemo(() => {
     const result: { label: string; width: number }[] = []
@@ -490,25 +517,23 @@ function GanttHeader({ rangeStart, totalDays, bodyWidth }: { rangeStart: Date; t
   }, [rangeStart, totalDays])
 
   return (
-    <div className="gantt-header" style={{ width: bodyWidth }}>
-      <div>
-        {/* Month row */}
-        <div className="gantt-month-row">
-          {months.map((m, i) => (
-            <div key={i} className="gantt-month-cell" style={{ width: m.width }}>
-              {m.label}
-            </div>
-          ))}
-        </div>
-        {/* Day row */}
-        <div className="gantt-day-row">
-          {days.map((d, i) => (
-            <div key={i} className={`gantt-day ${d.isWeekend ? 'weekend' : 'weekday'}`}>
-              {d.date}
-            </div>
-          ))}
-        </div>
+    <>
+      {/* Month row */}
+      <div className="gantt-month-row">
+        {months.map((m, i) => (
+          <div key={i} className="gantt-month-cell" style={{ width: m.width }}>
+            {m.label}
+          </div>
+        ))}
       </div>
-    </div>
+      {/* Day row */}
+      <div className="gantt-day-row">
+        {days.map((d, i) => (
+          <div key={i} className={`gantt-day ${d.isWeekend ? 'weekend' : 'weekday'}`}>
+            {d.date}
+          </div>
+        ))}
+      </div>
+    </>
   )
 }

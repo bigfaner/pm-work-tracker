@@ -146,10 +146,10 @@ export default function Sidebar() {
 
       <div className="px-4 py-3 border-t border-border flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-[13px] font-semibold">
-          {user?.display_name?.charAt(0) ?? '?'}
+          {user?.displayName?.charAt(0) ?? '?'}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[13px] font-medium text-primary truncate">{user?.display_name}</div>
+          <div className="text-[13px] font-medium text-primary truncate">{user?.displayName}</div>
         </div>
         <button
           data-testid="sidebar-logout"

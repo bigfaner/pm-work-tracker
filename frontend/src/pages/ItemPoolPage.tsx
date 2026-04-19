@@ -2,10 +2,10 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
-import { listItemPoolApi, submitItemPoolApi, assignItemPoolApi, rejectItemPoolApi } from '@/api/itemPool'
+import { listItemPoolApi, submitItemPoolApi, assignItemPoolApi, convertToMainApi, rejectItemPoolApi } from '@/api/itemPool'
 import { listMainItemsApi } from '@/api/mainItems'
 import { listMembersApi } from '@/api/teams'
-import type { ItemPool } from '@/types'
+import type { ItemPool, AssignItemPoolReq, ConvertToMainItemReq } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -29,27 +29,27 @@ import {
 
 const POOL_BATCH_SIZE = 5
 const POOL_STATUS_OPTIONS = [
-  { value: 'pending', label: '待分配' },
-  { value: 'assigned', label: '已分配' },
-  { value: 'rejected', label: '已拒绝' },
+  { value: '待分配', label: '待分配' },
+  { value: '已分配', label: '已分配' },
+  { value: '已拒绝', label: '已拒绝' },
 ]
 
 const STATUS_BORDER: Record<string, string> = {
-  pending: 'border-l-4 border-l-blue-500',
-  assigned: 'border-l-4 border-l-slate-400 opacity-70',
-  rejected: 'border-l-4 border-l-red-400 opacity-70',
+  '待分配': 'border-l-4 border-l-blue-500',
+  '已分配': 'border-l-4 border-l-slate-400 opacity-70',
+  '已拒绝': 'border-l-4 border-l-red-400 opacity-70',
 }
 
 const STATUS_BADGE_VARIANT: Record<string, 'primary' | 'success' | 'default'> = {
-  pending: 'primary',
-  assigned: 'success',
-  rejected: 'default',
+  '待分配': 'primary',
+  '已分配': 'success',
+  '已拒绝': 'default',
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  pending: '待分配',
-  assigned: '已分配',
-  rejected: '已拒绝',
+  '待分配': '待分配',
+  '已分配': '已分配',
+  '已拒绝': '已拒绝',
 }
 
 // --- Pool Item Card ---
@@ -62,7 +62,7 @@ interface PoolItemCardProps {
 }
 
 function PoolItemCard({ item, onConvertToMain, onConvertToSub, onReject }: PoolItemCardProps) {
-  const isPending = item.status === 'pending'
+  const isPending = item.status === '待分配'
 
   return (
     <div
@@ -78,23 +78,32 @@ function PoolItemCard({ item, onConvertToMain, onConvertToSub, onReject }: PoolI
           <span className="text-sm font-medium text-primary">{item.title}</span>
           <Badge variant={STATUS_BADGE_VARIANT[item.status]}>{STATUS_LABEL[item.status]}</Badge>
         </div>
-        <span className="text-xs text-tertiary">{formatRelativeTime(item.created_at)}</span>
+        <span className="text-xs text-tertiary">{formatRelativeTime(item.createdAt)}</span>
       </div>
 
       {/* Body */}
       <div className="px-5 pb-3">
-        <p className="text-[13px] text-secondary">{item.background}</p>
-        {item.status === 'assigned' && item.assigned_main_id && (
+        {item.background && (
+          <p className="text-[13px] text-secondary">
+            <span className="text-tertiary">背景：</span>{item.background}
+          </p>
+        )}
+        {item.expectedOutput && (
+          <p className="text-[13px] text-secondary mt-1">
+            <span className="text-tertiary">预期产出：</span>{item.expectedOutput}
+          </p>
+        )}
+        {item.status === '已分配' && item.assignedMainId && (
           <div className="mt-2 text-[13px] text-secondary">
-            已转为子事项挂载至：
-            <Link to={`/items/${item.assigned_main_id}`} className="font-medium text-primary-600 hover:text-primary-700">
-              主事项 #{item.assigned_main_id}
+            {item.assignedSubId ? '已转为子事项挂载至：' : '已转为主事项：'}
+            <Link to={`/items/${item.assignedMainId}`} className="font-medium text-primary-600 hover:text-primary-700">
+              {item.assignedMainCode ? `${item.assignedMainCode} ${item.assignedMainTitle}` : `主事项 #${item.assignedMainId}`}
             </Link>
           </div>
         )}
-        {item.status === 'rejected' && item.reject_reason && (
+        {item.status === '已拒绝' && item.rejectReason && (
           <div className="mt-2 text-[13px] text-tertiary">
-            拒绝原因：{item.reject_reason}
+            拒绝原因：{item.rejectReason}
           </div>
         )}
       </div>
@@ -141,7 +150,7 @@ export default function ItemPoolPage() {
   // Form states
   const [submitForm, setSubmitForm] = useState({ title: '', background: '', expectedOutput: '' })
   const [toMainForm, setToMainForm] = useState({ priority: 'P2', assigneeId: '', startDate: '', expectedEndDate: '' })
-  const [toSubForm, setToSubForm] = useState({ parentItemId: '', priority: 'P2', assigneeId: '', expectedEndDate: '' })
+  const [toSubForm, setToSubForm] = useState({ parentItemId: '', priority: 'P2', assigneeId: '', startDate: '', expectedEndDate: '' })
   const [rejectForm, setRejectForm] = useState({ reason: '' })
 
   // --- Data fetching ---
@@ -225,12 +234,23 @@ export default function ItemPoolPage() {
   })
 
   const assignMutation = useMutation({
-    mutationFn: ({ poolId, req }: { poolId: number; req: { mainItemId: number; assigneeId: number } }) =>
+    mutationFn: ({ poolId, req }: { poolId: number; req: AssignItemPoolReq }) =>
       assignItemPoolApi(teamId!, poolId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
-      setToMainOpen(false)
+      qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
       setToSubOpen(false)
+      setSelectedItem(null)
+    },
+  })
+
+  const convertToMainMutation = useMutation({
+    mutationFn: ({ poolId, req }: { poolId: number; req: ConvertToMainItemReq }) =>
+      convertToMainApi(teamId!, poolId, req),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
+      qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
+      setToMainOpen(false)
       setSelectedItem(null)
     },
   })
@@ -256,7 +276,7 @@ export default function ItemPoolPage() {
 
   const openConvertToSub = useCallback((item: ItemPool) => {
     setSelectedItem(item)
-    setToSubForm({ parentItemId: '', priority: 'P2', assigneeId: '', expectedEndDate: '' })
+    setToSubForm({ parentItemId: '', priority: 'P2', assigneeId: '', startDate: '', expectedEndDate: '' })
     setToSubOpen(true)
   }, [])
 
@@ -282,14 +302,16 @@ export default function ItemPoolPage() {
 
   const handleToMain = useCallback(() => {
     if (!selectedItem) return
-    assignMutation.mutate({
+    convertToMainMutation.mutate({
       poolId: selectedItem.id,
       req: {
-        mainItemId: 0, // New main item will be created from pool item
+        priority: toMainForm.priority || 'P2',
         assigneeId: toMainForm.assigneeId ? Number(toMainForm.assigneeId) : 0,
+        startDate: toMainForm.startDate || '',
+        expectedEndDate: toMainForm.expectedEndDate || '',
       },
     })
-  }, [selectedItem, toMainForm, assignMutation])
+  }, [selectedItem, toMainForm, convertToMainMutation])
 
   const handleToSub = useCallback(() => {
     if (!selectedItem || !toSubForm.parentItemId) return
@@ -298,6 +320,9 @@ export default function ItemPoolPage() {
       req: {
         mainItemId: Number(toSubForm.parentItemId),
         assigneeId: toSubForm.assigneeId ? Number(toSubForm.assigneeId) : 0,
+        priority: toSubForm.priority || 'P2',
+        startDate: toSubForm.startDate || '',
+        expectedEndDate: toSubForm.expectedEndDate || '',
       },
     })
   }, [selectedItem, toSubForm, assignMutation])
@@ -472,7 +497,7 @@ export default function ItemPoolPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-primary mb-1">开始时间</label>
+                    <label className="block text-sm font-medium text-primary mb-1">开始时间 <span className="text-error">*</span></label>
                     <Input
                       type="date"
                       value={toMainForm.startDate}
@@ -480,7 +505,7 @@ export default function ItemPoolPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-primary mb-1">预期完成时间</label>
+                    <label className="block text-sm font-medium text-primary mb-1">预期完成时间 <span className="text-error">*</span></label>
                     <Input
                       type="date"
                       value={toMainForm.expectedEndDate}
@@ -500,7 +525,7 @@ export default function ItemPoolPage() {
               </DialogBody>
               <DialogFooter>
                 <Button variant="secondary" onClick={() => setToMainOpen(false)}>取消</Button>
-                <Button onClick={handleToMain} disabled={assignMutation.isPending}>确认转换</Button>
+                <Button onClick={handleToMain} disabled={!toMainForm.startDate || !toMainForm.expectedEndDate || convertToMainMutation.isPending}>确认转换</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -559,13 +584,23 @@ export default function ItemPoolPage() {
                     </Select>
                   </div>
                 </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-primary mb-1">预期完成时间</label>
-                  <Input
-                    type="date"
-                    value={toSubForm.expectedEndDate}
-                    onChange={(e) => setToSubForm((f) => ({ ...f, expectedEndDate: e.target.value }))}
-                  />
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-1">开始时间 <span className="text-error">*</span></label>
+                    <Input
+                      type="date"
+                      value={toSubForm.startDate}
+                      onChange={(e) => setToSubForm((f) => ({ ...f, startDate: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-1">预期完成时间 <span className="text-error">*</span></label>
+                    <Input
+                      type="date"
+                      value={toSubForm.expectedEndDate}
+                      onChange={(e) => setToSubForm((f) => ({ ...f, expectedEndDate: e.target.value }))}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-primary mb-1">描述</label>
@@ -579,7 +614,7 @@ export default function ItemPoolPage() {
               </DialogBody>
               <DialogFooter>
                 <Button variant="secondary" onClick={() => setToSubOpen(false)}>取消</Button>
-                <Button onClick={handleToSub} disabled={!toSubForm.parentItemId || assignMutation.isPending}>确认转换</Button>
+                <Button onClick={handleToSub} disabled={!toSubForm.parentItemId || !toSubForm.startDate || !toSubForm.expectedEndDate || assignMutation.isPending}>确认转换</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
