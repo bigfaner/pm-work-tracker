@@ -109,3 +109,28 @@ func (r *roleRepo) HasPermission(ctx context.Context, userID uint, code string) 
 	}
 	return count > 0, nil
 }
+
+// teamPermRow is a helper struct for scanning the GetUserTeamPermissions join query.
+type teamPermRow struct {
+	TeamID          uint   `gorm:"column:team_id"`
+	PermissionCode  string `gorm:"column:permission_code"`
+}
+
+func (r *roleRepo) GetUserTeamPermissions(ctx context.Context, userID uint) (map[uint][]string, error) {
+	var rows []teamPermRow
+	err := r.db.WithContext(ctx).
+		Table("team_members").
+		Select("team_members.team_id, role_permissions.permission_code").
+		Joins("JOIN role_permissions ON role_permissions.role_id = team_members.role_id").
+		Where("team_members.user_id = ?", userID).
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[uint][]string)
+	for _, row := range rows {
+		result[row.TeamID] = append(result[row.TeamID], row.PermissionCode)
+	}
+	return result, nil
+}

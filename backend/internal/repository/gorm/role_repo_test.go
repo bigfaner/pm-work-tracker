@@ -387,3 +387,63 @@ func TestRoleRepo_HasPermission_ChecksAcrossTeams(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, has, "should find permission across teams")
 }
+
+// --- GetUserTeamPermissions ---
+
+func TestRoleRepo_GetUserTeamPermissions(t *testing.T) {
+	db := setupRoleTestDB(t)
+	repo := gormrepo.NewGormRoleRepo(db)
+	ctx := context.Background()
+
+	u := seedRoleUser(t, db, "user1")
+	team1 := model.Team{Name: "Team1", PmID: u.ID}
+	require.NoError(t, db.Create(&team1).Error)
+	team2 := model.Team{Name: "Team2", PmID: u.ID}
+	require.NoError(t, db.Create(&team2).Error)
+
+	r1 := seedRole(t, db, "pm-role", "PM Role", true)
+	r2 := seedRole(t, db, "member-role", "Member Role", true)
+
+	require.NoError(t, db.Create(&model.RolePermission{RoleID: r1.ID, PermissionCode: "team:create"}).Error)
+	require.NoError(t, db.Create(&model.RolePermission{RoleID: r1.ID, PermissionCode: "team:read"}).Error)
+	require.NoError(t, db.Create(&model.RolePermission{RoleID: r2.ID, PermissionCode: "team:read"}).Error)
+
+	require.NoError(t, db.Create(&model.TeamMember{TeamID: team1.ID, UserID: u.ID, RoleID: &r1.ID, JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamID: team2.ID, UserID: u.ID, RoleID: &r2.ID, JoinedAt: timeNow()}).Error)
+
+	result, err := repo.GetUserTeamPermissions(ctx, u.ID)
+	require.NoError(t, err)
+	assert.Equal(t, map[uint][]string{
+		team1.ID: {"team:create", "team:read"},
+		team2.ID: {"team:read"},
+	}, result)
+}
+
+func TestRoleRepo_GetUserTeamPermissions_NoMemberships(t *testing.T) {
+	db := setupRoleTestDB(t)
+	repo := gormrepo.NewGormRoleRepo(db)
+	ctx := context.Background()
+
+	u := seedRoleUser(t, db, "loner")
+
+	result, err := repo.GetUserTeamPermissions(ctx, u.ID)
+	require.NoError(t, err)
+	assert.Empty(t, result)
+}
+
+func TestRoleRepo_GetUserTeamPermissions_NoRoleID(t *testing.T) {
+	db := setupRoleTestDB(t)
+	repo := gormrepo.NewGormRoleRepo(db)
+	ctx := context.Background()
+
+	u := seedRoleUser(t, db, "user1")
+	team := model.Team{Name: "Team", PmID: u.ID}
+	require.NoError(t, db.Create(&team).Error)
+
+	// Member without a RoleID (legacy data)
+	require.NoError(t, db.Create(&model.TeamMember{TeamID: team.ID, UserID: u.ID, RoleID: nil, JoinedAt: timeNow()}).Error)
+
+	result, err := repo.GetUserTeamPermissions(ctx, u.ID)
+	require.NoError(t, err)
+	assert.Empty(t, result, "members without RoleID should produce no permission entries")
+}
