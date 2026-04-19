@@ -1,0 +1,111 @@
+package gorm
+
+import (
+	"context"
+	stderrors "errors"
+
+	gormlib "gorm.io/gorm"
+
+	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/repository"
+)
+
+type roleRepo struct {
+	db *gormlib.DB
+}
+
+// NewGormRoleRepo creates a GORM-backed RoleRepo.
+func NewGormRoleRepo(db *gormlib.DB) repository.RoleRepo {
+	return &roleRepo{db: db}
+}
+
+func (r *roleRepo) List(ctx context.Context) ([]model.Role, error) {
+	var roles []model.Role
+	err := r.db.WithContext(ctx).Order("created_at ASC").Find(&roles).Error
+	return roles, err
+}
+
+func (r *roleRepo) FindByID(ctx context.Context, id uint) (*model.Role, error) {
+	var role model.Role
+	err := r.db.WithContext(ctx).First(&role, id).Error
+	if err != nil {
+		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
+			return nil, errors.ErrNotFound
+		}
+		return nil, err
+	}
+	return &role, nil
+}
+
+func (r *roleRepo) FindByName(ctx context.Context, name string) (*model.Role, error) {
+	var role model.Role
+	err := r.db.WithContext(ctx).Where("name = ?", name).First(&role).Error
+	if err != nil {
+		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
+			return nil, errors.ErrNotFound
+		}
+		return nil, err
+	}
+	return &role, nil
+}
+
+func (r *roleRepo) Create(ctx context.Context, role *model.Role) error {
+	return r.db.WithContext(ctx).Create(role).Error
+}
+
+func (r *roleRepo) Update(ctx context.Context, role *model.Role) error {
+	return r.db.WithContext(ctx).Save(role).Error
+}
+
+func (r *roleRepo) Delete(ctx context.Context, id uint) error {
+	return r.db.WithContext(ctx).Delete(&model.Role{}, id).Error
+}
+
+func (r *roleRepo) ListPermissions(ctx context.Context, roleID uint) ([]string, error) {
+	var codes []string
+	err := r.db.WithContext(ctx).
+		Model(&model.RolePermission{}).
+		Where("role_id = ?", roleID).
+		Pluck("permission_code", &codes).Error
+	return codes, err
+}
+
+func (r *roleRepo) SetPermissions(ctx context.Context, roleID uint, codes []string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gormlib.DB) error {
+		// Delete all existing permissions for this role
+		if err := tx.Where("role_id = ?", roleID).Delete(&model.RolePermission{}).Error; err != nil {
+			return err
+		}
+		// Insert new permissions
+		for _, code := range codes {
+			rp := model.RolePermission{RoleID: roleID, PermissionCode: code}
+			if err := tx.Create(&rp).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func (r *roleRepo) CountMembersByRoleID(ctx context.Context, roleID uint) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&model.TeamMember{}).
+		Where("role_id = ?", roleID).
+		Count(&count).Error
+	return count, err
+}
+
+func (r *roleRepo) HasPermission(ctx context.Context, userID uint, code string) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Table("team_members").
+		Joins("JOIN role_permissions ON role_permissions.role_id = team_members.role_id").
+		Where("team_members.user_id = ? AND role_permissions.permission_code = ?", userID, code).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
