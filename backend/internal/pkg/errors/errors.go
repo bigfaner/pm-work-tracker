@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // AppError represents a structured application error with HTTP mapping.
@@ -42,6 +43,18 @@ var (
 	ErrCannotDisableSelf    = &AppError{Code: "CANNOT_DISABLE_SELF", Status: 422, Message: "cannot disable your own account"}
 	ErrFutureWeekNotAllowed = &AppError{Code: "FUTURE_WEEK_NOT_ALLOWED", Status: 422, Message: "cannot create progress for future weeks"}
 )
+
+// MapNotFound maps gorm.ErrRecordNotFound and ErrNotFound to the provided domain error.
+// Returns the original error unchanged if it is not a not-found error.
+func MapNotFound(err error, domainErr *AppError) error {
+	if err == nil {
+		return nil
+	}
+	if stderrors.Is(err, gorm.ErrRecordNotFound) || stderrors.Is(err, ErrNotFound) {
+		return domainErr
+	}
+	return err
+}
 
 // RespondError writes a standard error envelope. Non-AppError values fall back to ErrInternal.
 func RespondError(c *gin.Context, err error) {

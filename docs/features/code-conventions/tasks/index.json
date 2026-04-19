@@ -43,7 +43,7 @@
       "title": "Create backend shared helpers with tests",
       "priority": "P0",
       "estimatedTime": "2h",
-      "status": "pending",
+      "status": "completed",
       "file": "2.1-backend-helpers.md",
       "record": "records/2.1-backend-helpers.md"
     },
