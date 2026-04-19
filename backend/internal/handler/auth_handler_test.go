@@ -190,7 +190,7 @@ func TestLogout_Success(t *testing.T) {
 	deps := depsWithAuthSvc(t, authSvc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 1, "member")
+	token := signTestToken(t, 1, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
 	req.Header.Set("Authorization", "Bearer "+token)

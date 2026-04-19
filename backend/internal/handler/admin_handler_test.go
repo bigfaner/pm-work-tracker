@@ -134,10 +134,10 @@ func depsWithAdminSvc(t *testing.T, svc *mockAdminService) *Dependencies {
 	return deps
 }
 
-// signSuperAdminToken creates a JWT token with superadmin role.
+// signSuperAdminToken creates a JWT token for the superadmin user.
 func signSuperAdminToken(t *testing.T, userID uint) string {
 	t.Helper()
-	return signTestToken(t, userID, "superadmin")
+	return signTestToken(t, userID, "admin")
 }
 
 // ---------------------------------------------------------------------------

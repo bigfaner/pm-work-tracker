@@ -83,7 +83,7 @@ func TestLogin_CorrectCredentials_ReturnsToken(t *testing.T) {
 	claims, err := svc.ParseToken(context.Background(), token)
 	require.NoError(t, err)
 	assert.Equal(t, uint(1), claims.UserID)
-	assert.Equal(t, "member", claims.Role)
+	assert.Equal(t, "alice", claims.Username)
 	repo.AssertExpectations(t)
 }
 
@@ -104,7 +104,7 @@ func TestLogin_SuperAdmin_RoleIsSuperAdmin(t *testing.T) {
 	claims, err := svc.ParseToken(context.Background(), token)
 	require.NoError(t, err)
 	assert.Equal(t, uint(5), claims.UserID)
-	assert.Equal(t, "superadmin", claims.Role)
+	assert.Equal(t, "admin", claims.Username)
 	repo.AssertExpectations(t)
 }
 
@@ -138,13 +138,13 @@ func TestParseToken_ValidToken(t *testing.T) {
 	repo := new(mockUserRepo)
 	svc := NewAuthService(repo, testJWTSecret)
 
-	tokenStr, err := appjwt.Sign(42, "member", testJWTSecret)
+	tokenStr, err := appjwt.Sign(42, "testuser", testJWTSecret)
 	require.NoError(t, err)
 
 	claims, err := svc.ParseToken(context.Background(), tokenStr)
 	require.NoError(t, err)
 	assert.Equal(t, uint(42), claims.UserID)
-	assert.Equal(t, "member", claims.Role)
+	assert.Equal(t, "testuser", claims.Username)
 }
 
 func TestParseToken_InvalidToken_ReturnsErrUnauthorized(t *testing.T) {

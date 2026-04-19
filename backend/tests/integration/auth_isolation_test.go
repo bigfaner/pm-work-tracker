@@ -52,6 +52,7 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		&model.User{}, &model.Team{}, &model.TeamMember{},
 		&model.MainItem{}, &model.SubItem{},
 		&model.ProgressRecord{}, &model.ItemPool{},
+		&model.Role{}, &model.RolePermission{},
 	)
 	require.NoError(t, err)
 
@@ -78,22 +79,50 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	require.NoError(t, db.Create(memberA).Error)
 	require.NoError(t, db.Create(superAdmin).Error)
 
+	// Seed roles and permissions for RBAC
+	pmRole := model.Role{Name: "pm", Description: "Project Manager", IsPreset: true}
+	require.NoError(t, db.Create(&pmRole).Error)
+	memberRole := model.Role{Name: "member", Description: "Team Member", IsPreset: true}
+	require.NoError(t, db.Create(&memberRole).Error)
+
+	// PM gets all team-scoped permissions
+	pmPermCodes := []string{
+		"team:read", "team:update", "team:delete", "team:invite", "team:remove", "team:transfer",
+		"main_item:create", "main_item:read", "main_item:update", "main_item:archive",
+		"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:change_status", "sub_item:assign",
+		"progress:create", "progress:read", "progress:update",
+		"item_pool:submit", "item_pool:review",
+		"view:weekly", "view:gantt", "view:table", "report:export",
+	}
+	for _, code := range pmPermCodes {
+		require.NoError(t, db.Create(&model.RolePermission{RoleID: pmRole.ID, PermissionCode: code}).Error)
+	}
+	// Member gets limited permissions
+	memberPermCodes := []string{
+		"main_item:read", "sub_item:create", "sub_item:read", "sub_item:update",
+		"sub_item:change_status", "progress:create", "progress:read",
+		"item_pool:submit", "view:weekly", "view:table", "report:export",
+	}
+	for _, code := range memberPermCodes {
+		require.NoError(t, db.Create(&model.RolePermission{RoleID: memberRole.ID, PermissionCode: code}).Error)
+	}
+
 	// Seed teams
 	teamA := &model.Team{Name: "Team A", PmID: userA.ID}
 	teamB := &model.Team{Name: "Team B", PmID: userB.ID}
 	require.NoError(t, db.Create(teamA).Error)
 	require.NoError(t, db.Create(teamB).Error)
 
-	// Seed team members
+	// Seed team members (with RoleID pointing to seeded roles)
 	now := time.Now()
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamID: teamA.ID, UserID: userA.ID, Role: "pm", JoinedAt: now,
+		TeamID: teamA.ID, UserID: userA.ID, Role: "pm", RoleID: &pmRole.ID, JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamID: teamA.ID, UserID: memberA.ID, Role: "member", JoinedAt: now,
+		TeamID: teamA.ID, UserID: memberA.ID, Role: "member", RoleID: &memberRole.ID, JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamID: teamB.ID, UserID: userB.ID, Role: "pm", JoinedAt: now,
+		TeamID: teamB.ID, UserID: userB.ID, Role: "pm", RoleID: &pmRole.ID, JoinedAt: now,
 	}).Error)
 
 	return db, &seedData{
@@ -227,7 +256,7 @@ func TestAuthFlow_ExpiredToken_Returns401(t *testing.T) {
 	// Sign a token that is already expired
 	claims := &appjwt.Claims{
 		UserID: 999,
-		Role:   "member",
+		Username: "testuser",
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(-1 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now().Add(-2 * time.Hour)),

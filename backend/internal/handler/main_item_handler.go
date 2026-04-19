@@ -31,14 +31,6 @@ func NewMainItemHandlerWithDeps(svc service.MainItemService, userRepo repository
 	return &MainItemHandler{svc: svc, userRepo: userRepo, subItemRepo: subItemRepo}
 }
 
-// isPMOrSuperAdmin returns true if the caller has PM role in the team or is a superadmin.
-func (h *MainItemHandler) isPMOrSuperAdmin(c *gin.Context) bool {
-	if middleware.GetUserRole(c) == "superadmin" {
-		return true
-	}
-	return middleware.GetCallerTeamRole(c) == "pm"
-}
-
 // parseItemID extracts and validates the itemId path param as uint.
 func parseItemID(c *gin.Context) (uint, bool) {
 	idStr := c.Param("itemId")
@@ -54,11 +46,6 @@ func parseItemID(c *gin.Context) (uint, bool) {
 func (h *MainItemHandler) Create(c *gin.Context) {
 	if h.svc == nil {
 		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
-	if !h.isPMOrSuperAdmin(c) {
-		apperrors.RespondError(c, apperrors.ErrForbidden)
 		return
 	}
 
@@ -177,11 +164,6 @@ func (h *MainItemHandler) Update(c *gin.Context) {
 		return
 	}
 
-	if !h.isPMOrSuperAdmin(c) {
-		apperrors.RespondError(c, apperrors.ErrForbidden)
-		return
-	}
-
 	itemID, ok := parseItemID(c)
 	if !ok {
 		return
@@ -215,11 +197,6 @@ func (h *MainItemHandler) Update(c *gin.Context) {
 func (h *MainItemHandler) Archive(c *gin.Context) {
 	if h.svc == nil {
 		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
-	if !h.isPMOrSuperAdmin(c) {
-		apperrors.RespondError(c, apperrors.ErrForbidden)
 		return
 	}
 

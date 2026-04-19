@@ -37,7 +37,7 @@ func AuthMiddleware(jwtSecret string, userRepo repository.UserRepo) gin.HandlerF
 		}
 
 		c.Set("userID", claims.UserID)
-		c.Set("userRole", claims.Role)
+		c.Set("username", claims.Username)
 
 		// Load User from DB to set isSuperAdmin
 		user, err := userRepo.FindByID(c.Request.Context(), claims.UserID)
@@ -62,11 +62,11 @@ func GetUserID(c *gin.Context) uint {
 	return 0
 }
 
-// GetUserRole extracts the authenticated user's role from the Gin context.
-func GetUserRole(c *gin.Context) string {
-	if v, ok := c.Get("userRole"); ok {
-		if role, ok := v.(string); ok {
-			return role
+// GetUsername extracts the authenticated user's username from the Gin context.
+func GetUsername(c *gin.Context) string {
+	if v, ok := c.Get("username"); ok {
+		if username, ok := v.(string); ok {
+			return username
 		}
 	}
 	return ""

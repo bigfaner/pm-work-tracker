@@ -14,27 +14,34 @@ import (
 const testSecret = "test-secret-that-is-at-least-32b"
 
 func TestSignAndVerify_ValidToken(t *testing.T) {
-	tokenStr, err := Sign(1, "pm", testSecret)
+	tokenStr, err := Sign(1, "testuser", testSecret)
 	require.NoError(t, err)
 	require.NotEmpty(t, tokenStr)
 
 	claims, err := Verify(tokenStr, testSecret)
 	require.NoError(t, err)
 	assert.Equal(t, uint(1), claims.UserID)
-	assert.Equal(t, "pm", claims.Role)
+	assert.Equal(t, "testuser", claims.Username)
 }
 
-func TestSignAndVerify_RoundTrip_AllRoles(t *testing.T) {
-	roles := []string{"superadmin", "pm", "member"}
-	for _, role := range roles {
-		t.Run(role, func(t *testing.T) {
-			tokenStr, err := Sign(42, role, testSecret)
+func TestSignAndVerify_RoundTrip_MultipleUsers(t *testing.T) {
+	users := []struct {
+		id       uint
+		username string
+	}{
+		{1, "admin"},
+		{42, "pm_user"},
+		{100, "regular_member"},
+	}
+	for _, u := range users {
+		t.Run(u.username, func(t *testing.T) {
+			tokenStr, err := Sign(u.id, u.username, testSecret)
 			require.NoError(t, err)
 
 			claims, err := Verify(tokenStr, testSecret)
 			require.NoError(t, err)
-			assert.Equal(t, uint(42), claims.UserID)
-			assert.Equal(t, role, claims.Role)
+			assert.Equal(t, u.id, claims.UserID)
+			assert.Equal(t, u.username, claims.Username)
 		})
 	}
 }
@@ -42,8 +49,8 @@ func TestSignAndVerify_RoundTrip_AllRoles(t *testing.T) {
 func TestVerify_ExpiredToken_ReturnsErrUnauthorized(t *testing.T) {
 	// Manually create an expired token using -1*time.Second expiry
 	claims := &Claims{
-		UserID: 1,
-		Role:   "pm",
+		UserID:   1,
+		Username: "testuser",
 		RegisteredClaims: jwtv5.RegisteredClaims{
 			ExpiresAt: jwtv5.NewNumericDate(time.Now().Add(-1 * time.Second)),
 			IssuedAt:  jwtv5.NewNumericDate(time.Now().Add(-25 * time.Hour)),
@@ -58,7 +65,7 @@ func TestVerify_ExpiredToken_ReturnsErrUnauthorized(t *testing.T) {
 }
 
 func TestVerify_TamperedSignature_ReturnsErrUnauthorized(t *testing.T) {
-	tokenStr, err := Sign(1, "member", testSecret)
+	tokenStr, err := Sign(1, "testuser", testSecret)
 	require.NoError(t, err)
 
 	// Tamper with the token by changing characters at the end
@@ -68,7 +75,7 @@ func TestVerify_TamperedSignature_ReturnsErrUnauthorized(t *testing.T) {
 }
 
 func TestVerify_WrongSecret_ReturnsErrUnauthorized(t *testing.T) {
-	tokenStr, err := Sign(1, "pm", testSecret)
+	tokenStr, err := Sign(1, "testuser", testSecret)
 	require.NoError(t, err)
 
 	_, err = Verify(tokenStr, "wrong-secret-that-is-also-32-bytes!!")
@@ -82,7 +89,7 @@ func TestVerify_MalformedToken_ReturnsErrUnauthorized(t *testing.T) {
 
 func TestSign_Sets24hExpiry(t *testing.T) {
 	before := time.Now()
-	tokenStr, err := Sign(1, "pm", testSecret)
+	tokenStr, err := Sign(1, "testuser", testSecret)
 	require.NoError(t, err)
 
 	claims, err := Verify(tokenStr, testSecret)

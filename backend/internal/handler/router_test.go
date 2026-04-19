@@ -38,9 +38,50 @@ func testDeps(t *testing.T) (*Dependencies, *gorm.DB) {
 	err = db.AutoMigrate(&model.User{})
 	require.NoError(t, err)
 
+	// Auto-migrate RBAC tables so RequirePermission middleware can query roles
+	err = db.AutoMigrate(&model.Role{}, &model.RolePermission{}, &model.TeamMember{})
+	require.NoError(t, err)
+
+	// Seed a PM role (ID=1) with a broad set of permissions for testing.
+	// Most handler tests use mockTeamRepo which returns RoleID=&1,
+	// and RequirePermission will look up permissions from this role.
+	pmRole := model.Role{Name: "pm", Description: "Project Manager", IsPreset: true}
+	require.NoError(t, db.Create(&pmRole).Error)
+	allPermCodes := []string{
+		"team:create", "team:read", "team:update", "team:delete", "team:invite",
+		"team:remove", "team:transfer", "main_item:create", "main_item:read",
+		"main_item:update", "main_item:archive", "sub_item:create", "sub_item:read",
+		"sub_item:update", "sub_item:change_status", "sub_item:assign",
+		"progress:create", "progress:read", "progress:update",
+		"item_pool:submit", "item_pool:review",
+		"view:weekly", "view:gantt", "view:table",
+		"report:export", "user:read", "user:update", "user:manage_role",
+	}
+	for _, code := range allPermCodes {
+		require.NoError(t, db.Create(&model.RolePermission{RoleID: pmRole.ID, PermissionCode: code}).Error)
+	}
+
+	// Seed a member role with standard member permissions.
+	memberRole := model.Role{Name: "member", Description: "Team Member", IsPreset: true}
+	require.NoError(t, db.Create(&memberRole).Error)
+	memberPermCodes := []string{
+		"main_item:read", "sub_item:create", "sub_item:read", "sub_item:update",
+		"sub_item:change_status", "progress:create", "progress:read",
+		"item_pool:submit", "view:weekly", "view:table", "report:export",
+	}
+	for _, code := range memberPermCodes {
+		require.NoError(t, db.Create(&model.RolePermission{RoleID: memberRole.ID, PermissionCode: code}).Error)
+	}
+
 	// Seed test users so AuthMiddleware can load them.
-	// ID=1: regular member (used by most handler tests)
+	// ID=1: superadmin user
+	// ID=2: regular member (used by most handler tests)
 	// ID=5: regular member (used by item pool and other handler tests)
+	require.NoError(t, db.Create(&model.User{
+		Username:     "admin",
+		DisplayName:  "Admin User",
+		IsSuperAdmin: true,
+	}).Error)
 	require.NoError(t, db.Create(&model.User{
 		Username:     "testuser1",
 		DisplayName:  "Test User 1",
@@ -97,9 +138,10 @@ func testDeps(t *testing.T) (*Dependencies, *gorm.DB) {
 }
 
 // signTestToken creates a valid JWT for testing.
-func signTestToken(t *testing.T, userID uint, role string) string {
+// If userID is 1, the token is for the superadmin user; otherwise it's a regular user.
+func signTestToken(t *testing.T, userID uint, username string) string {
 	t.Helper()
-	token, err := appjwt.Sign(userID, role, "test-secret-that-is-at-least-32-bytes!!")
+	token, err := appjwt.Sign(userID, username, "test-secret-that-is-at-least-32-bytes!!")
 	require.NoError(t, err)
 	return token
 }
@@ -154,7 +196,7 @@ func TestAuthRoutes_LogoutRequiresAuth(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 
 	// With auth — logout is implemented, returns 200
-	token := signTestToken(t, 1, "member")
+	token := signTestToken(t, 2, "testuser1")
 	w = httptest.NewRecorder()
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -175,16 +217,11 @@ func TestTeamRoutes_RequireAuthAndTeamScope(t *testing.T) {
 
 func TestTeamRoutes_WithAuthReturns501(t *testing.T) {
 	deps, _ := testDeps(t)
+	// Inject a mock that always succeeds
+	deps.TeamRepo = &mockTeamRepo{}
 	r := SetupRouter(deps)
 
-	// Create a user and team member so TeamScopeMiddleware passes
-	db, _ := testDeps(t) // we need a second db, but let's just use the deps' teamRepo
-	_ = db
-	// Instead, inject a mock that always succeeds
-	deps.TeamRepo = &mockTeamRepo{}
-	r = SetupRouter(deps)
-
-	token := signTestToken(t, 1, "member")
+	token := signTestToken(t, 2, "testuser1")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/1", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -210,20 +247,20 @@ func TestTeamListCreateRoutes_RequireAuth(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
-func TestTeamListCreateRoutes_WithAuth(t *testing.T) {
+func TestTeamListCreateRoutes_WithSuperAdminAuth(t *testing.T) {
 	deps, _ := testDeps(t)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 1, "member")
+	token := signTestToken(t, 1, "admin")
 
-	// POST /api/v1/teams with auth
+	// POST /api/v1/teams with superadmin auth — should get 501 (not implemented)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusNotImplemented, w.Code)
 
-	// GET /api/v1/teams with auth
+	// GET /api/v1/teams with superadmin auth
 	w = httptest.NewRecorder()
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/teams", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -236,7 +273,7 @@ func TestAdminRoutes_RequireSuperAdmin(t *testing.T) {
 	r := SetupRouter(deps)
 
 	// Regular member should get 403
-	token := signTestToken(t, 1, "member")
+	token := signTestToken(t, 2, "testuser1")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -244,7 +281,7 @@ func TestAdminRoutes_RequireSuperAdmin(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, w.Code)
 
 	// SuperAdmin should get 501 (not implemented)
-	superToken := signTestToken(t, 1, "superadmin")
+	superToken := signTestToken(t, 1, "admin")
 	w = httptest.NewRecorder()
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/admin/users", nil)
 	req.Header.Set("Authorization", "Bearer "+superToken)
@@ -309,7 +346,6 @@ func TestRateLimit_Login(t *testing.T) {
 	r := SetupRouter(deps)
 
 	// Send more than 10 requests to login — the 11th+ should be rate limited
-	// Note: the rate limiter allows bursts up to `limit`, so we need to exceed that.
 	got429 := false
 	for i := 0; i < 15; i++ {
 		w := httptest.NewRecorder()
@@ -352,7 +388,7 @@ func TestTeamScopedRoutes_AllRegistered(t *testing.T) {
 	deps.TeamRepo = &mockTeamRepo{}
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 1, "member")
+	token := signTestToken(t, 1, "admin")
 
 	routes := []struct {
 		method string
@@ -416,7 +452,7 @@ func TestAdminRoutes_AllRegistered(t *testing.T) {
 	deps, _ := testDeps(t)
 	r := SetupRouter(deps)
 
-	superToken := signTestToken(t, 1, "superadmin")
+	superToken := signTestToken(t, 1, "admin")
 
 	routes := []struct {
 		method string
@@ -460,7 +496,9 @@ func (m *mockTeamRepo) FindMember(_ context.Context, _, _ uint) (*model.TeamMemb
 	if m.member != nil {
 		return m.member, nil
 	}
-	return &model.TeamMember{Role: "member"}, nil
+	// Default: member with RoleID=1 (PM role seeded in testDeps)
+	pmRoleID := uint(1)
+	return &model.TeamMember{Role: "pm", RoleID: &pmRoleID}, nil
 }
 func (m *mockTeamRepo) ListMembers(_ context.Context, _ uint) ([]*dto.TeamMemberDTO, error) {
 	return nil, nil

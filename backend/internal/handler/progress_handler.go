@@ -30,14 +30,6 @@ func NewProgressHandlerWithDeps(svc service.ProgressService, userRepo repository
 	return &ProgressHandler{svc: svc, userRepo: userRepo}
 }
 
-// isPMOrSuperAdmin returns true if the caller has PM role in the team or is a superadmin.
-func (h *ProgressHandler) isPMOrSuperAdmin(c *gin.Context) bool {
-	if middleware.GetUserRole(c) == "superadmin" {
-		return true
-	}
-	return middleware.GetCallerTeamRole(c) == "pm"
-}
-
 // appendProgressReq is the request DTO for appending progress.
 // Completion uses a pointer so JSON "0" is treated as present (not the zero value).
 type appendProgressReq struct {
@@ -83,9 +75,9 @@ func (h *ProgressHandler) Append(c *gin.Context) {
 
 	teamID := middleware.GetTeamID(c)
 	callerID := middleware.GetUserID(c)
-	isPM := h.isPMOrSuperAdmin(c)
+	pmFlag := isPMOrSuperAdmin(c)
 
-	record, err := h.svc.Append(c.Request.Context(), teamID, callerID, subID, completion, req.Achievement, req.Blocker, req.Lesson, isPM)
+	record, err := h.svc.Append(c.Request.Context(), teamID, callerID, subID, completion, req.Achievement, req.Blocker, req.Lesson, pmFlag)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -121,12 +113,6 @@ func (h *ProgressHandler) List(c *gin.Context) {
 func (h *ProgressHandler) CorrectCompletion(c *gin.Context) {
 	if h.svc == nil {
 		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
-	// PM only
-	if !h.isPMOrSuperAdmin(c) {
-		apperrors.RespondError(c, apperrors.ErrForbidden)
 		return
 	}
 

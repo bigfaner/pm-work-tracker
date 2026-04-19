@@ -64,14 +64,14 @@ func (m *mockUserRepo) Update(ctx context.Context, user *model.User) error {
 var _ repository.UserRepo = (*mockUserRepo)(nil)
 
 // setupAuthRouter creates a test router with AuthMiddleware and a dummy handler
-// that captures the userID, userRole, and isSuperAdmin from context.
+// that captures the userID, username, and isSuperAdmin from context.
 func setupAuthRouter(jwtSecret string, userRepo repository.UserRepo) (*gin.Engine, *capturedAuthContext) {
 	r := gin.New()
 	cc := &capturedAuthContext{}
 	r.Use(AuthMiddleware(jwtSecret, userRepo))
 	r.GET("/test", func(c *gin.Context) {
 		cc.userID = GetUserID(c)
-		cc.userRole = GetUserRole(c)
+		cc.username = GetUsername(c)
 		cc.isSuperAdmin = IsSuperAdmin(c)
 		c.Status(http.StatusOK)
 	})
@@ -79,8 +79,8 @@ func setupAuthRouter(jwtSecret string, userRepo repository.UserRepo) (*gin.Engin
 }
 
 type capturedAuthContext struct {
-	userID      uint
-	userRole    string
+	userID       uint
+	username     string
 	isSuperAdmin bool
 }
 
@@ -122,7 +122,7 @@ func TestAuthMiddleware_ExpiredToken(t *testing.T) {
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 
-	tokenStr, err := jwtpkg.Sign(1, "pm", "different-secret-that-is-also-32")
+	tokenStr, err := jwtpkg.Sign(1, "testuser", "different-secret-that-is-also-32")
 	assert.NoError(t, err)
 
 	req.Header.Set("Authorization", "Bearer "+tokenStr)
@@ -142,7 +142,7 @@ func TestAuthMiddleware_ValidToken_SetsContext(t *testing.T) {
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 
-	tokenStr, err := jwtpkg.Sign(42, "pm", testSecret)
+	tokenStr, err := jwtpkg.Sign(42, "testuser", testSecret)
 	assert.NoError(t, err)
 	req.Header.Set("Authorization", "Bearer "+tokenStr)
 
@@ -150,7 +150,7 @@ func TestAuthMiddleware_ValidToken_SetsContext(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, uint(42), cc.userID)
-	assert.Equal(t, "pm", cc.userRole)
+	assert.Equal(t, "testuser", cc.username)
 	assert.False(t, cc.isSuperAdmin)
 }
 
@@ -165,7 +165,7 @@ func TestAuthMiddleware_SuperAdmin_SetsIsSuperAdmin(t *testing.T) {
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 
-	tokenStr, err := jwtpkg.Sign(1, "superadmin", testSecret)
+	tokenStr, err := jwtpkg.Sign(1, "admin", testSecret)
 	assert.NoError(t, err)
 	req.Header.Set("Authorization", "Bearer "+tokenStr)
 
@@ -184,7 +184,7 @@ func TestAuthMiddleware_UserNotFound_Returns401(t *testing.T) {
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 
-	tokenStr, err := jwtpkg.Sign(99, "member", testSecret)
+	tokenStr, err := jwtpkg.Sign(99, "testuser", testSecret)
 	assert.NoError(t, err)
 	req.Header.Set("Authorization", "Bearer "+tokenStr)
 
@@ -199,10 +199,10 @@ func TestGetUserID_NoValue(t *testing.T) {
 	assert.Equal(t, uint(0), GetUserID(c))
 }
 
-func TestGetUserRole_NoValue(t *testing.T) {
+func TestGetUsername_NoValue(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	assert.Equal(t, "", GetUserRole(c))
+	assert.Equal(t, "", GetUsername(c))
 }
 
 func TestIsSuperAdmin_NoValue(t *testing.T) {

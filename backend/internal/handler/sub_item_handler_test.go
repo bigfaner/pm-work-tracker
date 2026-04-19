@@ -127,19 +127,21 @@ func (m *mockSubItemService) Assign(_ context.Context, teamID, pmID, itemID, ass
 // ---------------------------------------------------------------------------
 
 // depsWithSubItemSvc wires a mock SubItemService with PM role.
+
 func depsWithSubItemSvc(t *testing.T, svc *mockSubItemService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm"}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
 	deps.SubItem = NewSubItemHandlerWithDeps(svc)
 	return deps
 }
 
 // depsWithSubItemSvcMemberRole wires with member (non-PM) role.
+
 func depsWithSubItemSvcMemberRole(t *testing.T, svc *mockSubItemService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "member"}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "member", RoleID: ptrUint(2)}}
 	deps.SubItem = NewSubItemHandlerWithDeps(svc)
 	return deps
 }
@@ -168,7 +170,7 @@ func TestCreateSubItem_Success(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{"mainItemId":1,"title":"Test SubItem","priority":"P2","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/sub-items", strings.NewReader(body))
@@ -201,7 +203,7 @@ func TestCreateSubItem_MemberCanCreate(t *testing.T) {
 	deps := depsWithSubItemSvcMemberRole(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{"mainItemId":1,"title":"Test SubItem","priority":"P2","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/sub-items", strings.NewReader(body))
@@ -219,7 +221,7 @@ func TestCreateSubItem_InvalidBody(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/sub-items", strings.NewReader(body))
@@ -238,7 +240,7 @@ func TestCreateSubItem_ServiceError(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{"mainItemId":1,"title":"Test","priority":"P2","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/sub-items", strings.NewReader(body))
@@ -265,7 +267,7 @@ func TestListSubItems_Success(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/1/sub-items?page=1&pageSize=20", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -291,7 +293,7 @@ func TestListSubItems_WithFilters(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/1/sub-items?priority=P2&status=进行中&page=2&pageSize=10", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -312,7 +314,7 @@ func TestListSubItems_ServiceError(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/1/sub-items", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -336,7 +338,7 @@ func TestGetSubItem_Success(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/sub-items/1", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -362,7 +364,7 @@ func TestGetSubItem_InvalidID(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/sub-items/abc", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -379,7 +381,7 @@ func TestGetSubItem_NotFound(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/sub-items/999", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -407,7 +409,7 @@ func TestUpdateSubItem_Success_AsPM(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Updated Title","priority":"P1"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1", strings.NewReader(body))
@@ -435,7 +437,7 @@ func TestUpdateSubItem_Success_AsAssignee(t *testing.T) {
 	deps := depsWithSubItemSvcMemberRole(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member") // userID=5, same as assigneeID
+	token := signTestToken(t, 5, "testuser") // userID=5, same as assigneeID
 	body := `{"title":"Updated"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1", strings.NewReader(body))
@@ -459,7 +461,7 @@ func TestUpdateSubItem_Forbidden_NonPMNonAssignee(t *testing.T) {
 	deps := depsWithSubItemSvcMemberRole(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member") // userID=5, NOT the assignee (99)
+	token := signTestToken(t, 5, "testuser") // userID=5, NOT the assignee (99)
 	body := `{"title":"Hacked"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1", strings.NewReader(body))
@@ -477,7 +479,7 @@ func TestUpdateSubItem_InvalidID(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Updated"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/abc", strings.NewReader(body))
@@ -496,7 +498,7 @@ func TestUpdateSubItem_NotFound(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Updated"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/999", strings.NewReader(body))
@@ -521,7 +523,7 @@ func TestChangeStatus_Success(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"进行中"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/status", strings.NewReader(body))
@@ -541,7 +543,7 @@ func TestChangeStatus_InvalidStatus_422(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"已完成"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/status", strings.NewReader(body))
@@ -563,7 +565,7 @@ func TestChangeStatus_InvalidID(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"进行中"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/abc/status", strings.NewReader(body))
@@ -581,7 +583,7 @@ func TestChangeStatus_InvalidBody(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/status", strings.NewReader(body))
@@ -606,7 +608,7 @@ func TestChangeStatus_AsAssignee(t *testing.T) {
 	deps := depsWithSubItemSvcMemberRole(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"进行中"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/status", strings.NewReader(body))
@@ -629,7 +631,7 @@ func TestChangeStatus_Forbidden_NonPMNonAssignee(t *testing.T) {
 	deps := depsWithSubItemSvcMemberRole(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"进行中"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/status", strings.NewReader(body))
@@ -651,7 +653,7 @@ func TestAssignSubItem_Success(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{"assigneeId":3}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/assignee", strings.NewReader(body))
@@ -672,7 +674,7 @@ func TestAssignSubItem_RequiresPM(t *testing.T) {
 	deps := depsWithSubItemSvcMemberRole(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{"assigneeId":3}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/assignee", strings.NewReader(body))
@@ -690,7 +692,7 @@ func TestAssignSubItem_InvalidID(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{"assigneeId":3}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/abc/assignee", strings.NewReader(body))
@@ -708,7 +710,7 @@ func TestAssignSubItem_InvalidBody(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/assignee", strings.NewReader(body))
@@ -727,7 +729,7 @@ func TestAssignSubItem_ItemNotFound(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := `{"assigneeId":3}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/999/assignee", strings.NewReader(body))
@@ -745,7 +747,7 @@ func TestAssignSubItem_SuperAdminBypass(t *testing.T) {
 	deps := depsWithSubItemSvcMemberRole(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "superadmin")
+	token := signTestToken(t, 1, "admin")
 	body := `{"assigneeId":3}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/assignee", strings.NewReader(body))
@@ -787,7 +789,7 @@ func TestGetSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/sub-items/1", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -830,7 +832,7 @@ func TestCreateSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	body := fmt.Sprintf(`{"mainItemId":1,"title":"New SubItem","priority":"P2","assigneeId":%d,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, assigneeID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/sub-items", strings.NewReader(body))

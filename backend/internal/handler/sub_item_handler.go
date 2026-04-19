@@ -28,12 +28,23 @@ func NewSubItemHandlerWithDeps(svc service.SubItemService) *SubItemHandler {
 	return &SubItemHandler{svc: svc}
 }
 
-// isPMOrSuperAdmin returns true if the caller has PM role in the team or is a superadmin.
-func (h *SubItemHandler) isPMOrSuperAdmin(c *gin.Context) bool {
-	if middleware.GetUserRole(c) == "superadmin" {
+// isPMOrSuperAdmin checks if the caller is a PM or superadmin using the permission codes in context.
+// This is used for the assignee business rule pattern in sub_item handlers.
+func isPMOrSuperAdmin(c *gin.Context) bool {
+	if middleware.IsSuperAdmin(c) {
 		return true
 	}
-	return middleware.GetCallerTeamRole(c) == "pm"
+	// Check if the caller has PM-level permissions by checking a PM-specific permission code.
+	// The "team:invite" permission is typically PM-only.
+	permCodes := middleware.GetPermCodes(c)
+	if permCodes != nil {
+		for _, code := range permCodes {
+			if code == "team:invite" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // parseSubID extracts and validates the subId path param as uint.
@@ -171,8 +182,9 @@ func (h *SubItemHandler) Update(c *gin.Context) {
 		return
 	}
 
-	// RBAC: PM or current assignee can update
-	if !h.isPMOrSuperAdmin(c) {
+	// Assignee pattern: PM/SuperAdmin can update all, other members only their assigned items.
+	// Permission check (sub_item:update) is done by RequirePermission middleware.
+	if !isPMOrSuperAdmin(c) {
 		// Check if caller is the assignee
 		teamID := middleware.GetTeamID(c)
 		item, err := h.svc.Get(c.Request.Context(), teamID, subID)
@@ -223,8 +235,9 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 		return
 	}
 
-	// RBAC: PM or current assignee can change status
-	if !h.isPMOrSuperAdmin(c) {
+	// Assignee pattern: PM/SuperAdmin can change status for all, other members only their assigned items.
+	// Permission check (sub_item:change_status) is done by RequirePermission middleware.
+	if !isPMOrSuperAdmin(c) {
 		teamID := middleware.GetTeamID(c)
 		item, err := h.svc.Get(c.Request.Context(), teamID, subID)
 		if err != nil {
@@ -262,12 +275,6 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 func (h *SubItemHandler) Assign(c *gin.Context) {
 	if h.svc == nil {
 		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
-	// PM only
-	if !h.isPMOrSuperAdmin(c) {
-		apperrors.RespondError(c, apperrors.ErrForbidden)
 		return
 	}
 

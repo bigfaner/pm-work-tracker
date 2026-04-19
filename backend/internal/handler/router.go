@@ -34,6 +34,11 @@ type Dependencies struct {
 	Permission *PermissionHandler
 }
 
+// perm is a shorthand for creating a RequirePermission middleware with the deps' RoleRepo.
+func (d *Dependencies) perm(code string) gin.HandlerFunc {
+	return middleware.RequirePermission(code, d.RoleRepo)
+}
+
 // SetupRouter creates a Gin engine with all route groups, middleware chains,
 // and handler stubs registered.
 func SetupRouter(deps *Dependencies) *gin.Engine {
@@ -76,89 +81,87 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 	)
 	{
 		// Team info
-		teamsGroup.GET("", deps.Team.Get)
-		teamsGroup.PUT("", middleware.RequireTeamRole("pm"), deps.Team.Update)
-		teamsGroup.DELETE("", middleware.RequireTeamRole("pm"), deps.Team.Disband)
+		teamsGroup.GET("", deps.perm("team:read"), deps.Team.Get)
+		teamsGroup.PUT("", deps.perm("team:update"), deps.Team.Update)
+		teamsGroup.DELETE("", deps.perm("team:delete"), deps.Team.Disband)
 
 		// Members
 		teamsGroup.GET("/members", deps.Team.ListMembers)
-		teamsGroup.POST("/members", middleware.RequireTeamRole("pm"), deps.Team.InviteMember)
-		teamsGroup.DELETE("/members/:userId", middleware.RequireTeamRole("pm"), deps.Team.RemoveMember)
-		teamsGroup.PUT("/pm", middleware.RequireTeamRole("pm"), deps.Team.TransferPM)
+		teamsGroup.POST("/members", deps.perm("team:invite"), deps.Team.InviteMember)
+		teamsGroup.DELETE("/members/:userId", deps.perm("team:remove"), deps.Team.RemoveMember)
+		teamsGroup.PUT("/pm", deps.perm("team:transfer"), deps.Team.TransferPM)
 
 		// Main items
-		teamsGroup.POST("/main-items", deps.MainItem.Create)
-		teamsGroup.GET("/main-items", deps.MainItem.List)
-		teamsGroup.GET("/main-items/:itemId", deps.MainItem.Get)
-		teamsGroup.PUT("/main-items/:itemId", deps.MainItem.Update)
-		teamsGroup.POST("/main-items/:itemId/archive", deps.MainItem.Archive)
+		teamsGroup.POST("/main-items", deps.perm("main_item:create"), deps.MainItem.Create)
+		teamsGroup.GET("/main-items", deps.perm("main_item:read"), deps.MainItem.List)
+		teamsGroup.GET("/main-items/:itemId", deps.perm("main_item:read"), deps.MainItem.Get)
+		teamsGroup.PUT("/main-items/:itemId", deps.perm("main_item:update"), deps.MainItem.Update)
+		teamsGroup.POST("/main-items/:itemId/archive", deps.perm("main_item:archive"), deps.MainItem.Archive)
 
 		// Sub items (under main items)
-		teamsGroup.POST("/main-items/:itemId/sub-items", deps.SubItem.Create)
-		teamsGroup.GET("/main-items/:itemId/sub-items", deps.SubItem.List)
+		teamsGroup.POST("/main-items/:itemId/sub-items", deps.perm("sub_item:create"), deps.SubItem.Create)
+		teamsGroup.GET("/main-items/:itemId/sub-items", deps.perm("sub_item:read"), deps.SubItem.List)
 
 		// Sub items (direct access)
-		teamsGroup.GET("/sub-items/:subId", deps.SubItem.Get)
-		teamsGroup.PUT("/sub-items/:subId", deps.SubItem.Update)
-		teamsGroup.PUT("/sub-items/:subId/status", deps.SubItem.ChangeStatus)
-		teamsGroup.PUT("/sub-items/:subId/assignee", deps.SubItem.Assign)
+		teamsGroup.GET("/sub-items/:subId", deps.perm("sub_item:read"), deps.SubItem.Get)
+		teamsGroup.PUT("/sub-items/:subId", deps.perm("sub_item:update"), deps.SubItem.Update)
+		teamsGroup.PUT("/sub-items/:subId/status", deps.perm("sub_item:change_status"), deps.SubItem.ChangeStatus)
+		teamsGroup.PUT("/sub-items/:subId/assignee", deps.perm("sub_item:assign"), deps.SubItem.Assign)
 
 		// Progress records
-		teamsGroup.POST("/sub-items/:subId/progress", deps.Progress.Append)
-		teamsGroup.GET("/sub-items/:subId/progress", deps.Progress.List)
-		teamsGroup.PATCH("/progress/:recordId/completion", deps.Progress.CorrectCompletion)
+		teamsGroup.POST("/sub-items/:subId/progress", deps.perm("progress:create"), deps.Progress.Append)
+		teamsGroup.GET("/sub-items/:subId/progress", deps.perm("progress:read"), deps.Progress.List)
+		teamsGroup.PATCH("/progress/:recordId/completion", deps.perm("progress:update"), deps.Progress.CorrectCompletion)
 
 		// Item pool
-		teamsGroup.POST("/item-pool", deps.ItemPool.Submit)
-		teamsGroup.GET("/item-pool", deps.ItemPool.List)
-		teamsGroup.GET("/item-pool/:poolId", deps.ItemPool.Get)
-		teamsGroup.POST("/item-pool/:poolId/assign", middleware.RequireTeamRole("pm"), deps.ItemPool.Assign)
-		teamsGroup.POST("/item-pool/:poolId/convert-to-main", middleware.RequireTeamRole("pm"), deps.ItemPool.ConvertToMain)
-		teamsGroup.POST("/item-pool/:poolId/reject", middleware.RequireTeamRole("pm"), deps.ItemPool.Reject)
+		teamsGroup.POST("/item-pool", deps.perm("item_pool:submit"), deps.ItemPool.Submit)
+		teamsGroup.GET("/item-pool", deps.perm("sub_item:read"), deps.ItemPool.List)
+		teamsGroup.GET("/item-pool/:poolId", deps.perm("sub_item:read"), deps.ItemPool.Get)
+		teamsGroup.POST("/item-pool/:poolId/assign", deps.perm("item_pool:review"), deps.ItemPool.Assign)
+		teamsGroup.POST("/item-pool/:poolId/convert-to-main", deps.perm("item_pool:review"), deps.ItemPool.ConvertToMain)
+		teamsGroup.POST("/item-pool/:poolId/reject", deps.perm("item_pool:review"), deps.ItemPool.Reject)
 
 		// Views
-		teamsGroup.GET("/views/weekly", deps.View.Weekly)
-		teamsGroup.GET("/views/gantt", deps.View.Gantt)
-		teamsGroup.GET("/views/table", deps.View.Table)
-		teamsGroup.GET("/views/table/export", deps.View.ExportTable)
+		teamsGroup.GET("/views/weekly", deps.perm("view:weekly"), deps.View.Weekly)
+		teamsGroup.GET("/views/gantt", deps.perm("view:gantt"), deps.View.Gantt)
+		teamsGroup.GET("/views/table", deps.perm("view:table"), deps.View.Table)
+		teamsGroup.GET("/views/table/export", deps.perm("view:table"), deps.View.ExportTable)
 
 		// Reports
-		teamsGroup.GET("/reports/weekly/preview", deps.Report.WeeklyPreview)
-		teamsGroup.GET("/reports/weekly/export", deps.Report.WeeklyExport)
+		teamsGroup.GET("/reports/weekly/preview", deps.perm("report:export"), deps.Report.WeeklyPreview)
+		teamsGroup.GET("/reports/weekly/export", deps.perm("report:export"), deps.Report.WeeklyExport)
 	}
 
 	// Team list/create routes (outside :teamId group, auth only)
-	v1.POST("/teams", middleware.AuthMiddleware(deps.Config.Auth.JWTSecret, deps.UserRepo), deps.Team.Create)
-	v1.GET("/teams", middleware.AuthMiddleware(deps.Config.Auth.JWTSecret, deps.UserRepo), deps.Team.List)
+	authMW := middleware.AuthMiddleware(deps.Config.Auth.JWTSecret, deps.UserRepo)
+	v1.POST("/teams", authMW, deps.perm("team:create"), deps.Team.Create)
+	v1.GET("/teams", authMW, deps.Team.List)
 
-	// Admin routes (superadmin only)
+	// Admin routes (permission-gated)
 	adminGroup := v1.Group("/admin")
-	adminGroup.Use(
-		middleware.AuthMiddleware(deps.Config.Auth.JWTSecret, deps.UserRepo),
-		middleware.RequireRole("superadmin"),
-	)
+	adminGroup.Use(authMW)
 	{
-		adminGroup.GET("/users", deps.Admin.ListUsers)
-		adminGroup.POST("/users", deps.Admin.CreateUser)
-		adminGroup.GET("/users/:userId", deps.Admin.GetUser)
-		adminGroup.PUT("/users/:userId", deps.Admin.UpdateUser)
-		adminGroup.PUT("/users/:userId/status", deps.Admin.ToggleUserStatus)
-		adminGroup.PUT("/users/:userId/can-create-team", deps.Admin.UpdateCanCreateTeam)
-		adminGroup.GET("/teams", deps.Admin.ListTeams)
+		adminGroup.GET("/users", deps.perm("user:read"), deps.Admin.ListUsers)
+		adminGroup.POST("/users", deps.perm("user:manage_role"), deps.Admin.CreateUser)
+		adminGroup.GET("/users/:userId", deps.perm("user:read"), deps.Admin.GetUser)
+		adminGroup.PUT("/users/:userId", deps.perm("user:update"), deps.Admin.UpdateUser)
+		adminGroup.PUT("/users/:userId/status", deps.perm("user:update"), deps.Admin.ToggleUserStatus)
+		adminGroup.PUT("/users/:userId/can-create-team", deps.perm("user:update"), deps.Admin.UpdateCanCreateTeam)
+		adminGroup.GET("/teams", deps.perm("user:read"), deps.Admin.ListTeams)
 
-			// Role management
-			adminGroup.GET("/roles", deps.Role.ListRoles)
-			adminGroup.POST("/roles", deps.Role.CreateRole)
-			adminGroup.GET("/roles/:id", deps.Role.GetRole)
-			adminGroup.PUT("/roles/:id", deps.Role.UpdateRole)
-			adminGroup.DELETE("/roles/:id", deps.Role.DeleteRole)
+		// Role management
+		adminGroup.GET("/roles", deps.perm("user:manage_role"), deps.Role.ListRoles)
+		adminGroup.POST("/roles", deps.perm("user:manage_role"), deps.Role.CreateRole)
+		adminGroup.GET("/roles/:id", deps.perm("user:manage_role"), deps.Role.GetRole)
+		adminGroup.PUT("/roles/:id", deps.perm("user:manage_role"), deps.Role.UpdateRole)
+		adminGroup.DELETE("/roles/:id", deps.perm("user:manage_role"), deps.Role.DeleteRole)
 
-			// Permission code registry
-			adminGroup.GET("/permissions", deps.Permission.ListPermissionCodes)
-		}
+		// Permission code registry
+		adminGroup.GET("/permissions", deps.perm("user:manage_role"), deps.Permission.ListPermissionCodes)
+	}
 
 	// User-facing: current user's permissions (auth only, no permission code required)
-	v1.GET("/me/permissions", middleware.AuthMiddleware(deps.Config.Auth.JWTSecret, deps.UserRepo), deps.Permission.GetUserPermissions)
+	v1.GET("/me/permissions", authMW, deps.Permission.GetUserPermissions)
 
 	return r
 }

@@ -169,7 +169,7 @@ func (s *teamService) InviteMember(ctx context.Context, pmID, teamID uint, req d
 	member := &model.TeamMember{
 		TeamID:   teamID,
 		UserID:   user.ID,
-		Role:     req.Role,
+		RoleID:   &req.RoleID,
 		JoinedAt: time.Now(),
 	}
 	return s.teamRepo.AddMember(ctx, member)

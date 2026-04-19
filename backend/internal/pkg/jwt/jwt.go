@@ -11,17 +11,17 @@ import (
 
 // Claims extends jwt.RegisteredClaims with application-specific fields.
 type Claims struct {
-	UserID uint   `json:"user_id"`
-	Role   string `json:"role"`
+	UserID   uint   `json:"user_id"`
+	Username string `json:"username"`
 	jwtv5.RegisteredClaims
 }
 
-// Sign creates a signed HS256 JWT with 24h expiry containing the given userID and role.
-func Sign(userID uint, role string, secret string) (string, error) {
+// Sign creates a signed HS256 JWT with 24h expiry containing the given userID and username.
+func Sign(userID uint, username string, secret string) (string, error) {
 	now := time.Now()
 	claims := &Claims{
-		UserID: userID,
-		Role:   role,
+		UserID:   userID,
+		Username: username,
 		RegisteredClaims: jwtv5.RegisteredClaims{
 			ExpiresAt: jwtv5.NewNumericDate(now.Add(24 * time.Hour)),
 			IssuedAt:  jwtv5.NewNumericDate(now),

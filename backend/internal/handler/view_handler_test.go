@@ -101,10 +101,11 @@ func (m *mockViewService) TableExportCSV(_ context.Context, teamID uint, filter 
 // Helpers
 // ---------------------------------------------------------------------------
 
+
 func depsWithViewSvc(t *testing.T, svc *mockViewService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm"}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
 	deps.View = NewViewHandlerWithDeps(svc)
 	return deps
 }
@@ -131,7 +132,7 @@ func TestWeeklyView_Success(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/weekly?weekStart="+monday(), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -158,7 +159,7 @@ func TestWeeklyView_MissingWeekStart(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/weekly", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -173,7 +174,7 @@ func TestWeeklyView_InvalidDateFormat(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/weekly?weekStart=not-a-date", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -188,7 +189,7 @@ func TestWeeklyView_NotAMonday(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	// 2026-04-14 is a Tuesday
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/weekly?weekStart=2026-04-14", nil)
@@ -211,7 +212,7 @@ func TestWeeklyView_ServiceError(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/weekly?weekStart="+monday(), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -225,7 +226,7 @@ func TestWeeklyView_FutureWeekNotAllowed(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	// Use a future Monday: 2099-01-05
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/weekly?weekStart=2099-01-05", nil)
@@ -254,7 +255,7 @@ func TestGanttView_Success(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/gantt", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -277,7 +278,7 @@ func TestGanttView_WithStatusFilter(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/gantt?status=进行中", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -295,7 +296,7 @@ func TestGanttView_ServiceError(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/gantt", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -320,7 +321,7 @@ func TestTableView_Success(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/table", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -346,7 +347,7 @@ func TestTableView_WithFilters(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/table?type=main&priority=P1&priority=P2&status=进行中&page=2&pageSize=10&sortBy=completion&sortOrder=desc", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -366,7 +367,7 @@ func TestTableView_DefaultPageSize50(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/table", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -383,7 +384,7 @@ func TestTableView_InvalidPageClamped(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	// page=0 should be clamped to 1
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/table?page=0", nil)
@@ -401,7 +402,7 @@ func TestTableView_ServiceError(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/table", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -421,7 +422,7 @@ func TestExportTable_Success(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/table/export", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -441,7 +442,7 @@ func TestExportTable_WithFilters(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/table/export?type=sub&status=已完成", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -459,7 +460,7 @@ func TestExportTable_NoData(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/table/export", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -480,7 +481,7 @@ func TestExportTable_ServiceError(t *testing.T) {
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/table/export", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -555,7 +556,7 @@ func TestWeeklyView_RequiresTeamMembership(t *testing.T) {
 	// default TeamRepo from testDeps has no members, so FindMember returns error
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 99, "member")
+	token := signTestToken(t, 99, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/weekly?weekStart="+monday(), nil)
 	req.Header.Set("Authorization", "Bearer "+token)

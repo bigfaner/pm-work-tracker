@@ -58,10 +58,11 @@ func (m *mockReportService) ExportMarkdown(_ context.Context, teamID uint, weekS
 // Helpers
 // ---------------------------------------------------------------------------
 
+
 func depsWithReportSvc(t *testing.T, svc *mockReportService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm"}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
 	deps.Report = NewReportHandlerWithDeps(svc)
 	return deps
 }
@@ -88,7 +89,7 @@ func TestWeeklyPreview_Success(t *testing.T) {
 	deps := depsWithReportSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/preview?weekStart="+monday(), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -115,7 +116,7 @@ func TestWeeklyPreview_MissingWeekStart(t *testing.T) {
 	deps := depsWithReportSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/preview", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -130,7 +131,7 @@ func TestWeeklyPreview_InvalidDateFormat(t *testing.T) {
 	deps := depsWithReportSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/preview?weekStart=not-a-date", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -145,7 +146,7 @@ func TestWeeklyPreview_NotAMonday(t *testing.T) {
 	deps := depsWithReportSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	// 2026-04-14 is a Tuesday
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/preview?weekStart=2026-04-14", nil)
@@ -168,7 +169,7 @@ func TestWeeklyPreview_NoData(t *testing.T) {
 	deps := depsWithReportSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/preview?weekStart="+monday(), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -189,7 +190,7 @@ func TestWeeklyPreview_ServiceError(t *testing.T) {
 	deps := depsWithReportSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/preview?weekStart="+monday(), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -220,7 +221,7 @@ func TestWeeklyPreview_RequiresTeamMembership(t *testing.T) {
 	// default TeamRepo from testDeps has no members
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 99, "member")
+	token := signTestToken(t, 99, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/preview?weekStart="+monday(), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -241,7 +242,7 @@ func TestWeeklyExport_Success(t *testing.T) {
 	deps := depsWithReportSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/export?weekStart="+monday(), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -265,7 +266,7 @@ func TestWeeklyExport_MissingWeekStart(t *testing.T) {
 	deps := depsWithReportSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/export", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -280,7 +281,7 @@ func TestWeeklyExport_InvalidDateFormat(t *testing.T) {
 	deps := depsWithReportSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/export?weekStart=invalid", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -295,7 +296,7 @@ func TestWeeklyExport_NotAMonday(t *testing.T) {
 	deps := depsWithReportSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/export?weekStart=2026-04-14", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -312,7 +313,7 @@ func TestWeeklyExport_NoData(t *testing.T) {
 	deps := depsWithReportSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/export?weekStart="+monday(), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -333,7 +334,7 @@ func TestWeeklyExport_ServiceError(t *testing.T) {
 	deps := depsWithReportSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/export?weekStart="+monday(), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -362,7 +363,7 @@ func TestWeeklyExport_FilenameFormat(t *testing.T) {
 	deps := depsWithReportSvc(t, svc)
 	r := SetupRouter(deps)
 
-	token := signTestToken(t, 5, "member")
+	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/export?weekStart=2026-04-13", nil)
 	req.Header.Set("Authorization", "Bearer "+token)

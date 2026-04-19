@@ -31,6 +31,7 @@ func NewTeamHandlerWithDeps(teamSvc service.TeamService, userRepo repository.Use
 }
 
 // Create handles POST /api/v1/teams
+// Permission check (team:create) is handled by RequirePermission middleware.
 func (h *TeamHandler) Create(c *gin.Context) {
 	if h.teamSvc == nil {
 		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
@@ -38,16 +39,6 @@ func (h *TeamHandler) Create(c *gin.Context) {
 	}
 
 	userID := middleware.GetUserID(c)
-	userRole := middleware.GetUserRole(c)
-
-	// SuperAdmin bypasses CanCreateTeam check
-	if userRole != "superadmin" {
-		user, err := h.userRepo.FindByID(c.Request.Context(), userID)
-		if err != nil || !user.CanCreateTeam {
-			apperrors.RespondError(c, apperrors.ErrForbidden)
-			return
-		}
-	}
 
 	var req dto.CreateTeamReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -72,8 +63,7 @@ func (h *TeamHandler) List(c *gin.Context) {
 	}
 
 	userID := middleware.GetUserID(c)
-	userRole := middleware.GetUserRole(c)
-	isSuperAdmin := userRole == "superadmin"
+	isSuperAdmin := middleware.IsSuperAdmin(c)
 
 	teams, err := h.teamSvc.ListTeams(c.Request.Context(), userID, isSuperAdmin)
 	if err != nil {

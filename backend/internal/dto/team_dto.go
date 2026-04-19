@@ -26,7 +26,7 @@ type UpdateTeamReq struct {
 // InviteMemberReq is the request DTO for inviting a member to a team.
 type InviteMemberReq struct {
 	Username string `json:"username" binding:"required"`
-	Role     string `json:"role" binding:"required,oneof=member"`
+	RoleID   uint   `json:"roleId" binding:"required"`
 }
 
 // TransferPMReq is the request DTO for transferring PM role.
