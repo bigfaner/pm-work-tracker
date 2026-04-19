@@ -81,12 +81,7 @@ func (h *MainItemHandler) List(c *gin.Context) {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
 	}
-	if page.Page <= 0 {
-		page.Page = 1
-	}
-	if page.PageSize <= 0 {
-		page.PageSize = 20
-	}
+	_, page.Page, page.PageSize = dto.ApplyPaginationDefaults(page.Page, page.PageSize)
 
 	result, err := h.svc.List(c.Request.Context(), teamID, filter, page)
 	if err != nil {

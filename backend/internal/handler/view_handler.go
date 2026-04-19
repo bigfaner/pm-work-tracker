@@ -9,6 +9,7 @@ import (
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/middleware"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/dates"
 	"pm-work-tracker/backend/internal/service"
 )
 
@@ -40,7 +41,7 @@ func (h *ViewHandler) Weekly(c *gin.Context) {
 		return
 	}
 
-	weekStart, err := time.Parse("2006-01-02", weekStartStr)
+	weekStart, err := dates.ParseDate(weekStartStr)
 	if err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return

@@ -120,7 +120,7 @@ func (s *roleService) ListRoles(ctx context.Context) ([]RoleListItem, error) {
 func (s *roleService) GetRole(ctx context.Context, roleID uint) (*RoleDetail, error) {
 	role, err := s.roleRepo.FindByID(ctx, roleID)
 	if err != nil {
-		return nil, mapRoleError(err)
+		return nil, apperrors.MapNotFound(err, ErrRoleNotFound)
 	}
 
 	codes, err := s.roleRepo.ListPermissions(ctx, roleID)
@@ -187,7 +187,7 @@ func (s *roleService) CreateRole(ctx context.Context, req CreateRoleReq) (*RoleL
 func (s *roleService) UpdateRole(ctx context.Context, roleID uint, req UpdateRoleReq) (*RoleDetail, error) {
 	role, err := s.roleRepo.FindByID(ctx, roleID)
 	if err != nil {
-		return nil, mapRoleError(err)
+		return nil, apperrors.MapNotFound(err, ErrRoleNotFound)
 	}
 
 	// Preset role checks
@@ -266,7 +266,7 @@ func (s *roleService) UpdateRole(ctx context.Context, roleID uint, req UpdateRol
 func (s *roleService) DeleteRole(ctx context.Context, roleID uint) error {
 	role, err := s.roleRepo.FindByID(ctx, roleID)
 	if err != nil {
-		return mapRoleError(err)
+		return apperrors.MapNotFound(err, ErrRoleNotFound)
 	}
 
 	if role.IsPreset {
@@ -360,9 +360,3 @@ func buildCodeDescMap() map[string]string {
 	return m
 }
 
-func mapRoleError(err error) error {
-	if err == apperrors.ErrNotFound {
-		return ErrRoleNotFound
-	}
-	return err
-}

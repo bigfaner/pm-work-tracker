@@ -4,14 +4,11 @@ import (
 	"context"
 	"time"
 
-	"gorm.io/gorm"
-
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/dates"
 	"pm-work-tracker/backend/internal/repository"
-
-	stderrors "errors"
 )
 
 // MainItemService defines business operations for MainItem.
@@ -53,12 +50,12 @@ func (s *mainItemService) Create(ctx context.Context, teamID, pmID uint, req dto
 	}
 
 	if req.StartDate != nil {
-		if t, err := time.Parse("2006-01-02", *req.StartDate); err == nil {
+		if t, err := dates.ParseDate(*req.StartDate); err == nil {
 			item.StartDate = &t
 		}
 	}
 	if req.ExpectedEndDate != nil {
-		if t, err := time.Parse("2006-01-02", *req.ExpectedEndDate); err == nil {
+		if t, err := dates.ParseDate(*req.ExpectedEndDate); err == nil {
 			item.ExpectedEndDate = &t
 		}
 	}
@@ -72,7 +69,7 @@ func (s *mainItemService) Create(ctx context.Context, teamID, pmID uint, req dto
 func (s *mainItemService) Update(ctx context.Context, teamID, itemID uint, req dto.MainItemUpdateReq) error {
 	item, err := s.mainItemRepo.FindByID(ctx, itemID)
 	if err != nil {
-		return mapItemNotFound(err)
+		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 	if item.TeamID != teamID {
 		return apperrors.ErrForbidden
@@ -114,7 +111,7 @@ func (s *mainItemService) Update(ctx context.Context, teamID, itemID uint, req d
 func (s *mainItemService) Archive(ctx context.Context, teamID, itemID uint) error {
 	item, err := s.mainItemRepo.FindByID(ctx, itemID)
 	if err != nil {
-		return mapItemNotFound(err)
+		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 
 	if item.Status != "已完成" && item.Status != "已关闭" {
@@ -134,7 +131,7 @@ func (s *mainItemService) List(ctx context.Context, teamID uint, filter dto.Main
 func (s *mainItemService) Get(ctx context.Context, itemID uint) (*model.MainItem, error) {
 	item, err := s.mainItemRepo.FindByID(ctx, itemID)
 	if err != nil {
-		return nil, mapItemNotFound(err)
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 	return item, nil
 }
@@ -142,7 +139,7 @@ func (s *mainItemService) Get(ctx context.Context, itemID uint) (*model.MainItem
 func (s *mainItemService) RecalcCompletion(ctx context.Context, mainItemID uint) error {
 	item, err := s.mainItemRepo.FindByID(ctx, mainItemID)
 	if err != nil {
-		return mapItemNotFound(err)
+		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 
 	subItems, err := s.subItemRepo.ListByMainItem(ctx, mainItemID)
@@ -180,10 +177,3 @@ func calcWeightedCompletion(items []*model.SubItem) float64 {
 	return weightedSum / totalWeight
 }
 
-// mapItemNotFound translates not-found errors from the repo layer into ErrItemNotFound.
-func mapItemNotFound(err error) error {
-	if err == gorm.ErrRecordNotFound || stderrors.Is(err, apperrors.ErrNotFound) {
-		return apperrors.ErrItemNotFound
-	}
-	return err
-}

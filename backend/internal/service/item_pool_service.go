@@ -10,9 +10,8 @@ import (
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/dates"
 	"pm-work-tracker/backend/internal/repository"
-
-	stderrors "errors"
 )
 
 // ItemPoolService defines business operations for ItemPool.
@@ -64,7 +63,7 @@ func (s *itemPoolService) Submit(ctx context.Context, teamID, submitterID uint, 
 func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID uint, req dto.AssignItemPoolReq) error {
 	poolItem, err := s.poolRepo.FindByID(ctx, poolItemID)
 	if err != nil {
-		return mapPoolItemNotFound(err)
+		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 	if poolItem.TeamID != teamID {
 		return apperrors.ErrForbidden
@@ -76,7 +75,7 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 	// Validate main item exists
 	mainItem, err := s.mainRepo.FindByID(ctx, req.MainItemID)
 	if err != nil {
-		return mapMainItemNotFound(err)
+		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 	if mainItem.TeamID != teamID {
 		return apperrors.ErrItemNotFound
@@ -97,12 +96,12 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 			Weight:      1.0,
 		}
 		if req.StartDate != nil {
-			if t, e := time.Parse("2006-01-02", *req.StartDate); e == nil {
+			if t, e := dates.ParseDate( *req.StartDate); e == nil {
 				subItem.StartDate = &t
 			}
 		}
 		if req.ExpectedEndDate != nil {
-			if t, e := time.Parse("2006-01-02", *req.ExpectedEndDate); e == nil {
+			if t, e := dates.ParseDate( *req.ExpectedEndDate); e == nil {
 				subItem.ExpectedEndDate = &t
 			}
 		}
@@ -126,7 +125,7 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 func (s *itemPoolService) ConvertToMain(ctx context.Context, teamID, pmID, poolItemID uint, req dto.ConvertToMainItemReq) (*model.MainItem, error) {
 	poolItem, err := s.poolRepo.FindByID(ctx, poolItemID)
 	if err != nil {
-		return nil, mapPoolItemNotFound(err)
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 	if poolItem.TeamID != teamID {
 		return nil, apperrors.ErrForbidden
@@ -156,12 +155,12 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamID, pmID, poolI
 		}
 
 		if req.StartDate != nil {
-			if t, e := time.Parse("2006-01-02", *req.StartDate); e == nil {
+			if t, e := dates.ParseDate( *req.StartDate); e == nil {
 				mainItem.StartDate = &t
 			}
 		}
 		if req.ExpectedEndDate != nil {
-			if t, e := time.Parse("2006-01-02", *req.ExpectedEndDate); e == nil {
+			if t, e := dates.ParseDate( *req.ExpectedEndDate); e == nil {
 				mainItem.ExpectedEndDate = &t
 			}
 		}
@@ -190,7 +189,7 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamID, pmID, poolI
 func (s *itemPoolService) Reject(ctx context.Context, teamID, pmID, poolItemID uint, reason string) error {
 	poolItem, err := s.poolRepo.FindByID(ctx, poolItemID)
 	if err != nil {
-		return mapPoolItemNotFound(err)
+		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 	if poolItem.TeamID != teamID {
 		return apperrors.ErrForbidden
@@ -216,7 +215,7 @@ func (s *itemPoolService) List(ctx context.Context, teamID uint, filter dto.Item
 func (s *itemPoolService) Get(ctx context.Context, teamID, poolItemID uint) (*model.ItemPool, error) {
 	item, err := s.poolRepo.FindByID(ctx, poolItemID)
 	if err != nil {
-		return nil, mapPoolItemNotFound(err)
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 	if item.TeamID != teamID {
 		return nil, apperrors.ErrForbidden
@@ -231,16 +230,3 @@ func defaultPriority(p string) string {
 	return p
 }
 
-func mapPoolItemNotFound(err error) error {
-	if err == gorm.ErrRecordNotFound || stderrors.Is(err, apperrors.ErrNotFound) {
-		return apperrors.ErrItemNotFound
-	}
-	return err
-}
-
-func mapMainItemNotFound(err error) error {
-	if err == gorm.ErrRecordNotFound || stderrors.Is(err, apperrors.ErrNotFound) {
-		return apperrors.ErrItemNotFound
-	}
-	return err
-}

@@ -4,14 +4,11 @@ import (
 	"context"
 	"time"
 
-	"gorm.io/gorm"
-
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/dates"
 	"pm-work-tracker/backend/internal/repository"
-
-	stderrors "errors"
 )
 
 // SubItemService defines business operations for SubItem.
@@ -58,12 +55,12 @@ func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req 
 	}
 
 	if req.StartDate != nil {
-		if t, err := time.Parse("2006-01-02", *req.StartDate); err == nil {
+		if t, err := dates.ParseDate(*req.StartDate); err == nil {
 			item.StartDate = &t
 		}
 	}
 	if req.ExpectedEndDate != nil {
-		if t, err := time.Parse("2006-01-02", *req.ExpectedEndDate); err == nil {
+		if t, err := dates.ParseDate(*req.ExpectedEndDate); err == nil {
 			item.ExpectedEndDate = &t
 		}
 	}
@@ -77,7 +74,7 @@ func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req 
 func (s *subItemService) Update(ctx context.Context, teamID, itemID uint, req dto.SubItemUpdateReq) error {
 	item, err := s.subItemRepo.FindByID(ctx, itemID)
 	if err != nil {
-		return mapSubItemNotFound(err)
+		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 	if item.TeamID != teamID {
 		return apperrors.ErrForbidden
@@ -113,7 +110,7 @@ func (s *subItemService) Update(ctx context.Context, teamID, itemID uint, req dt
 func (s *subItemService) ChangeStatus(ctx context.Context, teamID, callerID, itemID uint, newStatus string) error {
 	item, err := s.subItemRepo.FindByID(ctx, itemID)
 	if err != nil {
-		return mapSubItemNotFound(err)
+		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 	if item.TeamID != teamID {
 		return apperrors.ErrForbidden
@@ -161,7 +158,7 @@ func (s *subItemService) ChangeStatus(ctx context.Context, teamID, callerID, ite
 func (s *subItemService) Get(ctx context.Context, teamID, itemID uint) (*model.SubItem, error) {
 	item, err := s.subItemRepo.FindByID(ctx, itemID)
 	if err != nil {
-		return nil, mapSubItemNotFound(err)
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 	return item, nil
 }
@@ -177,7 +174,7 @@ func (s *subItemService) List(ctx context.Context, teamID uint, mainItemID *uint
 func (s *subItemService) Assign(ctx context.Context, teamID, pmID, itemID, assigneeID uint) error {
 	item, err := s.subItemRepo.FindByID(ctx, itemID)
 	if err != nil {
-		return mapSubItemNotFound(err)
+		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 	if item.TeamID != teamID {
 		return apperrors.ErrForbidden
@@ -197,10 +194,3 @@ func isValidTransition(from, to string) bool {
 	return transitions[to]
 }
 
-// mapSubItemNotFound translates not-found errors from the repo layer into ErrItemNotFound.
-func mapSubItemNotFound(err error) error {
-	if err == gorm.ErrRecordNotFound || stderrors.Is(err, apperrors.ErrNotFound) {
-		return apperrors.ErrItemNotFound
-	}
-	return err
-}
