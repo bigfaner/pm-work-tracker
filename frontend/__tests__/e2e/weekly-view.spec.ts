@@ -76,6 +76,22 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     teamId = String(teams[0]?.id || teams[0]?.ID);
     if (!teamId) throw new Error('No team found');
 
+    // Clean up stale test data from previous runs
+    try {
+      const itemsResp = await request.get(`/api/v1/teams/${teamId}/main-items`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      const itemsData = await itemsResp.json();
+      const items = parseApiData(itemsData) || [];
+      for (const item of items) {
+        if (item.title === 'E2E周视图测试主事项') {
+          await request.post(`/api/v1/teams/${teamId}/main-items/${item.id}/archive`, {
+            headers: { Authorization: `Bearer ${authToken}` },
+          });
+        }
+      }
+    } catch { /* best effort */ }
+
     // Create a main item for testing
     const mainResp = await request.post(`/api/v1/teams/${teamId}/main-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
@@ -167,28 +183,6 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
     await navTo(page, '/weekly');
-    // Set week to match test data (server validates in UTC, timezone mismatch can reject current week)
-    const weekInput = page.locator('[data-testid="week-selector"]');
-    if (await weekInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-      const now = new Date();
-      const utcDay = now.getUTCDay();
-      const daysToMonday = utcDay === 0 ? 6 : utcDay - 1;
-      const monday = new Date(now);
-      monday.setUTCDate(now.getUTCDate() - daysToMonday);
-      const year = monday.getUTCFullYear();
-      const jan1 = new Date(Date.UTC(year, 0, 1));
-      const dayOfYear = Math.floor((monday.getTime() - jan1.getTime()) / 86400000);
-      const weekNum = Math.ceil((dayOfYear + jan1.getUTCDay() + 1) / 7);
-      const weekValue = `${year}-W${String(weekNum).padStart(2, '0')}`;
-      // Use evaluate to reliably set the week input value and trigger React's onChange
-      await weekInput.evaluate((input: HTMLInputElement, val: string) => {
-        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-        nativeInputValueSetter?.call(input, val);
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-      }, weekValue);
-      await page.waitForTimeout(2000);
-    }
   });
 
   // ====== 1. Page Structure ======
@@ -221,7 +215,7 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
 
   // ====== 3. Comparison Cards ======
   test('3.1 测试主事项卡片渲染', async ({ page }) => {
-    await expect(page.locator(`text=E2E周视图测试主事项`)).toBeVisible({ timeout: 5000 });
+    await expect(page.locator(`[data-testid="group-card-${testMainItemId}"]`)).toBeVisible({ timeout: 5000 });
   });
 
   test('3.2 卡片显示优先级徽章', async ({ page }) => {
@@ -255,7 +249,8 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
 
   // ====== 4. Sub-Item Rows ======
   test('4.1 子事项标题在页面中显示', async ({ page }) => {
-    await expect(page.locator(`text=E2E子事项-进度测试A`)).toBeVisible({ timeout: 5000 });
+    const card = page.locator(`[data-testid="group-card-${testMainItemId}"]`);
+    await expect(card.locator(`text=E2E子事项-进度测试A`)).toBeVisible({ timeout: 5000 });
   });
 
   test('4.2 子事项显示状态徽章', async ({ page }) => {
@@ -274,23 +269,27 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
 
   // ====== 5. Progress Records (individual records display) ======
   test('5.1 成果记录换行显示', async ({ page }) => {
-    await expect(page.locator('text=成果：E2E测试成就-第一阶段完成')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('text=成果：E2E测试成就-联调完成')).toBeVisible();
+    const card = page.locator(`[data-testid="group-card-${testMainItemId}"]`);
+    await expect(card.locator('text=成果：E2E测试成就-第一阶段完成')).toBeVisible({ timeout: 5000 });
+    await expect(card.locator('text=成果：E2E测试成就-联调完成')).toBeVisible();
   });
 
   test('5.2 卡点记录换行显示', async ({ page }) => {
-    await expect(page.locator('text=卡点：E2E测试卡点-等待依赖')).toBeVisible({ timeout: 5000 });
+    const card = page.locator(`[data-testid="group-card-${testMainItemId}"]`);
+    await expect(card.locator('text=卡点：E2E测试卡点-等待依赖')).toBeVisible({ timeout: 5000 });
   });
 
   test('5.3 第二个子事项的进度记录显示', async ({ page }) => {
-    await expect(page.locator('text=成果：E2E测试成就B-基础完成')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('text=卡点：E2E测试卡点B-性能问题')).toBeVisible();
+    const card = page.locator(`[data-testid="group-card-${testMainItemId}"]`);
+    await expect(card.locator('text=成果：E2E测试成就B-基础完成')).toBeVisible({ timeout: 5000 });
+    await expect(card.locator('text=卡点：E2E测试卡点B-性能问题')).toBeVisible();
   });
 
   test('5.4 同一子事项的多条进度记录各自独立显示', async ({ page }) => {
     // Sub-item 1 has 2 progress records - both should be visible as separate lines
+    const card = page.locator(`[data-testid="group-card-${testMainItemId}"]`);
     await page.waitForTimeout(2000);
-    const achievements = page.locator('text=成果：E2E测试成就');
+    const achievements = card.locator('text=成果：E2E测试成就');
     const count = await achievements.count();
     // At least 2 separate achievement lines for sub-item 1
     expect(count).toBeGreaterThanOrEqual(2);
@@ -339,14 +338,15 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     await page.waitForTimeout(3000);
 
     // Page should still show weekly view content (may be different data)
-    await expect(page.locator('text=每周进展')).toBeVisible();
+    await expect(page.locator('h1:text("每周进展")')).toBeVisible();
   });
 
   test('7.3 手动选择周次后下方显示数据（非空状态）', async ({ page }) => {
     await page.waitForTimeout(2000);
 
     // Verify current week shows data
-    const mainItemVisible = await page.locator(`text=E2E周视图测试主事项`).isVisible().catch(() => false);
+    const card = page.locator(`[data-testid="group-card-${testMainItemId}"]`);
+    const mainItemVisible = await card.isVisible().catch(() => false);
     expect(mainItemVisible).toBeTruthy();
 
     // Switch back to current week (from potential previous test)
@@ -385,7 +385,7 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     await expect(page.locator('text=本周活跃子事项')).toBeVisible({ timeout: 5000 });
 
     // Test data should appear in the view
-    await expect(page.locator(`text=E2E周视图测试主事项`)).toBeVisible({ timeout: 5000 });
+    await expect(page.locator(`[data-testid="group-card-${testMainItemId}"]`)).toBeVisible({ timeout: 5000 });
   });
 
   // ====== 8. Expand/Collapse Completed Items ======
@@ -406,7 +406,10 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     const diff = now.getDate() - day + (day === 0 ? -6 : 1);
     const monday = new Date(now);
     monday.setDate(diff);
-    const weekStart = monday.toISOString().slice(0, 10);
+    const y = monday.getFullYear();
+    const m = String(monday.getMonth() + 1).padStart(2, '0');
+    const d = String(monday.getDate()).padStart(2, '0');
+    const weekStart = `${y}-${m}-${d}`;
 
     const resp = await request.get(`/api/v1/teams/${teamId}/views/weekly?weekStart=${weekStart}`, {
       headers: { Authorization: `Bearer ${authToken}` },
@@ -437,13 +440,14 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
 
   // ====== 11. Visual Separation Check ======
   test('11.1 子事项标题行与进度记录视觉分离', async ({ page }) => {
+    const card = page.locator(`[data-testid="group-card-${testMainItemId}"]`);
     await page.waitForTimeout(2000);
     // Verify the sub-item title exists
-    const title = page.locator('text=E2E子事项-进度测试A');
+    const title = card.locator('text=E2E子事项-进度测试A');
     await expect(title).toBeVisible({ timeout: 5000 });
 
     // Verify the progress record exists below it
-    const progressLine = page.locator('text=成果：E2E测试成就-第一阶段完成');
+    const progressLine = card.locator('text=成果：E2E测试成就-第一阶段完成');
     await expect(progressLine).toBeVisible();
 
     // Both should be visible simultaneously
