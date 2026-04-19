@@ -1,0 +1,101 @@
+{
+  "feature": "code-conventions",
+  "prd": "prd/prd-spec.md",
+  "design": "design/tech-design.md",
+  "created": "2026-04-20",
+  "status": "planning",
+  "statusEnum": ["pending", "in_progress", "completed", "blocked", "skipped"],
+  "priorityEnum": ["P0", "P1", "P2"],
+  "tasks": {
+    "1.1-architecture-docs": {
+      "id": "1.1",
+      "title": "Write ARCHITECTURE.md and DECISIONS.md",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [],
+      "status": "pending",
+      "file": "1.1-architecture-docs.md",
+      "record": "records/1.1-architecture-docs.md"
+    },
+    "1.2-rules-files": {
+      "id": "1.2",
+      "title": "Write .claude/rules/ convention files",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": ["1.1"],
+      "status": "pending",
+      "file": "1.2-rules-files.md",
+      "record": "records/1.2-rules-files.md"
+    },
+    "1.3-lint-config": {
+      "id": "1.3",
+      "title": "Configure lint rules: golangci-lint + ESLint",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": ["1.2"],
+      "status": "pending",
+      "file": "1.3-lint-config.md",
+      "record": "records/1.3-lint-config.md"
+    },
+    "2.1-backend-helpers": {
+      "id": "2.1",
+      "title": "Create backend shared helpers with tests",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [],
+      "status": "pending",
+      "file": "2.1-backend-helpers.md",
+      "record": "records/2.1-backend-helpers.md"
+    },
+    "2.2-handler-constructor": {
+      "id": "2.2",
+      "title": "Add handler constructor validation, remove nil checks",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [],
+      "status": "pending",
+      "file": "2.2-handler-constructor.md",
+      "record": "records/2.2-handler-constructor.md"
+    },
+    "2.3-migrate-helpers": {
+      "id": "2.3",
+      "title": "Migrate backend code to use shared helpers",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": ["2.1"],
+      "status": "pending",
+      "file": "2.3-migrate-helpers.md",
+      "record": "records/2.3-migrate-helpers.md"
+    },
+    "3.1-textarea-component": {
+      "id": "3.1",
+      "title": "Create Textarea component and migrate usage",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [],
+      "status": "pending",
+      "file": "3.1-textarea-component.md",
+      "record": "records/3.1-textarea-component.md"
+    },
+    "3.2-priority-select": {
+      "id": "3.2",
+      "title": "Create PrioritySelect component and migrate usage",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "dependencies": [],
+      "status": "pending",
+      "file": "3.2-priority-select.md",
+      "record": "records/3.2-priority-select.md"
+    },
+    "3.3-color-tokens": {
+      "id": "3.3",
+      "title": "Migrate hardcoded colors to theme tokens",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": ["3.1", "3.2"],
+      "status": "pending",
+      "file": "3.3-color-tokens.md",
+      "record": "records/3.3-color-tokens.md"
+    }
+  }
+}
