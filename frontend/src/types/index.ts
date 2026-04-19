@@ -1,3 +1,30 @@
+// Permission types
+
+export interface PermissionData {
+  isSuperadmin: boolean
+  teamPermissions: Record<number, string[]>
+}
+
+export interface Role {
+  id: number
+  name: string
+  description: string
+  isPreset: boolean
+  permissionCount: number
+  memberCount: number
+  createdAt: string
+}
+
+export interface PermissionItem {
+  code: string
+  description: string
+}
+
+export interface PermissionGroup {
+  resource: string
+  actions: PermissionItem[]
+}
+
 // Domain models
 
 export interface TeamSummary {

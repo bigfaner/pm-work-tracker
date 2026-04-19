@@ -53,6 +53,7 @@ client.interceptors.response.use(
         break
       case 403:
         message.error('权限不足')
+        useAuthStore.getState().fetchPermissions()
         break
       case 404:
         message.error('资源不存在')

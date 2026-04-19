@@ -7,6 +7,10 @@ import type {
   SubItem,
   ProgressRecord,
   ItemPool,
+  PermissionData,
+  Role,
+  PermissionGroup,
+  PermissionItem,
 } from '@/types'
 
 describe('shared TypeScript interfaces', () => {
@@ -132,5 +136,47 @@ describe('shared TypeScript interfaces', () => {
       updatedAt: '2024-01-01',
     }
     expect(pool.status).toBe('待分配')
+  })
+
+  it('should define a valid PermissionData', () => {
+    const permData: PermissionData = {
+      isSuperadmin: false,
+      teamPermissions: { 1: ['team:read', 'team:write'] },
+    }
+    expect(permData.isSuperadmin).toBe(false)
+    expect(permData.teamPermissions[1]).toContain('team:read')
+  })
+
+  it('should define a valid Role', () => {
+    const role: Role = {
+      id: 1,
+      name: 'PM',
+      description: 'Project Manager',
+      isPreset: true,
+      permissionCount: 5,
+      memberCount: 3,
+      createdAt: '2024-01-01',
+    }
+    expect(role.name).toBe('PM')
+    expect(role.isPreset).toBe(true)
+  })
+
+  it('should define a valid PermissionGroup', () => {
+    const group: PermissionGroup = {
+      resource: 'team',
+      actions: [
+        { code: 'team:read', description: 'View team' },
+        { code: 'team:write', description: 'Edit team' },
+      ],
+    }
+    expect(group.actions).toHaveLength(2)
+  })
+
+  it('should define a valid PermissionItem', () => {
+    const item: PermissionItem = {
+      code: 'item:create',
+      description: 'Create items',
+    }
+    expect(item.code).toBe('item:create')
   })
 })
