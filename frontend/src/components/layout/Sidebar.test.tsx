@@ -99,13 +99,19 @@ describe('Sidebar', () => {
   it('shows user management nav item only for SuperAdmin', () => {
     useAuthStore.getState().clearAuth()
     useAuthStore.getState().setAuth('token', superAdminUser)
+    useAuthStore.getState().setPermissions({
+      isSuperadmin: true,
+      teamPermissions: {},
+    })
     renderWithRouter()
     expect(screen.getByText('用户管理')).toBeInTheDocument()
+    expect(screen.getByText('角色管理')).toBeInTheDocument()
   })
 
-  it('hides user management nav item for regular users', () => {
+  it('hides admin nav items for regular users without permissions', () => {
     renderWithRouter()
     expect(screen.queryByText('用户管理')).not.toBeInTheDocument()
+    expect(screen.queryByText('角色管理')).not.toBeInTheDocument()
   })
 
   it('renders team selector with teams from store', () => {
@@ -130,11 +136,15 @@ describe('Sidebar', () => {
     expect(navLinks.length).toBe(6)
   })
 
-  it('renders 7 nav items (including user mgmt) for SuperAdmin', () => {
+  it('renders 8 nav items (including user mgmt and roles) for SuperAdmin', () => {
     useAuthStore.getState().clearAuth()
     useAuthStore.getState().setAuth('token', superAdminUser)
+    useAuthStore.getState().setPermissions({
+      isSuperadmin: true,
+      teamPermissions: {},
+    })
     renderWithRouter()
     const navLinks = screen.getAllByRole('link')
-    expect(navLinks.length).toBe(7)
+    expect(navLinks.length).toBe(8)
   })
 })

@@ -8,9 +8,11 @@ import {
   UserCog,
   Users,
   LogOut,
+  Shield,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useTeamStore } from '@/store/team'
+import { PermissionGuard } from '@/components/PermissionGuard'
 import {
   Select,
   SelectContent,
@@ -28,7 +30,8 @@ const navItems = [
 ]
 
 const adminItems = [
-  { key: '/users', label: '用户管理', icon: UserCog },
+  { key: '/roles', label: '角色管理', icon: Shield, permission: 'user:manage_role' },
+  { key: '/users', label: '用户管理', icon: UserCog, permission: 'user:read' },
 ]
 
 const teamItem = { key: '/teams', label: '团队管理', icon: Users }
@@ -47,9 +50,10 @@ export default function Sidebar() {
     navigate('/login')
   }
 
-  const allNavItems = isSuperAdmin
-    ? [...navItems, ...adminItems, teamItem]
-    : [...navItems, teamItem]
+  const allNavItems = [...navItems, teamItem]
+
+  // Check if any admin item is visible
+  const hasAdminItems = true // PermissionGuard handles visibility
 
   return (
     <nav
@@ -102,23 +106,26 @@ export default function Sidebar() {
           )
         })}
 
-        {(isSuperAdmin ? adminItems : []).map((item) => {
+        {adminItems.map((item, idx) => {
           const Icon = item.icon
           const isActive = activeKey === item.key
           return (
-            <a
-              key={item.key}
-              href={item.key}
-              onClick={(e) => { e.preventDefault(); navigate(item.key) }}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all mt-4 pt-4 border-t border-border ${
-                isActive
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-secondary hover:bg-bg-alt hover:text-primary'
-              }`}
-            >
-              <Icon className="w-[18px] h-[18px] shrink-0" />
-              {item.label}
-            </a>
+            <PermissionGuard key={item.key} code={item.permission!}>
+              <a
+                href={item.key}
+                onClick={(e) => { e.preventDefault(); navigate(item.key) }}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all ${
+                  idx === 0 ? 'mt-4 pt-4 border-t border-border' : ''
+                } ${
+                  isActive
+                    ? 'bg-primary-50 text-primary-700'
+                    : 'text-secondary hover:bg-bg-alt hover:text-primary'
+                }`}
+              >
+                <Icon className="w-[18px] h-[18px] shrink-0" />
+                {item.label}
+              </a>
+            </PermissionGuard>
           )
         })}
 

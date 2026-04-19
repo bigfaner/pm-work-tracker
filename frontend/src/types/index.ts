@@ -25,6 +25,35 @@ export interface PermissionGroup {
   actions: PermissionItem[]
 }
 
+export interface RoleDetail {
+  id: number
+  name: string
+  description: string
+  isPreset: boolean
+  permissions: PermissionItem[]
+  memberCount: number
+  createdAt: string
+}
+
+export interface CreateRoleReq {
+  name: string
+  description?: string
+  permissionCodes: string[]
+}
+
+export interface UpdateRoleReq {
+  name?: string
+  description?: string
+  permissionCodes?: string[]
+}
+
+export interface RoleListParams {
+  search?: string
+  isPreset?: string
+  page?: number
+  pageSize?: number
+}
+
 // Domain models
 
 export interface TeamSummary {

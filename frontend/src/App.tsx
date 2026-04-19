@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import AdminRoute from '@/components/AdminRoute'
+import PermissionRoute from '@/components/PermissionRoute'
 import AppLayout from '@/components/layout/AppLayout'
 import LoginPage from '@/pages/LoginPage'
 import ItemViewPage from '@/pages/ItemViewPage'
@@ -14,6 +15,7 @@ import ReportPage from '@/pages/ReportPage'
 import TeamManagementPage from '@/pages/TeamManagementPage'
 import TeamDetailPage from '@/pages/TeamDetailPage'
 import UserManagementPage from '@/pages/UserManagementPage'
+import RoleManagementPage from '@/pages/RoleManagementPage'
 
 export default function App() {
   return (
@@ -37,6 +39,11 @@ export default function App() {
       <Route element={<AdminRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/users" element={<UserManagementPage />} />
+        </Route>
+      </Route>
+      <Route element={<PermissionRoute code="user:manage_role" />}>
+        <Route element={<AppLayout />}>
+          <Route path="/roles" element={<RoleManagementPage />} />
         </Route>
       </Route>
     </Routes>
