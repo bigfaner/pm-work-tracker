@@ -118,6 +118,10 @@ func (m *mockSubItemRepo) ListByTeam(_ context.Context, _ uint) ([]model.SubItem
 	return nil, nil
 }
 
+func (m *mockSubItemRepo) Delete(_ context.Context, _ uint) error {
+	return nil
+}
+
 // mockStatusHistorySvc mocks StatusHistoryService for tests.
 type mockStatusHistorySvc struct {
 	recorded *model.StatusHistory
@@ -775,4 +779,409 @@ func TestAvailableTransitions_TeamMismatch(t *testing.T) {
 
 	_, err := svc.AvailableTransitions(context.Background(), 1, 10, 1)
 	assert.ErrorIs(t, err, apperrors.ErrForbidden)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: EvaluateLinkage
+// ---------------------------------------------------------------------------
+
+func TestEvaluateLinkage_NoSubItems_NoLinkageTriggered(t *testing.T) {
+	mainItem := &model.MainItem{
+		BaseModel: model.BaseModel{ID: 1},
+		TeamID:    1,
+		Status:    "pending",
+	}
+	mainRepo := &mockMainItemRepo{item: mainItem}
+	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{}}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
+	require.NoError(t, err)
+	assert.Nil(t, result)
+}
+
+func TestEvaluateLinkage_MainItemNotFound(t *testing.T) {
+	mainRepo := &mockMainItemRepo{findErr: gorm.ErrRecordNotFound}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	_, err := svc.EvaluateLinkage(context.Background(), 999, 10)
+	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
+}
+
+func TestEvaluateLinkage_SubItemRepoError(t *testing.T) {
+	mainItem := &model.MainItem{
+		BaseModel: model.BaseModel{ID: 1},
+		Status:    "pending",
+	}
+	mainRepo := &mockMainItemRepo{item: mainItem}
+	subRepo := &mockSubItemRepo{findErr: errors.New("db error")}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	_, err := svc.EvaluateLinkage(context.Background(), 1, 10)
+	assert.Error(t, err)
+}
+
+// TestEvaluateLinkage_Priority1_AllCompletedOrClosed tests Priority 1:
+// all completed/closed + at least one completed -> reviewing
+func TestEvaluateLinkage_Priority1_AllCompletedOrClosed(t *testing.T) {
+	tests := []struct {
+		name   string
+		items  []*model.SubItem
+	}{
+		{
+			"all completed -> reviewing",
+			[]*model.SubItem{
+				{Status: "completed"},
+				{Status: "completed"},
+			},
+		},
+		{
+			"mixed completed+closed -> reviewing",
+			[]*model.SubItem{
+				{Status: "completed"},
+				{Status: "closed"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mainItem := &model.MainItem{
+				BaseModel: model.BaseModel{ID: 1},
+				Status:    "progressing",
+			}
+			mainRepo := &mockMainItemRepo{item: mainItem}
+			subRepo := &mockSubItemRepo{subItems: tt.items}
+			historySvc := &mockStatusHistorySvc{}
+			svc := NewMainItemService(mainRepo, subRepo, historySvc)
+
+			result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.True(t, result.Triggered)
+			assert.True(t, result.Success)
+			assert.Equal(t, "reviewing", result.TargetStatus)
+			assert.Equal(t, "reviewing", mainRepo.updatedFields["status"])
+
+			// StatusHistory should be recorded with is_auto=true
+			assert.NotNil(t, historySvc.recorded)
+			assert.True(t, historySvc.recorded.IsAuto)
+		})
+	}
+}
+
+// TestEvaluateLinkage_Priority2_AllClosed tests Priority 2:
+// all closed -> closed
+func TestEvaluateLinkage_Priority2_AllClosed(t *testing.T) {
+	mainItem := &model.MainItem{
+		BaseModel: model.BaseModel{ID: 1},
+		Status:    "pending",
+	}
+	mainRepo := &mockMainItemRepo{item: mainItem}
+	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{
+		{Status: "closed"},
+		{Status: "closed"},
+	}}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.True(t, result.Success)
+	assert.Equal(t, "closed", result.TargetStatus)
+	// Terminal side effects
+	assert.Equal(t, float64(100), mainRepo.updatedFields["completion"])
+	assert.NotNil(t, mainRepo.updatedFields["actual_end_date"])
+}
+
+// TestEvaluateLinkage_Priority3_AllPausing tests Priority 3:
+// all pausing (or pausing + closed) -> pausing
+func TestEvaluateLinkage_Priority3_AllPausing(t *testing.T) {
+	tests := []struct {
+		name  string
+		items []*model.SubItem
+	}{
+		{
+			"all pausing -> pausing",
+			[]*model.SubItem{
+				{Status: "pausing"},
+				{Status: "pausing"},
+			},
+		},
+		{
+			"pausing + closed -> pausing",
+			[]*model.SubItem{
+				{Status: "pausing"},
+				{Status: "closed"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mainItem := &model.MainItem{
+				BaseModel: model.BaseModel{ID: 1},
+				Status:    "progressing",
+			}
+			mainRepo := &mockMainItemRepo{item: mainItem}
+			subRepo := &mockSubItemRepo{subItems: tt.items}
+			svc := NewMainItemService(mainRepo, subRepo, nil)
+
+			result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.True(t, result.Success)
+			assert.Equal(t, "pausing", result.TargetStatus)
+		})
+	}
+}
+
+// TestEvaluateLinkage_Priority4_AnyBlocking tests Priority 4:
+// any blocking (not all terminal) -> blocking (only from progressing, since pending->blocking is not a valid transition)
+func TestEvaluateLinkage_Priority4_AnyBlocking(t *testing.T) {
+	tests := []struct {
+		name         string
+		mainStatus   string
+		items        []*model.SubItem
+		wantTarget   string // expected target status, empty means no linkage
+		wantSuccess  bool   // whether linkage should succeed
+	}{
+		{
+			"progressing + blocking sub -> blocking (success)",
+			"progressing",
+			[]*model.SubItem{{Status: "blocking"}, {Status: "pending"}},
+			"blocking",
+			true,
+		},
+		{
+			"pending + blocking sub -> blocking (fails: pending->blocking not valid)",
+			"pending",
+			[]*model.SubItem{{Status: "blocking"}, {Status: "pending"}},
+			"blocking",
+			false, // pending->blocking is not a valid MainItem transition
+		},
+		{
+			"reviewing + blocking sub -> progressing (via AC-9 revert)",
+			"reviewing",
+			[]*model.SubItem{{Status: "blocking"}, {Status: "pending"}},
+			"progressing",
+			true, // reviewing->progressing is valid
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mainItem := &model.MainItem{
+				BaseModel: model.BaseModel{ID: 1},
+				Status:    tt.mainStatus,
+			}
+			mainRepo := &mockMainItemRepo{item: mainItem}
+			subRepo := &mockSubItemRepo{subItems: tt.items}
+			svc := NewMainItemService(mainRepo, subRepo, nil)
+
+			result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.Equal(t, tt.wantTarget, result.TargetStatus)
+			assert.Equal(t, tt.wantSuccess, result.Success)
+		})
+	}
+}
+
+// TestEvaluateLinkage_Priority5_AnyProgressing tests Priority 5:
+// any progressing -> progressing (only from pending)
+func TestEvaluateLinkage_Priority5_AnyProgressing(t *testing.T) {
+	tests := []struct {
+		name             string
+		mainStatus       string
+		items            []*model.SubItem
+		wantProgressing  bool
+	}{
+		{
+			"pending + progressing sub -> progressing",
+			"pending",
+			[]*model.SubItem{{Status: "progressing"}, {Status: "pending"}},
+			true,
+		},
+		{
+			"progressing main + progressing sub -> no change (same status)",
+			"progressing",
+			[]*model.SubItem{{Status: "progressing"}, {Status: "pending"}},
+			false,
+		},
+		{
+			"blocking main + progressing sub -> no linkage",
+			"blocking",
+			[]*model.SubItem{{Status: "progressing"}, {Status: "pending"}},
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mainItem := &model.MainItem{
+				BaseModel: model.BaseModel{ID: 1},
+				Status:    tt.mainStatus,
+			}
+			mainRepo := &mockMainItemRepo{item: mainItem}
+			subRepo := &mockSubItemRepo{subItems: tt.items}
+			svc := NewMainItemService(mainRepo, subRepo, nil)
+
+			result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
+			require.NoError(t, err)
+			if tt.wantProgressing {
+				require.NotNil(t, result)
+				assert.True(t, result.Success)
+				assert.Equal(t, "progressing", result.TargetStatus)
+			} else {
+				assert.Nil(t, result)
+			}
+		})
+	}
+}
+
+// TestEvaluateLinkage_ReviewingAndNewPending tests AC-9:
+// reviewing + new pending subitem -> MainItem reverts to progressing
+func TestEvaluateLinkage_ReviewingAndNewPending(t *testing.T) {
+	mainItem := &model.MainItem{
+		BaseModel: model.BaseModel{ID: 1},
+		Status:    "reviewing",
+	}
+	mainRepo := &mockMainItemRepo{item: mainItem}
+	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{
+		{Status: "completed"},
+		{Status: "pending"},
+	}}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.True(t, result.Success)
+	assert.Equal(t, "progressing", result.TargetStatus)
+	assert.Equal(t, "progressing", mainRepo.updatedFields["status"])
+}
+
+// TestEvaluateLinkage_Failure_TransitionNotAllowed tests AC-12:
+// linkage failure when transition not allowed
+func TestEvaluateLinkage_Failure_TransitionNotAllowed(t *testing.T) {
+	// When all sub-items are completed/closed, target is "reviewing"
+	// But if main is in a state that can't transition to "reviewing",
+	// linkage should fail and record intent in status history.
+	mainItem := &model.MainItem{
+		BaseModel: model.BaseModel{ID: 1},
+		Status:    "blocking", // blocking -> reviewing is not valid
+	}
+	mainRepo := &mockMainItemRepo{item: mainItem}
+	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{
+		{Status: "completed"},
+		{Status: "completed"},
+	}}
+	historySvc := &mockStatusHistorySvc{}
+	svc := NewMainItemService(mainRepo, subRepo, historySvc)
+
+	result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.True(t, result.Triggered)
+	assert.False(t, result.Success)
+	assert.Equal(t, "reviewing", result.TargetStatus)
+	assert.Contains(t, result.Warning(), "主事项状态联动失败")
+	assert.Contains(t, result.Remark, "blocking→reviewing 不允许")
+
+	// Status history should record the intent
+	assert.NotNil(t, historySvc.recorded)
+	assert.True(t, historySvc.recorded.IsAuto)
+	assert.Equal(t, "blocking", historySvc.recorded.FromStatus)
+	assert.Equal(t, "reviewing", historySvc.recorded.ToStatus)
+	assert.Contains(t, historySvc.recorded.Remark, "不允许")
+}
+
+// TestEvaluateLinkage_SameStatus_NoTransition tests that no linkage is triggered
+// when the target status matches current status.
+func TestEvaluateLinkage_SameStatus_NoTransition(t *testing.T) {
+	mainItem := &model.MainItem{
+		BaseModel: model.BaseModel{ID: 1},
+		Status:    "reviewing", // All completed would target reviewing -> same status
+	}
+	mainRepo := &mockMainItemRepo{item: mainItem}
+	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{
+		{Status: "completed"},
+		{Status: "completed"},
+	}}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
+	require.NoError(t, err)
+	assert.Nil(t, result)
+}
+
+// TestEvaluateLinkage_TerminalSideEffects tests that terminal side effects
+// are applied when linkage transitions to a terminal status.
+func TestEvaluateLinkage_TerminalSideEffects(t *testing.T) {
+	mainItem := &model.MainItem{
+		BaseModel: model.BaseModel{ID: 1},
+		Status:    "pending",
+		Completion: 30,
+	}
+	mainRepo := &mockMainItemRepo{item: mainItem}
+	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{
+		{Status: "closed"},
+		{Status: "closed"},
+	}}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.True(t, result.Success)
+	assert.Equal(t, "closed", result.TargetStatus)
+	assert.Equal(t, float64(100), mainRepo.updatedFields["completion"])
+	assert.NotNil(t, mainRepo.updatedFields["actual_end_date"])
+}
+
+// TestEvaluateLinkage_StatusHistoryIsAuto tests AC-15:
+// is_auto=true for linkage transitions.
+func TestEvaluateLinkage_StatusHistoryIsAuto(t *testing.T) {
+	mainItem := &model.MainItem{
+		BaseModel: model.BaseModel{ID: 1},
+		Status:    "progressing",
+	}
+	mainRepo := &mockMainItemRepo{item: mainItem}
+	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{
+		{Status: "completed"},
+	}}
+	historySvc := &mockStatusHistorySvc{}
+	svc := NewMainItemService(mainRepo, subRepo, historySvc)
+
+	result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.True(t, result.Success)
+
+	require.NotNil(t, historySvc.recorded)
+	assert.True(t, historySvc.recorded.IsAuto, "linkage status history should have is_auto=true")
+	assert.Equal(t, uint(10), historySvc.recorded.ChangedBy)
+	assert.Equal(t, "progressing", historySvc.recorded.FromStatus)
+	assert.Equal(t, "reviewing", historySvc.recorded.ToStatus)
+}
+
+// TestLinkageResult_Warning tests the Warning() method.
+func TestLinkageResult_Warning(t *testing.T) {
+	tests := []struct {
+		name    string
+		result  *LinkageResult
+		want    string
+	}{
+		{"nil result", nil, ""},
+		{"not triggered", &LinkageResult{Triggered: false}, ""},
+		{"triggered and succeeded", &LinkageResult{Triggered: true, Success: true}, ""},
+		{"triggered and failed", &LinkageResult{Triggered: true, Success: false, Remark: "test reason"}, "主事项状态联动失败：test reason"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.result.Warning())
+		})
+	}
 }

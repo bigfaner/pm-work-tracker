@@ -81,6 +81,9 @@ func (m *mockViewSubItemRepo) ListByTeam(_ context.Context, _ uint) ([]model.Sub
 	}
 	return m.items, nil
 }
+func (m *mockViewSubItemRepo) Delete(_ context.Context, _ uint) error {
+	return nil
+}
 
 type mockViewProgressRepo struct {
 	records []model.ProgressRecord
