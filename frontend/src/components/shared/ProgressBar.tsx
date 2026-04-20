@@ -9,9 +9,9 @@ interface ProgressBarProps {
 }
 
 function getIndicatorColor(value: number): string {
-  if (value >= 100) return 'bg-emerald-500'
-  if (value > 0) return 'bg-amber-500'
-  return 'bg-slate-200'
+  if (value >= 100) return 'bg-success'
+  if (value > 0) return 'bg-warning'
+  return 'bg-border'
 }
 
 export default function ProgressBar({ value, size = 'default', showPercentage = false, className }: ProgressBarProps) {

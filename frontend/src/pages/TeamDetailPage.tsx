@@ -395,8 +395,8 @@ export default function TeamDetailPage() {
       </div>
 
       {/* Danger Zone */}
-      <div className="rounded-xl border border-red-300 bg-white shadow-sm">
-        <div className="px-5 py-3 border-b border-red-200">
+      <div className="rounded-xl border border-error-text/40 bg-white shadow-sm">
+        <div className="px-5 py-3 border-b border-error-text/20">
           <h3 className="text-[15px] font-semibold text-error">危险操作</h3>
         </div>
         <div className="px-5 py-4 flex items-center justify-between">
@@ -513,7 +513,7 @@ export default function TeamDetailPage() {
             <DialogTitle>解散团队</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800 mb-4">
+            <div className="bg-error-bg border border-error-text/20 rounded-lg p-3 text-sm text-error-text mb-4">
               此操作不可恢复，团队下所有事项和数据将被永久删除。
             </div>
             <div>

@@ -199,7 +199,7 @@ func (m *mockUserRepoForHandler) Create(_ context.Context, _ *model.User) error 
 func depsWithTeamSvc(t *testing.T, svc *mockTeamService, userRepo *mockUserRepoForHandler) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.Team = NewTeamHandlerWithDeps(svc, userRepo)
+	deps.Team = NewTeamHandler(svc, userRepo)
 	return deps
 }
 

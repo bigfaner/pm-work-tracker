@@ -3,9 +3,9 @@ import { cn } from '@/lib/utils'
 
 const colors = [
   'bg-blue-100 text-blue-700',
-  'bg-emerald-100 text-emerald-700',
-  'bg-red-100 text-red-700',
-  'bg-amber-100 text-amber-700',
+  'bg-success-bg text-success-text',
+  'bg-error-bg text-error-text',
+  'bg-warning-bg text-warning-text',
   'bg-purple-100 text-purple-700',
   'bg-pink-100 text-pink-700',
   'bg-teal-100 text-teal-700',

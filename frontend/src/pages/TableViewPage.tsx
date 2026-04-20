@@ -284,7 +284,7 @@ export default function TableViewPage() {
                             className={
                               row.type === 'main'
                                 ? 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-blue-50 text-blue-700'
-                                : 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-slate-100 text-slate-600'
+                                : 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-bg-alt text-secondary'
                             }
                           >
                             {row.type === 'main' ? '主事项' : '子事项'}
@@ -319,7 +319,7 @@ export default function TableViewPage() {
                         <TableCell>
                           <span
                             data-testid={`expected-date-${row.id}`}
-                            className={isOverdue(row.expectedEndDate, row.status) ? 'text-red-600 text-xs' : 'text-xs'}
+                            className={isOverdue(row.expectedEndDate, row.status) ? 'text-error text-xs' : 'text-xs'}
                           >
                             {formatDate(row.expectedEndDate)}
                           </span>

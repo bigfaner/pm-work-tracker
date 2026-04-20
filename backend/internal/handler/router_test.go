@@ -124,15 +124,15 @@ func testDeps(t *testing.T) (*Dependencies, *gorm.DB) {
 		UserRepo: userRepo,
 		RoleRepo: roleRepo,
 		Auth:     NewAuthHandler(&stubAuthService{}),
-		Team:     NewTeamHandler(),
-		MainItem: NewMainItemHandler(),
-		SubItem:  NewSubItemHandler(),
+		Team:     NewTeamHandler(&StubTeamSvc{}, &StubRouterRepoUser{}),
+		MainItem: NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, &StubRouterRepoSubItem{}),
+		SubItem:  NewSubItemHandler(&StubSubItemSvc{}),
 		Progress: NewProgressHandler(),
-		ItemPool: NewItemPoolHandler(),
+		ItemPool: NewItemPoolHandler(&StubItemPoolSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMainItem{}),
 		View:     NewViewHandler(),
 		Report:   NewReportHandler(),
-		Admin:      NewAdminHandler(),
-		Role:       NewRoleHandler(),
+		Admin:      NewAdminHandler(&StubAdminSvc{}),
+		Role:       NewRoleHandler(&StubRoleSvc{}),
 		Permission: NewPermissionHandler(),
 	}, db
 }
@@ -215,7 +215,7 @@ func TestTeamRoutes_RequireAuthAndTeamScope(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
-func TestTeamRoutes_WithAuthReturns501(t *testing.T) {
+func TestTeamRoutes_WithAuthReturns500(t *testing.T) {
 	deps, _ := testDeps(t)
 	// Inject a mock that always succeeds
 	deps.TeamRepo = &mockTeamRepo{}
@@ -227,7 +227,7 @@ func TestTeamRoutes_WithAuthReturns501(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusNotImplemented, w.Code)
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
 
 func TestTeamListCreateRoutes_RequireAuth(t *testing.T) {
@@ -253,19 +253,20 @@ func TestTeamListCreateRoutes_WithSuperAdminAuth(t *testing.T) {
 
 	token := signTestToken(t, 1, "admin")
 
-	// POST /api/v1/teams with superadmin auth — should get 501 (not implemented)
+	// POST /api/v1/teams with superadmin auth — stub service returns error → 500
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams", strings.NewReader(`{"name":"test"}`))
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusNotImplemented, w.Code)
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
 
-	// GET /api/v1/teams with superadmin auth
+	// GET /api/v1/teams with superadmin auth — stub service returns error → 500
 	w = httptest.NewRecorder()
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/teams", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusNotImplemented, w.Code)
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
 
 func TestAdminRoutes_RequireSuperAdmin(t *testing.T) {
@@ -280,13 +281,13 @@ func TestAdminRoutes_RequireSuperAdmin(t *testing.T) {
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 
-	// SuperAdmin should get 501 (not implemented)
+	// SuperAdmin — stub service returns error → 500
 	superToken := signTestToken(t, 1, "admin")
 	w = httptest.NewRecorder()
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/admin/users", nil)
 	req.Header.Set("Authorization", "Bearer "+superToken)
 	r.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusNotImplemented, w.Code)
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
 
 func TestAdminRoutes_RequireAuth(t *testing.T) {

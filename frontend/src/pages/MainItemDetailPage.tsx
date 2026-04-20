@@ -9,6 +9,7 @@ import { listMembersApi } from '@/api/teams'
 import type { SubItem } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import {
   Select,
@@ -17,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { PrioritySelectItems } from '@/components/shared/PrioritySelect'
 import {
   Dialog,
   DialogContent,
@@ -280,7 +282,7 @@ export default function MainItemDetailPage() {
                 <ProgressBar value={completion} size="default" showPercentage className="mb-5" />
                 <div className="grid grid-cols-2 gap-5">
                   <div>
-                    <div className="text-[13px] font-medium mb-2 text-emerald-600">成果汇总</div>
+                    <div className="text-[13px] font-medium mb-2 text-success-text">成果汇总</div>
                     <ul className="text-[13px] text-secondary pl-4 list-disc leading-relaxed">
                       {(item as any).achievements?.map((a: string, i: number) => (
                         <li key={i}>{a}</li>
@@ -288,7 +290,7 @@ export default function MainItemDetailPage() {
                     </ul>
                   </div>
                   <div>
-                    <div className="text-[13px] font-medium mb-2 text-red-600">卡点汇总</div>
+                    <div className="text-[13px] font-medium mb-2 text-error-text">卡点汇总</div>
                     <ul className="text-[13px] text-secondary pl-4 list-disc leading-relaxed">
                       {(item as any).blockers?.map((b: string, i: number) => (
                         <li key={i}>{b}</li>
@@ -393,9 +395,7 @@ export default function MainItemDetailPage() {
                     <Select value={editForm.priority} onValueChange={(v) => setEditForm((f) => ({ ...f, priority: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="P1">P1</SelectItem>
-                        <SelectItem value="P2">P2</SelectItem>
-                        <SelectItem value="P3">P3</SelectItem>
+                        <PrioritySelectItems />
                       </SelectContent>
                     </Select>
                   </div>
@@ -474,9 +474,7 @@ export default function MainItemDetailPage() {
                     <Select value={subForm.priority} onValueChange={(v) => setSubForm((f) => ({ ...f, priority: v }))}>
                       <SelectTrigger><SelectValue placeholder="请选择优先级" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="P1">P1</SelectItem>
-                        <SelectItem value="P2">P2</SelectItem>
-                        <SelectItem value="P3">P3</SelectItem>
+                        <PrioritySelectItems />
                       </SelectContent>
                     </Select>
                   </div>
@@ -519,8 +517,7 @@ export default function MainItemDetailPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-primary mb-1">描述</label>
-                  <textarea
-                    className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                  <Textarea
                     rows={3}
                     placeholder="请输入子事项描述（可选）"
                     value={subForm.description}

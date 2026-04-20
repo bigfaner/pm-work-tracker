@@ -150,7 +150,7 @@ export default function ReportPage() {
       </Card>
 
       {error && (
-        <div className="bg-error-bg border border-red-200 rounded-lg px-4 py-2.5 text-sm text-error-text mb-4">
+        <div className="bg-error-bg border border-error-text/20 rounded-lg px-4 py-2.5 text-sm text-error-text mb-4">
           {error}
         </div>
       )}

@@ -10,6 +10,7 @@ import { listMembersApi } from '@/api/teams'
 import type { MainItem, SubItem } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -17,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { PrioritySelectItems } from '@/components/shared/PrioritySelect'
 import {
   Dialog,
   DialogContent,
@@ -504,9 +506,7 @@ export default function ItemViewPage() {
                 <Select value={createForm.priority} onValueChange={(v) => setCreateForm((f) => ({ ...f, priority: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="P1">P1</SelectItem>
-                    <SelectItem value="P2">P2</SelectItem>
-                    <SelectItem value="P3">P3</SelectItem>
+                    <PrioritySelectItems />
                   </SelectContent>
                 </Select>
               </div>
@@ -542,8 +542,7 @@ export default function ItemViewPage() {
             </div>
             <div className="mt-4">
               <label className="block text-sm font-medium text-primary mb-1">描述</label>
-              <textarea
-                className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 min-h-[72px] resize-y"
+              <Textarea
                 rows={3}
                 placeholder="请输入描述（可选）"
                 value={createForm.description}
@@ -585,9 +584,7 @@ export default function ItemViewPage() {
                 <Select value={createSubForm.priority} onValueChange={(v) => setCreateSubForm((f) => ({ ...f, priority: v }))}>
                   <SelectTrigger><SelectValue placeholder="请选择优先级" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="P1">P1</SelectItem>
-                    <SelectItem value="P2">P2</SelectItem>
-                    <SelectItem value="P3">P3</SelectItem>
+                    <PrioritySelectItems />
                   </SelectContent>
                 </Select>
               </div>
@@ -630,8 +627,7 @@ export default function ItemViewPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-primary mb-1">描述</label>
-              <textarea
-                className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+              <Textarea
                 rows={3}
                 placeholder="请输入子事项描述（可选）"
                 value={createSubForm.description}
@@ -669,9 +665,7 @@ export default function ItemViewPage() {
                 <Select value={editForm.priority} onValueChange={(v) => setEditForm((f) => ({ ...f, priority: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="P1">P1</SelectItem>
-                    <SelectItem value="P2">P2</SelectItem>
-                    <SelectItem value="P3">P3</SelectItem>
+                    <PrioritySelectItems />
                   </SelectContent>
                 </Select>
               </div>
@@ -739,8 +733,7 @@ export default function ItemViewPage() {
             </div>
             <div className="mb-4">
               <label className="block text-sm font-medium text-primary mb-1">完成情况</label>
-              <textarea
-                className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 min-h-[72px] resize-y"
+              <Textarea
                 rows={3}
                 placeholder="请输入完成情况（可选）"
                 value={appendForm.achievement}
@@ -749,8 +742,7 @@ export default function ItemViewPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-primary mb-1">阻塞问题</label>
-              <textarea
-                className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 min-h-[72px] resize-y"
+              <Textarea
                 rows={3}
                 placeholder="请输入阻塞问题（可选）"
                 value={appendForm.blocker}
@@ -1016,7 +1008,7 @@ function DetailView({
                     </TableCell>
                   </TableRow>
                   {subs?.map((sub) => (
-                    <TableRow key={`sub-${sub.id}`} className="bg-slate-50/60">
+                    <TableRow key={`sub-${sub.id}`} className="bg-bg-alt/60">
                       <TableCell>
                         <span className="font-mono text-[11px] text-tertiary ml-4">SI-{String(item.id).padStart(3, '0')}-{String(sub.id).slice(-2)}</span>
                       </TableCell>

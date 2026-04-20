@@ -18,23 +18,16 @@ type AdminHandler struct {
 	adminSvc service.AdminService
 }
 
-// NewAdminHandler creates a new AdminHandler (stub, for router setup before service is ready).
-func NewAdminHandler() *AdminHandler {
-	return &AdminHandler{}
-}
-
-// NewAdminHandlerWithDeps creates a new AdminHandler with service dependency.
-func NewAdminHandlerWithDeps(adminSvc service.AdminService) *AdminHandler {
+// NewAdminHandler creates a new AdminHandler with service dependency.
+func NewAdminHandler(adminSvc service.AdminService) *AdminHandler {
+	if adminSvc == nil {
+		panic("admin_handler: adminService must not be nil")
+	}
 	return &AdminHandler{adminSvc: adminSvc}
 }
 
 // ListUsers handles GET /api/v1/admin/users
 func (h *AdminHandler) ListUsers(c *gin.Context) {
-	if h.adminSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	page, pageSize := parsePagination(c, 20)
 
 	search := c.Query("search")
@@ -55,11 +48,6 @@ func (h *AdminHandler) ListUsers(c *gin.Context) {
 
 // CreateUser handles POST /api/v1/admin/users
 func (h *AdminHandler) CreateUser(c *gin.Context) {
-	if h.adminSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	var req dto.CreateUserReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
@@ -77,11 +65,6 @@ func (h *AdminHandler) CreateUser(c *gin.Context) {
 
 // GetUser handles GET /api/v1/admin/users/:userId
 func (h *AdminHandler) GetUser(c *gin.Context) {
-	if h.adminSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	userID, err := parseUserID(c)
 	if err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
@@ -99,11 +82,6 @@ func (h *AdminHandler) GetUser(c *gin.Context) {
 
 // UpdateUser handles PUT /api/v1/admin/users/:userId
 func (h *AdminHandler) UpdateUser(c *gin.Context) {
-	if h.adminSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	userID, err := parseUserID(c)
 	if err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
@@ -127,11 +105,6 @@ func (h *AdminHandler) UpdateUser(c *gin.Context) {
 
 // ToggleUserStatus handles PUT /api/v1/admin/users/:userId/status
 func (h *AdminHandler) ToggleUserStatus(c *gin.Context) {
-	if h.adminSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	userID, err := parseUserID(c)
 	if err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
@@ -156,11 +129,6 @@ func (h *AdminHandler) ToggleUserStatus(c *gin.Context) {
 
 // ListTeams handles GET /api/v1/admin/teams
 func (h *AdminHandler) ListTeams(c *gin.Context) {
-	if h.adminSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	page, pageSize := parsePagination(c, 50)
 
 	teams, err := h.adminSvc.ListAllTeams(c.Request.Context())

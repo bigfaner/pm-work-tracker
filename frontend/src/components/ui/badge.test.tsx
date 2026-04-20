@@ -10,7 +10,7 @@ describe('Badge', () => {
 
   it('renders status-planning variant', () => {
     render(<Badge variant="status-planning">Planning</Badge>)
-    expect(screen.getByText('Planning').className).toContain('bg-slate-100')
+    expect(screen.getByText('Planning').className).toContain('bg-bg-alt')
   })
 
   it('renders status-in-progress variant', () => {
@@ -20,22 +20,22 @@ describe('Badge', () => {
 
   it('renders status-completed variant', () => {
     render(<Badge variant="status-completed">Completed</Badge>)
-    expect(screen.getByText('Completed').className).toContain('bg-emerald-50')
+    expect(screen.getByText('Completed').className).toContain('bg-success-bg')
   })
 
   it('renders status-on-hold variant', () => {
     render(<Badge variant="status-on-hold">On Hold</Badge>)
-    expect(screen.getByText('On Hold').className).toContain('bg-amber-50')
+    expect(screen.getByText('On Hold').className).toContain('bg-warning-bg')
   })
 
   it('renders status-cancelled variant', () => {
     render(<Badge variant="status-cancelled">Cancelled</Badge>)
-    expect(screen.getByText('Cancelled').className).toContain('bg-red-50')
+    expect(screen.getByText('Cancelled').className).toContain('bg-error-bg')
   })
 
   it('renders status-overdue variant', () => {
     render(<Badge variant="status-overdue">Overdue</Badge>)
-    expect(screen.getByText('Overdue').className).toContain('bg-red-50')
+    expect(screen.getByText('Overdue').className).toContain('bg-error-bg')
   })
 
   it('renders status-pending variant', () => {
@@ -45,17 +45,17 @@ describe('Badge', () => {
 
   it('renders priority-high variant', () => {
     render(<Badge variant="priority-high">High</Badge>)
-    expect(screen.getByText('High').className).toContain('bg-red-50')
+    expect(screen.getByText('High').className).toContain('bg-error-bg')
   })
 
   it('renders priority-medium variant', () => {
     render(<Badge variant="priority-medium">Medium</Badge>)
-    expect(screen.getByText('Medium').className).toContain('bg-amber-50')
+    expect(screen.getByText('Medium').className).toContain('bg-warning-bg')
   })
 
   it('renders priority-low variant', () => {
     render(<Badge variant="priority-low">Low</Badge>)
-    expect(screen.getByText('Low').className).toContain('bg-slate-100')
+    expect(screen.getByText('Low').className).toContain('bg-bg-alt')
   })
 
   it('merges custom className', () => {

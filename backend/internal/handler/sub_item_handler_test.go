@@ -132,7 +132,7 @@ func depsWithSubItemSvc(t *testing.T, svc *mockSubItemService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	deps.SubItem = NewSubItemHandlerWithDeps(svc)
+	deps.SubItem = NewSubItemHandler(svc)
 	return deps
 }
 
@@ -142,7 +142,7 @@ func depsWithSubItemSvcMemberRole(t *testing.T, svc *mockSubItemService) *Depend
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "member", RoleID: ptrUint(2)}}
-	deps.SubItem = NewSubItemHandlerWithDeps(svc)
+	deps.SubItem = NewSubItemHandler(svc)
 	return deps
 }
 

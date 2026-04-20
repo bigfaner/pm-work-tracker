@@ -77,7 +77,7 @@ func (s *progressService) Append(ctx context.Context, teamID, authorID, subItemI
 func (s *progressService) CorrectCompletion(ctx context.Context, teamID, recordID uint, completion float64) error {
 	record, err := s.progressRepo.FindByID(ctx, recordID)
 	if err != nil {
-		return mapProgressNotFound(err)
+		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 
 	if err := s.progressRepo.UpdateCompletion(ctx, recordID, completion); err != nil {
@@ -119,10 +119,3 @@ func (s *progressService) List(ctx context.Context, teamID, subItemID uint) ([]m
 	return s.progressRepo.ListBySubItem(ctx, teamID, subItemID)
 }
 
-// mapProgressNotFound translates not-found errors from the repo layer into ErrItemNotFound.
-func mapProgressNotFound(err error) error {
-	if err == apperrors.ErrNotFound {
-		return apperrors.ErrItemNotFound
-	}
-	return err
-}

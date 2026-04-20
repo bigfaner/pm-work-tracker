@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { CheckboxGroup } from '@/components/ui/checkbox-group'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import { PERMISSION_GROUPS } from '@/lib/permissions'
@@ -169,8 +170,8 @@ export default function RoleEditDialog({
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-primary mb-1">描述</label>
-              <textarea
-                className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm transition-all placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 min-h-[80px] resize-y"
+              <Textarea
+                className="min-h-[80px]"
                 placeholder="请输入角色描述（最多 200 字符）"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}

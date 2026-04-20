@@ -22,23 +22,22 @@ type ItemPoolHandler struct {
 	mainItemRepo repository.MainItemRepo
 }
 
-// NewItemPoolHandler creates a new ItemPoolHandler (stub, for router setup before service is ready).
-func NewItemPoolHandler() *ItemPoolHandler {
-	return &ItemPoolHandler{}
-}
-
-// NewItemPoolHandlerWithDeps creates a new ItemPoolHandler with service and repo dependencies.
-func NewItemPoolHandlerWithDeps(svc service.ItemPoolService, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo) *ItemPoolHandler {
+// NewItemPoolHandler creates a new ItemPoolHandler with service and repo dependencies.
+func NewItemPoolHandler(svc service.ItemPoolService, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo) *ItemPoolHandler {
+	if svc == nil {
+		panic("item_pool_handler: itemPoolService must not be nil")
+	}
+	if userRepo == nil {
+		panic("item_pool_handler: userRepo must not be nil")
+	}
+	if mainItemRepo == nil {
+		panic("item_pool_handler: mainItemRepo must not be nil")
+	}
 	return &ItemPoolHandler{svc: svc, userRepo: userRepo, mainItemRepo: mainItemRepo}
 }
 
 // Submit handles POST /api/v1/teams/:teamId/item-pool
 func (h *ItemPoolHandler) Submit(c *gin.Context) {
-	if h.svc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	teamID := middleware.GetTeamID(c)
 	userID := middleware.GetUserID(c)
 
@@ -59,11 +58,6 @@ func (h *ItemPoolHandler) Submit(c *gin.Context) {
 
 // List handles GET /api/v1/teams/:teamId/item-pool
 func (h *ItemPoolHandler) List(c *gin.Context) {
-	if h.svc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	teamID := middleware.GetTeamID(c)
 
 	var filter dto.ItemPoolFilter
@@ -77,12 +71,7 @@ func (h *ItemPoolHandler) List(c *gin.Context) {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
 	}
-	if page.Page <= 0 {
-		page.Page = 1
-	}
-	if page.PageSize <= 0 {
-		page.PageSize = 20
-	}
+	_, page.Page, page.PageSize = dto.ApplyPaginationDefaults(page.Page, page.PageSize)
 
 	result, err := h.svc.List(c.Request.Context(), teamID, filter, page)
 	if err != nil {
@@ -104,11 +93,6 @@ func (h *ItemPoolHandler) List(c *gin.Context) {
 
 // Get handles GET /api/v1/teams/:teamId/item-pool/:poolId
 func (h *ItemPoolHandler) Get(c *gin.Context) {
-	if h.svc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	poolID, ok := parsePoolID(c)
 	if !ok {
 		return
@@ -127,11 +111,6 @@ func (h *ItemPoolHandler) Get(c *gin.Context) {
 
 // Assign handles POST /api/v1/teams/:teamId/item-pool/:poolId/assign
 func (h *ItemPoolHandler) Assign(c *gin.Context) {
-	if h.svc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	poolID, ok := parsePoolID(c)
 	if !ok {
 		return
@@ -164,11 +143,6 @@ func (h *ItemPoolHandler) Assign(c *gin.Context) {
 
 // ConvertToMain handles POST /api/v1/teams/:teamId/item-pool/:poolId/convert-to-main
 func (h *ItemPoolHandler) ConvertToMain(c *gin.Context) {
-	if h.svc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	poolID, ok := parsePoolID(c)
 	if !ok {
 		return
@@ -194,11 +168,6 @@ func (h *ItemPoolHandler) ConvertToMain(c *gin.Context) {
 
 // Reject handles POST /api/v1/teams/:teamId/item-pool/:poolId/reject
 func (h *ItemPoolHandler) Reject(c *gin.Context) {
-	if h.svc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	poolID, ok := parsePoolID(c)
 	if !ok {
 		return

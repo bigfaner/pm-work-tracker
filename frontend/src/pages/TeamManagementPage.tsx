@@ -6,6 +6,7 @@ import type { Team } from '@/types'
 import { PermissionGuard } from '@/components/PermissionGuard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
@@ -154,8 +155,8 @@ export default function TeamManagementPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-primary mb-1">简介</label>
-                <textarea
-                  className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-sm text-primary placeholder:text-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                <Textarea
+                  className="text-sm resize-none"
                   rows={3}
                   placeholder="请输入团队简介（选填）"
                   value={createForm.description}

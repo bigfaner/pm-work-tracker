@@ -12,9 +12,9 @@ const buttonVariants = cva(
         secondary:
           'bg-white border-border-dark text-secondary shadow-sm hover:bg-bg-alt',
         warning:
-          'bg-white border-amber-300 text-warning hover:bg-warning-bg',
+          'bg-white border-warning-text/40 text-warning hover:bg-warning-bg',
         danger:
-          'bg-white border-red-300 text-error hover:bg-error-bg',
+          'bg-white border-error-text/40 text-error hover:bg-error-bg',
         ghost:
           'bg-transparent text-secondary hover:bg-bg-alt',
         icon:

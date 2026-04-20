@@ -12,17 +12,17 @@ describe('Toast', () => {
 
   it('renders success variant', () => {
     render(<Toast variant="success">Success!</Toast>)
-    expect(screen.getByText('Success!').className).toContain('bg-emerald-50')
+    expect(screen.getByText('Success!').className).toContain('bg-success-bg')
   })
 
   it('renders error variant', () => {
     render(<Toast variant="error">Error!</Toast>)
-    expect(screen.getByText('Error!').className).toContain('bg-red-50')
+    expect(screen.getByText('Error!').className).toContain('bg-error-bg')
   })
 
   it('renders warning variant', () => {
     render(<Toast variant="warning">Warning!</Toast>)
-    expect(screen.getByText('Warning!').className).toContain('bg-amber-50')
+    expect(screen.getByText('Warning!').className).toContain('bg-warning-bg')
   })
 })
 

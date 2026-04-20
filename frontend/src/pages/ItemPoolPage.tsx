@@ -9,6 +9,7 @@ import type { ItemPool, AssignItemPoolReq, ConvertToMainItemReq } from '@/types'
 import { PermissionGuard } from '@/components/PermissionGuard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import {
   Select,
@@ -17,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { PrioritySelectItems } from '@/components/shared/PrioritySelect'
 import {
   Dialog,
   DialogContent,
@@ -37,8 +39,8 @@ const POOL_STATUS_OPTIONS = [
 
 const STATUS_BORDER: Record<string, string> = {
   '待分配': 'border-l-4 border-l-blue-500',
-  '已分配': 'border-l-4 border-l-slate-400 opacity-70',
-  '已拒绝': 'border-l-4 border-l-red-400 opacity-70',
+  '已分配': 'border-l-4 border-l-tertiary opacity-70',
+  '已拒绝': 'border-l-4 border-l-error opacity-70',
 }
 
 const STATUS_BADGE_VARIANT: Record<string, 'primary' | 'success' | 'default'> = {
@@ -432,8 +434,7 @@ export default function ItemPoolPage() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-primary mb-1">背景</label>
-                  <textarea
-                    className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 min-h-[72px] resize-y"
+                  <Textarea
                     rows={3}
                     placeholder="描述提交该事项的背景和原因"
                     value={submitForm.background}
@@ -442,8 +443,7 @@ export default function ItemPoolPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-primary mb-1">预期产出</label>
-                  <textarea
-                    className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 min-h-[72px] resize-y"
+                  <Textarea
                     rows={3}
                     placeholder="描述希望达成的产出或目标"
                     value={submitForm.expectedOutput}
@@ -479,9 +479,7 @@ export default function ItemPoolPage() {
                     <Select value={toMainForm.priority} onValueChange={(v) => setToMainForm((f) => ({ ...f, priority: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="P1">P1</SelectItem>
-                        <SelectItem value="P2">P2</SelectItem>
-                        <SelectItem value="P3">P3</SelectItem>
+                        <PrioritySelectItems />
                       </SelectContent>
                     </Select>
                   </div>
@@ -518,8 +516,7 @@ export default function ItemPoolPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-primary mb-1">描述</label>
-                  <textarea
-                    className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 min-h-[72px] resize-y"
+                  <Textarea
                     rows={3}
                     value={selectedItem?.background || ''}
                     readOnly
@@ -568,9 +565,7 @@ export default function ItemPoolPage() {
                     <Select value={toSubForm.priority} onValueChange={(v) => setToSubForm((f) => ({ ...f, priority: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="P1">P1</SelectItem>
-                        <SelectItem value="P2">P2</SelectItem>
-                        <SelectItem value="P3">P3</SelectItem>
+                        <PrioritySelectItems />
                       </SelectContent>
                     </Select>
                   </div>
@@ -607,8 +602,7 @@ export default function ItemPoolPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-primary mb-1">描述</label>
-                  <textarea
-                    className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 min-h-[72px] resize-y"
+                  <Textarea
                     rows={3}
                     value={selectedItem?.background || ''}
                     readOnly
@@ -633,8 +627,8 @@ export default function ItemPoolPage() {
                   <label className="block text-sm font-medium text-primary mb-1">
                     拒绝原因 <span className="text-error">*</span>
                   </label>
-                  <textarea
-                    className="flex w-full rounded-md border border-border-dark bg-white px-3 py-2 text-[13px] text-primary shadow-sm placeholder:text-tertiary focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 min-h-[96px] resize-y"
+                  <Textarea
+                    className="min-h-[96px]"
                     rows={4}
                     placeholder="请说明拒绝原因"
                     value={rejectForm.reason}
