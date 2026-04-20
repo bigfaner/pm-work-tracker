@@ -2,9 +2,8 @@ import { useState, useCallback, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
-import { getMainItemApi, updateMainItemApi } from '@/api/mainItems'
-import { createSubItemApi } from '@/api/subItems'
-import { changeSubItemStatusApi } from '@/api/subItems'
+import { getMainItemApi, updateMainItemApi, changeMainItemStatusApi, getMainItemTransitionsApi } from '@/api/mainItems'
+import { createSubItemApi, changeSubItemStatusApi, getSubItemTransitionsApi } from '@/api/subItems'
 import { listMembersApi } from '@/api/teams'
 import type { SubItem } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -52,8 +51,9 @@ import StatusBadge from '@/components/shared/StatusBadge'
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import ProgressBar from '@/components/shared/ProgressBar'
 import UserAvatar from '@/components/shared/UserAvatar'
-import { STATUS_OPTIONS } from '@/lib/status'
-import { getStatusName } from '@/lib/status'
+import { STATUS_OPTIONS, MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES } from '@/lib/status'
+import { getStatusName, isOverdue } from '@/lib/status'
+import { useToast } from '@/components/ui/toast'
 
 // --- Main Component ---
 
@@ -131,7 +131,7 @@ export default function MainItemDetailPage() {
   const statusChangeMutation = useMutation({
     mutationFn: ({ subItemId, status }: { subItemId: number; status: string }) =>
       changeSubItemStatusApi(teamId!, subItemId, { status }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
     },
   })
@@ -197,6 +197,9 @@ export default function MainItemDetailPage() {
             <h1 className="text-xl font-semibold text-primary m-0">{item.title}</h1>
             <PriorityBadge priority={item.priority} />
             <StatusBadge status={item.status} />
+            {isOverdue(item.expectedEndDate ?? undefined, item.status) && (
+              <Badge variant="error">延期</Badge>
+            )}
             <div className="flex-1" />
             <PermissionGuard code="main_item:update">
               <Button variant="secondary" onClick={() => setEditOpen(true)}>
@@ -344,24 +347,11 @@ export default function MainItemDetailPage() {
                           <ProgressBar value={sub.completion} size="sm" showPercentage />
                         </TableCell>
                         <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="focus:outline-none">
-                                <StatusBadge status={sub.status} className="cursor-pointer" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              {STATUS_OPTIONS.map((status) => (
-                                <DropdownMenuItem
-                                  key={status}
-                                  className="text-[13px]"
-                                  onSelect={() => statusChangeMutation.mutate({ subItemId: sub.id, status })}
-                                >
-                                  {getStatusName(status) || status}
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <SubItemStatusDropdown
+                            subId={sub.id}
+                            currentStatus={sub.status}
+                            onStatusChange={(status) => statusChangeMutation.mutate({ subItemId: sub.id, status })}
+                          />
                         </TableCell>
                         <TableCell className="text-xs">{formatDate(sub.startDate)}</TableCell>
                         <TableCell className="text-xs">{formatDate(sub.expectedEndDate)}</TableCell>
@@ -535,5 +525,106 @@ export default function MainItemDetailPage() {
         </>
       )}
     </div>
+  )
+}
+
+// --- Sub-item StatusDropdown with transitions ---
+
+const SUB_ITEM_TERMINAL_STATUSES = new Set(
+  Object.entries(SUB_ITEM_STATUSES)
+    .filter(([, v]) => v.terminal)
+    .map(([k]) => k)
+)
+
+function SubItemStatusDropdown({
+  subId,
+  currentStatus,
+  onStatusChange,
+}: {
+  subId: number
+  currentStatus: string
+  onStatusChange: (status: string) => void
+}) {
+  const teamId = useTeamStore((s) => s.currentTeamId)
+  const qc = useQueryClient()
+  const { addToast } = useToast()
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+
+  const { data: transitions = [] } = useQuery({
+    queryKey: ['subItemTransitions', teamId, subId],
+    queryFn: () => getSubItemTransitionsApi(teamId!, subId),
+    enabled: !!teamId && open,
+  })
+
+  const statusChangeMutation = useMutation({
+    mutationFn: ({ newStatus }: { newStatus: string }) =>
+      changeSubItemStatusApi(teamId!, subId, { status: newStatus }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['mainItem', teamId] })
+      setOpen(false)
+      setConfirmOpen(false)
+      setPendingStatus(null)
+      onStatusChange(pendingStatus || '')
+    },
+  })
+
+  const handleSelect = useCallback((status: string) => {
+    if (SUB_ITEM_TERMINAL_STATUSES.has(status)) {
+      setPendingStatus(status)
+      setConfirmOpen(true)
+    } else {
+      statusChangeMutation.mutate({ newStatus: status })
+    }
+  }, [statusChangeMutation])
+
+  const handleConfirm = useCallback(() => {
+    if (pendingStatus) {
+      statusChangeMutation.mutate({ newStatus: pendingStatus })
+    }
+  }, [pendingStatus, statusChangeMutation])
+
+  return (
+    <>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <button className="focus:outline-none">
+            <StatusBadge status={currentStatus} className="cursor-pointer" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          {transitions.map((status) => (
+            <DropdownMenuItem
+              key={status}
+              className="text-[13px]"
+              onSelect={(e) => {
+                e.preventDefault()
+                handleSelect(status)
+              }}
+            >
+              {getStatusName(status) || status}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>确认变更状态</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <p className="text-sm text-secondary">
+              确认将状态变更为「{getStatusName(pendingStatus || '') || pendingStatus}」？此操作可能不可逆。
+            </p>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => { setConfirmOpen(false); setPendingStatus(null) }}>取消</Button>
+            <Button onClick={handleConfirm} disabled={statusChangeMutation.isPending}>确认</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
