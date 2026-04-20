@@ -85,11 +85,10 @@ describe('ReportPage', () => {
     expect(screen.getByText('周报导出')).toBeInTheDocument()
   })
 
-  it('renders week selector input', () => {
+  it('renders week selector (WeekPicker)', () => {
     renderReportPage()
-    const weekInput = screen.getByLabelText('选择周次')
-    expect(weekInput).toBeInTheDocument()
-    expect(weekInput).toHaveAttribute('type', 'week')
+    expect(screen.getByLabelText('prev week')).toBeInTheDocument()
+    expect(screen.getByLabelText('next week')).toBeInTheDocument()
   })
 
   it('renders generate preview button', () => {

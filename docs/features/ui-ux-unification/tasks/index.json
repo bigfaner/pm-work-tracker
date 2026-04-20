@@ -4,15 +4,13 @@
   "design": "design/tech-design.md",
   "created": "2026-04-20",
   "status": "planning",
-  "statusEnum": ["pending", "in_progress", "completed", "blocked", "skipped"],
   "tasks": {
     "1.1-week-utils": {
       "id": "1.1",
       "title": "新建 weekUtils.ts 工具函数",
       "priority": "P0",
       "estimatedTime": "1-2h",
-      "dependencies": [],
-      "status": "pending",
+      "status": "completed",
       "file": "1.1-week-utils.md",
       "record": "records/1.1-week-utils.md"
     },
@@ -21,8 +19,10 @@
       "title": "新建 WeekPicker 共享组件",
       "priority": "P0",
       "estimatedTime": "2-3h",
-      "dependencies": ["1.1"],
-      "status": "pending",
+      "dependencies": [
+        "1.1"
+      ],
+      "status": "completed",
       "file": "1.2-week-picker.md",
       "record": "records/1.2-week-picker.md"
     },
@@ -31,7 +31,6 @@
       "title": "F1: Sidebar 菜单重排与分组",
       "priority": "P1",
       "estimatedTime": "1h",
-      "dependencies": [],
       "status": "pending",
       "file": "2.1-sidebar-reorder.md",
       "record": "records/2.1-sidebar-reorder.md"
@@ -41,7 +40,6 @@
       "title": "F2: 表格操作按钮加图标（4 个页面）",
       "priority": "P1",
       "estimatedTime": "2h",
-      "dependencies": [],
       "status": "pending",
       "file": "2.2-table-button-icons.md",
       "record": "records/2.2-table-button-icons.md"
@@ -51,8 +49,10 @@
       "title": "F3: WeeklyViewPage 和 ReportPage 替换为 WeekPicker",
       "priority": "P0",
       "estimatedTime": "2h",
-      "dependencies": ["1.2"],
-      "status": "pending",
+      "dependencies": [
+        "1.2"
+      ],
+      "status": "completed",
       "file": "2.3-replace-week-picker.md",
       "record": "records/2.3-replace-week-picker.md"
     },
@@ -61,7 +61,6 @@
       "title": "F4: 子事项详情页信息布局统一",
       "priority": "P2",
       "estimatedTime": "1h",
-      "dependencies": [],
       "status": "pending",
       "file": "2.4-detail-layout.md",
       "record": "records/2.4-detail-layout.md"
@@ -71,7 +70,6 @@
       "title": "F5: 全站可跳转文字链接高亮",
       "priority": "P1",
       "estimatedTime": "2h",
-      "dependencies": [],
       "status": "pending",
       "file": "2.5-link-highlight.md",
       "record": "records/2.5-link-highlight.md"
@@ -81,7 +79,6 @@
       "title": "F6: 「追加进度」按钮移至进度记录卡片",
       "priority": "P1",
       "estimatedTime": "0.5h",
-      "dependencies": [],
       "status": "pending",
       "file": "2.6-move-append-btn.md",
       "record": "records/2.6-move-append-btn.md"
@@ -91,7 +88,6 @@
       "title": "F7: 每周进展子事项显示完成度百分比",
       "priority": "P1",
       "estimatedTime": "0.5h",
-      "dependencies": [],
       "status": "pending",
       "file": "2.7-weekly-completion.md",
       "record": "records/2.7-weekly-completion.md"
@@ -101,7 +97,6 @@
       "title": "F8: 事项清单「新增主事项」按钮文案",
       "priority": "P2",
       "estimatedTime": "0.5h",
-      "dependencies": [],
       "status": "pending",
       "file": "2.8-rename-button.md",
       "record": "records/2.8-rename-button.md"
@@ -111,10 +106,19 @@
       "title": "更新 E2E 测试：weekly-view.spec.ts",
       "priority": "P1",
       "estimatedTime": "1h",
-      "dependencies": ["2.3"],
+      "dependencies": [
+        "2.3"
+      ],
       "status": "pending",
       "file": "3.1-e2e-update.md",
       "record": "records/3.1-e2e-update.md"
     }
-  }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped"
+  ]
 }

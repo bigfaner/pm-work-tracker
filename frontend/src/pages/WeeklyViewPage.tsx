@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
@@ -7,51 +7,13 @@ import type { WeeklyViewResponse, WeeklyComparisonGroup, SubItemSnapshot } from 
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import StatusBadge from '@/components/shared/StatusBadge'
 import ProgressBar from '@/components/shared/ProgressBar'
+import { WeekPicker } from '@/components/shared/WeekPicker'
+import { getCurrentWeekStart, getWeekNumber } from '@/utils/weekUtils'
 
 // --- Helpers ---
 
-function toLocalDateString(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
-
 function formatDate(date: string) {
   return date.replace(/-/g, '/')
-}
-
-function getWeekNumber(dateStr: string): number {
-  const [y, m, d] = dateStr.split('-').map(Number)
-  const date = new Date(y, m - 1, d)
-  const dayNum = date.getDay() || 7
-  const thursday = new Date(date)
-  thursday.setDate(date.getDate() + 4 - dayNum)
-  const jan1 = new Date(thursday.getFullYear(), 0, 1)
-  const dayOfYear = Math.floor((thursday.getTime() - jan1.getTime()) / 86400000) + 1
-  return Math.ceil(dayOfYear / 7)
-}
-
-function getCurrentWeekStart(): string {
-  const now = new Date()
-  const day = now.getDay()
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1)
-  const monday = new Date(now)
-  monday.setDate(diff)
-  return toLocalDateString(monday)
-}
-
-function toWeekInputValue(weekStart: string): string {
-  const [y, m, d] = weekStart.split('-').map(Number)
-  const date = new Date(y, m - 1, d)
-  const dayNum = date.getDay() || 7
-  const thursday = new Date(date)
-  thursday.setDate(date.getDate() + 4 - dayNum)
-  const isoYear = thursday.getFullYear()
-  const jan1 = new Date(isoYear, 0, 1)
-  const dayOfYear = Math.floor((thursday.getTime() - jan1.getTime()) / 86400000) + 1
-  const weekNum = Math.ceil(dayOfYear / 7)
-  return `${isoYear}-W${String(weekNum).padStart(2, '0')}`
 }
 
 // --- Main Component ---
@@ -60,28 +22,11 @@ export default function WeeklyViewPage() {
   const teamId = useTeamStore((s) => s.currentTeamId)
   const [weekStart, setWeekStart] = useState(getCurrentWeekStart)
 
-  const maxWeek = useMemo(() => toWeekInputValue(getCurrentWeekStart()), [])
-
   const { data, isLoading } = useQuery({
     queryKey: ['weeklyView', teamId, weekStart],
     queryFn: () => getWeeklyViewApi(teamId!, weekStart),
     enabled: !!teamId,
   })
-
-  const handleWeekChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    if (!val) return
-    const [yearStr, weekStr] = val.split('-W')
-    const year = parseInt(yearStr)
-    const week = parseInt(weekStr)
-    // ISO week 1 always contains Jan 4
-    const jan4 = new Date(year, 0, 4)
-    const dow = jan4.getDay() || 7 // Mon=1...Sun=7
-    const mondayW1 = new Date(year, 0, 4 - dow + 1)
-    const target = new Date(mondayW1)
-    target.setDate(mondayW1.getDate() + (week - 1) * 7)
-    setWeekStart(toLocalDateString(target))
-  }, [])
 
   return (
     <div data-testid="weekly-view-page">
@@ -93,15 +38,13 @@ export default function WeeklyViewPage() {
             <h1 className="text-xl font-semibold text-primary">每周进展</h1>
             <div className="flex items-center gap-2">
               <span className="text-[13px] text-secondary">选择周次：</span>
-              <input
-                type="week"
-                data-testid="week-selector"
-                className="h-8 rounded-md border border-border bg-white px-2 text-sm"
-                value={toWeekInputValue(weekStart)}
-                onChange={handleWeekChange}
-                max={maxWeek}
-                style={{ width: 180 }}
-              />
+              <div data-testid="week-selector">
+                <WeekPicker
+                  weekStart={weekStart}
+                  onChange={setWeekStart}
+                  maxWeek={getCurrentWeekStart()}
+                />
+              </div>
               {data && (
                 <span className="text-[13px] text-secondary">
                   {formatDate(data.weekStart)} ~ {formatDate(data.weekEnd)}

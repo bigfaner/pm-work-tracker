@@ -9,6 +9,12 @@ import { useTeamStore } from '@/store/team'
 import WeeklyViewPage from './WeeklyViewPage'
 import type { WeeklyViewResponse } from '@/types'
 
+// Fix current week to a known date for deterministic tests
+vi.mock('@/utils/weekUtils', async (importOriginal) => {
+  const actual = await importOriginal() as typeof import('@/utils/weekUtils')
+  return { ...actual, getCurrentWeekStart: () => '2026-04-20' }
+})
+
 // MSW lifecycle
 beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
 afterEach(() => server.resetHandlers())
@@ -234,7 +240,7 @@ describe('WeeklyViewPage', () => {
     expect(screen.getByText('每周进展')).toBeInTheDocument()
   })
 
-  it('renders week selector input', async () => {
+  it('renders week selector (WeekPicker)', async () => {
     renderPage()
     expect(screen.getByTestId('week-selector')).toBeInTheDocument()
   })
@@ -501,10 +507,13 @@ describe('WeeklyViewPage', () => {
 
   // --- Week selector ---
 
-  it('prevents selecting future weeks', async () => {
+  it('prevents selecting future weeks (next button disabled at max)', async () => {
     renderPage()
-    const weekInput = screen.getByTestId('week-selector') as HTMLInputElement
-    expect(weekInput.max).toBeTruthy()
+    await waitFor(() => {
+      expect(screen.getByText('每周进展')).toBeInTheDocument()
+    })
+    const nextBtn = screen.getByLabelText('next week')
+    expect(nextBtn).toBeDisabled()
   })
 
   // --- No antd imports ---
@@ -534,9 +543,9 @@ describe('WeeklyViewPage', () => {
   })
 
 
-  // --- Week selector change produces correct Monday ---
+  // --- Week selector change ---
 
-  it('week selector change sends correct Monday date to API', async () => {
+  it('prev week button navigates to previous week and refetches', async () => {
     const user = userEvent.setup()
     const requests: string[] = []
     server.use(
@@ -553,17 +562,12 @@ describe('WeeklyViewPage', () => {
     })
     requests.length = 0
 
-    // Simulate selecting week 15 of 2026
-    const weekInput = screen.getByTestId('week-selector') as HTMLInputElement
-    const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set!
-    nativeSetter.call(weekInput, '2026-W15')
-    weekInput.dispatchEvent(new Event('input', { bubbles: true }))
-    weekInput.dispatchEvent(new Event('change', { bubbles: true }))
+    await user.click(screen.getByLabelText('prev week'))
 
     await waitFor(() => {
       expect(requests.length).toBeGreaterThanOrEqual(1)
     })
-    // ISO W15 of 2026 starts Monday April 6
-    expect(requests[requests.length - 1]).toBe('2026-04-06')
+    // Should be one week before getCurrentWeekStart (2026-04-20) = 2026-04-13
+    expect(requests[requests.length - 1]).toBe('2026-04-13')
   })
 })

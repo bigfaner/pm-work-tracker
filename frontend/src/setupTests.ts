@@ -2,6 +2,15 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach, vi } from 'vitest'
 
+// Mock localStorage (required by zustand persist middleware in jsdom)
+const localStorageMock = {
+  getItem: vi.fn().mockReturnValue(null),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+}
+Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true })
+
 // Mock frappe-gantt (vanilla JS library with scss imports that break in jsdom)
 vi.mock('frappe-gantt', () => ({
   default: class MockGantt {
