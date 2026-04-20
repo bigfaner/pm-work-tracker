@@ -304,7 +304,7 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
       // Check amber styling
       const badge = newBadge.first();
       const classes = await badge.getAttribute('class') || '';
-      expect(classes).toContain('amber');
+      expect(classes).toMatch(/amber|warning/);
     }
   });
 

@@ -3,15 +3,22 @@ import { test, expect, Page } from '@playwright/test';
 const BASE = 'http://localhost:5173';
 const API = 'http://localhost:8080/api/v1';
 
-// Helper: get API auth token
+// Helper: get API auth token with retry
 async function getAuthToken(): Promise<string> {
-  const res = await fetch(`${API}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'admin', password: 'admin123' }),
-  });
-  const json = await res.json();
-  return json.data?.token || json.token;
+  // Small jitter to stagger concurrent workers
+  await new Promise(r => setTimeout(r, Math.random() * 1000));
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const res = await fetch(`${API}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'admin', password: 'admin123' }),
+    });
+    const json = await res.json();
+    const token = json.data?.token || json.token;
+    if (token) return token;
+    if (attempt < 4) await new Promise(r => setTimeout(r, 2000));
+  }
+  throw new Error('getAuthToken: login failed after 5 attempts');
 }
 
 // Helper: get first team id
@@ -60,6 +67,7 @@ function dialog(page: Page) {
 
 test.describe('待办事项 (ItemPool) - E2E Business Flow', () => {
   test.describe.configure({ mode: 'serial' });
+  test.setTimeout(60000);
 
   let page: Page;
   let authToken: string;
@@ -626,7 +634,7 @@ test.describe('待办事项 (ItemPool) - E2E Business Flow', () => {
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: 'API验证-待拒绝', background: 'API测试', expectedOutput: 'API测试' }),
     });
-    expect(cRes.status).toBe(200);
+    expect(cRes.status).toBe(201);
     const cData = await cRes.json();
     const poolId = cData.id || cData.data?.id;
     expect(poolId).toBeTruthy();
@@ -656,7 +664,7 @@ test.describe('待办事项 (ItemPool) - E2E Business Flow', () => {
     const mRes = await fetch(`${API}/teams/${teamId}/main-items`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: 'API验证-分配目标', priority: 'P2', startDate: '2026-04-19', expectedEndDate: '2026-05-19' }),
+      body: JSON.stringify({ title: 'API验证-分配目标', priority: 'P2', assigneeId: 1, startDate: '2026-04-19', expectedEndDate: '2026-05-19' }),
     });
     const mData = await mRes.json();
     const mainItemId = mData.id || mData.data?.id;
@@ -665,13 +673,13 @@ test.describe('待办事项 (ItemPool) - E2E Business Flow', () => {
     const aRes = await fetch(`${API}/teams/${teamId}/item-pool/${poolId}/assign`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mainItemId, assigneeId: 0 }),
+      body: JSON.stringify({ mainItemId, assigneeId: 1, startDate: '2026-04-19', expectedEndDate: '2026-05-19' }),
     });
     expect(aRes.status).toBe(200);
     console.log('API assign verified');
   });
 
-  test('10.4 API: assign to new main item (mainItemId=0)', async () => {
+  test('10.4 API: convert pool item to new main item', async () => {
     if (!teamId) return;
     // Create pool item
     const pRes = await fetch(`${API}/teams/${teamId}/item-pool`, {
@@ -682,13 +690,13 @@ test.describe('待办事项 (ItemPool) - E2E Business Flow', () => {
     const pData = await pRes.json();
     const poolId = pData.id || pData.data?.id;
 
-    // Assign with mainItemId=0 (creates new main item)
-    const aRes = await fetch(`${API}/teams/${teamId}/item-pool/${poolId}/assign`, {
+    // Convert to new main item via convert-to-main endpoint
+    const aRes = await fetch(`${API}/teams/${teamId}/item-pool/${poolId}/convert-to-main`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mainItemId: 0, assigneeId: 0 }),
+      body: JSON.stringify({ priority: 'P2', assigneeId: 1, startDate: '2026-04-19', expectedEndDate: '2026-05-19' }),
     });
     expect(aRes.status).toBe(200);
-    console.log('API assign-to-new-main (mainItemId=0) verified');
+    console.log('API convert-to-main verified');
   });
 });

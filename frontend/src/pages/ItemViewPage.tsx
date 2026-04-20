@@ -1003,7 +1003,7 @@ function DetailView({
                     <TableCell className="text-xs">{formatDate(item.actualEndDate)}</TableCell>
                     <TableCell>
                       <div className="flex gap-1 whitespace-nowrap">
-                        <Button variant="ghost" size="sm" onClick={() => onEditMainItem(item)}><Pencil size={14} />编辑</Button>
+                        <Link to={`/items/${item.id}`}><Button variant="ghost" size="sm"><Pencil size={14} />编辑</Button></Link>
                         <Button variant="ghost" size="sm" onClick={() => onAddSubItem(item.id, item.title)}><Plus size={14} />添加子事项</Button>
                       </div>
                     </TableCell>

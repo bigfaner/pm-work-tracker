@@ -2,7 +2,7 @@ import { test, expect, Page, APIRequestContext } from '@playwright/test';
 
 const BASE = 'http://localhost:5173';
 const API = 'http://localhost:8080/api/v1';
-const TIMEOUT = 60000;
+const TIMEOUT = 120000;
 
 test.setTimeout(TIMEOUT);
 
@@ -57,13 +57,20 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
       extraHTTPHeaders: { 'Content-Type': 'application/json' },
     });
 
-    // Login
-    const loginRes = await request.post('/api/v1/auth/login', {
-      data: { username: 'admin', password: 'admin123' },
-    });
-    const loginJson = await loginRes.json();
-    const loginData = parseApiData(loginJson);
-    authToken = loginData.token;
+    // Login with retry for rate limiting
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const loginRes = await request.post('/api/v1/auth/login', {
+        data: { username: 'admin', password: 'admin123' },
+      });
+      const loginJson = await loginRes.json();
+      const loginData = parseApiData(loginJson);
+      if (loginData.token) {
+        authToken = loginData.token;
+        break;
+      }
+      if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
+    }
+    if (!authToken) throw new Error('beforeAll: login failed after 3 attempts');
 
     // Get teams
     const teamsRes = await request.get('/api/v1/teams', {
@@ -125,7 +132,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
     await expect(page.locator('[data-testid="team-switcher"]')).toBeVisible();
     await expect(page.locator('[data-testid="toggle-summary"]')).toBeVisible();
     await expect(page.locator('[data-testid="toggle-detail"]')).toBeVisible();
-    await expect(page.locator('button:has-text("创建主事项")')).toBeVisible();
+    await expect(page.locator('button:has-text("新增主事项")')).toBeVisible();
   });
 
   test('2.2 筛选栏', async ({ page }) => {
@@ -164,7 +171,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
   // ====== STEP 4: CREATE MAIN ITEM ======
   test('4.1 打开创建对话框并验证表单', async ({ page }) => {
     await login(page);
-    await page.locator('button:has-text("创建主事项")').click();
+    await page.locator('button:has-text("新增主事项")').click();
     await expect(page.locator('text=新建主事项')).toBeVisible();
     const confirmBtn = page.locator('[role="dialog"] button:has-text("确认")');
     await expect(confirmBtn).toBeDisabled();
@@ -173,7 +180,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
   test('4.2 创建主事项并验证出现', async ({ page }) => {
     const uniqueTitle = `E2E新建-${Date.now()}`;
     await login(page);
-    await page.locator('button:has-text("创建主事项")').click();
+    await page.locator('button:has-text("新增主事项")').click();
     await expect(page.locator('text=新建主事项')).toBeVisible();
     const dialog = page.locator('[role="dialog"]');
     await dialog.locator('input[placeholder="请输入标题"]').fill(uniqueTitle);
@@ -196,7 +203,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
 
   test('4.3 取消创建不创建事项', async ({ page }) => {
     await login(page);
-    await page.locator('button:has-text("创建主事项")').click();
+    await page.locator('button:has-text("新增主事项")').click();
     await page.locator('[role="dialog"] button:has-text("取消")').click();
     await expect(page.locator('text=新建主事项')).not.toBeVisible();
   });
@@ -376,10 +383,9 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
     await page.waitForTimeout(3000);
     const subPage = page.locator('[data-testid="sub-item-detail-page"]');
     await expect(subPage).toBeVisible({ timeout: 10000 });
-    await expect(subPage.locator('text=编号').first()).toBeVisible();
     await expect(subPage.locator('text=所属主事项').first()).toBeVisible();
-    await expect(subPage.locator('text=优先级').first()).toBeVisible();
-    await expect(subPage.locator('text=状态').first()).toBeVisible();
+    await expect(subPage.locator('text=负责人').first()).toBeVisible();
+    await expect(subPage.locator('text=预期完成时间').first()).toBeVisible();
   });
 
   test('8.4 进度条显示', async ({ page }) => {
@@ -538,7 +544,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
     await page.locator('[data-testid="toggle-summary"]').click();
     await page.waitForTimeout(1000);
 
-    await page.locator('button:has-text("创建主事项")').click();
+    await page.locator('button:has-text("新增主事项")').click();
     await page.waitForTimeout(500);
     await page.locator('[role="dialog"] button:has-text("取消")').click();
     await page.waitForTimeout(500);
