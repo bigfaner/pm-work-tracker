@@ -46,10 +46,8 @@ import { Pagination, PaginationPageSize } from '@/components/ui/pagination'
 import StatusBadge from '@/components/shared/StatusBadge'
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import ProgressBar from '@/components/shared/ProgressBar'
-
-// --- Constants ---
-
-const STATUS_OPTIONS = ['未开始', '进行中', '待评审', '已完成', '已关闭', '阻塞中', '延期']
+import { STATUS_OPTIONS } from '@/lib/status'
+import { getStatusName } from '@/lib/status'
 const SUMMARY_BATCH_SIZE = 5
 const DEFAULT_PAGE_SIZE = 20
 
@@ -207,7 +205,7 @@ export default function ItemViewPage() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: (req: { itemId: number; data: { title: string; priority: string; assigneeId: number | null; status: string; expectedEndDate: string | null; actualEndDate: string | null } }) =>
+    mutationFn: (req: { itemId: number; data: { title: string; priority: string; assigneeId: number | null; expectedEndDate: string | null; actualEndDate: string | null } }) =>
       updateMainItemApi(teamId!, req.itemId, req.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -310,7 +308,6 @@ export default function ItemViewPage() {
         title: editForm.title.trim(),
         priority: editForm.priority,
         assigneeId: editForm.assigneeId ? Number(editForm.assigneeId) : null,
-        status: editForm.status,
         expectedEndDate: editForm.expectedEndDate || null,
         actualEndDate: editForm.actualEndDate || null,
       },
@@ -414,7 +411,7 @@ export default function ItemViewPage() {
           <SelectContent>
             <SelectItem value="_all">状态：全部</SelectItem>
             {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s} value={s}>{s}</SelectItem>
+              <SelectItem key={s} value={s}>{getStatusName(s) || s}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -688,7 +685,7 @@ export default function ItemViewPage() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {STATUS_OPTIONS.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                      <SelectItem key={s} value={s}>{getStatusName(s) || s}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -1078,7 +1075,7 @@ function StatusDropdown({ currentStatus }: { currentStatus: string }) {
       <DropdownMenuContent>
         {STATUS_OPTIONS.map((status) => (
           <DropdownMenuItem key={status} className="text-[13px]">
-            {status}
+            {getStatusName(status) || status}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

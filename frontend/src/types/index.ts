@@ -106,6 +106,7 @@ export interface MainItem {
   expectedEndDate: string | null
   actualEndDate: string | null
   status: string
+  statusName?: string
   completion: number
   isKeyItem: boolean
   delayCount: number
@@ -126,6 +127,7 @@ export interface SubItem {
   expectedEndDate: string | null
   actualEndDate: string | null
   status: string
+  statusName?: string
   completion: number
   isKeyItem: boolean
   delayCount: number
@@ -254,7 +256,6 @@ export interface UpdateMainItemReq {
   startDate?: string | null
   expectedEndDate?: string | null
   actualEndDate?: string | null
-  status?: string
 }
 
 export interface MainItemFilter {

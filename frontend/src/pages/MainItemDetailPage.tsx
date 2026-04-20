@@ -52,10 +52,8 @@ import StatusBadge from '@/components/shared/StatusBadge'
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import ProgressBar from '@/components/shared/ProgressBar'
 import UserAvatar from '@/components/shared/UserAvatar'
-
-// --- Constants ---
-
-const STATUS_OPTIONS = ['未开始', '进行中', '待评审', '已完成', '已关闭', '阻塞中', '延期']
+import { STATUS_OPTIONS } from '@/lib/status'
+import { getStatusName } from '@/lib/status'
 
 // --- Main Component ---
 
@@ -112,7 +110,7 @@ export default function MainItemDetailPage() {
   // --- Mutations ---
 
   const updateMutation = useMutation({
-    mutationFn: (req: { title?: string; priority?: string; assigneeId?: number | null; status?: string; expectedEndDate?: string | null; actualEndDate?: string | null }) =>
+    mutationFn: (req: { title?: string; priority?: string; assigneeId?: number | null; expectedEndDate?: string | null; actualEndDate?: string | null }) =>
       updateMainItemApi(teamId!, itemId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
@@ -146,7 +144,6 @@ export default function MainItemDetailPage() {
       title: editForm.title.trim(),
       priority: editForm.priority,
       assigneeId: editForm.assigneeId ? Number(editForm.assigneeId) : null,
-      status: editForm.status,
       expectedEndDate: editForm.expectedEndDate || null,
       actualEndDate: editForm.actualEndDate || null,
     })
@@ -172,7 +169,7 @@ export default function MainItemDetailPage() {
   // --- Computed ---
 
   const subItems: SubItem[] = (item as any)?.subItems || []
-  const completedCount = subItems.filter((s) => s.status === '已完成').length
+  const completedCount = subItems.filter((s) => s.status === 'completed').length
   const completion = item?.completion ?? 0
 
   // --- Render ---
@@ -360,7 +357,7 @@ export default function MainItemDetailPage() {
                                   className="text-[13px]"
                                   onSelect={() => statusChangeMutation.mutate({ subItemId: sub.id, status })}
                                 >
-                                  {status}
+                                  {getStatusName(status) || status}
                                 </DropdownMenuItem>
                               ))}
                             </DropdownMenuContent>
@@ -422,7 +419,7 @@ export default function MainItemDetailPage() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {STATUS_OPTIONS.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                        <SelectItem key={s} value={s}>{getStatusName(s) || s}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
