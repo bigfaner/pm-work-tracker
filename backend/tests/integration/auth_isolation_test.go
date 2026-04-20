@@ -150,7 +150,9 @@ func setupTestRouter(t *testing.T) (*gin.Engine, *seedData) {
 	itemPoolRepo := gormrepo.NewGormItemPoolRepo(db)
 
 	authSvc := service.NewAuthService(userRepo, testJWTSecret)
-	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo)
+	statusHistoryRepo := gormrepo.NewGormStatusHistoryRepo(db)
+	statusHistorySvc := service.NewStatusHistoryService(statusHistoryRepo)
+	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo, statusHistorySvc)
 	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc)
 	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, poolTransactor{db: db})

@@ -8,6 +8,7 @@ import (
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg/dates"
+	"pm-work-tracker/backend/internal/pkg/status"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -19,16 +20,19 @@ type MainItemService interface {
 	List(ctx context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error)
 	Get(ctx context.Context, itemID uint) (*model.MainItem, error)
 	RecalcCompletion(ctx context.Context, mainItemID uint) error
+	ChangeStatus(ctx context.Context, teamID, callerID, itemID uint, newStatus string) (*model.MainItem, error)
+	AvailableTransitions(ctx context.Context, teamID, callerID, itemID uint) ([]string, error)
 }
 
 type mainItemService struct {
-	mainItemRepo repository.MainItemRepo
-	subItemRepo  repository.SubItemRepo
+	mainItemRepo      repository.MainItemRepo
+	subItemRepo       repository.SubItemRepo
+	statusHistorySvc  StatusHistoryService
 }
 
 // NewMainItemService creates a new MainItemService.
-func NewMainItemService(mainItemRepo repository.MainItemRepo, subItemRepo repository.SubItemRepo) MainItemService {
-	return &mainItemService{mainItemRepo: mainItemRepo, subItemRepo: subItemRepo}
+func NewMainItemService(mainItemRepo repository.MainItemRepo, subItemRepo repository.SubItemRepo, statusHistorySvc StatusHistoryService) MainItemService {
+	return &mainItemService{mainItemRepo: mainItemRepo, subItemRepo: subItemRepo, statusHistorySvc: statusHistorySvc}
 }
 
 func (s *mainItemService) Create(ctx context.Context, teamID, pmID uint, req dto.MainItemCreateReq) (*model.MainItem, error) {
@@ -148,6 +152,95 @@ func (s *mainItemService) RecalcCompletion(ctx context.Context, mainItemID uint)
 	return s.mainItemRepo.Update(ctx, item, map[string]interface{}{
 		"completion": completion,
 	})
+}
+
+func (s *mainItemService) ChangeStatus(ctx context.Context, teamID, callerID, itemID uint, newStatus string) (*model.MainItem, error) {
+	item, err := s.mainItemRepo.FindByID(ctx, itemID)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
+	}
+	if item.TeamID != teamID {
+		return nil, apperrors.ErrForbidden
+	}
+
+	// Self-transition check
+	if newStatus == item.Status {
+		return nil, apperrors.ErrInvalidStatus
+	}
+
+	// Validate transition
+	if !status.IsValidTransition(status.MainItemTransitions, item.Status, newStatus) {
+		return nil, apperrors.ErrInvalidStatus
+	}
+
+	// PM-only check: reviewing -> completed/progressing requires caller == proposer
+	if item.Status == "reviewing" && (newStatus == "completed" || newStatus == "progressing") {
+		if callerID != item.ProposerID {
+			return nil, apperrors.ErrForbidden
+		}
+	}
+
+	fields := map[string]interface{}{
+		"status": newStatus,
+	}
+
+	// Terminal side effects
+	if status.IsMainTerminal(newStatus) {
+		fields["completion"] = float64(100)
+		now := time.Now()
+		fields["actual_end_date"] = &now
+	}
+
+	// Capture old status before update (repo may mutate the item)
+	oldStatus := item.Status
+
+	if err := s.mainItemRepo.Update(ctx, item, fields); err != nil {
+		return nil, err
+	}
+
+	// Record to status history
+	if s.statusHistorySvc != nil {
+		_ = s.statusHistorySvc.Record(ctx, &model.StatusHistory{
+			ItemType:   "main_item",
+			ItemID:     itemID,
+			FromStatus: oldStatus,
+			ToStatus:   newStatus,
+			ChangedBy:  callerID,
+			IsAuto:     false,
+		})
+	}
+
+	// Fetch updated item
+	updated, err := s.mainItemRepo.FindByID(ctx, itemID)
+	if err != nil {
+		return nil, err
+	}
+	return updated, nil
+}
+
+func (s *mainItemService) AvailableTransitions(ctx context.Context, teamID, callerID, itemID uint) ([]string, error) {
+	item, err := s.mainItemRepo.FindByID(ctx, itemID)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
+	}
+	if item.TeamID != teamID {
+		return nil, apperrors.ErrForbidden
+	}
+
+	transitions := status.GetAvailableTransitions(status.MainItemTransitions, item.Status)
+
+	// PM-only filter: non-PM callers don't see completed/progressing when reviewing
+	if item.Status == "reviewing" && callerID != item.ProposerID {
+		filtered := make([]string, 0, len(transitions))
+		for _, t := range transitions {
+			if t != "completed" && t != "progressing" {
+				filtered = append(filtered, t)
+			}
+		}
+		return filtered, nil
+	}
+
+	return transitions, nil
 }
 
 // calcWeightedCompletion computes weighted average of SubItem completion values.

@@ -54,6 +54,13 @@ func (m *mockMainItemRepo) FindByID(_ context.Context, id uint) (*model.MainItem
 func (m *mockMainItemRepo) Update(_ context.Context, item *model.MainItem, fields map[string]interface{}) error {
 	m.updatedID = item.ID
 	m.updatedFields = fields
+	// Apply fields to the item so subsequent FindByID returns updated values
+	if s, ok := fields["status"]; ok {
+		item.Status = s.(string)
+	}
+	if c, ok := fields["completion"]; ok {
+		item.Completion = c.(float64)
+	}
 	return m.updateErr
 }
 
@@ -111,6 +118,24 @@ func (m *mockSubItemRepo) ListByTeam(_ context.Context, _ uint) ([]model.SubItem
 	return nil, nil
 }
 
+// mockStatusHistorySvc mocks StatusHistoryService for tests.
+type mockStatusHistorySvc struct {
+	recorded *model.StatusHistory
+	recordFn func(ctx context.Context, record *model.StatusHistory) error
+}
+
+func (m *mockStatusHistorySvc) Record(ctx context.Context, record *model.StatusHistory) error {
+	if m.recordFn != nil {
+		return m.recordFn(ctx, record)
+	}
+	m.recorded = record
+	return nil
+}
+
+func (m *mockStatusHistorySvc) ListByItem(_ context.Context, _ string, _ uint, _ dto.Pagination) (*dto.PageResult[model.StatusHistory], error) {
+	return nil, nil
+}
+
 // ---------------------------------------------------------------------------
 // Tests: Create
 // ---------------------------------------------------------------------------
@@ -118,7 +143,7 @@ func (m *mockSubItemRepo) ListByTeam(_ context.Context, _ uint) ([]model.SubItem
 func TestMainItemCreate_Success(t *testing.T) {
 	mainRepo := &mockMainItemRepo{nextCodeVal: "MI-0001"}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	item, err := svc.Create(context.Background(), 1, 10, dto.MainItemCreateReq{
 		Title:    "Feature A",
@@ -136,7 +161,7 @@ func TestMainItemCreate_Success(t *testing.T) {
 func TestMainItemCreate_NextCodeError(t *testing.T) {
 	mainRepo := &mockMainItemRepo{nextErr: errors.New("db error")}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	_, err := svc.Create(context.Background(), 1, 10, dto.MainItemCreateReq{Title: "Feature A"})
 	assert.Error(t, err)
@@ -145,7 +170,7 @@ func TestMainItemCreate_NextCodeError(t *testing.T) {
 func TestMainItemCreate_RepoCreateError(t *testing.T) {
 	mainRepo := &mockMainItemRepo{nextCodeVal: "MI-0001", createErr: errors.New("db error")}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	_, err := svc.Create(context.Background(), 1, 10, dto.MainItemCreateReq{Title: "Feature A"})
 	assert.Error(t, err)
@@ -163,7 +188,7 @@ func TestMainItemUpdate_Success(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	err := svc.Update(context.Background(), 1, 1, dto.MainItemUpdateReq{
 		Title:    ptrStr("New Title"),
@@ -182,7 +207,7 @@ func TestMainItemUpdate_TeamMismatch(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	err := svc.Update(context.Background(), 1, 1, dto.MainItemUpdateReq{
 		Title: ptrStr("New Title"),
@@ -193,7 +218,7 @@ func TestMainItemUpdate_TeamMismatch(t *testing.T) {
 func TestMainItemUpdate_NotFound(t *testing.T) {
 	mainRepo := &mockMainItemRepo{findErr: gorm.ErrRecordNotFound}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	err := svc.Update(context.Background(), 1, 99, dto.MainItemUpdateReq{
 		Title: ptrStr("New Title"),
@@ -213,7 +238,7 @@ func TestMainItemArchive_Success(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	err := svc.Archive(context.Background(), 1, 1)
 	require.NoError(t, err)
@@ -228,7 +253,7 @@ func TestMainItemArchive_ClosedStatus(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	err := svc.Archive(context.Background(), 1, 1)
 	require.NoError(t, err)
@@ -242,7 +267,7 @@ func TestMainItemArchive_NotAllowed_InProgress(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	err := svc.Archive(context.Background(), 1, 1)
 	assert.ErrorIs(t, err, apperrors.ErrArchiveNotAllowed)
@@ -256,7 +281,7 @@ func TestMainItemArchive_NotAllowed_Pending(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	err := svc.Archive(context.Background(), 1, 1)
 	assert.ErrorIs(t, err, apperrors.ErrArchiveNotAllowed)
@@ -265,7 +290,7 @@ func TestMainItemArchive_NotAllowed_Pending(t *testing.T) {
 func TestMainItemArchive_NotFound(t *testing.T) {
 	mainRepo := &mockMainItemRepo{findErr: gorm.ErrRecordNotFound}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	err := svc.Archive(context.Background(), 1, 99)
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
@@ -282,7 +307,7 @@ func TestMainItemList_Success(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{items: items}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	result, err := svc.List(context.Background(), 1, dto.MainItemFilter{}, dto.Pagination{Page: 1, PageSize: 20})
 	require.NoError(t, err)
@@ -293,7 +318,7 @@ func TestMainItemList_Success(t *testing.T) {
 func TestMainItemList_RepoError(t *testing.T) {
 	mainRepo := &mockMainItemRepo{listErr: errors.New("db error")}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	_, err := svc.List(context.Background(), 1, dto.MainItemFilter{}, dto.Pagination{})
 	assert.Error(t, err)
@@ -311,7 +336,7 @@ func TestMainItemGet_Success(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	item, err := svc.Get(context.Background(), 1)
 	require.NoError(t, err)
@@ -321,7 +346,7 @@ func TestMainItemGet_Success(t *testing.T) {
 func TestMainItemGet_NotFound(t *testing.T) {
 	mainRepo := &mockMainItemRepo{findErr: gorm.ErrRecordNotFound}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	_, err := svc.Get(context.Background(), 99)
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
@@ -339,7 +364,7 @@ func TestRecalcCompletion_ZeroSubItems(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{}}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
@@ -358,7 +383,7 @@ func TestRecalcCompletion_OneSubItem(t *testing.T) {
 			{Completion: 60, Weight: 1.0},
 		},
 	}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
@@ -379,7 +404,7 @@ func TestRecalcCompletion_MultipleSubItems_EqualWeights(t *testing.T) {
 			{Completion: 90, Weight: 1.0},
 		},
 	}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
@@ -400,7 +425,7 @@ func TestRecalcCompletion_AllZeroWeights_FallbackSimpleAvg(t *testing.T) {
 			{Completion: 80, Weight: 0},
 		},
 	}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
@@ -421,7 +446,7 @@ func TestRecalcCompletion_VaryingWeights(t *testing.T) {
 			{Completion: 50, Weight: 1.0},
 		},
 	}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
@@ -432,7 +457,7 @@ func TestRecalcCompletion_VaryingWeights(t *testing.T) {
 func TestRecalcCompletion_ItemNotFound(t *testing.T) {
 	mainRepo := &mockMainItemRepo{findErr: gorm.ErrRecordNotFound}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo)
+	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	err := svc.RecalcCompletion(context.Background(), 99)
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
@@ -444,4 +469,310 @@ func TestRecalcCompletion_ItemNotFound(t *testing.T) {
 
 func ptrStr(s string) *string {
 	return &s
+}
+
+// ---------------------------------------------------------------------------
+// Tests: ChangeStatus
+// ---------------------------------------------------------------------------
+
+func TestChangeStatus_AllValidTransitions(t *testing.T) {
+	// All 10 legal MainItem transitions (AC-2)
+	validTransitions := []struct {
+		from, to string
+	}{
+		{"pending", "progressing"},
+		{"pending", "closed"},
+		{"progressing", "blocking"},
+		{"progressing", "pausing"},
+		{"progressing", "reviewing"},
+		{"progressing", "closed"},
+		{"blocking", "progressing"},
+		{"pausing", "progressing"},
+		{"pausing", "closed"},
+		{"reviewing", "completed"},
+		{"reviewing", "progressing"},
+	}
+
+	for _, tt := range validTransitions {
+		t.Run(tt.from+"->"+tt.to, func(t *testing.T) {
+			item := &model.MainItem{
+				BaseModel:   model.BaseModel{ID: 1},
+				TeamID:      1,
+				Status:      tt.from,
+				ProposerID:  10, // PM
+			}
+			mainRepo := &mockMainItemRepo{item: item}
+			historySvc := &mockStatusHistorySvc{}
+			svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, historySvc)
+
+			updated, err := svc.ChangeStatus(context.Background(), 1, 10, 1, tt.to)
+			require.NoError(t, err)
+			assert.Equal(t, tt.to, mainRepo.updatedFields["status"])
+			assert.Equal(t, tt.to, updated.Status)
+
+			// Verify status history recorded
+			assert.NotNil(t, historySvc.recorded)
+			assert.Equal(t, "main_item", historySvc.recorded.ItemType)
+			assert.Equal(t, tt.from, historySvc.recorded.FromStatus)
+			assert.Equal(t, tt.to, historySvc.recorded.ToStatus)
+			assert.Equal(t, uint(10), historySvc.recorded.ChangedBy)
+			assert.False(t, historySvc.recorded.IsAuto)
+		})
+	}
+}
+
+func TestChangeStatus_SelfTransition(t *testing.T) {
+	item := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamID:     1,
+		Status:     "pending",
+		ProposerID: 10,
+	}
+	mainRepo := &mockMainItemRepo{item: item}
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+
+	_, err := svc.ChangeStatus(context.Background(), 1, 10, 1, "pending")
+	assert.ErrorIs(t, err, apperrors.ErrInvalidStatus)
+}
+
+func TestChangeStatus_InvalidTransitions(t *testing.T) {
+	invalidTransitions := []struct {
+		from, to string
+	}{
+		// Terminal states
+		{"completed", "pending"},
+		{"completed", "progressing"},
+		{"closed", "pending"},
+		// Non-adjacent
+		{"pending", "reviewing"},
+		{"pending", "completed"},
+		{"blocking", "closed"},
+		{"blocking", "pausing"},
+		// Non-existent statuses
+		{"pending", "nonexistent"},
+	}
+
+	for _, tt := range invalidTransitions {
+		t.Run(tt.from+"->"+tt.to, func(t *testing.T) {
+			item := &model.MainItem{
+				BaseModel:   model.BaseModel{ID: 1},
+				TeamID:      1,
+				Status:      tt.from,
+				ProposerID:  10,
+			}
+			mainRepo := &mockMainItemRepo{item: item}
+			svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+
+			_, err := svc.ChangeStatus(context.Background(), 1, 10, 1, tt.to)
+			assert.ErrorIs(t, err, apperrors.ErrInvalidStatus)
+		})
+	}
+}
+
+func TestChangeStatus_PMOnly_ReviewingToCompleted(t *testing.T) {
+	item := &model.MainItem{
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamID:      1,
+		Status:      "reviewing",
+		ProposerID:  10, // PM is user 10
+	}
+	mainRepo := &mockMainItemRepo{item: item}
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+
+	// Non-PM caller should be forbidden
+	_, err := svc.ChangeStatus(context.Background(), 1, 99, 1, "completed")
+	assert.ErrorIs(t, err, apperrors.ErrForbidden)
+}
+
+func TestChangeStatus_PMOnly_ReviewingToProgressing(t *testing.T) {
+	item := &model.MainItem{
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamID:      1,
+		Status:      "reviewing",
+		ProposerID:  10,
+	}
+	mainRepo := &mockMainItemRepo{item: item}
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+
+	// Non-PM caller should be forbidden
+	_, err := svc.ChangeStatus(context.Background(), 1, 99, 1, "progressing")
+	assert.ErrorIs(t, err, apperrors.ErrForbidden)
+
+	// PM caller should succeed
+	_, err = svc.ChangeStatus(context.Background(), 1, 10, 1, "progressing")
+	require.NoError(t, err)
+}
+
+func TestChangeStatus_TerminalSideEffects(t *testing.T) {
+	tests := []struct {
+		name       string
+		fromStatus string
+		newStatus  string
+	}{
+		{"completed sets completion=100 and actual_end_date", "reviewing", "completed"},
+		{"closed sets completion=100 and actual_end_date", "pending", "closed"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			item := &model.MainItem{
+				BaseModel:   model.BaseModel{ID: 1},
+				TeamID:      1,
+				Status:      tt.fromStatus,
+				ProposerID:  10,
+				Completion:  50,
+			}
+			mainRepo := &mockMainItemRepo{item: item}
+			svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+
+			_, err := svc.ChangeStatus(context.Background(), 1, 10, 1, tt.newStatus)
+			require.NoError(t, err)
+
+			assert.Equal(t, float64(100), mainRepo.updatedFields["completion"])
+			assert.NotNil(t, mainRepo.updatedFields["actual_end_date"])
+		})
+	}
+}
+
+func TestChangeStatus_NonTerminal_NoSideEffects(t *testing.T) {
+	item := &model.MainItem{
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamID:      1,
+		Status:      "pending",
+		ProposerID:  10,
+		Completion:  30,
+	}
+	mainRepo := &mockMainItemRepo{item: item}
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+
+	_, err := svc.ChangeStatus(context.Background(), 1, 10, 1, "progressing")
+	require.NoError(t, err)
+
+	assert.Equal(t, "progressing", mainRepo.updatedFields["status"])
+	_, hasCompletion := mainRepo.updatedFields["completion"]
+	assert.False(t, hasCompletion, "non-terminal transition should not set completion")
+	_, hasEndDate := mainRepo.updatedFields["actual_end_date"]
+	assert.False(t, hasEndDate, "non-terminal transition should not set actual_end_date")
+}
+
+func TestChangeStatus_ItemNotFound(t *testing.T) {
+	mainRepo := &mockMainItemRepo{findErr: gorm.ErrRecordNotFound}
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+
+	_, err := svc.ChangeStatus(context.Background(), 1, 10, 999, "progressing")
+	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
+}
+
+func TestMainItemChangeStatus_TeamMismatch(t *testing.T) {
+	item := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamID:     2,
+		Status:     "pending",
+		ProposerID: 10,
+	}
+	mainRepo := &mockMainItemRepo{item: item}
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+
+	_, err := svc.ChangeStatus(context.Background(), 1, 10, 1, "progressing")
+	assert.ErrorIs(t, err, apperrors.ErrForbidden)
+}
+
+func TestChangeStatus_StatusHistoryRecorded(t *testing.T) {
+	item := &model.MainItem{
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamID:      1,
+		Status:      "pending",
+		ProposerID:  10,
+	}
+	mainRepo := &mockMainItemRepo{item: item}
+	historySvc := &mockStatusHistorySvc{}
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, historySvc)
+
+	_, err := svc.ChangeStatus(context.Background(), 1, 10, 1, "progressing")
+	require.NoError(t, err)
+
+	require.NotNil(t, historySvc.recorded)
+	assert.Equal(t, "main_item", historySvc.recorded.ItemType)
+	assert.Equal(t, uint(1), historySvc.recorded.ItemID)
+	assert.Equal(t, "pending", historySvc.recorded.FromStatus)
+	assert.Equal(t, "progressing", historySvc.recorded.ToStatus)
+	assert.Equal(t, uint(10), historySvc.recorded.ChangedBy)
+	assert.False(t, historySvc.recorded.IsAuto)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: AvailableTransitions
+// ---------------------------------------------------------------------------
+
+func TestAvailableTransitions_Success(t *testing.T) {
+	tests := []struct {
+		name       string
+		status     string
+		callerID   uint
+		proposerID uint
+		expected   []string
+	}{
+		{"pending returns progressing,closed", "pending", 10, 10, []string{"progressing", "closed"}},
+		{"progressing returns 4 targets", "progressing", 10, 10, []string{"blocking", "pausing", "reviewing", "closed"}},
+		{"blocking returns progressing", "blocking", 10, 10, []string{"progressing"}},
+		{"pausing returns progressing,closed", "pausing", 10, 10, []string{"progressing", "closed"}},
+		{"reviewing as PM returns completed,progressing", "reviewing", 10, 10, []string{"completed", "progressing"}},
+		{"completed (terminal) returns empty", "completed", 10, 10, []string{}},
+		{"closed (terminal) returns empty", "closed", 10, 10, []string{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			item := &model.MainItem{
+				BaseModel:   model.BaseModel{ID: 1},
+				TeamID:      1,
+				Status:      tt.status,
+				ProposerID:  tt.proposerID,
+			}
+			mainRepo := &mockMainItemRepo{item: item}
+			svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+
+			transitions, err := svc.AvailableTransitions(context.Background(), 1, tt.callerID, 1)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, transitions)
+		})
+	}
+}
+
+func TestAvailableTransitions_NonPMReviewing_FiltersCompletedProgressing(t *testing.T) {
+	item := &model.MainItem{
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamID:      1,
+		Status:      "reviewing",
+		ProposerID:  10, // PM is user 10
+	}
+	mainRepo := &mockMainItemRepo{item: item}
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+
+	// Non-PM caller should not see completed/progressing
+	transitions, err := svc.AvailableTransitions(context.Background(), 1, 99, 1)
+	require.NoError(t, err)
+	assert.Empty(t, transitions, "non-PM should see no transitions from reviewing since all require PM")
+}
+
+func TestAvailableTransitions_ItemNotFound(t *testing.T) {
+	mainRepo := &mockMainItemRepo{findErr: gorm.ErrRecordNotFound}
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+
+	_, err := svc.AvailableTransitions(context.Background(), 1, 10, 999)
+	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
+}
+
+func TestAvailableTransitions_TeamMismatch(t *testing.T) {
+	item := &model.MainItem{
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamID:      2,
+		Status:      "pending",
+		ProposerID:  10,
+	}
+	mainRepo := &mockMainItemRepo{item: item}
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+
+	_, err := svc.AvailableTransitions(context.Background(), 1, 10, 1)
+	assert.ErrorIs(t, err, apperrors.ErrForbidden)
 }
