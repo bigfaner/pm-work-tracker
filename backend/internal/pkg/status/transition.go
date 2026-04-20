@@ -1,5 +1,7 @@
 package status
 
+import "slices"
+
 // MainItemTransitions defines the legal status transition paths for main items.
 var MainItemTransitions = map[string][]string{
 	"pending":     {"progressing", "closed"},
@@ -27,12 +29,7 @@ func IsValidTransition(transitions map[string][]string, from, to string) bool {
 	if !ok {
 		return false
 	}
-	for _, target := range targets {
-		if target == to {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(targets, to)
 }
 
 // GetAvailableTransitions returns the list of valid target statuses from the current status.
