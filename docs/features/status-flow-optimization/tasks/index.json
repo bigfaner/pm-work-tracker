@@ -4,55 +4,62 @@
   "design": "../design.md",
   "created": "2026-04-20",
   "status": "planning",
-  "statusEnum": ["pending", "in_progress", "completed", "blocked", "skipped"],
-  "priorityEnum": ["P0", "P1", "P2"],
   "tasks": {
     "1.1-status-enum-package": {
       "id": "1.1",
       "title": "Status enum package",
       "priority": "P0",
       "estimatedTime": "2h",
-      "dependencies": [],
-      "status": "pending",
+      "status": "completed",
       "file": "1.1-status-enum-package.md",
       "record": "records/1.1-status-enum-package.md"
     },
     "1.2-model-schema-prep": {
       "id": "1.2",
-      "title": "Model, schema & DTO preparatory changes",
+      "title": "Model, schema \u0026 DTO preparatory changes",
       "priority": "P0",
       "estimatedTime": "1.5h",
-      "dependencies": ["1.1"],
+      "dependencies": [
+        "1.1"
+      ],
       "status": "pending",
       "file": "1.2-model-schema-prep.md",
       "record": "records/1.2-model-schema-prep.md"
     },
     "1.3-status-history-repo-service": {
       "id": "1.3",
-      "title": "StatusHistory repo & service",
+      "title": "StatusHistory repo \u0026 service",
       "priority": "P0",
       "estimatedTime": "2h",
-      "dependencies": ["1.2"],
+      "dependencies": [
+        "1.2"
+      ],
       "status": "pending",
       "file": "1.3-status-history-repo-service.md",
       "record": "records/1.3-status-history-repo-service.md"
     },
     "1.4-mainitem-changestatus": {
       "id": "1.4",
-      "title": "MainItem ChangeStatus & AvailableTransitions",
+      "title": "MainItem ChangeStatus \u0026 AvailableTransitions",
       "priority": "P0",
       "estimatedTime": "3h",
-      "dependencies": ["1.2", "1.3"],
+      "dependencies": [
+        "1.2",
+        "1.3"
+      ],
       "status": "pending",
       "file": "1.4-mainitem-changestatus.md",
       "record": "records/1.4-mainitem-changestatus.md"
     },
     "1.5-subitem-changestatus-update": {
       "id": "1.5",
-      "title": "SubItem ChangeStatus update & AvailableTransitions",
+      "title": "SubItem ChangeStatus update \u0026 AvailableTransitions",
       "priority": "P0",
       "estimatedTime": "3h",
-      "dependencies": ["1.2", "1.3"],
+      "dependencies": [
+        "1.2",
+        "1.3"
+      ],
       "status": "pending",
       "file": "1.5-subitem-changestatus-update.md",
       "record": "records/1.5-subitem-changestatus-update.md"
@@ -62,7 +69,10 @@
       "title": "Backend test update — status strings",
       "priority": "P1",
       "estimatedTime": "2-3h",
-      "dependencies": ["1.4", "1.5"],
+      "dependencies": [
+        "1.4",
+        "1.5"
+      ],
       "status": "pending",
       "file": "1.6-backend-test-update.md",
       "record": "records/1.6-backend-test-update.md"
@@ -72,30 +82,50 @@
       "title": "Frontend status foundation",
       "priority": "P1",
       "estimatedTime": "2-3h",
-      "dependencies": ["1.4", "1.5"],
+      "dependencies": [
+        "1.4",
+        "1.5"
+      ],
       "status": "pending",
       "file": "1.7-frontend-status-foundation.md",
       "record": "records/1.7-frontend-status-foundation.md"
     },
     "2.1-linkage-engine": {
       "id": "2.1",
-      "title": "Linkage engine — EvaluateLinkage & SubItem integration",
+      "title": "Linkage engine — EvaluateLinkage \u0026 SubItem integration",
       "priority": "P0",
       "estimatedTime": "4h",
-      "dependencies": ["1.4", "1.5"],
+      "dependencies": [
+        "1.4",
+        "1.5"
+      ],
       "status": "pending",
       "file": "2.1-linkage-engine.md",
       "record": "records/2.1-linkage-engine.md"
     },
     "3.1-frontend-statusdropdown-ux": {
       "id": "3.1",
-      "title": "Frontend StatusDropdown & UX polish",
+      "title": "Frontend StatusDropdown \u0026 UX polish",
       "priority": "P1",
       "estimatedTime": "3-4h",
-      "dependencies": ["1.7"],
+      "dependencies": [
+        "1.7"
+      ],
       "status": "pending",
       "file": "3.1-frontend-statusdropdown-ux.md",
       "record": "records/3.1-frontend-statusdropdown-ux.md"
     }
-  }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
 }
