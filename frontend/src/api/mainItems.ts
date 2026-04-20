@@ -2,6 +2,7 @@ import client from './client'
 import type {
   CreateMainItemReq,
   UpdateMainItemReq,
+  ChangeStatusReq,
   MainItemFilter,
   MainItem,
   SubItem,
@@ -26,4 +27,12 @@ export function updateMainItemApi(teamId: number, itemId: number, req: UpdateMai
 
 export function archiveMainItemApi(teamId: number, itemId: number): Promise<void> {
   return client.post<never, void>(`/teams/${teamId}/main-items/${itemId}/archive`)
+}
+
+export function changeMainItemStatusApi(teamId: number, itemId: number, req: ChangeStatusReq): Promise<{ status: string; linkageWarning?: string }> {
+  return client.put<never, { status: string; linkageWarning?: string }>(`/teams/${teamId}/main-items/${itemId}/status`, req)
+}
+
+export function getMainItemTransitionsApi(teamId: number, itemId: number): Promise<string[]> {
+  return client.get<never, string[]>(`/teams/${teamId}/main-items/${itemId}/available-transitions`)
 }

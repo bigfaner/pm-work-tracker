@@ -7,6 +7,7 @@ import { server } from '@/mocks/server'
 import { http, HttpResponse } from 'msw'
 import { useTeamStore } from '@/store/team'
 import { useAuthStore } from '@/store/auth'
+import { ToastProvider } from '@/components/ui/toast'
 import MainItemDetailPage from './MainItemDetailPage'
 
 // MSW lifecycle
@@ -28,7 +29,11 @@ function renderPage(mainItemId = '1') {
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[`/items/${mainItemId}`]}>
         <Routes>
-          <Route path="/items/:mainItemId" element={<MainItemDetailPage />} />
+          <Route path="/items/:mainItemId" element={
+            <ToastProvider>
+              <MainItemDetailPage />
+            </ToastProvider>
+          } />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -111,6 +116,12 @@ function setupHandlers() {
     // Change sub item status
     http.put('/api/v1/teams/:teamId/sub-items/:itemId/status', async () => {
       return HttpResponse.json({ code: 0, data: null })
+    }),
+
+    // Available transitions for sub items
+    http.get('/api/v1/teams/:teamId/sub-items/:subId/available-transitions', () => {
+      const allStatuses = ['pending', 'progressing', 'blocking', 'pausing', 'completed', 'closed']
+      return HttpResponse.json({ code: 0, data: allStatuses })
     }),
   )
 }
