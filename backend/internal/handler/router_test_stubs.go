@@ -73,6 +73,14 @@ func (s *StubMainItemSvc) RecalcCompletion(_ context.Context, _ uint) error {
 	return fmt.Errorf("stub: not implemented")
 }
 
+func (s *StubMainItemSvc) ChangeStatus(_ context.Context, _, _, _ uint, _ string) (*model.MainItem, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+func (s *StubMainItemSvc) AvailableTransitions(_ context.Context, _, _, _ uint) ([]string, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
 var _ service.MainItemService = (*StubMainItemSvc)(nil)
 
 type StubSubItemSvc struct{}

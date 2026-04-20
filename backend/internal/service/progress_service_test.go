@@ -149,6 +149,14 @@ func (m *mockMainItemSvcForProgress) RecalcCompletion(_ context.Context, mainIte
 	return m.recalcErr
 }
 
+func (m *mockMainItemSvcForProgress) ChangeStatus(_ context.Context, _, _, _ uint, _ string) (*model.MainItem, error) {
+	return nil, nil
+}
+
+func (m *mockMainItemSvcForProgress) AvailableTransitions(_ context.Context, _, _, _ uint) ([]string, error) {
+	return nil, nil
+}
+
 var _ MainItemService = (*mockMainItemSvcForProgress)(nil)
 
 // ---------------------------------------------------------------------------

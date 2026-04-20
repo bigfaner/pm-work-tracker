@@ -96,6 +96,8 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 		teamsGroup.GET("/main-items", deps.perm("main_item:read"), deps.MainItem.List)
 		teamsGroup.GET("/main-items/:itemId", deps.perm("main_item:read"), deps.MainItem.Get)
 		teamsGroup.PUT("/main-items/:itemId", deps.perm("main_item:update"), deps.MainItem.Update)
+		teamsGroup.PUT("/main-items/:itemId/status", deps.perm("main_item:change_status"), deps.MainItem.ChangeStatus)
+		teamsGroup.GET("/main-items/:itemId/available-transitions", deps.perm("main_item:read"), deps.MainItem.AvailableTransitions)
 		teamsGroup.POST("/main-items/:itemId/archive", deps.perm("main_item:archive"), deps.MainItem.Archive)
 
 		// Sub items (under main items)
