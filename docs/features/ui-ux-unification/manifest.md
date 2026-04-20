@@ -1,6 +1,6 @@
 ---
 feature: "ui-ux-unification"
-status: design
+status: tasks
 ---
 
 # Feature: ui-ux-unification
@@ -20,12 +20,13 @@ status: design
 
 | PRD Section | Design Section | Tasks |
 |-------------|----------------|-------|
-| F1 导航菜单重排 | F1 — Sidebar 菜单重排 | — |
-| F2 表格操作按钮统一 | F2 — 表格操作按钮加图标 | — |
-| F3 WeekPicker 组件 | F3 — WeekPicker 组件（新建） | — |
-| F4 详情页信息布局统一 | F4 — 详情页信息布局统一 | — |
-| F5 可跳转文字链接高亮 | F5 — 可跳转文字链接高亮 | — |
-| F6 追加进度按钮位置 | F6 — 「追加进度」按钮位置调整 | — |
-| F7 每周进展子事项进度显示 | F7 — 每周进展子事项进度显示 | — |
-| F8 按钮文案统一 | F8 — 按钮文案统一 | — |
+| F1 导航菜单重排 | F1 — Sidebar 菜单重排 | [2.1](tasks/2.1-sidebar-reorder.md) |
+| F2 表格操作按钮统一 | F2 — 表格操作按钮加图标 | [2.2](tasks/2.2-table-button-icons.md) |
+| F3 WeekPicker 组件 | F3 — WeekPicker 组件（新建） | [1.1](tasks/1.1-week-utils.md), [1.2](tasks/1.2-week-picker.md), [2.3](tasks/2.3-replace-week-picker.md) |
+| F4 详情页信息布局统一 | F4 — 详情页信息布局统一 | [2.4](tasks/2.4-detail-layout.md) |
+| F5 可跳转文字链接高亮 | F5 — 可跳转文字链接高亮 | [2.5](tasks/2.5-link-highlight.md) |
+| F6 追加进度按钮位置 | F6 — 「追加进度」按钮位置调整 | [2.6](tasks/2.6-move-append-btn.md) |
+| F7 每周进展子事项进度显示 | F7 — 每周进展子事项进度显示 | [2.7](tasks/2.7-weekly-completion.md) |
+| F8 按钮文案统一 | F8 — 按钮文案统一 | [2.8](tasks/2.8-rename-button.md) |
+| — | Testing Strategy | [3.1](tasks/3.1-e2e-update.md) |
 
