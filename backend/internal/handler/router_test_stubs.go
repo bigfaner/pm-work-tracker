@@ -25,7 +25,7 @@ func (s *StubTeamSvc) GetTeam(_ context.Context, _ uint) (*model.Team, error) {
 func (s *StubTeamSvc) GetTeamDetail(_ context.Context, _ uint) (*dto.TeamDetailResp, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubTeamSvc) ListTeams(_ context.Context, _ uint, _ bool) ([]*dto.TeamListResp, error) {
+func (s *StubTeamSvc) ListTeams(_ context.Context, _ uint, _ bool) ([]*model.Team, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubTeamSvc) UpdateTeam(_ context.Context, _, _ uint, _ dto.UpdateTeamReq) (*model.Team, error) {
@@ -47,9 +47,6 @@ func (s *StubTeamSvc) UpdateMemberRole(_ context.Context, _, _, _ uint, _ string
 	return fmt.Errorf("stub: not implemented")
 }
 func (s *StubTeamSvc) ListMembers(_ context.Context, _ uint) ([]*dto.TeamMemberDTO, error) {
-	return nil, fmt.Errorf("stub: not implemented")
-}
-func (s *StubTeamSvc) SearchAvailableUsers(_ context.Context, _ uint, _ string) ([]*dto.UserSearchDTO, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 
@@ -84,10 +81,6 @@ func (s *StubMainItemSvc) AvailableTransitions(_ context.Context, _, _, _ uint) 
 	return nil, fmt.Errorf("stub: not implemented")
 }
 
-func (s *StubMainItemSvc) EvaluateLinkage(_ context.Context, _ uint, _ uint) (*service.LinkageResult, error) {
-	return nil, fmt.Errorf("stub: not implemented")
-}
-
 var _ service.MainItemService = (*StubMainItemSvc)(nil)
 
 type StubSubItemSvc struct{}
@@ -98,8 +91,8 @@ func (s *StubSubItemSvc) Create(_ context.Context, _, _ uint, _ dto.SubItemCreat
 func (s *StubSubItemSvc) Update(_ context.Context, _, _ uint, _ dto.SubItemUpdateReq) error {
 	return fmt.Errorf("stub: not implemented")
 }
-func (s *StubSubItemSvc) ChangeStatus(_ context.Context, _, _, _ uint, _ string) (*service.SubItemChangeResult, error) {
-	return nil, fmt.Errorf("stub: not implemented")
+func (s *StubSubItemSvc) ChangeStatus(_ context.Context, _, _, _ uint, _ string) error {
+	return fmt.Errorf("stub: not implemented")
 }
 func (s *StubSubItemSvc) Get(_ context.Context, _, _ uint) (*model.SubItem, error) {
 	return nil, fmt.Errorf("stub: not implemented")
@@ -108,12 +101,6 @@ func (s *StubSubItemSvc) List(_ context.Context, _ uint, _ *uint, _ dto.SubItemF
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubSubItemSvc) Assign(_ context.Context, _, _, _, _ uint) error {
-	return fmt.Errorf("stub: not implemented")
-}
-func (s *StubSubItemSvc) AvailableTransitions(_ context.Context, _, _ uint) ([]string, error) {
-	return nil, fmt.Errorf("stub: not implemented")
-}
-func (s *StubSubItemSvc) Delete(_ context.Context, _, _, _ uint) error {
 	return fmt.Errorf("stub: not implemented")
 }
 
@@ -225,7 +212,6 @@ func (s *StubRouterRepoSubItem) ListByMainItem(_ context.Context, _ uint) ([]*mo
 func (s *StubRouterRepoSubItem) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
 	return nil, nil
 }
-func (s *StubRouterRepoSubItem) Delete(_ context.Context, _ uint) error { return nil }
 
 var _ repository.SubItemRepo = (*StubRouterRepoSubItem)(nil)
 

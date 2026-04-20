@@ -114,10 +114,6 @@ func (m *mockSubItemRepoForProgress) ListByTeam(_ context.Context, _ uint) ([]mo
 	return nil, nil
 }
 
-func (m *mockSubItemRepoForProgress) Delete(_ context.Context, _ uint) error {
-	return nil
-}
-
 var _ repository.SubItemRepo = (*mockSubItemRepoForProgress)(nil)
 
 // mockMainItemSvcForProgress captures RecalcCompletion calls.
@@ -161,28 +157,7 @@ func (m *mockMainItemSvcForProgress) AvailableTransitions(_ context.Context, _, 
 	return nil, nil
 }
 
-func (m *mockMainItemSvcForProgress) EvaluateLinkage(_ context.Context, _ uint, _ uint) (*LinkageResult, error) {
-	return nil, nil
-}
-
 var _ MainItemService = (*mockMainItemSvcForProgress)(nil)
-
-// mockStatusHistorySvcForProgress captures Record calls.
-type mockStatusHistorySvcForProgress struct {
-	recorded []*model.StatusHistory
-	recordErr error
-}
-
-func (m *mockStatusHistorySvcForProgress) Record(_ context.Context, record *model.StatusHistory) error {
-	m.recorded = append(m.recorded, record)
-	return m.recordErr
-}
-
-func (m *mockStatusHistorySvcForProgress) ListByItem(_ context.Context, _ string, _ uint, _ dto.Pagination) (*dto.PageResult[model.StatusHistory], error) {
-	return nil, nil
-}
-
-var _ StatusHistoryService = (*mockStatusHistorySvcForProgress)(nil)
 
 // ---------------------------------------------------------------------------
 // Tests: Append
@@ -195,7 +170,7 @@ func TestProgressAppend_FirstRecord_NoRegression(t *testing.T) {
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	record, err := svc.Append(context.Background(), 1, 2, 5, 30.0, "achievement", "blocker", "lesson", false)
 	require.NoError(t, err)
@@ -214,7 +189,7 @@ func TestProgressAppend_RegressionDetected(t *testing.T) {
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	_, err := svc.Append(context.Background(), 1, 2, 5, 30.0, "", "", "", false)
 	assert.ErrorIs(t, err, apperrors.ErrProgressRegression)
@@ -229,7 +204,7 @@ func TestProgressAppend_EqualCompletion_NoRegression(t *testing.T) {
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	record, err := svc.Append(context.Background(), 1, 2, 5, 50.0, "", "", "", false)
 	require.NoError(t, err)
@@ -245,7 +220,7 @@ func TestProgressAppend_HigherCompletion_Passes(t *testing.T) {
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	record, err := svc.Append(context.Background(), 1, 2, 5, 75.0, "", "", "", false)
 	require.NoError(t, err)
@@ -261,7 +236,7 @@ func TestProgressAppend_PMCanBypassRegression(t *testing.T) {
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	record, err := svc.Append(context.Background(), 1, 2, 5, 30.0, "", "", "", true)
 	require.NoError(t, err)
@@ -275,7 +250,7 @@ func TestProgressAppend_UpdatesSubItemCompletion(t *testing.T) {
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	_, err := svc.Append(context.Background(), 1, 2, 5, 60.0, "", "", "", false)
 	require.NoError(t, err)
@@ -290,7 +265,7 @@ func TestProgressAppend_TriggersRecalcCompletion(t *testing.T) {
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	_, err := svc.Append(context.Background(), 1, 2, 5, 60.0, "", "", "", false)
 	require.NoError(t, err)
@@ -303,7 +278,7 @@ func TestProgressAppend_SubItemNotFound(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForProgress{findErr: apperrors.ErrNotFound}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	_, err := svc.Append(context.Background(), 1, 2, 5, 60.0, "", "", "", false)
 	assert.Error(t, err)
@@ -316,7 +291,7 @@ func TestProgressAppend_LatestBySubItemError(t *testing.T) {
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	_, err := svc.Append(context.Background(), 1, 2, 5, 60.0, "", "", "", false)
 	assert.Error(t, err)
@@ -329,7 +304,7 @@ func TestProgressAppend_CreateError(t *testing.T) {
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	_, err := svc.Append(context.Background(), 1, 2, 5, 60.0, "", "", "", false)
 	assert.Error(t, err)
@@ -356,7 +331,7 @@ func TestProgressCorrectCompletion_Success(t *testing.T) {
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	err := svc.CorrectCompletion(context.Background(), 1, 100, 80.0)
 	require.NoError(t, err)
@@ -381,7 +356,7 @@ func TestProgressCorrectCompletion_IsLatest_SyncsSubItem(t *testing.T) {
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	err := svc.CorrectCompletion(context.Background(), 1, 100, 80.0)
 	require.NoError(t, err)
@@ -412,7 +387,7 @@ func TestProgressCorrectCompletion_NotLatest_SyncsToLatest(t *testing.T) {
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	err := svc.CorrectCompletion(context.Background(), 1, 100, 80.0)
 	require.NoError(t, err)
@@ -438,7 +413,7 @@ func TestProgressCorrectCompletion_TriggersRecalc(t *testing.T) {
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	err := svc.CorrectCompletion(context.Background(), 1, 100, 80.0)
 	require.NoError(t, err)
@@ -451,7 +426,7 @@ func TestProgressCorrectCompletion_RecordNotFound(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForProgress{}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	err := svc.CorrectCompletion(context.Background(), 1, 999, 80.0)
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
@@ -473,7 +448,7 @@ func TestProgressCorrectCompletion_UpdateError(t *testing.T) {
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	err := svc.CorrectCompletion(context.Background(), 1, 100, 80.0)
 	assert.Error(t, err)
@@ -493,7 +468,7 @@ func TestProgressList_Success(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForProgress{}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	result, err := svc.List(context.Background(), 1, 5)
 	require.NoError(t, err)
@@ -508,7 +483,7 @@ func TestProgressList_Empty(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForProgress{}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	result, err := svc.List(context.Background(), 1, 5)
 	require.NoError(t, err)
@@ -520,193 +495,8 @@ func TestProgressList_RepoError(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForProgress{}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
+	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 
 	_, err := svc.List(context.Background(), 1, 5)
 	assert.Error(t, err)
-}
-
-// ---------------------------------------------------------------------------
-// Tests: Auto-status-transition on Append
-// ---------------------------------------------------------------------------
-
-func TestProgressAppend_Pending_FirstProgress_TransitionsToProgressing(t *testing.T) {
-	progressRepo := &mockProgressRepo{latest: nil}
-	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Status: "pending", Completion: 0},
-	}
-	mainItemSvc := &mockMainItemSvcForProgress{}
-	historySvc := &mockStatusHistorySvcForProgress{}
-
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, historySvc)
-
-	record, err := svc.Append(context.Background(), 1, 2, 5, 30.0, "did stuff", "", "", false)
-	require.NoError(t, err)
-	assert.Equal(t, float64(30.0), record.Completion)
-
-	// Verify status transitioned to "progressing"
-	assert.Equal(t, "progressing", subItemRepo.updatedFields["status"])
-	assert.InDelta(t, 30.0, subItemRepo.updatedFields["completion"], 0.001)
-
-	// Verify status history was recorded
-	require.Len(t, historySvc.recorded, 1)
-	assert.Equal(t, "pending", historySvc.recorded[0].FromStatus)
-	assert.Equal(t, "progressing", historySvc.recorded[0].ToStatus)
-	assert.Equal(t, uint(2), historySvc.recorded[0].ChangedBy)
-	assert.True(t, historySvc.recorded[0].IsAuto)
-}
-
-func TestProgressAppend_Progressing_FirstProgressDoesNotApply(t *testing.T) {
-	progressRepo := &mockProgressRepo{latest: nil}
-	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Status: "progressing", Completion: 0},
-	}
-	mainItemSvc := &mockMainItemSvcForProgress{}
-	historySvc := &mockStatusHistorySvcForProgress{}
-
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, historySvc)
-
-	_, err := svc.Append(context.Background(), 1, 2, 5, 30.0, "", "", "", false)
-	require.NoError(t, err)
-
-	// No status change
-	assert.Nil(t, subItemRepo.updatedFields["status"])
-	assert.Empty(t, historySvc.recorded)
-}
-
-func TestProgressAppend_Pending_NotFirstProgress_NoAutoTransition(t *testing.T) {
-	progressRepo := &mockProgressRepo{
-		latest: &model.ProgressRecord{Completion: 20.0},
-	}
-	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Status: "pending", Completion: 20},
-	}
-	mainItemSvc := &mockMainItemSvcForProgress{}
-	historySvc := &mockStatusHistorySvcForProgress{}
-
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, historySvc)
-
-	_, err := svc.Append(context.Background(), 1, 2, 5, 40.0, "", "", "", false)
-	require.NoError(t, err)
-
-	// No status change (not first progress)
-	assert.Nil(t, subItemRepo.updatedFields["status"])
-	assert.Empty(t, historySvc.recorded)
-}
-
-func TestProgressAppend_Progressing_100Percent_TransitionsToCompleted(t *testing.T) {
-	progressRepo := &mockProgressRepo{
-		latest: &model.ProgressRecord{Completion: 80.0},
-	}
-	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Status: "progressing", Completion: 80},
-	}
-	mainItemSvc := &mockMainItemSvcForProgress{}
-	historySvc := &mockStatusHistorySvcForProgress{}
-
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, historySvc)
-
-	record, err := svc.Append(context.Background(), 1, 2, 5, 100.0, "all done", "", "", false)
-	require.NoError(t, err)
-	assert.Equal(t, float64(100.0), record.Completion)
-
-	// Verify status transitioned to "completed"
-	assert.Equal(t, "completed", subItemRepo.updatedFields["status"])
-	assert.InDelta(t, 100.0, subItemRepo.updatedFields["completion"], 0.001)
-	assert.NotNil(t, subItemRepo.updatedFields["actual_end_date"])
-
-	// Verify status history was recorded
-	require.Len(t, historySvc.recorded, 1)
-	assert.Equal(t, "progressing", historySvc.recorded[0].FromStatus)
-	assert.Equal(t, "completed", historySvc.recorded[0].ToStatus)
-	assert.True(t, historySvc.recorded[0].IsAuto)
-
-	// Verify recalc was triggered (needed for completed status)
-	assert.True(t, mainItemSvc.recalcCalled)
-}
-
-func TestProgressAppend_Pending_FirstProgress_100Percent_TransitionsToCompleted(t *testing.T) {
-	progressRepo := &mockProgressRepo{latest: nil}
-	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Status: "pending", Completion: 0},
-	}
-	mainItemSvc := &mockMainItemSvcForProgress{}
-	historySvc := &mockStatusHistorySvcForProgress{}
-
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, historySvc)
-
-	record, err := svc.Append(context.Background(), 1, 2, 5, 100.0, "done immediately", "", "", false)
-	require.NoError(t, err)
-	assert.Equal(t, float64(100.0), record.Completion)
-
-	// Both rules apply: pending->progressing (rule 1), then progressing->completed (rule 2)
-	// End result: "completed"
-	assert.Equal(t, "completed", subItemRepo.updatedFields["status"])
-	assert.InDelta(t, 100.0, subItemRepo.updatedFields["completion"], 0.001)
-	assert.NotNil(t, subItemRepo.updatedFields["actual_end_date"])
-
-	// Status history should record the overall transition from pending to completed
-	require.Len(t, historySvc.recorded, 1)
-	assert.Equal(t, "pending", historySvc.recorded[0].FromStatus)
-	assert.Equal(t, "completed", historySvc.recorded[0].ToStatus)
-}
-
-func TestProgressAppend_100Percent_Blocked_NoTransition(t *testing.T) {
-	progressRepo := &mockProgressRepo{
-		latest: &model.ProgressRecord{Completion: 80.0},
-	}
-	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Status: "blocking", Completion: 80},
-	}
-	mainItemSvc := &mockMainItemSvcForProgress{}
-	historySvc := &mockStatusHistorySvcForProgress{}
-
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, historySvc)
-
-	_, err := svc.Append(context.Background(), 1, 2, 5, 100.0, "", "", "", false)
-	require.NoError(t, err)
-
-	// "blocking" -> "completed" is NOT a valid transition
-	assert.Nil(t, subItemRepo.updatedFields["status"])
-	assert.Empty(t, historySvc.recorded)
-}
-
-func TestProgressAppend_100Percent_Pausing_NoTransition(t *testing.T) {
-	progressRepo := &mockProgressRepo{
-		latest: &model.ProgressRecord{Completion: 80.0},
-	}
-	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Status: "pausing", Completion: 80},
-	}
-	mainItemSvc := &mockMainItemSvcForProgress{}
-	historySvc := &mockStatusHistorySvcForProgress{}
-
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, historySvc)
-
-	_, err := svc.Append(context.Background(), 1, 2, 5, 100.0, "", "", "", false)
-	require.NoError(t, err)
-
-	// "pausing" -> "completed" is NOT a valid transition
-	assert.Nil(t, subItemRepo.updatedFields["status"])
-	assert.Empty(t, historySvc.recorded)
-}
-
-func TestProgressAppend_Progressing_LessThan100_NoStatusChange(t *testing.T) {
-	progressRepo := &mockProgressRepo{
-		latest: &model.ProgressRecord{Completion: 30.0},
-	}
-	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Status: "progressing", Completion: 30},
-	}
-	mainItemSvc := &mockMainItemSvcForProgress{}
-	historySvc := &mockStatusHistorySvcForProgress{}
-
-	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, historySvc)
-
-	_, err := svc.Append(context.Background(), 1, 2, 5, 60.0, "", "", "", false)
-	require.NoError(t, err)
-
-	// Already progressing, not 100%, no transition
-	assert.Nil(t, subItemRepo.updatedFields["status"])
-	assert.Empty(t, historySvc.recorded)
 }

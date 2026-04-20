@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"sync"
 	"time"
 
 	"pm-work-tracker/backend/internal/dto"
@@ -13,40 +11,6 @@ import (
 	"pm-work-tracker/backend/internal/pkg/status"
 	"pm-work-tracker/backend/internal/repository"
 )
-
-// LinkageResult holds the outcome of a linkage evaluation.
-type LinkageResult struct {
-	Triggered    bool   // whether linkage was attempted (had sub-items)
-	Success      bool   // whether the transition succeeded
-	TargetStatus string // the intended target status
-	Remark       string // failure reason if not success
-}
-
-// Warning returns a human-readable warning string if linkage was triggered but failed.
-func (r *LinkageResult) Warning() string {
-	if r != nil && r.Triggered && !r.Success {
-		return fmt.Sprintf("主事项状态联动失败：%s", r.Remark)
-	}
-	return ""
-}
-
-// linkageMuMap provides per-MainItem mutexes for linkage evaluation.
-var (
-	linkageMuMap = make(map[uint]*sync.Mutex)
-	linkageMapMu sync.Mutex // protects linkageMuMap
-)
-
-// getLinkageMutex returns (or creates) a mutex for the given MainItem.
-func getLinkageMutex(mainItemID uint) *sync.Mutex {
-	linkageMapMu.Lock()
-	defer linkageMapMu.Unlock()
-	if mu, ok := linkageMuMap[mainItemID]; ok {
-		return mu
-	}
-	mu := &sync.Mutex{}
-	linkageMuMap[mainItemID] = mu
-	return mu
-}
 
 // MainItemService defines business operations for MainItem.
 type MainItemService interface {
@@ -58,7 +22,6 @@ type MainItemService interface {
 	RecalcCompletion(ctx context.Context, mainItemID uint) error
 	ChangeStatus(ctx context.Context, teamID, callerID, itemID uint, newStatus string) (*model.MainItem, error)
 	AvailableTransitions(ctx context.Context, teamID, callerID, itemID uint) ([]string, error)
-	EvaluateLinkage(ctx context.Context, mainItemID uint, changedBy uint) (*LinkageResult, error)
 }
 
 type mainItemService struct {
@@ -115,16 +78,10 @@ func (s *mainItemService) Update(ctx context.Context, teamID, itemID uint, req d
 	if item.TeamID != teamID {
 		return apperrors.ErrForbidden
 	}
-	if status.IsMainTerminal(item.Status) {
-		return apperrors.ErrTerminalMainItem
-	}
 
 	fields := map[string]interface{}{}
 	if req.Title != nil {
 		fields["title"] = *req.Title
-	}
-	if req.Description != nil {
-		fields["description"] = *req.Description
 	}
 	if req.Priority != nil {
 		fields["priority"] = *req.Priority
@@ -223,19 +180,6 @@ func (s *mainItemService) ChangeStatus(ctx context.Context, teamID, callerID, it
 		}
 	}
 
-	// Guard: cannot transition to terminal if any sub-item is non-terminal
-	if status.IsMainTerminal(newStatus) {
-		subs, err := s.subItemRepo.ListByMainItem(ctx, itemID)
-		if err != nil {
-			return nil, err
-		}
-		for _, sub := range subs {
-			if !status.IsSubTerminal(sub.Status) {
-				return nil, apperrors.ErrSubItemsNotTerminal
-			}
-		}
-	}
-
 	fields := map[string]interface{}{
 		"status": newStatus,
 	}
@@ -297,166 +241,6 @@ func (s *mainItemService) AvailableTransitions(ctx context.Context, teamID, call
 	}
 
 	return transitions, nil
-}
-
-// EvaluateLinkage evaluates the main-sub item linkage rules and updates MainItem status.
-// It acquires a per-MainItem mutex to prevent race conditions.
-func (s *mainItemService) EvaluateLinkage(ctx context.Context, mainItemID uint, changedBy uint) (*LinkageResult, error) {
-	mu := getLinkageMutex(mainItemID)
-	mu.Lock()
-	defer mu.Unlock()
-
-	mainItem, err := s.mainItemRepo.FindByID(ctx, mainItemID)
-	if err != nil {
-		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
-	}
-
-	subItems, err := s.subItemRepo.ListByMainItem(ctx, mainItemID)
-	if err != nil {
-		return nil, err
-	}
-
-	// No sub-items: no linkage triggered
-	if len(subItems) == 0 {
-		return nil, nil
-	}
-
-	// Evaluate 5-level priority rules
-	targetStatus := evaluateLinkageTarget(subItems, mainItem.Status)
-	if targetStatus == "" || targetStatus == mainItem.Status {
-		return nil, nil
-	}
-
-	// Check if transition is valid
-	if !status.IsValidTransition(status.MainItemTransitions, mainItem.Status, targetStatus) {
-		// Linkage failed: record intent in status history
-		remark := fmt.Sprintf("%s→%s 不允许", mainItem.Status, targetStatus)
-		if s.statusHistorySvc != nil {
-			_ = s.statusHistorySvc.Record(ctx, &model.StatusHistory{
-				ItemType:   "main_item",
-				ItemID:     mainItemID,
-				FromStatus: mainItem.Status,
-				ToStatus:   targetStatus,
-				ChangedBy:  changedBy,
-				IsAuto:     true,
-				Remark:     remark,
-			})
-		}
-		return &LinkageResult{
-			Triggered:    true,
-			Success:      false,
-			TargetStatus: targetStatus,
-			Remark:       remark,
-		}, nil
-	}
-
-	// Apply transition
-	fields := map[string]interface{}{
-		"status": targetStatus,
-	}
-
-	// Terminal side effects
-	if status.IsMainTerminal(targetStatus) {
-		fields["completion"] = float64(100)
-		now := time.Now()
-		fields["actual_end_date"] = &now
-	}
-
-	oldStatus := mainItem.Status
-
-	if err := s.mainItemRepo.Update(ctx, mainItem, fields); err != nil {
-		return nil, err
-	}
-
-	// Record to status history (is_auto=true)
-	if s.statusHistorySvc != nil {
-		_ = s.statusHistorySvc.Record(ctx, &model.StatusHistory{
-			ItemType:   "main_item",
-			ItemID:     mainItemID,
-			FromStatus: oldStatus,
-			ToStatus:   targetStatus,
-			ChangedBy:  changedBy,
-			IsAuto:     true,
-		})
-	}
-
-	return &LinkageResult{
-		Triggered:    true,
-		Success:      true,
-		TargetStatus: targetStatus,
-	}, nil
-}
-
-// evaluateLinkageTarget determines the target status based on 5-level priority rules.
-// Returns empty string if no linkage rule matches.
-func evaluateLinkageTarget(subItems []*model.SubItem, currentMainStatus string) string {
-	allTerminal := true     // completed or closed
-	allClosed := true       // closed only
-	allPausingOrClosed := true
-	hasCompleted := false
-	hasBlocking := false
-	hasProgressing := false
-
-	for _, si := range subItems {
-		s := si.Status
-		isCompleted := s == "completed"
-		isClosed := s == "closed"
-		isTerminal := isCompleted || isClosed
-		isPausing := s == "pausing"
-
-		if !isTerminal {
-			allTerminal = false
-		}
-		if !isClosed {
-			allClosed = false
-		}
-		if !(isPausing || isClosed) {
-			allPausingOrClosed = false
-		}
-		if isCompleted {
-			hasCompleted = true
-		}
-		if s == "blocking" {
-			hasBlocking = true
-		}
-		if s == "progressing" {
-			hasProgressing = true
-		}
-	}
-
-	// Priority 1: all completed/closed + at least one completed → reviewing
-	if allTerminal && hasCompleted {
-		return "reviewing"
-	}
-
-	// Priority 2: all closed → closed
-	if allClosed {
-		return "closed"
-	}
-
-	// Priority 3: all pausing (or pausing + closed) → pausing
-	if allPausingOrClosed && !allClosed {
-		return "pausing"
-	}
-
-	// Priority 4: any blocking (not all terminal) → blocking (only from pending/progressing)
-	if hasBlocking && !allTerminal {
-		if currentMainStatus == "pending" || currentMainStatus == "progressing" {
-			return "blocking"
-		}
-	}
-
-	// Priority 5: any progressing → progressing (only from pending)
-	if hasProgressing && currentMainStatus == "pending" {
-		return "progressing"
-	}
-
-	// AC-9: reviewing + non-terminal sub-items → revert to progressing
-	if currentMainStatus == "reviewing" && !allTerminal {
-		return "progressing"
-	}
-
-	return ""
 }
 
 // calcWeightedCompletion computes weighted average of SubItem completion values.

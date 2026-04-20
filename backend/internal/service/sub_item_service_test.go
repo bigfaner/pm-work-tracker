@@ -110,6 +110,22 @@ func (m *mockMainItemSvcTM) RecalcCompletion(ctx context.Context, mainItemID uin
 	return args.Error(0)
 }
 
+func (m *mockMainItemSvcTM) ChangeStatus(ctx context.Context, teamID, callerID, itemID uint, newStatus string) (*model.MainItem, error) {
+	args := m.Called(ctx, teamID, callerID, itemID, newStatus)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.MainItem), args.Error(1)
+}
+
+func (m *mockMainItemSvcTM) AvailableTransitions(ctx context.Context, teamID, callerID, itemID uint) ([]string, error) {
+	args := m.Called(ctx, teamID, callerID, itemID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]string), args.Error(1)
+}
+
 // ---------------------------------------------------------------------------
 // Tests: Create
 // ---------------------------------------------------------------------------

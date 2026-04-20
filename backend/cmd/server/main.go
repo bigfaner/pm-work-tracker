@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -17,36 +16,27 @@ import (
 	"pm-work-tracker/backend/internal/migration"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 	"pm-work-tracker/backend/internal/service"
-	"pm-work-tracker/backend/web"
 )
 
 func main() {
 	configPath := flag.String("config", "config.yaml", "path to config file")
-	dev := flag.Bool("dev", false, "dev mode: skip embedded asset validation, API only")
 	flag.Parse()
 
-	if err := run(*configPath, *dev); err != nil {
+	if err := run(*configPath); err != nil {
 		log.Fatalf("%v", err)
 	}
 }
 
 // run wires the full application: config, DB, seed, repos, services, handlers,
 // router, and HTTP server with graceful shutdown.
-func run(configPath string, dev bool) error {
+func run(configPath string) error {
 	// 1. Load config
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
 		return fmt.Errorf("config error: %w", err)
 	}
 
-	// 2. Validate embedded assets (skipped in dev mode)
-	if !dev {
-		if err := web.ValidateAssets(web.FS); err != nil {
-			return fmt.Errorf("startup: %w", err)
-		}
-	}
-
-	// 3. Init DB
+	// 2. Init DB
 	db, err := config.InitDB(&cfg.Database)
 	if err != nil {
 		return fmt.Errorf("database error: %w", err)
@@ -82,8 +72,8 @@ func run(configPath string, dev bool) error {
 	statusHistoryRepo := gormrepo.NewGormStatusHistoryRepo(db)
 	statusHistorySvc := service.NewStatusHistoryService(statusHistoryRepo)
 	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo, statusHistorySvc)
-	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc, statusHistorySvc)
-	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc, statusHistorySvc)
+	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc)
+	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, db)
 	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)
 	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
@@ -110,12 +100,8 @@ func run(configPath string, dev bool) error {
 		Permission: handler.NewPermissionHandlerWithDeps(roleSvc),
 	}
 
-	// 7. Setup router (dev mode: no embedded assets, API only)
-	var fsys fs.FS
-	if !dev {
-		fsys = web.FS
-	}
-	r := handler.SetupRouter(deps, fsys)
+	// 7. Setup router
+	r := handler.SetupRouter(deps)
 
 	// 8. Start server with timeouts from config
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)

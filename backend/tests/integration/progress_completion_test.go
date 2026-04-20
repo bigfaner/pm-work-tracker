@@ -34,7 +34,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 		Title:      "Test Main Item",
 		Priority:   "P1",
 		ProposerID: userID,
-		Status:     "pending",
+		Status:     "待开始",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
@@ -43,7 +43,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 		MainItemID: mainItem.ID,
 		Title:      "Sub Item 1",
 		Priority:   "P2",
-		Status:     "pending",
+		Status:     "待开始",
 		Weight:     1.0,
 	}
 	require.NoError(t, db.Create(sub1).Error)
@@ -53,7 +53,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 		MainItemID: mainItem.ID,
 		Title:      "Sub Item 2",
 		Priority:   "P2",
-		Status:     "pending",
+		Status:     "待开始",
 		Weight:     1.0,
 	}
 	require.NoError(t, db.Create(sub2).Error)
@@ -68,7 +68,7 @@ func appendProgress(t *testing.T, r *gin.Engine, token string, teamID, subID uin
 	body := fmt.Sprintf(`{"completion":%.0f,"achievement":"some progress"}`, completion)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
-		fmt.Sprintf("/v1/teams/%d/sub-items/%d/progress", teamID, subID),
+		fmt.Sprintf("/api/v1/teams/%d/sub-items/%d/progress", teamID, subID),
 		strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -172,7 +172,7 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamID, userID uint) (poolID, mainI
 		Title:       "Pool Item Title",
 		Background:  "Some background",
 		SubmitterID: userID,
-		Status:      "pending",
+		Status:      "待分配",
 	}
 	require.NoError(t, db.Create(poolItem).Error)
 
@@ -182,7 +182,7 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamID, userID uint) (poolID, mainI
 		Title:      "Main Item for Pool",
 		Priority:   "P1",
 		ProposerID: userID,
-		Status:     "pending",
+		Status:     "待开始",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
@@ -200,7 +200,7 @@ func TestItemPool_Assign_Success(t *testing.T) {
 	body := fmt.Sprintf(`{"mainItemId":%d,"assigneeId":%d,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, mainItemID, data.userAID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
-		fmt.Sprintf("/v1/teams/%d/item-pool/%d/assign", data.teamAID, poolID),
+		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamAID, poolID),
 		strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -208,10 +208,10 @@ func TestItemPool_Assign_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	// Verify ItemPool.Status = "assigned"
+	// Verify ItemPool.Status = "已分配"
 	var pool model.ItemPool
 	require.NoError(t, db.First(&pool, poolID).Error)
-	assert.Equal(t, "assigned", pool.Status)
+	assert.Equal(t, "已分配", pool.Status)
 	assert.NotNil(t, pool.AssignedSubID)
 
 	// Verify a new SubItem exists under the main item
@@ -234,7 +234,7 @@ func TestItemPool_Assign_Rollback_OnInvalidMainItem(t *testing.T) {
 	body := fmt.Sprintf(`{"mainItemId":%d,"assigneeId":%d,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, invalidMainID, data.userAID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
-		fmt.Sprintf("/v1/teams/%d/item-pool/%d/assign", data.teamAID, poolID),
+		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamAID, poolID),
 		strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -243,10 +243,10 @@ func TestItemPool_Assign_Rollback_OnInvalidMainItem(t *testing.T) {
 	// Should fail with 404 (item not found)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 
-	// Verify ItemPool.Status remains "pending"
+	// Verify ItemPool.Status remains "待分配"
 	var pool model.ItemPool
 	require.NoError(t, db.First(&pool, poolID).Error)
-	assert.Equal(t, "pending", pool.Status)
+	assert.Equal(t, "待分配", pool.Status)
 
 	// Verify no SubItem was created
 	var count int64
@@ -266,7 +266,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart ti
 		Title:      "Report Test Main Item",
 		Priority:   "P1",
 		ProposerID: userID,
-		Status:     "progressing",
+		Status:     "进行中",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
@@ -275,7 +275,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart ti
 		MainItemID: mainItem.ID,
 		Title:      "Report Test Sub Item",
 		Priority:   "P2",
-		Status:     "progressing",
+		Status:     "进行中",
 		Completion: 50,
 		Weight:     1.0,
 	}
@@ -307,10 +307,10 @@ func TestWeeklyExport_ReturnsMarkdownWithMainItemTitle(t *testing.T) {
 	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC) // Monday
 	mainItemTitle := seedReportData(t, db, data.teamAID, data.userAID, weekStart)
 
-	// GET /v1/teams/:teamId/reports/weekly/export?weekStart=2026-04-13
+	// GET /api/v1/teams/:teamId/reports/weekly/export?weekStart=2026-04-13
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/v1/teams/%d/reports/weekly/export?weekStart=%s",
+		fmt.Sprintf("/api/v1/teams/%d/reports/weekly/export?weekStart=%s",
 			data.teamAID, weekStart.Format("2006-01-02")), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -341,8 +341,8 @@ func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engi
 	statusHistoryRepo := gormrepo.NewGormStatusHistoryRepo(db)
 	statusHistorySvc := service.NewStatusHistoryService(statusHistoryRepo)
 	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo, statusHistorySvc)
-	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc, statusHistorySvc)
-	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc, statusHistorySvc)
+	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc)
+	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, poolTransactor{db: db})
 	teamSvc := service.NewTeamService(teamRepo, userRepo, mainItemRepo, teamTransactor{db: db})
 	adminSvc := service.NewAdminService(userRepo, teamRepo)
@@ -377,6 +377,6 @@ func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engi
 		Admin:    handler.NewAdminHandler(adminSvc),
 	}
 
-	r := handler.SetupRouter(deps, nil)
+	r := handler.SetupRouter(deps)
 	return r, data
 }

@@ -88,7 +88,7 @@ func TestRoleCRUD_FullFlow(t *testing.T) {
 
 	// CREATE
 	body := `{"name":"custom-role","description":"A custom role","permissionCodes":["team:read","main_item:read"]}`
-	w := makeRequest(t, r, http.MethodPost, "/v1/admin/roles", body, adminToken)
+	w := makeRequest(t, r, http.MethodPost, "/api/v1/admin/roles", body, adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var createResp map[string]interface{}
@@ -99,7 +99,7 @@ func TestRoleCRUD_FullFlow(t *testing.T) {
 	assert.Equal(t, false, createData["isPreset"])
 
 	// READ (list)
-	w = makeRequest(t, r, http.MethodGet, "/v1/admin/roles", "", adminToken)
+	w = makeRequest(t, r, http.MethodGet, "/api/v1/admin/roles", "", adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 	var listResp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &listResp))
@@ -107,7 +107,7 @@ func TestRoleCRUD_FullFlow(t *testing.T) {
 	assert.GreaterOrEqual(t, len(items), 4) // 3 preset + 1 custom
 
 	// READ (single)
-	w = makeRequest(t, r, http.MethodGet, fmt.Sprintf("/v1/admin/roles/%d", roleID), "", adminToken)
+	w = makeRequest(t, r, http.MethodGet, fmt.Sprintf("/api/v1/admin/roles/%d", roleID), "", adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 	var getResp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &getResp))
@@ -118,7 +118,7 @@ func TestRoleCRUD_FullFlow(t *testing.T) {
 
 	// UPDATE
 	updateBody := `{"description":"Updated description","permissionCodes":["team:read","main_item:read","main_item:create"]}`
-	w = makeRequest(t, r, http.MethodPut, fmt.Sprintf("/v1/admin/roles/%d", roleID), updateBody, adminToken)
+	w = makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%d", roleID), updateBody, adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 	var updateResp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &updateResp))
@@ -128,11 +128,11 @@ func TestRoleCRUD_FullFlow(t *testing.T) {
 	assert.Len(t, updatedPerms, 3)
 
 	// DELETE
-	w = makeRequest(t, r, http.MethodDelete, fmt.Sprintf("/v1/admin/roles/%d", roleID), "", adminToken)
+	w = makeRequest(t, r, http.MethodDelete, fmt.Sprintf("/api/v1/admin/roles/%d", roleID), "", adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// Verify deleted
-	w = makeRequest(t, r, http.MethodGet, fmt.Sprintf("/v1/admin/roles/%d", roleID), "", adminToken)
+	w = makeRequest(t, r, http.MethodGet, fmt.Sprintf("/api/v1/admin/roles/%d", roleID), "", adminToken)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
@@ -145,7 +145,7 @@ func TestPresetRole_SuperadminCannotBeUpdated(t *testing.T) {
 
 	// Try to update superadmin role (id=1)
 	body := `{"description":"hacked"}`
-	w := makeRequest(t, r, http.MethodPut, "/v1/admin/roles/1", body, adminToken)
+	w := makeRequest(t, r, http.MethodPut, "/api/v1/admin/roles/1", body, adminToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 
 	var resp map[string]interface{}
@@ -158,7 +158,7 @@ func TestPresetRole_SuperadminCannotBeDeleted(t *testing.T) {
 	r := setupRBACTestRouter(t, db, data)
 	adminToken := loginAs(t, r, "superadmin", "adminPass")
 
-	w := makeRequest(t, r, http.MethodDelete, "/v1/admin/roles/1", "", adminToken)
+	w := makeRequest(t, r, http.MethodDelete, "/api/v1/admin/roles/1", "", adminToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
@@ -172,12 +172,12 @@ func TestPresetRole_PMNameLocked(t *testing.T) {
 
 	// Try to rename PM role
 	body := fmt.Sprintf(`{"name":"renamed-pm"}`)
-	w := makeRequest(t, r, http.MethodPut, fmt.Sprintf("/v1/admin/roles/%d", roleID), body, adminToken)
+	w := makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%d", roleID), body, adminToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 
 	// But description change should succeed
 	body = fmt.Sprintf(`{"description":"new PM desc"}`)
-	w = makeRequest(t, r, http.MethodPut, fmt.Sprintf("/v1/admin/roles/%d", roleID), body, adminToken)
+	w = makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%d", roleID), body, adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
@@ -189,7 +189,7 @@ func TestPresetRole_MemberNameLocked(t *testing.T) {
 	roleID := findRoleIDByName(t, db, "member")
 
 	body := fmt.Sprintf(`{"name":"renamed-member"}`)
-	w := makeRequest(t, r, http.MethodPut, fmt.Sprintf("/v1/admin/roles/%d", roleID), body, adminToken)
+	w := makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%d", roleID), body, adminToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
@@ -201,10 +201,10 @@ func TestPermissionDenied_MemberCannotAccessPMEndpoints(t *testing.T) {
 	memberToken := loginAs(t, r, "memberA", "passwordMemberA")
 
 	// Member should NOT have team:invite permission
-	// POST /v1/teams/:teamId/members (invite) requires "team:invite"
+	// POST /api/v1/teams/:teamId/members (invite) requires "team:invite"
 	body := `{"username":"userB"}`
 	w := makeRequest(t, r, http.MethodPost,
-		fmt.Sprintf("/v1/teams/%d/members", data.teamAID), body, memberToken)
+		fmt.Sprintf("/api/v1/teams/%d/members", data.teamAID), body, memberToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 
 	var resp map[string]interface{}
@@ -219,7 +219,7 @@ func TestPermissionDenied_MemberCannotInvite(t *testing.T) {
 
 	body := `{"username":"userB"}`
 	w := makeRequest(t, r, http.MethodPost,
-		fmt.Sprintf("/v1/teams/%d/members", data.teamAID), body, memberToken)
+		fmt.Sprintf("/api/v1/teams/%d/members", data.teamAID), body, memberToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
@@ -229,7 +229,7 @@ func TestPermissionDenied_MemberCannotArchiveMainItem(t *testing.T) {
 	memberToken := loginAs(t, r, "memberA", "passwordMemberA")
 
 	w := makeRequest(t, r, http.MethodPost,
-		fmt.Sprintf("/v1/teams/%d/main-items/999/archive", data.teamAID), "", memberToken)
+		fmt.Sprintf("/api/v1/teams/%d/main-items/999/archive", data.teamAID), "", memberToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
@@ -243,12 +243,12 @@ func TestSuperAdmin_BypassesTeamLevelPermissions(t *testing.T) {
 	// SuperAdmin should be able to access team-scoped routes even though they
 	// are not a member of the team
 	w := makeRequest(t, r, http.MethodGet,
-		fmt.Sprintf("/v1/teams/%d/main-items", data.teamAID), "", adminToken)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), "", adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// SuperAdmin can also list members
 	w = makeRequest(t, r, http.MethodGet,
-		fmt.Sprintf("/v1/teams/%d/members", data.teamAID), "", adminToken)
+		fmt.Sprintf("/api/v1/teams/%d/members", data.teamAID), "", adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
@@ -259,11 +259,11 @@ func TestSuperAdmin_CanManageRoles(t *testing.T) {
 
 	// Create a role
 	body := `{"name":"test-role","description":"test","permissionCodes":["team:read"]}`
-	w := makeRequest(t, r, http.MethodPost, "/v1/admin/roles", body, adminToken)
+	w := makeRequest(t, r, http.MethodPost, "/api/v1/admin/roles", body, adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// List permission codes
-	w = makeRequest(t, r, http.MethodGet, "/v1/admin/permissions", "", adminToken)
+	w = makeRequest(t, r, http.MethodGet, "/api/v1/admin/permissions", "", adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
@@ -276,12 +276,12 @@ func TestCrossTeamIsolation_PMInTeamACannotUsePMPermissionsInTeamB(t *testing.T)
 
 	// UserA is PM of TeamA, should be able to read main items in TeamA
 	w := makeRequest(t, r, http.MethodGet,
-		fmt.Sprintf("/v1/teams/%d/main-items", data.teamAID), "", userAToken)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), "", userAToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// But UserA should NOT be able to access TeamB (not a member)
 	w = makeRequest(t, r, http.MethodGet,
-		fmt.Sprintf("/v1/teams/%d/main-items", data.teamBID), "", userAToken)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamBID), "", userAToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 
 	var resp map[string]interface{}
@@ -299,12 +299,12 @@ func TestRoleEdit_ImmediateEffectOnNextRequest(t *testing.T) {
 
 	// Member should be able to read main items (member has main_item:read)
 	w := makeRequest(t, r, http.MethodGet,
-		fmt.Sprintf("/v1/teams/%d/main-items", data.teamAID), "", memberToken)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), "", memberToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// Create a new custom role with NO team:read or main_item:read
 	customRoleBody := `{"name":"minimal-role","description":"minimal","permissionCodes":["sub_item:read"]}`
-	w = makeRequest(t, r, http.MethodPost, "/v1/admin/roles", customRoleBody, adminToken)
+	w = makeRequest(t, r, http.MethodPost, "/api/v1/admin/roles", customRoleBody, adminToken)
 	require.Equal(t, http.StatusOK, w.Code)
 	var createResp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &createResp))
@@ -318,12 +318,12 @@ func TestRoleEdit_ImmediateEffectOnNextRequest(t *testing.T) {
 
 	// Now member should NOT be able to read main items (no main_item:read permission)
 	w = makeRequest(t, r, http.MethodGet,
-		fmt.Sprintf("/v1/teams/%d/main-items", data.teamAID), "", memberToken)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), "", memberToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 
 	// But sub_item:read should still work
 	w = makeRequest(t, r, http.MethodGet,
-		fmt.Sprintf("/v1/teams/%d/sub-items/999", data.teamAID), "", memberToken)
+		fmt.Sprintf("/api/v1/teams/%d/sub-items/999", data.teamAID), "", memberToken)
 	// 404 is expected (sub-item doesn't exist), not 403 (permission denied)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
@@ -338,7 +338,7 @@ func TestDeleteRole_WithUsers_Rejected(t *testing.T) {
 	// PM role (id=pmRoleID) is in use by members, but it's preset so cannot be deleted.
 	// Create a custom role and assign it to a member.
 	customRoleBody := `{"name":"deleteme-role","description":"to be deleted","permissionCodes":["team:read"]}`
-	w := makeRequest(t, r, http.MethodPost, "/v1/admin/roles", customRoleBody, adminToken)
+	w := makeRequest(t, r, http.MethodPost, "/api/v1/admin/roles", customRoleBody, adminToken)
 	require.Equal(t, http.StatusOK, w.Code)
 	var createResp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &createResp))
@@ -352,7 +352,7 @@ func TestDeleteRole_WithUsers_Rejected(t *testing.T) {
 
 	// Try to delete the role — should be rejected because it's in use
 	w = makeRequest(t, r, http.MethodDelete,
-		fmt.Sprintf("/v1/admin/roles/%d", customRoleID), "", adminToken)
+		fmt.Sprintf("/api/v1/admin/roles/%d", customRoleID), "", adminToken)
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 
 	var resp map[string]interface{}
@@ -367,7 +367,7 @@ func TestDeleteRole_WithoutUsers_Succeeds(t *testing.T) {
 
 	// Create a custom role with no users
 	body := `{"name":"unused-role","description":"no users","permissionCodes":["team:read"]}`
-	w := makeRequest(t, r, http.MethodPost, "/v1/admin/roles", body, adminToken)
+	w := makeRequest(t, r, http.MethodPost, "/api/v1/admin/roles", body, adminToken)
 	require.Equal(t, http.StatusOK, w.Code)
 	var createResp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &createResp))
@@ -375,7 +375,7 @@ func TestDeleteRole_WithoutUsers_Succeeds(t *testing.T) {
 
 	// Delete should succeed
 	w = makeRequest(t, r, http.MethodDelete,
-		fmt.Sprintf("/v1/admin/roles/%d", roleID), "", adminToken)
+		fmt.Sprintf("/api/v1/admin/roles/%d", roleID), "", adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
@@ -406,12 +406,12 @@ func TestInviteMember_WithRoleID_MemberHasCorrectPermissions(t *testing.T) {
 
 	// Should be able to read main items (member has main_item:read)
 	w := makeRequest(t, r, http.MethodGet,
-		fmt.Sprintf("/v1/teams/%d/main-items", data.teamAID), "", newUserToken)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), "", newUserToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// Should NOT be able to invite others (member does NOT have team:invite)
 	w = makeRequest(t, r, http.MethodPost,
-		fmt.Sprintf("/v1/teams/%d/members", data.teamAID),
+		fmt.Sprintf("/api/v1/teams/%d/members", data.teamAID),
 		`{"username":"userB"}`, newUserToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
@@ -423,8 +423,8 @@ func TestUserPermissions_ReturnsCorrectPermissions(t *testing.T) {
 	r := setupRBACTestRouter(t, db, data)
 	userAToken := loginAs(t, r, "userA", "passwordA")
 
-	// GET /v1/me/permissions
-	w := makeRequest(t, r, http.MethodGet, "/v1/me/permissions", "", userAToken)
+	// GET /api/v1/me/permissions
+	w := makeRequest(t, r, http.MethodGet, "/api/v1/me/permissions", "", userAToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var resp map[string]interface{}
@@ -440,7 +440,7 @@ func TestUserPermissions_SuperAdmin(t *testing.T) {
 	r := setupRBACTestRouter(t, db, data)
 	adminToken := loginAs(t, r, "superadmin", "adminPass")
 
-	w := makeRequest(t, r, http.MethodGet, "/v1/me/permissions", "", adminToken)
+	w := makeRequest(t, r, http.MethodGet, "/api/v1/me/permissions", "", adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var resp map[string]interface{}
@@ -456,7 +456,7 @@ func TestPermissionCodes_RegistryEndpoint(t *testing.T) {
 	r := setupRBACTestRouter(t, db, data)
 	adminToken := loginAs(t, r, "superadmin", "adminPass")
 
-	w := makeRequest(t, r, http.MethodGet, "/v1/admin/permissions", "", adminToken)
+	w := makeRequest(t, r, http.MethodGet, "/api/v1/admin/permissions", "", adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var resp map[string]interface{}
@@ -474,28 +474,12 @@ func createFreshDB(t *testing.T) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
 	require.NoError(t, err)
 
-	// Create non-legacy tables
+	// Create tables that the migration expects to exist
 	err = db.AutoMigrate(
-		&model.User{}, &model.Team{},
+		&model.User{}, &model.Team{}, &model.TeamMember{},
 		&model.MainItem{}, &model.SubItem{},
 		&model.ProgressRecord{}, &model.ItemPool{},
 	)
-	require.NoError(t, err)
-
-	// Create legacy team_members with role string column (pre-RBAC schema)
-	err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS team_members (
-			id         INTEGER PRIMARY KEY AUTOINCREMENT,
-			team_id    INTEGER NOT NULL,
-			user_id    INTEGER NOT NULL,
-			role       TEXT NOT NULL DEFAULT 'member',
-			role_id    INTEGER,
-			joined_at  DATETIME NOT NULL DEFAULT (datetime('now')),
-			created_at DATETIME,
-			updated_at DATETIME,
-			UNIQUE(team_id, user_id)
-		)
-	`).Error
 	require.NoError(t, err)
 	return db
 }
@@ -629,8 +613,8 @@ func setupRBACTestRouter(t *testing.T, db *gorm.DB, data *seedData) *gin.Engine 
 	statusHistoryRepo := gormrepo.NewGormStatusHistoryRepo(db)
 	statusHistorySvc := service.NewStatusHistoryService(statusHistoryRepo)
 	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo, statusHistorySvc)
-	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc, statusHistorySvc)
-	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc, statusHistorySvc)
+	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc)
+	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, poolTransactor{db: db})
 	teamSvc := service.NewTeamService(teamRepo, userRepo, mainItemRepo, teamTransactor{db: db})
 	adminSvc := service.NewAdminService(userRepo, teamRepo)
@@ -668,7 +652,7 @@ func setupRBACTestRouter(t *testing.T, db *gorm.DB, data *seedData) *gin.Engine 
 		Permission: handler.NewPermissionHandlerWithDeps(roleSvc),
 	}
 
-	return handler.SetupRouter(deps, nil)
+	return handler.SetupRouter(deps)
 }
 
 // makeRequest is a helper to make an authenticated HTTP request.
