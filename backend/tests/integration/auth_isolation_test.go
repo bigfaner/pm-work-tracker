@@ -153,7 +153,7 @@ func setupTestRouter(t *testing.T) (*gin.Engine, *seedData) {
 	statusHistoryRepo := gormrepo.NewGormStatusHistoryRepo(db)
 	statusHistorySvc := service.NewStatusHistoryService(statusHistoryRepo)
 	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo, statusHistorySvc)
-	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc)
+	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc, statusHistorySvc)
 	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, poolTransactor{db: db})
 	teamSvc := service.NewTeamService(teamRepo, userRepo, mainItemRepo, teamTransactor{db: db})

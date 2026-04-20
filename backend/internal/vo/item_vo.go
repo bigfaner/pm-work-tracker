@@ -68,6 +68,7 @@ type SubItemSummaryVO struct {
 	ID              uint    `json:"id"`
 	Title           string  `json:"title"`
 	Status          string  `json:"status"`
+	StatusName      string  `json:"statusName"`
 	Completion      float64 `json:"completion"`
 	AssigneeID      *uint   `json:"assigneeId"`
 	Priority        string  `json:"priority"`
@@ -145,10 +146,15 @@ func NewProgressRecordVO(m *model.ProgressRecord, authorName string) ProgressRec
 func NewSubItemSummaryVOs(items []*model.SubItem) []SubItemSummaryVO {
 	result := make([]SubItemSummaryVO, 0, len(items))
 	for _, si := range items {
+		statusName := ""
+		if def, ok := status.GetSubItemStatus(si.Status); ok {
+			statusName = def.Name
+		}
 		result = append(result, SubItemSummaryVO{
 			ID:              si.ID,
 			Title:           si.Title,
 			Status:          si.Status,
+			StatusName:      statusName,
 			Completion:      si.Completion,
 			AssigneeID:      si.AssigneeID,
 			Priority:        si.Priority,
