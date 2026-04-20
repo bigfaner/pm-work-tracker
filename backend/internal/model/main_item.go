@@ -16,10 +16,9 @@ type MainItem struct {
 	StartDate       *time.Time `json:"startDate"`
 	ExpectedEndDate *time.Time `gorm:"index" json:"expectedEndDate"`
 	ActualEndDate   *time.Time `json:"actualEndDate"`
-	Status          string     `gorm:"type:varchar(20);not null;default:'待开始'" json:"status"`
+	Status          string     `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
 	Completion      float64    `gorm:"default:0" json:"completion"`
 	IsKeyItem       bool       `gorm:"not null;default:false" json:"isKeyItem"`
-	DelayCount      int        `gorm:"not null;default:0" json:"delayCount"`
 	ArchivedAt      *time.Time `json:"archivedAt"`
 }
 

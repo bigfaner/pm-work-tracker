@@ -21,7 +21,6 @@ type MainItemVO struct {
 	Status          string  `json:"status"`
 	Completion      float64 `json:"completion"`
 	IsKeyItem       bool    `json:"isKeyItem"`
-	DelayCount      int     `json:"delayCount"`
 	ArchivedAt      *string `json:"archivedAt"`
 	CreatedAt       string  `json:"createdAt"`
 	UpdatedAt       string  `json:"updatedAt"`
@@ -42,7 +41,6 @@ type SubItemVO struct {
 	Status          string  `json:"status"`
 	Completion      float64 `json:"completion"`
 	IsKeyItem       bool    `json:"isKeyItem"`
-	DelayCount      int     `json:"delayCount"`
 	Weight          float64 `json:"weight"`
 	CreatedAt       string  `json:"createdAt"`
 	UpdatedAt       string  `json:"updatedAt"`
@@ -91,7 +89,6 @@ func NewMainItemVO(m *model.MainItem) MainItemVO {
 		Status:          m.Status,
 		Completion:      m.Completion,
 		IsKeyItem:       m.IsKeyItem,
-		DelayCount:      m.DelayCount,
 		ArchivedAt:      formatTimePtr(m.ArchivedAt),
 		CreatedAt:       m.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:       m.UpdatedAt.Format(time.RFC3339),
@@ -114,7 +111,6 @@ func NewSubItemVO(m *model.SubItem) SubItemVO {
 		Status:          m.Status,
 		Completion:      m.Completion,
 		IsKeyItem:       m.IsKeyItem,
-		DelayCount:      m.DelayCount,
 		Weight:          m.Weight,
 		CreatedAt:       m.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:       m.UpdatedAt.Format(time.RFC3339),

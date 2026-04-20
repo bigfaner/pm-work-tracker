@@ -133,7 +133,6 @@ func (h *MainItemHandler) Get(c *gin.Context) {
 		"status":          itemVO.Status,
 		"completion":      itemVO.Completion,
 		"isKeyItem":       itemVO.IsKeyItem,
-		"delayCount":      itemVO.DelayCount,
 		"archivedAt":      itemVO.ArchivedAt,
 		"createdAt":       itemVO.CreatedAt,
 		"updatedAt":       itemVO.UpdatedAt,
