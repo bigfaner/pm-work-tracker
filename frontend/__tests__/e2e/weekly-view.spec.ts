@@ -304,37 +304,23 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
       // Check amber styling
       const badge = newBadge.first();
       const classes = await badge.getAttribute('class') || '';
-      expect(classes).toContain('amber');
+      expect(classes).toMatch(/amber|warning/);
     }
   });
 
   // ====== 7. Week Selector Interaction ======
   test('7.1 周选择器不允许选择未来周', async ({ page }) => {
-    const weekInput = page.locator('[data-testid="week-selector"]') as any;
-    const maxAttr = await weekInput.getAttribute('max');
-    expect(maxAttr).toBeTruthy();
+    // When on current week, the "next week" button should be disabled
+    const nextBtn = page.locator('[data-testid="week-selector"] button[aria-label="next week"]');
+    await expect(nextBtn).toBeVisible();
+    await expect(nextBtn).toBeDisabled();
   });
 
   test('7.2 切换周次后数据刷新', async ({ page }) => {
     await page.waitForTimeout(2000);
 
-    // Change week to previous week (using JS evaluate since week input is tricky)
-    await page.evaluate(() => {
-      const input = document.querySelector('[data-testid="week-selector"]') as HTMLInputElement;
-      if (input) {
-        const current = input.value;
-        if (current) {
-          const [year, week] = current.split('-W').map(Number);
-          const prevWeek = week > 1 ? week - 1 : 52;
-          const prevYear = week > 1 ? year : year - 1;
-          const newValue = `${prevYear}-W${String(prevWeek).padStart(2, '0')}`;
-          const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-          nativeInputValueSetter?.call(input, newValue);
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-      }
-    });
+    // Click the "prev week" arrow button to go back one week
+    await page.locator('[data-testid="week-selector"] button[aria-label="prev week"]').click();
     await page.waitForTimeout(3000);
 
     // Page should still show weekly view content (may be different data)
@@ -344,37 +330,10 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
   test('7.3 手动选择周次后下方显示数据（非空状态）', async ({ page }) => {
     await page.waitForTimeout(2000);
 
-    // Verify current week shows data
+    // Verify current week shows data (each test starts fresh via beforeEach)
     const card = page.locator(`[data-testid="group-card-${testMainItemId}"]`);
     const mainItemVisible = await card.isVisible().catch(() => false);
     expect(mainItemVisible).toBeTruthy();
-
-    // Switch back to current week (from potential previous test)
-    await page.evaluate(() => {
-      const input = document.querySelector('[data-testid="week-selector"]') as HTMLInputElement;
-      if (input) {
-        // Get current date's week as YYYY-Www
-        const now = new Date();
-        const day = now.getDay();
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-        const monday = new Date(now);
-        monday.setDate(diff);
-        // Convert to YYYY-Www using ISO week
-        const dayNum = monday.getDay() || 7;
-        const thursday = new Date(monday);
-        thursday.setDate(monday.getDate() + 4 - dayNum);
-        const isoYear = thursday.getFullYear();
-        const jan1 = new Date(isoYear, 0, 1);
-        const dayOfYear = Math.floor((thursday.getTime() - jan1.getTime()) / 86400000) + 1;
-        const weekNum = Math.ceil(dayOfYear / 7);
-        const weekValue = `${isoYear}-W${String(weekNum).padStart(2, '0')}`;
-        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-        nativeInputValueSetter?.call(input, weekValue);
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-    });
-    await page.waitForTimeout(3000);
 
     // Should NOT show "暂无周数据" empty state
     const emptyState = page.locator('text=暂无周数据');

@@ -170,7 +170,7 @@ describe('ItemViewPage', () => {
 
   it('renders create button', async () => {
     renderPage()
-    expect(screen.getByText('创建主事项')).toBeInTheDocument()
+    expect(screen.getByText('新增主事项')).toBeInTheDocument()
   })
 
   // --- Summary view (default) ---
@@ -302,7 +302,7 @@ describe('ItemViewPage', () => {
       expect(screen.getByText('Alpha Task')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByText('创建主事项'))
+    await user.click(screen.getByText('新增主事项'))
 
     await waitFor(() => {
       expect(screen.getByText('新建主事项')).toBeInTheDocument()

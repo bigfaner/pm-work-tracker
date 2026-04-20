@@ -9,6 +9,12 @@ import { useTeamStore } from '@/store/team'
 import WeeklyViewPage from './WeeklyViewPage'
 import type { WeeklyViewResponse } from '@/types'
 
+// Fix current week to a known date for deterministic tests
+vi.mock('@/utils/weekUtils', async (importOriginal) => {
+  const actual = await importOriginal() as typeof import('@/utils/weekUtils')
+  return { ...actual, getCurrentWeekStart: () => '2026-04-20' }
+})
+
 // MSW lifecycle
 beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
 afterEach(() => server.resetHandlers())
@@ -234,7 +240,7 @@ describe('WeeklyViewPage', () => {
     expect(screen.getByText('每周进展')).toBeInTheDocument()
   })
 
-  it('renders week selector input', async () => {
+  it('renders week selector (WeekPicker)', async () => {
     renderPage()
     expect(screen.getByTestId('week-selector')).toBeInTheDocument()
   })
@@ -340,7 +346,7 @@ describe('WeeklyViewPage', () => {
     renderPage()
     await waitFor(() => {
       expect(screen.getByText('58%')).toBeInTheDocument()
-      expect(screen.getByText('80%')).toBeInTheDocument()
+      expect(screen.getAllByText('80%').length).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -501,10 +507,50 @@ describe('WeeklyViewPage', () => {
 
   // --- Week selector ---
 
-  it('prevents selecting future weeks', async () => {
+  it('prevents selecting future weeks (next button disabled at max)', async () => {
     renderPage()
-    const weekInput = screen.getByTestId('week-selector') as HTMLInputElement
-    expect(weekInput.max).toBeTruthy()
+    await waitFor(() => {
+      expect(screen.getByText('每周进展')).toBeInTheDocument()
+    })
+    const nextBtn = screen.getByLabelText('next week')
+    expect(nextBtn).toBeDisabled()
+  })
+
+  // --- Completion percentage in sub-item rows (F7) ---
+
+  it('shows completion percentage after title in sub-item row', async () => {
+    renderPage()
+    await waitFor(() => {
+      // lastWeek item 10 has completion 40
+      expect(screen.getAllByText('40%').length).toBeGreaterThanOrEqual(1)
+    })
+  })
+
+  it('applies text-secondary style when completion < 100', async () => {
+    renderPage()
+    await waitFor(() => {
+      const pcts = screen.getAllByText('40%')
+      expect(pcts[0]).toHaveClass('text-secondary')
+      expect(pcts[0]).toHaveClass('font-semibold')
+    })
+  })
+
+  it('applies text-success-text style when completion = 100', async () => {
+    renderPage()
+    await waitFor(() => {
+      // thisWeek item 20 (数据看板前端) has completion 100
+      const pcts = screen.getAllByText('100%')
+      expect(pcts[0]).toHaveClass('text-success-text')
+      expect(pcts[0]).toHaveClass('font-semibold')
+    })
+  })
+
+  it('always shows completion percentage regardless of delta', async () => {
+    renderPage()
+    await waitFor(() => {
+      // item 15 (OAuth2) has completion 0, isNew=true — still shows 0%
+      expect(screen.getAllByText('0%').length).toBeGreaterThanOrEqual(1)
+    })
   })
 
   // --- No antd imports ---
@@ -534,9 +580,9 @@ describe('WeeklyViewPage', () => {
   })
 
 
-  // --- Week selector change produces correct Monday ---
+  // --- Week selector change ---
 
-  it('week selector change sends correct Monday date to API', async () => {
+  it('prev week button navigates to previous week and refetches', async () => {
     const user = userEvent.setup()
     const requests: string[] = []
     server.use(
@@ -553,17 +599,12 @@ describe('WeeklyViewPage', () => {
     })
     requests.length = 0
 
-    // Simulate selecting week 15 of 2026
-    const weekInput = screen.getByTestId('week-selector') as HTMLInputElement
-    const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set!
-    nativeSetter.call(weekInput, '2026-W15')
-    weekInput.dispatchEvent(new Event('input', { bubbles: true }))
-    weekInput.dispatchEvent(new Event('change', { bubbles: true }))
+    await user.click(screen.getByLabelText('prev week'))
 
     await waitFor(() => {
       expect(requests.length).toBeGreaterThanOrEqual(1)
     })
-    // ISO W15 of 2026 starts Monday April 6
-    expect(requests[requests.length - 1]).toBe('2026-04-06')
+    // Should be one week before getCurrentWeekStart (2026-04-20) = 2026-04-13
+    expect(requests[requests.length - 1]).toBe('2026-04-13')
   })
 })

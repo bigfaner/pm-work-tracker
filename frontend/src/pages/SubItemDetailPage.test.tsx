@@ -179,13 +179,10 @@ describe('SubItemDetailPage', () => {
   it('renders info card fields', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText('编号')).toBeInTheDocument()
       expect(screen.getByText('所属主事项')).toBeInTheDocument()
-      expect(screen.getByText('优先级')).toBeInTheDocument()
       expect(screen.getByText('负责人')).toBeInTheDocument()
-      expect(screen.getByText('状态')).toBeInTheDocument()
       expect(screen.getByText('预期完成时间')).toBeInTheDocument()
-      expect(screen.getByText('当前完成度')).toBeInTheDocument()
+      expect(screen.getByText('总进度')).toBeInTheDocument()
     })
   })
 
@@ -193,6 +190,16 @@ describe('SubItemDetailPage', () => {
     renderPage()
     await waitFor(() => {
       expect(screen.getByText('SI-001-12')).toBeInTheDocument()
+    })
+  })
+
+  it('renders sub item code as Badge component (rounded-full, not plain rounded)', async () => {
+    renderPage()
+    await waitFor(() => {
+      const codeEl = screen.getByText('SI-001-12')
+      expect(codeEl.className).toContain('font-mono')
+      expect(codeEl.className).toContain('rounded-full')
+      expect(codeEl.className).not.toContain('px-1.5')
     })
   })
 
@@ -237,6 +244,17 @@ describe('SubItemDetailPage', () => {
     renderPage()
     await waitFor(() => {
       expect(screen.getByText('进度记录')).toBeInTheDocument()
+    })
+  })
+
+  it('append button is in progress card header, not title bar', async () => {
+    renderPage()
+    await waitFor(() => {
+      const btn = screen.getByRole('button', { name: '追加进度' })
+      const h1 = screen.getByRole('heading', { name: 'Sub Alpha 2' })
+      expect(h1.parentElement).not.toContainElement(btn)
+      const progressHeading = screen.getByText('进度记录')
+      expect(progressHeading.parentElement).toContainElement(btn)
     })
   })
 

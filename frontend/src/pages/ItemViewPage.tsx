@@ -1,13 +1,14 @@
 import { useState, useCallback, useRef, useEffect, useMemo, Fragment } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Pencil, Plus } from 'lucide-react'
 import { useTeamStore } from '@/store/team'
 import { PermissionGuard } from '@/components/PermissionGuard'
 import { listMainItemsApi, createMainItemApi, updateMainItemApi } from '@/api/mainItems'
 import { listSubItemsApi, createSubItemApi } from '@/api/subItems'
 import { appendProgressApi } from '@/api/progress'
 import { listMembersApi } from '@/api/teams'
-import type { MainItem, SubItem } from '@/types'
+import { MainItem, SubItem } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -217,7 +218,7 @@ export default function ItemViewPage() {
   const appendMutation = useMutation({
     mutationFn: (req: { subItemId: number; data: { completion: number; achievement?: string; blocker?: string } }) =>
       appendProgressApi(teamId!, req.subItemId, req.data),
-    onSuccess: (_, req) => {
+    onSuccess: () => {
       // Invalidate sub-items for the parent main item
       fetchedRef.current.forEach((id) => {
         qc.invalidateQueries({ queryKey: ['subItems', teamId, id] })
@@ -393,7 +394,7 @@ export default function ItemViewPage() {
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            创建主事项
+            新增主事项
           </Button>
         </PermissionGuard>
       </div>
@@ -404,10 +405,10 @@ export default function ItemViewPage() {
           placeholder="搜索标题或编号..."
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          className="w-[360px]"
+          className="w-90"
         />
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v === '_all' ? '' : v)}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-35">
             <SelectValue placeholder="状态：全部" />
           </SelectTrigger>
           <SelectContent>
@@ -418,7 +419,7 @@ export default function ItemViewPage() {
           </SelectContent>
         </Select>
         <Select value={assigneeFilter} onValueChange={(v) => setAssigneeFilter(v === '_all' ? '' : v)}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-35">
             <SelectValue placeholder="负责人：全部" />
           </SelectTrigger>
           <SelectContent>
@@ -800,7 +801,7 @@ function SummaryView({
             <div className="flex items-center gap-3 px-5 py-4">
               {/* Expand chevron */}
               <svg
-                className={`w-4 h-4 flex-shrink-0 text-tertiary transition-transform ${
+                className={`w-4 h-4 shrink-0 text-tertiary transition-transform ${
                   expandedCards.has(item.id) ? 'rotate-90' : ''
                 }`}
                 fill="none"
@@ -823,7 +824,7 @@ function SummaryView({
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <Link
                   to={`/items/${item.id}`}
-                  className="text-sm font-medium text-primary hover:text-primary-600 truncate"
+                  className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline truncate"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {item.title}
@@ -841,7 +842,7 @@ function SummaryView({
               </span>
 
               {/* Progress */}
-              <div className="w-[112px] flex-shrink-0">
+              <div className="w-28 shrink-0">
                 <ProgressBar value={item.completion} size="sm" showPercentage />
               </div>
 
@@ -850,8 +851,8 @@ function SummaryView({
 
               {/* Actions */}
               <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" size="sm" onClick={() => onEditMainItem(item)}>编辑</Button>
-                <Button variant="ghost" size="sm" onClick={() => onAddSubItem(item.id, item.title)}>新增子事项</Button>
+                <Button variant="ghost" size="sm" onClick={() => onEditMainItem(item)}><Pencil size={14} />编辑</Button>
+                <Button variant="ghost" size="sm" onClick={() => onAddSubItem(item.id, item.title)}><Plus size={14} />新增子事项</Button>
               </div>
             </div>
 
@@ -875,7 +876,7 @@ function SummaryView({
                     <PriorityBadge priority={sub.priority} className="text-[10px]" />
                     <Link
                       to={`/items/${item.id}/sub/${sub.id}`}
-                      className="text-[13px] text-primary-600 hover:text-primary-700"
+                      className="text-[13px] font-medium text-primary-600 hover:text-primary-700 hover:underline"
                     >
                       {sub.title}
                     </Link>
@@ -887,12 +888,12 @@ function SummaryView({
                     <span className="ml-auto text-[13px] text-secondary">
                       {memberName(sub.assigneeId)}
                     </span>
-                    <div className="w-[80px]">
+                    <div className="w-20">
                       <ProgressBar value={sub.completion} size="sm" />
                     </div>
                     <StatusBadge status={sub.status} />
                     <PermissionGuard code="progress:update">
-                      <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5" onClick={() => onAppendProgress(sub.id, sub.title)}>追加进度</Button>
+                      <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5" onClick={() => onAppendProgress(sub.id, sub.title)}><Plus size={12} />追加进度</Button>
                     </PermissionGuard>
                   </div>
                 ))}
@@ -986,7 +987,7 @@ function DetailView({
                       <PriorityBadge priority={item.priority} />
                     </TableCell>
                     <TableCell>
-                      <Link to={`/items/${item.id}`} className="font-medium text-primary hover:text-primary-600">
+                      <Link to={`/items/${item.id}`} className="font-medium text-primary-600 hover:text-primary-700 hover:underline">
                         {item.title}
                       </Link>
                     </TableCell>
@@ -1002,8 +1003,8 @@ function DetailView({
                     <TableCell className="text-xs">{formatDate(item.actualEndDate)}</TableCell>
                     <TableCell>
                       <div className="flex gap-1 whitespace-nowrap">
-                        <Button variant="ghost" size="sm" onClick={() => onEditMainItem(item)}>编辑</Button>
-                        <Button variant="ghost" size="sm" onClick={() => onAddSubItem(item.id, item.title)}>添加子事项</Button>
+                        <Link to={`/items/${item.id}`}><Button variant="ghost" size="sm"><Pencil size={14} />编辑</Button></Link>
+                        <Button variant="ghost" size="sm" onClick={() => onAddSubItem(item.id, item.title)}><Plus size={14} />添加子事项</Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1016,7 +1017,7 @@ function DetailView({
                         <PriorityBadge priority={sub.priority} />
                       </TableCell>
                       <TableCell>
-                        <Link to={`/items/${item.id}/sub/${sub.id}`} className="font-medium text-primary hover:text-primary-600 ml-4">
+                        <Link to={`/items/${item.id}/sub/${sub.id}`} className="font-medium text-primary-600 hover:text-primary-700 hover:underline ml-4">
                           {sub.title}
                         </Link>
                       </TableCell>
@@ -1033,7 +1034,7 @@ function DetailView({
                       <TableCell>
                         <div className="flex gap-1 whitespace-nowrap">
                           <PermissionGuard code="progress:update">
-                            <Button variant="ghost" size="sm" onClick={() => onAppendProgress(sub.id, sub.title)}>追加进度</Button>
+                            <Button variant="ghost" size="sm" onClick={() => onAppendProgress(sub.id, sub.title)}><Plus size={14} />追加进度</Button>
                           </PermissionGuard>
                         </div>
                       </TableCell>

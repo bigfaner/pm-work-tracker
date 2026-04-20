@@ -214,7 +214,7 @@ export default function MainItemDetailPage() {
           {/* Info Grid */}
           <Card className="mb-5">
             <CardContent>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-4 gap-4 mb-4">
                 <div>
                   <div className="text-xs text-tertiary mb-1">负责人</div>
                   <div className="flex items-center gap-2">
@@ -234,6 +234,10 @@ export default function MainItemDetailPage() {
                   <div className="text-xs text-tertiary mb-1">实际完成时间</div>
                   <span className="text-[13px] text-tertiary">{formatDate(item.actualEndDate)}</span>
                 </div>
+              </div>
+              <div>
+                <div className="text-xs text-tertiary mb-1">描述</div>
+                <span className="text-[13px] text-secondary leading-relaxed">{item.description || '暂无描述'}</span>
               </div>
             </CardContent>
           </Card>
@@ -333,7 +337,7 @@ export default function MainItemDetailPage() {
                         <TableCell>
                           <Link
                             to={`/items/${item.id}/sub/${sub.id}`}
-                            className="text-[13px] font-medium text-primary hover:text-primary-600"
+                            className="text-[13px] font-medium text-primary-600 hover:text-primary-700 hover:underline"
                           >
                             {sub.title}
                           </Link>

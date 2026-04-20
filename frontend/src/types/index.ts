@@ -98,6 +98,7 @@ export interface MainItem {
   teamId: number
   code: string
   title: string
+  description?: string
   priority: string
   proposerId: number
   assigneeId: number | null

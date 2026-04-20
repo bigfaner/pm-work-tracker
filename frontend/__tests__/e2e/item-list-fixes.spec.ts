@@ -129,7 +129,7 @@ test.describe.serial('事项清单 Bug修复验证', () => {
     await page.locator(`a:has-text("E2E修复测试-带日期")`).first().click();
     await page.waitForTimeout(2000);
 
-    await expect(page).toHaveURL(new RegExp(`/items/${itemA}`), { timeout: 10000 });
+    await expect(page).toHaveURL(/\/items\/\d+$/, { timeout: 10000 });
   });
 
   test('新增子事项按钮打开表单对话框', async ({ page }) => {

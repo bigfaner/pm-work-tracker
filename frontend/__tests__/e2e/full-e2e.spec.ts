@@ -434,30 +434,15 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
     });
 
     test('15.13 admin list users', async () => {
-      // Re-login to avoid token invalidation from parallel workers
-      const loginRes = await fetch(`${API}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'admin', password: 'admin123' }),
-      });
-      const loginJson = await loginRes.json();
-      const freshToken = loginJson.data?.token || loginJson.token;
       const res = await fetch(`${API}/admin/users`, {
-        headers: { 'Authorization': `Bearer ${freshToken}` },
+        headers: { 'Authorization': `Bearer ${authToken}` },
       });
       expect(res.status).toBe(200);
     });
 
     test('15.14 admin list teams', async () => {
-      const loginRes = await fetch(`${API}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'admin', password: 'admin123' }),
-      });
-      const loginJson = await loginRes.json();
-      const freshToken = loginJson.data?.token || loginJson.token;
       const res = await fetch(`${API}/admin/teams`, {
-        headers: { 'Authorization': `Bearer ${freshToken}` },
+        headers: { 'Authorization': `Bearer ${authToken}` },
       });
       expect(res.status).toBe(200);
     });
