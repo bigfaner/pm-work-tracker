@@ -76,8 +76,8 @@ const seedMembers = [
 ]
 
 const seedMainItems = [
-  { id: 1, teamId: 1, code: 'MI-001', title: '用户认证模块开发', priority: 'P1', status: '进行中' },
-  { id: 2, teamId: 1, code: 'MI-002', title: '数据看板设计', priority: 'P2', status: '未开始' },
+  { id: 1, teamId: 1, code: 'MI-001', title: '用户认证模块开发', priority: 'P1', status: 'progressing' },
+  { id: 2, teamId: 1, code: 'MI-002', title: '数据看板设计', priority: 'P2', status: 'pending' },
 ]
 
 function setupHandlers() {

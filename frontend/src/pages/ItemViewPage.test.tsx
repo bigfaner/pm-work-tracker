@@ -39,20 +39,20 @@ const seedMainItems = [
   {
     id: 1, teamId: 1, code: 'MI-0001', title: 'Alpha Task', priority: 'P1',
     proposerId: 1, assigneeId: 1, startDate: '2026-04-01', expectedEndDate: '2026-04-15',
-    actualEndDate: null, status: '进行中', completion: 65, isKeyItem: false,
+    actualEndDate: null, status: 'progressing', completion: 65, isKeyItem: false,
     delayCount: 0, archivedAt: null,
     createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-01T00:00:00Z',
     subItems: [
       {
         id: 11, teamId: 1, mainItemId: 1, title: 'Sub Alpha 1', description: '',
         priority: 'P1', assigneeId: 2, startDate: '2026-04-01', expectedEndDate: '2026-04-10',
-        actualEndDate: '2026-04-09', status: '已完成', completion: 100, isKeyItem: false,
+        actualEndDate: '2026-04-09', status: 'completed', completion: 100, isKeyItem: false,
         delayCount: 0, weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-09T00:00:00Z',
       },
       {
         id: 12, teamId: 1, mainItemId: 1, title: 'Sub Alpha 2', description: '',
         priority: 'P2', assigneeId: 3, startDate: '2026-04-08', expectedEndDate: '2026-04-18',
-        actualEndDate: null, status: '进行中', completion: 80, isKeyItem: false,
+        actualEndDate: null, status: 'progressing', completion: 80, isKeyItem: false,
         delayCount: 0, weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-08T00:00:00Z',
       },
     ],
@@ -60,7 +60,7 @@ const seedMainItems = [
   {
     id: 2, teamId: 1, code: 'MI-0002', title: 'Beta Task', priority: 'P2',
     proposerId: 1, assigneeId: 2, startDate: '2026-04-15', expectedEndDate: '2026-04-25',
-    actualEndDate: null, status: '进行中', completion: 40, isKeyItem: false,
+    actualEndDate: null, status: 'progressing', completion: 40, isKeyItem: false,
     delayCount: 0, archivedAt: null,
     createdAt: '2026-04-15T00:00:00Z', updatedAt: '2026-04-15T00:00:00Z',
     subItems: [],
@@ -68,7 +68,7 @@ const seedMainItems = [
   {
     id: 3, teamId: 1, code: 'MI-0003', title: 'Gamma Task', priority: 'P3',
     proposerId: 1, assigneeId: 3, startDate: '2026-04-05', expectedEndDate: '2026-04-12',
-    actualEndDate: '2026-04-12', status: '已完成', completion: 100, isKeyItem: false,
+    actualEndDate: '2026-04-12', status: 'completed', completion: 100, isKeyItem: false,
     delayCount: 0, archivedAt: null,
     createdAt: '2026-04-05T00:00:00Z', updatedAt: '2026-04-12T00:00:00Z',
     subItems: [],
@@ -121,7 +121,7 @@ function setupHandlers() {
         data: {
           id: 100, teamId: 1, code: 'MI-0100', priority: 'P2', proposerId: 1,
           assigneeId: null, startDate: null, expectedEndDate: null, actualEndDate: null,
-          status: '未开始', completion: 0, isKeyItem: false, delayCount: 0, archivedAt: null,
+          status: 'pending', completion: 0, isKeyItem: false, delayCount: 0, archivedAt: null,
           createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
           ...body,
         },
@@ -136,7 +136,7 @@ function setupHandlers() {
         data: {
           id: 200, teamId: 1, mainItemId: Number(body.main_item_id), description: '',
           priority: 'P2', assigneeId: null, startDate: null, expectedEndDate: null, actualEndDate: null,
-          status: '未开始', completion: 0, isKeyItem: false, delayCount: 0, weight: 1,
+          status: 'pending', completion: 0, isKeyItem: false, delayCount: 0, weight: 1,
           createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
           ...body,
         },

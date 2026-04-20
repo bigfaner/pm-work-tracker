@@ -60,7 +60,7 @@ function formatDateInput(d: Date): string {
 function getBarClass(item: { isOverdue?: boolean; status: string; startDate: string | null }): string {
   if (!item.startDate) return 'no-data'
   if (item.isOverdue) return 'overdue'
-  if (item.status === '已完成') return 'completed'
+  if (item.status === 'completed') return 'completed'
   return ''
 }
 

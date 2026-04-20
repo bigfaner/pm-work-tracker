@@ -34,7 +34,7 @@ export function makeMainItem(overrides: Partial<MainItem> = {}): MainItem {
     startDate: null,
     expectedEndDate: null,
     actualEndDate: null,
-    status: '进行中',
+    status: 'progressing',
     completion: 50,
     isKeyItem: false,
     delayCount: 0,
@@ -98,9 +98,9 @@ export const handlers = [
     const archived = url.searchParams.get('archived')
 
     let items = [
-      makeMainItem({ id: 1, code: 'MI-0001', title: 'Alpha', priority: 'P1', status: '进行中', completion: 50 }),
-      makeMainItem({ id: 2, code: 'MI-0002', title: 'Beta', priority: 'P2', status: '未开始', completion: 0 }),
-      makeMainItem({ id: 3, code: 'MI-0003', title: 'Gamma', priority: 'P3', status: '已完成', completion: 100 }),
+      makeMainItem({ id: 1, code: 'MI-0001', title: 'Alpha', priority: 'P1', status: 'progressing', completion: 50 }),
+      makeMainItem({ id: 2, code: 'MI-0002', title: 'Beta', priority: 'P2', status: 'pending', completion: 0 }),
+      makeMainItem({ id: 3, code: 'MI-0003', title: 'Gamma', priority: 'P3', status: 'completed', completion: 100 }),
     ]
 
     if (priority) {
