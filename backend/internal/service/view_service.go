@@ -264,13 +264,10 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 		group := dto.WeeklyComparisonGroup{
 			MainItem: dto.WeeklyMainItemSummary{
 				ID:              mi.ID,
-				Code:            mi.Code,
 				Title:           mi.Title,
 				Priority:        mi.Priority,
-				Status:          mi.Status,
 				StartDate:       formatDate(mi.StartDate),
 				ExpectedEndDate: formatDate(mi.ExpectedEndDate),
-				ActualEndDate:   formatDatePtr(mi.ActualEndDate),
 				Completion:      mi.Completion,
 				SubItemCount:    len(subs),
 			},
@@ -311,9 +308,7 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 				Priority:            si.Priority,
 				Status:              si.Status,
 				AssigneeName:        assigneeName,
-				StartDate:           formatDate(si.StartDate),
 				ExpectedEndDate:     formatDate(si.ExpectedEndDate),
-				ActualEndDate:       formatDatePtr(si.ActualEndDate),
 				Completion:          si.Completion,
 				ProgressDescription: latestProgressDesc[si.ID],
 			}
@@ -353,11 +348,9 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 						ID:              si.ID,
 						Title:           si.Title,
 						Priority:        si.Priority,
-						Status:          si.Status,
+						Status:          si.Status, // We don't have historical status, use current
 						AssigneeName:    assigneeName,
-						StartDate:       formatDate(si.StartDate),
 						ExpectedEndDate: formatDate(si.ExpectedEndDate),
-						ActualEndDate:   formatDatePtr(si.ActualEndDate),
 						Completion:      lastComp,
 					}
 					group.LastWeek = append(group.LastWeek, lastSnapshot)
@@ -365,13 +358,8 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 			}
 
 			// Completed items with no change this week -> completedNoChange
-			// Only include if the sub-item existed during this week AND was completed at or before this week.
 			if si.Status == "completed" && !isJustCompleted {
-				completedBeforeOrDuringWeek := si.ActualEndDate == nil || !si.ActualEndDate.After(weekEnd)
-				existedDuringWeek := si.CreatedAt.Before(weekEnd.AddDate(0, 0, 1))
-				if completedBeforeOrDuringWeek && existedDuringWeek {
-					group.CompletedNoChange = append(group.CompletedNoChange, snapshot)
-				}
+				group.CompletedNoChange = append(group.CompletedNoChange, snapshot)
 				continue
 			}
 
@@ -675,7 +663,7 @@ func (s *viewService) TableExportCSV(ctx context.Context, teamID uint, filter dt
 
 	writer := csv.NewWriter(&buf)
 	// Header
-	header := []string{"编号", "标题", "类型", "优先级", "负责人", "状态", "完成度", "预期完成时间", "结束时间"}
+	header := []string{"编号", "标题", "类型", "优先级", "负责人", "状态", "完成度", "预期完成时间", "实际完成时间"}
 	if err := writer.Write(header); err != nil {
 		return nil, err
 	}

@@ -156,12 +156,12 @@ func TestSubmitItemPool_Success(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "Test User"}}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Test Pool Item","background":"some bg","expectedOutput":"some output"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/item-pool", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -191,12 +191,12 @@ func TestSubmitItemPool_MemberCanSubmit(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "Member"}}
 
 	deps := depsWithItemPoolMemberRole(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Member Pool Item"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/item-pool", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -210,12 +210,12 @@ func TestSubmitItemPool_MissingTitle(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"background":"no title"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/item-pool", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -231,12 +231,12 @@ func TestSubmitItemPool_ServiceError(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Test"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/item-pool", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -260,11 +260,11 @@ func TestListItemPool_Success(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/item-pool?page=1&pageSize=20", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool?page=1&pageSize=20", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -288,11 +288,11 @@ func TestListItemPool_WithStatusFilter(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/item-pool?status=pending&page=1&pageSize=10", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool?status=pending&page=1&pageSize=10", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -309,11 +309,11 @@ func TestListItemPool_ServiceError(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/item-pool", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -335,11 +335,11 @@ func TestGetItemPool_Success(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "Submitter"}}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/item-pool/5", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool/5", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -362,11 +362,11 @@ func TestGetItemPool_InvalidPoolID(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/item-pool/abc", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool/abc", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -381,11 +381,11 @@ func TestGetItemPool_NotFound(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/item-pool/999", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool/999", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -423,12 +423,12 @@ func TestAssignItemPool_Success(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "Submitter"}}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"mainItemId":1,"assigneeId":3,"startDate":"2026-01-01","expectedEndDate":"2026-02-01"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -456,12 +456,12 @@ func TestAssignItemPool_RequiresPM(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolMemberRole(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"mainItemId":1,"assigneeId":3,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -475,12 +475,12 @@ func TestAssignItemPool_InvalidPoolID(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"mainItemId":1,"assigneeId":3,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/item-pool/abc/assign", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/abc/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -494,12 +494,12 @@ func TestAssignItemPool_MissingRequiredFields(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -515,12 +515,12 @@ func TestAssignItemPool_AlreadyProcessed(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"mainItemId":1,"assigneeId":3,"startDate":"2026-01-01","expectedEndDate":"2026-02-01"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -555,12 +555,12 @@ func TestAssignItemPool_SuperAdminBypass(t *testing.T) {
 
 	// Use member-role team, but superadmin token
 	deps := depsWithItemPoolMemberRole(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 1, "admin")
 	body := `{"mainItemId":1,"assigneeId":3,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -590,12 +590,12 @@ func TestRejectItemPool_Success(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "Submitter"}}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"reason":"Not enough priority"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/item-pool/5/reject", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/reject", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -611,12 +611,12 @@ func TestRejectItemPool_RequiresPM(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolMemberRole(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"reason":"some reason"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/item-pool/5/reject", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/reject", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -630,12 +630,12 @@ func TestRejectItemPool_InvalidPoolID(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"reason":"some reason"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/item-pool/abc/reject", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/abc/reject", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -649,12 +649,12 @@ func TestRejectItemPool_ReasonRequired(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/item-pool/5/reject", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/reject", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -670,12 +670,12 @@ func TestRejectItemPool_AlreadyProcessed(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"reason":"some reason"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/item-pool/5/reject", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/reject", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -721,11 +721,11 @@ func TestGetItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "王五"}}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/item-pool/50", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool/50", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -767,12 +767,12 @@ func TestSubmitItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "王五"}}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"优化首页加载速度","background":"用户反馈首页加载超过 3 秒","expectedOutput":"首页 LCP < 1.5 秒"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/item-pool", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -819,12 +819,12 @@ func TestAssignItemPool_ReturnsSubItemId(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "Submitter"}}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
+	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
 	body := fmt.Sprintf(`{"mainItemId":%d,"assigneeId":%d,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, assignedMainID, assigneeID)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
