@@ -240,6 +240,17 @@ describe('SubItemDetailPage', () => {
     })
   })
 
+  it('append button is in progress card header, not title bar', async () => {
+    renderPage()
+    await waitFor(() => {
+      const btn = screen.getByRole('button', { name: '追加进度' })
+      const h1 = screen.getByRole('heading', { name: 'Sub Alpha 2' })
+      expect(h1.parentElement).not.toContainElement(btn)
+      const progressHeading = screen.getByText('进度记录')
+      expect(progressHeading.parentElement).toContainElement(btn)
+    })
+  })
+
   it('renders timeline entries in reverse chronological order', async () => {
     renderPage()
     await waitFor(() => {

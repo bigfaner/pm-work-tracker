@@ -79,7 +79,7 @@
       "title": "F6: 「追加进度」按钮移至进度记录卡片",
       "priority": "P1",
       "estimatedTime": "0.5h",
-      "status": "pending",
+      "status": "completed",
       "file": "2.6-move-append-btn.md",
       "record": "records/2.6-move-append-btn.md"
     },
