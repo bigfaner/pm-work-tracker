@@ -15,6 +15,7 @@ export function WeekPicker({ weekStart, onChange, maxWeek, className }: WeekPick
 
   return (
     <div
+      data-testid="week-selector"
       className={cn(
         'inline-flex items-center gap-1 h-8 rounded-md border border-border bg-white px-2',
         className
