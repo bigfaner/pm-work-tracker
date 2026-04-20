@@ -7,7 +7,7 @@ import { listMainItemsApi, createMainItemApi, updateMainItemApi } from '@/api/ma
 import { listSubItemsApi, createSubItemApi } from '@/api/subItems'
 import { appendProgressApi } from '@/api/progress'
 import { listMembersApi } from '@/api/teams'
-import type { MainItem, SubItem } from '@/types'
+import { MainItem, SubItem } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -217,7 +217,7 @@ export default function ItemViewPage() {
   const appendMutation = useMutation({
     mutationFn: (req: { subItemId: number; data: { completion: number; achievement?: string; blocker?: string } }) =>
       appendProgressApi(teamId!, req.subItemId, req.data),
-    onSuccess: (_, req) => {
+    onSuccess: () => {
       // Invalidate sub-items for the parent main item
       fetchedRef.current.forEach((id) => {
         qc.invalidateQueries({ queryKey: ['subItems', teamId, id] })
@@ -393,7 +393,7 @@ export default function ItemViewPage() {
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            创建主事项
+            新增主事项
           </Button>
         </PermissionGuard>
       </div>
