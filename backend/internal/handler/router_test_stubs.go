@@ -91,8 +91,8 @@ func (s *StubSubItemSvc) Create(_ context.Context, _, _ uint, _ dto.SubItemCreat
 func (s *StubSubItemSvc) Update(_ context.Context, _, _ uint, _ dto.SubItemUpdateReq) error {
 	return fmt.Errorf("stub: not implemented")
 }
-func (s *StubSubItemSvc) ChangeStatus(_ context.Context, _, _, _ uint, _ string) error {
-	return fmt.Errorf("stub: not implemented")
+func (s *StubSubItemSvc) ChangeStatus(_ context.Context, _, _, _ uint, _ string) (*service.SubItemChangeResult, error) {
+	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubSubItemSvc) Get(_ context.Context, _, _ uint) (*model.SubItem, error) {
 	return nil, fmt.Errorf("stub: not implemented")
@@ -102,6 +102,9 @@ func (s *StubSubItemSvc) List(_ context.Context, _ uint, _ *uint, _ dto.SubItemF
 }
 func (s *StubSubItemSvc) Assign(_ context.Context, _, _, _, _ uint) error {
 	return fmt.Errorf("stub: not implemented")
+}
+func (s *StubSubItemSvc) AvailableTransitions(_ context.Context, _, _ uint) ([]string, error) {
+	return nil, fmt.Errorf("stub: not implemented")
 }
 
 var _ service.SubItemService = (*StubSubItemSvc)(nil)

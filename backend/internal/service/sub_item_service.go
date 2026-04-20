@@ -8,38 +8,36 @@ import (
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg/dates"
+	"pm-work-tracker/backend/internal/pkg/status"
 	"pm-work-tracker/backend/internal/repository"
 )
+
+// SubItemChangeResult holds the result of a sub-item status change.
+type SubItemChangeResult struct {
+	SubItem       *model.SubItem
+	LinkageResult interface{} // nil in this task; linkage added in 2.1
+}
 
 // SubItemService defines business operations for SubItem.
 type SubItemService interface {
 	Create(ctx context.Context, teamID, callerID uint, req dto.SubItemCreateReq) (*model.SubItem, error)
 	Update(ctx context.Context, teamID, itemID uint, req dto.SubItemUpdateReq) error
-	ChangeStatus(ctx context.Context, teamID, callerID, itemID uint, newStatus string) error
+	ChangeStatus(ctx context.Context, teamID, callerID, itemID uint, newStatus string) (*SubItemChangeResult, error)
 	Get(ctx context.Context, teamID, itemID uint) (*model.SubItem, error)
 	List(ctx context.Context, teamID uint, mainItemID *uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error)
 	Assign(ctx context.Context, teamID, pmID, itemID, assigneeID uint) error
+	AvailableTransitions(ctx context.Context, teamID, subID uint) ([]string, error)
 }
 
 type subItemService struct {
-	subItemRepo  repository.SubItemRepo
-	mainItemSvc  MainItemService
+	subItemRepo      repository.SubItemRepo
+	mainItemSvc      MainItemService
+	statusHistorySvc StatusHistoryService
 }
 
 // NewSubItemService creates a new SubItemService.
-func NewSubItemService(subItemRepo repository.SubItemRepo, mainItemSvc MainItemService) SubItemService {
-	return &subItemService{subItemRepo: subItemRepo, mainItemSvc: mainItemSvc}
-}
-
-// allowedTransitions defines the valid status transitions.
-var allowedTransitions = map[string]map[string]bool{
-	"待开始": {"进行中": true, "已关闭": true},
-	"进行中": {"阻塞中": true, "挂起": true, "待验收": true, "已延期": true, "已关闭": true},
-	"阻塞中": {"进行中": true},
-	"挂起":   {"进行中": true, "已关闭": true},
-	"已延期": {"进行中": true},
-	"待验收": {"已完成": true, "进行中": true},
-	// 已完成 and 已关闭 are terminal — no outgoing transitions
+func NewSubItemService(subItemRepo repository.SubItemRepo, mainItemSvc MainItemService, statusHistorySvc StatusHistoryService) SubItemService {
+	return &subItemService{subItemRepo: subItemRepo, mainItemSvc: mainItemSvc, statusHistorySvc: statusHistorySvc}
 }
 
 func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req dto.SubItemCreateReq) (*model.SubItem, error) {
@@ -107,42 +105,74 @@ func (s *subItemService) Update(ctx context.Context, teamID, itemID uint, req dt
 	return s.subItemRepo.Update(ctx, item, fields)
 }
 
-func (s *subItemService) ChangeStatus(ctx context.Context, teamID, callerID, itemID uint, newStatus string) error {
+func (s *subItemService) ChangeStatus(ctx context.Context, teamID, callerID, itemID uint, newStatus string) (*SubItemChangeResult, error) {
 	item, err := s.subItemRepo.FindByID(ctx, itemID)
 	if err != nil {
-		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 	if item.TeamID != teamID {
-		return apperrors.ErrForbidden
+		return nil, apperrors.ErrForbidden
 	}
 
-	if !isValidTransition(item.Status, newStatus) {
-		return apperrors.ErrInvalidStatus
+	if !status.IsValidTransition(status.SubItemTransitions, item.Status, newStatus) {
+		return nil, apperrors.ErrInvalidStatus
 	}
 
 	fields := map[string]interface{}{
 		"status": newStatus,
 	}
 
-
-	// Set ActualEndDate when transitioning to 已完成
-	if newStatus == "已完成" {
+	// Terminal side effects for completed
+	if newStatus == "completed" {
+		fields["completion"] = float64(100)
 		now := time.Now()
 		fields["actual_end_date"] = &now
 	}
 
+	// Capture old status before update (repo may mutate the item)
+	oldStatus := item.Status
+
 	if err := s.subItemRepo.Update(ctx, item, fields); err != nil {
-		return err
+		return nil, err
 	}
 
 	// After completing, recalculate parent MainItem completion
-	if newStatus == "已完成" {
+	if newStatus == "completed" {
 		if err := s.mainItemSvc.RecalcCompletion(ctx, item.MainItemID); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	// Record to status history
+	if s.statusHistorySvc != nil {
+		_ = s.statusHistorySvc.Record(ctx, &model.StatusHistory{
+			ItemType:   "sub_item",
+			ItemID:     itemID,
+			FromStatus: oldStatus,
+			ToStatus:   newStatus,
+			ChangedBy:  callerID,
+			IsAuto:     false,
+		})
+	}
+
+	// Fetch updated item
+	updated, err := s.subItemRepo.FindByID(ctx, itemID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &SubItemChangeResult{SubItem: updated}, nil
+}
+
+func (s *subItemService) AvailableTransitions(ctx context.Context, teamID, subID uint) ([]string, error) {
+	item, err := s.subItemRepo.FindByID(ctx, subID)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
+	}
+	if item.TeamID != teamID {
+		return nil, apperrors.ErrForbidden
+	}
+	return status.GetAvailableTransitions(status.SubItemTransitions, item.Status), nil
 }
 
 func (s *subItemService) Get(ctx context.Context, teamID, itemID uint) (*model.SubItem, error) {
@@ -174,13 +204,3 @@ func (s *subItemService) Assign(ctx context.Context, teamID, pmID, itemID, assig
 		"assignee_id": assigneeID,
 	})
 }
-
-// isValidTransition checks if a status transition is allowed.
-func isValidTransition(from, to string) bool {
-	transitions, ok := allowedTransitions[from]
-	if !ok {
-		return false
-	}
-	return transitions[to]
-}
-
