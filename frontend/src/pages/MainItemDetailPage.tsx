@@ -333,7 +333,7 @@ export default function MainItemDetailPage() {
                         <TableCell>
                           <Link
                             to={`/items/${item.id}/sub/${sub.id}`}
-                            className="text-[13px] font-medium text-primary hover:text-primary-600"
+                            className="text-[13px] font-medium text-primary-600 hover:text-primary-700 hover:underline"
                           >
                             {sub.title}
                           </Link>

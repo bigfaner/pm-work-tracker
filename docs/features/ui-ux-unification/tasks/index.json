@@ -70,7 +70,7 @@
       "title": "F5: 全站可跳转文字链接高亮",
       "priority": "P1",
       "estimatedTime": "2h",
-      "status": "pending",
+      "status": "completed",
       "file": "2.5-link-highlight.md",
       "record": "records/2.5-link-highlight.md"
     },

@@ -823,7 +823,7 @@ function SummaryView({
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <Link
                   to={`/items/${item.id}`}
-                  className="text-sm font-medium text-primary hover:text-primary-600 truncate"
+                  className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline truncate"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {item.title}
@@ -986,7 +986,7 @@ function DetailView({
                       <PriorityBadge priority={item.priority} />
                     </TableCell>
                     <TableCell>
-                      <Link to={`/items/${item.id}`} className="font-medium text-primary hover:text-primary-600">
+                      <Link to={`/items/${item.id}`} className="font-medium text-primary-600 hover:text-primary-700 hover:underline">
                         {item.title}
                       </Link>
                     </TableCell>
@@ -1016,7 +1016,7 @@ function DetailView({
                         <PriorityBadge priority={sub.priority} />
                       </TableCell>
                       <TableCell>
-                        <Link to={`/items/${item.id}/sub/${sub.id}`} className="font-medium text-primary hover:text-primary-600 ml-4">
+                        <Link to={`/items/${item.id}/sub/${sub.id}`} className="font-medium text-primary-600 hover:text-primary-700 hover:underline ml-4">
                           {sub.title}
                         </Link>
                       </TableCell>

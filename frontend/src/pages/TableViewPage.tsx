@@ -296,7 +296,7 @@ export default function TableViewPage() {
                         <TableCell>
                           <Link
                             to={getItemLink(row)}
-                            className="font-medium text-primary hover:text-primary-600"
+                            className="font-medium text-primary-600 hover:text-primary-700 hover:underline"
                           >
                             {row.title}
                           </Link>

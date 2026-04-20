@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { getWeeklyViewApi } from '@/api/views'
-import type { WeeklyViewResponse, WeeklyComparisonGroup, SubItemSnapshot } from '@/types'
+import { WeeklyViewResponse, WeeklyComparisonGroup, SubItemSnapshot } from '@/types'
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import StatusBadge from '@/components/shared/StatusBadge'
 import ProgressBar from '@/components/shared/ProgressBar'
@@ -138,7 +138,7 @@ function ComparisonCard({ group, weekStart }: ComparisonCardProps) {
         <div className="flex items-center gap-2 flex-wrap">
           <Link
             to={`/items/${mainItem.id}`}
-            className="text-[15px] font-semibold text-primary hover:text-primary-600"
+            className="text-[15px] font-semibold text-primary-600 hover:text-primary-700 hover:underline"
           >
             {mainItem.title}
           </Link>
@@ -169,7 +169,7 @@ function ComparisonCard({ group, weekStart }: ComparisonCardProps) {
           )}
         </div>
         <div className="flex items-center gap-3">
-          <div className="w-[120px]">
+          <div className="w-30">
             <ProgressBar
               value={mainItem.completion}
               size="sm"
@@ -202,7 +202,7 @@ function ComparisonCard({ group, weekStart }: ComparisonCardProps) {
                 <div key={item.id} className="flex items-center gap-1.5 flex-wrap opacity-70">
                   <StatusBadge status={item.status} className="text-[11px]" />
                   <PriorityBadge priority={item.priority} className="text-[10px]" />
-                  <Link to={`/items/${mainItem.id}/sub/${item.id}`} className="text-[13px] text-text hover:text-primary-600">{item.title}</Link>
+                  <Link to={`/items/${mainItem.id}/sub/${item.id}`} className="text-[13px] text-primary-600 hover:text-primary-700 hover:underline">{item.title}</Link>
                 </div>
               ))}
             </div>
@@ -233,7 +233,7 @@ function ComparisonCard({ group, weekStart }: ComparisonCardProps) {
                 <div key={item.id} className="flex items-center gap-1.5 flex-wrap opacity-70">
                   <StatusBadge status={item.status} className="text-[11px]" />
                   <PriorityBadge priority={item.priority} className="text-[10px]" />
-                  <Link to={`/items/${mainItem.id}/sub/${item.id}`} className="text-[13px] text-text hover:text-primary-600">{item.title}</Link>
+                  <Link to={`/items/${mainItem.id}/sub/${item.id}`} className="text-[13px] text-primary-600 hover:text-primary-700 hover:underline">{item.title}</Link>
                 </div>
               ))}
             </div>
@@ -258,7 +258,7 @@ function SubItemRow({ item, mainItemId, showDelta }: SubItemRowProps) {
       <div className="flex items-center gap-1.5 flex-wrap">
         <StatusBadge status={item.status} className="text-[11px]" />
         <PriorityBadge priority={item.priority} className="text-[10px]" />
-        <Link to={`/items/${mainItemId}/sub/${item.id}`} className="text-[13px] text-text hover:text-primary-600">{item.title}</Link>
+        <Link to={`/items/${mainItemId}/sub/${item.id}`} className="text-[13px] text-primary-600 hover:text-primary-700 hover:underline">{item.title}</Link>
         <span className="text-[11px] text-tertiary whitespace-nowrap">
           {item.assigneeName}
         </span>

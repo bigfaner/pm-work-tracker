@@ -100,7 +100,7 @@ function PoolItemCard({ item, onConvertToMain, onConvertToSub, onReject }: PoolI
         {item.status === '已分配' && item.assignedMainId && (
           <div className="mt-2 text-[13px] text-secondary">
             {item.assignedSubId ? '已转为子事项挂载至：' : '已转为主事项：'}
-            <Link to={`/items/${item.assignedMainId}`} className="font-medium text-primary-600 hover:text-primary-700">
+            <Link to={`/items/${item.assignedMainId}`} className="font-medium text-primary-600 hover:text-primary-700 hover:underline">
               {item.assignedMainCode ? `${item.assignedMainCode} ${item.assignedMainTitle}` : `主事项 #${item.assignedMainId}`}
             </Link>
           </div>

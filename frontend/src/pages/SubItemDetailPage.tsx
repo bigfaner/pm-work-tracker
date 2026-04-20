@@ -157,7 +157,7 @@ export default function SubItemDetailPage() {
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">所属主事项</div>
-                  <Link to={`/items/${mId}`} className="text-[13px] font-medium text-primary hover:text-primary-600">
+                  <Link to={`/items/${mId}`} className="text-[13px] font-medium text-primary-600 hover:text-primary-700 hover:underline">
                     {mainItem?.title || `主事项 #${mId}`}
                   </Link>
                 </div>
