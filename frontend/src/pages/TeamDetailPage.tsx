@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { Crown, UserMinus, RefreshCw } from 'lucide-react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -350,6 +351,7 @@ export default function TeamDetailPage() {
                             disabled={changeRoleMutation.isPending}
                             data-testid="change-role-btn"
                           >
+                            <RefreshCw className="w-3.5 h-3.5" />
                             变更
                           </Button>
                         )}
@@ -372,6 +374,7 @@ export default function TeamDetailPage() {
                           className="text-primary-600"
                           onClick={() => setTransferTarget(member)}
                         >
+                          <Crown className="w-3.5 h-3.5" />
                           设为PM
                         </Button>
                       </PermissionGuard>
@@ -382,6 +385,7 @@ export default function TeamDetailPage() {
                           className="text-error"
                           onClick={() => setRemoveTarget(member)}
                         >
+                          <UserMinus className="w-3.5 h-3.5" />
                           移除
                         </Button>
                       </PermissionGuard>

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listRolesApi, deleteRoleApi } from '@/api/roles'
 import type { Role } from '@/types'
@@ -254,6 +255,7 @@ export default function RoleManagementPage() {
                           size="sm"
                           onClick={() => openEdit(role)}
                         >
+                          <Pencil className="w-3.5 h-3.5" />
                           编辑
                         </Button>
                         <Tooltip>
@@ -265,6 +267,7 @@ export default function RoleManagementPage() {
                                 disabled={role.isPreset || role.memberCount > 0}
                                 onClick={() => openDelete(role)}
                               >
+                                <Trash2 className="w-3.5 h-3.5" />
                                 删除
                               </Button>
                             </span>

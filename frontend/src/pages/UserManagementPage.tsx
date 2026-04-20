@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react'
+import { Pencil, ToggleRight, ToggleLeft } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   listUsersApi,
@@ -295,9 +296,15 @@ export default function UserManagementPage() {
                   <TableCell>
                     <div className="flex gap-2">
                       <Button variant="ghost" size="sm" onClick={() => openEdit(user)}>
+                        <Pencil className="w-3.5 h-3.5" />
                         编辑
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => openToggleStatus(user)}>
+                        {user.status === 'enabled' ? (
+                          <ToggleRight className="w-3.5 h-3.5" />
+                        ) : (
+                          <ToggleLeft className="w-3.5 h-3.5" />
+                        )}
                         修改状态
                       </Button>
                     </div>
