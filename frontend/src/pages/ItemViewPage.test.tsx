@@ -7,6 +7,7 @@ import { server } from '@/mocks/server'
 import { http, HttpResponse } from 'msw'
 import { useTeamStore } from '@/store/team'
 import { useAuthStore } from '@/store/auth'
+import { ToastProvider } from '@/components/ui/toast'
 import ItemViewPage from './ItemViewPage'
 
 // MSW lifecycle
@@ -27,7 +28,9 @@ function renderPage() {
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <ItemViewPage />
+        <ToastProvider>
+          <ItemViewPage />
+        </ToastProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   )
@@ -111,6 +114,21 @@ function setupHandlers() {
     http.put('/api/v1/teams/:teamId/main-items/:itemId', async ({ request }) => {
       const body = await request.json() as Record<string, unknown>
       return HttpResponse.json({ code: 0, data: { ...seedMainItems[0], ...body } })
+    }),
+
+    // Change main item status
+    http.put('/api/v1/teams/:teamId/main-items/:itemId/status', async ({ request }) => {
+      const body = await request.json() as Record<string, unknown>
+      return HttpResponse.json({ code: 0, data: { status: body.status } })
+    }),
+
+    // Available transitions for main items (default: return all non-self statuses)
+    http.get('/api/v1/teams/:teamId/main-items/:itemId/available-transitions', ({ params }) => {
+      const item = seedMainItems.find(i => i.id === Number(params.itemId))
+      const currentStatus = item?.status || 'pending'
+      const allStatuses = ['pending', 'progressing', 'blocking', 'pausing', 'reviewing', 'completed', 'closed']
+      const transitions = allStatuses.filter(s => s !== currentStatus)
+      return HttpResponse.json({ code: 0, data: transitions })
     }),
 
     // Create main item
@@ -341,6 +359,142 @@ describe('ItemViewPage', () => {
       const statuses = screen.getAllByText('进行中')
       expect(statuses.length).toBeGreaterThanOrEqual(2)
     })
+  })
+
+  it('StatusDropdown fetches available transitions and shows only returned options', async () => {
+    const user = userEvent.setup()
+    setupHandlers() // ensure handlers
+    server.use(
+      http.get('/api/v1/teams/:teamId/main-items/:itemId/available-transitions', () => {
+        return HttpResponse.json({ code: 0, data: ['progressing', 'closed'] })
+      }),
+    )
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+    })
+
+    // Click the first status badge (with cursor-pointer class = dropdown trigger) to open dropdown
+    const badges = screen.getAllByText('进行中')
+    const triggerBadges = badges.filter(el => el.closest('button') !== null)
+    await user.click(triggerBadges[0])
+
+    await waitFor(() => {
+      // Should show the returned transition 'closed' as '已关闭'
+      expect(screen.getByRole('menuitem', { name: '已关闭' })).toBeInTheDocument()
+      // Should NOT show other statuses like "待开始"
+      expect(screen.queryByRole('menuitem', { name: '待开始' })).not.toBeInTheDocument()
+    })
+  })
+
+  it('StatusDropdown calls changeMainItemStatusApi on select', async () => {
+    const user = userEvent.setup()
+    let statusChanged = false
+    server.use(
+      http.get('/api/v1/teams/:teamId/main-items/:itemId/available-transitions', () => {
+        return HttpResponse.json({ code: 0, data: ['progressing', 'blocking'] })
+      }),
+      http.put('/api/v1/teams/:teamId/main-items/:itemId/status', async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>
+        statusChanged = true
+        return HttpResponse.json({ code: 0, data: { status: body.status } })
+      }),
+    )
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+    })
+
+    const badges = screen.getAllByText('进行中')
+    await user.click(badges[0])
+
+    await waitFor(() => {
+      expect(screen.getByText('阻塞中')).toBeInTheDocument()
+    })
+    await user.click(screen.getByText('阻塞中'))
+
+    await waitFor(() => {
+      expect(statusChanged).toBe(true)
+    })
+  })
+
+  it('shows confirmation dialog before terminal transition', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.get('/api/v1/teams/:teamId/main-items/:itemId/available-transitions', () => {
+        return HttpResponse.json({ code: 0, data: ['completed', 'blocking'] })
+      }),
+    )
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+    })
+
+    const badges = screen.getAllByText('进行中')
+    const triggerBadges = badges.filter(el => el.closest('button') !== null)
+    await user.click(triggerBadges[0])
+
+    await waitFor(() => {
+      expect(screen.getByRole('menuitem', { name: '已完成' })).toBeInTheDocument()
+    })
+    await user.click(screen.getByRole('menuitem', { name: '已完成' }))
+
+    // Confirmation dialog should appear
+    await waitFor(() => {
+      expect(screen.getByText(/确认变更状态/)).toBeInTheDocument()
+    })
+  })
+
+  // --- Overdue badge ---
+
+  it('shows overdue badge when expectedEndDate is past and status is non-terminal', async () => {
+    const user = userEvent.setup()
+    // Override main items with one overdue item
+    const overdueItems = [
+      {
+        id: 10, teamId: 1, code: 'MI-0010', title: 'Overdue Task', priority: 'P1',
+        proposerId: 1, assigneeId: 1, startDate: '2020-01-01', expectedEndDate: '2020-02-01',
+        actualEndDate: null, status: 'progressing', completion: 30, isKeyItem: false,
+        delayCount: 0, archivedAt: null,
+        createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z',
+        subItems: [],
+      },
+    ]
+    server.use(
+      http.get('/api/v1/teams/:teamId/main-items', () => {
+        return HttpResponse.json({ code: 0, data: { items: overdueItems, total: 1, page: 1, pageSize: 20 } })
+      }),
+    )
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Overdue Task')).toBeInTheDocument()
+    })
+    // Should show overdue badge
+    expect(screen.getByText('延期')).toBeInTheDocument()
+  })
+
+  it('does not show overdue badge for terminal status items', async () => {
+    const completedItems = [
+      {
+        id: 11, teamId: 1, code: 'MI-0011', title: 'Completed Task', priority: 'P1',
+        proposerId: 1, assigneeId: 1, startDate: '2020-01-01', expectedEndDate: '2020-02-01',
+        actualEndDate: '2020-02-01', status: 'completed', completion: 100, isKeyItem: false,
+        delayCount: 0, archivedAt: null,
+        createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-02-01T00:00:00Z',
+        subItems: [],
+      },
+    ]
+    server.use(
+      http.get('/api/v1/teams/:teamId/main-items', () => {
+        return HttpResponse.json({ code: 0, data: { items: completedItems, total: 1, page: 1, pageSize: 20 } })
+      }),
+    )
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Completed Task')).toBeInTheDocument()
+    })
+    // Should NOT show overdue badge for completed items
+    expect(screen.queryByText('延期')).not.toBeInTheDocument()
   })
 
   // --- Create sub-item dialog (e2e) ---

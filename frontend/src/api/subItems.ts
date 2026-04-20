@@ -35,3 +35,7 @@ export function changeSubItemStatusApi(teamId: number, itemId: number, req: Chan
 export function assignSubItemApi(teamId: number, itemId: number, req: AssignSubItemReq): Promise<void> {
   return client.put<never, void>(`/teams/${teamId}/sub-items/${itemId}/assignee`, req)
 }
+
+export function getSubItemTransitionsApi(teamId: number, subId: number): Promise<string[]> {
+  return client.get<never, string[]>(`/teams/${teamId}/sub-items/${subId}/available-transitions`)
+}
