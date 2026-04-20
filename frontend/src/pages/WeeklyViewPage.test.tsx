@@ -346,7 +346,7 @@ describe('WeeklyViewPage', () => {
     renderPage()
     await waitFor(() => {
       expect(screen.getByText('58%')).toBeInTheDocument()
-      expect(screen.getByText('80%')).toBeInTheDocument()
+      expect(screen.getAllByText('80%').length).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -514,6 +514,43 @@ describe('WeeklyViewPage', () => {
     })
     const nextBtn = screen.getByLabelText('next week')
     expect(nextBtn).toBeDisabled()
+  })
+
+  // --- Completion percentage in sub-item rows (F7) ---
+
+  it('shows completion percentage after title in sub-item row', async () => {
+    renderPage()
+    await waitFor(() => {
+      // lastWeek item 10 has completion 40
+      expect(screen.getAllByText('40%').length).toBeGreaterThanOrEqual(1)
+    })
+  })
+
+  it('applies text-secondary style when completion < 100', async () => {
+    renderPage()
+    await waitFor(() => {
+      const pcts = screen.getAllByText('40%')
+      expect(pcts[0]).toHaveClass('text-secondary')
+      expect(pcts[0]).toHaveClass('font-semibold')
+    })
+  })
+
+  it('applies text-success-text style when completion = 100', async () => {
+    renderPage()
+    await waitFor(() => {
+      // thisWeek item 20 (数据看板前端) has completion 100
+      const pcts = screen.getAllByText('100%')
+      expect(pcts[0]).toHaveClass('text-success-text')
+      expect(pcts[0]).toHaveClass('font-semibold')
+    })
+  })
+
+  it('always shows completion percentage regardless of delta', async () => {
+    renderPage()
+    await waitFor(() => {
+      // item 15 (OAuth2) has completion 0, isNew=true — still shows 0%
+      expect(screen.getAllByText('0%').length).toBeGreaterThanOrEqual(1)
+    })
   })
 
   // --- No antd imports ---

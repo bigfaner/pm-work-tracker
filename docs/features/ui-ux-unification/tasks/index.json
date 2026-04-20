@@ -88,7 +88,7 @@
       "title": "F7: 每周进展子事项显示完成度百分比",
       "priority": "P1",
       "estimatedTime": "0.5h",
-      "status": "pending",
+      "status": "completed",
       "file": "2.7-weekly-completion.md",
       "record": "records/2.7-weekly-completion.md"
     },

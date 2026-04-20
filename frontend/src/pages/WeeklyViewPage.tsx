@@ -259,6 +259,9 @@ function SubItemRow({ item, mainItemId, showDelta }: SubItemRowProps) {
         <StatusBadge status={item.status} className="text-[11px]" />
         <PriorityBadge priority={item.priority} className="text-[10px]" />
         <Link to={`/items/${mainItemId}/sub/${item.id}`} className="text-[13px] text-primary-600 hover:text-primary-700 hover:underline">{item.title}</Link>
+        <span className={`text-[11px] font-semibold ${item.completion === 100 ? 'text-success-text' : 'text-secondary'}`}>
+          {item.completion}%
+        </span>
         <span className="text-[11px] text-tertiary whitespace-nowrap">
           {item.assigneeName}
         </span>
