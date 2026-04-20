@@ -141,27 +141,22 @@ export default function SubItemDetailPage() {
           </Breadcrumb>
 
           {/* Title Bar */}
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3 mb-6 flex-wrap">
+            <Badge variant="default" className="font-mono">{subCode}</Badge>
             <h1 className="text-xl font-semibold text-primary m-0">{subItem.title}</h1>
+            <PriorityBadge priority={subItem.priority} />
+            <StatusBadge status={subItem.status} />
           </div>
 
-          {/* Info Card (4-col grid) */}
+          {/* Info Card */}
           <Card className="mb-5">
             <CardContent>
-              <div className="grid grid-cols-4 gap-4">
-                <div>
-                  <div className="text-xs text-tertiary mb-1">编号</div>
-                  <Badge variant="default" className="font-mono text-[11px]">{subCode}</Badge>
-                </div>
+              <div className="grid grid-cols-3 gap-4 mb-4">
                 <div>
                   <div className="text-xs text-tertiary mb-1">所属主事项</div>
                   <Link to={`/items/${mId}`} className="text-[13px] font-medium text-primary-600 hover:text-primary-700 hover:underline">
                     {mainItem?.title || `主事项 #${mId}`}
                   </Link>
-                </div>
-                <div>
-                  <div className="text-xs text-tertiary mb-1">优先级</div>
-                  <PriorityBadge priority={subItem.priority} />
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">负责人</div>
@@ -171,21 +166,13 @@ export default function SubItemDetailPage() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-tertiary mb-1">状态</div>
-                  <StatusBadge status={subItem.status} />
-                </div>
-                <div>
                   <div className="text-xs text-tertiary mb-1">预期完成时间</div>
-                  <span className="text-[13px]">{subItem.expectedEndDate ? subItem.expectedEndDate.slice(5) : '-'}</span>
+                  <span className="text-[13px] font-medium text-error">{subItem.expectedEndDate || '-'}</span>
                 </div>
-                <div>
-                  <div className="text-xs text-tertiary mb-1">当前完成度</div>
-                  <span className="text-[13px] font-semibold">{subItem.completion}%</span>
-                </div>
-                <div className="col-span-4">
-                  <div className="text-xs text-tertiary mb-1">描述</div>
-                  <span className="text-[13px] text-secondary leading-relaxed">{subItem.description || '暂无描述'}</span>
-                </div>
+              </div>
+              <div>
+                <div className="text-xs text-tertiary mb-1">描述</div>
+                <span className="text-[13px] text-secondary leading-relaxed">{subItem.description || '暂无描述'}</span>
               </div>
             </CardContent>
           </Card>
@@ -220,7 +207,7 @@ export default function SubItemDetailPage() {
                     return (
                       <div key={record.id} className="relative">
                         {/* Timeline dot */}
-                        <div className="absolute -left-[25px] top-1 w-2.5 h-2.5 rounded-full bg-primary-500 border-2 border-white" />
+                        <div className="absolute -left-6.25 top-1 w-2.5 h-2.5 rounded-full bg-primary-500 border-2 border-white" />
                         <div className="mb-1">
                           <span className="text-xs text-tertiary">{dateStr}</span>
                           <span className="text-xs text-tertiary ml-2">{record.completion}%</span>

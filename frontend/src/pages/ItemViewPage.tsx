@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo, Fragment } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Pencil, Plus } from 'lucide-react'
 import { useTeamStore } from '@/store/team'
 import { PermissionGuard } from '@/components/PermissionGuard'
 import { listMainItemsApi, createMainItemApi, updateMainItemApi } from '@/api/mainItems'
@@ -404,10 +405,10 @@ export default function ItemViewPage() {
           placeholder="搜索标题或编号..."
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          className="w-[360px]"
+          className="w-90"
         />
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v === '_all' ? '' : v)}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-35">
             <SelectValue placeholder="状态：全部" />
           </SelectTrigger>
           <SelectContent>
@@ -418,7 +419,7 @@ export default function ItemViewPage() {
           </SelectContent>
         </Select>
         <Select value={assigneeFilter} onValueChange={(v) => setAssigneeFilter(v === '_all' ? '' : v)}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-35">
             <SelectValue placeholder="负责人：全部" />
           </SelectTrigger>
           <SelectContent>
@@ -800,7 +801,7 @@ function SummaryView({
             <div className="flex items-center gap-3 px-5 py-4">
               {/* Expand chevron */}
               <svg
-                className={`w-4 h-4 flex-shrink-0 text-tertiary transition-transform ${
+                className={`w-4 h-4 shrink-0 text-tertiary transition-transform ${
                   expandedCards.has(item.id) ? 'rotate-90' : ''
                 }`}
                 fill="none"
@@ -841,7 +842,7 @@ function SummaryView({
               </span>
 
               {/* Progress */}
-              <div className="w-[112px] flex-shrink-0">
+              <div className="w-28 shrink-0">
                 <ProgressBar value={item.completion} size="sm" showPercentage />
               </div>
 
@@ -850,8 +851,8 @@ function SummaryView({
 
               {/* Actions */}
               <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" size="sm" onClick={() => onEditMainItem(item)}>编辑</Button>
-                <Button variant="ghost" size="sm" onClick={() => onAddSubItem(item.id, item.title)}>新增子事项</Button>
+                <Button variant="ghost" size="sm" onClick={() => onEditMainItem(item)}><Pencil size={14} />编辑</Button>
+                <Button variant="ghost" size="sm" onClick={() => onAddSubItem(item.id, item.title)}><Plus size={14} />新增子事项</Button>
               </div>
             </div>
 
@@ -887,12 +888,12 @@ function SummaryView({
                     <span className="ml-auto text-[13px] text-secondary">
                       {memberName(sub.assigneeId)}
                     </span>
-                    <div className="w-[80px]">
+                    <div className="w-20">
                       <ProgressBar value={sub.completion} size="sm" />
                     </div>
                     <StatusBadge status={sub.status} />
                     <PermissionGuard code="progress:update">
-                      <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5" onClick={() => onAppendProgress(sub.id, sub.title)}>追加进度</Button>
+                      <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5" onClick={() => onAppendProgress(sub.id, sub.title)}><Plus size={12} />追加进度</Button>
                     </PermissionGuard>
                   </div>
                 ))}
@@ -1002,8 +1003,8 @@ function DetailView({
                     <TableCell className="text-xs">{formatDate(item.actualEndDate)}</TableCell>
                     <TableCell>
                       <div className="flex gap-1 whitespace-nowrap">
-                        <Button variant="ghost" size="sm" onClick={() => onEditMainItem(item)}>编辑</Button>
-                        <Button variant="ghost" size="sm" onClick={() => onAddSubItem(item.id, item.title)}>添加子事项</Button>
+                        <Button variant="ghost" size="sm" onClick={() => onEditMainItem(item)}><Pencil size={14} />编辑</Button>
+                        <Button variant="ghost" size="sm" onClick={() => onAddSubItem(item.id, item.title)}><Plus size={14} />添加子事项</Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1033,7 +1034,7 @@ function DetailView({
                       <TableCell>
                         <div className="flex gap-1 whitespace-nowrap">
                           <PermissionGuard code="progress:update">
-                            <Button variant="ghost" size="sm" onClick={() => onAppendProgress(sub.id, sub.title)}>追加进度</Button>
+                            <Button variant="ghost" size="sm" onClick={() => onAppendProgress(sub.id, sub.title)}><Plus size={14} />追加进度</Button>
                           </PermissionGuard>
                         </div>
                       </TableCell>

@@ -368,10 +368,10 @@ export default function ItemPoolPage() {
               placeholder="搜索标题或编号..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className="w-[360px]"
+              className="w-90"
             />
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v === '_all' ? '' : v)}>
-              <SelectTrigger className="w-[140px]" data-testid="pool-status-filter">
+              <SelectTrigger className="w-35" data-testid="pool-status-filter">
                 <SelectValue placeholder="状态：全部" />
               </SelectTrigger>
               <SelectContent>
@@ -632,7 +632,7 @@ export default function ItemPoolPage() {
                     拒绝原因 <span className="text-error">*</span>
                   </label>
                   <Textarea
-                    className="min-h-[96px]"
+                    className="min-h-24"
                     rows={4}
                     placeholder="请说明拒绝原因"
                     value={rejectForm.reason}

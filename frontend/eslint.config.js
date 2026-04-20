@@ -1,7 +1,9 @@
 import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
 
-export default [
+export default tseslint.config(
   js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
     files: ['src/**/*.{ts,tsx}'],
     rules: {
@@ -15,4 +17,4 @@ export default [
       ],
     },
   },
-];
+);

@@ -198,10 +198,10 @@ export default function TableViewPage() {
               placeholder="搜索标题..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className="w-[180px]"
+              className="w-45"
             />
             <Select value={typeFilter || '_all'} onValueChange={handleTypeChange}>
-              <SelectTrigger className="w-[120px]" data-testid="type-filter">
+              <SelectTrigger className="w-30" data-testid="type-filter">
                 <SelectValue placeholder="类型：全部" />
               </SelectTrigger>
               <SelectContent>
@@ -213,7 +213,7 @@ export default function TableViewPage() {
               </SelectContent>
             </Select>
             <Select value={priorityFilter || '_all'} onValueChange={handlePriorityChange}>
-              <SelectTrigger className="w-[120px]" data-testid="priority-filter">
+              <SelectTrigger className="w-30" data-testid="priority-filter">
                 <SelectValue placeholder="优先级：全部" />
               </SelectTrigger>
               <SelectContent>
@@ -224,7 +224,7 @@ export default function TableViewPage() {
               </SelectContent>
             </Select>
             <Select value={assigneeFilter || '_all'} onValueChange={handleAssigneeChange}>
-              <SelectTrigger className="w-[120px]" data-testid="assignee-filter">
+              <SelectTrigger className="w-30" data-testid="assignee-filter">
                 <SelectValue placeholder="负责人：全部" />
               </SelectTrigger>
               <SelectContent>
@@ -237,7 +237,7 @@ export default function TableViewPage() {
               </SelectContent>
             </Select>
             <Select value={statusFilter || '_all'} onValueChange={handleStatusChange}>
-              <SelectTrigger className="w-[120px]" data-testid="status-filter">
+              <SelectTrigger className="w-30" data-testid="status-filter">
                 <SelectValue placeholder="状态：全部" />
               </SelectTrigger>
               <SelectContent>
