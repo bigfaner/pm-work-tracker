@@ -43,11 +43,6 @@ export default function WeeklyViewPage() {
                 onChange={setWeekStart}
                 maxWeek={getCurrentWeekStart()}
               />
-              {data && (
-                <span className="text-[13px] text-secondary">
-                  {formatDate(data.weekStart)} ~ {formatDate(data.weekEnd)}
-                </span>
-              )}
             </div>
           </div>
 

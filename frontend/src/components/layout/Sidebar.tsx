@@ -54,7 +54,7 @@ export default function Sidebar() {
       data-testid="sidebar"
       className="w-[240px] bg-white border-r border-border flex flex-col fixed top-0 left-0 bottom-0 z-40"
     >
-      <div className="px-4 py-5 border-b border-border">
+      <div className="px-4 py-5 border-b border-border text-center">
         <h2 className="text-lg font-semibold text-primary">PM Tracker</h2>
         <p className="text-xs text-tertiary mt-0.5">工作事项追踪</p>
       </div>
@@ -65,12 +65,12 @@ export default function Sidebar() {
             value={currentTeamId ? String(currentTeamId) : undefined}
             onValueChange={(val) => setCurrentTeam(Number(val))}
           >
-            <SelectTrigger data-testid="team-switcher" className="w-full h-8 text-[13px]">
+            <SelectTrigger data-testid="team-switcher" className="w-full h-8 text-[13px] [&>span:first-child]:flex-1 [&>span:first-child]:text-center">
               <SelectValue placeholder="选择团队" />
             </SelectTrigger>
             <SelectContent>
               {teams.map((t) => (
-                <SelectItem key={t.id} value={String(t.id)}>
+                <SelectItem key={t.id} value={String(t.id)} className="justify-center">
                   {t.name}
                 </SelectItem>
               ))}
@@ -88,7 +88,7 @@ export default function Sidebar() {
               key={item.key}
               href={item.key}
               onClick={(e) => { e.preventDefault(); navigate(item.key) }}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all ${
+              className={`flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all ${
                 isActive
                   ? 'bg-primary-50 text-primary-700'
                   : 'text-secondary hover:bg-bg-alt hover:text-primary'
@@ -116,7 +116,7 @@ export default function Sidebar() {
               key={item.key}
               href={item.key}
               onClick={(e) => { e.preventDefault(); navigate(item.key) }}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all ${
+              className={`flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all ${
                 idx === 0 ? 'mt-2 pt-2 border-t border-border' : ''
               } ${
                 isActive

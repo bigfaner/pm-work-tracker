@@ -876,7 +876,7 @@ function SummaryView({
                     <PriorityBadge priority={sub.priority} className="text-[10px]" />
                     <Link
                       to={`/items/${item.id}/sub/${sub.id}`}
-                      className="text-[13px] text-primary-600 hover:text-primary-700"
+                      className="text-[13px] font-medium text-primary-600 hover:text-primary-700 hover:underline"
                     >
                       {sub.title}
                     </Link>

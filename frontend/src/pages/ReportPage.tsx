@@ -91,7 +91,7 @@ export default function ReportPage() {
             </label>
             <WeekPicker weekStart={weekValue} onChange={setWeekValue} />
           </div>
-          <Button onClick={handlePreview} disabled={loading}>
+          <Button size="sm" onClick={handlePreview} disabled={loading}>
             {loading ? '生成中...' : '生成预览'}
           </Button>
         </CardContent>
