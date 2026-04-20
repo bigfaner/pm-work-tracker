@@ -61,7 +61,7 @@ func TestMainItemRepo_Create(t *testing.T) {
 		Title:      "Test Item",
 		Priority:   "P1",
 		ProposerID: u.ID,
-		Status:     "待开始",
+		Status:     "pending",
 	}
 	require.NoError(t, repo.Create(ctx, item))
 	assert.NotZero(t, item.ID)
@@ -75,7 +75,7 @@ func TestMainItemRepo_FindByID(t *testing.T) {
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)
-	item := createMainItem(t, db, team.ID, u.ID, "MI-F1", "Find Me", "P1", "待开始")
+	item := createMainItem(t, db, team.ID, u.ID, "MI-F1", "Find Me", "P1", "pending")
 
 	t.Run("found", func(t *testing.T) {
 		found, err := repo.FindByID(ctx, item.ID)
@@ -98,11 +98,11 @@ func TestMainItemRepo_Update(t *testing.T) {
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)
-	item := createMainItem(t, db, team.ID, u.ID, "MI-U1", "Update Me", "P1", "待开始")
+	item := createMainItem(t, db, team.ID, u.ID, "MI-U1", "Update Me", "P1", "pending")
 
 	fields := map[string]interface{}{
 		"title":    "Updated Title",
-		"status":   "进行中",
+		"status":   "progressing",
 		"priority": "P2",
 	}
 	require.NoError(t, repo.Update(ctx, item, fields))
@@ -110,7 +110,7 @@ func TestMainItemRepo_Update(t *testing.T) {
 	found, err := repo.FindByID(ctx, item.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "Updated Title", found.Title)
-	assert.Equal(t, "进行中", found.Status)
+	assert.Equal(t, "progressing", found.Status)
 	assert.Equal(t, "P2", found.Priority)
 }
 
@@ -142,7 +142,7 @@ func TestMainItemRepo_NextCode(t *testing.T) {
 	})
 
 	t.Run("sequential", func(t *testing.T) {
-		createMainItem(t, db, team.ID, u.ID, "MI-0001", "First", "P1", "待开始")
+		createMainItem(t, db, team.ID, u.ID, "MI-0001", "First", "P1", "pending")
 
 		code, err := repo.NextCode(ctx, team.ID)
 		require.NoError(t, err)
@@ -150,7 +150,7 @@ func TestMainItemRepo_NextCode(t *testing.T) {
 	})
 
 	t.Run("skips_gaps", func(t *testing.T) {
-		createMainItem(t, db, team.ID, u.ID, "MI-0005", "Fifth", "P1", "待开始")
+		createMainItem(t, db, team.ID, u.ID, "MI-0005", "Fifth", "P1", "pending")
 
 		code, err := repo.NextCode(ctx, team.ID)
 		require.NoError(t, err)
@@ -180,15 +180,15 @@ func TestMainItemRepo_List(t *testing.T) {
 	u, team := seedMainItemTeam(t, db)
 
 	// Create several items
-	createMainItem(t, db, team.ID, u.ID, "MI-L01", "Item A", "P1", "待开始")
-	createMainItem(t, db, team.ID, u.ID, "MI-L02", "Item B", "P2", "进行中")
-	createMainItem(t, db, team.ID, u.ID, "MI-L03", "Item C", "P1", "已完成")
+	createMainItem(t, db, team.ID, u.ID, "MI-L01", "Item A", "P1", "pending")
+	createMainItem(t, db, team.ID, u.ID, "MI-L02", "Item B", "P2", "progressing")
+	createMainItem(t, db, team.ID, u.ID, "MI-L03", "Item C", "P1", "completed")
 	// Create one in another team — should not appear
 	u2 := model.User{Username: "pm_other2", DisplayName: "P2", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u2).Error)
 	team2 := model.Team{Name: "Team2", PmID: u2.ID}
 	require.NoError(t, db.Create(&team2).Error)
-	createMainItem(t, db, team2.ID, u2.ID, "MI-L04", "Other Team Item", "P1", "待开始")
+	createMainItem(t, db, team2.ID, u2.ID, "MI-L04", "Other Team Item", "P1", "pending")
 
 	t.Run("all_items_for_team", func(t *testing.T) {
 		result, err := repo.List(ctx, team.ID, dto.MainItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
@@ -198,7 +198,7 @@ func TestMainItemRepo_List(t *testing.T) {
 	})
 
 	t.Run("filter_by_status", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.MainItemFilter{Status: "进行中"}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.ID, dto.MainItemFilter{Status: "progressing"}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), result.Total)
 		assert.Equal(t, "Item B", result.Items[0].Title)
@@ -211,7 +211,7 @@ func TestMainItemRepo_List(t *testing.T) {
 	})
 
 	t.Run("filter_by_status_and_priority", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.MainItemFilter{Status: "待开始", Priority: "P1"}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.ID, dto.MainItemFilter{Status: "pending", Priority: "P1"}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), result.Total)
 		assert.Equal(t, "Item A", result.Items[0].Title)
@@ -249,10 +249,10 @@ func TestMainItemRepo_List_ArchiveFilter(t *testing.T) {
 	u, team := seedMainItemTeam(t, db)
 
 	// Active item
-	createMainItem(t, db, team.ID, u.ID, "MI-AR01", "Active", "P1", "待开始")
+	createMainItem(t, db, team.ID, u.ID, "MI-AR01", "Active", "P1", "pending")
 
 	// Archived item
-	archived := createMainItem(t, db, team.ID, u.ID, "MI-AR02", "Archived", "P1", "已完成")
+	archived := createMainItem(t, db, team.ID, u.ID, "MI-AR02", "Archived", "P1", "completed")
 	now := time.Now()
 	require.NoError(t, db.Model(archived).Update("archived_at", &now).Error)
 
@@ -277,10 +277,10 @@ func TestMainItemRepo_List_FilterByKeyItem(t *testing.T) {
 
 	u, team := seedMainItemTeam(t, db)
 
-	item := createMainItem(t, db, team.ID, u.ID, "MI-KI1", "Key Item", "P1", "待开始")
+	item := createMainItem(t, db, team.ID, u.ID, "MI-KI1", "Key Item", "P1", "pending")
 	require.NoError(t, db.Model(item).Update("is_key_item", true).Error)
 
-	createMainItem(t, db, team.ID, u.ID, "MI-KI2", "Normal Item", "P2", "待开始")
+	createMainItem(t, db, team.ID, u.ID, "MI-KI2", "Normal Item", "P2", "pending")
 
 	isKey := true
 	result, err := repo.List(ctx, team.ID, dto.MainItemFilter{IsKeyItem: &isKey}, dto.Pagination{Page: 1, PageSize: 10})
@@ -296,10 +296,10 @@ func TestMainItemRepo_List_FilterByAssignee(t *testing.T) {
 
 	u, team := seedMainItemTeam(t, db)
 
-	item := createMainItem(t, db, team.ID, u.ID, "MI-AS1", "Assigned", "P1", "待开始")
+	item := createMainItem(t, db, team.ID, u.ID, "MI-AS1", "Assigned", "P1", "pending")
 	require.NoError(t, db.Model(item).Update("assignee_id", u.ID).Error)
 
-	createMainItem(t, db, team.ID, u.ID, "MI-AS2", "Unassigned", "P2", "待开始")
+	createMainItem(t, db, team.ID, u.ID, "MI-AS2", "Unassigned", "P2", "pending")
 
 	assigneeID := u.ID
 	result, err := repo.List(ctx, team.ID, dto.MainItemFilter{AssigneeID: &assigneeID}, dto.Pagination{Page: 1, PageSize: 10})

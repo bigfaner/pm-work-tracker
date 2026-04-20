@@ -187,7 +187,7 @@ func TestWeeklyView_NewlyCompleted(t *testing.T) {
 				TeamID:       1,
 				MainItemID:   1,
 				Title:        "Sub A",
-				Status:       "已完成",
+				Status:       "completed",
 				Completion:   100,
 				ActualEndDate: &completedDate,
 			},
@@ -238,7 +238,7 @@ func TestWeeklyView_HasProgress(t *testing.T) {
 				TeamID:     1,
 				MainItemID: 1,
 				Title:      "Sub A",
-				Status:     "进行中",
+				Status:     "progressing",
 				Completion: 60,
 			},
 		},
@@ -288,7 +288,7 @@ func TestWeeklyView_NoChangeFromLastWeek(t *testing.T) {
 				TeamID:     1,
 				MainItemID: 1,
 				Title:      "Sub A",
-				Status:     "待开始",
+				Status:     "pending",
 				Completion: 0,
 			},
 		},
@@ -351,7 +351,7 @@ func TestWeeklyView_MixedScenario(t *testing.T) {
 				TeamID:        1,
 				MainItemID:    1,
 				Title:         "Sub Completed",
-				Status:        "已完成",
+				Status:        "completed",
 				Completion:    100,
 				ActualEndDate: &completedDate,
 			},
@@ -361,7 +361,7 @@ func TestWeeklyView_MixedScenario(t *testing.T) {
 				TeamID:     1,
 				MainItemID: 1,
 				Title:      "Sub In Progress",
-				Status:     "进行中",
+				Status:     "progressing",
 				Completion: 60,
 			},
 			// Main 2: sub-item with no change
@@ -370,7 +370,7 @@ func TestWeeklyView_MixedScenario(t *testing.T) {
 				TeamID:     1,
 				MainItemID: 2,
 				Title:      "Sub Dormant",
-				Status:     "待开始",
+				Status:     "pending",
 				Completion: 0,
 			},
 		},
@@ -441,7 +441,7 @@ func TestWeeklyView_CompletedBeforeThisWeek_NoChange(t *testing.T) {
 				TeamID:        1,
 				MainItemID:    1,
 				Title:         "Sub Old Completed",
-				Status:        "已完成",
+				Status:        "completed",
 				Completion:    100,
 				ActualEndDate: &lastWeekEnd,
 			},
@@ -541,7 +541,7 @@ func TestWeeklyView_NewlyCompleted_ActualEndDateOutsideWeek(t *testing.T) {
 				TeamID:        1,
 				MainItemID:    1,
 				Title:         "Sub A",
-				Status:        "已完成",
+				Status:        "completed",
 				Completion:    100,
 				ActualEndDate: &oldDate,
 			},
@@ -592,7 +592,7 @@ func TestWeeklyView_SubItemNoProgressEver_NoChange(t *testing.T) {
 				TeamID:     1,
 				MainItemID: 1,
 				Title:      "Sub A",
-				Status:     "待开始",
+				Status:     "pending",
 				Completion: 0,
 			},
 		},
@@ -665,9 +665,9 @@ func TestWeeklyComparison_StatsCounts(t *testing.T) {
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "In Progress", Status: "进行中", Completion: 60},
-			{BaseModel: model.BaseModel{ID: 11}, TeamID: 1, MainItemID: 1, Title: "Blocked", Status: "阻塞中", Completion: 30},
-			{BaseModel: model.BaseModel{ID: 12}, TeamID: 1, MainItemID: 1, Title: "Completed", Status: "已完成", Completion: 100, ActualEndDate: &completedDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "In Progress", Status: "progressing", Completion: 60},
+			{BaseModel: model.BaseModel{ID: 11}, TeamID: 1, MainItemID: 1, Title: "Blocked", Status: "blocking", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 12}, TeamID: 1, MainItemID: 1, Title: "Completed", Status: "completed", Completion: 100, ActualEndDate: &completedDate},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -698,7 +698,7 @@ func TestWeeklyComparison_DeltaComputation(t *testing.T) {
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 70},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "progressing", Completion: 70},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -739,7 +739,7 @@ func TestWeeklyComparison_IsNew(t *testing.T) {
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "New Sub", Status: "待开始", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "New Sub", Status: "pending", Completion: 0},
 		},
 	}
 	// Only this week progress, no last week progress
@@ -777,7 +777,7 @@ func TestWeeklyComparison_JustCompleted(t *testing.T) {
 				TeamID:        1,
 				MainItemID:    1,
 				Title:         "Just Done",
-				Status:        "已完成",
+				Status:        "completed",
 				Completion:    100,
 				ActualEndDate: &completedDate,
 			},
@@ -817,7 +817,7 @@ func TestWeeklyComparison_CompletedNoChange(t *testing.T) {
 				TeamID:        1,
 				MainItemID:    1,
 				Title:         "Old Completed",
-				Status:        "已完成",
+				Status:        "completed",
 				Completion:    100,
 				ActualEndDate: &oldEndDate,
 			},
@@ -849,9 +849,9 @@ func TestWeeklyComparison_GroupsSortedByPriority(t *testing.T) {
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub 1", Status: "进行中", Completion: 10},
-			{BaseModel: model.BaseModel{ID: 20}, TeamID: 1, MainItemID: 2, Title: "Sub 2", Status: "进行中", Completion: 50},
-			{BaseModel: model.BaseModel{ID: 30}, TeamID: 1, MainItemID: 3, Title: "Sub 3", Status: "进行中", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub 1", Status: "progressing", Completion: 10},
+			{BaseModel: model.BaseModel{ID: 20}, TeamID: 1, MainItemID: 2, Title: "Sub 2", Status: "progressing", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 30}, TeamID: 1, MainItemID: 3, Title: "Sub 3", Status: "progressing", Completion: 30},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
@@ -886,8 +886,8 @@ func TestWeeklyComparison_MainItemSummary(t *testing.T) {
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 60},
-			{BaseModel: model.BaseModel{ID: 11}, TeamID: 1, MainItemID: 1, Title: "Sub B", Status: "待开始", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "progressing", Completion: 60},
+			{BaseModel: model.BaseModel{ID: 11}, TeamID: 1, MainItemID: 1, Title: "Sub B", Status: "pending", Completion: 0},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
@@ -934,7 +934,7 @@ func TestWeeklyComparison_ProgressDescriptionFromLatestRecord(t *testing.T) {
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 60},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "progressing", Completion: 60},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -1003,7 +1003,7 @@ func TestWeeklyComparison_SubItemCreatedAfterWeek_NotActive(t *testing.T) {
 				TeamID:     1,
 				MainItemID: 1,
 				Title:      "Future Sub",
-				Status:     "进行中",
+				Status:     "progressing",
 				Completion: 60,
 			},
 		},
@@ -1035,7 +1035,7 @@ func TestWeeklyComparison_SubItemCompletedBeforeWeek_NotActive(t *testing.T) {
 				TeamID:         1,
 				MainItemID:     1,
 				Title:          "Old Completed Sub",
-				Status:         "已完成",
+				Status:         "completed",
 				Completion:     100,
 				ActualEndDate:  &actualEnd,
 			},
@@ -1081,7 +1081,7 @@ func TestGanttView_BasicStructure(t *testing.T) {
 				StartDate:       &startDate,
 				ExpectedEndDate: &endDate,
 				Completion:      45.5,
-				Status:          "进行中",
+				Status:          "progressing",
 			},
 		},
 	}
@@ -1099,7 +1099,7 @@ func TestGanttView_BasicStructure(t *testing.T) {
 	assert.Equal(t, "2026-04-01", item.StartDate)
 	assert.Equal(t, "2026-04-30", item.ExpectedEndDate)
 	assert.Equal(t, 45.5, item.Completion)
-	assert.Equal(t, "进行中", item.Status)
+	assert.Equal(t, "progressing", item.Status)
 	assert.False(t, item.IsOverdue)
 }
 
@@ -1117,7 +1117,7 @@ func TestGanttView_OverdueItem(t *testing.T) {
 				Priority:        "P1",
 				StartDate:       &startDate,
 				ExpectedEndDate: &pastDate,
-				Status:          "进行中",
+				Status:          "progressing",
 			},
 		},
 	}
@@ -1135,7 +1135,7 @@ func TestGanttView_Overdue_ExemptWhenCompleted(t *testing.T) {
 	pastDate := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
 	startDate := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
 
-	for _, status := range []string{"已完成", "已关闭"} {
+	for _, status := range []string{"completed", "closed"} {
 		t.Run(status, func(t *testing.T) {
 			mainRepo := &mockViewMainItemRepo{
 				items: []model.MainItem{
@@ -1167,14 +1167,14 @@ func TestGanttView_StatusFilter(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "In Progress", Status: "进行中", StartDate: &startDate, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "Completed", Status: "已完成", StartDate: &startDate, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Title: "Pending", Status: "待开始", StartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "In Progress", Status: "progressing", StartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "Completed", Status: "completed", StartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Title: "Pending", Status: "pending", StartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 	}
 	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
 
-	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{Status: "进行中"})
+	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{Status: "progressing"})
 	require.NoError(t, err)
 
 	require.Len(t, result.Items, 1)
@@ -1188,8 +1188,8 @@ func TestGanttView_StatusFilterEmpty_ReturnsAll(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "A", Status: "进行中", StartDate: &startDate, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "B", Status: "已完成", StartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "A", Status: "progressing", StartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "B", Status: "completed", StartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 	}
 	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
@@ -1213,7 +1213,7 @@ func TestGanttView_SubItemsNested(t *testing.T) {
 				Priority:        "P1",
 				StartDate:       &startDate,
 				ExpectedEndDate: &endDate,
-				Status:          "进行中",
+				Status:          "progressing",
 			},
 		},
 	}
@@ -1227,7 +1227,7 @@ func TestGanttView_SubItemsNested(t *testing.T) {
 				StartDate:       &startDate,
 				ExpectedEndDate: &endDate,
 				Completion:      80,
-				Status:          "待验收",
+				Status:          "reviewing",
 			},
 		},
 	}
@@ -1244,7 +1244,7 @@ func TestGanttView_SubItemsNested(t *testing.T) {
 	assert.Equal(t, "2026-04-01", sub.StartDate)
 	assert.Equal(t, "2026-04-30", sub.ExpectedEndDate)
 	assert.Equal(t, 80.0, sub.Completion)
-	assert.Equal(t, "待验收", sub.Status)
+	assert.Equal(t, "reviewing", sub.Status)
 }
 
 func TestGanttView_SubItemsFromOtherMainItemNotIncluded(t *testing.T) {
@@ -1253,8 +1253,8 @@ func TestGanttView_SubItemsFromOtherMainItemNotIncluded(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", StartDate: &startDate, ExpectedEndDate: &endDate, Status: "进行中"},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "Main 2", StartDate: &startDate, ExpectedEndDate: &endDate, Status: "进行中"},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", StartDate: &startDate, ExpectedEndDate: &endDate, Status: "progressing"},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "Main 2", StartDate: &startDate, ExpectedEndDate: &endDate, Status: "progressing"},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
@@ -1289,7 +1289,7 @@ func TestGanttView_ArchivedItemsExcluded(t *testing.T) {
 				Title:           "Active",
 				StartDate:       &startDate,
 				ExpectedEndDate: &endDate,
-				Status:          "进行中",
+				Status:          "progressing",
 			},
 		},
 	}
@@ -1315,7 +1315,7 @@ func TestGanttView_DatesFormattedAsISO8601(t *testing.T) {
 				Title:           "Main 1",
 				StartDate:       &startDate,
 				ExpectedEndDate: &endDate,
-				Status:          "进行中",
+				Status:          "progressing",
 			},
 		},
 	}
@@ -1328,7 +1328,7 @@ func TestGanttView_DatesFormattedAsISO8601(t *testing.T) {
 				Title:           "Sub 1",
 				StartDate:       &startDate,
 				ExpectedEndDate: &endDate,
-				Status:          "进行中",
+				Status:          "progressing",
 			},
 		},
 	}
@@ -1351,7 +1351,7 @@ func TestGanttView_NilDates_FormatAsEmptyString(t *testing.T) {
 				BaseModel:  model.BaseModel{ID: 1},
 				TeamID: 1,
 				Title:  "No dates",
-				Status: "待开始",
+				Status: "pending",
 			},
 		},
 	}
@@ -1392,7 +1392,7 @@ func TestGanttView_SubItemSummaryFieldsOnly(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", StartDate: &startDate, ExpectedEndDate: &endDate, Status: "进行中"},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", StartDate: &startDate, ExpectedEndDate: &endDate, Status: "progressing"},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
@@ -1408,7 +1408,7 @@ func TestGanttView_SubItemSummaryFieldsOnly(t *testing.T) {
 				StartDate:       &startDate,
 				ExpectedEndDate: &endDate,
 				ActualEndDate:   nil,
-				Status:          "进行中",
+				Status:          "progressing",
 				Completion:      60,
 			},
 		},
@@ -1427,7 +1427,7 @@ func TestGanttView_SubItemSummaryFieldsOnly(t *testing.T) {
 	assert.Equal(t, "2026-04-01", sub.StartDate)
 	assert.Equal(t, "2026-04-30", sub.ExpectedEndDate)
 	assert.Equal(t, 60.0, sub.Completion)
-	assert.Equal(t, "进行中", sub.Status)
+	assert.Equal(t, "progressing", sub.Status)
 	// GanttSubItemDTO should NOT have isOverdue (v1)
 	// This is enforced by struct definition
 }
@@ -1440,7 +1440,7 @@ func TestGanttView_Overdue_NilExpectedEndDate(t *testing.T) {
 				BaseModel:  model.BaseModel{ID: 1},
 				TeamID: 1,
 				Title:  "No end date",
-				Status: "进行中",
+				Status: "progressing",
 			},
 		},
 	}
@@ -1518,7 +1518,7 @@ func TestTableView_CombinesMainAndSubItems(t *testing.T) {
 				Title:           "Main Item",
 				Priority:        "P1",
 				AssigneeID:      &assigneeID,
-				Status:          "进行中",
+				Status:          "progressing",
 				Completion:      50,
 				ExpectedEndDate: &endDate,
 			},
@@ -1533,7 +1533,7 @@ func TestTableView_CombinesMainAndSubItems(t *testing.T) {
 				Title:           "Sub Item",
 				Priority:        "P2",
 				AssigneeID:      &assigneeID,
-				Status:          "待开始",
+				Status:          "pending",
 				Completion:      0,
 				ExpectedEndDate: &endDate,
 			},
@@ -1568,12 +1568,12 @@ func TestTableView_FilterByTypeMain(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", Status: "pending", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 
@@ -1591,12 +1591,12 @@ func TestTableView_FilterByTypeSub(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", Status: "pending", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 
@@ -1614,8 +1614,8 @@ func TestTableView_FilterByPriority(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "P1 Item", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "P3 Item", Priority: "P3", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "P1 Item", Priority: "P1", Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "P3 Item", Priority: "P3", Status: "pending", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1634,19 +1634,19 @@ func TestTableView_FilterByStatus(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Active", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "Done", Priority: "P1", Status: "已完成", Completion: 100, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Active", Priority: "P1", Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "Done", Priority: "P1", Status: "completed", Completion: 100, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
 
 	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
-	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{Status: []string{"已完成"}}, dto.Pagination{Page: 1, PageSize: 10})
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{Status: []string{"completed"}}, dto.Pagination{Page: 1, PageSize: 10})
 	require.NoError(t, err)
 
 	assert.Equal(t, int64(1), result.Total)
 	require.Len(t, result.Items, 1)
-	assert.Equal(t, "已完成", result.Items[0].Status)
+	assert.Equal(t, "completed", result.Items[0].Status)
 }
 
 func TestTableView_FilterByAssigneeID(t *testing.T) {
@@ -1656,8 +1656,8 @@ func TestTableView_FilterByAssigneeID(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Alice's", Priority: "P1", AssigneeID: &assignee1, Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "Bob's", Priority: "P1", AssigneeID: &assignee2, Status: "进行中", Completion: 30, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Alice's", Priority: "P1", AssigneeID: &assignee1, Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "Bob's", Priority: "P1", AssigneeID: &assignee2, Status: "progressing", Completion: 30, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1676,9 +1676,9 @@ func TestTableView_Pagination(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "A", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "B", Priority: "P2", Status: "进行中", Completion: 30, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Code: "MI-0003", Title: "C", Priority: "P3", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "A", Priority: "P1", Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "B", Priority: "P2", Status: "progressing", Completion: 30, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Code: "MI-0003", Title: "C", Priority: "P3", Status: "pending", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1703,9 +1703,9 @@ func TestTableView_DefaultSort_PriorityDescThenExpectedEndDateAsc(t *testing.T) 
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "P2 Late", Priority: "P2", Status: "进行中", Completion: 30, ExpectedEndDate: &endDate3},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "P2 Early", Priority: "P2", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate2},
-			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Code: "MI-0003", Title: "P1", Priority: "P1", Status: "进行中", Completion: 80, ExpectedEndDate: &endDate1},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "P2 Late", Priority: "P2", Status: "progressing", Completion: 30, ExpectedEndDate: &endDate3},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "P2 Early", Priority: "P2", Status: "progressing", Completion: 50, ExpectedEndDate: &endDate2},
+			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Code: "MI-0003", Title: "P1", Priority: "P1", Status: "progressing", Completion: 80, ExpectedEndDate: &endDate1},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1726,8 +1726,8 @@ func TestTableView_SortByCompletion_Asc(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "High", Priority: "P1", Status: "进行中", Completion: 80, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "Low", Priority: "P1", Status: "待开始", Completion: 10, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "High", Priority: "P1", Status: "progressing", Completion: 80, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "Low", Priority: "P1", Status: "pending", Completion: 10, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1746,8 +1746,8 @@ func TestTableView_SortByCompletion_Desc(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Low", Priority: "P1", Status: "进行中", Completion: 10, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "High", Priority: "P1", Status: "待开始", Completion: 80, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Low", Priority: "P1", Status: "progressing", Completion: 10, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "High", Priority: "P1", Status: "pending", Completion: 80, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1767,7 +1767,7 @@ func TestTableView_SubItemCodeFormat(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P1", Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 
@@ -1786,7 +1786,7 @@ func TestTableView_AssigneeNameResolved(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", AssigneeID: &assigneeID, Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", AssigneeID: &assigneeID, Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1809,7 +1809,7 @@ func TestTableView_AssigneeNameEmpty_WhenNoAssignee(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "No Assignee", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "No Assignee", Priority: "P1", Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1829,7 +1829,7 @@ func TestTableView_ExpectedEndDateAndActualEndDateFormatted(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "已完成", Completion: 100, ExpectedEndDate: &expectedEnd, ActualEndDate: &actualEnd},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "completed", Completion: 100, ExpectedEndDate: &expectedEnd, ActualEndDate: &actualEnd},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1848,7 +1848,7 @@ func TestTableView_ExpectedEndDateAndActualEndDateFormatted(t *testing.T) {
 func TestTableView_NilDates_ReturnNil(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "No Dates", Priority: "P1", Status: "待开始", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "No Dates", Priority: "P1", Status: "pending", Completion: 0},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1867,9 +1867,9 @@ func TestTableView_Page2_ReturnsSecondPage(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "A", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "B", Priority: "P2", Status: "进行中", Completion: 30, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Code: "MI-0003", Title: "C", Priority: "P3", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "A", Priority: "P1", Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "B", Priority: "P2", Status: "progressing", Completion: 30, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Code: "MI-0003", Title: "C", Priority: "P3", Status: "pending", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1927,7 +1927,7 @@ func TestTableExportCSV_ReturnsValidCSV(t *testing.T) {
 				Title:           "Main Item",
 				Priority:        "P1",
 				AssigneeID:      &assigneeID,
-				Status:          "已完成",
+				Status:          "completed",
 				Completion:      100,
 				ExpectedEndDate: &endDate,
 				ActualEndDate:   &actualEnd,
@@ -1963,7 +1963,7 @@ func TestTableExportCSV_ReturnsValidCSV(t *testing.T) {
 	assert.Equal(t, "main", records[1][2])
 	assert.Equal(t, "P1", records[1][3])
 	assert.Equal(t, "Alice", records[1][4])
-	assert.Equal(t, "已完成", records[1][5])
+	assert.Equal(t, "completed", records[1][5])
 	assert.Equal(t, "100", records[1][6])
 	assert.Equal(t, "2026-05-01", records[1][7])
 	assert.Equal(t, "2026-04-20", records[1][8])
@@ -1974,12 +1974,12 @@ func TestTableExportCSV_MultipleRows(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Main", Priority: "P1", Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", Status: "pending", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 
@@ -2003,8 +2003,8 @@ func TestTableExportCSV_ExportWithFilter(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "P1", Priority: "P1", Status: "进行中", Completion: 50, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "P3", Priority: "P3", Status: "待开始", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "P1", Priority: "P1", Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "MI-0002", Title: "P3", Priority: "P3", Status: "pending", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -2026,7 +2026,7 @@ func TestTableExportCSV_ExportWithFilter(t *testing.T) {
 func TestTableExportCSV_NilDates_AsEmpty(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "No Dates", Priority: "P1", Status: "待开始", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "No Dates", Priority: "P1", Status: "pending", Completion: 0},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -2047,7 +2047,7 @@ func TestTableExportCSV_NilDates_AsEmpty(t *testing.T) {
 func TestTableExportCSV_UTF8BOM(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Item", Priority: "P1", Status: "进行中", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "MI-0001", Title: "Item", Priority: "P1", Status: "progressing", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
