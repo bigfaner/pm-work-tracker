@@ -114,6 +114,10 @@ func (m *mockSubItemRepoForProgress) ListByTeam(_ context.Context, _ uint) ([]mo
 	return nil, nil
 }
 
+func (m *mockSubItemRepoForProgress) Delete(_ context.Context, _ uint) error {
+	return nil
+}
+
 var _ repository.SubItemRepo = (*mockSubItemRepoForProgress)(nil)
 
 // mockMainItemSvcForProgress captures RecalcCompletion calls.
@@ -154,6 +158,10 @@ func (m *mockMainItemSvcForProgress) ChangeStatus(_ context.Context, _, _, _ uin
 }
 
 func (m *mockMainItemSvcForProgress) AvailableTransitions(_ context.Context, _, _, _ uint) ([]string, error) {
+	return nil, nil
+}
+
+func (m *mockMainItemSvcForProgress) EvaluateLinkage(_ context.Context, _ uint, _ uint) (*LinkageResult, error) {
 	return nil, nil
 }
 

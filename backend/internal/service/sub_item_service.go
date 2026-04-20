@@ -15,7 +15,7 @@ import (
 // SubItemChangeResult holds the result of a sub-item status change.
 type SubItemChangeResult struct {
 	SubItem       *model.SubItem
-	LinkageResult interface{} // nil in this task; linkage added in 2.1
+	LinkageResult *LinkageResult
 }
 
 // SubItemService defines business operations for SubItem.
@@ -23,6 +23,7 @@ type SubItemService interface {
 	Create(ctx context.Context, teamID, callerID uint, req dto.SubItemCreateReq) (*model.SubItem, error)
 	Update(ctx context.Context, teamID, itemID uint, req dto.SubItemUpdateReq) error
 	ChangeStatus(ctx context.Context, teamID, callerID, itemID uint, newStatus string) (*SubItemChangeResult, error)
+	Delete(ctx context.Context, teamID, callerID, itemID uint) error
 	Get(ctx context.Context, teamID, itemID uint) (*model.SubItem, error)
 	List(ctx context.Context, teamID uint, mainItemID *uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error)
 	Assign(ctx context.Context, teamID, pmID, itemID, assigneeID uint) error
@@ -66,6 +67,10 @@ func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req 
 	if err := s.subItemRepo.Create(ctx, item); err != nil {
 		return nil, err
 	}
+
+	// Trigger linkage evaluation after creating a new sub-item
+	_, _ = s.mainItemSvc.EvaluateLinkage(ctx, item.MainItemID, callerID)
+
 	return item, nil
 }
 
@@ -155,13 +160,35 @@ func (s *subItemService) ChangeStatus(ctx context.Context, teamID, callerID, ite
 		})
 	}
 
+	// Evaluate linkage after status change
+	linkageResult, _ := s.mainItemSvc.EvaluateLinkage(ctx, item.MainItemID, callerID)
+
 	// Fetch updated item
 	updated, err := s.subItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return nil, err
 	}
 
-	return &SubItemChangeResult{SubItem: updated}, nil
+	return &SubItemChangeResult{SubItem: updated, LinkageResult: linkageResult}, nil
+}
+
+func (s *subItemService) Delete(ctx context.Context, teamID, callerID, itemID uint) error {
+	item, err := s.subItemRepo.FindByID(ctx, itemID)
+	if err != nil {
+		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
+	}
+	if item.TeamID != teamID {
+		return apperrors.ErrForbidden
+	}
+
+	if err := s.subItemRepo.Delete(ctx, itemID); err != nil {
+		return err
+	}
+
+	// Trigger linkage evaluation after deleting a sub-item
+	_, _ = s.mainItemSvc.EvaluateLinkage(ctx, item.MainItemID, callerID)
+
+	return nil
 }
 
 func (s *subItemService) AvailableTransitions(ctx context.Context, teamID, subID uint) ([]string, error) {
