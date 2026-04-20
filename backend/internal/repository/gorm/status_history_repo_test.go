@@ -54,8 +54,8 @@ func TestStatusHistoryRepo_Create(t *testing.T) {
 	record := &model.StatusHistory{
 		ItemType:   "sub_item",
 		ItemID:     1,
-		FromStatus: "pending",
-		ToStatus:   "progressing",
+		FromStatus: "待开始",
+		ToStatus:   "进行中",
 		ChangedBy:  10,
 	}
 	require.NoError(t, repo.Create(ctx, record))
@@ -69,14 +69,14 @@ func TestStatusHistoryRepo_FindByID_Found(t *testing.T) {
 	repo := gormrepo.NewGormStatusHistoryRepo(db)
 	ctx := context.Background()
 
-	created := createTestStatusHistory(t, db, "sub_item", 1, "pending", "progressing", 10)
+	created := createTestStatusHistory(t, db, "sub_item", 1, "待开始", "进行中", 10)
 
 	found, err := repo.FindByID(ctx, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "sub_item", found.ItemType)
 	assert.Equal(t, uint(1), found.ItemID)
-	assert.Equal(t, "pending", found.FromStatus)
-	assert.Equal(t, "progressing", found.ToStatus)
+	assert.Equal(t, "待开始", found.FromStatus)
+	assert.Equal(t, "进行中", found.ToStatus)
 	assert.Equal(t, uint(10), found.ChangedBy)
 }
 
@@ -97,13 +97,13 @@ func TestStatusHistoryRepo_ListByItem(t *testing.T) {
 	ctx := context.Background()
 
 	// Create records for item 1
-	createTestStatusHistory(t, db, "sub_item", 1, "pending", "progressing", 10)
-	createTestStatusHistory(t, db, "sub_item", 1, "progressing", "blocking", 10)
-	createTestStatusHistory(t, db, "sub_item", 1, "blocking", "progressing", 20)
+	createTestStatusHistory(t, db, "sub_item", 1, "待开始", "进行中", 10)
+	createTestStatusHistory(t, db, "sub_item", 1, "进行中", "阻塞中", 10)
+	createTestStatusHistory(t, db, "sub_item", 1, "阻塞中", "进行中", 20)
 	// Create record for a different item
-	createTestStatusHistory(t, db, "sub_item", 2, "pending", "progressing", 10)
+	createTestStatusHistory(t, db, "sub_item", 2, "待开始", "进行中", 10)
 	// Create record for a different item type
-	createTestStatusHistory(t, db, "main_item", 1, "pending", "progressing", 10)
+	createTestStatusHistory(t, db, "main_item", 1, "待开始", "进行中", 10)
 
 	t.Run("returns only matching item", func(t *testing.T) {
 		result, err := repo.ListByItem(ctx, "sub_item", 1, dto.Pagination{Page: 1, PageSize: 10})
