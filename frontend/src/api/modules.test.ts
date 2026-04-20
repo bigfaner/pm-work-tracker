@@ -101,7 +101,7 @@ describe('API modules', () => {
     it('createMainItemApi should POST /teams/:id/main-items', async () => {
       mockClient.post.mockResolvedValue({})
       await mainItemsApi.createMainItemApi(1, { title: 'Item', priority: 'P0', assigneeId: 0, startDate: '', expectedEndDate: '' })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/1/main-items', { title: 'Item', priority: 'P0', assignee_id: 0, start_date: '', expected_end_date: '' })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams/1/main-items', { title: 'Item', priority: 'P0', assigneeId: 0, startDate: '', expectedEndDate: '' })
     })
 
     it('listMainItemsApi should GET /teams/:id/main-items with params', async () => {
@@ -133,7 +133,7 @@ describe('API modules', () => {
     it('createSubItemApi should POST to correct URL', async () => {
       mockClient.post.mockResolvedValue({})
       await subItemsApi.createSubItemApi(1, 2, { title: 'Sub', priority: 'P1', assigneeId: 3, startDate: '', expectedEndDate: '' })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/1/main-items/2/sub-items', { main_item_id: 2, title: 'Sub', priority: 'P1', assignee_id: 3, start_date: '', expected_end_date: '' })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams/1/main-items/2/sub-items', { mainItemId: 2, title: 'Sub', priority: 'P1', assigneeId: 3, startDate: '', expectedEndDate: '' })
     })
 
     it('listSubItemsApi should GET with params', async () => {

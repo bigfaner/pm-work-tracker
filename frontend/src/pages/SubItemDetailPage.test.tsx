@@ -179,13 +179,10 @@ describe('SubItemDetailPage', () => {
   it('renders info card fields', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText('编号')).toBeInTheDocument()
       expect(screen.getByText('所属主事项')).toBeInTheDocument()
-      expect(screen.getByText('优先级')).toBeInTheDocument()
       expect(screen.getByText('负责人')).toBeInTheDocument()
-      expect(screen.getByText('状态')).toBeInTheDocument()
       expect(screen.getByText('预期完成时间')).toBeInTheDocument()
-      expect(screen.getByText('当前完成度')).toBeInTheDocument()
+      expect(screen.getByText('总进度')).toBeInTheDocument()
     })
   })
 

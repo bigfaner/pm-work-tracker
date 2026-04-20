@@ -38,13 +38,11 @@ export default function WeeklyViewPage() {
             <h1 className="text-xl font-semibold text-primary">每周进展</h1>
             <div className="flex items-center gap-2">
               <span className="text-[13px] text-secondary">选择周次：</span>
-              <div data-testid="week-selector">
-                <WeekPicker
-                  weekStart={weekStart}
-                  onChange={setWeekStart}
-                  maxWeek={getCurrentWeekStart()}
-                />
-              </div>
+              <WeekPicker
+                weekStart={weekStart}
+                onChange={setWeekStart}
+                maxWeek={getCurrentWeekStart()}
+              />
               {data && (
                 <span className="text-[13px] text-secondary">
                   {formatDate(data.weekStart)} ~ {formatDate(data.weekEnd)}
