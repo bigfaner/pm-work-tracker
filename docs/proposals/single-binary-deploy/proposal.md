@@ -31,12 +31,13 @@ status: Draft
   2. cd backend && go build         → embed.FS 将 dist/ 打包进二进制
 
 运行时路由：
-  /api/*   → Gin handlers（现有逻辑不变）
-  /*       → 从 embed.FS 提供静态文件，404 fallback 到 index.html（SPA 路由）
+  /api/*    → Gin handlers（现有逻辑不变）
+  /         → 从 embed.FS 提供 index.html
+  /static/* → 从 embed.FS 提供静态文件（JS/CSS/图片等）
 ```
 
 **变更范围：**
-- `backend/internal/handler/router.go`：增加静态文件路由，`/api/*` 之外的请求 fallback 到 `index.html`
+- `backend/internal/handler/router.go`：增加 `/` 路由返回 index.html，`/static/*` 路由提供静态文件
 - `backend/cmd/server/main.go` 或新增 `backend/static/static.go`：声明 `//go:embed` 指令
 - `scripts/build.sh`：编译与打包脚本，接受 `ENV` 参数（`dev` / `prod`），输出对应二进制
 - 本地开发流程：**不变**，继续分两个终端启动
@@ -94,7 +95,7 @@ Dockerfile 多阶段：node 构建前端 → go 构建后端 → 最终镜像包
 ## Scope
 
 **In scope：**
-- `router.go` 增加静态文件服务（SPA fallback）
+- `router.go` 增加 `/` 返回 index.html、`/static/*` 静态文件路由
 - embed 声明文件（`backend/static/static.go` 或 `main.go` 内）
 - `scripts/build.sh`：接受 `ENV=dev|prod` 参数，校验分支、构建前端、构建后端、输出二进制
 - `config.dev.yaml` / `config.prod.yaml`：提交到 git，敏感字段留占位符
