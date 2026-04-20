@@ -722,7 +722,6 @@ func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 		Status:          "进行中",
 		Completion:      45.5,
 		IsKeyItem:       false,
-		DelayCount:      0,
 	}
 	item.ID = 1
 
@@ -764,6 +763,5 @@ func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	assert.Equal(t, "进行中", data["status"])
 	assert.Equal(t, 45.5, data["completion"])
 	assert.Equal(t, false, data["isKeyItem"])
-	assert.Equal(t, float64(0), data["delayCount"])
 	assert.NotNil(t, data["subItems"])
 }

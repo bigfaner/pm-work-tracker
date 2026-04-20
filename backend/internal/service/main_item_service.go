@@ -46,7 +46,7 @@ func (s *mainItemService) Create(ctx context.Context, teamID, pmID uint, req dto
 		ProposerID:  pmID,
 		AssigneeID:  &req.AssigneeID,
 		IsKeyItem:   req.IsKeyItem,
-		Status:      "待开始",
+		Status:      "pending",
 	}
 
 	if req.StartDate != nil {
@@ -85,9 +85,6 @@ func (s *mainItemService) Update(ctx context.Context, teamID, itemID uint, req d
 	if req.AssigneeID != nil {
 		fields["assignee_id"] = *req.AssigneeID
 	}
-	if req.Status != nil {
-		fields["status"] = *req.Status
-	}
 	if req.IsKeyItem != nil {
 		fields["is_key_item"] = *req.IsKeyItem
 	}
@@ -114,7 +111,7 @@ func (s *mainItemService) Archive(ctx context.Context, teamID, itemID uint) erro
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 
-	if item.Status != "已完成" && item.Status != "已关闭" {
+	if item.Status != "completed" && item.Status != "closed" {
 		return apperrors.ErrArchiveNotAllowed
 	}
 

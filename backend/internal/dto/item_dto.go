@@ -93,7 +93,6 @@ type MainItemUpdateReq struct {
 	StartDate       *string `json:"startDate"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
 	ActualEndDate   *string `json:"actualEndDate"`
-	Status          *string `json:"status"`
 	IsKeyItem       *bool   `json:"isKeyItem"`
 }
 

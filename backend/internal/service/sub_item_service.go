@@ -50,7 +50,7 @@ func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req 
 		Description: req.Description,
 		Priority:    req.Priority,
 		AssigneeID:  &req.AssigneeID,
-		Status:      "待开始",
+		Status:      "pending",
 		Weight:      1.0,
 	}
 
@@ -124,16 +124,6 @@ func (s *subItemService) ChangeStatus(ctx context.Context, teamID, callerID, ite
 		"status": newStatus,
 	}
 
-	// Delay-count logic when transitioning to 已延期
-	if newStatus == "已延期" {
-		newDelayCount := item.DelayCount + 1
-		fields["delay_count"] = newDelayCount
-
-		if newDelayCount >= 2 {
-			fields["is_key_item"] = true
-			fields["priority"] = "P1"
-		}
-	}
 
 	// Set ActualEndDate when transitioning to 已完成
 	if newStatus == "已完成" {

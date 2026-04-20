@@ -36,6 +36,7 @@ var Registry = []ResourcePermissions{
 			{Code: "main_item:read", Description: "查看主事项"},
 			{Code: "main_item:update", Description: "编辑主事项"},
 			{Code: "main_item:archive", Description: "归档主事项"},
+			{Code: "main_item:change_status", Description: "变更主事项状态"},
 		},
 	},
 	{

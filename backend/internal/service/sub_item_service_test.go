@@ -120,7 +120,7 @@ func TestSubItemCreate_Success(t *testing.T) {
 	svc := NewSubItemService(repo, mainSvc)
 
 	repo.On("Create", mock.Anything, mock.MatchedBy(func(item *model.SubItem) bool {
-		return item.TeamID == 1 && item.MainItemID == 5 && item.Title == "Sub task A" && item.Status == "待开始"
+		return item.TeamID == 1 && item.MainItemID == 5 && item.Title == "Sub task A" && item.Status == "pending"
 	})).Return(nil)
 
 	item, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
@@ -132,7 +132,7 @@ func TestSubItemCreate_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, uint(1), item.TeamID)
 	assert.Equal(t, uint(5), item.MainItemID)
-	assert.Equal(t, "待开始", item.Status)
+	assert.Equal(t, "pending", item.Status)
 	assert.Equal(t, "Sub task A", item.Title)
 	assert.Equal(t, "P2", item.Priority)
 	assert.NotNil(t, item.AssigneeID)
@@ -300,7 +300,6 @@ func testValidTransitionTM(t *testing.T, from, to string) {
 		TeamID:     1,
 		MainItemID: 5,
 		Status:     from,
-		DelayCount: 0,
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -406,89 +405,6 @@ func testInvalidTransitionTM(t *testing.T, from, to string) {
 
 	err := svc.ChangeStatus(context.Background(), 1, 10, 1, to)
 	assert.ErrorIs(t, err, apperrors.ErrInvalidStatus, "from %s to %s should be invalid", from, to)
-
-	repo.AssertExpectations(t)
-}
-
-// ---------------------------------------------------------------------------
-// Tests: ChangeStatus — delay count and auto-upgrade
-// ---------------------------------------------------------------------------
-
-func TestChangeStatus_已延期_IncrementsDelayCount(t *testing.T) {
-	existing := &model.SubItem{
-		BaseModel:      model.BaseModel{ID: 1},
-		TeamID:     1,
-		Status:     "进行中",
-		DelayCount: 0,
-		Priority:   "P3",
-	}
-	repo := new(mockSubItemRepoTM)
-	mainSvc := new(mockMainItemSvcTM)
-	svc := NewSubItemService(repo, mainSvc)
-
-	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
-	repo.On("Update", mock.Anything, existing, mock.MatchedBy(func(fields map[string]interface{}) bool {
-		return fields["status"] == "已延期" &&
-			fields["delay_count"] == 1 &&
-			fields["is_key_item"] == nil &&
-			fields["priority"] == nil
-	})).Return(nil)
-
-	err := svc.ChangeStatus(context.Background(), 1, 10, 1, "已延期")
-	require.NoError(t, err)
-
-	repo.AssertExpectations(t)
-}
-
-func TestChangeStatus_已延期_AutoUpgradeAtCount2(t *testing.T) {
-	existing := &model.SubItem{
-		BaseModel:      model.BaseModel{ID: 1},
-		TeamID:     1,
-		Status:     "进行中",
-		DelayCount: 1,
-		Priority:   "P3",
-	}
-	repo := new(mockSubItemRepoTM)
-	mainSvc := new(mockMainItemSvcTM)
-	svc := NewSubItemService(repo, mainSvc)
-
-	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
-	repo.On("Update", mock.Anything, existing, mock.MatchedBy(func(fields map[string]interface{}) bool {
-		return fields["status"] == "已延期" &&
-			fields["delay_count"] == 2 &&
-			fields["is_key_item"] == true &&
-			fields["priority"] == "P1"
-	})).Return(nil)
-
-	err := svc.ChangeStatus(context.Background(), 1, 10, 1, "已延期")
-	require.NoError(t, err)
-
-	repo.AssertExpectations(t)
-}
-
-func TestChangeStatus_已延期_AutoUpgradeAtCount3(t *testing.T) {
-	existing := &model.SubItem{
-		BaseModel:      model.BaseModel{ID: 1},
-		TeamID:     1,
-		Status:     "进行中",
-		DelayCount: 2,
-		Priority:   "P2",
-		IsKeyItem:  true,
-	}
-	repo := new(mockSubItemRepoTM)
-	mainSvc := new(mockMainItemSvcTM)
-	svc := NewSubItemService(repo, mainSvc)
-
-	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
-	repo.On("Update", mock.Anything, existing, mock.MatchedBy(func(fields map[string]interface{}) bool {
-		return fields["status"] == "已延期" &&
-			fields["delay_count"] == 3 &&
-			fields["is_key_item"] == true &&
-			fields["priority"] == "P1"
-	})).Return(nil)
-
-	err := svc.ChangeStatus(context.Background(), 1, 10, 1, "已延期")
-	require.NoError(t, err)
 
 	repo.AssertExpectations(t)
 }

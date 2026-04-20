@@ -127,7 +127,7 @@ func TestMainItemCreate_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "MI-0001", item.Code)
 	assert.Equal(t, uint(10), item.ProposerID)
-	assert.Equal(t, "待开始", item.Status)
+	assert.Equal(t, "pending", item.Status)
 	assert.Equal(t, uint(1), item.TeamID)
 	assert.Equal(t, "Feature A", item.Title)
 	assert.Equal(t, "P0", item.Priority)
@@ -209,7 +209,7 @@ func TestMainItemArchive_Success(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
-		Status: "已完成",
+		Status: "completed",
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
@@ -224,7 +224,7 @@ func TestMainItemArchive_ClosedStatus(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
-		Status: "已关闭",
+		Status: "closed",
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
@@ -238,7 +238,7 @@ func TestMainItemArchive_NotAllowed_InProgress(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
-		Status: "进行中",
+		Status: "in_progress",
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
@@ -252,7 +252,7 @@ func TestMainItemArchive_NotAllowed_Pending(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
-		Status: "待开始",
+		Status: "pending",
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}

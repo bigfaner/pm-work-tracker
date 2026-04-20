@@ -48,10 +48,9 @@ func TestMainItem_Defaults(t *testing.T) {
 
 	var fetched model.MainItem
 	db.First(&fetched, "code = ?", "MI-0002")
-	assert.Equal(t, "待开始", fetched.Status, "status should default to 待开始")
+	assert.Equal(t, "pending", fetched.Status, "status should default to pending")
 	assert.Equal(t, float64(0), fetched.Completion, "completion should default to 0")
 	assert.False(t, fetched.IsKeyItem, "is_key_item should default to false")
-	assert.Equal(t, 0, fetched.DelayCount, "delay_count should default to 0")
 }
 
 func TestMainItem_ArchivedAt(t *testing.T) {
@@ -108,11 +107,10 @@ func TestSubItem_DefaultStatus(t *testing.T) {
 
 	var fetched model.SubItem
 	db.First(&fetched, "title = ?", "Sub 1")
-	assert.Equal(t, "待开始", fetched.Status, "status should default to 待开始")
+	assert.Equal(t, "pending", fetched.Status, "status should default to pending")
 	assert.Equal(t, float64(0), fetched.Completion, "completion should default to 0")
 	assert.Equal(t, float64(1), fetched.Weight, "weight should default to 1.0")
 	assert.False(t, fetched.IsKeyItem, "is_key_item should default to false")
-	assert.Equal(t, 0, fetched.DelayCount, "delay_count should default to 0")
 }
 
 func TestSubItem_WeightCanBeCustom(t *testing.T) {
