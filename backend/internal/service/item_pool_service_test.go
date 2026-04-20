@@ -98,6 +98,9 @@ func (m *mockSubItemRepoForPool) ListByMainItem(_ context.Context, mainItemID ui
 func (m *mockSubItemRepoForPool) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
 	return nil, nil
 }
+func (m *mockSubItemRepoForPool) Delete(_ context.Context, _ uint) error {
+	return nil
+}
 
 // mockMainItemRepoForPool captures FindByID for Assign validation.
 type mockMainItemRepoForPool struct {

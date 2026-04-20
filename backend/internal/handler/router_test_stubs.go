@@ -81,6 +81,10 @@ func (s *StubMainItemSvc) AvailableTransitions(_ context.Context, _, _, _ uint) 
 	return nil, fmt.Errorf("stub: not implemented")
 }
 
+func (s *StubMainItemSvc) EvaluateLinkage(_ context.Context, _ uint, _ uint) (*service.LinkageResult, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
 var _ service.MainItemService = (*StubMainItemSvc)(nil)
 
 type StubSubItemSvc struct{}
@@ -105,6 +109,9 @@ func (s *StubSubItemSvc) Assign(_ context.Context, _, _, _, _ uint) error {
 }
 func (s *StubSubItemSvc) AvailableTransitions(_ context.Context, _, _ uint) ([]string, error) {
 	return nil, fmt.Errorf("stub: not implemented")
+}
+func (s *StubSubItemSvc) Delete(_ context.Context, _, _, _ uint) error {
+	return fmt.Errorf("stub: not implemented")
 }
 
 var _ service.SubItemService = (*StubSubItemSvc)(nil)
@@ -215,6 +222,7 @@ func (s *StubRouterRepoSubItem) ListByMainItem(_ context.Context, _ uint) ([]*mo
 func (s *StubRouterRepoSubItem) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
 	return nil, nil
 }
+func (s *StubRouterRepoSubItem) Delete(_ context.Context, _ uint) error { return nil }
 
 var _ repository.SubItemRepo = (*StubRouterRepoSubItem)(nil)
 

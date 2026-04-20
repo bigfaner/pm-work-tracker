@@ -136,6 +136,9 @@ func (m *mockSubItemService) AvailableTransitions(_ context.Context, teamID, sub
 	m.lastItemID = subID
 	return m.availableTransitionsResult.transitions, m.availableTransitionsResult.err
 }
+func (m *mockSubItemService) Delete(_ context.Context, _, _, _ uint) error {
+	return nil
+}
 
 // ---------------------------------------------------------------------------
 // Helpers

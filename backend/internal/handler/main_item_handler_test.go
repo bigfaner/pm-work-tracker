@@ -18,6 +18,7 @@ import (
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/repository"
+	"pm-work-tracker/backend/internal/service"
 )
 
 // ---------------------------------------------------------------------------
@@ -137,6 +138,10 @@ func (m *mockMainItemService) AvailableTransitions(_ context.Context, teamID, ca
 	return m.availableTransitionsResult.transitions, m.availableTransitionsResult.err
 }
 
+func (m *mockMainItemService) EvaluateLinkage(_ context.Context, _ uint, _ uint) (*service.LinkageResult, error) {
+	return nil, nil
+}
+
 // ---------------------------------------------------------------------------
 // Mock SubItemRepo for Get endpoint (subItems summary)
 // ---------------------------------------------------------------------------
@@ -163,6 +168,9 @@ func (m *mockSubItemRepoForHandler) ListByMainItem(_ context.Context, _ uint) ([
 }
 func (m *mockSubItemRepoForHandler) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
 	return nil, nil
+}
+func (m *mockSubItemRepoForHandler) Delete(_ context.Context, _ uint) error {
+	return nil
 }
 
 // ---------------------------------------------------------------------------
