@@ -358,7 +358,7 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 			}
 
 			// Completed items with no change this week -> completedNoChange
-			if si.Status == "已完成" && !isJustCompleted {
+			if si.Status == "completed" && !isJustCompleted {
 				group.CompletedNoChange = append(group.CompletedNoChange, snapshot)
 				continue
 			}
@@ -368,10 +368,10 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 				group.ThisWeek = append(group.ThisWeek, snapshot)
 				totalActive++
 
-				if si.Status == "进行中" {
+				if si.Status == "progressing" {
 					totalInProgress++
 				}
-				if si.Status == "阻塞中" {
+				if si.Status == "blocking" {
 					totalBlocked++
 				}
 			}
@@ -413,7 +413,7 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 
 // isNewlyCompleted checks if a sub-item's ActualEndDate falls within the week range.
 func isNewlyCompleted(si model.SubItem, weekStart, weekEnd time.Time) bool {
-	if si.Status != "已完成" {
+	if si.Status != "completed" {
 		return false
 	}
 	if si.ActualEndDate == nil {
@@ -552,7 +552,7 @@ func computeIsOverdue(expectedEndDate *time.Time, status string, today time.Time
 	if expectedEndDate == nil {
 		return false
 	}
-	if status == "已完成" || status == "已关闭" {
+	if status == "completed" || status == "closed" {
 		return false
 	}
 	return expectedEndDate.Before(today)

@@ -203,7 +203,7 @@ func testMainItem(id uint, teamID uint) *model.MainItem {
 		Code:     fmt.Sprintf("MI-%04d", id),
 		Title:    "Test Item",
 		Priority: "P1",
-		Status:   "待开始",
+		Status:   "pending",
 	}
 }
 
@@ -386,14 +386,14 @@ func TestListMainItems_WithFilters(t *testing.T) {
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items?priority=P1&status=进行中&page=2&pageSize=10", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items?priority=P1&status=progressing&page=2&pageSize=10", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, svc.listCalled)
 	assert.Equal(t, "P1", svc.lastFilter.Priority)
-	assert.Equal(t, "进行中", svc.lastFilter.Status)
+	assert.Equal(t, "progressing", svc.lastFilter.Status)
 	assert.Equal(t, 2, svc.lastPage.Page)
 	assert.Equal(t, 10, svc.lastPage.PageSize)
 }
@@ -425,14 +425,14 @@ func TestGetMainItem_Success(t *testing.T) {
 	svc := &mockMainItemService{}
 	item := testMainItem(1, 10)
 	item.ID = 1
-	item.Status = "进行中"
+	item.Status = "progressing"
 	item.Completion = 45.5
 	svc.getResult.item = item
 
 	userRepo := &mockUserRepoForHandler{}
 	subItemRepo := &mockSubItemRepoForHandler{
 		items: []*model.SubItem{
-			{Title: "Sub 1", Status: "进行中", Completion: 60},
+			{Title: "Sub 1", Status: "progressing", Completion: 60},
 		},
 	}
 	subItemRepo.items[0].ID = 10
@@ -959,7 +959,7 @@ func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 		AssigneeID:      &assigneeID,
 		StartDate:       &now,
 		ExpectedEndDate: &now,
-		Status:          "进行中",
+		Status:          "progressing",
 		Completion:      45.5,
 		IsKeyItem:       false,
 	}
@@ -1000,7 +1000,7 @@ func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	assert.Equal(t, "P1", data["priority"])
 	assert.Equal(t, float64(2), data["proposerId"])
 	assert.Equal(t, float64(3), data["assigneeId"])
-	assert.Equal(t, "进行中", data["status"])
+	assert.Equal(t, "progressing", data["status"])
 	assert.Equal(t, 45.5, data["completion"])
 	assert.Equal(t, false, data["isKeyItem"])
 	assert.NotNil(t, data["subItems"])

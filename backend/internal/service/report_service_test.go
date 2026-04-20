@@ -26,7 +26,7 @@ func TestReportService_Preview_NoProgressRecords_ReturnsNoData(t *testing.T) {
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "待开始", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "pending", Completion: 0},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
@@ -47,7 +47,7 @@ func TestReportService_Preview_WithProgressRecords(t *testing.T) {
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 60},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "progressing", Completion: 60},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -96,7 +96,7 @@ func TestReportService_Preview_AchievementsAndBlockers(t *testing.T) {
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "进行中", Completion: 40},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "progressing", Completion: 40},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
