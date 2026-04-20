@@ -17,6 +17,7 @@ import {
   DialogBody,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { PermissionGuard } from '@/components/PermissionGuard'
 import { Progress } from '@/components/ui/progress'
@@ -150,7 +151,7 @@ export default function SubItemDetailPage() {
               <div className="grid grid-cols-4 gap-4">
                 <div>
                   <div className="text-xs text-tertiary mb-1">编号</div>
-                  <span className="font-mono text-xs bg-bg-alt px-1.5 py-0.5 rounded">{subCode}</span>
+                  <Badge variant="default" className="font-mono text-[11px]">{subCode}</Badge>
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">所属主事项</div>

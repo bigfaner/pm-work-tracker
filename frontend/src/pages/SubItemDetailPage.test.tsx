@@ -196,6 +196,16 @@ describe('SubItemDetailPage', () => {
     })
   })
 
+  it('renders sub item code as Badge component (rounded-full, not plain rounded)', async () => {
+    renderPage()
+    await waitFor(() => {
+      const codeEl = screen.getByText('SI-001-12')
+      expect(codeEl.className).toContain('font-mono')
+      expect(codeEl.className).toContain('rounded-full')
+      expect(codeEl.className).not.toContain('px-1.5')
+    })
+  })
+
   it('renders priority badge', async () => {
     renderPage()
     await waitFor(() => {
