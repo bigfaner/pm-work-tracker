@@ -6,7 +6,7 @@ export interface DateInputProps extends Omit<React.InputHTMLAttributes<HTMLInput
 
 const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
   ({ className, ...props }, forwardedRef) => {
-    const innerRef = useRef<HTMLInputElement | null>(null)
+    const innerRef = useRef<HTMLInputElement>(null)
 
     const handleClick = () => {
       innerRef.current?.showPicker?.()
