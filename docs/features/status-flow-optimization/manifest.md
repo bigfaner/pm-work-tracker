@@ -12,6 +12,7 @@ status: tasks
 | Document | Path | Summary |
 |----------|------|---------|
 | PRD Spec | prd/prd.md | 统一事项状态枚举体系（code+name），建立 MainItem/SubItem 状态机，实现主子联动、状态变更日志，修复前端 StatusDropdown |
+| User Stories | prd/prd-user-stories.md | 16 个用户故事，覆盖 PM 和执行人角色的完整状态流转（含所有合法/非法路径）、Update 接口绕过防护、无子事项手动 reviewing、联动协作、历史记录、前端交互场景 |
 | Tech Design | design/design.md | 新增 pkg/status 枚举包、StatusHistory 审计模型、ChangeStatus 状态机、EvaluateLinkage 联动引擎、per-MainItem 互斥锁 |
 | Design Eval | design/design-eval.md | 评估得分 B，Breakdown-Readiness A，22 条 AC 全覆盖 |
 
