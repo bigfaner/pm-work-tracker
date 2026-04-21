@@ -22,7 +22,7 @@ type TeamService interface {
 	CreateTeam(ctx context.Context, creatorID uint, req dto.CreateTeamReq) (*model.Team, error)
 	GetTeam(ctx context.Context, teamID uint) (*model.Team, error)
 	GetTeamDetail(ctx context.Context, teamID uint) (*dto.TeamDetailResp, error)
-	ListTeams(ctx context.Context, callerID uint, isSuperAdmin bool) ([]*model.Team, error)
+	ListTeams(ctx context.Context, callerID uint, isSuperAdmin bool) ([]*dto.TeamListResp, error)
 	UpdateTeam(ctx context.Context, pmID, teamID uint, req dto.UpdateTeamReq) (*model.Team, error)
 	InviteMember(ctx context.Context, pmID, teamID uint, req dto.InviteMemberReq) error
 	RemoveMember(ctx context.Context, pmID, teamID, targetUserID uint) error
@@ -30,6 +30,7 @@ type TeamService interface {
 	DisbandTeam(ctx context.Context, callerID uint, teamID uint, confirmName string) error
 	UpdateMemberRole(ctx context.Context, pmID, teamID, targetUserID uint, role string) error
 	ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMemberDTO, error)
+	SearchAvailableUsers(ctx context.Context, teamID uint, search string) ([]*dto.UserSearchDTO, error)
 }
 
 type teamService struct {
@@ -74,8 +75,31 @@ func (s *teamService) GetTeam(ctx context.Context, teamID uint) (*model.Team, er
 	return team, nil
 }
 
-func (s *teamService) ListTeams(ctx context.Context, _ uint, _ bool) ([]*model.Team, error) {
-	return s.teamRepo.List(ctx)
+func (s *teamService) ListTeams(ctx context.Context, _ uint, _ bool) ([]*dto.TeamListResp, error) {
+	teams, err := s.teamRepo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	teamIDs := make([]uint, len(teams))
+	for i, t := range teams {
+		teamIDs[i] = t.ID
+	}
+	pmNames, _ := s.teamRepo.FindPMMembers(ctx, teamIDs)
+
+	result := make([]*dto.TeamListResp, len(teams))
+	for i, t := range teams {
+		result[i] = &dto.TeamListResp{
+			ID:            t.ID,
+			Name:          t.Name,
+			Description:   t.Description,
+			PmID:          t.PmID,
+			PmDisplayName: pmNames[t.ID],
+			CreatedAt:     t.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:     t.UpdatedAt.Format(time.RFC3339),
+		}
+	}
+	return result, nil
 }
 
 func (s *teamService) GetTeamDetail(ctx context.Context, teamID uint) (*dto.TeamDetailResp, error) {
@@ -247,4 +271,48 @@ func (s *teamService) UpdateMemberRole(ctx context.Context, pmID, teamID, target
 
 func (s *teamService) ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMemberDTO, error) {
 	return s.teamRepo.ListMembers(ctx, teamID)
+}
+
+func (s *teamService) SearchAvailableUsers(ctx context.Context, teamID uint, search string) ([]*dto.UserSearchDTO, error) {
+	users, err := s.userRepo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get existing member user IDs
+	members, err := s.teamRepo.ListMembers(ctx, teamID)
+	if err != nil {
+		return nil, err
+	}
+	memberIDs := make(map[uint]bool, len(members))
+	for _, m := range members {
+		memberIDs[m.UserID] = true
+	}
+
+	// Filter by search and exclude existing members
+	var result []*dto.UserSearchDTO
+	for _, u := range users {
+		if memberIDs[u.ID] {
+			continue
+		}
+		if search != "" {
+			if !containsIgnoreCase(u.Username, search) && !containsIgnoreCase(u.DisplayName, search) {
+				continue
+			}
+		}
+		result = append(result, &dto.UserSearchDTO{
+			ID:          u.ID,
+			Username:    u.Username,
+			DisplayName: u.DisplayName,
+		})
+		// Limit results to 20
+		if len(result) >= 20 {
+			break
+		}
+	}
+
+	if result == nil {
+		result = []*dto.UserSearchDTO{}
+	}
+	return result, nil
 }

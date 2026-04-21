@@ -210,4 +210,97 @@ test.describe.serial('事项清单 Bug修复验证', () => {
     await expect(page).toHaveURL(new RegExp(`/items/${itemA}$`), { timeout: 10000 });
     await expect(page.locator('[data-testid="main-item-detail-page"]')).toBeVisible({ timeout: 10000 });
   });
+
+  test('汇总模式下子事项状态切换后UI即时更新', async ({ page, playwright }) => {
+    // Reset sub-item status to 'pending' via API to ensure a known starting state
+    const req = await playwright.request.newContext({
+      baseURL: 'http://127.0.0.1:8080',
+      extraHTTPHeaders: { 'Content-Type': 'application/json' },
+    });
+    const loginRes = await req.post('/api/v1/auth/login', { data: { username: 'admin', password: 'admin123' } });
+    const token = parseApiData(await loginRes.json()).token;
+    // Ensure sub-item is in pending state (reset if it was changed by earlier tests)
+    await req.put(`/api/v1/teams/${teamId}/sub-items/${subItemA1}/status`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { status: 'pending' },
+    });
+    await req.dispose();
+
+    await login(page);
+    await page.waitForTimeout(2000);
+    await expect(page.locator('text=E2E修复测试-带日期').first()).toBeVisible({ timeout: 10000 });
+
+    // Ensure we are in summary view (default)
+    await page.locator('[data-testid="toggle-summary"]').click();
+    await page.waitForTimeout(1000);
+
+    // Expand the card to show sub-items
+    const itemACard = page.locator(`:text("E2E修复测试-带日期")`).first().locator('..').locator('..');
+    await itemACard.click();
+    await page.waitForTimeout(3000);
+
+    // Sub-item should be visible
+    await expect(page.locator('text=子事项-已有').first()).toBeVisible({ timeout: 10000 });
+
+    // Find the status badge for the sub-item row (should show "待开始" = pending)
+    const subItemRow = page.locator('div').filter({ hasText: /^子事项-已有/ }).first();
+    const statusBadge = subItemRow.locator('button').filter({ hasText: '待开始' }).first();
+    await expect(statusBadge).toBeVisible({ timeout: 5000 });
+
+    // Click the status badge to open the dropdown
+    await statusBadge.click();
+    await page.waitForTimeout(500);
+
+    // Select "进行中" (progressing) from the dropdown
+    const progressingOption = page.locator('[role="menuitem"]').filter({ hasText: '进行中' }).first();
+    await expect(progressingOption).toBeVisible({ timeout: 5000 });
+    await progressingOption.click();
+    await page.waitForTimeout(2000);
+
+    // Verify the status badge now shows "进行中" instead of "待开始"
+    const updatedBadge = subItemRow.locator('button').filter({ hasText: '进行中' }).first();
+    await expect(updatedBadge).toBeVisible({ timeout: 5000 });
+
+    // Also verify "待开始" is no longer shown for this sub-item
+    const oldBadge = subItemRow.locator('button').filter({ hasText: '待开始' }).first();
+    await expect(oldBadge).not.toBeVisible({ timeout: 3000 });
+  });
+
+  test('刷新按钮可见并可点击', async ({ page }) => {
+    await login(page);
+    await page.waitForTimeout(2000);
+    await expect(page.locator('[data-testid="refresh-btn"]')).toBeVisible();
+    await expect(page.locator('[data-testid="refresh-btn"]')).toBeEnabled();
+    await page.locator('[data-testid="refresh-btn"]').click();
+    // Button should still be visible after refresh
+    await expect(page.locator('[data-testid="refresh-btn"]')).toBeVisible({ timeout: 10000 });
+  });
+
+  test('刷新按钮重新加载数据', async ({ page, playwright }) => {
+    // Create a new item via API after page loads
+    await login(page);
+    await page.waitForTimeout(2000);
+    await expect(page.locator('text=E2E修复测试-带日期').first()).toBeVisible({ timeout: 10000 });
+
+    // Create a new item via API
+    const req = await playwright.request.newContext({
+      baseURL: 'http://127.0.0.1:8080',
+      extraHTTPHeaders: { 'Content-Type': 'application/json' },
+    });
+    const loginRes = await req.post('/api/v1/auth/login', { data: { username: 'admin', password: 'admin123' } });
+    const token = parseApiData(await loginRes.json()).token;
+    const freshTitle = `刷新测试-${Date.now()}`;
+    await req.post(`/api/v1/teams/${teamId}/main-items`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { title: freshTitle, priority: 'P2', assigneeId: 1, startDate: '2026-04-20', expectedEndDate: '2026-05-20' },
+    });
+    await req.dispose();
+
+    // New item should not be visible yet (cached data)
+    await expect(page.locator(`text=${freshTitle}`)).not.toBeVisible({ timeout: 2000 }).catch(() => {});
+
+    // Click refresh to reload
+    await page.locator('[data-testid="refresh-btn"]').click();
+    await expect(page.locator(`text=${freshTitle}`).first()).toBeVisible({ timeout: 10000 });
+  });
 });

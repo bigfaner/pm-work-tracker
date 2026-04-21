@@ -77,6 +77,7 @@ export interface Team {
   name: string
   description: string
   pmId: number
+  pmDisplayName?: string
   createdAt: string
   updatedAt: string
 }

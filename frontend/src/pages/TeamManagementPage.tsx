@@ -1,7 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listTeamsApi, createTeamApi } from '@/api/teams'
+import { UserPlus } from 'lucide-react'
+import { listTeamsApi, createTeamApi, inviteMemberApi, searchAvailableUsersApi, type UserSearchResult } from '@/api/teams'
+import { listRolesApi } from '@/api/roles'
 import type { Team } from '@/types'
 import { PermissionGuard } from '@/components/PermissionGuard'
 import { Button } from '@/components/ui/button'
@@ -16,6 +18,13 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Table,
   TableHeader,
   TableBody,
@@ -23,6 +32,7 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table'
+import { useToast } from '@/components/ui/toast'
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr)
@@ -34,11 +44,20 @@ function formatDate(dateStr: string): string {
 
 export default function TeamManagementPage() {
   const qc = useQueryClient()
+  const { addToast } = useToast()
 
   // Create dialog state
   const [createOpen, setCreateOpen] = useState(false)
   const [createForm, setCreateForm] = useState({ name: '', description: '' })
   const [createError, setCreateError] = useState('')
+
+  // Add member dialog state
+  const [addMemberOpen, setAddMemberOpen] = useState(false)
+  const [addMemberTeamId, setAddMemberTeamId] = useState<number | null>(null)
+  const [userSearch, setUserSearch] = useState('')
+  const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null)
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false)
+  const [inviteRoleId, setInviteRoleId] = useState<number | undefined>(undefined)
 
   // Data fetching
   const { data: teams, isLoading } = useQuery({
@@ -47,6 +66,27 @@ export default function TeamManagementPage() {
   })
 
   const teamList: Team[] = teams || []
+
+  // Roles for invite dialog
+  const { data: rolesData } = useQuery({
+    queryKey: ['roles'],
+    queryFn: () => listRolesApi({ pageSize: 100 }),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const roles = useMemo(() => {
+    if (!rolesData?.items) return []
+    return rolesData.items.filter((r) => r.name !== 'superadmin')
+  }, [rolesData])
+
+  const defaultRoleId = roles.find((r) => r.name === 'member')?.id ?? roles[0]?.id
+
+  // User search for add member dialog
+  const { data: userSearchResults = [] } = useQuery({
+    queryKey: ['searchUsers', addMemberTeamId, userSearch],
+    queryFn: () => searchAvailableUsersApi(addMemberTeamId!, userSearch),
+    enabled: addMemberOpen && !!addMemberTeamId,
+  })
 
   // Create mutation
   const createMutation = useMutation({
@@ -61,6 +101,42 @@ export default function TeamManagementPage() {
       setCreateError('创建失败，请稍后重试')
     },
   })
+
+  // Add member mutation
+  const inviteMutation = useMutation({
+    mutationFn: () => inviteMemberApi(addMemberTeamId!, { username: selectedUser!.username, roleId: inviteRoleId! }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['teams'] })
+      closeAddMemberDialog()
+      addToast('成员已添加', 'success')
+    },
+    onError: (err: any) => {
+      const code = err?.response?.data?.code
+      if (code === 'ALREADY_MEMBER') {
+        addToast('该用户已是团队成员', 'error')
+      } else {
+        addToast('添加失败，请稍后重试', 'error')
+      }
+    },
+  })
+
+  const closeAddMemberDialog = useCallback(() => {
+    setAddMemberOpen(false)
+    setAddMemberTeamId(null)
+    setUserSearch('')
+    setSelectedUser(null)
+    setUserDropdownOpen(false)
+    setInviteRoleId(undefined)
+  }, [])
+
+  const openAddMemberDialog = useCallback((teamId: number) => {
+    setAddMemberTeamId(teamId)
+    setInviteRoleId(defaultRoleId)
+    setUserSearch('')
+    setSelectedUser(null)
+    setUserDropdownOpen(false)
+    setAddMemberOpen(true)
+  }, [defaultRoleId])
 
   const handleCreate = useCallback(() => {
     setCreateError('')
@@ -103,8 +179,10 @@ export default function TeamManagementPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>团队名称</TableHead>
+                <TableHead>项目经理</TableHead>
                 <TableHead>简介</TableHead>
                 <TableHead>创建时间</TableHead>
+                <TableHead>操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -119,6 +197,9 @@ export default function TeamManagementPage() {
                     </Link>
                   </TableCell>
                   <TableCell>
+                    <span className="text-[13px] text-secondary">{team.pmDisplayName}</span>
+                  </TableCell>
+                  <TableCell>
                     <span className="text-[13px] text-secondary" style={{ maxWidth: 200 }}>
                       {team.description || '-'}
                     </span>
@@ -127,6 +208,20 @@ export default function TeamManagementPage() {
                     <span className="text-[13px] text-secondary">
                       {formatDate(team.createdAt)}
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    <PermissionGuard code="team:invite">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary-600"
+                        onClick={() => openAddMemberDialog(team.id)}
+                        data-testid={`add-member-btn-${team.id}`}
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        添加成员
+                      </Button>
+                    </PermissionGuard>
                   </TableCell>
                 </TableRow>
               ))}
@@ -177,6 +272,85 @@ export default function TeamManagementPage() {
               disabled={!createForm.name.trim() || createMutation.isPending}
             >
               确认创建
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Member Dialog */}
+      <Dialog open={addMemberOpen} onOpenChange={(open) => { if (!open) closeAddMemberDialog() }}>
+        <DialogContent size="md">
+          <DialogHeader>
+            <DialogTitle>添加成员</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <div className="flex flex-col gap-4">
+              <div className="relative">
+                <label className="block text-sm font-medium text-primary mb-1">
+                  搜索用户 <span className="text-error">*</span>
+                </label>
+                <Input
+                  placeholder="输入用户名或姓名搜索..."
+                  value={selectedUser ? `${selectedUser.displayName} (${selectedUser.username})` : userSearch}
+                  onChange={(e) => {
+                    setUserSearch(e.target.value)
+                    setSelectedUser(null)
+                    setUserDropdownOpen(true)
+                  }}
+                  onFocus={() => setUserDropdownOpen(true)}
+                  data-testid="add-member-user-search"
+                />
+                {userDropdownOpen && !selectedUser && userSearchResults.length > 0 && (
+                  <div className="absolute z-50 mt-1 w-full max-h-48 overflow-auto rounded-md border border-border bg-white shadow-lg" data-testid="add-member-user-dropdown">
+                    {userSearchResults.map((u) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-bg-alt focus:bg-bg-alt focus:outline-none"
+                        onClick={() => {
+                          setSelectedUser(u)
+                          setUserSearch('')
+                          setUserDropdownOpen(false)
+                        }}
+                        data-testid={`add-member-user-option-${u.id}`}
+                      >
+                        <span className="font-medium text-primary">{u.displayName}</span>
+                        <span className="ml-2 text-tertiary">{u.username}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-primary mb-1">
+                  角色 <span className="text-error">*</span>
+                </label>
+                <Select
+                  value={inviteRoleId != null ? String(inviteRoleId) : ''}
+                  onValueChange={(v) => setInviteRoleId(Number(v))}
+                >
+                  <SelectTrigger data-testid="add-member-role-select">
+                    <SelectValue placeholder="选择角色" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map((role) => (
+                      <SelectItem key={role.id} value={String(role.id)}>
+                        {role.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={closeAddMemberDialog}>取消</Button>
+            <Button
+              onClick={() => inviteMutation.mutate()}
+              disabled={!selectedUser || inviteRoleId == null || inviteMutation.isPending}
+              data-testid="add-member-submit-btn"
+            >
+              确认添加
             </Button>
           </DialogFooter>
         </DialogContent>

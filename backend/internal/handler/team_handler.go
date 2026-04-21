@@ -62,11 +62,7 @@ func (h *TeamHandler) List(c *gin.Context) {
 		return
 	}
 
-	dtos := make([]gin.H, len(teams))
-	for i, t := range teams {
-		dtos[i] = teamToDTO(t)
-	}
-	apperrors.RespondOK(c, dtos)
+	apperrors.RespondOK(c, teams)
 }
 
 // Get handles GET /api/v1/teams/:teamId
@@ -194,6 +190,20 @@ func (h *TeamHandler) TransferPM(c *gin.Context) {
 	}
 
 	apperrors.RespondOK(c, nil)
+}
+
+// SearchUsers handles GET /api/v1/teams/:teamId/search-users
+func (h *TeamHandler) SearchUsers(c *gin.Context) {
+	teamID := middleware.GetTeamID(c)
+	search := c.Query("search")
+
+	users, err := h.teamSvc.SearchAvailableUsers(c.Request.Context(), teamID, search)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, users)
 }
 
 // teamToDTO converts a model.Team to a response map.

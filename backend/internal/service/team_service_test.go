@@ -102,7 +102,13 @@ func (m *mockTeamRepo) FindMember(_ context.Context, teamID, userID uint) (*mode
 }
 
 func (m *mockTeamRepo) ListMembers(_ context.Context, teamID uint) ([]*dto.TeamMemberDTO, error) {
-	return m.members, nil
+	var result []*dto.TeamMemberDTO
+	for _, mem := range m.members {
+		if mem.TeamID == teamID {
+			result = append(result, mem)
+		}
+	}
+	return result, nil
 }
 
 func (m *mockTeamRepo) UpdateMember(_ context.Context, member *model.TeamMember) error {
@@ -116,6 +122,16 @@ func (m *mockTeamRepo) ListAllTeams(_ context.Context) ([]*dto.AdminTeamDTO, err
 
 func (m *mockTeamRepo) FindTeamsByUserIDs(_ context.Context, _ []uint) (map[uint][]dto.TeamSummary, error) {
 	return map[uint][]dto.TeamSummary{}, nil
+}
+
+func (m *mockTeamRepo) FindPMMembers(_ context.Context, _ []uint) (map[uint]string, error) {
+	result := make(map[uint]string)
+	for _, mem := range m.members {
+		if mem.Role == "pm" {
+			result[mem.TeamID] = mem.DisplayName
+		}
+	}
+	return result, nil
 }
 
 // mockTeamUserRepo is a separate mock for UserRepo used in team_service tests.
@@ -222,15 +238,21 @@ func TestGetTeam_NotFound(t *testing.T) {
 func TestListTeams_Success(t *testing.T) {
 	repo := &mockTeamRepo{
 		teams: []*model.Team{
-			{BaseModel: model.BaseModel{ID: 1}, Name: "Team A"},
-			{BaseModel: model.BaseModel{ID: 2}, Name: "Team B"},
+			{BaseModel: model.BaseModel{ID: 1}, Name: "Team A", PmID: 10},
+			{BaseModel: model.BaseModel{ID: 2}, Name: "Team B", PmID: 20},
+		},
+		members: []*dto.TeamMemberDTO{
+			{TeamID: 1, UserID: 10, Role: "pm", DisplayName: "Alice"},
+			{TeamID: 2, UserID: 20, Role: "pm", DisplayName: "Bob"},
 		},
 	}
 	svc := NewTeamService(repo, &mockTeamUserRepo{}, &mockMainItemRepo{}, &mockDB{})
 
 	teams, err := svc.ListTeams(context.Background(), 1, false)
 	require.NoError(t, err)
-	assert.Len(t, teams, 2)
+	require.Len(t, teams, 2)
+	assert.Equal(t, "Alice", teams[0].PmDisplayName)
+	assert.Equal(t, "Bob", teams[1].PmDisplayName)
 }
 
 // ---------------------------------------------------------------------------
@@ -456,8 +478,8 @@ func TestListMembers_Success(t *testing.T) {
 	now := time.Now()
 	teamRepo := &mockTeamRepo{
 		members: []*dto.TeamMemberDTO{
-			{UserID: 10, DisplayName: "Alice", Username: "alice", Role: "pm", JoinedAt: now.Format(time.RFC3339)},
-			{UserID: 5, DisplayName: "Bob", Username: "bob", Role: "member", JoinedAt: now.Format(time.RFC3339)},
+			{TeamID: 1, UserID: 10, DisplayName: "Alice", Username: "alice", Role: "pm", JoinedAt: now.Format(time.RFC3339)},
+			{TeamID: 1, UserID: 5, DisplayName: "Bob", Username: "bob", Role: "member", JoinedAt: now.Format(time.RFC3339)},
 		},
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, &mockDB{})

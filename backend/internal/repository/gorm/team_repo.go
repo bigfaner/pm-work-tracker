@@ -107,6 +107,35 @@ func (r *teamRepo) UpdateMember(ctx context.Context, member *model.TeamMember) e
 	return r.db.WithContext(ctx).Save(member).Error
 }
 
+func (r *teamRepo) FindPMMembers(ctx context.Context, teamIDs []uint) (map[uint]string, error) {
+	if len(teamIDs) == 0 {
+		return map[uint]string{}, nil
+	}
+
+	type row struct {
+		TeamID      uint
+		DisplayName string
+	}
+
+	var rows []row
+	err := r.db.WithContext(ctx).
+		Table("team_members").
+		Select("team_members.team_id, users.display_name").
+		Joins("JOIN users ON users.id = team_members.user_id").
+		Joins("JOIN roles ON roles.id = team_members.role_id").
+		Where("team_members.team_id IN ? AND roles.name = ?", teamIDs, "pm").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[uint]string, len(rows))
+	for _, r := range rows {
+		result[r.TeamID] = r.DisplayName
+	}
+	return result, nil
+}
+
 func (r *teamRepo) ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error) {
 	var results []*dto.AdminTeamDTO
 	err := r.db.WithContext(ctx).

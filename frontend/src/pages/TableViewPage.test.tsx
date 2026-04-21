@@ -113,7 +113,7 @@ function makePageResult(rows: TableRow[], page = 1, pageSize = 50): PageResult<T
     items: rows,
     total: rows.length,
     page,
-    pageSize,
+    size: pageSize,
   }
 }
 

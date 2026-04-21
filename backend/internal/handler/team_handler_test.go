@@ -35,7 +35,7 @@ type mockTeamService struct {
 		err    error
 	}
 	listTeamsResult struct {
-		teams []*model.Team
+		teams []*dto.TeamListResp
 		err   error
 	}
 	updateTeamResult struct {
@@ -106,7 +106,7 @@ func (m *mockTeamService) GetTeamDetail(_ context.Context, teamID uint) (*dto.Te
 	return m.getTeamDetailResult.detail, m.getTeamDetailResult.err
 }
 
-func (m *mockTeamService) ListTeams(_ context.Context, callerID uint, isSuperAdmin bool) ([]*model.Team, error) {
+func (m *mockTeamService) ListTeams(_ context.Context, callerID uint, isSuperAdmin bool) ([]*dto.TeamListResp, error) {
 	m.listCalled = true
 	return m.listTeamsResult.teams, m.listTeamsResult.err
 }
@@ -159,6 +159,10 @@ func (m *mockTeamService) ListMembers(_ context.Context, teamID uint) ([]*dto.Te
 	m.listMembersCalled = true
 	m.listMembersTeamID = teamID
 	return m.listMembersResult.members, m.listMembersResult.err
+}
+
+func (m *mockTeamService) SearchAvailableUsers(_ context.Context, teamID uint, search string) ([]*dto.UserSearchDTO, error) {
+	return nil, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -317,7 +321,7 @@ func TestCreateTeam_InvalidBody(t *testing.T) {
 
 func TestListTeams_Success(t *testing.T) {
 	svc := &mockTeamService{}
-	svc.listTeamsResult.teams = []*model.Team{
+	svc.listTeamsResult.teams = []*dto.TeamListResp{
 		{Name: "Team A"},
 		{Name: "Team B"},
 	}
