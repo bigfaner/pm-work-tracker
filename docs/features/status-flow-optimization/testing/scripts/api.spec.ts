@@ -495,4 +495,85 @@ describe('API E2E Tests: Status Flow Optimization', () => {
     assert.equal(item.completion, 100, `Expected completion=100, got ${item.completion}`);
   });
 
+  // ─── Terminal MainItem Guard ──────────────────────────────────────────────
+
+  // Traceability: TC-052 → terminal main item edit guard
+  test('TC-052: Update MainItem returns 422 when status is closed', async () => {
+    const id = await createMainItem(PM_TOKEN);
+    await changeMainStatus(id, 'closed', PM_TOKEN);
+    const res = await curl('PUT', teamUrl(`/main-items/${id}`), {
+      body: { title: 'should be rejected' },
+      token: PM_TOKEN,
+    });
+    assert.equal(res.status, 422, `Expected 422, got ${res.status}: ${res.body}`);
+    const body = res.json();
+    assert.equal(body.code, 'TERMINAL_MAIN_ITEM', `Expected TERMINAL_MAIN_ITEM code, got ${body.code}`);
+  });
+
+  // Traceability: TC-053 → terminal main item sub-item creation guard
+  test('TC-053: Create SubItem returns 422 when MainItem status is closed', async () => {
+    const mainId = await createMainItem(PM_TOKEN);
+    await changeMainStatus(mainId, 'closed', PM_TOKEN);
+    const res = await curl('POST', teamUrl(`/main-items/${mainId}/sub-items`), {
+      body: {
+        mainItemId: mainId,
+        title: 'should be rejected',
+        priority: 'P2',
+        assigneeId: 1,
+        startDate: '2026-04-21',
+        expectedEndDate: '2026-12-31',
+      },
+      token: PM_TOKEN,
+    });
+    assert.equal(res.status, 422, `Expected 422, got ${res.status}: ${res.body}`);
+    const body = res.json();
+    assert.equal(body.code, 'TERMINAL_MAIN_ITEM', `Expected TERMINAL_MAIN_ITEM code, got ${body.code}`);
+  });
+
+  // Traceability: TC-054 → sub-items not terminal guard
+  test('TC-054: ChangeStatus to terminal returns 422 when sub-items are not all terminal', async () => {
+    const mainId = await createMainItem(PM_TOKEN);
+    await changeMainStatus(mainId, 'progressing', PM_TOKEN);
+    const subId = await createSubItem(mainId, PM_TOKEN);
+    await changeSubStatus(subId, 'progressing', PM_TOKEN);
+    // sub is progressing (non-terminal) — trying to complete main should fail
+    // First get to reviewing via linkage workaround: use closed transition directly
+    const res = await changeMainStatus(mainId, 'closed', PM_TOKEN);
+    assert.equal(res.status, 422, `Expected 422, got ${res.status}: ${res.body}`);
+    const body = res.json();
+    assert.equal(body.code, 'SUB_ITEMS_NOT_TERMINAL', `Expected SUB_ITEMS_NOT_TERMINAL, got ${body.code}`);
+    // Verify main item status unchanged
+    const item = (await getMainItem(mainId, PM_TOKEN)).json().data;
+    assert.equal(item.status, 'progressing', `Main item should still be progressing, got ${item.status}`);
+  });
+
+  // Traceability: TC-055 → sub-items not terminal guard (success path)
+  test('TC-055: ChangeStatus to terminal succeeds when all sub-items are terminal', async () => {
+    const mainId = await createMainItem(PM_TOKEN);
+    await changeMainStatus(mainId, 'progressing', PM_TOKEN);
+    const subId = await createSubItem(mainId, PM_TOKEN);
+    await changeSubStatus(subId, 'progressing', PM_TOKEN);
+    await changeSubStatus(subId, 'completed', PM_TOKEN);
+    // All subs terminal → main should now be reviewing via linkage; complete it as PM
+    const item1 = (await getMainItem(mainId, PM_TOKEN)).json().data;
+    assert.equal(item1.status, 'reviewing', `Expected reviewing after sub completed, got ${item1.status}`);
+    const res = await changeMainStatus(mainId, 'completed', PM_TOKEN);
+    assert.equal(res.status, 200, `Expected 200, got ${res.status}: ${res.body}`);
+    const item2 = (await getMainItem(mainId, PM_TOKEN)).json().data;
+    assert.equal(item2.status, 'completed', `Expected completed, got ${item2.status}`);
+  });
+
+  // Traceability: TC-061 → terminal side effects for closed sub-item
+  test('TC-061: SubItem closed transition forces completion=100 and sets actual_end_date', async () => {
+    const mainId = await createMainItem(PM_TOKEN);
+    await changeMainStatus(mainId, 'progressing', PM_TOKEN);
+    const subId = await createSubItem(mainId, PM_TOKEN);
+    await changeSubStatus(subId, 'progressing', PM_TOKEN);
+    const res = await changeSubStatus(subId, 'closed', PM_TOKEN);
+    assert.equal(res.status, 200, `Expected 200, got ${res.status}: ${res.body}`);
+    const sub = res.json().data.subItem;
+    assert.equal(sub.completion, 100, `Expected completion=100, got ${sub.completion}`);
+    assert.ok(sub.actualEndDate, `Expected actualEndDate to be set, got ${sub.actualEndDate}`);
+  });
+
 });
