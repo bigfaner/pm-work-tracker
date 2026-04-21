@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo, Fragment } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus } from 'lucide-react'
+import { Pencil, Plus, RefreshCw } from 'lucide-react'
 import { useTeamStore } from '@/store/team'
 import { PermissionGuard } from '@/components/PermissionGuard'
 import { listMainItemsApi, createMainItemApi, updateMainItemApi, changeMainItemStatusApi, getMainItemTransitionsApi } from '@/api/mainItems'
@@ -120,6 +120,7 @@ export default function ItemViewPage() {
   const {
     data: itemsInfiniteData,
     isLoading,
+    isFetching,
     hasNextPage,
     fetchNextPage,
     isFetchingNextPage,
@@ -230,7 +231,7 @@ export default function ItemViewPage() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: (req: { itemId: number; data: { title: string; priority: string; assigneeId: number | null; expectedEndDate: string | null; actualEndDate: string | null } }) =>
+    mutationFn: (req: { itemId: number; data: { title: string; priority: string; assigneeId: number | null; expectedEndDate: string | null; actualEndDate: string | null; description: string } }) =>
       updateMainItemApi(teamId!, req.itemId, req.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -296,6 +297,12 @@ export default function ItemViewPage() {
     setStatusFilter('')
     setAssigneeFilter('')
   }, [])
+
+  const handleRefresh = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
+    fetchedRef.current.clear()
+    setSubItemsMap({})
+  }, [qc, teamId])
 
   const handleCreate = useCallback(() => {
     if (!createForm.title.trim() || !createForm.assigneeId || !createForm.startDate || !createForm.expectedEndDate) return
@@ -493,6 +500,10 @@ export default function ItemViewPage() {
         <Button variant="secondary" size="sm" onClick={resetFilters}>
           重置
         </Button>
+        <Button variant="secondary" size="sm" onClick={handleRefresh} disabled={isFetching} data-testid="refresh-btn">
+          <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+          刷新
+        </Button>
       </div>
 
       {/* Content */}
@@ -519,6 +530,18 @@ export default function ItemViewPage() {
           onEditMainItem={openEditDialog}
           onAppendProgress={openAppendDialog}
           onEditSubItem={openEditSubDialog}
+          onSubItemStatusChanged={(mainItemId) => {
+            fetchedRef.current.delete(mainItemId)
+            setSubItemsMap((prev) => { const next = { ...prev }; delete next[mainItemId]; return next })
+            if (teamId) {
+              fetchedRef.current.add(mainItemId)
+              listSubItemsApi(teamId, mainItemId).then((result) => {
+                setSubItemsMap((prev) => ({ ...prev, [mainItemId]: result.items }))
+              }).catch(() => {
+                fetchedRef.current.delete(mainItemId)
+              })
+            }
+          }}
         />
       ) : (
         <DetailView
@@ -875,6 +898,7 @@ interface SummaryViewProps {
   onEditMainItem: (item: MainItem) => void
   onAppendProgress: (subItemId: number, subItemTitle: string) => void
   onEditSubItem: (sub: SubItem) => void
+  onSubItemStatusChanged: (mainItemId: number) => void
 }
 
 function SummaryView({
@@ -890,6 +914,7 @@ function SummaryView({
   onEditMainItem,
   onAppendProgress,
   onEditSubItem,
+  onSubItemStatusChanged,
 }: SummaryViewProps) {
   return (
     <div>
@@ -1016,10 +1041,6 @@ function SummaryView({
                         subId={sub.id}
                         mainItemId={item.id}
                         currentStatus={sub.status}
-                        onStatusChanged={() => {
-                          fetchedRef.current.delete(item.id)
-                          setSubItemsMap((prev) => { const next = { ...prev }; delete next[item.id]; return next })
-                        }}
                       />
                     </div>
                     <PermissionGuard code="main_item:update">
@@ -1170,7 +1191,6 @@ function DetailView({
                           subId={sub.id}
                           mainItemId={item.id}
                           currentStatus={sub.status}
-                          onStatusChanged={() => qc.invalidateQueries({ queryKey: ['mainItems', teamId] })}
                         />
                       </TableCell>
                       <TableCell className="text-xs">{formatDate(sub.startDate)}</TableCell>
@@ -1225,12 +1245,10 @@ function SubItemStatusDropdown({
   subId,
   mainItemId,
   currentStatus,
-  onStatusChanged,
 }: {
   subId: number
   mainItemId: number
   currentStatus: string
-  onStatusChanged: () => void
 }) {
   const teamId = useTeamStore((s) => s.currentTeamId)
   const qc = useQueryClient()
@@ -1259,10 +1277,10 @@ function SubItemStatusDropdown({
       changeSubItemStatusApi(teamId!, subId, { status: newStatus }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['subItemTransitions', teamId, subId] })
+      qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
       setOpen(false)
       setConfirmOpen(false)
       setPendingStatus(null)
-      onStatusChanged()
     },
   })
 
