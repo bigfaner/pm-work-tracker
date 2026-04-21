@@ -37,5 +37,6 @@ export function assignSubItemApi(teamId: number, itemId: number, req: AssignSubI
 }
 
 export function getSubItemTransitionsApi(teamId: number, subId: number): Promise<string[]> {
-  return client.get<never, string[]>(`/teams/${teamId}/sub-items/${subId}/available-transitions`)
+  return client.get<never, { transitions: string[] }>(`/teams/${teamId}/sub-items/${subId}/available-transitions`)
+    .then((res) => res.transitions ?? [])
 }
