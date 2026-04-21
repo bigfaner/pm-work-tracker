@@ -385,8 +385,8 @@ describe('MainItemDetailPage', () => {
     // Fill start date and expected end date via fireEvent
     const allDateInputs = document.querySelectorAll('input[type="date"]')
     const dialogDateInputs = Array.from(allDateInputs).filter(input => {
-      const label = input.closest('div')?.querySelector('label')
-      return label && (label.textContent?.includes('开始时间') || label.textContent?.includes('预期完成时间'))
+      const label = input.closest('div')?.parentElement?.querySelector('label')
+      return label && (label.textContent?.includes('开始時間') || label.textContent?.includes('开始时间') || label.textContent?.includes('预期完成时间'))
     })
     expect(dialogDateInputs.length).toBe(2)
 
