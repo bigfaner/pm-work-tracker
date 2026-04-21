@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { ArrowUpCircle, ArrowDownCircle, XCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { listItemPoolApi, submitItemPoolApi, assignItemPoolApi, convertToMainApi, rejectItemPoolApi } from '@/api/itemPool'
 import { listMainItemsApi } from '@/api/mainItems'
@@ -10,6 +10,7 @@ import type { ItemPool, AssignItemPoolReq, ConvertToMainItemReq } from '@/types'
 import { PermissionGuard } from '@/components/PermissionGuard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DateInput } from '@/components/ui/date-input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -79,7 +80,7 @@ function PoolItemCard({ item, onConvertToMain, onConvertToSub, onReject }: PoolI
           <span className="font-mono text-xs text-tertiary bg-bg-alt px-1.5 py-0.5 rounded">
             POOL-{String(item.id).padStart(3, '0')}
           </span>
-          <span className="text-sm font-medium text-primary">{item.title}</span>
+          <span className="text-sm font-medium text-primary max-w-xs truncate" title={item.title}>{item.title}</span>
           <Badge variant={STATUS_BADGE_VARIANT[item.status]}>{STATUS_LABEL[item.status]}</Badge>
         </div>
         <span className="text-xs text-tertiary">{formatRelativeTime(item.createdAt)}</span>
@@ -146,7 +147,6 @@ export default function ItemPoolPage() {
   const [statusFilter, setStatusFilter] = useState<string>('')
 
   // Infinite scroll
-  const [visibleCount, setVisibleCount] = useState(POOL_BATCH_SIZE)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
   // Dialogs
@@ -164,9 +164,20 @@ export default function ItemPoolPage() {
 
   // --- Data fetching ---
 
-  const { data: poolData, isLoading } = useQuery({
+  const {
+    data: poolInfiniteData,
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['itemPool', teamId],
-    queryFn: () => listItemPoolApi(teamId!),
+    queryFn: ({ pageParam }) => listItemPoolApi(teamId!, { page: pageParam as number, pageSize: POOL_BATCH_SIZE }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const totalPages = Math.ceil(lastPage.total / lastPage.size)
+      return lastPage.page < totalPages ? lastPage.page + 1 : undefined
+    },
     enabled: !!teamId,
   })
 
@@ -184,7 +195,10 @@ export default function ItemPoolPage() {
 
   const members = membersData || []
   const mainItems = mainItemsData?.items || []
-  const allItems: ItemPool[] = poolData?.items || []
+  const allItems: ItemPool[] = useMemo(
+    () => poolInfiniteData?.pages.flatMap((p) => p.items) ?? [],
+    [poolInfiniteData],
+  )
 
   // --- Client-side filtering ---
 
@@ -206,8 +220,8 @@ export default function ItemPoolPage() {
 
   // --- Infinite scroll ---
 
-  const visibleItems = filteredItems.slice(0, visibleCount)
-  const hasMore = filteredItems.length > visibleCount
+  const visibleItems = filteredItems
+  const hasMore = !!hasNextPage
 
   useEffect(() => {
     const sentinel = sentinelRef.current
@@ -215,20 +229,15 @@ export default function ItemPoolPage() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore) {
-          setVisibleCount((prev) => prev + POOL_BATCH_SIZE)
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage()
         }
       },
       { rootMargin: '200px' },
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [hasMore])
-
-  // Reset visible count when filters change
-  useEffect(() => {
-    setVisibleCount(POOL_BATCH_SIZE)
-  }, [searchText, statusFilter])
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   // --- Mutations ---
 
@@ -503,16 +512,14 @@ export default function ItemPoolPage() {
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-primary mb-1">开始时间 <span className="text-error">*</span></label>
-                    <Input
-                      type="date"
+                    <DateInput
                       value={toMainForm.startDate}
                       onChange={(e) => setToMainForm((f) => ({ ...f, startDate: e.target.value }))}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-primary mb-1">预期完成时间 <span className="text-error">*</span></label>
-                    <Input
-                      type="date"
+                    <DateInput
                       value={toMainForm.expectedEndDate}
                       onChange={(e) => setToMainForm((f) => ({ ...f, expectedEndDate: e.target.value }))}
                     />
@@ -589,16 +596,14 @@ export default function ItemPoolPage() {
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-primary mb-1">开始时间 <span className="text-error">*</span></label>
-                    <Input
-                      type="date"
+                    <DateInput
                       value={toSubForm.startDate}
                       onChange={(e) => setToSubForm((f) => ({ ...f, startDate: e.target.value }))}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-primary mb-1">预期完成时间 <span className="text-error">*</span></label>
-                    <Input
-                      type="date"
+                    <DateInput
                       value={toSubForm.expectedEndDate}
                       onChange={(e) => setToSubForm((f) => ({ ...f, expectedEndDate: e.target.value }))}
                     />
