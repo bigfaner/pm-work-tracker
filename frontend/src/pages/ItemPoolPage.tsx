@@ -188,7 +188,7 @@ export default function ItemPoolPage() {
   })
 
   const { data: mainItemsData } = useQuery({
-    queryKey: ['mainItems', teamId],
+    queryKey: ['mainItemsList', teamId],
     queryFn: () => listMainItemsApi(teamId!),
     enabled: !!teamId,
   })
@@ -256,7 +256,7 @@ export default function ItemPoolPage() {
       assignItemPoolApi(teamId!, poolId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
-      qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
+      qc.invalidateQueries({ queryKey: ['mainItemsList', teamId] })
       setToSubOpen(false)
       setSelectedItem(null)
     },
@@ -267,7 +267,7 @@ export default function ItemPoolPage() {
       convertToMainApi(teamId!, poolId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
-      qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
+      qc.invalidateQueries({ queryKey: ['mainItemsList', teamId] })
       setToMainOpen(false)
       setSelectedItem(null)
     },

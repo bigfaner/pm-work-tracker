@@ -128,6 +128,7 @@ export default function ItemViewPage() {
     queryFn: ({ pageParam }) => listMainItemsApi(teamId!, { page: pageParam as number, pageSize: DEFAULT_PAGE_SIZE }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
+      if (!lastPage) return undefined
       const totalPages = Math.ceil(lastPage.total / lastPage.size)
       return lastPage.page < totalPages ? lastPage.page + 1 : undefined
     },
@@ -182,6 +183,13 @@ export default function ItemViewPage() {
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
+  }, [viewMode, hasNextPage, isFetchingNextPage, fetchNextPage])
+
+  // When switching to detail view, fetch all remaining pages so client-side pagination has full data
+  useEffect(() => {
+    if (viewMode === 'detail' && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage()
+    }
   }, [viewMode, hasNextPage, isFetchingNextPage, fetchNextPage])
 
   // --- Detail view: pagination ---
@@ -1244,7 +1252,7 @@ function SubItemStatusDropdown({
       setShowTip(true)
       setTimeout(() => setShowTip(false), 2000)
     }
-  }, [open, isFetched, isFetching, transitions.length])
+  }, [open, isFetched, isFetching, transitions])
 
   const statusChangeMutation = useMutation({
     mutationFn: ({ newStatus }: { newStatus: string }) =>
@@ -1350,7 +1358,7 @@ function StatusDropdownWithTransitions({
       setShowTip(true)
       setTimeout(() => setShowTip(false), 2000)
     }
-  }, [open, isFetched, isFetching, transitions.length])
+  }, [open, isFetched, isFetching, transitions])
 
   const statusChangeMutation = useMutation({
     mutationFn: ({ newStatus }: { newStatus: string }) =>
