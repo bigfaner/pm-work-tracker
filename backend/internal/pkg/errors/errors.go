@@ -42,6 +42,8 @@ var (
 	ErrUserDisabled         = &AppError{Code: "USER_DISABLED", Status: 403, Message: "账号已被禁用"}
 	ErrCannotDisableSelf    = &AppError{Code: "CANNOT_DISABLE_SELF", Status: 422, Message: "cannot disable your own account"}
 	ErrFutureWeekNotAllowed = &AppError{Code: "FUTURE_WEEK_NOT_ALLOWED", Status: 422, Message: "cannot create progress for future weeks"}
+	ErrTerminalMainItem     = &AppError{Code: "TERMINAL_MAIN_ITEM", Status: 422, Message: "cannot modify a completed or closed main item"}
+	ErrSubItemsNotTerminal  = &AppError{Code: "SUB_ITEMS_NOT_TERMINAL", Status: 422, Message: "all sub-items must be completed or closed before closing the main item"}
 )
 
 // MapNotFound maps gorm.ErrRecordNotFound and ErrNotFound to the provided domain error.

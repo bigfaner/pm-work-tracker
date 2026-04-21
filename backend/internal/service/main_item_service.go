@@ -115,10 +115,16 @@ func (s *mainItemService) Update(ctx context.Context, teamID, itemID uint, req d
 	if item.TeamID != teamID {
 		return apperrors.ErrForbidden
 	}
+	if status.IsMainTerminal(item.Status) {
+		return apperrors.ErrTerminalMainItem
+	}
 
 	fields := map[string]interface{}{}
 	if req.Title != nil {
 		fields["title"] = *req.Title
+	}
+	if req.Description != nil {
+		fields["description"] = *req.Description
 	}
 	if req.Priority != nil {
 		fields["priority"] = *req.Priority
@@ -214,6 +220,19 @@ func (s *mainItemService) ChangeStatus(ctx context.Context, teamID, callerID, it
 	if item.Status == "reviewing" && (newStatus == "completed" || newStatus == "progressing") {
 		if callerID != item.ProposerID {
 			return nil, apperrors.ErrForbidden
+		}
+	}
+
+	// Guard: cannot transition to terminal if any sub-item is non-terminal
+	if status.IsMainTerminal(newStatus) {
+		subs, err := s.subItemRepo.ListByMainItem(ctx, itemID)
+		if err != nil {
+			return nil, err
+		}
+		for _, sub := range subs {
+			if !status.IsSubTerminal(sub.Status) {
+				return nil, apperrors.ErrSubItemsNotTerminal
+			}
 		}
 	}
 
