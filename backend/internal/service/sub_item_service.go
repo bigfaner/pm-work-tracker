@@ -42,6 +42,14 @@ func NewSubItemService(subItemRepo repository.SubItemRepo, mainItemSvc MainItemS
 }
 
 func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req dto.SubItemCreateReq) (*model.SubItem, error) {
+	mainItem, err := s.mainItemSvc.Get(ctx, req.MainItemID)
+	if err != nil {
+		return nil, err
+	}
+	if status.IsMainTerminal(mainItem.Status) {
+		return nil, apperrors.ErrTerminalMainItem
+	}
+
 	item := &model.SubItem{
 		TeamID:      teamID,
 		MainItemID:  req.MainItemID,
@@ -127,8 +135,8 @@ func (s *subItemService) ChangeStatus(ctx context.Context, teamID, callerID, ite
 		"status": newStatus,
 	}
 
-	// Terminal side effects for completed
-	if newStatus == "completed" {
+	// Terminal side effects: force completion=100 and set actual_end_date
+	if newStatus == "completed" || newStatus == "closed" {
 		fields["completion"] = float64(100)
 		now := time.Now()
 		fields["actual_end_date"] = &now
@@ -141,8 +149,8 @@ func (s *subItemService) ChangeStatus(ctx context.Context, teamID, callerID, ite
 		return nil, err
 	}
 
-	// After completing, recalculate parent MainItem completion
-	if newStatus == "completed" {
+	// After terminal transition, recalculate parent MainItem completion
+	if newStatus == "completed" || newStatus == "closed" {
 		if err := s.mainItemSvc.RecalcCompletion(ctx, item.MainItemID); err != nil {
 			return nil, err
 		}
