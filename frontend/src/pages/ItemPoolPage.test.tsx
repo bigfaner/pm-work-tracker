@@ -39,7 +39,7 @@ const seedPoolItems = [
   {
     id: 1, teamId: 1, title: '移动端适配需求',
     background: '当前系统在移动端浏览器下布局错位', expectedOutput: '响应式适配',
-    submitterId: 1, status: '待分配',
+    submitterId: 1, status: 'pending',
     assignedMainId: null, assignedSubId: null, assigneeId: null,
     rejectReason: '', reviewedAt: null, reviewerId: null,
     createdAt: '2026-04-17T00:00:00Z', updatedAt: '2026-04-17T00:00:00Z',
@@ -47,7 +47,7 @@ const seedPoolItems = [
   {
     id: 2, teamId: 1, title: '用户反馈收集功能',
     background: '需要一个系统化的用户反馈收集机制', expectedOutput: '反馈系统',
-    submitterId: 1, status: '待分配',
+    submitterId: 1, status: 'pending',
     assignedMainId: null, assignedSubId: null, assigneeId: null,
     rejectReason: '', reviewedAt: null, reviewerId: null,
     createdAt: '2026-04-16T00:00:00Z', updatedAt: '2026-04-16T00:00:00Z',
@@ -55,7 +55,7 @@ const seedPoolItems = [
   {
     id: 3, teamId: 1, title: '性能优化建议',
     background: '首页加载时间超过3秒', expectedOutput: '加载时间降低到1秒内',
-    submitterId: 1, status: '已分配',
+    submitterId: 1, status: 'assigned',
     assignedMainId: 1, assignedSubId: 11, assigneeId: 2,
     rejectReason: '', reviewedAt: '2026-04-15T00:00:00Z', reviewerId: 1,
     createdAt: '2026-04-12T00:00:00Z', updatedAt: '2026-04-15T00:00:00Z',
@@ -63,7 +63,7 @@ const seedPoolItems = [
   {
     id: 4, teamId: 1, title: '旧版API废弃',
     background: 'v1版本API仍有部分客户端在使用', expectedOutput: '废弃计划',
-    submitterId: 1, status: '已拒绝',
+    submitterId: 1, status: 'rejected',
     assignedMainId: null, assignedSubId: null, assigneeId: null,
     rejectReason: '优先级不足，安排至下个季度处理', reviewedAt: '2026-04-10T00:00:00Z', reviewerId: 1,
     createdAt: '2026-04-08T00:00:00Z', updatedAt: '2026-04-10T00:00:00Z',
@@ -103,7 +103,7 @@ function setupHandlers() {
         code: 0,
         data: {
           id: 100, teamId: 1, ...body,
-          submitterId: 1, status: '待分配',
+          submitterId: 1, status: 'pending',
           assignedMainId: null, assignedSubId: null, assigneeId: null,
           rejectReason: '', reviewedAt: null, reviewerId: null,
           createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
@@ -124,7 +124,7 @@ function setupHandlers() {
         data: {
           id: 4, teamId: 1, title: '旧版API废弃',
           background: '', expectedOutput: '', submitterId: 1,
-          status: '已拒绝', assignedMainId: null, assignedSubId: null, assigneeId: null,
+          status: 'rejected', assignedMainId: null, assignedSubId: null, assigneeId: null,
           rejectReason: body.reason, reviewedAt: new Date().toISOString(), reviewerId: 1,
           createdAt: '2026-04-08T00:00:00Z', updatedAt: new Date().toISOString(),
         },

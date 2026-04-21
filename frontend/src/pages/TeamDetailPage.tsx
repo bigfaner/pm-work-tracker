@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Crown, UserMinus, RefreshCw } from 'lucide-react'
+import { Crown, UserMinus, Edit } from 'lucide-react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -10,6 +10,8 @@ import {
   deleteTeamApi,
   inviteMemberApi,
   changeMemberRoleApi,
+  searchAvailableUsersApi,
+  type UserSearchResult,
 } from '@/api/teams'
 import { listRolesApi } from '@/api/roles'
 import type { TeamMemberResp } from '@/types'
@@ -118,11 +120,21 @@ export default function TeamDetailPage() {
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteUsername, setInviteUsername] = useState('')
   const [inviteRoleId, setInviteRoleId] = useState<number | undefined>(undefined)
+  const [userSearch, setUserSearch] = useState('')
+  const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null)
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false)
   const [disbandOpen, setDisbandOpen] = useState(false)
   const [disbandInput, setDisbandInput] = useState('')
 
   // Inline role editing state
   const [editingMemberId, setEditingMemberId] = useState<number | null>(null)
+
+  // User search for invite dialog
+  const { data: userSearchResults = [] } = useQuery({
+    queryKey: ['searchUsers', numericTeamId, userSearch],
+    queryFn: () => searchAvailableUsersApi(numericTeamId, userSearch),
+    enabled: inviteOpen && !!numericTeamId,
+  })
 
   // --- Mutations ---
 
@@ -154,6 +166,8 @@ export default function TeamDetailPage() {
       setInviteOpen(false)
       setInviteUsername('')
       setInviteRoleId(undefined)
+      setUserSearch('')
+      setSelectedUser(null)
       addToast('成员已添加', 'success')
     },
     onError: (err: any) => {
@@ -266,7 +280,7 @@ export default function TeamDetailPage() {
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[15px] font-semibold text-primary">成员列表</h3>
         <PermissionGuard code="team:invite">
-          <Button size="sm" onClick={() => { setInviteOpen(true); setInviteRoleId(defaultRoleId) }}>添加成员</Button>
+          <Button size="sm" onClick={() => { setInviteOpen(true); setInviteRoleId(defaultRoleId); setUserSearch(''); setSelectedUser(null) }}>添加成员</Button>
         </PermissionGuard>
       </div>
 
@@ -341,21 +355,6 @@ export default function TeamDetailPage() {
                       ) : (
                         <Badge variant="default">{member.roleName || '成员'}</Badge>
                       )}
-                      <PermissionGuard code="team:invite">
-                        {!isPm(member) && !isSelf(member) && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-primary-600"
-                            onClick={() => setEditingMemberId(member.userId)}
-                            disabled={changeRoleMutation.isPending}
-                            data-testid="change-role-btn"
-                          >
-                            <RefreshCw className="w-3.5 h-3.5" />
-                            变更
-                          </Button>
-                        )}
-                      </PermissionGuard>
                     </div>
                   )}
                 </TableCell>
@@ -367,6 +366,19 @@ export default function TeamDetailPage() {
                     <span className="text-tertiary">&mdash;</span>
                   ) : (
                     <div className="flex gap-1">
+                      <PermissionGuard code="team:invite">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-primary-600"
+                          onClick={() => setEditingMemberId(member.userId)}
+                          disabled={changeRoleMutation.isPending}
+                          data-testid="change-role-btn"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                          修改角色
+                        </Button>
+                      </PermissionGuard>
                       <PermissionGuard code="team:transfer">
                         <Button
                           variant="ghost"
@@ -458,22 +470,50 @@ export default function TeamDetailPage() {
       </Dialog>
 
       {/* Invite Member Dialog */}
-      <Dialog open={inviteOpen} onOpenChange={(open) => { setInviteOpen(open); if (!open) { setInviteUsername(''); setInviteRoleId(undefined) } }}>
+      <Dialog open={inviteOpen} onOpenChange={(open) => { setInviteOpen(open); if (!open) { setInviteUsername(''); setInviteRoleId(undefined); setUserSearch(''); setSelectedUser(null) } }}>
         <DialogContent size="md">
           <DialogHeader>
             <DialogTitle>添加成员</DialogTitle>
           </DialogHeader>
           <DialogBody>
             <div className="flex flex-col gap-4">
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-primary mb-1">
                   搜索用户 <span className="text-error">*</span>
                 </label>
                 <Input
-                  placeholder="请输入用户名"
-                  value={inviteUsername}
-                  onChange={(e) => setInviteUsername(e.target.value)}
+                  placeholder="输入用户名或姓名搜索..."
+                  value={selectedUser ? `${selectedUser.displayName} (${selectedUser.username})` : userSearch}
+                  onChange={(e) => {
+                    setUserSearch(e.target.value)
+                    setSelectedUser(null)
+                    setInviteUsername('')
+                    setUserDropdownOpen(true)
+                  }}
+                  onFocus={() => setUserDropdownOpen(true)}
+                  data-testid="invite-user-search"
                 />
+                {userDropdownOpen && !selectedUser && userSearchResults.length > 0 && (
+                  <div className="absolute z-50 mt-1 w-full max-h-48 overflow-auto rounded-md border border-border bg-white shadow-lg" data-testid="invite-user-dropdown">
+                    {userSearchResults.map((u) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-bg-alt focus:bg-bg-alt focus:outline-none"
+                        onClick={() => {
+                          setSelectedUser(u)
+                          setInviteUsername(u.username)
+                          setUserSearch('')
+                          setUserDropdownOpen(false)
+                        }}
+                        data-testid={`invite-user-option-${u.id}`}
+                      >
+                        <span className="font-medium text-primary">{u.displayName}</span>
+                        <span className="ml-2 text-tertiary">{u.username}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-primary mb-1">
@@ -501,7 +541,7 @@ export default function TeamDetailPage() {
             <Button variant="secondary" onClick={() => setInviteOpen(false)}>取消</Button>
             <Button
               onClick={() => inviteMutation.mutate()}
-              disabled={!inviteUsername.trim() || inviteRoleId == null || inviteMutation.isPending}
+              disabled={!selectedUser || inviteRoleId == null || inviteMutation.isPending}
               data-testid="invite-submit-btn"
             >
               确认添加

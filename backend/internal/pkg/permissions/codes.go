@@ -114,6 +114,11 @@ func ValidateCode(code string) bool {
 	return allCodes[code]
 }
 
+// TotalCodeCount returns the total number of registered permission codes.
+func TotalCodeCount() int {
+	return countCodes()
+}
+
 // countCodes counts total permission codes across all resources.
 func countCodes() int {
 	n := 0

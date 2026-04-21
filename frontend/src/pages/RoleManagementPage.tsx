@@ -36,6 +36,7 @@ import {
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import RoleEditDialog from '@/components/RoleEditDialog'
 import PermissionBrowseDialog from '@/components/PermissionBrowseDialog'
+import RolePermissionsDialog from '@/components/RolePermissionsDialog'
 
 const PAGE_SIZE = 20
 
@@ -54,6 +55,8 @@ export default function RoleManagementPage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteRole, setDeleteRole] = useState<Role | null>(null)
   const [deleteError, setDeleteError] = useState('')
+  const [permissionsOpen, setPermissionsOpen] = useState(false)
+  const [permissionsRoleId, setPermissionsRoleId] = useState<number | null>(null)
 
   // Data
   const { data: rolesData, isLoading, isFetching } = useQuery({
@@ -117,6 +120,11 @@ export default function RoleManagementPage() {
     setDeleteRole(role)
     setDeleteError('')
     setDeleteOpen(true)
+  }, [])
+
+  const openPermissions = useCallback((role: Role) => {
+    setPermissionsRoleId(role.id)
+    setPermissionsOpen(true)
   }, [])
 
   const handleDeleteConfirm = useCallback(() => {
@@ -227,7 +235,14 @@ export default function RoleManagementPage() {
                 {roles.map((role) => (
                   <TableRow key={role.id}>
                     <TableCell>
-                      <span className="font-medium text-primary">{role.name}</span>
+                      <button
+                        type="button"
+                        className="font-medium text-primary hover:underline cursor-pointer"
+                        data-testid={`role-name-${role.id}`}
+                        onClick={() => openPermissions(role)}
+                      >
+                        {role.name}
+                      </button>
                     </TableCell>
                     <TableCell>
                       <span className="text-secondary">
@@ -250,14 +265,27 @@ export default function RoleManagementPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEdit(role)}
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                          编辑
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled={role.isPreset}
+                                data-testid={`edit-role-${role.id}`}
+                                onClick={() => openEdit(role)}
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                                编辑
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {role.isPreset && (
+                            <TooltipContent>
+                              预置角色不可编辑
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span>
@@ -308,6 +336,13 @@ export default function RoleManagementPage() {
           open={editOpen}
           onOpenChange={setEditOpen}
           roleId={editRoleId}
+        />
+
+        {/* Role Permissions Dialog */}
+        <RolePermissionsDialog
+          open={permissionsOpen}
+          onOpenChange={setPermissionsOpen}
+          roleId={permissionsRoleId}
         />
 
         {/* Permission Browse Dialog */}

@@ -34,27 +34,27 @@ import {
 
 const POOL_BATCH_SIZE = 5
 const POOL_STATUS_OPTIONS = [
-  { value: '待分配', label: '待分配' },
-  { value: '已分配', label: '已分配' },
-  { value: '已拒绝', label: '已拒绝' },
+  { value: 'pending', label: '待分配' },
+  { value: 'assigned', label: '已分配' },
+  { value: 'rejected', label: '已拒绝' },
 ]
 
 const STATUS_BORDER: Record<string, string> = {
-  '待分配': 'border-l-4 border-l-blue-500',
-  '已分配': 'border-l-4 border-l-tertiary opacity-70',
-  '已拒绝': 'border-l-4 border-l-error opacity-70',
+  pending: 'border-l-4 border-l-blue-500',
+  assigned: 'border-l-4 border-l-tertiary opacity-70',
+  rejected: 'border-l-4 border-l-error opacity-70',
 }
 
 const STATUS_BADGE_VARIANT: Record<string, 'primary' | 'success' | 'default'> = {
-  '待分配': 'primary',
-  '已分配': 'success',
-  '已拒绝': 'default',
+  pending: 'primary',
+  assigned: 'success',
+  rejected: 'default',
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  '待分配': '待分配',
-  '已分配': '已分配',
-  '已拒绝': '已拒绝',
+  pending: '待分配',
+  assigned: '已分配',
+  rejected: '已拒绝',
 }
 
 // --- Pool Item Card ---
@@ -67,7 +67,7 @@ interface PoolItemCardProps {
 }
 
 function PoolItemCard({ item, onConvertToMain, onConvertToSub, onReject }: PoolItemCardProps) {
-  const isPending = item.status === '待分配'
+  const isPending = item.status === 'pending'
 
   return (
     <div
@@ -98,7 +98,7 @@ function PoolItemCard({ item, onConvertToMain, onConvertToSub, onReject }: PoolI
             <span className="text-tertiary">预期产出：</span>{item.expectedOutput}
           </p>
         )}
-        {item.status === '已分配' && item.assignedMainId && (
+        {item.status === 'assigned' && item.assignedMainId && (
           <div className="mt-2 text-[13px] text-secondary">
             {item.assignedSubId ? '已转为子事项挂载至：' : '已转为主事项：'}
             <Link to={`/items/${item.assignedMainId}`} className="font-medium text-primary-600 hover:text-primary-700 hover:underline">
@@ -106,7 +106,7 @@ function PoolItemCard({ item, onConvertToMain, onConvertToSub, onReject }: PoolI
             </Link>
           </div>
         )}
-        {item.status === '已拒绝' && item.rejectReason && (
+        {item.status === 'rejected' && item.rejectReason && (
           <div className="mt-2 text-[13px] text-tertiary">
             拒绝原因：{item.rejectReason}
           </div>

@@ -108,6 +108,10 @@ func (m *mockAdminTeamRepo) FindTeamsByUserIDs(_ context.Context, _ []uint) (map
 	return map[uint][]dto.TeamSummary{}, nil
 }
 
+func (m *mockAdminTeamRepo) FindPMMembers(_ context.Context, _ []uint) (map[uint]string, error) {
+	return map[uint]string{}, nil
+}
+
 // ---------------------------------------------------------------------------
 // Tests: ListUsers
 // ---------------------------------------------------------------------------

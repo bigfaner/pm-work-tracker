@@ -121,7 +121,7 @@ export default function MainItemDetailPage() {
   // --- Mutations ---
 
   const updateMutation = useMutation({
-    mutationFn: (req: { title?: string; priority?: string; assigneeId?: number | null; expectedEndDate?: string | null; actualEndDate?: string | null }) =>
+    mutationFn: (req: { title?: string; priority?: string; assigneeId?: number | null; expectedEndDate?: string | null; actualEndDate?: string | null; description?: string }) =>
       updateMainItemApi(teamId!, itemId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })

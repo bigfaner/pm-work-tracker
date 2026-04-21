@@ -25,7 +25,7 @@ func (s *StubTeamSvc) GetTeam(_ context.Context, _ uint) (*model.Team, error) {
 func (s *StubTeamSvc) GetTeamDetail(_ context.Context, _ uint) (*dto.TeamDetailResp, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubTeamSvc) ListTeams(_ context.Context, _ uint, _ bool) ([]*model.Team, error) {
+func (s *StubTeamSvc) ListTeams(_ context.Context, _ uint, _ bool) ([]*dto.TeamListResp, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubTeamSvc) UpdateTeam(_ context.Context, _, _ uint, _ dto.UpdateTeamReq) (*model.Team, error) {
@@ -47,6 +47,9 @@ func (s *StubTeamSvc) UpdateMemberRole(_ context.Context, _, _, _ uint, _ string
 	return fmt.Errorf("stub: not implemented")
 }
 func (s *StubTeamSvc) ListMembers(_ context.Context, _ uint) ([]*dto.TeamMemberDTO, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+func (s *StubTeamSvc) SearchAvailableUsers(_ context.Context, _ uint, _ string) ([]*dto.UserSearchDTO, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 

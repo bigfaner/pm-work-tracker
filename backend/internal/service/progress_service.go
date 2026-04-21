@@ -6,6 +6,7 @@ import (
 
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/status"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -17,14 +18,15 @@ type ProgressService interface {
 }
 
 type progressService struct {
-	progressRepo  repository.ProgressRepo
-	subItemRepo   repository.SubItemRepo
-	mainItemSvc   MainItemService
+	progressRepo      repository.ProgressRepo
+	subItemRepo       repository.SubItemRepo
+	mainItemSvc       MainItemService
+	statusHistorySvc  StatusHistoryService
 }
 
 // NewProgressService creates a new ProgressService.
-func NewProgressService(progressRepo repository.ProgressRepo, subItemRepo repository.SubItemRepo, mainItemSvc MainItemService) ProgressService {
-	return &progressService{progressRepo: progressRepo, subItemRepo: subItemRepo, mainItemSvc: mainItemSvc}
+func NewProgressService(progressRepo repository.ProgressRepo, subItemRepo repository.SubItemRepo, mainItemSvc MainItemService, statusHistorySvc StatusHistoryService) ProgressService {
+	return &progressService{progressRepo: progressRepo, subItemRepo: subItemRepo, mainItemSvc: mainItemSvc, statusHistorySvc: statusHistorySvc}
 }
 
 func (s *progressService) Append(ctx context.Context, teamID, authorID, subItemID uint, completion float64, achievement, blocker, lesson string, isPM bool) (*model.ProgressRecord, error) {
@@ -33,16 +35,19 @@ func (s *progressService) Append(ctx context.Context, teamID, authorID, subItemI
 		return nil, err
 	}
 
+	latest, err := s.progressRepo.LatestBySubItem(ctx, subItemID)
+	if err != nil {
+		return nil, err
+	}
+
 	// Regression check: skip for PM
 	if !isPM {
-		latest, err := s.progressRepo.LatestBySubItem(ctx, subItemID)
-		if err != nil {
-			return nil, err
-		}
 		if latest != nil && completion < latest.Completion {
 			return nil, apperrors.ErrProgressRegression
 		}
 	}
+
+	isFirstProgress := latest == nil
 
 	record := &model.ProgressRecord{
 		SubItemID:   subItemID,
@@ -59,10 +64,49 @@ func (s *progressService) Append(ctx context.Context, teamID, authorID, subItemI
 		return nil, err
 	}
 
-	// Update SubItem.Completion
-	if err := s.subItemRepo.Update(ctx, subItem, map[string]interface{}{
+	// Auto-status-transition: determine target status
+	currentStatus := subItem.Status
+	targetStatus := currentStatus
+
+	// Rule 1: first progress on pending sub-item -> progressing
+	if isFirstProgress && currentStatus == "pending" {
+		targetStatus = "progressing"
+	}
+
+	// Rule 2: 100% completion -> completed (if transition is valid from current or intermediate target)
+	if completion == 100 {
+		if status.IsValidTransition(status.SubItemTransitions, targetStatus, "completed") {
+			targetStatus = "completed"
+		}
+	}
+
+	// Build update fields
+	fields := map[string]interface{}{
 		"completion": completion,
-	}); err != nil {
+	}
+
+	if targetStatus != currentStatus {
+		fields["status"] = targetStatus
+		if targetStatus == "completed" {
+			now := time.Now()
+			fields["completion"] = float64(100)
+			fields["actual_end_date"] = &now
+		}
+
+		// Record auto-transition to status history
+		if s.statusHistorySvc != nil {
+			_ = s.statusHistorySvc.Record(ctx, &model.StatusHistory{
+				ItemType:   "sub_item",
+				ItemID:     subItemID,
+				FromStatus: currentStatus,
+				ToStatus:   targetStatus,
+				ChangedBy:  authorID,
+				IsAuto:     true,
+			})
+		}
+	}
+
+	if err := s.subItemRepo.Update(ctx, subItem, fields); err != nil {
 		return nil, err
 	}
 
