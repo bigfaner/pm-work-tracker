@@ -9,6 +9,8 @@ import StatusBadge from '@/components/shared/StatusBadge'
 import ProgressBar from '@/components/shared/ProgressBar'
 import { WeekPicker } from '@/components/shared/WeekPicker'
 import { getCurrentWeekStart, getWeekNumber } from '@/utils/weekUtils'
+import { isOverdue } from '@/lib/status'
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 
 // --- Helpers ---
 
@@ -133,12 +135,22 @@ function ComparisonCard({ group, weekStart }: ComparisonCardProps) {
             to={`/items/${mainItem.id}`}
             className="text-[15px] font-semibold text-primary-600 hover:text-primary-700 hover:underline"
           >
-            {mainItem.title}
+            <span className="text-tertiary font-normal mr-1">{mainItem.code}</span>{mainItem.title}
           </Link>
           <PriorityBadge priority={mainItem.priority} className="text-[11px]" />
           <span className="text-xs text-tertiary whitespace-nowrap">
-            计划 {formatDate(mainItem.startDate)}~{formatDate(mainItem.expectedEndDate)}
+            计划周期 {formatDate(mainItem.startDate)}~{formatDate(mainItem.expectedEndDate)}
           </span>
+          {isOverdue(mainItem.expectedEndDate, mainItem.status) && (
+            <span className="inline-flex items-center rounded-md bg-error-bg px-2 py-0.5 text-[11px] font-medium text-error-text">
+              延期
+            </span>
+          )}
+          {(mainItem.status === 'completed' || mainItem.status === 'closed') && mainItem.actualEndDate && (
+            <span className="text-xs text-tertiary whitespace-nowrap">
+              结束于 {formatDate(mainItem.actualEndDate)}
+            </span>
+          )}
           <span className="inline-flex items-center rounded-md bg-primary-50 px-2 py-0.5 text-[11px] font-medium text-primary-700">
             {mainItem.subItemCount} 个子事项
           </span>
@@ -195,7 +207,14 @@ function ComparisonCard({ group, weekStart }: ComparisonCardProps) {
                 <div key={item.id} className="flex items-center gap-1.5 flex-wrap opacity-70">
                   <StatusBadge status={item.status} className="text-[11px]" />
                   <PriorityBadge priority={item.priority} className="text-[10px]" />
-                  <Link to={`/items/${mainItem.id}/sub/${item.id}`} className="text-[13px] text-primary-600 hover:text-primary-700 hover:underline">{item.title}</Link>
+                  <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link to={`/items/${mainItem.id}/sub/${item.id}`} className="text-[13px] text-primary-600 hover:text-primary-700 hover:underline truncate max-w-[160px]">{item.title}</Link>
+                      </TooltipTrigger>
+                      <TooltipContent>{item.title}</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               ))}
             </div>
@@ -226,7 +245,14 @@ function ComparisonCard({ group, weekStart }: ComparisonCardProps) {
                 <div key={item.id} className="flex items-center gap-1.5 flex-wrap opacity-70">
                   <StatusBadge status={item.status} className="text-[11px]" />
                   <PriorityBadge priority={item.priority} className="text-[10px]" />
-                  <Link to={`/items/${mainItem.id}/sub/${item.id}`} className="text-[13px] text-primary-600 hover:text-primary-700 hover:underline">{item.title}</Link>
+                  <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link to={`/items/${mainItem.id}/sub/${item.id}`} className="text-[13px] text-primary-600 hover:text-primary-700 hover:underline truncate max-w-[160px]">{item.title}</Link>
+                      </TooltipTrigger>
+                      <TooltipContent>{item.title}</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               ))}
             </div>
@@ -246,20 +272,46 @@ interface SubItemRowProps {
 }
 
 function SubItemRow({ item, mainItemId, showDelta }: SubItemRowProps) {
+  const overdue = isOverdue(item.expectedEndDate, item.status)
+  const periodText = item.startDate && item.expectedEndDate
+    ? `计划周期 ${formatDate(item.startDate)}~${formatDate(item.expectedEndDate)}`
+    : item.expectedEndDate ? `计划 ${formatDate(item.expectedEndDate)}` : ''
+
   return (
     <div className="py-1">
       <div className="flex items-center gap-1.5 flex-wrap">
         <StatusBadge status={item.status} className="text-[11px]" />
         <PriorityBadge priority={item.priority} className="text-[10px]" />
-        <Link to={`/items/${mainItemId}/sub/${item.id}`} className="text-[13px] text-primary-600 hover:text-primary-700 hover:underline">{item.title}</Link>
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                to={`/items/${mainItemId}/sub/${item.id}`}
+                className="text-[13px] text-primary-600 hover:text-primary-700 hover:underline truncate max-w-[160px]"
+              >
+                {item.title}
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent className="flex items-center gap-1.5 whitespace-nowrap">
+              <span className="text-white/70 font-mono">SI-{String(mainItemId).padStart(3, '0')}-{String(item.id).slice(-2)}</span>
+              <span>{item.title}</span>
+              {periodText && <span className="text-white/70">{periodText}</span>}
+              {overdue && (
+                <span className="inline-flex items-center rounded bg-error-bg px-1.5 py-px text-[11px] font-medium text-error-text">
+                  延期
+                </span>
+              )}
+              {(item.status === 'completed' || item.status === 'closed') && item.actualEndDate && (
+                <span className="text-white/70">结束于 {formatDate(item.actualEndDate)}</span>
+              )}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <span className={`text-[11px] font-semibold ${item.completion === 100 ? 'text-success-text' : 'text-secondary'}`}>
           {item.completion}%
         </span>
         <span className="text-[11px] text-tertiary whitespace-nowrap">
           {item.assigneeName}
-        </span>
-        <span className="text-[11px] text-tertiary whitespace-nowrap">
-          计划 {formatDate(item.expectedEndDate)}
         </span>
         {showDelta && item.delta != null && item.delta > 0 && !item.justCompleted && (
           <span className="text-[11px] font-semibold text-success-text bg-success-bg px-1.5 py-px rounded">
