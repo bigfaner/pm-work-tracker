@@ -352,7 +352,13 @@ func testValidTransitionTM(t *testing.T, from, to string) {
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil).Once()
 	repo.On("Update", mock.Anything, existing, mock.MatchedBy(func(fields map[string]interface{}) bool {
-		return fields["status"] == to
+		if fields["status"] != to {
+			return false
+		}
+		if to == "completed" || to == "closed" {
+			return fields["completion"] == float64(100) && fields["actual_end_date"] != nil
+		}
+		return true
 	})).Return(nil)
 	repo.On("FindByID", mock.Anything, uint(1)).Return(updated, nil).Once()
 
