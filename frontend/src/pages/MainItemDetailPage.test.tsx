@@ -177,7 +177,7 @@ describe('MainItemDetailPage', () => {
       expect(screen.getAllByText('负责人').length).toBeGreaterThanOrEqual(1)
       expect(screen.getAllByText('开始时间').length).toBeGreaterThanOrEqual(1)
       expect(screen.getAllByText('预期完成时间').length).toBeGreaterThanOrEqual(1)
-      expect(screen.getAllByText('实际完成时间').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText('结束时间').length).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -241,7 +241,7 @@ describe('MainItemDetailPage', () => {
       expect(screen.getByText('编号')).toBeInTheDocument()
       expect(screen.getByText('标题')).toBeInTheDocument()
       expect(screen.getAllByText('负责人').length).toBeGreaterThanOrEqual(1)
-      expect(screen.getByText('完成度')).toBeInTheDocument()
+      expect(screen.getByText('进度')).toBeInTheDocument()
       expect(screen.getAllByText('状态').length).toBeGreaterThanOrEqual(1)
     })
   })

@@ -1,13 +1,14 @@
-import { useState, useCallback } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useState, useCallback, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { getMainItemApi } from '@/api/mainItems'
-import { getSubItemApi } from '@/api/subItems'
+import { getSubItemApi, updateSubItemApi, changeSubItemStatusApi, getSubItemTransitionsApi } from '@/api/subItems'
 import { listProgressApi, appendProgressApi } from '@/api/progress'
 import { listMembersApi } from '@/api/teams'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DateInput } from '@/components/ui/date-input'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
@@ -26,9 +27,23 @@ import {
   BreadcrumbItem,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import StatusBadge from '@/components/shared/StatusBadge'
 import PriorityBadge from '@/components/shared/PriorityBadge'
-import UserAvatar from '@/components/shared/UserAvatar'
+import { PrioritySelectItems } from '@/components/shared/PrioritySelect'
+import { SUB_ITEM_STATUSES, getStatusName, isOverdue } from '@/lib/status'
 
 // --- Main Component ---
 
@@ -42,6 +57,8 @@ export default function SubItemDetailPage() {
   // State
   const [appendOpen, setAppendOpen] = useState(false)
   const [appendForm, setAppendForm] = useState({ completion: '', achievement: '', blocker: '' })
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({ title: '', priority: '', assigneeId: '', expectedEndDate: '', description: '' })
 
   // --- Data fetching ---
 
@@ -85,6 +102,15 @@ export default function SubItemDetailPage() {
 
   // --- Mutations ---
 
+  const editMutation = useMutation({
+    mutationFn: (req: { title: string; priority: string; assigneeId?: number; expectedEndDate?: string; description?: string }) =>
+      updateSubItemApi(teamId!, sId, req),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['subItem', teamId, sId] })
+      setEditOpen(false)
+    },
+  })
+
   const appendMutation = useMutation({
     mutationFn: (req: { completion: number; achievement?: string; blocker?: string }) =>
       appendProgressApi(teamId!, sId, req),
@@ -97,6 +123,17 @@ export default function SubItemDetailPage() {
   })
 
   // --- Handlers ---
+
+  const handleEdit = useCallback(() => {
+    if (!editForm.title.trim()) return
+    editMutation.mutate({
+      title: editForm.title.trim(),
+      priority: editForm.priority,
+      assigneeId: editForm.assigneeId ? Number(editForm.assigneeId) : undefined,
+      expectedEndDate: editForm.expectedEndDate || undefined,
+      description: editForm.description,
+    })
+  }, [editForm, editMutation])
 
   const handleAppend = useCallback(() => {
     const val = Number(appendForm.completion)
@@ -114,6 +151,11 @@ export default function SubItemDetailPage() {
 
   // Sub item code
   const subCode = subItem ? `SI-${String(mId).padStart(3, '0')}-${String(sId).slice(-2)}` : ''
+
+  // Terminal status guard
+  const isTerminalStatus = subItem
+    ? !!(SUB_ITEM_STATUSES[subItem.status as keyof typeof SUB_ITEM_STATUSES]?.terminal)
+    : false
 
   // --- Render ---
 
@@ -145,29 +187,51 @@ export default function SubItemDetailPage() {
             <Badge variant="default" className="font-mono">{subCode}</Badge>
             <h1 className="text-xl font-semibold text-primary m-0">{subItem.title}</h1>
             <PriorityBadge priority={subItem.priority} />
-            <StatusBadge status={subItem.status} />
+            <SubItemStatusDropdown subId={sId} currentStatus={subItem.status} />
+            <div className="flex-1" />
+            <PermissionGuard code="main_item:update">
+              <Button variant="secondary" disabled={isTerminalStatus} onClick={() => {
+                setEditForm({
+                  title: subItem.title,
+                  priority: subItem.priority,
+                  assigneeId: subItem.assigneeId ? String(subItem.assigneeId) : '',
+                  expectedEndDate: subItem.expectedEndDate || '',
+                  description: subItem.description || '',
+                })
+                setEditOpen(true)
+              }}>
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                编辑
+              </Button>
+            </PermissionGuard>
           </div>
 
           {/* Info Card */}
           <Card className="mb-5">
             <CardContent>
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div>
-                  <div className="text-xs text-tertiary mb-1">所属主事项</div>
-                  <Link to={`/items/${mId}`} className="text-[13px] font-medium text-primary-600 hover:text-primary-700 hover:underline">
-                    {mainItem?.title || `主事项 #${mId}`}
-                  </Link>
-                </div>
+              <div className="grid grid-cols-4 gap-4 mb-4">
                 <div>
                   <div className="text-xs text-tertiary mb-1">负责人</div>
-                  <div className="flex items-center gap-2">
-                    <UserAvatar name={memberName(subItem.assigneeId)} size="sm" />
-                    <span className="text-[13px] font-medium">{memberName(subItem.assigneeId)}</span>
-                  </div>
+                  <span className="text-[13px] font-medium">{memberName(subItem.assigneeId)}</span>
+                </div>
+                <div>
+                  <div className="text-xs text-tertiary mb-1">开始时间</div>
+                  <span className="text-[13px] font-medium">{subItem.startDate || '-'}</span>
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">预期完成时间</div>
-                  <span className="text-[13px] font-medium text-error">{subItem.expectedEndDate || '-'}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[13px] font-medium">{subItem.expectedEndDate || '-'}</span>
+                    {isOverdue(subItem.expectedEndDate ?? undefined, subItem.status) && (
+                      <Badge variant="error">延期</Badge>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-tertiary mb-1">结束时间</div>
+                  <span className="text-[13px] font-medium">{subItem.actualEndDate || '-'}</span>
                 </div>
               </div>
               <div>
@@ -180,10 +244,10 @@ export default function SubItemDetailPage() {
           {/* Progress Bar */}
           <Card className="mb-5">
             <CardContent>
-              <div className="flex items-center gap-3">
-                <span className="text-[13px] text-secondary whitespace-nowrap">总进度</span>
-                <Progress value={subItem.completion} className="flex-1" />
-                <span className="text-[13px] font-semibold">{subItem.completion}%</span>
+              <div>
+                <span className="text-[13px] text-secondary">总进度</span>
+                <Progress value={subItem.completion} className="mt-2" />
+                <span className="text-[13px] font-semibold mt-1 block text-center">{subItem.completion}%</span>
               </div>
             </CardContent>
           </Card>
@@ -193,7 +257,7 @@ export default function SubItemDetailPage() {
             <CardHeader>
               <h3 className="text-sm font-semibold text-primary m-0">进度记录</h3>
               <PermissionGuard code="progress:update">
-                <Button size="sm" onClick={() => setAppendOpen(true)}>追加进度</Button>
+                <Button size="sm" disabled={isTerminalStatus} onClick={() => setAppendOpen(true)}>追加进度</Button>
               </PermissionGuard>
             </CardHeader>
             <CardContent>
@@ -232,6 +296,68 @@ export default function SubItemDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Edit Dialog */}
+          <Dialog open={editOpen} onOpenChange={setEditOpen}>
+            <DialogContent size="md">
+              <DialogHeader>
+                <DialogTitle>编辑子事项</DialogTitle>
+              </DialogHeader>
+              <DialogBody>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-primary mb-1">
+                    标题 <span className="text-error">*</span>
+                  </label>
+                  <Input
+                    value={editForm.title}
+                    onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-1">优先级</label>
+                    <Select value={editForm.priority} onValueChange={(v) => setEditForm((f) => ({ ...f, priority: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <PrioritySelectItems />
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-1">负责人</label>
+                    <Select value={editForm.assigneeId || '_none'} onValueChange={(v) => setEditForm((f) => ({ ...f, assigneeId: v === '_none' ? '' : v }))}>
+                      <SelectTrigger><SelectValue placeholder="选择负责人" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">不指定</SelectItem>
+                        {members?.map((m) => (
+                          <SelectItem key={m.userId} value={String(m.userId)}>{m.displayName}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-primary mb-1">预期完成时间</label>
+                  <DateInput
+                    value={editForm.expectedEndDate}
+                    onChange={(e) => setEditForm((f) => ({ ...f, expectedEndDate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-1">描述</label>
+                  <Textarea
+                    rows={3}
+                    value={editForm.description}
+                    onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                  />
+                </div>
+              </DialogBody>
+              <DialogFooter>
+                <Button variant="secondary" onClick={() => setEditOpen(false)}>取消</Button>
+                <Button onClick={handleEdit} disabled={!editForm.title.trim() || editMutation.isPending}>保存</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           {/* Append Progress Dialog */}
           <Dialog open={appendOpen} onOpenChange={setAppendOpen}>
             <DialogContent size="md">
@@ -241,7 +367,7 @@ export default function SubItemDetailPage() {
               <DialogBody>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-primary mb-1">
-                    完成度 <span className="text-error">*</span>
+                    进度 <span className="text-error">*</span>
                   </label>
                   <Input
                     type="number"
@@ -252,7 +378,7 @@ export default function SubItemDetailPage() {
                     onChange={(e) => setAppendForm((f) => ({ ...f, completion: e.target.value }))}
                   />
                   <div className="text-xs text-tertiary mt-1">
-                    不能低于上一条记录的完成度（当前：{lastCompletion}%）
+                    不能低于上一条记录的进度（当前：{lastCompletion}%）
                   </div>
                 </div>
                 <div className="mb-4">
@@ -288,5 +414,182 @@ export default function SubItemDetailPage() {
         </>
       )}
     </div>
+  )
+}
+
+// --- Sub-item StatusDropdown ---
+
+const SUB_ITEM_TERMINAL_STATUSES = new Set(
+  Object.entries(SUB_ITEM_STATUSES)
+    .filter(([, v]) => v.terminal)
+    .map(([k]) => k)
+)
+
+function SubItemStatusDropdown({
+  subId,
+  currentStatus,
+}: {
+  subId: number
+  currentStatus: string
+}) {
+  const teamId = useTeamStore((s) => s.currentTeamId)
+  const qc = useQueryClient()
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [achievementOpen, setAchievementOpen] = useState(false)
+  const [achievementText, setAchievementText] = useState('')
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+  const [showTip, setShowTip] = useState(false)
+
+  const { data: transitions = [], isFetched, isFetching } = useQuery({
+    queryKey: ['subItemTransitions', teamId, subId],
+    queryFn: () => getSubItemTransitionsApi(teamId!, subId),
+    enabled: !!teamId && open,
+  })
+
+  useEffect(() => {
+    if (open && isFetched && !isFetching && transitions.length === 0) {
+      setOpen(false)
+      setShowTip(true)
+      setTimeout(() => setShowTip(false), 2000)
+    }
+  }, [open, isFetched, isFetching, transitions.length])
+
+  const statusChangeMutation = useMutation({
+    mutationFn: ({ newStatus }: { newStatus: string }) =>
+      changeSubItemStatusApi(teamId!, subId, { status: newStatus }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['subItem', teamId, subId] })
+      qc.invalidateQueries({ queryKey: ['subItemTransitions', teamId, subId] })
+      setOpen(false)
+      setConfirmOpen(false)
+      setAchievementOpen(false)
+      setAchievementText('')
+      setPendingStatus(null)
+    },
+  })
+
+  const appendMutation = useMutation({
+    mutationFn: (achievement: string) =>
+      appendProgressApi(teamId!, subId, { completion: 100, ...(achievement && { achievement }) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['progress', teamId, subId] })
+      qc.invalidateQueries({ queryKey: ['subItem', teamId, subId] })
+    },
+  })
+
+  const handleSelect = useCallback((status: string) => {
+    if (status === 'completed') {
+      setPendingStatus(status)
+      setAchievementOpen(true)
+    } else if (SUB_ITEM_TERMINAL_STATUSES.has(status)) {
+      setPendingStatus(status)
+      setConfirmOpen(true)
+    } else {
+      statusChangeMutation.mutate({ newStatus: status })
+    }
+  }, [statusChangeMutation])
+
+  const handleConfirm = useCallback(() => {
+    if (pendingStatus) {
+      statusChangeMutation.mutate({ newStatus: pendingStatus })
+    }
+  }, [pendingStatus, statusChangeMutation])
+
+  const handleAchievementConfirm = useCallback(async () => {
+    if (!pendingStatus) return
+    const achievement = achievementText.trim()
+    try {
+      await statusChangeMutation.mutateAsync({ newStatus: pendingStatus })
+      if (achievement) {
+        await appendMutation.mutateAsync(achievement)
+      }
+    } catch {
+      // errors handled by individual mutations
+    }
+  }, [pendingStatus, achievementText, statusChangeMutation, appendMutation])
+
+  return (
+    <>
+      <div className="relative inline-flex">
+        {showTip && (
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap text-xs px-2 py-1 rounded-md bg-primary text-white shadow-md pointer-events-none z-50">
+            暂无可用流转
+          </div>
+        )}
+        <DropdownMenu open={open} onOpenChange={setOpen}>
+          <DropdownMenuTrigger asChild>
+            <button className="focus:outline-none">
+              <StatusBadge status={currentStatus} className="cursor-pointer" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="min-w-0 w-auto">
+          {transitions.map((status) => (
+            <DropdownMenuItem
+              key={status}
+              className="text-[13px] justify-center"
+              onSelect={(e) => {
+                e.preventDefault()
+                handleSelect(status)
+              }}
+            >
+              {getStatusName(status) || status}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      </div>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>确认变更状态</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <p className="text-sm text-secondary">
+              确认将状态变更为「{getStatusName(pendingStatus || '') || pendingStatus}」？此操作可能不可逆。
+            </p>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => { setConfirmOpen(false); setPendingStatus(null) }}>取消</Button>
+            <Button onClick={handleConfirm} disabled={statusChangeMutation.isPending}>确认</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Achievement dialog for completed */}
+      <Dialog open={achievementOpen} onOpenChange={(open) => {
+        if (!open) { setAchievementOpen(false); setAchievementText(''); setPendingStatus(null) }
+      }}>
+        <DialogContent size="md">
+          <DialogHeader>
+            <DialogTitle>填写完成成果</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <p className="text-sm text-secondary mb-4">
+              即将标记为「已完成」，进度将自动设为 100%。
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-primary mb-1">成果</label>
+              <Textarea
+                rows={4}
+                placeholder="描述本次取得的成果（选填）"
+                value={achievementText}
+                onChange={(e) => setAchievementText(e.target.value)}
+              />
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => { setAchievementOpen(false); setAchievementText(''); setPendingStatus(null) }}>取消</Button>
+            <Button
+              onClick={handleAchievementConfirm}
+              disabled={statusChangeMutation.isPending || appendMutation.isPending}
+            >
+              确认完成
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

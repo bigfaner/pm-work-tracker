@@ -308,7 +308,7 @@ describe('SubItemDetailPage', () => {
     await user.click(screen.getByText('追加进度'))
 
     await waitFor(() => {
-      expect(screen.getByText(/不能低于上一条记录的完成度/)).toBeInTheDocument()
+      expect(screen.getByText(/不能低于上一条记录的进度/)).toBeInTheDocument()
     })
   })
 
