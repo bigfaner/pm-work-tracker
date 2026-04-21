@@ -400,13 +400,40 @@ describe('MainItemDetailPage', () => {
     })
   })
 
+  // --- Sub-item action buttons disabled on terminal main item ---
+
+  it('disables sub-item edit and append-progress buttons when main item is terminal', async () => {
+    server.use(
+      http.get('/api/v1/teams/:teamId/main-items/:itemId', () => {
+        return HttpResponse.json({ code: 0, data: { ...seedMainItem, status: 'completed' } })
+      }),
+    )
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Sub Alpha 1')).toBeInTheDocument()
+    })
+    const editBtns = screen.getAllByRole('button', { name: /编辑/ })
+    const appendBtns = screen.getAllByRole('button', { name: /追加进度/ })
+    editBtns.forEach(btn => expect(btn).toBeDisabled())
+    appendBtns.forEach(btn => expect(btn).toBeDisabled())
+  })
+
+  it('enables sub-item edit and append-progress buttons when main item is non-terminal', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Sub Alpha 1')).toBeInTheDocument()
+    })
+    const appendBtns = screen.getAllByRole('button', { name: /追加进度/ })
+    appendBtns.forEach(btn => expect(btn).toBeEnabled())
+  })
+
   // --- Action buttons ---
 
   it('renders edit button', async () => {
     renderPage()
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Alpha Task' })).toBeInTheDocument()
-      expect(screen.getByText('编辑')).toBeInTheDocument()
+      expect(screen.getAllByText('编辑').length).toBeGreaterThanOrEqual(1)
     })
   })
 
