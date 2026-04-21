@@ -69,8 +69,10 @@ func run(configPath string) error {
 	// 5. Init services
 	authSvc := service.NewAuthService(userRepo, cfg.Auth.JWTSecret)
 	teamSvc := service.NewTeamService(teamRepo, userRepo, mainItemRepo, db)
-	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo)
-	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc)
+	statusHistoryRepo := gormrepo.NewGormStatusHistoryRepo(db)
+	statusHistorySvc := service.NewStatusHistoryService(statusHistoryRepo)
+	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo, statusHistorySvc)
+	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc, statusHistorySvc)
 	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, db)
 	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)

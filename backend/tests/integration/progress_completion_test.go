@@ -34,7 +34,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 		Title:      "Test Main Item",
 		Priority:   "P1",
 		ProposerID: userID,
-		Status:     "待开始",
+		Status:     "pending",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
@@ -43,7 +43,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 		MainItemID: mainItem.ID,
 		Title:      "Sub Item 1",
 		Priority:   "P2",
-		Status:     "待开始",
+		Status:     "pending",
 		Weight:     1.0,
 	}
 	require.NoError(t, db.Create(sub1).Error)
@@ -53,7 +53,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 		MainItemID: mainItem.ID,
 		Title:      "Sub Item 2",
 		Priority:   "P2",
-		Status:     "待开始",
+		Status:     "pending",
 		Weight:     1.0,
 	}
 	require.NoError(t, db.Create(sub2).Error)
@@ -172,7 +172,7 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamID, userID uint) (poolID, mainI
 		Title:       "Pool Item Title",
 		Background:  "Some background",
 		SubmitterID: userID,
-		Status:      "待分配",
+		Status:      "pending",
 	}
 	require.NoError(t, db.Create(poolItem).Error)
 
@@ -182,7 +182,7 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamID, userID uint) (poolID, mainI
 		Title:      "Main Item for Pool",
 		Priority:   "P1",
 		ProposerID: userID,
-		Status:     "待开始",
+		Status:     "pending",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
@@ -208,10 +208,10 @@ func TestItemPool_Assign_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	// Verify ItemPool.Status = "已分配"
+	// Verify ItemPool.Status = "assigned"
 	var pool model.ItemPool
 	require.NoError(t, db.First(&pool, poolID).Error)
-	assert.Equal(t, "已分配", pool.Status)
+	assert.Equal(t, "assigned", pool.Status)
 	assert.NotNil(t, pool.AssignedSubID)
 
 	// Verify a new SubItem exists under the main item
@@ -243,10 +243,10 @@ func TestItemPool_Assign_Rollback_OnInvalidMainItem(t *testing.T) {
 	// Should fail with 404 (item not found)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 
-	// Verify ItemPool.Status remains "待分配"
+	// Verify ItemPool.Status remains "pending"
 	var pool model.ItemPool
 	require.NoError(t, db.First(&pool, poolID).Error)
-	assert.Equal(t, "待分配", pool.Status)
+	assert.Equal(t, "pending", pool.Status)
 
 	// Verify no SubItem was created
 	var count int64
@@ -266,7 +266,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart ti
 		Title:      "Report Test Main Item",
 		Priority:   "P1",
 		ProposerID: userID,
-		Status:     "进行中",
+		Status:     "progressing",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
@@ -275,7 +275,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart ti
 		MainItemID: mainItem.ID,
 		Title:      "Report Test Sub Item",
 		Priority:   "P2",
-		Status:     "进行中",
+		Status:     "progressing",
 		Completion: 50,
 		Weight:     1.0,
 	}
@@ -338,8 +338,10 @@ func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engi
 	itemPoolRepo := gormrepo.NewGormItemPoolRepo(db)
 
 	authSvc := service.NewAuthService(userRepo, testJWTSecret)
-	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo)
-	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc)
+	statusHistoryRepo := gormrepo.NewGormStatusHistoryRepo(db)
+	statusHistorySvc := service.NewStatusHistoryService(statusHistoryRepo)
+	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo, statusHistorySvc)
+	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc, statusHistorySvc)
 	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, poolTransactor{db: db})
 	teamSvc := service.NewTeamService(teamRepo, userRepo, mainItemRepo, teamTransactor{db: db})

@@ -73,6 +73,18 @@ func (s *StubMainItemSvc) RecalcCompletion(_ context.Context, _ uint) error {
 	return fmt.Errorf("stub: not implemented")
 }
 
+func (s *StubMainItemSvc) ChangeStatus(_ context.Context, _, _, _ uint, _ string) (*model.MainItem, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+func (s *StubMainItemSvc) AvailableTransitions(_ context.Context, _, _, _ uint) ([]string, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+func (s *StubMainItemSvc) EvaluateLinkage(_ context.Context, _ uint, _ uint) (*service.LinkageResult, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
 var _ service.MainItemService = (*StubMainItemSvc)(nil)
 
 type StubSubItemSvc struct{}
@@ -83,8 +95,8 @@ func (s *StubSubItemSvc) Create(_ context.Context, _, _ uint, _ dto.SubItemCreat
 func (s *StubSubItemSvc) Update(_ context.Context, _, _ uint, _ dto.SubItemUpdateReq) error {
 	return fmt.Errorf("stub: not implemented")
 }
-func (s *StubSubItemSvc) ChangeStatus(_ context.Context, _, _, _ uint, _ string) error {
-	return fmt.Errorf("stub: not implemented")
+func (s *StubSubItemSvc) ChangeStatus(_ context.Context, _, _, _ uint, _ string) (*service.SubItemChangeResult, error) {
+	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubSubItemSvc) Get(_ context.Context, _, _ uint) (*model.SubItem, error) {
 	return nil, fmt.Errorf("stub: not implemented")
@@ -93,6 +105,12 @@ func (s *StubSubItemSvc) List(_ context.Context, _ uint, _ *uint, _ dto.SubItemF
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubSubItemSvc) Assign(_ context.Context, _, _, _, _ uint) error {
+	return fmt.Errorf("stub: not implemented")
+}
+func (s *StubSubItemSvc) AvailableTransitions(_ context.Context, _, _ uint) ([]string, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+func (s *StubSubItemSvc) Delete(_ context.Context, _, _, _ uint) error {
 	return fmt.Errorf("stub: not implemented")
 }
 
@@ -204,6 +222,7 @@ func (s *StubRouterRepoSubItem) ListByMainItem(_ context.Context, _ uint) ([]*mo
 func (s *StubRouterRepoSubItem) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
 	return nil, nil
 }
+func (s *StubRouterRepoSubItem) Delete(_ context.Context, _ uint) error { return nil }
 
 var _ repository.SubItemRepo = (*StubRouterRepoSubItem)(nil)
 

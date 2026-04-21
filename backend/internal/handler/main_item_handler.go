@@ -133,7 +133,6 @@ func (h *MainItemHandler) Get(c *gin.Context) {
 		"status":          itemVO.Status,
 		"completion":      itemVO.Completion,
 		"isKeyItem":       itemVO.IsKeyItem,
-		"delayCount":      itemVO.DelayCount,
 		"archivedAt":      itemVO.ArchivedAt,
 		"createdAt":       itemVO.CreatedAt,
 		"updatedAt":       itemVO.UpdatedAt,
@@ -188,4 +187,50 @@ func (h *MainItemHandler) Archive(c *gin.Context) {
 	}
 
 	apperrors.RespondOK(c, nil)
+}
+
+// ChangeStatus handles PUT /api/v1/teams/:teamId/main-items/:itemId/status
+func (h *MainItemHandler) ChangeStatus(c *gin.Context) {
+	itemID, ok := parseItemID(c)
+	if !ok {
+		return
+	}
+
+	teamID := middleware.GetTeamID(c)
+	callerID := middleware.GetUserID(c)
+
+	var req struct {
+		Status string `json:"status" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	item, err := h.svc.ChangeStatus(c.Request.Context(), teamID, callerID, itemID, req.Status)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, vo.NewMainItemVO(item))
+}
+
+// AvailableTransitions handles GET /api/v1/teams/:teamId/main-items/:itemId/available-transitions
+func (h *MainItemHandler) AvailableTransitions(c *gin.Context) {
+	itemID, ok := parseItemID(c)
+	if !ok {
+		return
+	}
+
+	teamID := middleware.GetTeamID(c)
+	callerID := middleware.GetUserID(c)
+
+	transitions, err := h.svc.AvailableTransitions(c.Request.Context(), teamID, callerID, itemID)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, gin.H{"transitions": transitions})
 }

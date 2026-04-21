@@ -58,7 +58,7 @@ func TestItemPoolRepo_Create(t *testing.T) {
 		Background:     "Some context",
 		ExpectedOutput: "Expected result",
 		SubmitterID:    u.ID,
-		Status:         "待分配",
+		Status:         "pending",
 	}
 	require.NoError(t, repo.Create(ctx, item))
 	assert.NotZero(t, item.ID)
@@ -72,7 +72,7 @@ func TestItemPoolRepo_FindByID(t *testing.T) {
 	ctx := context.Background()
 
 	u, team := seedItemPoolData(t, db)
-	item := createItemPool(t, db, team.ID, u.ID, "Find Me", "待分配")
+	item := createItemPool(t, db, team.ID, u.ID, "Find Me", "pending")
 
 	t.Run("found", func(t *testing.T) {
 		found, err := repo.FindByID(ctx, item.ID)
@@ -95,13 +95,13 @@ func TestItemPoolRepo_Update(t *testing.T) {
 	ctx := context.Background()
 
 	u, team := seedItemPoolData(t, db)
-	item := createItemPool(t, db, team.ID, u.ID, "Assign Me", "待分配")
+	item := createItemPool(t, db, team.ID, u.ID, "Assign Me", "pending")
 
 	mainID := u.ID
 	subID := u.ID
 	assigneeID := u.ID
 	fields := map[string]interface{}{
-		"status":           "已分配",
+		"status":           "assigned",
 		"assigned_main_id": mainID,
 		"assigned_sub_id":  subID,
 		"assignee_id":      assigneeID,
@@ -110,7 +110,7 @@ func TestItemPoolRepo_Update(t *testing.T) {
 
 	found, err := repo.FindByID(ctx, item.ID)
 	require.NoError(t, err)
-	assert.Equal(t, "已分配", found.Status)
+	assert.Equal(t, "assigned", found.Status)
 	assert.Equal(t, mainID, *found.AssignedMainID)
 }
 
@@ -121,7 +121,7 @@ func TestItemPoolRepo_Update_NotFound(t *testing.T) {
 
 	_, team := seedItemPoolData(t, db)
 	fakeItem := &model.ItemPool{BaseModel: model.BaseModel{ID: 9999}, TeamID: team.ID}
-	fields := map[string]interface{}{"status": "已分配"}
+	fields := map[string]interface{}{"status": "assigned"}
 	err := repo.Update(ctx, fakeItem, fields)
 	assert.ErrorIs(t, err, pkgerrors.ErrNotFound)
 }
@@ -135,16 +135,16 @@ func TestItemPoolRepo_List(t *testing.T) {
 
 	u, team := seedItemPoolData(t, db)
 
-	createItemPool(t, db, team.ID, u.ID, "Pool A", "待分配")
-	createItemPool(t, db, team.ID, u.ID, "Pool B", "已分配")
-	createItemPool(t, db, team.ID, u.ID, "Pool C", "已拒绝")
+	createItemPool(t, db, team.ID, u.ID, "Pool A", "pending")
+	createItemPool(t, db, team.ID, u.ID, "Pool B", "assigned")
+	createItemPool(t, db, team.ID, u.ID, "Pool C", "rejected")
 
 	// Another team - should not appear
 	u2 := model.User{Username: "ip_other", DisplayName: "IP Other", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u2).Error)
 	team2 := model.Team{Name: "IP Team2", PmID: u2.ID}
 	require.NoError(t, db.Create(&team2).Error)
-	createItemPool(t, db, team2.ID, u2.ID, "Other Team", "待分配")
+	createItemPool(t, db, team2.ID, u2.ID, "Other Team", "pending")
 
 	t.Run("all_for_team", func(t *testing.T) {
 		result, err := repo.List(ctx, team.ID, dto.ItemPoolFilter{}, dto.Pagination{Page: 1, PageSize: 10})
@@ -153,14 +153,14 @@ func TestItemPoolRepo_List(t *testing.T) {
 	})
 
 	t.Run("filter_by_status", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.ItemPoolFilter{Status: "已分配"}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.ID, dto.ItemPoolFilter{Status: "assigned"}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), result.Total)
 		assert.Equal(t, "Pool B", result.Items[0].Title)
 	})
 
 	t.Run("filter_by_status_rejected", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.ItemPoolFilter{Status: "已拒绝"}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.ID, dto.ItemPoolFilter{Status: "rejected"}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), result.Total)
 		assert.Equal(t, "Pool C", result.Items[0].Title)

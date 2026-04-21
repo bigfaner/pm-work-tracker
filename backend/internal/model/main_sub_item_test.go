@@ -25,10 +25,10 @@ func TestMainItem_CodeUniqueIndex(t *testing.T) {
 	team := model.Team{Name: "T1", PmID: u.ID}
 	require.NoError(t, db.Create(&team).Error)
 
-	m1 := model.MainItem{TeamID: team.ID, Code: "MI-0001", Title: "Item 1", Priority: "P1", ProposerID: u.ID, Status: "待开始"}
+	m1 := model.MainItem{TeamID: team.ID, Code: "MI-0001", Title: "Item 1", Priority: "P1", ProposerID: u.ID, Status: "pending"}
 	require.NoError(t, db.Create(&m1).Error)
 
-	m2 := model.MainItem{TeamID: team.ID, Code: "MI-0001", Title: "Item 2", Priority: "P2", ProposerID: u.ID, Status: "待开始"}
+	m2 := model.MainItem{TeamID: team.ID, Code: "MI-0001", Title: "Item 2", Priority: "P2", ProposerID: u.ID, Status: "pending"}
 	err = db.Create(&m2).Error
 	assert.Error(t, err, "duplicate code should be rejected")
 }
@@ -48,10 +48,9 @@ func TestMainItem_Defaults(t *testing.T) {
 
 	var fetched model.MainItem
 	db.First(&fetched, "code = ?", "MI-0002")
-	assert.Equal(t, "待开始", fetched.Status, "status should default to 待开始")
+	assert.Equal(t, "pending", fetched.Status, "status should default to pending")
 	assert.Equal(t, float64(0), fetched.Completion, "completion should default to 0")
 	assert.False(t, fetched.IsKeyItem, "is_key_item should default to false")
-	assert.Equal(t, 0, fetched.DelayCount, "delay_count should default to 0")
 }
 
 func TestMainItem_ArchivedAt(t *testing.T) {
@@ -108,11 +107,10 @@ func TestSubItem_DefaultStatus(t *testing.T) {
 
 	var fetched model.SubItem
 	db.First(&fetched, "title = ?", "Sub 1")
-	assert.Equal(t, "待开始", fetched.Status, "status should default to 待开始")
+	assert.Equal(t, "pending", fetched.Status, "status should default to pending")
 	assert.Equal(t, float64(0), fetched.Completion, "completion should default to 0")
 	assert.Equal(t, float64(1), fetched.Weight, "weight should default to 1.0")
 	assert.False(t, fetched.IsKeyItem, "is_key_item should default to false")
-	assert.Equal(t, 0, fetched.DelayCount, "delay_count should default to 0")
 }
 
 func TestSubItem_WeightCanBeCustom(t *testing.T) {
@@ -154,7 +152,7 @@ func TestMainItem_TeamStatusAndPriorityIndexes(t *testing.T) {
 
 	// Insert some items to exercise the indexes
 	for i := 0; i < 3; i++ {
-		statuses := []string{"待开始", "进行中", "已完成"}
+		statuses := []string{"pending", "progressing", "completed"}
 		priorities := []string{"P1", "P2", "P3"}
 		m := model.MainItem{
 			TeamID:     team.ID,
@@ -169,7 +167,7 @@ func TestMainItem_TeamStatusAndPriorityIndexes(t *testing.T) {
 
 	// Query using the composite indexes
 	var items []model.MainItem
-	err = db.Where("team_id = ? AND status = ?", team.ID, "进行中").Find(&items).Error
+	err = db.Where("team_id = ? AND status = ?", team.ID, "progressing").Find(&items).Error
 	assert.NoError(t, err)
 	assert.Len(t, items, 1)
 
@@ -192,7 +190,7 @@ func TestSubItem_TeamStatusAndPriorityIndexes(t *testing.T) {
 	require.NoError(t, db.Create(&mi).Error)
 
 	for i := 0; i < 3; i++ {
-		statuses := []string{"待开始", "进行中", "已完成"}
+		statuses := []string{"pending", "progressing", "completed"}
 		priorities := []string{"P1", "P2", "P3"}
 		s := model.SubItem{
 			TeamID:     team.ID,
@@ -205,7 +203,7 @@ func TestSubItem_TeamStatusAndPriorityIndexes(t *testing.T) {
 	}
 
 	var items []model.SubItem
-	err = db.Where("team_id = ? AND status = ?", team.ID, "进行中").Find(&items).Error
+	err = db.Where("team_id = ? AND status = ?", team.ID, "progressing").Find(&items).Error
 	assert.NoError(t, err)
 	assert.Len(t, items, 1)
 

@@ -17,11 +17,11 @@ vi.mock('@/api/teams', () => ({
 
 // Mock the mainItems API (called by ItemViewPage)
 vi.mock('@/api/mainItems', () => ({
-  listMainItemsApi: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 }),
+  listMainItemsApi: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, size: 20 }),
   getMainItemApi: vi.fn().mockResolvedValue({
     id: 123, teamId: 1, code: 'MI-0123', title: 'Test', priority: 'P2',
     proposerId: 1, assigneeId: null, startDate: null, expectedEndDate: null,
-    actualEndDate: null, status: '进行中', completion: 0, isKeyItem: false,
+    actualEndDate: null, status: 'progressing', completion: 0, isKeyItem: false,
     delayCount: 0, archivedAt: null, createdAt: '', updatedAt: '', subItems: [],
   }),
   createMainItemApi: vi.fn(),

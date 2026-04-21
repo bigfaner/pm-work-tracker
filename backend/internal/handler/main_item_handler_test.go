@@ -18,6 +18,7 @@ import (
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/repository"
+	"pm-work-tracker/backend/internal/service"
 )
 
 // ---------------------------------------------------------------------------
@@ -43,6 +44,14 @@ type mockMainItemService struct {
 	archiveResult struct {
 		err error
 	}
+	changeStatusResult struct {
+		item *model.MainItem
+		err  error
+	}
+	availableTransitionsResult struct {
+		transitions []string
+		err         error
+	}
 
 	// capture calls
 	createCalled  bool
@@ -63,6 +72,12 @@ type mockMainItemService struct {
 
 	archiveCalled bool
 	archiveItemID uint
+
+	changeStatusCalled bool
+	lastCallerID      uint
+	lastNewStatus     string
+
+	availableTransitionsCalled bool
 }
 
 func (m *mockMainItemService) Create(_ context.Context, teamID, pmID uint, req dto.MainItemCreateReq) (*model.MainItem, error) {
@@ -106,6 +121,27 @@ func (m *mockMainItemService) RecalcCompletion(_ context.Context, _ uint) error 
 	return nil
 }
 
+func (m *mockMainItemService) ChangeStatus(_ context.Context, teamID, callerID, itemID uint, newStatus string) (*model.MainItem, error) {
+	m.changeStatusCalled = true
+	m.lastTeamID = teamID
+	m.lastCallerID = callerID
+	m.lastItemID = itemID
+	m.lastNewStatus = newStatus
+	return m.changeStatusResult.item, m.changeStatusResult.err
+}
+
+func (m *mockMainItemService) AvailableTransitions(_ context.Context, teamID, callerID, itemID uint) ([]string, error) {
+	m.availableTransitionsCalled = true
+	m.lastTeamID = teamID
+	m.lastCallerID = callerID
+	m.lastItemID = itemID
+	return m.availableTransitionsResult.transitions, m.availableTransitionsResult.err
+}
+
+func (m *mockMainItemService) EvaluateLinkage(_ context.Context, _ uint, _ uint) (*service.LinkageResult, error) {
+	return nil, nil
+}
+
 // ---------------------------------------------------------------------------
 // Mock SubItemRepo for Get endpoint (subItems summary)
 // ---------------------------------------------------------------------------
@@ -132,6 +168,9 @@ func (m *mockSubItemRepoForHandler) ListByMainItem(_ context.Context, _ uint) ([
 }
 func (m *mockSubItemRepoForHandler) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
 	return nil, nil
+}
+func (m *mockSubItemRepoForHandler) Delete(_ context.Context, _ uint) error {
+	return nil
 }
 
 // ---------------------------------------------------------------------------
@@ -164,7 +203,7 @@ func testMainItem(id uint, teamID uint) *model.MainItem {
 		Code:     fmt.Sprintf("MI-%04d", id),
 		Title:    "Test Item",
 		Priority: "P1",
-		Status:   "待开始",
+		Status:   "pending",
 	}
 }
 
@@ -347,14 +386,14 @@ func TestListMainItems_WithFilters(t *testing.T) {
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items?priority=P1&status=进行中&page=2&pageSize=10", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items?priority=P1&status=progressing&page=2&pageSize=10", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, svc.listCalled)
 	assert.Equal(t, "P1", svc.lastFilter.Priority)
-	assert.Equal(t, "进行中", svc.lastFilter.Status)
+	assert.Equal(t, "progressing", svc.lastFilter.Status)
 	assert.Equal(t, 2, svc.lastPage.Page)
 	assert.Equal(t, 10, svc.lastPage.PageSize)
 }
@@ -386,14 +425,14 @@ func TestGetMainItem_Success(t *testing.T) {
 	svc := &mockMainItemService{}
 	item := testMainItem(1, 10)
 	item.ID = 1
-	item.Status = "进行中"
+	item.Status = "progressing"
 	item.Completion = 45.5
 	svc.getResult.item = item
 
 	userRepo := &mockUserRepoForHandler{}
 	subItemRepo := &mockSubItemRepoForHandler{
 		items: []*model.SubItem{
-			{Title: "Sub 1", Status: "进行中", Completion: 60},
+			{Title: "Sub 1", Status: "progressing", Completion: 60},
 		},
 	}
 	subItemRepo.items[0].ID = 10
@@ -706,6 +745,207 @@ func TestCreateMainItem_SuperAdminBypass(t *testing.T) {
 // Tests: Response shape matches Data Contract
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Tests: PUT /teams/:teamId/main-items/:itemId/status (ChangeStatus)
+// ---------------------------------------------------------------------------
+
+func TestChangeStatusMainItem_Success(t *testing.T) {
+	svc := &mockMainItemService{}
+	updatedItem := testMainItem(1, 10)
+	updatedItem.ID = 1
+	updatedItem.Status = "progressing"
+	svc.changeStatusResult.item = updatedItem
+
+	userRepo := &mockUserRepoForHandler{}
+	subItemRepo := &mockSubItemRepoForHandler{}
+
+	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
+	r := SetupRouter(deps)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"status":"progressing"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/main-items/1/status", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, svc.changeStatusCalled)
+	assert.Equal(t, uint(1), svc.lastItemID)
+	assert.Equal(t, uint(5), svc.lastCallerID)
+	assert.Equal(t, "progressing", svc.lastNewStatus)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, float64(0), resp["code"])
+}
+
+func TestChangeStatusMainItem_InvalidBody(t *testing.T) {
+	svc := &mockMainItemService{}
+
+	userRepo := &mockUserRepoForHandler{}
+	subItemRepo := &mockSubItemRepoForHandler{}
+
+	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
+	r := SetupRouter(deps)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/main-items/1/status", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.False(t, svc.changeStatusCalled)
+}
+
+func TestChangeStatusMainItem_InvalidTransition(t *testing.T) {
+	svc := &mockMainItemService{}
+	svc.changeStatusResult.err = apperrors.ErrInvalidStatus
+
+	userRepo := &mockUserRepoForHandler{}
+	subItemRepo := &mockSubItemRepoForHandler{}
+
+	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
+	r := SetupRouter(deps)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"status":"completed"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/main-items/1/status", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+}
+
+func TestChangeStatusMainItem_RequiresPermission(t *testing.T) {
+	svc := &mockMainItemService{}
+
+	userRepo := &mockUserRepoForHandler{}
+	subItemRepo := &mockSubItemRepoForHandler{}
+
+	// Member role doesn't have main_item:change_status
+	deps := depsWithMemberRoleMainItem(t, svc, userRepo, subItemRepo)
+	r := SetupRouter(deps)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"status":"progressing"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/main-items/1/status", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.False(t, svc.changeStatusCalled)
+}
+
+func TestChangeStatusMainItem_InvalidItemID(t *testing.T) {
+	svc := &mockMainItemService{}
+
+	userRepo := &mockUserRepoForHandler{}
+	subItemRepo := &mockSubItemRepoForHandler{}
+
+	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
+	r := SetupRouter(deps)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"status":"progressing"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/main-items/abc/status", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.False(t, svc.changeStatusCalled)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: GET /teams/:teamId/main-items/:itemId/available-transitions
+// ---------------------------------------------------------------------------
+
+func TestAvailableTransitionsMainItem_Success(t *testing.T) {
+	svc := &mockMainItemService{}
+	svc.availableTransitionsResult.transitions = []string{"progressing", "closed"}
+
+	userRepo := &mockUserRepoForHandler{}
+	subItemRepo := &mockSubItemRepoForHandler{}
+
+	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
+	r := SetupRouter(deps)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/1/available-transitions", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, svc.availableTransitionsCalled)
+	assert.Equal(t, uint(1), svc.lastItemID)
+	assert.Equal(t, uint(5), svc.lastCallerID)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, float64(0), resp["code"])
+
+	data, ok := resp["data"].(map[string]interface{})
+	require.True(t, ok)
+	transitions, ok := data["transitions"].([]interface{})
+	require.True(t, ok)
+	assert.Len(t, transitions, 2)
+}
+
+func TestAvailableTransitionsMainItem_ItemNotFound(t *testing.T) {
+	svc := &mockMainItemService{}
+	svc.availableTransitionsResult.err = apperrors.ErrItemNotFound
+
+	userRepo := &mockUserRepoForHandler{}
+	subItemRepo := &mockSubItemRepoForHandler{}
+
+	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
+	r := SetupRouter(deps)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/999/available-transitions", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestAvailableTransitionsMainItem_InvalidItemID(t *testing.T) {
+	svc := &mockMainItemService{}
+
+	userRepo := &mockUserRepoForHandler{}
+	subItemRepo := &mockSubItemRepoForHandler{}
+
+	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
+	r := SetupRouter(deps)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/abc/available-transitions", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.False(t, svc.availableTransitionsCalled)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: Response shape matches Data Contract
+// ---------------------------------------------------------------------------
+
 func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	svc := &mockMainItemService{}
 	now := time.Now()
@@ -719,10 +959,9 @@ func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 		AssigneeID:      &assigneeID,
 		StartDate:       &now,
 		ExpectedEndDate: &now,
-		Status:          "进行中",
+		Status:          "progressing",
 		Completion:      45.5,
 		IsKeyItem:       false,
-		DelayCount:      0,
 	}
 	item.ID = 1
 
@@ -761,9 +1000,8 @@ func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	assert.Equal(t, "P1", data["priority"])
 	assert.Equal(t, float64(2), data["proposerId"])
 	assert.Equal(t, float64(3), data["assigneeId"])
-	assert.Equal(t, "进行中", data["status"])
+	assert.Equal(t, "progressing", data["status"])
 	assert.Equal(t, 45.5, data["completion"])
 	assert.Equal(t, false, data["isKeyItem"])
-	assert.Equal(t, float64(0), data["delayCount"])
 	assert.NotNil(t, data["subItems"])
 }

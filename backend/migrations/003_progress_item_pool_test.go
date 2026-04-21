@@ -78,10 +78,10 @@ func Test003_ItemPoolsDefaultStatus(t *testing.T) {
 	require.NoError(t, err)
 
 	// Insert with no status — should get default
-	db.Exec("INSERT INTO item_pools (team_id, title, submitter_id, status, created_at, updated_at) VALUES (1, 'Test', 1, '待分配', datetime('now'), datetime('now'))")
+	db.Exec("INSERT INTO item_pools (team_id, title, submitter_id, status, created_at, updated_at) VALUES (1, 'Test', 1, 'pending', datetime('now'), datetime('now'))")
 	var status string
 	db.Raw("SELECT status FROM item_pools WHERE title = 'Test'").Scan(&status)
-	assert.Equal(t, "待分配", status, "default status should be 待分配")
+	assert.Equal(t, "pending", status, "default status should be pending")
 }
 
 func Test003_ProgressRecordsNoUpdatedAt(t *testing.T) {

@@ -50,7 +50,8 @@ func testDeps(t *testing.T) (*Dependencies, *gorm.DB) {
 	allPermCodes := []string{
 		"team:create", "team:read", "team:update", "team:delete", "team:invite",
 		"team:remove", "team:transfer", "main_item:create", "main_item:read",
-		"main_item:update", "main_item:archive", "sub_item:create", "sub_item:read",
+		"main_item:update", "main_item:archive", "main_item:change_status",
+		"sub_item:create", "sub_item:read",
 		"sub_item:update", "sub_item:change_status", "sub_item:assign",
 		"progress:create", "progress:read", "progress:update",
 		"item_pool:submit", "item_pool:review",
@@ -253,7 +254,7 @@ func TestTeamListCreateRoutes_WithSuperAdminAuth(t *testing.T) {
 
 	token := signTestToken(t, 1, "admin")
 
-	// POST /api/v1/teams with superadmin auth — stub service returns error → 500
+	// POST /api/v1/teams with superadmin auth — stub service returns error -> 500
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams", strings.NewReader(`{"name":"test"}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -261,7 +262,7 @@ func TestTeamListCreateRoutes_WithSuperAdminAuth(t *testing.T) {
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 
-	// GET /api/v1/teams with superadmin auth — stub service returns error → 500
+	// GET /api/v1/teams with superadmin auth — stub service returns error -> 500
 	w = httptest.NewRecorder()
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/teams", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -281,7 +282,7 @@ func TestAdminRoutes_RequireSuperAdmin(t *testing.T) {
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 
-	// SuperAdmin — stub service returns error → 500
+	// SuperAdmin — stub service returns error -> 500
 	superToken := signTestToken(t, 1, "admin")
 	w = httptest.NewRecorder()
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/admin/users", nil)
@@ -400,6 +401,8 @@ func TestTeamScopedRoutes_AllRegistered(t *testing.T) {
 		{"GET", "/api/v1/teams/1/main-items"},
 		{"GET", "/api/v1/teams/1/main-items/1"},
 		{"PUT", "/api/v1/teams/1/main-items/1"},
+		{"PUT", "/api/v1/teams/1/main-items/1/status"},
+		{"GET", "/api/v1/teams/1/main-items/1/available-transitions"},
 		{"POST", "/api/v1/teams/1/main-items/1/archive"},
 		// Sub items
 		{"POST", "/api/v1/teams/1/main-items/1/sub-items"},

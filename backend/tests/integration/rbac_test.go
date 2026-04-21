@@ -610,8 +610,10 @@ func setupRBACTestRouter(t *testing.T, db *gorm.DB, data *seedData) *gin.Engine 
 	roleRepo := gormrepo.NewGormRoleRepo(db)
 
 	authSvc := service.NewAuthService(userRepo, testJWTSecret)
-	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo)
-	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc)
+	statusHistoryRepo := gormrepo.NewGormStatusHistoryRepo(db)
+	statusHistorySvc := service.NewStatusHistoryService(statusHistoryRepo)
+	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo, statusHistorySvc)
+	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc, statusHistorySvc)
 	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc)
 	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, poolTransactor{db: db})
 	teamSvc := service.NewTeamService(teamRepo, userRepo, mainItemRepo, teamTransactor{db: db})

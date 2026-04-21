@@ -22,7 +22,7 @@ func TestRegistryContainsAllResources(t *testing.T) {
 func TestRegistryResourceCodeCounts(t *testing.T) {
 	wantCounts := map[string]int{
 		"team":      7,
-		"main_item": 4,
+		"main_item": 5,
 		"sub_item":  5,
 		"progress":  3,
 		"item_pool": 2,
@@ -44,7 +44,7 @@ func TestRegistryResourceCodeCounts(t *testing.T) {
 
 func TestAllCodesReturnsExpectedCount(t *testing.T) {
 	codes := AllCodes()
-	wantCount := 28 // 7+4+5+3+2+3+1+3
+	wantCount := 29 // 7+5+5+3+2+3+1+3
 	if len(codes) != wantCount {
 		t.Fatalf("AllCodes() returned %d codes, want %d", len(codes), wantCount)
 	}
@@ -54,7 +54,7 @@ func TestAllCodesContainsSpecificCodes(t *testing.T) {
 	codes := AllCodes()
 	mustHave := []string{
 		"team:create", "team:read", "team:update", "team:delete", "team:invite", "team:remove", "team:transfer",
-		"main_item:create", "main_item:read", "main_item:update", "main_item:archive",
+		"main_item:create", "main_item:read", "main_item:update", "main_item:archive", "main_item:change_status",
 		"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:assign", "sub_item:change_status",
 		"progress:create", "progress:read", "progress:update",
 		"item_pool:submit", "item_pool:review",

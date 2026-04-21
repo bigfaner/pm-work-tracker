@@ -230,13 +230,35 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.ChangeStatus(c.Request.Context(), teamID, callerID, subID, req.Status)
+	result, err := h.svc.ChangeStatus(c.Request.Context(), teamID, callerID, subID, req.Status)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
 	}
 
-	apperrors.RespondOK(c, nil)
+	response := gin.H{"subItem": vo.NewSubItemVO(result.SubItem)}
+	if result.LinkageResult != nil && result.LinkageResult.Warning() != "" {
+		response["linkageWarning"] = result.LinkageResult.Warning()
+	}
+	apperrors.RespondOK(c, response)
+}
+
+// AvailableTransitions handles GET /api/v1/teams/:teamId/sub-items/:subId/available-transitions
+func (h *SubItemHandler) AvailableTransitions(c *gin.Context) {
+	subID, ok := parseSubID(c)
+	if !ok {
+		return
+	}
+
+	teamID := middleware.GetTeamID(c)
+
+	transitions, err := h.svc.AvailableTransitions(c.Request.Context(), teamID, subID)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, gin.H{"transitions": transitions})
 }
 
 // Assign handles PUT /api/v1/teams/:teamId/sub-items/:subId/assignee

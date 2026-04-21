@@ -16,7 +16,7 @@ function renderMarkdown(preview: ReportPreviewResp): string {
 
   for (const section of preview.sections) {
     md += `### ${section.mainItem.title}\n`
-    md += `完成度：${section.mainItem.completion}%\n\n`
+    md += `进度：${section.mainItem.completion}%\n\n`
     for (const sub of section.subItems) {
       const status = sub.completion === 100 ? '已完成' : `进行中 (${sub.completion}%)`
       md += `  - **${sub.title}** -- ${status}\n`

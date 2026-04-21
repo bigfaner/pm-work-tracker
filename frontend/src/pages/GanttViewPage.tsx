@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef, Fragment } from 'react'
 import { RotateCcw } from 'lucide-react'
+import { DateInput } from '@/components/ui/date-input'
 import { useQuery } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { getGanttViewApi } from '@/api/views'
@@ -60,7 +61,7 @@ function formatDateInput(d: Date): string {
 function getBarClass(item: { isOverdue?: boolean; status: string; startDate: string | null }): string {
   if (!item.startDate) return 'no-data'
   if (item.isOverdue) return 'overdue'
-  if (item.status === '已完成') return 'completed'
+  if (item.status === 'completed') return 'completed'
   return ''
 }
 
@@ -160,18 +161,16 @@ export default function GanttViewPage() {
       <div className="gantt-page-header">
         <h1 className="text-xl font-semibold text-primary">整体进度</h1>
         <div className="flex items-center gap-2 text-[13px] text-secondary">
-          <input
-            type="date"
+          <DateInput
             data-testid="date-start"
-            className="h-8 rounded-md border border-border bg-white px-2 text-sm"
+            className="h-8 w-36"
             value={dateRange?.start ?? formatDateInput(rangeStart)}
             onChange={handleDateStartChange}
           />
           <span>至</span>
-          <input
-            type="date"
+          <DateInput
             data-testid="date-end"
-            className="h-8 rounded-md border border-border bg-white px-2 text-sm"
+            className="h-8 w-36"
             value={dateRange?.end ?? formatDateInput(rangeEnd)}
             onChange={handleDateEndChange}
           />
@@ -375,7 +374,7 @@ function GanttLabelRow({ item, isExpanded, onToggle }: GanttLabelRowProps) {
         >
           {isExpanded ? '\u25BC' : '\u25B6'}
         </button>
-        <span className="label-title">{item.title}</span>
+        <span className="label-title" title={item.title}>{item.title}</span>
       </div>
       {item.subItems.map((sub) => (
         <div
@@ -383,7 +382,7 @@ function GanttLabelRow({ item, isExpanded, onToggle }: GanttLabelRowProps) {
           className={`gantt-label-row sub ${isExpanded ? 'visible' : ''}`}
           style={{ display: isExpanded ? undefined : 'none' }}
         >
-          <span className="label-title">{sub.title}</span>
+          <span className="label-title" title={sub.title}>{sub.title}</span>
         </div>
       ))}
     </>

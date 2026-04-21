@@ -17,6 +17,7 @@ import (
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/service"
 )
 
 // ---------------------------------------------------------------------------
@@ -40,10 +41,15 @@ type mockSubItemService struct {
 		err error
 	}
 	changeStatusResult struct {
-		err error
+		result *service.SubItemChangeResult
+		err    error
 	}
 	assignResult struct {
 		err error
+	}
+	availableTransitionsResult struct {
+		transitions []string
+		err         error
 	}
 
 	// capture calls
@@ -70,6 +76,8 @@ type mockSubItemService struct {
 	assignCalled  bool
 	lastPmID      uint
 	lastAssigneeID uint
+
+	availableTransitionsCalled bool
 }
 
 func (m *mockSubItemService) Create(_ context.Context, teamID, callerID uint, req dto.SubItemCreateReq) (*model.SubItem, error) {
@@ -88,13 +96,13 @@ func (m *mockSubItemService) Update(_ context.Context, teamID, itemID uint, req 
 	return m.updateResult.err
 }
 
-func (m *mockSubItemService) ChangeStatus(_ context.Context, teamID, callerID, itemID uint, newStatus string) error {
+func (m *mockSubItemService) ChangeStatus(_ context.Context, teamID, callerID, itemID uint, newStatus string) (*service.SubItemChangeResult, error) {
 	m.changeStatusCalled = true
 	m.lastTeamID = teamID
 	m.lastCallerID = callerID
 	m.lastItemID = itemID
 	m.lastNewStatus = newStatus
-	return m.changeStatusResult.err
+	return m.changeStatusResult.result, m.changeStatusResult.err
 }
 
 func (m *mockSubItemService) Get(_ context.Context, teamID, itemID uint) (*model.SubItem, error) {
@@ -120,6 +128,16 @@ func (m *mockSubItemService) Assign(_ context.Context, teamID, pmID, itemID, ass
 	m.lastItemID = itemID
 	m.lastAssigneeID = assigneeID
 	return m.assignResult.err
+}
+
+func (m *mockSubItemService) AvailableTransitions(_ context.Context, teamID, subID uint) ([]string, error) {
+	m.availableTransitionsCalled = true
+	m.lastTeamID = teamID
+	m.lastItemID = subID
+	return m.availableTransitionsResult.transitions, m.availableTransitionsResult.err
+}
+func (m *mockSubItemService) Delete(_ context.Context, _, _, _ uint) error {
+	return nil
 }
 
 // ---------------------------------------------------------------------------
@@ -153,7 +171,7 @@ func testSubItem(id uint, teamID uint) *model.SubItem {
 		MainItemID: 1,
 		Title:      "Test SubItem",
 		Priority:   "P2",
-		Status:     "待开始",
+		Status:     "pending",
 	}
 }
 
@@ -194,7 +212,6 @@ func TestCreateSubItem_Success(t *testing.T) {
 }
 
 func TestCreateSubItem_MemberCanCreate(t *testing.T) {
-	// Any team member can create a sub-item (not PM-only)
 	svc := &mockSubItemService{}
 	item := testSubItem(1, 10)
 	item.ID = 1
@@ -295,14 +312,14 @@ func TestListSubItems_WithFilters(t *testing.T) {
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/1/sub-items?priority=P2&status=进行中&page=2&pageSize=10", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/1/sub-items?priority=P2&status=progressing&page=2&pageSize=10", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, svc.listCalled)
 	assert.Equal(t, "P2", svc.lastFilter.Priority)
-	assert.Equal(t, "进行中", svc.lastFilter.Status)
+	assert.Equal(t, "progressing", svc.lastFilter.Status)
 	assert.Equal(t, 2, svc.lastPage.Page)
 	assert.Equal(t, 10, svc.lastPage.PageSize)
 }
@@ -331,7 +348,7 @@ func TestGetSubItem_Success(t *testing.T) {
 	svc := &mockSubItemService{}
 	item := testSubItem(1, 10)
 	item.ID = 1
-	item.Status = "进行中"
+	item.Status = "progressing"
 	item.Completion = 60
 	svc.getResult.item = item
 
@@ -425,7 +442,6 @@ func TestUpdateSubItem_Success_AsPM(t *testing.T) {
 }
 
 func TestUpdateSubItem_Success_AsAssignee(t *testing.T) {
-	// Member who is the assignee should be able to update
 	svc := &mockSubItemService{}
 	assigneeID := uint(5)
 	item := testSubItem(1, 10)
@@ -450,7 +466,6 @@ func TestUpdateSubItem_Success_AsAssignee(t *testing.T) {
 }
 
 func TestUpdateSubItem_Forbidden_NonPMNonAssignee(t *testing.T) {
-	// Member who is NOT the assignee and NOT PM should be forbidden
 	svc := &mockSubItemService{}
 	assigneeID := uint(99) // different user
 	item := testSubItem(1, 10)
@@ -517,14 +532,14 @@ func TestChangeStatus_Success(t *testing.T) {
 	svc := &mockSubItemService{}
 	item := testSubItem(1, 10)
 	item.ID = 1
-	item.Status = "进行中"
-	svc.getResult.item = item
+	item.Status = "progressing"
+	svc.changeStatusResult.result = &service.SubItemChangeResult{SubItem: item}
 
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"status":"进行中"}`
+	body := `{"status":"progressing"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/status", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -533,7 +548,14 @@ func TestChangeStatus_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, svc.changeStatusCalled)
-	assert.Equal(t, "进行中", svc.lastNewStatus)
+	assert.Equal(t, "progressing", svc.lastNewStatus)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	data, ok := resp["data"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "progressing", data["status"])
 }
 
 func TestChangeStatus_InvalidStatus_422(t *testing.T) {
@@ -544,7 +566,7 @@ func TestChangeStatus_InvalidStatus_422(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"status":"已完成"}`
+	body := `{"status":"completed"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/status", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -566,7 +588,7 @@ func TestChangeStatus_InvalidID(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"status":"进行中"}`
+	body := `{"status":"progressing"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/abc/status", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -596,20 +618,20 @@ func TestChangeStatus_InvalidBody(t *testing.T) {
 }
 
 func TestChangeStatus_AsAssignee(t *testing.T) {
-	// Assignee should be able to change status
 	svc := &mockSubItemService{}
 	assigneeID := uint(5)
 	item := testSubItem(1, 10)
 	item.ID = 1
 	item.AssigneeID = &assigneeID
-	item.Status = "进行中"
-	svc.getResult.item = item
+	item.Status = "progressing"
+	svc.getResult.item = item // needed for assignee check
+	svc.changeStatusResult.result = &service.SubItemChangeResult{SubItem: item}
 
 	deps := depsWithSubItemSvcMemberRole(t, svc)
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"status":"进行中"}`
+	body := `{"status":"progressing"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/status", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -632,7 +654,7 @@ func TestChangeStatus_Forbidden_NonPMNonAssignee(t *testing.T) {
 	r := SetupRouter(deps)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"status":"进行中"}`
+	body := `{"status":"progressing"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/status", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -641,6 +663,54 @@ func TestChangeStatus_Forbidden_NonPMNonAssignee(t *testing.T) {
 
 	assert.Equal(t, http.StatusForbidden, w.Code)
 	assert.False(t, svc.changeStatusCalled)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: GET /teams/:teamId/sub-items/:subId/available-transitions
+// ---------------------------------------------------------------------------
+
+func TestAvailableTransitions_Success(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.availableTransitionsResult.transitions = []string{"progressing", "closed"}
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/sub-items/1/available-transitions", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, svc.availableTransitionsCalled)
+	assert.Equal(t, uint(10), svc.lastTeamID)
+	assert.Equal(t, uint(1), svc.lastItemID)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	data, ok := resp["data"].(map[string]interface{})
+	require.True(t, ok)
+	transitions, ok := data["transitions"].([]interface{})
+	require.True(t, ok)
+	assert.Len(t, transitions, 2)
+}
+
+func TestAvailableTransitions_NotFound(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.availableTransitionsResult.err = apperrors.ErrItemNotFound
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/sub-items/999/available-transitions", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 // ---------------------------------------------------------------------------
@@ -776,10 +846,9 @@ func TestGetSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 		AssigneeID:      &assigneeID,
 		StartDate:       &now,
 		ExpectedEndDate: &now,
-		Status:          "进行中",
+		Status:          "progressing",
 		Completion:      60.0,
 		IsKeyItem:       false,
-		DelayCount:      0,
 		Weight:          1.0,
 	}
 	item.ID = 1
@@ -807,10 +876,9 @@ func TestGetSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	assert.Equal(t, "实现支付接口", data["title"])
 	assert.Equal(t, "P2", data["priority"])
 	assert.Equal(t, float64(3), data["assigneeId"])
-	assert.Equal(t, "进行中", data["status"])
+	assert.Equal(t, "progressing", data["status"])
 	assert.Equal(t, 60.0, data["completion"])
 	assert.Equal(t, false, data["isKeyItem"])
-	assert.Equal(t, float64(0), data["delayCount"])
 	assert.Equal(t, float64(1), data["mainItemId"])
 }
 
@@ -823,7 +891,7 @@ func TestCreateSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 		Title:      "New SubItem",
 		Priority:   "P2",
 		AssigneeID: &assigneeID,
-		Status:     "待开始",
+		Status:     "pending",
 		Weight:     1.0,
 	}
 	item.ID = 5
@@ -850,5 +918,5 @@ func TestCreateSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	assert.Equal(t, float64(5), data["id"])
 	assert.Equal(t, "New SubItem", data["title"])
 	assert.Equal(t, "P2", data["priority"])
-	assert.Equal(t, "待开始", data["status"])
+	assert.Equal(t, "pending", data["status"])
 }

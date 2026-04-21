@@ -134,7 +134,7 @@ func TestItemPool_DefaultStatus(t *testing.T) {
 
 	var fetched model.ItemPool
 	db.First(&fetched, "title = ?", "Proposed Item")
-	assert.Equal(t, "待分配", fetched.Status, "status should default to 待分配")
+	assert.Equal(t, "pending", fetched.Status, "status should default to pending")
 }
 
 func TestItemPool_AllFields(t *testing.T) {
@@ -163,7 +163,7 @@ func TestItemPool_AllFields(t *testing.T) {
 		Background:     "some background",
 		ExpectedOutput: "some output",
 		SubmitterID:    u.ID,
-		Status:         "已分配",
+		Status:         "assigned",
 		AssignedMainID: &mainID,
 		AssignedSubID:  &subID,
 		AssigneeID:     &assigneeID,
@@ -175,7 +175,7 @@ func TestItemPool_AllFields(t *testing.T) {
 
 	var fetched model.ItemPool
 	db.First(&fetched, "title = ?", "Full Item")
-	assert.Equal(t, "已分配", fetched.Status)
+	assert.Equal(t, "assigned", fetched.Status)
 	assert.NotNil(t, fetched.AssignedMainID)
 	assert.Equal(t, mainID, *fetched.AssignedMainID)
 	assert.NotNil(t, fetched.AssignedSubID)
@@ -196,7 +196,7 @@ func TestItemPool_StatusValues(t *testing.T) {
 	team := model.Team{Name: "IPStatusTeam", PmID: u.ID}
 	require.NoError(t, db.Create(&team).Error)
 
-	statuses := []string{"待分配", "已分配", "已拒绝"}
+	statuses := []string{"pending", "assigned", "rejected"}
 	for i, s := range statuses {
 		ip := model.ItemPool{
 			TeamID:      team.ID,
@@ -210,9 +210,9 @@ func TestItemPool_StatusValues(t *testing.T) {
 	var items []model.ItemPool
 	db.Where("team_id = ?", team.ID).Order("title").Find(&items)
 	assert.Len(t, items, 3)
-	assert.Equal(t, "待分配", items[0].Status)
-	assert.Equal(t, "已分配", items[1].Status)
-	assert.Equal(t, "已拒绝", items[2].Status)
+	assert.Equal(t, "pending", items[0].Status)
+	assert.Equal(t, "assigned", items[1].Status)
+	assert.Equal(t, "rejected", items[2].Status)
 }
 
 func TestItemPool_TeamStatusCompositeIndex(t *testing.T) {
@@ -225,7 +225,7 @@ func TestItemPool_TeamStatusCompositeIndex(t *testing.T) {
 	team := model.Team{Name: "IPIdxTeam", PmID: u.ID}
 	require.NoError(t, db.Create(&team).Error)
 
-	for _, s := range []string{"待分配", "已分配", "已拒绝"} {
+	for _, s := range []string{"pending", "assigned", "rejected"} {
 		ip := model.ItemPool{
 			TeamID:      team.ID,
 			Title:       "Pool " + s,
@@ -236,7 +236,7 @@ func TestItemPool_TeamStatusCompositeIndex(t *testing.T) {
 	}
 
 	var items []model.ItemPool
-	err = db.Where("team_id = ? AND status = ?", team.ID, "已分配").Find(&items).Error
+	err = db.Where("team_id = ? AND status = ?", team.ID, "assigned").Find(&items).Error
 	assert.NoError(t, err)
 	assert.Len(t, items, 1)
 }

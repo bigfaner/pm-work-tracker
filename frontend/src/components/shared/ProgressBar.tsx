@@ -19,10 +19,10 @@ export default function ProgressBar({ value, size = 'default', showPercentage = 
   const indicatorColor = getIndicatorColor(clampedValue)
 
   return (
-    <div className={cn('flex items-center gap-2', className)}>
-      <Progress value={clampedValue} size={size} indicatorClassName={indicatorColor} className="flex-1" />
+    <div className={cn('flex flex-col gap-1', className)}>
+      <Progress value={clampedValue} size={size} indicatorClassName={indicatorColor} />
       {showPercentage && (
-        <span className="text-xs text-tertiary whitespace-nowrap">{clampedValue}%</span>
+        <span className="text-xs text-tertiary block text-center">{clampedValue}%</span>
       )}
     </div>
   )

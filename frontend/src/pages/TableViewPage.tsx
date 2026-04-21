@@ -27,10 +27,11 @@ import StatusBadge from '@/components/shared/StatusBadge'
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import ProgressBar from '@/components/shared/ProgressBar'
 import UserAvatar from '@/components/shared/UserAvatar'
+import { STATUS_OPTIONS } from '@/lib/status'
+import { getStatusName, isOverdue as checkOverdue } from '@/lib/status'
 
 // --- Constants ---
 
-const STATUS_OPTIONS = ['未开始', '进行中', '待评审', '已完成', '已关闭', '阻塞中', '延期']
 const PRIORITY_OPTIONS = ['P1', 'P2', 'P3']
 const TYPE_OPTIONS = [
   { value: '', label: '类型：全部' },
@@ -136,10 +137,8 @@ export default function TableViewPage() {
 
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
 
-  const isOverdue = (expectedEndDate: string | null, status: string): boolean => {
-    if (!expectedEndDate) return false
-    if (status === '已完成' || status === '已关闭') return false
-    return new Date(expectedEndDate) < new Date()
+  const isItemOverdue = (expectedEndDate: string | null, status: string): boolean => {
+    return checkOverdue(expectedEndDate || undefined, status)
   }
 
   const formatDate = (date: string | null) => {
@@ -243,7 +242,7 @@ export default function TableViewPage() {
               <SelectContent>
                 <SelectItem value="_all">状态：全部</SelectItem>
                 {STATUS_OPTIONS.map((s) => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                  <SelectItem key={s} value={s}>{getStatusName(s) || s}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -319,7 +318,7 @@ export default function TableViewPage() {
                         <TableCell>
                           <span
                             data-testid={`expected-date-${row.id}`}
-                            className={isOverdue(row.expectedEndDate, row.status) ? 'text-error text-xs' : 'text-xs'}
+                            className={isItemOverdue(row.expectedEndDate, row.status) ? 'text-error text-xs' : 'text-xs'}
                           >
                             {formatDate(row.expectedEndDate)}
                           </span>

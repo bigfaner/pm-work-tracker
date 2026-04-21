@@ -138,7 +138,7 @@ func testItemPool(id uint, teamID uint) *model.ItemPool {
 	return &model.ItemPool{
 		TeamID:     teamID,
 		Title:      "Test Pool Item",
-		Status:     "待分配",
+		Status:     "pending",
 		SubmitterID: 5,
 	}
 }
@@ -292,13 +292,13 @@ func TestListItemPool_WithStatusFilter(t *testing.T) {
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool?status=待分配&page=1&pageSize=10", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool?status=pending&page=1&pageSize=10", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, svc.listCalled)
-	assert.Equal(t, "待分配", svc.lastFilter.Status)
+	assert.Equal(t, "pending", svc.lastFilter.Status)
 	assert.Equal(t, 10, svc.lastPage.PageSize)
 }
 
@@ -411,7 +411,7 @@ func TestAssignItemPool_Success(t *testing.T) {
 	updatedItem := &model.ItemPool{
 		TeamID:         10,
 		Title:          "Pool item",
-		Status:         "已分配",
+		Status:         "assigned",
 		AssignedMainID: &assignedMainID,
 		AssignedSubID:  &assignedSubID,
 		AssigneeID:     &assigneeID,
@@ -542,7 +542,7 @@ func TestAssignItemPool_SuperAdminBypass(t *testing.T) {
 	assigneeID := uint(3)
 	updatedItem := &model.ItemPool{
 		TeamID:         10,
-		Status:         "已分配",
+		Status:         "assigned",
 		AssignedMainID: &assignedMainID,
 		AssignedSubID:  &assignedSubID,
 		AssigneeID:     &assigneeID,
@@ -580,7 +580,7 @@ func TestRejectItemPool_Success(t *testing.T) {
 	rejectedItem := &model.ItemPool{
 		TeamID:       10,
 		Title:        "Pool item",
-		Status:       "已拒绝",
+		Status:       "rejected",
 		RejectReason: "Not enough priority",
 		SubmitterID:  5,
 	}
@@ -706,7 +706,7 @@ func TestGetItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 		Background:     "用户反馈首页加载超过 3 秒",
 		ExpectedOutput: "首页 LCP < 1.5 秒",
 		SubmitterID:    5,
-		Status:         "已分配",
+		Status:         "assigned",
 		AssignedMainID: &assignedMainID,
 		AssignedSubID:  &assignedSubID,
 		AssigneeID:     &assigneeID,
@@ -744,7 +744,7 @@ func TestGetItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	assert.Equal(t, "首页 LCP < 1.5 秒", data["expectedOutput"])
 	assert.Equal(t, float64(5), data["submitterId"])
 	assert.Equal(t, "王五", data["submitterName"])
-	assert.Equal(t, "已分配", data["status"])
+	assert.Equal(t, "assigned", data["status"])
 	assert.Equal(t, float64(1), data["assignedMainId"])
 	assert.Equal(t, float64(10), data["assignedSubId"])
 	assert.Equal(t, float64(3), data["assigneeId"])
@@ -758,7 +758,7 @@ func TestSubmitItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 		Background:     "用户反馈首页加载超过 3 秒",
 		ExpectedOutput: "首页 LCP < 1.5 秒",
 		SubmitterID:    5,
-		Status:         "待分配",
+		Status:         "pending",
 	}
 	item.ID = 50
 
@@ -784,7 +784,7 @@ func TestSubmitItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	require.NoError(t, err)
 
 	data := resp["data"].(map[string]interface{})
-	assert.Equal(t, "待分配", data["status"])
+	assert.Equal(t, "pending", data["status"])
 	assert.Equal(t, "王五", data["submitterName"])
 	assert.Equal(t, float64(5), data["submitterId"])
 }
@@ -805,7 +805,7 @@ func TestAssignItemPool_ReturnsSubItemId(t *testing.T) {
 	updatedItem := &model.ItemPool{
 		TeamID:         10,
 		Title:          "Pool item",
-		Status:         "已分配",
+		Status:         "assigned",
 		AssignedMainID: &assignedMainID,
 		AssignedSubID:  &assignedSubID,
 		AssigneeID:     &assigneeID,

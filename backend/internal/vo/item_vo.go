@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/status"
 )
 
 // MainItemVO is the frontend-facing view object for a main item.
@@ -19,9 +20,9 @@ type MainItemVO struct {
 	ExpectedEndDate *string `json:"expectedEndDate"`
 	ActualEndDate   *string `json:"actualEndDate"`
 	Status          string  `json:"status"`
+	StatusName      string  `json:"statusName"`
 	Completion      float64 `json:"completion"`
 	IsKeyItem       bool    `json:"isKeyItem"`
-	DelayCount      int     `json:"delayCount"`
 	ArchivedAt      *string `json:"archivedAt"`
 	CreatedAt       string  `json:"createdAt"`
 	UpdatedAt       string  `json:"updatedAt"`
@@ -42,7 +43,6 @@ type SubItemVO struct {
 	Status          string  `json:"status"`
 	Completion      float64 `json:"completion"`
 	IsKeyItem       bool    `json:"isKeyItem"`
-	DelayCount      int     `json:"delayCount"`
 	Weight          float64 `json:"weight"`
 	CreatedAt       string  `json:"createdAt"`
 	UpdatedAt       string  `json:"updatedAt"`
@@ -68,15 +68,21 @@ type SubItemSummaryVO struct {
 	ID              uint    `json:"id"`
 	Title           string  `json:"title"`
 	Status          string  `json:"status"`
+	StatusName      string  `json:"statusName"`
 	Completion      float64 `json:"completion"`
 	AssigneeID      *uint   `json:"assigneeId"`
 	Priority        string  `json:"priority"`
 	StartDate       *string `json:"startDate"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
+	ActualEndDate   *string `json:"actualEndDate"`
 }
 
 // NewMainItemVO converts a model.MainItem to a MainItemVO.
 func NewMainItemVO(m *model.MainItem) MainItemVO {
+	statusName := ""
+	if def, ok := status.GetMainItemStatus(m.Status); ok {
+		statusName = def.Name
+	}
 	return MainItemVO{
 		ID:              m.ID,
 		TeamID:          m.TeamID,
@@ -89,9 +95,9 @@ func NewMainItemVO(m *model.MainItem) MainItemVO {
 		ExpectedEndDate: formatTimePtr(m.ExpectedEndDate),
 		ActualEndDate:   formatTimePtr(m.ActualEndDate),
 		Status:          m.Status,
+		StatusName:      statusName,
 		Completion:      m.Completion,
 		IsKeyItem:       m.IsKeyItem,
-		DelayCount:      m.DelayCount,
 		ArchivedAt:      formatTimePtr(m.ArchivedAt),
 		CreatedAt:       m.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:       m.UpdatedAt.Format(time.RFC3339),
@@ -114,7 +120,6 @@ func NewSubItemVO(m *model.SubItem) SubItemVO {
 		Status:          m.Status,
 		Completion:      m.Completion,
 		IsKeyItem:       m.IsKeyItem,
-		DelayCount:      m.DelayCount,
 		Weight:          m.Weight,
 		CreatedAt:       m.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:       m.UpdatedAt.Format(time.RFC3339),
@@ -142,15 +147,21 @@ func NewProgressRecordVO(m *model.ProgressRecord, authorName string) ProgressRec
 func NewSubItemSummaryVOs(items []*model.SubItem) []SubItemSummaryVO {
 	result := make([]SubItemSummaryVO, 0, len(items))
 	for _, si := range items {
+		statusName := ""
+		if def, ok := status.GetSubItemStatus(si.Status); ok {
+			statusName = def.Name
+		}
 		result = append(result, SubItemSummaryVO{
 			ID:              si.ID,
 			Title:           si.Title,
 			Status:          si.Status,
+			StatusName:      statusName,
 			Completion:      si.Completion,
 			AssigneeID:      si.AssigneeID,
 			Priority:        si.Priority,
 			StartDate:       formatTimePtr(si.StartDate),
 			ExpectedEndDate: formatTimePtr(si.ExpectedEndDate),
+			ActualEndDate:   formatTimePtr(si.ActualEndDate),
 		})
 	}
 	return result

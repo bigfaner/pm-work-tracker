@@ -7,6 +7,7 @@ import { server } from '@/mocks/server'
 import { http, HttpResponse } from 'msw'
 import { useTeamStore } from '@/store/team'
 import { useAuthStore } from '@/store/auth'
+import { ToastProvider } from '@/components/ui/toast'
 import MainItemDetailPage from './MainItemDetailPage'
 
 // MSW lifecycle
@@ -28,7 +29,11 @@ function renderPage(mainItemId = '1') {
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[`/items/${mainItemId}`]}>
         <Routes>
-          <Route path="/items/:mainItemId" element={<MainItemDetailPage />} />
+          <Route path="/items/:mainItemId" element={
+            <ToastProvider>
+              <MainItemDetailPage />
+            </ToastProvider>
+          } />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -46,26 +51,26 @@ const seedMembers = [
 const seedMainItem = {
   id: 1, teamId: 1, code: 'MI-0001', title: 'Alpha Task', priority: 'P1',
   proposerId: 1, assigneeId: 1, startDate: '2026-03-20', expectedEndDate: '2026-04-15',
-  actualEndDate: null, status: '进行中', completion: 65, isKeyItem: false,
+  actualEndDate: null, status: 'progressing', completion: 65, isKeyItem: false,
   delayCount: 0, archivedAt: null,
   createdAt: '2026-03-20T00:00:00Z', updatedAt: '2026-04-01T00:00:00Z',
   subItems: [
     {
       id: 11, teamId: 1, mainItemId: 1, title: 'Sub Alpha 1', description: '',
       priority: 'P1', assigneeId: 2, startDate: '2026-04-01', expectedEndDate: '2026-04-10',
-      actualEndDate: '2026-04-09', status: '已完成', completion: 100, isKeyItem: false,
+      actualEndDate: '2026-04-09', status: 'completed', completion: 100, isKeyItem: false,
       delayCount: 0, weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-09T00:00:00Z',
     },
     {
       id: 12, teamId: 1, mainItemId: 1, title: 'Sub Alpha 2', description: '',
       priority: 'P2', assigneeId: 3, startDate: '2026-04-08', expectedEndDate: '2026-04-18',
-      actualEndDate: null, status: '进行中', completion: 80, isKeyItem: false,
+      actualEndDate: null, status: 'progressing', completion: 80, isKeyItem: false,
       delayCount: 0, weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-08T00:00:00Z',
     },
     {
       id: 13, teamId: 1, mainItemId: 1, title: 'Sub Alpha 3', description: '',
       priority: 'P2', assigneeId: 3, startDate: '2026-04-15', expectedEndDate: '2026-04-25',
-      actualEndDate: null, status: '进行中', completion: 30, isKeyItem: false,
+      actualEndDate: null, status: 'progressing', completion: 30, isKeyItem: false,
       delayCount: 0, weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-15T00:00:00Z',
     },
   ],
@@ -101,7 +106,7 @@ function setupHandlers() {
         data: {
           id: 100, teamId: 1, mainItemId: 1, description: '', priority: 'P2',
           assigneeId: null, startDate: null, expectedEndDate: null, actualEndDate: null,
-          status: '未开始', completion: 0, isKeyItem: false, delayCount: 0, weight: 1,
+          status: 'pending', completion: 0, isKeyItem: false, delayCount: 0, weight: 1,
           createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
           ...body,
         },
@@ -111,6 +116,12 @@ function setupHandlers() {
     // Change sub item status
     http.put('/api/v1/teams/:teamId/sub-items/:itemId/status', async () => {
       return HttpResponse.json({ code: 0, data: null })
+    }),
+
+    // Available transitions for sub items
+    http.get('/api/v1/teams/:teamId/sub-items/:subId/available-transitions', () => {
+      const allStatuses = ['pending', 'progressing', 'blocking', 'pausing', 'completed', 'closed']
+      return HttpResponse.json({ code: 0, data: allStatuses })
     }),
   )
 }
@@ -166,7 +177,7 @@ describe('MainItemDetailPage', () => {
       expect(screen.getAllByText('负责人').length).toBeGreaterThanOrEqual(1)
       expect(screen.getAllByText('开始时间').length).toBeGreaterThanOrEqual(1)
       expect(screen.getAllByText('预期完成时间').length).toBeGreaterThanOrEqual(1)
-      expect(screen.getAllByText('实际完成时间').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText('结束时间').length).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -230,7 +241,7 @@ describe('MainItemDetailPage', () => {
       expect(screen.getByText('编号')).toBeInTheDocument()
       expect(screen.getByText('标题')).toBeInTheDocument()
       expect(screen.getAllByText('负责人').length).toBeGreaterThanOrEqual(1)
-      expect(screen.getByText('完成度')).toBeInTheDocument()
+      expect(screen.getByText('进度')).toBeInTheDocument()
       expect(screen.getAllByText('状态').length).toBeGreaterThanOrEqual(1)
     })
   })
@@ -374,8 +385,8 @@ describe('MainItemDetailPage', () => {
     // Fill start date and expected end date via fireEvent
     const allDateInputs = document.querySelectorAll('input[type="date"]')
     const dialogDateInputs = Array.from(allDateInputs).filter(input => {
-      const label = input.closest('div')?.querySelector('label')
-      return label && (label.textContent?.includes('开始时间') || label.textContent?.includes('预期完成时间'))
+      const label = input.closest('div')?.parentElement?.querySelector('label')
+      return label && (label.textContent?.includes('开始時間') || label.textContent?.includes('开始时间') || label.textContent?.includes('预期完成时间'))
     })
     expect(dialogDateInputs.length).toBe(2)
 
@@ -389,13 +400,40 @@ describe('MainItemDetailPage', () => {
     })
   })
 
+  // --- Sub-item action buttons disabled on terminal main item ---
+
+  it('disables sub-item edit and append-progress buttons when main item is terminal', async () => {
+    server.use(
+      http.get('/api/v1/teams/:teamId/main-items/:itemId', () => {
+        return HttpResponse.json({ code: 0, data: { ...seedMainItem, status: 'completed' } })
+      }),
+    )
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Sub Alpha 1')).toBeInTheDocument()
+    })
+    const editBtns = screen.getAllByRole('button', { name: /编辑/ })
+    const appendBtns = screen.getAllByRole('button', { name: /追加进度/ })
+    editBtns.forEach(btn => expect(btn).toBeDisabled())
+    appendBtns.forEach(btn => expect(btn).toBeDisabled())
+  })
+
+  it('enables sub-item edit and append-progress buttons when main item is non-terminal', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Sub Alpha 1')).toBeInTheDocument()
+    })
+    const appendBtns = screen.getAllByRole('button', { name: /追加进度/ })
+    appendBtns.forEach(btn => expect(btn).toBeEnabled())
+  })
+
   // --- Action buttons ---
 
   it('renders edit button', async () => {
     renderPage()
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Alpha Task' })).toBeInTheDocument()
-      expect(screen.getByText('编辑')).toBeInTheDocument()
+      expect(screen.getAllByText('编辑').length).toBeGreaterThanOrEqual(1)
     })
   })
 

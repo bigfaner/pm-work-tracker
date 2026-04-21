@@ -48,6 +48,10 @@ func (r *subItemRepo) Update(ctx context.Context, item *model.SubItem, fields ma
 	return nil
 }
 
+func (r *subItemRepo) Delete(ctx context.Context, id uint) error {
+	return r.db.WithContext(ctx).Delete(&model.SubItem{}, id).Error
+}
+
 func (r *subItemRepo) List(ctx context.Context, teamID uint, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	query := r.db.WithContext(ctx).Where("team_id = ?", teamID)
 
