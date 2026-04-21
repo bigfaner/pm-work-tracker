@@ -176,7 +176,7 @@ export interface PageResult<T> {
   items: T[]
   total: number
   page: number
-  pageSize: number
+  size: number
 }
 
 // API request types
@@ -251,6 +251,7 @@ export interface CreateMainItemReq {
 
 export interface UpdateMainItemReq {
   title?: string
+  description?: string
   priority?: string
   assigneeId?: number | null
   startDate?: string | null
@@ -514,10 +515,13 @@ export interface GetUserResp {
 // Weekly view (enhanced)
 export interface MainItemSummary {
   id: number
+  code: string
   title: string
   priority: string
+  status: string
   startDate: string
   expectedEndDate: string
+  actualEndDate: string | null
   completion: number
   subItemCount: number
 }
@@ -547,7 +551,9 @@ export interface SubItemSnapshot {
   priority: string
   status: string
   assigneeName: string
+  startDate: string
   expectedEndDate: string
+  actualEndDate?: string | null
   completion: number
   progressDescription: string
   progressRecords: ProgressRecord[]
