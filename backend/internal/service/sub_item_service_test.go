@@ -356,8 +356,8 @@ func testValidTransitionTM(t *testing.T, from, to string) {
 	})).Return(nil)
 	repo.On("FindByID", mock.Anything, uint(1)).Return(updated, nil).Once()
 
-	// If transitioning to completed, RecalcCompletion will be called.
-	if to == "completed" {
+	// If transitioning to a terminal status, RecalcCompletion will be called.
+	if to == "completed" || to == "closed" {
 		mainSvc.On("RecalcCompletion", mock.Anything, uint(5)).Return(nil)
 	}
 
@@ -508,6 +508,46 @@ func TestChangeStatus_Completed_SetsCompletionAndActualEndDate(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, "completed", result.SubItem.Status)
+
+	repo.AssertExpectations(t)
+	mainSvc.AssertExpectations(t)
+	historySvc.AssertExpectations(t)
+}
+
+func TestChangeStatus_Closed_SetsCompletionAndActualEndDate(t *testing.T) {
+	existing := &model.SubItem{
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamID:     1,
+		MainItemID: 5,
+		Status:     "progressing",
+	}
+	updated := &model.SubItem{
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamID:     1,
+		MainItemID: 5,
+		Status:     "closed",
+		Completion: 100,
+	}
+	repo := new(mockSubItemRepoTM)
+	mainSvc := new(mockMainItemSvcTM)
+	historySvc := new(mockStatusHistorySvcTM)
+	svc := NewSubItemService(repo, mainSvc, historySvc)
+
+	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil).Once()
+	repo.On("Update", mock.Anything, existing, mock.MatchedBy(func(fields map[string]interface{}) bool {
+		return fields["status"] == "closed" &&
+			fields["completion"] == float64(100) &&
+			fields["actual_end_date"] != nil
+	})).Return(nil)
+	repo.On("FindByID", mock.Anything, uint(1)).Return(updated, nil).Once()
+	mainSvc.On("RecalcCompletion", mock.Anything, uint(5)).Return(nil)
+	historySvc.On("Record", mock.Anything, mock.Anything).Return(nil)
+	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
+
+	result, err := svc.ChangeStatus(context.Background(), 1, 10, 1, "closed")
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "closed", result.SubItem.Status)
 
 	repo.AssertExpectations(t)
 	mainSvc.AssertExpectations(t)
