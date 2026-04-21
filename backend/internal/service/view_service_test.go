@@ -1056,6 +1056,72 @@ func TestWeeklyComparison_SubItemCompletedBeforeWeek_NotActive(t *testing.T) {
 	assert.Equal(t, uint(10), group.CompletedNoChange[0].ID)
 }
 
+func TestWeeklyComparison_SubItemCreatedAfterWeek_Completed_NotShown(t *testing.T) {
+	// Viewing week April 6-12, but sub-item was created and completed on April 14 (after that week)
+	weekStart := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC)
+	actualEnd := time.Date(2026, 4, 14, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 100},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{
+				BaseModel:     model.BaseModel{ID: 10, CreatedAt: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
+				TeamID:        1,
+				MainItemID:    1,
+				Title:         "Future Completed Sub",
+				Status:        "completed",
+				Completion:    100,
+				ActualEndDate: &actualEnd,
+			},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	// Main item should be omitted entirely — sub-item didn't exist during the viewed week
+	assert.Empty(t, result.Groups)
+}
+
+func TestWeeklyComparison_SubItemCompletedAfterWeek_NotShown(t *testing.T) {
+	// Viewing week Dec 1-7 2025, but sub-item was completed in April 2026 (after that week)
+	weekStart := time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC)
+	actualEnd := time.Date(2026, 4, 21, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Test Item", Priority: "P2", Completion: 100},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{
+				BaseModel:     model.BaseModel{ID: 10, CreatedAt: time.Date(2026, 4, 21, 0, 0, 0, 0, time.UTC)},
+				TeamID:        1,
+				MainItemID:    1,
+				Title:         "Future Sub",
+				Status:        "completed",
+				Completion:    100,
+				ActualEndDate: &actualEnd,
+			},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	// Main item should not appear — sub-item was created and completed after the viewed week
+	assert.Empty(t, result.Groups)
+}
+
 func ptrTime(t time.Time) *time.Time { return &t }
 
 func TestGanttView_EmptyTeam_NoItems(t *testing.T) {
@@ -1955,7 +2021,7 @@ func TestTableExportCSV_ReturnsValidCSV(t *testing.T) {
 	require.Len(t, records, 2)
 
 	// Check header
-	assert.Equal(t, []string{"编号", "标题", "类型", "优先级", "负责人", "状态", "完成度", "预期完成时间", "实际完成时间"}, records[0])
+	assert.Equal(t, []string{"编号", "标题", "类型", "优先级", "负责人", "状态", "完成度", "预期完成时间", "结束时间"}, records[0])
 
 	// Check data row
 	assert.Equal(t, "MI-0001", records[1][0])
