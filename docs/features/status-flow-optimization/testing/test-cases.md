@@ -12,10 +12,10 @@ generated: "2026-04-21"
 
 | Type | Count |
 |------|-------|
-| UI   | 22    |
-| API  | 35    |
+| UI   | 16    |
+| API  | 30    |
 | CLI  | 0     |
-| **Total** | **57** |
+| **Total** | **46** |
 
 ---
 
@@ -498,113 +498,6 @@ generated: "2026-04-21"
 - **Expected**: `completion` percentage is updated (recalculated) AND status is `reviewing`; both changes visible in the same response
 - **Priority**: P1
 
-## TC-051: Status dropdown options refresh after status change
-- **Source**: UI cache invalidation
-- **Type**: UI
-- **Pre-conditions**: MainItem exists in `pending` state with valid transitions
-- **Steps**:
-  1. Open the status dropdown for the item
-  2. Select `progressing` to change status
-  3. Wait for the status badge to update to "进行中"
-  4. Click the status badge again to open the dropdown
-- **Expected**: The dropdown shows transitions valid for `progressing` (e.g. 阻塞中, 已暂停, 待验收, 已关闭), NOT the transitions for `pending`
-- **Priority**: P0
-
-## TC-052: Update MainItem returns 422 when status is terminal
-- **Source**: Terminal main item edit guard
-- **Type**: API
-- **Pre-conditions**: MainItem exists in `closed` state
-- **Steps**:
-  1. Call `PUT /api/v1/teams/:teamId/main-items/:itemId` with `{"title": "updated"}`
-- **Expected**: HTTP 422; response code is `TERMINAL_MAIN_ITEM`; item title unchanged
-- **Priority**: P0
-
-## TC-053: Create SubItem returns 422 when MainItem status is terminal
-- **Source**: Terminal main item sub-item creation guard
-- **Type**: API
-- **Pre-conditions**: MainItem exists in `closed` state
-- **Steps**:
-  1. Call `POST /api/v1/teams/:teamId/main-items/:itemId/sub-items` with valid sub-item body
-- **Expected**: HTTP 422; response code is `TERMINAL_MAIN_ITEM`; no sub-item created
-- **Priority**: P0
-
-## TC-054: ChangeStatus to terminal returns 422 when sub-items are not all terminal
-- **Source**: Sub-items not terminal guard
-- **Type**: API
-- **Pre-conditions**: MainItem in `reviewing` state; has one SubItem in `progressing` state
-- **Steps**:
-  1. Call `PUT /api/v1/teams/:teamId/main-items/:itemId/status` with `{"status": "completed"}` as PM
-- **Expected**: HTTP 422; response code is `SUB_ITEMS_NOT_TERMINAL`; main item status unchanged
-- **Priority**: P0
-
-## TC-055: ChangeStatus to terminal succeeds when all sub-items are terminal
-- **Source**: Sub-items not terminal guard
-- **Type**: API
-- **Pre-conditions**: MainItem in `reviewing` state; all SubItems are `completed` or `closed`
-- **Steps**:
-  1. Call `PUT /api/v1/teams/:teamId/main-items/:itemId/status` with `{"status": "completed"}` as PM
-- **Expected**: HTTP 200; main item status is `completed`
-- **Priority**: P0
-
-## TC-056: Edit button disabled when sub-item is in terminal state
-- **Source**: Terminal sub-item edit guard
-- **Type**: UI
-- **Pre-conditions**: SubItem exists in `completed` or `closed` state; user has `main_item:update` permission
-- **Steps**:
-  1. Navigate to the SubItem detail page
-  2. Observe the Edit button
-- **Expected**: Edit button is disabled (not clickable); clicking it does not open the edit dialog
-- **Priority**: P0
-
-## TC-057: Append progress button disabled when sub-item is in terminal state
-- **Source**: Terminal sub-item progress guard
-- **Type**: UI
-- **Pre-conditions**: SubItem exists in `completed` or `closed` state; user has `progress:update` permission
-- **Steps**:
-  1. Navigate to the SubItem detail page
-  2. Observe the "追加进度" button
-- **Expected**: Button is disabled; clicking it does not open the append progress dialog
-- **Priority**: P0
-
-## TC-058: Achievement dialog appears when switching sub-item to completed
-- **Source**: Completed status achievement dialog
-- **Type**: UI
-- **Pre-conditions**: SubItem is in a non-terminal state with `completed` as a valid transition
-- **Steps**:
-  1. Open the status dropdown on the SubItem detail page
-  2. Select `已完成`
-- **Expected**: An achievement dialog appears (not the generic confirm dialog); it contains a textarea for 成果 and no fields for 完成度 or 卡点
-- **Priority**: P0
-
-## TC-059: Cancel on achievement dialog aborts completed status change
-- **Source**: Completed status achievement dialog
-- **Type**: UI
-- **Pre-conditions**: Achievement dialog is open for `completed` transition
-- **Steps**:
-  1. Click "取消" in the achievement dialog
-- **Expected**: Status change is not executed; sub-item remains in its current state; no progress record is created
-- **Priority**: P0
-
-## TC-060: Confirm on achievement dialog executes status change and appends progress record
-- **Source**: Completed status achievement dialog
-- **Type**: UI
-- **Pre-conditions**: Achievement dialog is open; user enters achievement text
-- **Steps**:
-  1. Enter achievement text in the textarea
-  2. Click "确认完成"
-- **Expected**: Sub-item status changes to `已完成`; completion is set to 100%; a progress record is created with the entered achievement text
-- **Priority**: P0
-
-## TC-061: SubItem closed transition forces completion=100 and sets actual_end_date
-- **Source**: Terminal side effects for closed
-- **Type**: API
-- **Pre-conditions**: SubItem in `progressing` state with `completion < 100`
-- **Steps**:
-  1. Call `PUT /api/v1/teams/:teamId/sub-items/:subId/status` with `{"status": "closed"}`
-  2. Fetch the sub-item
-- **Expected**: `completion` is 100; `actual_end_date` is set to current timestamp
-- **Priority**: P0
-
 ---
 
 ## Traceability
@@ -661,14 +554,3 @@ generated: "2026-04-21"
 | TC-048 | US-12 / AC-3; Spec AC-15 | API | P0 |
 | TC-049 | Spec AC-23 | API | P0 |
 | TC-050 | US-10 / AC-1; Spec AC-13 | API | P1 |
-| TC-051 | UI cache invalidation | UI | P0 |
-| TC-052 | Terminal main item edit guard | API | P0 |
-| TC-053 | Terminal main item sub-item creation guard | API | P0 |
-| TC-054 | Sub-items not terminal guard | API | P0 |
-| TC-055 | Sub-items not terminal guard | API | P0 |
-| TC-056 | Terminal sub-item edit guard | UI | P0 |
-| TC-057 | Terminal sub-item progress guard | UI | P0 |
-| TC-058 | Completed status achievement dialog | UI | P0 |
-| TC-059 | Completed status achievement dialog | UI | P0 |
-| TC-060 | Completed status achievement dialog | UI | P0 |
-| TC-061 | Terminal side effects for closed sub-item | API | P0 |
