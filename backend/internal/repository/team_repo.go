@@ -21,6 +21,7 @@ type TeamRepo interface {
 	FindMember(ctx context.Context, teamID, userID uint) (*model.TeamMember, error)
 	ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMemberDTO, error)
 	UpdateMember(ctx context.Context, member *model.TeamMember) error
+	FindPMMembers(ctx context.Context, teamIDs []uint) (map[uint]string, error)
 
 	// Admin operations
 	ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error)

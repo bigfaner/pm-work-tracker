@@ -87,6 +87,7 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 
 		// Members
 		teamsGroup.GET("/members", deps.Team.ListMembers)
+		teamsGroup.GET("/search-users", deps.perm("team:invite"), deps.Team.SearchUsers)
 		teamsGroup.POST("/members", deps.perm("team:invite"), deps.Team.InviteMember)
 		teamsGroup.DELETE("/members/:userId", deps.perm("team:remove"), deps.Team.RemoveMember)
 		teamsGroup.PUT("/pm", deps.perm("team:transfer"), deps.Team.TransferPM)

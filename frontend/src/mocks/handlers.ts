@@ -110,7 +110,7 @@ export const handlers = [
       // seed data has no archived items, keep all
     }
 
-    const page: PageResult<MainItem> = { items, total: items.length, page: 1, pageSize: 20 }
+    const page: PageResult<MainItem> = { items, total: items.length, page: 1, size: 20 }
     return HttpResponse.json({ code: 0, data: page })
   }),
 
@@ -129,7 +129,7 @@ export const handlers = [
       items = items.filter((i) => i.status === status)
     }
 
-    const page: PageResult<ItemPool> = { items, total: items.length, page: 1, pageSize: 20 }
+    const page: PageResult<ItemPool> = { items, total: items.length, page: 1, size: 20 }
     return HttpResponse.json({ code: 0, data: page })
   }),
 

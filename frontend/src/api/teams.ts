@@ -49,3 +49,13 @@ export function transferPmApi(teamId: number, req: TransferPMReq): Promise<void>
 export function changeMemberRoleApi(teamId: number, memberId: number, req: { roleId: number }): Promise<void> {
   return client.put<never, void>(`/teams/${teamId}/members/${memberId}/role`, req)
 }
+
+export interface UserSearchResult {
+  id: number
+  username: string
+  displayName: string
+}
+
+export function searchAvailableUsersApi(teamId: number, search?: string): Promise<UserSearchResult[]> {
+  return client.get<never, UserSearchResult[]>(`/teams/${teamId}/search-users`, { params: { search } })
+}

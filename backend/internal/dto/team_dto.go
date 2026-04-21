@@ -39,6 +39,13 @@ type DisbandTeamReq struct {
 	ConfirmName string `json:"confirmName" binding:"required"`
 }
 
+// UserSearchDTO is a lightweight user DTO for the invite member search.
+type UserSearchDTO struct {
+	ID          uint   `json:"id"`
+	Username    string `json:"username"`
+	DisplayName string `json:"displayName"`
+}
+
 // TeamDetailResp is the response DTO for team detail.
 type TeamDetailResp struct {
 	ID            uint   `json:"id"`
@@ -48,6 +55,17 @@ type TeamDetailResp struct {
 	PmDisplayName string `json:"pmDisplayName"`
 	MemberCount   int    `json:"memberCount"`
 	MainItemCount int    `json:"mainItemCount"`
+	CreatedAt     string `json:"createdAt"`
+	UpdatedAt     string `json:"updatedAt"`
+}
+
+// TeamListResp is the response DTO for team listing with PM display name.
+type TeamListResp struct {
+	ID            uint   `json:"id"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	PmID          uint   `json:"pmId"`
+	PmDisplayName string `json:"pmDisplayName"`
 	CreatedAt     string `json:"createdAt"`
 	UpdatedAt     string `json:"updatedAt"`
 }

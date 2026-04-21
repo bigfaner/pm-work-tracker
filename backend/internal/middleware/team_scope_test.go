@@ -91,6 +91,11 @@ func (m *mockTeamRepo) ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, e
 	return args.Get(0).([]*dto.AdminTeamDTO), args.Error(1)
 }
 
+
+func (m *mockTeamRepo) FindPMMembers(_ context.Context, _ []uint) (map[uint]string, error) {
+	return map[uint]string{}, nil
+}
+
 func (m *mockTeamRepo) FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[uint][]dto.TeamSummary, error) {
 	args := m.Called(ctx, userIDs)
 	if args.Get(0) == nil {

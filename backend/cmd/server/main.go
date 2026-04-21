@@ -73,7 +73,7 @@ func run(configPath string) error {
 	statusHistorySvc := service.NewStatusHistoryService(statusHistoryRepo)
 	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo, statusHistorySvc)
 	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc, statusHistorySvc)
-	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc)
+	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc, statusHistorySvc)
 	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, db)
 	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)
 	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)

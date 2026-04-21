@@ -96,9 +96,15 @@ func (s *roleService) ListRoles(ctx context.Context) ([]RoleListItem, error) {
 
 	items := make([]RoleListItem, 0, len(roles))
 	for _, r := range roles {
-		permCount, err := s.permCount(ctx, r.ID)
-		if err != nil {
-			return nil, err
+		var permCount int
+		if r.Name == "superadmin" {
+			permCount = permissions.TotalCodeCount()
+		} else {
+			var err error
+			permCount, err = s.permCount(ctx, r.ID)
+			if err != nil {
+				return nil, err
+			}
 		}
 		memberCount, err := s.roleRepo.CountMembersByRoleID(ctx, r.ID)
 		if err != nil {
@@ -123,9 +129,15 @@ func (s *roleService) GetRole(ctx context.Context, roleID uint) (*RoleDetail, er
 		return nil, apperrors.MapNotFound(err, ErrRoleNotFound)
 	}
 
-	codes, err := s.roleRepo.ListPermissions(ctx, roleID)
-	if err != nil {
-		return nil, err
+	var codes []string
+	if role.Name == "superadmin" {
+		codes = allCodes()
+	} else {
+		var err error
+		codes, err = s.roleRepo.ListPermissions(ctx, roleID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	memberCount, err := s.roleRepo.CountMembersByRoleID(ctx, roleID)
@@ -348,6 +360,16 @@ func codesToItems(codes []string) []PermissionItem {
 		items = append(items, PermissionItem{Code: code, Description: desc})
 	}
 	return items
+}
+
+func allCodes() []string {
+	codes := make([]string, 0, permissions.TotalCodeCount())
+	for _, rp := range permissions.Registry {
+		for _, p := range rp.Permissions {
+			codes = append(codes, p.Code)
+		}
+	}
+	return codes
 }
 
 func buildCodeDescMap() map[string]string {

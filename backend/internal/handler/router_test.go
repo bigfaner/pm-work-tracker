@@ -435,6 +435,7 @@ func TestTeamScopedRoutes_AllRegistered(t *testing.T) {
 		{"DELETE", "/api/v1/teams/1"},
 		// Members
 		{"GET", "/api/v1/teams/1/members"},
+		{"GET", "/api/v1/teams/1/search-users"},
 		{"POST", "/api/v1/teams/1/members"},
 		{"DELETE", "/api/v1/teams/1/members/2"},
 		{"PUT", "/api/v1/teams/1/pm"},
@@ -512,6 +513,11 @@ func (m *mockTeamRepo) UpdateMember(_ context.Context, _ *model.TeamMember) erro
 func (m *mockTeamRepo) ListAllTeams(_ context.Context) ([]*dto.AdminTeamDTO, error) {
 	return nil, nil
 }
+
+func (m *mockTeamRepo) FindPMMembers(_ context.Context, _ []uint) (map[uint]string, error) {
+	return map[uint]string{}, nil
+}
+
 func (m *mockTeamRepo) FindTeamsByUserIDs(_ context.Context, _ []uint) (map[uint][]dto.TeamSummary, error) {
 	return map[uint][]dto.TeamSummary{}, nil
 }
