@@ -88,6 +88,7 @@ type MainItemCreateReq struct {
 // Only non-nil fields will be updated.
 type MainItemUpdateReq struct {
 	Title           *string `json:"title"`
+	Description     *string `json:"description"`
 	Priority        *string `json:"priority"`
 	AssigneeID      *uint   `json:"assigneeId"`
 	StartDate       *string `json:"startDate"`
@@ -139,10 +140,13 @@ type WeeklyComparisonGroup struct {
 // WeeklyMainItemSummary is a summary of a main item for the weekly comparison view.
 type WeeklyMainItemSummary struct {
 	ID              uint    `json:"id"`
+	Code            string  `json:"code"`
 	Title           string  `json:"title"`
 	Priority        string  `json:"priority"`
+	Status          string  `json:"status"`
 	StartDate       string  `json:"startDate"`
 	ExpectedEndDate string  `json:"expectedEndDate"`
+	ActualEndDate   *string `json:"actualEndDate"`
 	Completion      float64 `json:"completion"`
 	SubItemCount    int     `json:"subItemCount"`
 }
@@ -154,7 +158,9 @@ type SubItemSnapshot struct {
 	Priority            string              `json:"priority"`
 	Status              string              `json:"status"`
 	AssigneeName        string              `json:"assigneeName"`
+	StartDate           string              `json:"startDate"`
 	ExpectedEndDate     string              `json:"expectedEndDate"`
+	ActualEndDate       *string             `json:"actualEndDate"`
 	Completion          float64             `json:"completion"`
 	ProgressDescription string              `json:"progressDescription"`
 	ProgressRecords     []ProgressRecordDTO `json:"progressRecords"`

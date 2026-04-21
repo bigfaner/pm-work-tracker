@@ -74,6 +74,7 @@ type SubItemSummaryVO struct {
 	Priority        string  `json:"priority"`
 	StartDate       *string `json:"startDate"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
+	ActualEndDate   *string `json:"actualEndDate"`
 }
 
 // NewMainItemVO converts a model.MainItem to a MainItemVO.
@@ -160,6 +161,7 @@ func NewSubItemSummaryVOs(items []*model.SubItem) []SubItemSummaryVO {
 			Priority:        si.Priority,
 			StartDate:       formatTimePtr(si.StartDate),
 			ExpectedEndDate: formatTimePtr(si.ExpectedEndDate),
+			ActualEndDate:   formatTimePtr(si.ActualEndDate),
 		})
 	}
 	return result
