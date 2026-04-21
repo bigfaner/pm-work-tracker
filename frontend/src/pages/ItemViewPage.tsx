@@ -1,16 +1,17 @@
 import { useState, useCallback, useRef, useEffect, useMemo, Fragment } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Pencil, Plus } from 'lucide-react'
 import { useTeamStore } from '@/store/team'
 import { PermissionGuard } from '@/components/PermissionGuard'
 import { listMainItemsApi, createMainItemApi, updateMainItemApi, changeMainItemStatusApi, getMainItemTransitionsApi } from '@/api/mainItems'
-import { listSubItemsApi, createSubItemApi } from '@/api/subItems'
+import { listSubItemsApi, createSubItemApi, updateSubItemApi, changeSubItemStatusApi, getSubItemTransitionsApi } from '@/api/subItems'
 import { appendProgressApi } from '@/api/progress'
 import { listMembersApi } from '@/api/teams'
 import { MainItem, SubItem } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DateInput } from '@/components/ui/date-input'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
@@ -47,10 +48,9 @@ import StatusBadge from '@/components/shared/StatusBadge'
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import ProgressBar from '@/components/shared/ProgressBar'
 import { Badge } from '@/components/ui/badge'
-import { STATUS_OPTIONS, MAIN_ITEM_STATUSES } from '@/lib/status'
+import { STATUS_OPTIONS, MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES } from '@/lib/status'
 import { getStatusName, isOverdue } from '@/lib/status'
 import { useToast } from '@/components/ui/toast'
-const SUMMARY_BATCH_SIZE = 5
 const DEFAULT_PAGE_SIZE = 20
 
 type ViewMode = 'summary' | 'detail'
@@ -70,33 +70,39 @@ export default function ItemViewPage() {
   const [assigneeFilter, setAssigneeFilter] = useState<string>('')
 
   // Summary view: infinite scroll
-  const [summaryCount, setSummaryCount] = useState(SUMMARY_BATCH_SIZE)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
   // Detail view: pagination
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
+  const today = () => new Date().toISOString().slice(0, 10)
+
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false)
-  const [createForm, setCreateForm] = useState({ title: '', description: '', priority: 'P2', assigneeId: '', startDate: '', expectedEndDate: '' })
+  const [createForm, setCreateForm] = useState({ title: '', description: '', priority: 'P2', assigneeId: '', startDate: today(), expectedEndDate: '' })
 
   // Create sub-item dialog
   const [createSubOpen, setCreateSubOpen] = useState(false)
   const [createSubTarget, setCreateSubTarget] = useState<number | null>(null)
   const [createSubTargetName, setCreateSubTargetName] = useState('')
-  const [createSubForm, setCreateSubForm] = useState({ title: '', priority: '', assigneeId: '', startDate: '', expectedEndDate: '', description: '' })
+  const [createSubForm, setCreateSubForm] = useState({ title: '', priority: 'P2', assigneeId: '', startDate: today(), expectedEndDate: '', description: '' })
 
   // Edit main item dialog
   const [editOpen, setEditOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<number | null>(null)
-  const [editForm, setEditForm] = useState({ title: '', priority: '', assigneeId: '', status: '', expectedEndDate: '', actualEndDate: '' })
+  const [editForm, setEditForm] = useState({ title: '', priority: '', assigneeId: '', expectedEndDate: '', description: '' })
 
   // Append progress dialog
   const [appendOpen, setAppendOpen] = useState(false)
   const [appendTarget, setAppendTarget] = useState<number | null>(null)
   const [appendTargetName, setAppendTargetName] = useState('')
   const [appendForm, setAppendForm] = useState({ completion: '', achievement: '', blocker: '' })
+
+  // Edit sub-item dialog
+  const [editSubOpen, setEditSubOpen] = useState(false)
+  const [editSubTarget, setEditSubTarget] = useState<SubItem | null>(null)
+  const [editSubForm, setEditSubForm] = useState({ title: '', priority: '', assigneeId: '', expectedEndDate: '', description: '' })
 
   // Expanded cards
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set())
@@ -111,14 +117,28 @@ export default function ItemViewPage() {
     enabled: !!teamId,
   })
 
-  const { data: itemsData, isLoading } = useQuery({
+  const {
+    data: itemsInfiniteData,
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['mainItems', teamId],
-    queryFn: () => listMainItemsApi(teamId!),
+    queryFn: ({ pageParam }) => listMainItemsApi(teamId!, { page: pageParam as number, pageSize: DEFAULT_PAGE_SIZE }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const totalPages = Math.ceil(lastPage.total / lastPage.size)
+      return lastPage.page < totalPages ? lastPage.page + 1 : undefined
+    },
     enabled: !!teamId,
   })
 
   const members = membersData || []
-  const allItems: (MainItem & { subItems?: SubItem[] })[] = itemsData?.items || []
+  const allItems: (MainItem & { subItems?: SubItem[] })[] = useMemo(
+    () => itemsInfiniteData?.pages.flatMap((p) => p.items) ?? [],
+    [itemsInfiniteData],
+  )
 
   // --- Client-side filtering ---
 
@@ -143,8 +163,8 @@ export default function ItemViewPage() {
 
   // --- Summary view: visible items ---
 
-  const summaryItems = filteredItems.slice(0, summaryCount)
-  const hasMoreSummary = filteredItems.length > summaryCount
+  const summaryItems = filteredItems
+  const hasMoreSummary = !!hasNextPage
 
   // Infinite scroll observer
   useEffect(() => {
@@ -154,20 +174,15 @@ export default function ItemViewPage() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMoreSummary) {
-          setSummaryCount((prev) => prev + SUMMARY_BATCH_SIZE)
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage()
         }
       },
       { rootMargin: '200px' },
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [viewMode, hasMoreSummary])
-
-  // Reset summary count when filters change
-  useEffect(() => {
-    setSummaryCount(SUMMARY_BATCH_SIZE)
-  }, [searchText, statusFilter, assigneeFilter])
+  }, [viewMode, hasNextPage, isFetchingNextPage, fetchNextPage])
 
   // --- Detail view: pagination ---
 
@@ -190,7 +205,7 @@ export default function ItemViewPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
       setCreateOpen(false)
-      setCreateForm({ title: '', description: '', priority: 'P2', assigneeId: '', startDate: '', expectedEndDate: '' })
+      setCreateForm({ title: '', description: '', priority: 'P2', assigneeId: '', startDate: today(), expectedEndDate: '' })
     },
   })
 
@@ -202,7 +217,7 @@ export default function ItemViewPage() {
       fetchedRef.current.delete(req.mainItemId)
       setSubItemsMap((prev) => { const next = { ...prev }; delete next[req.mainItemId]; return next })
       setCreateSubOpen(false)
-      setCreateSubForm({ title: '', priority: '', assigneeId: '', startDate: '', expectedEndDate: '', description: '' })
+      setCreateSubForm({ title: '', priority: 'P2', assigneeId: '', startDate: today(), expectedEndDate: '', description: '' })
     },
   })
 
@@ -212,6 +227,16 @@ export default function ItemViewPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
       setEditOpen(false)
+    },
+  })
+
+  const updateSubMutation = useMutation({
+    mutationFn: (req: { subId: number; mainItemId: number; data: { title: string; priority: string; assigneeId?: number; expectedEndDate?: string; description?: string } }) =>
+      updateSubItemApi(teamId!, req.subId, req.data),
+    onSuccess: (_, req) => {
+      fetchedRef.current.delete(req.mainItemId)
+      setSubItemsMap((prev) => { const next = { ...prev }; delete next[req.mainItemId]; return next })
+      setEditSubOpen(false)
     },
   })
 
@@ -295,9 +320,8 @@ export default function ItemViewPage() {
       title: item.title,
       priority: item.priority,
       assigneeId: item.assigneeId ? String(item.assigneeId) : '',
-      status: item.status,
       expectedEndDate: item.expectedEndDate || '',
-      actualEndDate: item.actualEndDate || '',
+      description: item.description || '',
     })
     setEditOpen(true)
   }, [])
@@ -311,7 +335,8 @@ export default function ItemViewPage() {
         priority: editForm.priority,
         assigneeId: editForm.assigneeId ? Number(editForm.assigneeId) : null,
         expectedEndDate: editForm.expectedEndDate || null,
-        actualEndDate: editForm.actualEndDate || null,
+        actualEndDate: null,
+        description: editForm.description,
       },
     })
   }, [editForm, editTarget, updateMutation])
@@ -322,6 +347,33 @@ export default function ItemViewPage() {
     setAppendForm({ completion: '', achievement: '', blocker: '' })
     setAppendOpen(true)
   }, [])
+
+  const openEditSubDialog = useCallback((sub: SubItem) => {
+    setEditSubTarget(sub)
+    setEditSubForm({
+      title: sub.title,
+      priority: sub.priority,
+      assigneeId: sub.assigneeId ? String(sub.assigneeId) : '',
+      expectedEndDate: sub.expectedEndDate || '',
+      description: sub.description || '',
+    })
+    setEditSubOpen(true)
+  }, [])
+
+  const handleEditSub = useCallback(() => {
+    if (!editSubTarget || !editSubForm.title.trim()) return
+    updateSubMutation.mutate({
+      subId: editSubTarget.id,
+      mainItemId: editSubTarget.mainItemId,
+      data: {
+        title: editSubForm.title.trim(),
+        priority: editSubForm.priority,
+        assigneeId: editSubForm.assigneeId ? Number(editSubForm.assigneeId) : undefined,
+        expectedEndDate: editSubForm.expectedEndDate || undefined,
+        description: editSubForm.description,
+      },
+    })
+  }, [editSubTarget, editSubForm, updateSubMutation])
 
   const handleAppend = useCallback(() => {
     const val = Number(appendForm.completion)
@@ -458,6 +510,7 @@ export default function ItemViewPage() {
           onAddSubItem={(mainItemId, mainItemTitle) => { setCreateSubTarget(mainItemId); setCreateSubTargetName(mainItemTitle); setCreateSubOpen(true) }}
           onEditMainItem={openEditDialog}
           onAppendProgress={openAppendDialog}
+          onEditSubItem={openEditSubDialog}
         />
       ) : (
         <DetailView
@@ -477,6 +530,7 @@ export default function ItemViewPage() {
           onAddSubItem={(mainItemId, mainItemTitle) => { setCreateSubTarget(mainItemId); setCreateSubTargetName(mainItemTitle); setCreateSubOpen(true) }}
           onEditMainItem={openEditDialog}
           onAppendProgress={openAppendDialog}
+          onEditSubItem={openEditSubDialog}
         />
       )}
 
@@ -525,16 +579,14 @@ export default function ItemViewPage() {
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div>
                 <label className="block text-sm font-medium text-primary mb-1">开始时间 <span className="text-error">*</span></label>
-                <Input
-                  type="date"
+                <DateInput
                   value={createForm.startDate}
                   onChange={(e) => setCreateForm((f) => ({ ...f, startDate: e.target.value }))}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-primary mb-1">预期完成时间 <span className="text-error">*</span></label>
-                <Input
-                  type="date"
+                <DateInput
                   value={createForm.expectedEndDate}
                   onChange={(e) => setCreateForm((f) => ({ ...f, expectedEndDate: e.target.value }))}
                 />
@@ -608,8 +660,7 @@ export default function ItemViewPage() {
                 <label className="block text-sm font-medium text-primary mb-1">
                   开始时间 <span className="text-error">*</span>
                 </label>
-                <Input
-                  type="date"
+                <DateInput
                   value={createSubForm.startDate}
                   onChange={(e) => setCreateSubForm((f) => ({ ...f, startDate: e.target.value }))}
                 />
@@ -618,8 +669,7 @@ export default function ItemViewPage() {
                 <label className="block text-sm font-medium text-primary mb-1">
                   预期完成时间 <span className="text-error">*</span>
                 </label>
-                <Input
-                  type="date"
+                <DateInput
                   value={createSubForm.expectedEndDate}
                   onChange={(e) => setCreateSubForm((f) => ({ ...f, expectedEndDate: e.target.value }))}
                 />
@@ -659,7 +709,7 @@ export default function ItemViewPage() {
                 onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
               />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-primary mb-1">优先级</label>
                 <Select value={editForm.priority} onValueChange={(v) => setEditForm((f) => ({ ...f, priority: v }))}>
@@ -681,27 +731,14 @@ export default function ItemViewPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-primary mb-1">状态</label>
-                <Select value={editForm.status} onValueChange={(v) => setEditForm((f) => ({ ...f, status: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {STATUS_OPTIONS.map((s) => (
-                      <SelectItem key={s} value={s}>{getStatusName(s) || s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div>
-                <label className="block text-sm font-medium text-primary mb-1">预期完成时间</label>
-                <Input type="date" value={editForm.expectedEndDate} onChange={(e) => setEditForm((f) => ({ ...f, expectedEndDate: e.target.value }))} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-primary mb-1">实际完成时间</label>
-                <Input type="date" value={editForm.actualEndDate} onChange={(e) => setEditForm((f) => ({ ...f, actualEndDate: e.target.value }))} />
-              </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-primary mb-1">预期完成时间</label>
+              <DateInput value={editForm.expectedEndDate} onChange={(e) => setEditForm((f) => ({ ...f, expectedEndDate: e.target.value }))} />
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-primary mb-1">描述</label>
+              <Textarea rows={3} value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} />
             </div>
           </DialogBody>
           <DialogFooter>
@@ -720,13 +757,13 @@ export default function ItemViewPage() {
           <DialogBody>
             <div className="mb-4">
               <label className="block text-sm font-medium text-primary mb-1">
-                完成度 (0-100) <span className="text-error">*</span>
+                进度 (0-100) <span className="text-error">*</span>
               </label>
               <Input
                 type="number"
                 min={0}
                 max={100}
-                placeholder="请输入完成度"
+                placeholder="请输入进度"
                 value={appendForm.completion}
                 onChange={(e) => setAppendForm((f) => ({ ...f, completion: e.target.value }))}
               />
@@ -756,6 +793,61 @@ export default function ItemViewPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Sub-item Dialog */}
+      <Dialog open={editSubOpen} onOpenChange={setEditSubOpen}>
+        <DialogContent size="md">
+          <DialogHeader>
+            <DialogTitle>编辑子事项</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-primary mb-1">
+                标题 <span className="text-error">*</span>
+              </label>
+              <Input
+                value={editSubForm.title}
+                onChange={(e) => setEditSubForm((f) => ({ ...f, title: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-primary mb-1">优先级</label>
+                <Select value={editSubForm.priority} onValueChange={(v) => setEditSubForm((f) => ({ ...f, priority: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <PrioritySelectItems />
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-primary mb-1">负责人</label>
+                <Select value={editSubForm.assigneeId || '_none'} onValueChange={(v) => setEditSubForm((f) => ({ ...f, assigneeId: v === '_none' ? '' : v }))}>
+                  <SelectTrigger><SelectValue placeholder="选择负责人" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">不指定</SelectItem>
+                    {members.map((m) => (
+                      <SelectItem key={m.userId} value={String(m.userId)}>{m.displayName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-primary mb-1">预期完成时间</label>
+              <Input type="date" value={editSubForm.expectedEndDate} onChange={(e) => setEditSubForm((f) => ({ ...f, expectedEndDate: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-primary mb-1">描述</label>
+              <Textarea rows={3} value={editSubForm.description} onChange={(e) => setEditSubForm((f) => ({ ...f, description: e.target.value }))} />
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setEditSubOpen(false)}>取消</Button>
+            <Button onClick={handleEditSub} disabled={!editSubForm.title.trim() || updateSubMutation.isPending}>保存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
         </>
       )}
     </div>
@@ -774,6 +866,7 @@ interface SummaryViewProps {
   onAddSubItem: (mainItemId: number, mainItemTitle: string) => void
   onEditMainItem: (item: MainItem) => void
   onAppendProgress: (subItemId: number, subItemTitle: string) => void
+  onEditSubItem: (sub: SubItem) => void
 }
 
 function SummaryView({
@@ -788,6 +881,7 @@ function SummaryView({
   onAddSubItem,
   onEditMainItem,
   onAppendProgress,
+  onEditSubItem,
 }: SummaryViewProps) {
   return (
     <div>
@@ -797,10 +891,10 @@ function SummaryView({
             className="rounded-xl border border-border bg-white shadow-sm cursor-pointer"
             onClick={() => onToggleExpand(item.id)}
           >
-            <div className="flex items-center gap-3 px-5 py-4">
+            <div className="flex items-center gap-2 px-4 py-3">
               {/* Expand chevron */}
               <svg
-                className={`w-4 h-4 shrink-0 text-tertiary transition-transform ${
+                className={`w-3.5 h-3.5 shrink-0 text-tertiary transition-transform ${
                   expandedCards.has(item.id) ? 'rotate-90' : ''
                 }`}
                 fill="none"
@@ -820,17 +914,26 @@ function SummaryView({
               <PriorityBadge priority={item.priority} />
 
               {/* Title + date range */}
-              <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
                 <Link
                   to={`/items/${item.id}`}
                   className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline truncate"
+                  title={item.title}
                   onClick={(e) => e.stopPropagation()}
                 >
                   {item.title}
                 </Link>
                 {item.startDate && item.expectedEndDate && (
                   <span className="text-xs text-secondary whitespace-nowrap">
-                    {formatDate(item.startDate)} ~ {formatDate(item.expectedEndDate)}
+                    计划周期 {formatDate(item.startDate)} ~ {formatDate(item.expectedEndDate)}
+                  </span>
+                )}
+                {isOverdue(item.expectedEndDate ?? undefined, item.status) && (
+                  <Badge variant="error">延期</Badge>
+                )}
+                {MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal && item.actualEndDate && (
+                  <span className="text-xs text-tertiary whitespace-nowrap">
+                    结束于 {formatDate(item.actualEndDate)}
                   </span>
                 )}
               </div>
@@ -841,20 +944,19 @@ function SummaryView({
               </span>
 
               {/* Progress */}
-              <div className="w-28 shrink-0">
+              <div className="w-16 shrink-0">
                 <ProgressBar value={item.completion} size="sm" showPercentage />
               </div>
 
               {/* Status */}
-              <StatusDropdownWithTransitions currentStatus={item.status} itemId={item.id} />
-              {isOverdue(item.expectedEndDate ?? undefined, item.status) && (
-                <Badge variant="error">延期</Badge>
-              )}
+              <div onClick={(e) => e.stopPropagation()}>
+                <StatusDropdownWithTransitions currentStatus={item.status} itemId={item.id} />
+              </div>
 
               {/* Actions */}
-              <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" size="sm" onClick={() => onEditMainItem(item)}><Pencil size={14} />编辑</Button>
-                <Button variant="ghost" size="sm" onClick={() => onAddSubItem(item.id, item.title)}><Plus size={14} />新增子事项</Button>
+              <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="sm" disabled={!!MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal} onClick={() => onEditMainItem(item)}><Pencil size={14} />编辑</Button>
+                <Button variant="ghost" size="sm" disabled={!!MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal} onClick={() => onAddSubItem(item.id, item.title)}><Plus size={14} />新增子事项</Button>
               </div>
             </div>
 
@@ -870,7 +972,7 @@ function SummaryView({
                 {subItemsMap[item.id]?.map((sub) => (
                   <div
                     key={sub.id}
-                    className="flex items-center gap-3 py-2 border-b border-border/50 last:border-b-0"
+                    className="flex items-center gap-2 py-2 border-b border-border/50 last:border-b-0"
                   >
                     <span className="font-mono text-[11px] text-tertiary bg-bg-alt px-1.5 py-0.5 rounded">
                       SI-{String(item.id).padStart(3, '0')}-{String(sub.id).slice(-2)}
@@ -878,24 +980,45 @@ function SummaryView({
                     <PriorityBadge priority={sub.priority} className="text-[10px]" />
                     <Link
                       to={`/items/${item.id}/sub/${sub.id}`}
-                      className="text-[13px] font-medium text-primary-600 hover:text-primary-700 hover:underline"
+                      className="text-[13px] font-medium text-primary-600 hover:text-primary-700 hover:underline truncate"
                     >
                       {sub.title}
                     </Link>
                     <span className="text-[11px] text-tertiary whitespace-nowrap">
                       {sub.startDate && sub.expectedEndDate
-                        ? `${formatDate(sub.startDate)} ~ ${formatDate(sub.expectedEndDate)}`
+                        ? `计划周期 ${formatDate(sub.startDate)} ~ ${formatDate(sub.expectedEndDate)}`
                         : '-'}
                     </span>
+                    {isOverdue(sub.expectedEndDate ?? undefined, sub.status) && (
+                      <Badge variant="error">延期</Badge>
+                    )}
+                    {SUB_ITEM_STATUSES[sub.status as keyof typeof SUB_ITEM_STATUSES]?.terminal && sub.actualEndDate && (
+                      <span className="text-[11px] text-tertiary whitespace-nowrap">
+                        结束于 {formatDate(sub.actualEndDate)}
+                      </span>
+                    )}
                     <span className="ml-auto text-[13px] text-secondary">
                       {memberName(sub.assigneeId)}
                     </span>
-                    <div className="w-20">
-                      <ProgressBar value={sub.completion} size="sm" />
+                    <div className="w-16 shrink-0">
+                      <ProgressBar value={sub.completion} size="sm" showPercentage />
                     </div>
-                    <StatusBadge status={sub.status} />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <SubItemStatusDropdown
+                        subId={sub.id}
+                        mainItemId={item.id}
+                        currentStatus={sub.status}
+                        onStatusChanged={() => {
+                          fetchedRef.current.delete(item.id)
+                          setSubItemsMap((prev) => { const next = { ...prev }; delete next[item.id]; return next })
+                        }}
+                      />
+                    </div>
+                    <PermissionGuard code="main_item:update">
+                      <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5" disabled={!!SUB_ITEM_STATUSES[sub.status as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onEditSubItem(sub)}><Pencil size={12} />编辑</Button>
+                    </PermissionGuard>
                     <PermissionGuard code="progress:update">
-                      <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5" onClick={() => onAppendProgress(sub.id, sub.title)}><Plus size={12} />追加进度</Button>
+                      <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5" disabled={!!SUB_ITEM_STATUSES[sub.status as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onAppendProgress(sub.id, sub.title)}><Plus size={12} />追加进度</Button>
                     </PermissionGuard>
                   </div>
                 ))}
@@ -941,6 +1064,7 @@ interface DetailViewProps {
   onAddSubItem: (mainItemId: number, mainItemTitle: string) => void
   onEditMainItem: (item: MainItem) => void
   onAppendProgress: (subItemId: number, subItemTitle: string) => void
+  onEditSubItem: (sub: SubItem) => void
 }
 
 function DetailView({
@@ -957,6 +1081,7 @@ function DetailView({
   onAddSubItem,
   onEditMainItem,
   onAppendProgress,
+  onEditSubItem,
 }: DetailViewProps) {
   return (
     <div className="rounded-xl border border-border bg-white shadow-sm">
@@ -972,7 +1097,7 @@ function DetailView({
               <TableHead>状态</TableHead>
               <TableHead>开始时间</TableHead>
               <TableHead>预期完成时间</TableHead>
-              <TableHead>实际完成时间</TableHead>
+              <TableHead>结束时间</TableHead>
               <TableHead>操作</TableHead>
             </TableRow>
           </TableHeader>
@@ -989,7 +1114,7 @@ function DetailView({
                       <PriorityBadge priority={item.priority} />
                     </TableCell>
                     <TableCell>
-                      <Link to={`/items/${item.id}`} className="font-medium text-primary-600 hover:text-primary-700 hover:underline">
+                      <Link to={`/items/${item.id}`} className="font-medium text-primary-600 hover:text-primary-700 hover:underline truncate block max-w-xs" title={item.title}>
                         {item.title}
                       </Link>
                     </TableCell>
@@ -998,20 +1123,20 @@ function DetailView({
                       <span className="text-xs">{item.completion}%</span>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        <StatusDropdownWithTransitions currentStatus={item.status} itemId={item.id} />
-                        {isOverdue(item.expectedEndDate ?? undefined, item.status) && (
-                          <Badge variant="error">延期</Badge>
-                        )}
-                      </div>
+                      <StatusDropdownWithTransitions currentStatus={item.status} itemId={item.id} />
                     </TableCell>
                     <TableCell className="text-xs">{formatDate(item.startDate)}</TableCell>
-                    <TableCell className="text-xs">{formatDate(item.expectedEndDate)}</TableCell>
+                    <TableCell className="text-xs">
+                      <span>{formatDate(item.expectedEndDate)}</span>
+                      {isOverdue(item.expectedEndDate ?? undefined, item.status) && (
+                        <Badge variant="error" className="ml-1">延期</Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="text-xs">{formatDate(item.actualEndDate)}</TableCell>
                     <TableCell>
-                      <div className="flex gap-1 whitespace-nowrap">
-                        <Link to={`/items/${item.id}`}><Button variant="ghost" size="sm"><Pencil size={14} />编辑</Button></Link>
-                        <Button variant="ghost" size="sm" onClick={() => onAddSubItem(item.id, item.title)}><Plus size={14} />添加子事项</Button>
+                      <div className="flex gap-0.5 whitespace-nowrap">
+                        <Link to={`/items/${item.id}`}><Button variant="ghost" size="sm" disabled={!!MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal}><Pencil size={14} />编辑</Button></Link>
+                        <Button variant="ghost" size="sm" disabled={!!MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal} onClick={() => onAddSubItem(item.id, item.title)}><Plus size={14} />添加子事项</Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1033,15 +1158,23 @@ function DetailView({
                         <span className="text-xs">{sub.completion}%</span>
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={sub.status} />
+                        <SubItemStatusDropdown
+                          subId={sub.id}
+                          mainItemId={item.id}
+                          currentStatus={sub.status}
+                          onStatusChanged={() => qc.invalidateQueries({ queryKey: ['mainItems', teamId] })}
+                        />
                       </TableCell>
                       <TableCell className="text-xs">{formatDate(sub.startDate)}</TableCell>
                       <TableCell className="text-xs">{formatDate(sub.expectedEndDate)}</TableCell>
                       <TableCell className="text-xs">{formatDate(sub.actualEndDate)}</TableCell>
                       <TableCell>
-                        <div className="flex gap-1 whitespace-nowrap">
+                        <div className="flex gap-0.5 whitespace-nowrap">
+                          <PermissionGuard code="main_item:update">
+                            <Button variant="ghost" size="sm" disabled={!!SUB_ITEM_STATUSES[sub.status as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onEditSubItem(sub)}><Pencil size={14} />编辑</Button>
+                          </PermissionGuard>
                           <PermissionGuard code="progress:update">
-                            <Button variant="ghost" size="sm" onClick={() => onAppendProgress(sub.id, sub.title)}><Plus size={14} />追加进度</Button>
+                            <Button variant="ghost" size="sm" disabled={!!SUB_ITEM_STATUSES[sub.status as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onAppendProgress(sub.id, sub.title)}><Plus size={14} />追加进度</Button>
                           </PermissionGuard>
                         </div>
                       </TableCell>
@@ -1072,7 +1205,117 @@ function DetailView({
   )
 }
 
-// --- StatusDropdown with transitions API support ---
+// --- SubItem StatusDropdown ---
+
+const SUB_ITEM_TERMINAL_STATUSES_IV = new Set(
+  Object.entries(SUB_ITEM_STATUSES)
+    .filter(([, v]) => v.terminal)
+    .map(([k]) => k)
+)
+
+function SubItemStatusDropdown({
+  subId,
+  mainItemId,
+  currentStatus,
+  onStatusChanged,
+}: {
+  subId: number
+  mainItemId: number
+  currentStatus: string
+  onStatusChanged: () => void
+}) {
+  const teamId = useTeamStore((s) => s.currentTeamId)
+  const qc = useQueryClient()
+  const { addToast } = useToast()
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+  const [showTip, setShowTip] = useState(false)
+
+  const { data: transitions = [], isFetched, isFetching } = useQuery({
+    queryKey: ['subItemTransitions', teamId, subId],
+    queryFn: () => getSubItemTransitionsApi(teamId!, subId),
+    enabled: !!teamId && open,
+  })
+
+  useEffect(() => {
+    if (open && isFetched && !isFetching && transitions.length === 0) {
+      setOpen(false)
+      setShowTip(true)
+      setTimeout(() => setShowTip(false), 2000)
+    }
+  }, [open, isFetched, isFetching, transitions.length])
+
+  const statusChangeMutation = useMutation({
+    mutationFn: ({ newStatus }: { newStatus: string }) =>
+      changeSubItemStatusApi(teamId!, subId, { status: newStatus }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['subItemTransitions', teamId, subId] })
+      setOpen(false)
+      setConfirmOpen(false)
+      setPendingStatus(null)
+      onStatusChanged()
+    },
+  })
+
+  const handleSelect = useCallback((status: string) => {
+    if (SUB_ITEM_TERMINAL_STATUSES_IV.has(status)) {
+      setPendingStatus(status)
+      setConfirmOpen(true)
+    } else {
+      statusChangeMutation.mutate({ newStatus: status })
+    }
+  }, [statusChangeMutation])
+
+  const handleConfirm = useCallback(() => {
+    if (pendingStatus) statusChangeMutation.mutate({ newStatus: pendingStatus })
+  }, [pendingStatus, statusChangeMutation])
+
+  return (
+    <>
+      <div className="relative inline-flex">
+        {showTip && (
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap text-xs px-2 py-1 rounded-md bg-primary text-white shadow-md pointer-events-none z-50">
+            暂无可用流转
+          </div>
+        )}
+        <DropdownMenu open={open} onOpenChange={setOpen}>
+          <DropdownMenuTrigger asChild>
+            <button className="focus:outline-none">
+              <StatusBadge status={currentStatus} className="cursor-pointer" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="min-w-0 w-auto">
+            {transitions.map((status) => (
+              <DropdownMenuItem
+                key={status}
+                className="text-[13px] justify-center"
+                onSelect={(e) => { e.preventDefault(); handleSelect(status) }}
+              >
+                {getStatusName(status) || status}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent size="sm">
+          <DialogHeader><DialogTitle>确认变更状态</DialogTitle></DialogHeader>
+          <DialogBody>
+            <p className="text-sm text-secondary">
+              确认将状态变更为「{getStatusName(pendingStatus || '') || pendingStatus}」？此操作可能不可逆。
+            </p>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => { setConfirmOpen(false); setPendingStatus(null) }}>取消</Button>
+            <Button onClick={handleConfirm} disabled={statusChangeMutation.isPending}>确认</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
 
 const MAIN_ITEM_TERMINAL_STATUSES = new Set(
   Object.entries(MAIN_ITEM_STATUSES)
@@ -1093,12 +1336,21 @@ function StatusDropdownWithTransitions({
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingStatus, setPendingStatus] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
+  const [showTip, setShowTip] = useState(false)
 
-  const { data: transitions = [] } = useQuery({
+  const { data: transitions = [], isFetched, isFetching } = useQuery({
     queryKey: ['mainItemTransitions', teamId, itemId],
     queryFn: () => getMainItemTransitionsApi(teamId!, itemId),
     enabled: !!teamId && open,
   })
+
+  useEffect(() => {
+    if (open && isFetched && !isFetching && transitions.length === 0) {
+      setOpen(false)
+      setShowTip(true)
+      setTimeout(() => setShowTip(false), 2000)
+    }
+  }, [open, isFetched, isFetching, transitions.length])
 
   const statusChangeMutation = useMutation({
     mutationFn: ({ newStatus }: { newStatus: string }) =>
@@ -1106,6 +1358,7 @@ function StatusDropdownWithTransitions({
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
+      qc.invalidateQueries({ queryKey: ['mainItemTransitions', teamId, itemId] })
       setOpen(false)
       setConfirmOpen(false)
       setPendingStatus(null)
@@ -1132,17 +1385,23 @@ function StatusDropdownWithTransitions({
 
   return (
     <>
-      <DropdownMenu open={open} onOpenChange={setOpen}>
-        <DropdownMenuTrigger asChild>
-          <button className="focus:outline-none">
-            <StatusBadge status={currentStatus} className="cursor-pointer" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
+      <div className="relative inline-flex">
+        {showTip && (
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap text-xs px-2 py-1 rounded-md bg-primary text-white shadow-md pointer-events-none z-50">
+            暂无可用流转
+          </div>
+        )}
+        <DropdownMenu open={open} onOpenChange={setOpen}>
+          <DropdownMenuTrigger asChild>
+            <button className="focus:outline-none">
+              <StatusBadge status={currentStatus} className="cursor-pointer" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="min-w-0 w-auto">
           {transitions.map((status) => (
             <DropdownMenuItem
               key={status}
-              className="text-[13px]"
+              className="text-[13px] justify-center"
               onSelect={(e) => {
                 e.preventDefault()
                 handleSelect(status)
@@ -1153,6 +1412,7 @@ function StatusDropdownWithTransitions({
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent size="sm">
