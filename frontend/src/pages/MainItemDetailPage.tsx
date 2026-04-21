@@ -401,7 +401,9 @@ export default function MainItemDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {subItems.map((sub) => {
+                  {(() => {
+                    const mainTerminal = (MAIN_ITEM_STATUSES as Record<string, { terminal: boolean }>)[item.status]?.terminal ?? false
+                    return subItems.map((sub) => {
                     const subCode = `SI-${String(item.id).padStart(3, '0')}-${String(sub.id).slice(-2)}`
                     return (
                       <TableRow key={sub.id}>
@@ -419,7 +421,7 @@ export default function MainItemDetailPage() {
                         </TableCell>
                         <TableCell>{memberName(sub.assigneeId)}</TableCell>
                         <TableCell>
-                          <ProgressBar value={sub.completion} size="sm" showPercentage />
+                          <span>{sub.completion}%</span>
                         </TableCell>
                         <TableCell>
                           <SubItemStatusDropdown
@@ -433,13 +435,14 @@ export default function MainItemDetailPage() {
                         <TableCell className="text-xs">{formatDate(sub.actualEndDate)}</TableCell>
                         <TableCell>
                           <div className="flex gap-0.5">
-                            <Button variant="ghost" size="sm" onClick={() => openEditSub(sub)}><Pencil size={12} />编辑</Button>
-                            <Button variant="ghost" size="sm" onClick={() => openAppendProgress(sub)}><Plus size={12} />追加进度</Button>
+                            <Button variant="ghost" size="sm" disabled={mainTerminal} onClick={() => openEditSub(sub)}><Pencil size={12} />编辑</Button>
+                            <Button variant="ghost" size="sm" disabled={mainTerminal} onClick={() => openAppendProgress(sub)}><Plus size={12} />追加进度</Button>
                           </div>
                         </TableCell>
                       </TableRow>
                     )
-                  })}
+                  })
+                  })()}
                 </TableBody>
               </Table>
             )}
