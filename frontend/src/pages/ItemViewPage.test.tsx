@@ -600,4 +600,61 @@ describe('ItemViewPage', () => {
       expect(submitBtn).toBeEnabled()
     })
   })
+
+  // --- Sub-items fetched via React Query ---
+
+  it('fetches sub-items via React Query when expanding a card', async () => {
+    let subItemsFetchCount = 0
+    server.use(
+      http.get('/v1/teams/:teamId/main-items/:mainId/sub-items', () => {
+        subItemsFetchCount++
+        return HttpResponse.json({ code: 0, data: { items: seedMainItems[0].subItems, total: 2, page: 1, pageSize: 20 } })
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+    })
+
+    // Expand the first card
+    const expandBtn = screen.getByTestId('expand-card-1')
+    await user.click(expandBtn)
+
+    await waitFor(() => {
+      expect(subItemsFetchCount).toBeGreaterThanOrEqual(1)
+      expect(screen.getByText('Sub Alpha 1')).toBeInTheDocument()
+    })
+  })
+
+  // --- No "fetch all pages" in detail view ---
+
+  it('detail view does not trigger fetch-all-pages pattern', async () => {
+    let listCallCount = 0
+    server.use(
+      http.get('/v1/teams/:teamId/main-items', ({ request }) => {
+        listCallCount++
+        const url = new URL(request.url)
+        const page = Number(url.searchParams.get('page') || 1)
+        // Return one page of items
+        return HttpResponse.json({ code: 0, data: { items: seedMainItems, total: seedMainItems.length, page, pageSize: 20 } })
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+    })
+
+    // Switch to detail view
+    await user.click(screen.getByText('明细'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('detail-table')).toBeInTheDocument()
+    })
+
+    // Should NOT have made multiple list calls to fetch all pages
+    // Only the initial fetch should have happened
+    expect(listCallCount).toBe(1)
+  })
 })

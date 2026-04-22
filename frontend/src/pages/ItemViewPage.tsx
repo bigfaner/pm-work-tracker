@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect, useMemo, Fragment } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Pencil, Plus, RefreshCw } from 'lucide-react'
 import { useTeamStore } from '@/store/team'
 import { PermissionGuard } from '@/components/PermissionGuard'
@@ -106,8 +106,6 @@ export default function ItemViewPage() {
 
   // Expanded cards
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set())
-  const [subItemsMap, setSubItemsMap] = useState<Record<number, SubItem[]>>({})
-  const fetchedRef = useRef<Set<number>>(new Set())
 
   // --- Data fetching ---
 
@@ -186,13 +184,6 @@ export default function ItemViewPage() {
     return () => observer.disconnect()
   }, [viewMode, hasNextPage, isFetchingNextPage, fetchNextPage])
 
-  // When switching to detail view, fetch all remaining pages so client-side pagination has full data
-  useEffect(() => {
-    if (viewMode === 'detail' && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage()
-    }
-  }, [viewMode, hasNextPage, isFetchingNextPage, fetchNextPage])
-
   // --- Detail view: pagination ---
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize))
@@ -205,6 +196,28 @@ export default function ItemViewPage() {
   useEffect(() => {
     setCurrentPage(1)
   }, [searchText, statusFilter, assigneeFilter, pageSize])
+
+  // --- Sub-items via React Query ---
+
+  // Determine which main item IDs need sub-items loaded
+  const subItemIds = viewMode === 'summary' ? expandedCards : new Set(paginatedItems.map((i) => i.id))
+
+  const subItemQueries = useQueries({
+    queries: Array.from(subItemIds).map((itemId) => ({
+      queryKey: ['subItems', teamId, itemId],
+      queryFn: () => listSubItemsApi(teamId!, itemId),
+      enabled: !!teamId && subItemIds.has(itemId),
+      staleTime: 30_000,
+    })),
+  })
+
+  const subItemsMap: Record<number, SubItem[]> = {}
+  const idArray = Array.from(subItemIds)
+  subItemQueries.forEach((result, index) => {
+    if (result.data) {
+      subItemsMap[idArray[index]] = result.data.items
+    }
+  })
 
   // --- Mutations ---
 
@@ -223,8 +236,7 @@ export default function ItemViewPage() {
       createSubItemApi(teamId!, req.mainItemId, req),
     onSuccess: (_, req) => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
-      fetchedRef.current.delete(req.mainItemId)
-      setSubItemsMap((prev) => { const next = { ...prev }; delete next[req.mainItemId]; return next })
+      qc.invalidateQueries({ queryKey: ['subItems', teamId, req.mainItemId] })
       setCreateSubOpen(false)
       setCreateSubForm({ title: '', priority: 'P2', assigneeId: '', startDate: today(), expectedEndDate: '', description: '' })
     },
@@ -243,8 +255,7 @@ export default function ItemViewPage() {
     mutationFn: (req: { subId: number; mainItemId: number; data: { title: string; priority: string; assigneeId?: number; expectedEndDate?: string; description?: string } }) =>
       updateSubItemApi(teamId!, req.subId, req.data),
     onSuccess: (_, req) => {
-      fetchedRef.current.delete(req.mainItemId)
-      setSubItemsMap((prev) => { const next = { ...prev }; delete next[req.mainItemId]; return next })
+      qc.invalidateQueries({ queryKey: ['subItems', teamId, req.mainItemId] })
       setEditSubOpen(false)
     },
   })
@@ -253,13 +264,13 @@ export default function ItemViewPage() {
     mutationFn: (req: { subItemId: number; data: { completion: number; achievement?: string; blocker?: string } }) =>
       appendProgressApi(teamId!, req.subItemId, req.data),
     onSuccess: () => {
-      // Invalidate sub-items for the parent main item
-      fetchedRef.current.forEach((id) => {
-        qc.invalidateQueries({ queryKey: ['subItems', teamId, id] })
-      })
-      setSubItemsMap({})
-      fetchedRef.current.clear()
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
+      // Invalidate all loaded sub-item queries since we don't know which main item the sub belongs to
+      subItemQueries.forEach((result, index) => {
+        if (result.data) {
+          qc.invalidateQueries({ queryKey: ['subItems', teamId, idArray[index]] })
+        }
+      })
       setAppendOpen(false)
       setAppendForm({ completion: '', achievement: '', blocker: '' })
     },
@@ -276,22 +287,6 @@ export default function ItemViewPage() {
     })
   }, [])
 
-  // Fetch sub-items when cards are expanded or in detail view
-  useEffect(() => {
-    if (!teamId) return
-    const idsToFetch = viewMode === 'summary' ? expandedCards : new Set(paginatedItems.map((i) => i.id))
-    idsToFetch.forEach((itemId) => {
-      if (!fetchedRef.current.has(itemId)) {
-        fetchedRef.current.add(itemId)
-        listSubItemsApi(teamId, itemId).then((result) => {
-          setSubItemsMap((prev) => ({ ...prev, [itemId]: result.items }))
-        }).catch(() => {
-          fetchedRef.current.delete(itemId)
-        })
-      }
-    })
-  }, [expandedCards, viewMode, paginatedItems, teamId])
-
   const resetFilters = useCallback(() => {
     setSearchText('')
     setStatusFilter('')
@@ -300,8 +295,7 @@ export default function ItemViewPage() {
 
   const handleRefresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
-    fetchedRef.current.clear()
-    setSubItemsMap({})
+    qc.invalidateQueries({ queryKey: ['subItems', teamId] })
   }, [qc, teamId])
 
   const handleCreate = useCallback(() => {
@@ -531,16 +525,8 @@ export default function ItemViewPage() {
           onAppendProgress={openAppendDialog}
           onEditSubItem={openEditSubDialog}
           onSubItemStatusChanged={(mainItemId) => {
-            fetchedRef.current.delete(mainItemId)
-            setSubItemsMap((prev) => { const next = { ...prev }; delete next[mainItemId]; return next })
-            if (teamId) {
-              fetchedRef.current.add(mainItemId)
-              listSubItemsApi(teamId, mainItemId).then((result) => {
-                setSubItemsMap((prev) => ({ ...prev, [mainItemId]: result.items }))
-              }).catch(() => {
-                fetchedRef.current.delete(mainItemId)
-              })
-            }
+            qc.invalidateQueries({ queryKey: ['subItems', teamId, mainItemId] })
+            qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
           }}
         />
       ) : (

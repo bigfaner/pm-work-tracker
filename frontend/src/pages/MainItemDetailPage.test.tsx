@@ -468,4 +468,23 @@ describe('MainItemDetailPage', () => {
       expect(loading || title).toBeTruthy()
     })
   })
+
+  // --- useMemo -> useEffect regression test ---
+
+  it('populates edit form with item data when data loads', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Alpha Task' })).toBeInTheDocument()
+    })
+
+    // Open edit dialog
+    await user.click(screen.getAllByText('编辑')[0])
+
+    await waitFor(() => {
+      // Edit form should be populated with the item's data (not empty)
+      const titleInput = screen.getByDisplayValue('Alpha Task')
+      expect(titleInput).toBeInTheDocument()
+    })
+  })
 })

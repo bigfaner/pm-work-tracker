@@ -116,7 +116,7 @@
       "dependencies": [
         "1.4"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.6-frontend-perf-fixes.md",
       "record": "records/2.6-frontend-perf-fixes.md"
     },

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Pencil, Plus } from 'lucide-react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -106,7 +106,7 @@ export default function MainItemDetailPage() {
   )
 
   // Populate edit form when data loads
-  useMemo(() => {
+  useEffect(() => {
     if (item) {
       setEditForm({
         title: item.title,
