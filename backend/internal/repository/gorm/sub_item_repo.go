@@ -110,25 +110,32 @@ func (r *subItemRepo) ListByTeam(ctx context.Context, teamID uint) ([]model.SubI
 func (r *subItemRepo) NextSubCode(ctx context.Context, mainItemID uint) (string, error) {
 	var code string
 	err := r.db.WithContext(ctx).Transaction(func(tx *gormlib.DB) error {
-		var mainItem model.MainItem
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").First(&mainItem, mainItemID).Error; err != nil {
+		// Atomically increment the counter — real write forces SQLite write lock.
+		if err := tx.Exec("UPDATE main_items SET sub_item_seq = sub_item_seq + 1 WHERE id = ?", mainItemID).Error; err != nil {
 			return err
 		}
+		var mainItem model.MainItem
+		if err := tx.First(&mainItem, mainItemID).Error; err != nil {
+			return err
+		}
+		seq := mainItem.SubItemSeq
 
+		// If sub-items were inserted directly with a higher seq, skip past them.
 		var maxSeq *int
-		err := tx.Model(&model.SubItem{}).
+		if err := tx.Model(&model.SubItem{}).
 			Where("main_item_id = ?", mainItemID).
 			Select("MAX(CAST(SUBSTR(code, ?) AS INTEGER))", len(mainItem.Code)+2).
-			Scan(&maxSeq).Error
-		if err != nil {
+			Scan(&maxSeq).Error; err != nil {
 			return err
 		}
-
-		seq := 0
-		if maxSeq != nil {
-			seq = *maxSeq
+		if maxSeq != nil && uint(*maxSeq) >= seq {
+			seq = uint(*maxSeq) + 1
+			if err := tx.Exec("UPDATE main_items SET sub_item_seq = ? WHERE id = ?", seq, mainItemID).Error; err != nil {
+				return err
+			}
 		}
-		code = fmt.Sprintf("%s-%02d", mainItem.Code, seq+1)
+
+		code = fmt.Sprintf("%s-%02d", mainItem.Code, seq)
 		return nil
 	})
 	return code, err

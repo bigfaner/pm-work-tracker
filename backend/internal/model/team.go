@@ -10,6 +10,7 @@ type Team struct {
 	Description string `gorm:"type:varchar(500)"                                  json:"description"`
 	PmID        uint   `gorm:"not null"                                           json:"pmId"`
 	Code        string `gorm:"type:varchar(6);not null;uniqueIndex:idx_teams_code" json:"code"`
+	ItemSeq     uint   `gorm:"not null;default:0"                                  json:"itemSeq"`
 }
 
 func (Team) TableName() string {

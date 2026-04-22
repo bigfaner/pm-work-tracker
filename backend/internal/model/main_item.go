@@ -20,6 +20,7 @@ type MainItem struct {
 	Completion      float64    `gorm:"default:0" json:"completion"`
 	IsKeyItem       bool       `gorm:"not null;default:false" json:"isKeyItem"`
 	ArchivedAt      *time.Time `json:"archivedAt"`
+	SubItemSeq      uint       `gorm:"not null;default:0" json:"subItemSeq"`
 }
 
 func (MainItem) TableName() string {
