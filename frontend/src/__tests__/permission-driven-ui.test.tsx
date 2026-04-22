@@ -103,9 +103,11 @@ describe('Permission-driven UI', () => {
       const { default: TeamManagementPage } = await import('@/pages/TeamManagementPage')
       render(
         <QueryClientProvider client={createQueryClient()}>
-          <MemoryRouter>
-            <TeamManagementPage />
-          </MemoryRouter>
+          <ToastProvider>
+            <MemoryRouter>
+              <TeamManagementPage />
+            </MemoryRouter>
+          </ToastProvider>
         </QueryClientProvider>,
       )
       expect(screen.queryByText('创建团队')).not.toBeInTheDocument()
@@ -120,9 +122,11 @@ describe('Permission-driven UI', () => {
       const { default: TeamManagementPage } = await import('@/pages/TeamManagementPage')
       render(
         <QueryClientProvider client={createQueryClient()}>
-          <MemoryRouter>
-            <TeamManagementPage />
-          </MemoryRouter>
+          <ToastProvider>
+            <MemoryRouter>
+              <TeamManagementPage />
+            </MemoryRouter>
+          </ToastProvider>
         </QueryClientProvider>,
       )
       expect(screen.getByText('创建团队')).toBeInTheDocument()
