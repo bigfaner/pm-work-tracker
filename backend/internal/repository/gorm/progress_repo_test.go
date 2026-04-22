@@ -29,7 +29,7 @@ func seedProgressData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team, *
 	t.Helper()
 	u := model.User{Username: "pr_pm", DisplayName: "PR PM", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "PR Team", PmID: u.ID}
+	team := model.Team{Name: "PR Team", PmID: u.ID, Code: "PRTE"}
 	require.NoError(t, db.Create(&team).Error)
 	mi := model.MainItem{TeamID: team.ID, Code: "MI-PR01", Title: "Main", Priority: "P1", ProposerID: u.ID, Status: "pending"}
 	require.NoError(t, db.Create(&mi).Error)
@@ -123,7 +123,7 @@ func TestProgressRepo_ListBySubItem(t *testing.T) {
 		// Different team should see nothing
 		u2 := model.User{Username: "other_pr_pm", DisplayName: "OP", PasswordHash: "h"}
 		require.NoError(t, db.Create(&u2).Error)
-		team2 := model.Team{Name: "PR Team2", PmID: u2.ID}
+		team2 := model.Team{Name: "PR Team2", PmID: u2.ID, Code: "PRT2"}
 		require.NoError(t, db.Create(&team2).Error)
 		records, err := repo.ListBySubItem(ctx, team2.ID, si.ID)
 		require.NoError(t, err)

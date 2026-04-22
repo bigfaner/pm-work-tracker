@@ -108,8 +108,8 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	}
 
 	// Seed teams
-	teamA := &model.Team{Name: "Team A", PmID: userA.ID}
-	teamB := &model.Team{Name: "Team B", PmID: userB.ID}
+	teamA := &model.Team{Name: "Team A", PmID: userA.ID, Code: "TAMA"}
+	teamB := &model.Team{Name: "Team B", PmID: userB.ID, Code: "TAMB"}
 	require.NoError(t, db.Create(teamA).Error)
 	require.NoError(t, db.Create(teamB).Error)
 
@@ -169,7 +169,8 @@ func setupTestRouter(t *testing.T) (*gin.Engine, *seedData) {
 			Origins: []string{"http://localhost:3000"},
 		},
 		Server: config.ServerConfig{
-			GinMode: "test",
+			GinMode:  "test",
+			BasePath: "/api",
 		},
 	}
 
@@ -189,7 +190,7 @@ func setupTestRouter(t *testing.T) (*gin.Engine, *seedData) {
 		Admin:    handler.NewAdminHandler(adminSvc),
 	}
 
-	r := handler.SetupRouter(deps)
+	r := handler.SetupRouter(deps, nil)
 	return r, data
 }
 

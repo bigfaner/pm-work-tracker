@@ -28,7 +28,7 @@ func seedMainItemTeam(t *testing.T, db *gormlib.DB) (*model.User, *model.Team) {
 	t.Helper()
 	u := model.User{Username: "mi_pm", DisplayName: "MI PM", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "MI Team", PmID: u.ID}
+	team := model.Team{Name: "MI Team", PmID: u.ID, Code: "FEAT"}
 	require.NoError(t, db.Create(&team).Error)
 	return &u, &team
 }
@@ -57,7 +57,7 @@ func TestMainItemRepo_Create(t *testing.T) {
 	u, team := seedMainItemTeam(t, db)
 	item := &model.MainItem{
 		TeamID:     team.ID,
-		Code:       "MI-0001",
+		Code:       "FEAT-00001",
 		Title:      "Test Item",
 		Priority:   "P1",
 		ProposerID: u.ID,
@@ -75,7 +75,7 @@ func TestMainItemRepo_FindByID(t *testing.T) {
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)
-	item := createMainItem(t, db, team.ID, u.ID, "MI-F1", "Find Me", "P1", "pending")
+	item := createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Find Me", "P1", "pending")
 
 	t.Run("found", func(t *testing.T) {
 		found, err := repo.FindByID(ctx, item.ID)
@@ -98,7 +98,7 @@ func TestMainItemRepo_Update(t *testing.T) {
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)
-	item := createMainItem(t, db, team.ID, u.ID, "MI-U1", "Update Me", "P1", "pending")
+	item := createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Update Me", "P1", "pending")
 
 	fields := map[string]interface{}{
 		"title":    "Updated Title",
@@ -133,40 +133,40 @@ func TestMainItemRepo_NextCode(t *testing.T) {
 	repo := gormrepo.NewGormMainItemRepo(db)
 	ctx := context.Background()
 
-	u, team := seedMainItemTeam(t, db)
+	u, team := seedMainItemTeam(t, db) // team.Code = "FEAT"
 
 	t.Run("first_code", func(t *testing.T) {
 		code, err := repo.NextCode(ctx, team.ID)
 		require.NoError(t, err)
-		assert.Equal(t, "MI-0001", code)
+		assert.Equal(t, "FEAT-00001", code)
 	})
 
 	t.Run("sequential", func(t *testing.T) {
-		createMainItem(t, db, team.ID, u.ID, "MI-0001", "First", "P1", "pending")
+		createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "First", "P1", "pending")
 
 		code, err := repo.NextCode(ctx, team.ID)
 		require.NoError(t, err)
-		assert.Equal(t, "MI-0002", code)
+		assert.Equal(t, "FEAT-00002", code)
 	})
 
 	t.Run("skips_gaps", func(t *testing.T) {
-		createMainItem(t, db, team.ID, u.ID, "MI-0005", "Fifth", "P1", "pending")
+		createMainItem(t, db, team.ID, u.ID, "FEAT-00005", "Fifth", "P1", "pending")
 
 		code, err := repo.NextCode(ctx, team.ID)
 		require.NoError(t, err)
-		assert.Equal(t, "MI-0006", code)
+		assert.Equal(t, "FEAT-00006", code)
 	})
 
 	t.Run("team_isolation", func(t *testing.T) {
-		// Different team should start fresh
+		// Different team should start fresh with its own code prefix
 		u2 := model.User{Username: "pm_other", DisplayName: "Other PM", PasswordHash: "h"}
 		require.NoError(t, db.Create(&u2).Error)
-		team2 := model.Team{Name: "Other Team", PmID: u2.ID}
+		team2 := model.Team{Name: "Other Team", PmID: u2.ID, Code: "OTHR"}
 		require.NoError(t, db.Create(&team2).Error)
 
 		code, err := repo.NextCode(ctx, team2.ID)
 		require.NoError(t, err)
-		assert.Equal(t, "MI-0001", code, "new team should get MI-0001")
+		assert.Equal(t, "OTHR-00001", code, "new team should get OTHR-00001")
 	})
 }
 
@@ -180,15 +180,15 @@ func TestMainItemRepo_List(t *testing.T) {
 	u, team := seedMainItemTeam(t, db)
 
 	// Create several items
-	createMainItem(t, db, team.ID, u.ID, "MI-L01", "Item A", "P1", "pending")
-	createMainItem(t, db, team.ID, u.ID, "MI-L02", "Item B", "P2", "progressing")
-	createMainItem(t, db, team.ID, u.ID, "MI-L03", "Item C", "P1", "completed")
+	createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Item A", "P1", "pending")
+	createMainItem(t, db, team.ID, u.ID, "FEAT-00002", "Item B", "P2", "progressing")
+	createMainItem(t, db, team.ID, u.ID, "FEAT-00003", "Item C", "P1", "completed")
 	// Create one in another team — should not appear
 	u2 := model.User{Username: "pm_other2", DisplayName: "P2", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u2).Error)
 	team2 := model.Team{Name: "Team2", PmID: u2.ID}
 	require.NoError(t, db.Create(&team2).Error)
-	createMainItem(t, db, team2.ID, u2.ID, "MI-L04", "Other Team Item", "P1", "pending")
+	createMainItem(t, db, team2.ID, u2.ID, "FEAT-00004", "Other Team Item", "P1", "pending")
 
 	t.Run("all_items_for_team", func(t *testing.T) {
 		result, err := repo.List(ctx, team.ID, dto.MainItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
@@ -249,10 +249,10 @@ func TestMainItemRepo_List_ArchiveFilter(t *testing.T) {
 	u, team := seedMainItemTeam(t, db)
 
 	// Active item
-	createMainItem(t, db, team.ID, u.ID, "MI-AR01", "Active", "P1", "pending")
+	createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Active", "P1", "pending")
 
 	// Archived item
-	archived := createMainItem(t, db, team.ID, u.ID, "MI-AR02", "Archived", "P1", "completed")
+	archived := createMainItem(t, db, team.ID, u.ID, "FEAT-00002", "Archived", "P1", "completed")
 	now := time.Now()
 	require.NoError(t, db.Model(archived).Update("archived_at", &now).Error)
 
@@ -277,10 +277,10 @@ func TestMainItemRepo_List_FilterByKeyItem(t *testing.T) {
 
 	u, team := seedMainItemTeam(t, db)
 
-	item := createMainItem(t, db, team.ID, u.ID, "MI-KI1", "Key Item", "P1", "pending")
+	item := createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Key Item", "P1", "pending")
 	require.NoError(t, db.Model(item).Update("is_key_item", true).Error)
 
-	createMainItem(t, db, team.ID, u.ID, "MI-KI2", "Normal Item", "P2", "pending")
+	createMainItem(t, db, team.ID, u.ID, "FEAT-00002", "Normal Item", "P2", "pending")
 
 	isKey := true
 	result, err := repo.List(ctx, team.ID, dto.MainItemFilter{IsKeyItem: &isKey}, dto.Pagination{Page: 1, PageSize: 10})
@@ -296,10 +296,10 @@ func TestMainItemRepo_List_FilterByAssignee(t *testing.T) {
 
 	u, team := seedMainItemTeam(t, db)
 
-	item := createMainItem(t, db, team.ID, u.ID, "MI-AS1", "Assigned", "P1", "pending")
+	item := createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Assigned", "P1", "pending")
 	require.NoError(t, db.Model(item).Update("assignee_id", u.ID).Error)
 
-	createMainItem(t, db, team.ID, u.ID, "MI-AS2", "Unassigned", "P2", "pending")
+	createMainItem(t, db, team.ID, u.ID, "FEAT-00002", "Unassigned", "P2", "pending")
 
 	assigneeID := u.ID
 	result, err := repo.List(ctx, team.ID, dto.MainItemFilter{AssigneeID: &assigneeID}, dto.Pagination{Page: 1, PageSize: 10})

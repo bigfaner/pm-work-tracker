@@ -72,7 +72,7 @@ export function makeItemPool(overrides: Partial<ItemPool> = {}): ItemPool {
 
 export const handlers = [
   // Auth: login
-  http.post('/api/v1/auth/login', async ({ request }) => {
+  http.post('/v1/auth/login', async ({ request }) => {
     const body = (await request.json()) as { username: string; password: string }
 
     if (body.username === 'testuser' && body.password === 'password123') {
@@ -87,12 +87,12 @@ export const handlers = [
   }),
 
   // Teams: list members
-  http.get('/api/v1/teams/:teamId/members', () => {
+  http.get('/v1/teams/:teamId/members', () => {
     return HttpResponse.json({ code: 0, data: seedMembers })
   }),
 
   // Main items: list
-  http.get('/api/v1/teams/:teamId/main-items', ({ request }) => {
+  http.get('/v1/teams/:teamId/main-items', ({ request }) => {
     const url = new URL(request.url)
     const priority = url.searchParams.get('priority')
     const archived = url.searchParams.get('archived')
@@ -115,7 +115,7 @@ export const handlers = [
   }),
 
   // Item pool: list
-  http.get('/api/v1/teams/:teamId/item-pool', ({ request }) => {
+  http.get('/v1/teams/:teamId/item-pool', ({ request }) => {
     const url = new URL(request.url)
     const status = url.searchParams.get('status')
 
@@ -134,20 +134,20 @@ export const handlers = [
   }),
 
   // Item pool: assign
-  http.post('/api/v1/teams/:teamId/item-pool/:poolId/assign', async ({ params }) => {
+  http.post('/v1/teams/:teamId/item-pool/:poolId/assign', async ({ params }) => {
     const poolId = Number(params.poolId)
     const resp: AssignItemPoolResp = { mainItemId: 100 + poolId, subItemId: 1000 + poolId }
     return HttpResponse.json({ code: 0, data: resp })
   }),
 
   // Item pool: reject
-  http.post('/api/v1/teams/:teamId/item-pool/:poolId/reject', async ({ params }) => {
+  http.post('/v1/teams/:teamId/item-pool/:poolId/reject', async ({ params }) => {
     const updated = makeItemPool({ id: Number(params.poolId), status: '已拒绝' })
     return HttpResponse.json({ code: 0, data: updated })
   }),
 
   // Generic 401 handler (for testing auth-clear-on-401)
-  http.get('/api/v1/trigger-401', () => {
+  http.get('/v1/trigger-401', () => {
     return HttpResponse.json(
       { code: 'UNAUTHORIZED', message: 'token expired' },
       { status: 401 },

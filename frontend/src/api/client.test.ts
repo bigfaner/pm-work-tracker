@@ -16,8 +16,8 @@ describe('API Client', () => {
   })
 
   describe('base configuration', () => {
-    it('should have baseURL set to /api/v1', () => {
-      expect(client.defaults.baseURL).toBe('/api/v1')
+    it('should have baseURL set to /v1', () => {
+      expect(client.defaults.baseURL).toBe('/v1')
     })
   })
 

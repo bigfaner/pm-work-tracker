@@ -12,7 +12,7 @@ import type { WeeklyViewResponse } from '@/types'
 // Fix current week to a known date for deterministic tests
 vi.mock('@/utils/weekUtils', async (importOriginal) => {
   const actual = await importOriginal() as typeof import('@/utils/weekUtils')
-  return { ...actual, getCurrentWeekStart: () => '2026-04-20' }
+  return { ...actual, getCurrentWeekStart: () => '2026-04-13' }
 })
 
 // MSW lifecycle
@@ -225,7 +225,7 @@ const mockWeeklyResponse: WeeklyViewResponse = {
 
 function setupWeeklyHandler(response = mockWeeklyResponse) {
   server.use(
-    http.get('/api/v1/teams/:teamId/views/weekly', ({ request }) => {
+    http.get('/v1/teams/:teamId/views/weekly', ({ request }) => {
       const url = new URL(request.url)
       const weekStart = url.searchParams.get('weekStart')
       if (!weekStart) {
@@ -605,7 +605,7 @@ describe('WeeklyViewPage', () => {
     const user = userEvent.setup()
     const requests: string[] = []
     server.use(
-      http.get('/api/v1/teams/:teamId/views/weekly', ({ request }) => {
+      http.get('/v1/teams/:teamId/views/weekly', ({ request }) => {
         const url = new URL(request.url)
         const weekStart = url.searchParams.get('weekStart') || ''
         requests.push(weekStart)
@@ -623,7 +623,7 @@ describe('WeeklyViewPage', () => {
     await waitFor(() => {
       expect(requests.length).toBeGreaterThanOrEqual(1)
     })
-    // Should be one week before getCurrentWeekStart (2026-04-20) = 2026-04-13
-    expect(requests[requests.length - 1]).toBe('2026-04-13')
+    // Should be one week before getCurrentWeekStart (2026-04-13) = 2026-04-06
+    expect(requests[requests.length - 1]).toBe('2026-04-06')
   })
 })

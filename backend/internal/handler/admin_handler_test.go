@@ -126,7 +126,7 @@ func signSuperAdminToken(t *testing.T, userID uint) string {
 }
 
 // ---------------------------------------------------------------------------
-// Tests: GET /api/v1/admin/users (ListUsers)
+// Tests: GET /v1/admin/users (ListUsers)
 // ---------------------------------------------------------------------------
 
 func TestAdminListUsers_Success(t *testing.T) {
@@ -138,7 +138,7 @@ func TestAdminListUsers_Success(t *testing.T) {
 	svc.listUsersFilteredResult.total = 2
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	w := httptest.NewRecorder()
@@ -179,7 +179,7 @@ func TestAdminListUsers_WithSearch(t *testing.T) {
 	svc.listUsersFilteredResult.total = 1
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	w := httptest.NewRecorder()
@@ -197,7 +197,7 @@ func TestAdminListUsers_DefaultPageSize(t *testing.T) {
 	svc.listUsersFilteredResult.total = 0
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	w := httptest.NewRecorder()
@@ -215,7 +215,7 @@ func TestAdminListUsers_ServiceError(t *testing.T) {
 	svc.listUsersFilteredResult.err = errors.New("db error")
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	w := httptest.NewRecorder()
@@ -227,7 +227,7 @@ func TestAdminListUsers_ServiceError(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Tests: POST /api/v1/admin/users (CreateUser)
+// Tests: POST /v1/admin/users (CreateUser)
 // ---------------------------------------------------------------------------
 
 func TestAdminCreateUser_Success(t *testing.T) {
@@ -243,7 +243,7 @@ func TestAdminCreateUser_Success(t *testing.T) {
 	}
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	body := `{"username":"newuser","displayName":"New User","email":"new@test.com","teamId":10}`
@@ -275,7 +275,7 @@ func TestAdminCreateUser_DuplicateUsername(t *testing.T) {
 	svc.createUserResult.err = apperrors.ErrUserExists
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	body := `{"username":"existing","displayName":"Existing"}`
@@ -297,7 +297,7 @@ func TestAdminCreateUser_ValidationFail(t *testing.T) {
 	svc := &mockAdminService{}
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	body := `{}`
@@ -311,7 +311,7 @@ func TestAdminCreateUser_ValidationFail(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Tests: GET /api/v1/admin/users/:userId (GetUser)
+// Tests: GET /v1/admin/users/:userId (GetUser)
 // ---------------------------------------------------------------------------
 
 func TestAdminGetUser_Success(t *testing.T) {
@@ -327,7 +327,7 @@ func TestAdminGetUser_Success(t *testing.T) {
 	}
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	w := httptest.NewRecorder()
@@ -353,7 +353,7 @@ func TestAdminGetUser_NotFound(t *testing.T) {
 	svc.getUserResult.err = apperrors.ErrUserNotFound
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	w := httptest.NewRecorder()
@@ -373,7 +373,7 @@ func TestAdminGetUser_InvalidId(t *testing.T) {
 	svc := &mockAdminService{}
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	w := httptest.NewRecorder()
@@ -385,7 +385,7 @@ func TestAdminGetUser_InvalidId(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Tests: PUT /api/v1/admin/users/:userId (UpdateUser)
+// Tests: PUT /v1/admin/users/:userId (UpdateUser)
 // ---------------------------------------------------------------------------
 
 func TestAdminUpdateUser_Success(t *testing.T) {
@@ -400,7 +400,7 @@ func TestAdminUpdateUser_Success(t *testing.T) {
 	}
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	body := `{"displayName":"Robert","email":"robert@test.com"}`
@@ -421,7 +421,7 @@ func TestAdminUpdateUser_NotFound(t *testing.T) {
 	svc.updateUserResult.err = apperrors.ErrUserNotFound
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	body := `{"displayName":"Robert"}`
@@ -435,7 +435,7 @@ func TestAdminUpdateUser_NotFound(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Tests: PUT /api/v1/admin/users/:userId/status (ToggleUserStatus)
+// Tests: PUT /v1/admin/users/:userId/status (ToggleUserStatus)
 // ---------------------------------------------------------------------------
 
 func TestAdminToggleUserStatus_DisableSuccess(t *testing.T) {
@@ -448,7 +448,7 @@ func TestAdminToggleUserStatus_DisableSuccess(t *testing.T) {
 	}
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	body := `{"status":"disabled"}`
@@ -469,7 +469,7 @@ func TestAdminToggleUserStatus_CannotDisableSelf(t *testing.T) {
 	svc.toggleUserStatusResult.err = apperrors.ErrCannotDisableSelf
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	body := `{"status":"disabled"}`
@@ -491,7 +491,7 @@ func TestAdminToggleUserStatus_InvalidStatus(t *testing.T) {
 	svc := &mockAdminService{}
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	body := `{"status":"suspended"}`
@@ -509,7 +509,7 @@ func TestAdminToggleUserStatus_UserNotFound(t *testing.T) {
 	svc.toggleUserStatusResult.err = apperrors.ErrUserNotFound
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	body := `{"status":"disabled"}`
@@ -523,7 +523,7 @@ func TestAdminToggleUserStatus_UserNotFound(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Tests: GET /api/v1/admin/teams (ListTeams)
+// Tests: GET /v1/admin/teams (ListTeams)
 // ---------------------------------------------------------------------------
 
 func TestAdminListTeams_Success(t *testing.T) {
@@ -534,7 +534,7 @@ func TestAdminListTeams_Success(t *testing.T) {
 	}
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	w := httptest.NewRecorder()
@@ -579,7 +579,7 @@ func TestAdminListTeams_Pagination(t *testing.T) {
 	svc.listAllTeamsResult.teams = teams
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	w := httptest.NewRecorder()
@@ -609,7 +609,7 @@ func TestAdminListTeams_Empty(t *testing.T) {
 	svc.listAllTeamsResult.teams = []*dto.AdminTeamDTO{}
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	w := httptest.NewRecorder()
@@ -634,7 +634,7 @@ func TestAdminListTeams_ServiceError(t *testing.T) {
 	svc.listAllTeamsResult.err = errors.New("db error")
 
 	deps := depsWithAdminSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
 	w := httptest.NewRecorder()

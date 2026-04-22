@@ -68,14 +68,14 @@ const seedRoles = [
 ]
 
 const seedAvailableUsers = [
-  { userId: 10, displayName: '刘洋', username: 'liuyang' },
-  { userId: 11, displayName: '周磊', username: 'zhoulei' },
+  { id: 10, displayName: '刘洋', username: 'liuyang' },
+  { id: 11, displayName: '周磊', username: 'zhoulei' },
 ]
 
 function setupHandlers() {
   server.use(
     // Get team detail
-    http.get('/api/v1/teams/:teamId', ({ params }) => {
+    http.get('/v1/teams/:teamId', ({ params }) => {
       const teamId = Number(params.teamId)
       if (teamId === 999) {
         return HttpResponse.json(
@@ -90,29 +90,29 @@ function setupHandlers() {
     }),
 
     // List members
-    http.get('/api/v1/teams/:teamId/members', () => {
+    http.get('/v1/teams/:teamId/members', () => {
       return HttpResponse.json({ code: 0, data: seedMembers })
     }),
 
     // List roles
-    http.get('/api/v1/admin/roles', () => {
+    http.get('/v1/admin/roles', () => {
       return HttpResponse.json({ code: 0, data: { items: seedRoles, total: 4, page: 1, pageSize: 100 } })
     }),
 
     // Transfer PM
-    http.put('/api/v1/teams/:teamId/pm', async ({ request }) => {
+    http.put('/v1/teams/:teamId/pm', async ({ request }) => {
       const body = (await request.json()) as { newPmUserId: number }
       const newPm = seedMembers.find((m) => m.userId === body.newPmUserId)
       return HttpResponse.json({ code: 0, data: { newPmName: newPm?.displayName } })
     }),
 
     // Remove member
-    http.delete('/api/v1/teams/:teamId/members/:userId', () => {
+    http.delete('/v1/teams/:teamId/members/:userId', () => {
       return HttpResponse.json({ code: 0, data: null })
     }),
 
     // Disband team
-    http.delete('/api/v1/teams/:teamId', async ({ params, request }) => {
+    http.delete('/v1/teams/:teamId', async ({ params, request }) => {
       const body = (await request.json()) as { confirmName: string }
       if (body.confirmName !== '产品研发团队') {
         return HttpResponse.json(
@@ -124,18 +124,18 @@ function setupHandlers() {
     }),
 
     // Invite member - search available users
-    http.get('/api/v1/teams/:teamId/available-users', () => {
+    http.get('/v1/teams/:teamId/search-users', () => {
       return HttpResponse.json({ code: 0, data: seedAvailableUsers })
     }),
 
     // Invite member (updated: expects roleId)
-    http.post('/api/v1/teams/:teamId/members', async ({ request }) => {
+    http.post('/v1/teams/:teamId/members', async ({ request }) => {
       const body = (await request.json()) as { username: string; roleId: number }
       return HttpResponse.json({ code: 0, data: null })
     }),
 
     // Change member role
-    http.put('/api/v1/teams/:teamId/members/:memberId/role', async ({ request }) => {
+    http.put('/v1/teams/:teamId/members/:memberId/role', async ({ request }) => {
       const body = (await request.json()) as { roleId: number }
       return HttpResponse.json({ code: 0, data: null })
     }),
@@ -353,11 +353,11 @@ describe('TeamDetailPage', () => {
   it('shows loading state', async () => {
     // Delay response to catch loading
     server.use(
-      http.get('/api/v1/teams/:teamId', async () => {
+      http.get('/v1/teams/:teamId', async () => {
         await new Promise((r) => setTimeout(r, 100))
         return HttpResponse.json({ code: 0, data: seedTeamDetail })
       }),
-      http.get('/api/v1/teams/:teamId/members', async () => {
+      http.get('/v1/teams/:teamId/members', async () => {
         await new Promise((r) => setTimeout(r, 100))
         return HttpResponse.json({ code: 0, data: seedMembers })
       }),
@@ -461,7 +461,7 @@ describe('TeamDetailPage', () => {
   it('invite request sends roleId instead of role string', async () => {
     let capturedBody: any = null
     server.use(
-      http.post('/api/v1/teams/:teamId/members', async ({ request }) => {
+      http.post('/v1/teams/:teamId/members', async ({ request }) => {
         capturedBody = await request.json()
         return HttpResponse.json({ code: 0, data: null })
       }),
@@ -479,9 +479,25 @@ describe('TeamDetailPage', () => {
       expect(screen.getByText('搜索用户')).toBeInTheDocument()
     })
 
-    // Type a username
-    const input = screen.getByPlaceholderText('请输入用户名')
-    await user.type(input, 'newuser')
+    // Type a username matching a seed user
+    const input = screen.getByPlaceholderText('输入用户名或姓名搜索...')
+    await user.type(input, 'liuyang')
+
+    // Wait for dropdown and select the user
+    await waitFor(() => {
+      expect(screen.getByTestId('invite-user-option-10')).toBeInTheDocument()
+    })
+    await user.click(screen.getByTestId('invite-user-option-10'))
+
+    // Select a role (member = id 3)
+    await waitFor(() => {
+      expect(screen.getByTestId('invite-role-select')).toBeInTheDocument()
+    })
+    await user.click(screen.getByTestId('invite-role-select'))
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: 'member' })).toBeInTheDocument()
+    })
+    await user.click(screen.getByRole('option', { name: 'member' }))
 
     // Submit
     const submitBtn = screen.getByTestId('invite-submit-btn')
@@ -545,7 +561,7 @@ describe('TeamDetailPage', () => {
     let capturedBody: any = null
     let capturedMemberId: string | null = null
     server.use(
-      http.put('/api/v1/teams/:teamId/members/:memberId/role', async ({ params, request }) => {
+      http.put('/v1/teams/:teamId/members/:memberId/role', async ({ params, request }) => {
         capturedMemberId = params.memberId as string
         capturedBody = await request.json()
         return HttpResponse.json({ code: 0, data: null })
@@ -587,7 +603,7 @@ describe('TeamDetailPage', () => {
 
   it('successful role change shows toast and reverts to text display', async () => {
     server.use(
-      http.put('/api/v1/teams/:teamId/members/:memberId/role', async () => {
+      http.put('/v1/teams/:teamId/members/:memberId/role', async () => {
         return HttpResponse.json({ code: 0, data: null })
       }),
     )
@@ -622,7 +638,7 @@ describe('TeamDetailPage', () => {
 
   it('failed role change shows error toast and reverts to original', async () => {
     server.use(
-      http.put('/api/v1/teams/:teamId/members/:memberId/role', async () => {
+      http.put('/v1/teams/:teamId/members/:memberId/role', async () => {
         return HttpResponse.json(
           { code: 'ERR_FORBIDDEN', message: '权限不足' },
           { status: 403 },

@@ -27,7 +27,7 @@ func seedItemPoolData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team) {
 	t.Helper()
 	u := model.User{Username: "ip_user", DisplayName: "IP User", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "IP Team", PmID: u.ID}
+	team := model.Team{Name: "IP Team", PmID: u.ID, Code: "IPTE"}
 	require.NoError(t, db.Create(&team).Error)
 	return &u, &team
 }
@@ -142,7 +142,7 @@ func TestItemPoolRepo_List(t *testing.T) {
 	// Another team - should not appear
 	u2 := model.User{Username: "ip_other", DisplayName: "IP Other", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u2).Error)
-	team2 := model.Team{Name: "IP Team2", PmID: u2.ID}
+	team2 := model.Team{Name: "IP Team2", PmID: u2.ID, Code: "IPT2"}
 	require.NoError(t, db.Create(&team2).Error)
 	createItemPool(t, db, team2.ID, u2.ID, "Other Team", "pending")
 

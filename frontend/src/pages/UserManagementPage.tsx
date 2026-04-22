@@ -315,20 +315,18 @@ export default function UserManagementPage() {
           </Table>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between px-5 py-3 border-t border-border">
+          <div className="flex items-center justify-center gap-3 px-5 py-3 border-t border-border">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
             <PaginationPageSize
               pageSize={pageSize}
               onPageSizeChange={handlePageSizeChange}
               options={[10, 20, 50]}
             />
-            <div className="flex items-center gap-3">
-              <span className="text-[13px] text-tertiary">共 {total} 条</span>
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
-            </div>
+            <span className="text-[13px] text-tertiary">共 {total} 条</span>
           </div>
         </div>
       )}

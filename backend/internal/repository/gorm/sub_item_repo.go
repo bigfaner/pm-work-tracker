@@ -3,6 +3,7 @@ package gorm
 import (
 	"context"
 	stderrors "errors"
+	"fmt"
 
 	gormlib "gorm.io/gorm"
 
@@ -101,6 +102,43 @@ func (r *subItemRepo) ListByTeam(ctx context.Context, teamID uint) ([]model.SubI
 		Where("team_id = ?", teamID).
 		Find(&items).Error
 	return items, err
+}
+
+// NextSubCode generates the next sub-item code for the given main item.
+// It locks the main item row (SELECT FOR UPDATE) to serialize concurrent calls,
+// reads the current MAX sub sequence, and returns "{mainCode}-{seq:02d}".
+func (r *subItemRepo) NextSubCode(ctx context.Context, mainItemID uint) (string, error) {
+	var code string
+	err := r.db.WithContext(ctx).Transaction(func(tx *gormlib.DB) error {
+		// Atomically increment the counter — real write forces SQLite write lock.
+		if err := tx.Exec("UPDATE main_items SET sub_item_seq = sub_item_seq + 1 WHERE id = ?", mainItemID).Error; err != nil {
+			return err
+		}
+		var mainItem model.MainItem
+		if err := tx.First(&mainItem, mainItemID).Error; err != nil {
+			return err
+		}
+		seq := mainItem.SubItemSeq
+
+		// If sub-items were inserted directly with a higher seq, skip past them.
+		var maxSeq *int
+		if err := tx.Model(&model.SubItem{}).
+			Where("main_item_id = ?", mainItemID).
+			Select("MAX(CAST(SUBSTR(code, ?) AS INTEGER))", len(mainItem.Code)+2).
+			Scan(&maxSeq).Error; err != nil {
+			return err
+		}
+		if maxSeq != nil && uint(*maxSeq) >= seq {
+			seq = uint(*maxSeq) + 1
+			if err := tx.Exec("UPDATE main_items SET sub_item_seq = ? WHERE id = ?", seq, mainItemID).Error; err != nil {
+				return err
+			}
+		}
+
+		code = fmt.Sprintf("%s-%02d", mainItem.Code, seq)
+		return nil
+	})
+	return code, err
 }
 
 func applySubItemFilter(query *gormlib.DB, filter dto.SubItemFilter) *gormlib.DB {

@@ -87,7 +87,7 @@ func TestWeeklyPreview_Success(t *testing.T) {
 	}
 
 	deps := depsWithReportSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -114,7 +114,7 @@ func TestWeeklyPreview_Success(t *testing.T) {
 func TestWeeklyPreview_MissingWeekStart(t *testing.T) {
 	svc := &mockReportService{}
 	deps := depsWithReportSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -129,7 +129,7 @@ func TestWeeklyPreview_MissingWeekStart(t *testing.T) {
 func TestWeeklyPreview_InvalidDateFormat(t *testing.T) {
 	svc := &mockReportService{}
 	deps := depsWithReportSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -144,7 +144,7 @@ func TestWeeklyPreview_InvalidDateFormat(t *testing.T) {
 func TestWeeklyPreview_NotAMonday(t *testing.T) {
 	svc := &mockReportService{}
 	deps := depsWithReportSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	// 2026-04-14 is a Tuesday
@@ -167,7 +167,7 @@ func TestWeeklyPreview_NoData(t *testing.T) {
 	svc.previewResult.err = apperrors.ErrNoData
 
 	deps := depsWithReportSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -188,7 +188,7 @@ func TestWeeklyPreview_ServiceError(t *testing.T) {
 	svc.previewResult.err = errors.New("db error")
 
 	deps := depsWithReportSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -202,7 +202,7 @@ func TestWeeklyPreview_ServiceError(t *testing.T) {
 func TestWeeklyPreview_RequiresAuth(t *testing.T) {
 	svc := &mockReportService{}
 	deps := depsWithReportSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/preview?weekStart="+monday(), nil)
@@ -219,7 +219,7 @@ func TestWeeklyPreview_RequiresTeamMembership(t *testing.T) {
 	db.Create(&model.User{BaseModel: model.BaseModel{ID: 99}, Username: "testuser99", DisplayName: "Test User 99"})
 	deps.Report = NewReportHandlerWithDeps(svc)
 	// default TeamRepo from testDeps has no members
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 99, "testuser")
 	w := httptest.NewRecorder()
@@ -240,7 +240,7 @@ func TestWeeklyExport_Success(t *testing.T) {
 	svc.exportResult.bytes = []byte("# Weekly Report\n## Backend\n- Auth: 80%\n")
 
 	deps := depsWithReportSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -264,7 +264,7 @@ func TestWeeklyExport_Success(t *testing.T) {
 func TestWeeklyExport_MissingWeekStart(t *testing.T) {
 	svc := &mockReportService{}
 	deps := depsWithReportSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -279,7 +279,7 @@ func TestWeeklyExport_MissingWeekStart(t *testing.T) {
 func TestWeeklyExport_InvalidDateFormat(t *testing.T) {
 	svc := &mockReportService{}
 	deps := depsWithReportSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -294,7 +294,7 @@ func TestWeeklyExport_InvalidDateFormat(t *testing.T) {
 func TestWeeklyExport_NotAMonday(t *testing.T) {
 	svc := &mockReportService{}
 	deps := depsWithReportSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -311,7 +311,7 @@ func TestWeeklyExport_NoData(t *testing.T) {
 	svc.exportResult.err = apperrors.ErrNoData
 
 	deps := depsWithReportSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -332,7 +332,7 @@ func TestWeeklyExport_ServiceError(t *testing.T) {
 	svc.exportResult.err = errors.New("db error")
 
 	deps := depsWithReportSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -346,7 +346,7 @@ func TestWeeklyExport_ServiceError(t *testing.T) {
 func TestWeeklyExport_RequiresAuth(t *testing.T) {
 	svc := &mockReportService{}
 	deps := depsWithReportSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/export?weekStart="+monday(), nil)
@@ -361,7 +361,7 @@ func TestWeeklyExport_FilenameFormat(t *testing.T) {
 	svc.exportResult.bytes = []byte("report")
 
 	deps := depsWithReportSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()

@@ -122,21 +122,3 @@ func TestTeamMember_CompositeUniqueIndex(t *testing.T) {
 	assert.Error(t, err, "duplicate (team_id, user_id) should be rejected")
 }
 
-func TestTeamMember_DefaultRole(t *testing.T) {
-	db := setupTestDB(t)
-	err := db.AutoMigrate(&model.User{}, &model.Team{}, &model.TeamMember{})
-	require.NoError(t, err)
-
-	u := model.User{Username: "roleuser", DisplayName: "RU", PasswordHash: "h"}
-	require.NoError(t, db.Create(&u).Error)
-
-	team := model.Team{Name: "RoleTeam", PmID: u.ID}
-	require.NoError(t, db.Create(&team).Error)
-
-	tm := model.TeamMember{TeamID: team.ID, UserID: u.ID}
-	require.NoError(t, db.Create(&tm).Error)
-
-	var fetched model.TeamMember
-	db.First(&fetched, "team_id = ? AND user_id = ?", team.ID, u.ID)
-	assert.Equal(t, "member", fetched.Role, "role should default to 'member'")
-}

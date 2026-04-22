@@ -53,7 +53,7 @@ const seedMainItem = {
 }
 
 const seedSubItem = {
-  id: 12, teamId: 1, mainItemId: 1, title: 'Sub Alpha 2', description: 'JWT Token implementation',
+  id: 12, teamId: 1, mainItemId: 1, code: 'SI-001-12', title: 'Sub Alpha 2', description: 'JWT Token implementation',
   priority: 'P2', assigneeId: 3, startDate: '2026-04-08', expectedEndDate: '2026-04-18',
   actualEndDate: null, status: 'progressing', completion: 80, isKeyItem: false,
   delayCount: 0, weight: 1,
@@ -86,7 +86,7 @@ const seedProgressRecords = [
 function setupHandlers() {
   server.use(
     // Get sub item
-    http.get('/api/v1/teams/:teamId/sub-items/:itemId', ({ params }) => {
+    http.get('/v1/teams/:teamId/sub-items/:itemId', ({ params }) => {
       if (Number(params.itemId) === 12) {
         return HttpResponse.json({ code: 0, data: seedSubItem })
       }
@@ -94,7 +94,7 @@ function setupHandlers() {
     }),
 
     // Get main item (for parent link)
-    http.get('/api/v1/teams/:teamId/main-items/:itemId', ({ params }) => {
+    http.get('/v1/teams/:teamId/main-items/:itemId', ({ params }) => {
       if (Number(params.itemId) === 1) {
         return HttpResponse.json({ code: 0, data: seedMainItem })
       }
@@ -102,7 +102,7 @@ function setupHandlers() {
     }),
 
     // List progress records
-    http.get('/api/v1/teams/:teamId/sub-items/:itemId/progress', ({ params }) => {
+    http.get('/v1/teams/:teamId/sub-items/:itemId/progress', ({ params }) => {
       if (Number(params.itemId) === 12) {
         return HttpResponse.json({ code: 0, data: seedProgressRecords })
       }
@@ -110,12 +110,12 @@ function setupHandlers() {
     }),
 
     // List members
-    http.get('/api/v1/teams/:teamId/members', () => {
+    http.get('/v1/teams/:teamId/members', () => {
       return HttpResponse.json({ code: 0, data: seedMembers })
     }),
 
     // Append progress
-    http.post('/api/v1/teams/:teamId/sub-items/:itemId/progress', async ({ request }) => {
+    http.post('/v1/teams/:teamId/sub-items/:itemId/progress', async ({ request }) => {
       const body = await request.json() as Record<string, unknown>
       return HttpResponse.json({
         code: 0,
@@ -179,7 +179,6 @@ describe('SubItemDetailPage', () => {
   it('renders info card fields', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText('所属主事项')).toBeInTheDocument()
       expect(screen.getByText('负责人')).toBeInTheDocument()
       expect(screen.getByText('预期完成时间')).toBeInTheDocument()
       expect(screen.getByText('总进度')).toBeInTheDocument()

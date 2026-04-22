@@ -186,6 +186,7 @@ func TestCreateTeam_Success(t *testing.T) {
 	team, err := svc.CreateTeam(context.Background(), 1, dto.CreateTeamReq{
 		Name:        "Alpha Team",
 		Description: "A test team",
+		Code:        "ALPHA",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "Alpha Team", team.Name)
@@ -196,6 +197,19 @@ func TestCreateTeam_Success(t *testing.T) {
 	assert.NotNil(t, repo.createdMember)
 	assert.Equal(t, uint(1), repo.createdMember.UserID)
 	assert.Equal(t, "pm", repo.createdMember.Role)
+}
+
+func TestCreateTeam_CodeFieldPersisted(t *testing.T) {
+	repo := &mockTeamRepo{}
+	svc := NewTeamService(repo, &mockTeamUserRepo{}, &mockMainItemRepo{}, &mockDB{})
+
+	team, err := svc.CreateTeam(context.Background(), 1, dto.CreateTeamReq{
+		Name: "Beta Team",
+		Code: "BETA",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "BETA", team.Code)
+	assert.Equal(t, "BETA", repo.createdTeam.Code)
 }
 
 func TestCreateTeam_RepoError(t *testing.T) {
@@ -263,7 +277,7 @@ func TestInviteMember_Success(t *testing.T) {
 	teamRepo := &mockTeamRepo{
 		team:          &model.Team{BaseModel: model.BaseModel{ID: 1}, Name: "Alpha", PmID: 10},
 		member:        nil, // invited user is not yet a member
-		findMemberErr: gorm.ErrRecordNotFound, // FindMember returns not found
+		findMemberErr: apperrors.ErrNotFound, // FindMember returns not found
 	}
 	userRepo := &mockTeamUserRepo{
 		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
@@ -312,15 +326,7 @@ func TestInviteMember_AlreadyMember(t *testing.T) {
 	assert.ErrorIs(t, err, apperrors.ErrAlreadyMember)
 }
 
-func TestInviteMember_CallerNotPM(t *testing.T) {
-	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1}, PmID: 10},
-	}
-	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, &mockDB{})
-
-	err := svc.InviteMember(context.Background(), 99, 1, dto.InviteMemberReq{Username: "bob"})
-	assert.ErrorIs(t, err, apperrors.ErrForbidden)
-}
+// TestInviteMember_CallerNotPM is removed: PM check moved to RequirePermission middleware.
 
 // ---------------------------------------------------------------------------
 // Tests: RemoveMember

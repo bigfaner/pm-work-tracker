@@ -54,7 +54,7 @@ func TestLogin_Success(t *testing.T) {
 	authSvc.loginResult.user.ID = 1
 
 	deps := depsWithAuthSvc(t, authSvc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	body := `{"username":"alice","password":"secret123"}`
 	w := httptest.NewRecorder()
@@ -87,7 +87,7 @@ func TestLogin_Success(t *testing.T) {
 func TestLogin_MissingUsername_Returns400(t *testing.T) {
 	authSvc := &mockAuthService{}
 	deps := depsWithAuthSvc(t, authSvc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	body := `{"password":"secret123"}`
 	w := httptest.NewRecorder()
@@ -106,7 +106,7 @@ func TestLogin_MissingUsername_Returns400(t *testing.T) {
 func TestLogin_MissingPassword_Returns400(t *testing.T) {
 	authSvc := &mockAuthService{}
 	deps := depsWithAuthSvc(t, authSvc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	body := `{"username":"alice"}`
 	w := httptest.NewRecorder()
@@ -125,7 +125,7 @@ func TestLogin_MissingPassword_Returns400(t *testing.T) {
 func TestLogin_EmptyBody_Returns400(t *testing.T) {
 	authSvc := &mockAuthService{}
 	deps := depsWithAuthSvc(t, authSvc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(`{}`))
@@ -140,7 +140,7 @@ func TestLogin_WrongCredentials_Returns401(t *testing.T) {
 	authSvc.loginResult.err = apperrors.ErrUnauthorized
 
 	deps := depsWithAuthSvc(t, authSvc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	body := `{"username":"alice","password":"wrong"}`
 	w := httptest.NewRecorder()
@@ -166,7 +166,7 @@ func TestLogin_PasswordNeverInResponse(t *testing.T) {
 	authSvc.loginResult.user.ID = 5
 
 	deps := depsWithAuthSvc(t, authSvc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	body := `{"username":"bob","password":"secret"}`
 	w := httptest.NewRecorder()
@@ -185,7 +185,7 @@ func TestLogin_PasswordNeverInResponse(t *testing.T) {
 func TestLogout_Success(t *testing.T) {
 	authSvc := &mockAuthService{}
 	deps := depsWithAuthSvc(t, authSvc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	w := httptest.NewRecorder()

@@ -65,7 +65,8 @@ func rbacTestEnv(t *testing.T) (*gin.Engine, *gorm.DB) {
 			Origins: []string{"http://localhost:3000"},
 		},
 		Server: config.ServerConfig{
-			GinMode: "test",
+			GinMode:  "test",
+			BasePath: "/api",
 		},
 	}
 
@@ -86,7 +87,7 @@ func rbacTestEnv(t *testing.T) (*gin.Engine, *gorm.DB) {
 		Role:       NewRoleHandler(roleSvc),
 		Permission: NewPermissionHandlerWithDeps(roleSvc),
 	}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 	return r, db
 }
 

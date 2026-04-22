@@ -142,7 +142,7 @@ func TestAppendProgress_Success(t *testing.T) {
 	svc.appendResult.record = record
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":60,"achievement":"completed feature","blocker":"none","lesson":"test early"}`
@@ -175,7 +175,7 @@ func TestAppendProgress_MemberCanAppend(t *testing.T) {
 	svc.appendResult.record = record
 
 	deps := depsWithProgressSvcMemberRole(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":60}`
@@ -193,7 +193,7 @@ func TestAppendProgress_InvalidBody(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{}`
@@ -211,7 +211,7 @@ func TestAppendProgress_CompletionOutOfRange_Negative(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":-1}`
@@ -229,7 +229,7 @@ func TestAppendProgress_CompletionOutOfRange_Above100(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":101}`
@@ -250,7 +250,7 @@ func TestAppendProgress_CompletionBoundary_0(t *testing.T) {
 	svc.appendResult.record = record
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":0}`
@@ -271,7 +271,7 @@ func TestAppendProgress_CompletionBoundary_100(t *testing.T) {
 	svc.appendResult.record = record
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":100}`
@@ -290,7 +290,7 @@ func TestAppendProgress_Regression_422(t *testing.T) {
 	svc.appendResult.err = apperrors.ErrProgressRegression
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":30}`
@@ -313,7 +313,7 @@ func TestAppendProgress_ServiceError(t *testing.T) {
 	svc.appendResult.err = errors.New("unexpected")
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":60}`
@@ -330,7 +330,7 @@ func TestAppendProgress_InvalidSubID(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":60}`
@@ -354,7 +354,7 @@ func TestAppendProgress_IncludesAuthorName(t *testing.T) {
 	}
 
 	deps := depsWithProgressSvcAndUser(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":60}`
@@ -388,7 +388,7 @@ func TestListProgress_Success(t *testing.T) {
 	svc.listResult.records[1].Completion = 60
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	w := httptest.NewRecorder()
@@ -415,7 +415,7 @@ func TestListProgress_Empty(t *testing.T) {
 	svc.listResult.records = []model.ProgressRecord{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	w := httptest.NewRecorder()
@@ -438,7 +438,7 @@ func TestListProgress_InvalidSubID(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	w := httptest.NewRecorder()
@@ -455,7 +455,7 @@ func TestListProgress_ServiceError(t *testing.T) {
 	svc.listResult.err = errors.New("db error")
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	w := httptest.NewRecorder()
@@ -477,7 +477,7 @@ func TestListProgress_IncludesAuthorNames(t *testing.T) {
 	}
 
 	deps := depsWithProgressSvcAndUser(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	w := httptest.NewRecorder()
@@ -508,7 +508,7 @@ func TestCorrectCompletion_Success(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"completion":75}`
@@ -528,7 +528,7 @@ func TestCorrectCompletion_RequiresPM(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvcMemberRole(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"completion":75}`
@@ -546,7 +546,7 @@ func TestCorrectCompletion_InvalidRecordID(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"completion":75}`
@@ -564,7 +564,7 @@ func TestCorrectCompletion_InvalidBody(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{}`
@@ -582,7 +582,7 @@ func TestCorrectCompletion_CompletionOutOfRange_Negative(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"completion":-1}`
@@ -600,7 +600,7 @@ func TestCorrectCompletion_CompletionOutOfRange_Above100(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"completion":101}`
@@ -619,7 +619,7 @@ func TestCorrectCompletion_RecordNotFound(t *testing.T) {
 	svc.correctResult.err = apperrors.ErrItemNotFound
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"completion":75}`
@@ -637,7 +637,7 @@ func TestCorrectCompletion_SuperAdminBypass(t *testing.T) {
 
 	// Use member-role team, but superadmin token
 	deps := depsWithProgressSvcMemberRole(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
 	body := `{"completion":75}`
@@ -677,7 +677,7 @@ func TestAppendProgress_ResponseShapeMatchesDataContract(t *testing.T) {
 	}
 
 	deps := depsWithProgressSvcAndUser(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := fmt.Sprintf(`{"completion":60,"achievement":"completed SDK init","blocker":"certificate pending","lesson":"sandbox vs prod config diff"}`)

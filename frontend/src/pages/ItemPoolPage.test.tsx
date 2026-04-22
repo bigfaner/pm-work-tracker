@@ -82,22 +82,22 @@ const seedMainItems = [
 
 function setupHandlers() {
   server.use(
-    http.get('/api/v1/teams/:teamId/item-pool', () => {
+    http.get('/v1/teams/:teamId/item-pool', () => {
       return HttpResponse.json({
         code: 0,
         data: { items: seedPoolItems, total: seedPoolItems.length, page: 1, pageSize: 20 },
       })
     }),
-    http.get('/api/v1/teams/:teamId/members', () => {
+    http.get('/v1/teams/:teamId/members', () => {
       return HttpResponse.json({ code: 0, data: seedMembers })
     }),
-    http.get('/api/v1/teams/:teamId/main-items', () => {
+    http.get('/v1/teams/:teamId/main-items', () => {
       return HttpResponse.json({
         code: 0,
         data: { items: seedMainItems, total: seedMainItems.length, page: 1, pageSize: 20 },
       })
     }),
-    http.post('/api/v1/teams/:teamId/item-pool', async ({ request }) => {
+    http.post('/v1/teams/:teamId/item-pool', async ({ request }) => {
       const body = (await request.json()) as Record<string, unknown>
       return HttpResponse.json({
         code: 0,
@@ -110,14 +110,14 @@ function setupHandlers() {
         },
       })
     }),
-    http.post('/api/v1/teams/:teamId/item-pool/:poolId/assign', async ({ request }) => {
+    http.post('/v1/teams/:teamId/item-pool/:poolId/assign', async ({ request }) => {
       const body = (await request.json()) as Record<string, unknown>
       return HttpResponse.json({
         code: 0,
         data: { subItemId: 200, ...body },
       })
     }),
-    http.post('/api/v1/teams/:teamId/item-pool/:poolId/reject', async ({ request }) => {
+    http.post('/v1/teams/:teamId/item-pool/:poolId/reject', async ({ request }) => {
       const body = (await request.json()) as Record<string, unknown>
       return HttpResponse.json({
         code: 0,
@@ -130,7 +130,7 @@ function setupHandlers() {
         },
       })
     }),
-    http.post('/api/v1/teams/:teamId/main-items', async ({ request }) => {
+    http.post('/v1/teams/:teamId/main-items', async ({ request }) => {
       const body = (await request.json()) as Record<string, unknown>
       return HttpResponse.json({
         code: 0,
@@ -408,7 +408,7 @@ describe('ItemPoolPage', () => {
 
   it('shows empty state when no pool items exist', async () => {
     server.use(
-      http.get('/api/v1/teams/:teamId/item-pool', () => {
+      http.get('/v1/teams/:teamId/item-pool', () => {
         return HttpResponse.json({ code: 0, data: { items: [], total: 0, page: 1, pageSize: 20 } })
       }),
     )

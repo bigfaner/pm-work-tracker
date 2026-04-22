@@ -570,8 +570,8 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	_ = superadminRoleID
 
 	// Seed teams
-	teamA := &model.Team{Name: "Team A", PmID: userA.ID}
-	teamB := &model.Team{Name: "Team B", PmID: userB.ID}
+	teamA := &model.Team{Name: "Team A", PmID: userA.ID, Code: "TAMA"}
+	teamB := &model.Team{Name: "Team B", PmID: userB.ID, Code: "TAMB"}
 	require.NoError(t, db.Create(teamA).Error)
 	require.NoError(t, db.Create(teamB).Error)
 
@@ -630,7 +630,8 @@ func setupRBACTestRouter(t *testing.T, db *gorm.DB, data *seedData) *gin.Engine 
 			Origins: []string{"http://localhost:3000"},
 		},
 		Server: config.ServerConfig{
-			GinMode: "test",
+			GinMode:  "test",
+			BasePath: "/api",
 		},
 	}
 
@@ -652,7 +653,7 @@ func setupRBACTestRouter(t *testing.T, db *gorm.DB, data *seedData) *gin.Engine 
 		Permission: handler.NewPermissionHandlerWithDeps(roleSvc),
 	}
 
-	return handler.SetupRouter(deps)
+	return handler.SetupRouter(deps, nil)
 }
 
 // makeRequest is a helper to make an authenticated HTTP request.

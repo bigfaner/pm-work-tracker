@@ -30,7 +30,7 @@ function renderDialog(props: { open: boolean; onOpenChange: (v: boolean) => void
 
 function setupHandlers() {
   server.use(
-    http.get('/api/v1/admin/roles/:id', ({ params }) => {
+    http.get('/v1/admin/roles/:id', ({ params }) => {
       const id = Number(params.id)
       if (id === 1) {
         return HttpResponse.json({
@@ -72,7 +72,7 @@ function setupHandlers() {
       )
     }),
 
-    http.post('/api/v1/admin/roles', async ({ request }) => {
+    http.post('/v1/admin/roles', async ({ request }) => {
       const body = (await request.json()) as Record<string, unknown>
       const name = body.name as string
       if (name === 'pm') {
@@ -95,7 +95,7 @@ function setupHandlers() {
       })
     }),
 
-    http.put('/api/v1/admin/roles/:id', async ({ params }) => {
+    http.put('/v1/admin/roles/:id', async ({ params }) => {
       const id = Number(params.id)
       return HttpResponse.json({
         code: 0,

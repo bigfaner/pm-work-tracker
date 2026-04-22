@@ -404,11 +404,10 @@ export default function MainItemDetailPage() {
                   {(() => {
                     const mainTerminal = (MAIN_ITEM_STATUSES as Record<string, { terminal: boolean }>)[item.status]?.terminal ?? false
                     return subItems.map((sub) => {
-                    const subCode = `SI-${String(item.id).padStart(3, '0')}-${String(sub.id).slice(-2)}`
                     return (
                       <TableRow key={sub.id}>
                         <TableCell>
-                          <Badge variant="default" className="font-mono text-[11px]">{subCode}</Badge>
+                          <Badge variant="default" className="font-mono text-[11px]">{sub.code}</Badge>
                         </TableCell>
                         <TableCell>
                           <Link

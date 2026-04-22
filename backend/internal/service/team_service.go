@@ -48,6 +48,7 @@ func (s *teamService) CreateTeam(ctx context.Context, creatorID uint, req dto.Cr
 	team := &model.Team{
 		Name:        req.Name,
 		Description: req.Description,
+		Code:        req.Code,
 		PmID:        creatorID,
 	}
 	if err := s.teamRepo.Create(ctx, team); err != nil {
@@ -93,6 +94,7 @@ func (s *teamService) ListTeams(ctx context.Context, _ uint, _ bool) ([]*dto.Tea
 			ID:            t.ID,
 			Name:          t.Name,
 			Description:   t.Description,
+			Code:          t.Code,
 			PmID:          t.PmID,
 			PmDisplayName: pmNames[t.ID],
 			CreatedAt:     t.CreatedAt.Format(time.RFC3339),
@@ -127,6 +129,7 @@ func (s *teamService) GetTeamDetail(ctx context.Context, teamID uint) (*dto.Team
 		ID:            team.ID,
 		Name:          team.Name,
 		Description:   team.Description,
+		Code:          team.Code,
 		PmID:          team.PmID,
 		PmDisplayName: pm.DisplayName,
 		MemberCount:   len(members),

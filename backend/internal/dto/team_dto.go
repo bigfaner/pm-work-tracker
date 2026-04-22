@@ -15,6 +15,7 @@ type TeamMemberDTO struct {
 type CreateTeamReq struct {
 	Name        string `json:"name" binding:"required,max=100"`
 	Description string `json:"description" binding:"max=500"`
+	Code        string `json:"code" binding:"required,min=2,max=6,alpha"`
 }
 
 // UpdateTeamReq is the request DTO for updating a team.
@@ -51,6 +52,7 @@ type TeamDetailResp struct {
 	ID            uint   `json:"id"`
 	Name          string `json:"name"`
 	Description   string `json:"description"`
+	Code          string `json:"code"`
 	PmID          uint   `json:"pmId"`
 	PmDisplayName string `json:"pmDisplayName"`
 	MemberCount   int    `json:"memberCount"`
@@ -64,6 +66,7 @@ type TeamListResp struct {
 	ID            uint   `json:"id"`
 	Name          string `json:"name"`
 	Description   string `json:"description"`
+	Code          string `json:"code"`
 	PmID          uint   `json:"pmId"`
 	PmDisplayName string `json:"pmDisplayName"`
 	CreatedAt     string `json:"createdAt"`

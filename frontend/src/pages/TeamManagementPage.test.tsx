@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { server } from '@/mocks/server'
 import { http, HttpResponse } from 'msw'
+import { ToastProvider } from '@/components/ui/toast'
 
 // MSW lifecycle
 beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
@@ -23,9 +24,11 @@ function renderPage() {
   const qc = createQueryClient()
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        <TeamManagementPage />
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter>
+          <TeamManagementPage />
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>,
   )
 }
@@ -40,6 +43,7 @@ const seedTeams = [
   {
     id: 1,
     name: '产品研发团队',
+    code: 'PROD',
     description: '负责核心产品的研发与迭代',
     pmId: 1,
     createdAt: '2026-03-01T00:00:00Z',
@@ -48,6 +52,7 @@ const seedTeams = [
   {
     id: 2,
     name: '设计团队',
+    code: 'DESIGN',
     description: '负责 UI/UX 设计与交互体验优化',
     pmId: 2,
     createdAt: '2026-03-15T00:00:00Z',
@@ -56,6 +61,7 @@ const seedTeams = [
   {
     id: 3,
     name: '基础架构团队',
+    code: 'INFRA',
     description: '负责底层基础设施与运维体系建设',
     pmId: 3,
     createdAt: '2026-04-01T00:00:00Z',
@@ -66,16 +72,22 @@ const seedTeams = [
 function setupHandlers() {
   server.use(
     // List teams
-    http.get('/api/v1/teams', () => {
+    http.get('/v1/teams', () => {
       return HttpResponse.json({ code: 0, data: seedTeams })
     }),
 
     // Create team
-    http.post('/api/v1/teams', async ({ request }) => {
-      const body = (await request.json()) as { name: string; description?: string }
+    http.post('/v1/teams', async ({ request }) => {
+      const body = (await request.json()) as { name: string; code?: string; description?: string }
       if (!body.name || !body.name.trim()) {
         return HttpResponse.json(
           { code: 'VALIDATION_ERROR', message: '团队名称不能为空' },
+          { status: 422 },
+        )
+      }
+      if (body.code === 'DUPE') {
+        return HttpResponse.json(
+          { code: 'TEAM_CODE_DUPLICATE', message: '该编码已被使用' },
           { status: 422 },
         )
       }
@@ -84,6 +96,7 @@ function setupHandlers() {
         data: {
           id: 100,
           name: body.name,
+          code: body.code || '',
           description: body.description || '',
           pmId: 1,
           createdAt: new Date().toISOString(),
@@ -182,6 +195,8 @@ describe('TeamManagementPage', () => {
     // Fill form
     const nameInput = screen.getByPlaceholderText('请输入团队名称')
     await user.type(nameInput, '新团队')
+    const codeInput = screen.getByPlaceholderText('如 FEAT、CORE')
+    await user.type(codeInput, 'FEAT')
 
     // Submit
     await user.click(screen.getByText('确认创建'))
@@ -210,11 +225,75 @@ describe('TeamManagementPage', () => {
     expect(submitBtn).toBeDisabled()
   })
 
+  // --- Code field ---
+
+  it('shows code input with correct placeholder', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => expect(screen.getByText('产品研发团队')).toBeInTheDocument())
+
+    await user.click(screen.getByText('创建团队'))
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('如 FEAT、CORE')).toBeInTheDocument()
+    })
+  })
+
+  it('shows validation error on blur when code is invalid', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => expect(screen.getByText('产品研发团队')).toBeInTheDocument())
+
+    await user.click(screen.getByText('创建团队'))
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('如 FEAT、CORE')).toBeInTheDocument()
+    })
+
+    const codeInput = screen.getByPlaceholderText('如 FEAT、CORE')
+    await user.type(codeInput, 'A')
+    await user.tab()
+
+    await waitFor(() => {
+      expect(screen.getByText('编码须为 2~6 位英文字母')).toBeInTheDocument()
+    })
+  })
+
+  it('shows duplicate code error from backend', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => expect(screen.getByText('产品研发团队')).toBeInTheDocument())
+
+    await user.click(screen.getByText('创建团队'))
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('请输入团队名称')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByPlaceholderText('请输入团队名称'), '新团队')
+    await user.type(screen.getByPlaceholderText('如 FEAT、CORE'), 'DUPE')
+    await user.click(screen.getByText('确认创建'))
+
+    await waitFor(() => {
+      expect(screen.getByText('该编码已被使用')).toBeInTheDocument()
+    })
+  })
+
+  it('renders Code column in team table', async () => {
+    renderPage()
+    await waitFor(() => expect(screen.getByText('产品研发团队')).toBeInTheDocument())
+
+    expect(screen.getByText('Code')).toBeInTheDocument()
+    expect(screen.getByText('PROD')).toBeInTheDocument()
+    expect(screen.getByText('DESIGN')).toBeInTheDocument()
+    expect(screen.getByText('INFRA')).toBeInTheDocument()
+  })
+
   // --- Empty state ---
 
   it('shows empty state when no teams exist', async () => {
     server.use(
-      http.get('/api/v1/teams', () => {
+      http.get('/v1/teams', () => {
         return HttpResponse.json({ code: 0, data: [] })
       }),
     )
@@ -241,7 +320,7 @@ describe('TeamManagementPage', () => {
 
   it('shows loading state', async () => {
     server.use(
-      http.get('/api/v1/teams', async () => {
+      http.get('/v1/teams', async () => {
         await new Promise((resolve) => setTimeout(resolve, 500))
         return HttpResponse.json({ code: 0, data: seedTeams })
       }),

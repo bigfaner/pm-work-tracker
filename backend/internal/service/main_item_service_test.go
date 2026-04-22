@@ -121,8 +121,9 @@ func (m *mockSubItemRepo) ListByTeam(_ context.Context, _ uint) ([]model.SubItem
 func (m *mockSubItemRepo) Delete(_ context.Context, _ uint) error {
 	return nil
 }
-
-// mockStatusHistorySvc mocks StatusHistoryService for tests.
+func (m *mockSubItemRepo) NextSubCode(_ context.Context, _ uint) (string, error) {
+	return "", nil
+}
 type mockStatusHistorySvc struct {
 	recorded *model.StatusHistory
 	recordFn func(ctx context.Context, record *model.StatusHistory) error

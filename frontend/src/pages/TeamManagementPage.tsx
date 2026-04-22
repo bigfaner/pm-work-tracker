@@ -48,8 +48,9 @@ export default function TeamManagementPage() {
 
   // Create dialog state
   const [createOpen, setCreateOpen] = useState(false)
-  const [createForm, setCreateForm] = useState({ name: '', description: '' })
+  const [createForm, setCreateForm] = useState({ name: '', code: '', description: '' })
   const [createError, setCreateError] = useState('')
+  const [codeError, setCodeError] = useState('')
 
   // Add member dialog state
   const [addMemberOpen, setAddMemberOpen] = useState(false)
@@ -90,15 +91,21 @@ export default function TeamManagementPage() {
 
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: (req: { name: string; description?: string }) => createTeamApi(req),
+    mutationFn: (req: { name: string; code: string; description?: string }) => createTeamApi(req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['teams'] })
       setCreateOpen(false)
-      setCreateForm({ name: '', description: '' })
+      setCreateForm({ name: '', code: '', description: '' })
       setCreateError('')
+      setCodeError('')
     },
-    onError: () => {
-      setCreateError('创建失败，请稍后重试')
+    onError: (err: any) => {
+      const code = err?.response?.data?.code
+      if (code === 'TEAM_CODE_DUPLICATE') {
+        setCodeError('该编码已被使用')
+      } else {
+        setCreateError('创建失败，请稍后重试')
+      }
     },
   })
 
@@ -140,12 +147,18 @@ export default function TeamManagementPage() {
 
   const handleCreate = useCallback(() => {
     setCreateError('')
+    setCodeError('')
     if (!createForm.name.trim()) {
       setCreateError('请填写团队名称')
       return
     }
+    if (!/^[A-Za-z]{2,6}$/.test(createForm.code)) {
+      setCodeError('编码须为 2~6 位英文字母')
+      return
+    }
     createMutation.mutate({
       name: createForm.name.trim(),
+      code: createForm.code.trim(),
       ...(createForm.description.trim() && { description: createForm.description.trim() }),
     })
   }, [createForm, createMutation])
@@ -179,6 +192,7 @@ export default function TeamManagementPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>团队名称</TableHead>
+                <TableHead>Code</TableHead>
                 <TableHead>项目经理</TableHead>
                 <TableHead>简介</TableHead>
                 <TableHead>创建时间</TableHead>
@@ -195,6 +209,9 @@ export default function TeamManagementPage() {
                     >
                       {team.name}
                     </Link>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-[13px] text-secondary font-mono">{team.code}</span>
                   </TableCell>
                   <TableCell>
                     <span className="text-[13px] text-secondary">{team.pmDisplayName}</span>
@@ -249,6 +266,22 @@ export default function TeamManagementPage() {
                 />
               </div>
               <div>
+                <label className="block text-sm font-medium text-primary mb-1">
+                  Code <span className="text-error">*</span>
+                </label>
+                <Input
+                  placeholder="如 FEAT、CORE"
+                  value={createForm.code}
+                  onChange={(e) => { setCreateForm((f) => ({ ...f, code: e.target.value })); setCodeError('') }}
+                  onBlur={() => {
+                    if (createForm.code && !/^[A-Za-z]{2,6}$/.test(createForm.code)) {
+                      setCodeError('编码须为 2~6 位英文字母')
+                    }
+                  }}
+                />
+                {codeError && <p className="mt-1 text-sm text-error">{codeError}</p>}
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-primary mb-1">简介</label>
                 <Textarea
                   className="text-sm resize-none"
@@ -269,7 +302,7 @@ export default function TeamManagementPage() {
             </Button>
             <Button
               onClick={handleCreate}
-              disabled={!createForm.name.trim() || createMutation.isPending}
+              disabled={!createForm.name.trim() || !createForm.code.trim() || createMutation.isPending}
             >
               确认创建
             </Button>

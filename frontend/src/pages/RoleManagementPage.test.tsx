@@ -92,7 +92,7 @@ const seedPermissions = [
 function setupHandlers() {
   server.use(
     // List roles
-    http.get('/api/v1/admin/roles', ({ request }) => {
+    http.get('/v1/admin/roles', ({ request }) => {
       const url = new URL(request.url)
       const search = url.searchParams.get('search')
       const isPresetParam = url.searchParams.get('isPreset')
@@ -120,7 +120,7 @@ function setupHandlers() {
     }),
 
     // Get role detail
-    http.get('/api/v1/admin/roles/:id', ({ params }) => {
+    http.get('/v1/admin/roles/:id', ({ params }) => {
       const id = Number(params.id)
       const role = seedRoles.find((r) => r.id === id)
       if (!role) {
@@ -142,7 +142,7 @@ function setupHandlers() {
     }),
 
     // Create role
-    http.post('/api/v1/admin/roles', async ({ request }) => {
+    http.post('/v1/admin/roles', async ({ request }) => {
       const body = (await request.json()) as Record<string, unknown>
       const name = body.name as string
 
@@ -168,7 +168,7 @@ function setupHandlers() {
     }),
 
     // Update role
-    http.put('/api/v1/admin/roles/:id', async ({ params }) => {
+    http.put('/v1/admin/roles/:id', async ({ params }) => {
       const id = Number(params.id)
       const role = seedRoles.find((r) => r.id === id)
       if (!role) {
@@ -189,7 +189,7 @@ function setupHandlers() {
     }),
 
     // Delete role
-    http.delete('/api/v1/admin/roles/:id', ({ params }) => {
+    http.delete('/v1/admin/roles/:id', ({ params }) => {
       const id = Number(params.id)
       const role = seedRoles.find((r) => r.id === id)
       if (!role) {
@@ -214,7 +214,7 @@ function setupHandlers() {
     }),
 
     // List permissions
-    http.get('/api/v1/admin/permissions', () => {
+    http.get('/v1/admin/permissions', () => {
       return HttpResponse.json({ code: 0, data: seedPermissions })
     }),
   )
@@ -422,7 +422,7 @@ describe('RoleManagementPage', () => {
 
   it('shows empty state when no roles match filters', async () => {
     server.use(
-      http.get('/api/v1/admin/roles', () => {
+      http.get('/v1/admin/roles', () => {
         return HttpResponse.json({
           code: 0,
           data: { items: [], total: 0, page: 1, pageSize: 20 },
@@ -440,7 +440,7 @@ describe('RoleManagementPage', () => {
 
   it('shows loading skeleton', async () => {
     server.use(
-      http.get('/api/v1/admin/roles', async () => {
+      http.get('/v1/admin/roles', async () => {
         await new Promise((r) => setTimeout(r, 500))
         return HttpResponse.json({
           code: 0,
