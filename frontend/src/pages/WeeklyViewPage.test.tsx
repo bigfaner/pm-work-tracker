@@ -225,7 +225,7 @@ const mockWeeklyResponse: WeeklyViewResponse = {
 
 function setupWeeklyHandler(response = mockWeeklyResponse) {
   server.use(
-    http.get('/api/v1/teams/:teamId/views/weekly', ({ request }) => {
+    http.get('/v1/teams/:teamId/views/weekly', ({ request }) => {
       const url = new URL(request.url)
       const weekStart = url.searchParams.get('weekStart')
       if (!weekStart) {
@@ -605,7 +605,7 @@ describe('WeeklyViewPage', () => {
     const user = userEvent.setup()
     const requests: string[] = []
     server.use(
-      http.get('/api/v1/teams/:teamId/views/weekly', ({ request }) => {
+      http.get('/v1/teams/:teamId/views/weekly', ({ request }) => {
         const url = new URL(request.url)
         const weekStart = url.searchParams.get('weekStart') || ''
         requests.push(weekStart)

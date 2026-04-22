@@ -87,43 +87,43 @@ const seedMembers = [
 function setupHandlers() {
   server.use(
     // List main items (with subItems embedded)
-    http.get('/api/v1/teams/:teamId/main-items', () => {
+    http.get('/v1/teams/:teamId/main-items', () => {
       return HttpResponse.json({ code: 0, data: { items: seedMainItems, total: seedMainItems.length, page: 1, pageSize: 20 } })
     }),
 
     // Get single main item with sub items
-    http.get('/api/v1/teams/:teamId/main-items/:itemId', ({ params }) => {
+    http.get('/v1/teams/:teamId/main-items/:itemId', ({ params }) => {
       const item = seedMainItems.find(i => i.id === Number(params.itemId))
       if (!item) return HttpResponse.json({ code: 'NOT_FOUND', message: 'not found' }, { status: 404 })
       return HttpResponse.json({ code: 0, data: item })
     }),
 
     // List sub-items for a main item
-    http.get('/api/v1/teams/:teamId/main-items/:mainId/sub-items', ({ params }) => {
+    http.get('/v1/teams/:teamId/main-items/:mainId/sub-items', ({ params }) => {
       const item = seedMainItems.find(i => i.id === Number(params.mainId))
       const subs = item?.subItems || []
       return HttpResponse.json({ code: 0, data: { items: subs, total: subs.length, page: 1, pageSize: 20 } })
     }),
 
     // List members for assignee filter
-    http.get('/api/v1/teams/:teamId/members', () => {
+    http.get('/v1/teams/:teamId/members', () => {
       return HttpResponse.json({ code: 0, data: seedMembers })
     }),
 
     // Update main item status
-    http.put('/api/v1/teams/:teamId/main-items/:itemId', async ({ request }) => {
+    http.put('/v1/teams/:teamId/main-items/:itemId', async ({ request }) => {
       const body = await request.json() as Record<string, unknown>
       return HttpResponse.json({ code: 0, data: { ...seedMainItems[0], ...body } })
     }),
 
     // Change main item status
-    http.put('/api/v1/teams/:teamId/main-items/:itemId/status', async ({ request }) => {
+    http.put('/v1/teams/:teamId/main-items/:itemId/status', async ({ request }) => {
       const body = await request.json() as Record<string, unknown>
       return HttpResponse.json({ code: 0, data: { status: body.status } })
     }),
 
     // Available transitions for main items (default: return all non-self statuses)
-    http.get('/api/v1/teams/:teamId/main-items/:itemId/available-transitions', ({ params }) => {
+    http.get('/v1/teams/:teamId/main-items/:itemId/available-transitions', ({ params }) => {
       const item = seedMainItems.find(i => i.id === Number(params.itemId))
       const currentStatus = item?.status || 'pending'
       const allStatuses = ['pending', 'progressing', 'blocking', 'pausing', 'reviewing', 'completed', 'closed']
@@ -132,7 +132,7 @@ function setupHandlers() {
     }),
 
     // Create main item
-    http.post('/api/v1/teams/:teamId/main-items', async ({ request }) => {
+    http.post('/v1/teams/:teamId/main-items', async ({ request }) => {
       const body = await request.json() as Record<string, unknown>
       return HttpResponse.json({
         code: 0,
@@ -147,7 +147,7 @@ function setupHandlers() {
     }),
 
     // Create sub-item
-    http.post('/api/v1/teams/:teamId/main-items/:mainId/sub-items', async ({ request }) => {
+    http.post('/v1/teams/:teamId/main-items/:mainId/sub-items', async ({ request }) => {
       const body = await request.json() as Record<string, unknown>
       return HttpResponse.json({
         code: 0,
@@ -300,7 +300,7 @@ describe('ItemViewPage', () => {
 
   it('shows empty state when no items exist', async () => {
     server.use(
-      http.get('/api/v1/teams/:teamId/main-items', () => {
+      http.get('/v1/teams/:teamId/main-items', () => {
         return HttpResponse.json({ code: 0, data: { items: [], total: 0, page: 1, pageSize: 20 } })
       }),
     )
@@ -365,7 +365,7 @@ describe('ItemViewPage', () => {
     const user = userEvent.setup()
     setupHandlers() // ensure handlers
     server.use(
-      http.get('/api/v1/teams/:teamId/main-items/:itemId/available-transitions', () => {
+      http.get('/v1/teams/:teamId/main-items/:itemId/available-transitions', () => {
         return HttpResponse.json({ code: 0, data: ['progressing', 'closed'] })
       }),
     )
@@ -391,10 +391,10 @@ describe('ItemViewPage', () => {
     const user = userEvent.setup()
     let statusChanged = false
     server.use(
-      http.get('/api/v1/teams/:teamId/main-items/:itemId/available-transitions', () => {
+      http.get('/v1/teams/:teamId/main-items/:itemId/available-transitions', () => {
         return HttpResponse.json({ code: 0, data: ['progressing', 'blocking'] })
       }),
-      http.put('/api/v1/teams/:teamId/main-items/:itemId/status', async ({ request }) => {
+      http.put('/v1/teams/:teamId/main-items/:itemId/status', async ({ request }) => {
         const body = await request.json() as Record<string, unknown>
         statusChanged = true
         return HttpResponse.json({ code: 0, data: { status: body.status } })
@@ -421,7 +421,7 @@ describe('ItemViewPage', () => {
   it('shows confirmation dialog before terminal transition', async () => {
     const user = userEvent.setup()
     server.use(
-      http.get('/api/v1/teams/:teamId/main-items/:itemId/available-transitions', () => {
+      http.get('/v1/teams/:teamId/main-items/:itemId/available-transitions', () => {
         return HttpResponse.json({ code: 0, data: ['completed', 'blocking'] })
       }),
     )
@@ -461,7 +461,7 @@ describe('ItemViewPage', () => {
       },
     ]
     server.use(
-      http.get('/api/v1/teams/:teamId/main-items', () => {
+      http.get('/v1/teams/:teamId/main-items', () => {
         return HttpResponse.json({ code: 0, data: { items: overdueItems, total: 1, page: 1, pageSize: 20 } })
       }),
     )
@@ -485,7 +485,7 @@ describe('ItemViewPage', () => {
       },
     ]
     server.use(
-      http.get('/api/v1/teams/:teamId/main-items', () => {
+      http.get('/v1/teams/:teamId/main-items', () => {
         return HttpResponse.json({ code: 0, data: { items: completedItems, total: 1, page: 1, pageSize: 20 } })
       }),
     )

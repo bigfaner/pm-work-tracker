@@ -98,7 +98,7 @@ describe('Permission-driven UI', () => {
   describe('TeamManagementPage - team:create permission', () => {
     it('hides create team button without team:create permission', async () => {
       useAuthStore.getState().setPermissions({ isSuperAdmin: false, teamPermissions: {} })
-      server.use(http.get('/api/v1/teams', () => HttpResponse.json({ code: 0, data: [] })))
+      server.use(http.get('/v1/teams', () => HttpResponse.json({ code: 0, data: [] })))
       const { default: TeamManagementPage } = await import('@/pages/TeamManagementPage')
       render(
         <QueryClientProvider client={createQueryClient()}>
@@ -115,7 +115,7 @@ describe('Permission-driven UI', () => {
         isSuperAdmin: false,
         teamPermissions: { 1: ['team:create'] },
       })
-      server.use(http.get('/api/v1/teams', () => HttpResponse.json({ code: 0, data: [] })))
+      server.use(http.get('/v1/teams', () => HttpResponse.json({ code: 0, data: [] })))
       const { default: TeamManagementPage } = await import('@/pages/TeamManagementPage')
       render(
         <QueryClientProvider client={createQueryClient()}>
@@ -131,14 +131,14 @@ describe('Permission-driven UI', () => {
   describe('TeamDetailPage - permission-controlled buttons', () => {
     function setupHandlers() {
       server.use(
-        http.get('/api/v1/teams/:teamId', () =>
+        http.get('/v1/teams/:teamId', () =>
           HttpResponse.json({
             code: 0, data: {
               id: 1, name: 'Test Team', description: '', pmId: 1, pmDisplayName: 'PM',
               memberCount: 2, mainItemCount: 0, createdAt: '2026-01-01', updatedAt: '2026-01-01',
             },
           })),
-        http.get('/api/v1/teams/:teamId/members', () =>
+        http.get('/v1/teams/:teamId/members', () =>
           HttpResponse.json({
             code: 0, data: [
               { userId: 1, displayName: 'PM', username: 'pm', role: 'pm', joinedAt: '2026-01-01' },

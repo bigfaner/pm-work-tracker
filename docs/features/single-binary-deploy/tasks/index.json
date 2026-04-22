@@ -66,7 +66,7 @@
       "title": "Frontend: BASE_PATH support and /v1 API prefix",
       "priority": "P0",
       "estimatedTime": "1-2h",
-      "status": "pending",
+      "status": "completed",
       "file": "6.1-frontend-base-path.md",
       "record": "records/6.1-frontend-base-path.md"
     },
