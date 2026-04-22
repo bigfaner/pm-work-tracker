@@ -49,3 +49,4 @@ frontend/.vite/deps/*
 docs/features/*/testing/results/*
 backend/data/*
 frontend/test-results/*
+backend/server
