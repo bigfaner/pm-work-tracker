@@ -50,71 +50,97 @@ func NewViewServiceWithUserRepo(mainItemRepo repository.MainItemRepo, subItemRep
 }
 
 func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekStart time.Time) (*dto.WeeklyViewResponse, error) {
-	if weekStart.Weekday() != time.Monday {
-		return nil, apperrors.ErrValidation
-	}
-
-	// Future week not allowed
-	now := time.Now()
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	if weekStart.After(today) {
-		return nil, apperrors.ErrFutureWeekNotAllowed
+	if err := validateWeekStart(weekStart); err != nil {
+		return nil, err
 	}
 
 	weekEnd := weekStart.AddDate(0, 0, 6)
 	lastWeekStart := weekStart.AddDate(0, 0, -7)
-	lastWeekEnd := lastWeekStart.AddDate(0, 0, 6)
 
-	// Bulk fetch all non-archived main items for the team
+	mainItems, subItems, allProgress, err := s.fetchWeeklyData(ctx, teamID, lastWeekStart, weekEnd)
+	if err != nil {
+		return nil, err
+	}
+
+	subItemsByMain := indexSubItemsByMain(subItems)
+	lastWeekProgress, thisWeekProgress := splitProgressByWeek(allProgress, lastWeekStart, weekStart, weekEnd)
+	lastWeekActive, thisWeekActive := computeActiveSubItems(subItems, lastWeekProgress, thisWeekProgress, lastWeekStart, weekStart, weekEnd)
+	lastWeekCompletion := computeLastWeekCompletion(lastWeekProgress)
+	latestProgressDesc := computeLatestProgressDesc(thisWeekProgress)
+	assigneeNames := resolveSubItemAssigneeNames(ctx, subItems, s.userRepo)
+
+	groups, stats := buildWeeklyGroups(mainItems, subItemsByMain, lastWeekActive, thisWeekActive,
+		lastWeekProgress, thisWeekProgress, lastWeekCompletion, latestProgressDesc, assigneeNames, weekStart, weekEnd)
+
+	sortGroupsByPriority(groups)
+
+	return &dto.WeeklyViewResponse{
+		WeekStart: weekStart.Format("2006-01-02"),
+		WeekEnd:   weekEnd.Format("2006-01-02"),
+		Stats:     stats,
+		Groups:    groups,
+	}, nil
+}
+
+// validateWeekStart checks that weekStart is a Monday and not in the future.
+func validateWeekStart(weekStart time.Time) error {
+	if weekStart.Weekday() != time.Monday {
+		return apperrors.ErrValidation
+	}
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	if weekStart.After(today) {
+		return apperrors.ErrFutureWeekNotAllowed
+	}
+	return nil
+}
+
+// fetchWeeklyData fetches main items, sub-items, and progress records for the two-week window.
+func (s *viewService) fetchWeeklyData(ctx context.Context, teamID uint, lastWeekStart, weekEnd time.Time) (
+	[]model.MainItem, []model.SubItem, []model.ProgressRecord, error,
+) {
 	mainItems, err := s.mainItemRepo.ListNonArchivedByTeam(ctx, teamID)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
-
-	// Bulk fetch all sub-items for the team
 	subItems, err := s.subItemRepo.ListByTeam(ctx, teamID)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
-
-	// Fetch progress records for both weeks
-	thisWeekRangeStart := time.Date(weekStart.Year(), weekStart.Month(), weekStart.Day(), 0, 0, 0, 0, weekStart.Location())
-	thisWeekRangeEnd := time.Date(weekEnd.Year(), weekEnd.Month(), weekEnd.Day(), 0, 0, 0, 0, weekEnd.Location()).AddDate(0, 0, 1)
-
-	lastWeekRangeStart := time.Date(lastWeekStart.Year(), lastWeekStart.Month(), lastWeekStart.Day(), 0, 0, 0, 0, lastWeekStart.Location())
-	lastWeekRangeEnd := time.Date(lastWeekEnd.Year(), lastWeekEnd.Month(), lastWeekEnd.Day(), 0, 0, 0, 0, lastWeekEnd.Location()).AddDate(0, 0, 1)
-
-	// Fetch progress for both weeks in a single extended range
-	combinedStart := lastWeekRangeStart
-	combinedEnd := thisWeekRangeEnd
+	combinedStart := startOfDay(lastWeekStart)
+	combinedEnd := startOfDay(weekEnd).AddDate(0, 0, 1)
 	allProgress, err := s.progressRepo.ListByTeamInRange(ctx, teamID, combinedStart, combinedEnd)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
+	return mainItems, subItems, allProgress, nil
+}
 
-	// Split progress records into last week and this week
-	lastWeekProgress := make(map[uint][]model.ProgressRecord)
-	thisWeekProgress := make(map[uint][]model.ProgressRecord)
+// splitProgressByWeek partitions progress records into last-week and this-week buckets by sub-item ID.
+func splitProgressByWeek(allProgress []model.ProgressRecord, lastWeekStart, thisWeekStart, weekEnd time.Time) (
+	map[uint][]model.ProgressRecord, map[uint][]model.ProgressRecord,
+) {
+	lastWeekEnd := lastWeekStart.AddDate(0, 0, 7) // exclusive upper bound
+	thisWeekEnd := thisWeekStart.AddDate(0, 0, 7) // exclusive upper bound
+
+	lastWeek := make(map[uint][]model.ProgressRecord)
+	thisWeek := make(map[uint][]model.ProgressRecord)
 	for _, pr := range allProgress {
-		if !pr.CreatedAt.Before(lastWeekRangeStart) && pr.CreatedAt.Before(lastWeekRangeEnd) {
-			lastWeekProgress[pr.SubItemID] = append(lastWeekProgress[pr.SubItemID], pr)
+		if !pr.CreatedAt.Before(lastWeekStart) && pr.CreatedAt.Before(lastWeekEnd) {
+			lastWeek[pr.SubItemID] = append(lastWeek[pr.SubItemID], pr)
 		}
-		if !pr.CreatedAt.Before(thisWeekRangeStart) && pr.CreatedAt.Before(thisWeekRangeEnd) {
-			thisWeekProgress[pr.SubItemID] = append(thisWeekProgress[pr.SubItemID], pr)
+		if !pr.CreatedAt.Before(thisWeekStart) && pr.CreatedAt.Before(thisWeekEnd) {
+			thisWeek[pr.SubItemID] = append(thisWeek[pr.SubItemID], pr)
 		}
 	}
+	return lastWeek, thisWeek
+}
 
-	// Index sub-items by main item ID
-	subItemsByMain := make(map[uint][]model.SubItem)
-	for _, si := range subItems {
-		subItemsByMain[si.MainItemID] = append(subItemsByMain[si.MainItemID], si)
-	}
-
-	// Determine which sub-items were active in each week.
-	// A sub-item is "active" in a week if:
-	//   1. It was created before or during that week (CreatedAt < weekEnd+1day)
-	//   2. It was not completed before that week (ActualEndDate == nil || ActualEndDate >= weekStart)
-	//   3. OR it had progress records in that week
+// computeActiveSubItems determines which sub-items were active in each week.
+func computeActiveSubItems(subItems []model.SubItem, lastWeekProgress, thisWeekProgress map[uint][]model.ProgressRecord, lastWeekStart, weekStart, weekEnd time.Time) (
+	map[uint]struct{}, map[uint]struct{},
+) {
+	lastWeekEnd := lastWeekStart.AddDate(0, 0, 6)
 	lastWeekActive := make(map[uint]struct{})
 	thisWeekActive := make(map[uint]struct{})
 
@@ -125,7 +151,6 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 		if _, ok := thisWeekProgress[si.ID]; ok {
 			thisWeekActive[si.ID] = struct{}{}
 		}
-		// Check if sub-item existed and was not completed before each week
 		if isActiveInWeek(si, lastWeekStart, lastWeekEnd) {
 			lastWeekActive[si.ID] = struct{}{}
 		}
@@ -133,9 +158,23 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 			thisWeekActive[si.ID] = struct{}{}
 		}
 	}
+	return lastWeekActive, thisWeekActive
+}
 
-	// Get latest progress description for this week per sub-item
-	latestProgressDesc := make(map[uint]string)
+// computeLastWeekCompletion extracts the latest completion value per sub-item from last week's progress.
+func computeLastWeekCompletion(lastWeekProgress map[uint][]model.ProgressRecord) map[uint]float64 {
+	result := make(map[uint]float64)
+	for subID, records := range lastWeekProgress {
+		if len(records) > 0 {
+			result[subID] = records[len(records)-1].Completion
+		}
+	}
+	return result
+}
+
+// computeLatestProgressDesc builds the progress description from the latest this-week record per sub-item.
+func computeLatestProgressDesc(thisWeekProgress map[uint][]model.ProgressRecord) map[uint]string {
+	result := make(map[uint]string)
 	for subID, records := range thisWeekProgress {
 		if len(records) > 0 {
 			latest := records[len(records)-1]
@@ -146,36 +185,106 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 				}
 				desc += latest.Blocker
 			}
-			latestProgressDesc[subID] = desc
+			result[subID] = desc
 		}
 	}
+	return result
+}
 
-	// Resolve assignee names for sub-items (batch)
-	assigneeNames := make(map[uint]string)
-	if s.userRepo != nil {
-		seen := make(map[uint]struct{})
-		var ids []uint
-		for _, si := range subItems {
-			if si.AssigneeID != nil {
-				if _, ok := seen[*si.AssigneeID]; !ok {
-					seen[*si.AssigneeID] = struct{}{}
-					ids = append(ids, *si.AssigneeID)
-				}
-			}
-		}
-		if len(ids) > 0 {
-			users, err := s.userRepo.FindByIDs(ctx, ids)
-			if err == nil {
-				for id, u := range users {
-					assigneeNames[id] = u.DisplayName
-				}
+// resolveSubItemAssigneeNames batch-resolves assignee display names for sub-items.
+func resolveSubItemAssigneeNames(ctx context.Context, subItems []model.SubItem, userRepo repository.UserRepo) map[uint]string {
+	names := make(map[uint]string)
+	if userRepo == nil {
+		return names
+	}
+	seen := make(map[uint]struct{})
+	var ids []uint
+	for _, si := range subItems {
+		if si.AssigneeID != nil {
+			if _, ok := seen[*si.AssigneeID]; !ok {
+				seen[*si.AssigneeID] = struct{}{}
+				ids = append(ids, *si.AssigneeID)
 			}
 		}
 	}
+	if len(ids) == 0 {
+		return names
+	}
+	users, err := userRepo.FindByIDs(ctx, ids)
+	if err != nil {
+		return names
+	}
+	for id, u := range users {
+		names[id] = u.DisplayName
+	}
+	return names
+}
 
-	// Build groups
+// indexSubItemsByMain groups sub-items by their main item ID.
+func indexSubItemsByMain(subItems []model.SubItem) map[uint][]model.SubItem {
+	result := make(map[uint][]model.SubItem)
+	for _, si := range subItems {
+		result[si.MainItemID] = append(result[si.MainItemID], si)
+	}
+	return result
+}
+
+// buildSubItemSnapshot creates a SubItemSnapshot for a sub-item with optional progress and delta info.
+func buildSubItemSnapshot(si model.SubItem, assigneeName, progressDesc string, thisWeekProgress map[uint][]model.ProgressRecord, lastWeekCompletion map[uint]float64, weekStart, weekEnd time.Time) dto.SubItemSnapshot {
+	snapshot := dto.SubItemSnapshot{
+		ID:                  si.ID,
+		Title:               si.Title,
+		Priority:            si.Priority,
+		Status:              si.Status,
+		AssigneeName:        assigneeName,
+		StartDate:           formatDate(si.StartDate),
+		ExpectedEndDate:     formatDate(si.ExpectedEndDate),
+		ActualEndDate:       dates.FormatTimePtr(si.ActualEndDate),
+		Completion:          si.Completion,
+		ProgressDescription: progressDesc,
+	}
+
+	// Populate individual progress records for this week
+	if records, ok := thisWeekProgress[si.ID]; ok && len(records) > 0 {
+		snapshot.ProgressRecords = make([]dto.ProgressRecordDTO, 0, len(records))
+		for _, pr := range records {
+			snapshot.ProgressRecords = append(snapshot.ProgressRecords, dto.ProgressRecordDTO{
+				ID:          pr.ID,
+				Completion:  pr.Completion,
+				Achievement: pr.Achievement,
+				Blocker:     pr.Blocker,
+				CreatedAt:   pr.CreatedAt.Format(time.RFC3339),
+			})
+		}
+	}
+
+	if isNewlyCompleted(si, weekStart, weekEnd) {
+		snapshot.JustCompleted = true
+	}
+
+	// Compute delta
+	if lastComp, existed := lastWeekCompletion[si.ID]; existed {
+		snapshot.Delta = si.Completion - lastComp
+	} else {
+		snapshot.IsNew = true
+		snapshot.Delta = 0
+	}
+
+	return snapshot
+}
+
+// buildWeeklyGroups assembles the comparison groups and computes aggregate stats.
+func buildWeeklyGroups(
+	mainItems []model.MainItem,
+	subItemsByMain map[uint][]model.SubItem,
+	lastWeekActive, thisWeekActive map[uint]struct{},
+	lastWeekProgress, thisWeekProgress map[uint][]model.ProgressRecord,
+	lastWeekCompletion map[uint]float64,
+	latestProgressDesc, assigneeNames map[uint]string,
+	weekStart, weekEnd time.Time,
+) ([]dto.WeeklyComparisonGroup, dto.WeeklyStats) {
 	var groups []dto.WeeklyComparisonGroup
-	var totalActive, totalNewlyCompleted, totalInProgress, totalBlocked int
+	var stats dto.WeeklyStats
 
 	for _, mi := range mainItems {
 		subs, ok := subItemsByMain[mi.ID]
@@ -198,128 +307,92 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 			},
 		}
 
-		// Get last week completion per sub-item (latest record in last week)
-		lastWeekCompletion := make(map[uint]float64)
-		for subID, records := range lastWeekProgress {
-			if len(records) > 0 {
-				lastWeekCompletion[subID] = records[len(records)-1].Completion
-			}
-		}
-
 		for _, si := range subs {
 			assigneeName := ""
 			if si.AssigneeID != nil {
 				assigneeName = assigneeNames[*si.AssigneeID]
 			}
 
-			inThisWeek := false
-			if _, ok := thisWeekActive[si.ID]; ok {
-				inThisWeek = true
-			}
-			if _, ok := thisWeekProgress[si.ID]; ok {
-				inThisWeek = true
+			inThisWeek := isInThisWeek(si.ID, thisWeekActive, thisWeekProgress)
+			justCompleted := isNewlyCompleted(si, weekStart, weekEnd)
+			if justCompleted {
+				stats.NewlyCompleted++
 			}
 
-			// Check if just completed this week
-			isJustCompleted := isNewlyCompleted(si, weekStart, weekEnd)
+			snapshot := buildSubItemSnapshot(si, assigneeName, latestProgressDesc[si.ID], thisWeekProgress, lastWeekCompletion, weekStart, weekEnd)
 
-			if isJustCompleted {
-				totalNewlyCompleted++
-			}
+			appendLastWeekSnapshot(&group, si, assigneeName, lastWeekActive, lastWeekProgress, lastWeekCompletion)
 
-			snapshot := dto.SubItemSnapshot{
-				ID:                  si.ID,
-				Title:               si.Title,
-				Priority:            si.Priority,
-				Status:              si.Status,
-				AssigneeName:        assigneeName,
-				StartDate:           formatDate(si.StartDate),
-				ExpectedEndDate:     formatDate(si.ExpectedEndDate),
-				ActualEndDate:       dates.FormatTimePtr(si.ActualEndDate),
-				Completion:          si.Completion,
-				ProgressDescription: latestProgressDesc[si.ID],
-			}
-
-			// Populate individual progress records for this week
-			if records, ok := thisWeekProgress[si.ID]; ok && len(records) > 0 {
-				snapshot.ProgressRecords = make([]dto.ProgressRecordDTO, 0, len(records))
-				for _, pr := range records {
-					snapshot.ProgressRecords = append(snapshot.ProgressRecords, dto.ProgressRecordDTO{
-						ID:          pr.ID,
-						Completion:  pr.Completion,
-						Achievement: pr.Achievement,
-						Blocker:     pr.Blocker,
-						CreatedAt:   pr.CreatedAt.Format(time.RFC3339),
-					})
-				}
-			}
-
-			if isJustCompleted {
-				snapshot.JustCompleted = true
-			}
-
-			// Compute delta
-			if lastComp, existed := lastWeekCompletion[si.ID]; existed {
-				snapshot.Delta = si.Completion - lastComp
-			} else {
-				// Was not active last week
-				snapshot.IsNew = true
-				snapshot.Delta = 0
-			}
-
-			// Add to lastWeek if it was active last week
-			if _, wasActiveLastWeek := lastWeekActive[si.ID]; wasActiveLastWeek {
-				if _, hadProgress := lastWeekProgress[si.ID]; hadProgress {
-					lastComp := lastWeekCompletion[si.ID]
-					lastSnapshot := dto.SubItemSnapshot{
-						ID:              si.ID,
-						Title:           si.Title,
-						Priority:        si.Priority,
-						Status:          si.Status,
-						AssigneeName:    assigneeName,
-						StartDate:       formatDate(si.StartDate),
-						ExpectedEndDate: formatDate(si.ExpectedEndDate),
-						ActualEndDate:   dates.FormatTimePtr(si.ActualEndDate),
-						Completion:      lastComp,
-					}
-					group.LastWeek = append(group.LastWeek, lastSnapshot)
-				}
-			}
-
-			// Completed items with no change this week -> completedNoChange
-			// Only include if the sub-item existed during this week AND was completed at or before this week.
-			if si.Status == "completed" && !isJustCompleted {
-				completedBeforeOrDuringWeek := si.ActualEndDate == nil || !si.ActualEndDate.After(weekEnd)
-				existedDuringWeek := si.CreatedAt.Before(weekEnd.AddDate(0, 0, 1))
-				if completedBeforeOrDuringWeek && existedDuringWeek {
-					group.CompletedNoChange = append(group.CompletedNoChange, snapshot)
-				}
+			if isCompletedNoChange(si, justCompleted, weekEnd) {
+				group.CompletedNoChange = append(group.CompletedNoChange, snapshot)
 				continue
 			}
 
-			// Add to thisWeek if active this week
-			if inThisWeek || isJustCompleted {
+			if inThisWeek || justCompleted {
 				group.ThisWeek = append(group.ThisWeek, snapshot)
-				totalActive++
-
+				stats.ActiveSubItems++
 				if si.Status == "progressing" {
-					totalInProgress++
+					stats.InProgress++
 				}
 				if si.Status == "blocking" {
-					totalBlocked++
+					stats.Blocked++
 				}
 			}
 		}
 
-		// Skip main items with no active sub-items in this week's view
 		if len(group.ThisWeek) == 0 && len(group.LastWeek) == 0 && len(group.CompletedNoChange) == 0 {
 			continue
 		}
-
 		groups = append(groups, group)
 	}
+	return groups, stats
+}
 
-	// Sort groups by main item priority ascending
+// isInThisWeek returns true if the sub-item was active or had progress this week.
+func isInThisWeek(subID uint, thisWeekActive map[uint]struct{}, thisWeekProgress map[uint][]model.ProgressRecord) bool {
+	if _, ok := thisWeekActive[subID]; ok {
+		return true
+	}
+	if _, ok := thisWeekProgress[subID]; ok {
+		return true
+	}
+	return false
+}
+
+// appendLastWeekSnapshot adds a last-week snapshot to the group if the sub-item was active and had progress last week.
+func appendLastWeekSnapshot(group *dto.WeeklyComparisonGroup, si model.SubItem, assigneeName string, lastWeekActive map[uint]struct{}, lastWeekProgress map[uint][]model.ProgressRecord, lastWeekCompletion map[uint]float64) {
+	if _, wasActive := lastWeekActive[si.ID]; !wasActive {
+		return
+	}
+	if _, hadProgress := lastWeekProgress[si.ID]; !hadProgress {
+		return
+	}
+	lastSnapshot := dto.SubItemSnapshot{
+		ID:              si.ID,
+		Title:           si.Title,
+		Priority:        si.Priority,
+		Status:          si.Status,
+		AssigneeName:    assigneeName,
+		StartDate:       formatDate(si.StartDate),
+		ExpectedEndDate: formatDate(si.ExpectedEndDate),
+		ActualEndDate:   dates.FormatTimePtr(si.ActualEndDate),
+		Completion:      lastWeekCompletion[si.ID],
+	}
+	group.LastWeek = append(group.LastWeek, lastSnapshot)
+}
+
+// isCompletedNoChange returns true if a sub-item was completed before this week and not just completed.
+func isCompletedNoChange(si model.SubItem, justCompleted bool, weekEnd time.Time) bool {
+	if si.Status != "completed" || justCompleted {
+		return false
+	}
+	completedBeforeOrDuringWeek := si.ActualEndDate == nil || !si.ActualEndDate.After(weekEnd)
+	existedDuringWeek := si.CreatedAt.Before(weekEnd.AddDate(0, 0, 1))
+	return completedBeforeOrDuringWeek && existedDuringWeek
+}
+
+// sortGroupsByPriority sorts groups by main item priority ascending (P1 first).
+func sortGroupsByPriority(groups []dto.WeeklyComparisonGroup) {
 	sort.SliceStable(groups, func(i, j int) bool {
 		pi, oki := priorityOrder[groups[i].MainItem.Priority]
 		pj, okj := priorityOrder[groups[j].MainItem.Priority]
@@ -331,18 +404,11 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 		}
 		return pi < pj
 	})
+}
 
-	return &dto.WeeklyViewResponse{
-		WeekStart: weekStart.Format("2006-01-02"),
-		WeekEnd:   weekEnd.Format("2006-01-02"),
-		Stats: dto.WeeklyStats{
-			ActiveSubItems: totalActive,
-			NewlyCompleted: totalNewlyCompleted,
-			InProgress:     totalInProgress,
-			Blocked:        totalBlocked,
-		},
-		Groups: groups,
-	}, nil
+// startOfDay truncates a time to midnight in its location.
+func startOfDay(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
 }
 
 // isNewlyCompleted checks if a sub-item's ActualEndDate falls within the week range.
