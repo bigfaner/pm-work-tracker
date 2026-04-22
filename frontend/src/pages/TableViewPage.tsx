@@ -331,23 +331,21 @@ export default function TableViewPage() {
                   </TableBody>
                 </Table>
               </div>
-              <div className="flex items-center justify-between px-5 py-3 border-t border-border">
+              <div className="flex items-center justify-center gap-3 px-5 py-3 border-t border-border">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
                 <PaginationPageSize
                   pageSize={pageSize}
                   onPageSizeChange={handlePageSizeChange}
                   options={PAGE_SIZE_OPTIONS}
                   data-testid="pagination-page-size"
                 />
-                <div className="flex items-center gap-3">
-                  <span className="text-[13px] text-tertiary" data-testid="total-count">
-                    共 {totalItems} 条
-                  </span>
-                  <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                  />
-                </div>
+                <span className="text-[13px] text-tertiary" data-testid="total-count">
+                  共 {totalItems} 条
+                </span>
               </div>
             </div>
           )}

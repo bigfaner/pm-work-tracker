@@ -1214,20 +1214,18 @@ function DetailView({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-between px-5 py-3 border-t border-border">
+      <div className="flex items-center justify-center gap-3 px-5 py-3 border-t border-border">
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+        />
         <PaginationPageSize
           pageSize={pageSize}
           onPageSizeChange={onPageSizeChange}
           options={[5, 10, 20, 50]}
         />
-        <div className="flex items-center gap-3">
-          <span className="text-[13px] text-tertiary">共 {totalItems} 条</span>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={onPageChange}
-          />
-        </div>
+        <span className="text-[13px] text-tertiary">共 {totalItems} 条</span>
       </div>
     </div>
   )
