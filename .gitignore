@@ -30,6 +30,10 @@ go.work.sum
 # config files (keep only .example)
 backend/config.yaml
 
+# build artifacts
+bin/
+backend/web/dist/
+
 # Editor/IDE
 # .idea/
 # .vscode/
