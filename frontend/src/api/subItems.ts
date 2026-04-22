@@ -3,7 +3,6 @@ import type {
   CreateSubItemReq,
   UpdateSubItemReq,
   ChangeStatusReq,
-  AssignSubItemReq,
   SubItemFilter,
   SubItem,
   PageResult,
@@ -30,10 +29,6 @@ export function updateSubItemApi(teamId: number, itemId: number, req: UpdateSubI
 
 export function changeSubItemStatusApi(teamId: number, itemId: number, req: ChangeStatusReq): Promise<void> {
   return client.put<never, void>(`/teams/${teamId}/sub-items/${itemId}/status`, req)
-}
-
-export function assignSubItemApi(teamId: number, itemId: number, req: AssignSubItemReq): Promise<void> {
-  return client.put<never, void>(`/teams/${teamId}/sub-items/${itemId}/assignee`, req)
 }
 
 export function getSubItemTransitionsApi(teamId: number, subId: number): Promise<string[]> {

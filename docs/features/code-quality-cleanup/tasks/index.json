@@ -19,7 +19,7 @@
       "title": "Frontend dead code removal",
       "priority": "P0",
       "estimatedTime": "2h",
-      "status": "pending",
+      "status": "completed",
       "file": "1.2-frontend-dead-code.md",
       "record": "records/1.2-frontend-dead-code.md"
     },

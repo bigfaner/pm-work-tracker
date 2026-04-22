@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import type {
   User,
   Team,
-  TeamMember,
   MainItem,
   SubItem,
   ProgressRecord,
@@ -35,21 +34,6 @@ describe('shared TypeScript interfaces', () => {
       updatedAt: '2024-01-01',
     }
     expect(team.name).toBe('Team Alpha')
-  })
-
-  it('should define a valid TeamMember', () => {
-    const member: TeamMember = {
-      id: 1,
-      teamId: 1,
-      userId: 1,
-      role: 'member',
-      joinedAt: '2026-01-01T00:00:00Z',
-      displayName: 'Test User',
-      username: 'testuser',
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01',
-    }
-    expect(member.role).toBe('member')
   })
 
   it('should define a valid MainItem', () => {

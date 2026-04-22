@@ -25,10 +25,6 @@ export function updateMainItemApi(teamId: number, itemId: number, req: UpdateMai
   return client.put<never, MainItem>(`/teams/${teamId}/main-items/${itemId}`, req)
 }
 
-export function archiveMainItemApi(teamId: number, itemId: number): Promise<void> {
-  return client.post<never, void>(`/teams/${teamId}/main-items/${itemId}/archive`)
-}
-
 export function changeMainItemStatusApi(teamId: number, itemId: number, req: ChangeStatusReq): Promise<{ status: string; linkageWarning?: string }> {
   return client.put<never, { status: string; linkageWarning?: string }>(`/teams/${teamId}/main-items/${itemId}/status`, req)
 }

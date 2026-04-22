@@ -26,7 +26,6 @@ vi.mock('@/api/mainItems', () => ({
   }),
   createMainItemApi: vi.fn(),
   updateMainItemApi: vi.fn(),
-  archiveMainItemApi: vi.fn(),
 }))
 
 // Mock the subItems API
