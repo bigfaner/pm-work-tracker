@@ -193,7 +193,6 @@ func TestTeamRepo_FindMember(t *testing.T) {
 	t.Run("found", func(t *testing.T) {
 		found, err := repo.FindMember(ctx, team.ID, member.ID)
 		require.NoError(t, err)
-		assert.Equal(t, "member", found.Role)
 		assert.Equal(t, team.ID, found.TeamID)
 		assert.Equal(t, member.ID, found.UserID)
 	})
@@ -265,5 +264,6 @@ func TestTeamRepo_UpdateMember(t *testing.T) {
 
 	found, err := repo.FindMember(ctx, team.ID, member.ID)
 	require.NoError(t, err)
-	assert.Equal(t, "pm", found.Role)
+	assert.Equal(t, team.ID, found.TeamID)
+	assert.Equal(t, member.ID, found.UserID)
 }

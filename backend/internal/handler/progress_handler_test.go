@@ -142,12 +142,12 @@ func TestAppendProgress_Success(t *testing.T) {
 	svc.appendResult.record = record
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":60,"achievement":"completed feature","blocker":"none","lesson":"test early"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -175,12 +175,12 @@ func TestAppendProgress_MemberCanAppend(t *testing.T) {
 	svc.appendResult.record = record
 
 	deps := depsWithProgressSvcMemberRole(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":60}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -193,12 +193,12 @@ func TestAppendProgress_InvalidBody(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -211,12 +211,12 @@ func TestAppendProgress_CompletionOutOfRange_Negative(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":-1}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -229,12 +229,12 @@ func TestAppendProgress_CompletionOutOfRange_Above100(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":101}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -250,12 +250,12 @@ func TestAppendProgress_CompletionBoundary_0(t *testing.T) {
 	svc.appendResult.record = record
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":0}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -271,12 +271,12 @@ func TestAppendProgress_CompletionBoundary_100(t *testing.T) {
 	svc.appendResult.record = record
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":100}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -290,12 +290,12 @@ func TestAppendProgress_Regression_422(t *testing.T) {
 	svc.appendResult.err = apperrors.ErrProgressRegression
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":30}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -313,12 +313,12 @@ func TestAppendProgress_ServiceError(t *testing.T) {
 	svc.appendResult.err = errors.New("unexpected")
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":60}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -330,12 +330,12 @@ func TestAppendProgress_InvalidSubID(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":60}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/sub-items/abc/progress", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/sub-items/abc/progress", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -354,12 +354,12 @@ func TestAppendProgress_IncludesAuthorName(t *testing.T) {
 	}
 
 	deps := depsWithProgressSvcAndUser(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := `{"completion":60}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/sub-items/5/progress", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -388,11 +388,11 @@ func TestListProgress_Success(t *testing.T) {
 	svc.listResult.records[1].Completion = 60
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/sub-items/5/progress", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/sub-items/5/progress", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -415,11 +415,11 @@ func TestListProgress_Empty(t *testing.T) {
 	svc.listResult.records = []model.ProgressRecord{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/sub-items/5/progress", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/sub-items/5/progress", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -438,11 +438,11 @@ func TestListProgress_InvalidSubID(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/sub-items/abc/progress", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/sub-items/abc/progress", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -455,11 +455,11 @@ func TestListProgress_ServiceError(t *testing.T) {
 	svc.listResult.err = errors.New("db error")
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/sub-items/5/progress", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/sub-items/5/progress", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -477,11 +477,11 @@ func TestListProgress_IncludesAuthorNames(t *testing.T) {
 	}
 
 	deps := depsWithProgressSvcAndUser(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/sub-items/5/progress", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/sub-items/5/progress", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -508,12 +508,12 @@ func TestCorrectCompletion_Success(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"completion":75}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/teams/10/progress/100/completion", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPatch, "/v1/teams/10/progress/100/completion", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -528,12 +528,12 @@ func TestCorrectCompletion_RequiresPM(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvcMemberRole(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"completion":75}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/teams/10/progress/100/completion", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPatch, "/v1/teams/10/progress/100/completion", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -546,12 +546,12 @@ func TestCorrectCompletion_InvalidRecordID(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"completion":75}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/teams/10/progress/abc/completion", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPatch, "/v1/teams/10/progress/abc/completion", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -564,12 +564,12 @@ func TestCorrectCompletion_InvalidBody(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/teams/10/progress/100/completion", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPatch, "/v1/teams/10/progress/100/completion", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -582,12 +582,12 @@ func TestCorrectCompletion_CompletionOutOfRange_Negative(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"completion":-1}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/teams/10/progress/100/completion", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPatch, "/v1/teams/10/progress/100/completion", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -600,12 +600,12 @@ func TestCorrectCompletion_CompletionOutOfRange_Above100(t *testing.T) {
 	svc := &mockProgressService{}
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"completion":101}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/teams/10/progress/100/completion", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPatch, "/v1/teams/10/progress/100/completion", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -619,12 +619,12 @@ func TestCorrectCompletion_RecordNotFound(t *testing.T) {
 	svc.correctResult.err = apperrors.ErrItemNotFound
 
 	deps := depsWithProgressSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"completion":75}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/teams/10/progress/999/completion", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPatch, "/v1/teams/10/progress/999/completion", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -637,12 +637,12 @@ func TestCorrectCompletion_SuperAdminBypass(t *testing.T) {
 
 	// Use member-role team, but superadmin token
 	deps := depsWithProgressSvcMemberRole(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
 	body := `{"completion":75}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/teams/10/progress/100/completion", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPatch, "/v1/teams/10/progress/100/completion", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -677,12 +677,12 @@ func TestAppendProgress_ResponseShapeMatchesDataContract(t *testing.T) {
 	}
 
 	deps := depsWithProgressSvcAndUser(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
 	body := fmt.Sprintf(`{"completion":60,"achievement":"completed SDK init","blocker":"certificate pending","lesson":"sandbox vs prod config diff"}`)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/1/sub-items/10/progress", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/1/sub-items/10/progress", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)

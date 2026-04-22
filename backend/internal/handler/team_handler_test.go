@@ -222,12 +222,12 @@ func TestCreateTeam_Success(t *testing.T) {
 	userRepo.user.ID = 1
 
 	deps := depsWithTeamSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	body := `{"name":"Alpha","description":"desc"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -254,13 +254,13 @@ func TestCreateTeam_UserCannotCreateTeam(t *testing.T) {
 	userRepo.user.ID = 1
 
 	deps := depsWithTeamSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	// Use user ID=2 which is a regular member (not superadmin) in testDeps
 	token := signTestToken(t, 2, "testuser")
 	body := `{"name":"Alpha"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -280,12 +280,12 @@ func TestCreateTeam_SuperAdminCanCreate(t *testing.T) {
 	userRepo.user.ID = 1
 
 	deps := depsWithTeamSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
 	body := `{"name":"Alpha"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -302,12 +302,12 @@ func TestCreateTeam_InvalidBody(t *testing.T) {
 	userRepo.user.ID = 1
 
 	deps := depsWithTeamSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	body := `{}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -329,11 +329,11 @@ func TestListTeams_Success(t *testing.T) {
 	svc.listTeamsResult.teams[1].ID = 2
 
 	deps := depsWithTeamSvc(t, svc, nil)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -365,11 +365,11 @@ func TestGetTeam_Success(t *testing.T) {
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/1", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/1", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -393,11 +393,11 @@ func TestGetTeam_NotFound(t *testing.T) {
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/999", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/999", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -415,12 +415,12 @@ func TestUpdateTeam_Success(t *testing.T) {
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	body := `{"name":"Updated","description":"new desc"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/1", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/v1/teams/1", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -436,12 +436,12 @@ func TestUpdateTeam_NotPM(t *testing.T) {
 	deps := depsWithTeamSvc(t, svc, nil)
 	// mockTeamRepo returns a member with role "member" (not pm)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "member", RoleID: ptrUint(2)}}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 2, "testuser")
 	body := `{"name":"Updated"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/1", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/v1/teams/1", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -460,12 +460,12 @@ func TestDisbandTeam_Success(t *testing.T) {
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	body := `{"confirmName":"Alpha"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/teams/1", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodDelete, "/v1/teams/1", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -481,12 +481,12 @@ func TestDisbandTeam_ConfirmNameMismatch(t *testing.T) {
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	body := `{"confirmName":"Wrong"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/teams/1", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodDelete, "/v1/teams/1", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -507,11 +507,11 @@ func TestListMembers_Success(t *testing.T) {
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/1/members", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/1/members", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -536,12 +536,12 @@ func TestInviteMember_Success(t *testing.T) {
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	body := `{"username":"bob","roleId":3}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/1/members", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/1/members", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -557,12 +557,12 @@ func TestInviteMember_AlreadyMember(t *testing.T) {
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	body := `{"username":"bob","roleId":3}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/1/members", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/1/members", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -581,12 +581,12 @@ func TestInviteMember_UserNotFound(t *testing.T) {
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	body := `{"username":"ghost","roleId":3}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/1/members", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/1/members", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -603,11 +603,11 @@ func TestRemoveMember_Success(t *testing.T) {
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/teams/1/members/5", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/v1/teams/1/members/5", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -622,11 +622,11 @@ func TestRemoveMember_CannotRemoveSelf(t *testing.T) {
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/teams/1/members/1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/v1/teams/1/members/1", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -647,12 +647,12 @@ func TestTransferPM_Success(t *testing.T) {
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	body := `{"newPmUserId":5}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/1/pm", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/v1/teams/1/pm", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -668,12 +668,12 @@ func TestTransferPM_TargetNotMember(t *testing.T) {
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	body := `{"newPmUserId":99}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/1/pm", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/v1/teams/1/pm", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -691,12 +691,12 @@ func TestTransferPM_InvalidBody(t *testing.T) {
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	body := `{}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/1/pm", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/v1/teams/1/pm", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -710,12 +710,12 @@ func TestTransferPM_ServiceError(t *testing.T) {
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
 	body := `{"newPmUserId":5}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/1/pm", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/v1/teams/1/pm", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)

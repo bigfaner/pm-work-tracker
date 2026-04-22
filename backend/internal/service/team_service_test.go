@@ -263,7 +263,7 @@ func TestInviteMember_Success(t *testing.T) {
 	teamRepo := &mockTeamRepo{
 		team:          &model.Team{BaseModel: model.BaseModel{ID: 1}, Name: "Alpha", PmID: 10},
 		member:        nil, // invited user is not yet a member
-		findMemberErr: gorm.ErrRecordNotFound, // FindMember returns not found
+		findMemberErr: apperrors.ErrNotFound, // FindMember returns not found
 	}
 	userRepo := &mockTeamUserRepo{
 		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
@@ -312,15 +312,7 @@ func TestInviteMember_AlreadyMember(t *testing.T) {
 	assert.ErrorIs(t, err, apperrors.ErrAlreadyMember)
 }
 
-func TestInviteMember_CallerNotPM(t *testing.T) {
-	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1}, PmID: 10},
-	}
-	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, &mockDB{})
-
-	err := svc.InviteMember(context.Background(), 99, 1, dto.InviteMemberReq{Username: "bob"})
-	assert.ErrorIs(t, err, apperrors.ErrForbidden)
-}
+// TestInviteMember_CallerNotPM is removed: PM check moved to RequirePermission middleware.
 
 // ---------------------------------------------------------------------------
 // Tests: RemoveMember
