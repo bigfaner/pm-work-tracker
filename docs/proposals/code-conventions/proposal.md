@@ -31,7 +31,7 @@ status: Draft
 - CLAUDE.md 只有通用行为准则，没有项目级编码规范
 - AI 每次会话无法获得一致的风格指引
 
-**Why now（后果，非时机）**：`linkageMuMap` 代码中无删除路径，进程生命周期内只增不减；GORM 日志在开发环境中已可观测到 `resolveAssigneeNames` 触发的串行查询。若推迟 6 个月：按当前迭代速度 main_items 预计增长至 500+，届时每次 `TableView` 请求将加载 500+ 行到内存再切片，`linkageMuMap` 将持有 500+ 个永不释放的 mutex 条目；无规范约束下 AI 会话已出现过 snake_case JSON tag（model 层历史遗留），同类风格漂移将持续累积。
+**Why now（后果，非时机）**：`linkageMuMap` 代码中无删除路径，进程生命周期内只增不减；GORM 日志在开发环境中已可观测到 `resolveAssigneeNames` 触发的串行查询。若推迟 6 个月：当前 main_items 约 200 条（基于已完成 feature 数 × 每 feature 平均 item 数的保守估算，反映观测到的开发速度），月增约 50 条，按此速度 6 个月后将超过 500 条，届时每次 `TableView` 请求将加载 500+ 行到内存再切片，`linkageMuMap` 将持有 500+ 个永不释放的 mutex 条目；规范缺失的风险不依赖违规频率——即使每季度仅有一次未被发现的违规，随迭代累积也会造成风格漂移，修复成本随时间递增。
 
 ## Proposed Solution
 
@@ -73,7 +73,7 @@ status: Draft
 按后端→前端顺序：
 1. **抽取公共 helper**：`mapNotFound` → 通用 `MapNotFound(err, targetErr)`；分页 → `ApplyPaginationDefaults`；日期解析 → `ParseDate`
 2. **统一 CRUD 模式**：repo 层减少重复
-3. **前端组件化**：识别重复 UI 模式，抽取可复用组件（具体组件名在 Phase 3 开始前确定）
+3. **前端组件化**：抽取以下 3 个可复用组件（已通过阅读现有页面代码确认重复出现）：`StatusChangeConfirmDialog`（`MainItemDetailPage` 中出现 2 次、`SubItemDetailPage` 中出现 1 次）、`ProgressAppendDialog`（`MainItemDetailPage`、`ItemViewPage`、`SubItemDetailPage` 各出现 1 次）、`SubItemFormDialog`（`MainItemDetailPage` 中创建/编辑子事项两个 Dialog 合并）
 
 **完成后的可观测状态**：`grep -r "ErrRecordNotFound" backend/internal` 返回 ≤10 处（当前 21 处）；lint 在清理后全量通过，确认无回归。
 
@@ -81,7 +81,7 @@ status: Draft
 
 | Approach | Pros | Cons | Verdict |
 |----------|------|------|---------|
-| **A. 四阶段捆绑（推荐）** | Phase 0 修复的是实现 bug，Phases 1–3 修复的是产生 bug 的过程缺陷；若只做 Phase 0，下一个 AI 会话在没有规范和 lint 约束的情况下仍会引入新的 N+1 查询或 snake_case tag，Phase 0 的修复会被逐步侵蚀；捆绑的核心理由是"Phase 0 修复 + Phases 1–3 防止复发"，而非仅仅"同根同源"；Phase 3 清理在 lint 就位后执行，避免二次触碰同一文件 | 总工作量比单做 Phase 0 大；Phase 3 工期较长 | ✅ Recommended |
+| **A. 四阶段捆绑（推荐）** | Phase 0 修复的是现有实现 bug；Phases 1–3 修复的是产生命名违规的过程缺陷——历史上已有 AI 会话引入 snake_case tag（model 层遗留），无规范和 lint 约束下同类命名违规会在 Phase 0 修复后的新会话中重新出现，逐步侵蚀代码库；Phase 3 清理在 lint 就位后执行，避免二次触碰同一文件 | 总工作量比单做 Phase 0 大；Phase 3 工期较长；Phase 0 本身存在执行风险：`TableView` 行为变更（全表加载→DB 分页）需对比测试验证结果一致性；`UserRepo` 接口扩展需同步更新调用方和测试 mock | ✅ Recommended |
 | **A'. 仅做 Phase 0** | 工作量最小，立即消除性能风险 | 不解决复发风险：历史上已有 AI 会话引入 snake_case tag（model 层遗留），无规范和 lint 约束下同类问题会在 Phase 0 修复后的新会话中重新出现；3 个月后需要重新做 Phase 1–3，届时要二次触碰已改过的文件 | ❌ 修复会被侵蚀 |
 | **B. 重复优先** | 先消除 21 个重复副本，后续改动减少重复文件触碰 | N+1 查询和全表内存分页持续存在，数据量增长后响应时间线性恶化；性能问题比重复代码更紧迫 | ❌ 风险持续 |
 | **C. 全部一次（无分阶段）** | 一次性解决 | 单 PR 改动范围横跨性能、文档、lint、清理，难以 review，回归风险高 | ❌ 难以 review |
@@ -95,12 +95,14 @@ status: Draft
 
 | Phase | 内容 | 规模 | 是否可并行 |
 |-------|------|------|-----------|
-| Phase 0 | `UserRepo.FindByIDs`、`TableView` DB 分页、`fetchTableRows` 提取、构造函数合并、`linkageMuMap` 限制 | M（约 3–5 天） | 可与 Phase 1 并行启动 |
+| Phase 0 | `UserRepo.FindByIDs`、`TableView` DB 分页、`fetchTableRows` 提取、构造函数合并、`linkageMuMap` 限制；`UserRepo.FindByIDs` 接口变更所需的调用方更新和测试 mock 更新 | M（约 3–5 天） | 可与 Phase 1 并行启动 |
 | Phase 1 | 编写 `docs/ARCHITECTURE.md`、`docs/DECISIONS.md`、`.claude/rules/*.md` | S（约 1–2 天） | 可与 Phase 0 并行 |
 | Phase 2 | 配置 golangci-lint（`tagliatelle`、`dupl`）和 ESLint 命名规则 | S（约 1 天） | 须在 Phase 1 完成后启动 |
-| Phase 3 | 后端 helper 提取；前端可复用组件抽取（≥3 个，名称在 Phase 3 开始前确定） | L（约 5–7 天） | 须在 Phase 2 完成后启动 |
+| Phase 3 | 后端 helper 提取；前端抽取 `StatusChangeConfirmDialog`、`ProgressAppendDialog`、`SubItemFormDialog` 三个可复用组件 | L（约 5–7 天） | 须在 Phase 2 完成后启动 |
 
 **总工期目标**：Phase 0 + Phase 1 并行，随后 Phase 2 → Phase 3 串行，目标在 **3 个 sprint（约 3 周）** 内完成全部四个阶段。
+
+**工期估算基准**：单人开发，有效编码时间约 4h/天。
 
 **顺序约束**：Phase 0 和 Phase 1 可并行；Phase 2 必须在 Phase 1 之后（lint 规则须与规范文档对齐）；Phase 3 必须在 Phase 2 之后（清理后需 lint 全量验证）。
 
@@ -116,9 +118,9 @@ status: Draft
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
-| `TableView` 改 DB 分页后行为差异 | Medium | High | 改动前后对比测试；现有 repo 测试覆盖 |
+| `TableView` 改 DB 分页后行为差异 | Medium | High | 编写集成测试，对同一数据集分别运行改动前后的 `TableView`，对比返回的 item IDs 和分页元数据（total、page、pageSize）一致 |
 | `linkageMuMap` 改动引入并发 bug | Low | High | 保守方案：改用 `sync.Map`，不改锁语义 |
-| 规范文档过于理想化 | Medium | Medium | 规范中提供具体代码示例和反例 |
+| 规范文档过于理想化 | Medium | High | 规范中提供具体代码示例和反例；Phase 1 完成后，在 3 个连续 AI 会话中验证 `@rules/naming.md` 被正确引用；若任一会话未引用，调整规则文件结构或 CLAUDE.md 引用方式 |
 | 清理范围过大导致回归 | Medium | High | 每批清理后运行完整测试套件；分批提交 |
 | Phase 2 lint 规则因存量违规过多而长期停留在 warn 模式，无法切换为 error 强制执行 | Medium | High | Phase 2 启动前先统计存量违规数量（`golangci-lint run --enable tagliatelle ./... 2>&1 \| grep -c "json-camel"`）；若违规数 >20，在 Phase 2 内增加一个 cleanup 子任务，将存量违规降至 ≤5 后再切换为 error 模式 |
 
@@ -126,7 +128,8 @@ status: Draft
 
 ### Phase 0
 - [ ] `UserRepo` 新增 `FindByIDs` 方法，`resolveAssigneeNames` 改为单次批量查询
-- [ ] `TableView` 分页下推到 repo 层，不再全表加载
+- [ ] `UserRepo.FindByIDs` 所有调用方已更新，相关测试 mock 已同步扩展
+- [ ] `TableView` 分页下推到 repo 层，不再全表加载；集成测试对同一数据集对比改动前后返回的 item IDs 和分页元数据（total、page、pageSize）一致
 - [ ] `TableView` 和 `TableExportCSV` 共享 `fetchTableRows` 私有方法
 - [ ] `NewViewService` 只有一个构造函数
 - [ ] `linkageMuMap` 有明确的清理路径：代码审查确认 `EvaluateLinkage` 完成后存在删除条目的调用，或改用 `sync.Map` 并有显式 `Delete` 调用；验证方式：PR review checklist 中逐行确认删除路径存在
@@ -139,7 +142,7 @@ status: Draft
 - [ ] golangci-lint 新增 `tagliatelle` 规则，`go lint ./...` 能检测出 snake_case JSON tag 违规
 - [ ] ESLint 对 API 层文件命名违规（非 camelCase.ts）和组件导出命名违规（非 PascalCase）返回非零退出码；验证命令：`npx eslint src/api/BadName.ts` 退出码非零，`npx eslint src/components/badComponent.tsx` 退出码非零
 - [ ] 后端重复副本从当前 21 个（12 个 repo 层内联 `ErrRecordNotFound` 检查 + 1 个 `parsePagination` 重复函数 + 8 个 service 层日期解析样板）减少到 ≤10 个（减少 ≥50%）
-- [ ] 至少抽取 3 个可复用前端 UI 组件（需在 Phase 3 开始前列出具体组件名）
+- [ ] 至少抽取 3 个可复用前端 UI 组件：`StatusChangeConfirmDialog`、`ProgressAppendDialog`、`SubItemFormDialog`，各组件在原页面中的内联 Dialog 替换为组件引用
 - [ ] 全部现有测试通过
 
 ## Next Steps
