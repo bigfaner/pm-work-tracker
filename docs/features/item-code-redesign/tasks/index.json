@@ -94,7 +94,7 @@
         "1.1",
         "2.3"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.1-team-service-code.md",
       "record": "records/3.1-team-service-code.md"
     },
@@ -106,7 +106,7 @@
       "dependencies": [
         "2.2"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.2-sub-item-service-code.md",
       "record": "records/3.2-sub-item-service-code.md"
     },

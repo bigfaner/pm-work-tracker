@@ -50,9 +50,15 @@ func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req 
 		return nil, apperrors.ErrTerminalMainItem
 	}
 
+	code, err := s.subItemRepo.NextSubCode(ctx, req.MainItemID)
+	if err != nil {
+		return nil, err
+	}
+
 	item := &model.SubItem{
 		TeamID:      teamID,
 		MainItemID:  req.MainItemID,
+		Code:        code,
 		Title:       req.Title,
 		Description: req.Description,
 		Priority:    req.Priority,
