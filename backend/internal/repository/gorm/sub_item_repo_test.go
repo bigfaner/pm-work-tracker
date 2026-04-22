@@ -27,7 +27,7 @@ func seedSubItemData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team, *m
 	t.Helper()
 	u := model.User{Username: "si_pm", DisplayName: "SI PM", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "SI Team", PmID: u.ID}
+	team := model.Team{Name: "SI Team", PmID: u.ID, Code: "SITE"}
 	require.NoError(t, db.Create(&team).Error)
 	mi := model.MainItem{TeamID: team.ID, Code: "MI-SI01", Title: "Main", Priority: "P1", ProposerID: u.ID, Status: "pending"}
 	require.NoError(t, db.Create(&mi).Error)
@@ -187,7 +187,7 @@ func TestSubItemRepo_List(t *testing.T) {
 	t.Run("team_isolation", func(t *testing.T) {
 		u2 := model.User{Username: "other_pm", DisplayName: "OP", PasswordHash: "h"}
 		require.NoError(t, db.Create(&u2).Error)
-		team2 := model.Team{Name: "Other SI Team", PmID: u2.ID}
+		team2 := model.Team{Name: "Other SI Team", PmID: u2.ID, Code: "OSIT"}
 		require.NoError(t, db.Create(&team2).Error)
 		mi3 := model.MainItem{TeamID: team2.ID, Code: "MI-SI03", Title: "M3", Priority: "P1", ProposerID: u2.ID, Status: "pending"}
 		require.NoError(t, db.Create(&mi3).Error)

@@ -156,7 +156,7 @@ func TestSubmitItemPool_Success(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "Test User"}}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Test Pool Item","background":"some bg","expectedOutput":"some output"}`
@@ -191,7 +191,7 @@ func TestSubmitItemPool_MemberCanSubmit(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "Member"}}
 
 	deps := depsWithItemPoolMemberRole(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Member Pool Item"}`
@@ -210,7 +210,7 @@ func TestSubmitItemPool_MissingTitle(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"background":"no title"}`
@@ -231,7 +231,7 @@ func TestSubmitItemPool_ServiceError(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Test"}`
@@ -260,7 +260,7 @@ func TestListItemPool_Success(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -288,7 +288,7 @@ func TestListItemPool_WithStatusFilter(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -309,7 +309,7 @@ func TestListItemPool_ServiceError(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -335,7 +335,7 @@ func TestGetItemPool_Success(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "Submitter"}}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -362,7 +362,7 @@ func TestGetItemPool_InvalidPoolID(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -381,7 +381,7 @@ func TestGetItemPool_NotFound(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -423,7 +423,7 @@ func TestAssignItemPool_Success(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "Submitter"}}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"mainItemId":1,"assigneeId":3,"startDate":"2026-01-01","expectedEndDate":"2026-02-01"}`
@@ -456,7 +456,7 @@ func TestAssignItemPool_RequiresPM(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolMemberRole(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"mainItemId":1,"assigneeId":3,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
@@ -475,7 +475,7 @@ func TestAssignItemPool_InvalidPoolID(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"mainItemId":1,"assigneeId":3,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
@@ -494,7 +494,7 @@ func TestAssignItemPool_MissingRequiredFields(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{}`
@@ -515,7 +515,7 @@ func TestAssignItemPool_AlreadyProcessed(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"mainItemId":1,"assigneeId":3,"startDate":"2026-01-01","expectedEndDate":"2026-02-01"}`
@@ -555,7 +555,7 @@ func TestAssignItemPool_SuperAdminBypass(t *testing.T) {
 
 	// Use member-role team, but superadmin token
 	deps := depsWithItemPoolMemberRole(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
 	body := `{"mainItemId":1,"assigneeId":3,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
@@ -590,7 +590,7 @@ func TestRejectItemPool_Success(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "Submitter"}}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"reason":"Not enough priority"}`
@@ -611,7 +611,7 @@ func TestRejectItemPool_RequiresPM(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolMemberRole(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"reason":"some reason"}`
@@ -630,7 +630,7 @@ func TestRejectItemPool_InvalidPoolID(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"reason":"some reason"}`
@@ -649,7 +649,7 @@ func TestRejectItemPool_ReasonRequired(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{}`
@@ -670,7 +670,7 @@ func TestRejectItemPool_AlreadyProcessed(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"reason":"some reason"}`
@@ -721,7 +721,7 @@ func TestGetItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "王五"}}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -767,7 +767,7 @@ func TestSubmitItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "王五"}}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"优化首页加载速度","background":"用户反馈首页加载超过 3 秒","expectedOutput":"首页 LCP < 1.5 秒"}`
@@ -819,7 +819,7 @@ func TestAssignItemPool_ReturnsSubItemId(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "Submitter"}}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := fmt.Sprintf(`{"mainItemId":%d,"assigneeId":%d,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, assignedMainID, assigneeID)

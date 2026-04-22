@@ -357,7 +357,8 @@ func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engi
 			Origins: []string{"http://localhost:3000"},
 		},
 		Server: config.ServerConfig{
-			GinMode: "test",
+			GinMode:  "test",
+			BasePath: "/api",
 		},
 	}
 
@@ -377,6 +378,6 @@ func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engi
 		Admin:    handler.NewAdminHandler(adminSvc),
 	}
 
-	r := handler.SetupRouter(deps)
+	r := handler.SetupRouter(deps, nil)
 	return r, data
 }

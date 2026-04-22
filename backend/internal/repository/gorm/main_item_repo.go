@@ -87,27 +87,32 @@ func (r *mainItemRepo) List(ctx context.Context, teamID uint, filter dto.MainIte
 }
 
 func (r *mainItemRepo) NextCode(ctx context.Context, teamID uint) (string, error) {
-	var maxCode *string
-	err := r.db.WithContext(ctx).
-		Model(&model.MainItem{}).
-		Unscoped().
-		Where("team_id = ?", teamID).
-		Select("MAX(code)").
-		Scan(&maxCode).Error
-	if err != nil {
-		return "", err
-	}
+	var code string
+	err := r.db.WithContext(ctx).Transaction(func(tx *gormlib.DB) error {
+		// Lock the team row to serialize concurrent NextCode calls
+		var team model.Team
+		if err := tx.Set("gorm:query_option", "FOR UPDATE").First(&team, teamID).Error; err != nil {
+			return err
+		}
 
-	if maxCode == nil || *maxCode == "" {
-		return "MI-0001", nil
-	}
+		// Find MAX sequence number by parsing the numeric suffix after "{team.Code}-"
+		var maxSeq *int
+		err := tx.Model(&model.MainItem{}).
+			Where("team_id = ?", teamID).
+			Select("MAX(CAST(SUBSTR(code, ?) AS INTEGER))", len(team.Code)+2).
+			Scan(&maxSeq).Error
+		if err != nil {
+			return err
+		}
 
-	var seq int
-	_, err = fmt.Sscanf(*maxCode, "MI-%04d", &seq)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse code %q: %w", *maxCode, err)
-	}
-	return fmt.Sprintf("MI-%04d", seq+1), nil
+		seq := 0
+		if maxSeq != nil {
+			seq = *maxSeq
+		}
+		code = fmt.Sprintf("%s-%05d", team.Code, seq+1)
+		return nil
+	})
+	return code, err
 }
 
 func (r *mainItemRepo) CountByTeam(ctx context.Context, teamID uint) (int64, error) {

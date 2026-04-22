@@ -186,7 +186,7 @@ func TestCreateSubItem_Success(t *testing.T) {
 	svc.createResult.item = item
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"mainItemId":1,"title":"Test SubItem","priority":"P2","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
@@ -218,7 +218,7 @@ func TestCreateSubItem_MemberCanCreate(t *testing.T) {
 	svc.createResult.item = item
 
 	deps := depsWithSubItemSvcMemberRole(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"mainItemId":1,"title":"Test SubItem","priority":"P2","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
@@ -236,7 +236,7 @@ func TestCreateSubItem_InvalidBody(t *testing.T) {
 	svc := &mockSubItemService{}
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{}`
@@ -255,7 +255,7 @@ func TestCreateSubItem_ServiceError(t *testing.T) {
 	svc.createResult.err = errors.New("unexpected")
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"mainItemId":1,"title":"Test","priority":"P2","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
@@ -282,7 +282,7 @@ func TestListSubItems_Success(t *testing.T) {
 	}
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -308,7 +308,7 @@ func TestListSubItems_WithFilters(t *testing.T) {
 	svc.listResult.page = &dto.PageResult[model.SubItem]{}
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -329,7 +329,7 @@ func TestListSubItems_ServiceError(t *testing.T) {
 	svc.listResult.err = errors.New("db error")
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -353,7 +353,7 @@ func TestGetSubItem_Success(t *testing.T) {
 	svc.getResult.item = item
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -379,7 +379,7 @@ func TestGetSubItem_InvalidID(t *testing.T) {
 	svc := &mockSubItemService{}
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -396,7 +396,7 @@ func TestGetSubItem_NotFound(t *testing.T) {
 	svc.getResult.err = apperrors.ErrItemNotFound
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -424,7 +424,7 @@ func TestUpdateSubItem_Success_AsPM(t *testing.T) {
 	svc.getResult.item = item
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Updated Title","priority":"P1"}`
@@ -451,7 +451,7 @@ func TestUpdateSubItem_Success_AsAssignee(t *testing.T) {
 	svc.getResult.item = item
 
 	deps := depsWithSubItemSvcMemberRole(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser") // userID=5, same as assigneeID
 	body := `{"title":"Updated"}`
@@ -474,7 +474,7 @@ func TestUpdateSubItem_Forbidden_NonPMNonAssignee(t *testing.T) {
 	svc.getResult.item = item
 
 	deps := depsWithSubItemSvcMemberRole(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser") // userID=5, NOT the assignee (99)
 	body := `{"title":"Hacked"}`
@@ -492,7 +492,7 @@ func TestUpdateSubItem_InvalidID(t *testing.T) {
 	svc := &mockSubItemService{}
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Updated"}`
@@ -511,7 +511,7 @@ func TestUpdateSubItem_NotFound(t *testing.T) {
 	svc.updateResult.err = apperrors.ErrItemNotFound
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Updated"}`
@@ -536,7 +536,7 @@ func TestChangeStatus_Success(t *testing.T) {
 	svc.changeStatusResult.result = &service.SubItemChangeResult{SubItem: item}
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"progressing"}`
@@ -563,7 +563,7 @@ func TestChangeStatus_InvalidStatus_422(t *testing.T) {
 	svc.changeStatusResult.err = apperrors.ErrInvalidStatus
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"completed"}`
@@ -585,7 +585,7 @@ func TestChangeStatus_InvalidID(t *testing.T) {
 	svc := &mockSubItemService{}
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"progressing"}`
@@ -603,7 +603,7 @@ func TestChangeStatus_InvalidBody(t *testing.T) {
 	svc := &mockSubItemService{}
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{}`
@@ -628,7 +628,7 @@ func TestChangeStatus_AsAssignee(t *testing.T) {
 	svc.changeStatusResult.result = &service.SubItemChangeResult{SubItem: item}
 
 	deps := depsWithSubItemSvcMemberRole(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"progressing"}`
@@ -651,7 +651,7 @@ func TestChangeStatus_Forbidden_NonPMNonAssignee(t *testing.T) {
 	svc.getResult.item = item
 
 	deps := depsWithSubItemSvcMemberRole(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"progressing"}`
@@ -674,7 +674,7 @@ func TestAvailableTransitions_Success(t *testing.T) {
 	svc.availableTransitionsResult.transitions = []string{"progressing", "closed"}
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -702,7 +702,7 @@ func TestAvailableTransitions_NotFound(t *testing.T) {
 	svc.availableTransitionsResult.err = apperrors.ErrItemNotFound
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -721,7 +721,7 @@ func TestAssignSubItem_Success(t *testing.T) {
 	svc := &mockSubItemService{}
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"assigneeId":3}`
@@ -742,7 +742,7 @@ func TestAssignSubItem_RequiresPM(t *testing.T) {
 	svc := &mockSubItemService{}
 
 	deps := depsWithSubItemSvcMemberRole(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"assigneeId":3}`
@@ -760,7 +760,7 @@ func TestAssignSubItem_InvalidID(t *testing.T) {
 	svc := &mockSubItemService{}
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"assigneeId":3}`
@@ -778,7 +778,7 @@ func TestAssignSubItem_InvalidBody(t *testing.T) {
 	svc := &mockSubItemService{}
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{}`
@@ -797,7 +797,7 @@ func TestAssignSubItem_ItemNotFound(t *testing.T) {
 	svc.assignResult.err = apperrors.ErrItemNotFound
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"assigneeId":3}`
@@ -815,7 +815,7 @@ func TestAssignSubItem_SuperAdminBypass(t *testing.T) {
 
 	// Use member-role team, but superadmin token
 	deps := depsWithSubItemSvcMemberRole(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
 	body := `{"assigneeId":3}`
@@ -856,7 +856,7 @@ func TestGetSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	svc.getResult.item = item
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -898,7 +898,7 @@ func TestCreateSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	svc.createResult.item = item
 
 	deps := depsWithSubItemSvc(t, svc)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := fmt.Sprintf(`{"mainItemId":1,"title":"New SubItem","priority":"P2","assigneeId":%d,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, assigneeID)

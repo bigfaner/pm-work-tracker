@@ -101,6 +101,9 @@ func (m *mockSubItemRepoForPool) ListByTeam(_ context.Context, _ uint) ([]model.
 func (m *mockSubItemRepoForPool) Delete(_ context.Context, _ uint) error {
 	return nil
 }
+func (m *mockSubItemRepoForPool) NextSubCode(_ context.Context, _ uint) (string, error) {
+	return "", nil
+}
 
 // mockMainItemRepoForPool captures FindByID for Assign validation.
 type mockMainItemRepoForPool struct {

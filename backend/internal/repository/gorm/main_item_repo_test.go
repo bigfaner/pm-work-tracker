@@ -28,7 +28,7 @@ func seedMainItemTeam(t *testing.T, db *gormlib.DB) (*model.User, *model.Team) {
 	t.Helper()
 	u := model.User{Username: "mi_pm", DisplayName: "MI PM", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "MI Team", PmID: u.ID}
+	team := model.Team{Name: "MI Team", PmID: u.ID, Code: "FEAT"}
 	require.NoError(t, db.Create(&team).Error)
 	return &u, &team
 }
@@ -133,40 +133,40 @@ func TestMainItemRepo_NextCode(t *testing.T) {
 	repo := gormrepo.NewGormMainItemRepo(db)
 	ctx := context.Background()
 
-	u, team := seedMainItemTeam(t, db)
+	u, team := seedMainItemTeam(t, db) // team.Code = "FEAT"
 
 	t.Run("first_code", func(t *testing.T) {
 		code, err := repo.NextCode(ctx, team.ID)
 		require.NoError(t, err)
-		assert.Equal(t, "MI-0001", code)
+		assert.Equal(t, "FEAT-00001", code)
 	})
 
 	t.Run("sequential", func(t *testing.T) {
-		createMainItem(t, db, team.ID, u.ID, "MI-0001", "First", "P1", "pending")
+		createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "First", "P1", "pending")
 
 		code, err := repo.NextCode(ctx, team.ID)
 		require.NoError(t, err)
-		assert.Equal(t, "MI-0002", code)
+		assert.Equal(t, "FEAT-00002", code)
 	})
 
 	t.Run("skips_gaps", func(t *testing.T) {
-		createMainItem(t, db, team.ID, u.ID, "MI-0005", "Fifth", "P1", "pending")
+		createMainItem(t, db, team.ID, u.ID, "FEAT-00005", "Fifth", "P1", "pending")
 
 		code, err := repo.NextCode(ctx, team.ID)
 		require.NoError(t, err)
-		assert.Equal(t, "MI-0006", code)
+		assert.Equal(t, "FEAT-00006", code)
 	})
 
 	t.Run("team_isolation", func(t *testing.T) {
-		// Different team should start fresh
+		// Different team should start fresh with its own code prefix
 		u2 := model.User{Username: "pm_other", DisplayName: "Other PM", PasswordHash: "h"}
 		require.NoError(t, db.Create(&u2).Error)
-		team2 := model.Team{Name: "Other Team", PmID: u2.ID}
+		team2 := model.Team{Name: "Other Team", PmID: u2.ID, Code: "OTHR"}
 		require.NoError(t, db.Create(&team2).Error)
 
 		code, err := repo.NextCode(ctx, team2.ID)
 		require.NoError(t, err)
-		assert.Equal(t, "MI-0001", code, "new team should get MI-0001")
+		assert.Equal(t, "OTHR-00001", code, "new team should get OTHR-00001")
 	})
 }
 

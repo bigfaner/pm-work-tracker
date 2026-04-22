@@ -22,14 +22,20 @@ func main() {
 	configPath := flag.String("config", "config.yaml", "path to config file")
 	flag.Parse()
 
-	if err := run(*configPath); err != nil {
+	if err := run(*configPath, true); err != nil {
 		log.Fatalf("%v", err)
 	}
 }
 
 // run wires the full application: config, DB, seed, repos, services, handlers,
 // router, and HTTP server with graceful shutdown.
-func run(configPath string) error {
+// assetsEmbedded: when false, validates that dist/index.html exists on disk.
+func run(configPath string, assetsEmbedded bool) error {
+	if !assetsEmbedded {
+		if _, err := os.Stat("dist/index.html"); err != nil {
+			return fmt.Errorf("startup: dist/index.html not found: %w", err)
+		}
+	}
 	// 1. Load config
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
@@ -101,7 +107,7 @@ func run(configPath string) error {
 	}
 
 	// 7. Setup router
-	r := handler.SetupRouter(deps)
+	r := handler.SetupRouter(deps, nil)
 
 	// 8. Start server with timeouts from config
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)

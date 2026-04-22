@@ -172,8 +172,9 @@ func (m *mockSubItemRepoForHandler) ListByTeam(_ context.Context, _ uint) ([]mod
 func (m *mockSubItemRepoForHandler) Delete(_ context.Context, _ uint) error {
 	return nil
 }
-
-// ---------------------------------------------------------------------------
+func (m *mockSubItemRepoForHandler) NextSubCode(_ context.Context, _ uint) (string, error) {
+	return "", nil
+}
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -222,7 +223,7 @@ func TestCreateMainItem_Success(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Test Item","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
@@ -257,7 +258,7 @@ func TestCreateMainItem_WithOptionalFields(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Test Item","priority":"P1","assigneeId":3,"startDate":"2026-04-01","expectedEndDate":"2026-04-30","isKeyItem":true}`
@@ -280,7 +281,7 @@ func TestCreateMainItem_RequiresPM(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMemberRoleMainItem(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Test Item","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
@@ -301,7 +302,7 @@ func TestCreateMainItem_InvalidBody(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{}`
@@ -323,7 +324,7 @@ func TestCreateMainItem_ServiceError(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Test","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
@@ -353,7 +354,7 @@ func TestListMainItems_Success(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -382,7 +383,7 @@ func TestListMainItems_WithFilters(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -406,7 +407,7 @@ func TestListMainItems_ServiceError(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -439,7 +440,7 @@ func TestGetMainItem_Success(t *testing.T) {
 	subItemRepo.items[0].MainItemID = 1
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -473,7 +474,7 @@ func TestGetMainItem_InvalidItemID(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -493,7 +494,7 @@ func TestGetMainItem_NotFound(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -525,7 +526,7 @@ func TestUpdateMainItem_Success(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Updated Title","priority":"P2"}`
@@ -549,7 +550,7 @@ func TestUpdateMainItem_RequiresPM(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMemberRoleMainItem(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Updated"}`
@@ -570,7 +571,7 @@ func TestUpdateMainItem_InvalidItemID(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Updated"}`
@@ -592,7 +593,7 @@ func TestUpdateMainItem_ItemNotFound(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Updated"}`
@@ -616,7 +617,7 @@ func TestArchiveMainItem_Success(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -636,7 +637,7 @@ func TestArchiveMainItem_RequiresPM(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMemberRoleMainItem(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -656,7 +657,7 @@ func TestArchiveMainItem_ArchiveNotAllowed(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -679,7 +680,7 @@ func TestArchiveMainItem_InvalidItemID(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -699,7 +700,7 @@ func TestArchiveMainItem_ItemNotFound(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -725,7 +726,7 @@ func TestCreateMainItem_SuperAdminBypass(t *testing.T) {
 
 	// Use member-role team, but superadmin token
 	deps := depsWithMemberRoleMainItem(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
 	body := `{"title":"Test","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
@@ -760,7 +761,7 @@ func TestChangeStatusMainItem_Success(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"progressing"}`
@@ -789,7 +790,7 @@ func TestChangeStatusMainItem_InvalidBody(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{}`
@@ -811,7 +812,7 @@ func TestChangeStatusMainItem_InvalidTransition(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"completed"}`
@@ -832,7 +833,7 @@ func TestChangeStatusMainItem_RequiresPermission(t *testing.T) {
 
 	// Member role doesn't have main_item:change_status
 	deps := depsWithMemberRoleMainItem(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"progressing"}`
@@ -853,7 +854,7 @@ func TestChangeStatusMainItem_InvalidItemID(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"progressing"}`
@@ -879,7 +880,7 @@ func TestAvailableTransitionsMainItem_Success(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -912,7 +913,7 @@ func TestAvailableTransitionsMainItem_ItemNotFound(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -930,7 +931,7 @@ func TestAvailableTransitionsMainItem_InvalidItemID(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
@@ -978,7 +979,7 @@ func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{items: []*model.SubItem{}}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()

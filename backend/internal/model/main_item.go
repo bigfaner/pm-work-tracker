@@ -6,7 +6,7 @@ import (
 
 type MainItem struct {
 	BaseModel
-	TeamID          uint       `gorm:"not null;uniqueIndex:idx_team_code" json:"teamId"`
+	TeamID          uint       `gorm:"not null;uniqueIndex:idx_main_items_team_code" json:"teamId"`
 	Code            string     `gorm:"type:varchar(12);not null;uniqueIndex:idx_main_items_team_code" json:"code"`
 	Title           string     `gorm:"type:varchar(100);not null" json:"title"`
 	Description     string     `gorm:"type:text;not null;default:''" json:"description"`
