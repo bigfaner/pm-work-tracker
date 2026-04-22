@@ -71,3 +71,31 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+## 5. Key Documents
+
+```
+docs/
+├── ARCHITECTURE.md              # 分层架构总览
+├── DECISIONS.md                 # 技术决策记录
+├── lessons/                     # 经验教训（bug 修复、踩坑记录）
+│   ├── frontend-test-command.md # 前端测试命令正确用法
+│   └── weekly-view-bug-fixes.md # 周视图时区/ISO周计算 bug 修复
+└── features/<slug>/             # Feature 工作区
+    ├── manifest.md              # Feature 索引 & 可追溯性映射
+    ├── prd/                     # 需求文档
+    ├── design/                  # 技术设计 & API 文档
+    ├── ui/                      # UI 设计规格
+    └── tasks/                   # 任务定义 & 执行记录
+```
+
+### Running Tests
+
+```bash
+# Backend
+cd backend && go test ./...
+
+# Frontend — use either, do NOT append --run
+npm test          # package.json script already includes --run
+npx vitest run    # equivalent
+```
