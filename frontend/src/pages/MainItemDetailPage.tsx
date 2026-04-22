@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { Pencil, Plus } from 'lucide-react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { getMainItemApi, updateMainItemApi } from '@/api/mainItems'
@@ -9,35 +8,7 @@ import { appendProgressApi } from '@/api/progress'
 import { listMembersApi } from '@/api/teams'
 import type { SubItem } from '@/types'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { DateInput } from '@/components/ui/date-input'
-import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { PrioritySelectItems } from '@/components/shared/PrioritySelect'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogBody,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/components/ui/table'
-import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { PermissionGuard } from '@/components/PermissionGuard'
 import {
   Breadcrumb,
@@ -45,12 +16,16 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import PriorityBadge from '@/components/shared/PriorityBadge'
-import ProgressBar from '@/components/shared/ProgressBar'
 import StatusTransitionDropdown from '@/components/shared/StatusTransitionDropdown'
 import { MAIN_ITEM_STATUSES } from '@/lib/status'
-import { isOverdue } from '@/lib/status'
-import { formatDate } from '@/lib/format'
 import { useMemberName } from '@/hooks/useMemberName'
+import EditMainItemDialog, { type EditMainItemFormState } from './main-item-detail/EditMainItemDialog'
+import CreateSubItemDialog, { type CreateSubItemFormState } from './main-item-detail/CreateSubItemDialog'
+import EditSubItemDialog, { type EditSubItemFormState } from './main-item-detail/EditSubItemDialog'
+import AppendProgressDialog, { type AppendProgressFormState } from './main-item-detail/AppendProgressDialog'
+import SubItemsTable from './main-item-detail/SubItemsTable'
+import ProgressSummaryCard from './main-item-detail/ProgressSummaryCard'
+import ItemInfoCard from './main-item-detail/ItemInfoCard'
 
 // --- Main Component ---
 
@@ -59,23 +34,22 @@ export default function MainItemDetailPage() {
   const teamId = useTeamStore((s) => s.currentTeamId)
   const qc = useQueryClient()
   const itemId = Number(mainItemId)
-
   // State
   const [expanded, setExpanded] = useState(false)
   const today = () => new Date().toISOString().slice(0, 10)
 
   const [editOpen, setEditOpen] = useState(false)
   const [createSubOpen, setCreateSubOpen] = useState(false)
-  const [editForm, setEditForm] = useState({ title: '', priority: '', assigneeId: '', expectedEndDate: '', description: '' })
-  const [subForm, setSubForm] = useState({ title: '', priority: 'P2', assigneeId: '', startDate: today(), expectedEndDate: '', description: '' })
+  const [editForm, setEditForm] = useState<EditMainItemFormState>({ title: '', priority: '', assigneeId: '', expectedEndDate: '', description: '' })
+  const [subForm, setSubForm] = useState<CreateSubItemFormState>({ title: '', priority: 'P2', assigneeId: '', startDate: today(), expectedEndDate: '', description: '' })
 
   const [editSubOpen, setEditSubOpen] = useState(false)
   const [editSubTarget, setEditSubTarget] = useState<SubItem | null>(null)
-  const [editSubForm, setEditSubForm] = useState({ title: '', priority: '', expectedEndDate: '', description: '' })
+  const [editSubForm, setEditSubForm] = useState<EditSubItemFormState>({ title: '', priority: '', expectedEndDate: '', description: '' })
 
   const [appendProgressOpen, setAppendProgressOpen] = useState(false)
   const [appendProgressTarget, setAppendProgressTarget] = useState<SubItem | null>(null)
-  const [appendProgressForm, setAppendProgressForm] = useState({ completion: '', achievement: '', blocker: '' })
+  const [appendProgressForm, setAppendProgressForm] = useState<AppendProgressFormState>({ completion: '', achievement: '', blocker: '' })
 
   // --- Data fetching ---
 
@@ -215,8 +189,6 @@ export default function MainItemDetailPage() {
     })
   }, [appendProgressTarget, appendProgressForm, appendProgressMutation])
 
-  // --- Computed ---
-
   const subItems: SubItem[] = item?.subItems || []
   const completedCount = subItems.filter((s) => s.status === 'completed').length
   const completion = item?.completion ?? 0
@@ -239,7 +211,6 @@ export default function MainItemDetailPage() {
             <BreadcrumbSeparator />
             <BreadcrumbItem isCurrent>{item.title}</BreadcrumbItem>
           </Breadcrumb>
-
           {/* Title Bar */}
           <div className="flex items-center gap-3 mb-6 flex-wrap">
             <Badge variant="default" className="font-mono">{item.code}</Badge>
@@ -256,411 +227,72 @@ export default function MainItemDetailPage() {
               </Button>
             </PermissionGuard>
           </div>
-
           {/* Info Grid */}
-          <Card className="mb-5">
-            <CardContent>
-              <div className="grid grid-cols-4 gap-4 mb-4">
-                <div>
-                  <div className="text-xs text-tertiary mb-1">负责人</div>
-                  <span className="text-[13px] font-medium">{memberName(item.assigneeId)}</span>
-                </div>
-                <div>
-                  <div className="text-xs text-tertiary mb-1">开始时间</div>
-                  <span className="text-[13px] font-medium">{formatDate(item.startDate)}</span>
-                </div>
-                <div>
-                  <div className="text-xs text-tertiary mb-1">预期完成时间</div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[13px] font-medium">{formatDate(item.expectedEndDate)}</span>
-                    {isOverdue(item.expectedEndDate ?? undefined, item.status) && (
-                      <Badge variant="error">延期</Badge>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-tertiary mb-1">结束时间</div>
-                  <span className="text-[13px] font-medium">{formatDate(item.actualEndDate)}</span>
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-tertiary mb-1">描述</div>
-                <span className="text-[13px] text-secondary leading-relaxed">{item.description || '暂无描述'}</span>
-              </div>
-            </CardContent>
-          </Card>
-
+          <ItemInfoCard
+            assigneeName={memberName(item.assigneeId)}
+            startDate={item.startDate}
+            expectedEndDate={item.expectedEndDate}
+            actualEndDate={item.actualEndDate}
+            status={item.status}
+            description={item.description}
+          />
           {/* Progress & Summary Card */}
-          <Card className="mb-5">
-            <CardHeader
-              className="cursor-pointer select-none"
-              onClick={() => setExpanded(!expanded)}
-            >
-              <div className="flex items-center gap-4">
-                {/* Circular progress SVG */}
-                <svg width="56" height="56" viewBox="0 0 80 80">
-                  <circle cx="40" cy="40" r="34" fill="none" stroke="#e2e8f0" strokeWidth="6" />
-                  <circle
-                    cx="40" cy="40" r="34" fill="none" stroke="var(--color-primary-500, #3b82f6)"
-                    strokeWidth="6" strokeLinecap="round"
-                    strokeDasharray="213.6"
-                    strokeDashoffset={213.6 * (1 - completion / 100)}
-                    transform="rotate(-90 40 40)"
-                  />
-                  <text
-                    x="40" y="40"
-                    textAnchor="middle" dominantBaseline="central"
-                    fontSize="18" fontWeight="600" fill="var(--color-primary, #1e293b)"
-                  >
-                    {completion}%
-                  </text>
-                </svg>
-                <div>
-                  <h3 className="text-sm font-semibold text-primary m-0">进度与汇总</h3>
-                  <div className="text-[13px] text-secondary mt-0.5">
-                    已完成 {completedCount} 个子事项 / 共 {subItems.length} 个子事项
-                  </div>
-                </div>
-              </div>
-              <svg
-                className={`w-4 h-4 text-tertiary transition-transform ${expanded ? 'rotate-90' : ''}`}
-                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
-            </CardHeader>
-            {expanded && (
-              <CardContent>
-                <ProgressBar value={completion} size="default" showPercentage className="mb-5" />
-                <div className="grid grid-cols-2 gap-5">
-                  <div>
-                    <div className="text-[13px] font-medium mb-2 text-success-text">成果汇总</div>
-                    <ul className="text-[13px] text-secondary pl-4 list-disc leading-relaxed">
-                      {item?.achievements?.map((a: string, i: number) => (
-                        <li key={i}>{a}</li>
-                      )) || <li className="text-tertiary">暂无</li>}
-                    </ul>
-                  </div>
-                  <div>
-                    <div className="text-[13px] font-medium mb-2 text-error-text">卡点汇总</div>
-                    <ul className="text-[13px] text-secondary pl-4 list-disc leading-relaxed">
-                      {item?.blockers?.map((b: string, i: number) => (
-                        <li key={i}>{b}</li>
-                      )) || <li className="text-tertiary">暂无</li>}
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            )}
-          </Card>
-
+          <ProgressSummaryCard
+            completion={completion}
+            completedCount={completedCount}
+            totalSubItems={subItems.length}
+            expanded={expanded}
+            onToggleExpanded={() => setExpanded(!expanded)}
+            achievements={item?.achievements}
+            blockers={item?.blockers}
+          />
           {/* Sub-items Table */}
-          <Card>
-            <CardHeader>
-              <h3 className="text-sm font-semibold text-primary m-0">子事项列表</h3>
-              <Button size="sm" disabled={!!MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal} onClick={() => setCreateSubOpen(true)}>+ 新增子事项</Button>
-            </CardHeader>
-            {subItems.length > 0 && (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>编号</TableHead>
-                    <TableHead>标题</TableHead>
-                    <TableHead>负责人</TableHead>
-                    <TableHead>进度</TableHead>
-                    <TableHead>状态</TableHead>
-                    <TableHead>开始时间</TableHead>
-                    <TableHead>预期完成时间</TableHead>
-                    <TableHead>结束时间</TableHead>
-                    <TableHead>操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(() => {
-                    const mainTerminal = (MAIN_ITEM_STATUSES as Record<string, { terminal: boolean }>)[item.status]?.terminal ?? false
-                    return subItems.map((sub) => {
-                    return (
-                      <TableRow key={sub.id}>
-                        <TableCell>
-                          <Badge variant="default" className="font-mono text-[11px]">{sub.code}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Link
-                            to={`/items/${item.id}/sub/${sub.id}`}
-                            className="text-[13px] font-medium text-primary-600 hover:text-primary-700 hover:underline truncate block max-w-xs"
-                            title={sub.title}
-                          >
-                            {sub.title}
-                          </Link>
-                        </TableCell>
-                        <TableCell>{memberName(sub.assigneeId)}</TableCell>
-                        <TableCell>
-                          <span>{sub.completion}%</span>
-                        </TableCell>
-                        <TableCell>
-                          <StatusTransitionDropdown
-                            currentStatus={sub.status}
-                            itemType="sub"
-                            teamId={teamId!}
-                            itemId={sub.id}
-                            onStatusChanged={() => { qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] }) }}
-                          />
-                        </TableCell>
-                        <TableCell className="text-xs">{formatDate(sub.startDate)}</TableCell>
-                        <TableCell className="text-xs">{formatDate(sub.expectedEndDate)}</TableCell>
-                        <TableCell className="text-xs">{formatDate(sub.actualEndDate)}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-0.5">
-                            <Button variant="ghost" size="sm" disabled={mainTerminal} onClick={() => openEditSub(sub)}><Pencil size={12} />编辑</Button>
-                            <Button variant="ghost" size="sm" disabled={mainTerminal} onClick={() => openAppendProgress(sub)}><Plus size={12} />追加进度</Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                  })()}
-                </TableBody>
-              </Table>
-            )}
-          </Card>
-
-          {/* Edit Dialog */}
-          <Dialog open={editOpen} onOpenChange={setEditOpen}>
-            <DialogContent size="md">
-              <DialogHeader>
-                <DialogTitle>编辑主事项</DialogTitle>
-              </DialogHeader>
-              <DialogBody>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-primary mb-1">
-                    标题 <span className="text-error">*</span>
-                  </label>
-                  <Input
-                    value={editForm.title}
-                    onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">优先级</label>
-                    <Select value={editForm.priority} onValueChange={(v) => setEditForm((f) => ({ ...f, priority: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <PrioritySelectItems />
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">负责人</label>
-                    <Select value={editForm.assigneeId || '_none'} onValueChange={(v) => setEditForm((f) => ({ ...f, assigneeId: v === '_none' ? '' : v }))}>
-                      <SelectTrigger><SelectValue placeholder="选择负责人" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="_none">不指定</SelectItem>
-                        {members?.map((m) => (
-                          <SelectItem key={m.userId} value={String(m.userId)}>{m.displayName}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-primary mb-1">预期完成时间</label>
-                  <DateInput
-                    value={editForm.expectedEndDate}
-                    onChange={(e) => setEditForm((f) => ({ ...f, expectedEndDate: e.target.value }))}
-                  />
-                </div>
-                <div className="mt-3">
-                  <label className="block text-sm font-medium text-primary mb-1">描述</label>
-                  <Textarea
-                    rows={3}
-                    value={editForm.description}
-                    onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
-                  />
-                </div>
-              </DialogBody>
-              <DialogFooter>
-                <Button variant="secondary" onClick={() => setEditOpen(false)}>取消</Button>
-                <Button onClick={handleEdit} disabled={!editForm.title.trim() || updateMutation.isPending}>保存</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          {/* Create Sub-item Dialog */}
-          <Dialog open={createSubOpen} onOpenChange={setCreateSubOpen}>
-            <DialogContent size="md">
-              <DialogHeader>
-                <DialogTitle>新增子事项</DialogTitle>
-              </DialogHeader>
-              <DialogBody>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-primary mb-1">
-                    标题 <span className="text-error">*</span>
-                  </label>
-                  <Input
-                    placeholder="请输入子事项标题"
-                    value={subForm.title}
-                    onChange={(e) => setSubForm((f) => ({ ...f, title: e.target.value }))}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">
-                      优先级 <span className="text-error">*</span>
-                    </label>
-                    <Select value={subForm.priority} onValueChange={(v) => setSubForm((f) => ({ ...f, priority: v }))}>
-                      <SelectTrigger><SelectValue placeholder="请选择优先级" /></SelectTrigger>
-                      <SelectContent>
-                        <PrioritySelectItems />
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">
-                      负责人 <span className="text-error">*</span>
-                    </label>
-                    <Select value={subForm.assigneeId || '_none'} onValueChange={(v) => setSubForm((f) => ({ ...f, assigneeId: v === '_none' ? '' : v }))}>
-                      <SelectTrigger><SelectValue placeholder="选择负责人" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="_none">不指定</SelectItem>
-                        {members?.map((m) => (
-                          <SelectItem key={m.userId} value={String(m.userId)}>{m.displayName}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">
-                      开始时间 <span className="text-error">*</span>
-                    </label>
-                    <DateInput
-                      value={subForm.startDate}
-                      onChange={(e) => setSubForm((f) => ({ ...f, startDate: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">
-                      预期完成时间 <span className="text-error">*</span>
-                    </label>
-                    <DateInput
-                      value={subForm.expectedEndDate}
-                      onChange={(e) => setSubForm((f) => ({ ...f, expectedEndDate: e.target.value }))}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-primary mb-1">描述</label>
-                  <Textarea
-                    rows={3}
-                    placeholder="请输入子事项描述（可选）"
-                    value={subForm.description}
-                    onChange={(e) => setSubForm((f) => ({ ...f, description: e.target.value }))}
-                  />
-                </div>
-              </DialogBody>
-              <DialogFooter>
-                <Button variant="secondary" onClick={() => setCreateSubOpen(false)}>取消</Button>
-                <Button onClick={handleCreateSub} disabled={!subForm.title.trim() || !subForm.priority || !subForm.assigneeId || !subForm.startDate || !subForm.expectedEndDate || createSubMutation.isPending}>确认</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          {/* Edit Sub-item Dialog */}
-          <Dialog open={editSubOpen} onOpenChange={setEditSubOpen}>
-            <DialogContent size="md">
-              <DialogHeader>
-                <DialogTitle>编辑子事项</DialogTitle>
-              </DialogHeader>
-              <DialogBody>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-primary mb-1">
-                    标题 <span className="text-error">*</span>
-                  </label>
-                  <Input
-                    value={editSubForm.title}
-                    onChange={(e) => setEditSubForm((f) => ({ ...f, title: e.target.value }))}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">优先级</label>
-                    <Select value={editSubForm.priority} onValueChange={(v) => setEditSubForm((f) => ({ ...f, priority: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <PrioritySelectItems />
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">预期完成时间</label>
-                    <DateInput
-                      value={editSubForm.expectedEndDate}
-                      onChange={(e) => setEditSubForm((f) => ({ ...f, expectedEndDate: e.target.value }))}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-primary mb-1">描述</label>
-                  <Textarea
-                    rows={3}
-                    value={editSubForm.description}
-                    onChange={(e) => setEditSubForm((f) => ({ ...f, description: e.target.value }))}
-                  />
-                </div>
-              </DialogBody>
-              <DialogFooter>
-                <Button variant="secondary" onClick={() => setEditSubOpen(false)}>取消</Button>
-                <Button onClick={handleEditSub} disabled={!editSubForm.title.trim() || updateSubMutation.isPending}>保存</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          {/* Append Progress Dialog */}
-          <Dialog open={appendProgressOpen} onOpenChange={setAppendProgressOpen}>
-            <DialogContent size="sm">
-              <DialogHeader>
-                <DialogTitle>追加进度</DialogTitle>
-              </DialogHeader>
-              <DialogBody>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-primary mb-1">
-                    完成度 (%) <span className="text-error">*</span>
-                  </label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={appendProgressForm.completion}
-                    onChange={(e) => setAppendProgressForm((f) => ({ ...f, completion: e.target.value }))}
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-primary mb-1">成果</label>
-                  <Textarea
-                    rows={2}
-                    placeholder="本次进展成果（可选）"
-                    value={appendProgressForm.achievement}
-                    onChange={(e) => setAppendProgressForm((f) => ({ ...f, achievement: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-primary mb-1">卡点</label>
-                  <Textarea
-                    rows={2}
-                    placeholder="遇到的阻碍（可选）"
-                    value={appendProgressForm.blocker}
-                    onChange={(e) => setAppendProgressForm((f) => ({ ...f, blocker: e.target.value }))}
-                  />
-                </div>
-              </DialogBody>
-              <DialogFooter>
-                <Button variant="secondary" onClick={() => setAppendProgressOpen(false)}>取消</Button>
-                <Button onClick={handleAppendProgress} disabled={appendProgressForm.completion === '' || appendProgressMutation.isPending}>确认</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <SubItemsTable
+            subItems={subItems}
+            mainItemId={item.id}
+            mainStatus={item.status}
+            teamId={teamId!}
+            memberName={memberName}
+            onStatusChanged={() => { qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] }) }}
+            onEditSub={openEditSub}
+            onAppendProgress={openAppendProgress}
+            onCreateSub={() => setCreateSubOpen(true)}
+          />
+          {/* Dialogs */}
+          <EditMainItemDialog
+            open={editOpen}
+            onOpenChange={setEditOpen}
+            form={editForm}
+            onFormChange={setEditForm}
+            members={members || []}
+            onSubmit={handleEdit}
+            isPending={updateMutation.isPending}
+          />
+          <CreateSubItemDialog
+            open={createSubOpen}
+            onOpenChange={setCreateSubOpen}
+            form={subForm}
+            onFormChange={setSubForm}
+            members={members || []}
+            onSubmit={handleCreateSub}
+            isPending={createSubMutation.isPending}
+          />
+          <EditSubItemDialog
+            open={editSubOpen}
+            onOpenChange={setEditSubOpen}
+            form={editSubForm}
+            onFormChange={setEditSubForm}
+            onSubmit={handleEditSub}
+            isPending={updateSubMutation.isPending}
+          />
+          <AppendProgressDialog
+            open={appendProgressOpen}
+            onOpenChange={setAppendProgressOpen}
+            form={appendProgressForm}
+            onFormChange={setAppendProgressForm}
+            onSubmit={handleAppendProgress}
+            isPending={appendProgressMutation.isPending}
+          />
         </>
       )}
     </div>
