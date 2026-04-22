@@ -19,7 +19,7 @@
       "title": "Create web/embed.go package with FS and ValidateAssets",
       "priority": "P0",
       "estimatedTime": "1-2h",
-      "status": "pending",
+      "status": "completed",
       "file": "2.1-web-embed-package.md",
       "record": "records/2.1-web-embed-package.md"
     },
