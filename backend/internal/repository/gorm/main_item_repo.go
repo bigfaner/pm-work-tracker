@@ -2,14 +2,13 @@ package gorm
 
 import (
 	"context"
-	stderrors "errors"
 	"fmt"
 
 	gormlib "gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
-	"pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/repo"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -27,26 +26,11 @@ func (r *mainItemRepo) Create(ctx context.Context, item *model.MainItem) error {
 }
 
 func (r *mainItemRepo) FindByID(ctx context.Context, id uint) (*model.MainItem, error) {
-	var item model.MainItem
-	err := r.db.WithContext(ctx).First(&item, id).Error
-	if err != nil {
-		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
-			return nil, errors.ErrNotFound
-		}
-		return nil, err
-	}
-	return &item, nil
+	return repo.FindByID[model.MainItem](r.db, ctx, id)
 }
 
 func (r *mainItemRepo) Update(ctx context.Context, item *model.MainItem, fields map[string]interface{}) error {
-	result := r.db.WithContext(ctx).Model(item).Where("team_id = ?", item.TeamID).Updates(fields)
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return errors.ErrNotFound
-	}
-	return nil
+	return repo.UpdateFields[model.MainItem](r.db, ctx, item, item.TeamID, fields)
 }
 
 func (r *mainItemRepo) List(ctx context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
@@ -65,13 +49,9 @@ func (r *mainItemRepo) List(ctx context.Context, teamID uint, filter dto.MainIte
 	}
 
 	// Apply pagination
-	if page.Page <= 0 {
-		page.Page = 1
-	}
-	if page.PageSize <= 0 {
-		page.PageSize = 20
-	}
-	offset := (page.Page - 1) * page.PageSize
+	offset, p, ps := dto.ApplyPaginationDefaults(page.Page, page.PageSize)
+	page.Page = p
+	page.PageSize = ps
 
 	var items []model.MainItem
 	if err := query.Order("id DESC").Offset(offset).Limit(page.PageSize).Find(&items).Error; err != nil {
@@ -135,18 +115,7 @@ func (r *mainItemRepo) ListNonArchivedByTeam(ctx context.Context, teamID uint) (
 }
 
 func (r *mainItemRepo) FindByIDs(ctx context.Context, ids []uint) (map[uint]*model.MainItem, error) {
-	result := make(map[uint]*model.MainItem)
-	if len(ids) == 0 {
-		return result, nil
-	}
-	var items []*model.MainItem
-	if err := r.db.WithContext(ctx).Where("id IN ?", ids).Find(&items).Error; err != nil {
-		return nil, err
-	}
-	for _, item := range items {
-		result[item.ID] = item
-	}
-	return result, nil
+	return repo.FindByIDs[model.MainItem](r.db, ctx, ids)
 }
 
 func (r *mainItemRepo) ListByTeamAndStatus(ctx context.Context, teamID uint, status string) ([]model.MainItem, error) {

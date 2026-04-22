@@ -2,14 +2,13 @@ package gorm
 
 import (
 	"context"
-	stderrors "errors"
 	"fmt"
 
 	gormlib "gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
-	"pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/repo"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -27,26 +26,11 @@ func (r *subItemRepo) Create(ctx context.Context, item *model.SubItem) error {
 }
 
 func (r *subItemRepo) FindByID(ctx context.Context, id uint) (*model.SubItem, error) {
-	var item model.SubItem
-	err := r.db.WithContext(ctx).First(&item, id).Error
-	if err != nil {
-		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
-			return nil, errors.ErrNotFound
-		}
-		return nil, err
-	}
-	return &item, nil
+	return repo.FindByID[model.SubItem](r.db, ctx, id)
 }
 
 func (r *subItemRepo) Update(ctx context.Context, item *model.SubItem, fields map[string]interface{}) error {
-	result := r.db.WithContext(ctx).Model(item).Where("team_id = ?", item.TeamID).Updates(fields)
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return errors.ErrNotFound
-	}
-	return nil
+	return repo.UpdateFields[model.SubItem](r.db, ctx, item, item.TeamID, fields)
 }
 
 func (r *subItemRepo) Delete(ctx context.Context, id uint) error {
@@ -67,13 +51,9 @@ func (r *subItemRepo) List(ctx context.Context, teamID uint, mainItemID uint, fi
 		return nil, err
 	}
 
-	if page.Page <= 0 {
-		page.Page = 1
-	}
-	if page.PageSize <= 0 {
-		page.PageSize = 20
-	}
-	offset := (page.Page - 1) * page.PageSize
+	offset, p, ps := dto.ApplyPaginationDefaults(page.Page, page.PageSize)
+	page.Page = p
+	page.PageSize = ps
 
 	var items []model.SubItem
 	if err := query.Order("id DESC").Offset(offset).Limit(page.PageSize).Find(&items).Error; err != nil {

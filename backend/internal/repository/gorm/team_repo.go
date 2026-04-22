@@ -10,6 +10,7 @@ import (
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	"pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/repo"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -31,15 +32,7 @@ func (r *teamRepo) Create(ctx context.Context, team *model.Team) error {
 }
 
 func (r *teamRepo) FindByID(ctx context.Context, teamID uint) (*model.Team, error) {
-	var team model.Team
-	err := r.db.WithContext(ctx).First(&team, teamID).Error
-	if err != nil {
-		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
-			return nil, errors.ErrNotFound
-		}
-		return nil, err
-	}
-	return &team, nil
+	return repo.FindByID[model.Team](r.db, ctx, teamID)
 }
 
 func (r *teamRepo) List(ctx context.Context) ([]*model.Team, error) {

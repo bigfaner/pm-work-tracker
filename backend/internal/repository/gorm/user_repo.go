@@ -8,6 +8,7 @@ import (
 
 	"pm-work-tracker/backend/internal/model"
 	"pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/repo"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -21,15 +22,7 @@ func NewGormUserRepo(db *gormlib.DB) repository.UserRepo {
 }
 
 func (r *userRepo) FindByID(ctx context.Context, id uint) (*model.User, error) {
-	var user model.User
-	err := r.db.WithContext(ctx).First(&user, id).Error
-	if err != nil {
-		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
-			return nil, errors.ErrNotFound
-		}
-		return nil, err
-	}
-	return &user, nil
+	return repo.FindByID[model.User](r.db, ctx, id)
 }
 
 func (r *userRepo) FindByUsername(ctx context.Context, username string) (*model.User, error) {
@@ -59,18 +52,7 @@ func (r *userRepo) Create(ctx context.Context, user *model.User) error {
 }
 
 func (r *userRepo) FindByIDs(ctx context.Context, ids []uint) (map[uint]*model.User, error) {
-	result := make(map[uint]*model.User)
-	if len(ids) == 0 {
-		return result, nil
-	}
-	var users []*model.User
-	if err := r.db.WithContext(ctx).Where("id IN ?", ids).Find(&users).Error; err != nil {
-		return nil, err
-	}
-	for _, u := range users {
-		result[u.ID] = u
-	}
-	return result, nil
+	return repo.FindByIDs[model.User](r.db, ctx, ids)
 }
 
 func (r *userRepo) ListFiltered(ctx context.Context, search string, offset, limit int) ([]*model.User, int64, error) {

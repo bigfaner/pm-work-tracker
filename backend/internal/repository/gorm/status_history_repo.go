@@ -2,13 +2,12 @@ package gorm
 
 import (
 	"context"
-	stderrors "errors"
 
 	gormlib "gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
-	"pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/repo"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -29,15 +28,7 @@ func (r *statusHistoryRepo) Create(ctx context.Context, record *model.StatusHist
 }
 
 func (r *statusHistoryRepo) FindByID(ctx context.Context, id uint) (*model.StatusHistory, error) {
-	var record model.StatusHistory
-	err := r.db.WithContext(ctx).First(&record, id).Error
-	if err != nil {
-		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
-			return nil, errors.ErrNotFound
-		}
-		return nil, err
-	}
-	return &record, nil
+	return repo.FindByID[model.StatusHistory](r.db, ctx, id)
 }
 
 func (r *statusHistoryRepo) ListByItem(ctx context.Context, itemType string, itemID uint, page dto.Pagination) (*dto.PageResult[model.StatusHistory], error) {
@@ -48,13 +39,9 @@ func (r *statusHistoryRepo) ListByItem(ctx context.Context, itemType string, ite
 		return nil, err
 	}
 
-	if page.Page <= 0 {
-		page.Page = 1
-	}
-	if page.PageSize <= 0 {
-		page.PageSize = 20
-	}
-	offset := (page.Page - 1) * page.PageSize
+	offset, p, ps := dto.ApplyPaginationDefaults(page.Page, page.PageSize)
+	page.Page = p
+	page.PageSize = ps
 
 	var records []model.StatusHistory
 	if err := query.Order("id DESC").Offset(offset).Limit(page.PageSize).Find(&records).Error; err != nil {

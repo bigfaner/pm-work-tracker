@@ -8,6 +8,7 @@ import (
 
 	"pm-work-tracker/backend/internal/model"
 	"pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/repo"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -27,15 +28,7 @@ func (r *roleRepo) List(ctx context.Context) ([]model.Role, error) {
 }
 
 func (r *roleRepo) FindByID(ctx context.Context, id uint) (*model.Role, error) {
-	var role model.Role
-	err := r.db.WithContext(ctx).First(&role, id).Error
-	if err != nil {
-		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
-			return nil, errors.ErrNotFound
-		}
-		return nil, err
-	}
-	return &role, nil
+	return repo.FindByID[model.Role](r.db, ctx, id)
 }
 
 func (r *roleRepo) FindByName(ctx context.Context, name string) (*model.Role, error) {
