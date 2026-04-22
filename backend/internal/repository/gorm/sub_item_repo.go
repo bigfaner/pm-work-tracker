@@ -3,6 +3,7 @@ package gorm
 import (
 	"context"
 	stderrors "errors"
+	"fmt"
 
 	gormlib "gorm.io/gorm"
 
@@ -103,9 +104,34 @@ func (r *subItemRepo) ListByTeam(ctx context.Context, teamID uint) ([]model.SubI
 	return items, err
 }
 
-// NextSubCode is implemented in task 2.2.
-func (r *subItemRepo) NextSubCode(_ context.Context, _ uint) (string, error) {
-	return "", nil
+// NextSubCode generates the next sub-item code for the given main item.
+// It locks the main item row (SELECT FOR UPDATE) to serialize concurrent calls,
+// reads the current MAX sub sequence, and returns "{mainCode}-{seq:02d}".
+func (r *subItemRepo) NextSubCode(ctx context.Context, mainItemID uint) (string, error) {
+	var code string
+	err := r.db.WithContext(ctx).Transaction(func(tx *gormlib.DB) error {
+		var mainItem model.MainItem
+		if err := tx.Set("gorm:query_option", "FOR UPDATE").First(&mainItem, mainItemID).Error; err != nil {
+			return err
+		}
+
+		var maxSeq *int
+		err := tx.Model(&model.SubItem{}).
+			Where("main_item_id = ?", mainItemID).
+			Select("MAX(CAST(SUBSTR(code, ?) AS INTEGER))", len(mainItem.Code)+2).
+			Scan(&maxSeq).Error
+		if err != nil {
+			return err
+		}
+
+		seq := 0
+		if maxSeq != nil {
+			seq = *maxSeq
+		}
+		code = fmt.Sprintf("%s-%02d", mainItem.Code, seq+1)
+		return nil
+	})
+	return code, err
 }
 
 func applySubItemFilter(query *gormlib.DB, filter dto.SubItemFilter) *gormlib.DB {

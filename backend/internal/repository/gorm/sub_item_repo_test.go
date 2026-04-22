@@ -273,3 +273,46 @@ func TestSubItemRepo_ListByMainItem_Empty(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, items)
 }
+
+// --- NextSubCode ---
+
+func TestNextSubCode(t *testing.T) {
+	db := setupSubItemTestDB(t)
+	repo := gormrepo.NewGormSubItemRepo(db)
+	ctx := context.Background()
+
+	_, team, mi := seedSubItemData(t, db) // mi.Code = "MI-SI01"
+
+	t.Run("first_sub_code", func(t *testing.T) {
+		code, err := repo.NextSubCode(ctx, mi.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "MI-SI01-01", code)
+	})
+
+	t.Run("sequential", func(t *testing.T) {
+		sub := model.SubItem{TeamID: team.ID, MainItemID: mi.ID, Title: "S1", Priority: "P1", Status: "pending", Code: "MI-SI01-01"}
+		require.NoError(t, db.Create(&sub).Error)
+
+		code, err := repo.NextSubCode(ctx, mi.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "MI-SI01-02", code)
+	})
+
+	t.Run("skips_gaps", func(t *testing.T) {
+		sub := model.SubItem{TeamID: team.ID, MainItemID: mi.ID, Title: "S5", Priority: "P1", Status: "pending", Code: "MI-SI01-05"}
+		require.NoError(t, db.Create(&sub).Error)
+
+		code, err := repo.NextSubCode(ctx, mi.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "MI-SI01-06", code)
+	})
+
+	t.Run("main_item_isolation", func(t *testing.T) {
+		mi2 := model.MainItem{TeamID: team.ID, Code: "MI-SI02", Title: "Main2", Priority: "P1", ProposerID: team.PmID, Status: "pending"}
+		require.NoError(t, db.Create(&mi2).Error)
+
+		code, err := repo.NextSubCode(ctx, mi2.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "MI-SI02-01", code)
+	})
+}
