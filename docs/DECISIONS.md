@@ -71,3 +71,13 @@ Key architectural and coding decisions for PM Work Tracker, with context and rat
 **Rationale**: Zustand has minimal boilerplate, no providers, and built-in selector optimization. For this app's state complexity (auth + team selection), Zustand is sufficient without the overhead of Redux.
 
 **Consequences**: Stores are in `frontend/src/store/`. Currently `auth.ts` and `team.ts`. New global state should follow the same pattern: one file per store, flat structure, no nested reducers.
+
+## 8. `-dev` Flag to Skip Embedded Asset Validation
+
+**Context**: The single-binary deploy feature embeds frontend assets via `go:embed`. At startup, `web.ValidateAssets` checks that `dist/index.html` exists in the embedded FS. During local development, the frontend is served by Vite's dev server, so no build artifacts are present in `backend/web/dist/`.
+
+**Choice**: Add a `-dev` boolean flag to `main()`. When set, `run()` skips `web.ValidateAssets` entirely.
+
+**Rationale**: The alternative (keeping `assetsEmbedded bool` as a parameter threaded from `main`) was already in place but not exposed as a CLI flag. Exposing `-dev` makes the intent explicit and lets developers run `go run cmd/server/main.go -dev` without needing a prior frontend build.
+
+**Consequences**: Production deployments must not pass `-dev`. The flag is undocumented in production config; its absence is the safe default (validation runs, server refuses to start without embedded assets).
