@@ -19,7 +19,7 @@ function Pagination({
   return (
     <nav
       className={cn(
-        'flex items-center justify-center gap-2 py-3 px-5 border-t border-border text-[13px] text-tertiary',
+        'flex items-center gap-2 text-[13px] text-tertiary',
         className
       )}
       aria-label="Pagination"
@@ -103,8 +103,8 @@ function PaginationPageSize({
   ...props
 }: PaginationPageSizeProps) {
   return (
-    <div className={cn('flex items-center gap-2 text-[13px] text-tertiary', className)} {...props}>
-      <span>Rows per page:</span>
+    <div className={cn('flex items-center gap-1 text-[13px] text-tertiary', className)} {...props}>
+      <span>每页</span>
       <select
         value={pageSize}
         onChange={(e) => onPageSizeChange(Number(e.target.value))}
@@ -116,6 +116,7 @@ function PaginationPageSize({
           </option>
         ))}
       </select>
+      <span>条</span>
     </div>
   )
 }
