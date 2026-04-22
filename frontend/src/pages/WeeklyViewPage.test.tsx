@@ -12,7 +12,7 @@ import type { WeeklyViewResponse } from '@/types'
 // Fix current week to a known date for deterministic tests
 vi.mock('@/utils/weekUtils', async (importOriginal) => {
   const actual = await importOriginal() as typeof import('@/utils/weekUtils')
-  return { ...actual, getCurrentWeekStart: () => '2026-04-20' }
+  return { ...actual, getCurrentWeekStart: () => '2026-04-13' }
 })
 
 // MSW lifecycle

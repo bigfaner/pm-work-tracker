@@ -6,6 +6,7 @@ import { server } from '@/mocks/server'
 import { http, HttpResponse } from 'msw'
 import { useAuthStore } from '@/store/auth'
 import { useTeamStore } from '@/store/team'
+import { ToastProvider } from '@/components/ui/toast'
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
 afterEach(() => server.resetHandlers())

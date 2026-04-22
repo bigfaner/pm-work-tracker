@@ -480,7 +480,7 @@ describe('TeamDetailPage', () => {
     })
 
     // Type a username
-    const input = screen.getByPlaceholderText('请输入用户名')
+    const input = screen.getByPlaceholderText('输入用户名或姓名搜索...')
     await user.type(input, 'newuser')
 
     // Submit

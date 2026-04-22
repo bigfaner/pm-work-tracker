@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { server } from '@/mocks/server'
 import { http, HttpResponse } from 'msw'
+import { ToastProvider } from '@/components/ui/toast'
 
 // MSW lifecycle
 beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
@@ -23,9 +24,11 @@ function renderPage() {
   const qc = createQueryClient()
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        <TeamManagementPage />
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter>
+          <TeamManagementPage />
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>,
   )
 }
