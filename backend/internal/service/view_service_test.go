@@ -1034,10 +1034,14 @@ func TestGanttView_Overdue_NilExpectedEndDate(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 type mockViewUserRepo struct {
-	users map[uint]*model.User
+	users         map[uint]*model.User
+	findByIDCalls uint
+	findByIDsCalls uint
+	findByIDsArg  []uint
 }
 
 func (m *mockViewUserRepo) FindByID(_ context.Context, id uint) (*model.User, error) {
+	m.findByIDCalls++
 	if u, ok := m.users[id]; ok {
 		return u, nil
 	}
@@ -1056,8 +1060,16 @@ func (m *mockViewUserRepo) Update(_ context.Context, _ *model.User) error {
 func (m *mockViewUserRepo) Create(_ context.Context, _ *model.User) error {
 	return nil
 }
-func (m *mockViewUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.User, error) {
-	return nil, nil
+func (m *mockViewUserRepo) FindByIDs(_ context.Context, ids []uint) (map[uint]*model.User, error) {
+	m.findByIDsCalls++
+	m.findByIDsArg = ids
+	result := make(map[uint]*model.User)
+	for _, id := range ids {
+		if u, ok := m.users[id]; ok {
+			result[id] = u
+		}
+	}
+	return result, nil
 }
 func (m *mockViewUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil
@@ -1643,4 +1655,187 @@ func TestTableExportCSV_UTF8BOM(t *testing.T) {
 
 	// UTF-8 BOM prefix
 	assert.True(t, bytes.HasPrefix(data, []byte{0xEF, 0xBB, 0xBF}), "CSV should have UTF-8 BOM")
+}
+
+// ---------------------------------------------------------------------------
+// Tests: Batch resolution (N+1 fix verification)
+// ---------------------------------------------------------------------------
+
+func TestResolveAssigneeNames_UsesBatchFindByIDs(t *testing.T) {
+	assignee1 := uint(100)
+	assignee2 := uint(200)
+
+	rows := []dto.TableRow{
+		{ID: 1, Title: "A", AssigneeID: &assignee1},
+		{ID: 2, Title: "B", AssigneeID: &assignee2},
+		{ID: 3, Title: "C", AssigneeID: &assignee1}, // duplicate assignee
+	}
+
+	userRepo := &mockViewUserRepo{
+		users: map[uint]*model.User{
+			100: {BaseModel: model.BaseModel{ID: 100}, DisplayName: "Alice"},
+			200: {BaseModel: model.BaseModel{ID: 200}, DisplayName: "Bob"},
+		},
+	}
+
+	resolveAssigneeNames(context.Background(), rows, userRepo)
+
+	// Should call FindByIDs exactly once
+	assert.Equal(t, uint(1), userRepo.findByIDsCalls, "resolveAssigneeNames should use a single FindByIDs call")
+	// Should NOT call FindByID at all
+	assert.Equal(t, uint(0), userRepo.findByIDCalls, "resolveAssigneeNames should not call FindByID")
+	// Names resolved correctly
+	assert.Equal(t, "Alice", rows[0].AssigneeName)
+	assert.Equal(t, "Bob", rows[1].AssigneeName)
+	assert.Equal(t, "Alice", rows[2].AssigneeName)
+}
+
+func TestResolveAssigneeNames_DeduplicatesIDs(t *testing.T) {
+	id1 := uint(10)
+	id2 := uint(20)
+	rows := []dto.TableRow{
+		{ID: 1, AssigneeID: &id1},
+		{ID: 2, AssigneeID: &id1},
+		{ID: 3, AssigneeID: &id2},
+	}
+
+	userRepo := &mockViewUserRepo{
+		users: map[uint]*model.User{
+			10: {DisplayName: "A"},
+			20: {DisplayName: "B"},
+		},
+	}
+
+	resolveAssigneeNames(context.Background(), rows, userRepo)
+
+	// FindByIDs should be called with deduplicated IDs
+	require.Len(t, userRepo.findByIDsArg, 2)
+	assert.Contains(t, userRepo.findByIDsArg, uint(10))
+	assert.Contains(t, userRepo.findByIDsArg, uint(20))
+}
+
+func TestResolveAssigneeNames_NilUserRepo_NoPanic(t *testing.T) {
+	rows := []dto.TableRow{{ID: 1}}
+	assert.NotPanics(t, func() {
+		resolveAssigneeNames(context.Background(), rows, nil)
+	})
+}
+
+func TestWeeklyComparison_UsesBatchFindByIDs(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	assignee1 := uint(100)
+	assignee2 := uint(200)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "progressing", Completion: 60, AssigneeID: &assignee1},
+			{BaseModel: model.BaseModel{ID: 11}, TeamID: 1, MainItemID: 1, Title: "Sub B", Status: "pending", Completion: 0, AssigneeID: &assignee2},
+			{BaseModel: model.BaseModel{ID: 12}, TeamID: 1, MainItemID: 1, Title: "Sub C", Status: "pending", Completion: 0, AssigneeID: &assignee1}, // same assignee
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 60, CreatedAt: weekStart.AddDate(0, 0, 1)},
+		},
+	}
+	userRepo := &mockViewUserRepo{
+		users: map[uint]*model.User{
+			100: {BaseModel: model.BaseModel{ID: 100}, DisplayName: "Alice"},
+			200: {BaseModel: model.BaseModel{ID: 200}, DisplayName: "Bob"},
+		},
+	}
+
+	svc := NewViewServiceWithUserRepo(mainRepo, subRepo, progressRepo, userRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	// Should call FindByIDs exactly once, never FindByID
+	assert.Equal(t, uint(1), userRepo.findByIDsCalls, "WeeklyComparison should use a single FindByIDs call")
+	assert.Equal(t, uint(0), userRepo.findByIDCalls, "WeeklyComparison should not call FindByID")
+
+	// Verify names resolved correctly in output
+	require.Len(t, result.Groups, 1)
+	group := result.Groups[0]
+	// Find Sub A (ID=10) in ThisWeek and check name
+	for _, snap := range group.ThisWeek {
+		if snap.ID == 10 {
+			assert.Equal(t, "Alice", snap.AssigneeName)
+		}
+		if snap.ID == 11 {
+			assert.Equal(t, "Bob", snap.AssigneeName)
+		}
+	}
+}
+
+func TestTableView_UsesBatchFindByIDs(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	assignee1 := uint(100)
+	assignee2 := uint(200)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", AssigneeID: &assignee1, Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", AssigneeID: &assignee2, Status: "pending", Completion: 0, ExpectedEndDate: &endDate},
+		},
+	}
+	userRepo := &mockViewUserRepo{
+		users: map[uint]*model.User{
+			100: {BaseModel: model.BaseModel{ID: 100}, DisplayName: "Alice"},
+			200: {BaseModel: model.BaseModel{ID: 200}, DisplayName: "Bob"},
+		},
+	}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, userRepo)
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+
+	// Should call FindByIDs exactly once
+	assert.Equal(t, uint(1), userRepo.findByIDsCalls, "TableView should use a single FindByIDs call")
+	assert.Equal(t, uint(0), userRepo.findByIDCalls, "TableView should not call FindByID")
+
+	// Names resolved correctly
+	require.Len(t, result.Items, 2)
+	assert.Equal(t, "Alice", result.Items[0].AssigneeName)
+	assert.Equal(t, "Bob", result.Items[1].AssigneeName)
+}
+
+func TestTableExportCSV_UsesBatchFindByIDs(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	assignee1 := uint(100)
+	assignee2 := uint(200)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", AssigneeID: &assignee1, Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", AssigneeID: &assignee2, Status: "pending", Completion: 0, ExpectedEndDate: &endDate},
+		},
+	}
+	userRepo := &mockViewUserRepo{
+		users: map[uint]*model.User{
+			100: {BaseModel: model.BaseModel{ID: 100}, DisplayName: "Alice"},
+			200: {BaseModel: model.BaseModel{ID: 200}, DisplayName: "Bob"},
+		},
+	}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, userRepo)
+	_, err := svc.TableExportCSV(context.Background(), 1, dto.TableFilter{})
+	require.NoError(t, err)
+
+	// Should call FindByIDs exactly once
+	assert.Equal(t, uint(1), userRepo.findByIDsCalls, "TableExportCSV should use a single FindByIDs call")
+	assert.Equal(t, uint(0), userRepo.findByIDCalls, "TableExportCSV should not call FindByID")
 }

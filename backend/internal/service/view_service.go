@@ -149,18 +149,24 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 		}
 	}
 
-	// Resolve assignee names for sub-items
+	// Resolve assignee names for sub-items (batch)
 	assigneeNames := make(map[uint]string)
 	if s.userRepo != nil {
 		seen := make(map[uint]struct{})
+		var ids []uint
 		for _, si := range subItems {
 			if si.AssigneeID != nil {
 				if _, ok := seen[*si.AssigneeID]; !ok {
 					seen[*si.AssigneeID] = struct{}{}
-					user, err := s.userRepo.FindByID(ctx, *si.AssigneeID)
-					if err == nil && user != nil {
-						assigneeNames[*si.AssigneeID] = user.DisplayName
-					}
+					ids = append(ids, *si.AssigneeID)
+				}
+			}
+		}
+		if len(ids) > 0 {
+			users, err := s.userRepo.FindByIDs(ctx, ids)
+			if err == nil {
+				for id, u := range users {
+					assigneeNames[id] = u.DisplayName
 				}
 			}
 		}
@@ -771,14 +777,22 @@ func resolveAssigneeNames(ctx context.Context, rows []dto.TableRow, userRepo rep
 			assigneeIDs[*row.AssigneeID] = struct{}{}
 		}
 	}
+	if len(assigneeIDs) == 0 {
+		return
+	}
 
-	// Resolve names
-	names := make(map[uint]string)
+	// Batch resolve names with a single FindByIDs call
+	ids := make([]uint, 0, len(assigneeIDs))
 	for id := range assigneeIDs {
-		user, err := userRepo.FindByID(ctx, id)
-		if err == nil && user != nil {
-			names[id] = user.DisplayName
-		}
+		ids = append(ids, id)
+	}
+	users, err := userRepo.FindByIDs(ctx, ids)
+	if err != nil {
+		return
+	}
+	names := make(map[uint]string, len(users))
+	for id, u := range users {
+		names[id] = u.DisplayName
 	}
 
 	// Fill names into rows
