@@ -15,6 +15,7 @@ type TeamMemberDTO struct {
 type CreateTeamReq struct {
 	Name        string `json:"name" binding:"required,max=100"`
 	Description string `json:"description" binding:"max=500"`
+	Code        string `json:"code" binding:"required,min=2,max=6,alpha"`
 }
 
 // UpdateTeamReq is the request DTO for updating a team.

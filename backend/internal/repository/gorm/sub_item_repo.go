@@ -103,6 +103,11 @@ func (r *subItemRepo) ListByTeam(ctx context.Context, teamID uint) ([]model.SubI
 	return items, err
 }
 
+// NextSubCode is implemented in task 2.2.
+func (r *subItemRepo) NextSubCode(_ context.Context, _ uint) (string, error) {
+	return "", nil
+}
+
 func applySubItemFilter(query *gormlib.DB, filter dto.SubItemFilter) *gormlib.DB {
 	if filter.Status != "" {
 		query = query.Where("status = ?", filter.Status)

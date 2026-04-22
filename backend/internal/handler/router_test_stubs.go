@@ -226,6 +226,9 @@ func (s *StubRouterRepoSubItem) ListByTeam(_ context.Context, _ uint) ([]model.S
 	return nil, nil
 }
 func (s *StubRouterRepoSubItem) Delete(_ context.Context, _ uint) error { return nil }
+func (s *StubRouterRepoSubItem) NextSubCode(_ context.Context, _ uint) (string, error) {
+	return "", nil
+}
 
 var _ repository.SubItemRepo = (*StubRouterRepoSubItem)(nil)
 
