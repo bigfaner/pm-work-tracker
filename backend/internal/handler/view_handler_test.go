@@ -94,7 +94,7 @@ func depsWithViewSvc(t *testing.T, svc *mockViewService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	deps.View = NewViewHandlerWithDeps(svc)
+	deps.View = NewViewHandler(svc)
 	return deps
 }
 
@@ -540,7 +540,7 @@ func TestWeeklyView_RequiresTeamMembership(t *testing.T) {
 	// Ensure user ID=99 exists so AuthMiddleware doesn't return 401
 	db.Create(&model.User{BaseModel: model.BaseModel{ID: 99}, Username: "testuser99", DisplayName: "Test User 99"})
 	// Use a mock team repo that returns no membership (error)
-	deps.View = NewViewHandlerWithDeps(svc)
+	deps.View = NewViewHandler(svc)
 	// default TeamRepo from testDeps has no members, so FindMember returns error
 	r := SetupRouter(deps, nil)
 

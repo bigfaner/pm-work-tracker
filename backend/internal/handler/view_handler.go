@@ -18,23 +18,16 @@ type ViewHandler struct {
 	viewSvc service.ViewService
 }
 
-// NewViewHandler creates a new ViewHandler (stub, for router setup before service is ready).
-func NewViewHandler() *ViewHandler {
-	return &ViewHandler{}
-}
-
-// NewViewHandlerWithDeps creates a new ViewHandler with service dependencies.
-func NewViewHandlerWithDeps(viewSvc service.ViewService) *ViewHandler {
+// NewViewHandler creates a new ViewHandler with service dependency.
+func NewViewHandler(viewSvc service.ViewService) *ViewHandler {
+	if viewSvc == nil {
+		panic("view_handler: viewService must not be nil")
+	}
 	return &ViewHandler{viewSvc: viewSvc}
 }
 
 // Weekly handles GET /api/v1/teams/:teamId/views/weekly
 func (h *ViewHandler) Weekly(c *gin.Context) {
-	if h.viewSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	weekStartStr := c.Query("weekStart")
 	if weekStartStr == "" {
 		apperrors.RespondError(c, apperrors.ErrValidation)
@@ -76,11 +69,6 @@ func (h *ViewHandler) Weekly(c *gin.Context) {
 
 // Gantt handles GET /api/v1/teams/:teamId/views/gantt
 func (h *ViewHandler) Gantt(c *gin.Context) {
-	if h.viewSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	var filter dto.GanttFilter
 	if err := c.ShouldBindQuery(&filter); err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
@@ -100,11 +88,6 @@ func (h *ViewHandler) Gantt(c *gin.Context) {
 
 // Table handles GET /api/v1/teams/:teamId/views/table
 func (h *ViewHandler) Table(c *gin.Context) {
-	if h.viewSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	var filter dto.TableFilter
 	if err := c.ShouldBindQuery(&filter); err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
@@ -136,11 +119,6 @@ func (h *ViewHandler) Table(c *gin.Context) {
 
 // ExportTable handles GET /api/v1/teams/:teamId/views/table/export
 func (h *ViewHandler) ExportTable(c *gin.Context) {
-	if h.viewSvc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	var filter dto.TableFilter
 	if err := c.ShouldBindQuery(&filter); err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)

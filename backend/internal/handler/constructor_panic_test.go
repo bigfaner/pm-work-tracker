@@ -142,3 +142,69 @@ func TestNewAdminHandler_SucceedsWithValidDeps(t *testing.T) {
 		t.Fatal("expected non-nil handler")
 	}
 }
+
+// ========== ReportHandler ==========
+
+func TestNewReportHandler_PanicsOnNilService(t *testing.T) {
+	assertPanicMessage(t, "ReportHandler/nil-svc", func() {
+		NewReportHandler(nil)
+	}, "report_handler: reportService must not be nil")
+}
+
+func TestNewReportHandler_SucceedsWithValidDeps(t *testing.T) {
+	h := NewReportHandler(&StubReportSvc{})
+	if h == nil {
+		t.Fatal("expected non-nil handler")
+	}
+}
+
+// ========== ViewHandler ==========
+
+func TestNewViewHandler_PanicsOnNilService(t *testing.T) {
+	assertPanicMessage(t, "ViewHandler/nil-svc", func() {
+		NewViewHandler(nil)
+	}, "view_handler: viewService must not be nil")
+}
+
+func TestNewViewHandler_SucceedsWithValidDeps(t *testing.T) {
+	h := NewViewHandler(&StubViewSvc{})
+	if h == nil {
+		t.Fatal("expected non-nil handler")
+	}
+}
+
+// ========== ProgressHandler ==========
+
+func TestNewProgressHandler_PanicsOnNilService(t *testing.T) {
+	assertPanicMessage(t, "ProgressHandler/nil-svc", func() {
+		NewProgressHandler(nil, &StubRouterRepoUser{})
+	}, "progress_handler: progressService must not be nil")
+}
+
+func TestNewProgressHandler_PanicsOnNilUserRepo(t *testing.T) {
+	assertPanicMessage(t, "ProgressHandler/nil-userRepo", func() {
+		NewProgressHandler(&StubProgressSvc{}, nil)
+	}, "progress_handler: userRepo must not be nil")
+}
+
+func TestNewProgressHandler_SucceedsWithValidDeps(t *testing.T) {
+	h := NewProgressHandler(&StubProgressSvc{}, &StubRouterRepoUser{})
+	if h == nil {
+		t.Fatal("expected non-nil handler")
+	}
+}
+
+// ========== PermissionHandler ==========
+
+func TestNewPermissionHandler_PanicsOnNilService(t *testing.T) {
+	assertPanicMessage(t, "PermissionHandler/nil-svc", func() {
+		NewPermissionHandler(nil)
+	}, "permission_handler: roleService must not be nil")
+}
+
+func TestNewPermissionHandler_SucceedsWithValidDeps(t *testing.T) {
+	h := NewPermissionHandler(&StubRoleSvc{})
+	if h == nil {
+		t.Fatal("expected non-nil handler")
+	}
+}

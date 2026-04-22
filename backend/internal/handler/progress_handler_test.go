@@ -57,7 +57,7 @@ func BenchmarkProgressHandler_List(b *testing.B) {
 
 	deps, _ := testDeps(b)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	deps.Progress = NewProgressHandlerWithDeps(svc, trackingRepo)
+	deps.Progress = NewProgressHandler(svc, trackingRepo)
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(b, 3, "testuser")
@@ -148,7 +148,7 @@ func depsWithProgressSvc(t *testing.T, svc *mockProgressService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	deps.Progress = NewProgressHandlerWithDeps(svc, &mockUserRepoForHandler{})
+	deps.Progress = NewProgressHandler(svc, &mockUserRepoForHandler{})
 	return deps
 }
 
@@ -158,7 +158,7 @@ func depsWithProgressSvcMemberRole(t *testing.T, svc *mockProgressService) *Depe
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "member", RoleID: ptrUint(2)}}
-	deps.Progress = NewProgressHandlerWithDeps(svc, &mockUserRepoForHandler{})
+	deps.Progress = NewProgressHandler(svc, &mockUserRepoForHandler{})
 	return deps
 }
 
@@ -168,7 +168,7 @@ func depsWithProgressSvcAndUser(t *testing.T, svc *mockProgressService, userRepo
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	deps.Progress = NewProgressHandlerWithDeps(svc, userRepo)
+	deps.Progress = NewProgressHandler(svc, userRepo)
 	return deps
 }
 

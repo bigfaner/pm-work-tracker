@@ -243,7 +243,7 @@
       "dependencies": [
         "3.2"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "4.2-standardize-handlers.md",
       "record": "records/4.2-standardize-handlers.md"
     },

@@ -129,13 +129,13 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 		Team:     NewTeamHandler(&StubTeamSvc{}, &StubRouterRepoUser{}),
 		MainItem: NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, &StubRouterRepoSubItem{}),
 		SubItem:  NewSubItemHandler(&StubSubItemSvc{}),
-		Progress: NewProgressHandler(),
+		Progress: NewProgressHandler(&StubProgressSvc{}, &StubRouterRepoUser{}),
 		ItemPool: NewItemPoolHandler(&StubItemPoolSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMainItem{}),
-		View:     NewViewHandler(),
-		Report:   NewReportHandler(),
+		View:     NewViewHandler(&StubViewSvc{}),
+		Report:   NewReportHandler(&StubReportSvc{}),
 		Admin:      NewAdminHandler(&StubAdminSvc{}),
 		Role:       NewRoleHandler(&StubRoleSvc{}),
-		Permission: NewPermissionHandler(),
+		Permission: NewPermissionHandler(&StubRoleSvc{}),
 	}, db
 }
 

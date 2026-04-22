@@ -99,13 +99,13 @@ func run(configPath string, devMode bool) error {
 		Team:       handler.NewTeamHandler(teamSvc, userRepo),
 		MainItem:   handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
 		SubItem:    handler.NewSubItemHandler(subItemSvc),
-		Progress:   handler.NewProgressHandlerWithDeps(progressSvc, userRepo),
+		Progress:   handler.NewProgressHandler(progressSvc, userRepo),
 		ItemPool:   handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
-		View:       handler.NewViewHandlerWithDeps(viewSvc),
-		Report:     handler.NewReportHandlerWithDeps(reportSvc),
+		View:       handler.NewViewHandler(viewSvc),
+		Report:     handler.NewReportHandler(reportSvc),
 		Admin:      handler.NewAdminHandler(adminSvc),
 		Role:       handler.NewRoleHandler(roleSvc),
-		Permission: handler.NewPermissionHandlerWithDeps(roleSvc),
+		Permission: handler.NewPermissionHandler(roleSvc),
 	}
 
 	// 7. Setup router
