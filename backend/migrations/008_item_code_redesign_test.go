@@ -30,7 +30,7 @@ func Test008_AddsTeamsCodeColumnAndIndex(t *testing.T) {
 	assert.Equal(t, int64(1), count, "idx_teams_code index should exist")
 }
 
-func Test008_AddsSubItemsCodeColumnAndIndex(t *testing.T) {
+func Test008_AddsSubItemsCodeColumn(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
 	sqlDB, err := db.DB()
@@ -45,10 +45,11 @@ func Test008_AddsSubItemsCodeColumnAndIndex(t *testing.T) {
 	err = db.Exec(string(content)).Error
 	require.NoError(t, err)
 
+	// Unique index is added in 009 after rewrite_codes populates data.
 	var count int64
 	err = db.Raw("SELECT count(*) FROM sqlite_master WHERE type='index' AND name='idx_sub_items_main_code'").Scan(&count).Error
 	assert.NoError(t, err)
-	assert.Equal(t, int64(1), count, "idx_sub_items_main_code index should exist")
+	assert.Equal(t, int64(0), count, "idx_sub_items_main_code index should not exist yet (added in 009)")
 }
 
 func Test008_TeamsCodeColumnExists(t *testing.T) {
