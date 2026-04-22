@@ -149,9 +149,6 @@ export default function SubItemDetailPage() {
   // Sorted progress records: reverse chronological
   const sortedRecords = [...(progressRecords || [])].reverse()
 
-  // Sub item code
-  const subCode = subItem ? `SI-${String(mId).padStart(3, '0')}-${String(sId).slice(-2)}` : ''
-
   // Terminal status guard
   const isTerminalStatus = subItem
     ? !!(SUB_ITEM_STATUSES[subItem.status as keyof typeof SUB_ITEM_STATUSES]?.terminal)
@@ -184,7 +181,7 @@ export default function SubItemDetailPage() {
 
           {/* Title Bar */}
           <div className="flex items-center gap-3 mb-6 flex-wrap">
-            <Badge variant="default" className="font-mono">{subCode}</Badge>
+            <Badge variant="default" className="font-mono">{subItem.code}</Badge>
             <h1 className="text-xl font-semibold text-primary m-0">{subItem.title}</h1>
             <PriorityBadge priority={subItem.priority} />
             <SubItemStatusDropdown subId={sId} currentStatus={subItem.status} />
