@@ -115,9 +115,15 @@ func (s *teamService) GetTeamDetail(ctx context.Context, teamID uint) (*dto.Team
 		return nil, err
 	}
 
-	members, err := s.teamRepo.ListMembers(ctx, teamID)
+	// Use COUNT(*) for member count instead of loading all members
+	memberCount, err := s.teamRepo.CountMembers(ctx, teamID)
 	if err != nil {
-		return nil, err
+		// Fallback: load all members and count
+		members, listErr := s.teamRepo.ListMembers(ctx, teamID)
+		if listErr != nil {
+			return nil, listErr
+		}
+		memberCount = int64(len(members))
 	}
 
 	var mainItemCount int64
@@ -132,7 +138,7 @@ func (s *teamService) GetTeamDetail(ctx context.Context, teamID uint) (*dto.Team
 		Code:          team.Code,
 		PmID:          team.PmID,
 		PmDisplayName: pm.DisplayName,
-		MemberCount:   len(members),
+		MemberCount:   int(memberCount),
 		MainItemCount: int(mainItemCount),
 		CreatedAt:     team.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:     team.UpdatedAt.Format(time.RFC3339),

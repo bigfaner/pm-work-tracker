@@ -31,21 +31,58 @@ func (r *LinkageResult) Warning() string {
 }
 
 // linkageMuMap provides per-MainItem mutexes for linkage evaluation.
+// Bounded to maxLinkageMuMapSize entries with LRU eviction.
+const maxLinkageMuMapSize = 1000
+
 var (
-	linkageMuMap = make(map[uint]*sync.Mutex)
-	linkageMapMu sync.Mutex // protects linkageMuMap
+	linkageMuMap    = make(map[uint]*sync.Mutex)
+	linkageAccess   = make(map[uint]uint64) // mainItemID -> access sequence number
+	linkageSeq      uint64                  // monotonically increasing access counter
+	linkageMapMu    sync.Mutex              // protects linkageMuMap, linkageAccess, and linkageSeq
 )
 
 // getLinkageMutex returns (or creates) a mutex for the given MainItem.
+// When the map exceeds maxLinkageMuMapSize entries, the least recently used entry is evicted.
 func getLinkageMutex(mainItemID uint) *sync.Mutex {
 	linkageMapMu.Lock()
 	defer linkageMapMu.Unlock()
+
 	if mu, ok := linkageMuMap[mainItemID]; ok {
+		linkageSeq++
+		linkageAccess[mainItemID] = linkageSeq
 		return mu
 	}
+
+	// Evict LRU entry if at capacity
+	if len(linkageMuMap) >= maxLinkageMuMapSize {
+		var oldestID uint
+		var oldestSeq uint64
+		first := true
+		for id, seq := range linkageAccess {
+			if first || seq < oldestSeq {
+				oldestID = id
+				oldestSeq = seq
+				first = false
+			}
+		}
+		delete(linkageMuMap, oldestID)
+		delete(linkageAccess, oldestID)
+	}
+
 	mu := &sync.Mutex{}
+	linkageSeq++
 	linkageMuMap[mainItemID] = mu
+	linkageAccess[mainItemID] = linkageSeq
 	return mu
+}
+
+// resetLinkageMuMap resets the global linkage map. Used only in tests.
+func resetLinkageMuMap() {
+	linkageMapMu.Lock()
+	defer linkageMapMu.Unlock()
+	linkageMuMap = make(map[uint]*sync.Mutex)
+	linkageAccess = make(map[uint]uint64)
+	linkageSeq = 0
 }
 
 // MainItemService defines business operations for MainItem.

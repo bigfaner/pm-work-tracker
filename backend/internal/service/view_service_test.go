@@ -25,6 +25,16 @@ type mockViewMainItemRepo struct {
 	listErr  error
 	findErr  error
 	findItem *model.MainItem
+
+	// ListByTeamAndStatus tracking
+	listByTeamAndStatusCalled bool
+	listByTeamAndStatusTeamID uint
+	listByTeamAndStatusStatus string
+	listByTeamAndStatusResult []model.MainItem
+	listByTeamAndStatusErr    error
+
+	// ListNonArchivedByTeam tracking
+	listNonArchivedCalled bool
 }
 
 func (m *mockViewMainItemRepo) Create(_ context.Context, _ *model.MainItem) error {
@@ -49,6 +59,7 @@ func (m *mockViewMainItemRepo) CountByTeam(_ context.Context, _ uint) (int64, er
 	return 0, nil
 }
 func (m *mockViewMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
+	m.listNonArchivedCalled = true
 	if m.listErr != nil {
 		return nil, m.listErr
 	}
@@ -57,8 +68,17 @@ func (m *mockViewMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ uint) 
 func (m *mockViewMainItemRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
 	return nil, nil
 }
-func (m *mockViewMainItemRepo) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
-	return nil, nil
+func (m *mockViewMainItemRepo) ListByTeamAndStatus(_ context.Context, teamID uint, status string) ([]model.MainItem, error) {
+	m.listByTeamAndStatusCalled = true
+	m.listByTeamAndStatusTeamID = teamID
+	m.listByTeamAndStatusStatus = status
+	if m.listByTeamAndStatusErr != nil {
+		return nil, m.listByTeamAndStatusErr
+	}
+	if m.listByTeamAndStatusResult != nil {
+		return m.listByTeamAndStatusResult, nil
+	}
+	return m.items, nil
 }
 
 type mockViewSubItemRepo struct {
@@ -744,8 +764,9 @@ func TestGanttView_StatusFilter(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "In Progress", Status: "progressing", StartDate: &startDate, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "Completed", Status: "completed", StartDate: &startDate, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Title: "Pending", Status: "pending", StartDate: &startDate, ExpectedEndDate: &endDate},
+		},
+		listByTeamAndStatusResult: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "In Progress", Status: "progressing", StartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 	}
 	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
@@ -756,6 +777,58 @@ func TestGanttView_StatusFilter(t *testing.T) {
 	require.Len(t, result.Items, 1)
 	assert.Equal(t, uint(1), result.Items[0].ID)
 	assert.Equal(t, "In Progress", result.Items[0].Title)
+}
+
+func TestGanttView_StatusFilter_UsesSQLPushdown(t *testing.T) {
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		listByTeamAndStatusResult: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "In Progress", Status: "progressing", StartDate: &startDate, ExpectedEndDate: &endDate},
+		},
+	}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+
+	_, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{Status: "progressing"})
+	require.NoError(t, err)
+
+	// Should call ListByTeamAndStatus (SQL pushdown)
+	assert.True(t, mainRepo.listByTeamAndStatusCalled, "should call ListByTeamAndStatus when status filter is set")
+	assert.Equal(t, uint(1), mainRepo.listByTeamAndStatusTeamID)
+	assert.Equal(t, "progressing", mainRepo.listByTeamAndStatusStatus)
+	// Should NOT call ListNonArchivedByTeam
+	assert.False(t, mainRepo.listNonArchivedCalled, "should not call ListNonArchivedByTeam when status filter is set")
+}
+
+func TestGanttView_NoStatusFilter_UsesListNonArchived(t *testing.T) {
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "A", Status: "progressing", StartDate: &startDate, ExpectedEndDate: &endDate},
+		},
+	}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+
+	_, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	require.NoError(t, err)
+
+	// Should call ListNonArchivedByTeam (no filter)
+	assert.True(t, mainRepo.listNonArchivedCalled, "should call ListNonArchivedByTeam when no status filter")
+	// Should NOT call ListByTeamAndStatus
+	assert.False(t, mainRepo.listByTeamAndStatusCalled, "should not call ListByTeamAndStatus when no status filter")
+}
+
+func TestGanttView_StatusFilter_SQLPushdownError(t *testing.T) {
+	mainRepo := &mockViewMainItemRepo{
+		listByTeamAndStatusErr: errors.New("db error"),
+	}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+
+	_, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{Status: "progressing"})
+	assert.Error(t, err)
 }
 
 func TestGanttView_StatusFilterEmpty_ReturnsAll(t *testing.T) {

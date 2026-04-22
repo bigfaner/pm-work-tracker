@@ -78,6 +78,11 @@ func (m *mockTeamRepo) ListMembers(ctx context.Context, teamID uint) ([]*dto.Tea
 	return args.Get(0).([]*dto.TeamMemberDTO), args.Error(1)
 }
 
+func (m *mockTeamRepo) CountMembers(ctx context.Context, teamID uint) (int64, error) {
+	args := m.Called(ctx, teamID)
+	return args.Get(0).(int64), args.Error(1)
+}
+
 func (m *mockTeamRepo) UpdateMember(ctx context.Context, member *model.TeamMember) error {
 	args := m.Called(ctx, member)
 	return args.Error(0)

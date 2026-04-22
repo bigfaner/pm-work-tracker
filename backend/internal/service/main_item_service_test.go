@@ -1192,3 +1192,55 @@ func TestLinkageResult_Warning(t *testing.T) {
 		})
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Tests: getLinkageMutex LRU eviction
+// ---------------------------------------------------------------------------
+
+func TestGetLinkageMutex_BasicAccess(t *testing.T) {
+	resetLinkageMuMap()
+	defer resetLinkageMuMap()
+
+	mu := getLinkageMutex(1)
+	assert.NotNil(t, mu)
+	// Same ID returns same mutex
+	mu2 := getLinkageMutex(1)
+	assert.Same(t, mu, mu2)
+}
+
+func TestGetLinkageMutex_LRUEviction(t *testing.T) {
+	resetLinkageMuMap()
+	defer resetLinkageMuMap()
+
+	// Fill up to capacity
+	for i := 0; i < maxLinkageMuMapSize; i++ {
+		getLinkageMutex(uint(i))
+	}
+	assert.Len(t, linkageMuMap, maxLinkageMuMapSize)
+
+	// Access ID 0 to make it recently used
+	getLinkageMutex(0)
+
+	// Adding one more should evict the LRU entry (ID 1, since ID 0 was just accessed)
+	getLinkageMutex(uint(maxLinkageMuMapSize))
+	assert.Len(t, linkageMuMap, maxLinkageMuMapSize)
+
+	// ID 0 should still exist (was accessed recently)
+	_, ok := linkageMuMap[0]
+	assert.True(t, ok, "ID 0 should still exist (recently accessed)")
+
+	// ID 1 should have been evicted (oldest unused)
+	_, ok = linkageMuMap[1]
+	assert.False(t, ok, "ID 1 should have been evicted as LRU")
+}
+
+func TestGetLinkageMutex_CapacityBounded(t *testing.T) {
+	resetLinkageMuMap()
+	defer resetLinkageMuMap()
+
+	// Add far more than capacity
+	for i := 0; i < maxLinkageMuMapSize+100; i++ {
+		getLinkageMutex(uint(i))
+	}
+	assert.Len(t, linkageMuMap, maxLinkageMuMapSize)
+}

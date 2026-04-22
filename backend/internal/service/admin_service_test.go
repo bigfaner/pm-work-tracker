@@ -118,6 +118,9 @@ func (m *mockAdminTeamRepo) FindMember(_ context.Context, _, _ uint) (*model.Tea
 func (m *mockAdminTeamRepo) ListMembers(_ context.Context, _ uint) ([]*dto.TeamMemberDTO, error) {
 	return nil, nil
 }
+func (m *mockAdminTeamRepo) CountMembers(_ context.Context, _ uint) (int64, error) {
+	return 0, nil
+}
 func (m *mockAdminTeamRepo) UpdateMember(_ context.Context, _ *model.TeamMember) error {
 	return nil
 }

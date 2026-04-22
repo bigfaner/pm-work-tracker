@@ -20,6 +20,7 @@ type TeamRepo interface {
 	RemoveMember(ctx context.Context, teamID, userID uint) error
 	FindMember(ctx context.Context, teamID, userID uint) (*model.TeamMember, error)
 	ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMemberDTO, error)
+	CountMembers(ctx context.Context, teamID uint) (int64, error)
 	UpdateMember(ctx context.Context, member *model.TeamMember) error
 	FindPMMembers(ctx context.Context, teamIDs []uint) (map[uint]string, error)
 

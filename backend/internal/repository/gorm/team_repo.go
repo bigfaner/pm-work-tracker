@@ -107,6 +107,15 @@ func (r *teamRepo) ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMem
 	return results, err
 }
 
+func (r *teamRepo) CountMembers(ctx context.Context, teamID uint) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Table("team_members").
+		Where("team_id = ?", teamID).
+		Count(&count).Error
+	return count, err
+}
+
 func (r *teamRepo) UpdateMember(ctx context.Context, member *model.TeamMember) error {
 	return r.db.WithContext(ctx).Save(member).Error
 }
