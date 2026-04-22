@@ -43,6 +43,18 @@ func TestTeamRepo_Create(t *testing.T) {
 	assert.NotZero(t, team.ID)
 }
 
+func TestTeamRepo_Create_DuplicateCode(t *testing.T) {
+	db := setupTeamTestDB(t)
+	repo := gormrepo.NewGormTeamRepo(db)
+	ctx := context.Background()
+
+	pm := seedUser(t, db, "pm_dc")
+	require.NoError(t, repo.Create(ctx, &model.Team{Name: "Team X", PmID: pm.ID, Code: "DUPX"}))
+
+	err := repo.Create(ctx, &model.Team{Name: "Team Y", PmID: pm.ID, Code: "DUPX"})
+	assert.ErrorIs(t, err, pkgerrors.ErrTeamCodeDuplicate)
+}
+
 func TestTeamRepo_FindByID(t *testing.T) {
 	db := setupTeamTestDB(t)
 	repo := gormrepo.NewGormTeamRepo(db)
