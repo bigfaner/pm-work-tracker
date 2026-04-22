@@ -236,11 +236,7 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 		return
 	}
 
-	response := gin.H{"subItem": vo.NewSubItemVO(result.SubItem)}
-	if result.LinkageResult != nil && result.LinkageResult.Warning() != "" {
-		response["linkageWarning"] = result.LinkageResult.Warning()
-	}
-	apperrors.RespondOK(c, response)
+	apperrors.RespondOK(c, vo.NewSubItemVO(result.SubItem))
 }
 
 // AvailableTransitions handles GET /api/v1/teams/:teamId/sub-items/:subId/available-transitions
