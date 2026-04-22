@@ -45,6 +45,7 @@ var (
 	ErrTerminalMainItem     = &AppError{Code: "TERMINAL_MAIN_ITEM", Status: 422, Message: "cannot modify a completed or closed main item"}
 	ErrSubItemsNotTerminal  = &AppError{Code: "SUB_ITEMS_NOT_TERMINAL", Status: 422, Message: "all sub-items must be completed or closed before closing the main item"}
 	ErrTeamCodeDuplicate    = &AppError{Code: "TEAM_CODE_DUPLICATE", Status: 400, Message: "该编码已被使用"}
+	ErrInvalidField         = &AppError{Code: "INVALID_FIELD", Status: 422, Message: "invalid field name"}
 )
 
 // MapNotFound maps gorm.ErrRecordNotFound and ErrNotFound to the provided domain error.
