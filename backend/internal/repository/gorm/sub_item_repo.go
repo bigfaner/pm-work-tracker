@@ -44,7 +44,7 @@ func (r *subItemRepo) List(ctx context.Context, teamID uint, mainItemID uint, fi
 		query = query.Where("main_item_id = ?", mainItemID)
 	}
 
-	query = applySubItemFilter(query, filter)
+	query = applyItemFilter(query, filter.Status, filter.Priority, filter.AssigneeID, filter.IsKeyItem)
 
 	var total int64
 	if err := query.Model(&model.SubItem{}).Count(&total).Error; err != nil {
@@ -119,20 +119,4 @@ func (r *subItemRepo) NextSubCode(ctx context.Context, mainItemID uint) (string,
 		return nil
 	})
 	return code, err
-}
-
-func applySubItemFilter(query *gormlib.DB, filter dto.SubItemFilter) *gormlib.DB {
-	if filter.Status != "" {
-		query = query.Where("status = ?", filter.Status)
-	}
-	if filter.Priority != "" {
-		query = query.Where("priority = ?", filter.Priority)
-	}
-	if filter.AssigneeID != nil {
-		query = query.Where("assignee_id = ?", *filter.AssigneeID)
-	}
-	if filter.IsKeyItem != nil {
-		query = query.Where("is_key_item = ?", *filter.IsKeyItem)
-	}
-	return query
 }

@@ -11,6 +11,7 @@ import (
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/dates"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -191,7 +192,7 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 				Status:          mi.Status,
 				StartDate:       formatDate(mi.StartDate),
 				ExpectedEndDate: formatDate(mi.ExpectedEndDate),
-				ActualEndDate:   formatDatePtr(mi.ActualEndDate),
+				ActualEndDate:   dates.FormatTimePtr(mi.ActualEndDate),
 				Completion:      mi.Completion,
 				SubItemCount:    len(subs),
 			},
@@ -234,7 +235,7 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 				AssigneeName:        assigneeName,
 				StartDate:           formatDate(si.StartDate),
 				ExpectedEndDate:     formatDate(si.ExpectedEndDate),
-				ActualEndDate:       formatDatePtr(si.ActualEndDate),
+				ActualEndDate:       dates.FormatTimePtr(si.ActualEndDate),
 				Completion:          si.Completion,
 				ProgressDescription: latestProgressDesc[si.ID],
 			}
@@ -278,7 +279,7 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 						AssigneeName:    assigneeName,
 						StartDate:       formatDate(si.StartDate),
 						ExpectedEndDate: formatDate(si.ExpectedEndDate),
-						ActualEndDate:   formatDatePtr(si.ActualEndDate),
+						ActualEndDate:   dates.FormatTimePtr(si.ActualEndDate),
 						Completion:      lastComp,
 					}
 					group.LastWeek = append(group.LastWeek, lastSnapshot)
@@ -615,8 +616,8 @@ func mainItemToRow(mi model.MainItem) dto.TableRow {
 		AssigneeID:      mi.AssigneeID,
 		Status:          mi.Status,
 		Completion:      mi.Completion,
-		ExpectedEndDate: formatDatePtr(mi.ExpectedEndDate),
-		ActualEndDate:   formatDatePtr(mi.ActualEndDate),
+		ExpectedEndDate: dates.FormatTimePtr(mi.ExpectedEndDate),
+		ActualEndDate:   dates.FormatTimePtr(mi.ActualEndDate),
 	}
 }
 
@@ -630,17 +631,9 @@ func subItemToRow(si model.SubItem) dto.TableRow {
 		AssigneeID:      si.AssigneeID,
 		Status:          si.Status,
 		Completion:      si.Completion,
-		ExpectedEndDate: formatDatePtr(si.ExpectedEndDate),
-		ActualEndDate:   formatDatePtr(si.ActualEndDate),
+		ExpectedEndDate: dates.FormatTimePtr(si.ExpectedEndDate),
+		ActualEndDate:   dates.FormatTimePtr(si.ActualEndDate),
 	}
-}
-
-func formatDatePtr(t *time.Time) *string {
-	if t == nil {
-		return nil
-	}
-	s := t.Format("2006-01-02")
-	return &s
 }
 
 func matchesFilterMain(mi model.MainItem, filter dto.TableFilter) bool {

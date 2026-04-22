@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/dates"
 	"pm-work-tracker/backend/internal/pkg/status"
 )
 
@@ -92,14 +93,14 @@ func NewMainItemVO(m *model.MainItem) MainItemVO {
 		Priority:        m.Priority,
 		ProposerID:      m.ProposerID,
 		AssigneeID:      m.AssigneeID,
-		StartDate:       formatTimePtr(m.StartDate),
-		ExpectedEndDate: formatTimePtr(m.ExpectedEndDate),
-		ActualEndDate:   formatTimePtr(m.ActualEndDate),
+		StartDate:       dates.FormatTimePtr(m.StartDate),
+		ExpectedEndDate: dates.FormatTimePtr(m.ExpectedEndDate),
+		ActualEndDate:   dates.FormatTimePtr(m.ActualEndDate),
 		Status:          m.Status,
 		StatusName:      statusName,
 		Completion:      m.Completion,
 		IsKeyItem:       m.IsKeyItem,
-		ArchivedAt:      formatTimePtr(m.ArchivedAt),
+		ArchivedAt:      dates.FormatTimePtr(m.ArchivedAt),
 		CreatedAt:       m.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:       m.UpdatedAt.Format(time.RFC3339),
 	}
@@ -119,9 +120,9 @@ func NewSubItemVO(m *model.SubItem) SubItemVO {
 		Description:     m.Description,
 		Priority:        m.Priority,
 		AssigneeID:      m.AssigneeID,
-		StartDate:       formatTimePtr(m.StartDate),
-		ExpectedEndDate: formatTimePtr(m.ExpectedEndDate),
-		ActualEndDate:   formatTimePtr(m.ActualEndDate),
+		StartDate:       dates.FormatTimePtr(m.StartDate),
+		ExpectedEndDate: dates.FormatTimePtr(m.ExpectedEndDate),
+		ActualEndDate:   dates.FormatTimePtr(m.ActualEndDate),
 		Status:          m.Status,
 		StatusName:      statusName,
 		Completion:      m.Completion,
@@ -165,18 +166,10 @@ func NewSubItemSummaryVOs(items []*model.SubItem) []SubItemSummaryVO {
 			Completion:      si.Completion,
 			AssigneeID:      si.AssigneeID,
 			Priority:        si.Priority,
-			StartDate:       formatTimePtr(si.StartDate),
-			ExpectedEndDate: formatTimePtr(si.ExpectedEndDate),
-			ActualEndDate:   formatTimePtr(si.ActualEndDate),
+			StartDate:       dates.FormatTimePtr(si.StartDate),
+			ExpectedEndDate: dates.FormatTimePtr(si.ExpectedEndDate),
+			ActualEndDate:   dates.FormatTimePtr(si.ActualEndDate),
 		})
 	}
 	return result
-}
-
-func formatTimePtr(t *time.Time) *string {
-	if t == nil {
-		return nil
-	}
-	s := t.Format("2006-01-02")
-	return &s
 }

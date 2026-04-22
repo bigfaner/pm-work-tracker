@@ -41,7 +41,7 @@ func (r *mainItemRepo) List(ctx context.Context, teamID uint, filter dto.MainIte
 		query = query.Where("archived_at IS NULL")
 	}
 
-	query = applyMainItemFilter(query, filter)
+	query = applyItemFilter(query, filter.Status, filter.Priority, filter.AssigneeID, filter.IsKeyItem)
 
 	var total int64
 	if err := query.Model(&model.MainItem{}).Count(&total).Error; err != nil {
@@ -124,20 +124,4 @@ func (r *mainItemRepo) ListByTeamAndStatus(ctx context.Context, teamID uint, sta
 		Where("team_id = ? AND status = ?", teamID, status).
 		Find(&items).Error
 	return items, err
-}
-
-func applyMainItemFilter(query *gormlib.DB, filter dto.MainItemFilter) *gormlib.DB {
-	if filter.Status != "" {
-		query = query.Where("status = ?", filter.Status)
-	}
-	if filter.Priority != "" {
-		query = query.Where("priority = ?", filter.Priority)
-	}
-	if filter.AssigneeID != nil {
-		query = query.Where("assignee_id = ?", *filter.AssigneeID)
-	}
-	if filter.IsKeyItem != nil {
-		query = query.Where("is_key_item = ?", *filter.IsKeyItem)
-	}
-	return query
 }
