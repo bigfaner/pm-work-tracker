@@ -476,6 +476,31 @@ func TestValidate_JWTExpiryZero(t *testing.T) {
 	assert.Contains(t, err.Error(), "auth.jwt_expiry must be positive")
 }
 
+func TestConfigValidate_Placeholder(t *testing.T) {
+	tests := []struct {
+		name      string
+		secret    string
+		wantError bool
+	}{
+		{"CHANGE_ME prefix rejected", "CHANGE_ME_supersecretvalue1234567890", true},
+		{"CHANGE_ME exact rejected", "CHANGE_ME" + "000000000000000000000000", true},
+		{"valid secret accepted", "this-is-exactly-thirty-two-bytes-long!!", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := validConfig()
+			cfg.Auth.JWTSecret = tt.secret
+			err := cfg.validate()
+			if tt.wantError {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), "placeholder")
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestLoadConfig_CallsValidate(t *testing.T) {
 	// Loading defaults (jwt_secret is empty) should trigger validation error
 	path := filepath.Join(t.TempDir(), "nonexistent.yaml")

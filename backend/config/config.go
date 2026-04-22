@@ -17,6 +17,9 @@ func (c *Config) validate() error {
 	if len(c.Auth.JWTSecret) < 32 {
 		return fmt.Errorf("auth.jwt_secret must be at least 32 bytes, got %d", len(c.Auth.JWTSecret))
 	}
+	if strings.HasPrefix(c.Auth.JWTSecret, "CHANGE_ME") {
+		return fmt.Errorf("auth.jwt_secret is still a placeholder — replace it before starting")
+	}
 	// server.port 1024-65535
 	port, _ := strconv.Atoi(c.Server.Port)
 	if port < 1024 || port > 65535 {

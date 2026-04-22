@@ -4,16 +4,13 @@
   "design": "design/tech-design.md",
   "created": "2026-04-22",
   "status": "planning",
-  "statusEnum": ["pending", "in_progress", "completed", "blocked", "skipped"],
-  "priorityEnum": ["P0", "P1", "P2"],
   "tasks": {
     "1.1-config-base-path": {
       "id": "1.1",
       "title": "Add BasePath to ServerConfig + placeholder validation",
       "priority": "P0",
       "estimatedTime": "1-2h",
-      "dependencies": [],
-      "status": "pending",
+      "status": "completed",
       "file": "1.1-config-base-path.md",
       "record": "records/1.1-config-base-path.md"
     },
@@ -22,7 +19,6 @@
       "title": "Create web/embed.go package with FS and ValidateAssets",
       "priority": "P0",
       "estimatedTime": "1-2h",
-      "dependencies": [],
       "status": "pending",
       "file": "2.1-web-embed-package.md",
       "record": "records/2.1-web-embed-package.md"
@@ -32,7 +28,9 @@
       "title": "Implement ServeStatic and ServeSPA handlers",
       "priority": "P0",
       "estimatedTime": "2-3h",
-      "dependencies": ["2.1"],
+      "dependencies": [
+        "2.1"
+      ],
       "status": "pending",
       "file": "3.1-static-handlers.md",
       "record": "records/3.1-static-handlers.md"
@@ -42,7 +40,10 @@
       "title": "Refactor SetupRouter: BasePath prefix + static routes",
       "priority": "P0",
       "estimatedTime": "2-3h",
-      "dependencies": ["1.1", "3.1"],
+      "dependencies": [
+        "1.1",
+        "3.1"
+      ],
       "status": "pending",
       "file": "4.1-router-refactor.md",
       "record": "records/4.1-router-refactor.md"
@@ -52,7 +53,10 @@
       "title": "Wire ValidateAssets and web.FS into main.go",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["2.1", "4.1"],
+      "dependencies": [
+        "2.1",
+        "4.1"
+      ],
       "status": "pending",
       "file": "5.1-main-wiring.md",
       "record": "records/5.1-main-wiring.md"
@@ -62,7 +66,6 @@
       "title": "Frontend: BASE_PATH support and /v1 API prefix",
       "priority": "P0",
       "estimatedTime": "1-2h",
-      "dependencies": [],
       "status": "pending",
       "file": "6.1-frontend-base-path.md",
       "record": "records/6.1-frontend-base-path.md"
@@ -72,7 +75,6 @@
       "title": "Create scripts/build.sh",
       "priority": "P1",
       "estimatedTime": "1h",
-      "dependencies": [],
       "status": "pending",
       "file": "7.1-build-script.md",
       "record": "records/7.1-build-script.md"
@@ -82,10 +84,24 @@
       "title": "Create config.yaml.example and update .gitignore",
       "priority": "P1",
       "estimatedTime": "30min",
-      "dependencies": ["1.1"],
+      "dependencies": [
+        "1.1"
+      ],
       "status": "pending",
       "file": "7.2-config-files.md",
       "record": "records/7.2-config-files.md"
     }
-  }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
 }

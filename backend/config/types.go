@@ -46,6 +46,7 @@ type Config struct {
 type ServerConfig struct {
 	Port         string   `yaml:"port" env:"SERVER_PORT"`
 	GinMode      string   `yaml:"gin_mode" env:"SERVER_GIN_MODE"`
+	BasePath     string   `yaml:"base_path" env:"SERVER_BASE_PATH"`
 	ReadTimeout  Duration `yaml:"read_timeout" env:"SERVER_READ_TIMEOUT"`
 	WriteTimeout Duration `yaml:"write_timeout" env:"SERVER_WRITE_TIMEOUT"`
 	MaxBodySize  int64    `yaml:"max_body_size" env:"SERVER_MAX_BODY_SIZE"`
