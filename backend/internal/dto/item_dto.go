@@ -97,6 +97,30 @@ type MainItemUpdateReq struct {
 	IsKeyItem       *bool   `json:"isKeyItem"`
 }
 
+// ChangeStatusReq is the request DTO for changing item status.
+type ChangeStatusReq struct {
+	Status string `json:"status" binding:"required"`
+}
+
+// AssignSubItemReq is the request DTO for assigning a sub-item to a user.
+type AssignSubItemReq struct {
+	AssigneeID uint `json:"assigneeId" binding:"required"`
+}
+
+// CreateRoleReq is the request DTO for creating a role.
+type CreateRoleReq struct {
+	Name            string   `json:"name" binding:"required"`
+	Description     string   `json:"description"`
+	PermissionCodes []string `json:"permissionCodes" binding:"required,min=1"`
+}
+
+// UpdateRoleReq is the request DTO for updating a role.
+type UpdateRoleReq struct {
+	Name            *string  `json:"name,omitempty"`
+	Description     *string  `json:"description,omitempty"`
+	PermissionCodes []string `json:"permissionCodes,omitempty"`
+}
+
 // Pagination holds page parameters.
 type Pagination struct {
 	Page     int `form:"page" json:"page"`

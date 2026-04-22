@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg/permissions"
@@ -250,7 +251,7 @@ func TestRoleService_CreateRole_Success(t *testing.T) {
 	repo := &mockRoleRepo{perms: []string{}, memberCount: 0}
 	svc := newTestRoleService(repo, nil)
 
-	result, err := svc.CreateRole(context.Background(), CreateRoleReq{
+	result, err := svc.CreateRole(context.Background(), dto.CreateRoleReq{
 		Name:            "viewer",
 		Description:     "read only",
 		PermissionCodes: []string{"team:read", "main_item:read"},
@@ -267,7 +268,7 @@ func TestRoleService_CreateRole_Success(t *testing.T) {
 func TestRoleService_CreateRole_NameTooShort(t *testing.T) {
 	svc := newTestRoleService(&mockRoleRepo{}, nil)
 
-	_, err := svc.CreateRole(context.Background(), CreateRoleReq{
+	_, err := svc.CreateRole(context.Background(), dto.CreateRoleReq{
 		Name:            "a",
 		PermissionCodes: []string{"team:read"},
 	})
@@ -282,7 +283,7 @@ func TestRoleService_CreateRole_NameTooLong(t *testing.T) {
 		longName += "x"
 	}
 
-	_, err := svc.CreateRole(context.Background(), CreateRoleReq{
+	_, err := svc.CreateRole(context.Background(), dto.CreateRoleReq{
 		Name:            longName,
 		PermissionCodes: []string{"team:read"},
 	})
@@ -294,7 +295,7 @@ func TestRoleService_CreateRole_DuplicateName(t *testing.T) {
 	repo := &mockRoleRepo{roles: []model.Role{existing}}
 	svc := newTestRoleService(repo, nil)
 
-	_, err := svc.CreateRole(context.Background(), CreateRoleReq{
+	_, err := svc.CreateRole(context.Background(), dto.CreateRoleReq{
 		Name:            "pm",
 		PermissionCodes: []string{"team:read"},
 	})
@@ -304,7 +305,7 @@ func TestRoleService_CreateRole_DuplicateName(t *testing.T) {
 func TestRoleService_CreateRole_NoPermissionCodes(t *testing.T) {
 	svc := newTestRoleService(&mockRoleRepo{}, nil)
 
-	_, err := svc.CreateRole(context.Background(), CreateRoleReq{
+	_, err := svc.CreateRole(context.Background(), dto.CreateRoleReq{
 		Name:            "viewer",
 		PermissionCodes: []string{},
 	})
@@ -314,7 +315,7 @@ func TestRoleService_CreateRole_NoPermissionCodes(t *testing.T) {
 func TestRoleService_CreateRole_InvalidPermissionCode(t *testing.T) {
 	svc := newTestRoleService(&mockRoleRepo{}, nil)
 
-	_, err := svc.CreateRole(context.Background(), CreateRoleReq{
+	_, err := svc.CreateRole(context.Background(), dto.CreateRoleReq{
 		Name:            "viewer",
 		PermissionCodes: []string{"team:read", "invalid:code"},
 	})
@@ -325,7 +326,7 @@ func TestRoleService_CreateRole_BoundaryNameLength2(t *testing.T) {
 	repo := &mockRoleRepo{}
 	svc := newTestRoleService(repo, nil)
 
-	result, err := svc.CreateRole(context.Background(), CreateRoleReq{
+	result, err := svc.CreateRole(context.Background(), dto.CreateRoleReq{
 		Name:            "ab",
 		PermissionCodes: []string{"team:read"},
 	})
@@ -341,7 +342,7 @@ func TestRoleService_CreateRole_BoundaryNameLength50(t *testing.T) {
 	repo := &mockRoleRepo{}
 	svc := newTestRoleService(repo, nil)
 
-	result, err := svc.CreateRole(context.Background(), CreateRoleReq{
+	result, err := svc.CreateRole(context.Background(), dto.CreateRoleReq{
 		Name:            name50,
 		PermissionCodes: []string{"team:read"},
 	})
@@ -359,7 +360,7 @@ func TestRoleService_UpdateRole_Success(t *testing.T) {
 	svc := newTestRoleService(repo, nil)
 
 	newName := "viewer2"
-	result, err := svc.UpdateRole(context.Background(), 4, UpdateRoleReq{
+	result, err := svc.UpdateRole(context.Background(), 4, dto.UpdateRoleReq{
 		Name:            &newName,
 		Description:     strPtr("new desc"),
 		PermissionCodes: []string{"team:read", "main_item:read", "report:export"},
@@ -375,7 +376,7 @@ func TestRoleService_UpdateRole_NotFound(t *testing.T) {
 	svc := newTestRoleService(repo, nil)
 
 	name := "x"
-	_, err := svc.UpdateRole(context.Background(), 999, UpdateRoleReq{Name: &name})
+	_, err := svc.UpdateRole(context.Background(), 999, dto.UpdateRoleReq{Name: &name})
 	assert.ErrorIs(t, err, ErrRoleNotFound)
 }
 
@@ -385,7 +386,7 @@ func TestRoleService_UpdateRole_SuperadminImmutable(t *testing.T) {
 	svc := newTestRoleService(repo, nil)
 
 	desc := "new desc"
-	_, err := svc.UpdateRole(context.Background(), 1, UpdateRoleReq{Description: &desc})
+	_, err := svc.UpdateRole(context.Background(), 1, dto.UpdateRoleReq{Description: &desc})
 	assert.ErrorIs(t, err, ErrPresetRoleImmutable)
 }
 
@@ -394,7 +395,7 @@ func TestRoleService_UpdateRole_PresetRoleCanChangeDescAndPerms(t *testing.T) {
 	repo := &mockRoleRepo{roleByID: role, perms: []string{"team:read"}, memberCount: 3}
 	svc := newTestRoleService(repo, nil)
 
-	result, err := svc.UpdateRole(context.Background(), 2, UpdateRoleReq{
+	result, err := svc.UpdateRole(context.Background(), 2, dto.UpdateRoleReq{
 		Description:     strPtr("new desc"),
 		PermissionCodes: []string{"team:create", "team:read"},
 	})
@@ -409,7 +410,7 @@ func TestRoleService_UpdateRole_PresetRoleCannotChangeName(t *testing.T) {
 	svc := newTestRoleService(repo, nil)
 
 	newName := "pm-v2"
-	_, err := svc.UpdateRole(context.Background(), 2, UpdateRoleReq{Name: &newName})
+	_, err := svc.UpdateRole(context.Background(), 2, dto.UpdateRoleReq{Name: &newName})
 	assert.ErrorIs(t, err, ErrPresetRoleImmutable)
 }
 
@@ -420,7 +421,7 @@ func TestRoleService_UpdateRole_DuplicateName(t *testing.T) {
 	svc := newTestRoleService(repo, nil)
 
 	newName := "editor"
-	_, err := svc.UpdateRole(context.Background(), 4, UpdateRoleReq{Name: &newName})
+	_, err := svc.UpdateRole(context.Background(), 4, dto.UpdateRoleReq{Name: &newName})
 	assert.ErrorIs(t, err, ErrRoleNameExists)
 }
 
@@ -429,7 +430,7 @@ func TestRoleService_UpdateRole_InvalidPermissionCode(t *testing.T) {
 	repo := &mockRoleRepo{roleByID: role}
 	svc := newTestRoleService(repo, nil)
 
-	_, err := svc.UpdateRole(context.Background(), 4, UpdateRoleReq{
+	_, err := svc.UpdateRole(context.Background(), 4, dto.UpdateRoleReq{
 		PermissionCodes: []string{"invalid:code"},
 	})
 	assert.ErrorIs(t, err, ErrInvalidPermissionCode)
@@ -440,7 +441,7 @@ func TestRoleService_UpdateRole_EmptyPermissionCodes(t *testing.T) {
 	repo := &mockRoleRepo{roleByID: role}
 	svc := newTestRoleService(repo, nil)
 
-	_, err := svc.UpdateRole(context.Background(), 4, UpdateRoleReq{
+	_, err := svc.UpdateRole(context.Background(), 4, dto.UpdateRoleReq{
 		PermissionCodes: []string{},
 	})
 	assert.ErrorIs(t, err, ErrValidation)
@@ -452,7 +453,7 @@ func TestRoleService_UpdateRole_NameValidation(t *testing.T) {
 	svc := newTestRoleService(repo, nil)
 
 	shortName := "a"
-	_, err := svc.UpdateRole(context.Background(), 4, UpdateRoleReq{Name: &shortName})
+	_, err := svc.UpdateRole(context.Background(), 4, dto.UpdateRoleReq{Name: &shortName})
 	assert.ErrorIs(t, err, ErrValidation)
 }
 

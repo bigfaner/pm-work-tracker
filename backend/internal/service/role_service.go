@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 
+	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg/permissions"
@@ -47,20 +48,6 @@ type PermissionItem struct {
 	Description string `json:"description"`
 }
 
-// CreateRoleReq is the request payload for creating a role.
-type CreateRoleReq struct {
-	Name            string   `json:"name"`
-	Description     string   `json:"description"`
-	PermissionCodes []string `json:"permissionCodes"`
-}
-
-// UpdateRoleReq is the request payload for updating a role.
-type UpdateRoleReq struct {
-	Name            *string  `json:"name,omitempty"`
-	Description     *string  `json:"description,omitempty"`
-	PermissionCodes []string `json:"permissionCodes,omitempty"`
-}
-
 // UserPermissions is the response shape for a user's permission map.
 type UserPermissions struct {
 	IsSuperAdmin    bool              `json:"isSuperAdmin"`
@@ -71,8 +58,8 @@ type UserPermissions struct {
 type RoleService interface {
 	ListRoles(ctx context.Context) ([]RoleListItem, error)
 	GetRole(ctx context.Context, roleID uint) (*RoleDetail, error)
-	CreateRole(ctx context.Context, req CreateRoleReq) (*RoleListItem, error)
-	UpdateRole(ctx context.Context, roleID uint, req UpdateRoleReq) (*RoleDetail, error)
+	CreateRole(ctx context.Context, req dto.CreateRoleReq) (*RoleListItem, error)
+	UpdateRole(ctx context.Context, roleID uint, req dto.UpdateRoleReq) (*RoleDetail, error)
 	DeleteRole(ctx context.Context, roleID uint) error
 	ListPermissionCodes(ctx context.Context) []permissions.ResourcePermissions
 	GetUserPermissions(ctx context.Context, userID uint) (*UserPermissions, error)
@@ -156,7 +143,7 @@ func (s *roleService) GetRole(ctx context.Context, roleID uint) (*RoleDetail, er
 	}, nil
 }
 
-func (s *roleService) CreateRole(ctx context.Context, req CreateRoleReq) (*RoleListItem, error) {
+func (s *roleService) CreateRole(ctx context.Context, req dto.CreateRoleReq) (*RoleListItem, error) {
 	if err := validateRoleName(req.Name); err != nil {
 		return nil, err
 	}
@@ -196,7 +183,7 @@ func (s *roleService) CreateRole(ctx context.Context, req CreateRoleReq) (*RoleL
 	}, nil
 }
 
-func (s *roleService) UpdateRole(ctx context.Context, roleID uint, req UpdateRoleReq) (*RoleDetail, error) {
+func (s *roleService) UpdateRole(ctx context.Context, roleID uint, req dto.UpdateRoleReq) (*RoleDetail, error) {
 	role, err := s.roleRepo.FindByID(ctx, roleID)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, ErrRoleNotFound)

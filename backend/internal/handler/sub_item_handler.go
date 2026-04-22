@@ -211,9 +211,7 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 	teamID := middleware.GetTeamID(c)
 	callerID := middleware.GetUserID(c)
 
-	var req struct {
-		Status string `json:"status" binding:"required"`
-	}
+	var req dto.ChangeStatusReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
@@ -260,9 +258,7 @@ func (h *SubItemHandler) Assign(c *gin.Context) {
 	teamID := middleware.GetTeamID(c)
 	pmID := middleware.GetUserID(c)
 
-	var req struct {
-		AssigneeID uint `json:"assigneeId" binding:"required"`
-	}
+	var req dto.AssignSubItemReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return

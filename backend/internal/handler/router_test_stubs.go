@@ -174,10 +174,10 @@ func (s *StubRoleSvc) ListRoles(_ context.Context) ([]service.RoleListItem, erro
 func (s *StubRoleSvc) GetRole(_ context.Context, _ uint) (*service.RoleDetail, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubRoleSvc) CreateRole(_ context.Context, _ service.CreateRoleReq) (*service.RoleListItem, error) {
+func (s *StubRoleSvc) CreateRole(_ context.Context, _ dto.CreateRoleReq) (*service.RoleListItem, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubRoleSvc) UpdateRole(_ context.Context, _ uint, _ service.UpdateRoleReq) (*service.RoleDetail, error) {
+func (s *StubRoleSvc) UpdateRole(_ context.Context, _ uint, _ dto.UpdateRoleReq) (*service.RoleDetail, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubRoleSvc) DeleteRole(_ context.Context, _ uint) error {
