@@ -31,7 +31,7 @@ status: Draft
 - CLAUDE.md 只有通用行为准则，没有项目级编码规范
 - AI 每次会话无法获得一致的风格指引
 
-**Why now（后果，非时机）**：`linkageMuMap` 代码中无删除路径，进程生命周期内只增不减；GORM 日志在开发环境中已可观测到 `resolveAssigneeNames` 触发的串行查询。若推迟 6 个月：当前 main_items 约 200 条（基于已完成 feature 数 × 每 feature 平均 item 数的保守估算，反映观测到的开发速度），月增约 50 条，按此速度 6 个月后将超过 500 条，届时每次 `TableView` 请求将加载 500+ 行到内存再切片，`linkageMuMap` 将持有 500+ 个永不释放的 mutex 条目；规范缺失的风险不依赖违规频率——即使每季度仅有一次未被发现的违规，随迭代累积也会造成风格漂移，修复成本随时间递增。
+**Why now（后果，非时机）**：`linkageMuMap` 代码中无删除路径，进程生命周期内只增不减；GORM 日志在开发环境中已可观测到 `resolveAssigneeNames` 触发的串行查询。若推迟 6 个月：当前 main_items 约 200 条（已完成 8 个 feature × 平均 25 条 item/feature），月增约 50 条，按此速度 6 个月后将超过 500 条，届时每次 `TableView` 请求将加载 500+ 行到内存再切片，`linkageMuMap` 将持有 500+ 个永不释放的 mutex 条目；规范缺失的风险不依赖违规频率——即使每季度仅有一次未被发现的违规，随迭代累积也会造成风格漂移，修复成本随时间递增。
 
 ## Proposed Solution
 
@@ -83,7 +83,7 @@ status: Draft
 |----------|------|------|---------|
 | **A. 四阶段捆绑（推荐）** | Phase 0 修复的是现有实现 bug；Phases 1–3 修复的是产生命名违规的过程缺陷——历史上已有 AI 会话引入 snake_case tag（model 层遗留），无规范和 lint 约束下同类命名违规会在 Phase 0 修复后的新会话中重新出现，逐步侵蚀代码库；Phase 3 清理在 lint 就位后执行，避免二次触碰同一文件 | 总工作量比单做 Phase 0 大；Phase 3 工期较长；Phase 0 本身存在执行风险：`TableView` 行为变更（全表加载→DB 分页）需对比测试验证结果一致性；`UserRepo` 接口扩展需同步更新调用方和测试 mock | ✅ Recommended |
 | **A'. 仅做 Phase 0** | 工作量最小，立即消除性能风险 | 不解决复发风险：历史上已有 AI 会话引入 snake_case tag（model 层遗留），无规范和 lint 约束下同类问题会在 Phase 0 修复后的新会话中重新出现；3 个月后需要重新做 Phase 1–3，届时要二次触碰已改过的文件 | ❌ 修复会被侵蚀 |
-| **B. 重复优先** | 先消除 21 个重复副本，后续改动减少重复文件触碰 | N+1 查询和全表内存分页持续存在，数据量增长后响应时间线性恶化；性能问题比重复代码更紧迫 | ❌ 风险持续 |
+| **B. 重复优先** | 先消除 21 个重复副本；减少重复文件触碰的收益难以量化（取决于未来变更频率），视为定性收益：每次 CRUD 变更只需改一处而非多处副本 | N+1 查询和全表内存分页持续存在，数据量增长后响应时间线性恶化；性能问题比重复代码更紧迫 | ❌ 风险持续 |
 | **C. 全部一次（无分阶段）** | 一次性解决 | 单 PR 改动范围横跨性能、文档、lint、清理，难以 review，回归风险高 | ❌ 难以 review |
 | **D. 不做（Do Nothing）** | 零成本 | 6 个月内：`linkageMuMap` 随 main_items 增长持续泄漏（500+ mutex 条目）；`TableView` 每次请求内存加载量线性增长；AI 会话无规范约束，snake_case/camelCase 混用将继续扩散，修复成本随时间递增 | ❌ 技术债加速累积 |
 
@@ -119,7 +119,7 @@ status: Draft
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
 | `TableView` 改 DB 分页后行为差异 | Medium | High | 编写集成测试，对同一数据集分别运行改动前后的 `TableView`，对比返回的 item IDs 和分页元数据（total、page、pageSize）一致 |
-| `linkageMuMap` 改动引入并发 bug | Low | High | 保守方案：改用 `sync.Map`，不改锁语义 |
+| `linkageMuMap` 改动引入并发 bug | Medium | High | 保守方案：改用 `sync.Map`，不改锁语义 |
 | 规范文档过于理想化 | Medium | High | 规范中提供具体代码示例和反例；Phase 1 完成后，在 3 个连续 AI 会话中验证 `@rules/naming.md` 被正确引用；若任一会话未引用，调整规则文件结构或 CLAUDE.md 引用方式 |
 | 清理范围过大导致回归 | Medium | High | 每批清理后运行完整测试套件；分批提交 |
 | Phase 2 lint 规则因存量违规过多而长期停留在 warn 模式，无法切换为 error 强制执行 | Medium | High | Phase 2 启动前先统计存量违规数量（`golangci-lint run --enable tagliatelle ./... 2>&1 \| grep -c "json-camel"`）；若违规数 >20，在 Phase 2 内增加一个 cleanup 子任务，将存量违规降至 ≤5 后再切换为 error 模式 |
