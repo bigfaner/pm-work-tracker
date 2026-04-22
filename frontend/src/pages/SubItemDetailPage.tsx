@@ -30,13 +30,13 @@ import {
 import {
   Select,
   SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import { PrioritySelectItems } from '@/components/shared/PrioritySelect'
 import StatusTransitionDropdown from '@/components/shared/StatusTransitionDropdown'
+import { MemberSelect } from '@/components/shared/MemberSelect'
 import { SUB_ITEM_STATUSES, isOverdue } from '@/lib/status'
 import { useMemberName } from '@/hooks/useMemberName'
 import { formatDate } from '@/lib/format'
@@ -365,15 +365,11 @@ export default function SubItemDetailPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-primary mb-1">负责人</label>
-                    <Select value={editForm.assigneeId || '_none'} onValueChange={(v) => setEditForm((f) => ({ ...f, assigneeId: v === '_none' ? '' : v }))}>
-                      <SelectTrigger><SelectValue placeholder="选择负责人" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="_none">不指定</SelectItem>
-                        {members?.map((m) => (
-                          <SelectItem key={m.userId} value={String(m.userId)}>{m.displayName}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <MemberSelect
+                      members={members || []}
+                      selectedId={editForm.assigneeId}
+                      onSelect={(v) => setEditForm((f) => ({ ...f, assigneeId: v }))}
+                    />
                   </div>
                 </div>
                 <div className="mb-4">

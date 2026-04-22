@@ -219,7 +219,7 @@
       "dependencies": [
         "3.5"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "file": "3.7-member-select-component.md",
       "record": "records/3.7-member-select-component.md"
     },

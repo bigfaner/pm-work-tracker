@@ -4,11 +4,11 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
 import { PrioritySelectItems } from '@/components/shared/PrioritySelect'
+import { MemberSelect } from '@/components/shared/MemberSelect'
 import {
   Dialog,
   DialogContent,
@@ -82,15 +82,11 @@ export default function CreateSubItemDialog({
               <label className="block text-sm font-medium text-primary mb-1">
                 负责人 <span className="text-error">*</span>
               </label>
-              <Select value={form.assigneeId || '_none'} onValueChange={(v) => onFormChange((f) => ({ ...f, assigneeId: v === '_none' ? '' : v }))}>
-                <SelectTrigger><SelectValue placeholder="选择负责人" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_none">不指定</SelectItem>
-                  {members.map((m) => (
-                    <SelectItem key={m.userId} value={String(m.userId)}>{m.displayName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MemberSelect
+                members={members}
+                selectedId={form.assigneeId}
+                onSelect={(v) => onFormChange((f) => ({ ...f, assigneeId: v }))}
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 mb-4">
