@@ -37,7 +37,12 @@ func run(configPath string) error {
 		return fmt.Errorf("config error: %w", err)
 	}
 
-	// 2. Init DB
+	// 2. Validate embedded assets
+	if err := web.ValidateAssets(web.FS); err != nil {
+		return fmt.Errorf("startup: %w", err)
+	}
+
+	// 3. Init DB
 	db, err := config.InitDB(&cfg.Database)
 	if err != nil {
 		return fmt.Errorf("database error: %w", err)

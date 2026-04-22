@@ -54,6 +54,15 @@ logging:
 	return f.Name()
 }
 
+func TestRun_FailsWhenAssetsInvalid(t *testing.T) {
+	// In the test environment dist/index.html is absent, so ValidateAssets must
+	// cause run() to return a "startup: ..." error before touching the DB.
+	path := writeTestConfig(t, "test-secret-that-is-at-least-32-bytes!!")
+	err := run(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "startup:")
+}
+
 func TestRun_LoadsConfigFromFile(t *testing.T) {
 	path := writeTestConfig(t, "test-secret-that-is-at-least-32-bytes!!")
 	cfg, err := config.LoadConfig(path)
