@@ -56,17 +56,6 @@ func parseSubID(c *gin.Context) (uint, bool) {
 	return uint(id), true
 }
 
-// parseItemIDAsUint extracts and validates the itemId path param as uint.
-func parseItemIDAsUint(c *gin.Context) (uint, bool) {
-	idStr := c.Param("itemId")
-	id, err := strconv.ParseUint(idStr, 10, 64)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrValidation)
-		return 0, false
-	}
-	return uint(id), true
-}
-
 // Create handles POST /api/v1/teams/:teamId/main-items/:itemId/sub-items
 func (h *SubItemHandler) Create(c *gin.Context) {
 	teamID := middleware.GetTeamID(c)

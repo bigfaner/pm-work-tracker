@@ -16,7 +16,6 @@ import (
 
 // ViewService defines read-only view operations.
 type ViewService interface {
-	WeeklyView(ctx context.Context, teamID uint, weekStart time.Time) (*dto.WeeklyViewResult, error)
 	WeeklyComparison(ctx context.Context, teamID uint, weekStart time.Time) (*dto.WeeklyViewResponse, error)
 	GanttView(ctx context.Context, teamID uint, filter dto.GanttFilter) (*dto.GanttResult, error)
 	TableView(ctx context.Context, teamID uint, filter dto.TableFilter, page dto.Pagination) (*dto.PageResult[dto.TableRow], error)
@@ -47,90 +46,6 @@ func NewViewServiceWithUserRepo(mainItemRepo repository.MainItemRepo, subItemRep
 		progressRepo: progressRepo,
 		userRepo:     userRepo,
 	}
-}
-
-func (s *viewService) WeeklyView(ctx context.Context, teamID uint, weekStart time.Time) (*dto.WeeklyViewResult, error) {
-	// Validate weekStart is a Monday
-	if weekStart.Weekday() != time.Monday {
-		return nil, apperrors.ErrValidation
-	}
-
-	weekEnd := weekStart.AddDate(0, 0, 6)
-
-	// Bulk fetch all non-archived main items for the team
-	mainItems, err := s.mainItemRepo.ListNonArchivedByTeam(ctx, teamID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Bulk fetch all sub-items for the team
-	subItems, err := s.subItemRepo.ListByTeam(ctx, teamID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Bulk fetch all progress records for the team in the week range
-	// Use start of day for weekStart and start of next day for weekEnd+1
-	rangeStart := time.Date(weekStart.Year(), weekStart.Month(), weekStart.Day(), 0, 0, 0, 0, weekStart.Location())
-	rangeEnd := time.Date(weekEnd.Year(), weekEnd.Month(), weekEnd.Day(), 0, 0, 0, 0, weekEnd.Location()).AddDate(0, 0, 1)
-	progressRecords, err := s.progressRepo.ListByTeamInRange(ctx, teamID, rangeStart, rangeEnd)
-	if err != nil {
-		return nil, err
-	}
-
-	// Index sub-items by main item ID
-	subItemsByMain := make(map[uint][]model.SubItem)
-	for _, si := range subItems {
-		subItemsByMain[si.MainItemID] = append(subItemsByMain[si.MainItemID], si)
-	}
-
-	// Index progress records by sub item ID
-	progressBySub := make(map[uint][]model.ProgressRecord)
-	for _, pr := range progressRecords {
-		progressBySub[pr.SubItemID] = append(progressBySub[pr.SubItemID], pr)
-	}
-
-	// Build groups
-	var groups []dto.WeeklyGroupDTO
-	for _, mi := range mainItems {
-		subs, ok := subItemsByMain[mi.ID]
-		if !ok || len(subs) == 0 {
-			continue // Main items with no sub-items are omitted
-		}
-
-		group := dto.WeeklyGroupDTO{
-			MainItem: dto.MainItemSummaryDTO{
-				ID:         mi.ID,
-				Title:      mi.Title,
-				Completion: mi.Completion,
-			},
-		}
-
-		for _, si := range subs {
-			weekProgress := progressBySub[si.ID]
-
-			if isNewlyCompleted(si, weekStart, weekEnd) {
-				group.NewlyCompleted = append(group.NewlyCompleted, toSubItemWeekDTO(si, weekProgress))
-			} else if len(weekProgress) > 0 {
-				group.HasProgress = append(group.HasProgress, toSubItemWeekDTO(si, weekProgress))
-			} else {
-				group.NoChangeFromLastWeek = append(group.NoChangeFromLastWeek, dto.SubItemSummaryDTO{
-					ID:         si.ID,
-					Title:      si.Title,
-					Status:     si.Status,
-					Completion: si.Completion,
-				})
-			}
-		}
-
-		groups = append(groups, group)
-	}
-
-	return &dto.WeeklyViewResult{
-		WeekStart: weekStart.Format("2006-01-02"),
-		WeekEnd:   weekEnd.Format("2006-01-02"),
-		Groups:    groups,
-	}, nil
 }
 
 func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekStart time.Time) (*dto.WeeklyViewResponse, error) {
@@ -446,29 +361,6 @@ func isActiveInWeek(si model.SubItem, weekStart, weekEnd time.Time) bool {
 		return false
 	}
 	return true
-}
-
-// toSubItemWeekDTO converts a SubItem + its week progress records into a SubItemWeekDTO.
-func toSubItemWeekDTO(si model.SubItem, records []model.ProgressRecord) dto.SubItemWeekDTO {
-	progressDTOs := make([]dto.ProgressRecordDTO, 0, len(records))
-	for _, pr := range records {
-		progressDTOs = append(progressDTOs, dto.ProgressRecordDTO{
-			ID:          pr.ID,
-			Completion:  pr.Completion,
-			Achievement: pr.Achievement,
-			Blocker:     pr.Blocker,
-			CreatedAt:   pr.CreatedAt.Format(time.RFC3339),
-		})
-	}
-
-	return dto.SubItemWeekDTO{
-		ID:               si.ID,
-		Title:            si.Title,
-		Status:           si.Status,
-		Completion:       si.Completion,
-		MainItemID:       si.MainItemID,
-		ProgressThisWeek: progressDTOs,
-	}
 }
 
 func (s *viewService) GanttView(ctx context.Context, teamID uint, filter dto.GanttFilter) (*dto.GanttResult, error) {

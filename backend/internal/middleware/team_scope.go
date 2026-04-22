@@ -73,13 +73,3 @@ func GetTeamID(c *gin.Context) uint {
 	}
 	return 0
 }
-
-// GetCallerTeamRole extracts the caller's role within the scoped team from the Gin context.
-func GetCallerTeamRole(c *gin.Context) string {
-	if v, ok := c.Get("callerTeamRole"); ok {
-		if role, ok := v.(string); ok {
-			return role
-		}
-	}
-	return ""
-}

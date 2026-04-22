@@ -62,16 +62,6 @@ func GetUserID(c *gin.Context) uint {
 	return 0
 }
 
-// GetUsername extracts the authenticated user's username from the Gin context.
-func GetUsername(c *gin.Context) string {
-	if v, ok := c.Get("username"); ok {
-		if username, ok := v.(string); ok {
-			return username
-		}
-	}
-	return ""
-}
-
 // IsSuperAdmin returns whether the authenticated user is a super admin.
 func IsSuperAdmin(c *gin.Context) bool {
 	if v, ok := c.Get("isSuperAdmin"); ok {

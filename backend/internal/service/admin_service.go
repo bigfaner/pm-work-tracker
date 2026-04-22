@@ -300,9 +300,3 @@ func strContains(s, substr string) bool {
 	return false
 }
 
-func derefStr(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
-}

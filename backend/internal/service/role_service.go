@@ -349,14 +349,12 @@ func validatePermissionCodes(codes []string) error {
 
 func codesToItems(codes []string) []PermissionItem {
 	items := make([]PermissionItem, 0, len(codes))
-	codeMap := permissions.AllCodes()
 	descMap := buildCodeDescMap()
 	for _, code := range codes {
 		desc := ""
 		if d, ok := descMap[code]; ok {
 			desc = d
 		}
-		_ = codeMap // just to avoid unused var
 		items = append(items, PermissionItem{Code: code, Description: desc})
 	}
 	return items

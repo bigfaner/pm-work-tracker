@@ -8,7 +8,6 @@ import (
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/middleware"
-	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/service"
 )
@@ -173,31 +172,6 @@ func parsePagination(c *gin.Context, defaultPageSize int) (int, int) {
 	}
 
 	return page, pageSize
-}
-
-// paginateUsers applies pagination to a user list and converts to DTOs.
-func paginateUsers(users []*model.User, page, pageSize int) []dto.UserDTO {
-	total := len(users)
-	start := (page - 1) * pageSize
-	if start >= total {
-		return []dto.UserDTO{}
-	}
-	end := start + pageSize
-	if end > total {
-		end = total
-	}
-
-	result := make([]dto.UserDTO, 0, end-start)
-	for i := start; i < end; i++ {
-		u := users[i]
-		result = append(result, dto.UserDTO{
-			ID:           u.ID,
-			Username:     u.Username,
-			DisplayName:  u.DisplayName,
-			IsSuperAdmin: u.IsSuperAdmin,
-		})
-	}
-	return result
 }
 
 // paginateAdminTeams applies pagination to an admin team list.
