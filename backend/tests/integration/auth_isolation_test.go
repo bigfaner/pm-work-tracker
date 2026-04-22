@@ -189,7 +189,7 @@ func setupTestRouter(t *testing.T) (*gin.Engine, *seedData) {
 		Admin:    handler.NewAdminHandler(adminSvc),
 	}
 
-	r := handler.SetupRouter(deps)
+	r := handler.SetupRouter(deps, nil)
 	return r, data
 }
 
@@ -200,7 +200,7 @@ func TestAuthFlow_LoginWithCorrectCredentials_Returns200(t *testing.T) {
 
 	body := `{"username":"userA","password":"passwordA"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/auth/login", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
@@ -224,7 +224,7 @@ func TestAuthFlow_LoginWithWrongPassword_Returns401(t *testing.T) {
 
 	body := `{"username":"userA","password":"wrongpassword"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/auth/login", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
@@ -241,10 +241,10 @@ func TestAuthFlow_TokenOnProtectedRoute_Returns200(t *testing.T) {
 	// Login to get a real token
 	token := loginAs(t, r, "userA", "passwordA")
 
-	// Use the token on a protected route: GET /api/v1/teams/:teamAId/main-items
+	// Use the token on a protected route: GET /v1/teams/:teamAId/main-items
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), nil)
+		fmt.Sprintf("/v1/teams/%d/main-items", data.teamAID), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -267,7 +267,7 @@ func TestAuthFlow_ExpiredToken_Returns401(t *testing.T) {
 	token := signTokenWithClaims(t, claims)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/1/main-items", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/1/main-items", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -278,7 +278,7 @@ func TestAuthFlow_NoToken_Returns401(t *testing.T) {
 	r, _ := setupTestRouter(t)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/1/main-items", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/1/main-items", nil)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
@@ -293,7 +293,7 @@ func TestTeamIsolation_UserACannotAccessTeamB_Returns403(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamBID), nil)
+		fmt.Sprintf("/v1/teams/%d/main-items", data.teamBID), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -311,7 +311,7 @@ func TestTeamIsolation_UserACanAccessTeamA_Returns200(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), nil)
+		fmt.Sprintf("/v1/teams/%d/main-items", data.teamAID), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -325,7 +325,7 @@ func TestTeamIsolation_UserBCannotAccessTeamA_Returns403(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), nil)
+		fmt.Sprintf("/v1/teams/%d/main-items", data.teamAID), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -345,7 +345,7 @@ func TestSuperAdmin_CanAccessTeamA(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), nil)
+		fmt.Sprintf("/v1/teams/%d/main-items", data.teamAID), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -359,7 +359,7 @@ func TestSuperAdmin_CanAccessTeamB(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamBID), nil)
+		fmt.Sprintf("/v1/teams/%d/main-items", data.teamBID), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -372,7 +372,7 @@ func TestSuperAdmin_CanAccessAdminRoutes(t *testing.T) {
 	token := loginAs(t, r, "superadmin", "adminPass")
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/admin/users", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -385,7 +385,7 @@ func TestRegularUser_CannotAccessAdminRoutes(t *testing.T) {
 	token := loginAs(t, r, "userA", "passwordA")
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/admin/users", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -400,7 +400,7 @@ func TestLogout_Returns200(t *testing.T) {
 	token := loginAs(t, r, "userA", "passwordA")
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
+	req := httptest.NewRequest(http.MethodPost, "/v1/auth/logout", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -415,7 +415,7 @@ func TestLogout_WithoutAuth_Returns401(t *testing.T) {
 	r, _ := setupTestRouter(t)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
+	req := httptest.NewRequest(http.MethodPost, "/v1/auth/logout", nil)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
@@ -429,7 +429,7 @@ func loginAs(t *testing.T, r *gin.Engine, username, password string) string {
 
 	body := fmt.Sprintf(`{"username":"%s","password":"%s"}`, username, password)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/auth/login", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	require.Equal(t, http.StatusOK, w.Code)

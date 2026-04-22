@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"io/fs"
 	"net/http"
 	"sync"
 	"time"
@@ -40,8 +41,9 @@ func (d *Dependencies) perm(code string) gin.HandlerFunc {
 }
 
 // SetupRouter creates a Gin engine with all route groups, middleware chains,
-// and handler stubs registered.
-func SetupRouter(deps *Dependencies) *gin.Engine {
+// and handler stubs registered. fsys is the embedded frontend FS; pass nil
+// to skip static/SPA routes (local dev / tests).
+func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 	if deps.Config != nil && deps.Config.Server.GinMode == "release" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -60,10 +62,15 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// Health check — no auth required
+	// Health check — no auth required, no prefix
 	r.GET("/health", healthCheck)
 
-	v1 := r.Group("/api/v1")
+	basePath := ""
+	if deps.Config != nil {
+		basePath = deps.Config.Server.BasePath
+	}
+
+	v1 := r.Group(basePath + "/v1")
 
 	// Auth routes (public login, authenticated logout)
 	authGroup := v1.Group("/auth")
@@ -165,6 +172,14 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 
 	// User-facing: current user's permissions (auth only, no permission code required)
 	v1.GET("/me/permissions", authMW, deps.Permission.GetUserPermissions)
+
+	// Static file routes — only registered when fsys is provided (production/embedded mode)
+	if fsys != nil {
+		bp := r.Group(basePath)
+		bp.GET("/assets/*filepath", ServeStatic(fsys))
+		bp.GET("/", ServeSPA(fsys))
+		r.NoRoute(ServeSPA(fsys))
+	}
 
 	return r
 }

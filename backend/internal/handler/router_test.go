@@ -149,7 +149,7 @@ func signTestToken(t *testing.T, userID uint, username string) string {
 
 func TestHealthCheck(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
@@ -165,7 +165,7 @@ func TestHealthCheck(t *testing.T) {
 
 func TestHealthCheck_NoAuthRequired(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	// Request without Authorization header should still succeed
 	w := httptest.NewRecorder()
@@ -176,10 +176,10 @@ func TestHealthCheck_NoAuthRequired(t *testing.T) {
 
 func TestAuthRoutes_LoginReturns400OnEmptyBody(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(`{}`))
+	req := httptest.NewRequest(http.MethodPost, "/v1/auth/login", strings.NewReader(`{}`))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
@@ -188,18 +188,18 @@ func TestAuthRoutes_LoginReturns400OnEmptyBody(t *testing.T) {
 
 func TestAuthRoutes_LogoutRequiresAuth(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	// Without auth
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
+	req := httptest.NewRequest(http.MethodPost, "/v1/auth/logout", nil)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 
 	// With auth — logout is implemented, returns 200
 	token := signTestToken(t, 2, "testuser1")
 	w = httptest.NewRecorder()
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
+	req = httptest.NewRequest(http.MethodPost, "/v1/auth/logout", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -207,11 +207,11 @@ func TestAuthRoutes_LogoutRequiresAuth(t *testing.T) {
 
 func TestTeamRoutes_RequireAuthAndTeamScope(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	// Without auth — should get 401
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/1", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/1", nil)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
@@ -220,11 +220,11 @@ func TestTeamRoutes_WithAuthReturns500(t *testing.T) {
 	deps, _ := testDeps(t)
 	// Inject a mock that always succeeds
 	deps.TeamRepo = &mockTeamRepo{}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 2, "testuser1")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/1", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/1", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -233,38 +233,38 @@ func TestTeamRoutes_WithAuthReturns500(t *testing.T) {
 
 func TestTeamListCreateRoutes_RequireAuth(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
-	// POST /api/v1/teams without auth
+	// POST /v1/teams without auth
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams", nil)
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams", nil)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 
-	// GET /api/v1/teams without auth
+	// GET /v1/teams without auth
 	w = httptest.NewRecorder()
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/teams", nil)
+	req = httptest.NewRequest(http.MethodGet, "/v1/teams", nil)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestTeamListCreateRoutes_WithSuperAdminAuth(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
 
-	// POST /api/v1/teams with superadmin auth — stub service returns error -> 500
+	// POST /v1/teams with superadmin auth — stub service returns error -> 500
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams", strings.NewReader(`{"name":"test"}`))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams", strings.NewReader(`{"name":"test"}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 
-	// GET /api/v1/teams with superadmin auth — stub service returns error -> 500
+	// GET /v1/teams with superadmin auth — stub service returns error -> 500
 	w = httptest.NewRecorder()
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/teams", nil)
+	req = httptest.NewRequest(http.MethodGet, "/v1/teams", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
@@ -272,12 +272,12 @@ func TestTeamListCreateRoutes_WithSuperAdminAuth(t *testing.T) {
 
 func TestAdminRoutes_RequireSuperAdmin(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	// Regular member should get 403
 	token := signTestToken(t, 2, "testuser1")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/admin/users", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusForbidden, w.Code)
@@ -285,7 +285,7 @@ func TestAdminRoutes_RequireSuperAdmin(t *testing.T) {
 	// SuperAdmin — stub service returns error -> 500
 	superToken := signTestToken(t, 1, "admin")
 	w = httptest.NewRecorder()
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/admin/users", nil)
+	req = httptest.NewRequest(http.MethodGet, "/v1/admin/users", nil)
 	req.Header.Set("Authorization", "Bearer "+superToken)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
@@ -293,17 +293,17 @@ func TestAdminRoutes_RequireSuperAdmin(t *testing.T) {
 
 func TestAdminRoutes_RequireAuth(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/admin/users", nil)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestCORS_HeadersSet(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodOptions, "/health", nil)
@@ -317,7 +317,7 @@ func TestCORS_HeadersSet(t *testing.T) {
 func TestCORS_RejectUnknownOrigin(t *testing.T) {
 	deps, _ := testDeps(t)
 	deps.Config.CORS.Origins = []string{"http://localhost:3000"}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodOptions, "/health", nil)
@@ -332,7 +332,7 @@ func TestCORS_RejectUnknownOrigin(t *testing.T) {
 func TestCORS_WildcardWhenNoOriginsConfigured(t *testing.T) {
 	deps, _ := testDeps(t)
 	deps.Config.CORS.Origins = nil
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodOptions, "/health", nil)
@@ -345,13 +345,13 @@ func TestCORS_WildcardWhenNoOriginsConfigured(t *testing.T) {
 
 func TestRateLimit_Login(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	// Send more than 10 requests to login — the 11th+ should be rate limited
 	got429 := false
 	for i := 0; i < 15; i++ {
 		w := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(`{}`))
+		req := httptest.NewRequest(http.MethodPost, "/v1/auth/login", strings.NewReader(`{}`))
 		req.Header.Set("Content-Type", "application/json")
 		r.ServeHTTP(w, req)
 		if w.Code == http.StatusTooManyRequests {
@@ -364,7 +364,7 @@ func TestRateLimit_Login(t *testing.T) {
 
 func TestRateLimit_OnlyAppliesToLogin(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	// Other endpoints should not be rate limited
 	for i := 0; i < 15; i++ {
@@ -377,10 +377,10 @@ func TestRateLimit_OnlyAppliesToLogin(t *testing.T) {
 
 func TestUnknownRoute_404(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/nonexistent", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/nonexistent", nil)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
@@ -388,7 +388,7 @@ func TestUnknownRoute_404(t *testing.T) {
 func TestTeamScopedRoutes_AllRegistered(t *testing.T) {
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
 
@@ -397,48 +397,48 @@ func TestTeamScopedRoutes_AllRegistered(t *testing.T) {
 		path   string
 	}{
 		// Main items
-		{"POST", "/api/v1/teams/1/main-items"},
-		{"GET", "/api/v1/teams/1/main-items"},
-		{"GET", "/api/v1/teams/1/main-items/1"},
-		{"PUT", "/api/v1/teams/1/main-items/1"},
-		{"PUT", "/api/v1/teams/1/main-items/1/status"},
-		{"GET", "/api/v1/teams/1/main-items/1/available-transitions"},
-		{"POST", "/api/v1/teams/1/main-items/1/archive"},
+		{"POST", "/v1/teams/1/main-items"},
+		{"GET", "/v1/teams/1/main-items"},
+		{"GET", "/v1/teams/1/main-items/1"},
+		{"PUT", "/v1/teams/1/main-items/1"},
+		{"PUT", "/v1/teams/1/main-items/1/status"},
+		{"GET", "/v1/teams/1/main-items/1/available-transitions"},
+		{"POST", "/v1/teams/1/main-items/1/archive"},
 		// Sub items
-		{"POST", "/api/v1/teams/1/main-items/1/sub-items"},
-		{"GET", "/api/v1/teams/1/main-items/1/sub-items"},
-		{"GET", "/api/v1/teams/1/sub-items/1"},
-		{"PUT", "/api/v1/teams/1/sub-items/1"},
-		{"PUT", "/api/v1/teams/1/sub-items/1/status"},
-		{"PUT", "/api/v1/teams/1/sub-items/1/assignee"},
+		{"POST", "/v1/teams/1/main-items/1/sub-items"},
+		{"GET", "/v1/teams/1/main-items/1/sub-items"},
+		{"GET", "/v1/teams/1/sub-items/1"},
+		{"PUT", "/v1/teams/1/sub-items/1"},
+		{"PUT", "/v1/teams/1/sub-items/1/status"},
+		{"PUT", "/v1/teams/1/sub-items/1/assignee"},
 		// Progress
-		{"POST", "/api/v1/teams/1/sub-items/1/progress"},
-		{"GET", "/api/v1/teams/1/sub-items/1/progress"},
-		{"PATCH", "/api/v1/teams/1/progress/1/completion"},
+		{"POST", "/v1/teams/1/sub-items/1/progress"},
+		{"GET", "/v1/teams/1/sub-items/1/progress"},
+		{"PATCH", "/v1/teams/1/progress/1/completion"},
 		// Item pool
-		{"POST", "/api/v1/teams/1/item-pool"},
-		{"GET", "/api/v1/teams/1/item-pool"},
-		{"GET", "/api/v1/teams/1/item-pool/1"},
-		{"POST", "/api/v1/teams/1/item-pool/1/assign"},
-		{"POST", "/api/v1/teams/1/item-pool/1/reject"},
+		{"POST", "/v1/teams/1/item-pool"},
+		{"GET", "/v1/teams/1/item-pool"},
+		{"GET", "/v1/teams/1/item-pool/1"},
+		{"POST", "/v1/teams/1/item-pool/1/assign"},
+		{"POST", "/v1/teams/1/item-pool/1/reject"},
 		// Views
-		{"GET", "/api/v1/teams/1/views/weekly"},
-		{"GET", "/api/v1/teams/1/views/gantt"},
-		{"GET", "/api/v1/teams/1/views/table"},
-		{"GET", "/api/v1/teams/1/views/table/export"},
+		{"GET", "/v1/teams/1/views/weekly"},
+		{"GET", "/v1/teams/1/views/gantt"},
+		{"GET", "/v1/teams/1/views/table"},
+		{"GET", "/v1/teams/1/views/table/export"},
 		// Reports
-		{"GET", "/api/v1/teams/1/reports/weekly/preview"},
-		{"GET", "/api/v1/teams/1/reports/weekly/export"},
+		{"GET", "/v1/teams/1/reports/weekly/preview"},
+		{"GET", "/v1/teams/1/reports/weekly/export"},
 		// Team info
-		{"GET", "/api/v1/teams/1"},
-		{"PUT", "/api/v1/teams/1"},
-		{"DELETE", "/api/v1/teams/1"},
+		{"GET", "/v1/teams/1"},
+		{"PUT", "/v1/teams/1"},
+		{"DELETE", "/v1/teams/1"},
 		// Members
-		{"GET", "/api/v1/teams/1/members"},
-		{"GET", "/api/v1/teams/1/search-users"},
-		{"POST", "/api/v1/teams/1/members"},
-		{"DELETE", "/api/v1/teams/1/members/2"},
-		{"PUT", "/api/v1/teams/1/pm"},
+		{"GET", "/v1/teams/1/members"},
+		{"GET", "/v1/teams/1/search-users"},
+		{"POST", "/v1/teams/1/members"},
+		{"DELETE", "/v1/teams/1/members/2"},
+		{"PUT", "/v1/teams/1/pm"},
 	}
 
 	for _, route := range routes {
@@ -455,7 +455,7 @@ func TestTeamScopedRoutes_AllRegistered(t *testing.T) {
 
 func TestAdminRoutes_AllRegistered(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	superToken := signTestToken(t, 1, "admin")
 
@@ -463,8 +463,8 @@ func TestAdminRoutes_AllRegistered(t *testing.T) {
 		method string
 		path   string
 	}{
-		{"GET", "/api/v1/admin/users"},
-		{"GET", "/api/v1/admin/teams"},
+		{"GET", "/v1/admin/users"},
+		{"GET", "/v1/admin/teams"},
 	}
 
 	for _, route := range routes {
@@ -476,6 +476,33 @@ func TestAdminRoutes_AllRegistered(t *testing.T) {
 		assert.NotEqual(t, http.StatusNotFound, w.Code,
 			"route %s %s should be registered", route.method, route.path)
 	}
+}
+
+func TestRouterBasePath(t *testing.T) {
+	deps, _ := testDeps(t)
+	deps.Config.Server.BasePath = "/app"
+	r := SetupRouter(deps, nil)
+
+	// Route under basepath prefix should be reachable
+	token := signTestToken(t, 2, "testuser1")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/app/v1/auth/logout", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+	assert.NotEqual(t, http.StatusNotFound, w.Code, "/app/v1/auth/logout should be registered")
+
+	// Old path without prefix should 404
+	w = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodPost, "/v1/auth/logout", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusNotFound, w.Code, "/v1/auth/logout should not exist when basePath=/app")
+
+	// /health is always prefix-free
+	w = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/health", nil)
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 // mockTeamRepo is a test double that satisfies repository.TeamRepo.

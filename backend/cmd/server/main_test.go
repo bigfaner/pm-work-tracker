@@ -178,7 +178,7 @@ func TestRun_WiredRouterHealthCheck(t *testing.T) {
 		Admin:    handler.NewAdminHandler(&handler.StubAdminSvc{}),
 	}
 
-	r := handler.SetupRouter(deps)
+	r := handler.SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)

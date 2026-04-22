@@ -222,12 +222,12 @@ func TestCreateMainItem_Success(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Test Item","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -257,12 +257,12 @@ func TestCreateMainItem_WithOptionalFields(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Test Item","priority":"P1","assigneeId":3,"startDate":"2026-04-01","expectedEndDate":"2026-04-30","isKeyItem":true}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -280,12 +280,12 @@ func TestCreateMainItem_RequiresPM(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMemberRoleMainItem(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Test Item","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -301,12 +301,12 @@ func TestCreateMainItem_InvalidBody(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -323,12 +323,12 @@ func TestCreateMainItem_ServiceError(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Test","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -353,11 +353,11 @@ func TestListMainItems_Success(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items?page=1&pageSize=20", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/main-items?page=1&pageSize=20", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -382,11 +382,11 @@ func TestListMainItems_WithFilters(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items?priority=P1&status=progressing&page=2&pageSize=10", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/main-items?priority=P1&status=progressing&page=2&pageSize=10", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -406,11 +406,11 @@ func TestListMainItems_ServiceError(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/main-items", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -439,11 +439,11 @@ func TestGetMainItem_Success(t *testing.T) {
 	subItemRepo.items[0].MainItemID = 1
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/1", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/main-items/1", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -473,11 +473,11 @@ func TestGetMainItem_InvalidItemID(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/abc", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/main-items/abc", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -493,11 +493,11 @@ func TestGetMainItem_NotFound(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/999", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/main-items/999", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -525,12 +525,12 @@ func TestUpdateMainItem_Success(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Updated Title","priority":"P2"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/main-items/1", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/v1/teams/10/main-items/1", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -549,12 +549,12 @@ func TestUpdateMainItem_RequiresPM(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMemberRoleMainItem(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Updated"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/main-items/1", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/v1/teams/10/main-items/1", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -570,12 +570,12 @@ func TestUpdateMainItem_InvalidItemID(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Updated"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/main-items/abc", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/v1/teams/10/main-items/abc", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -592,12 +592,12 @@ func TestUpdateMainItem_ItemNotFound(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Updated"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/main-items/999", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/v1/teams/10/main-items/999", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -616,11 +616,11 @@ func TestArchiveMainItem_Success(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/archive", nil)
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/main-items/1/archive", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -636,11 +636,11 @@ func TestArchiveMainItem_RequiresPM(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMemberRoleMainItem(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/archive", nil)
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/main-items/1/archive", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -656,11 +656,11 @@ func TestArchiveMainItem_ArchiveNotAllowed(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/archive", nil)
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/main-items/1/archive", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -679,11 +679,11 @@ func TestArchiveMainItem_InvalidItemID(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/abc/archive", nil)
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/main-items/abc/archive", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -699,11 +699,11 @@ func TestArchiveMainItem_ItemNotFound(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/999/archive", nil)
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/main-items/999/archive", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -725,12 +725,12 @@ func TestCreateMainItem_SuperAdminBypass(t *testing.T) {
 
 	// Use member-role team, but superadmin token
 	deps := depsWithMemberRoleMainItem(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
 	body := `{"title":"Test","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -760,12 +760,12 @@ func TestChangeStatusMainItem_Success(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"progressing"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/main-items/1/status", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/v1/teams/10/main-items/1/status", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -789,12 +789,12 @@ func TestChangeStatusMainItem_InvalidBody(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/main-items/1/status", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/v1/teams/10/main-items/1/status", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -811,12 +811,12 @@ func TestChangeStatusMainItem_InvalidTransition(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"completed"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/main-items/1/status", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/v1/teams/10/main-items/1/status", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -832,12 +832,12 @@ func TestChangeStatusMainItem_RequiresPermission(t *testing.T) {
 
 	// Member role doesn't have main_item:change_status
 	deps := depsWithMemberRoleMainItem(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"progressing"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/main-items/1/status", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/v1/teams/10/main-items/1/status", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -853,12 +853,12 @@ func TestChangeStatusMainItem_InvalidItemID(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	body := `{"status":"progressing"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/main-items/abc/status", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/v1/teams/10/main-items/abc/status", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -879,11 +879,11 @@ func TestAvailableTransitionsMainItem_Success(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/1/available-transitions", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/main-items/1/available-transitions", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -912,11 +912,11 @@ func TestAvailableTransitionsMainItem_ItemNotFound(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/999/available-transitions", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/main-items/999/available-transitions", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -930,11 +930,11 @@ func TestAvailableTransitionsMainItem_InvalidItemID(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/abc/available-transitions", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/main-items/abc/available-transitions", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -978,11 +978,11 @@ func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	subItemRepo := &mockSubItemRepoForHandler{items: []*model.SubItem{}}
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/1", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/main-items/1", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 

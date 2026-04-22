@@ -68,7 +68,7 @@ func appendProgress(t *testing.T, r *gin.Engine, token string, teamID, subID uin
 	body := fmt.Sprintf(`{"completion":%.0f,"achievement":"some progress"}`, completion)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/sub-items/%d/progress", teamID, subID),
+		fmt.Sprintf("/v1/teams/%d/sub-items/%d/progress", teamID, subID),
 		strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -200,7 +200,7 @@ func TestItemPool_Assign_Success(t *testing.T) {
 	body := fmt.Sprintf(`{"mainItemId":%d,"assigneeId":%d,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, mainItemID, data.userAID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamAID, poolID),
+		fmt.Sprintf("/v1/teams/%d/item-pool/%d/assign", data.teamAID, poolID),
 		strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -234,7 +234,7 @@ func TestItemPool_Assign_Rollback_OnInvalidMainItem(t *testing.T) {
 	body := fmt.Sprintf(`{"mainItemId":%d,"assigneeId":%d,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, invalidMainID, data.userAID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamAID, poolID),
+		fmt.Sprintf("/v1/teams/%d/item-pool/%d/assign", data.teamAID, poolID),
 		strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -307,10 +307,10 @@ func TestWeeklyExport_ReturnsMarkdownWithMainItemTitle(t *testing.T) {
 	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC) // Monday
 	mainItemTitle := seedReportData(t, db, data.teamAID, data.userAID, weekStart)
 
-	// GET /api/v1/teams/:teamId/reports/weekly/export?weekStart=2026-04-13
+	// GET /v1/teams/:teamId/reports/weekly/export?weekStart=2026-04-13
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/reports/weekly/export?weekStart=%s",
+		fmt.Sprintf("/v1/teams/%d/reports/weekly/export?weekStart=%s",
 			data.teamAID, weekStart.Format("2006-01-02")), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -377,6 +377,6 @@ func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engi
 		Admin:    handler.NewAdminHandler(adminSvc),
 	}
 
-	r := handler.SetupRouter(deps)
+	r := handler.SetupRouter(deps, nil)
 	return r, data
 }

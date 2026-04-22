@@ -16,6 +16,7 @@ import (
 	"pm-work-tracker/backend/internal/migration"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 	"pm-work-tracker/backend/internal/service"
+	"pm-work-tracker/backend/web"
 )
 
 func main() {
@@ -101,7 +102,7 @@ func run(configPath string) error {
 	}
 
 	// 7. Setup router
-	r := handler.SetupRouter(deps)
+	r := handler.SetupRouter(deps, web.FS)
 
 	// 8. Start server with timeouts from config
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)
