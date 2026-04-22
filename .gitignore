@@ -50,3 +50,6 @@ docs/features/*/testing/results/*
 backend/data/*
 frontend/test-results/*
 backend/server
+
+# macOS
+.DS_Store
