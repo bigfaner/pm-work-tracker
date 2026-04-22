@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -21,25 +22,28 @@ import (
 
 func main() {
 	configPath := flag.String("config", "config.yaml", "path to config file")
+	dev := flag.Bool("dev", false, "dev mode: skip embedded asset validation, API only")
 	flag.Parse()
 
-	if err := run(*configPath); err != nil {
+	if err := run(*configPath, *dev); err != nil {
 		log.Fatalf("%v", err)
 	}
 }
 
 // run wires the full application: config, DB, seed, repos, services, handlers,
 // router, and HTTP server with graceful shutdown.
-func run(configPath string) error {
+func run(configPath string, dev bool) error {
 	// 1. Load config
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
 		return fmt.Errorf("config error: %w", err)
 	}
 
-	// 2. Validate embedded assets
-	if err := web.ValidateAssets(web.FS); err != nil {
-		return fmt.Errorf("startup: %w", err)
+	// 2. Validate embedded assets (skipped in dev mode)
+	if !dev {
+		if err := web.ValidateAssets(web.FS); err != nil {
+			return fmt.Errorf("startup: %w", err)
+		}
 	}
 
 	// 3. Init DB
@@ -106,8 +110,12 @@ func run(configPath string) error {
 		Permission: handler.NewPermissionHandlerWithDeps(roleSvc),
 	}
 
-	// 7. Setup router
-	r := handler.SetupRouter(deps, web.FS)
+	// 7. Setup router (dev mode: no embedded assets, API only)
+	var fsys fs.FS
+	if !dev {
+		fsys = web.FS
+	}
+	r := handler.SetupRouter(deps, fsys)
 
 	// 8. Start server with timeouts from config
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)
