@@ -1379,16 +1379,13 @@ function StatusDropdownWithTransitions({
   const statusChangeMutation = useMutation({
     mutationFn: ({ newStatus }: { newStatus: string }) =>
       changeMainItemStatusApi(teamId!, itemId, { status: newStatus }),
-    onSuccess: (data) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       qc.invalidateQueries({ queryKey: ['mainItemTransitions', teamId, itemId] })
       setOpen(false)
       setConfirmOpen(false)
       setPendingStatus(null)
-      if (data?.linkageWarning) {
-        addToast(data.linkageWarning, 'warning')
-      }
     },
   })
 

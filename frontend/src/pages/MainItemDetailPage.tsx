@@ -242,7 +242,7 @@ export default function MainItemDetailPage() {
 
   // --- Computed ---
 
-  const subItems: SubItem[] = (item as any)?.subItems || []
+  const subItems: SubItem[] = item?.subItems || []
   const completedCount = subItems.filter((s) => s.status === 'completed').length
   const completion = item?.completion ?? 0
 
@@ -361,7 +361,7 @@ export default function MainItemDetailPage() {
                   <div>
                     <div className="text-[13px] font-medium mb-2 text-success-text">成果汇总</div>
                     <ul className="text-[13px] text-secondary pl-4 list-disc leading-relaxed">
-                      {(item as any).achievements?.map((a: string, i: number) => (
+                      {item?.achievements?.map((a: string, i: number) => (
                         <li key={i}>{a}</li>
                       )) || <li className="text-tertiary">暂无</li>}
                     </ul>
@@ -369,7 +369,7 @@ export default function MainItemDetailPage() {
                   <div>
                     <div className="text-[13px] font-medium mb-2 text-error-text">卡点汇总</div>
                     <ul className="text-[13px] text-secondary pl-4 list-disc leading-relaxed">
-                      {(item as any).blockers?.map((b: string, i: number) => (
+                      {item?.blockers?.map((b: string, i: number) => (
                         <li key={i}>{b}</li>
                       )) || <li className="text-tertiary">暂无</li>}
                     </ul>
@@ -730,15 +730,12 @@ function MainItemStatusDropdown({
   const statusChangeMutation = useMutation({
     mutationFn: ({ newStatus }: { newStatus: string }) =>
       changeMainItemStatusApi(teamId!, itemId, { status: newStatus }),
-    onSuccess: (data) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       qc.invalidateQueries({ queryKey: ['mainItemTransitions', teamId, itemId] })
       setOpen(false)
       setConfirmOpen(false)
       setPendingStatus(null)
-      if ((data as any)?.linkageWarning) {
-        addToast((data as any).linkageWarning, 'warning')
-      }
     },
   })
 

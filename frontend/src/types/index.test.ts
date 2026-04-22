@@ -10,6 +10,7 @@ import type {
   Role,
   PermissionGroup,
   PermissionItem,
+  AdminTeam,
 } from '@/types'
 
 describe('shared TypeScript interfaces', () => {
@@ -50,9 +51,6 @@ describe('shared TypeScript interfaces', () => {
       actualEndDate: null,
       status: 'pending',
       completion: 0,
-      isKeyItem: false,
-      delayCount: 0,
-      archivedAt: null,
       createdAt: '2024-01-01',
       updatedAt: '2024-01-01',
     }
@@ -74,8 +72,6 @@ describe('shared TypeScript interfaces', () => {
       actualEndDate: null,
       status: 'progressing',
       completion: 50,
-      isKeyItem: true,
-      delayCount: 0,
       weight: 1.5,
       createdAt: '2024-01-01',
       updatedAt: '2024-01-01',
@@ -162,5 +158,17 @@ describe('shared TypeScript interfaces', () => {
       description: 'Create items',
     }
     expect(item.code).toBe('item:create')
+  })
+
+  it('should define AdminTeam with flat pmDisplayName', () => {
+    const team: AdminTeam = {
+      id: 1,
+      name: 'Team A',
+      pmDisplayName: 'Alice',
+      memberCount: 5,
+      mainItemCount: 10,
+      createdAt: '2024-01-01',
+    }
+    expect(team.pmDisplayName).toBe('Alice')
   })
 })

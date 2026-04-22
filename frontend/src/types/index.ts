@@ -98,9 +98,6 @@ export interface MainItem {
   status: string
   statusName?: string
   completion: number
-  isKeyItem: boolean
-  delayCount: number
-  archivedAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -120,8 +117,6 @@ export interface SubItem {
   status: string
   statusName?: string
   completion: number
-  isKeyItem: boolean
-  delayCount: number
   weight: number
   createdAt: string
   updatedAt: string
@@ -420,7 +415,7 @@ export interface AdminUser {
 export interface AdminTeam {
   id: number
   name: string
-  pm: { displayName: string }
+  pmDisplayName: string
   memberCount: number
   mainItemCount: number
   createdAt: string

@@ -46,8 +46,7 @@ const seedMembers = [
 const seedMainItem = {
   id: 1, teamId: 1, code: 'MI-0001', title: 'Alpha Task', priority: 'P1',
   proposerId: 1, assigneeId: 1, startDate: '2026-03-20', expectedEndDate: '2026-04-15',
-  actualEndDate: null, status: 'progressing', completion: 65, isKeyItem: false,
-  delayCount: 0, archivedAt: null,
+  actualEndDate: null, status: 'progressing', completion: 65,
   createdAt: '2026-03-20T00:00:00Z', updatedAt: '2026-04-01T00:00:00Z',
   subItems: [],
 }
@@ -55,8 +54,8 @@ const seedMainItem = {
 const seedSubItem = {
   id: 12, teamId: 1, mainItemId: 1, code: 'SI-001-12', title: 'Sub Alpha 2', description: 'JWT Token implementation',
   priority: 'P2', assigneeId: 3, startDate: '2026-04-08', expectedEndDate: '2026-04-18',
-  actualEndDate: null, status: 'progressing', completion: 80, isKeyItem: false,
-  delayCount: 0, weight: 1,
+  actualEndDate: null, status: 'progressing', completion: 80,
+  weight: 1,
   createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-08T00:00:00Z',
 }
 
