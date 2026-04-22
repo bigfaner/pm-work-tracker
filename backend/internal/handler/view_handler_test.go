@@ -417,7 +417,7 @@ func TestTableView_ServiceError(t *testing.T) {
 
 func TestExportTable_Success(t *testing.T) {
 	svc := &mockViewService{}
-	svc.csvResult.bytes = []byte("code,title,type\r\nMI-0001,Test,main\r\n")
+	svc.csvResult.bytes = []byte("code,title,type\r\nTEST-00001,Test,main\r\n")
 
 	deps := depsWithViewSvc(t, svc)
 	r := SetupRouter(deps, nil)

@@ -201,7 +201,7 @@ func depsWithMemberRoleMainItem(t *testing.T, svc *mockMainItemService, userRepo
 func testMainItem(id uint, teamID uint) *model.MainItem {
 	return &model.MainItem{
 		TeamID:   teamID,
-		Code:     fmt.Sprintf("MI-%04d", id),
+		Code:     fmt.Sprintf("TEST-%05d", id),
 		Title:    "Test Item",
 		Priority: "P1",
 		Status:   "pending",
@@ -953,7 +953,7 @@ func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	assigneeID := uint(3)
 	item := &model.MainItem{
 		TeamID:          10,
-		Code:            "MI-0001",
+		Code:            "TEST-00001",
 		Title:           "接入新支付渠道",
 		Priority:        "P1",
 		ProposerID:      2,
@@ -996,7 +996,7 @@ func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	data := resp["data"].(map[string]interface{})
 
 	// Verify all fields from Data Contract are present
-	assert.Equal(t, "MI-0001", data["code"])
+	assert.Equal(t, "TEST-00001", data["code"])
 	assert.Equal(t, "接入新支付渠道", data["title"])
 	assert.Equal(t, "P1", data["priority"])
 	assert.Equal(t, float64(2), data["proposerId"])
