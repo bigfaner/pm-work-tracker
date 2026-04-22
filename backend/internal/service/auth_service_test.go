@@ -56,6 +56,16 @@ func (m *mockUserRepo) Create(ctx context.Context, user *model.User) error {
 	return args.Error(0)
 }
 
+func (m *mockUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.User, error) {
+	return nil, nil
+}
+func (m *mockUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+	return nil, 0, nil
+}
+func (m *mockUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+	return nil, nil
+}
+
 // Pre-computed bcrypt hash for "password123" at cost 12.
 // Generated once with bcrypt.GenerateFromPassword; avoids bcrypt calls in unit tests.
 const prehashedPassword123 = "$2a$12$PFlK4EXT4SpV6eUDJsR99.kCTqzF47MXGJJuhiG9CszXkURn9JR92"

@@ -204,6 +204,15 @@ func (s *StubRouterRepoUser) FindByUsername(_ context.Context, _ string) (*model
 func (s *StubRouterRepoUser) List(_ context.Context) ([]*model.User, error) { return nil, nil }
 func (s *StubRouterRepoUser) Update(_ context.Context, _ *model.User) error { return nil }
 func (s *StubRouterRepoUser) Create(_ context.Context, _ *model.User) error { return nil }
+func (s *StubRouterRepoUser) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.User, error) {
+	return nil, nil
+}
+func (s *StubRouterRepoUser) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+	return nil, 0, nil
+}
+func (s *StubRouterRepoUser) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+	return nil, nil
+}
 
 var _ repository.UserRepo = (*StubRouterRepoUser)(nil)
 
@@ -251,6 +260,12 @@ func (s *StubRouterRepoMainItem) CountByTeam(_ context.Context, _ uint) (int64, 
 	return 0, nil
 }
 func (s *StubRouterRepoMainItem) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
+	return nil, nil
+}
+func (s *StubRouterRepoMainItem) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
+	return nil, nil
+}
+func (s *StubRouterRepoMainItem) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
 	return nil, nil
 }
 

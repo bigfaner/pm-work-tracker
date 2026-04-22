@@ -135,6 +135,12 @@ func (m *mockMainItemRepoForPool) CountByTeam(_ context.Context, _ uint) (int64,
 func (m *mockMainItemRepoForPool) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
 	return nil, nil
 }
+func (m *mockMainItemRepoForPool) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
+	return nil, nil
+}
+func (m *mockMainItemRepoForPool) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
+	return nil, nil
+}
 
 // mockDBTx captures transaction callback execution.
 type mockDBTx struct {

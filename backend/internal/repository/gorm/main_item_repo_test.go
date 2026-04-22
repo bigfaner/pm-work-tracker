@@ -307,3 +307,75 @@ func TestMainItemRepo_List_FilterByAssignee(t *testing.T) {
 	assert.Equal(t, int64(1), result.Total)
 	assert.Equal(t, "Assigned", result.Items[0].Title)
 }
+
+// --- FindByIDs ---
+
+func TestMainItemRepo_FindByIDs(t *testing.T) {
+	db := setupMainItemTestDB(t)
+	repo := gormrepo.NewGormMainItemRepo(db)
+	ctx := context.Background()
+
+	u, team := seedMainItemTeam(t, db)
+	item1 := createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Item 1", "P1", "pending")
+	item2 := createMainItem(t, db, team.ID, u.ID, "FEAT-00002", "Item 2", "P2", "progressing")
+
+	t.Run("returns_map_for_existing_ids", func(t *testing.T) {
+		result, err := repo.FindByIDs(ctx, []uint{item1.ID, item2.ID})
+		require.NoError(t, err)
+		assert.Len(t, result, 2)
+		assert.Equal(t, "Item 1", result[item1.ID].Title)
+		assert.Equal(t, "Item 2", result[item2.ID].Title)
+	})
+
+	t.Run("empty_input_returns_empty_map", func(t *testing.T) {
+		result, err := repo.FindByIDs(ctx, []uint{})
+		require.NoError(t, err)
+		assert.Empty(t, result)
+	})
+
+	t.Run("partial_results_return_found_keys_only", func(t *testing.T) {
+		result, err := repo.FindByIDs(ctx, []uint{item1.ID, 9999})
+		require.NoError(t, err)
+		assert.Len(t, result, 1)
+		assert.Equal(t, "Item 1", result[item1.ID].Title)
+		_, hasMissing := result[9999]
+		assert.False(t, hasMissing)
+	})
+}
+
+// --- ListByTeamAndStatus ---
+
+func TestMainItemRepo_ListByTeamAndStatus(t *testing.T) {
+	db := setupMainItemTestDB(t)
+	repo := gormrepo.NewGormMainItemRepo(db)
+	ctx := context.Background()
+
+	u, team := seedMainItemTeam(t, db)
+	createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Pending 1", "P1", "pending")
+	createMainItem(t, db, team.ID, u.ID, "FEAT-00002", "Progressing 1", "P2", "progressing")
+	createMainItem(t, db, team.ID, u.ID, "FEAT-00003", "Pending 2", "P1", "pending")
+
+	t.Run("returns_items_matching_status", func(t *testing.T) {
+		items, err := repo.ListByTeamAndStatus(ctx, team.ID, "pending")
+		require.NoError(t, err)
+		assert.Len(t, items, 2)
+	})
+
+	t.Run("no_match_returns_empty", func(t *testing.T) {
+		items, err := repo.ListByTeamAndStatus(ctx, team.ID, "completed")
+		require.NoError(t, err)
+		assert.Empty(t, items)
+	})
+
+	t.Run("team_isolation", func(t *testing.T) {
+		u2 := model.User{Username: "other_pm", DisplayName: "Other PM", PasswordHash: "h"}
+		require.NoError(t, db.Create(&u2).Error)
+		team2 := model.Team{Name: "Team2", PmID: u2.ID, Code: "T2"}
+		require.NoError(t, db.Create(&team2).Error)
+		createMainItem(t, db, team2.ID, u2.ID, "T2-00001", "Other Pending", "P1", "pending")
+
+		items, err := repo.ListByTeamAndStatus(ctx, team.ID, "pending")
+		require.NoError(t, err)
+		assert.Len(t, items, 2, "should not include items from other teams")
+	})
+}

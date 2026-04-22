@@ -61,6 +61,16 @@ func (m *mockUserRepo) Update(ctx context.Context, user *model.User) error {
 	return args.Error(0)
 }
 
+func (m *mockUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.User, error) {
+	return nil, nil
+}
+func (m *mockUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+	return nil, 0, nil
+}
+func (m *mockUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+	return nil, nil
+}
+
 var _ repository.UserRepo = (*mockUserRepo)(nil)
 
 // setupAuthRouter creates a test router with AuthMiddleware and a dummy handler

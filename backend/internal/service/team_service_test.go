@@ -159,6 +159,15 @@ func (m *mockTeamUserRepo) Update(_ context.Context, _ *model.User) error {
 func (m *mockTeamUserRepo) Create(_ context.Context, _ *model.User) error {
 	return nil
 }
+func (m *mockTeamUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.User, error) {
+	return nil, nil
+}
+func (m *mockTeamUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+	return nil, 0, nil
+}
+func (m *mockTeamUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+	return nil, nil
+}
 
 // mockDB used for transaction-based tests (TransferPM).
 type mockDB struct {

@@ -134,6 +134,29 @@ func (r *mainItemRepo) ListNonArchivedByTeam(ctx context.Context, teamID uint) (
 	return items, err
 }
 
+func (r *mainItemRepo) FindByIDs(ctx context.Context, ids []uint) (map[uint]*model.MainItem, error) {
+	result := make(map[uint]*model.MainItem)
+	if len(ids) == 0 {
+		return result, nil
+	}
+	var items []*model.MainItem
+	if err := r.db.WithContext(ctx).Where("id IN ?", ids).Find(&items).Error; err != nil {
+		return nil, err
+	}
+	for _, item := range items {
+		result[item.ID] = item
+	}
+	return result, nil
+}
+
+func (r *mainItemRepo) ListByTeamAndStatus(ctx context.Context, teamID uint, status string) ([]model.MainItem, error) {
+	var items []model.MainItem
+	err := r.db.WithContext(ctx).
+		Where("team_id = ? AND status = ?", teamID, status).
+		Find(&items).Error
+	return items, err
+}
+
 func applyMainItemFilter(query *gormlib.DB, filter dto.MainItemFilter) *gormlib.DB {
 	if filter.Status != "" {
 		query = query.Where("status = ?", filter.Status)

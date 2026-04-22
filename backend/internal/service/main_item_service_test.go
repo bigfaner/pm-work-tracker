@@ -85,6 +85,12 @@ func (m *mockMainItemRepo) CountByTeam(_ context.Context, _ uint) (int64, error)
 func (m *mockMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
 	return nil, nil
 }
+func (m *mockMainItemRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
+	return nil, nil
+}
+func (m *mockMainItemRepo) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
+	return nil, nil
+}
 
 type mockSubItemRepo struct {
 	subItems []*model.SubItem

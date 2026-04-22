@@ -166,6 +166,15 @@ func (m *mockRoleUserRepo) Create(_ context.Context, _ *model.User) error {
 func (m *mockRoleUserRepo) Update(_ context.Context, _ *model.User) error {
 	return nil
 }
+func (m *mockRoleUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.User, error) {
+	return nil, nil
+}
+func (m *mockRoleUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+	return nil, 0, nil
+}
+func (m *mockRoleUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+	return nil, nil
+}
 
 // ---------------------------------------------------------------------------
 // Helper: build the service under test

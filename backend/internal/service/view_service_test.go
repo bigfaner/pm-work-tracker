@@ -54,6 +54,12 @@ func (m *mockViewMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ uint) 
 	}
 	return m.items, nil
 }
+func (m *mockViewMainItemRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
+	return nil, nil
+}
+func (m *mockViewMainItemRepo) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
+	return nil, nil
+}
 
 type mockViewSubItemRepo struct {
 	items   []model.SubItem
@@ -1049,6 +1055,15 @@ func (m *mockViewUserRepo) Update(_ context.Context, _ *model.User) error {
 
 func (m *mockViewUserRepo) Create(_ context.Context, _ *model.User) error {
 	return nil
+}
+func (m *mockViewUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.User, error) {
+	return nil, nil
+}
+func (m *mockViewUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+	return nil, 0, nil
+}
+func (m *mockViewUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+	return nil, nil
 }
 
 // newViewServiceWithUsers creates a ViewService with a user repo for table view tests.

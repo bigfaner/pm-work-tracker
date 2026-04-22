@@ -61,6 +61,16 @@ func (m *mockAdminUserRepo) Update(_ context.Context, user *model.User) error {
 	return nil
 }
 
+func (m *mockAdminUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.User, error) {
+	return nil, nil
+}
+func (m *mockAdminUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+	return nil, 0, nil
+}
+func (m *mockAdminUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+	return nil, nil
+}
+
 // mockAdminTeamRepo implements repository.TeamRepo for admin service tests.
 type mockAdminTeamRepo struct {
 	teams           []*dto.AdminTeamDTO
