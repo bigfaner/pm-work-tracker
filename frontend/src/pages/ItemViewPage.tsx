@@ -4,8 +4,8 @@ import { useQuery, useInfiniteQuery, useQueries, useMutation, useQueryClient } f
 import { Pencil, Plus, RefreshCw } from 'lucide-react'
 import { useTeamStore } from '@/store/team'
 import { PermissionGuard } from '@/components/PermissionGuard'
-import { listMainItemsApi, createMainItemApi, updateMainItemApi, changeMainItemStatusApi, getMainItemTransitionsApi } from '@/api/mainItems'
-import { listSubItemsApi, createSubItemApi, updateSubItemApi, changeSubItemStatusApi, getSubItemTransitionsApi } from '@/api/subItems'
+import { listMainItemsApi, createMainItemApi, updateMainItemApi } from '@/api/mainItems'
+import { listSubItemsApi, createSubItemApi, updateSubItemApi } from '@/api/subItems'
 import { appendProgressApi } from '@/api/progress'
 import { listMembersApi } from '@/api/teams'
 import { MainItem, SubItem } from '@/types'
@@ -30,12 +30,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from '@/components/ui/dropdown-menu'
-import {
   Table,
   TableHeader,
   TableBody,
@@ -44,15 +38,14 @@ import {
   TableCell,
 } from '@/components/ui/table'
 import { Pagination, PaginationPageSize } from '@/components/ui/pagination'
-import StatusBadge from '@/components/shared/StatusBadge'
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import ProgressBar from '@/components/shared/ProgressBar'
+import StatusTransitionDropdown from '@/components/shared/StatusTransitionDropdown'
 import { Badge } from '@/components/ui/badge'
-import { STATUS_OPTIONS, MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES, MAIN_TERMINAL_STATUSES, SUB_TERMINAL_STATUSES } from '@/lib/status'
+import { STATUS_OPTIONS, MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES } from '@/lib/status'
 import { getStatusName, isOverdue } from '@/lib/status'
 import { formatDate } from '@/lib/format'
 import { useMemberName } from '@/hooks/useMemberName'
-import { useToast } from '@/components/ui/toast'
 const DEFAULT_PAGE_SIZE = 20
 
 type ViewMode = 'summary' | 'detail'
@@ -510,14 +503,12 @@ export default function ItemViewPage() {
           formatDate={formatDate}
           hasMore={hasMoreSummary}
           sentinelRef={sentinelRef}
+          teamId={teamId!}
+          onRefresh={handleRefresh}
           onAddSubItem={(mainItemId, mainItemTitle) => { setCreateSubTarget(mainItemId); setCreateSubTargetName(mainItemTitle); setCreateSubOpen(true) }}
           onEditMainItem={openEditDialog}
           onAppendProgress={openAppendDialog}
           onEditSubItem={openEditSubDialog}
-          onSubItemStatusChanged={(mainItemId) => {
-            qc.invalidateQueries({ queryKey: ['subItems', teamId, mainItemId] })
-            qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
-          }}
         />
       ) : (
         <DetailView
@@ -525,6 +516,8 @@ export default function ItemViewPage() {
           subItemsMap={subItemsMap}
           memberName={memberName}
           formatDate={formatDate}
+          teamId={teamId!}
+          onRefresh={handleRefresh}
           currentPage={currentPage}
           totalPages={totalPages}
           pageSize={pageSize}
@@ -870,11 +863,12 @@ interface SummaryViewProps {
   formatDate: (date: string | null) => string
   hasMore: boolean
   sentinelRef: React.RefObject<HTMLDivElement>
+  teamId: number
+  onRefresh: () => void
   onAddSubItem: (mainItemId: number, mainItemTitle: string) => void
   onEditMainItem: (item: MainItem) => void
   onAppendProgress: (subItemId: number, subItemTitle: string) => void
   onEditSubItem: (sub: SubItem) => void
-  onSubItemStatusChanged: (mainItemId: number) => void
 }
 
 function SummaryView({
@@ -886,11 +880,12 @@ function SummaryView({
   formatDate,
   hasMore,
   sentinelRef,
+  teamId,
+  onRefresh,
   onAddSubItem,
   onEditMainItem,
   onAppendProgress,
   onEditSubItem,
-  onSubItemStatusChanged,
 }: SummaryViewProps) {
   return (
     <div>
@@ -959,7 +954,7 @@ function SummaryView({
 
               {/* Status */}
               <div onClick={(e) => e.stopPropagation()}>
-                <StatusDropdownWithTransitions currentStatus={item.status} itemId={item.id} />
+                <StatusTransitionDropdown currentStatus={item.status} itemType="main" teamId={teamId} itemId={item.id} onStatusChanged={onRefresh} />
               </div>
 
               {/* Actions */}
@@ -1013,11 +1008,7 @@ function SummaryView({
                       <ProgressBar value={sub.completion} size="sm" showPercentage />
                     </div>
                     <div onClick={(e) => e.stopPropagation()}>
-                      <SubItemStatusDropdown
-                        subId={sub.id}
-                        mainItemId={item.id}
-                        currentStatus={sub.status}
-                      />
+                      <StatusTransitionDropdown currentStatus={sub.status} itemType="sub" teamId={teamId} itemId={sub.id} onStatusChanged={onRefresh} />
                     </div>
                     <PermissionGuard code="main_item:update">
                       <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5" disabled={!!SUB_ITEM_STATUSES[sub.status as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onEditSubItem(sub)}><Pencil size={12} />编辑</Button>
@@ -1060,6 +1051,8 @@ interface DetailViewProps {
   subItemsMap: Record<number, SubItem[]>
   memberName: (id: number | null) => string
   formatDate: (date: string | null) => string
+  teamId: number
+  onRefresh: () => void
   currentPage: number
   totalPages: number
   pageSize: number
@@ -1077,6 +1070,8 @@ function DetailView({
   subItemsMap,
   memberName,
   formatDate,
+  teamId,
+  onRefresh,
   currentPage,
   totalPages,
   pageSize,
@@ -1128,7 +1123,7 @@ function DetailView({
                       <span className="text-xs">{item.completion}%</span>
                     </TableCell>
                     <TableCell>
-                      <StatusDropdownWithTransitions currentStatus={item.status} itemId={item.id} />
+                      <StatusTransitionDropdown currentStatus={item.status} itemType="main" teamId={teamId} itemId={item.id} onStatusChanged={onRefresh} />
                     </TableCell>
                     <TableCell className="text-xs">{formatDate(item.startDate)}</TableCell>
                     <TableCell className="text-xs">
@@ -1163,11 +1158,7 @@ function DetailView({
                         <span className="text-xs">{sub.completion}%</span>
                       </TableCell>
                       <TableCell>
-                        <SubItemStatusDropdown
-                          subId={sub.id}
-                          mainItemId={item.id}
-                          currentStatus={sub.status}
-                        />
+                        <StatusTransitionDropdown currentStatus={sub.status} itemType="sub" teamId={teamId} itemId={sub.id} onStatusChanged={onRefresh} />
                       </TableCell>
                       <TableCell className="text-xs">{formatDate(sub.startDate)}</TableCell>
                       <TableCell className="text-xs">{formatDate(sub.expectedEndDate)}</TableCell>
@@ -1207,214 +1198,3 @@ function DetailView({
   )
 }
 
-// --- SubItem StatusDropdown ---
-
-function SubItemStatusDropdown({
-  subId,
-  mainItemId,
-  currentStatus,
-}: {
-  subId: number
-  mainItemId: number
-  currentStatus: string
-}) {
-  const teamId = useTeamStore((s) => s.currentTeamId)
-  const qc = useQueryClient()
-  const { addToast } = useToast()
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const [pendingStatus, setPendingStatus] = useState<string | null>(null)
-  const [open, setOpen] = useState(false)
-  const [showTip, setShowTip] = useState(false)
-
-  const { data: transitions = [], isFetched, isFetching } = useQuery({
-    queryKey: ['subItemTransitions', teamId, subId],
-    queryFn: () => getSubItemTransitionsApi(teamId!, subId),
-    enabled: !!teamId && open,
-  })
-
-  useEffect(() => {
-    if (open && isFetched && !isFetching && transitions.length === 0) {
-      setOpen(false)
-      setShowTip(true)
-      setTimeout(() => setShowTip(false), 2000)
-    }
-  }, [open, isFetched, isFetching, transitions])
-
-  const statusChangeMutation = useMutation({
-    mutationFn: ({ newStatus }: { newStatus: string }) =>
-      changeSubItemStatusApi(teamId!, subId, { status: newStatus }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['subItemTransitions', teamId, subId] })
-      qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
-      setOpen(false)
-      setConfirmOpen(false)
-      setPendingStatus(null)
-    },
-  })
-
-  const handleSelect = useCallback((status: string) => {
-    if (SUB_TERMINAL_STATUSES.includes(status)) {
-      setPendingStatus(status)
-      setConfirmOpen(true)
-    } else {
-      statusChangeMutation.mutate({ newStatus: status })
-    }
-  }, [statusChangeMutation])
-
-  const handleConfirm = useCallback(() => {
-    if (pendingStatus) statusChangeMutation.mutate({ newStatus: pendingStatus })
-  }, [pendingStatus, statusChangeMutation])
-
-  return (
-    <>
-      <div className="relative inline-flex">
-        {showTip && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap text-xs px-2 py-1 rounded-md bg-primary text-white shadow-md pointer-events-none z-50">
-            暂无可用流转
-          </div>
-        )}
-        <DropdownMenu open={open} onOpenChange={setOpen}>
-          <DropdownMenuTrigger asChild>
-            <button className="focus:outline-none">
-              <StatusBadge status={currentStatus} className="cursor-pointer" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="min-w-0 w-auto">
-            {transitions.map((status) => (
-              <DropdownMenuItem
-                key={status}
-                className="text-[13px] justify-center"
-                onSelect={(e) => { e.preventDefault(); handleSelect(status) }}
-              >
-                {getStatusName(status) || status}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent size="sm">
-          <DialogHeader><DialogTitle>确认变更状态</DialogTitle></DialogHeader>
-          <DialogBody>
-            <p className="text-sm text-secondary">
-              确认将状态变更为「{getStatusName(pendingStatus || '') || pendingStatus}」？此操作可能不可逆。
-            </p>
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => { setConfirmOpen(false); setPendingStatus(null) }}>取消</Button>
-            <Button onClick={handleConfirm} disabled={statusChangeMutation.isPending}>确认</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  )
-}
-
-function StatusDropdownWithTransitions({
-  currentStatus,
-  itemId,
-}: {
-  currentStatus: string
-  itemId: number
-}) {
-  const teamId = useTeamStore((s) => s.currentTeamId)
-  const qc = useQueryClient()
-  const { addToast } = useToast()
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const [pendingStatus, setPendingStatus] = useState<string | null>(null)
-  const [open, setOpen] = useState(false)
-  const [showTip, setShowTip] = useState(false)
-
-  const { data: transitions = [], isFetched, isFetching } = useQuery({
-    queryKey: ['mainItemTransitions', teamId, itemId],
-    queryFn: () => getMainItemTransitionsApi(teamId!, itemId),
-    enabled: !!teamId && open,
-  })
-
-  useEffect(() => {
-    if (open && isFetched && !isFetching && transitions.length === 0) {
-      setOpen(false)
-      setShowTip(true)
-      setTimeout(() => setShowTip(false), 2000)
-    }
-  }, [open, isFetched, isFetching, transitions])
-
-  const statusChangeMutation = useMutation({
-    mutationFn: ({ newStatus }: { newStatus: string }) =>
-      changeMainItemStatusApi(teamId!, itemId, { status: newStatus }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
-      qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
-      qc.invalidateQueries({ queryKey: ['mainItemTransitions', teamId, itemId] })
-      setOpen(false)
-      setConfirmOpen(false)
-      setPendingStatus(null)
-    },
-  })
-
-  const handleSelect = useCallback((status: string) => {
-    if (MAIN_TERMINAL_STATUSES.includes(status)) {
-      setPendingStatus(status)
-      setConfirmOpen(true)
-    } else {
-      statusChangeMutation.mutate({ newStatus: status })
-    }
-  }, [statusChangeMutation])
-
-  const handleConfirm = useCallback(() => {
-    if (pendingStatus) {
-      statusChangeMutation.mutate({ newStatus: pendingStatus })
-    }
-  }, [pendingStatus, statusChangeMutation])
-
-  return (
-    <>
-      <div className="relative inline-flex">
-        {showTip && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap text-xs px-2 py-1 rounded-md bg-primary text-white shadow-md pointer-events-none z-50">
-            暂无可用流转
-          </div>
-        )}
-        <DropdownMenu open={open} onOpenChange={setOpen}>
-          <DropdownMenuTrigger asChild>
-            <button className="focus:outline-none">
-              <StatusBadge status={currentStatus} className="cursor-pointer" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="min-w-0 w-auto">
-          {transitions.map((status) => (
-            <DropdownMenuItem
-              key={status}
-              className="text-[13px] justify-center"
-              onSelect={(e) => {
-                e.preventDefault()
-                handleSelect(status)
-              }}
-            >
-              {getStatusName(status) || status}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-      </div>
-
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent size="sm">
-          <DialogHeader>
-            <DialogTitle>确认变更状态</DialogTitle>
-          </DialogHeader>
-          <DialogBody>
-            <p className="text-sm text-secondary">
-              确认将状态变更为「{getStatusName(pendingStatus || '') || pendingStatus}」？此操作可能不可逆。
-            </p>
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => { setConfirmOpen(false); setPendingStatus(null) }}>取消</Button>
-            <Button onClick={handleConfirm} disabled={statusChangeMutation.isPending}>确认</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  )
-}

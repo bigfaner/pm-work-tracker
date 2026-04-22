@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { getMainItemApi } from '@/api/mainItems'
-import { getSubItemApi, updateSubItemApi, changeSubItemStatusApi, getSubItemTransitionsApi } from '@/api/subItems'
+import { getSubItemApi, updateSubItemApi, changeSubItemStatusApi } from '@/api/subItems'
 import { listProgressApi, appendProgressApi } from '@/api/progress'
 import { listMembersApi } from '@/api/teams'
 import { Button } from '@/components/ui/button'
@@ -28,23 +28,18 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from '@/components/ui/dropdown-menu'
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import StatusBadge from '@/components/shared/StatusBadge'
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import { PrioritySelectItems } from '@/components/shared/PrioritySelect'
-import { SUB_ITEM_STATUSES, SUB_TERMINAL_STATUSES, getStatusName, isOverdue } from '@/lib/status'
+import StatusTransitionDropdown from '@/components/shared/StatusTransitionDropdown'
+import { SUB_ITEM_STATUSES, isOverdue } from '@/lib/status'
 import { useMemberName } from '@/hooks/useMemberName'
+import { formatDate } from '@/lib/format'
 
 // --- Main Component ---
 
@@ -60,6 +55,10 @@ export default function SubItemDetailPage() {
   const [appendForm, setAppendForm] = useState({ completion: '', achievement: '', blocker: '' })
   const [editOpen, setEditOpen] = useState(false)
   const [editForm, setEditForm] = useState({ title: '', priority: '', assigneeId: '', expectedEndDate: '', description: '' })
+  const [achievementOpen, setAchievementOpen] = useState(false)
+  const [achievementText, setAchievementText] = useState('')
+  const [achievementPendingStatus, setAchievementPendingStatus] = useState<string | null>(null)
+  const [achievementResolve, setAchievementResolve] = useState<((v: boolean) => void) | null>(null)
 
   // --- Data fetching ---
 
@@ -116,7 +115,51 @@ export default function SubItemDetailPage() {
     },
   })
 
+  const achievementStatusMutation = useMutation({
+    mutationFn: async (status: string) => {
+      await changeSubItemStatusApi(teamId!, sId, { status })
+      const achievement = achievementText.trim()
+      if (achievement) {
+        await appendProgressApi(teamId!, sId, { completion: 100, achievement })
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['subItem', teamId, sId] })
+      qc.invalidateQueries({ queryKey: ['progress', teamId, sId] })
+      setAchievementOpen(false)
+      setAchievementText('')
+      setAchievementPendingStatus(null)
+      if (achievementResolve) {
+        achievementResolve(true)
+        setAchievementResolve(null)
+      }
+    },
+    onError: () => {
+      if (achievementResolve) {
+        achievementResolve(false)
+        setAchievementResolve(null)
+      }
+    },
+  })
+
   // --- Handlers ---
+
+  const handleBeforeTerminalStatus = useCallback(async (status: string): Promise<boolean> => {
+    if (status === 'completed') {
+      return new Promise<boolean>((resolve) => {
+        setAchievementPendingStatus(status)
+        setAchievementResolve(() => resolve)
+        setAchievementOpen(true)
+      })
+    }
+    return true
+  }, [])
+
+  const handleAchievementConfirm = useCallback(() => {
+    if (achievementPendingStatus) {
+      achievementStatusMutation.mutate(achievementPendingStatus)
+    }
+  }, [achievementPendingStatus, achievementStatusMutation])
 
   const handleEdit = useCallback(() => {
     if (!editForm.title.trim()) return
@@ -178,7 +221,14 @@ export default function SubItemDetailPage() {
             <Badge variant="default" className="font-mono">{subItem.code}</Badge>
             <h1 className="text-xl font-semibold text-primary m-0">{subItem.title}</h1>
             <PriorityBadge priority={subItem.priority} />
-            <SubItemStatusDropdown subId={sId} currentStatus={subItem.status} />
+            <StatusTransitionDropdown
+              currentStatus={subItem.status}
+              itemType="sub"
+              teamId={teamId!}
+              itemId={sId}
+              onStatusChanged={() => { qc.invalidateQueries({ queryKey: ['subItem', teamId, sId] }) }}
+              onBeforeTerminalStatus={handleBeforeTerminalStatus}
+            />
             <div className="flex-1" />
             <PermissionGuard code="main_item:update">
               <Button variant="secondary" disabled={isTerminalStatus} onClick={() => {
@@ -209,12 +259,12 @@ export default function SubItemDetailPage() {
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">开始时间</div>
-                  <span className="text-[13px] font-medium">{subItem.startDate || '-'}</span>
+                  <span className="text-[13px] font-medium">{formatDate(subItem.startDate)}</span>
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">预期完成时间</div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[13px] font-medium">{subItem.expectedEndDate || '-'}</span>
+                    <span className="text-[13px] font-medium">{formatDate(subItem.expectedEndDate)}</span>
                     {isOverdue(subItem.expectedEndDate ?? undefined, subItem.status) && (
                       <Badge variant="error">延期</Badge>
                     )}
@@ -222,7 +272,7 @@ export default function SubItemDetailPage() {
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">结束时间</div>
-                  <span className="text-[13px] font-medium">{subItem.actualEndDate || '-'}</span>
+                  <span className="text-[13px] font-medium">{formatDate(subItem.actualEndDate)}</span>
                 </div>
               </div>
               <div>
@@ -402,179 +452,58 @@ export default function SubItemDetailPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* Achievement dialog for completed status */}
+          <Dialog open={achievementOpen} onOpenChange={(open) => {
+            if (!open) {
+              setAchievementOpen(false)
+              setAchievementText('')
+              setAchievementPendingStatus(null)
+              if (achievementResolve) {
+                achievementResolve(false)
+                setAchievementResolve(null)
+              }
+            }
+          }}>
+            <DialogContent size="md">
+              <DialogHeader>
+                <DialogTitle>填写完成成果</DialogTitle>
+              </DialogHeader>
+              <DialogBody>
+                <p className="text-sm text-secondary mb-4">
+                  即将标记为「已完成」，进度将自动设为 100%。
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-1">成果</label>
+                  <Textarea
+                    rows={4}
+                    placeholder="描述本次取得的成果（选填）"
+                    value={achievementText}
+                    onChange={(e) => setAchievementText(e.target.value)}
+                  />
+                </div>
+              </DialogBody>
+              <DialogFooter>
+                <Button variant="secondary" onClick={() => {
+                  setAchievementOpen(false)
+                  setAchievementText('')
+                  setAchievementPendingStatus(null)
+                  if (achievementResolve) {
+                    achievementResolve(false)
+                    setAchievementResolve(null)
+                  }
+                }}>取消</Button>
+                <Button
+                  onClick={handleAchievementConfirm}
+                  disabled={achievementStatusMutation.isPending}
+                >
+                  确认完成
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </>
       )}
     </div>
-  )
-}
-
-// --- Sub-item StatusDropdown ---
-
-function SubItemStatusDropdown({
-  subId,
-  currentStatus,
-}: {
-  subId: number
-  currentStatus: string
-}) {
-  const teamId = useTeamStore((s) => s.currentTeamId)
-  const qc = useQueryClient()
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const [achievementOpen, setAchievementOpen] = useState(false)
-  const [achievementText, setAchievementText] = useState('')
-  const [pendingStatus, setPendingStatus] = useState<string | null>(null)
-  const [open, setOpen] = useState(false)
-  const [showTip, setShowTip] = useState(false)
-
-  const { data: transitions = [], isFetched, isFetching } = useQuery({
-    queryKey: ['subItemTransitions', teamId, subId],
-    queryFn: () => getSubItemTransitionsApi(teamId!, subId),
-    enabled: !!teamId && open,
-  })
-
-  useEffect(() => {
-    if (open && isFetched && !isFetching && transitions.length === 0) {
-      setOpen(false)
-      setShowTip(true)
-      setTimeout(() => setShowTip(false), 2000)
-    }
-  }, [open, isFetched, isFetching, transitions.length])
-
-  const statusChangeMutation = useMutation({
-    mutationFn: ({ newStatus }: { newStatus: string }) =>
-      changeSubItemStatusApi(teamId!, subId, { status: newStatus }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['subItem', teamId, subId] })
-      qc.invalidateQueries({ queryKey: ['subItemTransitions', teamId, subId] })
-      setOpen(false)
-      setConfirmOpen(false)
-      setAchievementOpen(false)
-      setAchievementText('')
-      setPendingStatus(null)
-    },
-  })
-
-  const appendMutation = useMutation({
-    mutationFn: (achievement: string) =>
-      appendProgressApi(teamId!, subId, { completion: 100, ...(achievement && { achievement }) }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['progress', teamId, subId] })
-      qc.invalidateQueries({ queryKey: ['subItem', teamId, subId] })
-    },
-  })
-
-  const handleSelect = useCallback((status: string) => {
-    if (status === 'completed') {
-      setPendingStatus(status)
-      setAchievementOpen(true)
-    } else if (SUB_TERMINAL_STATUSES.includes(status)) {
-      setPendingStatus(status)
-      setConfirmOpen(true)
-    } else {
-      statusChangeMutation.mutate({ newStatus: status })
-    }
-  }, [statusChangeMutation])
-
-  const handleConfirm = useCallback(() => {
-    if (pendingStatus) {
-      statusChangeMutation.mutate({ newStatus: pendingStatus })
-    }
-  }, [pendingStatus, statusChangeMutation])
-
-  const handleAchievementConfirm = useCallback(async () => {
-    if (!pendingStatus) return
-    const achievement = achievementText.trim()
-    try {
-      await statusChangeMutation.mutateAsync({ newStatus: pendingStatus })
-      if (achievement) {
-        await appendMutation.mutateAsync(achievement)
-      }
-    } catch {
-      // errors handled by individual mutations
-    }
-  }, [pendingStatus, achievementText, statusChangeMutation, appendMutation])
-
-  return (
-    <>
-      <div className="relative inline-flex">
-        {showTip && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap text-xs px-2 py-1 rounded-md bg-primary text-white shadow-md pointer-events-none z-50">
-            暂无可用流转
-          </div>
-        )}
-        <DropdownMenu open={open} onOpenChange={setOpen}>
-          <DropdownMenuTrigger asChild>
-            <button className="focus:outline-none">
-              <StatusBadge status={currentStatus} className="cursor-pointer" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="min-w-0 w-auto">
-          {transitions.map((status) => (
-            <DropdownMenuItem
-              key={status}
-              className="text-[13px] justify-center"
-              onSelect={(e) => {
-                e.preventDefault()
-                handleSelect(status)
-              }}
-            >
-              {getStatusName(status) || status}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-      </div>
-
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent size="sm">
-          <DialogHeader>
-            <DialogTitle>确认变更状态</DialogTitle>
-          </DialogHeader>
-          <DialogBody>
-            <p className="text-sm text-secondary">
-              确认将状态变更为「{getStatusName(pendingStatus || '') || pendingStatus}」？此操作可能不可逆。
-            </p>
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => { setConfirmOpen(false); setPendingStatus(null) }}>取消</Button>
-            <Button onClick={handleConfirm} disabled={statusChangeMutation.isPending}>确认</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Achievement dialog for completed */}
-      <Dialog open={achievementOpen} onOpenChange={(open) => {
-        if (!open) { setAchievementOpen(false); setAchievementText(''); setPendingStatus(null) }
-      }}>
-        <DialogContent size="md">
-          <DialogHeader>
-            <DialogTitle>填写完成成果</DialogTitle>
-          </DialogHeader>
-          <DialogBody>
-            <p className="text-sm text-secondary mb-4">
-              即将标记为「已完成」，进度将自动设为 100%。
-            </p>
-            <div>
-              <label className="block text-sm font-medium text-primary mb-1">成果</label>
-              <Textarea
-                rows={4}
-                placeholder="描述本次取得的成果（选填）"
-                value={achievementText}
-                onChange={(e) => setAchievementText(e.target.value)}
-              />
-            </div>
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => { setAchievementOpen(false); setAchievementText(''); setPendingStatus(null) }}>取消</Button>
-            <Button
-              onClick={handleAchievementConfirm}
-              disabled={statusChangeMutation.isPending || appendMutation.isPending}
-            >
-              确认完成
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
   )
 }
