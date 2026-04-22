@@ -41,6 +41,7 @@ type SubItemVO struct {
 	ExpectedEndDate *string `json:"expectedEndDate"`
 	ActualEndDate   *string `json:"actualEndDate"`
 	Status          string  `json:"status"`
+	StatusName      string  `json:"statusName"`
 	Completion      float64 `json:"completion"`
 	IsKeyItem       bool    `json:"isKeyItem"`
 	Weight          float64 `json:"weight"`
@@ -106,6 +107,10 @@ func NewMainItemVO(m *model.MainItem) MainItemVO {
 
 // NewSubItemVO converts a model.SubItem to a SubItemVO.
 func NewSubItemVO(m *model.SubItem) SubItemVO {
+	statusName := ""
+	if def, ok := status.GetSubItemStatus(m.Status); ok {
+		statusName = def.Name
+	}
 	return SubItemVO{
 		ID:              m.ID,
 		TeamID:          m.TeamID,
@@ -118,6 +123,7 @@ func NewSubItemVO(m *model.SubItem) SubItemVO {
 		ExpectedEndDate: formatTimePtr(m.ExpectedEndDate),
 		ActualEndDate:   formatTimePtr(m.ActualEndDate),
 		Status:          m.Status,
+		StatusName:      statusName,
 		Completion:      m.Completion,
 		IsKeyItem:       m.IsKeyItem,
 		Weight:          m.Weight,
