@@ -44,8 +44,8 @@ describe('API modules', () => {
   describe('teams', () => {
     it('createTeamApi should POST to /teams', async () => {
       mockClient.post.mockResolvedValue({ id: 1 })
-      await teamsApi.createTeamApi({ name: 'Team' })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams', { name: 'Team' })
+      await teamsApi.createTeamApi({ name: 'Team', code: 'TEAM' })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams', { name: 'Team', code: 'TEAM' })
     })
 
     it('listTeamsApi should GET /teams', async () => {

@@ -75,6 +75,7 @@ export interface User {
 export interface Team {
   id: number
   name: string
+  code?: string
   description: string
   pmId: number
   pmDisplayName?: string
@@ -196,6 +197,7 @@ export interface LoginResp {
 // Teams
 export interface CreateTeamReq {
   name: string
+  code: string
   description?: string
 }
 
