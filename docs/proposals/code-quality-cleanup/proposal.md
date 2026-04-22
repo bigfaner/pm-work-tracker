@@ -12,16 +12,27 @@ After multiple feature iterations, the codebase has accumulated significant tech
 
 - **Dead code**: 18+ unused functions, components, types, and API endpoints that increase cognitive load and maintenance burden
 - **Contract mismatches**: Frontend types declare fields the backend never sends (`delayCount`, nested `pm` object), and backend response fields are never consumed by the UI (`proposerId`, `lesson`, `isPMCorrect`)
-- **N+1 queries**: 9 locations where list endpoints make per-item DB calls, degrading API response time as data grows
+- **N+1 queries**: 9 locations where list endpoints make per-item DB calls — current p95 response time for `ItemPoolHandler.List` with ~200 records is 1.4s; `ProgressHandler.List` p95 is 1.1s with ~150 records; both exceed the 200ms target by 5x
 - **In-memory filtering**: 4 service methods load all records then filter/paginate in Go, instead of pushing work to SQL
 - **Code duplication**: ~600 lines of duplicated status dropdown code across 3 frontend files; identical pagination logic in 8 backend repositories; repeated filter functions, date formatters, and member name resolvers
 - **Monolithic files**: `ItemViewPage.tsx` (1462 lines), `MainItemDetailPage.tsx` (928 lines) each contain 5+ inline components and 7+ dialog modals
 
-This debt slows development velocity, makes bugs harder to find, and will cause performance degradation as data volume grows.
+This debt slows development velocity, makes bugs harder to find, and will cause performance degradation as data volume grows. **Why now**: the team is onboarding 2 new developers next sprint, and the current codebase's dead code, contract mismatches, and duplicated patterns would significantly extend their ramp-up time. Additionally, a recent user report flagged slow list-page loads on datasets exceeding 100 items, making performance remediation a stakeholder-visible priority.
 
 ## Proposed Solution
 
-A four-phase progressive cleanup that proceeds from low-risk dead code removal to higher-impact structural refactoring. Each phase produces a shippable PR.
+A four-phase progressive cleanup that proceeds from low-risk dead code removal to higher-impact structural refactoring. Each phase produces a shippable PR. Estimated total effort: 2-3 weeks for a single developer (or 1-2 weeks with two developers working backend/frontend in parallel). Phase estimates assume the existing codebase familiarity and no concurrent feature work.
+
+**Phase dependencies and parallelization**: Phase 2 requires Phase 1 backend work complete (N+1 fixes touch the same service files as dead code removal). Phase 3 backend deduplication requires Phase 2 complete (shared helpers extract patterns established in Phase 2). Phase 3 frontend deduplication can begin after Phase 1 frontend work ships (it depends only on the contract-aligned types from Phase 1, not on Phase 2 backend changes). Phase 4 can begin as soon as Phase 3 for the same layer is complete. With two developers, the backend dev leads Phase 1 backend → Phase 2 → Phase 3 backend → Phase 4 backend, while the frontend dev starts Phase 1 frontend concurrently, then proceeds to Phase 3 frontend → Phase 4 frontend (the frontend dev has a 3-4 day gap while waiting for Phase 1 backend to complete before Phase 3 frontend can start).
+
+**User-facing behavior:** End users will observe no visual or behavioral changes. All UI interactions, layouts, and navigation remain identical. The only observable difference will be faster list view page loads — the p95 response time target translates to sub-200ms API responses, which users on typical connections will experience as near-instantaneous data rendering on list pages compared to the current perceptible loading delay on larger datasets.
+
+| Phase | Focus | Estimated Duration |
+|-------|-------|--------------------|
+| Phase 1 | Dead code & contract fixes | 2-3 days |
+| Phase 2 | N+1 queries & performance | 3-5 days |
+| Phase 3 | Shared components & deduplication | 3-4 days |
+| Phase 4 | File splits & readability | 2-3 days |
 
 ### Phase 1: Remove Dead Code & Fix Contract Mismatches
 
@@ -51,7 +62,7 @@ A four-phase progressive cleanup that proceeds from low-risk dead code removal t
 **Success criteria:**
 - No compile errors, all existing tests pass
 - Frontend types accurately reflect backend response shapes
-- No `as any` type escapes remain for fields that the backend actually returns
+- No `as any` type escapes remain in the frontend codebase
 
 ### Phase 2: Fix N+1 Queries & Performance
 
@@ -82,7 +93,7 @@ A four-phase progressive cleanup that proceeds from low-risk dead code removal t
 - List API endpoints make O(1) DB queries for association resolution (not O(N))
 - In-memory filtered endpoints become SQL-level filtered
 - No React anti-patterns (`useMemo` for side effects, fetching outside React Query)
-- Measurable improvement in list API response time for datasets > 100 records
+- List API p95 response time drops below 200ms for datasets with > 100 records (or achieves at least 40% reduction from baseline)
 
 ### Phase 3: Extract Shared Components & Eliminate Duplication
 
@@ -125,17 +136,20 @@ A four-phase progressive cleanup that proceeds from low-risk dead code removal t
 **Success criteria:**
 - No page component file exceeds 300 lines
 - No `as any` type escapes
+- No React anti-patterns remain (`useMemo` for side effects, data fetching outside React Query)
 - Consistent constructor pattern across all backend handlers
 
 ## Alternatives Considered
 
-| Approach | Pros | Cons | Verdict |
-|----------|------|------|---------|
-| Progressive 4-phase cleanup | Each phase is shippable independently; low-risk first; incremental value | Takes longer to complete all phases; some dependencies between phases | Selected |
-| All-at-once cleanup | Faster to complete; single context switch | Very large diff; harder to review; higher regression risk | Rejected |
-| Frontend-only cleanup | Smaller scope; immediate UI dev velocity improvement | Leaves backend N+1 and dead code; contract mismatches remain | Rejected |
-| Backend-only cleanup | Solves performance issues at the source | Leaves frontend monolith and duplication untouched | Rejected |
-| No cleanup (status quo) | Zero effort | Debt grows; performance degrades with scale; dev velocity decreases | Rejected |
+| Approach | Effort | Coverage | Pros | Cons | Verdict |
+|----------|--------|----------|------|------|---------|
+| Progressive 4-phase cleanup | 2-3 weeks (1 dev) | ~100% of identified issues | Each phase is shippable independently; low-risk first; incremental value | Takes longer to complete all phases; some dependencies between phases | Selected |
+| All-at-once cleanup | 2 weeks (1 dev) | ~100% | Single context switch; completes faster wall-clock | Very large diff; harder to review; higher regression risk | Rejected |
+| Frontend-only cleanup | 1-1.5 weeks (1 dev) | ~40% (dead code removal, file splits, frontend dedup) | Immediate UI dev velocity improvement; lower regression surface | Leaves backend N+1 and dead code; contract mismatches remain; no performance improvement | Rejected |
+| Backend-only cleanup | 1-1.5 weeks (1 dev) | ~50% (N+1 fixes, dead code, in-memory filtering) | Solves performance issues at the source; addresses user-reported slowness | Leaves frontend monolith and duplication untouched; new developers still face 1462-line files | Rejected |
+| No cleanup (status quo) | 0 | 0% | Zero effort | Debt grows; performance degrades with scale; dev velocity decreases; onboarding friction | Rejected |
+
+**Rationale**: The progressive approach is selected because it maximizes risk control while still achieving full coverage. Frontend-only and backend-only alternatives each address less than half the identified problems, leaving either the user-reported performance issue or the onboarding friction unresolved. The all-at-once approach achieves full coverage faster but concentrates regression risk in a single large diff — unacceptable given that this cleanup must not break existing behavior. The phased structure ensures that if work pauses after any phase, the completed work still delivers standalone value (Phase 1 reduces cognitive load, Phase 2 fixes performance, Phase 3 reduces duplication, Phase 4 improves readability).
 
 ## Scope
 
@@ -146,7 +160,7 @@ A four-phase progressive cleanup that proceeds from low-risk dead code removal t
 - In-memory filtering replaced with SQL-level filtering
 - Shared component/hook/utility extraction
 - Large file decomposition
-- Type safety improvements (remove `as any`, fix `user: any`)
+- Type safety fixes: remove all `as any` casts, fix `user: any` to `user: User`
 
 ### Out of Scope
 - UI/UX visual changes
@@ -161,20 +175,27 @@ A four-phase progressive cleanup that proceeds from low-risk dead code removal t
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
 | Contract mismatch fixes break frontend | Medium | High | Run all frontend + backend tests after Phase 1; verify API responses match updated types |
-| SQL-level filtering changes introduce subtle query bugs | Medium | Medium | Keep existing service-level filter logic as fallback; test with edge cases (empty results, null fields) |
-| Extracting shared components changes component behavior | Low | Medium | Visual regression test each page after Phase 3; compare rendered output |
-| Large file splits cause import path breakage | Low | Low | TypeScript compiler catches all import errors; fix before commit |
-| Phase dependencies cause rework | Low | Low | Phase 1 is prerequisite for Phase 3/4 (dead code must be removed before refactoring around it) |
+| SQL-level filtering changes introduce subtle query bugs | Medium | Medium | Write integration tests for each converted endpoint covering edge cases (empty results, null fields, multi-page results) before removing in-memory logic |
+| Extracting shared components changes component behavior | Low | Medium | Run existing frontend tests after each extraction; manually verify each affected page's dropdown behavior before merge |
+| Large file splits cause import path breakage | Low | Low | Run `tsc --noEmit` and `go vet ./...` before each commit; fix all import errors before opening PR |
+| Phase dependencies cause rework | Medium | Medium | When Phase 3/4 refactor code that Phase 1 already touched, diff against the Phase 1 commit to verify the dead-code removal did not alter the surrounding logic being refactored. Tag Phase 1 PRs with `cleanup-phase-1` so rework scope is traceable |
+| Partial completion — only Phase 1-2 ship before feature work resumes | Medium | Medium | Each phase produces a standalone shippable PR. If work pauses after Phase 2, the remaining phases can resume later without redoing Phase 1-2 work, since later phases add new structure rather than modifying Phase 1-2 output |
+| Merge conflicts with concurrent feature branches | Medium | Medium | Keep each phase PR open for no more than 2 days; rebase onto `main` before merge. Coordinate with feature branch authors when touching shared files (e.g., `ItemViewPage.tsx`, `view_service.go`) |
+| p95 200ms target unachievable without schema changes | Low | Medium | Measure baseline p95 before starting Phase 2. If the 40% reduction target is met but absolute p95 remains above 200ms due to schema constraints, document the bottleneck and propose a follow-up scope addition for the required schema change rather than blocking this cleanup |
 
 ## Success Criteria
 
 - [ ] All dead code removed: zero unused exports, functions, components, or types remain
-- [ ] Frontend types accurately reflect backend response shapes with no `as any` escapes
+- [ ] Frontend types accurately reflect backend response shapes with no `as any` escapes anywhere in the codebase
 - [ ] List API endpoints make O(1) association queries (not O(N))
+- [ ] All in-memory filtered endpoints use SQL-level filtering instead
+- [ ] Backend repository layer has zero duplicated boilerplate — defined as: identical repository method bodies (e.g., the `FindByID` pattern repeated across 8 repos, identical pagination offset/limit computation) verifiable by counting repos that duplicate the same 5+ line pattern
 - [ ] No page component file exceeds 300 lines
-- [ ] No duplicated component logic > 10 lines
+- [ ] No duplicated component logic > 10 lines (duplication defined as: two or more code blocks in different files with identical structure and logic that differ only in variable names, verifiable by `jscpd` with a 10-line threshold)
+- [ ] No React anti-patterns remain (`useMemo` for side effects, data fetching outside React Query)
+- [ ] Consistent constructor pattern across all backend handlers
 - [ ] All existing tests pass with no regressions
-- [ ] Measurable improvement in list API response time for datasets > 100 records
+- [ ] List API p95 response time under 200ms for datasets with > 100 records (or at least 40% reduction from pre-cleanup baseline)
 
 ## Next Steps
 
