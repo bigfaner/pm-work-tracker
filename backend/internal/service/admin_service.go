@@ -48,39 +48,16 @@ func generatePassword(length int) (string, error) {
 }
 
 func (s *adminService) ListUsers(ctx context.Context, search string, page, pageSize int) ([]*dto.AdminUserDTO, int, error) {
-	users, err := s.userRepo.List(ctx)
+	offset := (page - 1) * pageSize
+
+	users, total, err := s.userRepo.ListFiltered(ctx, search, offset, pageSize)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// Filter
-	filtered := make([]*model.User, 0, len(users))
-	for _, u := range users {
-		if search != "" {
-			if !containsIgnoreCase(u.Username, search) && !containsIgnoreCase(u.DisplayName, search) {
-				continue
-			}
-		}
-		filtered = append(filtered, u)
-	}
-
-	total := len(filtered)
-
-	// Paginate
-	start := (page - 1) * pageSize
-	if start >= total {
-		return []*dto.AdminUserDTO{}, total, nil
-	}
-	end := start + pageSize
-	if end > total {
-		end = total
-	}
-
-	pageUsers := filtered[start:end]
-
 	// Collect user IDs for team lookup
-	userIDs := make([]uint, len(pageUsers))
-	for i, u := range pageUsers {
+	userIDs := make([]uint, len(users))
+	for i, u := range users {
 		userIDs[i] = u.ID
 	}
 
@@ -89,12 +66,12 @@ func (s *adminService) ListUsers(ctx context.Context, search string, page, pageS
 		return nil, 0, err
 	}
 
-	items := make([]*dto.AdminUserDTO, len(pageUsers))
-	for i, u := range pageUsers {
+	items := make([]*dto.AdminUserDTO, len(users))
+	for i, u := range users {
 		items[i] = modelToAdminUserDTO(u, teamsMap[u.ID])
 	}
 
-	return items, total, nil
+	return items, int(total), nil
 }
 
 func (s *adminService) GetUser(ctx context.Context, userID uint) (*dto.AdminUserDTO, error) {
@@ -273,30 +250,4 @@ func modelToAdminUserDTO(u *model.User, teams []dto.TeamSummary) *dto.AdminUserD
 	}
 }
 
-func containsIgnoreCase(s, substr string) bool {
-	sLower := toLower(s)
-	substrLower := toLower(substr)
-	return strContains(sLower, substrLower)
-}
-
-func toLower(s string) string {
-	result := make([]byte, len(s))
-	for i := range s {
-		c := s[i]
-		if c >= 'A' && c <= 'Z' {
-			c += 'a' - 'A'
-		}
-		result[i] = c
-	}
-	return string(result)
-}
-
-func strContains(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
 

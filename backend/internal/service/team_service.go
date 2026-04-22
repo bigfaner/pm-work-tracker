@@ -277,40 +277,17 @@ func (s *teamService) ListMembers(ctx context.Context, teamID uint) ([]*dto.Team
 }
 
 func (s *teamService) SearchAvailableUsers(ctx context.Context, teamID uint, search string) ([]*dto.UserSearchDTO, error) {
-	users, err := s.userRepo.List(ctx)
+	users, err := s.userRepo.SearchAvailable(ctx, teamID, search, 20)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get existing member user IDs
-	members, err := s.teamRepo.ListMembers(ctx, teamID)
-	if err != nil {
-		return nil, err
-	}
-	memberIDs := make(map[uint]bool, len(members))
-	for _, m := range members {
-		memberIDs[m.UserID] = true
-	}
-
-	// Filter by search and exclude existing members
-	var result []*dto.UserSearchDTO
-	for _, u := range users {
-		if memberIDs[u.ID] {
-			continue
-		}
-		if search != "" {
-			if !containsIgnoreCase(u.Username, search) && !containsIgnoreCase(u.DisplayName, search) {
-				continue
-			}
-		}
-		result = append(result, &dto.UserSearchDTO{
+	result := make([]*dto.UserSearchDTO, len(users))
+	for i, u := range users {
+		result[i] = &dto.UserSearchDTO{
 			ID:          u.ID,
 			Username:    u.Username,
 			DisplayName: u.DisplayName,
-		})
-		// Limit results to 20
-		if len(result) >= 20 {
-			break
 		}
 	}
 

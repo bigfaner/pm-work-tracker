@@ -92,7 +92,7 @@
       "dependencies": [
         "2.1"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.4-sql-pushdown-admin-team.md",
       "record": "records/2.4-sql-pushdown-admin-team.md"
     },
