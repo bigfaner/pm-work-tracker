@@ -474,12 +474,28 @@ func createFreshDB(t *testing.T) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
 	require.NoError(t, err)
 
-	// Create tables that the migration expects to exist
+	// Create non-legacy tables
 	err = db.AutoMigrate(
-		&model.User{}, &model.Team{}, &model.TeamMember{},
+		&model.User{}, &model.Team{},
 		&model.MainItem{}, &model.SubItem{},
 		&model.ProgressRecord{}, &model.ItemPool{},
 	)
+	require.NoError(t, err)
+
+	// Create legacy team_members with role string column (pre-RBAC schema)
+	err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS team_members (
+			id         INTEGER PRIMARY KEY AUTOINCREMENT,
+			team_id    INTEGER NOT NULL,
+			user_id    INTEGER NOT NULL,
+			role       TEXT NOT NULL DEFAULT 'member',
+			role_id    INTEGER,
+			joined_at  DATETIME NOT NULL DEFAULT (datetime('now')),
+			created_at DATETIME,
+			updated_at DATETIME,
+			UNIQUE(team_id, user_id)
+		)
+	`).Error
 	require.NoError(t, err)
 	return db
 }

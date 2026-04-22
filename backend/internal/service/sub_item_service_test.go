@@ -170,6 +170,7 @@ func TestSubItemCreate_Success(t *testing.T) {
 	repo.On("Create", mock.Anything, mock.MatchedBy(func(item *model.SubItem) bool {
 		return item.TeamID == 1 && item.MainItemID == 5 && item.Title == "Sub task A" && item.Status == "pending"
 	})).Return(nil)
+	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{Status: "in_progress"}, nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
 	item, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
@@ -197,6 +198,7 @@ func TestSubItemCreate_RepoError(t *testing.T) {
 	svc := NewSubItemService(repo, mainSvc, historySvc)
 
 	repo.On("Create", mock.Anything, mock.Anything).Return(errors.New("db error"))
+	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{Status: "in_progress"}, nil)
 
 	_, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
 		MainItemID: 5,
@@ -963,6 +965,7 @@ func TestSubItemCreate_TriggersLinkage(t *testing.T) {
 	svc := NewSubItemService(repo, mainSvc, historySvc)
 
 	repo.On("Create", mock.Anything, mock.Anything).Return(nil)
+	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{Status: "in_progress"}, nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
 	_, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
