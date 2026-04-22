@@ -1,6 +1,6 @@
 ---
 feature: "item-code-redesign"
-status: design
+status: tasks
 ---
 
 # Feature: item-code-redesign
