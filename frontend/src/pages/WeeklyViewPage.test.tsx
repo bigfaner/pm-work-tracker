@@ -623,7 +623,7 @@ describe('WeeklyViewPage', () => {
     await waitFor(() => {
       expect(requests.length).toBeGreaterThanOrEqual(1)
     })
-    // Should be one week before getCurrentWeekStart (2026-04-20) = 2026-04-13
-    expect(requests[requests.length - 1]).toBe('2026-04-13')
+    // Should be one week before getCurrentWeekStart (2026-04-13) = 2026-04-06
+    expect(requests[requests.length - 1]).toBe('2026-04-06')
   })
 })

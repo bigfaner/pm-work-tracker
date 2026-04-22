@@ -590,10 +590,10 @@ describe('ItemViewPage', () => {
       await user.click(screen.getByRole('option', { name: 'Test User' }))
     }
 
-    // Fill date inputs
+    // Fill date inputs — DateInput wraps <input> in a div, label is in the parent div
     const allDateInputs = document.querySelectorAll('input[type="date"]')
     const dialogDateInputs = Array.from(allDateInputs).filter(input => {
-      const label = input.closest('div')?.querySelector('label')
+      const label = input.closest('div')?.parentElement?.querySelector('label')
       return label && (label.textContent?.includes('开始时间') || label.textContent?.includes('预期完成时间'))
     })
     expect(dialogDateInputs.length).toBe(2)

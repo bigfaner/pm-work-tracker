@@ -68,8 +68,8 @@ const seedRoles = [
 ]
 
 const seedAvailableUsers = [
-  { userId: 10, displayName: '刘洋', username: 'liuyang' },
-  { userId: 11, displayName: '周磊', username: 'zhoulei' },
+  { id: 10, displayName: '刘洋', username: 'liuyang' },
+  { id: 11, displayName: '周磊', username: 'zhoulei' },
 ]
 
 function setupHandlers() {
@@ -124,7 +124,7 @@ function setupHandlers() {
     }),
 
     // Invite member - search available users
-    http.get('/v1/teams/:teamId/available-users', () => {
+    http.get('/v1/teams/:teamId/search-users', () => {
       return HttpResponse.json({ code: 0, data: seedAvailableUsers })
     }),
 
@@ -479,9 +479,25 @@ describe('TeamDetailPage', () => {
       expect(screen.getByText('搜索用户')).toBeInTheDocument()
     })
 
-    // Type a username
+    // Type a username matching a seed user
     const input = screen.getByPlaceholderText('输入用户名或姓名搜索...')
-    await user.type(input, 'newuser')
+    await user.type(input, 'liuyang')
+
+    // Wait for dropdown and select the user
+    await waitFor(() => {
+      expect(screen.getByTestId('invite-user-option-10')).toBeInTheDocument()
+    })
+    await user.click(screen.getByTestId('invite-user-option-10'))
+
+    // Select a role (member = id 3)
+    await waitFor(() => {
+      expect(screen.getByTestId('invite-role-select')).toBeInTheDocument()
+    })
+    await user.click(screen.getByTestId('invite-role-select'))
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: 'member' })).toBeInTheDocument()
+    })
+    await user.click(screen.getByRole('option', { name: 'member' }))
 
     // Submit
     const submitBtn = screen.getByTestId('invite-submit-btn')
