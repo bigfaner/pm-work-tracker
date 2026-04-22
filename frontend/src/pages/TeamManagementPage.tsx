@@ -33,13 +33,11 @@ import {
   TableCell,
 } from '@/components/ui/table'
 import { useToast } from '@/components/ui/toast'
+import { formatDate as _formatDate } from '@/lib/format'
 
+// TeamManagementPage receives ISO datetime strings; truncate to date before formatting
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}/${m}/${day}`
+  return _formatDate(dateStr.slice(0, 10))
 }
 
 export default function TeamManagementPage() {

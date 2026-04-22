@@ -48,8 +48,10 @@ import StatusBadge from '@/components/shared/StatusBadge'
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import ProgressBar from '@/components/shared/ProgressBar'
 import { Badge } from '@/components/ui/badge'
-import { STATUS_OPTIONS, MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES } from '@/lib/status'
+import { STATUS_OPTIONS, MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES, MAIN_TERMINAL_STATUSES, SUB_TERMINAL_STATUSES } from '@/lib/status'
 import { getStatusName, isOverdue } from '@/lib/status'
+import { formatDate } from '@/lib/format'
+import { useMemberName } from '@/hooks/useMemberName'
 import { useToast } from '@/components/ui/toast'
 const DEFAULT_PAGE_SIZE = 20
 
@@ -397,21 +399,9 @@ export default function ItemViewPage() {
     })
   }, [appendForm, appendTarget, appendMutation])
 
-  const memberName = useCallback(
-    (assigneeId: number | null) => {
-      if (!assigneeId) return '-'
-      const m = members.find((m) => m.userId === assigneeId)
-      return m ? m.displayName : 'Unknown'
-    },
-    [members],
-  )
+  const memberName = useMemberName(members)
 
   // --- Render helpers ---
-
-  const formatDate = (date: string | null) => {
-    if (!date) return '-'
-    return date.replace(/-/g, '/')
-  }
 
   // --- Render ---
 
@@ -1219,12 +1209,6 @@ function DetailView({
 
 // --- SubItem StatusDropdown ---
 
-const SUB_ITEM_TERMINAL_STATUSES_IV = new Set(
-  Object.entries(SUB_ITEM_STATUSES)
-    .filter(([, v]) => v.terminal)
-    .map(([k]) => k)
-)
-
 function SubItemStatusDropdown({
   subId,
   mainItemId,
@@ -1269,7 +1253,7 @@ function SubItemStatusDropdown({
   })
 
   const handleSelect = useCallback((status: string) => {
-    if (SUB_ITEM_TERMINAL_STATUSES_IV.has(status)) {
+    if (SUB_TERMINAL_STATUSES.includes(status)) {
       setPendingStatus(status)
       setConfirmOpen(true)
     } else {
@@ -1327,12 +1311,6 @@ function SubItemStatusDropdown({
   )
 }
 
-const MAIN_ITEM_TERMINAL_STATUSES = new Set(
-  Object.entries(MAIN_ITEM_STATUSES)
-    .filter(([, v]) => v.terminal)
-    .map(([k]) => k)
-)
-
 function StatusDropdownWithTransitions({
   currentStatus,
   itemId,
@@ -1376,7 +1354,7 @@ function StatusDropdownWithTransitions({
   })
 
   const handleSelect = useCallback((status: string) => {
-    if (MAIN_ITEM_TERMINAL_STATUSES.has(status)) {
+    if (MAIN_TERMINAL_STATUSES.includes(status)) {
       setPendingStatus(status)
       setConfirmOpen(true)
     } else {

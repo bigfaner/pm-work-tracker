@@ -43,7 +43,8 @@ import {
 import StatusBadge from '@/components/shared/StatusBadge'
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import { PrioritySelectItems } from '@/components/shared/PrioritySelect'
-import { SUB_ITEM_STATUSES, getStatusName, isOverdue } from '@/lib/status'
+import { SUB_ITEM_STATUSES, SUB_TERMINAL_STATUSES, getStatusName, isOverdue } from '@/lib/status'
+import { useMemberName } from '@/hooks/useMemberName'
 
 // --- Main Component ---
 
@@ -86,14 +87,7 @@ export default function SubItemDetailPage() {
     enabled: !!teamId,
   })
 
-  const memberName = useCallback(
-    (assigneeId: number | null) => {
-      if (!assigneeId || !members) return '-'
-      const m = members.find((m) => m.userId === assigneeId)
-      return m ? m.displayName : 'Unknown'
-    },
-    [members],
-  )
+  const memberName = useMemberName(members)
 
   // Last completion value for validation
   const lastCompletion = progressRecords && progressRecords.length > 0
@@ -416,12 +410,6 @@ export default function SubItemDetailPage() {
 
 // --- Sub-item StatusDropdown ---
 
-const SUB_ITEM_TERMINAL_STATUSES = new Set(
-  Object.entries(SUB_ITEM_STATUSES)
-    .filter(([, v]) => v.terminal)
-    .map(([k]) => k)
-)
-
 function SubItemStatusDropdown({
   subId,
   currentStatus,
@@ -479,7 +467,7 @@ function SubItemStatusDropdown({
     if (status === 'completed') {
       setPendingStatus(status)
       setAchievementOpen(true)
-    } else if (SUB_ITEM_TERMINAL_STATUSES.has(status)) {
+    } else if (SUB_TERMINAL_STATUSES.includes(status)) {
       setPendingStatus(status)
       setConfirmOpen(true)
     } else {

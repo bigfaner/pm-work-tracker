@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import StatusBadge from '@/components/shared/StatusBadge'
-import { getStatusName, MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES } from '@/lib/status'
+import { getStatusName, MAIN_TERMINAL_STATUSES, SUB_TERMINAL_STATUSES } from '@/lib/status'
 import {
   getMainItemTransitionsApi,
   changeMainItemStatusApi,
@@ -25,18 +25,6 @@ import {
   getSubItemTransitionsApi,
   changeSubItemStatusApi,
 } from '@/api/subItems'
-
-const MAIN_ITEM_TERMINAL_STATUSES = new Set(
-  Object.entries(MAIN_ITEM_STATUSES)
-    .filter(([, v]) => v.terminal)
-    .map(([k]) => k),
-)
-
-const SUB_ITEM_TERMINAL_STATUSES = new Set(
-  Object.entries(SUB_ITEM_STATUSES)
-    .filter(([, v]) => v.terminal)
-    .map(([k]) => k),
-)
 
 export interface StatusTransitionDropdownProps {
   currentStatus: string
@@ -64,7 +52,7 @@ export default function StatusTransitionDropdown({
   const [open, setOpen] = useState(false)
   const [showTip, setShowTip] = useState(false)
 
-  const terminalStatuses = itemType === 'main' ? MAIN_ITEM_TERMINAL_STATUSES : SUB_ITEM_TERMINAL_STATUSES
+  const terminalStatuses = itemType === 'main' ? MAIN_TERMINAL_STATUSES : SUB_TERMINAL_STATUSES
 
   const queryKey = itemType === 'main'
     ? ['mainItemTransitions', teamId, itemId]
@@ -114,7 +102,7 @@ export default function StatusTransitionDropdown({
   })
 
   const handleSelect = useCallback(async (status: string) => {
-    if (!terminalStatuses.has(status)) {
+    if (!terminalStatuses.includes(status)) {
       statusChangeMutation.mutate({ newStatus: status })
       return
     }

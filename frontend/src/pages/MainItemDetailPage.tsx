@@ -53,8 +53,10 @@ import {
 import StatusBadge from '@/components/shared/StatusBadge'
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import ProgressBar from '@/components/shared/ProgressBar'
-import { STATUS_OPTIONS, MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES } from '@/lib/status'
+import { STATUS_OPTIONS, MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES, MAIN_TERMINAL_STATUSES, SUB_TERMINAL_STATUSES } from '@/lib/status'
 import { getStatusName, isOverdue } from '@/lib/status'
+import { formatDate } from '@/lib/format'
+import { useMemberName } from '@/hooks/useMemberName'
 import { useToast } from '@/components/ui/toast'
 
 // --- Main Component ---
@@ -96,14 +98,7 @@ export default function MainItemDetailPage() {
     enabled: !!teamId,
   })
 
-  const memberName = useCallback(
-    (assigneeId: number | null) => {
-      if (!assigneeId || !members) return '-'
-      const m = members.find((m) => m.userId === assigneeId)
-      return m ? m.displayName : 'Unknown'
-    },
-    [members],
-  )
+  const memberName = useMemberName(members)
 
   // Populate edit form when data loads
   useEffect(() => {
@@ -234,11 +229,6 @@ export default function MainItemDetailPage() {
       },
     })
   }, [appendProgressTarget, appendProgressForm, appendProgressMutation])
-
-  const formatDate = (date: string | null) => {
-    if (!date) return '-'
-    return date
-  }
 
   // --- Computed ---
 
@@ -692,12 +682,6 @@ export default function MainItemDetailPage() {
 
 // --- Main Item StatusDropdown ---
 
-const MAIN_ITEM_TERMINAL_STATUSES = new Set(
-  Object.entries(MAIN_ITEM_STATUSES)
-    .filter(([, v]) => v.terminal)
-    .map(([k]) => k)
-)
-
 function MainItemStatusDropdown({
   itemId,
   currentStatus,
@@ -740,7 +724,7 @@ function MainItemStatusDropdown({
   })
 
   const handleSelect = useCallback((status: string) => {
-    if (MAIN_ITEM_TERMINAL_STATUSES.has(status)) {
+    if (MAIN_TERMINAL_STATUSES.includes(status)) {
       setPendingStatus(status)
       setConfirmOpen(true)
     } else {
@@ -807,12 +791,6 @@ function MainItemStatusDropdown({
 
 // --- Sub-item StatusDropdown with transitions ---
 
-const SUB_ITEM_TERMINAL_STATUSES = new Set(
-  Object.entries(SUB_ITEM_STATUSES)
-    .filter(([, v]) => v.terminal)
-    .map(([k]) => k)
-)
-
 function SubItemStatusDropdown({
   subId,
   currentStatus,
@@ -858,7 +836,7 @@ function SubItemStatusDropdown({
   })
 
   const handleSelect = useCallback((status: string) => {
-    if (SUB_ITEM_TERMINAL_STATUSES.has(status)) {
+    if (SUB_TERMINAL_STATUSES.includes(status)) {
       setPendingStatus(status)
       setConfirmOpen(true)
     } else {

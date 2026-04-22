@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listRolesApi, deleteRoleApi } from '@/api/roles'
+import { formatDate as _formatDate } from '@/lib/format'
 import type { Role } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -133,10 +134,7 @@ export default function RoleManagementPage() {
     }
   }, [deleteRole, deleteMutation])
 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr)
-    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
-  }
+  const formatDate = (dateStr: string) => _formatDate(dateStr.slice(0, 10))
 
   return (
     <TooltipProvider>
