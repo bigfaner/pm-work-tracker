@@ -23,8 +23,8 @@ status: Draft
 
 ### 2. 重复代码（原有问题）
 
-- Handler/Service/Repo 三层有重复样板：`mapNotFound` 副本、重复的分页和日期解析逻辑
-- `TableView` 和 `TableExportCSV` 共享约 60 行相同的 fetch+filter 代码
+- Handler/Service/Repo 三层有重复样板：`mapNotFound` 副本、重复的分页和日期解析逻辑（当前共 21 个重复副本：12 个 repo 层内联 `ErrRecordNotFound` 检查 + 1 个 `parsePagination` 重复函数 + 8 个 service 层日期解析样板）
+- `TableView` 和 `TableExportCSV` 共享 62 行相同的 fetch+filter 代码（`TableView` 第 576–608 行，`TableExportCSV` 第 638–649、651–662、668–669 行）
 
 ### 3. 规范缺失（原有问题）
 
@@ -129,7 +129,7 @@ status: Draft
 - [ ] `TableView` 分页下推到 repo 层，不再全表加载
 - [ ] `TableView` 和 `TableExportCSV` 共享 `fetchTableRows` 私有方法
 - [ ] `NewViewService` 只有一个构造函数
-- [ ] `linkageMuMap` 不再无限增长
+- [ ] `linkageMuMap` 有明确的清理路径：代码审查确认 `EvaluateLinkage` 完成后存在删除条目的调用，或改用 `sync.Map` 并有显式 `Delete` 调用；验证方式：PR review checklist 中逐行确认删除路径存在
 - [ ] 全部现有测试通过
 
 ### Phase 1–3
@@ -137,6 +137,7 @@ status: Draft
 - [ ] `docs/DECISIONS.md` 已创建，包含以下全部章节：JSON tag 规则、分页模式、日期解析模式、错误映射模式
 - [ ] `.claude/rules/naming.md`、`patterns.md`、`frontend.md` 已创建，可在 AI 会话中通过 `@rules` 引用加载
 - [ ] golangci-lint 新增 `tagliatelle` 规则，`go lint ./...` 能检测出 snake_case JSON tag 违规
+- [ ] ESLint 对 API 层文件命名违规（非 camelCase.ts）和组件导出命名违规（非 PascalCase）返回非零退出码；验证命令：`npx eslint src/api/BadName.ts` 退出码非零，`npx eslint src/components/badComponent.tsx` 退出码非零
 - [ ] 后端重复副本从当前 21 个（12 个 repo 层内联 `ErrRecordNotFound` 检查 + 1 个 `parsePagination` 重复函数 + 8 个 service 层日期解析样板）减少到 ≤10 个（减少 ≥50%）
 - [ ] 至少抽取 3 个可复用前端 UI 组件（需在 Phase 3 开始前列出具体组件名）
 - [ ] 全部现有测试通过
