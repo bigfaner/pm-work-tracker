@@ -1,32 +1,30 @@
-# PM Work Tracker - Configuration Example
-# Copy this file to config.yaml and adjust values as needed.
-# config.yaml should NOT be committed to version control.
-
 server:
-  port: "8080"              # Server listen port (1024-65535)
-  gin_mode: ""              # "release" for production, "" for debug
-  read_timeout: 30s         # HTTP read timeout
-  write_timeout: 30s        # HTTP write timeout
-  max_body_size: 10485760   # Max request body size in bytes (10 MB)
+  port: "8080"
+  gin_mode: "release"
+  base_path: ""
+  read_timeout: "30s"
+  write_timeout: "30s"
+  max_body_size: 10485760
 
 database:
-  driver: sqlite            # "sqlite" or "mysql"
-  path: ./data/dev.db       # SQLite database file path (sqlite only)
-  url: ""                   # MySQL DSN, e.g. "user:pass@tcp(localhost:3306)/db" (mysql only)
-  max_open_conns: 10        # Maximum open database connections
-  max_idle_conns: 5         # Maximum idle database connections
-  conn_max_lifetime: 1h     # Maximum connection lifetime
+  driver: "sqlite"
+  path: "./data/app.db"
+  url: ""
+  max_open_conns: 10
+  max_idle_conns: 5
+  conn_max_lifetime: "1h"
 
 auth:
-  jwt_secret: ""            # JWT signing secret (min 32 bytes, REQUIRED)
-  jwt_expiry: 24h           # JWT token expiry duration
-  initial_admin:            # Auto-created admin user on first startup
-    username: admin
-    password: admin123
+  jwt_secret: "CHANGE_ME_at_least_32_bytes_long_secret_key"
+  jwt_expiry: "24h"
+  initial_admin:
+    username: "admin"
+    password: "CHANGE_ME_initial_admin_password"
 
 cors:
-  origins: []               # Allowed CORS origins, e.g. ["http://localhost:3000"]
+  origins:
+    - "http://localhost:5173"
 
 logging:
-  level: info               # "debug", "info", "warn", or "error"
-  format: json              # "json" or "text"
+  level: "info"
+  format: "json"

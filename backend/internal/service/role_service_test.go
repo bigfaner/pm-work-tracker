@@ -556,11 +556,14 @@ func TestRoleService_ListRoles_WithCounts(t *testing.T) {
 
 	result, err := svc.ListRoles(context.Background())
 	require.NoError(t, err)
-	// Both roles get the same mock perm count and member count
-	for _, r := range result {
-		assert.Equal(t, 2, r.PermissionCount)
-		assert.Equal(t, int64(7), r.MemberCount)
-	}
+	require.Len(t, result, 2)
+
+	// superadmin gets TotalCodeCount(), pm gets len(perms)=2
+	assert.Equal(t, permissions.TotalCodeCount(), result[0].PermissionCount)
+	assert.Equal(t, int64(7), result[0].MemberCount)
+
+	assert.Equal(t, 2, result[1].PermissionCount)
+	assert.Equal(t, int64(7), result[1].MemberCount)
 }
 
 // strPtr is defined in admin_service_test.go

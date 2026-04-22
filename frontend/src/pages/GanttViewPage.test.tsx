@@ -112,7 +112,7 @@ const mockGanttResponse: GanttViewResp = {
 
 function setupGanttHandler(response = mockGanttResponse) {
   server.use(
-    http.get('/api/v1/teams/:teamId/views/gantt', () => {
+    http.get('/v1/teams/:teamId/views/gantt', () => {
       return HttpResponse.json({ code: 0, data: response })
     }),
   )

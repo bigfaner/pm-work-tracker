@@ -16,8 +16,24 @@ func setupRBACTestDB(t *testing.T) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
 
-	// Auto-migrate the pre-RBAC schema (with legacy columns)
-	err = db.AutoMigrate(&model.User{}, &model.Team{}, &model.Role{}, &model.TeamMember{})
+	// Auto-migrate non-legacy tables
+	err = db.AutoMigrate(&model.User{}, &model.Team{}, &model.Role{})
+	require.NoError(t, err)
+
+	// Create legacy team_members table with role string column (pre-RBAC schema)
+	err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS team_members (
+			id         INTEGER PRIMARY KEY AUTOINCREMENT,
+			team_id    INTEGER NOT NULL,
+			user_id    INTEGER NOT NULL,
+			role       TEXT NOT NULL DEFAULT 'member',
+			role_id    INTEGER,
+			joined_at  DATETIME NOT NULL DEFAULT (datetime('now')),
+			created_at DATETIME,
+			updated_at DATETIME,
+			UNIQUE(team_id, user_id)
+		)
+	`).Error
 	require.NoError(t, err)
 
 	// Create role_permissions table
@@ -51,13 +67,10 @@ func seedPreRBACData(t *testing.T, db *gorm.DB) {
 	team1 := model.Team{Name: "Team 1", PmID: u2.ID}
 	require.NoError(t, db.Create(&team1).Error)
 
-	// Create team members with legacy role strings
-	tm1 := model.TeamMember{TeamID: team1.ID, UserID: u2.ID, Role: "pm"}
-	require.NoError(t, db.Create(&tm1).Error)
-	tm2 := model.TeamMember{TeamID: team1.ID, UserID: u3.ID, Role: "member"}
-	require.NoError(t, db.Create(&tm2).Error)
-	tm3 := model.TeamMember{TeamID: team1.ID, UserID: u4.ID, Role: "member"}
-	require.NoError(t, db.Create(&tm3).Error)
+	// Insert team members with legacy role strings via raw SQL (role column is gorm:"-")
+	require.NoError(t, db.Exec(`INSERT INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, 'pm', datetime('now'))`, team1.ID, u2.ID).Error)
+	require.NoError(t, db.Exec(`INSERT INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, 'member', datetime('now'))`, team1.ID, u3.ID).Error)
+	require.NoError(t, db.Exec(`INSERT INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, 'member', datetime('now'))`, team1.ID, u4.ID).Error)
 }
 
 // === First-run success tests ===
@@ -442,9 +455,8 @@ func TestMigrateToRBAC_UnknownRoleDefaultsToMember(t *testing.T) {
 	team := model.Team{Name: "UnknownTeam", PmID: u.ID}
 	require.NoError(t, db.Create(&team).Error)
 
-	// Create team member with an unknown role string
-	tm := model.TeamMember{TeamID: team.ID, UserID: u.ID, Role: "custom_unknown_role"}
-	require.NoError(t, db.Create(&tm).Error)
+	// Create team member with an unknown role string via raw SQL (role column is gorm:"-")
+	require.NoError(t, db.Exec(`INSERT INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, 'custom_unknown_role', datetime('now'))`, team.ID, u.ID).Error)
 
 	err = MigrateToRBAC(db)
 	require.NoError(t, err)

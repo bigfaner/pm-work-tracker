@@ -316,7 +316,7 @@ export default function RoleManagementPage() {
             </Table>
 
             {/* Pagination */}
-            <div className="flex items-center justify-center px-5 py-3 border-t border-border">
+            <div className="flex items-center justify-center gap-3 px-5 py-3 border-t border-border">
               <div className="flex items-center gap-3">
                 <span className="text-[13px] text-tertiary">共 {total} 条</span>
                 {totalPages > 1 && (

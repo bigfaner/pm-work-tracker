@@ -122,7 +122,7 @@ let capturedFilter: Record<string, string | string[]> = {}
 function setupTableHandler(rows = seedRows) {
   capturedFilter = {}
   server.use(
-    http.get('/api/v1/teams/:teamId/views/table', ({ request }) => {
+    http.get('/v1/teams/:teamId/views/table', ({ request }) => {
       const url = new URL(request.url)
       capturedFilter = Object.fromEntries(url.searchParams.entries())
       const page = Number(url.searchParams.get('page') || 1)
@@ -161,7 +161,7 @@ function setupTableHandler(rows = seedRows) {
         },
       })
     }),
-    http.get('/api/v1/teams/:teamId/views/table/export', ({ request }) => {
+    http.get('/v1/teams/:teamId/views/table/export', ({ request }) => {
       const csvContent = '编号,标题,类型\nMI-0001,用户认证模块开发,main'
       return new HttpResponse(csvContent, {
         headers: {
@@ -170,7 +170,7 @@ function setupTableHandler(rows = seedRows) {
         },
       })
     }),
-    http.get('/api/v1/teams/:teamId/members', () => {
+    http.get('/v1/teams/:teamId/members', () => {
       return HttpResponse.json({
         code: 0,
         data: [

@@ -7,7 +7,7 @@ const message = {
 }
 
 const client = axios.create({
-  baseURL: '/api/v1',
+  baseURL: `${import.meta.env.VITE_BASE_PATH ?? ''}/v1`,
 })
 
 // Request interceptor: attach Authorization header

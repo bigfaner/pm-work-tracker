@@ -63,7 +63,7 @@ const seedTeams = [
 function setupHandlers() {
   server.use(
     // List users
-    http.get('/api/v1/admin/users', ({ request }) => {
+    http.get('/v1/admin/users', ({ request }) => {
       const url = new URL(request.url)
       const search = url.searchParams.get('search')
       const page = Number(url.searchParams.get('page') || 1)
@@ -87,7 +87,7 @@ function setupHandlers() {
     }),
 
     // List admin teams
-    http.get('/api/v1/admin/teams', () => {
+    http.get('/v1/admin/teams', () => {
       return HttpResponse.json({
         code: 0,
         data: { items: seedTeams, total: seedTeams.length, page: 1, pageSize: 100 },
@@ -95,7 +95,7 @@ function setupHandlers() {
     }),
 
     // Create user
-    http.post('/api/v1/admin/users', async ({ request }) => {
+    http.post('/v1/admin/users', async ({ request }) => {
       const body = (await request.json()) as Record<string, unknown>
       const username = body.username as string
 
@@ -121,7 +121,7 @@ function setupHandlers() {
     }),
 
     // Update user
-    http.put('/api/v1/admin/users/:userId', async ({ params, request }) => {
+    http.put('/v1/admin/users/:userId', async ({ params, request }) => {
       const userId = Number(params.userId)
       const body = (await request.json()) as Record<string, unknown>
       const user = seedUsers.find((u) => u.id === userId)
@@ -135,7 +135,7 @@ function setupHandlers() {
     }),
 
     // Toggle user status
-    http.put('/api/v1/admin/users/:userId/status', async ({ params, request }) => {
+    http.put('/v1/admin/users/:userId/status', async ({ params, request }) => {
       const userId = Number(params.userId)
       const body = (await request.json()) as { status: string }
       const user = seedUsers.find((u) => u.id === userId)
@@ -376,7 +376,7 @@ describe('UserManagementPage', () => {
 
   it('shows empty state when no users exist', async () => {
     server.use(
-      http.get('/api/v1/admin/users', () => {
+      http.get('/v1/admin/users', () => {
         return HttpResponse.json({
           code: 0,
           data: { items: [], total: 0, page: 1, pageSize: 10 },

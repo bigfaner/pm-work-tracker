@@ -46,6 +46,8 @@ describe('PaginationPageSize', () => {
   it('renders page size selector', () => {
     render(<PaginationPageSize pageSize={10} onPageSizeChange={vi.fn()} />)
     expect(screen.getByDisplayValue('10')).toBeInTheDocument()
+    expect(screen.getByText('每页')).toBeInTheDocument()
+    expect(screen.getByText('条')).toBeInTheDocument()
   })
 
   it('calls onPageSizeChange', async () => {

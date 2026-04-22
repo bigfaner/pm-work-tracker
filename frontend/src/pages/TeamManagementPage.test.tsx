@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { server } from '@/mocks/server'
 import { http, HttpResponse } from 'msw'
+import { ToastProvider } from '@/components/ui/toast'
 
 // MSW lifecycle
 beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
@@ -23,9 +24,11 @@ function renderPage() {
   const qc = createQueryClient()
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        <TeamManagementPage />
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter>
+          <TeamManagementPage />
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>,
   )
 }
@@ -66,12 +69,12 @@ const seedTeams = [
 function setupHandlers() {
   server.use(
     // List teams
-    http.get('/api/v1/teams', () => {
+    http.get('/v1/teams', () => {
       return HttpResponse.json({ code: 0, data: seedTeams })
     }),
 
     // Create team
-    http.post('/api/v1/teams', async ({ request }) => {
+    http.post('/v1/teams', async ({ request }) => {
       const body = (await request.json()) as { name: string; description?: string }
       if (!body.name || !body.name.trim()) {
         return HttpResponse.json(
@@ -214,7 +217,7 @@ describe('TeamManagementPage', () => {
 
   it('shows empty state when no teams exist', async () => {
     server.use(
-      http.get('/api/v1/teams', () => {
+      http.get('/v1/teams', () => {
         return HttpResponse.json({ code: 0, data: [] })
       }),
     )
@@ -241,7 +244,7 @@ describe('TeamManagementPage', () => {
 
   it('shows loading state', async () => {
     server.use(
-      http.get('/api/v1/teams', async () => {
+      http.get('/v1/teams', async () => {
         await new Promise((resolve) => setTimeout(resolve, 500))
         return HttpResponse.json({ code: 0, data: seedTeams })
       }),

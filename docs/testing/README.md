@@ -76,7 +76,50 @@ The merge strategy documented here remains stable as long as the feature
 hierarchy doesn't change (i.e., improve-ui remains a UI-layer delta on
 pm-work-tracker, and config-yaml remains backend-only).
 
-## For E2E Script Generation
+## Running Tests Locally
+
+### Backend (Go)
+
+```bash
+cd backend
+go test ./...
+```
+
+All packages are covered. Tests use in-memory SQLite — no external dependencies needed.
+
+### Frontend Unit Tests (Vitest)
+
+```bash
+cd frontend
+npx vitest --run
+```
+
+Runs all unit tests under `src/`. E2E specs in `__tests__/e2e/` are excluded via `vitest.config.ts`:
+
+```ts
+exclude: ['__tests__/e2e/**', 'node_modules/**'],
+```
+
+This exclusion is necessary because Playwright specs use `test.describe()` / `test.setTimeout()` APIs that Vitest doesn't understand — without it, Vitest would pick them up and fail immediately.
+
+### Frontend E2E Tests (Playwright)
+
+```bash
+cd frontend
+npx playwright test
+```
+
+Requires a running backend + frontend server. Run separately from unit tests.
+
+### Test File Conventions
+
+| Layer | Location | Runner |
+|-------|----------|--------|
+| Go unit | `backend/**/*_test.go` | `go test` |
+| React unit | `frontend/src/**/*.test.tsx` | Vitest |
+| API / CLI e2e | `frontend/__tests__/e2e/*.spec.ts` | Playwright |
+
+
 
 When running `/gen-test-scripts`, use these test case files:
 
