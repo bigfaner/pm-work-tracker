@@ -91,7 +91,7 @@ func TestWeeklyPreview_Success(t *testing.T) {
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/reports/weekly/preview?weekStart="+monday(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/preview?weekStart="+monday(), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -118,7 +118,7 @@ func TestWeeklyPreview_MissingWeekStart(t *testing.T) {
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/reports/weekly/preview", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/preview", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -133,7 +133,7 @@ func TestWeeklyPreview_InvalidDateFormat(t *testing.T) {
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/reports/weekly/preview?weekStart=not-a-date", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/preview?weekStart=not-a-date", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -149,7 +149,7 @@ func TestWeeklyPreview_NotAMonday(t *testing.T) {
 	token := signTestToken(t, 5, "testuser")
 	// 2026-04-14 is a Tuesday
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/reports/weekly/preview?weekStart=2026-04-14", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/preview?weekStart=2026-04-14", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -171,7 +171,7 @@ func TestWeeklyPreview_NoData(t *testing.T) {
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/reports/weekly/preview?weekStart="+monday(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/preview?weekStart="+monday(), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -192,7 +192,7 @@ func TestWeeklyPreview_ServiceError(t *testing.T) {
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/reports/weekly/preview?weekStart="+monday(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/preview?weekStart="+monday(), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -205,7 +205,7 @@ func TestWeeklyPreview_RequiresAuth(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/reports/weekly/preview?weekStart="+monday(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/preview?weekStart="+monday(), nil)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
@@ -223,7 +223,7 @@ func TestWeeklyPreview_RequiresTeamMembership(t *testing.T) {
 
 	token := signTestToken(t, 99, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/reports/weekly/preview?weekStart="+monday(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/preview?weekStart="+monday(), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -244,7 +244,7 @@ func TestWeeklyExport_Success(t *testing.T) {
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/reports/weekly/export?weekStart="+monday(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/export?weekStart="+monday(), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -268,7 +268,7 @@ func TestWeeklyExport_MissingWeekStart(t *testing.T) {
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/reports/weekly/export", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/export", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -283,7 +283,7 @@ func TestWeeklyExport_InvalidDateFormat(t *testing.T) {
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/reports/weekly/export?weekStart=invalid", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/export?weekStart=invalid", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -298,7 +298,7 @@ func TestWeeklyExport_NotAMonday(t *testing.T) {
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/reports/weekly/export?weekStart=2026-04-14", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/export?weekStart=2026-04-14", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -315,7 +315,7 @@ func TestWeeklyExport_NoData(t *testing.T) {
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/reports/weekly/export?weekStart="+monday(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/export?weekStart="+monday(), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -336,7 +336,7 @@ func TestWeeklyExport_ServiceError(t *testing.T) {
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/reports/weekly/export?weekStart="+monday(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/export?weekStart="+monday(), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -349,7 +349,7 @@ func TestWeeklyExport_RequiresAuth(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/reports/weekly/export?weekStart="+monday(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/export?weekStart="+monday(), nil)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
@@ -365,7 +365,7 @@ func TestWeeklyExport_FilenameFormat(t *testing.T) {
 
 	token := signTestToken(t, 5, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/teams/10/reports/weekly/export?weekStart=2026-04-13", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/reports/weekly/export?weekStart=2026-04-13", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 

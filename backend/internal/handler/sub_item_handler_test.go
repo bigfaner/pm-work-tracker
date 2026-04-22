@@ -555,7 +555,9 @@ func TestChangeStatus_Success(t *testing.T) {
 	require.NoError(t, err)
 	data, ok := resp["data"].(map[string]interface{})
 	require.True(t, ok)
-	assert.Equal(t, "progressing", data["status"])
+	subItem, ok := data["subItem"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "progressing", subItem["status"])
 }
 
 func TestChangeStatus_InvalidStatus_422(t *testing.T) {

@@ -115,7 +115,8 @@ func testDeps(t *testing.T) (*Dependencies, *gorm.DB) {
 			Origins: []string{"http://localhost:3000"},
 		},
 		Server: config.ServerConfig{
-			GinMode: "test",
+			GinMode:  "test",
+			BasePath: "/api",
 		},
 	}
 
@@ -256,7 +257,7 @@ func TestTeamListCreateRoutes_WithSuperAdminAuth(t *testing.T) {
 
 	// POST /api/v1/teams with superadmin auth — stub service returns error -> 500
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams", strings.NewReader(`{"name":"test"}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams", strings.NewReader(`{"name":"test","code":"TEST"}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
