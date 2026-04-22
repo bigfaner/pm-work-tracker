@@ -121,6 +121,7 @@ export interface SubItem {
   id: number
   teamId: number
   mainItemId: number
+  code: string
   title: string
   description: string
   priority: string

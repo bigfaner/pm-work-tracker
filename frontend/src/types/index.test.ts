@@ -80,6 +80,7 @@ describe('shared TypeScript interfaces', () => {
       id: 1,
       teamId: 1,
       mainItemId: 1,
+      code: 'A001-01',
       title: 'Sub task',
       description: 'Details',
       priority: 'P1',
