@@ -16,34 +16,34 @@ evaluator: Claude (automated)
 ║                      DESIGN QUALITY REPORT                        ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║                                                                   ║
-║  1. 架构清晰度 (Architecture Clarity)               Grade: A      ║
-║     ├── 层级归属明确                                ✅           ║
-║     ├── 组件图存在                                  ✅           ║
-║     └── 依赖关系列出                                ✅           ║
+║  1. 架构清晰度 (Architecture Clarity)               Grade: A     ║
+║     ├── 层级归属明确                                [A]          ║
+║     ├── 组件图存在                                  [A]          ║
+║     └── 依赖关系列出                                [A]          ║
 ║                                                                   ║
-║  2. 接口与模型定义 (Interface & Model)               Grade: A      ║
-║     ├── 接口有类型签名                              ✅           ║
-║     ├── 模型有字段类型和约束                         ✅           ║
-║     └── 可直接驱动实现                              ✅           ║
+║  2. 接口与模型定义 (Interface & Model)               Grade: A     ║
+║     ├── 接口有类型签名                              [A]          ║
+║     ├── 模型有字段类型和约束                         [A]          ║
+║     └── 可直接驱动实现                              [A]          ║
 ║                                                                   ║
-║  3. 错误处理 (Error Handling)                        Grade: A      ║
-║     ├── 错误类型定义                                ✅           ║
-║     ├── 传播策略清晰                                ✅           ║
-║     └── HTTP 状态码映射                             ✅           ║
+║  3. 错误处理 (Error Handling)                        Grade: A     ║
+║     ├── 错误类型定义                                [A]          ║
+║     ├── 传播策略清晰                                [A]          ║
+║     └── HTTP 状态码映射                             [A]          ║
 ║                                                                   ║
-║  4. 测试策略 (Testing Strategy)                      Grade: B      ║
-║     ├── 按层级分解                                  ✅           ║
-║     ├── 覆盖率目标                                  ✅           ║
-║     └── 测试工具指定                                ⚠️           ║
+║  4. 测试策略 (Testing Strategy)                      Grade: B     ║
+║     ├── 按层级分解                                  [A]          ║
+║     ├── 覆盖率目标                                  [A]          ║
+║     └── 测试工具指定                                [C]          ║
 ║                                                                   ║
-║  5. 可拆解性 (Breakdown-Readiness) ★                Grade: A      ║
-║     ├── 组件可枚举                                  ✅           ║
-║     ├── 任务可推导                                  ✅           ║
-║     └── PRD 验收标准覆盖                            ✅           ║
+║  5. 可拆解性 (Breakdown-Readiness) ★                Grade: A     ║
+║     ├── 组件可枚举                                  [A]          ║
+║     ├── 任务可推导                                  [A]          ║
+║     └── PRD 验收标准覆盖                            [A]          ║
 ║                                                                   ║
-║  6. 安全考量 (Security)                              Grade: A      ║
-║     ├── 威胁模型                                    ✅           ║
-║     └── 缓解措施                                    ✅           ║
+║  6. 安全考量 (Security)                              Grade: A     ║
+║     ├── 威胁模型                                    [A]          ║
+║     └── 缓解措施                                    [A]          ║
 ║                                                                   ║
 ╚═══════════════════════════════════════════════════════════════════╝
 ```
@@ -54,17 +54,17 @@ evaluator: Claude (automated)
 
 ## 结构完整性
 
-| Section                  | 状态      | 备注 |
-| ------------------------ | --------- | ---- |
-| Overview + 技术栈        | ✅        | 清晰阐述核心决策（SELECT FOR UPDATE、快照、事务） |
-| Architecture (层级+图)   | ✅        | 表格 + ASCII 组件图，层级明确 |
-| Interfaces               | ✅        | 完整的方法签名、DTO、Handler 映射 |
-| Data Models              | ✅        | Go struct 定义，含 GORM tag 和约束 |
-| Error Handling           | ✅        | 错误类型、传播策略、HTTP 映射表 |
-| Testing Strategy         | ✅        | 单元测试、集成测试、覆盖率目标 |
-| Security Considerations  | ✅        | 威胁模型、缓解措施 |
-| Open Questions           | ✅        | SQLite FOR UPDATE、GORM tag 语法 |
-| Alternatives Considered  | ✅        | 3 个方案对比，决策理由清晰 |
+| Section                  | 状态  | 备注 |
+| ------------------------ | ----- | ---- |
+| Overview + 技术栈        | ✅    | 核心技术决策（SELECT FOR UPDATE、快照写入、事务迁移）均已说明 |
+| Architecture (层级+图)   | ✅    | 层级表 + ASCII 组件图均存在 |
+| Interfaces               | ✅    | NextCode()、NextSubCode()、CreateTeamReq、teamToDTO 均有完整签名 |
+| Data Models              | ✅    | Team、MainItem、SubItem 均有 Go struct 定义含 GORM tag |
+| Error Handling           | ✅    | 新增错误类型 + 场景映射表 |
+| Testing Strategy         | ✅    | 单元测试 + 集成测试分层，含覆盖率目标 |
+| Security Considerations  | ✅    | 威胁模型 + 缓解措施均存在 |
+| Open Questions           | ✅    | 两个问题均已标记决策结果 |
+| Alternatives Considered  | ✅    | Appendix 中有三方案对比表 |
 
 ---
 
@@ -72,13 +72,13 @@ evaluator: Claude (automated)
 
 | 检查项 | 状态 | 备注 |
 |--------|------|------|
-| 明确说明所属层级 | ✅ | Layer Placement 表格清晰列出 Model/Repo/Service/Handler/Migration/Frontend |
-| 有组件图（ASCII/文字） | ✅ | Component Diagram 展示 TeamHandler → TeamService → TeamRepo → DB 的完整流程 |
-| 数据流向可追踪 | ✅ | NextCode() 和 NextSubCode() 的事务流程明确 |
-| 内外部依赖列出 | ✅ | "无新增外部依赖"，使用 GORM 现有 API |
-| 与项目现有架构一致 | ✅ | 遵循现有 Handler-Service-Repo 三层架构 |
+| 明确说明所属层级 | ✅ | 六层（Model/Repo/Service/Handler/Migration/Frontend）逐一列出 |
+| 有组件图（ASCII/文字） | ✅ | 三条调用链均有 ASCII 图 |
+| 数据流向可追踪 | ✅ | 从 Handler → Service → Repo → DB 可完整追踪 |
+| 内外部依赖列出 | ✅ | 明确声明无新增外部依赖，GORM 事务用法已说明 |
+| 与项目现有架构一致 | ✅ | 沿用 isDuplicateKeyError()、GORM AutoMigrate、gin binding 等现有模式 |
 
-**评价**: 架构设计清晰，层级划分合理，与现有项目架构完全一致。组件图虽为 ASCII 格式但足够清晰。
+**问题**: 无明显问题。
 
 ---
 
@@ -86,14 +86,16 @@ evaluator: Claude (automated)
 
 | 检查项 | 状态 | 备注 |
 |--------|------|------|
-| 接口方法有参数类型 | ✅ | NextCode(ctx context.Context, teamID uint) |
-| 接口方法有返回类型 | ✅ | (string, error) |
-| 模型字段有类型 | ✅ | Team.Code: string, MainItem.Code: string, SubItem.Code: string |
-| 模型字段有约束 | ✅ | GORM tag 完整：varchar(6) NOT NULL, uniqueIndex, composite index |
-| 所有主要组件都有定义 | ✅ | Team、MainItem、SubItem、CreateTeamReq DTO 均有完整定义 |
-| 开发者可直接编码 | ✅ | 包含 GORM tag、binding tag、SQL 约束，无需猜测 |
+| 接口方法有参数类型 | ✅ | ctx context.Context、teamID uint、mainItemID uint 均已标注 |
+| 接口方法有返回类型 | ✅ | (string, error) 明确 |
+| 模型字段有类型 | ✅ | varchar 长度、uint、string 均已标注 |
+| 模型字段有约束（not null、index 等） | ✅ | GORM tag 含 not null、uniqueIndex、composite 等 |
+| 所有主要组件都有定义 | ✅ | Repo 接口、DTO、Handler helper、Model struct 均覆盖 |
+| 开发者可直接编码，无需猜测 | ✅ | NextCode() 实现代码已给出完整示例 |
 
-**评价**: 接口和模型定义非常具体，包含完整的类型、约束、索引定义。开发者可直接复制代码实现，无歧义。
+**问题**: SubItemRepo 接口定义中用 `// ... 现有方法 ...` 省略了已有方法，不影响实现但略显不完整。
+
+**建议**: 注明"仅展示新增方法"以消除歧义。
 
 ---
 
@@ -101,12 +103,12 @@ evaluator: Claude (automated)
 
 | 检查项 | 状态 | 备注 |
 |--------|------|------|
-| 自定义错误类型定义 | ✅ | ErrTeamCodeDuplicate、ErrTeamCodeRequired 已定义 |
-| 层间传播策略明确 | ✅ | 表格清晰说明各场景的错误来源、处理方式、重试策略 |
-| HTTP 状态码映射 | ✅ | 400 for validation/duplicate, 401 for unauthorized |
-| 调用方行为说明 | ✅ | 说明了 isDuplicateKeyError() 检测、重试逻辑 |
+| 自定义错误类型或错误码定义 | ✅ | ErrTeamCodeDuplicate、ErrTeamCodeRequired 含 Code/Message/Status |
+| 层间传播策略明确 | ✅ | 场景表逐行说明错误来源和处理方式 |
+| HTTP 状态码与错误类型映射 | ✅ | Status: 400 在错误定义中直接标注，API Handbook 也有对应 |
+| 调用方行为说明 | ✅ | NextCode/NextSubCode 失败透传；SubItem 唯一冲突重试最多 3 次 |
 
-**评价**: 错误处理策略完整，包括新增错误类型、现有错误复用、重试机制。特别是对 SubItem.Code 唯一约束冲突的重试处理（最多 3 次）体现了对并发场景的考虑。
+**问题**: 无明显问题。
 
 ---
 
@@ -114,23 +116,21 @@ evaluator: Claude (automated)
 
 | 层级 | 测试类型 | 工具 | 覆盖率目标 | 状态 |
 |------|----------|------|------------|------|
-| Repository | Unit | 未指定 | 100% (NextCode/NextSubCode) | ⚠️ |
-| Service | Unit | 未指定 | 100% (Team Code validation) | ⚠️ |
-| Model | Unit | 未指定 | 隐含 | ⚠️ |
-| Integration | Concurrency | 未指定 | 隐含 | ⚠️ |
-| Integration | Migration | 手动演练 | 隐含 | ⚠️ |
+| Repository (NextCode) | 单元测试 | 未指定 | 100% | ⚠️ |
+| Repository (NextSubCode) | 单元测试 | 未指定 | 100% | ⚠️ |
+| Service (TeamService) | 单元测试 | 未指定 | 100%（Code 校验路径） | ⚠️ |
+| Model | 单元测试 | 未指定 | — | ⚠️ |
+| 并发创建 | 集成测试 | 未指定 | — | ⚠️ |
+| 迁移后数据校验 | 集成测试 | 未指定 | — | ⚠️ |
+| Frontend（6 页面） | — | — | — | ❌ 缺失 |
 
-**问题**: 
-- 测试工具未明确指定（Go testing framework? testify? ginkgo?）
-- 集成测试的具体执行方式未说明（如何模拟并发？）
-- 迁移测试标记为"手动演练"，缺乏自动化验证
+**问题**:
+1. 测试工具未在设计文档中命名（项目规范使用 testify，但设计文档本身未引用）。
+2. 前端 6 个页面的测试策略完全缺失——PRD 明确列出 6 处展示变更，设计文档未给出对应的前端测试计划。
 
-**建议**: 
-- 补充测试工具选型（推荐 Go 标准 testing + testify/assert）
-- 补充并发测试的具体实现方式（如使用 sync.WaitGroup）
-- 考虑为迁移脚本添加自动化验证（如 SQL 查询验证迁移结果）
-
-**评价**: 测试策略框架完整，但工具选型和具体实现细节不足。降级为 B。
+**建议**:
+- 补充一行"测试工具：go test + testify（后端）、vitest + @testing-library/react（前端）"。
+- 为前端变更补充测试策略，至少说明哪些页面需要组件测试验证 code 字段渲染。
 
 ---
 
@@ -138,25 +138,28 @@ evaluator: Claude (automated)
 
 | 检查项 | 状态 | 备注 |
 |--------|------|------|
-| 组件/模块可枚举 | ✅ | 清晰列出 Model、Repo、Service、Handler、Migration、Frontend 各层的变更 |
-| 每个接口可推导任务 | ✅ | NextCode()、NextSubCode()、CreateTeamReq 均可直接转化为实现任务 |
-| 每个数据模型可推导任务 | ✅ | Team.Code、MainItem.Code、SubItem.Code 的 schema 和迁移任务明确 |
-| 无模糊边界 | ✅ | 所有共享逻辑（如 isDuplicateKeyError()）都有明确说明 |
-| PRD 验收标准覆盖 | ✅ | 所有 PRD 需求目标和 Scope 项均在设计中体现 |
+| 组件/模块可枚举（能列出清单） | ✅ | 可枚举：3 个 Model、2 个 Repo 方法、2 个 Service 调用点、1 个 Handler、1 个 DTO、1 个迁移 SQL、1 个迁移程序、6 个前端页面 |
+| 每个接口 → 可推导出实现任务 | ✅ | NextCode() 重写、NextSubCode() 新增均可直接对应实现任务 |
+| 每个数据模型 → 可推导出 schema/迁移任务 | ✅ | Team/MainItem/SubItem 各对应 ALTER TABLE + GORM struct 修改任务 |
+| 无模糊边界（"共享逻辑"等） | ✅ | 各组件归属层级明确，无跨层模糊描述 |
+| PRD 验收标准在设计中均有体现 | ✅ | 见下方追溯表 |
 
-**PRD 覆盖检查**:
-- ✅ Team.Code 字段（2~6 位字母，全局唯一）
-- ✅ MainItem 编码格式 {TEAM_CODE}-NNNNN
-- ✅ SubItem 编码格式 {TEAM_CODE}-NNNNN-NN
-- ✅ NextCode() SELECT FOR UPDATE 锁机制
-- ✅ NextSubCode() 新增方法
-- ✅ TeamManagementPage 创建对话框 Code 输入框
-- ✅ 5 个页面编码展示更新
-- ✅ 数据迁移脚本和回滚脚本
-- ✅ 编码不可变性（快照机制）
-- ✅ 并发序列化（per-team、per-main-item 锁）
+**PRD In-Scope 追溯**:
 
-**评价**: 设计高度可拆解，每个组件都有明确的实现边界和验收标准。可直接推导出 15+ 个独立任务。
+| PRD 条目 | 设计覆盖 |
+|----------|---------|
+| Team.Code 字段（varchar(6)，唯一，2~6 字母） | ✅ model.Team struct + migration SQL |
+| MainItem 编码格式改为 {TEAM_CODE}-NNNNN | ✅ NextCode() 实现 + format string |
+| SubItem 新增 Code 字段，NextSubCode() | ✅ SubItemRepo 接口 + 实现 |
+| TeamManagementPage 创建对话框新增 Code 输入 | ✅ Architecture 层级表 Frontend 行 |
+| 团队列表页新增 Code 列 | ✅ Architecture 层级表 Frontend 行 |
+| 5 个页面编码展示更新 | ✅ Architecture 层级表 Frontend 行 |
+| MainItemDetailPage 子事项从运行时拼接改为读取 SubItem.Code | ✅ Architecture 层级表 + SubItem model |
+| 数据迁移（重写 MI-XXXX + 生成 SubItem.Code） | ✅ Migration SQL + rewrite_codes.go 逻辑描述 |
+
+**问题**: 迁移程序 `cmd/migrate/rewrite_codes.go` 的逻辑以注释形式描述，未给出函数签名，任务可推导但实现细节需开发者自行补全。
+
+**建议**: 补充迁移程序的函数签名（如 `func rewriteMainItemCodes(db *gorm.DB) error`），使迁移任务边界更清晰。
 
 ---
 
@@ -164,11 +167,9 @@ evaluator: Claude (automated)
 
 | 检查项 | 状态 | 备注 |
 |--------|------|------|
-| 威胁模型识别 | ✅ | 识别了 Team.Code 唯一性校验、注入防护两个威胁 |
-| 缓解措施具体 | ✅ | 后端 DTO binding tag `alpha`、DB 唯一索引、isDuplicateKeyError() 检测 |
-| 与功能风险面匹配 | ✅ | 措施与编码系统的风险面相匹配 |
-
-**评价**: 虽然功能本身安全风险较低，但设计充分考虑了编码唯一性和格式校验的防护。三层防线（前端校验、后端 DTO binding、DB 约束）体现了纵深防御思想。
+| 威胁模型识别 | ✅ | 识别了前端校验绕过风险、特殊字符注入风险 |
+| 缓解措施具体 | ✅ | DTO binding tag `alpha`、DB 唯一索引、isDuplicateKeyError() 双重保障 |
+| 与功能风险面匹配 | ✅ | 风险面仅为输入校验和唯一性，缓解措施与之匹配，无过度设计 |
 
 ---
 
@@ -176,30 +177,15 @@ evaluator: Claude (automated)
 
 | 优先级 | 维度 | 问题 | 建议操作 |
 |--------|------|------|----------|
-| P1 | 测试策略 | 测试工具未指定 | 补充 Go testing framework 选型和具体工具链 |
-| P2 | 测试策略 | 并发测试实现细节缺失 | 补充 sync.WaitGroup 等并发测试的具体代码示例 |
-| P2 | 测试策略 | 迁移验证缺乏自动化 | 考虑为迁移脚本添加自动化验证查询 |
+| P1 | 测试策略 | 前端 6 个页面无测试计划 | 补充前端测试策略：说明哪些组件需验证 code 字段渲染（vitest + @testing-library/react） |
+| P2 | 测试策略 | 测试工具未在文档中命名 | 在 Testing Strategy 开头补一行工具声明 |
+| P2 | 接口定义 | SubItemRepo 接口省略现有方法 | 注明"仅展示新增方法"消除歧义 |
+| P2 | 迁移程序 | rewrite_codes.go 逻辑仅有注释 | 补充函数签名，明确事务边界和错误处理策略 |
 
 ---
 
 ## 结论
 
-- **可以进入 `/breakdown-tasks`**: ✅ 是
-- **预计可拆解任务数**: ~18 个（后端 8 个 + 前端 6 个 + 测试 3 个 + 迁移 1 个）
-- **建议**: 设计质量优秀，架构清晰、接口具体、可拆解性强。建议先补充测试工具选型后进入任务拆分阶段。
-
----
-
-## 快速参考
-
-**关键技术决策**:
-- SELECT FOR UPDATE 悲观锁消除 race condition
-- Team.Code 快照机制保证编码不可变
-- 单事务迁移 + 回滚脚本保证数据安全
-
-**关键风险**:
-- SQLite FOR UPDATE 退化为表锁（已接受，测试环境影响可控）
-- 迁移需要手动设置 Team.Code（已在流程中说明）
-
-**关键依赖**:
-- 无新增外部依赖，使用现有 GORM、Gin、validator
+- **可以进入 `/breakdown-tasks`**: 是
+- **预计可拆解任务数**: ~14 个
+- **建议**: 设计质量整体优秀，P1 问题（前端测试策略缺失）可在任务拆解时同步补充，不阻塞进入下一阶段。

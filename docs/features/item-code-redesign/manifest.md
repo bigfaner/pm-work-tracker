@@ -21,7 +21,7 @@ status: tasks
 
 | PRD Section | Design Section | Tasks |
 |-------------|----------------|-------|
-| Team Code 字段 + 校验 | Data Models: model.Team；Interfaces: CreateTeamReq；Error Handling: ErrTeamCodeDuplicate | — |
-| NextCode() / NextSubCode() 算法 | Interfaces: MainItemRepo.NextCode()；SubItemRepo.NextSubCode() | — |
-| 数据迁移 | Data Models: Migration 008；Appendix: 迁移执行顺序 | — |
-| 前端编码展示变更 | API Handbook: Data Contracts | — |
+| Team Code 字段 + 校验 | Data Models: model.Team；Interfaces: CreateTeamReq；Error Handling: ErrTeamCodeDuplicate | 1.1, 2.3, 3.1, 5.1 |
+| NextCode() / NextSubCode() 算法 | Interfaces: MainItemRepo.NextCode()；SubItemRepo.NextSubCode() | 2.1, 2.2, 3.2, 6.1, 6.2 |
+| 数据迁移 | Data Models: Migration 008；Appendix: 迁移执行顺序 | 1.2, 1.3, 1.4, 4.1 |
+| 前端编码展示变更 | API Handbook: Data Contracts | 5.2 |

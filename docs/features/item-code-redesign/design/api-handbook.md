@@ -8,12 +8,12 @@ related: design/tech-design.md
 ## API Overview
 
 本次变更涉及以下 API 改动：
-1. `POST /api/v1/teams` — 请求体新增 `code` 字段；响应新增 `code` 字段
-2. `GET /api/v1/teams` — 响应列表项新增 `code` 字段
-3. `GET /api/v1/teams/:teamId` — 响应新增 `code` 字段
+1. `POST /v1/teams` — 请求体新增 `code` 字段；响应新增 `code` 字段
+2. `GET /v1/teams` — 响应列表项新增 `code` 字段
+3. `GET /v1/teams/:teamId` — 响应新增 `code` 字段
 4. 主事项和子事项相关接口的响应中，`code` 字段值格式变更（`MI-NNNN` → `TEAM-NNNNN` / `TEAM-NNNNN-NN`）
 
-子事项创建接口（`POST /api/v1/teams/:teamId/sub-items`）无签名变更，响应中新增 `code` 字段。
+子事项创建接口（`POST /v1/teams/:teamId/sub-items`）无签名变更，响应中新增 `code` 字段。
 
 ---
 
@@ -22,7 +22,7 @@ related: design/tech-design.md
 ### 创建团队
 
 **Method**: `POST`
-**Path**: `/api/v1/teams`
+**Path**: `/v1/teams`
 **Auth**: 已登录用户（`team:create` 权限）
 
 #### Request
@@ -81,7 +81,7 @@ related: design/tech-design.md
 ### 获取团队列表
 
 **Method**: `GET`
-**Path**: `/api/v1/teams`
+**Path**: `/v1/teams`
 **Auth**: 已登录用户
 
 #### Response (200)
@@ -104,7 +104,7 @@ related: design/tech-design.md
 ### 获取团队详情
 
 **Method**: `GET`
-**Path**: `/api/v1/teams/:teamId`
+**Path**: `/v1/teams/:teamId`
 **Auth**: 团队成员
 
 #### Response (200)
@@ -116,7 +116,7 @@ related: design/tech-design.md
 ### 创建主事项（响应变更）
 
 **Method**: `POST`
-**Path**: `/api/v1/teams/:teamId/main-items`
+**Path**: `/v1/teams/:teamId/main-items`
 **Auth**: 团队成员（`main_item:create` 权限）
 
 请求体无变更。响应中 `code` 字段值格式从 `MI-NNNN` 变为 `{TEAM_CODE}-NNNNN`：
@@ -137,7 +137,7 @@ related: design/tech-design.md
 ### 创建子事项（响应变更）
 
 **Method**: `POST`
-**Path**: `/api/v1/teams/:teamId/sub-items`
+**Path**: `/v1/teams/:teamId/sub-items`
 **Auth**: 团队成员（`main_item:update` 权限）
 
 请求体无变更。响应新增 `code` 字段：
