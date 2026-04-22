@@ -19,6 +19,7 @@ type SubItem struct {
 	Completion      float64    `gorm:"default:0" json:"completion"`
 	IsKeyItem       bool       `gorm:"not null;default:false" json:"isKeyItem"`
 	Weight          float64    `gorm:"default:1" json:"weight"`
+	Code            string     `gorm:"type:varchar(15);not null;default:''" json:"code"`
 }
 
 func (SubItem) TableName() string {

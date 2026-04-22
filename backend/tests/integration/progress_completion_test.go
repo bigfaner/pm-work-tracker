@@ -30,7 +30,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 
 	mainItem := &model.MainItem{
 		TeamID:     teamID,
-		Code:       "MI-001",
+		Code:       "TAMA-00001",
 		Title:      "Test Main Item",
 		Priority:   "P1",
 		ProposerID: userID,
@@ -178,7 +178,7 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamID, userID uint) (poolID, mainI
 
 	mainItem := &model.MainItem{
 		TeamID:     teamID,
-		Code:       "MI-POOL-001",
+		Code:       "TAMA-00002",
 		Title:      "Main Item for Pool",
 		Priority:   "P1",
 		ProposerID: userID,
@@ -262,7 +262,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart ti
 
 	mainItem := &model.MainItem{
 		TeamID:     teamID,
-		Code:       "MI-RPT-001",
+		Code:       "TAMA-00003",
 		Title:      "Report Test Main Item",
 		Priority:   "P1",
 		ProposerID: userID,
@@ -357,7 +357,8 @@ func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engi
 			Origins: []string{"http://localhost:3000"},
 		},
 		Server: config.ServerConfig{
-			GinMode: "test",
+			GinMode:  "test",
+			BasePath: "/api",
 		},
 	}
 
@@ -377,6 +378,6 @@ func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engi
 		Admin:    handler.NewAdminHandler(adminSvc),
 	}
 
-	r := handler.SetupRouter(deps)
+	r := handler.SetupRouter(deps, nil)
 	return r, data
 }

@@ -198,18 +198,28 @@ func rebuildTeamMembersTable(tx *gorm.DB, roleMap map[string]uint) error {
 		return fmt.Errorf("create team_members_new: %w", err)
 	}
 
-	if err := tx.Exec(`
-		INSERT INTO team_members_new (id, team_id, user_id, role_id, joined_at, created_at, updated_at)
-		SELECT id, team_id, user_id,
-			CASE
-				WHEN role = 'pm' THEN ?
-				WHEN role = 'member' THEN ?
-				ELSE ?
-			END,
-			joined_at, created_at, updated_at
-		FROM team_members
-	`, pmRoleID, memberRoleID, memberRoleID).Error; err != nil {
-		return fmt.Errorf("copy team_members data: %w", err)
+	if columnExists(tx, "team_members", "role") {
+		if err := tx.Exec(`
+			INSERT INTO team_members_new (id, team_id, user_id, role_id, joined_at, created_at, updated_at)
+			SELECT id, team_id, user_id,
+				CASE
+					WHEN role = 'pm' THEN ?
+					WHEN role = 'member' THEN ?
+					ELSE ?
+				END,
+				joined_at, created_at, updated_at
+			FROM team_members
+		`, pmRoleID, memberRoleID, memberRoleID).Error; err != nil {
+			return fmt.Errorf("copy team_members data: %w", err)
+		}
+	} else {
+		if err := tx.Exec(`
+			INSERT INTO team_members_new (id, team_id, user_id, role_id, joined_at, created_at, updated_at)
+			SELECT id, team_id, user_id, ?, joined_at, created_at, updated_at
+			FROM team_members
+		`, memberRoleID).Error; err != nil {
+			return fmt.Errorf("copy team_members data: %w", err)
+		}
 	}
 
 	if err := tx.Exec("DROP TABLE team_members").Error; err != nil {
@@ -235,6 +245,13 @@ func CountPermissionsForRole(db *gorm.DB, roleID uint) (int64, error) {
 // HasColumn checks if a table has a specific column.
 // Exported for testing convenience.
 func HasColumn(db *gorm.DB, table, column string) bool {
+	var count int64
+	db.Raw("SELECT count(*) FROM pragma_table_info(?) WHERE name = ?", table, column).Scan(&count)
+	return count > 0
+}
+
+// columnExists checks if a column exists in a SQLite table.
+func columnExists(db *gorm.DB, table, column string) bool {
 	var count int64
 	db.Raw("SELECT count(*) FROM pragma_table_info(?) WHERE name = ?", table, column).Scan(&count)
 	return count > 0

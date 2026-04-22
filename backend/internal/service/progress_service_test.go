@@ -117,6 +117,9 @@ func (m *mockSubItemRepoForProgress) ListByTeam(_ context.Context, _ uint) ([]mo
 func (m *mockSubItemRepoForProgress) Delete(_ context.Context, _ uint) error {
 	return nil
 }
+func (m *mockSubItemRepoForProgress) NextSubCode(_ context.Context, _ uint) (string, error) {
+	return "", nil
+}
 
 var _ repository.SubItemRepo = (*mockSubItemRepoForProgress)(nil)
 

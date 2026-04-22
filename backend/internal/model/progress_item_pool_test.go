@@ -48,9 +48,9 @@ func TestProgressRecord_Defaults(t *testing.T) {
 
 	u := model.User{Username: "pr_author", DisplayName: "Author", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "PRTeam", PmID: u.ID}
+	team := model.Team{Name: "PRTeam", PmID: u.ID, Code: "PRTE"}
 	require.NoError(t, db.Create(&team).Error)
-	mi := model.MainItem{TeamID: team.ID, Code: "MI-PR1", Title: "Main", Priority: "P1", ProposerID: u.ID}
+	mi := model.MainItem{TeamID: team.ID, Code: "PRTE-00001", Title: "Main", Priority: "P1", ProposerID: u.ID}
 	require.NoError(t, db.Create(&mi).Error)
 	si := model.SubItem{TeamID: team.ID, MainItemID: mi.ID, Title: "Sub", Priority: "P1"}
 	require.NoError(t, db.Create(&si).Error)
@@ -77,9 +77,9 @@ func TestProgressRecord_InsertAndQuery(t *testing.T) {
 
 	u := model.User{Username: "pr_q_author", DisplayName: "QAuthor", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "PRQTeam", PmID: u.ID}
+	team := model.Team{Name: "PRQTeam", PmID: u.ID, Code: "PRQT"}
 	require.NoError(t, db.Create(&team).Error)
-	mi := model.MainItem{TeamID: team.ID, Code: "MI-PRQ1", Title: "Main", Priority: "P1", ProposerID: u.ID}
+	mi := model.MainItem{TeamID: team.ID, Code: "PRQT-00001", Title: "Main", Priority: "P1", ProposerID: u.ID}
 	require.NoError(t, db.Create(&mi).Error)
 	si := model.SubItem{TeamID: team.ID, MainItemID: mi.ID, Title: "Sub", Priority: "P1"}
 	require.NoError(t, db.Create(&si).Error)
@@ -144,9 +144,9 @@ func TestItemPool_AllFields(t *testing.T) {
 
 	u := model.User{Username: "ip_all", DisplayName: "AllFields", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "IPAllTeam", PmID: u.ID}
+	team := model.Team{Name: "IPAllTeam", PmID: u.ID, Code: "IPAL"}
 	require.NoError(t, db.Create(&team).Error)
-	mi := model.MainItem{TeamID: team.ID, Code: "MI-IP1", Title: "Main", Priority: "P1", ProposerID: u.ID}
+	mi := model.MainItem{TeamID: team.ID, Code: "IPAL-00001", Title: "Main", Priority: "P1", ProposerID: u.ID}
 	require.NoError(t, db.Create(&mi).Error)
 	si := model.SubItem{TeamID: team.ID, MainItemID: mi.ID, Title: "Sub", Priority: "P1"}
 	require.NoError(t, db.Create(&si).Error)

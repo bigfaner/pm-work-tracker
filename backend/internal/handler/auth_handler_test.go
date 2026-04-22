@@ -58,7 +58,7 @@ func TestLogin_Success(t *testing.T) {
 
 	body := `{"username":"alice","password":"secret123"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/auth/login", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
@@ -91,7 +91,7 @@ func TestLogin_MissingUsername_Returns400(t *testing.T) {
 
 	body := `{"password":"secret123"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/auth/login", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
@@ -110,7 +110,7 @@ func TestLogin_MissingPassword_Returns400(t *testing.T) {
 
 	body := `{"username":"alice"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/auth/login", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
@@ -128,7 +128,7 @@ func TestLogin_EmptyBody_Returns400(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/auth/login", strings.NewReader(`{}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(`{}`))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
@@ -144,7 +144,7 @@ func TestLogin_WrongCredentials_Returns401(t *testing.T) {
 
 	body := `{"username":"alice","password":"wrong"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/auth/login", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
@@ -170,7 +170,7 @@ func TestLogin_PasswordNeverInResponse(t *testing.T) {
 
 	body := `{"username":"bob","password":"secret"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/auth/login", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
@@ -189,7 +189,7 @@ func TestLogout_Success(t *testing.T) {
 
 	token := signTestToken(t, 1, "testuser")
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/auth/logout", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 

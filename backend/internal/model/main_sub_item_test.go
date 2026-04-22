@@ -22,13 +22,13 @@ func TestMainItem_CodeUniqueIndex(t *testing.T) {
 
 	u := model.User{Username: "pm1", DisplayName: "PM", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "T1", PmID: u.ID}
+	team := model.Team{Name: "T1", PmID: u.ID, Code: "T1CD"}
 	require.NoError(t, db.Create(&team).Error)
 
-	m1 := model.MainItem{TeamID: team.ID, Code: "MI-0001", Title: "Item 1", Priority: "P1", ProposerID: u.ID, Status: "pending"}
+	m1 := model.MainItem{TeamID: team.ID, Code: "T1CD-00001", Title: "Item 1", Priority: "P1", ProposerID: u.ID, Status: "pending"}
 	require.NoError(t, db.Create(&m1).Error)
 
-	m2 := model.MainItem{TeamID: team.ID, Code: "MI-0001", Title: "Item 2", Priority: "P2", ProposerID: u.ID, Status: "pending"}
+	m2 := model.MainItem{TeamID: team.ID, Code: "T1CD-00001", Title: "Item 2", Priority: "P2", ProposerID: u.ID, Status: "pending"}
 	err = db.Create(&m2).Error
 	assert.Error(t, err, "duplicate code should be rejected")
 }
@@ -40,14 +40,14 @@ func TestMainItem_Defaults(t *testing.T) {
 
 	u := model.User{Username: "proposer", DisplayName: "P", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "T2", PmID: u.ID}
+	team := model.Team{Name: "T2", PmID: u.ID, Code: "T2CD"}
 	require.NoError(t, db.Create(&team).Error)
 
-	m := model.MainItem{TeamID: team.ID, Code: "MI-0002", Title: "Item", Priority: "P2", ProposerID: u.ID}
+	m := model.MainItem{TeamID: team.ID, Code: "T2CD-00002", Title: "Item", Priority: "P2", ProposerID: u.ID}
 	require.NoError(t, db.Create(&m).Error)
 
 	var fetched model.MainItem
-	db.First(&fetched, "code = ?", "MI-0002")
+	db.First(&fetched, "code = ?", "T2CD-00002")
 	assert.Equal(t, "pending", fetched.Status, "status should default to pending")
 	assert.Equal(t, float64(0), fetched.Completion, "completion should default to 0")
 	assert.False(t, fetched.IsKeyItem, "is_key_item should default to false")
@@ -60,13 +60,13 @@ func TestMainItem_ArchivedAt(t *testing.T) {
 
 	u := model.User{Username: "archiver", DisplayName: "A", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "T3", PmID: u.ID}
+	team := model.Team{Name: "T3", PmID: u.ID, Code: "T3CD"}
 	require.NoError(t, db.Create(&team).Error)
 
 	now := time.Now()
 	m := model.MainItem{
 		TeamID:     team.ID,
-		Code:       "MI-0003",
+		Code:       "T3CD-00003",
 		Title:      "Archived Item",
 		Priority:   "P3",
 		ProposerID: u.ID,
@@ -75,7 +75,7 @@ func TestMainItem_ArchivedAt(t *testing.T) {
 	require.NoError(t, db.Create(&m).Error)
 
 	var fetched model.MainItem
-	db.First(&fetched, "code = ?", "MI-0003")
+	db.First(&fetched, "code = ?", "T3CD-00003")
 	assert.NotNil(t, fetched.ArchivedAt, "archived_at should be set")
 }
 
@@ -91,10 +91,10 @@ func TestSubItem_DefaultStatus(t *testing.T) {
 
 	u := model.User{Username: "subpm", DisplayName: "SP", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "ST1", PmID: u.ID}
+	team := model.Team{Name: "ST1", PmID: u.ID, Code: "ST1C"}
 	require.NoError(t, db.Create(&team).Error)
 
-	mi := model.MainItem{TeamID: team.ID, Code: "MI-S1", Title: "Main", Priority: "P1", ProposerID: u.ID}
+	mi := model.MainItem{TeamID: team.ID, Code: "ST1C-00001", Title: "Main", Priority: "P1", ProposerID: u.ID}
 	require.NoError(t, db.Create(&mi).Error)
 
 	s := model.SubItem{
@@ -120,10 +120,10 @@ func TestSubItem_WeightCanBeCustom(t *testing.T) {
 
 	u := model.User{Username: "weightuser", DisplayName: "WU", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "WT1", PmID: u.ID}
+	team := model.Team{Name: "WT1", PmID: u.ID, Code: "WT1C"}
 	require.NoError(t, db.Create(&team).Error)
 
-	mi := model.MainItem{TeamID: team.ID, Code: "MI-W1", Title: "Main", Priority: "P1", ProposerID: u.ID}
+	mi := model.MainItem{TeamID: team.ID, Code: "WT1C-00001", Title: "Main", Priority: "P1", ProposerID: u.ID}
 	require.NoError(t, db.Create(&mi).Error)
 
 	s := model.SubItem{
@@ -147,7 +147,7 @@ func TestMainItem_TeamStatusAndPriorityIndexes(t *testing.T) {
 
 	u := model.User{Username: "idxuser", DisplayName: "IU", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "IdxTeam", PmID: u.ID}
+	team := model.Team{Name: "IdxTeam", PmID: u.ID, Code: "IDXT"}
 	require.NoError(t, db.Create(&team).Error)
 
 	// Insert some items to exercise the indexes
@@ -156,7 +156,7 @@ func TestMainItem_TeamStatusAndPriorityIndexes(t *testing.T) {
 		priorities := []string{"P1", "P2", "P3"}
 		m := model.MainItem{
 			TeamID:     team.ID,
-			Code:       "MI-IDX" + string(rune('A'+i)),
+			Code:       "IDXT-0000" + string(rune('1'+i)),
 			Title:      "Idx Item",
 			Priority:   priorities[i],
 			ProposerID: u.ID,
@@ -183,10 +183,10 @@ func TestSubItem_TeamStatusAndPriorityIndexes(t *testing.T) {
 
 	u := model.User{Username: "subidx", DisplayName: "SI", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "SubIdxTeam", PmID: u.ID}
+	team := model.Team{Name: "SubIdxTeam", PmID: u.ID, Code: "SIDX"}
 	require.NoError(t, db.Create(&team).Error)
 
-	mi := model.MainItem{TeamID: team.ID, Code: "MI-SIDX", Title: "Main", Priority: "P1", ProposerID: u.ID}
+	mi := model.MainItem{TeamID: team.ID, Code: "SIDX-00001", Title: "Main", Priority: "P1", ProposerID: u.ID}
 	require.NoError(t, db.Create(&mi).Error)
 
 	for i := 0; i < 3; i++ {

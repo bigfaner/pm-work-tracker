@@ -65,7 +65,8 @@ func rbacTestEnv(t *testing.T) (*gin.Engine, *gorm.DB) {
 			Origins: []string{"http://localhost:3000"},
 		},
 		Server: config.ServerConfig{
-			GinMode: "test",
+			GinMode:  "test",
+			BasePath: "/api",
 		},
 	}
 
@@ -127,7 +128,7 @@ func TestListRoles_RequiresSuperAdmin(t *testing.T) {
 
 	token := rbacSignRegularToken(t)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/admin/roles", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/roles", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -138,7 +139,7 @@ func TestListRoles_RequiresAuth(t *testing.T) {
 	r, _ := rbacTestEnv(t)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/admin/roles", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/roles", nil)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
@@ -149,7 +150,7 @@ func TestListRoles_Success(t *testing.T) {
 
 	token := rbacSignSuperToken(t)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/admin/roles", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/roles", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -172,7 +173,7 @@ func TestCreateRole_Success(t *testing.T) {
 	token := rbacSignSuperToken(t)
 	body := `{"name":"viewer","description":"read-only viewer","permissionCodes":["team:read","main_item:read"]}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/admin/roles", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/roles", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
@@ -194,7 +195,7 @@ func TestCreateRole_ValidationError(t *testing.T) {
 	// Missing name
 	body := `{"description":"no name","permissionCodes":["team:read"]}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/admin/roles", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/roles", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
@@ -208,7 +209,7 @@ func TestCreateRole_EmptyPermissionCodes(t *testing.T) {
 	token := rbacSignSuperToken(t)
 	body := `{"name":"norole","description":"empty perms","permissionCodes":[]}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/admin/roles", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/roles", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
@@ -222,7 +223,7 @@ func TestCreateRole_DuplicateName(t *testing.T) {
 	token := rbacSignSuperToken(t)
 	body := `{"name":"pm","description":"duplicate","permissionCodes":["team:read"]}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/admin/roles", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/roles", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
@@ -240,7 +241,7 @@ func TestCreateRole_InvalidPermissionCode(t *testing.T) {
 	token := rbacSignSuperToken(t)
 	body := `{"name":"badrole","description":"bad perm","permissionCodes":["nonexistent:action"]}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/v1/admin/roles", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/roles", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
@@ -259,7 +260,7 @@ func TestGetRole_Success(t *testing.T) {
 
 	token := rbacSignSuperToken(t)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/admin/roles/2", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/roles/2", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -277,7 +278,7 @@ func TestGetRole_NotFound(t *testing.T) {
 
 	token := rbacSignSuperToken(t)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/admin/roles/999", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/roles/999", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -297,7 +298,7 @@ func TestUpdateRole_Success(t *testing.T) {
 	token := rbacSignSuperToken(t)
 	body := `{"description":"updated desc","permissionCodes":["team:read"]}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/admin/roles/%d", customRole.ID), strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%d", customRole.ID), strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
@@ -316,7 +317,7 @@ func TestUpdateRole_PresetSuperAdmin_Immutable(t *testing.T) {
 	token := rbacSignSuperToken(t)
 	body := `{"description":"try to modify superadmin"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/v1/admin/roles/1", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/roles/1", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
@@ -334,7 +335,7 @@ func TestUpdateRole_PresetPM_CannotChangeName(t *testing.T) {
 	token := rbacSignSuperToken(t)
 	body := `{"name":"newname"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/v1/admin/roles/2", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/roles/2", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
@@ -348,7 +349,7 @@ func TestUpdateRole_NotFound(t *testing.T) {
 	token := rbacSignSuperToken(t)
 	body := `{"description":"does not exist"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/v1/admin/roles/999", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/roles/999", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
@@ -367,7 +368,7 @@ func TestDeleteRole_Success(t *testing.T) {
 
 	token := rbacSignSuperToken(t)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/admin/roles/%d", customRole.ID), nil)
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/admin/roles/%d", customRole.ID), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -379,7 +380,7 @@ func TestDeleteRole_PresetImmutable(t *testing.T) {
 
 	token := rbacSignSuperToken(t)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodDelete, "/v1/admin/roles/2", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/admin/roles/2", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -397,7 +398,7 @@ func TestListPermissionCodes_Success(t *testing.T) {
 
 	token := rbacSignSuperToken(t)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/admin/permissions", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/permissions", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -418,7 +419,7 @@ func TestListPermissionCodes_RequiresSuperAdmin(t *testing.T) {
 
 	token := rbacSignRegularToken(t)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/admin/permissions", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/permissions", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -431,7 +432,7 @@ func TestGetUserPermissions_RequiresAuth(t *testing.T) {
 	r, _ := rbacTestEnv(t)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/me/permissions", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me/permissions", nil)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
@@ -442,7 +443,7 @@ func TestGetUserPermissions_Success_SuperAdmin(t *testing.T) {
 
 	token := rbacSignSuperToken(t)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/me/permissions", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me/permissions", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -459,7 +460,7 @@ func TestGetUserPermissions_Success_RegularUser(t *testing.T) {
 
 	token := rbacSignRegularToken(t)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/me/permissions", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me/permissions", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -484,13 +485,13 @@ func TestRoleRoutes_AllRegistered(t *testing.T) {
 		method string
 		path   string
 	}{
-		{"GET", "/v1/admin/roles"},
-		{"POST", "/v1/admin/roles"},
-		{"GET", "/v1/admin/roles/1"},
-		{"PUT", "/v1/admin/roles/1"},
-		{"DELETE", "/v1/admin/roles/1"},
-		{"GET", "/v1/admin/permissions"},
-		{"GET", "/v1/me/permissions"},
+		{"GET", "/api/v1/admin/roles"},
+		{"POST", "/api/v1/admin/roles"},
+		{"GET", "/api/v1/admin/roles/1"},
+		{"PUT", "/api/v1/admin/roles/1"},
+		{"DELETE", "/api/v1/admin/roles/1"},
+		{"GET", "/api/v1/admin/permissions"},
+		{"GET", "/api/v1/me/permissions"},
 	}
 
 	for _, route := range routes {
@@ -522,12 +523,12 @@ func TestRoleRoutes_RegularUserForbidden(t *testing.T) {
 		method string
 		path   string
 	}{
-		{"GET", "/v1/admin/roles"},
-		{"POST", "/v1/admin/roles"},
-		{"GET", "/v1/admin/roles/1"},
-		{"PUT", "/v1/admin/roles/1"},
-		{"DELETE", "/v1/admin/roles/1"},
-		{"GET", "/v1/admin/permissions"},
+		{"GET", "/api/v1/admin/roles"},
+		{"POST", "/api/v1/admin/roles"},
+		{"GET", "/api/v1/admin/roles/1"},
+		{"PUT", "/api/v1/admin/roles/1"},
+		{"DELETE", "/api/v1/admin/roles/1"},
+		{"GET", "/api/v1/admin/permissions"},
 	}
 
 	for _, route := range adminRoutes {

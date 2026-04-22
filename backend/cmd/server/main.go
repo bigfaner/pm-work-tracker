@@ -16,20 +16,28 @@ import (
 	"pm-work-tracker/backend/internal/migration"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 	"pm-work-tracker/backend/internal/service"
+	"pm-work-tracker/backend/web"
 )
 
 func main() {
 	configPath := flag.String("config", "config.yaml", "path to config file")
+	dev := flag.Bool("dev", false, "dev mode: skip embedded asset validation")
 	flag.Parse()
 
-	if err := run(*configPath); err != nil {
+	if err := run(*configPath, *dev); err != nil {
 		log.Fatalf("%v", err)
 	}
 }
 
 // run wires the full application: config, DB, seed, repos, services, handlers,
 // router, and HTTP server with graceful shutdown.
-func run(configPath string) error {
+// devMode: when true, skips embedded asset validation (for local development).
+func run(configPath string, devMode bool) error {
+	if !devMode {
+		if err := web.ValidateAssets(web.FS); err != nil {
+			return fmt.Errorf("startup: %w", err)
+		}
+	}
 	// 1. Load config
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
@@ -101,7 +109,7 @@ func run(configPath string) error {
 	}
 
 	// 7. Setup router
-	r := handler.SetupRouter(deps)
+	r := handler.SetupRouter(deps, nil)
 
 	// 8. Start server with timeouts from config
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)

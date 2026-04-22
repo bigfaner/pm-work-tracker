@@ -1,0 +1,189 @@
+{
+  "feature": "item-code-redesign",
+  "prd": "prd/prd-spec.md",
+  "design": "design/tech-design.md",
+  "created": "2026-04-22",
+  "status": "planning",
+  "tasks": {
+    "1.1-team-model-code-field": {
+      "id": "1.1",
+      "title": "Team 模型新增 Code 字段",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "status": "completed",
+      "file": "1.1-team-model-code-field.md",
+      "record": "records/1.1-team-model-code-field.md"
+    },
+    "1.2-main-item-code-column": {
+      "id": "1.2",
+      "title": "MainItem.Code 列扩展 varchar(12)",
+      "priority": "P0",
+      "estimatedTime": "0.5h",
+      "status": "completed",
+      "file": "1.2-main-item-code-column.md",
+      "record": "records/1.2-main-item-code-column.md"
+    },
+    "1.3-sub-item-code-field": {
+      "id": "1.3",
+      "title": "SubItem 模型新增 Code 字段",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "status": "completed",
+      "file": "1.3-sub-item-code-field.md",
+      "record": "records/1.3-sub-item-code-field.md"
+    },
+    "1.4-migration-008": {
+      "id": "1.4",
+      "title": "Migration 008: 添加 code 列和索引",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "dependencies": [
+        "1.1",
+        "1.2",
+        "1.3"
+      ],
+      "status": "completed",
+      "file": "1.4-migration-008.md",
+      "record": "records/1.4-migration-008.md"
+    },
+    "2.1-next-code-rewrite": {
+      "id": "2.1",
+      "title": "NextCode() 重写为 SELECT FOR UPDATE",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1.1",
+        "1.2",
+        "1.4"
+      ],
+      "status": "completed",
+      "file": "2.1-next-code-rewrite.md",
+      "record": "records/2.1-next-code-rewrite.md"
+    },
+    "2.2-next-sub-code-impl": {
+      "id": "2.2",
+      "title": "NextSubCode() 实现",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "dependencies": [
+        "1.3",
+        "1.4"
+      ],
+      "status": "completed",
+      "file": "2.2-next-sub-code-impl.md",
+      "record": "records/2.2-next-sub-code-impl.md"
+    },
+    "2.3-team-code-duplicate-error": {
+      "id": "2.3",
+      "title": "TeamRepo.Create() 处理 Code 唯一约束错误",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "1.1"
+      ],
+      "status": "completed",
+      "file": "2.3-team-code-duplicate-error.md",
+      "record": "records/2.3-team-code-duplicate-error.md"
+    },
+    "3.1-team-service-code": {
+      "id": "3.1",
+      "title": "TeamService.CreateTeam() 传入 Code 字段",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "1.1",
+        "2.3"
+      ],
+      "status": "completed",
+      "file": "3.1-team-service-code.md",
+      "record": "records/3.1-team-service-code.md"
+    },
+    "3.2-sub-item-service-code": {
+      "id": "3.2",
+      "title": "SubItemService.Create() 调用 NextSubCode()",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "2.2"
+      ],
+      "status": "completed",
+      "file": "3.2-sub-item-service-code.md",
+      "record": "records/3.2-sub-item-service-code.md"
+    },
+    "4.1-data-migration": {
+      "id": "4.1",
+      "title": "数据迁移程序：重写现有编码",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1.4",
+        "2.1",
+        "2.2"
+      ],
+      "status": "completed",
+      "file": "4.1-data-migration.md",
+      "record": "records/4.1-data-migration.md"
+    },
+    "5.1-frontend-team-code-input": {
+      "id": "5.1",
+      "title": "前端：TeamManagementPage 新增 Code 输入框",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "3.1"
+      ],
+      "status": "completed",
+      "file": "5.1-frontend-team-code-input.md",
+      "record": "records/5.1-frontend-team-code-input.md"
+    },
+    "5.2-frontend-sub-item-code": {
+      "id": "5.2",
+      "title": "前端：SubItem 类型新增 code 字段，移除运行时拼接",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "dependencies": [
+        "3.2"
+      ],
+      "status": "completed",
+      "file": "5.2-frontend-sub-item-code.md",
+      "record": "records/5.2-frontend-sub-item-code.md"
+    },
+    "6.1-concurrent-code-test": {
+      "id": "6.1",
+      "title": "并发编码生成集成测试",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "2.1",
+        "2.2"
+      ],
+      "status": "completed",
+      "file": "6.1-concurrent-code-test.md",
+      "record": "records/6.1-concurrent-code-test.md"
+    },
+    "6.2-update-existing-tests": {
+      "id": "6.2",
+      "title": "更新现有 NextCode 相关测试",
+      "priority": "P1",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "2.1"
+      ],
+      "status": "completed",
+      "file": "6.2-update-existing-tests.md",
+      "record": "records/6.2-update-existing-tests.md"
+    }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
+}

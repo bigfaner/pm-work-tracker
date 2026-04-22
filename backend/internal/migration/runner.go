@@ -2,6 +2,7 @@ package migration
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -43,7 +44,19 @@ func (r *Runner) Run() error {
 			return fmt.Errorf("read %s: %w", f, err)
 		}
 
-		if err := r.apply(f, string(content)); err != nil {
+		sql := string(content)
+		if precond := parsePreconditionSkipIf(sql); precond != "" {
+			var count int64
+			if err := r.db.Raw(precond).Scan(&count).Error; err != nil {
+				return fmt.Errorf("precondition check for %s: %w", f, err)
+			}
+			if count > 0 {
+				log.Printf("skipping migration %s: precondition not met (%d blocking rows)", f, count)
+				continue
+			}
+		}
+
+		if err := r.apply(f, sql); err != nil {
 			return fmt.Errorf("apply %s: %w", f, err)
 		}
 	}
@@ -104,4 +117,20 @@ func (r *Runner) apply(filename, sql string) error {
 	}
 
 	return tx.Commit().Error
+}
+
+// parsePreconditionSkipIf extracts the SQL query from a line of the form:
+//
+//	-- precondition-skip-if: SELECT count(*) FROM ...
+//
+// Returns empty string if no such directive is found.
+func parsePreconditionSkipIf(content string) string {
+	const prefix = "-- precondition-skip-if:"
+	for _, line := range strings.SplitN(content, "\n", 20) {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, prefix) {
+			return strings.TrimSpace(line[len(prefix):])
+		}
+	}
+	return ""
 }

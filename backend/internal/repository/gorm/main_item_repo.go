@@ -87,27 +87,37 @@ func (r *mainItemRepo) List(ctx context.Context, teamID uint, filter dto.MainIte
 }
 
 func (r *mainItemRepo) NextCode(ctx context.Context, teamID uint) (string, error) {
-	var maxCode *string
-	err := r.db.WithContext(ctx).
-		Model(&model.MainItem{}).
-		Unscoped().
-		Where("team_id = ?", teamID).
-		Select("MAX(code)").
-		Scan(&maxCode).Error
-	if err != nil {
-		return "", err
-	}
+	var code string
+	err := r.db.WithContext(ctx).Transaction(func(tx *gormlib.DB) error {
+		// Increment counter first — real write acquires SQLite write lock, serializing concurrent calls.
+		if err := tx.Exec("UPDATE teams SET item_seq = item_seq + 1 WHERE id = ?", teamID).Error; err != nil {
+			return err
+		}
+		var team model.Team
+		if err := tx.First(&team, teamID).Error; err != nil {
+			return err
+		}
+		seq := team.ItemSeq
 
-	if maxCode == nil || *maxCode == "" {
-		return "MI-0001", nil
-	}
+		// If items were inserted directly with a higher seq (e.g. migration), skip past them.
+		var maxSeq *int
+		if err := tx.Model(&model.MainItem{}).
+			Where("team_id = ?", teamID).
+			Select("MAX(CAST(SUBSTR(code, ?) AS INTEGER))", len(team.Code)+2).
+			Scan(&maxSeq).Error; err != nil {
+			return err
+		}
+		if maxSeq != nil && uint(*maxSeq) >= seq {
+			seq = uint(*maxSeq) + 1
+			if err := tx.Exec("UPDATE teams SET item_seq = ? WHERE id = ?", seq, teamID).Error; err != nil {
+				return err
+			}
+		}
 
-	var seq int
-	_, err = fmt.Sscanf(*maxCode, "MI-%04d", &seq)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse code %q: %w", *maxCode, err)
-	}
-	return fmt.Sprintf("MI-%04d", seq+1), nil
+		code = fmt.Sprintf("%s-%05d", team.Code, seq)
+		return nil
+	})
+	return code, err
 }
 
 func (r *mainItemRepo) CountByTeam(ctx context.Context, teamID uint) (int64, error) {

@@ -81,25 +81,25 @@ const seedMainItem = {
 function setupHandlers() {
   server.use(
     // Get main item with sub items
-    http.get('/api/v1/teams/:teamId/main-items/:itemId', ({ params }) => {
+    http.get('/v1/teams/:teamId/main-items/:itemId', ({ params }) => {
       const item = Number(params.itemId) === 1 ? seedMainItem : null
       if (!item) return HttpResponse.json({ code: 'NOT_FOUND', message: 'not found' }, { status: 404 })
       return HttpResponse.json({ code: 0, data: item })
     }),
 
     // List members
-    http.get('/api/v1/teams/:teamId/members', () => {
+    http.get('/v1/teams/:teamId/members', () => {
       return HttpResponse.json({ code: 0, data: seedMembers })
     }),
 
     // Update main item
-    http.put('/api/v1/teams/:teamId/main-items/:itemId', async ({ request }) => {
+    http.put('/v1/teams/:teamId/main-items/:itemId', async ({ request }) => {
       const body = await request.json() as Record<string, unknown>
       return HttpResponse.json({ code: 0, data: { ...seedMainItem, ...body } })
     }),
 
     // Create sub item
-    http.post('/api/v1/teams/:teamId/main-items/:mainId/sub-items', async ({ request }) => {
+    http.post('/v1/teams/:teamId/main-items/:mainId/sub-items', async ({ request }) => {
       const body = await request.json() as Record<string, unknown>
       return HttpResponse.json({
         code: 0,
@@ -114,12 +114,12 @@ function setupHandlers() {
     }),
 
     // Change sub item status
-    http.put('/api/v1/teams/:teamId/sub-items/:itemId/status', async () => {
+    http.put('/v1/teams/:teamId/sub-items/:itemId/status', async () => {
       return HttpResponse.json({ code: 0, data: null })
     }),
 
     // Available transitions for sub items
-    http.get('/api/v1/teams/:teamId/sub-items/:subId/available-transitions', () => {
+    http.get('/v1/teams/:teamId/sub-items/:subId/available-transitions', () => {
       const allStatuses = ['pending', 'progressing', 'blocking', 'pausing', 'completed', 'closed']
       return HttpResponse.json({ code: 0, data: allStatuses })
     }),
@@ -404,7 +404,7 @@ describe('MainItemDetailPage', () => {
 
   it('disables sub-item edit and append-progress buttons when main item is terminal', async () => {
     server.use(
-      http.get('/api/v1/teams/:teamId/main-items/:itemId', () => {
+      http.get('/v1/teams/:teamId/main-items/:itemId', () => {
         return HttpResponse.json({ code: 0, data: { ...seedMainItem, status: 'completed' } })
       }),
     )

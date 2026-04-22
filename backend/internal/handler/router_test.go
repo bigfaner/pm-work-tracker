@@ -115,7 +115,8 @@ func testDeps(t *testing.T) (*Dependencies, *gorm.DB) {
 			Origins: []string{"http://localhost:3000"},
 		},
 		Server: config.ServerConfig{
-			GinMode: "test",
+			GinMode:  "test",
+			BasePath: "/api",
 		},
 	}
 
@@ -149,7 +150,7 @@ func signTestToken(t *testing.T, userID uint, username string) string {
 
 func TestHealthCheck(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
@@ -165,7 +166,7 @@ func TestHealthCheck(t *testing.T) {
 
 func TestHealthCheck_NoAuthRequired(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	// Request without Authorization header should still succeed
 	w := httptest.NewRecorder()
@@ -176,7 +177,7 @@ func TestHealthCheck_NoAuthRequired(t *testing.T) {
 
 func TestAuthRoutes_LoginReturns400OnEmptyBody(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(`{}`))
@@ -188,7 +189,7 @@ func TestAuthRoutes_LoginReturns400OnEmptyBody(t *testing.T) {
 
 func TestAuthRoutes_LogoutRequiresAuth(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	// Without auth
 	w := httptest.NewRecorder()
@@ -207,7 +208,7 @@ func TestAuthRoutes_LogoutRequiresAuth(t *testing.T) {
 
 func TestTeamRoutes_RequireAuthAndTeamScope(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	// Without auth — should get 401
 	w := httptest.NewRecorder()
@@ -220,7 +221,7 @@ func TestTeamRoutes_WithAuthReturns500(t *testing.T) {
 	deps, _ := testDeps(t)
 	// Inject a mock that always succeeds
 	deps.TeamRepo = &mockTeamRepo{}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 2, "testuser1")
 	w := httptest.NewRecorder()
@@ -233,7 +234,7 @@ func TestTeamRoutes_WithAuthReturns500(t *testing.T) {
 
 func TestTeamListCreateRoutes_RequireAuth(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	// POST /api/v1/teams without auth
 	w := httptest.NewRecorder()
@@ -250,13 +251,13 @@ func TestTeamListCreateRoutes_RequireAuth(t *testing.T) {
 
 func TestTeamListCreateRoutes_WithSuperAdminAuth(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
 
 	// POST /api/v1/teams with superadmin auth — stub service returns error -> 500
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams", strings.NewReader(`{"name":"test"}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams", strings.NewReader(`{"name":"test","code":"TEST"}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -272,7 +273,7 @@ func TestTeamListCreateRoutes_WithSuperAdminAuth(t *testing.T) {
 
 func TestAdminRoutes_RequireSuperAdmin(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	// Regular member should get 403
 	token := signTestToken(t, 2, "testuser1")
@@ -293,7 +294,7 @@ func TestAdminRoutes_RequireSuperAdmin(t *testing.T) {
 
 func TestAdminRoutes_RequireAuth(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users", nil)
@@ -303,7 +304,7 @@ func TestAdminRoutes_RequireAuth(t *testing.T) {
 
 func TestCORS_HeadersSet(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodOptions, "/health", nil)
@@ -317,7 +318,7 @@ func TestCORS_HeadersSet(t *testing.T) {
 func TestCORS_RejectUnknownOrigin(t *testing.T) {
 	deps, _ := testDeps(t)
 	deps.Config.CORS.Origins = []string{"http://localhost:3000"}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodOptions, "/health", nil)
@@ -332,7 +333,7 @@ func TestCORS_RejectUnknownOrigin(t *testing.T) {
 func TestCORS_WildcardWhenNoOriginsConfigured(t *testing.T) {
 	deps, _ := testDeps(t)
 	deps.Config.CORS.Origins = nil
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodOptions, "/health", nil)
@@ -345,7 +346,7 @@ func TestCORS_WildcardWhenNoOriginsConfigured(t *testing.T) {
 
 func TestRateLimit_Login(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	// Send more than 10 requests to login — the 11th+ should be rate limited
 	got429 := false
@@ -364,7 +365,7 @@ func TestRateLimit_Login(t *testing.T) {
 
 func TestRateLimit_OnlyAppliesToLogin(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	// Other endpoints should not be rate limited
 	for i := 0; i < 15; i++ {
@@ -377,7 +378,7 @@ func TestRateLimit_OnlyAppliesToLogin(t *testing.T) {
 
 func TestUnknownRoute_404(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/nonexistent", nil)
@@ -388,7 +389,7 @@ func TestUnknownRoute_404(t *testing.T) {
 func TestTeamScopedRoutes_AllRegistered(t *testing.T) {
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{}
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
 
@@ -455,7 +456,7 @@ func TestTeamScopedRoutes_AllRegistered(t *testing.T) {
 
 func TestAdminRoutes_AllRegistered(t *testing.T) {
 	deps, _ := testDeps(t)
-	r := SetupRouter(deps)
+	r := SetupRouter(deps, nil)
 
 	superToken := signTestToken(t, 1, "admin")
 

@@ -23,7 +23,11 @@ func NewGormTeamRepo(db *gormlib.DB) repository.TeamRepo {
 }
 
 func (r *teamRepo) Create(ctx context.Context, team *model.Team) error {
-	return r.db.WithContext(ctx).Create(team).Error
+	err := r.db.WithContext(ctx).Create(team).Error
+	if err != nil && isDuplicateKeyError(err) {
+		return errors.ErrTeamCodeDuplicate
+	}
+	return err
 }
 
 func (r *teamRepo) FindByID(ctx context.Context, teamID uint) (*model.Team, error) {
