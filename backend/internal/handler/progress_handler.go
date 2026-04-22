@@ -158,11 +158,40 @@ func progressRecordToVO(record *model.ProgressRecord, userRepo repository.UserRe
 	return vo.NewProgressRecordVO(record, authorName)
 }
 
-// progressRecordsToVOs converts a slice of ProgressRecord to ProgressRecordVO.
+// progressRecordsToVOs converts a slice of ProgressRecord to ProgressRecordVO using batch lookups (fixes N+1).
 func progressRecordsToVOs(records []model.ProgressRecord, userRepo repository.UserRepo, c *gin.Context) []vo.ProgressRecordVO {
+	if len(records) == 0 {
+		return []vo.ProgressRecordVO{}
+	}
+
+	ctx := c.Request.Context()
+
+	// Collect unique author IDs
+	authorIDs := make(map[uint]struct{})
+	for i := range records {
+		authorIDs[records[i].AuthorID] = struct{}{}
+	}
+
+	// Batch lookup
+	userMap := make(map[uint]*model.User)
+	if userRepo != nil && len(authorIDs) > 0 {
+		ids := make([]uint, 0, len(authorIDs))
+		for id := range authorIDs {
+			ids = append(ids, id)
+		}
+		if m, err := userRepo.FindByIDs(ctx, ids); err == nil {
+			userMap = m
+		}
+	}
+
+	// Build VOs from map
 	result := make([]vo.ProgressRecordVO, 0, len(records))
 	for i := range records {
-		result = append(result, progressRecordToVO(&records[i], userRepo, c))
+		authorName := ""
+		if u, ok := userMap[records[i].AuthorID]; ok {
+			authorName = u.DisplayName
+		}
+		result = append(result, vo.NewProgressRecordVO(&records[i], authorName))
 	}
 	return result
 }

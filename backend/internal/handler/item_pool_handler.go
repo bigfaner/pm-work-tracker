@@ -79,10 +79,7 @@ func (h *ItemPoolHandler) List(c *gin.Context) {
 		return
 	}
 
-	voItems := make([]vo.ItemPoolVO, 0, len(result.Items))
-	for i := range result.Items {
-		voItems = append(voItems, itemPoolToVO(&result.Items[i], h.userRepo, h.mainItemRepo, c))
-	}
+	voItems := itemPoolsToVOs(result.Items, h.userRepo, h.mainItemRepo, c)
 	apperrors.RespondOK(c, gin.H{
 		"items": voItems,
 		"total": result.Total,
@@ -209,7 +206,7 @@ func parsePoolID(c *gin.Context) (uint, bool) {
 	return uint(id), true
 }
 
-// itemPoolToVO converts a model.ItemPool to an ItemPoolVO.
+// itemPoolToVO converts a single model.ItemPool to an ItemPoolVO using individual lookups.
 func itemPoolToVO(item *model.ItemPool, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, c *gin.Context) vo.ItemPoolVO {
 	submitterName := ""
 	if userRepo != nil && item.SubmitterID > 0 {
@@ -225,4 +222,69 @@ func itemPoolToVO(item *model.ItemPool, userRepo repository.UserRepo, mainItemRe
 		}
 	}
 	return v
+}
+
+// itemPoolsToVOs converts a slice of ItemPool to VOs using batch lookups (fixes N+1).
+func itemPoolsToVOs(items []model.ItemPool, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, c *gin.Context) []vo.ItemPoolVO {
+	if len(items) == 0 {
+		return []vo.ItemPoolVO{}
+	}
+
+	ctx := c.Request.Context()
+
+	// Collect unique IDs
+	submitterIDs := make(map[uint]struct{})
+	mainItemIDs := make(map[uint]struct{})
+	for i := range items {
+		if items[i].SubmitterID > 0 {
+			submitterIDs[items[i].SubmitterID] = struct{}{}
+		}
+		if items[i].AssignedMainID != nil {
+			mainItemIDs[*items[i].AssignedMainID] = struct{}{}
+		}
+	}
+
+	// Batch lookups
+	userMap := make(map[uint]*model.User)
+	if userRepo != nil && len(submitterIDs) > 0 {
+		ids := mapKeysToSlice(submitterIDs)
+		if m, err := userRepo.FindByIDs(ctx, ids); err == nil {
+			userMap = m
+		}
+	}
+
+	mainItemMap := make(map[uint]*model.MainItem)
+	if mainItemRepo != nil && len(mainItemIDs) > 0 {
+		ids := mapKeysToSlice(mainItemIDs)
+		if m, err := mainItemRepo.FindByIDs(ctx, ids); err == nil {
+			mainItemMap = m
+		}
+	}
+
+	// Build VOs from maps
+	result := make([]vo.ItemPoolVO, 0, len(items))
+	for i := range items {
+		submitterName := ""
+		if u, ok := userMap[items[i].SubmitterID]; ok {
+			submitterName = u.DisplayName
+		}
+		v := vo.NewItemPoolVO(&items[i], submitterName)
+		if items[i].AssignedMainID != nil {
+			if mi, ok := mainItemMap[*items[i].AssignedMainID]; ok {
+				v.AssignedMainCode = mi.Code
+				v.AssignedMainTitle = mi.Title
+			}
+		}
+		result = append(result, v)
+	}
+	return result
+}
+
+// mapKeysToSlice extracts map keys to a slice for batch lookups.
+func mapKeysToSlice(m map[uint]struct{}) []uint {
+	ids := make([]uint, 0, len(m))
+	for id := range m {
+		ids = append(ids, id)
+	}
+	return ids
 }

@@ -16,6 +16,7 @@ import (
 
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/repository"
 )
 
 // ---------------------------------------------------------------------------
@@ -108,7 +109,7 @@ func depsWithProgressSvcMemberRole(t *testing.T, svc *mockProgressService) *Depe
 
 // depsWithProgressSvcAndUser wires with a specific user repo.
 
-func depsWithProgressSvcAndUser(t *testing.T, svc *mockProgressService, userRepo *mockUserRepoForHandler) *Dependencies {
+func depsWithProgressSvcAndUser(t *testing.T, svc *mockProgressService, userRepo repository.UserRepo) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
@@ -131,6 +132,41 @@ func testProgressRecord(id uint, subItemID uint, authorID uint) *model.ProgressR
 		CreatedAt:   time.Now(),
 	}
 }
+
+// trackingUserRepo tracks call counts to verify batch vs individual lookups.
+type trackingUserRepo struct {
+	users              map[uint]*model.User
+	findByIDsCallCount int
+	findByIDCallCount  int
+}
+
+func (t *trackingUserRepo) FindByID(_ context.Context, id uint) (*model.User, error) {
+	t.findByIDCallCount++
+	return t.users[id], nil
+}
+func (t *trackingUserRepo) FindByIDs(_ context.Context, ids []uint) (map[uint]*model.User, error) {
+	t.findByIDsCallCount++
+	result := make(map[uint]*model.User, len(ids))
+	for _, id := range ids {
+		if u, ok := t.users[id]; ok {
+			result[id] = u
+		}
+	}
+	return result, nil
+}
+func (t *trackingUserRepo) FindByUsername(_ context.Context, _ string) (*model.User, error)    { return nil, nil }
+func (t *trackingUserRepo) List(_ context.Context) ([]*model.User, error)                       { return nil, nil }
+func (t *trackingUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+	return nil, 0, nil
+}
+func (t *trackingUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+	return nil, nil
+}
+func (t *trackingUserRepo) Create(_ context.Context, _ *model.User) error { return nil }
+func (t *trackingUserRepo) Update(_ context.Context, _ *model.User) error { return nil }
+
+// compile-time check
+var _ repository.UserRepo = (*trackingUserRepo)(nil)
 
 // ---------------------------------------------------------------------------
 // Tests: POST /teams/:teamId/sub-items/:subId/progress (Append)
@@ -498,6 +534,48 @@ func TestListProgress_IncludesAuthorNames(t *testing.T) {
 	// Both records get authorName from userRepo
 	item0 := data[0].(map[string]interface{})
 	assert.Equal(t, "张三", item0["authorName"])
+}
+
+func TestListProgress_UsesBatchLookup(t *testing.T) {
+	// Verify progressRecordsToVOs uses FindByIDs (batch) not FindByID (N+1)
+	svc := &mockProgressService{}
+	svc.listResult.records = []model.ProgressRecord{
+		*testProgressRecord(1, 5, 3),
+		*testProgressRecord(2, 5, 7),
+		*testProgressRecord(3, 5, 3),
+	}
+
+	trackingRepo := &trackingUserRepo{
+		users: map[uint]*model.User{
+			3: {DisplayName: "Alice"},
+			7: {DisplayName: "Bob"},
+		},
+	}
+
+	deps := depsWithProgressSvcAndUser(t, svc, trackingRepo)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 3, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/sub-items/5/progress", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 1, trackingRepo.findByIDsCallCount, "FindByIDs should be called exactly once")
+	assert.Equal(t, 0, trackingRepo.findByIDCallCount, "FindByID should not be called in batch path")
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+
+	data := resp["data"].([]interface{})
+	item0 := data[0].(map[string]interface{})
+	item1 := data[1].(map[string]interface{})
+	item2 := data[2].(map[string]interface{})
+	assert.Equal(t, "Alice", item0["authorName"])
+	assert.Equal(t, "Bob", item1["authorName"])
+	assert.Equal(t, "Alice", item2["authorName"])
 }
 
 // ---------------------------------------------------------------------------

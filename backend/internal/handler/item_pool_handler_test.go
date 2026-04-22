@@ -841,6 +841,114 @@ func TestAssignItemPool_ReturnsSubItemId(t *testing.T) {
 	assert.Equal(t, float64(123), data["subItemId"])
 }
 
+// ---------------------------------------------------------------------------
+// Tests: N+1 batch lookup verification
+// ---------------------------------------------------------------------------
+
+func TestListItemPool_UsesBatchLookup(t *testing.T) {
+	svc := &mockItemPoolService{}
+
+	assignedMainID := uint(100)
+	item1 := &model.ItemPool{TeamID: 10, Title: "A", Status: "assigned", SubmitterID: 5, AssignedMainID: &assignedMainID}
+	item1.ID = 1
+	item2 := &model.ItemPool{TeamID: 10, Title: "B", Status: "assigned", SubmitterID: 7, AssignedMainID: &assignedMainID}
+	item2.ID = 2
+	item3 := &model.ItemPool{TeamID: 10, Title: "C", Status: "pending", SubmitterID: 5}
+	item3.ID = 3
+
+	svc.listResult.page = &dto.PageResult[model.ItemPool]{
+		Items: []model.ItemPool{*item1, *item2, *item3},
+		Total: 3, Page: 1, Size: 20,
+	}
+
+	trackingUser := &trackingUserRepo{
+		users: map[uint]*model.User{
+			5: {DisplayName: "Alice"},
+			7: {DisplayName: "Bob"},
+		},
+	}
+	trackingMainItem := &trackingMainItemRepo{
+		items: map[uint]*model.MainItem{
+			100: {Code: "M-001", Title: "Main One"},
+		},
+	}
+
+	deps, _ := testDeps(t)
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.ItemPool = NewItemPoolHandler(svc, trackingUser, trackingMainItem)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 1, trackingUser.findByIDsCallCount, "FindByIDs should be called once for users")
+	assert.Equal(t, 0, trackingUser.findByIDCallCount, "FindByID should not be called in batch path")
+	assert.Equal(t, 1, trackingMainItem.findByIDsCallCount, "FindByIDs should be called once for main items")
+	assert.Equal(t, 0, trackingMainItem.findByIDCallCount, "FindByID should not be called in batch path")
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+
+	data := resp["data"].(map[string]interface{})
+	items := data["items"].([]interface{})
+	require.Len(t, items, 3)
+
+	item0 := items[0].(map[string]interface{})
+	assert.Equal(t, "Alice", item0["submitterName"])
+	assert.Equal(t, "M-001", item0["assignedMainCode"])
+
+	item1Data := items[1].(map[string]interface{})
+	assert.Equal(t, "Bob", item1Data["submitterName"])
+
+	item2Data := items[2].(map[string]interface{})
+	assert.Equal(t, "Alice", item2Data["submitterName"])
+}
+
+// trackingMainItemRepo tracks call counts to verify batch vs individual lookups.
+type trackingMainItemRepo struct {
+	items              map[uint]*model.MainItem
+	findByIDsCallCount int
+	findByIDCallCount  int
+}
+
+func (t *trackingMainItemRepo) Create(_ context.Context, _ *model.MainItem) error { return nil }
+func (t *trackingMainItemRepo) FindByID(_ context.Context, _ uint) (*model.MainItem, error) {
+	t.findByIDCallCount++
+	return nil, nil
+}
+func (t *trackingMainItemRepo) FindByIDs(_ context.Context, ids []uint) (map[uint]*model.MainItem, error) {
+	t.findByIDsCallCount++
+	result := make(map[uint]*model.MainItem, len(ids))
+	for _, id := range ids {
+		if item, ok := t.items[id]; ok {
+			result[id] = item
+		}
+	}
+	return result, nil
+}
+func (t *trackingMainItemRepo) Update(_ context.Context, _ *model.MainItem, _ map[string]interface{}) error {
+	return nil
+}
+func (t *trackingMainItemRepo) List(_ context.Context, _ uint, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+	return nil, nil
+}
+func (t *trackingMainItemRepo) NextCode(_ context.Context, _ uint) (string, error)        { return "", nil }
+func (t *trackingMainItemRepo) CountByTeam(_ context.Context, _ uint) (int64, error)       { return 0, nil }
+func (t *trackingMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
+	return nil, nil
+}
+func (t *trackingMainItemRepo) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
+	return nil, nil
+}
+
+// compile-time check
+var _ repository.MainItemRepo = (*trackingMainItemRepo)(nil)
+
 // mockMainItemRepoForPool is a minimal mock for repository.MainItemRepo used by item pool tests.
 type mockMainItemRepoForPool struct{}
 
