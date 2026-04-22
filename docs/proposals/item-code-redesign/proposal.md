@@ -13,8 +13,6 @@ created: 2026-04-22
 
 2. **子事项无持久编码**：SubItem 模型没有 `Code` 字段（见 `sub_item.go`）。前端已有 **2 处**运行时拼接临时标识符（`MainItemDetailPage.tsx:407`、`SubItemDetailPage.tsx:153`），格式为 `SI-${itemId}-${subId}`——这证明子事项有可读标识的需求，但当前方案依赖数据库 ID 且不稳定（删除后 ID 不可复用，无法在周报或进度追踪中稳定引用）。临时拼接还意味着同一子事项在不同页面可能呈现不同格式。
 
-3. **Team 模型缺少缩写字段**：`Team` 结构体（见 `team.go`）仅有 `Name` 和 `Description`，没有可作为编码前缀的短代码字段。
-
 ## Proposal
 
 重新设计事项编码体系，引入团队缩写作为前缀，并为子事项增加编码。
@@ -41,11 +39,28 @@ created: 2026-04-22
 **MainItem 模型**：
 - `Code` 列从 `varchar(10)` 扩展到 `varchar(12)`
 - 编码格式从 `MI-NNNN` 改为 `{team_code}-NNNNN`
-- `NextCode()` 逻辑改用 team code 作为前缀
+- `NextCode()` 逻辑见下方算法说明
 
 **SubItem 模型**：
 - 新增 `Code` 字段（varchar(15)），per-main-item 唯一
 - 新增 `NextSubCode()` 逻辑，基于主事项编码生成子事项编码
+
+### NextCode() 实现算法
+
+采用 **SELECT FOR UPDATE 悲观锁**方案，在事务内序列化同团队的并发创建：
+
+```sql
+BEGIN;
+SELECT id FROM teams WHERE id = ? FOR UPDATE;          -- 锁定团队行，序列化同团队并发
+SELECT COALESCE(MAX(seq), 0) + 1 AS next_seq
+  FROM main_items WHERE team_id = ?;                   -- 读取当前最大序号
+INSERT INTO main_items (..., code = '{team_code}-{next_seq:05d}');
+COMMIT;
+```
+
+锁粒度为 per-team：锁定团队行期间，同团队的其他创建请求排队等待；不同团队之间无竞争。`idx_team_code`（team_id + code 联合唯一索引）作为双重保障，防止锁外异常路径产生重复编码。
+
+`NextSubCode()` 采用相同模式，以 `SELECT id FROM main_items WHERE id = ? FOR UPDATE` 锁定主事项行，锁粒度为 per-main-item。
 
 ### 用户可见行为
 
@@ -69,6 +84,22 @@ created: 2026-04-22
 - 为已有 MainItem 的 code 列重写为 `{TEAM_CODE}-NNNNN`（按 team_id 分组，每组内按 id 排序分配递增序号）
 - 为已有 SubItem 生成 code（按 main_item_id 分组，组内按 id 排序，基于所属主事项编码拼接 `-NN` 后缀）
 
+### 工作量估算
+
+单人开发，预计 **5~7 个工作日**完成：
+
+| 模块 | 工作项 | 估时 |
+|------|--------|------|
+| 后端 | Team 模型 + 校验接口 | 0.5 天 |
+| 后端 | NextCode() / NextSubCode() 重写（含事务锁） | 1 天 |
+| 后端 | SubItem Code 字段 + 索引 | 0.5 天 |
+| 后端 | 数据迁移脚本 + 回滚脚本 | 1 天 |
+| 前端 | TeamManagementPage 创建对话框（Code 输入框 + 校验）+ 团队列表页新增编码列 | 0.5 天 |
+| 前端 | 5 个页面编码展示更新 | 1 天 |
+| 测试 | 单元测试更新 + 并发测试 + 迁移演练 | 1.5 天 |
+
+目标里程碑：2026-05-15 前完成，作为多团队功能的前置合并。
+
 ## Alternatives Analysis
 
 ### A. Do Nothing（保持 MI-NNNN 格式）
@@ -91,9 +122,9 @@ created: 2026-04-22
 
 使用全局自增序号，前缀仍为团队缩写：`FEAT-00001`、`CORE-00002`、`FEAT-00003`（序号跨团队连续）。
 
-- **优点**：实现简单，无需 per-team 的 `MAX(code)` 查询，不存在 per-team 的 race condition
-- **缺点**：不同团队共享序号空间，从编码序号无法推断团队内事项数量；跨团队的 `MAX(code)` 查询反而成为全局竞争热点，比 per-team 序号竞争更严重
-- **结论**：排除。per-team 序号将竞争范围缩小到单团队内，而当前系统以团队为操作边界（每个用户只在一个团队内操作），per-team 序号更合理
+- **优点**：实现简单；全局单点计数器（如数据库序列或单行 counter）的并发竞争比 per-team MAX 查询更少，race condition 风险更低
+- **缺点**：序号不连续（`FEAT-00001` 之后可能是 `FEAT-00005`），用户无法从序号推断团队内事项数量，也无法感知团队内进度；全局序号与系统以团队为操作边界的设计原则不一致；此外，随团队数增加，全局计数器会成为跨团队写入竞争点（当前规模下尚不显著）
+- **结论**：排除。序号不连续破坏了"序号反映团队内事项规模"的可读性；全局序号也与系统以团队为操作边界的设计不一致。全局计数器在当前规模下 race condition 确实更少，但随团队数增加会引入跨团队写入竞争。per-team 锁（SELECT FOR UPDATE 锁团队行）将竞争范围限制在单团队内，与系统设计一致
 
 ### D. 选中方案：Team Code + per-team 5 位序号
 
@@ -115,9 +146,9 @@ created: 2026-04-22
 | 风险 | 可能性 | 影响 | 缓解措施 |
 |------|--------|------|----------|
 | **数据迁移失败**：ALTER TABLE 扩展 Code 列 + 重写所有 MI-XXXX 编码 + 为 SubItem 生成编码时中途出错 | 低 | 高：编码数据损坏导致事项无法检索 | 迁移脚本包裹在事务内；迁移前全量备份数据库；编写迁移回滚脚本（还原 varchar(10) + 恢复旧编码值 + 删除 SubItem.code 列） |
-| **NextCode 并发 race condition**：两个并发请求同时读到相同 `MAX(code)`，生成重复编码 | 中 | 高：违反唯一约束导致创建失败或数据不一致 | 利用现有 `idx_team_code` 唯一索引（team_id + code 联合唯一）作为最终防线，重复插入会返回唯一约束错误，由 service 层重试（最多 3 次）；长期方案可改用 `SELECT ... FOR UPDATE` 或数据库序列 |
+| **NextCode 并发 race condition**：两个并发请求同时读到相同 `MAX(code)`，生成重复编码 | 低 | 高：违反唯一约束导致创建失败或数据不一致 | 已在设计中消除：`NextCode()` 采用 `SELECT ... FOR UPDATE` 锁定团队行，同团队并发创建请求串行执行，不会产生重复序号。`idx_team_code` 唯一索引作为额外防线，防止锁外异常路径 |
 | **NextSubCode 并发竞争**：同一主事项下并发创建子事项时序号冲突 | 中 | 中：子事项创建失败 | SubItem 的 Code 字段加 per-main-item 唯一索引，配合 service 层重试逻辑（最多 3 次）；唯一索引 + 重试是实际防线，不依赖并发量低的假设 |
-| **迁移后旧编码引用失效**：用户已分享的 MI-XXXX 链接或书签无法访问 | 低 | 低：内测阶段，外部引用极少 | 前端搜索框增加对旧格式的模糊匹配重定向（如检测到 `MI-` 前缀自动跳转到新编码）；或直接接受——内测用户可通过事项列表重新定位 |
+| **迁移后旧编码引用失效**：用户已分享的 MI-XXXX 链接或书签无法访问 | 低 | 低：内测阶段，外部引用极少 | 接受此风险。理由：系统处于内测阶段，外部引用极少；迁移方案已明确直接切换不兼容旧格式；内测用户可通过事项列表重新定位。引入旧编码到新编码的映射表及重定向逻辑，复杂度在内测阶段不值得引入 |
 | **Team Code 缺失或无效**：团队创建时未设置 Code，或 Code 包含非字母字符，导致事项编码生成失败 | 低 | 高：该团队下无法创建事项 | 后端 Team 创建接口校验 Code 必填 + 正则 `^[A-Za-z]{2,6}$` + 全局唯一；数据库层加 CHECK 约束 + 唯一索引作为双重保障 |
 
 ## Out of Scope
@@ -126,6 +157,7 @@ created: 2026-04-22
 - 编码的批量重命名
 - 已删除事项编码的回收复用
 - 编码的跨团队唯一性（编码仅在团队内唯一）
+- **Team Code 创建后的修改**：Team Code 一经创建不支持编辑。快照机制保证已有事项编码不受影响，但提供编辑 UI 会误导用户认为旧事项编码会同步更新。如需变更团队标识，创建新团队。
 
 ## Success Criteria
 
@@ -138,6 +170,7 @@ created: 2026-04-22
 | 编码不可变 | 更新 team code 后，该团队下已有事项编码不变（单元测试验证） |
 | SubItem 迁移 | 迁移后 `SELECT COUNT(*) FROM sub_items WHERE code IS NULL OR code = ''` 返回 0；每个 SubItem 的 code 值符合 `{TEAM_CODE}-{MAIN_SEQ}-{NN}` 格式 |
 | MainItem 迁移 | 所有 `main_items.code` 中的 `MI-XXXX` 格式被替换为 `{TEAM_CODE}-NNNNN`；迁移后 `SELECT COUNT(*) FROM main_items WHERE code LIKE 'MI-%'` 返回 0 |
+| 前端展示 — 团队列表 | TeamManagementPage 团队列表每行显示 Code 列，值与 Team.Code 字段一致；新建团队后列表立即刷新并展示新 Code |
 | 前端展示 — 主事项 | ItemViewPage、TableViewPage 中每行主事项的 Badge 渲染 `{TEAM_CODE}-NNNNN`（如 `FEAT-00001`）；WeeklyViewPage 行首渲染 `{code} {title}`；MainItemDetailPage 标题旁 Badge 渲染 `{TEAM_CODE}-NNNNN` |
 | 前端展示 — 子事项 | MainItemDetailPage 子事项表格中，每个子事项行的 Badge 渲染 `{TEAM_CODE}-{MAIN_SEQ}-{NN}`（如 `FEAT-00001-01`），取自 SubItem.Code 字段，非前端拼接 |
 | 前端搜索 | 在 ItemViewPage 搜索框输入完整编码 `FEAT-00001`，结果列表仅包含该编码对应的一条事项（精确匹配）；输入 `FEAT-`，结果列表包含该团队所有事项（前缀过滤） |
