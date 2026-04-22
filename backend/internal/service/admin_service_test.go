@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -546,4 +547,90 @@ func TestGeneratePassword_Uniqueness(t *testing.T) {
 
 func strPtr(s string) *string {
 	return &s
+}
+
+// ---------------------------------------------------------------------------
+// Benchmarks
+// ---------------------------------------------------------------------------
+
+func BenchmarkAdminListUsers(b *testing.B) {
+	b.StopTimer()
+	users := make([]*model.User, 200)
+	for i := range users {
+		users[i] = &model.User{
+			BaseModel:   model.BaseModel{ID: uint(i + 1)},
+			Username:    fmt.Sprintf("user%d", i+1),
+			DisplayName: fmt.Sprintf("User %d", i+1),
+			Email:       fmt.Sprintf("user%d@test.com", i+1),
+			Status:      "enabled",
+		}
+	}
+	userRepo := &mockAdminUserRepo{
+		listFilteredFn: func(_ context.Context, _ string, offset, limit int) ([]*model.User, int64, error) {
+			start := offset
+			if start > len(users) {
+				start = len(users)
+			}
+			end := offset + limit
+			if end > len(users) {
+				end = len(users)
+			}
+			return users[start:end], int64(len(users)), nil
+		},
+	}
+	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
+	ctx := context.Background()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, _, err := svc.ListUsers(ctx, "", 1, 20)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkAdminListUsers_WithSearch(b *testing.B) {
+	b.StopTimer()
+	users := make([]*model.User, 200)
+	for i := range users {
+		users[i] = &model.User{
+			BaseModel:   model.BaseModel{ID: uint(i + 1)},
+			Username:    fmt.Sprintf("user%d", i+1),
+			DisplayName: fmt.Sprintf("User %d", i+1),
+		}
+	}
+	userRepo := &mockAdminUserRepo{
+		listFilteredFn: func(_ context.Context, search string, offset, limit int) ([]*model.User, int64, error) {
+			filtered := make([]*model.User, 0)
+			for _, u := range users {
+				if search == "" || u.Username == search || u.DisplayName == search {
+					filtered = append(filtered, u)
+				}
+			}
+			start := offset
+			if start > len(filtered) {
+				start = len(filtered)
+			}
+			end := offset + limit
+			if end > len(filtered) {
+				end = len(filtered)
+			}
+			return filtered[start:end], int64(len(filtered)), nil
+		},
+	}
+	svc := NewAdminService(userRepo, &mockAdminTeamRepo{
+		teamsByUserIDs: map[uint][]dto.TeamSummary{
+			1: {{ID: 1, Name: "Team A", Role: "member"}},
+		},
+	})
+	ctx := context.Background()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, _, err := svc.ListUsers(ctx, "user1", 1, 20)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
 }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/csv"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -1911,4 +1912,138 @@ func TestTableExportCSV_UsesBatchFindByIDs(t *testing.T) {
 	// Should call FindByIDs exactly once
 	assert.Equal(t, uint(1), userRepo.findByIDsCalls, "TableExportCSV should use a single FindByIDs call")
 	assert.Equal(t, uint(0), userRepo.findByIDCalls, "TableExportCSV should not call FindByID")
+}
+
+// ---------------------------------------------------------------------------
+// Benchmarks
+// ---------------------------------------------------------------------------
+
+// seedBenchmarkData creates a dataset of n main items with sub-items and progress.
+func seedBenchmarkData(n int) (*mockViewMainItemRepo, *mockViewSubItemRepo, *mockViewProgressRepo, *mockViewUserRepo) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+
+	mainItems := make([]model.MainItem, n)
+	for i := range mainItems {
+		id := uint(i + 1)
+		assigneeID := uint((i % 50) + 1) // 50 unique assignees
+		mainItems[i] = model.MainItem{
+			BaseModel:      model.BaseModel{ID: id},
+			TeamID:         1,
+			Code:           fmt.Sprintf("BENCH-%05d", id),
+			Title:          fmt.Sprintf("Main Item %d", id),
+			Priority:       []string{"P1", "P2", "P3"}[i%3],
+			Status:         "progressing",
+			Completion:     float64(i % 100),
+			StartDate:      &startDate,
+			ExpectedEndDate: &endDate,
+			AssigneeID:     &assigneeID,
+		}
+	}
+
+	// Each main item has 2 sub-items
+	subItems := make([]model.SubItem, n*2)
+	for i := range subItems {
+		mainID := uint(i/2 + 1)
+		subItems[i] = model.SubItem{
+			BaseModel:       model.BaseModel{ID: uint(i + 1)},
+			TeamID:          1,
+			MainItemID:      mainID,
+			Title:           fmt.Sprintf("Sub Item %d", i+1),
+			Priority:        []string{"P1", "P2", "P3"}[(i/2)%3],
+			Status:          "progressing",
+			Completion:      float64(i % 100),
+			StartDate:       &startDate,
+			ExpectedEndDate: &endDate,
+			AssigneeID:      mainItems[i/2].AssigneeID,
+		}
+	}
+
+	// Progress records for the current week
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	records := make([]model.ProgressRecord, n)
+	for i := range records {
+		records[i] = model.ProgressRecord{
+			ID:          uint(i + 1),
+			SubItemID:   uint(i + 1),
+			TeamID:      1,
+			Completion:  float64(i % 100),
+			Achievement: fmt.Sprintf("Achievement %d", i),
+			CreatedAt:   weekStart.AddDate(0, 0, i%7),
+		}
+	}
+
+	// Build user map for assignee resolution (50 users)
+	users := make(map[uint]*model.User, 50)
+	for i := 1; i <= 50; i++ {
+		users[uint(i)] = &model.User{
+			BaseModel:   model.BaseModel{ID: uint(i)},
+			DisplayName: fmt.Sprintf("User %d", i),
+		}
+	}
+
+	return &mockViewMainItemRepo{items: mainItems},
+		&mockViewSubItemRepo{items: subItems},
+		&mockViewProgressRepo{records: records},
+		&mockViewUserRepo{users: users}
+}
+
+func BenchmarkTableView(b *testing.B) {
+	b.StopTimer()
+	mainRepo, subRepo, _, userRepo := seedBenchmarkData(200)
+	svc := newViewServiceWithUsers(mainRepo, subRepo, userRepo)
+	ctx := context.Background()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, err := svc.TableView(ctx, 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 20})
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkTableView_LargePage(b *testing.B) {
+	b.StopTimer()
+	mainRepo, subRepo, _, userRepo := seedBenchmarkData(200)
+	svc := newViewServiceWithUsers(mainRepo, subRepo, userRepo)
+	ctx := context.Background()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, err := svc.TableView(ctx, 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 100})
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkGanttView(b *testing.B) {
+	b.StopTimer()
+	mainRepo, subRepo, _, _ := seedBenchmarkData(200)
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+	ctx := context.Background()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, err := svc.GanttView(ctx, 1, dto.GanttFilter{})
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkGanttView_WithStatusFilter(b *testing.B) {
+	b.StopTimer()
+	mainRepo, subRepo, _, _ := seedBenchmarkData(200)
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+	ctx := context.Background()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, err := svc.GanttView(ctx, 1, dto.GanttFilter{Status: "progressing"})
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
 }

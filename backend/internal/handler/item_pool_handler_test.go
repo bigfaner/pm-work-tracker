@@ -21,6 +21,90 @@ import (
 )
 
 // ---------------------------------------------------------------------------
+// Benchmarks
+// ---------------------------------------------------------------------------
+
+// seedItemPoolBenchData creates a dataset of n item pool entries for benchmarks.
+func seedItemPoolBenchData(n int) (*mockItemPoolService, *trackingUserRepo, *trackingMainItemRepo) {
+	assignedMainID := uint(100)
+	items := make([]model.ItemPool, n)
+	users := make(map[uint]*model.User, n)
+	mainItems := map[uint]*model.MainItem{100: {Code: "M-001", Title: "Main One"}}
+
+	for i := range items {
+		items[i] = model.ItemPool{
+			TeamID:      10,
+			Title:       fmt.Sprintf("Pool Item %d", i),
+			Status:      []string{"pending", "assigned", "rejected"}[i%3],
+			SubmitterID: uint(i%50 + 1),
+		}
+		if items[i].Status == "assigned" {
+			items[i].AssignedMainID = &assignedMainID
+		}
+		users[uint(i%50+1)] = &model.User{DisplayName: fmt.Sprintf("User %d", i%50+1)}
+	}
+
+	svc := &mockItemPoolService{}
+	svc.listResult.page = &dto.PageResult[model.ItemPool]{
+		Items: items,
+		Total: int64(n),
+		Page:  1,
+		Size:  20,
+	}
+
+	trackingUser := &trackingUserRepo{users: users}
+	trackingMainItem := &trackingMainItemRepo{items: mainItems}
+
+	return svc, trackingUser, trackingMainItem
+}
+
+func BenchmarkItemPoolHandler_List(b *testing.B) {
+	b.StopTimer()
+	svc, trackingUser, trackingMainItem := seedItemPoolBenchData(200)
+
+	deps, _ := testDeps(b)
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.ItemPool = NewItemPoolHandler(svc, trackingUser, trackingMainItem)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(b, 5, "testuser")
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool?page=1&pageSize=20", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		r.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			b.Fatalf("unexpected status: %d", w.Code)
+		}
+	}
+}
+
+func BenchmarkItemPoolHandler_List_LargePage(b *testing.B) {
+	b.StopTimer()
+	svc, trackingUser, trackingMainItem := seedItemPoolBenchData(200)
+
+	deps, _ := testDeps(b)
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.ItemPool = NewItemPoolHandler(svc, trackingUser, trackingMainItem)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(b, 5, "testuser")
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool?page=1&pageSize=100", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		r.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			b.Fatalf("unexpected status: %d", w.Code)
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Mock ItemPoolService for handler tests
 // ---------------------------------------------------------------------------
 

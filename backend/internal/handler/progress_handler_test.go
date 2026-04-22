@@ -20,6 +20,61 @@ import (
 )
 
 // ---------------------------------------------------------------------------
+// Benchmarks
+// ---------------------------------------------------------------------------
+
+// seedProgressBenchData creates a dataset of n progress records for benchmarks.
+func seedProgressBenchData(n int) (*mockProgressService, *trackingUserRepo) {
+	records := make([]model.ProgressRecord, n)
+	users := make(map[uint]*model.User, 50)
+
+	for i := range records {
+		records[i] = model.ProgressRecord{
+			ID:          uint(i + 1),
+			SubItemID:   5,
+			TeamID:      10,
+			AuthorID:    uint(i%50 + 1),
+			Completion:  float64(i % 100),
+			Achievement: fmt.Sprintf("Achievement %d", i),
+			Blocker:     "",
+			Lesson:      "",
+			IsPMCorrect: false,
+			CreatedAt:   time.Now().Add(-time.Duration(i) * time.Minute),
+		}
+		users[uint(i%50+1)] = &model.User{DisplayName: fmt.Sprintf("User %d", i%50+1)}
+	}
+
+	svc := &mockProgressService{}
+	svc.listResult.records = records
+
+	trackingRepo := &trackingUserRepo{users: users}
+	return svc, trackingRepo
+}
+
+func BenchmarkProgressHandler_List(b *testing.B) {
+	b.StopTimer()
+	svc, trackingRepo := seedProgressBenchData(200)
+
+	deps, _ := testDeps(b)
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.Progress = NewProgressHandlerWithDeps(svc, trackingRepo)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(b, 3, "testuser")
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/sub-items/5/progress", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		r.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			b.Fatalf("unexpected status: %d", w.Code)
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Mock ProgressService for handler tests
 // ---------------------------------------------------------------------------
 

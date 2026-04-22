@@ -24,7 +24,7 @@ import (
 )
 
 // testDeps creates a Dependencies struct wired for testing.
-func testDeps(t *testing.T) (*Dependencies, *gorm.DB) {
+func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 	t.Helper()
 
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
@@ -141,7 +141,7 @@ func testDeps(t *testing.T) (*Dependencies, *gorm.DB) {
 
 // signTestToken creates a valid JWT for testing.
 // If userID is 1, the token is for the superadmin user; otherwise it's a regular user.
-func signTestToken(t *testing.T, userID uint, username string) string {
+func signTestToken(t testing.TB, userID uint, username string) string {
 	t.Helper()
 	token, err := appjwt.Sign(userID, username, "test-secret-that-is-at-least-32-bytes!!")
 	require.NoError(t, err)
