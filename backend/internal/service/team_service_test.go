@@ -186,6 +186,7 @@ func TestCreateTeam_Success(t *testing.T) {
 	team, err := svc.CreateTeam(context.Background(), 1, dto.CreateTeamReq{
 		Name:        "Alpha Team",
 		Description: "A test team",
+		Code:        "ALPHA",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "Alpha Team", team.Name)
@@ -196,6 +197,19 @@ func TestCreateTeam_Success(t *testing.T) {
 	assert.NotNil(t, repo.createdMember)
 	assert.Equal(t, uint(1), repo.createdMember.UserID)
 	assert.Equal(t, "pm", repo.createdMember.Role)
+}
+
+func TestCreateTeam_CodeFieldPersisted(t *testing.T) {
+	repo := &mockTeamRepo{}
+	svc := NewTeamService(repo, &mockTeamUserRepo{}, &mockMainItemRepo{}, &mockDB{})
+
+	team, err := svc.CreateTeam(context.Background(), 1, dto.CreateTeamReq{
+		Name: "Beta Team",
+		Code: "BETA",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "BETA", team.Code)
+	assert.Equal(t, "BETA", repo.createdTeam.Code)
 }
 
 func TestCreateTeam_RepoError(t *testing.T) {

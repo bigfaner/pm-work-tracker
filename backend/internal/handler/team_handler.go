@@ -212,6 +212,7 @@ func teamToDTO(team *model.Team) gin.H {
 		"id":          team.ID,
 		"name":        team.Name,
 		"description": team.Description,
+		"code":        team.Code,
 		"pmId":        team.PmID,
 		"createdAt":   team.CreatedAt,
 		"updatedAt":   team.UpdatedAt,

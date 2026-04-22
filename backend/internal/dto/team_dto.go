@@ -52,6 +52,7 @@ type TeamDetailResp struct {
 	ID            uint   `json:"id"`
 	Name          string `json:"name"`
 	Description   string `json:"description"`
+	Code          string `json:"code"`
 	PmID          uint   `json:"pmId"`
 	PmDisplayName string `json:"pmDisplayName"`
 	MemberCount   int    `json:"memberCount"`
@@ -65,6 +66,7 @@ type TeamListResp struct {
 	ID            uint   `json:"id"`
 	Name          string `json:"name"`
 	Description   string `json:"description"`
+	Code          string `json:"code"`
 	PmID          uint   `json:"pmId"`
 	PmDisplayName string `json:"pmDisplayName"`
 	CreatedAt     string `json:"createdAt"`
