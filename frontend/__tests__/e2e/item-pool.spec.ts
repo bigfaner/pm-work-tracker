@@ -1,7 +1,7 @@
 import { test, expect, Page } from '@playwright/test';
 
 const BASE = 'http://localhost:5173';
-const API = 'http://localhost:8080/api/v1';
+const API = 'http://localhost:8080/v1';
 
 // Helper: get API auth token with retry
 async function getAuthToken(): Promise<string> {

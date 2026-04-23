@@ -1,7 +1,7 @@
 import { test, expect, Page } from '@playwright/test';
 
 const BASE = 'http://localhost:5173';
-const API = 'http://localhost:8080/api/v1';
+const API = 'http://localhost:8080/v1';
 const TIMEOUT = 60000;
 
 test.setTimeout(TIMEOUT);
@@ -40,20 +40,20 @@ test.describe.serial('事项清单 Bug修复验证', () => {
       extraHTTPHeaders: { 'Content-Type': 'application/json' },
     });
 
-    const loginRes = await request.post('/api/v1/auth/login', {
+    const loginRes = await request.post('/v1/auth/login', {
       data: { username: 'admin', password: 'admin123' },
     });
     const loginData = parseApiData(await loginRes.json());
     authToken = loginData.token;
 
-    const teamsRes = await request.get('/api/v1/teams', {
+    const teamsRes = await request.get('/v1/teams', {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     const teamsData = parseApiData(await teamsRes.json());
     teamId = String(teamsData[0].id);
 
     // Create main item with dates (use snake_case field names for backend)
-    const mainARes = await request.post(`/api/v1/teams/${teamId}/main-items`, {
+    const mainARes = await request.post(`/v1/teams/${teamId}/main-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
         title: 'E2E修复测试-带日期',
@@ -67,7 +67,7 @@ test.describe.serial('事项清单 Bug修复验证', () => {
     itemA = String(mainAData.id);
 
     // Create sub-item (backend DTO requires camelCase fields)
-    const subRes = await request.post(`/api/v1/teams/${teamId}/main-items/${itemA}/sub-items`, {
+    const subRes = await request.post(`/v1/teams/${teamId}/main-items/${itemA}/sub-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
         mainItemId: Number(itemA),
@@ -82,7 +82,7 @@ test.describe.serial('事项清单 Bug修复验证', () => {
     subItemA1 = String(subData.id);
 
     // Create main item B (with dates since API requires them)
-    const mainBRes = await request.post(`/api/v1/teams/${teamId}/main-items`, {
+    const mainBRes = await request.post(`/v1/teams/${teamId}/main-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: { title: 'E2E修复测试-无日期', priority: 'P2', assigneeId: 1, startDate: '2026-05-01', expectedEndDate: '2026-05-31' },
     });
@@ -158,10 +158,10 @@ test.describe.serial('事项清单 Bug修复验证', () => {
       baseURL: 'http://127.0.0.1:8080',
       extraHTTPHeaders: { 'Content-Type': 'application/json' },
     });
-    const loginRes = await req.post('/api/v1/auth/login', { data: { username: 'admin', password: 'admin123' } });
+    const loginRes = await req.post('/v1/auth/login', { data: { username: 'admin', password: 'admin123' } });
     const token = parseApiData(await loginRes.json()).token;
     const subTitle = `子事项-API创建-${Date.now()}`;
-    await req.post(`/api/v1/teams/${teamId}/main-items/${itemA}/sub-items`, {
+    await req.post(`/v1/teams/${teamId}/main-items/${itemA}/sub-items`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { mainItemId: Number(itemA), title: subTitle, priority: 'P2', assigneeId: 1, startDate: '2026-04-20', expectedEndDate: '2026-05-20' },
     });
@@ -217,10 +217,10 @@ test.describe.serial('事项清单 Bug修复验证', () => {
       baseURL: 'http://127.0.0.1:8080',
       extraHTTPHeaders: { 'Content-Type': 'application/json' },
     });
-    const loginRes = await req.post('/api/v1/auth/login', { data: { username: 'admin', password: 'admin123' } });
+    const loginRes = await req.post('/v1/auth/login', { data: { username: 'admin', password: 'admin123' } });
     const token = parseApiData(await loginRes.json()).token;
     // Ensure sub-item is in pending state (reset if it was changed by earlier tests)
-    await req.put(`/api/v1/teams/${teamId}/sub-items/${subItemA1}/status`, {
+    await req.put(`/v1/teams/${teamId}/sub-items/${subItemA1}/status`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { status: 'pending' },
     });
@@ -287,10 +287,10 @@ test.describe.serial('事项清单 Bug修复验证', () => {
       baseURL: 'http://127.0.0.1:8080',
       extraHTTPHeaders: { 'Content-Type': 'application/json' },
     });
-    const loginRes = await req.post('/api/v1/auth/login', { data: { username: 'admin', password: 'admin123' } });
+    const loginRes = await req.post('/v1/auth/login', { data: { username: 'admin', password: 'admin123' } });
     const token = parseApiData(await loginRes.json()).token;
     const freshTitle = `刷新测试-${Date.now()}`;
-    await req.post(`/api/v1/teams/${teamId}/main-items`, {
+    await req.post(`/v1/teams/${teamId}/main-items`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { title: freshTitle, priority: 'P2', assigneeId: 1, startDate: '2026-04-20', expectedEndDate: '2026-05-20' },
     });
