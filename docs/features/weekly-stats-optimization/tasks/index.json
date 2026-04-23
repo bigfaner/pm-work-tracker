@@ -31,7 +31,7 @@
       "dependencies": [
         "1.1"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.1-backend-service-build-weekly-groups.md",
       "record": "records/2.1-backend-service-build-weekly-groups.md"
     },
@@ -40,7 +40,7 @@
       "title": "Frontend lib: isOverdue 签名更新及调用方同步",
       "priority": "P0",
       "estimatedTime": "1.5h",
-      "status": "pending",
+      "status": "completed",
       "file": "2.2-frontend-lib-is-overdue.md",
       "record": "records/2.2-frontend-lib-is-overdue.md"
     },
@@ -52,7 +52,7 @@
       "dependencies": [
         "2.1"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.1-backend-unit-tests.md",
       "record": "records/3.1-backend-unit-tests.md"
     },
