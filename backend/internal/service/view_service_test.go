@@ -2114,6 +2114,164 @@ func TestTableExportCSV_UsesBatchFindByIDs(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// Tests: buildWeeklyGroups stats counting (unit, no service layer)
+// ---------------------------------------------------------------------------
+
+func TestBuildWeeklyGroups_Stats(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	weekEnd := weekStart.AddDate(0, 0, 6)
+
+	overdueDate := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)       // before weekEnd
+	completedInWeek := time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)   // within week
+	beforeWeekStart := time.Date(2026, 4, 5, 0, 0, 0, 0, time.UTC)    // before weekStart
+
+	mainItem := model.MainItem{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "M", Priority: "P1"}
+
+	activeSet := func(ids ...uint) map[uint]struct{} {
+		m := make(map[uint]struct{})
+		for _, id := range ids {
+			m[id] = struct{}{}
+		}
+		return m
+	}
+	progressFor := func(subID uint) map[uint][]model.ProgressRecord {
+		return map[uint][]model.ProgressRecord{
+			subID: {{ID: 1, SubItemID: subID, Completion: 50, CreatedAt: weekStart.AddDate(0, 0, 1)}},
+		}
+	}
+	emptyProgress := map[uint][]model.ProgressRecord{}
+	emptyActive := map[uint]struct{}{}
+
+	tests := []struct {
+		name      string
+		subs      []model.SubItem
+		active    map[uint]struct{}
+		progress  map[uint][]model.ProgressRecord
+		wantStats dto.WeeklyStats
+	}{
+		{
+			name: "progressing active → inProgress=1 activeSubItems=1",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "progressing"},
+			},
+			active:    activeSet(10),
+			progress:  progressFor(10),
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, InProgress: 1},
+		},
+		{
+			name: "blocking active → blocked=1 activeSubItems=1",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "blocking"},
+			},
+			active:    activeSet(10),
+			progress:  progressFor(10),
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, Blocked: 1},
+		},
+		{
+			name: "pending active → pending=1 activeSubItems=1",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "pending"},
+			},
+			active:    activeSet(10),
+			progress:  progressFor(10),
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, Pending: 1},
+		},
+		{
+			name: "pausing active → pausing=1 activeSubItems=1",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "pausing"},
+			},
+			active:    activeSet(10),
+			progress:  progressFor(10),
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, Pausing: 1},
+		},
+		{
+			name: "justCompleted → newlyCompleted=1 activeSubItems=1",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "completed", ActualEndDate: &completedInWeek, Completion: 100},
+			},
+			active:    emptyActive,
+			progress:  emptyProgress,
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, NewlyCompleted: 1},
+		},
+		{
+			name: "overdue progressing → overdue=1 inProgress=1 activeSubItems=1",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "progressing", ExpectedEndDate: &overdueDate},
+			},
+			active:    activeSet(10),
+			progress:  progressFor(10),
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, InProgress: 1, Overdue: 1},
+		},
+		{
+			name: "pending not active → pending=0",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "pending"},
+			},
+			active:    emptyActive,
+			progress:  emptyProgress,
+			wantStats: dto.WeeklyStats{},
+		},
+		{
+			name: "nil expectedEndDate → overdue=0",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "progressing", ExpectedEndDate: nil},
+			},
+			active:    activeSet(10),
+			progress:  progressFor(10),
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, InProgress: 1, Overdue: 0},
+		},
+		{
+			name: "completed with past deadline → overdue=0",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "completed", ExpectedEndDate: &overdueDate, ActualEndDate: &completedInWeek, Completion: 100},
+			},
+			active:    activeSet(10),
+			progress:  progressFor(10),
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, NewlyCompleted: 1, Overdue: 0},
+		},
+		{
+			name: "closed with past deadline → overdue=0",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "closed", ExpectedEndDate: &overdueDate},
+			},
+			active:    activeSet(10),
+			progress:  progressFor(10),
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, Overdue: 0},
+		},
+		{
+			name: "progress record in week but actualEndDate before weekStart → activeSubItems=1 (progress wins)",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "progressing", ActualEndDate: &beforeWeekStart},
+			},
+			active:    emptyActive,
+			progress:  progressFor(10), // has progress record in this week
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, InProgress: 1},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			subsByMain := map[uint][]model.SubItem{1: tt.subs}
+			_, stats := buildWeeklyGroups(
+				[]model.MainItem{mainItem},
+				subsByMain,
+				emptyActive,        // lastWeekActive
+				tt.active,          // thisWeekActive
+				emptyProgress,      // lastWeekProgress
+				tt.progress,        // thisWeekProgress
+				map[uint]float64{}, // lastWeekCompletion
+				map[uint]string{},  // latestProgressDesc
+				map[uint]string{},  // assigneeNames
+				weekStart,
+				weekEnd,
+			)
+			assert.Equal(t, tt.wantStats, stats)
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Benchmarks
 // ---------------------------------------------------------------------------
 
