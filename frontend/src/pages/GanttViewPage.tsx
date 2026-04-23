@@ -1,11 +1,12 @@
 import { useState, useMemo, useCallback, useEffect, useRef, Fragment } from 'react'
-import { RotateCcw } from 'lucide-react'
+import { RotateCcw, RefreshCw } from 'lucide-react'
 import { DateInput } from '@/components/ui/date-input'
 import { useQuery } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { getGanttViewApi } from '@/api/views'
 import type { GanttMainItem } from '@/types'
 import './gantt-overrides.css'
+import { useToast } from '@/components/ui/toast'
 
 // --- Constants ---
 
@@ -17,37 +18,43 @@ const ITEMS_PER_PAGE = 20
 
 function getDateRange(items: GanttMainItem[]): { start: Date; end: Date } {
   const now = new Date()
-  // Default: current week ±2 weeks
-  const defaultStart = new Date(now)
-  defaultStart.setDate(defaultStart.getDate() - 14)
-  const defaultEnd = new Date(now)
-  defaultEnd.setDate(defaultEnd.getDate() + 14)
 
-  let minDate = defaultStart
-  let maxDate = defaultEnd
+  let minDate: Date | null = null
+  let maxDate: Date | null = null
 
   for (const item of items) {
-    if (item.startDate) {
-      const s = new Date(item.startDate)
-      if (s < minDate) minDate = s
-    }
-    if (item.expectedEndDate) {
-      const e = new Date(item.expectedEndDate)
-      if (e > maxDate) maxDate = e
-    }
-    for (const sub of item.subItems) {
-      if (sub.startDate) {
-        const s = new Date(sub.startDate)
-        if (s < minDate) minDate = s
-      }
-      if (sub.expectedEndDate) {
-        const e = new Date(sub.expectedEndDate)
-        if (e > maxDate) maxDate = e
-      }
+    const dates = [item.startDate, item.expectedEndDate,
+      ...item.subItems.map((s) => s.startDate),
+      ...item.subItems.map((s) => s.expectedEndDate),
+    ]
+    for (const d of dates) {
+      if (!d) continue
+      const dt = new Date(d)
+      if (!minDate || dt < minDate) minDate = dt
+      if (!maxDate || dt > maxDate) maxDate = dt
     }
   }
 
-  return { start: minDate, end: maxDate }
+  // Add padding: 14 days before earliest, 30 days after latest
+  const start = minDate ? new Date(minDate) : new Date(now)
+  start.setDate(start.getDate() - 14)
+
+  const end = maxDate ? new Date(maxDate) : new Date(now)
+  end.setDate(end.getDate() + 30)
+
+  // Ensure minimum range of 60 days
+  const MIN_DAYS = 60
+  if (daysBetween(start, end) < MIN_DAYS) {
+    end.setDate(start.getDate() + MIN_DAYS)
+  }
+
+  // Cap maximum range at 365 days to avoid an unreadably wide chart
+  const MAX_DAYS = 365
+  if (daysBetween(start, end) > MAX_DAYS) {
+    end.setTime(start.getTime() + MAX_DAYS * 86400000)
+  }
+
+  return { start, end }
 }
 
 function daysBetween(a: Date, b: Date): number {
@@ -69,12 +76,13 @@ function getBarClass(item: { isOverdue?: boolean; status: string; startDate: str
 
 export default function GanttViewPage() {
   const teamId = useTeamStore((s) => s.currentTeamId)
+  const { addToast } = useToast()
   const [searchKeyword, setSearchKeyword] = useState('')
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
   const [loadedCount, setLoadedCount] = useState(ITEMS_PER_PAGE)
   const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['ganttView', teamId],
     queryFn: () => getGanttViewApi(teamId!),
     enabled: !!teamId,
@@ -203,6 +211,8 @@ export default function GanttViewPage() {
           onSearchChange={setSearchKeyword}
           hasMore={hasMore}
           onLoadMore={handleLoadMore}
+          onRefresh={async () => { await refetch(); addToast('数据已刷新', 'success') }}
+          isFetching={isFetching}
         />
       )}
     </div>
@@ -222,6 +232,8 @@ interface GanttChartProps {
   onSearchChange: (kw: string) => void
   hasMore: boolean
   onLoadMore: () => void
+  onRefresh: () => void
+  isFetching: boolean
 }
 
 function GanttChart({
@@ -235,6 +247,8 @@ function GanttChart({
   onSearchChange,
   hasMore,
   onLoadMore,
+  onRefresh,
+  isFetching,
 }: GanttChartProps) {
   const bodyWidth = totalDays * DAY_WIDTH
   const headerInnerRef = useRef<HTMLDivElement>(null)
@@ -276,6 +290,14 @@ function GanttChart({
                 value={searchKeyword}
                 onChange={(e) => onSearchChange(e.target.value)}
               />
+              <button
+                data-testid="refresh-btn"
+                className="h-7 w-7 inline-flex items-center justify-center rounded border border-border bg-white text-secondary hover:text-primary-500 hover:border-primary-500 transition-colors flex-shrink-0"
+                title="刷新"
+                onClick={onRefresh}
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+              </button>
             </div>
             {items.map((item) => (
               <GanttLabelRow
