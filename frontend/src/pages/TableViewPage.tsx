@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
+import { RefreshCw } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { getTableViewApi, exportTableCsvApi } from '@/api/views'
@@ -30,6 +31,7 @@ import ProgressBar from '@/components/shared/ProgressBar'
 import UserAvatar from '@/components/shared/UserAvatar'
 import { STATUS_OPTIONS } from '@/lib/status'
 import { getStatusName, isOverdue as checkOverdue } from '@/lib/status'
+import { useToast } from '@/components/ui/toast'
 
 // --- Constants ---
 
@@ -46,6 +48,7 @@ const DEFAULT_PAGE_SIZE = 10
 
 export default function TableViewPage() {
   const teamId = useTeamStore((s) => s.currentTeamId)
+  const { addToast } = useToast()
 
   // Filter state
   const [searchText, setSearchText] = useState('')
@@ -81,7 +84,7 @@ export default function TableViewPage() {
     return filter
   }, [typeFilter, priorityFilter, statusFilter, assigneeFilter, currentPage, pageSize])
 
-  const { data: tableData, isLoading } = useQuery({
+  const { data: tableData, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['tableView', teamId, serverFilter],
     queryFn: () => getTableViewApi(teamId!, serverFilter),
     enabled: !!teamId,
@@ -244,6 +247,10 @@ export default function TableViewPage() {
             </Select>
             <Button variant="secondary" size="sm" onClick={resetFilters}>
               重置
+            </Button>
+            <Button variant="secondary" size="sm" onClick={async () => { await refetch(); addToast('数据已刷新', 'success') }} disabled={isFetching} data-testid="refresh-btn">
+              <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+              刷新
             </Button>
           </div>
 

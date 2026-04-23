@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { ArrowUpCircle, ArrowDownCircle, XCircle } from 'lucide-react'
+import { ArrowUpCircle, ArrowDownCircle, XCircle, RefreshCw } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
@@ -29,6 +29,7 @@ import {
   DialogBody,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { useToast } from '@/components/ui/toast'
 
 // --- Constants ---
 
@@ -141,6 +142,7 @@ function PoolItemCard({ item, onConvertToMain, onConvertToSub, onReject }: PoolI
 export default function ItemPoolPage() {
   const teamId = useTeamStore((s) => s.currentTeamId)
   const qc = useQueryClient()
+  const { addToast } = useToast()
 
   // Filter state
   const [searchText, setSearchText] = useState('')
@@ -170,6 +172,7 @@ export default function ItemPoolPage() {
     hasNextPage,
     fetchNextPage,
     isFetchingNextPage,
+    refetch,
   } = useInfiniteQuery({
     queryKey: ['itemPool', teamId],
     queryFn: ({ pageParam }) => listItemPoolApi(teamId!, { page: pageParam as number, pageSize: POOL_BATCH_SIZE }),
@@ -392,6 +395,10 @@ export default function ItemPoolPage() {
             </Select>
             <Button variant="secondary" size="sm" onClick={resetFilters}>
               重置
+            </Button>
+            <Button variant="secondary" size="sm" onClick={async () => { await refetch(); addToast('数据已刷新', 'success') }} disabled={isFetchingNextPage} data-testid="refresh-btn">
+              <RefreshCw size={14} className={isFetchingNextPage ? 'animate-spin' : ''} />
+              刷新
             </Button>
           </div>
 

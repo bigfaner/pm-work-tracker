@@ -53,7 +53,7 @@ function ToastProvider({ children }: ToastProviderProps) {
       setToasts((prev) => [...prev, { id, message, variant }])
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id))
-      }, 4000)
+      }, 1000)
     },
     []
   )

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, RefreshCw } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listRolesApi, deleteRoleApi } from '@/api/roles'
 import { formatDate as _formatDate } from '@/lib/format'
@@ -38,11 +38,13 @@ import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import RoleEditDialog from '@/components/RoleEditDialog'
 import PermissionBrowseDialog from '@/components/PermissionBrowseDialog'
 import RolePermissionsDialog from '@/components/RolePermissionsDialog'
+import { useToast } from '@/components/ui/toast'
 
 const PAGE_SIZE = 20
 
 export default function RoleManagementPage() {
   const qc = useQueryClient()
+  const { addToast } = useToast()
 
   // Filters
   const [searchText, setSearchText] = useState('')
@@ -60,7 +62,7 @@ export default function RoleManagementPage() {
   const [permissionsRoleId, setPermissionsRoleId] = useState<number | null>(null)
 
   // Data
-  const { data: rolesData, isLoading, isFetching } = useQuery({
+  const { data: rolesData, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['roles', currentPage, searchText, presetFilter],
     queryFn: () =>
       listRolesApi({
@@ -191,6 +193,10 @@ export default function RoleManagementPage() {
               <SelectItem value="custom">自定义角色</SelectItem>
             </SelectContent>
           </Select>
+          <Button variant="secondary" size="sm" onClick={async () => { await refetch(); addToast('数据已刷新', 'success') }} disabled={isFetching} data-testid="refresh-btn">
+            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+            刷新
+          </Button>
         </div>
 
         {/* Table */}
@@ -269,6 +275,7 @@ export default function RoleManagementPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className="text-primary-600"
                                 disabled={role.isPreset}
                                 data-testid={`edit-role-${role.id}`}
                                 onClick={() => openEdit(role)}
@@ -290,6 +297,7 @@ export default function RoleManagementPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className="text-primary-600"
                                 disabled={role.isPreset || role.memberCount > 0}
                                 onClick={() => openDelete(role)}
                               >

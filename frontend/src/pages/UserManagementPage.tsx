@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react'
-import { Pencil, ToggleRight, ToggleLeft } from 'lucide-react'
+import { Pencil, ToggleRight, ToggleLeft, RefreshCw } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   listUsersApi,
@@ -37,7 +37,9 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Pagination, PaginationPageSize } from '@/components/ui/pagination'
+import PaginationBar from '@/components/shared/PaginationBar'
 import UserAvatar from '@/components/shared/UserAvatar'
+import { useToast } from '@/components/ui/toast'
 
 // --- Constants ---
 
@@ -47,6 +49,7 @@ const DEFAULT_PAGE_SIZE = 10
 
 export default function UserManagementPage() {
   const qc = useQueryClient()
+  const { addToast } = useToast()
 
   // Filter state
   const [searchText, setSearchText] = useState('')
@@ -81,7 +84,7 @@ export default function UserManagementPage() {
 
   // --- Data fetching ---
 
-  const { data: usersData, isLoading, isFetching } = useQuery({
+  const { data: usersData, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['adminUsers', currentPage, pageSize, searchText],
     queryFn: () =>
       listUsersApi({
@@ -240,6 +243,10 @@ export default function UserManagementPage() {
           onChange={(e) => handleSearchChange(e.target.value)}
           className="w-[240px]"
         />
+        <Button variant="secondary" size="sm" onClick={async () => { await refetch(); addToast('数据已刷新', 'success') }} disabled={isFetching} data-testid="refresh-btn">
+          <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+          刷新
+        </Button>
       </div>
 
       {/* User Table */}
@@ -295,11 +302,11 @@ export default function UserManagementPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(user)}>
+                      <Button variant="ghost" size="sm" className="text-primary-600" onClick={() => openEdit(user)}>
                         <Pencil className="w-3.5 h-3.5" />
                         编辑
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => openToggleStatus(user)}>
+                      <Button variant="ghost" size="sm" className="text-primary-600" onClick={() => openToggleStatus(user)}>
                         {user.status === 'enabled' ? (
                           <ToggleRight className="w-3.5 h-3.5" />
                         ) : (
@@ -315,19 +322,15 @@ export default function UserManagementPage() {
           </Table>
 
           {/* Pagination */}
-          <div className="flex items-center justify-center gap-3 px-5 py-3 border-t border-border">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
-            <PaginationPageSize
-              pageSize={pageSize}
-              onPageSizeChange={handlePageSizeChange}
-              options={[10, 20, 50]}
-            />
-            <span className="text-[13px] text-tertiary">共 {total} 条</span>
-          </div>
+          <PaginationBar
+            currentPage={currentPage}
+            totalPages={totalPages}
+            total={total}
+            onPageChange={setCurrentPage}
+            pageSize={pageSize}
+            onPageSizeChange={handlePageSizeChange}
+            pageSizeOptions={[10, 20, 50]}
+          />
         </div>
       )}
 
