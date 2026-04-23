@@ -178,6 +178,7 @@ type WeeklyMainItemSummary struct {
 // SubItemSnapshot represents a sub-item snapshot in the weekly comparison view.
 type SubItemSnapshot struct {
 	ID                  uint                `json:"id"`
+	Code                string              `json:"code"`
 	Title               string              `json:"title"`
 	Priority            string              `json:"priority"`
 	Status              string              `json:"status"`

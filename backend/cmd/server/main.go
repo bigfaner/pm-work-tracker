@@ -76,7 +76,8 @@ func run(configPath string, devMode bool) error {
 
 	// 5. Init services
 	authSvc := service.NewAuthService(userRepo, cfg.Auth.JWTSecret)
-	teamSvc := service.NewTeamService(teamRepo, userRepo, mainItemRepo, db)
+	roleRepo := gormrepo.NewGormRoleRepo(db)
+	teamSvc := service.NewTeamService(teamRepo, userRepo, mainItemRepo, roleRepo, db)
 	statusHistoryRepo := gormrepo.NewGormStatusHistoryRepo(db)
 	statusHistorySvc := service.NewStatusHistoryService(statusHistoryRepo)
 	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo, statusHistorySvc)
@@ -86,7 +87,6 @@ func run(configPath string, devMode bool) error {
 	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)
 	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
 	adminSvc := service.NewAdminService(userRepo, teamRepo)
-	roleRepo := gormrepo.NewGormRoleRepo(db)
 	roleSvc := service.NewRoleService(roleRepo, userRepo)
 
 	// 6. Init handlers

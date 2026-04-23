@@ -40,6 +40,11 @@ type DisbandTeamReq struct {
 	ConfirmName string `json:"confirmName" binding:"required"`
 }
 
+// UpdateMemberRoleReq is the request DTO for updating a team member's role.
+type UpdateMemberRoleReq struct {
+	RoleID uint `json:"roleId" binding:"required"`
+}
+
 // UserSearchDTO is a lightweight user DTO for the invite member search.
 type UserSearchDTO struct {
 	ID          uint   `json:"id"`
