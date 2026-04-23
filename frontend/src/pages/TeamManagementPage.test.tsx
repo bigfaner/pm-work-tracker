@@ -71,9 +71,21 @@ const seedTeams = [
 
 function setupHandlers() {
   server.use(
-    // List teams
-    http.get('/v1/teams', () => {
-      return HttpResponse.json({ code: 0, data: seedTeams })
+    // List teams — now returns paginated response
+    http.get('/v1/teams', ({ request }) => {
+      const url = new URL(request.url)
+      const search = url.searchParams.get('search') || ''
+      const page = Number(url.searchParams.get('page') || 1)
+      const pageSize = Number(url.searchParams.get('pageSize') || 20)
+      const filtered = search
+        ? seedTeams.filter((t) => t.name.includes(search) || t.code.includes(search))
+        : seedTeams
+      const start = (page - 1) * pageSize
+      const items = filtered.slice(start, start + pageSize)
+      return HttpResponse.json({
+        code: 0,
+        data: { items, total: filtered.length, page, pageSize },
+      })
     }),
 
     // Create team
@@ -255,7 +267,7 @@ describe('TeamManagementPage', () => {
     await user.tab()
 
     await waitFor(() => {
-      expect(screen.getByText('编码须为 2~6 位英文字母')).toBeInTheDocument()
+      expect(screen.getByText('CODE须为 2~6 位英文字母')).toBeInTheDocument()
     })
   })
 
@@ -275,7 +287,7 @@ describe('TeamManagementPage', () => {
     await user.click(screen.getByText('确认创建'))
 
     await waitFor(() => {
-      expect(screen.getByText('该编码已被使用')).toBeInTheDocument()
+      expect(screen.getByText('该CODE已被使用')).toBeInTheDocument()
     })
   })
 
@@ -322,7 +334,7 @@ describe('TeamManagementPage', () => {
     server.use(
       http.get('/v1/teams', async () => {
         await new Promise((resolve) => setTimeout(resolve, 500))
-        return HttpResponse.json({ code: 0, data: seedTeams })
+        return HttpResponse.json({ code: 0, data: { items: seedTeams, total: seedTeams.length, page: 1, pageSize: 20 } })
       }),
     )
 
@@ -335,5 +347,110 @@ describe('TeamManagementPage', () => {
   it('renders with data-testid', async () => {
     renderPage()
     expect(screen.getByTestId('team-management-page')).toBeInTheDocument()
+  })
+
+  // --- Pagination ---
+
+  it('does not show pagination when teams fit on one page', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('产品研发团队')).toBeInTheDocument()
+    })
+    // 3 teams < PAGE_SIZE (10), no pagination
+    expect(screen.queryByLabelText('Pagination')).not.toBeInTheDocument()
+  })
+
+  it('shows pagination when teams exceed page size', async () => {
+    const manyTeams = Array.from({ length: 12 }, (_, i) => ({
+      id: i + 1,
+      name: `团队 ${i + 1}`,
+      code: `T${String(i + 1).padStart(2, '0')}`,
+      description: '',
+      pmId: 1,
+      pmDisplayName: '张明',
+      createdAt: '2026-03-01T00:00:00Z',
+      updatedAt: '2026-03-01T00:00:00Z',
+    }))
+    server.use(
+      http.get('/v1/teams', ({ request }) => {
+        const url = new URL(request.url)
+        const page = Number(url.searchParams.get('page') || 1)
+        const pageSize = Number(url.searchParams.get('pageSize') || 10)
+        const start = (page - 1) * pageSize
+        return HttpResponse.json({
+          code: 0,
+          data: { items: manyTeams.slice(start, start + pageSize), total: manyTeams.length, page, pageSize },
+        })
+      }),
+    )
+
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('团队 1')).toBeInTheDocument()
+    })
+
+    // First page shows 10 items
+    expect(screen.getByText('团队 10')).toBeInTheDocument()
+    expect(screen.queryByText('团队 11')).not.toBeInTheDocument()
+
+    // Pagination nav is visible
+    expect(screen.getByRole('navigation', { name: 'Pagination' })).toBeInTheDocument()
+  })
+
+  it('navigates to next page when clicking next', async () => {
+    const user = userEvent.setup()
+    const manyTeams = Array.from({ length: 12 }, (_, i) => ({
+      id: i + 1,
+      name: `团队 ${i + 1}`,
+      code: `T${String(i + 1).padStart(2, '0')}`,
+      description: '',
+      pmId: 1,
+      pmDisplayName: '张明',
+      createdAt: '2026-03-01T00:00:00Z',
+      updatedAt: '2026-03-01T00:00:00Z',
+    }))
+    server.use(
+      http.get('/v1/teams', ({ request }) => {
+        const url = new URL(request.url)
+        const page = Number(url.searchParams.get('page') || 1)
+        const pageSize = Number(url.searchParams.get('pageSize') || 10)
+        const start = (page - 1) * pageSize
+        return HttpResponse.json({
+          code: 0,
+          data: { items: manyTeams.slice(start, start + pageSize), total: manyTeams.length, page, pageSize },
+        })
+      }),
+    )
+
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('团队 1')).toBeInTheDocument()
+    })
+
+    // Go to page 2
+    await user.click(screen.getByLabelText('Next page'))
+
+    await waitFor(() => {
+      expect(screen.getByText('团队 11')).toBeInTheDocument()
+      expect(screen.getByText('团队 12')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('团队 1')).not.toBeInTheDocument()
+  })
+
+  it('filters teams by search input', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('产品研发团队')).toBeInTheDocument()
+    })
+
+    const searchInput = screen.getByTestId('team-search-input')
+    await user.type(searchInput, '设计')
+
+    await waitFor(() => {
+      expect(screen.getByText('设计团队')).toBeInTheDocument()
+      expect(screen.queryByText('产品研发团队')).not.toBeInTheDocument()
+      expect(screen.queryByText('基础架构团队')).not.toBeInTheDocument()
+    })
   })
 })

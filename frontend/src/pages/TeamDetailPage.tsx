@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Crown, UserMinus, Edit } from 'lucide-react'
+import { Crown, UserMinus, Edit, RefreshCw } from 'lucide-react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -71,7 +71,7 @@ export default function TeamDetailPage() {
     enabled: !!numericTeamId,
   })
 
-  const { data: members = [], isLoading: membersLoading } = useQuery({
+  const { data: members = [], isLoading: membersLoading, isFetching: membersFetching, refetch: refetchMembers } = useQuery({
     queryKey: ['teamMembers', numericTeamId],
     queryFn: () => listMembersApi(numericTeamId),
     enabled: !!numericTeamId,
@@ -126,8 +126,9 @@ export default function TeamDetailPage() {
   const [disbandOpen, setDisbandOpen] = useState(false)
   const [disbandInput, setDisbandInput] = useState('')
 
-  // Inline role editing state
-  const [editingMemberId, setEditingMemberId] = useState<number | null>(null)
+  // Role edit dialog state
+  const [roleEditTarget, setRoleEditTarget] = useState<TeamMemberResp | null>(null)
+  const [roleEditRoleId, setRoleEditRoleId] = useState<number | undefined>(undefined)
 
   // User search for invite dialog
   const { data: userSearchResults = [] } = useQuery({
@@ -185,11 +186,11 @@ export default function TeamDetailPage() {
       changeMemberRoleApi(numericTeamId, memberId, { roleId }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
-      setEditingMemberId(null)
+      setRoleEditTarget(null)
       addToast('角色已更新', 'success')
     },
     onError: () => {
-      setEditingMemberId(null)
+      setRoleEditTarget(null)
       addToast('角色变更失败，请稍后重试', 'error')
     },
   })
@@ -255,6 +256,10 @@ export default function TeamDetailPage() {
             <span className="text-sm font-medium text-primary">{team.name}</span>
           </div>
           <div>
+            <div className="text-xs text-tertiary mb-1">CODE</div>
+            <span className="text-sm font-medium text-primary">{team.code}</span>
+          </div>
+          <div>
             <div className="text-xs text-tertiary mb-1">PM</div>
             <div className="flex items-center gap-2">
               <UserAvatar name={team.pmDisplayName} size="sm" />
@@ -264,10 +269,6 @@ export default function TeamDetailPage() {
           <div>
             <div className="text-xs text-tertiary mb-1">成员数</div>
             <span className="text-sm font-medium text-primary">{team.memberCount}</span>
-          </div>
-          <div>
-            <div className="text-xs text-tertiary mb-1">创建时间</div>
-            <span className="text-sm text-primary">{formatDate(team.createdAt)}</span>
           </div>
           <div className="col-span-2">
             <div className="text-xs text-tertiary mb-1">简介</div>
@@ -302,6 +303,10 @@ export default function TeamDetailPage() {
             <SelectItem value="member">成员</SelectItem>
           </SelectContent>
         </Select>
+        <Button variant="secondary" size="sm" onClick={async () => { await refetchMembers(); addToast('数据已刷新', 'success') }} disabled={membersFetching} data-testid="refresh-btn">
+          <RefreshCw size={14} className={membersFetching ? 'animate-spin' : ''} />
+          刷新
+        </Button>
       </div>
 
       {/* Member Table */}
@@ -325,38 +330,13 @@ export default function TeamDetailPage() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  {editingMemberId === member.userId ? (
-                    <Select
-                      value={String(member.roleId)}
-                      onValueChange={(val) => {
-                        const newRoleId = Number(val)
-                        if (newRoleId !== member.roleId) {
-                          changeRoleMutation.mutate({ memberId: member.userId, roleId: newRoleId })
-                        } else {
-                          setEditingMemberId(null)
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="w-[120px]" data-testid="inline-role-select">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roles.map((role) => (
-                          <SelectItem key={role.id} value={String(role.id)}>
-                            {role.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      {isPm(member) ? (
-                        <Badge variant="primary">PM</Badge>
-                      ) : (
-                        <Badge variant="default">{member.roleName || '成员'}</Badge>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {isPm(member) ? (
+                      <Badge variant="primary">PM</Badge>
+                    ) : (
+                      <Badge variant="default">{member.roleName || '成员'}</Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <span className="text-sm text-primary">{formatDate(member.joinedAt)}</span>
@@ -371,8 +351,7 @@ export default function TeamDetailPage() {
                           variant="ghost"
                           size="sm"
                           className="text-primary-600"
-                          onClick={() => setEditingMemberId(member.userId)}
-                          disabled={changeRoleMutation.isPending}
+                          onClick={() => { setRoleEditTarget(member); setRoleEditRoleId(member.roleId) }}
                           data-testid="change-role-btn"
                         >
                           <Edit className="w-3.5 h-3.5" />
@@ -394,7 +373,7 @@ export default function TeamDetailPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-error"
+                          className="text-primary-600"
                           onClick={() => setRemoveTarget(member)}
                         >
                           <UserMinus className="w-3.5 h-3.5" />
@@ -425,6 +404,44 @@ export default function TeamDetailPage() {
           </PermissionGuard>
         </div>
       </div>
+
+      {/* Change Role Dialog */}
+      <Dialog open={!!roleEditTarget} onOpenChange={(open) => { if (!open) setRoleEditTarget(null) }}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>修改角色</DialogTitle>
+            <DialogDescription>
+              修改「{roleEditTarget?.displayName}」的角色
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <Select
+              value={roleEditRoleId != null ? String(roleEditRoleId) : ''}
+              onValueChange={(v) => setRoleEditRoleId(Number(v))}
+            >
+              <SelectTrigger data-testid="role-edit-select">
+                <SelectValue placeholder="选择角色" />
+              </SelectTrigger>
+              <SelectContent>
+                {roles.map((role) => (
+                  <SelectItem key={role.id} value={String(role.id)}>
+                    {role.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setRoleEditTarget(null)}>取消</Button>
+            <Button
+              onClick={() => changeRoleMutation.mutate({ memberId: roleEditTarget!.userId, roleId: roleEditRoleId! })}
+              disabled={roleEditRoleId == null || roleEditRoleId === roleEditTarget?.roleId || changeRoleMutation.isPending}
+            >
+              确认修改
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Transfer PM Dialog */}
       <Dialog open={!!transferTarget} onOpenChange={(open) => { if (!open) setTransferTarget(null) }}>

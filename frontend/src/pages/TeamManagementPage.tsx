@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { UserPlus } from 'lucide-react'
+import { UserPlus, RefreshCw } from 'lucide-react'
 import { listTeamsApi, createTeamApi, inviteMemberApi, searchAvailableUsersApi, type UserSearchResult } from '@/api/teams'
 import { listRolesApi } from '@/api/roles'
 import type { Team } from '@/types'
@@ -32,8 +32,11 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table'
+import { Pagination } from '@/components/ui/pagination'
 import { useToast } from '@/components/ui/toast'
 import { formatDate as _formatDate } from '@/lib/format'
+
+const PAGE_SIZE = 10
 
 // TeamManagementPage receives ISO datetime strings; truncate to date before formatting
 function formatDate(dateStr: string): string {
@@ -58,13 +61,19 @@ export default function TeamManagementPage() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
   const [inviteRoleId, setInviteRoleId] = useState<number | undefined>(undefined)
 
+  // Search + pagination state
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+
   // Data fetching
-  const { data: teams, isLoading } = useQuery({
-    queryKey: ['teams'],
-    queryFn: () => listTeamsApi(),
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    queryKey: ['teams', search, page],
+    queryFn: () => listTeamsApi({ search: search || undefined, page, pageSize: PAGE_SIZE }),
   })
 
-  const teamList: Team[] = teams || []
+  const teamList = data?.items ?? []
+  const total = data?.total ?? 0
+  const totalPages = Math.ceil(total / PAGE_SIZE)
 
   // Roles for invite dialog
   const { data: rolesData } = useQuery({
@@ -100,7 +109,7 @@ export default function TeamManagementPage() {
     onError: (err: any) => {
       const code = err?.response?.data?.code
       if (code === 'TEAM_CODE_DUPLICATE') {
-        setCodeError('该编码已被使用')
+        setCodeError('该CODE已被使用')
       } else {
         setCreateError('创建失败，请稍后重试')
       }
@@ -151,7 +160,7 @@ export default function TeamManagementPage() {
       return
     }
     if (!/^[A-Za-z]{2,6}$/.test(createForm.code)) {
-      setCodeError('编码须为 2~6 位英文字母')
+      setCodeError('CODE须为 2~6 位英文字母')
       return
     }
     createMutation.mutate({
@@ -174,6 +183,27 @@ export default function TeamManagementPage() {
             创建团队
           </Button>
         </PermissionGuard>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <Input
+          placeholder="搜索团队名称或CODE..."
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+          className="w-[240px]"
+          data-testid="team-search-input"
+        />
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          data-testid="refresh-btn"
+        >
+          <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+          刷新
+        </Button>
       </div>
 
       {/* Team Table */}
@@ -242,6 +272,16 @@ export default function TeamManagementPage() {
               ))}
             </TableBody>
           </Table>
+          {totalPages > 1 && (
+            <div className="flex justify-end px-4 py-3 border-t border-border">
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                data-testid="team-pagination"
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -273,7 +313,7 @@ export default function TeamManagementPage() {
                   onChange={(e) => { setCreateForm((f) => ({ ...f, code: e.target.value })); setCodeError('') }}
                   onBlur={() => {
                     if (createForm.code && !/^[A-Za-z]{2,6}$/.test(createForm.code)) {
-                      setCodeError('编码须为 2~6 位英文字母')
+                      setCodeError('CODE须为 2~6 位英文字母')
                     }
                   }}
                 />
