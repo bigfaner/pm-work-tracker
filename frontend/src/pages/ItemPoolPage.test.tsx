@@ -7,6 +7,7 @@ import { server } from '@/mocks/server'
 import { http, HttpResponse } from 'msw'
 import { useTeamStore } from '@/store/team'
 import { useAuthStore } from '@/store/auth'
+import { ToastProvider } from '@/components/ui/toast'
 import ItemPoolPage from './ItemPoolPage'
 
 // MSW lifecycle
@@ -26,9 +27,11 @@ function renderPage() {
   const qc = createQueryClient()
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        <ItemPoolPage />
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter>
+          <ItemPoolPage />
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>,
   )
 }

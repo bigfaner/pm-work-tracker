@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { server } from '@/mocks/server'
 import { http, HttpResponse } from 'msw'
+import { ToastProvider } from '@/components/ui/toast'
 import UserManagementPage from './UserManagementPage'
 
 // MSW lifecycle
@@ -24,9 +25,11 @@ function renderPage() {
   const qc = createQueryClient()
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        <UserManagementPage />
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter>
+          <UserManagementPage />
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>,
   )
 }

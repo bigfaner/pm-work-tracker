@@ -120,7 +120,7 @@ describe('ReportPage', () => {
     })
   })
 
-  it('renders export button in preview card header', async () => {
+  it('renders export buttons in preview card header', async () => {
     mockGetPreview.mockResolvedValue(mockPreview)
     const user = userEvent.setup()
     renderReportPage()
@@ -128,23 +128,17 @@ describe('ReportPage', () => {
     await user.click(screen.getByRole('button', { name: '生成预览' }))
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: '导出 Markdown' })).toBeInTheDocument()
+      expect(screen.getByTestId('export-personal-btn')).toBeInTheDocument()
+      expect(screen.getByTestId('export-full-btn')).toBeInTheDocument()
     })
   })
 
-  it('calls export API when export button clicked', async () => {
-    const blob = new Blob(['markdown content'], { type: 'text/markdown' })
+  it('downloads markdown when full export button clicked', async () => {
     mockGetPreview.mockResolvedValue(mockPreview)
-    mockExportReport.mockResolvedValue(blob)
 
-    // Mock URL.createObjectURL
     const mockUrl = 'blob:mock-url'
-    const originalCreateObjectURL = URL.createObjectURL
-    const originalRevokeObjectURL = URL.revokeObjectURL
     URL.createObjectURL = vi.fn(() => mockUrl)
     URL.revokeObjectURL = vi.fn()
-
-    // Mock createElement for download link
     const mockAnchor = { click: vi.fn(), remove: vi.fn(), href: '', download: '' }
     const originalCreateElement = document.createElement.bind(document)
     vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
@@ -157,18 +151,16 @@ describe('ReportPage', () => {
 
     await user.click(screen.getByRole('button', { name: '生成预览' }))
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: '导出 Markdown' })).toBeInTheDocument()
+      expect(screen.getByTestId('export-full-btn')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: '导出 Markdown' }))
+    await user.click(screen.getByTestId('export-full-btn'))
 
     await waitFor(() => {
-      expect(mockExportReport).toHaveBeenCalledWith(1, expect.any(String))
+      expect(mockAnchor.click).toHaveBeenCalled()
+      expect(mockAnchor.download).toMatch(/weekly-report/)
     })
 
-    // Cleanup
-    URL.createObjectURL = originalCreateObjectURL
-    URL.revokeObjectURL = originalRevokeObjectURL
     vi.restoreAllMocks()
   })
 

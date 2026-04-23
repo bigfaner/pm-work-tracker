@@ -626,4 +626,38 @@ describe('WeeklyViewPage', () => {
     // Should be one week before getCurrentWeekStart (2026-04-13) = 2026-04-06
     expect(requests[requests.length - 1]).toBe('2026-04-06')
   })
+
+  it('does not auto-generate SI- codes for sub-items', async () => {
+    setupWeeklyHandler({
+      ...mockWeeklyResponse,
+      groups: [{
+        ...mockWeeklyResponse.groups[0],
+        thisWeek: [{
+          id: 10,
+          code: 'AUTH-00001-01',
+          title: 'JWT Token 集成',
+          priority: 'P2',
+          status: 'progressing',
+          assigneeName: '李伟',
+          startDate: '2026-04-10',
+          expectedEndDate: '2026-04-18',
+          completion: 70,
+          progressDescription: 'Token 签发完成',
+          progressRecords: [],
+          delta: 30,
+          isNew: false,
+          justCompleted: false,
+        }],
+        lastWeek: [],
+        completedNoChange: [],
+      }],
+    })
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('JWT Token 集成')).toBeInTheDocument()
+    })
+
+    // Old auto-generated format should not appear anywhere in the DOM
+    expect(document.body.textContent).not.toMatch(/SI-\d{3}-\d{2}/)
+  })
 })

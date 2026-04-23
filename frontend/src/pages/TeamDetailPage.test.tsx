@@ -431,7 +431,7 @@ describe('TeamDetailPage', () => {
       // The select items have role="option" attribute
       const options = screen.getAllByRole('option')
       const optionTexts = options.map((o) => o.textContent)
-      expect(optionTexts).toContain('pm')
+      expect(optionTexts).not.toContain('pm')
       expect(optionTexts).toContain('member')
       expect(optionTexts).toContain('viewer')
       expect(optionTexts).not.toContain('superadmin')
@@ -538,9 +538,9 @@ describe('TeamDetailPage', () => {
     expect(within(pmRow).queryByTestId('change-role-btn')).not.toBeInTheDocument()
   })
 
-  // --- Inline role change: clicking change shows select ---
+  // --- Change role dialog: clicking button opens dialog ---
 
-  it('clicking change role button shows inline select dropdown', async () => {
+  it('clicking change role button opens dialog', async () => {
     const user = userEvent.setup()
     renderPage()
     await waitFor(() => {
@@ -551,13 +551,13 @@ describe('TeamDetailPage', () => {
     await user.click(changeButtons[0])
 
     await waitFor(() => {
-      expect(screen.getByTestId('inline-role-select')).toBeInTheDocument()
+      expect(screen.getByTestId('role-edit-select')).toBeInTheDocument()
     })
   })
 
-  // --- Inline role change: selecting new role auto-submits ---
+  // --- Change role dialog: selecting new role and confirming submits API ---
 
-  it('selecting a new role in inline select submits change role API', async () => {
+  it('selecting a new role in dialog and confirming submits change role API', async () => {
     let capturedBody: any = null
     let capturedMemberId: string | null = null
     server.use(
@@ -574,23 +574,24 @@ describe('TeamDetailPage', () => {
       expect(screen.getByText('成员列表')).toBeInTheDocument()
     })
 
+    // Click change on 李华 (userId=2, first non-PM member)
     const changeButtons = screen.getAllByTestId('change-role-btn')
-    // Click change on 李华 (userId=2)
     await user.click(changeButtons[0])
 
     await waitFor(() => {
-      expect(screen.getByTestId('inline-role-select')).toBeInTheDocument()
+      expect(screen.getByTestId('role-edit-select')).toBeInTheDocument()
     })
 
-    // Open the select and pick a new role
-    const inlineSelect = screen.getByTestId('inline-role-select')
-    await user.click(inlineSelect)
-
-    // Select "viewer" role
+    // Open the select and pick "viewer"
+    await user.click(screen.getByTestId('role-edit-select'))
     await waitFor(() => {
-      expect(screen.getByText('viewer')).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: 'viewer' })).toBeInTheDocument()
     })
-    await user.click(screen.getByText('viewer'))
+    await user.click(screen.getByRole('option', { name: 'viewer' }))
+
+    // Click confirm
+    const confirmBtn = screen.getByText('确认修改')
+    await user.click(confirmBtn)
 
     await waitFor(() => {
       expect(capturedBody).not.toBeNull()
@@ -599,15 +600,9 @@ describe('TeamDetailPage', () => {
     })
   })
 
-  // --- Inline role change: success shows toast ---
+  // --- Change role dialog: success shows toast and closes dialog ---
 
-  it('successful role change shows toast and reverts to text display', async () => {
-    server.use(
-      http.put('/v1/teams/:teamId/members/:memberId/role', async () => {
-        return HttpResponse.json({ code: 0, data: null })
-      }),
-    )
-
+  it('successful role change shows toast and closes dialog', async () => {
     const user = userEvent.setup()
     renderPage()
     await waitFor(() => {
@@ -618,25 +613,28 @@ describe('TeamDetailPage', () => {
     await user.click(changeButtons[0])
 
     await waitFor(() => {
-      expect(screen.getByTestId('inline-role-select')).toBeInTheDocument()
+      expect(screen.getByTestId('role-edit-select')).toBeInTheDocument()
     })
 
-    const inlineSelect = screen.getByTestId('inline-role-select')
-    await user.click(inlineSelect)
-
+    await user.click(screen.getByTestId('role-edit-select'))
     await waitFor(() => {
-      expect(screen.getByText('viewer')).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: 'viewer' })).toBeInTheDocument()
     })
-    await user.click(screen.getByText('viewer'))
+    await user.click(screen.getByRole('option', { name: 'viewer' }))
+    await user.click(screen.getByText('确认修改'))
 
     await waitFor(() => {
       expect(screen.getByText('角色已更新')).toBeInTheDocument()
     })
+    // Dialog should close
+    await waitFor(() => {
+      expect(screen.queryByTestId('role-edit-select')).not.toBeInTheDocument()
+    })
   })
 
-  // --- Inline role change: failure shows error toast and reverts ---
+  // --- Change role dialog: failure shows error toast and closes dialog ---
 
-  it('failed role change shows error toast and reverts to original', async () => {
+  it('failed role change shows error toast and closes dialog', async () => {
     server.use(
       http.put('/v1/teams/:teamId/members/:memberId/role', async () => {
         return HttpResponse.json(
@@ -656,54 +654,46 @@ describe('TeamDetailPage', () => {
     await user.click(changeButtons[0])
 
     await waitFor(() => {
-      expect(screen.getByTestId('inline-role-select')).toBeInTheDocument()
+      expect(screen.getByTestId('role-edit-select')).toBeInTheDocument()
     })
 
-    const inlineSelect = screen.getByTestId('inline-role-select')
-    await user.click(inlineSelect)
-
+    await user.click(screen.getByTestId('role-edit-select'))
     await waitFor(() => {
-      expect(screen.getByText('viewer')).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: 'viewer' })).toBeInTheDocument()
     })
-    await user.click(screen.getByText('viewer'))
+    await user.click(screen.getByRole('option', { name: 'viewer' }))
+    await user.click(screen.getByText('确认修改'))
 
     await waitFor(() => {
       expect(screen.getByText('角色变更失败，请稍后重试')).toBeInTheDocument()
     })
-
-    // Should revert to text mode (no inline select)
-    expect(screen.queryByTestId('inline-role-select')).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.queryByTestId('role-edit-select')).not.toBeInTheDocument()
+    })
   })
 
-  // --- Superadmin excluded from role dropdown ---
+  // --- Change role dialog: role select excludes superadmin ---
 
-  it('inline role select excludes superadmin', async () => {
+  it('change role dialog select excludes superadmin', async () => {
     const user = userEvent.setup()
     renderPage()
     await waitFor(() => {
       expect(screen.getByText('成员列表')).toBeInTheDocument()
     })
 
-    // Wait for change-role buttons to appear (depends on roles API loading)
-    await waitFor(() => {
-      expect(screen.getAllByTestId('change-role-btn').length).toBeGreaterThan(0)
-    })
-
     const changeButtons = screen.getAllByTestId('change-role-btn')
     await user.click(changeButtons[0])
 
     await waitFor(() => {
-      expect(screen.getByTestId('inline-role-select')).toBeInTheDocument()
+      expect(screen.getByTestId('role-edit-select')).toBeInTheDocument()
     })
 
-    const inlineSelect = screen.getByTestId('inline-role-select')
-    await user.click(inlineSelect)
+    await user.click(screen.getByTestId('role-edit-select'))
 
     await waitFor(() => {
-      // Use role="option" to select dropdown items specifically
       const options = screen.getAllByRole('option')
       const optionTexts = options.map((o) => o.textContent)
-      expect(optionTexts).toContain('pm')
+      expect(optionTexts).not.toContain('pm')
       expect(optionTexts).toContain('member')
       expect(optionTexts).toContain('viewer')
       expect(optionTexts).not.toContain('superadmin')

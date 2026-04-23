@@ -51,7 +51,7 @@ describe('API modules', () => {
     it('listTeamsApi should GET /teams', async () => {
       mockClient.get.mockResolvedValue([])
       await teamsApi.listTeamsApi()
-      expect(mockClient.get).toHaveBeenCalledWith('/teams')
+      expect(mockClient.get).toHaveBeenCalledWith('/teams', { params: undefined })
     })
 
     it('getTeamApi should GET /teams/:id', async () => {

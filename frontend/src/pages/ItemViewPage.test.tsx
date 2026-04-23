@@ -46,13 +46,13 @@ const seedMainItems = [
     createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-01T00:00:00Z',
     subItems: [
       {
-        id: 11, teamId: 1, mainItemId: 1, title: 'Sub Alpha 1', description: '',
+        id: 11, teamId: 1, mainItemId: 1, code: 'MI-0001-01', title: 'Sub Alpha 1', description: '',
         priority: 'P1', assigneeId: 2, startDate: '2026-04-01', expectedEndDate: '2026-04-10',
         actualEndDate: '2026-04-09', status: 'completed', completion: 100,
         weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-09T00:00:00Z',
       },
       {
-        id: 12, teamId: 1, mainItemId: 1, title: 'Sub Alpha 2', description: '',
+        id: 12, teamId: 1, mainItemId: 1, code: 'MI-0001-02', title: 'Sub Alpha 2', description: '',
         priority: 'P2', assigneeId: 3, startDate: '2026-04-08', expectedEndDate: '2026-04-18',
         actualEndDate: null, status: 'progressing', completion: 80,
         weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-08T00:00:00Z',
@@ -656,5 +656,24 @@ describe('ItemViewPage', () => {
     // Should NOT have made multiple list calls to fetch all pages
     // Only the initial fetch should have happened
     expect(listCallCount).toBe(1)
+  })
+
+  it('renders sub-item code from API response without auto-generating', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+    })
+
+    // Switch to detail view — sub-items load automatically for all paginated items
+    await user.click(screen.getByText('明细'))
+    await waitFor(() => {
+      expect(screen.getByTestId('detail-table')).toBeInTheDocument()
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('MI-0001-01')).toBeInTheDocument()
+      expect(screen.getByText('MI-0001-02')).toBeInTheDocument()
+    })
   })
 })

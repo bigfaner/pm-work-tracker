@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { server } from '@/mocks/server'
 import { http, HttpResponse } from 'msw'
 import { useTeamStore } from '@/store/team'
+import { ToastProvider } from '@/components/ui/toast'
 import TableViewPage from './TableViewPage'
 import type { TableRow, PageResult } from '@/types'
 
@@ -26,9 +27,11 @@ function renderPage() {
   const qc = createQueryClient()
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        <TableViewPage />
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter>
+          <TableViewPage />
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>,
   )
 }

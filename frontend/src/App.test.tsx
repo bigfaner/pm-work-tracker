@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth'
 import type { User } from '@/types'
+import { ToastProvider } from '@/components/ui/toast'
 import App from './App'
 
 // Mock the teams API (called by AppLayout on mount)
@@ -51,9 +52,11 @@ function renderApp(initialPath = '/') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={[initialPath]}>
-        <App />
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter initialEntries={[initialPath]}>
+          <App />
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>,
   )
 }

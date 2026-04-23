@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { server } from '@/mocks/server'
 import { http, HttpResponse } from 'msw'
 import { useTeamStore } from '@/store/team'
+import { ToastProvider } from '@/components/ui/toast'
 import GanttViewPage from './GanttViewPage'
 import type { GanttViewResp } from '@/types'
 
@@ -26,9 +27,11 @@ function renderPage() {
   const qc = createQueryClient()
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        <GanttViewPage />
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter>
+          <GanttViewPage />
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>,
   )
 }

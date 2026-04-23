@@ -349,15 +349,53 @@ describe('TeamManagementPage', () => {
     expect(screen.getByTestId('team-management-page')).toBeInTheDocument()
   })
 
-  // --- Pagination ---
+  // --- Refresh button ---
 
-  it('does not show pagination when teams fit on one page', async () => {
+  it('renders refresh button in filter bar', async () => {
     renderPage()
     await waitFor(() => {
       expect(screen.getByText('产品研发团队')).toBeInTheDocument()
     })
-    // 3 teams < PAGE_SIZE (10), no pagination
-    expect(screen.queryByLabelText('Pagination')).not.toBeInTheDocument()
+    expect(screen.getByTestId('refresh-btn')).toBeInTheDocument()
+  })
+
+  it('refresh button refetches data', async () => {
+    let callCount = 0
+    server.use(
+      http.get('/v1/teams', ({ request }) => {
+        callCount++
+        const url = new URL(request.url)
+        const page = Number(url.searchParams.get('page') || 1)
+        const pageSize = Number(url.searchParams.get('pageSize') || 10)
+        return HttpResponse.json({
+          code: 0,
+          data: { items: seedTeams, total: seedTeams.length, page, pageSize },
+        })
+      }),
+    )
+
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('产品研发团队')).toBeInTheDocument()
+    })
+
+    const before = callCount
+    await user.click(screen.getByTestId('refresh-btn'))
+    await waitFor(() => {
+      expect(callCount).toBeGreaterThan(before)
+    })
+  })
+
+  // --- Pagination ---
+
+  it('always shows pagination bar even with few teams', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('产品研发团队')).toBeInTheDocument()
+    })
+    expect(screen.getByRole('navigation', { name: 'Pagination' })).toBeInTheDocument()
+    expect(screen.getByText('共 3 条')).toBeInTheDocument()
   })
 
   it('shows pagination when teams exceed page size', async () => {
