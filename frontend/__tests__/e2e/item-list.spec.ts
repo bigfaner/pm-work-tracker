@@ -1,37 +1,9 @@
-import { test, expect, Page, APIRequestContext } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+import { BASE, API, login, getAuthToken, parseApiData } from './test-helpers';
 
-const BASE = 'http://localhost:5173';
-const API = 'http://localhost:8080/v1';
 const TIMEOUT = 120000;
 
 test.setTimeout(TIMEOUT);
-
-// Helper: parse API response (format: {code, data})
-function parseApiData(resp: any): any {
-  return resp.data !== undefined ? resp.data : resp;
-}
-
-// Helper: login via UI and wait for redirect (with retry for rate limiting)
-async function login(page: Page) {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    await page.goto(`${BASE}/login`);
-    await page.locator('[data-testid="login-username"]').fill('admin');
-    await page.locator('[data-testid="login-password"]').fill('admin123');
-    await page.locator('[data-testid="login-submit"]').click();
-    try {
-      await page.waitForURL(/\/items/, { timeout: 10000 });
-      await page.waitForTimeout(1000);
-      return;
-    } catch {
-      if (attempt < 2) {
-        // Rate limited - wait and retry
-        await page.waitForTimeout(6000);
-      } else {
-        throw new Error('Login failed after 3 attempts (likely rate limited)');
-      }
-    }
-  }
-}
 
 // Navigate within SPA
 async function navTo(page: Page, path: string) {
@@ -57,20 +29,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
       extraHTTPHeaders: { 'Content-Type': 'application/json' },
     });
 
-    // Login with retry for rate limiting
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const loginRes = await request.post('/v1/auth/login', {
-        data: { username: 'admin', password: 'admin123' },
-      });
-      const loginJson = await loginRes.json();
-      const loginData = parseApiData(loginJson);
-      if (loginData.token) {
-        authToken = loginData.token;
-        break;
-      }
-      if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
-    }
-    if (!authToken) throw new Error('beforeAll: login failed after 3 attempts');
+    authToken = await getAuthToken();
 
     // Get teams
     const teamsRes = await request.get('/v1/teams', {

@@ -1,40 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
-
-const BASE = 'http://localhost:5173';
-const API = 'http://localhost:8080/v1';
-
-async function login(page: Page) {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    await page.goto(`${BASE}/login`);
-    await page.locator('[data-testid="login-username"]').fill('admin');
-    await page.locator('[data-testid="login-password"]').fill('admin123');
-    await page.locator('[data-testid="login-submit"]').click();
-    try {
-      await page.waitForURL(/\/items/, { timeout: 10000 });
-      return;
-    } catch {
-      if (attempt < 2) await page.waitForTimeout(6000);
-      else throw new Error('Login failed after 3 attempts');
-    }
-  }
-}
-
-async function getAuthToken(): Promise<string> {
-  const res = await fetch(`${API}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'admin', password: 'admin123' }),
-  });
-  const json = await res.json();
-  return json.data?.token || json.token;
-}
-
-async function getFirstTeamId(authToken: string): Promise<string | null> {
-  const res = await fetch(`${API}/teams`, { headers: { Authorization: `Bearer ${authToken}` } });
-  const data = await res.json();
-  const list = data.data || (Array.isArray(data) ? data : []);
-  return list.length > 0 ? String(list[0].id || list[0].ID) : null;
-}
+import { test, expect } from '@playwright/test';
+import { BASE, API, login, getAuthToken, getFirstTeamId } from './test-helpers';
 
 // ── Section 1: Page Load ──────────────────────────────────────────────────────
 
@@ -118,7 +83,6 @@ test.describe('Team Detail - Member List', () => {
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     const pmRow = page.locator('tbody tr').filter({ has: page.locator('text=PM') }).first();
     await expect(pmRow).toBeVisible({ timeout: 5000 });
-    // PM row should not have action buttons
     await expect(pmRow.locator('[data-testid="change-role-btn"]')).not.toBeVisible();
   });
 
@@ -128,13 +92,11 @@ test.describe('Team Detail - Member List', () => {
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 5000 });
 
-    // Get the first member's name
     const firstName = await page.locator('tbody tr').first().locator('td').first().textContent();
     const query = firstName?.trim().slice(0, 2) || 'a';
 
     await page.locator('input[placeholder="搜索姓名..."]').fill(query);
     await page.waitForTimeout(500);
-    // At least one row should remain
     expect(await page.locator('tbody tr').count()).toBeGreaterThan(0);
   });
 
@@ -193,7 +155,6 @@ test.describe('Team Detail - Change Role', () => {
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-testid="change-role-btn"]').first().click();
     await expect(page.locator('text=修改角色')).toBeVisible({ timeout: 5000 });
-    // Confirm should be disabled since role hasn't changed
     await expect(page.locator('button', { hasText: '确认修改' })).toBeDisabled();
   });
 
@@ -303,7 +264,6 @@ test.describe('Team Detail - Remove Member', () => {
   test('can remove a non-PM member', async ({ page }) => {
     test.skip(!teamId, 'No team available');
 
-    // Create a temp user and add them to the team
     const username = `e2e_rm_${Date.now()}`;
     const createRes = await fetch(`${API}/admin/users`, {
       method: 'POST',
@@ -314,7 +274,6 @@ test.describe('Team Detail - Remove Member', () => {
     const created = await createRes.json();
     const userId = created.data?.id || created.id;
 
-    // Add to team
     await fetch(`${API}/teams/${teamId}/members`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
@@ -324,7 +283,6 @@ test.describe('Team Detail - Remove Member', () => {
     await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
 
-    // Find the new member's row
     const memberRow = page.locator('tbody tr').filter({ hasText: 'E2E Remove Test' });
     await expect(memberRow).toBeVisible({ timeout: 5000 });
     await memberRow.locator('button', { hasText: '移除' }).click();
@@ -332,10 +290,8 @@ test.describe('Team Detail - Remove Member', () => {
     await expect(page.locator('text=移除成员')).toBeVisible({ timeout: 5000 });
     await page.locator('button', { hasText: '确认移除' }).click();
 
-    // Member should disappear from the list
     await expect(memberRow).not.toBeVisible({ timeout: 5000 });
 
-    // Cleanup user
     if (userId) {
       await fetch(`${API}/admin/users/${userId}`, {
         method: 'DELETE',
@@ -395,7 +351,6 @@ test.describe('Team Detail - Add Member', () => {
     await expect(searchInput).toBeVisible({ timeout: 5000 });
     await searchInput.fill('a');
     const dropdown = page.locator('[data-testid="invite-user-dropdown"]');
-    // Dropdown appears only if there are available users
     const hasResults = await dropdown.isVisible({ timeout: 3000 }).catch(() => false);
     if (hasResults) {
       expect(await dropdown.locator('button[data-testid^="invite-user-option-"]').count()).toBeGreaterThan(0);
@@ -441,7 +396,6 @@ test.describe('Team Detail - Disband Team', () => {
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '解散团队' }).click();
     await expect(page.locator('text=此操作不可恢复')).toBeVisible({ timeout: 5000 });
-    // Confirm button should be disabled without input
     const confirmBtn = page.locator('dialog button', { hasText: '解散团队' });
     await expect(confirmBtn).toBeDisabled();
   });
@@ -472,7 +426,6 @@ test.describe('Team Detail - Disband Team', () => {
     await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
 
-    // Get the actual team name from the page
     const teamName = await page.locator('h1').first().textContent();
     expect(teamName).toBeTruthy();
 
@@ -483,7 +436,6 @@ test.describe('Team Detail - Disband Team', () => {
     const confirmBtn = page.locator('dialog button', { hasText: '解散团队' });
     await expect(confirmBtn).toBeEnabled({ timeout: 3000 });
 
-    // Close without confirming
     await page.locator('button', { hasText: '取消' }).click();
   });
 });

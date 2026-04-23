@@ -1,33 +1,9 @@
 import { test, expect, Page } from '@playwright/test';
+import { BASE, API, login, getAuthToken, parseApiData } from './test-helpers';
 
-const BASE = 'http://localhost:5173';
-const API = 'http://localhost:8080/v1';
 const TIMEOUT = 120000;
 
 test.setTimeout(TIMEOUT);
-
-// Helper: parse API response envelope
-function parseApiData(resp: any): any {
-  return resp.data !== undefined ? resp.data : resp;
-}
-
-// Login via UI
-async function login(page: Page) {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    await page.goto(`${BASE}/login`);
-    await page.locator('[data-testid="login-username"]').fill('admin');
-    await page.locator('[data-testid="login-password"]').fill('admin123');
-    await page.locator('[data-testid="login-submit"]').click();
-    try {
-      await page.waitForURL(/\/items/, { timeout: 10000 });
-      await page.waitForTimeout(1000);
-      return;
-    } catch {
-      if (attempt < 2) await page.waitForTimeout(3000);
-      else throw new Error('Login failed after 3 attempts');
-    }
-  }
-}
 
 test.describe.serial('进度追加 - 自动状态流转', () => {
   let authToken: string;
@@ -44,19 +20,7 @@ test.describe.serial('进度追加 - 自动状态流转', () => {
     });
 
     // Login
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const loginRes = await request.post('/v1/auth/login', {
-        data: { username: 'admin', password: 'admin123' },
-      });
-      const loginJson = await loginRes.json();
-      const loginData = parseApiData(loginJson);
-      if (loginData.token) {
-        authToken = loginData.token;
-        break;
-      }
-      if (attempt < 2) await new Promise(r => setTimeout(r, 6000));
-    }
-    if (!authToken) throw new Error('beforeAll: login failed');
+    authToken = await getAuthToken();
 
     // Get teams
     const teamsRes = await request.get('/v1/teams', {

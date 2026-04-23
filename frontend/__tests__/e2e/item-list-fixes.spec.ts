@@ -1,31 +1,9 @@
 import { test, expect, Page } from '@playwright/test';
+import { BASE, API, login, getAuthToken, parseApiData } from './test-helpers';
 
-const BASE = 'http://localhost:5173';
-const API = 'http://localhost:8080/v1';
 const TIMEOUT = 60000;
 
 test.setTimeout(TIMEOUT);
-
-function parseApiData(resp: any): any {
-  return resp.data !== undefined ? resp.data : resp;
-}
-
-async function login(page: Page) {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    await page.goto(`${BASE}/login`);
-    await page.locator('[data-testid="login-username"]').fill('admin');
-    await page.locator('[data-testid="login-password"]').fill('admin123');
-    await page.locator('[data-testid="login-submit"]').click();
-    try {
-      await page.waitForURL(/\/items/, { timeout: 10000 });
-      await page.waitForTimeout(1000);
-      return;
-    } catch {
-      if (attempt < 2) await page.waitForTimeout(3000);
-      else throw new Error('Login failed after 3 attempts');
-    }
-  }
-}
 
 test.describe.serial('事项清单 Bug修复验证', () => {
   let authToken: string;
@@ -40,20 +18,7 @@ test.describe.serial('事项清单 Bug修复验证', () => {
       extraHTTPHeaders: { 'Content-Type': 'application/json' },
     });
 
-    let loginUserId = 1;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const loginRes = await request.post('/v1/auth/login', {
-        data: { username: 'admin', password: 'admin123' },
-      });
-      const loginData = parseApiData(await loginRes.json());
-      if (loginData.token) {
-        authToken = loginData.token;
-        loginUserId = loginData.user?.id ?? 1;
-        break;
-      }
-      if (attempt < 2) await new Promise(r => setTimeout(r, 6000));
-    }
-    if (!authToken) throw new Error('beforeAll: login failed after 3 attempts');
+    authToken = await getAuthToken();
 
     const teamsRes = await request.get('/v1/teams', {
       headers: { Authorization: `Bearer ${authToken}` },
@@ -83,7 +48,7 @@ test.describe.serial('事项清单 Bug修复验证', () => {
         mainItemId: Number(itemA),
         title: '子事项-已有',
         priority: 'P1',
-        assigneeId: Number(loginUserId),
+        assigneeId: 1,
         startDate: '2026-04-01',
         expectedEndDate: '2026-04-30',
       },
@@ -168,8 +133,7 @@ test.describe.serial('事项清单 Bug修复验证', () => {
       baseURL: 'http://127.0.0.1:8080',
       extraHTTPHeaders: { 'Content-Type': 'application/json' },
     });
-    const loginRes = await req.post('/v1/auth/login', { data: { username: 'admin', password: 'admin123' } });
-    const token = parseApiData(await loginRes.json()).token;
+    const token = await getAuthToken();
     const subTitle = `子事项-API创建-${Date.now()}`;
     await req.post(`/v1/teams/${teamId}/main-items/${itemA}/sub-items`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -227,8 +191,7 @@ test.describe.serial('事项清单 Bug修复验证', () => {
       baseURL: 'http://127.0.0.1:8080',
       extraHTTPHeaders: { 'Content-Type': 'application/json' },
     });
-    const loginRes = await req.post('/v1/auth/login', { data: { username: 'admin', password: 'admin123' } });
-    const token = parseApiData(await loginRes.json()).token;
+    const token = await getAuthToken();
     // Ensure sub-item is in pending state (reset if it was changed by earlier tests)
     await req.put(`/v1/teams/${teamId}/sub-items/${subItemA1}/status`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -297,8 +260,7 @@ test.describe.serial('事项清单 Bug修复验证', () => {
       baseURL: 'http://127.0.0.1:8080',
       extraHTTPHeaders: { 'Content-Type': 'application/json' },
     });
-    const loginRes = await req.post('/v1/auth/login', { data: { username: 'admin', password: 'admin123' } });
-    const token = parseApiData(await loginRes.json()).token;
+    const token = await getAuthToken();
     const freshTitle = `刷新测试-${Date.now()}`;
     await req.post(`/v1/teams/${teamId}/main-items`, {
       headers: { Authorization: `Bearer ${token}` },

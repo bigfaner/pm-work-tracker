@@ -1,33 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
-
-const BASE = 'http://localhost:5173';
-const API = 'http://localhost:8080/v1';
-
-async function login(page: Page) {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    await page.goto(`${BASE}/login`);
-    await page.locator('[data-testid="login-username"]').fill('admin');
-    await page.locator('[data-testid="login-password"]').fill('admin123');
-    await page.locator('[data-testid="login-submit"]').click();
-    try {
-      await page.waitForURL(/\/items/, { timeout: 10000 });
-      return;
-    } catch {
-      if (attempt < 2) await page.waitForTimeout(6000);
-      else throw new Error('Login failed after 3 attempts');
-    }
-  }
-}
-
-async function getAuthToken(): Promise<string> {
-  const res = await fetch(`${API}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'admin', password: 'admin123' }),
-  });
-  const json = await res.json();
-  return json.data?.token || json.token;
-}
+import { test, expect } from '@playwright/test';
+import { BASE, API, login, getAuthToken, getFirstTeamId } from './test-helpers';
 
 // ── Section 1: Page Load ──────────────────────────────────────────────────────
 
@@ -96,11 +68,9 @@ test.describe('Team Management - Create Team', () => {
     await page.locator('input[placeholder="如 FEAT、CORE"]').fill(uniqueCode);
     await page.locator('button', { hasText: '确认创建' }).click();
 
-    // Dialog closes and new team appears in table
     await expect(page.locator('input[placeholder="请输入团队名称"]')).not.toBeVisible({ timeout: 5000 });
     await expect(page.locator(`text=${teamName}`)).toBeVisible({ timeout: 5000 });
 
-    // Cleanup: delete via API
     const listRes = await fetch(`${API}/teams`, { headers: { Authorization: `Bearer ${authToken}` } });
     const listData = await listRes.json();
     const teams = listData.data || (Array.isArray(listData) ? listData : []);
@@ -122,10 +92,7 @@ test.describe('Team Management - Add Member', () => {
 
   test.beforeAll(async () => {
     authToken = await getAuthToken();
-    const res = await fetch(`${API}/teams`, { headers: { Authorization: `Bearer ${authToken}` } });
-    const data = await res.json();
-    const list = data.data || (Array.isArray(data) ? data : []);
-    teamId = list.length > 0 ? String(list[0].id || list[0].ID) : null;
+    teamId = await getFirstTeamId(authToken);
   });
 
   test.beforeEach(async ({ page }) => { await login(page); });
@@ -175,7 +142,6 @@ test.describe('Team Management - Add Member', () => {
     await expect(dropdown).toBeVisible({ timeout: 5000 });
     await dropdown.locator('button[data-testid^="add-member-user-option-"]').first().click();
     await expect(dropdown).not.toBeVisible();
-    // Role should be pre-selected (defaultRoleId); submit should be enabled
     await expect(page.locator('[data-testid="add-member-submit-btn"]')).toBeEnabled({ timeout: 3000 });
   });
 

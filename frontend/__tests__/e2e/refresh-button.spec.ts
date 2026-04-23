@@ -1,35 +1,10 @@
 import { test, expect, Page } from '@playwright/test';
+import { BASE, API, login, getAuthToken, getFirstTeamId } from './test-helpers';
 
-const BASE = 'http://localhost:5173';
-const API = 'http://localhost:8080/v1';
-
-// Helper: login with retry for rate limiting
-async function login(page: Page) {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    await page.goto(`${BASE}/login`);
-    await page.locator('[data-testid="login-username"]').fill('admin');
-    await page.locator('[data-testid="login-password"]').fill('admin123');
-    await page.locator('[data-testid="login-submit"]').click();
-    try {
-      await page.waitForURL(/\/items/, { timeout: 10000 });
-      await page.waitForTimeout(500);
-      return;
-    } catch {
-      if (attempt < 2) await page.waitForTimeout(6000);
-      else throw new Error('Login failed after 3 attempts (rate limited)');
-    }
-  }
-}
-
-// Helper: click refresh and assert toast
 async function expectRefreshToast(page: Page) {
   await page.locator('[data-testid="refresh-btn"]').click();
   await expect(page.locator('[role="alert"]:has-text("数据已刷新")')).toBeVisible({ timeout: 5000 });
 }
-
-// ============================================================
-// 事项清单 (ItemViewPage)
-// ============================================================
 
 test.describe('刷新按钮 - 事项清单', () => {
   test.beforeEach(async ({ page }) => { await login(page) });
@@ -42,10 +17,6 @@ test.describe('刷新按钮 - 事项清单', () => {
     await expectRefreshToast(page);
   });
 });
-
-// ============================================================
-// 待办事项 (ItemPoolPage)
-// ============================================================
 
 test.describe('刷新按钮 - 待办事项', () => {
   test.beforeEach(async ({ page }) => {
@@ -61,7 +32,6 @@ test.describe('刷新按钮 - 待办事项', () => {
     await expect(resetBtn).toBeVisible();
     await expect(refreshBtn).toBeVisible();
 
-    // refresh button comes after reset button in DOM
     const resetIndex = await resetBtn.evaluate((el) =>
       Array.from(el.parentElement!.children).indexOf(el)
     );
@@ -75,10 +45,6 @@ test.describe('刷新按钮 - 待办事项', () => {
     await expectRefreshToast(page);
   });
 });
-
-// ============================================================
-// 表格视图 (TableViewPage)
-// ============================================================
 
 test.describe('刷新按钮 - 表格视图', () => {
   test.beforeEach(async ({ page }) => {
@@ -96,10 +62,6 @@ test.describe('刷新按钮 - 表格视图', () => {
   });
 });
 
-// ============================================================
-// 整体进度 (GanttViewPage)
-// ============================================================
-
 test.describe('刷新按钮 - 整体进度', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
@@ -116,7 +78,6 @@ test.describe('刷新按钮 - 整体进度', () => {
   });
 
   test('点击刷新显示气泡提示', async ({ page }) => {
-    // Wait for gantt to load (may be empty if no data)
     await page.waitForTimeout(1000);
     const refreshBtn = page.locator('[data-testid="refresh-btn"]');
     if (await refreshBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
@@ -126,10 +87,6 @@ test.describe('刷新按钮 - 整体进度', () => {
     }
   });
 });
-
-// ============================================================
-// 用户管理 (UserManagementPage)
-// ============================================================
 
 test.describe('刷新按钮 - 用户管理', () => {
   test.beforeEach(async ({ page }) => {
@@ -150,10 +107,6 @@ test.describe('刷新按钮 - 用户管理', () => {
     await expectRefreshToast(page);
   });
 });
-
-// ============================================================
-// 角色管理 (RoleManagementPage)
-// ============================================================
 
 test.describe('刷新按钮 - 角色管理', () => {
   test.beforeEach(async ({ page }) => {
@@ -183,29 +136,12 @@ test.describe('刷新按钮 - 角色管理', () => {
   });
 });
 
-// ============================================================
-// 团队详情 (TeamDetailPage)
-// ============================================================
-
 test.describe('刷新按钮 - 团队详情', () => {
   let teamId: string | null = null;
 
   test.beforeAll(async () => {
-    const res = await fetch(`${API}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'admin', password: 'admin123' }),
-    });
-    const json = await res.json();
-    const token = json.data?.token || json.token;
-    if (!token) return;
-
-    const tRes = await fetch(`${API}/teams`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const tData = await tRes.json();
-    const list = tData.data || (Array.isArray(tData) ? tData : []);
-    teamId = list.length > 0 ? String(list[0].id || list[0].ID) : null;
+    const token = await getAuthToken();
+    teamId = await getFirstTeamId(token);
   });
 
   test.beforeEach(async ({ page }) => {
