@@ -206,6 +206,7 @@ export interface TransferPMReq {
 export interface TeamDetailResp {
   id: number
   name: string
+  code: string
   description: string
   pmId: number
   pmDisplayName: string
@@ -508,6 +509,7 @@ export interface WeeklyComparisonGroup {
 
 export interface SubItemSnapshot {
   id: number
+  code: string
   title: string
   priority: string
   status: string

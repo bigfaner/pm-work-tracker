@@ -14,8 +14,21 @@ export function createTeamApi(req: CreateTeamReq): Promise<Team> {
   return client.post<never, Team>('/teams', req)
 }
 
-export function listTeamsApi(): Promise<Team[]> {
-  return client.get<never, Team[]>('/teams')
+export interface TeamListParams {
+  search?: string
+  page?: number
+  pageSize?: number
+}
+
+export interface TeamListResp {
+  items: Team[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export function listTeamsApi(params?: TeamListParams): Promise<TeamListResp> {
+  return client.get<never, TeamListResp>('/teams', { params })
 }
 
 export function getTeamApi(teamId: number): Promise<TeamDetailResp> {
