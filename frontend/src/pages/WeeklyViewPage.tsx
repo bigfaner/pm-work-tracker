@@ -54,24 +54,27 @@ export default function WeeklyViewPage() {
 
           {isLoading ? (
             <div className="py-8 text-center text-tertiary text-sm">加载中...</div>
-          ) : !data || !data.groups || data.groups.length === 0 ? (
-            <div className="py-12 text-center">
-              <p className="text-tertiary text-sm">暂无周数据</p>
-            </div>
           ) : (
             <>
-              {/* Stats Row */}
-              <StatsBar stats={isError ? undefined : data.stats} />
+              {/* Stats Row — always visible (shows "-" on error) */}
+              <StatsBar stats={isError ? undefined : data?.stats} />
 
               {/* Comparison Cards */}
-              {(() => {
-                if (!data.weekEnd) throw new Error("weekEnd is required")
-                const referenceDate = new Date(data.weekEnd)
-                return data.groups.map((group) => (
-                  <ComparisonCard key={group.mainItem.id} group={group} weekStart={weekStart} referenceDate={referenceDate} />
-                ))
-              })()}
-
+              {!data || !data.groups || data.groups.length === 0 ? (
+                <div className="py-12 text-center">
+                  <p className="text-tertiary text-sm">暂无周数据</p>
+                </div>
+              ) : (
+                <>
+                  {(() => {
+                    if (!data.weekEnd) throw new Error("weekEnd is required")
+                    const referenceDate = new Date(data.weekEnd)
+                    return data.groups.map((group) => (
+                      <ComparisonCard key={group.mainItem.id} group={group} weekStart={weekStart} referenceDate={referenceDate} />
+                    ))
+                  })()}
+                </>
+              )}
             </>
           )}
         </>

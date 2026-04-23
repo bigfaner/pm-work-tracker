@@ -99,6 +99,11 @@ describe('isOverdue', () => {
   it('returns true for sub-item status blocking with past date', () => {
     expect(isOverdue('2020-01-01', 'blocking', now)).toBe(true)
   })
+
+  it('returns false when referenceDate is in the past and expectedEndDate is after it', () => {
+    const pastRef = new Date('2020-01-01')
+    expect(isOverdue('2020-06-01', 'progressing', pastRef)).toBe(false)
+  })
 })
 
 describe('MAIN_TERMINAL_STATUSES', () => {

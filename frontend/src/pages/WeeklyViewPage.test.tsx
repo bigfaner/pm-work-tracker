@@ -49,6 +49,9 @@ const mockWeeklyResponse: WeeklyViewResponse = {
     newlyCompleted: 2,
     inProgress: 3,
     blocked: 1,
+    pending: 4,
+    pausing: 0,
+    overdue: 2,
   },
   groups: [
     {
@@ -272,10 +275,10 @@ describe('WeeklyViewPage', () => {
   it('renders all 4 stats with correct values', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText('5')).toBeInTheDocument()
-      expect(screen.getByText('2')).toBeInTheDocument()
-      expect(screen.getByText('3')).toBeInTheDocument()
-      expect(screen.getByText('1')).toBeInTheDocument()
+      expect(screen.getByTestId('stat-active')).toHaveTextContent('5')
+      expect(screen.getByTestId('stat-newly-completed')).toHaveTextContent('2')
+      expect(screen.getByTestId('stat-in-progress')).toHaveTextContent('3')
+      expect(screen.getByTestId('stat-blocked')).toHaveTextContent('1')
     })
   })
 
@@ -311,6 +314,68 @@ describe('WeeklyViewPage', () => {
     await waitFor(() => {
       const stat4 = screen.getByTestId('stat-blocked')
       expect(stat4).toHaveClass('text-error')
+    })
+  })
+
+  it('renders all 7 stat cards with correct values via testId', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByTestId('stat-active')).toHaveTextContent('5')
+      expect(screen.getByTestId('stat-newly-completed')).toHaveTextContent('2')
+      expect(screen.getByTestId('stat-in-progress')).toHaveTextContent('3')
+      expect(screen.getByTestId('stat-blocked')).toHaveTextContent('1')
+      expect(screen.getByTestId('stat-pending')).toHaveTextContent('4')
+      expect(screen.getByTestId('stat-pausing')).toHaveTextContent('0')
+      expect(screen.getByTestId('stat-overdue')).toHaveTextContent('2')
+    })
+  })
+
+  it('renders pending/pausing/overdue labels', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('未开始')).toBeInTheDocument()
+      expect(screen.getByText('暂停中')).toBeInTheDocument()
+      expect(screen.getByText('逾期中')).toBeInTheDocument()
+    })
+  })
+
+  it('shows tooltip content on click', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => expect(screen.getByTestId('stat-active')).toBeInTheDocument())
+    const trigger = screen.getByTestId('stat-active').closest('button')!
+    await user.click(trigger)
+    await waitFor(() => {
+      expect(screen.getByRole('tooltip')).toBeInTheDocument()
+    })
+  })
+
+  it('stat card trigger has aria-describedby when tooltip is open', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => expect(screen.getByTestId('stat-active')).toBeInTheDocument())
+    const trigger = screen.getByTestId('stat-active').closest('button')!
+    await user.click(trigger)
+    await waitFor(() => {
+      expect(trigger).toHaveAttribute('aria-describedby')
+    })
+  })
+
+  it('shows "-" for all stat cards when API returns error', async () => {
+    server.use(
+      http.get('/v1/teams/:teamId/views/weekly', () =>
+        HttpResponse.json({ code: 'SERVER_ERROR', message: 'internal error' }, { status: 500 }),
+      ),
+    )
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByTestId('stat-active')).toHaveTextContent('-')
+      expect(screen.getByTestId('stat-newly-completed')).toHaveTextContent('-')
+      expect(screen.getByTestId('stat-in-progress')).toHaveTextContent('-')
+      expect(screen.getByTestId('stat-blocked')).toHaveTextContent('-')
+      expect(screen.getByTestId('stat-pending')).toHaveTextContent('-')
+      expect(screen.getByTestId('stat-pausing')).toHaveTextContent('-')
+      expect(screen.getByTestId('stat-overdue')).toHaveTextContent('-')
     })
   })
 
