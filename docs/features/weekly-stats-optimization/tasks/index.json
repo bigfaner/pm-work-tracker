@@ -19,7 +19,7 @@
       "title": "Frontend Type: WeeklyStats 接口新增 3 字段",
       "priority": "P0",
       "estimatedTime": "0.5h",
-      "status": "pending",
+      "status": "completed",
       "file": "1.2-frontend-type-weekly-stats.md",
       "record": "records/1.2-frontend-type-weekly-stats.md"
     },
