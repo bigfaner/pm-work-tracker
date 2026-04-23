@@ -22,13 +22,13 @@ type TeamService interface {
 	CreateTeam(ctx context.Context, creatorID uint, req dto.CreateTeamReq) (*model.Team, error)
 	GetTeam(ctx context.Context, teamID uint) (*model.Team, error)
 	GetTeamDetail(ctx context.Context, teamID uint) (*dto.TeamDetailResp, error)
-	ListTeams(ctx context.Context, callerID uint, isSuperAdmin bool) ([]*dto.TeamListResp, error)
+	ListTeams(ctx context.Context, callerID uint, isSuperAdmin bool, search string, page, pageSize int) ([]*dto.TeamListResp, int64, error)
 	UpdateTeam(ctx context.Context, pmID, teamID uint, req dto.UpdateTeamReq) (*model.Team, error)
 	InviteMember(ctx context.Context, pmID, teamID uint, req dto.InviteMemberReq) error
 	RemoveMember(ctx context.Context, pmID, teamID, targetUserID uint) error
 	TransferPM(ctx context.Context, currentPMID, teamID, newPMID uint) error
 	DisbandTeam(ctx context.Context, callerID uint, teamID uint, confirmName string) error
-	UpdateMemberRole(ctx context.Context, pmID, teamID, targetUserID uint, role string) error
+	UpdateMemberRole(ctx context.Context, pmID, teamID, targetUserID, roleID uint) error
 	ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMemberDTO, error)
 	SearchAvailableUsers(ctx context.Context, teamID uint, search string) ([]*dto.UserSearchDTO, error)
 }
@@ -37,11 +37,12 @@ type teamService struct {
 	teamRepo    repository.TeamRepo
 	userRepo    repository.UserRepo
 	mainItemRepo repository.MainItemRepo
+	roleRepo    repository.RoleRepo
 	db          TransactionDB
 }
 
-func NewTeamService(teamRepo repository.TeamRepo, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, db TransactionDB) TeamService {
-	return &teamService{teamRepo: teamRepo, userRepo: userRepo, mainItemRepo: mainItemRepo, db: db}
+func NewTeamService(teamRepo repository.TeamRepo, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, roleRepo repository.RoleRepo, db TransactionDB) TeamService {
+	return &teamService{teamRepo: teamRepo, userRepo: userRepo, mainItemRepo: mainItemRepo, roleRepo: roleRepo, db: db}
 }
 
 func (s *teamService) CreateTeam(ctx context.Context, creatorID uint, req dto.CreateTeamReq) (*model.Team, error) {
@@ -58,8 +59,12 @@ func (s *teamService) CreateTeam(ctx context.Context, creatorID uint, req dto.Cr
 	member := &model.TeamMember{
 		TeamID:   team.ID,
 		UserID:   creatorID,
-		Role:     "pm",
 		JoinedAt: time.Now(),
+	}
+	if s.roleRepo != nil {
+		if pmRole, err := s.roleRepo.FindByName(ctx, "pm"); err == nil {
+			member.RoleID = &pmRole.ID
+		}
 	}
 	if err := s.teamRepo.AddMember(ctx, member); err != nil {
 		return nil, err
@@ -76,10 +81,11 @@ func (s *teamService) GetTeam(ctx context.Context, teamID uint) (*model.Team, er
 	return team, nil
 }
 
-func (s *teamService) ListTeams(ctx context.Context, _ uint, _ bool) ([]*dto.TeamListResp, error) {
-	teams, err := s.teamRepo.List(ctx)
+func (s *teamService) ListTeams(ctx context.Context, _ uint, _ bool, search string, page, pageSize int) ([]*dto.TeamListResp, int64, error) {
+	offset, page, pageSize := dto.ApplyPaginationDefaults(page, pageSize)
+	teams, total, err := s.teamRepo.ListFiltered(ctx, search, offset, pageSize)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	teamIDs := make([]uint, len(teams))
@@ -101,7 +107,7 @@ func (s *teamService) ListTeams(ctx context.Context, _ uint, _ bool) ([]*dto.Tea
 			UpdatedAt:     t.UpdatedAt.Format(time.RFC3339),
 		}
 	}
-	return result, nil
+	return result, total, nil
 }
 
 func (s *teamService) GetTeamDetail(ctx context.Context, teamID uint) (*dto.TeamDetailResp, error) {
@@ -169,6 +175,10 @@ func (s *teamService) InviteMember(ctx context.Context, pmID, teamID uint, req d
 	}
 	_ = team.PmID // permission is enforced by RequirePermission middleware
 
+	if s.isPMRole(ctx, req.RoleID) {
+		return apperrors.ErrCannotAssignPMRole
+	}
+
 	user, err := s.userRepo.FindByUsername(ctx, req.Username)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrNotFound)
@@ -230,7 +240,11 @@ func (s *teamService) TransferPM(ctx context.Context, currentPMID, teamID, newPM
 		}
 
 		// New PM gets "pm" role
-		newPMMember.Role = "pm"
+		if s.roleRepo != nil {
+			if pmRole, err := s.roleRepo.FindByName(ctx, "pm"); err == nil {
+				newPMMember.RoleID = &pmRole.ID
+			}
+		}
 		if err := s.teamRepo.UpdateMember(ctx, newPMMember); err != nil {
 			return err
 		}
@@ -240,7 +254,11 @@ func (s *teamService) TransferPM(ctx context.Context, currentPMID, teamID, newPM
 		if err != nil {
 			return err
 		}
-		oldPMMember.Role = "member"
+		if s.roleRepo != nil {
+			if memberRole, err := s.roleRepo.FindByName(ctx, "member"); err == nil {
+				oldPMMember.RoleID = &memberRole.ID
+			}
+		}
 		return s.teamRepo.UpdateMember(ctx, oldPMMember)
 	})
 }
@@ -260,7 +278,7 @@ func (s *teamService) DisbandTeam(ctx context.Context, callerID uint, teamID uin
 	return s.teamRepo.Delete(ctx, teamID)
 }
 
-func (s *teamService) UpdateMemberRole(ctx context.Context, pmID, teamID, targetUserID uint, role string) error {
+func (s *teamService) UpdateMemberRole(ctx context.Context, pmID, teamID, targetUserID, roleID uint) error {
 	team, err := s.teamRepo.FindByID(ctx, teamID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
@@ -269,13 +287,29 @@ func (s *teamService) UpdateMemberRole(ctx context.Context, pmID, teamID, target
 		return apperrors.ErrForbidden
 	}
 
+	if s.isPMRole(ctx, roleID) {
+		return apperrors.ErrCannotAssignPMRole
+	}
+
 	member, err := s.teamRepo.FindMember(ctx, teamID, targetUserID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrNotTeamMember)
 	}
 
-	member.Role = role
+	member.RoleID = &roleID
 	return s.teamRepo.UpdateMember(ctx, member)
+}
+
+// isPMRole returns true if the given roleID corresponds to the "pm" preset role.
+func (s *teamService) isPMRole(ctx context.Context, roleID uint) bool {
+	if s.roleRepo == nil {
+		return false
+	}
+	role, err := s.roleRepo.FindByID(ctx, roleID)
+	if err != nil {
+		return false
+	}
+	return role.Name == "pm"
 }
 
 func (s *teamService) ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMemberDTO, error) {
