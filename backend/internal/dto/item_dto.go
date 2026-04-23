@@ -327,6 +327,8 @@ type ReportSubItemDTO struct {
 	ID           uint     `json:"id"`
 	Title        string   `json:"title"`
 	Completion   float64  `json:"completion"`
+	AssigneeID   *uint    `json:"assigneeId"`
+	AssigneeName string   `json:"assigneeName"`
 	Achievements []string `json:"achievements"`
 	Blockers     []string `json:"blockers"`
 }

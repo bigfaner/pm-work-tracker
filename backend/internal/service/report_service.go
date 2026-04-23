@@ -93,6 +93,7 @@ func (s *reportService) Preview(ctx context.Context, teamID uint, weekStart time
 				ID:           si.ID,
 				Title:        si.Title,
 				Completion:   si.Completion,
+				AssigneeID:   si.AssigneeID,
 				Achievements: achievements,
 				Blockers:     blockers,
 			})
