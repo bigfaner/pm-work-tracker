@@ -13,6 +13,7 @@ import { getCurrentWeekStart, getWeekNumber } from '@/utils/weekUtils'
 import { isOverdue } from '@/lib/status'
 import { formatDate } from '@/lib/format'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 
 // --- Main Component ---
 
@@ -20,7 +21,7 @@ export default function WeeklyViewPage() {
   const teamId = useTeamStore((s) => s.currentTeamId)
   const [weekStart, setWeekStart] = useState(getCurrentWeekStart)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['weeklyView', teamId, weekStart],
     queryFn: () => getWeeklyViewApi(teamId!, weekStart),
     enabled: !!teamId,
@@ -60,7 +61,7 @@ export default function WeeklyViewPage() {
           ) : (
             <>
               {/* Stats Row */}
-              <StatsBar stats={data.stats} />
+              <StatsBar stats={isError ? undefined : data.stats} />
 
               {/* Comparison Cards */}
               {(() => {
@@ -82,41 +83,96 @@ export default function WeeklyViewPage() {
 // --- Stats Bar ---
 
 interface StatsBarProps {
-  stats: WeeklyViewResponse['stats']
+  stats: WeeklyViewResponse['stats'] | undefined
 }
 
 function StatsBar({ stats }: StatsBarProps) {
+  const v = (n: number | undefined) => (stats === undefined ? '-' : n ?? 0)
   return (
-    <div className="grid grid-cols-4 gap-4 mb-6">
-      <div className="rounded-xl border border-border bg-white p-4 text-center">
-        <div className="text-2xl font-semibold" data-testid="stat-active">
-          {stats.activeSubItems}
-        </div>
-        <div className="text-[13px] text-tertiary mt-0.5">本周活跃子事项</div>
-        <div className="text-[11px] text-tertiary/70 mt-1">本周有进度记录或新完成</div>
+    <TooltipProvider delayDuration={300}>
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3 mb-6">
+        <StatCard
+          value={v(stats?.activeSubItems)}
+          label="本周活跃"
+          tooltip="本周有进展记录，或计划周期与本周重叠的子事项总数（含本周新完成）"
+          testId="stat-active"
+        />
+        <StatCard
+          value={v(stats?.newlyCompleted)}
+          label="本周新完成"
+          tooltip="本周内实际完成（actualEndDate 落在本周）的子事项数"
+          valueClassName="text-success-text"
+          testId="stat-newly-completed"
+        />
+        <StatCard
+          value={v(stats?.inProgress)}
+          label="进行中"
+          tooltip={'状态为"进行中"且本周活跃的子事项数'}
+          valueClassName="text-primary-600"
+          testId="stat-in-progress"
+        />
+        <StatCard
+          value={v(stats?.blocked)}
+          label="阻塞中"
+          tooltip={'状态为"阻塞中"且本周活跃的子事项数'}
+          valueClassName="text-error"
+          testId="stat-blocked"
+        />
+        <StatCard
+          value={v(stats?.pending)}
+          label="未开始"
+          tooltip="已创建但尚未启动（状态为 pending）且本周活跃的子事项数"
+          valueClassName="text-secondary"
+          testId="stat-pending"
+        />
+        <StatCard
+          value={v(stats?.pausing)}
+          label="暂停中"
+          tooltip={'状态为"暂停中"且本周活跃的子事项数'}
+          valueClassName="text-warning"
+          testId="stat-pausing"
+        />
+        <StatCard
+          value={v(stats?.overdue)}
+          label="逾期中"
+          tooltip="计划截止日在本周结束前已过、尚未完成/关闭且本周活跃的子事项数"
+          valueClassName="text-error"
+          testId="stat-overdue"
+        />
       </div>
-      <div className="rounded-xl border border-border bg-white p-4 text-center">
-        <div className="text-2xl font-semibold text-success-text" data-testid="stat-newly-completed">
-          {stats.newlyCompleted}
-        </div>
-        <div className="text-[13px] text-tertiary mt-0.5">本周新完成</div>
-        <div className="text-[11px] text-tertiary/70 mt-1">完成时间落在本周内</div>
-      </div>
-      <div className="rounded-xl border border-border bg-white p-4 text-center">
-        <div className="text-2xl font-semibold text-primary-600" data-testid="stat-in-progress">
-          {stats.inProgress}
-        </div>
-        <div className="text-[13px] text-tertiary mt-0.5">进度推进中</div>
-        <div className="text-[11px] text-tertiary/70 mt-1">活跃子事项中状态为进行中</div>
-      </div>
-      <div className="rounded-xl border border-border bg-white p-4 text-center">
-        <div className="text-2xl font-semibold text-error" data-testid="stat-blocked">
-          {stats.blocked}
-        </div>
-        <div className="text-[13px] text-tertiary mt-0.5">阻塞中</div>
-        <div className="text-[11px] text-tertiary/70 mt-1">活跃子事项中状态为阻塞</div>
-      </div>
-    </div>
+    </TooltipProvider>
+  )
+}
+
+// --- Stat Card ---
+
+interface StatCardProps {
+  value: number | string
+  label: string
+  tooltip: string
+  valueClassName?: string
+  testId?: string
+}
+
+function StatCard({ value, label, tooltip, valueClassName, testId }: StatCardProps) {
+  const [open, setOpen] = useState(false)
+  return (
+    <Tooltip open={open} onOpenChange={setOpen}>
+      <TooltipTrigger asChild>
+        <button
+          className="rounded-xl border border-border bg-white p-4 text-center w-full"
+          onClick={() => setOpen((v) => !v)}
+        >
+          <div className={cn('text-2xl font-semibold', valueClassName)} data-testid={testId}>
+            {value}
+          </div>
+          <div className="text-[13px] text-tertiary mt-0.5">{label}</div>
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top">
+        <p className="max-w-[200px] text-center">{tooltip}</p>
+      </TooltipContent>
+    </Tooltip>
   )
 }
 

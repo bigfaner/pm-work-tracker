@@ -282,10 +282,10 @@ describe('WeeklyViewPage', () => {
   it('renders stats labels', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText('本周活跃子事项')).toBeInTheDocument()
+      expect(screen.getByText('本周活跃')).toBeInTheDocument()
       // These labels appear in both stats bar and legend, use getAllByText
       expect(screen.getAllByText('本周新完成').length).toBeGreaterThanOrEqual(1)
-      expect(screen.getAllByText('进度推进中').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText('进行中').length).toBeGreaterThanOrEqual(1)
       expect(screen.getByText('阻塞中')).toBeInTheDocument()
     })
   })
