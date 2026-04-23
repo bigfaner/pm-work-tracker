@@ -265,7 +265,7 @@ export default function SubItemDetailPage() {
                   <div className="text-xs text-tertiary mb-1">预期完成时间</div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[13px] font-medium">{formatDate(subItem.expectedEndDate)}</span>
-                    {isOverdue(subItem.expectedEndDate ?? undefined, subItem.status) && (
+                    {isOverdue(subItem.expectedEndDate ?? undefined, subItem.status, new Date()) && (
                       <Badge variant="error">延期</Badge>
                     )}
                   </div>

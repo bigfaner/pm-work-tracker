@@ -45,10 +45,10 @@ export function getStatusName(status: string): string | undefined {
 }
 
 /** Check if an item is overdue based on expected end date and status code */
-export function isOverdue(expectedEndDate?: string, status?: string): boolean {
+export function isOverdue(expectedEndDate: string | undefined, status: string | undefined, referenceDate: Date): boolean {
   if (!expectedEndDate || !status) return false
   const isTerminal = (MAIN_ITEM_STATUSES as Record<string, { terminal: boolean }>)[status]?.terminal
     || (SUB_ITEM_STATUSES as Record<string, { terminal: boolean }>)[status]?.terminal
   if (isTerminal) return false
-  return new Date(expectedEndDate) < new Date()
+  return new Date(expectedEndDate) < referenceDate
 }

@@ -142,7 +142,7 @@ export default function TableViewPage() {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
 
   const isItemOverdue = (expectedEndDate: string | null, status: string): boolean => {
-    return checkOverdue(expectedEndDate || undefined, status)
+    return checkOverdue(expectedEndDate || undefined, status, new Date())
   }
 
   const getItemLink = (row: TableRow): string => {

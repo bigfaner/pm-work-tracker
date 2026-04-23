@@ -101,7 +101,7 @@ export default function ItemDetailView({
                     <TableCell className="text-xs whitespace-nowrap">{formatDate(item.startDate)}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap">
                       <span>{formatDate(item.expectedEndDate)}</span>
-                      {isOverdue(item.expectedEndDate ?? undefined, item.status) && (
+                      {isOverdue(item.expectedEndDate ?? undefined, item.status, new Date()) && (
                         <Badge variant="error" className="ml-1">延期</Badge>
                       )}
                     </TableCell>

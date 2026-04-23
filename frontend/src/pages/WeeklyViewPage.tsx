@@ -63,9 +63,13 @@ export default function WeeklyViewPage() {
               <StatsBar stats={data.stats} />
 
               {/* Comparison Cards */}
-              {data.groups.map((group) => (
-                <ComparisonCard key={group.mainItem.id} group={group} weekStart={weekStart} />
-              ))}
+              {(() => {
+                if (!data.weekEnd) throw new Error("weekEnd is required")
+                const referenceDate = new Date(data.weekEnd)
+                return data.groups.map((group) => (
+                  <ComparisonCard key={group.mainItem.id} group={group} weekStart={weekStart} referenceDate={referenceDate} />
+                ))
+              })()}
 
             </>
           )}
@@ -121,9 +125,10 @@ function StatsBar({ stats }: StatsBarProps) {
 interface ComparisonCardProps {
   group: WeeklyComparisonGroup
   weekStart: string
+  referenceDate: Date
 }
 
-function ComparisonCard({ group, weekStart }: ComparisonCardProps) {
+function ComparisonCard({ group, weekStart, referenceDate }: ComparisonCardProps) {
   const [expanded, setExpanded] = useState(false)
   const { mainItem } = group
   const lastWeek = group.lastWeek ?? []
@@ -148,7 +153,7 @@ function ComparisonCard({ group, weekStart }: ComparisonCardProps) {
           <span className="text-xs text-tertiary whitespace-nowrap">
             计划周期 {formatDate(mainItem.startDate)}~{formatDate(mainItem.expectedEndDate)}
           </span>
-          {isOverdue(mainItem.expectedEndDate, mainItem.status) && (
+          {isOverdue(mainItem.expectedEndDate, mainItem.status, referenceDate) && (
             <span className="inline-flex items-center rounded-md bg-error-bg px-2 py-0.5 text-[11px] font-medium text-error-text">
               延期
             </span>
@@ -200,7 +205,7 @@ function ComparisonCard({ group, weekStart }: ComparisonCardProps) {
           </div>
           <div className="flex flex-col gap-2.5">
             {lastWeek.map((item) => (
-              <SubItemRow key={item.id} item={item} mainItemId={mainItem.id} />
+              <SubItemRow key={item.id} item={item} mainItemId={mainItem.id} referenceDate={referenceDate} />
             ))}
             {lastWeek.length === 0 && (
               <div className="text-xs text-tertiary">无活跃事项</div>
@@ -238,7 +243,7 @@ function ComparisonCard({ group, weekStart }: ComparisonCardProps) {
           </div>
           <div className="flex flex-col gap-2.5">
             {thisWeek.map((item) => (
-              <SubItemRow key={item.id} item={item} mainItemId={mainItem.id} showDelta />
+              <SubItemRow key={item.id} item={item} mainItemId={mainItem.id} showDelta referenceDate={referenceDate} />
             ))}
             {thisWeek.length === 0 && (
               <div className="text-xs text-tertiary">无活跃事项</div>
@@ -276,10 +281,11 @@ interface SubItemRowProps {
   item: SubItemSnapshot
   mainItemId: number
   showDelta?: boolean
+  referenceDate: Date
 }
 
-function SubItemRow({ item, mainItemId, showDelta }: SubItemRowProps) {
-  const overdue = isOverdue(item.expectedEndDate, item.status)
+function SubItemRow({ item, mainItemId, showDelta, referenceDate }: SubItemRowProps) {
+  const overdue = isOverdue(item.expectedEndDate, item.status, referenceDate)
   const periodText = item.startDate && item.expectedEndDate
     ? `计划周期 ${formatDate(item.startDate)}~${formatDate(item.expectedEndDate)}`
     : item.expectedEndDate ? `计划 ${formatDate(item.expectedEndDate)}` : ''
