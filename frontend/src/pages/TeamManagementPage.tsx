@@ -32,7 +32,7 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table'
-import { Pagination } from '@/components/ui/pagination'
+import PaginationBar from '@/components/shared/PaginationBar'
 import { useToast } from '@/components/ui/toast'
 import { formatDate as _formatDate } from '@/lib/format'
 
@@ -84,7 +84,7 @@ export default function TeamManagementPage() {
 
   const roles = useMemo(() => {
     if (!rolesData?.items) return []
-    return rolesData.items.filter((r) => r.name !== 'superadmin')
+    return rolesData.items.filter((r) => r.name !== 'superadmin' && r.name !== 'pm')
   }, [rolesData])
 
   const defaultRoleId = roles.find((r) => r.name === 'member')?.id ?? roles[0]?.id
@@ -272,16 +272,12 @@ export default function TeamManagementPage() {
               ))}
             </TableBody>
           </Table>
-          {totalPages > 1 && (
-            <div className="flex justify-end px-4 py-3 border-t border-border">
-              <Pagination
-                currentPage={page}
-                totalPages={totalPages}
-                onPageChange={setPage}
-                data-testid="team-pagination"
-              />
-            </div>
-          )}
+          <PaginationBar
+            currentPage={page}
+            totalPages={totalPages}
+            total={total}
+            onPageChange={setPage}
+          />
         </div>
       )}
 

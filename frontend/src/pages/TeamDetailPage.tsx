@@ -86,7 +86,7 @@ export default function TeamDetailPage() {
 
   const roles = useMemo(() => {
     if (!rolesData?.items) return []
-    return rolesData.items.filter((r) => r.name !== 'superadmin')
+    return rolesData.items.filter((r) => r.name !== 'superadmin' && r.name !== 'pm')
   }, [rolesData])
 
   const defaultRoleId = roles.find((r) => r.name === 'member')?.id ?? roles[0]?.id

@@ -8,6 +8,7 @@ import PriorityBadge from '@/components/shared/PriorityBadge'
 import StatusBadge from '@/components/shared/StatusBadge'
 import ProgressBar from '@/components/shared/ProgressBar'
 import { WeekPicker } from '@/components/shared/WeekPicker'
+import { RotateCcw } from 'lucide-react'
 import { getCurrentWeekStart, getWeekNumber } from '@/utils/weekUtils'
 import { isOverdue } from '@/lib/status'
 import { formatDate } from '@/lib/format'
@@ -40,6 +41,13 @@ export default function WeeklyViewPage() {
                 onChange={setWeekStart}
                 maxWeek={getCurrentWeekStart()}
               />
+              <button
+                onClick={() => setWeekStart(getCurrentWeekStart())}
+                title="回到本周"
+                className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-border bg-white text-secondary hover:text-primary-500 hover:border-primary-500 transition-colors"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </button>
             </div>
           </div>
 
@@ -80,25 +88,29 @@ function StatsBar({ stats }: StatsBarProps) {
         <div className="text-2xl font-semibold" data-testid="stat-active">
           {stats.activeSubItems}
         </div>
-        <div className="text-[13px] text-tertiary">本周活跃子事项</div>
+        <div className="text-[13px] text-tertiary mt-0.5">本周活跃子事项</div>
+        <div className="text-[11px] text-tertiary/70 mt-1">本周有进度记录或新完成</div>
       </div>
       <div className="rounded-xl border border-border bg-white p-4 text-center">
         <div className="text-2xl font-semibold text-success-text" data-testid="stat-newly-completed">
           {stats.newlyCompleted}
         </div>
-        <div className="text-[13px] text-tertiary">本周新完成</div>
+        <div className="text-[13px] text-tertiary mt-0.5">本周新完成</div>
+        <div className="text-[11px] text-tertiary/70 mt-1">完成时间落在本周内</div>
       </div>
       <div className="rounded-xl border border-border bg-white p-4 text-center">
         <div className="text-2xl font-semibold text-primary-600" data-testid="stat-in-progress">
           {stats.inProgress}
         </div>
-        <div className="text-[13px] text-tertiary">进度推进中</div>
+        <div className="text-[13px] text-tertiary mt-0.5">进度推进中</div>
+        <div className="text-[11px] text-tertiary/70 mt-1">活跃子事项中状态为进行中</div>
       </div>
       <div className="rounded-xl border border-border bg-white p-4 text-center">
         <div className="text-2xl font-semibold text-error" data-testid="stat-blocked">
           {stats.blocked}
         </div>
-        <div className="text-[13px] text-tertiary">阻塞中</div>
+        <div className="text-[13px] text-tertiary mt-0.5">阻塞中</div>
+        <div className="text-[11px] text-tertiary/70 mt-1">活跃子事项中状态为阻塞</div>
       </div>
     </div>
   )
@@ -288,7 +300,7 @@ function SubItemRow({ item, mainItemId, showDelta }: SubItemRowProps) {
               </Link>
             </TooltipTrigger>
             <TooltipContent className="flex items-center gap-1.5 whitespace-nowrap">
-              <span className="text-white/70 font-mono">SI-{String(mainItemId).padStart(3, '0')}-{String(item.id).slice(-2)}</span>
+              <span className="text-white/70 font-mono">{item.code}</span>
               <span>{item.title}</span>
               {periodText && <span className="text-white/70">{periodText}</span>}
               {overdue && (
