@@ -179,6 +179,18 @@ test.describe('Team Management - Add Member', () => {
     await expect(page.locator('[data-testid="add-member-submit-btn"]')).toBeEnabled({ timeout: 3000 });
   });
 
+  test('role select does not include pm option', async ({ page }) => {
+    test.skip(!teamId, 'No team available');
+    await page.goto(`${BASE}/teams`);
+    await expect(page.locator('[data-testid="team-management-page"]')).toBeVisible({ timeout: 10000 });
+    await page.locator(`[data-testid="add-member-btn-${teamId}"]`).click();
+    await expect(page.locator('[data-testid="add-member-role-select"]')).toBeVisible({ timeout: 5000 });
+    await page.locator('[data-testid="add-member-role-select"]').click();
+    const pmOption = page.locator('[role="option"]', { hasText: /^pm$/ });
+    await expect(pmOption).not.toBeVisible({ timeout: 2000 }).catch(() => {});
+    expect(await pmOption.count()).toBe(0);
+  });
+
   test('cancelling dialog closes it', async ({ page }) => {
     test.skip(!teamId, 'No team available');
     await page.goto(`${BASE}/teams`);

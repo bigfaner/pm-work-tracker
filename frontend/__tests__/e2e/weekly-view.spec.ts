@@ -35,6 +35,7 @@ async function login(page: Page) {
 // Navigate within SPA
 async function navTo(page: Page, path: string) {
   const link = page.locator(`[data-testid="sidebar"] a[href="${path}"]`);
+  await link.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
   await link.click();
   await page.waitForTimeout(1500);
 }

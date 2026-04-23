@@ -40,16 +40,26 @@ test.describe.serial('事项清单 Bug修复验证', () => {
       extraHTTPHeaders: { 'Content-Type': 'application/json' },
     });
 
-    const loginRes = await request.post('/v1/auth/login', {
-      data: { username: 'admin', password: 'admin123' },
-    });
-    const loginData = parseApiData(await loginRes.json());
-    authToken = loginData.token;
+    let loginUserId = 1;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const loginRes = await request.post('/v1/auth/login', {
+        data: { username: 'admin', password: 'admin123' },
+      });
+      const loginData = parseApiData(await loginRes.json());
+      if (loginData.token) {
+        authToken = loginData.token;
+        loginUserId = loginData.user?.id ?? 1;
+        break;
+      }
+      if (attempt < 2) await new Promise(r => setTimeout(r, 6000));
+    }
+    if (!authToken) throw new Error('beforeAll: login failed after 3 attempts');
 
     const teamsRes = await request.get('/v1/teams', {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     const teamsData = parseApiData(await teamsRes.json());
+    if (!Array.isArray(teamsData) || teamsData.length === 0) throw new Error('beforeAll: no teams found');
     teamId = String(teamsData[0].id);
 
     // Create main item with dates (use snake_case field names for backend)
@@ -73,7 +83,7 @@ test.describe.serial('事项清单 Bug修复验证', () => {
         mainItemId: Number(itemA),
         title: '子事项-已有',
         priority: 'P1',
-        assigneeId: Number(loginData.user.id),
+        assigneeId: Number(loginUserId),
         startDate: '2026-04-01',
         expectedEndDate: '2026-04-30',
       },

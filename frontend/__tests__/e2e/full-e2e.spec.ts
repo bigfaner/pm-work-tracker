@@ -465,14 +465,17 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
     let poolItemId: string | null;
 
     test.beforeAll(async () => {
-      await new Promise(r => setTimeout(r, 5000));
-      const res = await fetch(`${API}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'admin', password: 'admin123' }),
-      });
-      const json = await res.json();
-      authToken = json.data?.token || json.token;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 6000));
+        const res = await fetch(`${API}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'admin', password: 'admin123' }),
+        });
+        const json = await res.json();
+        authToken = json.data?.token || json.token;
+        if (authToken) break;
+      }
       if (authToken) {
         const tRes = await fetch(`${API}/teams`, {
           headers: { 'Authorization': `Bearer ${authToken}` },
@@ -568,7 +571,7 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
       const res = await fetch(`${API}/teams/${teamId}/sub-items/${subItemId}/status`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: '进行中' }),
+        body: JSON.stringify({ status: 'progressing' }),
       });
       expect(res.status).toBe(200);
     });

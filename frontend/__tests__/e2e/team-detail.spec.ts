@@ -197,6 +197,17 @@ test.describe('Team Detail - Change Role', () => {
     await expect(page.locator('button', { hasText: '确认修改' })).toBeDisabled();
   });
 
+  test('role select does not include pm option', async ({ page }) => {
+    test.skip(!teamId, 'No team available');
+    await page.goto(`${BASE}/teams/${teamId}`);
+    await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
+    await page.locator('[data-testid="change-role-btn"]').first().click();
+    await expect(page.locator('[data-testid="role-edit-select"]')).toBeVisible({ timeout: 5000 });
+    await page.locator('[data-testid="role-edit-select"]').click();
+    const pmOption = page.locator('[role="option"]', { hasText: /^pm$/ });
+    expect(await pmOption.count()).toBe(0);
+  });
+
   test('cancelling change role dialog closes it', async ({ page }) => {
     test.skip(!teamId, 'No team available');
     await page.goto(`${BASE}/teams/${teamId}`);
@@ -362,6 +373,17 @@ test.describe('Team Detail - Add Member', () => {
     await expect(page.locator('[data-testid="invite-user-search"]')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('[data-testid="invite-role-select"]')).toBeVisible();
     await expect(page.locator('[data-testid="invite-submit-btn"]')).toBeDisabled();
+  });
+
+  test('invite role select does not include pm option', async ({ page }) => {
+    test.skip(!teamId, 'No team available');
+    await page.goto(`${BASE}/teams/${teamId}`);
+    await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
+    await page.locator('button', { hasText: '添加成员' }).click();
+    await expect(page.locator('[data-testid="invite-role-select"]')).toBeVisible({ timeout: 5000 });
+    await page.locator('[data-testid="invite-role-select"]').click();
+    const pmOption = page.locator('[role="option"]', { hasText: /^pm$/ });
+    expect(await pmOption.count()).toBe(0);
   });
 
   test('searching users shows dropdown', async ({ page }) => {

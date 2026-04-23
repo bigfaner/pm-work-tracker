@@ -54,7 +54,7 @@ test.describe.serial('进度追加 - 自动状态流转', () => {
         authToken = loginData.token;
         break;
       }
-      if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
+      if (attempt < 2) await new Promise(r => setTimeout(r, 6000));
     }
     if (!authToken) throw new Error('beforeAll: login failed');
 
@@ -63,12 +63,13 @@ test.describe.serial('进度追加 - 自动状态流转', () => {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     const teamsData = parseApiData(await teamsRes.json());
+    if (!Array.isArray(teamsData) || teamsData.length === 0) throw new Error('beforeAll: no teams found');
     teamId = String(teamsData[0].id);
 
     // Create main item
     const mainRes = await request.post(`/v1/teams/${teamId}/main-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
-      data: { title: 'E2E自动状态测试-主事项', priority: 'P2', assigneeId: 1 },
+      data: { title: 'E2E自动状态测试-主事项', priority: 'P2', assigneeId: 1, startDate: '2026-04-19', expectedEndDate: '2026-05-19' },
     });
     const mainData = parseApiData(await mainRes.json());
     testMainItemId = String(mainData.id);

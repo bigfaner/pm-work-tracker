@@ -56,6 +56,7 @@ async function createPoolItemApi(token: string, teamId: string, title: string, b
 // Helper: navigate via sidebar
 async function navTo(page: Page, path: string) {
   const link = page.locator(`[data-testid="sidebar"] a[href="${path}"]`);
+  await link.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
   await link.click();
   await page.waitForTimeout(1500);
 }

@@ -28,13 +28,21 @@ test.describe('Team Invite Member - Searchable User Picker', () => {
     }
   });
 
-  // Login before each test
+  // Login before each test (with retry for rate limiting)
   test.beforeEach(async ({ page }) => {
-    await page.goto(`${BASE}/login`);
-    await page.locator('[data-testid="login-username"]').fill('admin');
-    await page.locator('[data-testid="login-password"]').fill('admin123');
-    await page.locator('[data-testid="login-submit"]').click();
-    await page.waitForURL('**/items**', { timeout: 10000 });
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await page.goto(`${BASE}/login`);
+      await page.locator('[data-testid="login-username"]').fill('admin');
+      await page.locator('[data-testid="login-password"]').fill('admin123');
+      await page.locator('[data-testid="login-submit"]').click();
+      try {
+        await page.waitForURL(/\/items/, { timeout: 10000 });
+        return;
+      } catch {
+        if (attempt < 2) await page.waitForTimeout(6000);
+        else throw new Error('Login failed after 3 attempts (rate limited)');
+      }
+    }
   });
 
   test('invite dialog has searchable user input', async ({ page }) => {
