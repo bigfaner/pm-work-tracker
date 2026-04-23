@@ -220,6 +220,12 @@ func TestTeamRepo_ListMembers(t *testing.T) {
 	repo := gormrepo.NewGormTeamRepo(db)
 	ctx := context.Background()
 
+	// Seed roles so the join returns a non-empty role name
+	pmRole := model.Role{Name: "pm", Description: "PM"}
+	memberRole := model.Role{Name: "member", Description: "Member"}
+	require.NoError(t, db.Create(&pmRole).Error)
+	require.NoError(t, db.Create(&memberRole).Error)
+
 	pm := seedUser(t, db, "pm9")
 	m1 := seedUser(t, db, "m1")
 	m2 := seedUser(t, db, "m2")
@@ -227,29 +233,63 @@ func TestTeamRepo_ListMembers(t *testing.T) {
 	require.NoError(t, repo.Create(ctx, &team))
 
 	require.NoError(t, repo.AddMember(ctx, &model.TeamMember{
-		TeamID: team.ID, UserID: m1.ID, Role: "pm", JoinedAt: time.Now(),
+		TeamID: team.ID, UserID: m1.ID, RoleID: &pmRole.ID, JoinedAt: time.Now(),
 	}))
 	require.NoError(t, repo.AddMember(ctx, &model.TeamMember{
-		TeamID: team.ID, UserID: m2.ID, Role: "member", JoinedAt: time.Now(),
+		TeamID: team.ID, UserID: m2.ID, RoleID: &memberRole.ID, JoinedAt: time.Now(),
 	}))
 
 	results, err := repo.ListMembers(ctx, team.ID)
 	require.NoError(t, err)
 	assert.Len(t, results, 2)
 
-	// Verify joined user display name and username are present
-	usernames := map[string]bool{}
+	// Verify joined user display name, username, and role are all populated
+	roleByUsername := map[string]string{}
 	for _, dto := range results {
 		assert.NotEmpty(t, dto.DisplayName, "display_name should be populated from join")
 		assert.NotEmpty(t, dto.Username, "username should be populated from join")
-		usernames[dto.Username] = true
+		assert.NotEmpty(t, dto.Role, "role should be populated from roles join")
+		roleByUsername[dto.Username] = dto.Role
 	}
-	assert.True(t, usernames["m1"], "should contain m1")
-	assert.True(t, usernames["m2"], "should contain m2")
+	assert.True(t, roleByUsername["m1"] == "pm", "m1 should have role pm")
+	assert.True(t, roleByUsername["m2"] == "member", "m2 should have role member")
 }
 
-func TestTeamRepo_ListMembers_EmptyTeam(t *testing.T) {
+// TestTeamRepo_ListMembers_NullRoleID verifies that members with NULL role_id
+// (created before the RoleID migration) still get a correct role via fallback:
+// the team PM gets "pm", everyone else gets "member".
+func TestTeamRepo_ListMembers_NullRoleID(t *testing.T) {
 	db := setupTeamTestDB(t)
+	repo := gormrepo.NewGormTeamRepo(db)
+	ctx := context.Background()
+
+	pmUser := seedUser(t, db, "pm_null")
+	memberUser := seedUser(t, db, "member_null")
+	team := model.Team{Name: "Team Null", PmID: pmUser.ID, Code: "TNUL"}
+	require.NoError(t, repo.Create(ctx, &team))
+
+	// Add members with no RoleID (legacy data)
+	require.NoError(t, repo.AddMember(ctx, &model.TeamMember{
+		TeamID: team.ID, UserID: pmUser.ID, JoinedAt: time.Now(),
+	}))
+	require.NoError(t, repo.AddMember(ctx, &model.TeamMember{
+		TeamID: team.ID, UserID: memberUser.ID, JoinedAt: time.Now(),
+	}))
+
+	results, err := repo.ListMembers(ctx, team.ID)
+	require.NoError(t, err)
+	require.Len(t, results, 2)
+
+	roleByUsername := map[string]string{}
+	for _, r := range results {
+		assert.NotEmpty(t, r.Role, "role must not be empty even with NULL role_id")
+		roleByUsername[r.Username] = r.Role
+	}
+	assert.Equal(t, "pm", roleByUsername["pm_null"], "team PM should fall back to 'pm'")
+	assert.Equal(t, "member", roleByUsername["member_null"], "non-PM should fall back to 'member'")
+}
+
+func TestTeamRepo_ListMembers_EmptyTeam(t *testing.T) {	db := setupTeamTestDB(t)
 	repo := gormrepo.NewGormTeamRepo(db)
 	ctx := context.Background()
 

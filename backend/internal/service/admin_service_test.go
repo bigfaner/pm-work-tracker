@@ -104,8 +104,11 @@ func (m *mockAdminTeamRepo) Create(_ context.Context, _ *model.Team) error      
 func (m *mockAdminTeamRepo) FindByID(_ context.Context, _ uint) (*model.Team, error) {
 	return m.teamByID, m.teamByIDErr
 }
-func (m *mockAdminTeamRepo) List(_ context.Context) ([]*model.Team, error)       { return nil, nil }
-func (m *mockAdminTeamRepo) Update(_ context.Context, _ *model.Team) error       { return nil }
+func (m *mockAdminTeamRepo) List(_ context.Context) ([]*model.Team, error) { return nil, nil }
+func (m *mockAdminTeamRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.Team, int64, error) {
+	return nil, 0, nil
+}
+func (m *mockAdminTeamRepo) Update(_ context.Context, _ *model.Team) error { return nil }
 func (m *mockAdminTeamRepo) Delete(_ context.Context, _ uint) error              { return nil }
 func (m *mockAdminTeamRepo) AddMember(_ context.Context, member *model.TeamMember) error {
 	return m.addMemberErr

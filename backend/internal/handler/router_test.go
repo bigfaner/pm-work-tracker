@@ -491,6 +491,10 @@ func (m *mockTeamRepo) FindByID(_ context.Context, _ uint) (*model.Team, error) 
 func (m *mockTeamRepo) List(_ context.Context) ([]*model.Team, error) {
 	return nil, nil
 }
+
+func (m *mockTeamRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.Team, int64, error) {
+	return nil, 0, nil
+}
 func (m *mockTeamRepo) Update(_ context.Context, _ *model.Team) error { return nil }
 func (m *mockTeamRepo) Delete(_ context.Context, _ uint) error        { return nil }
 func (m *mockTeamRepo) AddMember(_ context.Context, _ *model.TeamMember) error {

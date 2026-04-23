@@ -491,6 +491,39 @@ func TestWeeklyComparison_ProgressDescriptionFromLatestRecord(t *testing.T) {
 	assert.Equal(t, "Token sign done; Blacklist WIP", result.Groups[0].ThisWeek[0].ProgressDescription)
 }
 
+func TestWeeklyComparison_SnapshotCodePropagated(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	lastWeekStart := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main", Priority: "P1"},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Code: "ALPHA-00001-01", Title: "Sub", Status: "progressing", Completion: 60},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 1, SubItemID: 10, TeamID: 1, Completion: 40, CreatedAt: lastWeekStart.AddDate(0, 0, 1)},
+			{ID: 2, SubItemID: 10, TeamID: 1, Completion: 60, CreatedAt: weekStart.AddDate(0, 0, 1)},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	require.Len(t, result.Groups, 1)
+	group := result.Groups[0]
+	require.Len(t, group.ThisWeek, 1)
+	assert.Equal(t, "ALPHA-00001-01", group.ThisWeek[0].Code)
+	require.Len(t, group.LastWeek, 1)
+	assert.Equal(t, "ALPHA-00001-01", group.LastWeek[0].Code)
+}
+
 func TestWeeklyComparison_RepoErrors(t *testing.T) {
 	monday := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
 
@@ -1438,7 +1471,7 @@ func TestTableView_SubItemCodeFormat(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P1", Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Code: "TEST-00001-01", Title: "Sub", Priority: "P1", Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 
@@ -1447,8 +1480,7 @@ func TestTableView_SubItemCodeFormat(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, result.Items, 1)
-	// SubItem code should be SI-XXXX format based on its ID
-	assert.Equal(t, "SI-0010", result.Items[0].Code)
+	assert.Equal(t, "TEST-00001-01", result.Items[0].Code)
 }
 
 func TestTableView_AssigneeNameResolved(t *testing.T) {

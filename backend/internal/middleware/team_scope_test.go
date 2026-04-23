@@ -42,6 +42,10 @@ func (m *mockTeamRepo) List(ctx context.Context) ([]*model.Team, error) {
 	return args.Get(0).([]*model.Team), args.Error(1)
 }
 
+func (m *mockTeamRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.Team, int64, error) {
+	return nil, 0, nil
+}
+
 func (m *mockTeamRepo) Update(ctx context.Context, team *model.Team) error {
 	args := m.Called(ctx, team)
 	return args.Error(0)
