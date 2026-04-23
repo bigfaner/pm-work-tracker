@@ -32,6 +32,7 @@ type MainItemVO struct {
 // SubItemVO is the frontend-facing view object for a sub item.
 type SubItemVO struct {
 	ID              uint    `json:"id"`
+	Code            string  `json:"code"`
 	TeamID          uint    `json:"teamId"`
 	MainItemID      uint    `json:"mainItemId"`
 	Title           string  `json:"title"`
@@ -68,6 +69,7 @@ type ProgressRecordVO struct {
 // SubItemSummaryVO is a lightweight sub-item summary for nesting in MainItemVO responses.
 type SubItemSummaryVO struct {
 	ID              uint    `json:"id"`
+	Code            string  `json:"code"`
 	Title           string  `json:"title"`
 	Status          string  `json:"status"`
 	StatusName      string  `json:"statusName"`
@@ -114,6 +116,7 @@ func NewSubItemVO(m *model.SubItem) SubItemVO {
 	}
 	return SubItemVO{
 		ID:              m.ID,
+		Code:            m.Code,
 		TeamID:          m.TeamID,
 		MainItemID:      m.MainItemID,
 		Title:           m.Title,
@@ -160,6 +163,7 @@ func NewSubItemSummaryVOs(items []*model.SubItem) []SubItemSummaryVO {
 		}
 		result = append(result, SubItemSummaryVO{
 			ID:              si.ID,
+			Code:            si.Code,
 			Title:           si.Title,
 			Status:          si.Status,
 			StatusName:      statusName,

@@ -233,6 +233,7 @@ func indexSubItemsByMain(subItems []model.SubItem) map[uint][]model.SubItem {
 func buildSubItemSnapshot(si model.SubItem, assigneeName, progressDesc string, thisWeekProgress map[uint][]model.ProgressRecord, lastWeekCompletion map[uint]float64, weekStart, weekEnd time.Time) dto.SubItemSnapshot {
 	snapshot := dto.SubItemSnapshot{
 		ID:                  si.ID,
+		Code:                si.Code,
 		Title:               si.Title,
 		Priority:            si.Priority,
 		Status:              si.Status,
@@ -369,6 +370,7 @@ func appendLastWeekSnapshot(group *dto.WeeklyComparisonGroup, si model.SubItem, 
 	}
 	lastSnapshot := dto.SubItemSnapshot{
 		ID:              si.ID,
+		Code:            si.Code,
 		Title:           si.Title,
 		Priority:        si.Priority,
 		Status:          si.Status,
@@ -691,7 +693,7 @@ func subItemToRow(si model.SubItem) dto.TableRow {
 	return dto.TableRow{
 		ID:              si.ID,
 		Type:            "sub",
-		Code:            fmt.Sprintf("SI-%04d", si.ID),
+		Code:            si.Code,
 		Title:           si.Title,
 		Priority:        si.Priority,
 		AssigneeID:      si.AssigneeID,
