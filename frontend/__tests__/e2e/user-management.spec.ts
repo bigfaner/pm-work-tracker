@@ -120,7 +120,7 @@ test.describe('User Management - Edit User', () => {
     await page.locator('button', { hasText: '编辑' }).first().click();
 
     await expect(page.locator('text=编辑用户')).toBeVisible({ timeout: 5000 });
-    const displayNameInput = page.locator('dialog input').first();
+    const displayNameInput = page.locator('[role="dialog"] input').first();
     const value = await displayNameInput.inputValue();
     expect(value.length).toBeGreaterThan(0);
   });

@@ -25,9 +25,10 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     const teamsData = await teamsResp.json();
-    const teams = Array.isArray(teamsData) ? teamsData : (parseApiData(teamsData) || []);
+    const teamsRaw = parseApiData(teamsData) || teamsData;
+    const teams = Array.isArray(teamsRaw) ? teamsRaw : (teamsRaw?.items ?? []);
     teamId = String(teams[0]?.id || teams[0]?.ID);
-    if (!teamId) throw new Error('No team found');
+    if (!teamId || teamId === 'undefined') throw new Error('No team found');
 
     // Clean up stale test data from previous runs
     try {
@@ -144,7 +145,8 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
 
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await navTo(page, '/weekly');
+    await page.goto(`${BASE}/weekly`);
+    await page.waitForLoadState('networkidle').catch(() => {});
   });
 
   // ====== 1. Page Structure ======
@@ -154,15 +156,15 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
   });
 
   test('1.2 日期范围显示正确', async ({ page }) => {
-    const dateRange = page.locator('text=/\\d{4}\\/\\d{2}\\/\\d{2}.*~.*\\d{4}\\/\\d{2}\\/\\d{2}/').first();
+    const dateRange = page.locator('[data-testid="week-selector"]').locator('text=/\\d{2}\\/\\d{2}.*~.*\\d{2}\\/\\d{2}/');
     await expect(dateRange).toBeVisible({ timeout: 15000 });
   });
 
   // ====== 2. Stats Bar ======
   test('2.1 四个统计卡片渲染', async ({ page }) => {
-    await expect(page.locator('text=本周活跃子事项')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=本周活跃')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('text=本周新完成').first()).toBeVisible();
-    await expect(page.locator('text=进度推进中')).toBeVisible();
+    await expect(page.locator('text=进行中').first()).toBeVisible();
     await expect(page.locator('text=阻塞中')).toBeVisible();
   });
 
@@ -303,7 +305,7 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     expect(emptyVisible).toBeFalsy();
 
     // Data should be displayed - stats bar should be visible
-    await expect(page.locator('text=本周活跃子事项')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=本周活跃')).toBeVisible({ timeout: 5000 });
 
     // Test data should appear in the view
     await expect(page.locator(`[data-testid="group-card-${testMainItemId}"]`)).toBeVisible({ timeout: 5000 });

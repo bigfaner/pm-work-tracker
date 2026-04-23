@@ -12,9 +12,10 @@ export default function AppLayout() {
   useEffect(() => {
     listTeamsApi()
       .then((data) => {
-        setTeams(data)
-        if (data.length > 0 && !currentTeamId) {
-          setCurrentTeam(data[0].id)
+        const teams = Array.isArray(data) ? data : (data.items ?? [])
+        setTeams(teams)
+        if (teams.length > 0 && !currentTeamId) {
+          setCurrentTeam(teams[0].id)
         }
       })
       .catch(() => {})

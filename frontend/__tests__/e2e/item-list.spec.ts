@@ -35,8 +35,9 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
     const teamsRes = await request.get('/v1/teams', {
       headers: { Authorization: `Bearer ${authToken}` },
     });
-    const teamsData = parseApiData(await teamsRes.json());
-    if (!Array.isArray(teamsData) || teamsData.length === 0) throw new Error('beforeAll: no teams found');
+    const teamsRaw = parseApiData(await teamsRes.json());
+    const teamsData = Array.isArray(teamsRaw) ? teamsRaw : (teamsRaw?.items ?? []);
+    if (teamsData.length === 0) throw new Error('beforeAll: no teams found');
     teamId = String(teamsData[0].id);
 
     // Create main item

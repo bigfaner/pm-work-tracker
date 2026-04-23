@@ -58,7 +58,7 @@ test.describe('Team Management - Create Team', () => {
   });
 
   test('creates team successfully and shows it in table', async ({ page }) => {
-    const uniqueCode = `T${Date.now().toString().slice(-4)}`;
+    const uniqueCode = `T${Date.now().toString(36).slice(-4).toUpperCase().replace(/\d/g, 'X')}`;
     const teamName = `E2E Team ${uniqueCode}`;
 
     await page.goto(`${BASE}/teams`);
@@ -73,7 +73,8 @@ test.describe('Team Management - Create Team', () => {
 
     const listRes = await fetch(`${API}/teams`, { headers: { Authorization: `Bearer ${authToken}` } });
     const listData = await listRes.json();
-    const teams = listData.data || (Array.isArray(listData) ? listData : []);
+    const raw = listData.data ?? listData;
+    const teams = Array.isArray(raw) ? raw : (raw?.items ?? []);
     const created = teams.find((t: any) => t.name === teamName);
     if (created) {
       await fetch(`${API}/teams/${created.id || created.ID}`, {
@@ -89,10 +90,30 @@ test.describe('Team Management - Create Team', () => {
 test.describe('Team Management - Add Member', () => {
   let authToken: string;
   let teamId: string | null = null;
+  let testUserId: string;
+  let testUserDisplay: string;
 
   test.beforeAll(async () => {
     authToken = await getAuthToken();
     teamId = await getFirstTeamId(authToken);
+    // Create a non-member user for search tests
+    const username = `e2e_search_${Date.now()}`;
+    const res = await fetch(`${API}/admin/users`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, displayName: 'E2E搜索用户' }),
+    });
+    const data = await res.json();
+    testUserId = String(data.data?.id || data.id);
+    testUserDisplay = 'E2E搜索用户';
+  });
+
+  test.afterAll(async () => {
+    if (testUserId) {
+      try {
+        await fetch(`${API}/admin/users/${testUserId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${authToken}` } });
+      } catch { /* best effort */ }
+    }
   });
 
   test.beforeEach(async ({ page }) => { await login(page); });
@@ -123,7 +144,7 @@ test.describe('Team Management - Add Member', () => {
     await page.locator(`[data-testid="add-member-btn-${teamId}"]`).click();
     const searchInput = page.locator('[data-testid="add-member-user-search"]');
     await expect(searchInput).toBeVisible({ timeout: 5000 });
-    await searchInput.fill('admin');
+    await searchInput.fill(testUserDisplay);
     const dropdown = page.locator('[data-testid="add-member-user-dropdown"]');
     await expect(dropdown).toBeVisible({ timeout: 5000 });
     const options = dropdown.locator('button[data-testid^="add-member-user-option-"]');
@@ -137,7 +158,7 @@ test.describe('Team Management - Add Member', () => {
     await page.locator(`[data-testid="add-member-btn-${teamId}"]`).click();
     const searchInput = page.locator('[data-testid="add-member-user-search"]');
     await expect(searchInput).toBeVisible({ timeout: 5000 });
-    await searchInput.fill('admin');
+    await searchInput.fill(testUserDisplay);
     const dropdown = page.locator('[data-testid="add-member-user-dropdown"]');
     await expect(dropdown).toBeVisible({ timeout: 5000 });
     await dropdown.locator('button[data-testid^="add-member-user-option-"]').first().click();
@@ -151,7 +172,7 @@ test.describe('Team Management - Add Member', () => {
     await expect(page.locator('[data-testid="team-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator(`[data-testid="add-member-btn-${teamId}"]`).click();
     await expect(page.locator('[data-testid="add-member-role-select"]')).toBeVisible({ timeout: 5000 });
-    await page.locator('[data-testid="add-member-role-select"]').click();
+    await page.locator('[data-testid="add-member-role-select"]').click({ force: true });
     const pmOption = page.locator('[role="option"]', { hasText: /^pm$/ });
     await expect(pmOption).not.toBeVisible({ timeout: 2000 }).catch(() => {});
     expect(await pmOption.count()).toBe(0);
@@ -163,7 +184,7 @@ test.describe('Team Management - Add Member', () => {
     await expect(page.locator('[data-testid="team-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator(`[data-testid="add-member-btn-${teamId}"]`).click();
     await expect(page.locator('[data-testid="add-member-user-search"]')).toBeVisible({ timeout: 5000 });
-    await page.locator('button', { hasText: '取消' }).click();
+    await page.keyboard.press('Escape');
     await expect(page.locator('[data-testid="add-member-user-search"]')).not.toBeVisible({ timeout: 3000 });
   });
 });

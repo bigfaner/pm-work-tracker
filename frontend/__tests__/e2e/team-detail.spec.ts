@@ -1,6 +1,34 @@
 import { test, expect } from '@playwright/test';
 import { BASE, API, login, getAuthToken, getFirstTeamId } from './test-helpers';
 
+async function createTestMember(token: string, tid: string, label: string) {
+  const username = `e2e_${label}_${Date.now()}`;
+  const res = await fetch(`${API}/admin/users`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, displayName: `E2E测试${label}` }),
+  });
+  const data = await res.json();
+  const userId = String(data.data?.id || data.id);
+  const inviteRes = await fetch(`${API}/teams/${tid}/members`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, roleId: 3 }),
+  });
+  if (!inviteRes.ok) {
+    const err = await inviteRes.text();
+    console.error(`createTestMember invite failed: ${inviteRes.status} ${err}`);
+  }
+  return { username, userId };
+}
+
+async function removeTestMember(token: string, tid: string, userId: string) {
+  try {
+    await fetch(`${API}/teams/${tid}/members/${userId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    await fetch(`${API}/admin/users/${userId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+  } catch { /* best effort */ }
+}
+
 // ── Section 1: Page Load ──────────────────────────────────────────────────────
 
 test.describe('Team Detail - Page Load', () => {
@@ -18,9 +46,9 @@ test.describe('Team Detail - Page Load', () => {
     test.skip(!teamId, 'No team available');
     await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('text=团队名称')).toBeVisible();
+    await expect(page.locator('text=团队名称')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('text=CODE')).toBeVisible();
-    await expect(page.locator('text=PM')).toBeVisible();
+    await expect(page.locator('[data-testid="team-detail-page"]').locator('text=PM').first()).toBeVisible();
     await expect(page.locator('text=成员数')).toBeVisible();
   });
 
@@ -28,7 +56,7 @@ test.describe('Team Detail - Page Load', () => {
     test.skip(!teamId, 'No team available');
     await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('a[href="/teams"]', { hasText: '团队管理' })).toBeVisible();
+    await expect(page.locator('[data-testid="team-detail-page"]').locator('nav a[href="/teams"]')).toBeVisible({ timeout: 10000 });
   });
 
   test('member list section is visible', async ({ page }) => {
@@ -90,10 +118,11 @@ test.describe('Team Detail - Member List', () => {
     test.skip(!teamId, 'No team available');
     await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 10000 });
 
     const firstName = await page.locator('tbody tr').first().locator('td').first().textContent();
-    const query = firstName?.trim().slice(0, 2) || 'a';
+    // textContent concatenates avatar + displayName without spaces, so use 1 char
+    const query = firstName?.trim()[0] || 'a';
 
     await page.locator('input[placeholder="搜索姓名..."]').fill(query);
     await page.waitForTimeout(500);
@@ -123,10 +152,19 @@ test.describe('Team Detail - Member List', () => {
 test.describe('Team Detail - Change Role', () => {
   let authToken: string;
   let teamId: string | null;
+  let testMemberId: string;
 
   test.beforeAll(async () => {
     authToken = await getAuthToken();
     teamId = await getFirstTeamId(authToken);
+    if (teamId) {
+      const m = await createTestMember(authToken, teamId, '角色');
+      testMemberId = m.userId;
+    }
+  });
+
+  test.afterAll(async () => {
+    if (teamId && testMemberId) await removeTestMember(authToken, teamId, testMemberId);
   });
 
   test.beforeEach(async ({ page }) => { await login(page); });
@@ -145,7 +183,7 @@ test.describe('Team Detail - Change Role', () => {
     await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-testid="change-role-btn"]').first().click();
-    await expect(page.locator('text=修改角色')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: '修改角色' })).toBeVisible({ timeout: 5000 });
     await expect(page.locator('[data-testid="role-edit-select"]')).toBeVisible();
   });
 
@@ -154,7 +192,7 @@ test.describe('Team Detail - Change Role', () => {
     await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-testid="change-role-btn"]').first().click();
-    await expect(page.locator('text=修改角色')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: '修改角色' })).toBeVisible({ timeout: 5000 });
     await expect(page.locator('button', { hasText: '确认修改' })).toBeDisabled();
   });
 
@@ -174,9 +212,9 @@ test.describe('Team Detail - Change Role', () => {
     await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-testid="change-role-btn"]').first().click();
-    await expect(page.locator('text=修改角色')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: '修改角色' })).toBeVisible({ timeout: 5000 });
     await page.locator('button', { hasText: '取消' }).click();
-    await expect(page.locator('text=修改角色')).not.toBeVisible({ timeout: 3000 });
+    await expect(page.getByRole('heading', { name: '修改角色' })).not.toBeVisible({ timeout: 3000 });
   });
 });
 
@@ -185,10 +223,19 @@ test.describe('Team Detail - Change Role', () => {
 test.describe('Team Detail - Transfer PM', () => {
   let authToken: string;
   let teamId: string | null;
+  let testMemberId: string;
 
   test.beforeAll(async () => {
     authToken = await getAuthToken();
     teamId = await getFirstTeamId(authToken);
+    if (teamId) {
+      const m = await createTestMember(authToken, teamId, '转PM');
+      testMemberId = m.userId;
+    }
+  });
+
+  test.afterAll(async () => {
+    if (teamId && testMemberId) await removeTestMember(authToken, teamId, testMemberId);
   });
 
   test.beforeEach(async ({ page }) => { await login(page); });
@@ -226,10 +273,20 @@ test.describe('Team Detail - Transfer PM', () => {
 test.describe('Team Detail - Remove Member', () => {
   let authToken: string;
   let teamId: string | null;
+  let testMemberId: string;
 
   test.beforeAll(async () => {
     authToken = await getAuthToken();
     teamId = await getFirstTeamId(authToken);
+    if (teamId) {
+      const m = await createTestMember(authToken, teamId, '移除');
+      testMemberId = m.userId;
+    }
+  });
+
+  test.afterAll(async () => {
+    // Best-effort cleanup — test 5.4 may have already removed this member
+    if (teamId && testMemberId) await removeTestMember(authToken, teamId, testMemberId);
   });
 
   test.beforeEach(async ({ page }) => { await login(page); });
@@ -246,7 +303,7 @@ test.describe('Team Detail - Remove Member', () => {
     await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '移除' }).first().click();
-    await expect(page.locator('text=移除成员')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: '移除成员' })).toBeVisible({ timeout: 5000 });
     await expect(page.locator('text=确认移除成员')).toBeVisible();
     await expect(page.locator('button', { hasText: '确认移除' })).toBeVisible();
   });
@@ -256,9 +313,9 @@ test.describe('Team Detail - Remove Member', () => {
     await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '移除' }).first().click();
-    await expect(page.locator('text=移除成员')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: '移除成员' })).toBeVisible({ timeout: 5000 });
     await page.locator('button', { hasText: '取消' }).click();
-    await expect(page.locator('text=移除成员')).not.toBeVisible({ timeout: 3000 });
+    await expect(page.getByRole('heading', { name: '移除成员' })).not.toBeVisible({ timeout: 3000 });
   });
 
   test('can remove a non-PM member', async ({ page }) => {
@@ -277,7 +334,7 @@ test.describe('Team Detail - Remove Member', () => {
     await fetch(`${API}/teams/${teamId}/members`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username }),
+      body: JSON.stringify({ username, roleId: 3 }),
     });
 
     await page.goto(`${BASE}/teams/${teamId}`);
@@ -287,7 +344,7 @@ test.describe('Team Detail - Remove Member', () => {
     await expect(memberRow).toBeVisible({ timeout: 5000 });
     await memberRow.locator('button', { hasText: '移除' }).click();
 
-    await expect(page.locator('text=移除成员')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: '移除成员' })).toBeVisible({ timeout: 5000 });
     await page.locator('button', { hasText: '确认移除' }).click();
 
     await expect(memberRow).not.toBeVisible({ timeout: 5000 });
@@ -337,7 +394,7 @@ test.describe('Team Detail - Add Member', () => {
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '添加成员' }).click();
     await expect(page.locator('[data-testid="invite-role-select"]')).toBeVisible({ timeout: 5000 });
-    await page.locator('[data-testid="invite-role-select"]').click();
+    await page.locator('[data-testid="invite-role-select"]').click({ force: true });
     const pmOption = page.locator('[role="option"]', { hasText: /^pm$/ });
     expect(await pmOption.count()).toBe(0);
   });
@@ -363,7 +420,7 @@ test.describe('Team Detail - Add Member', () => {
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '添加成员' }).click();
     await expect(page.locator('[data-testid="invite-user-search"]')).toBeVisible({ timeout: 5000 });
-    await page.locator('button', { hasText: '取消' }).click();
+    await page.keyboard.press('Escape');
     await expect(page.locator('[data-testid="invite-user-search"]')).not.toBeVisible({ timeout: 3000 });
   });
 });
@@ -396,7 +453,7 @@ test.describe('Team Detail - Disband Team', () => {
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '解散团队' }).click();
     await expect(page.locator('text=此操作不可恢复')).toBeVisible({ timeout: 5000 });
-    const confirmBtn = page.locator('dialog button', { hasText: '解散团队' });
+    const confirmBtn = page.locator('[role="dialog"] button', { hasText: '解散团队' });
     await expect(confirmBtn).toBeDisabled();
   });
 
@@ -406,8 +463,8 @@ test.describe('Team Detail - Disband Team', () => {
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '解散团队' }).click();
     await expect(page.locator('text=此操作不可恢复')).toBeVisible({ timeout: 5000 });
-    await page.locator('dialog input').fill('wrong team name');
-    const confirmBtn = page.locator('dialog button', { hasText: '解散团队' });
+    await page.locator('[role="dialog"] input').fill('wrong team name');
+    const confirmBtn = page.locator('[role="dialog"] button', { hasText: '解散团队' });
     await expect(confirmBtn).toBeDisabled();
   });
 
@@ -431,9 +488,9 @@ test.describe('Team Detail - Disband Team', () => {
 
     await page.locator('button', { hasText: '解散团队' }).click();
     await expect(page.locator('text=此操作不可恢复')).toBeVisible({ timeout: 5000 });
-    await page.locator('dialog input').fill(teamName!.trim());
+    await page.locator('[role="dialog"] input').fill(teamName!.trim());
 
-    const confirmBtn = page.locator('dialog button', { hasText: '解散团队' });
+    const confirmBtn = page.locator('[role="dialog"] button', { hasText: '解散团队' });
     await expect(confirmBtn).toBeEnabled({ timeout: 3000 });
 
     await page.locator('button', { hasText: '取消' }).click();

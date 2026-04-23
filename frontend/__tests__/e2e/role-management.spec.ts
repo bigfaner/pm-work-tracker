@@ -64,7 +64,7 @@ test.describe('Role Management - Search and Filter', () => {
   test('filtering by preset shows only preset roles', async ({ page }) => {
     await page.goto(`${BASE}/roles`);
     await expect(page.locator('[data-testid="role-management-page"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('button[role="combobox"]').first().click();
+    await page.locator('[data-testid="role-management-page"] button[role="combobox"]').click();
     await page.locator('[role="option"]', { hasText: '预置角色' }).click();
     await page.waitForTimeout(800);
     const badges = page.locator('tbody td').filter({ hasText: '预置' });
@@ -174,6 +174,13 @@ test.describe('Role Management - Create Role', () => {
 
     const nameInput = page.locator('[role="dialog"] input').first();
     await nameInput.fill(uniqueName);
+
+    // Must select at least 1 permission (handleSave validates this)
+    const firstCheckbox = page.locator('[role="dialog"] input[type="checkbox"]').first();
+    if (await firstCheckbox.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await firstCheckbox.check();
+    }
+
     await page.locator('[role="dialog"] button', { hasText: '保存' }).click();
 
     await expect(page.locator(`button[data-testid^="role-name-"]`).filter({ hasText: uniqueName })).toBeVisible({ timeout: 8000 });
