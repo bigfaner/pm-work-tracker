@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StatsBar — 每周进展统计优化</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">PM Tracker</a>
+    <div class="nav-links">
+      <a href="stats-bar.html" class="nav-link active">统计栏</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="container page-content">
+
+    <div class="section">
+      <h1 style="margin-bottom:4px;">每周进展统计栏</h1>
+      <p style="margin-bottom:24px;">7 卡片统计栏 · Tooltip 交互 · 响应式布局</p>
+
+      <!-- Week selector -->
+      <div class="week-selector">
+        <span class="week-label">当前周：</span>
+        <select id="week-select">
+          <option value="2026-W17">2026 第 17 周（4/20–4/26）</option>
+          <option value="2026-W16">2026 第 16 周（4/13–4/19）</option>
+          <option value="2026-W15">2026 第 15 周（4/6–4/12）</option>
+        </select>
+        <span class="week-label" style="font-size:12px;color:#94a3b8;">切换周次可模拟请求取消</span>
+      </div>
+
+      <!-- State controls -->
+      <div class="state-controls">
+        <button class="state-btn active" data-state="loaded">已加载</button>
+        <button class="state-btn" data-state="loading">加载中</button>
+        <button class="state-btn" data-state="empty">空数据</button>
+        <button class="state-btn" data-state="error">错误</button>
+      </div>
+
+      <!-- Error banner -->
+      <div id="error-banner" class="error-banner" role="alert" style="display:none;">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        加载失败，请刷新
+        <button onclick="document.querySelector('[data-state=loaded]').click()">重试</button>
+      </div>
+
+      <!-- StatsBar -->
+      <div id="stats-wrapper" aria-live="polite" aria-busy="false">
+        <div class="stats-bar">
+
+          <!-- 本周活跃 -->
+          <div class="stat-card" data-accent="active" tabindex="0" aria-describedby="tooltip-active">
+            <div class="skeleton skeleton-number" style="display:none;"></div>
+            <div class="skeleton skeleton-label"  style="display:none;"></div>
+            <span class="stat-number">42</span>
+            <span class="stat-label">本周活跃</span>
+            <div class="tooltip-content" id="tooltip-active" role="tooltip" aria-hidden="true">
+              本周有进展记录，或计划周期与本周重叠的子事项总数
+            </div>
+          </div>
+
+          <!-- 本周新完成 -->
+          <div class="stat-card" data-accent="completed" tabindex="0" aria-describedby="tooltip-completed">
+            <div class="skeleton skeleton-number" style="display:none;"></div>
+            <div class="skeleton skeleton-label"  style="display:none;"></div>
+            <span class="stat-number">8</span>
+            <span class="stat-label">本周新完成</span>
+            <div class="tooltip-content" id="tooltip-completed" role="tooltip" aria-hidden="true">
+              本周内实际完成（actualEndDate 落在本周）的子事项数
+            </div>
+          </div>
+
+          <!-- 进行中 -->
+          <div class="stat-card" data-accent="in-progress" tabindex="0" aria-describedby="tooltip-in-progress">
+            <div class="skeleton skeleton-number" style="display:none;"></div>
+            <div class="skeleton skeleton-label"  style="display:none;"></div>
+            <span class="stat-number">15</span>
+            <span class="stat-label">进行中</span>
+            <div class="tooltip-content" id="tooltip-in-progress" role="tooltip" aria-hidden="true">
+              状态为"进行中"且本周活跃的子事项数
+            </div>
+          </div>
+
+          <!-- 阻塞中 -->
+          <div class="stat-card" data-accent="blocked" tabindex="0" aria-describedby="tooltip-blocked">
+            <div class="skeleton skeleton-number" style="display:none;"></div>
+            <div class="skeleton skeleton-label"  style="display:none;"></div>
+            <span class="stat-number">3</span>
+            <span class="stat-label">阻塞中</span>
+            <div class="tooltip-content" id="tooltip-blocked" role="tooltip" aria-hidden="true">
+              状态为"阻塞中"且本周活跃的子事项数
+            </div>
+          </div>
+
+          <!-- 未开始 -->
+          <div class="stat-card" data-accent="pending" tabindex="0" aria-describedby="tooltip-pending">
+            <div class="skeleton skeleton-number" style="display:none;"></div>
+            <div class="skeleton skeleton-label"  style="display:none;"></div>
+            <span class="stat-number">12</span>
+            <span class="stat-label">未开始</span>
+            <div class="tooltip-content" id="tooltip-pending" role="tooltip" aria-hidden="true">
+              已创建但尚未启动（状态为 pending）且本周活跃的子事项数
+            </div>
+          </div>
+
+          <!-- 暂停中 -->
+          <div class="stat-card" data-accent="pausing" tabindex="0" aria-describedby="tooltip-pausing">
+            <div class="skeleton skeleton-number" style="display:none;"></div>
+            <div class="skeleton skeleton-label"  style="display:none;"></div>
+            <span class="stat-number">4</span>
+            <span class="stat-label">暂停中</span>
+            <div class="tooltip-content" id="tooltip-pausing" role="tooltip" aria-hidden="true">
+              状态为"暂停中"且本周活跃的子事项数
+            </div>
+          </div>
+
+          <!-- 逾期中 -->
+          <div class="stat-card" data-accent="overdue" tabindex="0" aria-describedby="tooltip-overdue">
+            <div class="skeleton skeleton-number" style="display:none;"></div>
+            <div class="skeleton skeleton-label"  style="display:none;"></div>
+            <span class="stat-number">5</span>
+            <span class="stat-label">逾期中</span>
+            <div class="tooltip-content" id="tooltip-overdue" role="tooltip" aria-hidden="true">
+              计划截止日在本周结束前已过、尚未完成/关闭且本周活跃的子事项数
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Design notes -->
+    <div class="section" style="border-top:1px solid #e2e8f0;padding-top:24px;">
+      <div class="section-title">设计说明</div>
+      <ul style="font-size:13px;color:#475569;line-height:2;padding-left:16px;">
+        <li>宽屏（≥1280px）：7 列单行；中屏（768–1279px）：4+3 两行；窄屏（&lt;768px）：2 列多行</li>
+        <li>桌面端 hover 延迟 300ms 显示 tooltip；移动端点击切换；键盘 Tab 聚焦立即显示</li>
+        <li>切换周次时取消上一个请求（AbortController），立即显示骨架屏</li>
+        <li>左侧 4px 色条区分卡片语义：蓝=活跃，绿=完成，靛=进行中，琥珀=阻塞，灰=未开始/暂停，红=逾期</li>
+      </ul>
+    </div>
+
+  </div>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
