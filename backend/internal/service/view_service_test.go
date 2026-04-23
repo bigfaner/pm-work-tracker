@@ -686,6 +686,173 @@ func TestWeeklyComparison_SubItemCompletedAfterWeek_NotShown(t *testing.T) {
 	assert.Empty(t, result.Groups)
 }
 
+func TestWeeklyComparison_StatsPending(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Pending Sub", Status: "pending"},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 0, CreatedAt: weekStart.AddDate(0, 0, 1)},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, result.Stats.Pending)
+	assert.Equal(t, 0, result.Stats.Pausing)
+}
+
+func TestWeeklyComparison_StatsPausing(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Pausing Sub", Status: "pausing"},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 20, CreatedAt: weekStart.AddDate(0, 0, 1)},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Equal(t, 0, result.Stats.Pending)
+	assert.Equal(t, 1, result.Stats.Pausing)
+}
+
+func TestWeeklyComparison_StatsOverdue(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	weekEnd := time.Date(2026, 4, 19, 0, 0, 0, 0, time.UTC)
+	overdueDate := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC) // before weekEnd
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Overdue Sub", Status: "progressing", ExpectedEndDate: &overdueDate},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 30, CreatedAt: weekStart.AddDate(0, 0, 1)},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, result.Stats.Overdue)
+	_ = weekEnd // used implicitly via weekStart+6d
+}
+
+func TestWeeklyComparison_StatsOverdue_NilExpectedEndDate_NotCounted(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			// ExpectedEndDate is nil — must NOT be counted as overdue
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "No Deadline Sub", Status: "progressing", ExpectedEndDate: nil},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 30, CreatedAt: weekStart.AddDate(0, 0, 1)},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Equal(t, 0, result.Stats.Overdue)
+}
+
+func TestWeeklyComparison_StatsOverdue_CompletedNotCounted(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	overdueDate := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)
+	completedDate := time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			// completed — must NOT be counted as overdue even if past deadline
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Completed Sub", Status: "completed", ExpectedEndDate: &overdueDate, ActualEndDate: &completedDate, Completion: 100},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 100, CreatedAt: completedDate},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Equal(t, 0, result.Stats.Overdue)
+}
+
+func TestWeeklyComparison_StatsOverdue_ClosedNotCounted(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	overdueDate := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			// closed — must NOT be counted as overdue
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Closed Sub", Status: "closed", ExpectedEndDate: &overdueDate},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 0, CreatedAt: weekStart.AddDate(0, 0, 1)},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Equal(t, 0, result.Stats.Overdue)
+}
+
 func ptrTime(t time.Time) *time.Time { return &t }
 
 func TestGanttView_EmptyTeam_NoItems(t *testing.T) {

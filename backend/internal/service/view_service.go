@@ -338,6 +338,15 @@ func buildWeeklyGroups(
 				if si.Status == "blocking" {
 					stats.Blocked++
 				}
+				if si.Status == "pending" {
+					stats.Pending++
+				}
+				if si.Status == "pausing" {
+					stats.Pausing++
+				}
+				if si.ExpectedEndDate != nil && si.ExpectedEndDate.Before(weekEnd) && si.Status != "completed" && si.Status != "closed" {
+					stats.Overdue++
+				}
 			}
 		}
 
