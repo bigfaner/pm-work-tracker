@@ -1,7 +1,7 @@
 import { test, expect, Page } from '@playwright/test';
 
 const BASE = 'http://localhost:5173';
-const API = 'http://localhost:8080/api/v1';
+const API = 'http://localhost:8080/v1';
 const TIMEOUT = 120000;
 
 test.setTimeout(TIMEOUT);
@@ -45,7 +45,7 @@ test.describe.serial('进度追加 - 自动状态流转', () => {
 
     // Login
     for (let attempt = 0; attempt < 3; attempt++) {
-      const loginRes = await request.post('/api/v1/auth/login', {
+      const loginRes = await request.post('/v1/auth/login', {
         data: { username: 'admin', password: 'admin123' },
       });
       const loginJson = await loginRes.json();
@@ -59,14 +59,14 @@ test.describe.serial('进度追加 - 自动状态流转', () => {
     if (!authToken) throw new Error('beforeAll: login failed');
 
     // Get teams
-    const teamsRes = await request.get('/api/v1/teams', {
+    const teamsRes = await request.get('/v1/teams', {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     const teamsData = parseApiData(await teamsRes.json());
     teamId = String(teamsData[0].id);
 
     // Create main item
-    const mainRes = await request.post(`/api/v1/teams/${teamId}/main-items`, {
+    const mainRes = await request.post(`/v1/teams/${teamId}/main-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: { title: 'E2E自动状态测试-主事项', priority: 'P2', assigneeId: 1 },
     });
@@ -74,7 +74,7 @@ test.describe.serial('进度追加 - 自动状态流转', () => {
     testMainItemId = String(mainData.id);
 
     // Create sub-item 1 (for first-progress test)
-    const sub1Res = await request.post(`/api/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
+    const sub1Res = await request.post(`/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: { mainItemId: Number(testMainItemId), title: 'E2E自动状态-首次进度', priority: 'P2', assigneeId: 1 },
     });
@@ -82,7 +82,7 @@ test.describe.serial('进度追加 - 自动状态流转', () => {
     subItem1Id = String(sub1Data.id);
 
     // Create sub-item 2 (for 100% completion test)
-    const sub2Res = await request.post(`/api/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
+    const sub2Res = await request.post(`/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: { mainItemId: Number(testMainItemId), title: 'E2E自动状态-100%完成', priority: 'P2', assigneeId: 1 },
     });
@@ -90,7 +90,7 @@ test.describe.serial('进度追加 - 自动状态流转', () => {
     subItem2Id = String(sub2Data.id);
 
     // Transition sub-item 2 to progressing first (so 100% can reach completed)
-    await request.put(`/api/v1/teams/${teamId}/sub-items/${subItem2Id}/status`, {
+    await request.put(`/v1/teams/${teamId}/sub-items/${subItem2Id}/status`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: { status: 'progressing' },
     });
@@ -176,7 +176,7 @@ test.describe.serial('进度追加 - 自动状态流转', () => {
   // ====== TEST 3: Verify API-level auto-transition for pending -> 100% ======
   test('API: pending 子事项首次追加100%直接变为 completed', async ({ request }) => {
     // Create a new sub-item via API
-    const subRes = await request.post(`/api/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
+    const subRes = await request.post(`/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
       data: { mainItemId: Number(testMainItemId), title: 'API自动状态-pending直接100%', priority: 'P2', assigneeId: 1 },
     });
@@ -187,14 +187,14 @@ test.describe.serial('进度追加 - 自动状态流转', () => {
     expect(subData.status).toBe('pending');
 
     // Append progress with 100%
-    const progressRes = await request.post(`/api/v1/teams/${teamId}/sub-items/${subId}/progress`, {
+    const progressRes = await request.post(`/v1/teams/${teamId}/sub-items/${subId}/progress`, {
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
       data: { completion: 100, achievement: '直接完成' },
     });
     expect(progressRes.ok()).toBeTruthy();
 
     // Fetch sub-item and verify status is completed
-    const fetchRes = await request.get(`/api/v1/teams/${teamId}/sub-items/${subId}`, {
+    const fetchRes = await request.get(`/v1/teams/${teamId}/sub-items/${subId}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     const fetchData = parseApiData(await fetchRes.json());

@@ -1,7 +1,7 @@
 import { test, expect, Page, APIRequestContext } from '@playwright/test';
 
 const BASE = 'http://localhost:5173';
-const API = 'http://localhost:8080/api/v1';
+const API = 'http://localhost:8080/v1';
 const TIMEOUT = 120000;
 
 test.setTimeout(TIMEOUT);
@@ -59,7 +59,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
 
     // Login with retry for rate limiting
     for (let attempt = 0; attempt < 3; attempt++) {
-      const loginRes = await request.post('/api/v1/auth/login', {
+      const loginRes = await request.post('/v1/auth/login', {
         data: { username: 'admin', password: 'admin123' },
       });
       const loginJson = await loginRes.json();
@@ -73,14 +73,14 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
     if (!authToken) throw new Error('beforeAll: login failed after 3 attempts');
 
     // Get teams
-    const teamsRes = await request.get('/api/v1/teams', {
+    const teamsRes = await request.get('/v1/teams', {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     const teamsData = parseApiData(await teamsRes.json());
     teamId = String(teamsData[0].id);
 
     // Create main item
-    const mainRes = await request.post(`/api/v1/teams/${teamId}/main-items`, {
+    const mainRes = await request.post(`/v1/teams/${teamId}/main-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: { title: 'E2E测试-主事项-详情页', priority: 'P2', assigneeId: 1, startDate: '2026-04-19', expectedEndDate: '2026-05-19' },
     });
@@ -88,7 +88,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
     testMainItemId = String(mainData.id);
 
     // Create sub-item
-    const subRes = await request.post(`/api/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
+    const subRes = await request.post(`/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: { mainItemId: Number(testMainItemId), title: 'E2E测试-子事项-详情页', priority: 'P2', assigneeId: 1, startDate: '2026-04-19', expectedEndDate: '2026-05-19' },
     });

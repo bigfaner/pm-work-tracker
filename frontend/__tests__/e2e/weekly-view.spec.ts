@@ -1,7 +1,7 @@
 import { test, expect, Page, APIRequestContext } from '@playwright/test';
 
 const BASE = 'http://localhost:5173';
-const API = 'http://localhost:8080/api/v1';
+const API = 'http://localhost:8080/v1';
 const TIMEOUT = 60000;
 
 test.setTimeout(TIMEOUT);
@@ -61,14 +61,14 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     await new Promise(r => setTimeout(r, 5000));
 
     // Login
-    const loginResp = await request.post('/api/v1/auth/login', {
+    const loginResp = await request.post('/v1/auth/login', {
       data: { username: 'admin', password: 'admin123' },
     });
     const loginData = await loginResp.json();
     authToken = parseApiData(loginData).token;
 
     // Get team
-    const teamsResp = await request.get('/api/v1/teams', {
+    const teamsResp = await request.get('/v1/teams', {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     const teamsData = await teamsResp.json();
@@ -78,14 +78,14 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
 
     // Clean up stale test data from previous runs
     try {
-      const itemsResp = await request.get(`/api/v1/teams/${teamId}/main-items`, {
+      const itemsResp = await request.get(`/v1/teams/${teamId}/main-items`, {
         headers: { Authorization: `Bearer ${authToken}` },
       });
       const itemsData = await itemsResp.json();
       const items = parseApiData(itemsData) || [];
       for (const item of items) {
         if (item.title === 'E2E周视图测试主事项') {
-          await request.post(`/api/v1/teams/${teamId}/main-items/${item.id}/archive`, {
+          await request.post(`/v1/teams/${teamId}/main-items/${item.id}/archive`, {
             headers: { Authorization: `Bearer ${authToken}` },
           });
         }
@@ -93,7 +93,7 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     } catch { /* best effort */ }
 
     // Create a main item for testing
-    const mainResp = await request.post(`/api/v1/teams/${teamId}/main-items`, {
+    const mainResp = await request.post(`/v1/teams/${teamId}/main-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
         title: 'E2E周视图测试主事项',
@@ -107,7 +107,7 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     testMainItemId = String(parseApiData(mainData)?.id || mainData?.id);
 
     // Create sub-item 1
-    const sub1Resp = await request.post(`/api/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
+    const sub1Resp = await request.post(`/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
         mainItemId: Number(testMainItemId),
@@ -122,7 +122,7 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     testSubItemId1 = String(parseApiData(sub1Data)?.id || sub1Data?.id);
 
     // Create sub-item 2
-    const sub2Resp = await request.post(`/api/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
+    const sub2Resp = await request.post(`/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
         mainItemId: Number(testMainItemId),
@@ -137,13 +137,13 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     testSubItemId2 = String(parseApiData(sub2Data)?.id || sub2Data?.id);
 
     // Change sub-item 1 to in-progress
-    await request.put(`/api/v1/teams/${teamId}/sub-items/${testSubItemId1}/status`, {
+    await request.put(`/v1/teams/${teamId}/sub-items/${testSubItemId1}/status`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: { status: '进行中' },
     });
 
     // Append progress record 1 for sub-item 1 (this week)
-    await request.post(`/api/v1/teams/${teamId}/sub-items/${testSubItemId1}/progress`, {
+    await request.post(`/v1/teams/${teamId}/sub-items/${testSubItemId1}/progress`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
         completion: 40,
@@ -154,7 +154,7 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     });
 
     // Append progress record 2 for sub-item 1 (this week, multiple records)
-    await request.post(`/api/v1/teams/${teamId}/sub-items/${testSubItemId1}/progress`, {
+    await request.post(`/v1/teams/${teamId}/sub-items/${testSubItemId1}/progress`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
         completion: 70,
@@ -165,11 +165,11 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     });
 
     // Append progress for sub-item 2
-    await request.put(`/api/v1/teams/${teamId}/sub-items/${testSubItemId2}/status`, {
+    await request.put(`/v1/teams/${teamId}/sub-items/${testSubItemId2}/status`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: { status: '进行中' },
     });
-    await request.post(`/api/v1/teams/${teamId}/sub-items/${testSubItemId2}/progress`, {
+    await request.post(`/v1/teams/${teamId}/sub-items/${testSubItemId2}/progress`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
         completion: 30,
@@ -370,7 +370,7 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     const d = String(monday.getDate()).padStart(2, '0');
     const weekStart = `${y}-${m}-${d}`;
 
-    const resp = await request.get(`/api/v1/teams/${teamId}/views/weekly?weekStart=${weekStart}`, {
+    const resp = await request.get(`/v1/teams/${teamId}/views/weekly?weekStart=${weekStart}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     expect(resp.status()).toBe(200);
@@ -426,7 +426,7 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
         },
       });
 
-      await request.post(`/api/v1/teams/${teamId}/main-items/${testMainItemId}/archive`);
+      await request.post(`/v1/teams/${teamId}/main-items/${testMainItemId}/archive`);
     } catch {
       // Cleanup is best-effort
     }

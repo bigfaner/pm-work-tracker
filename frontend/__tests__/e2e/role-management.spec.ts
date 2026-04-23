@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 const BASE = 'http://localhost:5173';
-const API = 'http://localhost:8080/api/v1';
+const API = 'http://localhost:8080/v1';
 
 test.describe('Role Management - Superadmin Permission Count', () => {
   test.beforeEach(async ({ page }) => {
