@@ -9,10 +9,10 @@ interface StatusBadgeProps {
 }
 
 export default function StatusBadge({ status, statusName, className }: StatusBadgeProps) {
-  const variant = getStatusVariant(status)
+  const variant = `status-${getStatusVariant(status)}` as 'status-planning' | 'status-in-progress' | 'status-completed' | 'status-on-hold' | 'status-cancelled' | 'status-overdue' | 'status-pending' | 'default'
   const displayText = statusName || getStatusName(status) || status
   return (
-    <Badge variant={`status-${variant}` as any} className={cn('text-[11px]', className)}>
+    <Badge variant={variant} className={cn('text-[11px]', className)}>
       {displayText}
     </Badge>
   )

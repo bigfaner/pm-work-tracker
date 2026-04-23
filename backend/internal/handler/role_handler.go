@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"pm-work-tracker/backend/internal/dto"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/service"
 )
@@ -40,26 +41,15 @@ func (h *RoleHandler) ListRoles(c *gin.Context) {
 	})
 }
 
-// CreateRoleReq is the request body for POST /api/v1/admin/roles.
-type CreateRoleReq struct {
-	Name            string   `json:"name" binding:"required"`
-	Description     string   `json:"description"`
-	PermissionCodes []string `json:"permissionCodes" binding:"required,min=1"`
-}
-
 // CreateRole handles POST /api/v1/admin/roles
 func (h *RoleHandler) CreateRole(c *gin.Context) {
-	var req CreateRoleReq
+	var req dto.CreateRoleReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
 	}
 
-	role, err := h.roleSvc.CreateRole(c.Request.Context(), service.CreateRoleReq{
-		Name:            req.Name,
-		Description:     req.Description,
-		PermissionCodes: req.PermissionCodes,
-	})
+	role, err := h.roleSvc.CreateRole(c.Request.Context(), req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -85,13 +75,6 @@ func (h *RoleHandler) GetRole(c *gin.Context) {
 	apperrors.RespondOK(c, detail)
 }
 
-// UpdateRoleReq is the request body for PUT /api/v1/admin/roles/:id.
-type UpdateRoleReq struct {
-	Name            *string  `json:"name,omitempty"`
-	Description     *string  `json:"description,omitempty"`
-	PermissionCodes []string `json:"permissionCodes,omitempty"`
-}
-
 // UpdateRole handles PUT /api/v1/admin/roles/:id
 func (h *RoleHandler) UpdateRole(c *gin.Context) {
 	roleID, err := parseRoleID(c)
@@ -100,17 +83,13 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 		return
 	}
 
-	var req UpdateRoleReq
+	var req dto.UpdateRoleReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
 	}
 
-	detail, err := h.roleSvc.UpdateRole(c.Request.Context(), roleID, service.UpdateRoleReq{
-		Name:            req.Name,
-		Description:     req.Description,
-		PermissionCodes: req.PermissionCodes,
-	})
+	detail, err := h.roleSvc.UpdateRole(c.Request.Context(), roleID, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

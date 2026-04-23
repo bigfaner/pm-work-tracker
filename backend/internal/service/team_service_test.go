@@ -35,6 +35,11 @@ type mockTeamRepo struct {
 	deleteErr     error
 	createErr     error
 	listErr       error
+	// CountMembers support
+	countMembersVal    int64
+	countMembersErr    error
+	countMembersCalled bool
+	listMembersCalled  bool
 	// capture calls
 	createdTeam    *model.Team
 	createdMember  *model.TeamMember
@@ -102,6 +107,7 @@ func (m *mockTeamRepo) FindMember(_ context.Context, teamID, userID uint) (*mode
 }
 
 func (m *mockTeamRepo) ListMembers(_ context.Context, teamID uint) ([]*dto.TeamMemberDTO, error) {
+	m.listMembersCalled = true
 	var result []*dto.TeamMemberDTO
 	for _, mem := range m.members {
 		if mem.TeamID == teamID {
@@ -109,6 +115,14 @@ func (m *mockTeamRepo) ListMembers(_ context.Context, teamID uint) ([]*dto.TeamM
 		}
 	}
 	return result, nil
+}
+
+func (m *mockTeamRepo) CountMembers(_ context.Context, _ uint) (int64, error) {
+	m.countMembersCalled = true
+	if m.countMembersErr != nil {
+		return 0, m.countMembersErr
+	}
+	return m.countMembersVal, nil
 }
 
 func (m *mockTeamRepo) UpdateMember(_ context.Context, member *model.TeamMember) error {
@@ -138,6 +152,13 @@ func (m *mockTeamRepo) FindPMMembers(_ context.Context, _ []uint) (map[uint]stri
 type mockTeamUserRepo struct {
 	user *model.User
 	err  error
+
+	// SearchAvailable captures calls and returns configurable results
+	searchAvailableFn     func(ctx context.Context, teamID uint, search string, limit int) ([]*model.User, error)
+	searchAvailableCalled bool
+	searchAvailableTeamID uint
+	searchAvailableSearch string
+	searchAvailableLimit  int
 }
 
 func (m *mockTeamUserRepo) FindByID(_ context.Context, _ uint) (*model.User, error) {
@@ -158,6 +179,22 @@ func (m *mockTeamUserRepo) Update(_ context.Context, _ *model.User) error {
 
 func (m *mockTeamUserRepo) Create(_ context.Context, _ *model.User) error {
 	return nil
+}
+func (m *mockTeamUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.User, error) {
+	return nil, nil
+}
+func (m *mockTeamUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+	return nil, 0, nil
+}
+func (m *mockTeamUserRepo) SearchAvailable(ctx context.Context, teamID uint, search string, limit int) ([]*model.User, error) {
+	m.searchAvailableCalled = true
+	m.searchAvailableTeamID = teamID
+	m.searchAvailableSearch = search
+	m.searchAvailableLimit = limit
+	if m.searchAvailableFn != nil {
+		return m.searchAvailableFn(ctx, teamID, search, limit)
+	}
+	return nil, nil
 }
 
 // mockDB used for transaction-based tests (TransferPM).
@@ -552,4 +589,127 @@ func TestUpdateMemberRole_TargetNotMember(t *testing.T) {
 
 	err := svc.UpdateMemberRole(context.Background(), 10, 1, 99, "leader")
 	assert.ErrorIs(t, err, apperrors.ErrNotTeamMember)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: SearchAvailableUsers
+// ---------------------------------------------------------------------------
+
+func TestSearchAvailableUsers_Success(t *testing.T) {
+	userRepo := &mockTeamUserRepo{
+		searchAvailableFn: func(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+			return []*model.User{
+				{BaseModel: model.BaseModel{ID: 10}, Username: "alice", DisplayName: "Alice"},
+				{BaseModel: model.BaseModel{ID: 20}, Username: "bob", DisplayName: "Bob"},
+			}, nil
+		},
+	}
+	svc := NewTeamService(&mockTeamRepo{}, userRepo, &mockMainItemRepo{}, &mockDB{})
+
+	result, err := svc.SearchAvailableUsers(context.Background(), 1, "ali")
+	require.NoError(t, err)
+	require.Len(t, result, 2)
+	assert.Equal(t, uint(10), result[0].ID)
+	assert.Equal(t, "alice", result[0].Username)
+	assert.True(t, userRepo.searchAvailableCalled)
+	assert.Equal(t, uint(1), userRepo.searchAvailableTeamID)
+	assert.Equal(t, "ali", userRepo.searchAvailableSearch)
+	assert.Equal(t, 20, userRepo.searchAvailableLimit)
+}
+
+func TestSearchAvailableUsers_Empty(t *testing.T) {
+	userRepo := &mockTeamUserRepo{
+		searchAvailableFn: func(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+			return []*model.User{}, nil
+		},
+	}
+	svc := NewTeamService(&mockTeamRepo{}, userRepo, &mockMainItemRepo{}, &mockDB{})
+
+	result, err := svc.SearchAvailableUsers(context.Background(), 1, "")
+	require.NoError(t, err)
+	assert.Empty(t, result)
+}
+
+func TestSearchAvailableUsers_RepoError(t *testing.T) {
+	userRepo := &mockTeamUserRepo{
+		searchAvailableFn: func(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+			return nil, errors.New("db error")
+		},
+	}
+	svc := NewTeamService(&mockTeamRepo{}, userRepo, &mockMainItemRepo{}, &mockDB{})
+
+	_, err := svc.SearchAvailableUsers(context.Background(), 1, "")
+	assert.Error(t, err)
+}
+
+func TestSearchAvailableUsers_NilResult(t *testing.T) {
+	userRepo := &mockTeamUserRepo{
+		searchAvailableFn: func(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+			return nil, nil
+		},
+	}
+	svc := NewTeamService(&mockTeamRepo{}, userRepo, &mockMainItemRepo{}, &mockDB{})
+
+	result, err := svc.SearchAvailableUsers(context.Background(), 1, "")
+	require.NoError(t, err)
+	assert.NotNil(t, result)
+	// nil slice from repo should be converted to empty slice
+	assert.Empty(t, result)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: GetTeamDetail
+// ---------------------------------------------------------------------------
+
+func TestGetTeamDetail_UsesCountMembers(t *testing.T) {
+	teamRepo := &mockTeamRepo{
+		team: &model.Team{
+			BaseModel: model.BaseModel{ID: 1},
+			Name:      "Alpha",
+			PmID:      10,
+		},
+		members: []*dto.TeamMemberDTO{
+			{TeamID: 1, UserID: 10, DisplayName: "Alice", Role: "pm"},
+			{TeamID: 1, UserID: 20, DisplayName: "Bob", Role: "member"},
+			{TeamID: 1, UserID: 30, DisplayName: "Charlie", Role: "member"},
+		},
+		countMembersVal: 3,
+	}
+	userRepo := &mockTeamUserRepo{
+		user: &model.User{BaseModel: model.BaseModel{ID: 10}, DisplayName: "Alice PM"},
+	}
+	mainItemRepo := &mockMainItemRepo{}
+	svc := NewTeamService(teamRepo, userRepo, mainItemRepo, &mockDB{})
+
+	detail, err := svc.GetTeamDetail(context.Background(), 1)
+	require.NoError(t, err)
+	assert.Equal(t, 3, detail.MemberCount)
+	assert.True(t, teamRepo.countMembersCalled, "should call CountMembers instead of ListMembers")
+	assert.False(t, teamRepo.listMembersCalled, "should not call ListMembers for member count")
+}
+
+func TestGetTeamDetail_CountMembersFallback(t *testing.T) {
+	teamRepo := &mockTeamRepo{
+		team: &model.Team{
+			BaseModel: model.BaseModel{ID: 1},
+			Name:      "Alpha",
+			PmID:      10,
+		},
+		countMembersErr: errors.New("not supported"),
+		members: []*dto.TeamMemberDTO{
+			{TeamID: 1, UserID: 10, DisplayName: "Alice", Role: "pm"},
+		},
+	}
+	userRepo := &mockTeamUserRepo{
+		user: &model.User{BaseModel: model.BaseModel{ID: 10}, DisplayName: "Alice PM"},
+	}
+	mainItemRepo := &mockMainItemRepo{}
+	svc := NewTeamService(teamRepo, userRepo, mainItemRepo, &mockDB{})
+
+	detail, err := svc.GetTeamDetail(context.Background(), 1)
+	require.NoError(t, err)
+	assert.Equal(t, 1, detail.MemberCount)
+	// Should fall back to ListMembers when CountMembers fails
+	assert.True(t, teamRepo.countMembersCalled, "should try CountMembers first")
+	assert.True(t, teamRepo.listMembersCalled, "should fall back to ListMembers on error")
 }

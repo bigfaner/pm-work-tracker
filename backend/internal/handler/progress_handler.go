@@ -20,13 +20,14 @@ type ProgressHandler struct {
 	userRepo repository.UserRepo
 }
 
-// NewProgressHandler creates a new ProgressHandler (stub, for router setup before service is ready).
-func NewProgressHandler() *ProgressHandler {
-	return &ProgressHandler{}
-}
-
-// NewProgressHandlerWithDeps creates a new ProgressHandler with service and repo dependencies.
-func NewProgressHandlerWithDeps(svc service.ProgressService, userRepo repository.UserRepo) *ProgressHandler {
+// NewProgressHandler creates a new ProgressHandler with service and repo dependencies.
+func NewProgressHandler(svc service.ProgressService, userRepo repository.UserRepo) *ProgressHandler {
+	if svc == nil {
+		panic("progress_handler: progressService must not be nil")
+	}
+	if userRepo == nil {
+		panic("progress_handler: userRepo must not be nil")
+	}
 	return &ProgressHandler{svc: svc, userRepo: userRepo}
 }
 
@@ -51,11 +52,6 @@ func validateCompletion(val float64) bool {
 
 // Append handles POST /api/v1/teams/:teamId/sub-items/:subId/progress
 func (h *ProgressHandler) Append(c *gin.Context) {
-	if h.svc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	subID, ok := parseSubID(c)
 	if !ok {
 		return
@@ -88,11 +84,6 @@ func (h *ProgressHandler) Append(c *gin.Context) {
 
 // List handles GET /api/v1/teams/:teamId/sub-items/:subId/progress
 func (h *ProgressHandler) List(c *gin.Context) {
-	if h.svc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	subID, ok := parseSubID(c)
 	if !ok {
 		return
@@ -111,11 +102,6 @@ func (h *ProgressHandler) List(c *gin.Context) {
 
 // CorrectCompletion handles PATCH /api/v1/teams/:teamId/progress/:recordId/completion
 func (h *ProgressHandler) CorrectCompletion(c *gin.Context) {
-	if h.svc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	recordIDStr := c.Param("recordId")
 	recordID, err := strconv.ParseUint(recordIDStr, 10, 64)
 	if err != nil {
@@ -158,11 +144,40 @@ func progressRecordToVO(record *model.ProgressRecord, userRepo repository.UserRe
 	return vo.NewProgressRecordVO(record, authorName)
 }
 
-// progressRecordsToVOs converts a slice of ProgressRecord to ProgressRecordVO.
+// progressRecordsToVOs converts a slice of ProgressRecord to ProgressRecordVO using batch lookups (fixes N+1).
 func progressRecordsToVOs(records []model.ProgressRecord, userRepo repository.UserRepo, c *gin.Context) []vo.ProgressRecordVO {
+	if len(records) == 0 {
+		return []vo.ProgressRecordVO{}
+	}
+
+	ctx := c.Request.Context()
+
+	// Collect unique author IDs
+	authorIDs := make(map[uint]struct{})
+	for i := range records {
+		authorIDs[records[i].AuthorID] = struct{}{}
+	}
+
+	// Batch lookup
+	userMap := make(map[uint]*model.User)
+	if userRepo != nil && len(authorIDs) > 0 {
+		ids := make([]uint, 0, len(authorIDs))
+		for id := range authorIDs {
+			ids = append(ids, id)
+		}
+		if m, err := userRepo.FindByIDs(ctx, ids); err == nil {
+			userMap = m
+		}
+	}
+
+	// Build VOs from map
 	result := make([]vo.ProgressRecordVO, 0, len(records))
 	for i := range records {
-		result = append(result, progressRecordToVO(&records[i], userRepo, c))
+		authorName := ""
+		if u, ok := userMap[records[i].AuthorID]; ok {
+			authorName = u.DisplayName
+		}
+		result = append(result, vo.NewProgressRecordVO(&records[i], authorName))
 	}
 	return result
 }

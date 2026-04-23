@@ -47,11 +47,11 @@ import { Badge } from '@/components/ui/badge'
 import UserAvatar from '@/components/shared/UserAvatar'
 import { useToast } from '@/components/ui/toast'
 import { useAuthStore } from '@/store/auth'
+import { formatDate as _formatDate } from '@/lib/format'
 
-// --- Helpers ---
-
+// TeamDetailPage receives ISO datetime strings; truncate to date before formatting
 function formatDate(dateStr: string): string {
-  return dateStr.slice(0, 10).replace(/-/g, '/')
+  return _formatDate(dateStr.slice(0, 10))
 }
 
 // --- Main Component ---

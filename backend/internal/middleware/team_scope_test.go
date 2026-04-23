@@ -78,6 +78,11 @@ func (m *mockTeamRepo) ListMembers(ctx context.Context, teamID uint) ([]*dto.Tea
 	return args.Get(0).([]*dto.TeamMemberDTO), args.Error(1)
 }
 
+func (m *mockTeamRepo) CountMembers(ctx context.Context, teamID uint) (int64, error) {
+	args := m.Called(ctx, teamID)
+	return args.Get(0).(int64), args.Error(1)
+}
+
 func (m *mockTeamRepo) UpdateMember(ctx context.Context, member *model.TeamMember) error {
 	args := m.Called(ctx, member)
 	return args.Error(0)
@@ -184,10 +189,9 @@ func (m *mockRoleRepo) GetUserTeamPermissions(ctx context.Context, userID uint) 
 
 var _ repository.RoleRepo = (*mockRoleRepo)(nil)
 
-// capturedTeamContext captures teamID, callerTeamRole, and permCodes from the Gin context.
+// capturedTeamContext captures teamID and permCodes from the Gin context.
 type capturedTeamContext struct {
 	teamID    uint
-	teamRole  string
 	permCodes []string
 }
 
@@ -216,7 +220,6 @@ func setupTeamScopeRouter(teamRepo repository.TeamRepo, roleRepo repository.Role
 
 	r.GET("/api/v1/teams/:teamId/items", func(c *gin.Context) {
 		cc.teamID = GetTeamID(c)
-		cc.teamRole = GetCallerTeamRole(c)
 		cc.permCodes = GetPermCodes(c)
 		c.Status(http.StatusOK)
 	})
@@ -270,7 +273,6 @@ func TestTeamScopeMiddleware_Member_SetsContext(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, uint(5), cc.teamID)
-	assert.Equal(t, "pm", cc.teamRole)
 	assert.Equal(t, []string{"team:update", "team:invite"}, cc.permCodes)
 }
 
@@ -285,7 +287,6 @@ func TestTeamScopeMiddleware_SuperAdmin_BypassesMembership(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, uint(99), cc.teamID)
-	assert.Equal(t, "superadmin", cc.teamRole)
 	assert.Equal(t, []string{}, cc.permCodes)
 	teamRepo.AssertNotCalled(t, "FindMember", mock.Anything, mock.Anything, mock.Anything)
 }
@@ -307,7 +308,6 @@ func TestTeamScopeMiddleware_MemberNoRoleID_SetsEmptyPermCodes(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, uint(3), cc.teamID)
-	assert.Equal(t, "member", cc.teamRole)
 	assert.Nil(t, cc.permCodes)
 }
 
@@ -315,10 +315,4 @@ func TestGetTeamID_NoValue(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	assert.Equal(t, uint(0), GetTeamID(c))
-}
-
-func TestGetCallerTeamRole_NoValue(t *testing.T) {
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	assert.Equal(t, "", GetCallerTeamRole(c))
 }

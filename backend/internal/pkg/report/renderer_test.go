@@ -114,19 +114,6 @@ func TestRenderMarkdown_MultipleSubItems(t *testing.T) {
 	assert.Contains(t, md, "- a2")
 }
 
-func TestFilename(t *testing.T) {
-	monday := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-	name := Filename(monday)
-	assert.Equal(t, "weekly-report-2026-W16.md", name)
-}
-
-func TestFilename_DifferentWeek(t *testing.T) {
-	// 2025-12-29 is ISO week 1 of 2026 (Monday)
-	monday := time.Date(2025, 12, 29, 0, 0, 0, 0, time.UTC)
-	name := Filename(monday)
-	assert.Equal(t, "weekly-report-2025-W01.md", name)
-}
-
 func TestRenderMarkdown_EmptyPreview(t *testing.T) {
 	preview := &dto.ReportPreview{
 		WeekStart: "2026-04-13",

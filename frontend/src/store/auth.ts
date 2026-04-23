@@ -11,7 +11,7 @@ interface AuthState {
   permissions: PermissionData | null
   permissionsLoadedAt: number | null
   _hasHydrated: boolean
-  setAuth: (token: string, user: any) => void
+  setAuth: (token: string, user: User) => void
   clearAuth: () => void
   setPermissions: (permissions: PermissionData) => void
   fetchPermissions: () => Promise<void>
@@ -34,7 +34,7 @@ export const useAuthStore = create<AuthState>()(
           token,
           user,
           isAuthenticated: token !== null,
-          isSuperAdmin: (user?.isSuperAdmin ?? user?.isSuperAdmin) === true,
+          isSuperAdmin: user?.isSuperAdmin === true,
         }),
       clearAuth: () =>
         set({

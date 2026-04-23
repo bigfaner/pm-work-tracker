@@ -9,6 +9,7 @@ import (
 
 	"pm-work-tracker/backend/internal/model"
 	"pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/repo"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -26,15 +27,7 @@ func (r *progressRepo) Create(ctx context.Context, record *model.ProgressRecord)
 }
 
 func (r *progressRepo) FindByID(ctx context.Context, id uint) (*model.ProgressRecord, error) {
-	var record model.ProgressRecord
-	err := r.db.WithContext(ctx).First(&record, id).Error
-	if err != nil {
-		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
-			return nil, errors.ErrNotFound
-		}
-		return nil, err
-	}
-	return &record, nil
+	return repo.FindByID[model.ProgressRecord](r.db, ctx, id)
 }
 
 func (r *progressRepo) ListBySubItem(ctx context.Context, teamID uint, subItemID uint) ([]model.ProgressRecord, error) {

@@ -180,10 +180,10 @@ func TestRun_WiredRouterHealthCheck(t *testing.T) {
 		Team:     handler.NewTeamHandler(&handler.StubTeamSvc{}, &handler.StubRouterRepoUser{}),
 		MainItem: handler.NewMainItemHandler(&handler.StubMainItemSvc{}, &handler.StubRouterRepoUser{}, &handler.StubRouterRepoSubItem{}),
 		SubItem:  handler.NewSubItemHandler(&handler.StubSubItemSvc{}),
-		Progress: handler.NewProgressHandler(),
+		Progress: handler.NewProgressHandler(&handler.StubProgressSvc{}, &handler.StubRouterRepoUser{}),
 		ItemPool: handler.NewItemPoolHandler(&handler.StubItemPoolSvc{}, &handler.StubRouterRepoUser{}, &handler.StubRouterRepoMainItem{}),
-		View:     handler.NewViewHandler(),
-		Report:   handler.NewReportHandler(),
+		View:     handler.NewViewHandler(&handler.StubViewSvc{}),
+		Report:   handler.NewReportHandler(&handler.StubReportSvc{}),
 		Admin:    handler.NewAdminHandler(&handler.StubAdminSvc{}),
 	}
 

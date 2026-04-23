@@ -21,12 +21,11 @@ vi.mock('@/api/mainItems', () => ({
   getMainItemApi: vi.fn().mockResolvedValue({
     id: 123, teamId: 1, code: 'MI-0123', title: 'Test', priority: 'P2',
     proposerId: 1, assigneeId: null, startDate: null, expectedEndDate: null,
-    actualEndDate: null, status: 'progressing', completion: 0, isKeyItem: false,
-    delayCount: 0, archivedAt: null, createdAt: '', updatedAt: '', subItems: [],
+    actualEndDate: null, status: 'progressing', completion: 0,
+    createdAt: '', updatedAt: '', subItems: [],
   }),
   createMainItemApi: vi.fn(),
   updateMainItemApi: vi.fn(),
-  archiveMainItemApi: vi.fn(),
 }))
 
 // Mock the subItems API

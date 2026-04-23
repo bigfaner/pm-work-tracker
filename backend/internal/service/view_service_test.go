@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/csv"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -25,6 +26,16 @@ type mockViewMainItemRepo struct {
 	listErr  error
 	findErr  error
 	findItem *model.MainItem
+
+	// ListByTeamAndStatus tracking
+	listByTeamAndStatusCalled bool
+	listByTeamAndStatusTeamID uint
+	listByTeamAndStatusStatus string
+	listByTeamAndStatusResult []model.MainItem
+	listByTeamAndStatusErr    error
+
+	// ListNonArchivedByTeam tracking
+	listNonArchivedCalled bool
 }
 
 func (m *mockViewMainItemRepo) Create(_ context.Context, _ *model.MainItem) error {
@@ -49,8 +60,24 @@ func (m *mockViewMainItemRepo) CountByTeam(_ context.Context, _ uint) (int64, er
 	return 0, nil
 }
 func (m *mockViewMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
+	m.listNonArchivedCalled = true
 	if m.listErr != nil {
 		return nil, m.listErr
+	}
+	return m.items, nil
+}
+func (m *mockViewMainItemRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
+	return nil, nil
+}
+func (m *mockViewMainItemRepo) ListByTeamAndStatus(_ context.Context, teamID uint, status string) ([]model.MainItem, error) {
+	m.listByTeamAndStatusCalled = true
+	m.listByTeamAndStatusTeamID = teamID
+	m.listByTeamAndStatusStatus = status
+	if m.listByTeamAndStatusErr != nil {
+		return nil, m.listByTeamAndStatusErr
+	}
+	if m.listByTeamAndStatusResult != nil {
+		return m.listByTeamAndStatusResult, nil
 	}
 	return m.items, nil
 }
@@ -113,505 +140,6 @@ func (m *mockViewProgressRepo) ListByTeamInRange(_ context.Context, _ uint, _, _
 		return nil, m.listErr
 	}
 	return m.records, nil
-}
-
-// ---------------------------------------------------------------------------
-// Tests: WeeklyView validation
-// ---------------------------------------------------------------------------
-
-func TestWeeklyView_RejectsNonMonday(t *testing.T) {
-	svc := NewViewService(&mockViewMainItemRepo{}, &mockViewSubItemRepo{}, &mockViewProgressRepo{})
-
-	// Tuesday
-	tuesday := time.Date(2026, 4, 14, 0, 0, 0, 0, time.UTC)
-	_, err := svc.WeeklyView(context.Background(), 1, tuesday)
-	assert.ErrorIs(t, err, apperrors.ErrValidation)
-}
-
-func TestWeeklyView_RejectsSunday(t *testing.T) {
-	svc := NewViewService(&mockViewMainItemRepo{}, &mockViewSubItemRepo{}, &mockViewProgressRepo{})
-
-	sunday := time.Date(2026, 4, 19, 0, 0, 0, 0, time.UTC)
-	_, err := svc.WeeklyView(context.Background(), 1, sunday)
-	assert.ErrorIs(t, err, apperrors.ErrValidation)
-}
-
-func TestWeeklyView_RejectsWednesday(t *testing.T) {
-	svc := NewViewService(&mockViewMainItemRepo{}, &mockViewSubItemRepo{}, &mockViewProgressRepo{})
-
-	wed := time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)
-	_, err := svc.WeeklyView(context.Background(), 1, wed)
-	assert.ErrorIs(t, err, apperrors.ErrValidation)
-}
-
-func TestWeeklyView_AcceptsMonday(t *testing.T) {
-	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
-	svc := NewViewService(mainRepo, &mockViewSubItemRepo{}, &mockViewProgressRepo{})
-
-	monday := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-	result, err := svc.WeeklyView(context.Background(), 1, monday)
-	require.NoError(t, err)
-	assert.Equal(t, "2026-04-13", result.WeekStart)
-	assert.Equal(t, "2026-04-19", result.WeekEnd)
-}
-
-// ---------------------------------------------------------------------------
-// Tests: WeeklyView empty team
-// ---------------------------------------------------------------------------
-
-func TestWeeklyView_EmptyTeam_NoGroups(t *testing.T) {
-	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
-	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
-
-	monday := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-	result, err := svc.WeeklyView(context.Background(), 1, monday)
-	require.NoError(t, err)
-	assert.Empty(t, result.Groups)
-}
-
-// ---------------------------------------------------------------------------
-// Tests: WeeklyView with data — newly completed
-// ---------------------------------------------------------------------------
-
-func TestWeeklyView_NewlyCompleted(t *testing.T) {
-	// Monday of the week
-	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-	completedDate := time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)
-
-	mainRepo := &mockViewMainItemRepo{
-		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
-		},
-	}
-	subRepo := &mockViewSubItemRepo{
-		items: []model.SubItem{
-			{
-				BaseModel:        model.BaseModel{ID: 10},
-				TeamID:       1,
-				MainItemID:   1,
-				Title:        "Sub A",
-				Status:       "completed",
-				Completion:   100,
-				ActualEndDate: &completedDate,
-			},
-		},
-	}
-	progressRepo := &mockViewProgressRepo{
-		records: []model.ProgressRecord{
-			{
-				ID:         100,
-				SubItemID:  10,
-				TeamID:     1,
-				Completion: 100,
-				CreatedAt:  time.Date(2026, 4, 15, 10, 0, 0, 0, time.UTC),
-			},
-		},
-	}
-
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
-	result, err := svc.WeeklyView(context.Background(), 1, weekStart)
-	require.NoError(t, err)
-
-	require.Len(t, result.Groups, 1)
-	group := result.Groups[0]
-	assert.Equal(t, uint(1), group.MainItem.ID)
-	assert.Equal(t, "Main 1", group.MainItem.Title)
-	require.Len(t, group.NewlyCompleted, 1)
-	assert.Equal(t, uint(10), group.NewlyCompleted[0].ID)
-	assert.Empty(t, group.HasProgress)
-	assert.Empty(t, group.NoChangeFromLastWeek)
-}
-
-// ---------------------------------------------------------------------------
-// Tests: WeeklyView with data — has progress (not completed)
-// ---------------------------------------------------------------------------
-
-func TestWeeklyView_HasProgress(t *testing.T) {
-	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-
-	mainRepo := &mockViewMainItemRepo{
-		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
-		},
-	}
-	subRepo := &mockViewSubItemRepo{
-		items: []model.SubItem{
-			{
-				BaseModel:      model.BaseModel{ID: 10},
-				TeamID:     1,
-				MainItemID: 1,
-				Title:      "Sub A",
-				Status:     "progressing",
-				Completion: 60,
-			},
-		},
-	}
-	progressRepo := &mockViewProgressRepo{
-		records: []model.ProgressRecord{
-			{
-				ID:         100,
-				SubItemID:  10,
-				TeamID:     1,
-				Completion: 60,
-				CreatedAt:  time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC),
-			},
-		},
-	}
-
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
-	result, err := svc.WeeklyView(context.Background(), 1, weekStart)
-	require.NoError(t, err)
-
-	require.Len(t, result.Groups, 1)
-	group := result.Groups[0]
-	assert.Empty(t, group.NewlyCompleted)
-	require.Len(t, group.HasProgress, 1)
-	assert.Equal(t, uint(10), group.HasProgress[0].ID)
-	require.Len(t, group.HasProgress[0].ProgressThisWeek, 1)
-	assert.Equal(t, uint(100), group.HasProgress[0].ProgressThisWeek[0].ID)
-	assert.Empty(t, group.NoChangeFromLastWeek)
-}
-
-// ---------------------------------------------------------------------------
-// Tests: WeeklyView with data — no change from last week
-// ---------------------------------------------------------------------------
-
-func TestWeeklyView_NoChangeFromLastWeek(t *testing.T) {
-	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-
-	mainRepo := &mockViewMainItemRepo{
-		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 30},
-		},
-	}
-	subRepo := &mockViewSubItemRepo{
-		items: []model.SubItem{
-			{
-				BaseModel:      model.BaseModel{ID: 10},
-				TeamID:     1,
-				MainItemID: 1,
-				Title:      "Sub A",
-				Status:     "pending",
-				Completion: 0,
-			},
-		},
-	}
-	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
-
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
-	result, err := svc.WeeklyView(context.Background(), 1, weekStart)
-	require.NoError(t, err)
-
-	require.Len(t, result.Groups, 1)
-	group := result.Groups[0]
-	assert.Empty(t, group.NewlyCompleted)
-	assert.Empty(t, group.HasProgress)
-	require.Len(t, group.NoChangeFromLastWeek, 1)
-	assert.Equal(t, uint(10), group.NoChangeFromLastWeek[0].ID)
-	assert.Equal(t, "Sub A", group.NoChangeFromLastWeek[0].Title)
-}
-
-// ---------------------------------------------------------------------------
-// Tests: WeeklyView — main item with no sub-items is omitted
-// ---------------------------------------------------------------------------
-
-func TestWeeklyView_MainItemWithNoSubItems_Omitted(t *testing.T) {
-	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-
-	mainRepo := &mockViewMainItemRepo{
-		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Empty Main", Completion: 0},
-		},
-	}
-	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
-	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
-
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
-	result, err := svc.WeeklyView(context.Background(), 1, weekStart)
-	require.NoError(t, err)
-	assert.Empty(t, result.Groups)
-}
-
-// ---------------------------------------------------------------------------
-// Tests: WeeklyView — mixed scenario across multiple main items
-// ---------------------------------------------------------------------------
-
-func TestWeeklyView_MixedScenario(t *testing.T) {
-	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-	completedDate := time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)
-
-	mainRepo := &mockViewMainItemRepo{
-		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 80},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "Main 2", Completion: 20},
-		},
-	}
-	subRepo := &mockViewSubItemRepo{
-		items: []model.SubItem{
-			// Main 1: sub-item completed this week
-			{
-				BaseModel:         model.BaseModel{ID: 10},
-				TeamID:        1,
-				MainItemID:    1,
-				Title:         "Sub Completed",
-				Status:        "completed",
-				Completion:    100,
-				ActualEndDate: &completedDate,
-			},
-			// Main 1: sub-item with progress
-			{
-				BaseModel:      model.BaseModel{ID: 11},
-				TeamID:     1,
-				MainItemID: 1,
-				Title:      "Sub In Progress",
-				Status:     "progressing",
-				Completion: 60,
-			},
-			// Main 2: sub-item with no change
-			{
-				BaseModel:      model.BaseModel{ID: 20},
-				TeamID:     1,
-				MainItemID: 2,
-				Title:      "Sub Dormant",
-				Status:     "pending",
-				Completion: 0,
-			},
-		},
-	}
-	progressRepo := &mockViewProgressRepo{
-		records: []model.ProgressRecord{
-			// Progress for sub 10 (completed this week)
-			{
-				ID:         100,
-				SubItemID:  10,
-				TeamID:     1,
-				Completion: 100,
-				CreatedAt:  time.Date(2026, 4, 15, 10, 0, 0, 0, time.UTC),
-			},
-			// Progress for sub 11 (in progress)
-			{
-				ID:         101,
-				SubItemID:  11,
-				TeamID:     1,
-				Completion: 60,
-				CreatedAt:  time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC),
-			},
-		},
-	}
-
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
-	result, err := svc.WeeklyView(context.Background(), 1, weekStart)
-	require.NoError(t, err)
-
-	require.Len(t, result.Groups, 2)
-
-	// Main 1 group
-	g1 := result.Groups[0]
-	assert.Equal(t, uint(1), g1.MainItem.ID)
-	require.Len(t, g1.NewlyCompleted, 1)
-	assert.Equal(t, uint(10), g1.NewlyCompleted[0].ID)
-	require.Len(t, g1.HasProgress, 1)
-	assert.Equal(t, uint(11), g1.HasProgress[0].ID)
-	assert.Empty(t, g1.NoChangeFromLastWeek)
-
-	// Main 2 group
-	g2 := result.Groups[1]
-	assert.Equal(t, uint(2), g2.MainItem.ID)
-	assert.Empty(t, g2.NewlyCompleted)
-	assert.Empty(t, g2.HasProgress)
-	require.Len(t, g2.NoChangeFromLastWeek, 1)
-	assert.Equal(t, uint(20), g2.NoChangeFromLastWeek[0].ID)
-}
-
-// ---------------------------------------------------------------------------
-// Tests: WeeklyView — completed before this week → no change
-// ---------------------------------------------------------------------------
-
-func TestWeeklyView_CompletedBeforeThisWeek_NoChange(t *testing.T) {
-	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-	// Completed last week
-	lastWeekEnd := time.Date(2026, 4, 11, 0, 0, 0, 0, time.UTC)
-
-	mainRepo := &mockViewMainItemRepo{
-		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 100},
-		},
-	}
-	subRepo := &mockViewSubItemRepo{
-		items: []model.SubItem{
-			{
-				BaseModel:         model.BaseModel{ID: 10},
-				TeamID:        1,
-				MainItemID:    1,
-				Title:         "Sub Old Completed",
-				Status:        "completed",
-				Completion:    100,
-				ActualEndDate: &lastWeekEnd,
-			},
-		},
-	}
-	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
-
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
-	result, err := svc.WeeklyView(context.Background(), 1, weekStart)
-	require.NoError(t, err)
-
-	require.Len(t, result.Groups, 1)
-	group := result.Groups[0]
-	assert.Empty(t, group.NewlyCompleted)
-	assert.Empty(t, group.HasProgress)
-	require.Len(t, group.NoChangeFromLastWeek, 1)
-}
-
-// ---------------------------------------------------------------------------
-// Tests: WeeklyView — repo errors
-// ---------------------------------------------------------------------------
-
-func TestWeeklyView_MainItemRepoError(t *testing.T) {
-	mainRepo := &mockViewMainItemRepo{listErr: errors.New("db error")}
-	svc := NewViewService(mainRepo, &mockViewSubItemRepo{}, &mockViewProgressRepo{})
-
-	monday := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-	_, err := svc.WeeklyView(context.Background(), 1, monday)
-	assert.Error(t, err)
-}
-
-func TestWeeklyView_SubItemRepoError(t *testing.T) {
-	mainRepo := &mockViewMainItemRepo{
-		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1"},
-		},
-	}
-	subRepo := &mockViewSubItemRepo{listErr: errors.New("db error")}
-	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
-
-	monday := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-	_, err := svc.WeeklyView(context.Background(), 1, monday)
-	assert.Error(t, err)
-}
-
-func TestWeeklyView_ProgressRepoError(t *testing.T) {
-	mainRepo := &mockViewMainItemRepo{
-		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1"},
-		},
-	}
-	subRepo := &mockViewSubItemRepo{
-		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A"},
-		},
-	}
-	progressRepo := &mockViewProgressRepo{listErr: errors.New("db error")}
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
-
-	monday := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-	_, err := svc.WeeklyView(context.Background(), 1, monday)
-	assert.Error(t, err)
-}
-
-// ---------------------------------------------------------------------------
-// Tests: WeeklyView — weekEnd computation
-// ---------------------------------------------------------------------------
-
-func TestWeeklyView_WeekEndIsSunday(t *testing.T) {
-	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
-	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
-
-	monday := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-	result, err := svc.WeeklyView(context.Background(), 1, monday)
-	require.NoError(t, err)
-	assert.Equal(t, "2026-04-19", result.WeekEnd)
-}
-
-// ---------------------------------------------------------------------------
-// Tests: WeeklyView — newly completed requires ActualEndDate within week
-// ---------------------------------------------------------------------------
-
-func TestWeeklyView_NewlyCompleted_ActualEndDateOutsideWeek(t *testing.T) {
-	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-	// Completed before this week
-	oldDate := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)
-
-	mainRepo := &mockViewMainItemRepo{
-		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 100},
-		},
-	}
-	subRepo := &mockViewSubItemRepo{
-		items: []model.SubItem{
-			{
-				BaseModel:         model.BaseModel{ID: 10},
-				TeamID:        1,
-				MainItemID:    1,
-				Title:         "Sub A",
-				Status:        "completed",
-				Completion:    100,
-				ActualEndDate: &oldDate,
-			},
-		},
-	}
-	// Has progress this week — should make it "hasProgress" not "newlyCompleted"
-	progressRepo := &mockViewProgressRepo{
-		records: []model.ProgressRecord{
-			{
-				ID:         100,
-				SubItemID:  10,
-				TeamID:     1,
-				Completion: 100,
-				CreatedAt:  time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC),
-			},
-		},
-	}
-
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
-	result, err := svc.WeeklyView(context.Background(), 1, weekStart)
-	require.NoError(t, err)
-
-	require.Len(t, result.Groups, 1)
-	group := result.Groups[0]
-	// Not newly completed because ActualEndDate is outside the week range
-	assert.Empty(t, group.NewlyCompleted)
-	// Has progress because there's a progress record this week
-	require.Len(t, group.HasProgress, 1)
-	assert.Equal(t, uint(10), group.HasProgress[0].ID)
-}
-
-// ---------------------------------------------------------------------------
-// Tests: WeeklyView — sub-item with no progress records ever → noChange
-// ---------------------------------------------------------------------------
-
-func TestWeeklyView_SubItemNoProgressEver_NoChange(t *testing.T) {
-	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-
-	mainRepo := &mockViewMainItemRepo{
-		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 0},
-		},
-	}
-	subRepo := &mockViewSubItemRepo{
-		items: []model.SubItem{
-			{
-				BaseModel:      model.BaseModel{ID: 10},
-				TeamID:     1,
-				MainItemID: 1,
-				Title:      "Sub A",
-				Status:     "pending",
-				Completion: 0,
-			},
-		},
-	}
-	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
-
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
-	result, err := svc.WeeklyView(context.Background(), 1, weekStart)
-	require.NoError(t, err)
-
-	require.Len(t, result.Groups, 1)
-	group := result.Groups[0]
-	assert.Empty(t, group.NewlyCompleted)
-	assert.Empty(t, group.HasProgress)
-	require.Len(t, group.NoChangeFromLastWeek, 1)
-	assert.Equal(t, uint(10), group.NoChangeFromLastWeek[0].ID)
 }
 
 // ---------------------------------------------------------------------------
@@ -1237,8 +765,9 @@ func TestGanttView_StatusFilter(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "In Progress", Status: "progressing", StartDate: &startDate, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "Completed", Status: "completed", StartDate: &startDate, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Title: "Pending", Status: "pending", StartDate: &startDate, ExpectedEndDate: &endDate},
+		},
+		listByTeamAndStatusResult: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "In Progress", Status: "progressing", StartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 	}
 	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
@@ -1249,6 +778,58 @@ func TestGanttView_StatusFilter(t *testing.T) {
 	require.Len(t, result.Items, 1)
 	assert.Equal(t, uint(1), result.Items[0].ID)
 	assert.Equal(t, "In Progress", result.Items[0].Title)
+}
+
+func TestGanttView_StatusFilter_UsesSQLPushdown(t *testing.T) {
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		listByTeamAndStatusResult: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "In Progress", Status: "progressing", StartDate: &startDate, ExpectedEndDate: &endDate},
+		},
+	}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+
+	_, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{Status: "progressing"})
+	require.NoError(t, err)
+
+	// Should call ListByTeamAndStatus (SQL pushdown)
+	assert.True(t, mainRepo.listByTeamAndStatusCalled, "should call ListByTeamAndStatus when status filter is set")
+	assert.Equal(t, uint(1), mainRepo.listByTeamAndStatusTeamID)
+	assert.Equal(t, "progressing", mainRepo.listByTeamAndStatusStatus)
+	// Should NOT call ListNonArchivedByTeam
+	assert.False(t, mainRepo.listNonArchivedCalled, "should not call ListNonArchivedByTeam when status filter is set")
+}
+
+func TestGanttView_NoStatusFilter_UsesListNonArchived(t *testing.T) {
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "A", Status: "progressing", StartDate: &startDate, ExpectedEndDate: &endDate},
+		},
+	}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+
+	_, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	require.NoError(t, err)
+
+	// Should call ListNonArchivedByTeam (no filter)
+	assert.True(t, mainRepo.listNonArchivedCalled, "should call ListNonArchivedByTeam when no status filter")
+	// Should NOT call ListByTeamAndStatus
+	assert.False(t, mainRepo.listByTeamAndStatusCalled, "should not call ListByTeamAndStatus when no status filter")
+}
+
+func TestGanttView_StatusFilter_SQLPushdownError(t *testing.T) {
+	mainRepo := &mockViewMainItemRepo{
+		listByTeamAndStatusErr: errors.New("db error"),
+	}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+
+	_, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{Status: "progressing"})
+	assert.Error(t, err)
 }
 
 func TestGanttView_StatusFilterEmpty_ReturnsAll(t *testing.T) {
@@ -1527,10 +1108,14 @@ func TestGanttView_Overdue_NilExpectedEndDate(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 type mockViewUserRepo struct {
-	users map[uint]*model.User
+	users         map[uint]*model.User
+	findByIDCalls uint
+	findByIDsCalls uint
+	findByIDsArg  []uint
 }
 
 func (m *mockViewUserRepo) FindByID(_ context.Context, id uint) (*model.User, error) {
+	m.findByIDCalls++
 	if u, ok := m.users[id]; ok {
 		return u, nil
 	}
@@ -1548,6 +1133,23 @@ func (m *mockViewUserRepo) Update(_ context.Context, _ *model.User) error {
 
 func (m *mockViewUserRepo) Create(_ context.Context, _ *model.User) error {
 	return nil
+}
+func (m *mockViewUserRepo) FindByIDs(_ context.Context, ids []uint) (map[uint]*model.User, error) {
+	m.findByIDsCalls++
+	m.findByIDsArg = ids
+	result := make(map[uint]*model.User)
+	for _, id := range ids {
+		if u, ok := m.users[id]; ok {
+			result[id] = u
+		}
+	}
+	return result, nil
+}
+func (m *mockViewUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+	return nil, 0, nil
+}
+func (m *mockViewUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+	return nil, nil
 }
 
 // newViewServiceWithUsers creates a ViewService with a user repo for table view tests.
@@ -2127,4 +1729,321 @@ func TestTableExportCSV_UTF8BOM(t *testing.T) {
 
 	// UTF-8 BOM prefix
 	assert.True(t, bytes.HasPrefix(data, []byte{0xEF, 0xBB, 0xBF}), "CSV should have UTF-8 BOM")
+}
+
+// ---------------------------------------------------------------------------
+// Tests: Batch resolution (N+1 fix verification)
+// ---------------------------------------------------------------------------
+
+func TestResolveAssigneeNames_UsesBatchFindByIDs(t *testing.T) {
+	assignee1 := uint(100)
+	assignee2 := uint(200)
+
+	rows := []dto.TableRow{
+		{ID: 1, Title: "A", AssigneeID: &assignee1},
+		{ID: 2, Title: "B", AssigneeID: &assignee2},
+		{ID: 3, Title: "C", AssigneeID: &assignee1}, // duplicate assignee
+	}
+
+	userRepo := &mockViewUserRepo{
+		users: map[uint]*model.User{
+			100: {BaseModel: model.BaseModel{ID: 100}, DisplayName: "Alice"},
+			200: {BaseModel: model.BaseModel{ID: 200}, DisplayName: "Bob"},
+		},
+	}
+
+	resolveAssigneeNames(context.Background(), rows, userRepo)
+
+	// Should call FindByIDs exactly once
+	assert.Equal(t, uint(1), userRepo.findByIDsCalls, "resolveAssigneeNames should use a single FindByIDs call")
+	// Should NOT call FindByID at all
+	assert.Equal(t, uint(0), userRepo.findByIDCalls, "resolveAssigneeNames should not call FindByID")
+	// Names resolved correctly
+	assert.Equal(t, "Alice", rows[0].AssigneeName)
+	assert.Equal(t, "Bob", rows[1].AssigneeName)
+	assert.Equal(t, "Alice", rows[2].AssigneeName)
+}
+
+func TestResolveAssigneeNames_DeduplicatesIDs(t *testing.T) {
+	id1 := uint(10)
+	id2 := uint(20)
+	rows := []dto.TableRow{
+		{ID: 1, AssigneeID: &id1},
+		{ID: 2, AssigneeID: &id1},
+		{ID: 3, AssigneeID: &id2},
+	}
+
+	userRepo := &mockViewUserRepo{
+		users: map[uint]*model.User{
+			10: {DisplayName: "A"},
+			20: {DisplayName: "B"},
+		},
+	}
+
+	resolveAssigneeNames(context.Background(), rows, userRepo)
+
+	// FindByIDs should be called with deduplicated IDs
+	require.Len(t, userRepo.findByIDsArg, 2)
+	assert.Contains(t, userRepo.findByIDsArg, uint(10))
+	assert.Contains(t, userRepo.findByIDsArg, uint(20))
+}
+
+func TestResolveAssigneeNames_NilUserRepo_NoPanic(t *testing.T) {
+	rows := []dto.TableRow{{ID: 1}}
+	assert.NotPanics(t, func() {
+		resolveAssigneeNames(context.Background(), rows, nil)
+	})
+}
+
+func TestWeeklyComparison_UsesBatchFindByIDs(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	assignee1 := uint(100)
+	assignee2 := uint(200)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "progressing", Completion: 60, AssigneeID: &assignee1},
+			{BaseModel: model.BaseModel{ID: 11}, TeamID: 1, MainItemID: 1, Title: "Sub B", Status: "pending", Completion: 0, AssigneeID: &assignee2},
+			{BaseModel: model.BaseModel{ID: 12}, TeamID: 1, MainItemID: 1, Title: "Sub C", Status: "pending", Completion: 0, AssigneeID: &assignee1}, // same assignee
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 60, CreatedAt: weekStart.AddDate(0, 0, 1)},
+		},
+	}
+	userRepo := &mockViewUserRepo{
+		users: map[uint]*model.User{
+			100: {BaseModel: model.BaseModel{ID: 100}, DisplayName: "Alice"},
+			200: {BaseModel: model.BaseModel{ID: 200}, DisplayName: "Bob"},
+		},
+	}
+
+	svc := NewViewServiceWithUserRepo(mainRepo, subRepo, progressRepo, userRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	// Should call FindByIDs exactly once, never FindByID
+	assert.Equal(t, uint(1), userRepo.findByIDsCalls, "WeeklyComparison should use a single FindByIDs call")
+	assert.Equal(t, uint(0), userRepo.findByIDCalls, "WeeklyComparison should not call FindByID")
+
+	// Verify names resolved correctly in output
+	require.Len(t, result.Groups, 1)
+	group := result.Groups[0]
+	// Find Sub A (ID=10) in ThisWeek and check name
+	for _, snap := range group.ThisWeek {
+		if snap.ID == 10 {
+			assert.Equal(t, "Alice", snap.AssigneeName)
+		}
+		if snap.ID == 11 {
+			assert.Equal(t, "Bob", snap.AssigneeName)
+		}
+	}
+}
+
+func TestTableView_UsesBatchFindByIDs(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	assignee1 := uint(100)
+	assignee2 := uint(200)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", AssigneeID: &assignee1, Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", AssigneeID: &assignee2, Status: "pending", Completion: 0, ExpectedEndDate: &endDate},
+		},
+	}
+	userRepo := &mockViewUserRepo{
+		users: map[uint]*model.User{
+			100: {BaseModel: model.BaseModel{ID: 100}, DisplayName: "Alice"},
+			200: {BaseModel: model.BaseModel{ID: 200}, DisplayName: "Bob"},
+		},
+	}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, userRepo)
+	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+
+	// Should call FindByIDs exactly once
+	assert.Equal(t, uint(1), userRepo.findByIDsCalls, "TableView should use a single FindByIDs call")
+	assert.Equal(t, uint(0), userRepo.findByIDCalls, "TableView should not call FindByID")
+
+	// Names resolved correctly
+	require.Len(t, result.Items, 2)
+	assert.Equal(t, "Alice", result.Items[0].AssigneeName)
+	assert.Equal(t, "Bob", result.Items[1].AssigneeName)
+}
+
+func TestTableExportCSV_UsesBatchFindByIDs(t *testing.T) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	assignee1 := uint(100)
+	assignee2 := uint(200)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", AssigneeID: &assignee1, Status: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Priority: "P2", AssigneeID: &assignee2, Status: "pending", Completion: 0, ExpectedEndDate: &endDate},
+		},
+	}
+	userRepo := &mockViewUserRepo{
+		users: map[uint]*model.User{
+			100: {BaseModel: model.BaseModel{ID: 100}, DisplayName: "Alice"},
+			200: {BaseModel: model.BaseModel{ID: 200}, DisplayName: "Bob"},
+		},
+	}
+
+	svc := newViewServiceWithUsers(mainRepo, subRepo, userRepo)
+	_, err := svc.TableExportCSV(context.Background(), 1, dto.TableFilter{})
+	require.NoError(t, err)
+
+	// Should call FindByIDs exactly once
+	assert.Equal(t, uint(1), userRepo.findByIDsCalls, "TableExportCSV should use a single FindByIDs call")
+	assert.Equal(t, uint(0), userRepo.findByIDCalls, "TableExportCSV should not call FindByID")
+}
+
+// ---------------------------------------------------------------------------
+// Benchmarks
+// ---------------------------------------------------------------------------
+
+// seedBenchmarkData creates a dataset of n main items with sub-items and progress.
+func seedBenchmarkData(n int) (*mockViewMainItemRepo, *mockViewSubItemRepo, *mockViewProgressRepo, *mockViewUserRepo) {
+	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+
+	mainItems := make([]model.MainItem, n)
+	for i := range mainItems {
+		id := uint(i + 1)
+		assigneeID := uint((i % 50) + 1) // 50 unique assignees
+		mainItems[i] = model.MainItem{
+			BaseModel:      model.BaseModel{ID: id},
+			TeamID:         1,
+			Code:           fmt.Sprintf("BENCH-%05d", id),
+			Title:          fmt.Sprintf("Main Item %d", id),
+			Priority:       []string{"P1", "P2", "P3"}[i%3],
+			Status:         "progressing",
+			Completion:     float64(i % 100),
+			StartDate:      &startDate,
+			ExpectedEndDate: &endDate,
+			AssigneeID:     &assigneeID,
+		}
+	}
+
+	// Each main item has 2 sub-items
+	subItems := make([]model.SubItem, n*2)
+	for i := range subItems {
+		mainID := uint(i/2 + 1)
+		subItems[i] = model.SubItem{
+			BaseModel:       model.BaseModel{ID: uint(i + 1)},
+			TeamID:          1,
+			MainItemID:      mainID,
+			Title:           fmt.Sprintf("Sub Item %d", i+1),
+			Priority:        []string{"P1", "P2", "P3"}[(i/2)%3],
+			Status:          "progressing",
+			Completion:      float64(i % 100),
+			StartDate:       &startDate,
+			ExpectedEndDate: &endDate,
+			AssigneeID:      mainItems[i/2].AssigneeID,
+		}
+	}
+
+	// Progress records for the current week
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	records := make([]model.ProgressRecord, n)
+	for i := range records {
+		records[i] = model.ProgressRecord{
+			ID:          uint(i + 1),
+			SubItemID:   uint(i + 1),
+			TeamID:      1,
+			Completion:  float64(i % 100),
+			Achievement: fmt.Sprintf("Achievement %d", i),
+			CreatedAt:   weekStart.AddDate(0, 0, i%7),
+		}
+	}
+
+	// Build user map for assignee resolution (50 users)
+	users := make(map[uint]*model.User, 50)
+	for i := 1; i <= 50; i++ {
+		users[uint(i)] = &model.User{
+			BaseModel:   model.BaseModel{ID: uint(i)},
+			DisplayName: fmt.Sprintf("User %d", i),
+		}
+	}
+
+	return &mockViewMainItemRepo{items: mainItems},
+		&mockViewSubItemRepo{items: subItems},
+		&mockViewProgressRepo{records: records},
+		&mockViewUserRepo{users: users}
+}
+
+func BenchmarkTableView(b *testing.B) {
+	b.StopTimer()
+	mainRepo, subRepo, _, userRepo := seedBenchmarkData(200)
+	svc := newViewServiceWithUsers(mainRepo, subRepo, userRepo)
+	ctx := context.Background()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, err := svc.TableView(ctx, 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 20})
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkTableView_LargePage(b *testing.B) {
+	b.StopTimer()
+	mainRepo, subRepo, _, userRepo := seedBenchmarkData(200)
+	svc := newViewServiceWithUsers(mainRepo, subRepo, userRepo)
+	ctx := context.Background()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, err := svc.TableView(ctx, 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 100})
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkGanttView(b *testing.B) {
+	b.StopTimer()
+	mainRepo, subRepo, _, _ := seedBenchmarkData(200)
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+	ctx := context.Background()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, err := svc.GanttView(ctx, 1, dto.GanttFilter{})
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkGanttView_WithStatusFilter(b *testing.B) {
+	b.StopTimer()
+	mainRepo, subRepo, _, _ := seedBenchmarkData(200)
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+	ctx := context.Background()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, err := svc.GanttView(ctx, 1, dto.GanttFilter{Status: "progressing"})
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
 }

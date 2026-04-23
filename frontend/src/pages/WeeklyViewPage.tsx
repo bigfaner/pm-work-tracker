@@ -10,13 +10,8 @@ import ProgressBar from '@/components/shared/ProgressBar'
 import { WeekPicker } from '@/components/shared/WeekPicker'
 import { getCurrentWeekStart, getWeekNumber } from '@/utils/weekUtils'
 import { isOverdue } from '@/lib/status'
+import { formatDate } from '@/lib/format'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
-
-// --- Helpers ---
-
-function formatDate(date: string) {
-  return date.replace(/-/g, '/')
-}
 
 // --- Main Component ---
 

@@ -24,7 +24,7 @@ import (
 )
 
 // testDeps creates a Dependencies struct wired for testing.
-func testDeps(t *testing.T) (*Dependencies, *gorm.DB) {
+func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 	t.Helper()
 
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
@@ -129,19 +129,19 @@ func testDeps(t *testing.T) (*Dependencies, *gorm.DB) {
 		Team:     NewTeamHandler(&StubTeamSvc{}, &StubRouterRepoUser{}),
 		MainItem: NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, &StubRouterRepoSubItem{}),
 		SubItem:  NewSubItemHandler(&StubSubItemSvc{}),
-		Progress: NewProgressHandler(),
+		Progress: NewProgressHandler(&StubProgressSvc{}, &StubRouterRepoUser{}),
 		ItemPool: NewItemPoolHandler(&StubItemPoolSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMainItem{}),
-		View:     NewViewHandler(),
-		Report:   NewReportHandler(),
+		View:     NewViewHandler(&StubViewSvc{}),
+		Report:   NewReportHandler(&StubReportSvc{}),
 		Admin:      NewAdminHandler(&StubAdminSvc{}),
 		Role:       NewRoleHandler(&StubRoleSvc{}),
-		Permission: NewPermissionHandler(),
+		Permission: NewPermissionHandler(&StubRoleSvc{}),
 	}, db
 }
 
 // signTestToken creates a valid JWT for testing.
 // If userID is 1, the token is for the superadmin user; otherwise it's a regular user.
-func signTestToken(t *testing.T, userID uint, username string) string {
+func signTestToken(t testing.TB, userID uint, username string) string {
 	t.Helper()
 	token, err := appjwt.Sign(userID, username, "test-secret-that-is-at-least-32-bytes!!")
 	require.NoError(t, err)
@@ -507,6 +507,9 @@ func (m *mockTeamRepo) FindMember(_ context.Context, _, _ uint) (*model.TeamMemb
 }
 func (m *mockTeamRepo) ListMembers(_ context.Context, _ uint) ([]*dto.TeamMemberDTO, error) {
 	return nil, nil
+}
+func (m *mockTeamRepo) CountMembers(_ context.Context, _ uint) (int64, error) {
+	return 0, nil
 }
 func (m *mockTeamRepo) UpdateMember(_ context.Context, _ *model.TeamMember) error {
 	return nil

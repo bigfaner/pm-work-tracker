@@ -199,9 +199,7 @@ func (h *MainItemHandler) ChangeStatus(c *gin.Context) {
 	teamID := middleware.GetTeamID(c)
 	callerID := middleware.GetUserID(c)
 
-	var req struct {
-		Status string `json:"status" binding:"required"`
-	}
+	var req dto.ChangeStatusReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return

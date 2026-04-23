@@ -83,18 +83,6 @@ export interface Team {
   updatedAt: string
 }
 
-export interface TeamMember {
-  id: number
-  teamId: number
-  userId: number
-  role: string
-  joinedAt: string
-  displayName: string
-  username: string
-  createdAt: string
-  updatedAt: string
-}
-
 export interface MainItem {
   id: number
   teamId: number
@@ -110,9 +98,6 @@ export interface MainItem {
   status: string
   statusName?: string
   completion: number
-  isKeyItem: boolean
-  delayCount: number
-  archivedAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -132,8 +117,6 @@ export interface SubItem {
   status: string
   statusName?: string
   completion: number
-  isKeyItem: boolean
-  delayCount: number
   weight: number
   createdAt: string
   updatedAt: string
@@ -293,10 +276,6 @@ export interface ChangeStatusReq {
   status: string
 }
 
-export interface AssignSubItemReq {
-  assigneeId: number
-}
-
 export interface SubItemFilter {
   priority?: string
   status?: string
@@ -311,10 +290,6 @@ export interface AppendProgressReq {
   achievement?: string
   blocker?: string
   lesson?: string
-}
-
-export interface CorrectCompletionReq {
-  completion: number
 }
 
 // ItemPool
@@ -355,24 +330,6 @@ export interface AssignItemPoolResp {
 }
 
 // Views
-export interface WeeklyViewResp {
-  weekStart: string
-  weekEnd: string
-  groups: WeeklyGroup[]
-}
-
-export interface WeeklyGroup {
-  mainItem: { id: number; title: string; completion: number }
-  newlyCompleted: SubItemWithProgress[]
-  hasProgress: SubItemWithProgress[]
-  noChangeFromLastWeek: { id: number; title: string; status: string; completion: number }[]
-}
-
-export interface SubItemWithProgress {
-  subItem: SubItem
-  progressThisWeek: ProgressRecord[]
-}
-
 export interface GanttViewResp {
   items: GanttMainItem[]
 }
@@ -458,7 +415,7 @@ export interface AdminUser {
 export interface AdminTeam {
   id: number
   name: string
-  pm: { displayName: string }
+  pmDisplayName: string
   memberCount: number
   mainItemCount: number
   createdAt: string

@@ -42,37 +42,34 @@ const seedMainItems = [
   {
     id: 1, teamId: 1, code: 'MI-0001', title: 'Alpha Task', priority: 'P1',
     proposerId: 1, assigneeId: 1, startDate: '2026-04-01', expectedEndDate: '2026-04-15',
-    actualEndDate: null, status: 'progressing', completion: 65, isKeyItem: false,
-    delayCount: 0, archivedAt: null,
+    actualEndDate: null, status: 'progressing', completion: 65,
     createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-01T00:00:00Z',
     subItems: [
       {
         id: 11, teamId: 1, mainItemId: 1, title: 'Sub Alpha 1', description: '',
         priority: 'P1', assigneeId: 2, startDate: '2026-04-01', expectedEndDate: '2026-04-10',
-        actualEndDate: '2026-04-09', status: 'completed', completion: 100, isKeyItem: false,
-        delayCount: 0, weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-09T00:00:00Z',
+        actualEndDate: '2026-04-09', status: 'completed', completion: 100,
+        weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-09T00:00:00Z',
       },
       {
         id: 12, teamId: 1, mainItemId: 1, title: 'Sub Alpha 2', description: '',
         priority: 'P2', assigneeId: 3, startDate: '2026-04-08', expectedEndDate: '2026-04-18',
-        actualEndDate: null, status: 'progressing', completion: 80, isKeyItem: false,
-        delayCount: 0, weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-08T00:00:00Z',
+        actualEndDate: null, status: 'progressing', completion: 80,
+        weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-08T00:00:00Z',
       },
     ],
   },
   {
     id: 2, teamId: 1, code: 'MI-0002', title: 'Beta Task', priority: 'P2',
     proposerId: 1, assigneeId: 2, startDate: '2026-04-15', expectedEndDate: '2026-04-25',
-    actualEndDate: null, status: 'progressing', completion: 40, isKeyItem: false,
-    delayCount: 0, archivedAt: null,
+    actualEndDate: null, status: 'progressing', completion: 40,
     createdAt: '2026-04-15T00:00:00Z', updatedAt: '2026-04-15T00:00:00Z',
     subItems: [],
   },
   {
     id: 3, teamId: 1, code: 'MI-0003', title: 'Gamma Task', priority: 'P3',
     proposerId: 1, assigneeId: 3, startDate: '2026-04-05', expectedEndDate: '2026-04-12',
-    actualEndDate: '2026-04-12', status: 'completed', completion: 100, isKeyItem: false,
-    delayCount: 0, archivedAt: null,
+    actualEndDate: '2026-04-12', status: 'completed', completion: 100,
     createdAt: '2026-04-05T00:00:00Z', updatedAt: '2026-04-12T00:00:00Z',
     subItems: [],
   },
@@ -139,7 +136,7 @@ function setupHandlers() {
         data: {
           id: 100, teamId: 1, code: 'MI-0100', priority: 'P2', proposerId: 1,
           assigneeId: null, startDate: null, expectedEndDate: null, actualEndDate: null,
-          status: 'pending', completion: 0, isKeyItem: false, delayCount: 0, archivedAt: null,
+          status: 'pending', completion: 0,
           createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
           ...body,
         },
@@ -154,7 +151,7 @@ function setupHandlers() {
         data: {
           id: 200, teamId: 1, mainItemId: Number(body.main_item_id), description: '',
           priority: 'P2', assigneeId: null, startDate: null, expectedEndDate: null, actualEndDate: null,
-          status: 'pending', completion: 0, isKeyItem: false, delayCount: 0, weight: 1,
+          status: 'pending', completion: 0, weight: 1,
           createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
           ...body,
         },
@@ -454,8 +451,7 @@ describe('ItemViewPage', () => {
       {
         id: 10, teamId: 1, code: 'MI-0010', title: 'Overdue Task', priority: 'P1',
         proposerId: 1, assigneeId: 1, startDate: '2020-01-01', expectedEndDate: '2020-02-01',
-        actualEndDate: null, status: 'progressing', completion: 30, isKeyItem: false,
-        delayCount: 0, archivedAt: null,
+        actualEndDate: null, status: 'progressing', completion: 30,
         createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z',
         subItems: [],
       },
@@ -478,8 +474,7 @@ describe('ItemViewPage', () => {
       {
         id: 11, teamId: 1, code: 'MI-0011', title: 'Completed Task', priority: 'P1',
         proposerId: 1, assigneeId: 1, startDate: '2020-01-01', expectedEndDate: '2020-02-01',
-        actualEndDate: '2020-02-01', status: 'completed', completion: 100, isKeyItem: false,
-        delayCount: 0, archivedAt: null,
+        actualEndDate: '2020-02-01', status: 'completed', completion: 100,
         createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-02-01T00:00:00Z',
         subItems: [],
       },
@@ -604,5 +599,62 @@ describe('ItemViewPage', () => {
       const submitBtn = screen.getByRole('button', { name: '确认' })
       expect(submitBtn).toBeEnabled()
     })
+  })
+
+  // --- Sub-items fetched via React Query ---
+
+  it('fetches sub-items via React Query when expanding a card', async () => {
+    let subItemsFetchCount = 0
+    server.use(
+      http.get('/v1/teams/:teamId/main-items/:mainId/sub-items', () => {
+        subItemsFetchCount++
+        return HttpResponse.json({ code: 0, data: { items: seedMainItems[0].subItems, total: 2, page: 1, pageSize: 20 } })
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+    })
+
+    // Expand the first card
+    const expandBtn = screen.getByTestId('expand-card-1')
+    await user.click(expandBtn)
+
+    await waitFor(() => {
+      expect(subItemsFetchCount).toBeGreaterThanOrEqual(1)
+      expect(screen.getByText('Sub Alpha 1')).toBeInTheDocument()
+    })
+  })
+
+  // --- No "fetch all pages" in detail view ---
+
+  it('detail view does not trigger fetch-all-pages pattern', async () => {
+    let listCallCount = 0
+    server.use(
+      http.get('/v1/teams/:teamId/main-items', ({ request }) => {
+        listCallCount++
+        const url = new URL(request.url)
+        const page = Number(url.searchParams.get('page') || 1)
+        // Return one page of items
+        return HttpResponse.json({ code: 0, data: { items: seedMainItems, total: seedMainItems.length, page, pageSize: 20 } })
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+    })
+
+    // Switch to detail view
+    await user.click(screen.getByText('明细'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('detail-table')).toBeInTheDocument()
+    })
+
+    // Should NOT have made multiple list calls to fetch all pages
+    // Only the initial fetch should have happened
+    expect(listCallCount).toBe(1)
   })
 })

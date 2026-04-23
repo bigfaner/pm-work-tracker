@@ -19,17 +19,6 @@ client.interceptors.request.use((config) => {
   return config
 })
 
-// Response envelope types
-export interface ApiSuccessEnvelope<T> {
-  code: 0
-  data: T
-}
-
-export interface ApiErrorEnvelope {
-  code: string
-  message: string
-}
-
 // Response interceptor: unwrap data and handle errors
 client.interceptors.response.use(
   (response) => {

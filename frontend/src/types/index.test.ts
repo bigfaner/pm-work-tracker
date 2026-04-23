@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import type {
   User,
   Team,
-  TeamMember,
   MainItem,
   SubItem,
   ProgressRecord,
@@ -11,6 +10,7 @@ import type {
   Role,
   PermissionGroup,
   PermissionItem,
+  AdminTeam,
 } from '@/types'
 
 describe('shared TypeScript interfaces', () => {
@@ -37,21 +37,6 @@ describe('shared TypeScript interfaces', () => {
     expect(team.name).toBe('Team Alpha')
   })
 
-  it('should define a valid TeamMember', () => {
-    const member: TeamMember = {
-      id: 1,
-      teamId: 1,
-      userId: 1,
-      role: 'member',
-      joinedAt: '2026-01-01T00:00:00Z',
-      displayName: 'Test User',
-      username: 'testuser',
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01',
-    }
-    expect(member.role).toBe('member')
-  })
-
   it('should define a valid MainItem', () => {
     const item: MainItem = {
       id: 1,
@@ -66,9 +51,6 @@ describe('shared TypeScript interfaces', () => {
       actualEndDate: null,
       status: 'pending',
       completion: 0,
-      isKeyItem: false,
-      delayCount: 0,
-      archivedAt: null,
       createdAt: '2024-01-01',
       updatedAt: '2024-01-01',
     }
@@ -90,8 +72,6 @@ describe('shared TypeScript interfaces', () => {
       actualEndDate: null,
       status: 'progressing',
       completion: 50,
-      isKeyItem: true,
-      delayCount: 0,
       weight: 1.5,
       createdAt: '2024-01-01',
       updatedAt: '2024-01-01',
@@ -178,5 +158,17 @@ describe('shared TypeScript interfaces', () => {
       description: 'Create items',
     }
     expect(item.code).toBe('item:create')
+  })
+
+  it('should define AdminTeam with flat pmDisplayName', () => {
+    const team: AdminTeam = {
+      id: 1,
+      name: 'Team A',
+      pmDisplayName: 'Alice',
+      memberCount: 5,
+      mainItemCount: 10,
+      createdAt: '2024-01-01',
+    }
+    expect(team.pmDisplayName).toBe('Alice')
   })
 })

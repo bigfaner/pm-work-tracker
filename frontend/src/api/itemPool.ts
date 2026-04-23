@@ -18,10 +18,6 @@ export function listItemPoolApi(teamId: number, filter?: ItemPoolFilter): Promis
   return client.get<never, PageResult<ItemPool>>(`/teams/${teamId}/item-pool`, { params: filter })
 }
 
-export function getItemPoolApi(teamId: number, poolId: number): Promise<ItemPool> {
-  return client.get<never, ItemPool>(`/teams/${teamId}/item-pool/${poolId}`)
-}
-
 export function assignItemPoolApi(teamId: number, poolId: number, req: AssignItemPoolReq): Promise<AssignItemPoolResp> {
   return client.post<never, AssignItemPoolResp>(`/teams/${teamId}/item-pool/${poolId}/assign`, req)
 }

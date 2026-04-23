@@ -48,9 +48,3 @@ func RenderMarkdown(preview *dto.ReportPreview, weekStart time.Time) []byte {
 
 	return []byte(buf.String())
 }
-
-// Filename returns the Content-Disposition filename for the export.
-func Filename(weekStart time.Time) string {
-	_, isoWeek := weekStart.ISOWeek()
-	return fmt.Sprintf("weekly-report-%d-W%02d.md", weekStart.Year(), isoWeek)
-}

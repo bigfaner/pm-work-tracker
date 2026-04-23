@@ -16,7 +16,63 @@ import (
 
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/repository"
 )
+
+// ---------------------------------------------------------------------------
+// Benchmarks
+// ---------------------------------------------------------------------------
+
+// seedProgressBenchData creates a dataset of n progress records for benchmarks.
+func seedProgressBenchData(n int) (*mockProgressService, *trackingUserRepo) {
+	records := make([]model.ProgressRecord, n)
+	users := make(map[uint]*model.User, 50)
+
+	for i := range records {
+		records[i] = model.ProgressRecord{
+			ID:          uint(i + 1),
+			SubItemID:   5,
+			TeamID:      10,
+			AuthorID:    uint(i%50 + 1),
+			Completion:  float64(i % 100),
+			Achievement: fmt.Sprintf("Achievement %d", i),
+			Blocker:     "",
+			Lesson:      "",
+			IsPMCorrect: false,
+			CreatedAt:   time.Now().Add(-time.Duration(i) * time.Minute),
+		}
+		users[uint(i%50+1)] = &model.User{DisplayName: fmt.Sprintf("User %d", i%50+1)}
+	}
+
+	svc := &mockProgressService{}
+	svc.listResult.records = records
+
+	trackingRepo := &trackingUserRepo{users: users}
+	return svc, trackingRepo
+}
+
+func BenchmarkProgressHandler_List(b *testing.B) {
+	b.StopTimer()
+	svc, trackingRepo := seedProgressBenchData(200)
+
+	deps, _ := testDeps(b)
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.Progress = NewProgressHandler(svc, trackingRepo)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(b, 3, "testuser")
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/sub-items/5/progress", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		r.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			b.Fatalf("unexpected status: %d", w.Code)
+		}
+	}
+}
 
 // ---------------------------------------------------------------------------
 // Mock ProgressService for handler tests
@@ -92,7 +148,7 @@ func depsWithProgressSvc(t *testing.T, svc *mockProgressService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	deps.Progress = NewProgressHandlerWithDeps(svc, &mockUserRepoForHandler{})
+	deps.Progress = NewProgressHandler(svc, &mockUserRepoForHandler{})
 	return deps
 }
 
@@ -102,17 +158,17 @@ func depsWithProgressSvcMemberRole(t *testing.T, svc *mockProgressService) *Depe
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "member", RoleID: ptrUint(2)}}
-	deps.Progress = NewProgressHandlerWithDeps(svc, &mockUserRepoForHandler{})
+	deps.Progress = NewProgressHandler(svc, &mockUserRepoForHandler{})
 	return deps
 }
 
 // depsWithProgressSvcAndUser wires with a specific user repo.
 
-func depsWithProgressSvcAndUser(t *testing.T, svc *mockProgressService, userRepo *mockUserRepoForHandler) *Dependencies {
+func depsWithProgressSvcAndUser(t *testing.T, svc *mockProgressService, userRepo repository.UserRepo) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	deps.Progress = NewProgressHandlerWithDeps(svc, userRepo)
+	deps.Progress = NewProgressHandler(svc, userRepo)
 	return deps
 }
 
@@ -131,6 +187,41 @@ func testProgressRecord(id uint, subItemID uint, authorID uint) *model.ProgressR
 		CreatedAt:   time.Now(),
 	}
 }
+
+// trackingUserRepo tracks call counts to verify batch vs individual lookups.
+type trackingUserRepo struct {
+	users              map[uint]*model.User
+	findByIDsCallCount int
+	findByIDCallCount  int
+}
+
+func (t *trackingUserRepo) FindByID(_ context.Context, id uint) (*model.User, error) {
+	t.findByIDCallCount++
+	return t.users[id], nil
+}
+func (t *trackingUserRepo) FindByIDs(_ context.Context, ids []uint) (map[uint]*model.User, error) {
+	t.findByIDsCallCount++
+	result := make(map[uint]*model.User, len(ids))
+	for _, id := range ids {
+		if u, ok := t.users[id]; ok {
+			result[id] = u
+		}
+	}
+	return result, nil
+}
+func (t *trackingUserRepo) FindByUsername(_ context.Context, _ string) (*model.User, error)    { return nil, nil }
+func (t *trackingUserRepo) List(_ context.Context) ([]*model.User, error)                       { return nil, nil }
+func (t *trackingUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+	return nil, 0, nil
+}
+func (t *trackingUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+	return nil, nil
+}
+func (t *trackingUserRepo) Create(_ context.Context, _ *model.User) error { return nil }
+func (t *trackingUserRepo) Update(_ context.Context, _ *model.User) error { return nil }
+
+// compile-time check
+var _ repository.UserRepo = (*trackingUserRepo)(nil)
 
 // ---------------------------------------------------------------------------
 // Tests: POST /teams/:teamId/sub-items/:subId/progress (Append)
@@ -498,6 +589,48 @@ func TestListProgress_IncludesAuthorNames(t *testing.T) {
 	// Both records get authorName from userRepo
 	item0 := data[0].(map[string]interface{})
 	assert.Equal(t, "张三", item0["authorName"])
+}
+
+func TestListProgress_UsesBatchLookup(t *testing.T) {
+	// Verify progressRecordsToVOs uses FindByIDs (batch) not FindByID (N+1)
+	svc := &mockProgressService{}
+	svc.listResult.records = []model.ProgressRecord{
+		*testProgressRecord(1, 5, 3),
+		*testProgressRecord(2, 5, 7),
+		*testProgressRecord(3, 5, 3),
+	}
+
+	trackingRepo := &trackingUserRepo{
+		users: map[uint]*model.User{
+			3: {DisplayName: "Alice"},
+			7: {DisplayName: "Bob"},
+		},
+	}
+
+	deps := depsWithProgressSvcAndUser(t, svc, trackingRepo)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 3, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/sub-items/5/progress", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 1, trackingRepo.findByIDsCallCount, "FindByIDs should be called exactly once")
+	assert.Equal(t, 0, trackingRepo.findByIDCallCount, "FindByID should not be called in batch path")
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+
+	data := resp["data"].([]interface{})
+	item0 := data[0].(map[string]interface{})
+	item1 := data[1].(map[string]interface{})
+	item2 := data[2].(map[string]interface{})
+	assert.Equal(t, "Alice", item0["authorName"])
+	assert.Equal(t, "Bob", item1["authorName"])
+	assert.Equal(t, "Alice", item2["authorName"])
 }
 
 // ---------------------------------------------------------------------------

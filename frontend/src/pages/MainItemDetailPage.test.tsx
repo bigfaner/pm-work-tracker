@@ -51,27 +51,26 @@ const seedMembers = [
 const seedMainItem = {
   id: 1, teamId: 1, code: 'MI-0001', title: 'Alpha Task', priority: 'P1',
   proposerId: 1, assigneeId: 1, startDate: '2026-03-20', expectedEndDate: '2026-04-15',
-  actualEndDate: null, status: 'progressing', completion: 65, isKeyItem: false,
-  delayCount: 0, archivedAt: null,
+  actualEndDate: null, status: 'progressing', completion: 65,
   createdAt: '2026-03-20T00:00:00Z', updatedAt: '2026-04-01T00:00:00Z',
   subItems: [
     {
       id: 11, teamId: 1, mainItemId: 1, title: 'Sub Alpha 1', description: '',
       priority: 'P1', assigneeId: 2, startDate: '2026-04-01', expectedEndDate: '2026-04-10',
-      actualEndDate: '2026-04-09', status: 'completed', completion: 100, isKeyItem: false,
-      delayCount: 0, weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-09T00:00:00Z',
+      actualEndDate: '2026-04-09', status: 'completed', completion: 100,
+      weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-09T00:00:00Z',
     },
     {
       id: 12, teamId: 1, mainItemId: 1, title: 'Sub Alpha 2', description: '',
       priority: 'P2', assigneeId: 3, startDate: '2026-04-08', expectedEndDate: '2026-04-18',
-      actualEndDate: null, status: 'progressing', completion: 80, isKeyItem: false,
-      delayCount: 0, weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-08T00:00:00Z',
+      actualEndDate: null, status: 'progressing', completion: 80,
+      weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-08T00:00:00Z',
     },
     {
       id: 13, teamId: 1, mainItemId: 1, title: 'Sub Alpha 3', description: '',
       priority: 'P2', assigneeId: 3, startDate: '2026-04-15', expectedEndDate: '2026-04-25',
-      actualEndDate: null, status: 'progressing', completion: 30, isKeyItem: false,
-      delayCount: 0, weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-15T00:00:00Z',
+      actualEndDate: null, status: 'progressing', completion: 30,
+      weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-15T00:00:00Z',
     },
   ],
   achievements: ['登录/注册接口开发完成', 'JWT Token 签发与验证逻辑实现'],
@@ -106,7 +105,7 @@ function setupHandlers() {
         data: {
           id: 100, teamId: 1, mainItemId: 1, description: '', priority: 'P2',
           assigneeId: null, startDate: null, expectedEndDate: null, actualEndDate: null,
-          status: 'pending', completion: 0, isKeyItem: false, delayCount: 0, weight: 1,
+          status: 'pending', completion: 0, weight: 1,
           createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
           ...body,
         },
@@ -467,6 +466,25 @@ describe('MainItemDetailPage', () => {
       const loading = screen.queryByText('加载中...')
       const title = screen.queryByRole('heading', { name: 'Alpha Task' })
       expect(loading || title).toBeTruthy()
+    })
+  })
+
+  // --- useMemo -> useEffect regression test ---
+
+  it('populates edit form with item data when data loads', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Alpha Task' })).toBeInTheDocument()
+    })
+
+    // Open edit dialog
+    await user.click(screen.getAllByText('编辑')[0])
+
+    await waitFor(() => {
+      // Edit form should be populated with the item's data (not empty)
+      const titleInput = screen.getByDisplayValue('Alpha Task')
+      expect(titleInput).toBeInTheDocument()
     })
   })
 })

@@ -115,9 +115,15 @@ func (s *teamService) GetTeamDetail(ctx context.Context, teamID uint) (*dto.Team
 		return nil, err
 	}
 
-	members, err := s.teamRepo.ListMembers(ctx, teamID)
+	// Use COUNT(*) for member count instead of loading all members
+	memberCount, err := s.teamRepo.CountMembers(ctx, teamID)
 	if err != nil {
-		return nil, err
+		// Fallback: load all members and count
+		members, listErr := s.teamRepo.ListMembers(ctx, teamID)
+		if listErr != nil {
+			return nil, listErr
+		}
+		memberCount = int64(len(members))
 	}
 
 	var mainItemCount int64
@@ -132,7 +138,7 @@ func (s *teamService) GetTeamDetail(ctx context.Context, teamID uint) (*dto.Team
 		Code:          team.Code,
 		PmID:          team.PmID,
 		PmDisplayName: pm.DisplayName,
-		MemberCount:   len(members),
+		MemberCount:   int(memberCount),
 		MainItemCount: int(mainItemCount),
 		CreatedAt:     team.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:     team.UpdatedAt.Format(time.RFC3339),
@@ -277,40 +283,17 @@ func (s *teamService) ListMembers(ctx context.Context, teamID uint) ([]*dto.Team
 }
 
 func (s *teamService) SearchAvailableUsers(ctx context.Context, teamID uint, search string) ([]*dto.UserSearchDTO, error) {
-	users, err := s.userRepo.List(ctx)
+	users, err := s.userRepo.SearchAvailable(ctx, teamID, search, 20)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get existing member user IDs
-	members, err := s.teamRepo.ListMembers(ctx, teamID)
-	if err != nil {
-		return nil, err
-	}
-	memberIDs := make(map[uint]bool, len(members))
-	for _, m := range members {
-		memberIDs[m.UserID] = true
-	}
-
-	// Filter by search and exclude existing members
-	var result []*dto.UserSearchDTO
-	for _, u := range users {
-		if memberIDs[u.ID] {
-			continue
-		}
-		if search != "" {
-			if !containsIgnoreCase(u.Username, search) && !containsIgnoreCase(u.DisplayName, search) {
-				continue
-			}
-		}
-		result = append(result, &dto.UserSearchDTO{
+	result := make([]*dto.UserSearchDTO, len(users))
+	for i, u := range users {
+		result[i] = &dto.UserSearchDTO{
 			ID:          u.ID,
 			Username:    u.Username,
 			DisplayName: u.DisplayName,
-		})
-		// Limit results to 20
-		if len(result) >= 20 {
-			break
 		}
 	}
 

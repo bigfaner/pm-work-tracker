@@ -19,23 +19,16 @@ type ReportHandler struct {
 	svc service.ReportService
 }
 
-// NewReportHandler creates a new ReportHandler (stub, for router setup before service is ready).
-func NewReportHandler() *ReportHandler {
-	return &ReportHandler{}
-}
-
-// NewReportHandlerWithDeps creates a new ReportHandler with service dependencies.
-func NewReportHandlerWithDeps(svc service.ReportService) *ReportHandler {
+// NewReportHandler creates a new ReportHandler with service dependency.
+func NewReportHandler(svc service.ReportService) *ReportHandler {
+	if svc == nil {
+		panic("report_handler: reportService must not be nil")
+	}
 	return &ReportHandler{svc: svc}
 }
 
 // WeeklyPreview handles GET /api/v1/teams/:teamId/reports/weekly/preview
 func (h *ReportHandler) WeeklyPreview(c *gin.Context) {
-	if h.svc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	weekStart, ok := parseWeekStart(c)
 	if !ok {
 		return
@@ -54,11 +47,6 @@ func (h *ReportHandler) WeeklyPreview(c *gin.Context) {
 
 // WeeklyExport handles GET /api/v1/teams/:teamId/reports/weekly/export
 func (h *ReportHandler) WeeklyExport(c *gin.Context) {
-	if h.svc == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"code": "NOT_IMPLEMENTED", "message": "not implemented"})
-		return
-	}
-
 	weekStart, ok := parseWeekStart(c)
 	if !ok {
 		return

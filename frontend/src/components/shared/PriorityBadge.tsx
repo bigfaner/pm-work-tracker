@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
-const priorityVariantMap: Record<string, string> = {
+const priorityVariantMap: Record<string, 'priority-high' | 'priority-medium' | 'priority-low' | 'default'> = {
   P1: 'priority-high',
   P2: 'priority-medium',
   P3: 'priority-low',
@@ -15,7 +15,7 @@ interface PriorityBadgeProps {
 export default function PriorityBadge({ priority, className }: PriorityBadgeProps) {
   const variant = priorityVariantMap[priority] || 'default'
   return (
-    <Badge variant={variant as any} className={cn('text-[11px]', className)}>
+    <Badge variant={variant} className={cn('text-[11px]', className)}>
       {priority}
     </Badge>
   )

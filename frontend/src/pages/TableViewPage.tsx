@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { getTableViewApi, exportTableCsvApi } from '@/api/views'
 import { listMembersApi } from '@/api/teams'
+import { formatDate } from '@/lib/format'
 import type { TableRow, TableFilter } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -139,11 +140,6 @@ export default function TableViewPage() {
 
   const isItemOverdue = (expectedEndDate: string | null, status: string): boolean => {
     return checkOverdue(expectedEndDate || undefined, status)
-  }
-
-  const formatDate = (date: string | null) => {
-    if (!date) return '-'
-    return date
   }
 
   const getItemLink = (row: TableRow): string => {

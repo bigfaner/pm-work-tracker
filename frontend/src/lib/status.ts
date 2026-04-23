@@ -17,6 +17,16 @@ export const SUB_ITEM_STATUSES = {
   closed:      { name: '已关闭', variant: 'cancelled',   terminal: true },
 } as const
 
+/** Terminal status codes for main items */
+export const MAIN_TERMINAL_STATUSES = Object.entries(MAIN_ITEM_STATUSES)
+  .filter(([, v]) => v.terminal)
+  .map(([k]) => k)
+
+/** Terminal status codes for sub items */
+export const SUB_TERMINAL_STATUSES = Object.entries(SUB_ITEM_STATUSES)
+  .filter(([, v]) => v.terminal)
+  .map(([k]) => k)
+
 /** English status codes for filter dropdowns (all main item statuses) */
 export const STATUS_OPTIONS = Object.keys(MAIN_ITEM_STATUSES)
 

@@ -122,12 +122,6 @@ describe('API modules', () => {
       expect(mockClient.put).toHaveBeenCalledWith('/teams/1/main-items/2', { title: 'Updated' })
     })
 
-    it('archiveMainItemApi should POST /teams/:id/main-items/:itemId/archive', async () => {
-      mockClient.post.mockResolvedValue(undefined)
-      await mainItemsApi.archiveMainItemApi(1, 2)
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/1/main-items/2/archive')
-    })
-
     it('changeMainItemStatusApi should PUT /teams/:id/main-items/:itemId/status', async () => {
       mockClient.put.mockResolvedValue({ status: 'completed' })
       await mainItemsApi.changeMainItemStatusApi(1, 2, { status: 'completed' })
@@ -172,12 +166,6 @@ describe('API modules', () => {
       expect(mockClient.put).toHaveBeenCalledWith('/teams/1/sub-items/3/status', { status: 'done' })
     })
 
-    it('assignSubItemApi should PUT to assignee endpoint', async () => {
-      mockClient.put.mockResolvedValue(undefined)
-      await subItemsApi.assignSubItemApi(1, 3, { assigneeId: 5 })
-      expect(mockClient.put).toHaveBeenCalledWith('/teams/1/sub-items/3/assignee', { assigneeId: 5 })
-    })
-
     it('getSubItemTransitionsApi should GET /teams/:id/sub-items/:subId/available-transitions', async () => {
       mockClient.get.mockResolvedValue(['progressing', 'completed'])
       await subItemsApi.getSubItemTransitionsApi(1, 3)
@@ -198,11 +186,6 @@ describe('API modules', () => {
       expect(mockClient.get).toHaveBeenCalledWith('/teams/1/sub-items/2/progress')
     })
 
-    it('correctCompletionApi should PATCH completion endpoint', async () => {
-      mockClient.patch.mockResolvedValue({})
-      await progressApi.correctCompletionApi(1, 5, { completion: 90 })
-      expect(mockClient.patch).toHaveBeenCalledWith('/teams/1/progress/5/completion', { completion: 90 })
-    })
   })
 
   describe('itemPool', () => {
@@ -216,12 +199,6 @@ describe('API modules', () => {
       mockClient.get.mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 })
       await itemPoolApi.listItemPoolApi(1, { status: 'open' })
       expect(mockClient.get).toHaveBeenCalledWith('/teams/1/item-pool', { params: { status: 'open' } })
-    })
-
-    it('getItemPoolApi should GET /teams/:id/item-pool/:poolId', async () => {
-      mockClient.get.mockResolvedValue({})
-      await itemPoolApi.getItemPoolApi(1, 3)
-      expect(mockClient.get).toHaveBeenCalledWith('/teams/1/item-pool/3')
     })
 
     it('assignItemPoolApi should POST to assign endpoint', async () => {

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,6 +25,13 @@ type mockAdminUserRepo struct {
 	created *model.User
 	updated *model.User
 	findErr error // separate error for FindByUsername
+
+	// ListFiltered captures calls and returns configurable results
+	listFilteredFn func(ctx context.Context, search string, offset, limit int) ([]*model.User, int64, error)
+	listFilteredCalled bool
+	listFilteredSearch string
+	listFilteredOffset int
+	listFilteredLimit  int
 }
 
 func (m *mockAdminUserRepo) FindByID(_ context.Context, _ uint) (*model.User, error) {
@@ -61,6 +69,25 @@ func (m *mockAdminUserRepo) Update(_ context.Context, user *model.User) error {
 	return nil
 }
 
+func (m *mockAdminUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.User, error) {
+	return nil, nil
+}
+
+func (m *mockAdminUserRepo) ListFiltered(ctx context.Context, search string, offset, limit int) ([]*model.User, int64, error) {
+	m.listFilteredCalled = true
+	m.listFilteredSearch = search
+	m.listFilteredOffset = offset
+	m.listFilteredLimit = limit
+	if m.listFilteredFn != nil {
+		return m.listFilteredFn(ctx, search, offset, limit)
+	}
+	return nil, 0, nil
+}
+
+func (m *mockAdminUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+	return nil, nil
+}
+
 // mockAdminTeamRepo implements repository.TeamRepo for admin service tests.
 type mockAdminTeamRepo struct {
 	teams           []*dto.AdminTeamDTO
@@ -92,6 +119,9 @@ func (m *mockAdminTeamRepo) FindMember(_ context.Context, _, _ uint) (*model.Tea
 func (m *mockAdminTeamRepo) ListMembers(_ context.Context, _ uint) ([]*dto.TeamMemberDTO, error) {
 	return nil, nil
 }
+func (m *mockAdminTeamRepo) CountMembers(_ context.Context, _ uint) (int64, error) {
+	return 0, nil
+}
 func (m *mockAdminTeamRepo) UpdateMember(_ context.Context, _ *model.TeamMember) error {
 	return nil
 }
@@ -118,33 +148,44 @@ func (m *mockAdminTeamRepo) FindPMMembers(_ context.Context, _ []uint) (map[uint
 
 func TestAdminListUsers_Success(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		users: []*model.User{
-			{BaseModel: model.BaseModel{ID: 1}, Username: "alice", DisplayName: "Alice"},
-			{BaseModel: model.BaseModel{ID: 2}, Username: "bob", DisplayName: "Bob"},
+		listFilteredFn: func(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+			return []*model.User{
+				{BaseModel: model.BaseModel{ID: 1}, Username: "alice", DisplayName: "Alice"},
+				{BaseModel: model.BaseModel{ID: 2}, Username: "bob", DisplayName: "Bob"},
+			}, 2, nil
 		},
 	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
 
 	items, total, err := svc.ListUsers(context.Background(), "", 1, 20)
 	require.NoError(t, err)
-	assert.Equal(t, 2, total)
+	assert.Equal(t, 2, int(total))
 	assert.Len(t, items, 2)
 	assert.Equal(t, "alice", items[0].Username)
 	assert.Equal(t, "bob", items[1].Username)
+	assert.True(t, userRepo.listFilteredCalled)
 }
 
 func TestAdminListUsers_Empty(t *testing.T) {
-	userRepo := &mockAdminUserRepo{users: []*model.User{}}
+	userRepo := &mockAdminUserRepo{
+		listFilteredFn: func(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+			return []*model.User{}, 0, nil
+		},
+	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
 
 	items, total, err := svc.ListUsers(context.Background(), "", 1, 20)
 	require.NoError(t, err)
-	assert.Equal(t, 0, total)
+	assert.Equal(t, 0, int(total))
 	assert.Empty(t, items)
 }
 
 func TestAdminListUsers_RepoError(t *testing.T) {
-	userRepo := &mockAdminUserRepo{err: errors.New("db error")}
+	userRepo := &mockAdminUserRepo{
+		listFilteredFn: func(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+			return nil, 0, errors.New("db error")
+		},
+	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
 
 	_, _, err := svc.ListUsers(context.Background(), "", 1, 20)
@@ -153,45 +194,66 @@ func TestAdminListUsers_RepoError(t *testing.T) {
 
 func TestAdminListUsers_SearchFilter(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		users: []*model.User{
-			{BaseModel: model.BaseModel{ID: 1}, Username: "alice", DisplayName: "Alice Wonderland"},
-			{BaseModel: model.BaseModel{ID: 2}, Username: "bob", DisplayName: "Bob Builder"},
-			{BaseModel: model.BaseModel{ID: 3}, Username: "charlie", DisplayName: "Alice Cooper"},
+		listFilteredFn: func(_ context.Context, search string, _, _ int) ([]*model.User, int64, error) {
+			if search == "alice" {
+				return []*model.User{
+					{BaseModel: model.BaseModel{ID: 1}, Username: "alice", DisplayName: "Alice Wonderland"},
+					{BaseModel: model.BaseModel{ID: 3}, Username: "charlie", DisplayName: "Alice Cooper"},
+				}, 2, nil
+			}
+			return []*model.User{}, 0, nil
 		},
 	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
 
 	items, total, err := svc.ListUsers(context.Background(), "alice", 1, 20)
 	require.NoError(t, err)
-	assert.Equal(t, 2, total)
+	assert.Equal(t, 2, int(total))
 	assert.Len(t, items, 2)
 	assert.Equal(t, "alice", items[0].Username)
 	assert.Equal(t, "charlie", items[1].Username)
+	assert.Equal(t, "alice", userRepo.listFilteredSearch)
 }
 
 func TestAdminListUsers_Pagination(t *testing.T) {
-	users := []*model.User{
-		{BaseModel: model.BaseModel{ID: 1}, Username: "u1"},
-		{BaseModel: model.BaseModel{ID: 2}, Username: "u2"},
-		{BaseModel: model.BaseModel{ID: 3}, Username: "u3"},
-		{BaseModel: model.BaseModel{ID: 4}, Username: "u4"},
-		{BaseModel: model.BaseModel{ID: 5}, Username: "u5"},
+	userRepo := &mockAdminUserRepo{
+		listFilteredFn: func(_ context.Context, _ string, offset, limit int) ([]*model.User, int64, error) {
+			all := []*model.User{
+				{BaseModel: model.BaseModel{ID: 1}, Username: "u1"},
+				{BaseModel: model.BaseModel{ID: 2}, Username: "u2"},
+				{BaseModel: model.BaseModel{ID: 3}, Username: "u3"},
+				{BaseModel: model.BaseModel{ID: 4}, Username: "u4"},
+				{BaseModel: model.BaseModel{ID: 5}, Username: "u5"},
+			}
+			start := offset
+			if start > len(all) {
+				start = len(all)
+			}
+			end := offset + limit
+			if end > len(all) {
+				end = len(all)
+			}
+			return all[start:end], 5, nil
+		},
 	}
-	userRepo := &mockAdminUserRepo{users: users}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
 
 	items, total, err := svc.ListUsers(context.Background(), "", 2, 2)
 	require.NoError(t, err)
-	assert.Equal(t, 5, total)
+	assert.Equal(t, 5, int(total))
 	assert.Len(t, items, 2)
 	assert.Equal(t, "u3", items[0].Username)
 	assert.Equal(t, "u4", items[1].Username)
+	assert.Equal(t, 2, userRepo.listFilteredOffset)
+	assert.Equal(t, 2, userRepo.listFilteredLimit)
 }
 
 func TestAdminListUsers_WithTeams(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		users: []*model.User{
-			{BaseModel: model.BaseModel{ID: 1}, Username: "alice", DisplayName: "Alice"},
+		listFilteredFn: func(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+			return []*model.User{
+				{BaseModel: model.BaseModel{ID: 1}, Username: "alice", DisplayName: "Alice"},
+			}, 1, nil
 		},
 	}
 	teamRepo := &mockAdminTeamRepo{
@@ -203,7 +265,7 @@ func TestAdminListUsers_WithTeams(t *testing.T) {
 
 	items, total, err := svc.ListUsers(context.Background(), "", 1, 20)
 	require.NoError(t, err)
-	assert.Equal(t, 1, total)
+	assert.Equal(t, 1, int(total))
 	require.Len(t, items, 1)
 	require.Len(t, items[0].Teams, 1)
 	assert.Equal(t, uint(10), items[0].Teams[0].ID)
@@ -485,4 +547,90 @@ func TestGeneratePassword_Uniqueness(t *testing.T) {
 
 func strPtr(s string) *string {
 	return &s
+}
+
+// ---------------------------------------------------------------------------
+// Benchmarks
+// ---------------------------------------------------------------------------
+
+func BenchmarkAdminListUsers(b *testing.B) {
+	b.StopTimer()
+	users := make([]*model.User, 200)
+	for i := range users {
+		users[i] = &model.User{
+			BaseModel:   model.BaseModel{ID: uint(i + 1)},
+			Username:    fmt.Sprintf("user%d", i+1),
+			DisplayName: fmt.Sprintf("User %d", i+1),
+			Email:       fmt.Sprintf("user%d@test.com", i+1),
+			Status:      "enabled",
+		}
+	}
+	userRepo := &mockAdminUserRepo{
+		listFilteredFn: func(_ context.Context, _ string, offset, limit int) ([]*model.User, int64, error) {
+			start := offset
+			if start > len(users) {
+				start = len(users)
+			}
+			end := offset + limit
+			if end > len(users) {
+				end = len(users)
+			}
+			return users[start:end], int64(len(users)), nil
+		},
+	}
+	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
+	ctx := context.Background()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, _, err := svc.ListUsers(ctx, "", 1, 20)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkAdminListUsers_WithSearch(b *testing.B) {
+	b.StopTimer()
+	users := make([]*model.User, 200)
+	for i := range users {
+		users[i] = &model.User{
+			BaseModel:   model.BaseModel{ID: uint(i + 1)},
+			Username:    fmt.Sprintf("user%d", i+1),
+			DisplayName: fmt.Sprintf("User %d", i+1),
+		}
+	}
+	userRepo := &mockAdminUserRepo{
+		listFilteredFn: func(_ context.Context, search string, offset, limit int) ([]*model.User, int64, error) {
+			filtered := make([]*model.User, 0)
+			for _, u := range users {
+				if search == "" || u.Username == search || u.DisplayName == search {
+					filtered = append(filtered, u)
+				}
+			}
+			start := offset
+			if start > len(filtered) {
+				start = len(filtered)
+			}
+			end := offset + limit
+			if end > len(filtered) {
+				end = len(filtered)
+			}
+			return filtered[start:end], int64(len(filtered)), nil
+		},
+	}
+	svc := NewAdminService(userRepo, &mockAdminTeamRepo{
+		teamsByUserIDs: map[uint][]dto.TeamSummary{
+			1: {{ID: 1, Name: "Team A", Role: "member"}},
+		},
+	})
+	ctx := context.Background()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, _, err := svc.ListUsers(ctx, "user1", 1, 20)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
 }

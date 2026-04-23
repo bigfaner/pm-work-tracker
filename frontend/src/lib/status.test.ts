@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES, isOverdue, STATUS_OPTIONS } from './status'
+import { MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES, isOverdue, STATUS_OPTIONS, MAIN_TERMINAL_STATUSES, SUB_TERMINAL_STATUSES } from './status'
 
 describe('MAIN_ITEM_STATUSES', () => {
   it('has 7 entries', () => {
@@ -98,5 +98,27 @@ describe('isOverdue', () => {
 
   it('returns true for sub-item status blocking with past date', () => {
     expect(isOverdue('2020-01-01', 'blocking')).toBe(true)
+  })
+})
+
+describe('MAIN_TERMINAL_STATUSES', () => {
+  it('contains completed and closed', () => {
+    expect(MAIN_TERMINAL_STATUSES).toContain('completed')
+    expect(MAIN_TERMINAL_STATUSES).toContain('closed')
+  })
+
+  it('has exactly 2 entries', () => {
+    expect(MAIN_TERMINAL_STATUSES).toHaveLength(2)
+  })
+})
+
+describe('SUB_TERMINAL_STATUSES', () => {
+  it('contains completed and closed', () => {
+    expect(SUB_TERMINAL_STATUSES).toContain('completed')
+    expect(SUB_TERMINAL_STATUSES).toContain('closed')
+  })
+
+  it('has exactly 2 entries', () => {
+    expect(SUB_TERMINAL_STATUSES).toHaveLength(2)
   })
 })

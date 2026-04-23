@@ -183,10 +183,10 @@ func setupTestRouter(t *testing.T) (*gin.Engine, *seedData) {
 		Team:     handler.NewTeamHandler(teamSvc, userRepo),
 		MainItem: handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
 		SubItem:  handler.NewSubItemHandler(subItemSvc),
-		Progress: handler.NewProgressHandlerWithDeps(progressSvc, userRepo),
+		Progress: handler.NewProgressHandler(progressSvc, userRepo),
 		ItemPool: handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
-		View:     handler.NewViewHandlerWithDeps(viewSvc),
-		Report:   handler.NewReportHandlerWithDeps(reportSvc),
+		View:     handler.NewViewHandler(viewSvc),
+		Report:   handler.NewReportHandler(reportSvc),
 		Admin:    handler.NewAdminHandler(adminSvc),
 	}
 

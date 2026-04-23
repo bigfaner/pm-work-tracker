@@ -1,0 +1,299 @@
+{
+  "feature": "code-quality-cleanup",
+  "prd": "prd/prd-spec.md",
+  "design": "design/tech-design.md",
+  "created": "2026-04-22",
+  "status": "planning",
+  "tasks": {
+    "1.1-backend-dead-code": {
+      "id": "1.1",
+      "title": "Backend dead code removal",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "status": "completed",
+      "file": "1.1-backend-dead-code.md",
+      "record": "records/1.1-backend-dead-code.md"
+    },
+    "1.2-frontend-dead-code": {
+      "id": "1.2",
+      "title": "Frontend dead code removal",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "status": "completed",
+      "file": "1.2-frontend-dead-code.md",
+      "record": "records/1.2-frontend-dead-code.md"
+    },
+    "1.3-backend-contract-fixes": {
+      "id": "1.3",
+      "title": "Backend contract fix: SubItemVO +statusName",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "1.1"
+      ],
+      "status": "completed",
+      "file": "1.3-backend-contract-fixes.md",
+      "record": "records/1.3-backend-contract-fixes.md"
+    },
+    "1.4-frontend-contract-fixes": {
+      "id": "1.4",
+      "title": "Frontend contract fixes",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1.2",
+        "1.3"
+      ],
+      "status": "completed",
+      "file": "1.4-frontend-contract-fixes.md",
+      "record": "records/1.4-frontend-contract-fixes.md"
+    },
+    "2.1-batch-repo-methods": {
+      "id": "2.1",
+      "title": "Add batch repository methods",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "1.3"
+      ],
+      "status": "completed",
+      "file": "2.1-batch-repo-methods.md",
+      "record": "records/2.1-batch-repo-methods.md"
+    },
+    "2.2-fix-n1-view-service": {
+      "id": "2.2",
+      "title": "Fix N+1 in view_service",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "2.1"
+      ],
+      "status": "completed",
+      "file": "2.2-fix-n1-view-service.md",
+      "record": "records/2.2-fix-n1-view-service.md"
+    },
+    "2.3-fix-n1-handlers": {
+      "id": "2.3",
+      "title": "Fix N+1 in item_pool and progress handlers",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "2.1"
+      ],
+      "status": "completed",
+      "file": "2.3-fix-n1-handlers.md",
+      "record": "records/2.3-fix-n1-handlers.md"
+    },
+    "2.4-sql-pushdown-admin-team": {
+      "id": "2.4",
+      "title": "SQL pushdown: AdminService + TeamService",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "2.1"
+      ],
+      "status": "completed",
+      "file": "2.4-sql-pushdown-admin-team.md",
+      "record": "records/2.4-sql-pushdown-admin-team.md"
+    },
+    "2.5-sql-pushdown-gantt-views": {
+      "id": "2.5",
+      "title": "SQL pushdown: GanttView + minor perf fixes",
+      "priority": "P1",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "2.1"
+      ],
+      "status": "completed",
+      "file": "2.5-sql-pushdown-gantt-views.md",
+      "record": "records/2.5-sql-pushdown-gantt-views.md"
+    },
+    "2.6-frontend-perf-fixes": {
+      "id": "2.6",
+      "title": "Frontend performance fixes",
+      "priority": "P1",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "1.4"
+      ],
+      "status": "completed",
+      "file": "2.6-frontend-perf-fixes.md",
+      "record": "records/2.6-frontend-perf-fixes.md"
+    },
+    "2.7-performance-benchmarks": {
+      "id": "2.7",
+      "title": "Performance benchmarks",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "2.2",
+        "2.3",
+        "2.4",
+        "2.5"
+      ],
+      "status": "completed",
+      "file": "2.7-performance-benchmarks.md",
+      "record": "records/2.7-performance-benchmarks.md"
+    },
+    "3.1-pkg-repo-helpers": {
+      "id": "3.1",
+      "title": "Create pkg/repo generic helpers",
+      "priority": "P1",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "2.2",
+        "2.3",
+        "2.4",
+        "2.5"
+      ],
+      "status": "completed",
+      "file": "3.1-pkg-repo-helpers.md",
+      "record": "records/3.1-pkg-repo-helpers.md"
+    },
+    "3.2-refactor-repos-use-helpers": {
+      "id": "3.2",
+      "title": "Refactor existing repos to use pkg/repo",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "3.1"
+      ],
+      "status": "completed",
+      "file": "3.2-refactor-repos-use-helpers.md",
+      "record": "records/3.2-refactor-repos-use-helpers.md"
+    },
+    "3.3-shared-filter-helpers": {
+      "id": "3.3",
+      "title": "Extract shared filter helpers and utilities",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "3.1"
+      ],
+      "status": "completed",
+      "file": "3.3-shared-filter-helpers.md",
+      "record": "records/3.3-shared-filter-helpers.md"
+    },
+    "3.4-status-transition-dropdown": {
+      "id": "3.4",
+      "title": "Create StatusTransitionDropdown component",
+      "priority": "P1",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "1.4"
+      ],
+      "status": "completed",
+      "file": "3.4-status-transition-dropdown.md",
+      "record": "records/3.4-status-transition-dropdown.md"
+    },
+    "3.5-shared-hooks-utils": {
+      "id": "3.5",
+      "title": "Create shared hooks and utilities",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1.4"
+      ],
+      "status": "completed",
+      "file": "3.5-shared-hooks-utils.md",
+      "record": "records/3.5-shared-hooks-utils.md"
+    },
+    "3.6-replace-inline-dropdowns": {
+      "id": "3.6",
+      "title": "Replace inline status dropdowns with shared component",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "3.4",
+        "3.5"
+      ],
+      "status": "completed",
+      "file": "3.6-replace-inline-dropdowns.md",
+      "record": "records/3.6-replace-inline-dropdowns.md"
+    },
+    "3.7-member-select-component": {
+      "id": "3.7",
+      "title": "Create MemberSelect component",
+      "priority": "P2",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "3.5"
+      ],
+      "status": "completed",
+      "file": "3.7-member-select-component.md",
+      "record": "records/3.7-member-select-component.md"
+    },
+    "4.1-decompose-weekly-comparison": {
+      "id": "4.1",
+      "title": "Decompose WeeklyComparison",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "3.3"
+      ],
+      "status": "completed",
+      "file": "4.1-decompose-weekly-comparison.md",
+      "record": "records/4.1-decompose-weekly-comparison.md"
+    },
+    "4.2-standardize-handlers": {
+      "id": "4.2",
+      "title": "Standardize handler constructors",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "3.2"
+      ],
+      "status": "completed",
+      "file": "4.2-standardize-handlers.md",
+      "record": "records/4.2-standardize-handlers.md"
+    },
+    "4.3-move-inline-dtos": {
+      "id": "4.3",
+      "title": "Move inline request structs to DTO package",
+      "priority": "P2",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "4.2"
+      ],
+      "status": "completed",
+      "file": "4.3-move-inline-dtos.md",
+      "record": "records/4.3-move-inline-dtos.md"
+    },
+    "4.4-split-item-view-page": {
+      "id": "4.4",
+      "title": "Split ItemViewPage.tsx",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "3.6"
+      ],
+      "status": "completed",
+      "file": "4.4-split-item-view-page.md",
+      "record": "records/4.4-split-item-view-page.md"
+    },
+    "4.5-split-main-item-detail-page": {
+      "id": "4.5",
+      "title": "Split MainItemDetailPage.tsx",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "3.6"
+      ],
+      "status": "completed",
+      "file": "4.5-split-main-item-detail-page.md",
+      "record": "records/4.5-split-main-item-detail-page.md"
+    }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
+}

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/dates"
 )
 
 // ItemPoolVO is the frontend-facing view object for an item pool entry.
@@ -43,7 +44,7 @@ func NewItemPoolVO(m *model.ItemPool, submitterName string) ItemPoolVO {
 		AssignedSubID:  m.AssignedSubID,
 		AssigneeID:     m.AssigneeID,
 		RejectReason:   m.RejectReason,
-		ReviewedAt:     formatTimePtr(m.ReviewedAt),
+		ReviewedAt:     dates.FormatTimePtr(m.ReviewedAt),
 		ReviewerID:     m.ReviewerID,
 		CreatedAt:      m.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:      m.UpdatedAt.Format(time.RFC3339),

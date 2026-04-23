@@ -9,3 +9,13 @@ const DateFormat = "2006-01-02"
 func ParseDate(s string) (time.Time, error) {
 	return time.Parse(DateFormat, s)
 }
+
+// FormatTimePtr formats a *time.Time to a *string using DateFormat.
+// Returns nil if the input is nil.
+func FormatTimePtr(t *time.Time) *string {
+	if t == nil {
+		return nil
+	}
+	s := t.Format(DateFormat)
+	return &s
+}

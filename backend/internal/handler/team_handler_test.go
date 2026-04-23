@@ -193,6 +193,22 @@ func (m *mockUserRepoForHandler) Update(_ context.Context, _ *model.User) error 
 func (m *mockUserRepoForHandler) Create(_ context.Context, _ *model.User) error {
 	return nil
 }
+func (m *mockUserRepoForHandler) FindByIDs(_ context.Context, ids []uint) (map[uint]*model.User, error) {
+	if m.user == nil {
+		return nil, m.err
+	}
+	result := make(map[uint]*model.User, len(ids))
+	for _, id := range ids {
+		result[id] = m.user
+	}
+	return result, nil
+}
+func (m *mockUserRepoForHandler) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+	return nil, 0, nil
+}
+func (m *mockUserRepoForHandler) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+	return nil, nil
+}
 
 // ---------------------------------------------------------------------------
 // Helpers

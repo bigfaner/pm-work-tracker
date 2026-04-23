@@ -36,3 +36,22 @@ func TestParseDate_WrongFormat(t *testing.T) {
 func TestDateFormat(t *testing.T) {
 	assert.Equal(t, "2006-01-02", DateFormat)
 }
+
+func TestFormatTimePtr_Nil(t *testing.T) {
+	result := FormatTimePtr(nil)
+	assert.Nil(t, result)
+}
+
+func TestFormatTimePtr_Valid(t *testing.T) {
+	input := time.Date(2026, 4, 15, 10, 30, 0, 0, time.UTC)
+	result := FormatTimePtr(&input)
+	require.NotNil(t, result)
+	assert.Equal(t, "2026-04-15", *result)
+}
+
+func TestFormatTimePtr_ZeroTime(t *testing.T) {
+	input := time.Time{}
+	result := FormatTimePtr(&input)
+	require.NotNil(t, result)
+	assert.Equal(t, "0001-01-01", *result)
+}

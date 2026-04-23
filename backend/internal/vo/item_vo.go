@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/dates"
 	"pm-work-tracker/backend/internal/pkg/status"
 )
 
@@ -41,6 +42,7 @@ type SubItemVO struct {
 	ExpectedEndDate *string `json:"expectedEndDate"`
 	ActualEndDate   *string `json:"actualEndDate"`
 	Status          string  `json:"status"`
+	StatusName      string  `json:"statusName"`
 	Completion      float64 `json:"completion"`
 	IsKeyItem       bool    `json:"isKeyItem"`
 	Weight          float64 `json:"weight"`
@@ -91,14 +93,14 @@ func NewMainItemVO(m *model.MainItem) MainItemVO {
 		Priority:        m.Priority,
 		ProposerID:      m.ProposerID,
 		AssigneeID:      m.AssigneeID,
-		StartDate:       formatTimePtr(m.StartDate),
-		ExpectedEndDate: formatTimePtr(m.ExpectedEndDate),
-		ActualEndDate:   formatTimePtr(m.ActualEndDate),
+		StartDate:       dates.FormatTimePtr(m.StartDate),
+		ExpectedEndDate: dates.FormatTimePtr(m.ExpectedEndDate),
+		ActualEndDate:   dates.FormatTimePtr(m.ActualEndDate),
 		Status:          m.Status,
 		StatusName:      statusName,
 		Completion:      m.Completion,
 		IsKeyItem:       m.IsKeyItem,
-		ArchivedAt:      formatTimePtr(m.ArchivedAt),
+		ArchivedAt:      dates.FormatTimePtr(m.ArchivedAt),
 		CreatedAt:       m.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:       m.UpdatedAt.Format(time.RFC3339),
 	}
@@ -106,6 +108,10 @@ func NewMainItemVO(m *model.MainItem) MainItemVO {
 
 // NewSubItemVO converts a model.SubItem to a SubItemVO.
 func NewSubItemVO(m *model.SubItem) SubItemVO {
+	statusName := ""
+	if def, ok := status.GetSubItemStatus(m.Status); ok {
+		statusName = def.Name
+	}
 	return SubItemVO{
 		ID:              m.ID,
 		TeamID:          m.TeamID,
@@ -114,10 +120,11 @@ func NewSubItemVO(m *model.SubItem) SubItemVO {
 		Description:     m.Description,
 		Priority:        m.Priority,
 		AssigneeID:      m.AssigneeID,
-		StartDate:       formatTimePtr(m.StartDate),
-		ExpectedEndDate: formatTimePtr(m.ExpectedEndDate),
-		ActualEndDate:   formatTimePtr(m.ActualEndDate),
+		StartDate:       dates.FormatTimePtr(m.StartDate),
+		ExpectedEndDate: dates.FormatTimePtr(m.ExpectedEndDate),
+		ActualEndDate:   dates.FormatTimePtr(m.ActualEndDate),
 		Status:          m.Status,
+		StatusName:      statusName,
 		Completion:      m.Completion,
 		IsKeyItem:       m.IsKeyItem,
 		Weight:          m.Weight,
@@ -159,18 +166,10 @@ func NewSubItemSummaryVOs(items []*model.SubItem) []SubItemSummaryVO {
 			Completion:      si.Completion,
 			AssigneeID:      si.AssigneeID,
 			Priority:        si.Priority,
-			StartDate:       formatTimePtr(si.StartDate),
-			ExpectedEndDate: formatTimePtr(si.ExpectedEndDate),
-			ActualEndDate:   formatTimePtr(si.ActualEndDate),
+			StartDate:       dates.FormatTimePtr(si.StartDate),
+			ExpectedEndDate: dates.FormatTimePtr(si.ExpectedEndDate),
+			ActualEndDate:   dates.FormatTimePtr(si.ActualEndDate),
 		})
 	}
 	return result
-}
-
-func formatTimePtr(t *time.Time) *string {
-	if t == nil {
-		return nil
-	}
-	s := t.Format("2006-01-02")
-	return &s
 }

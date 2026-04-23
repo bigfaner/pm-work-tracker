@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
@@ -173,10 +174,10 @@ func (s *StubRoleSvc) ListRoles(_ context.Context) ([]service.RoleListItem, erro
 func (s *StubRoleSvc) GetRole(_ context.Context, _ uint) (*service.RoleDetail, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubRoleSvc) CreateRole(_ context.Context, _ service.CreateRoleReq) (*service.RoleListItem, error) {
+func (s *StubRoleSvc) CreateRole(_ context.Context, _ dto.CreateRoleReq) (*service.RoleListItem, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubRoleSvc) UpdateRole(_ context.Context, _ uint, _ service.UpdateRoleReq) (*service.RoleDetail, error) {
+func (s *StubRoleSvc) UpdateRole(_ context.Context, _ uint, _ dto.UpdateRoleReq) (*service.RoleDetail, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubRoleSvc) DeleteRole(_ context.Context, _ uint) error {
@@ -204,6 +205,15 @@ func (s *StubRouterRepoUser) FindByUsername(_ context.Context, _ string) (*model
 func (s *StubRouterRepoUser) List(_ context.Context) ([]*model.User, error) { return nil, nil }
 func (s *StubRouterRepoUser) Update(_ context.Context, _ *model.User) error { return nil }
 func (s *StubRouterRepoUser) Create(_ context.Context, _ *model.User) error { return nil }
+func (s *StubRouterRepoUser) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.User, error) {
+	return nil, nil
+}
+func (s *StubRouterRepoUser) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+	return nil, 0, nil
+}
+func (s *StubRouterRepoUser) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+	return nil, nil
+}
 
 var _ repository.UserRepo = (*StubRouterRepoUser)(nil)
 
@@ -253,5 +263,56 @@ func (s *StubRouterRepoMainItem) CountByTeam(_ context.Context, _ uint) (int64, 
 func (s *StubRouterRepoMainItem) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
 	return nil, nil
 }
+func (s *StubRouterRepoMainItem) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
+	return nil, nil
+}
+func (s *StubRouterRepoMainItem) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
+	return nil, nil
+}
 
 var _ repository.MainItemRepo = (*StubRouterRepoMainItem)(nil)
+
+// StubReportSvc is a stub ReportService for test wiring.
+type StubReportSvc struct{}
+
+func (s *StubReportSvc) Preview(_ context.Context, _ uint, _ time.Time) (*dto.ReportPreview, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+func (s *StubReportSvc) ExportMarkdown(_ context.Context, _ uint, _ time.Time) ([]byte, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+var _ service.ReportService = (*StubReportSvc)(nil)
+
+// StubViewSvc is a stub ViewService for test wiring.
+type StubViewSvc struct{}
+
+func (s *StubViewSvc) WeeklyComparison(_ context.Context, _ uint, _ time.Time) (*dto.WeeklyViewResponse, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+func (s *StubViewSvc) GanttView(_ context.Context, _ uint, _ dto.GanttFilter) (*dto.GanttResult, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+func (s *StubViewSvc) TableView(_ context.Context, _ uint, _ dto.TableFilter, _ dto.Pagination) (*dto.PageResult[dto.TableRow], error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+func (s *StubViewSvc) TableExportCSV(_ context.Context, _ uint, _ dto.TableFilter) ([]byte, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+var _ service.ViewService = (*StubViewSvc)(nil)
+
+// StubProgressSvc is a stub ProgressService for test wiring.
+type StubProgressSvc struct{}
+
+func (s *StubProgressSvc) Append(_ context.Context, _, _, _ uint, _ float64, _, _, _ string, _ bool) (*model.ProgressRecord, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+func (s *StubProgressSvc) CorrectCompletion(_ context.Context, _, _ uint, _ float64) error {
+	return fmt.Errorf("stub: not implemented")
+}
+func (s *StubProgressSvc) List(_ context.Context, _, _ uint) ([]model.ProgressRecord, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+var _ service.ProgressService = (*StubProgressSvc)(nil)

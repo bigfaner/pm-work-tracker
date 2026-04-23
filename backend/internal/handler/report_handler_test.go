@@ -63,7 +63,7 @@ func depsWithReportSvc(t *testing.T, svc *mockReportService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	deps.Report = NewReportHandlerWithDeps(svc)
+	deps.Report = NewReportHandler(svc)
 	return deps
 }
 
@@ -217,7 +217,7 @@ func TestWeeklyPreview_RequiresTeamMembership(t *testing.T) {
 	deps, db := testDeps(t)
 	// Ensure user ID=99 exists so AuthMiddleware doesn't return 401
 	db.Create(&model.User{BaseModel: model.BaseModel{ID: 99}, Username: "testuser99", DisplayName: "Test User 99"})
-	deps.Report = NewReportHandlerWithDeps(svc)
+	deps.Report = NewReportHandler(svc)
 	// default TeamRepo from testDeps has no members
 	r := SetupRouter(deps, nil)
 

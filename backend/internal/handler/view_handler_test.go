@@ -22,10 +22,6 @@ import (
 // ---------------------------------------------------------------------------
 
 type mockViewService struct {
-	weeklyResult struct {
-		result *dto.WeeklyViewResult
-		err    error
-	}
 	comparisonResult struct {
 		result *dto.WeeklyViewResponse
 		err    error
@@ -44,7 +40,6 @@ type mockViewService struct {
 	}
 
 	// capture calls
-	weeklyCalled  bool
 	lastTeamID    uint
 	lastWeekStart time.Time
 
@@ -59,13 +54,6 @@ type mockViewService struct {
 
 	csvCalled bool
 	lastCSV   dto.TableFilter
-}
-
-func (m *mockViewService) WeeklyView(_ context.Context, teamID uint, weekStart time.Time) (*dto.WeeklyViewResult, error) {
-	m.weeklyCalled = true
-	m.lastTeamID = teamID
-	m.lastWeekStart = weekStart
-	return m.weeklyResult.result, m.weeklyResult.err
 }
 
 func (m *mockViewService) WeeklyComparison(_ context.Context, teamID uint, weekStart time.Time) (*dto.WeeklyViewResponse, error) {
@@ -106,7 +94,7 @@ func depsWithViewSvc(t *testing.T, svc *mockViewService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	deps.View = NewViewHandlerWithDeps(svc)
+	deps.View = NewViewHandler(svc)
 	return deps
 }
 
@@ -166,7 +154,7 @@ func TestWeeklyView_MissingWeekStart(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.False(t, svc.weeklyCalled)
+	assert.False(t, svc.comparisonCalled)
 }
 
 func TestWeeklyView_InvalidDateFormat(t *testing.T) {
@@ -181,7 +169,7 @@ func TestWeeklyView_InvalidDateFormat(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.False(t, svc.weeklyCalled)
+	assert.False(t, svc.comparisonCalled)
 }
 
 func TestWeeklyView_NotAMonday(t *testing.T) {
@@ -202,7 +190,7 @@ func TestWeeklyView_NotAMonday(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	require.NoError(t, err)
 	assert.Equal(t, "VALIDATION_ERROR", resp["code"])
-	assert.False(t, svc.weeklyCalled)
+	assert.False(t, svc.comparisonCalled)
 }
 
 func TestWeeklyView_ServiceError(t *testing.T) {
@@ -504,7 +492,7 @@ func TestWeeklyView_RequiresAuth(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.False(t, svc.weeklyCalled)
+	assert.False(t, svc.comparisonCalled)
 }
 
 func TestGanttView_RequiresAuth(t *testing.T) {
@@ -552,7 +540,7 @@ func TestWeeklyView_RequiresTeamMembership(t *testing.T) {
 	// Ensure user ID=99 exists so AuthMiddleware doesn't return 401
 	db.Create(&model.User{BaseModel: model.BaseModel{ID: 99}, Username: "testuser99", DisplayName: "Test User 99"})
 	// Use a mock team repo that returns no membership (error)
-	deps.View = NewViewHandlerWithDeps(svc)
+	deps.View = NewViewHandler(svc)
 	// default TeamRepo from testDeps has no members, so FindMember returns error
 	r := SetupRouter(deps, nil)
 
@@ -563,5 +551,5 @@ func TestWeeklyView_RequiresTeamMembership(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusForbidden, w.Code)
-	assert.False(t, svc.weeklyCalled)
+	assert.False(t, svc.comparisonCalled)
 }

@@ -79,13 +79,13 @@ func rbacTestEnv(t *testing.T) (*gin.Engine, *gorm.DB) {
 		Team:       NewTeamHandler(&StubTeamSvc{}, &StubRouterRepoUser{}),
 		MainItem:   NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, &StubRouterRepoSubItem{}),
 		SubItem:    NewSubItemHandler(&StubSubItemSvc{}),
-		Progress:   NewProgressHandler(),
+		Progress:   NewProgressHandler(&StubProgressSvc{}, &StubRouterRepoUser{}),
 		ItemPool:   NewItemPoolHandler(&StubItemPoolSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMainItem{}),
-		View:       NewViewHandler(),
-		Report:     NewReportHandler(),
+		View:       NewViewHandler(&StubViewSvc{}),
+		Report:     NewReportHandler(&StubReportSvc{}),
 		Admin:      NewAdminHandler(&StubAdminSvc{}),
 		Role:       NewRoleHandler(roleSvc),
-		Permission: NewPermissionHandlerWithDeps(roleSvc),
+		Permission: NewPermissionHandler(roleSvc),
 	}
 	r := SetupRouter(deps, nil)
 	return r, db
