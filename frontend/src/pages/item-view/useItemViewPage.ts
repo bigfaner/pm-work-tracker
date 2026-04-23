@@ -7,6 +7,7 @@ import { listMembersApi } from '@/api/teams'
 import { MainItem, SubItem } from '@/types'
 import { formatDate } from '@/lib/format'
 import { useMemberName } from '@/hooks/useMemberName'
+import { useToast } from '@/components/ui/toast'
 import type { CreateMainItemFormState } from './CreateMainItemDialog'
 import type { EditMainItemFormState } from './EditMainItemDialog'
 import type { CreateSubItemFormState } from './CreateSubItemDialog'
@@ -19,6 +20,7 @@ const DEFAULT_PAGE_SIZE = 20
 
 export function useItemViewPage(teamId: number | null) {
   const qc = useQueryClient()
+  const { addToast } = useToast()
 
   // View mode
   const [viewMode, setViewMode] = useState<ViewMode>('summary')
@@ -30,6 +32,8 @@ export function useItemViewPage(teamId: number | null) {
 
   // Summary view: infinite scroll
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const hasNextPageRef = useRef(false)
+  const isFetchingNextPageRef = useRef(false)
 
   // Detail view: pagination
   const [currentPage, setCurrentPage] = useState(1)
@@ -121,6 +125,9 @@ export function useItemViewPage(teamId: number | null) {
   const summaryItems = filteredItems
   const hasMoreSummary = !!hasNextPage
 
+  hasNextPageRef.current = hasNextPage
+  isFetchingNextPageRef.current = isFetchingNextPage
+
   useEffect(() => {
     if (viewMode !== 'summary') return
     const sentinel = sentinelRef.current
@@ -128,7 +135,7 @@ export function useItemViewPage(teamId: number | null) {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+        if (entries[0].isIntersecting && hasNextPageRef.current && !isFetchingNextPageRef.current) {
           fetchNextPage()
         }
       },
@@ -136,7 +143,7 @@ export function useItemViewPage(teamId: number | null) {
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [viewMode, hasNextPage, isFetchingNextPage, fetchNextPage])
+  }, [viewMode, fetchNextPage])
 
   // --- Detail view: pagination ---
 
@@ -247,7 +254,8 @@ export function useItemViewPage(teamId: number | null) {
   const handleRefresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
     qc.invalidateQueries({ queryKey: ['subItems', teamId] })
-  }, [qc, teamId])
+    addToast('数据已刷新', 'success')
+  }, [qc, teamId, addToast])
 
   const handleCreate = useCallback(() => {
     if (!createForm.title.trim() || !createForm.assigneeId || !createForm.startDate || !createForm.expectedEndDate) return
@@ -301,10 +309,10 @@ export function useItemViewPage(teamId: number | null) {
     })
   }, [editForm, editTarget, updateMutation])
 
-  const openAppendDialog = useCallback((subItemId: number, subItemTitle: string) => {
+  const openAppendDialog = useCallback((subItemId: number, subItemTitle: string, subItemCompletion: number) => {
     setAppendTarget(subItemId)
     setAppendTargetName(subItemTitle)
-    setAppendForm({ completion: '', achievement: '', blocker: '' })
+    setAppendForm({ completion: String(subItemCompletion), achievement: '', blocker: '' })
     setAppendOpen(true)
   }, [])
 

@@ -398,6 +398,8 @@ export interface ReportSubItem {
   id: number
   title: string
   completion: number
+  assigneeId?: number | null
+  assigneeName?: string
   achievements: string[]
   blockers: string[]
 }

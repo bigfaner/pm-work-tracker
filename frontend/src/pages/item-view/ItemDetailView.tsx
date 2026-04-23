@@ -11,7 +11,7 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table'
-import { Pagination, PaginationPageSize } from '@/components/ui/pagination'
+import PaginationBar from '@/components/shared/PaginationBar'
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import StatusTransitionDropdown from '@/components/shared/StatusTransitionDropdown'
 import { Badge } from '@/components/ui/badge'
@@ -34,7 +34,7 @@ interface DetailViewProps {
   totalItems: number
   onAddSubItem: (mainItemId: number, mainItemTitle: string) => void
   onEditMainItem: (item: MainItem) => void
-  onAppendProgress: (subItemId: number, subItemTitle: string) => void
+  onAppendProgress: (subItemId: number, subItemTitle: string, subItemCompletion: number) => void
   onEditSubItem: (sub: SubItem) => void
 }
 
@@ -58,20 +58,20 @@ export default function ItemDetailView({
 }: DetailViewProps) {
   return (
     <div className="rounded-xl border border-border bg-white shadow-sm">
-      <div data-testid="detail-table">
-        <Table>
+      <div data-testid="detail-table" className="overflow-x-auto">
+        <Table className="min-w-[1100px]">
           <TableHeader>
             <TableRow>
-              <TableHead>编号</TableHead>
-              <TableHead>优先级</TableHead>
-              <TableHead>标题</TableHead>
-              <TableHead>负责人</TableHead>
-              <TableHead>进度</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead>开始时间</TableHead>
-              <TableHead>预期完成时间</TableHead>
-              <TableHead>结束时间</TableHead>
-              <TableHead>操作</TableHead>
+              <TableHead className="whitespace-nowrap">编号</TableHead>
+              <TableHead className="whitespace-nowrap">优先级</TableHead>
+              <TableHead className="min-w-[180px]">标题</TableHead>
+              <TableHead className="whitespace-nowrap">负责人</TableHead>
+              <TableHead className="whitespace-nowrap">进度</TableHead>
+              <TableHead className="whitespace-nowrap">状态</TableHead>
+              <TableHead className="whitespace-nowrap">开始时间</TableHead>
+              <TableHead className="whitespace-nowrap">预期完成时间</TableHead>
+              <TableHead className="whitespace-nowrap">结束时间</TableHead>
+              <TableHead className="whitespace-nowrap">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -80,7 +80,7 @@ export default function ItemDetailView({
               return (
                 <Fragment key={item.id}>
                   <TableRow className={subs?.length ? 'bg-blue-50/40' : ''}>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       <span className="font-mono text-xs">{item.code}</span>
                     </TableCell>
                     <TableCell>
@@ -91,32 +91,32 @@ export default function ItemDetailView({
                         {item.title}
                       </Link>
                     </TableCell>
-                    <TableCell>{memberName(item.assigneeId)}</TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">{memberName(item.assigneeId)}</TableCell>
+                    <TableCell className="whitespace-nowrap">
                       <span className="text-xs">{item.completion}%</span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       <StatusTransitionDropdown currentStatus={item.status} itemType="main" teamId={teamId} itemId={item.id} onStatusChanged={onRefresh} />
                     </TableCell>
-                    <TableCell className="text-xs">{formatDate(item.startDate)}</TableCell>
-                    <TableCell className="text-xs">
+                    <TableCell className="text-xs whitespace-nowrap">{formatDate(item.startDate)}</TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">
                       <span>{formatDate(item.expectedEndDate)}</span>
                       {isOverdue(item.expectedEndDate ?? undefined, item.status) && (
                         <Badge variant="error" className="ml-1">延期</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-xs">{formatDate(item.actualEndDate)}</TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">{formatDate(item.actualEndDate)}</TableCell>
                     <TableCell>
                       <div className="flex gap-0.5 whitespace-nowrap">
-                        <Link to={`/items/${item.id}`}><Button variant="ghost" size="sm" disabled={!!MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal}><Pencil size={14} />编辑</Button></Link>
-                        <Button variant="ghost" size="sm" disabled={!!MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal} onClick={() => onAddSubItem(item.id, item.title)}><Plus size={14} />添加子事项</Button>
+                        <Link to={`/items/${item.id}`}><Button variant="ghost" size="sm" className="text-primary-600" disabled={!!MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal}><Pencil size={14} />编辑</Button></Link>
+                        <Button variant="ghost" size="sm" className="text-primary-600" disabled={!!MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal} onClick={() => onAddSubItem(item.id, item.title)}><Plus size={14} />添加子事项</Button>
                       </div>
                     </TableCell>
                   </TableRow>
                   {subs?.map((sub) => (
                     <TableRow key={`sub-${sub.id}`} className="bg-bg-alt/60">
-                      <TableCell>
-                        <span className="font-mono text-[11px] text-tertiary ml-4">SI-{String(item.id).padStart(3, '0')}-{String(sub.id).slice(-2)}</span>
+                      <TableCell className="whitespace-nowrap">
+                        <span className="font-mono text-[11px] text-tertiary ml-4">{sub.code}</span>
                       </TableCell>
                       <TableCell>
                         <PriorityBadge priority={sub.priority} />
@@ -126,23 +126,23 @@ export default function ItemDetailView({
                           {sub.title}
                         </Link>
                       </TableCell>
-                      <TableCell>{memberName(sub.assigneeId)}</TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">{memberName(sub.assigneeId)}</TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <span className="text-xs">{sub.completion}%</span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <StatusTransitionDropdown currentStatus={sub.status} itemType="sub" teamId={teamId} itemId={sub.id} onStatusChanged={onRefresh} />
                       </TableCell>
-                      <TableCell className="text-xs">{formatDate(sub.startDate)}</TableCell>
-                      <TableCell className="text-xs">{formatDate(sub.expectedEndDate)}</TableCell>
-                      <TableCell className="text-xs">{formatDate(sub.actualEndDate)}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{formatDate(sub.startDate)}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{formatDate(sub.expectedEndDate)}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{formatDate(sub.actualEndDate)}</TableCell>
                       <TableCell>
                         <div className="flex gap-0.5 whitespace-nowrap">
                           <PermissionGuard code="main_item:update">
-                            <Button variant="ghost" size="sm" disabled={!!SUB_ITEM_STATUSES[sub.status as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onEditSubItem(sub)}><Pencil size={14} />编辑</Button>
+                            <Button variant="ghost" size="sm" className="text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.status as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onEditSubItem(sub)}><Pencil size={14} />编辑</Button>
                           </PermissionGuard>
                           <PermissionGuard code="progress:update">
-                            <Button variant="ghost" size="sm" disabled={!!SUB_ITEM_STATUSES[sub.status as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onAppendProgress(sub.id, sub.title)}><Plus size={14} />追加进度</Button>
+                            <Button variant="ghost" size="sm" className="text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.status as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onAppendProgress(sub.id, sub.title, sub.completion)}><Plus size={14} />追加进度</Button>
                           </PermissionGuard>
                         </div>
                       </TableCell>
@@ -154,19 +154,15 @@ export default function ItemDetailView({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-center gap-3 px-5 py-3 border-t border-border">
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={onPageChange}
-        />
-        <PaginationPageSize
-          pageSize={pageSize}
-          onPageSizeChange={onPageSizeChange}
-          options={[5, 10, 20, 50]}
-        />
-        <span className="text-[13px] text-tertiary">共 {totalItems} 条</span>
-      </div>
+      <PaginationBar
+        currentPage={currentPage}
+        totalPages={totalPages}
+        total={totalItems}
+        onPageChange={onPageChange}
+        pageSize={pageSize}
+        onPageSizeChange={onPageSizeChange}
+        pageSizeOptions={[5, 10, 20, 50]}
+      />
     </div>
   )
 }

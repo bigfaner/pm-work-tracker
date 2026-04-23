@@ -298,7 +298,7 @@ export default function SubItemDetailPage() {
             <CardHeader>
               <h3 className="text-sm font-semibold text-primary m-0">进度记录</h3>
               <PermissionGuard code="progress:update">
-                <Button size="sm" disabled={isTerminalStatus} onClick={() => setAppendOpen(true)}>追加进度</Button>
+                <Button size="sm" disabled={isTerminalStatus} onClick={() => { setAppendForm(f => ({ ...f, completion: String(lastCompletion) })); setAppendOpen(true) }}>追加进度</Button>
               </PermissionGuard>
             </CardHeader>
             <CardContent>

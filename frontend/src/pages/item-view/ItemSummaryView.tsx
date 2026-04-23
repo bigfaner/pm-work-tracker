@@ -23,7 +23,7 @@ interface SummaryViewProps {
   onRefresh: () => void
   onAddSubItem: (mainItemId: number, mainItemTitle: string) => void
   onEditMainItem: (item: MainItem) => void
-  onAppendProgress: (subItemId: number, subItemTitle: string) => void
+  onAppendProgress: (subItemId: number, subItemTitle: string, subItemCompletion: number) => void
   onEditSubItem: (sub: SubItem) => void
 }
 
@@ -115,8 +115,8 @@ export default function ItemSummaryView({
 
               {/* Actions */}
               <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" size="sm" disabled={!!MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal} onClick={() => onEditMainItem(item)}><Pencil size={14} />编辑</Button>
-                <Button variant="ghost" size="sm" disabled={!!MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal} onClick={() => onAddSubItem(item.id, item.title)}><Plus size={14} />新增子事项</Button>
+                <Button variant="ghost" size="sm" className="text-primary-600" disabled={!!MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal} onClick={() => onEditMainItem(item)}><Pencil size={14} />编辑</Button>
+                <Button variant="ghost" size="sm" className="text-primary-600" disabled={!!MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal} onClick={() => onAddSubItem(item.id, item.title)}><Plus size={14} />新增子事项</Button>
               </div>
             </div>
 
@@ -135,7 +135,7 @@ export default function ItemSummaryView({
                     className="flex items-center gap-2 py-2 border-b border-border/50 last:border-b-0"
                   >
                     <span className="font-mono text-[11px] text-tertiary bg-bg-alt px-1.5 py-0.5 rounded">
-                      SI-{String(item.id).padStart(3, '0')}-{String(sub.id).slice(-2)}
+                      {sub.code}
                     </span>
                     <PriorityBadge priority={sub.priority} className="text-[10px]" />
                     <Link
@@ -167,10 +167,10 @@ export default function ItemSummaryView({
                       <StatusTransitionDropdown currentStatus={sub.status} itemType="sub" teamId={teamId} itemId={sub.id} onStatusChanged={onRefresh} />
                     </div>
                     <PermissionGuard code="main_item:update">
-                      <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5" disabled={!!SUB_ITEM_STATUSES[sub.status as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onEditSubItem(sub)}><Pencil size={12} />编辑</Button>
+                      <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5 text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.status as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onEditSubItem(sub)}><Pencil size={12} />编辑</Button>
                     </PermissionGuard>
                     <PermissionGuard code="progress:update">
-                      <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5" disabled={!!SUB_ITEM_STATUSES[sub.status as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onAppendProgress(sub.id, sub.title)}><Plus size={12} />追加进度</Button>
+                      <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5 text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.status as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onAppendProgress(sub.id, sub.title, sub.completion)}><Plus size={12} />追加进度</Button>
                     </PermissionGuard>
                   </div>
                 ))}

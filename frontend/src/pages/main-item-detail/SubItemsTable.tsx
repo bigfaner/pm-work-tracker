@@ -45,7 +45,7 @@ export default function SubItemsTable({
     <Card>
       <CardHeader>
         <h3 className="text-sm font-semibold text-primary m-0">子事项列表</h3>
-        <Button size="sm" disabled={mainTerminal} onClick={onCreateSub}>+ 新增子事项</Button>
+        <Button variant="ghost" size="sm" className="text-primary-600" disabled={mainTerminal} onClick={onCreateSub}>+ 新增子事项</Button>
       </CardHeader>
       {subItems.length > 0 && (
         <Table>
@@ -95,8 +95,8 @@ export default function SubItemsTable({
                 <TableCell className="text-xs">{formatDate(sub.actualEndDate)}</TableCell>
                 <TableCell>
                   <div className="flex gap-0.5">
-                    <Button variant="ghost" size="sm" disabled={mainTerminal} onClick={() => onEditSub(sub)}><Pencil size={12} />编辑</Button>
-                    <Button variant="ghost" size="sm" disabled={mainTerminal} onClick={() => onAppendProgress(sub)}><Plus size={12} />追加进度</Button>
+                    <Button variant="ghost" size="sm" className="text-primary-600" disabled={mainTerminal} onClick={() => onEditSub(sub)}><Pencil size={12} />编辑</Button>
+                    <Button variant="ghost" size="sm" className="text-primary-600" disabled={mainTerminal} onClick={() => onAppendProgress(sub)}><Plus size={12} />追加进度</Button>
                   </div>
                 </TableCell>
               </TableRow>
