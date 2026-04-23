@@ -41,6 +41,20 @@ func (r *teamRepo) List(ctx context.Context) ([]*model.Team, error) {
 	return teams, err
 }
 
+func (r *teamRepo) ListFiltered(ctx context.Context, search string, offset, limit int) ([]*model.Team, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.Team{})
+	if search != "" {
+		q = q.Where("name LIKE ? OR code LIKE ?", "%"+search+"%", "%"+search+"%")
+	}
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var teams []*model.Team
+	err := q.Order("created_at DESC").Offset(offset).Limit(limit).Find(&teams).Error
+	return teams, total, err
+}
+
 func (r *teamRepo) Update(ctx context.Context, team *model.Team) error {
 	return r.db.WithContext(ctx).Save(team).Error
 }
@@ -92,10 +106,13 @@ func (r *teamRepo) ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMem
 	var results []*dto.TeamMemberDTO
 	err := r.db.WithContext(ctx).
 		Table("team_members").
-		Select("team_members.id, team_members.team_id, team_members.user_id, roles.name as role, team_members.joined_at, users.display_name, users.username").
-			Joins("LEFT JOIN users ON users.id = team_members.user_id").
-			Joins("LEFT JOIN roles ON roles.id = team_members.role_id").
-			Where("team_members.team_id = ?", teamID).
+		Select("team_members.id, team_members.team_id, team_members.user_id, " +
+			"COALESCE(roles.name, CASE WHEN teams.pm_id = team_members.user_id THEN 'pm' ELSE 'member' END) as role, " +
+			"team_members.joined_at, users.display_name, users.username").
+		Joins("LEFT JOIN users ON users.id = team_members.user_id").
+		Joins("LEFT JOIN roles ON roles.id = team_members.role_id").
+		Joins("LEFT JOIN teams ON teams.id = team_members.team_id").
+		Where("team_members.team_id = ?", teamID).
 		Scan(&results).Error
 	return results, err
 }

@@ -55,14 +55,21 @@ func (h *TeamHandler) Create(c *gin.Context) {
 func (h *TeamHandler) List(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	isSuperAdmin := middleware.IsSuperAdmin(c)
+	search := c.Query("search")
+	page, pageSize := parsePagination(c, 20)
 
-	teams, err := h.teamSvc.ListTeams(c.Request.Context(), userID, isSuperAdmin)
+	teams, total, err := h.teamSvc.ListTeams(c.Request.Context(), userID, isSuperAdmin, search, page, pageSize)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
 	}
 
-	apperrors.RespondOK(c, teams)
+	apperrors.RespondOK(c, gin.H{
+		"items":    teams,
+		"total":    total,
+		"page":     page,
+		"pageSize": pageSize,
+	})
 }
 
 // Get handles GET /api/v1/teams/:teamId
@@ -172,15 +179,52 @@ func (h *TeamHandler) RemoveMember(c *gin.Context) {
 	apperrors.RespondOK(c, nil)
 }
 
+// UpdateMemberRole handles PUT /api/v1/teams/:teamId/members/:userId/role
+func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
+	teamID := middleware.GetTeamID(c)
+	pmID := middleware.GetUserID(c)
+
+	targetUserIDStr := c.Param("userId")
+	targetUserID, err := strconv.ParseUint(targetUserIDStr, 10, 64)
+	if err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	var req dto.UpdateMemberRoleReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	if err := h.teamSvc.UpdateMemberRole(c.Request.Context(), pmID, teamID, uint(targetUserID), req.RoleID); err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, nil)
+}
+
 // TransferPM handles PUT /api/v1/teams/:teamId/pm
 func (h *TeamHandler) TransferPM(c *gin.Context) {
 	teamID := middleware.GetTeamID(c)
-	pmID := middleware.GetUserID(c)
+	callerID := middleware.GetUserID(c)
 
 	var req dto.TransferPMReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
+	}
+
+	// SuperAdmin is not the team PM, so fetch the actual PM ID to pass the ownership check.
+	pmID := callerID
+	if middleware.IsSuperAdmin(c) {
+		team, err := h.teamSvc.GetTeam(c.Request.Context(), teamID)
+		if err != nil {
+			apperrors.RespondError(c, err)
+			return
+		}
+		pmID = team.PmID
 	}
 
 	err := h.teamSvc.TransferPM(c.Request.Context(), pmID, teamID, req.NewPmUserID)

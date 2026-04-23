@@ -24,6 +24,9 @@ type TeamRepo interface {
 	UpdateMember(ctx context.Context, member *model.TeamMember) error
 	FindPMMembers(ctx context.Context, teamIDs []uint) (map[uint]string, error)
 
+	// Paginated list with optional search
+	ListFiltered(ctx context.Context, search string, offset, limit int) ([]*model.Team, int64, error)
+
 	// Admin operations
 	ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error)
 	FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[uint][]dto.TeamSummary, error)
