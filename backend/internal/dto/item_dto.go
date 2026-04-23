@@ -151,6 +151,9 @@ type WeeklyStats struct {
 	NewlyCompleted int `json:"newlyCompleted"`
 	InProgress     int `json:"inProgress"`
 	Blocked        int `json:"blocked"`
+	Pending        int `json:"pending"`
+	Pausing        int `json:"pausing"`
+	Overdue        int `json:"overdue"`
 }
 
 // WeeklyComparisonGroup groups sub-items under a main item with week comparison.

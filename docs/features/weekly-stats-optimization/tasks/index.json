@@ -4,16 +4,13 @@
   "design": "design/tech-design.md",
   "created": "2026-04-23",
   "status": "planning",
-  "statusEnum": ["pending", "in_progress", "completed", "blocked", "skipped"],
-  "priorityEnum": ["P0", "P1", "P2"],
   "tasks": {
     "1.1-backend-dto-weekly-stats": {
       "id": "1.1",
       "title": "Backend DTO: WeeklyStats 新增 3 字段",
       "priority": "P0",
       "estimatedTime": "0.5h",
-      "dependencies": [],
-      "status": "pending",
+      "status": "completed",
       "file": "1.1-backend-dto-weekly-stats.md",
       "record": "records/1.1-backend-dto-weekly-stats.md"
     },
@@ -22,7 +19,6 @@
       "title": "Frontend Type: WeeklyStats 接口新增 3 字段",
       "priority": "P0",
       "estimatedTime": "0.5h",
-      "dependencies": [],
       "status": "pending",
       "file": "1.2-frontend-type-weekly-stats.md",
       "record": "records/1.2-frontend-type-weekly-stats.md"
@@ -32,7 +28,9 @@
       "title": "Backend Service: buildWeeklyGroups 新增计数逻辑",
       "priority": "P0",
       "estimatedTime": "2h",
-      "dependencies": ["1.1"],
+      "dependencies": [
+        "1.1"
+      ],
       "status": "pending",
       "file": "2.1-backend-service-build-weekly-groups.md",
       "record": "records/2.1-backend-service-build-weekly-groups.md"
@@ -42,7 +40,6 @@
       "title": "Frontend lib: isOverdue 签名更新及调用方同步",
       "priority": "P0",
       "estimatedTime": "1.5h",
-      "dependencies": [],
       "status": "pending",
       "file": "2.2-frontend-lib-is-overdue.md",
       "record": "records/2.2-frontend-lib-is-overdue.md"
@@ -52,7 +49,9 @@
       "title": "Backend Unit Tests: buildWeeklyGroups 7 卡片计数",
       "priority": "P0",
       "estimatedTime": "2h",
-      "dependencies": ["2.1"],
+      "dependencies": [
+        "2.1"
+      ],
       "status": "pending",
       "file": "3.1-backend-unit-tests.md",
       "record": "records/3.1-backend-unit-tests.md"
@@ -62,7 +61,10 @@
       "title": "Frontend Component: StatsBar 7 列 + Tooltip",
       "priority": "P0",
       "estimatedTime": "3h",
-      "dependencies": ["1.2", "2.2"],
+      "dependencies": [
+        "1.2",
+        "2.2"
+      ],
       "status": "pending",
       "file": "3.2-frontend-statsbar-component.md",
       "record": "records/3.2-frontend-statsbar-component.md"
@@ -72,10 +74,25 @@
       "title": "Frontend Unit Tests: StatsBar + isOverdue",
       "priority": "P1",
       "estimatedTime": "2h",
-      "dependencies": ["3.2", "2.2"],
+      "dependencies": [
+        "3.2",
+        "2.2"
+      ],
       "status": "pending",
       "file": "4.1-frontend-unit-tests.md",
       "record": "records/4.1-frontend-unit-tests.md"
     }
-  }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
 }
