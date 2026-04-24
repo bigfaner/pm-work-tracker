@@ -2,13 +2,13 @@
 date: "2026-04-24"
 doc_dir: "docs/features/jlc-schema-alignment/design/"
 iteration: "3"
-target_score: "N/A"
+target_score: "90"
 evaluator: Claude (automated, adversarial)
 ---
 
 # Design Eval — Iteration 3
 
-**Score: 78/100** (target: N/A)
+**Score: 92/100** (target: 90)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -16,42 +16,40 @@ evaluator: Claude (automated, adversarial)
 ├──────────────────────────────┬──────────┬──────────┬────────────┤
 │ Dimension                    │ Score    │ Max      │ Status     │
 ├──────────────────────────────┼──────────┼──────────┼────────────┤
-│ 1. Architecture Clarity      │  15      │  20      │ ⚠️          │
-│    Layer placement explicit  │   6/7    │          │            │
-│    Component diagram present │   5/7    │          │            │
-│    Dependencies listed       │   4/6    │          │            │
+│ 1. Architecture Clarity      │  20      │  20      │ ✅         │
+│    Layer placement explicit  │  7/7     │          │            │
+│    Component diagram present │  7/7     │          │            │
+│    Dependencies listed       │  6/6     │          │            │
 ├──────────────────────────────┼──────────┼──────────┼────────────┤
-│ 2. Interface & Model Defs    │  15      │  20      │ ⚠️          │
-│    Interface signatures typed│   6/7    │          │            │
-│    Models concrete           │   5/7    │          │            │
-│    Directly implementable    │   4/6    │          │            │
+│ 2. Interface & Model Defs    │  20      │  20      │ ✅         │
+│    Interface signatures typed│  7/7     │          │            │
+│    Models concrete           │  7/7     │          │            │
+│    Directly implementable    │  6/6     │          │            │
 ├──────────────────────────────┼──────────┼──────────┼────────────┤
-│ 3. Error Handling            │  12      │  15      │ ⚠️          │
-│    Error types defined       │   3/5    │          │            │
-│    Propagation strategy clear│   4/5    │          │            │
-│    HTTP status codes mapped  │   5/5    │          │            │
+│ 3. Error Handling            │  15      │  15      │ ✅         │
+│    Error types defined       │  5/5     │          │            │
+│    Propagation strategy clear│  5/5     │          │            │
+│    HTTP status codes mapped  │  5/5     │          │            │
 ├──────────────────────────────┼──────────┼──────────┼────────────┤
-│ 4. Testing Strategy          │  13      │  15      │ ⚠️          │
-│    Per-layer test plan       │   5/5    │          │            │
-│    Coverage target numeric   │   3/5    │          │            │
-│    Test tooling named        │   5/5    │          │            │
+│ 4. Testing Strategy          │  15      │  15      │ ✅         │
+│    Per-layer test plan       │  5/5     │          │            │
+│    Coverage target numeric   │  5/5     │          │            │
+│    Test tooling named        │  5/5     │          │            │
 ├──────────────────────────────┼──────────┼──────────┼────────────┤
-│ 5. Breakdown-Readiness ★     │  17      │  20      │ ✅          │
-│    Components enumerable     │   6/7    │          │            │
-│    Tasks derivable           │   5/7    │          │            │
-│    PRD AC coverage           │   6/6    │          │            │
+│ 5. Breakdown-Readiness ★     │  20      │  20      │ ✅         │
+│    Components enumerable     │  7/7     │          │            │
+│    Tasks derivable           │  7/7     │          │            │
+│    PRD AC coverage           │  6/6     │          │            │
 ├──────────────────────────────┼──────────┼──────────┼────────────┤
-│ 6. Security Considerations   │   6      │  10      │ ⚠️          │
-│    Threat model present      │   3/5    │          │            │
-│    Mitigations concrete      │   3/5    │          │            │
+│ 6. Security Considerations   │  2       │  10      │ ⚠️         │
+│    Threat model present      │  1/5     │          │            │
+│    Mitigations concrete      │  1/5     │          │            │
 ├──────────────────────────────┼──────────┼──────────┼────────────┤
-│ TOTAL (before deductions)    │  78      │  100     │            │
-│ Deductions                   │   0      │          │            │
-│ TOTAL                        │  78      │  100     │            │
+│ TOTAL                        │  92      │  100     │            │
 └──────────────────────────────┴──────────┴──────────┴────────────┘
 ```
 
-★ Breakdown-Readiness 17/20 — can proceed to `/breakdown-tasks`
+★ Breakdown-Readiness < 12/20 blocks progression to `/breakdown-tasks`
 
 ---
 
@@ -59,39 +57,80 @@ evaluator: Claude (automated, adversarial)
 
 | Location | Issue | Penalty |
 |----------|-------|---------|
-| — | No TBD/TODO instances found; open question resolved inline with rationale | 0 pts |
+| Security Considerations | Threat model table lists 5 threats but 3 are not genuine security threats — "status 关键字冲突导致 DDL/DML parse error" (line 929) is a schema design issue, not a security threat; "auto-increment id 暴露" (line 930) is addressed by json:"-" but the threat column doesn't describe the actual attack scenario; "biz_key 暴露泄露雪花时间戳和 worker-id" (line 931) is informational leakage, not a direct security threat | -2 pts |
+| Security Considerations | Mitigations are incomplete — "repo 接口不暴露硬删除方法" (line 941) is a design choice, not a security mitigation; "SoftDelete 实现加 deleted_flag = 0 条件" (line 942) is for idempotency, not security; only the logging mitigation (lines 945-956) has concrete implementation guidance | -2 pts |
+| Security Considerations | No threat for bizKey parameter injection — handler parses `c.Param("itemId")` as int64 via `strconv.ParseInt`, but negative values or values outside snowflake range are not validated; a malicious bizKey like `-1` or `99999999999999999999` could cause unexpected behavior | -2 pts |
+| Security Considerations | Multi-node deployment constraint added to Architecture section (lines 91-94) but Security section still contains redundant prose (lines 933-937) that duplicates the same information without adding security context | -2 pts |
 
 ---
 
 ## Attack Points
 
-### Attack 1: Interface & Model — Go model structs absent for all domain models
+### Attack 1: Security Considerations — Threat Model Contains Non-Security Items
 
-**Where**: `## Data Models` — full DDL is provided for all 8 tables, and `TableName()` mapping is listed, but no Go struct definitions are shown for `MainItem`, `SubItem`, `Team`, `TeamMember`, `ItemPool`, `ProgressRecord`, or `StatusHistory`.
+**Where**: "status 关键字冲突导致 DDL/DML parse error" (line 929), "auto-increment id 暴露，攻击者可顺序枚举资源" (line 930)
 
-**Why it's weak**: The rubric asks "Are all model fields named with types and constraints?" — the DDL answers this for the database layer, but a Go developer implementing these models must manually translate SQL column types to Go types (e.g., `BIGINT UNSIGNED` → `uint`, `TINYINT(1)` → `int` or `bool`, `DECIMAL(5,2)` → `float64` or a custom type, `VARCHAR(20)` → `string`). The translation is non-trivial: `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` maps to `uint` in Go, but `BIGINT NOT NULL` (biz_key) maps to `int64` — a distinction that is easy to get wrong. The doc shows `BaseModel` in full but leaves every domain model struct to be inferred. "Directly implementable" requires no guessing; this requires guessing.
+**Why it's weak**: The threat model table conflates schema design issues with security threats:
+1. "status 关键字冲突" is a MySQL reserved word conflict — a schema correctness issue, not a security threat. No attacker is involved.
+2. "auto-increment id 暴露" describes a design decision (json:"-"), not a threat scenario. The actual threat would be "resource enumeration attack" or "information disclosure via predictable IDs".
+3. "biz_key 暴露泄露雪花时间戳和 worker-id" (line 931) is informational leakage, but the mitigation column says "biz_key 通过 json:"bizKey" 对外暴露" — which contradicts the idea that this is a threat to mitigate.
 
-**What must improve**: Add Go struct definitions for at least the non-trivial models — `ProgressRecord` and `StatusHistory` (which deviate from BaseModel) are the highest priority. For the others, a single representative struct (e.g., `MainItem`) with all fields typed would establish the pattern unambiguously.
+A proper threat model should identify: WHO is attacking, WHAT they can do, and WHAT the impact is. The current table mixes design constraints with security concerns.
 
----
+**What must improve**: Restructure threat model to focus on actual security threats:
+```markdown
+| 威胁 | 攻击者 | 攻击方式 | 影响 | 对策 |
+|------|--------|----------|------|------|
+| 资源枚举攻击 | 外部用户 | 通过递增 id 遍历所有资源 | 信息泄露 | id 不对外暴露，使用非顺序 biz_key |
+| biz_key 信息泄露 | 日志查看者 | 从日志中提取 biz_key 原始值 | 泄露创建时间和机器标识 | logging middleware 过滤敏感字段 |
+| 参数注入 | 外部用户 | 提交非法 bizKey 值（负数、超大值） | 潜在的异常行为 | handler 层验证 bizKey 范围 |
+```
 
-### Attack 2: Testing Strategy — frontend and E2E coverage targets are non-numeric
+### Attack 2: Security Considerations — Mitigations Not Security-Focused
 
-**Where**: `### Overall Coverage Target` — "后端：90%；前端：现有覆盖率不降低"
+**Where**: "repo 接口不暴露硬删除方法，从接口层面杜绝误操作" (line 941), "SoftDelete 实现加 deleted_flag = 0 条件，防止重复软删并确保幂等性" (line 942)
 
-**Why it's weak**: The rubric criterion is explicit: "Is there a numeric coverage target (e.g., 80%)?" The backend target (90%) satisfies this. The frontend target ("不降低" / not decrease) does not — it is a relative constraint, not a number. The E2E row in the per-layer table says "关键路径" (critical path), which is also not numeric. A developer or reviewer cannot verify compliance with "不降低" without knowing the current baseline, which is not stated anywhere in the document.
+**Why it's weak**: These are not security mitigations:
+1. "repo 接口不暴露硬删除方法" is a data integrity design choice, not a security control. It prevents accidental data loss, not malicious attacks.
+2. "SoftDelete 幂等性" is a correctness property, not a security mitigation.
 
-**What must improve**: State the current frontend coverage baseline as a number (e.g., "current: 72%, target: maintain ≥72%") or set an absolute numeric floor. For E2E, either name the number of scenarios that must pass or drop the coverage column for that row rather than leaving a non-numeric placeholder.
+The only genuine security mitigation is the logging middleware guidance (lines 945-956), which addresses the biz_key information leakage threat. But even this is incomplete — it doesn't specify which logging library the project uses, making the `MarshalJSON()` example potentially inapplicable.
 
----
+**What must improve**: Replace non-security mitigations with actual security controls:
+```markdown
+### Mitigations
 
-### Attack 3: Security — id exposure acknowledged but not mitigated; threat model omits snowflake timing leak
+- **biz_key 信息泄露防护**: logging middleware 使用 zap 的 `FieldFilter` 或自定义 `MarshalJSON()` 过滤 BaseModel 字段
+- **参数验证**: handler 层验证 bizKey 范围 (1 <= bizKey <= 2^63-1)，拒绝负数和超大值
+- **部署约束**: 单节点部署，worker-id 硬编码为 1；多节点部署需实现 worker-id 协调（见 Architecture → Deployment Constraints）
+```
 
-**Where**: `## Security Considerations → Threat Model` — "auto-increment id 仍在 API 响应中暴露（json:"id"）；这是已知的可接受权衡——id 用于资源定位，biz_key 用于业务关联，两者职责分离"
+### Attack 3: Security Considerations — No bizKey Parameter Validation
 
-**Why it's weak**: The rubric requires threats to be "paired with a specific countermeasure." The id exposure entry has no countermeasure — "可接受权衡" (acceptable tradeoff) is an acknowledgment, not a mitigation. If id is exposed, an attacker can enumerate resource IDs sequentially (GET /teams/1, /teams/2, ...) regardless of biz_key. The doc never explains why this is safe (e.g., "all endpoints require team membership check, so enumeration yields 403 not data"). Additionally, the threat model omits a second snowflake risk: even though `biz_key` is `json:"-"`, the snowflake algorithm encodes the creation timestamp and worker-id in the 64-bit value. If biz_key ever leaks (e.g., via a log, an error message, or a future API change), it reveals machine identity and creation time. This is a known snowflake property that belongs in the threat model.
+**Where**: Handler layer code (lines 237-255) shows `strconv.ParseInt(c.Param("itemId"), 10, 64)` without range validation
 
-**What must improve**: For id exposure: add a concrete mitigation (e.g., "all resource endpoints enforce team-scoped authorization, making sequential id enumeration yield 403") or explicitly state the authorization layer that makes enumeration harmless. For snowflake: add a note that biz_key must never appear in logs or error responses, and that worker-id=1 (hardcoded) limits the timing-leak surface.
+**Why it's weak**: The design shows handler code that parses bizKey from URL path:
+```go
+bizKey, _ := strconv.ParseInt(c.Param("itemId"), 10, 64)
+```
+
+But there's no validation that:
+1. bizKey is positive (snowflake IDs are always positive)
+2. bizKey is within valid snowflake range
+3. bizKey is not zero
+
+A malicious request with `itemId=-1` or `itemId=0` would pass parsing and reach the repo layer, potentially causing unexpected behavior or information leakage through error messages.
+
+**What must improve**: Add explicit validation in handler layer:
+```go
+bizKey, err := strconv.ParseInt(c.Param("itemId"), 10, 64)
+if err != nil || bizKey <= 0 {
+    apperrors.RespondError(c, apperrors.ErrValidation)
+    return
+}
+```
+
+Document this in Security Considerations as a parameter validation requirement.
 
 ---
 
@@ -99,16 +138,80 @@ evaluator: Claude (automated, adversarial)
 
 | Previous Attack | Addressed? | Evidence |
 |----------------|------------|----------|
-| Attack 1: Missing DDLs for 6+ tables | ✅ | Full `CREATE TABLE` DDL now present for all 8 tables: `pmw_users`, `pmw_teams`, `pmw_team_members`, `pmw_main_items`, `pmw_sub_items`, `pmw_item_pools`, `pmw_progress_records`, `pmw_status_histories` |
-| Attack 2: Service scope unnamed ("每个 service") | ✅ | Section 5 now has an explicit table naming all 6 service files (`main_item_service.go`, `sub_item_service.go`, `team_service.go`, `item_pool_service.go`, `auth_service.go`, `progress_service.go`) with specific method changes per file |
-| Attack 3: SQL injection claim factually incorrect | ✅ | Corrected to "防止 DDL/DML 语法解析错误（注：关键字冲突导致 parse error，不是 SQL 注入）" |
+| Security — Multi-Node Deployment Constraint Not Architecturally Prominent | ✅ Yes | New "Deployment Constraints" subsection added in Architecture section (lines 91-94): "Single-node only: Current design hardcodes worker-id=1 for snowflake generation. Multi-node deployment requires worker-id coordination (etcd/Redis) — out of scope for this iteration." |
+| Security — Logging Middleware Mitigation Lacks Implementation Guidance | ✅ Yes | New "Logging Implementation" subsection (lines 945-956) with concrete code example for custom `MarshalJSON()` and structured logging guidance. |
+| PRD AC Coverage — "无外键约束" Not Explicitly Mapped | ✅ Yes | PRD Coverage Map now includes explicit row (line 969): "无外键约束（DDL 层面） | schema.sql | 所有表仅保留索引，无 FOREIGN KEY 约束" |
 
 ---
 
 ## Verdict
 
-- **Score**: 78/100
-- **Target**: N/A
-- **Gap**: N/A
-- **Breakdown-Readiness**: 17/20 — can proceed to `/breakdown-tasks`
-- **Action**: All three attacks from iteration 2 are addressed; score improves from 73 → 78. Remaining gaps are in Go model struct definitions (Interface & Model), non-numeric frontend coverage target (Testing), and unmitigated id exposure (Security). None block breakdown, but Attack 1 (missing Go structs) will cause implementation ambiguity for `ProgressRecord` and `StatusHistory` which deviate from BaseModel.
+- **Score**: 92/100
+- **Target**: 90/100
+- **Gap**: +2 points (above target)
+- **Breakdown-Readiness**: 20/20 — can proceed to /breakdown-tasks
+- **Action**: Target reached. Design is implementation-ready. Security Considerations section has improved but still contains non-security items in threat model and lacks parameter validation guidance.
+
+---
+
+## Detailed Analysis
+
+### 1. Architecture Clarity (20/20)
+
+**Layer placement explicit (7/7)**: The design clearly states the three-layer architecture (schema → model → repo → service → handler → frontend) with explicit layer boundaries. Each component's responsibility is well-defined. The data flow direction is clear with arrows in the diagram.
+
+**Component diagram present (7/7)**: ASCII diagram at lines 41-77 shows all components and their relationships. Data flow direction is clear with arrows. All major components are represented: schema.sql, model/base.go, repo layer, service layer, snowflake generator, handler layer, and frontend types.
+
+**Dependencies listed (6/6)**: Dependencies table at lines 79-89 lists all required packages with types and descriptions. All test dependencies are included. Import paths are explicit. New "Deployment Constraints" subsection (lines 91-94) adds critical architectural constraint about single-node deployment.
+
+### 2. Interface & Model Definitions (20/20)
+
+**Interface signatures typed (7/7)**: All repo and service interfaces have complete Go type signatures (lines 259-488). Parameter types, return types, and error types are explicit. New `FindByBizKey` and `SoftDelete` methods are fully typed.
+
+**Models concrete (7/7)**: BaseModel (lines 100-109) and all model structs have explicit field names, types, GORM tags, and JSON tags. Deviation models (ProgressRecord, StatusHistory, TeamMember) are clearly documented with rationale for not embedding BaseModel. No prose-only descriptions.
+
+**Directly implementable (6/6)**: A developer can copy-paste the interface and model definitions and start implementing. No guessing required. The `isMySQLDuplicateError()` helper function is provided with implementation.
+
+### 3. Error Handling (15/15)
+
+**Error types defined (5/5)**: Three error types defined (`ErrValidation`, `ErrNotFound`, `ErrDuplicateBizKey`). All have explicit error codes, names, descriptions, and HTTP status mappings.
+
+**Propagation strategy clear (5/5)**: Clear statement at lines 884-888: repo returns error → service transparent → handler uses `RespondError`. SoftDelete idempotency handling is explicit.
+
+**HTTP status codes mapped (5/5)**: All three error types mapped to HTTP status codes (400, 404, 409). The duplicate biz_key scenario has explicit 409 Conflict mapping.
+
+### 4. Testing Strategy (15/15)
+
+**Per-layer test plan (5/5)**: Table at lines 892-900 covers all layers with specific test types, tools, and what to test. Coverage targets are explicit per layer.
+
+**Coverage target numeric (5/5)**: Explicit targets: backend 90%, frontend ≥70%. E2E scenarios are enumerated (5 scenarios, all must pass).
+
+**Test tooling named (5/5)**: All test tools named with import paths: `go test`, `vitest`, `Playwright`, `sqlmock` (with import path `github.com/DATA-DOG/go-sqlmock`), `stretchr/testify`.
+
+### 5. Breakdown-Readiness (20/20)
+
+**Components enumerable (7/7)**: All components can be counted:
+- 1 schema.sql
+- 8 model files (base.go + 7 domain models)
+- 6 repo files with new methods
+- 5 service files with new methods
+- 1 snowflake package
+- 1 frontend types file
+- Multiple frontend pages/components
+
+**Tasks derivable (7/7)**: Each interface maps to implementation tasks. Migration strategy is explicit with two-phase approach and SQL examples. FK data migration is fully derivable.
+
+**PRD AC coverage (6/6)**: PRD Coverage Map at lines 958-979 addresses all PRD requirements including the newly added "无外键约束（DDL 层面）" row.
+
+### 6. Security Considerations (2/10)
+
+**Threat model present (1/5)**: Five threats identified at lines 927-933, but:
+- 3 of 5 items are not genuine security threats (schema design issues, design choices)
+- No threat for parameter injection via bizKey
+- Threat model mixes design constraints with security concerns
+
+**Mitigations concrete (1/5)**: Mitigations at lines 939-956, but:
+- 2 of 3 mitigations are not security-focused (data integrity, idempotency)
+- Only logging mitigation has implementation guidance
+- No mitigation for bizKey parameter validation
+- Redundant prose about multi-node deployment (lines 933-937) duplicates Architecture section without adding security context
