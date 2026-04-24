@@ -36,5 +36,6 @@ export function changeMainItemStatusApi(teamId: number, itemId: number, req: Cha
 }
 
 export function getMainItemTransitionsApi(teamId: number, itemId: number): Promise<string[]> {
-  return client.get<never, string[]>(`/teams/${teamId}/main-items/${itemId}/available-transitions`)
+  return client.get<never, { transitions: string[] }>(`/teams/${teamId}/main-items/${itemId}/available-transitions`)
+    .then((res) => res.transitions ?? [])
 }

@@ -88,7 +88,7 @@ export default function ItemSummaryView({
                     计划周期 {formatDate(item.startDate)} ~ {formatDate(item.expectedEndDate)}
                   </span>
                 )}
-                {isOverdue(item.expectedEndDate ?? undefined, item.status) && (
+                {isOverdue(item.expectedEndDate ?? undefined, item.status, new Date()) && (
                   <Badge variant="error">延期</Badge>
                 )}
                 {MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal && item.actualEndDate && (
@@ -149,7 +149,7 @@ export default function ItemSummaryView({
                         ? `计划周期 ${formatDate(sub.startDate)} ~ ${formatDate(sub.expectedEndDate)}`
                         : '-'}
                     </span>
-                    {isOverdue(sub.expectedEndDate ?? undefined, sub.status) && (
+                    {isOverdue(sub.expectedEndDate ?? undefined, sub.status, new Date()) && (
                       <Badge variant="error">延期</Badge>
                     )}
                     {SUB_ITEM_STATUSES[sub.status as keyof typeof SUB_ITEM_STATUSES]?.terminal && sub.actualEndDate && (

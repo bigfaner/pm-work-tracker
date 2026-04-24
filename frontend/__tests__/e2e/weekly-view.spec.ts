@@ -1,44 +1,9 @@
-import { test, expect, Page, APIRequestContext } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+import { BASE, API, login, getAuthToken, parseApiData, navTo } from './test-helpers';
 
-const BASE = 'http://localhost:5173';
-const API = 'http://localhost:8080/v1';
 const TIMEOUT = 60000;
 
 test.setTimeout(TIMEOUT);
-
-// Helper: parse API response (format: {code, data})
-function parseApiData(resp: any): any {
-  return resp.data !== undefined ? resp.data : resp;
-}
-
-// Helper: login via UI and wait for redirect (with retry for rate limiting)
-async function login(page: Page) {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    await page.goto(`${BASE}/login`);
-    await page.locator('[data-testid="login-username"]').fill('admin');
-    await page.locator('[data-testid="login-password"]').fill('admin123');
-    await page.locator('[data-testid="login-submit"]').click();
-    try {
-      await page.waitForURL(/\/items/, { timeout: 10000 });
-      await page.waitForTimeout(1000);
-      return;
-    } catch {
-      if (attempt < 2) {
-        await page.waitForTimeout(3000);
-      } else {
-        throw new Error('Login failed after 3 attempts (likely rate limited)');
-      }
-    }
-  }
-}
-
-// Navigate within SPA
-async function navTo(page: Page, path: string) {
-  const link = page.locator(`[data-testid="sidebar"] a[href="${path}"]`);
-  await link.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
-  await link.click();
-  await page.waitForTimeout(1500);
-}
 
 // ============================================================
 // SERIAL TEST SUITE: Weekly View E2E
@@ -52,138 +17,136 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
   let testSubItemId2: string;
 
   // ====== SETUP: Login + create test data ======
-  test.beforeAll(async ({ playwright }) => {
-    const request = await playwright.request.newContext({
-      baseURL: 'http://127.0.0.1:8080',
-      extraHTTPHeaders: { 'Content-Type': 'application/json' },
-    });
-
-    // Wait to avoid rate limiting from previous test suites
-    await new Promise(r => setTimeout(r, 5000));
-
-    // Login
-    const loginResp = await request.post('/v1/auth/login', {
-      data: { username: 'admin', password: 'admin123' },
-    });
-    const loginData = await loginResp.json();
-    authToken = parseApiData(loginData).token;
+  test.beforeAll(async () => {
+    authToken = await getAuthToken();
 
     // Get team
-    const teamsResp = await request.get('/v1/teams', {
+    const teamsResp = await fetch(`${API}/teams`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     const teamsData = await teamsResp.json();
-    const teams = Array.isArray(teamsData) ? teamsData : (parseApiData(teamsData) || []);
+    const teamsRaw = parseApiData(teamsData) || teamsData;
+    const teams = Array.isArray(teamsRaw) ? teamsRaw : (teamsRaw?.items ?? []);
     teamId = String(teams[0]?.id || teams[0]?.ID);
-    if (!teamId) throw new Error('No team found');
+    if (!teamId || teamId === 'undefined') throw new Error('No team found');
 
     // Clean up stale test data from previous runs
     try {
-      const itemsResp = await request.get(`/v1/teams/${teamId}/main-items`, {
+      const itemsResp = await fetch(`${API}/teams/${teamId}/main-items`, {
         headers: { Authorization: `Bearer ${authToken}` },
       });
       const itemsData = await itemsResp.json();
       const items = parseApiData(itemsData) || [];
       for (const item of items) {
         if (item.title === 'E2E周视图测试主事项') {
-          await request.post(`/v1/teams/${teamId}/main-items/${item.id}/archive`, {
-            headers: { Authorization: `Bearer ${authToken}` },
+          await fetch(`${API}/teams/${teamId}/main-items/${item.id}/archive`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
           });
         }
       }
     } catch { /* best effort */ }
 
     // Create a main item for testing
-    const mainResp = await request.post(`/v1/teams/${teamId}/main-items`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-      data: {
+    const mainResp = await fetch(`${API}/teams/${teamId}/main-items`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         title: 'E2E周视图测试主事项',
         priority: 'P1',
         assigneeId: 1,
         startDate: '2026-04-13',
         expectedEndDate: '2026-04-25',
-      },
+      }),
     });
     const mainData = await mainResp.json();
     testMainItemId = String(parseApiData(mainData)?.id || mainData?.id);
 
     // Create sub-item 1
-    const sub1Resp = await request.post(`/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-      data: {
+    const sub1Resp = await fetch(`${API}/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         mainItemId: Number(testMainItemId),
         title: 'E2E子事项-进度测试A',
         priority: 'P2',
         assigneeId: 1,
         startDate: '2026-04-13',
         expectedEndDate: '2026-04-20',
-      },
+      }),
     });
     const sub1Data = await sub1Resp.json();
     testSubItemId1 = String(parseApiData(sub1Data)?.id || sub1Data?.id);
 
     // Create sub-item 2
-    const sub2Resp = await request.post(`/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-      data: {
+    const sub2Resp = await fetch(`${API}/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         mainItemId: Number(testMainItemId),
         title: 'E2E子事项-进度测试B',
         priority: 'P3',
         assigneeId: 1,
         startDate: '2026-04-13',
         expectedEndDate: '2026-04-22',
-      },
+      }),
     });
     const sub2Data = await sub2Resp.json();
     testSubItemId2 = String(parseApiData(sub2Data)?.id || sub2Data?.id);
 
     // Change sub-item 1 to in-progress
-    await request.put(`/v1/teams/${teamId}/sub-items/${testSubItemId1}/status`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-      data: { status: '进行中' },
+    await fetch(`${API}/teams/${teamId}/sub-items/${testSubItemId1}/status`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: '进行中' }),
     });
 
     // Append progress record 1 for sub-item 1 (this week)
-    await request.post(`/v1/teams/${teamId}/sub-items/${testSubItemId1}/progress`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-      data: {
+    await fetch(`${API}/teams/${teamId}/sub-items/${testSubItemId1}/progress`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         completion: 40,
         achievement: 'E2E测试成就-第一阶段完成',
         blocker: '',
         lesson: '',
-      },
+      }),
     });
 
     // Append progress record 2 for sub-item 1 (this week, multiple records)
-    await request.post(`/v1/teams/${teamId}/sub-items/${testSubItemId1}/progress`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-      data: {
+    await fetch(`${API}/teams/${teamId}/sub-items/${testSubItemId1}/progress`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         completion: 70,
         achievement: 'E2E测试成就-联调完成',
         blocker: 'E2E测试卡点-等待依赖',
         lesson: '',
-      },
+      }),
     });
 
     // Append progress for sub-item 2
-    await request.put(`/v1/teams/${teamId}/sub-items/${testSubItemId2}/status`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-      data: { status: '进行中' },
+    await fetch(`${API}/teams/${teamId}/sub-items/${testSubItemId2}/status`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: '进行中' }),
     });
-    await request.post(`/v1/teams/${teamId}/sub-items/${testSubItemId2}/progress`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-      data: {
+    await fetch(`${API}/teams/${teamId}/sub-items/${testSubItemId2}/progress`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         completion: 30,
         achievement: 'E2E测试成就B-基础完成',
         blocker: 'E2E测试卡点B-性能问题',
         lesson: '',
-      },
+      }),
     });
   });
 
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await navTo(page, '/weekly');
+    await page.goto(`${BASE}/weekly`);
+    await page.waitForLoadState('networkidle').catch(() => {});
   });
 
   // ====== 1. Page Structure ======
@@ -193,15 +156,15 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
   });
 
   test('1.2 日期范围显示正确', async ({ page }) => {
-    const dateRange = page.locator('text=/\\d{4}\\/\\d{2}\\/\\d{2}.*~.*\\d{4}\\/\\d{2}\\/\\d{2}/').first();
+    const dateRange = page.locator('[data-testid="week-selector"]').locator('text=/\\d{2}\\/\\d{2}.*~.*\\d{2}\\/\\d{2}/');
     await expect(dateRange).toBeVisible({ timeout: 15000 });
   });
 
   // ====== 2. Stats Bar ======
   test('2.1 四个统计卡片渲染', async ({ page }) => {
-    await expect(page.locator('text=本周活跃子事项')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=本周活跃')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('text=本周新完成').first()).toBeVisible();
-    await expect(page.locator('text=进度推进中')).toBeVisible();
+    await expect(page.locator('text=进行中').first()).toBeVisible();
     await expect(page.locator('text=阻塞中')).toBeVisible();
   });
 
@@ -342,7 +305,7 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     expect(emptyVisible).toBeFalsy();
 
     // Data should be displayed - stats bar should be visible
-    await expect(page.locator('text=本周活跃子事项')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=本周活跃')).toBeVisible({ timeout: 5000 });
 
     // Test data should appear in the view
     await expect(page.locator(`[data-testid="group-card-${testMainItemId}"]`)).toBeVisible({ timeout: 5000 });
@@ -416,18 +379,16 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
   });
 
   // ====== CLEANUP ======
-  test.afterAll(async ({ playwright }) => {
+  test.afterAll(async () => {
     // Attempt to archive test main item
     try {
-      const request = await playwright.request.newContext({
-        baseURL: 'http://127.0.0.1:8080',
-        extraHTTPHeaders: {
+      await fetch(`${API}/teams/${teamId}/main-items/${testMainItemId}/archive`, {
+        method: 'POST',
+        headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${authToken}`,
         },
       });
-
-      await request.post(`/v1/teams/${teamId}/main-items/${testMainItemId}/archive`);
     } catch {
       // Cleanup is best-effort
     }

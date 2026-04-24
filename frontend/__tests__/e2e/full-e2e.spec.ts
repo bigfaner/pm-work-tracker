@@ -1,7 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-
-const BASE = 'http://localhost:5173';
-const API = 'http://localhost:8080/v1';
+import { BASE, API, login, getAuthToken, getFirstTeamId, navTo } from './test-helpers';
 
 // Get the Monday of the current week in UTC (to match server-side validation)
 function getCurrentUTCMonday(): string {
@@ -13,23 +11,7 @@ function getCurrentUTCMonday(): string {
   return ws.toISOString().split('T')[0];
 }
 
-// Navigate within SPA (no full page reload) by clicking sidebar links
-async function navTo(page: Page, path: string) {
-  const link = page.locator(`[data-testid="sidebar"] a[href="${path}"]`);
-  // Wait for permissions to load (PermissionGuard may hide links initially)
-  await link.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
-  if (await link.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await link.click();
-    await page.waitForTimeout(1500);
-    return;
-  }
-  // Fallback: use React Router navigate via page.evaluate
-  await page.evaluate((p) => {
-    const a = document.querySelector(`[data-testid="sidebar"] a[href="${p}"]`) as HTMLElement;
-    if (a) a.click();
-  }, path);
-  await page.waitForTimeout(1500);
-}
+// (navTo imported from test-helpers)
 
 test.describe('PM Work Tracker - Full E2E Test', () => {
   // ====== SECTION 1: LOGIN ======
@@ -84,41 +66,11 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
     let teamId: string | null;
 
     test.beforeAll(async () => {
-      // Wait to avoid rate limiting from previous tests
-      await new Promise(r => setTimeout(r, 5000));
-      const res = await fetch(`${API}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'admin', password: 'admin123' }),
-      });
-      const json = await res.json();
-      authToken = json.data?.token || json.token;
-      if (authToken) {
-        const tRes = await fetch(`${API}/teams`, {
-          headers: { 'Authorization': `Bearer ${authToken}` },
-        });
-        const tData = await tRes.json();
-        const list = tData.data || (Array.isArray(tData) ? tData : []);
-        teamId = list.length > 0 ? (list[0].id || list[0].ID) : null;
-      }
+      authToken = await getAuthToken();
+      teamId = await getFirstTeamId(authToken);
     });
 
-    // Login with retry to handle rate limiting
-    test.beforeEach(async ({ page }) => {
-      for (let attempt = 0; attempt < 3; attempt++) {
-        await page.goto(`${BASE}/login`);
-        await page.locator('[data-testid="login-username"]').fill('admin');
-        await page.locator('[data-testid="login-password"]').fill('admin123');
-        await page.locator('[data-testid="login-submit"]').click();
-        try {
-          await page.waitForURL('**/items**', { timeout: 10000 });
-          return;
-        } catch {
-          if (attempt < 2) await page.waitForTimeout(3000);
-          else throw new Error('Login failed after 3 attempts');
-        }
-      }
-    });
+    test.beforeEach(async ({ page }) => { await login(page); });
 
     // --- 2. Items List Page ---
     test('2.1 items page loads with sidebar', async ({ page }) => {
@@ -318,27 +270,8 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
     let teamId: string | null;
 
     test.beforeAll(async () => {
-      // Wait to avoid rate limiting
-      await new Promise(r => setTimeout(r, 3000));
-      try {
-        const res = await fetch(`${API}/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: 'admin', password: 'admin123' }),
-        });
-        const json = await res.json();
-        authToken = json.data?.token || json.token;
-        if (authToken) {
-          const tRes = await fetch(`${API}/teams`, {
-            headers: { 'Authorization': `Bearer ${authToken}` },
-          });
-          const tData = await tRes.json();
-          const list = tData.data || (Array.isArray(tData) ? tData : []);
-          teamId = list.length > 0 ? (list[0].id || list[0].ID) : null;
-        }
-      } catch (e) {
-        console.log('Section 15 beforeAll login failed:', e);
-      }
+      authToken = await getAuthToken();
+      teamId = await getFirstTeamId(authToken);
     });
 
     test('15.1 health check', async () => {
@@ -465,25 +398,8 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
     let poolItemId: string | null;
 
     test.beforeAll(async () => {
-      for (let attempt = 0; attempt < 5; attempt++) {
-        if (attempt > 0) await new Promise(r => setTimeout(r, 6000));
-        const res = await fetch(`${API}/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: 'admin', password: 'admin123' }),
-        });
-        const json = await res.json();
-        authToken = json.data?.token || json.token;
-        if (authToken) break;
-      }
-      if (authToken) {
-        const tRes = await fetch(`${API}/teams`, {
-          headers: { 'Authorization': `Bearer ${authToken}` },
-        });
-        const tData = await tRes.json();
-        const list = tData.data || (Array.isArray(tData) ? tData : []);
-        teamId = list.length > 0 ? (list[0].id || list[0].ID) : null;
-      }
+      authToken = await getAuthToken();
+      teamId = await getFirstTeamId(authToken);
     });
 
     test('16.1 create main item', async () => {

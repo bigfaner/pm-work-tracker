@@ -498,6 +498,9 @@ export interface WeeklyViewResponse {
     newlyCompleted: number
     inProgress: number
     blocked: number
+    pending: number
+    pausing: number
+    overdue: number
   }
   groups: WeeklyComparisonGroup[]
 }

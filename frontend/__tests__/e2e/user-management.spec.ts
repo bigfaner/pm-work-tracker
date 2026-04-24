@@ -1,33 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
-
-const BASE = 'http://localhost:5173';
-const API = 'http://localhost:8080/v1';
-
-async function login(page: Page) {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    await page.goto(`${BASE}/login`);
-    await page.locator('[data-testid="login-username"]').fill('admin');
-    await page.locator('[data-testid="login-password"]').fill('admin123');
-    await page.locator('[data-testid="login-submit"]').click();
-    try {
-      await page.waitForURL(/\/items/, { timeout: 10000 });
-      return;
-    } catch {
-      if (attempt < 2) await page.waitForTimeout(6000);
-      else throw new Error('Login failed after 3 attempts');
-    }
-  }
-}
-
-async function getAuthToken(): Promise<string> {
-  const res = await fetch(`${API}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'admin', password: 'admin123' }),
-  });
-  const json = await res.json();
-  return json.data?.token || json.token;
-}
+import { test, expect } from '@playwright/test';
+import { BASE, API, login, getAuthToken } from './test-helpers';
 
 // ── Section 1: Page Load ──────────────────────────────────────────────────────
 
@@ -58,7 +30,6 @@ test.describe('User Management - Page Load', () => {
   test('admin user appears in table', async ({ page }) => {
     await page.goto(`${BASE}/users`);
     await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
-    // At least one row should be visible (the admin user)
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 5000 });
   });
 });
@@ -105,7 +76,6 @@ test.describe('User Management - Create User', () => {
     await page.locator('input[placeholder="请输入账号"]').fill(username);
     await page.locator('button', { hasText: '确认创建' }).click();
 
-    // Initial password dialog should appear
     await expect(page.locator('[data-testid="initial-password"]')).toBeVisible({ timeout: 8000 });
     const pwd = await page.locator('[data-testid="initial-password"]').textContent();
     expect(pwd?.trim().length).toBeGreaterThan(0);
@@ -113,7 +83,6 @@ test.describe('User Management - Create User', () => {
     await page.locator('button', { hasText: '我知道了' }).click();
     await expect(page.locator('[data-testid="initial-password"]')).not.toBeVisible({ timeout: 3000 });
 
-    // Cleanup
     const listRes = await fetch(`${API}/admin/users?search=${username}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
@@ -148,12 +117,10 @@ test.describe('User Management - Edit User', () => {
     await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 5000 });
 
-    // Click the first edit button
     await page.locator('button', { hasText: '编辑' }).first().click();
 
-    // Edit dialog should open with a pre-filled display name
     await expect(page.locator('text=编辑用户')).toBeVisible({ timeout: 5000 });
-    const displayNameInput = page.locator('dialog input').first();
+    const displayNameInput = page.locator('[role="dialog"] input').first();
     const value = await displayNameInput.inputValue();
     expect(value.length).toBeGreaterThan(0);
   });
@@ -196,7 +163,6 @@ test.describe('User Management - Toggle Status', () => {
   });
 
   test('can toggle a non-admin user status', async ({ page }) => {
-    // Create a test user first
     const username = `e2e_status_${Date.now()}`;
     const createRes = await fetch(`${API}/admin/users`, {
       method: 'POST',
@@ -210,7 +176,6 @@ test.describe('User Management - Toggle Status', () => {
     await page.goto(`${BASE}/users`);
     await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
 
-    // Search for the test user
     await page.locator('input[placeholder="搜索用户名/姓名"]').fill(username);
     await page.waitForTimeout(1000);
 
@@ -219,10 +184,8 @@ test.describe('User Management - Toggle Status', () => {
     await expect(page.locator('text=修改用户状态')).toBeVisible({ timeout: 5000 });
     await page.locator('button', { hasText: '确认修改' }).click();
 
-    // Dialog should close after success
     await expect(page.locator('text=修改用户状态')).not.toBeVisible({ timeout: 5000 });
 
-    // Cleanup
     if (userId) {
       await fetch(`${API}/admin/users/${userId}`, {
         method: 'DELETE',
@@ -242,7 +205,6 @@ test.describe('User Management - Search and Refresh', () => {
     await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('input[placeholder="搜索用户名/姓名"]').fill('admin');
     await page.waitForTimeout(800);
-    // admin row should be visible
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 5000 });
     const rows = await page.locator('tbody tr').count();
     expect(rows).toBeGreaterThan(0);
@@ -260,7 +222,6 @@ test.describe('User Management - Search and Refresh', () => {
     await page.goto(`${BASE}/users`);
     await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-testid="refresh-btn"]').click();
-    // After refresh, table should still show data
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 5000 });
   });
 });

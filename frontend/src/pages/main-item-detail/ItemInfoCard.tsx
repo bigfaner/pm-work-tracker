@@ -36,7 +36,7 @@ export default function ItemInfoCard({
             <div className="text-xs text-tertiary mb-1">预期完成时间</div>
             <div className="flex items-center gap-1.5">
               <span className="text-[13px] font-medium">{formatDate(expectedEndDate)}</span>
-              {isOverdue(expectedEndDate ?? undefined, status) && (
+              {isOverdue(expectedEndDate ?? undefined, status, new Date()) && (
                 <Badge variant="error">延期</Badge>
               )}
             </div>

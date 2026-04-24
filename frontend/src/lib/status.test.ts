@@ -66,38 +66,43 @@ describe('STATUS_OPTIONS', () => {
 })
 
 describe('isOverdue', () => {
+  const now = new Date('2026-04-23')
+
   it('returns false when expectedEndDate is empty', () => {
-    expect(isOverdue('', 'progressing')).toBe(false)
+    expect(isOverdue('', 'progressing', now)).toBe(false)
   })
 
   it('returns false when expectedEndDate is undefined', () => {
-    expect(isOverdue(undefined, 'progressing')).toBe(false)
+    expect(isOverdue(undefined, 'progressing', now)).toBe(false)
   })
 
   it('returns false when status is undefined', () => {
-    expect(isOverdue('2020-01-01', undefined)).toBe(false)
+    expect(isOverdue('2020-01-01', undefined, now)).toBe(false)
   })
 
   it('returns false for terminal status completed', () => {
-    expect(isOverdue('2020-01-01', 'completed')).toBe(false)
+    expect(isOverdue('2020-01-01', 'completed', now)).toBe(false)
   })
 
   it('returns false for terminal status closed', () => {
-    expect(isOverdue('2020-01-01', 'closed')).toBe(false)
+    expect(isOverdue('2020-01-01', 'closed', now)).toBe(false)
   })
 
   it('returns true when date is past and status is non-terminal', () => {
-    expect(isOverdue('2020-01-01', 'progressing')).toBe(true)
+    expect(isOverdue('2020-01-01', 'progressing', now)).toBe(true)
   })
 
   it('returns false when date is in the future and status is non-terminal', () => {
-    const future = new Date()
-    future.setFullYear(future.getFullYear() + 1)
-    expect(isOverdue(future.toISOString().slice(0, 10), 'progressing')).toBe(false)
+    expect(isOverdue('2027-01-01', 'progressing', now)).toBe(false)
   })
 
   it('returns true for sub-item status blocking with past date', () => {
-    expect(isOverdue('2020-01-01', 'blocking')).toBe(true)
+    expect(isOverdue('2020-01-01', 'blocking', now)).toBe(true)
+  })
+
+  it('returns false when referenceDate is in the past and expectedEndDate is after it', () => {
+    const pastRef = new Date('2020-01-01')
+    expect(isOverdue('2020-06-01', 'progressing', pastRef)).toBe(false)
   })
 })
 

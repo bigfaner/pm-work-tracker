@@ -686,6 +686,173 @@ func TestWeeklyComparison_SubItemCompletedAfterWeek_NotShown(t *testing.T) {
 	assert.Empty(t, result.Groups)
 }
 
+func TestWeeklyComparison_StatsPending(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Pending Sub", Status: "pending"},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 0, CreatedAt: weekStart.AddDate(0, 0, 1)},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, result.Stats.Pending)
+	assert.Equal(t, 0, result.Stats.Pausing)
+}
+
+func TestWeeklyComparison_StatsPausing(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Pausing Sub", Status: "pausing"},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 20, CreatedAt: weekStart.AddDate(0, 0, 1)},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Equal(t, 0, result.Stats.Pending)
+	assert.Equal(t, 1, result.Stats.Pausing)
+}
+
+func TestWeeklyComparison_StatsOverdue(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	weekEnd := time.Date(2026, 4, 19, 0, 0, 0, 0, time.UTC)
+	overdueDate := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC) // before weekEnd
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Overdue Sub", Status: "progressing", ExpectedEndDate: &overdueDate},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 30, CreatedAt: weekStart.AddDate(0, 0, 1)},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, result.Stats.Overdue)
+	_ = weekEnd // used implicitly via weekStart+6d
+}
+
+func TestWeeklyComparison_StatsOverdue_NilExpectedEndDate_NotCounted(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			// ExpectedEndDate is nil — must NOT be counted as overdue
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "No Deadline Sub", Status: "progressing", ExpectedEndDate: nil},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 30, CreatedAt: weekStart.AddDate(0, 0, 1)},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Equal(t, 0, result.Stats.Overdue)
+}
+
+func TestWeeklyComparison_StatsOverdue_CompletedNotCounted(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	overdueDate := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)
+	completedDate := time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			// completed — must NOT be counted as overdue even if past deadline
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Completed Sub", Status: "completed", ExpectedEndDate: &overdueDate, ActualEndDate: &completedDate, Completion: 100},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 100, CreatedAt: completedDate},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Equal(t, 0, result.Stats.Overdue)
+}
+
+func TestWeeklyComparison_StatsOverdue_ClosedNotCounted(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	overdueDate := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			// closed — must NOT be counted as overdue
+			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Closed Sub", Status: "closed", ExpectedEndDate: &overdueDate},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 0, CreatedAt: weekStart.AddDate(0, 0, 1)},
+		},
+	}
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Equal(t, 0, result.Stats.Overdue)
+}
+
 func ptrTime(t time.Time) *time.Time { return &t }
 
 func TestGanttView_EmptyTeam_NoItems(t *testing.T) {
@@ -1944,6 +2111,164 @@ func TestTableExportCSV_UsesBatchFindByIDs(t *testing.T) {
 	// Should call FindByIDs exactly once
 	assert.Equal(t, uint(1), userRepo.findByIDsCalls, "TableExportCSV should use a single FindByIDs call")
 	assert.Equal(t, uint(0), userRepo.findByIDCalls, "TableExportCSV should not call FindByID")
+}
+
+// ---------------------------------------------------------------------------
+// Tests: buildWeeklyGroups stats counting (unit, no service layer)
+// ---------------------------------------------------------------------------
+
+func TestBuildWeeklyGroups_Stats(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+	weekEnd := weekStart.AddDate(0, 0, 6)
+
+	overdueDate := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)       // before weekEnd
+	completedInWeek := time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)   // within week
+	beforeWeekStart := time.Date(2026, 4, 5, 0, 0, 0, 0, time.UTC)    // before weekStart
+
+	mainItem := model.MainItem{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "M", Priority: "P1"}
+
+	activeSet := func(ids ...uint) map[uint]struct{} {
+		m := make(map[uint]struct{})
+		for _, id := range ids {
+			m[id] = struct{}{}
+		}
+		return m
+	}
+	progressFor := func(subID uint) map[uint][]model.ProgressRecord {
+		return map[uint][]model.ProgressRecord{
+			subID: {{ID: 1, SubItemID: subID, Completion: 50, CreatedAt: weekStart.AddDate(0, 0, 1)}},
+		}
+	}
+	emptyProgress := map[uint][]model.ProgressRecord{}
+	emptyActive := map[uint]struct{}{}
+
+	tests := []struct {
+		name      string
+		subs      []model.SubItem
+		active    map[uint]struct{}
+		progress  map[uint][]model.ProgressRecord
+		wantStats dto.WeeklyStats
+	}{
+		{
+			name: "progressing active → inProgress=1 activeSubItems=1",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "progressing"},
+			},
+			active:    activeSet(10),
+			progress:  progressFor(10),
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, InProgress: 1},
+		},
+		{
+			name: "blocking active → blocked=1 activeSubItems=1",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "blocking"},
+			},
+			active:    activeSet(10),
+			progress:  progressFor(10),
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, Blocked: 1},
+		},
+		{
+			name: "pending active → pending=1 activeSubItems=1",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "pending"},
+			},
+			active:    activeSet(10),
+			progress:  progressFor(10),
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, Pending: 1},
+		},
+		{
+			name: "pausing active → pausing=1 activeSubItems=1",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "pausing"},
+			},
+			active:    activeSet(10),
+			progress:  progressFor(10),
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, Pausing: 1},
+		},
+		{
+			name: "justCompleted → newlyCompleted=1 activeSubItems=1",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "completed", ActualEndDate: &completedInWeek, Completion: 100},
+			},
+			active:    emptyActive,
+			progress:  emptyProgress,
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, NewlyCompleted: 1},
+		},
+		{
+			name: "overdue progressing → overdue=1 inProgress=1 activeSubItems=1",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "progressing", ExpectedEndDate: &overdueDate},
+			},
+			active:    activeSet(10),
+			progress:  progressFor(10),
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, InProgress: 1, Overdue: 1},
+		},
+		{
+			name: "pending not active → pending=0",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "pending"},
+			},
+			active:    emptyActive,
+			progress:  emptyProgress,
+			wantStats: dto.WeeklyStats{},
+		},
+		{
+			name: "nil expectedEndDate → overdue=0",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "progressing", ExpectedEndDate: nil},
+			},
+			active:    activeSet(10),
+			progress:  progressFor(10),
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, InProgress: 1, Overdue: 0},
+		},
+		{
+			name: "completed with past deadline → overdue=0",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "completed", ExpectedEndDate: &overdueDate, ActualEndDate: &completedInWeek, Completion: 100},
+			},
+			active:    activeSet(10),
+			progress:  progressFor(10),
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, NewlyCompleted: 1, Overdue: 0},
+		},
+		{
+			name: "closed with past deadline → overdue=0",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "closed", ExpectedEndDate: &overdueDate},
+			},
+			active:    activeSet(10),
+			progress:  progressFor(10),
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, Overdue: 0},
+		},
+		{
+			name: "progress record in week but actualEndDate before weekStart → activeSubItems=1 (progress wins)",
+			subs: []model.SubItem{
+				{BaseModel: model.BaseModel{ID: 10}, MainItemID: 1, Status: "progressing", ActualEndDate: &beforeWeekStart},
+			},
+			active:    emptyActive,
+			progress:  progressFor(10), // has progress record in this week
+			wantStats: dto.WeeklyStats{ActiveSubItems: 1, InProgress: 1},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			subsByMain := map[uint][]model.SubItem{1: tt.subs}
+			_, stats := buildWeeklyGroups(
+				[]model.MainItem{mainItem},
+				subsByMain,
+				emptyActive,        // lastWeekActive
+				tt.active,          // thisWeekActive
+				emptyProgress,      // lastWeekProgress
+				tt.progress,        // thisWeekProgress
+				map[uint]float64{}, // lastWeekCompletion
+				map[uint]string{},  // latestProgressDesc
+				map[uint]string{},  // assigneeNames
+				weekStart,
+				weekEnd,
+			)
+			assert.Equal(t, tt.wantStats, stats)
+		})
+	}
 }
 
 // ---------------------------------------------------------------------------
