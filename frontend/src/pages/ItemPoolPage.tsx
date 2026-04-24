@@ -78,9 +78,6 @@ function PoolItemCard({ item, onConvertToMain, onConvertToSub, onReject }: PoolI
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-xs text-tertiary bg-bg-alt px-1.5 py-0.5 rounded">
-            POOL-{String(item.id).padStart(3, '0')}
-          </span>
           <span className="text-sm font-medium text-primary max-w-xs truncate" title={item.title}>{item.title}</span>
           <Badge variant={STATUS_BADGE_VARIANT[item.status]}>{STATUS_LABEL[item.status]}</Badge>
         </div>
