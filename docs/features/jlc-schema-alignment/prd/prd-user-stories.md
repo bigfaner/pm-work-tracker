@@ -58,7 +58,7 @@ feature: "jlc-schema-alignment"
 **Acceptance Criteria:**
 - Given 后端已部署新版本 API
 - When 前端调用任意资源接口（main-items、sub-items、item-pools、users）
-- Then 响应体中 `status` 字段已替换为 `userStatus`/`itemStatus`/`poolStatus`，`createdAt`/`updatedAt` 已替换为 `createTime`/`dbUpdateTime`，响应体中不存在 `bizKey` 字段
+- Then 响应体中 `status` 字段已替换为 `userStatus`/`itemStatus`/`poolStatus`，`createdAt`/`updatedAt` 已替换为 `createTime`/`dbUpdateTime`，响应体中存在 `bizKey` 字段（作为资源标识符），不存在 `id` 字段
 - Given 前端测试套件
 - When 执行 `npm test`
 - Then 0 个测试失败
@@ -75,3 +75,20 @@ feature: "jlc-schema-alignment"
 - Given 新的 `schema.sql`
 - When 逐条对照 JLC 规范检查
 - Then 所有表有 `COMMENT`，所有索引符合 `idx_`/`uk_` 命名，无 `status` 关键字直接用作字段名，无 TEXT 字段，无 FLOAT/DOUBLE 用于数值字段
+
+## Story 6: 前端工程师使用 bizKey 进行资源导航
+
+**As a** 前端开发工程师
+**I want to** 使用 `bizKey` 作为资源标识符构造 URL 路径参数和资源引用
+**So that** 在 `id` 不再对外暴露后，前端仍能正确导航到具体资源详情页
+
+**Acceptance Criteria:**
+- Given 后端 API 响应中不含 `id` 字段，含 `bizKey` 字段
+- When 前端点击主事项进入详情页
+- Then URL 路径使用 `bizKey`（如 `/teams/1/main-items/1234567890123456`），页面正确加载
+- Given 前端 API 模块中所有资源请求
+- When 构造 GET/PUT/DELETE 请求路径
+- Then 路径参数使用 `bizKey`，不使用 `id`
+- Given 后端 API 端点（如 `GET /api/v1/teams/:teamId/main-items/:itemId`）
+- When 接收到以 `bizKey` 为值的路径参数
+- Then 后端通过 `FindByBizKey` 正确定位记录并返回响应

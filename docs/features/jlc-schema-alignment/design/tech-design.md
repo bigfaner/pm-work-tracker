@@ -177,6 +177,49 @@ func (r *teamRepo) SoftDelete(ctx context.Context, id uint) error {
 }
 ```
 
+### 3b. FindByBizKey 方法（每个 repo 接口）
+
+`id` 不再对外暴露后，API 路径参数（`:itemId`）的值改为 `bizKey`（int64）。所有业务表 repo 接口新增 `FindByBizKey`，作为外部查询入口；`FindByID` 保留供内部关联使用。
+
+受影响的 repo 接口：
+
+| Repo 接口 | 新增方法 |
+|-----------|---------|
+| `MainItemRepo` | `FindByBizKey(ctx context.Context, bizKey int64) (*model.MainItem, error)` |
+| `SubItemRepo` | `FindByBizKey(ctx context.Context, bizKey int64) (*model.SubItem, error)` |
+| `TeamRepo` | `FindByBizKey(ctx context.Context, bizKey int64) (*model.Team, error)` |
+| `ItemPoolRepo` | `FindByBizKey(ctx context.Context, bizKey int64) (*model.ItemPool, error)` |
+| `UserRepo` | `FindByBizKey(ctx context.Context, bizKey int64) (*model.User, error)` |
+
+实现模式（以 MainItem 为例）：
+
+```go
+func (r *mainItemRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.MainItem, error) {
+    var item model.MainItem
+    err := r.db.WithContext(ctx).Scopes(NotDeleted).
+        Where("biz_key = ?", bizKey).First(&item).Error
+    if err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            return nil, apperrors.ErrNotFound
+        }
+        return nil, err
+    }
+    return &item, nil
+}
+```
+
+**Handler 层变更**：路径参数解析从 `uint` 改为 `int64`，调用 `FindByBizKey`：
+
+```go
+// 变更前
+itemID, _ := strconv.ParseUint(c.Param("itemId"), 10, 64)
+item, err := h.svc.GetByID(ctx, uint(itemID))
+
+// 变更后
+bizKey, _ := strconv.ParseInt(c.Param("itemId"), 10, 64)
+item, err := h.svc.GetByBizKey(ctx, bizKey)
+```
+
 ### 4. Snowflake Generator
 
 ```go
@@ -206,10 +249,10 @@ func Generate() int64 {
 
 | Service 文件 | 变更 |
 |-------------|------|
-| `main_item_service.go` | `Create()` 赋值 `BizKey: snowflake.Generate()` |
-| `sub_item_service.go` | `Create()` 赋值 `BizKey`；`Delete()` 改调 `subItemRepo.SoftDelete()` |
-| `team_service.go` | `Create()` 赋值 `BizKey`；`Delete()` 改调 `teamRepo.SoftDelete()`；`RemoveMember()` 改调 `teamMemberRepo.SoftDelete()` |
-| `item_pool_service.go` | `Create()` 赋值 `BizKey` |
+| `main_item_service.go` | `Create()` 赋值 `BizKey: snowflake.Generate()`；新增 `GetByBizKey(ctx, bizKey int64)` |
+| `sub_item_service.go` | `Create()` 赋值 `BizKey`；`Delete()` 改调 `subItemRepo.SoftDelete()`；新增 `GetByBizKey()` |
+| `team_service.go` | `Create()` 赋值 `BizKey`；`Delete()` 改调 `teamRepo.SoftDelete()`；`RemoveMember()` 改调 `teamMemberRepo.SoftDelete()`；新增 `GetByBizKey()` |
+| `item_pool_service.go` | `Create()` 赋值 `BizKey`；新增 `GetByBizKey()` |
 | `auth_service.go` | `Register()` 赋值 `BizKey` |
 | `progress_service.go` | `Create()` 赋值 `BizKey`（progress_records 无软删） |
 
@@ -550,8 +593,10 @@ CREATE TABLE pmw_status_histories (
 | 索引符合 idx_/uk_ 规范 | schema.sql | 索引命名全量检查 |
 | 每张表有 COMMENT | schema.sql | 表级 COMMENT |
 | model/base.go 不嵌入 gorm.Model | BaseModel 替换 | `model/base.go` |
-| repo 封闭 SoftDelete，无 db.Delete 外部调用 | SoftDelete 接口 | `TeamRepo`/`SubItemRepo` |
+| repo 封闭 SoftDelete，无 db.Delete 外部调用 | SoftDelete 接口 | `TeamRepo`/`SubItemRepo`/`TeamMemberRepo` |
 | 所有 repo 查询通过 NotDeleted scope | NotDeleted scope | `scopes.go` |
+| bizKey 对外暴露，id 不对外暴露 | BaseModel json tag | `BizKey json:"bizKey"`, `ID json:"-"` |
+| API 路径参数改用 bizKey，后端通过 FindByBizKey 定位记录 | FindByBizKey 接口 | 所有业务 repo + handler 层 |
 | go test ./... 全部通过 | 各层单元测试 | 见 Testing Strategy |
 | 前端字段引用更新，npm test 通过 | types/index.ts + pages | 字段名全量替换 |
 | E2E 测试通过 | E2E 断言更新 | `__tests__/e2e/*.spec.ts` |

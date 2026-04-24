@@ -208,7 +208,10 @@ flowchart TD
 |------|----------|----------|------------|----------------|
 | 1 | 前端 | 所有资源列表/详情页 | `status` → `userStatus`/`itemStatus`/`poolStatus` | 字段名同步更新，显示逻辑不变 |
 | 2 | 前端 | 所有资源接口模块 | `createdAt`/`updatedAt` → `createTime`/`dbUpdateTime` | 时间显示逻辑不变，仅字段名变更 |
-| 3 | E2E 测试 | 所有涉及上述字段的断言 | 字段名同步更新 | 测试逻辑不变 |
+| 3 | 前端 | 所有资源路由/导航 | `id` → `bizKey` 作为路径参数 | URL 从 `/main-items/42` 改为 `/main-items/{bizKey}`，路由组件和 API 调用同步更新 |
+| 4 | 后端 | 所有 handler 路径参数解析 | `:itemId` 参数值从 `uint` 改为 `int64`（bizKey） | handler 解析路径参数后调用 `repo.FindByBizKey()` 而非 `repo.FindByID()` |
+| 5 | 后端 | 所有 repo 接口 | 新增 `FindByBizKey(ctx, bizKey int64)` 方法 | 替代 `FindByID`，作为外部查询入口；`FindByID` 保留供内部关联使用 |
+| 6 | E2E 测试 | 所有涉及上述字段的断言 | 字段名同步更新 | 测试逻辑不变 |
 
 ## 其他说明
 
