@@ -76,8 +76,8 @@ frontend/src/pages/*.tsx     ← 消费 .status 的组件更新字段名
 ```go
 // backend/internal/model/base.go
 type BaseModel struct {
-    ID          uint      `gorm:"primarykey;autoIncrement" json:"id"`
-    BizKey      int64     `gorm:"not null;uniqueIndex:uk_biz_key" json:"-"`
+    ID          uint      `gorm:"primarykey;autoIncrement" json:"-"`
+    BizKey      int64     `gorm:"not null;uniqueIndex:uk_biz_key" json:"bizKey"`
     CreateTime  time.Time `gorm:"not null;default:CURRENT_TIMESTAMP" json:"createTime"`
     DbUpdateTime time.Time `gorm:"not null;default:CURRENT_TIMESTAMP;autoUpdateTime" json:"dbUpdateTime"`
     DeletedFlag int       `gorm:"not null;default:0;index" json:"-"`
@@ -85,7 +85,7 @@ type BaseModel struct {
 }
 ```
 
-> `BizKey` 和软删字段均 `json:"-"`，不对外暴露。
+> BizKey 对外暴露（`json:"bizKey"`）作为资源标识符；ID 不对外暴露（`json:"-"`），仅用于数据库内部关联。
 
 ### 1b. Deviation Model Structs（不嵌入 BaseModel）
 
@@ -97,7 +97,7 @@ type BaseModel struct {
 // backend/internal/model/progress_record.go
 // append-only：无 biz_key，无软删字段
 type ProgressRecord struct {
-    ID          uint      `gorm:"primarykey;autoIncrement" json:"id"`
+    ID          uint      `gorm:"primarykey;autoIncrement" json:"-"`
     SubItemID   uint      `gorm:"not null" json:"subItemId"`
     TeamID      uint      `gorm:"not null" json:"teamId"`
     AuthorID    uint      `gorm:"not null" json:"authorId"`
@@ -114,7 +114,7 @@ func (ProgressRecord) TableName() string { return "pmw_progress_records" }
 // backend/internal/model/status_history.go
 // append-only：无 biz_key，无软删字段
 type StatusHistory struct {
-    ID         uint      `gorm:"primarykey;autoIncrement" json:"id"`
+    ID         uint      `gorm:"primarykey;autoIncrement" json:"-"`
     ItemType   string    `gorm:"type:varchar(20);not null" json:"itemType"`
     ItemID     uint      `gorm:"not null" json:"itemId"`
     FromStatus string    `gorm:"type:varchar(20);not null" json:"fromStatus"`
@@ -227,24 +227,33 @@ item := &model.MainItem{
 // frontend/src/types/index.ts — 受影响字段
 
 // User
+id: number                        →  removed (json:"-"，不出现在响应体)
 status?: 'enabled' | 'disabled'  →  userStatus?: 'enabled' | 'disabled'
 createdAt: string                 →  createTime: string
+                                     bizKey: string  (新增)
 
 // Team
+id: number                        →  removed (json:"-"，不出现在响应体)
 createdAt: string                 →  createTime: string
 updatedAt: string                 →  dbUpdateTime: string
+                                     bizKey: string  (新增)
 
 // MainItem / SubItem
+id: number                        →  removed (json:"-"，不出现在响应体)
 status: string                    →  itemStatus: string
 createdAt: string                 →  createTime: string
 updatedAt: string                 →  dbUpdateTime: string
+                                     bizKey: string  (新增)
 
 // ItemPool
+id: number                        →  removed (json:"-"，不出现在响应体)
 status: string                    →  poolStatus: string
 createdAt: string                 →  createTime: string
 updatedAt: string                 →  dbUpdateTime: string
+                                     bizKey: string  (新增)
 
 // ProgressRecord
+id: number                        →  removed (json:"-"，不出现在响应体)
 createdAt: string                 →  createTime: string
 
 // Role
@@ -517,17 +526,17 @@ CREATE TABLE pmw_status_histories (
 | 威胁 | 对策 |
 |------|------|
 | `status` 关键字冲突导致 DDL/DML parse error | 字段重命名为 `user_status`/`item_status`/`pool_status` |
-| `biz_key` 暴露泄露雪花时间戳和 worker-id | `json:"-"` 阻止序列化；日志中禁止出现 biz_key（见下） |
-| auto-increment `id` 暴露，攻击者可顺序枚举资源 | auth middleware 在所有资源端点校验 team membership，枚举越权 id 返回 403，不泄露数据 |
-| biz_key 通过日志或错误响应间接泄露 | biz_key 不得出现在日志、error message、API 响应中；`json:"-"` 保证序列化层不泄露，logging middleware 不得打印完整 model struct（应只记录 id） |
+| auto-increment `id` 暴露，攻击者可顺序枚举资源 | `json:"-"` 阻止 `id` 序列化，`id` 不出现在任何 API 响应中，顺序枚举攻击面消除 |
+| `biz_key` 暴露泄露雪花时间戳和 worker-id | `biz_key` 通过 `json:"bizKey"` 对外暴露；雪花 ID 非顺序，枚举难度高；但仍编码了创建时间和 worker-id，日志中禁止出现原始雪花值（见下） |
+| biz_key 通过日志或错误响应间接泄露创建时间/机器标识 | logging middleware 不得打印完整 model struct；error message 不得包含 biz_key 原始值 |
 
-> 注：worker-id=1（硬编码单机），雪花值编码了创建时间和 worker-id。一旦 biz_key 泄露，可反推创建时间和机器标识，因此日志管控是必要的。
+> 注：worker-id=1（硬编码单机），雪花值编码了创建时间和 worker-id。biz_key 通过 `json:"bizKey"` 对外暴露，客户端可见；但日志和 error message 中不得打印原始雪花值，防止在非预期渠道泄露机器标识。
 
 ### Mitigations
 
 - repo 接口不暴露硬删除方法，从接口层面杜绝误操作
 - `SoftDelete` 实现加 `deleted_flag = 0` 条件，防止重复软删并确保幂等性
-- logging middleware 记录请求/响应时只记录 `id`，不打印完整 model struct
+- logging middleware 记录请求/响应时只记录 `bizKey`，不打印完整 model struct
 
 ## PRD Coverage Map
 
@@ -535,6 +544,7 @@ CREATE TABLE pmw_status_histories (
 |--------|-----------------|-------------------|
 | schema.sql 在 MySQL 8.0 无报错执行 | schema.sql 重写 | DDL 全量替换 |
 | 所有表含 create_time/db_update_time/deleted_flag/deleted_time/biz_key | BaseModel 替换 | `model/base.go` |
+| biz_key 对外暴露（json:"bizKey"），id 不对外暴露（json:"-"） | BaseModel json tag | `model/base.go` |
 | 无 TEXT 字段 | schema.sql + model GORM tag | VARCHAR(1000/2000) |
 | 无 status 关键字 | model 字段重命名 | UserStatus/ItemStatus/PoolStatus |
 | 索引符合 idx_/uk_ 规范 | schema.sql | 索引命名全量检查 |

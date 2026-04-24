@@ -56,7 +56,7 @@ ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='...'
 | `created_at DATETIME` | `create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP` | DATETIME | JLC 强制 |
 | `updated_at DATETIME` | `db_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP` | DATETIME | JLC 强制 |
 | `deleted_at DATETIME` | `deleted_flag TINYINT(1) NOT NULL DEFAULT 0` + `deleted_time DATETIME NOT NULL DEFAULT '1970-01-01 08:00:00'` | TINYINT + DATETIME | JLC 强制 |
-| *(缺失)* | `biz_key BIGINT NOT NULL` | BIGINT | JLC 强制，业务关联键 |
+| *(缺失)* | `biz_key BIGINT NOT NULL` | BIGINT | JLC 强制，业务关联键；对外暴露（`json:"bizKey"`）作为资源标识符 |
 
 #### 3. 全局：主键类型
 
@@ -157,6 +157,8 @@ JLC 规范要求：`业务字段 + deleted_flag + deleted_time = 唯一键`。
 | `created_at` | `createdAt` | `createTime` | 所有资源接口 |
 | `updated_at` | `updatedAt` | `dbUpdateTime` | 所有资源接口 |
 | `deleted_at` | `deletedAt` | 字段消失（不对外暴露） | 所有资源接口 |
+| `id` | `id` | 字段消失（`json:"-"`，不对外暴露） | 所有资源接口 |
+| `biz_key`（新增） | *(不存在)* | `bizKey`（`json:"bizKey"`，对外暴露作为资源标识符） | 所有资源接口 |
 
 **这是一次破坏性 API 变更（breaking change）**。前端所有消费上述字段的代码（组件、API 模块、E2E 测试）必须与后端同步更新，不能分批部署。部署顺序：前端与后端在同一次发布中同时上线，不存在向后兼容窗口。
 
@@ -239,5 +241,5 @@ JLC 规范要求：`业务字段 + deleted_flag + deleted_time = 唯一键`。
 - [ ] `model/base.go` 不再嵌入 `gorm.Model`，改为手动声明 `CreateTime`、`DbUpdateTime`、`DeletedFlag`、`DeletedTime`、`BizKey`
 - [ ] 每个 repo 接口包含 `SoftDelete(ctx, id)` 方法，且无 `db.Delete()` 直接调用出现在 repo 层外部（`grep -r "db.Delete" --include="*.go" backend/internal/service` 返回空）
 - [ ] 所有 repo 层查询通过 `NotDeleted()` scope 过滤软删记录，`go test ./...` 全部通过
-- [ ] 前端 API 模块中所有字段引用已更新（`userStatus`、`itemStatus`、`poolStatus`、`createTime`、`dbUpdateTime`），`npm test` 全部通过
+- [ ] 前端 API 模块中所有字段引用已更新（`userStatus`、`itemStatus`、`poolStatus`、`createTime`、`dbUpdateTime`、`bizKey`），`npm test` 全部通过
 - [ ] E2E 测试中涉及上述字段的断言已同步更新，E2E 套件全部通过

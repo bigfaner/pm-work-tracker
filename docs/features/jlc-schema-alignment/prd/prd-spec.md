@@ -119,7 +119,7 @@ flowchart TD
 | 软删字段 | `deleted_at DATETIME` | `deleted_flag TINYINT(1) NOT NULL DEFAULT 0` + `deleted_time DATETIME NOT NULL DEFAULT '1970-01-01 08:00:00'` |
 | 创建时间 | `created_at DATETIME` | `create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP` |
 | 更新时间 | `updated_at DATETIME` | `db_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP` |
-| 业务键 | 无 | `biz_key BIGINT NOT NULL`（service 层 Create 时由雪花算法赋值；JSON tag `-` 不对外暴露，不出现在响应体；每张业务表新增 `UNIQUE KEY uk_biz_key(biz_key)`） |
+| 业务键 | 无 | `biz_key BIGINT NOT NULL`（service 层 Create 时由雪花算法赋值；JSON tag `json:"bizKey"` 对外暴露作为资源标识符；每张业务表新增 `UNIQUE KEY uk_biz_key(biz_key)`） |
 | 布尔类型 | `BOOLEAN` | `TINYINT(1) NOT NULL DEFAULT 0` |
 | 完成度类型 | `completion REAL` | `completion DECIMAL(5,2) NOT NULL DEFAULT 0.00` |
 
@@ -170,7 +170,7 @@ flowchart TD
 | 变更 | 说明 |
 |------|------|
 | `model/base.go` 移除 `gorm.Model` 嵌入 | 改为手动声明 `CreateTime`、`DbUpdateTime`、`DeletedFlag`、`DeletedTime`、`BizKey` |
-| `BizKey` JSON tag | `json:"-"`，不对外暴露，不出现在任何响应体中 |
+| `BizKey` JSON tag | `json:"bizKey"`，对外暴露作为资源标识符，不得用于数据库内部关联 |
 | 各 model 文件 `Status` 字段重命名 | 对应 `UserStatus`、`ItemStatus`、`PoolStatus` |
 | `Completion` 类型 | 保持 `float64`，JSON tag 不变 |
 
@@ -197,6 +197,8 @@ flowchart TD
 | `createdAt` | `createTime` | 所有资源接口 |
 | `updatedAt` | `dbUpdateTime` | 所有资源接口 |
 | `deletedAt` | 字段消失（不对外暴露） | 所有资源接口 |
+| `id` | 字段消失（`json:"-"`，不对外暴露） | 所有资源接口 |
+| *(不存在)* | `bizKey`（新增，`json:"bizKey"`，对外暴露作为资源标识符） | 所有资源接口 |
 
 前端需更新：API 模块（`frontend/src/api/`）、消费上述字段的组件、E2E 测试断言。
 
