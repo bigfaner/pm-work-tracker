@@ -16,6 +16,7 @@ import (
 	"pm-work-tracker/backend/internal/migration"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 	"pm-work-tracker/backend/internal/service"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/web"
 )
 
@@ -59,6 +60,11 @@ func run(configPath string, devMode bool) error {
 	// 3b. RBAC migration (roles, role_permissions, preset roles)
 	if err := migration.MigrateToRBAC(db); err != nil {
 		return fmt.Errorf("rbac migration error: %w", err)
+	}
+
+	// 3c. Init snowflake generator (single-node, worker-id=1)
+	if err := snowflake.Init(1); err != nil {
+		return fmt.Errorf("snowflake init error: %w", err)
 	}
 
 	// 4. Seed admin user

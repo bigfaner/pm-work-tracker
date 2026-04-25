@@ -46,7 +46,7 @@ func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req 
 	if err != nil {
 		return nil, err
 	}
-	if status.IsMainTerminal(mainItem.Status) {
+	if status.IsMainTerminal(mainItem.ItemStatus) {
 		return nil, apperrors.ErrTerminalMainItem
 	}
 
@@ -57,19 +57,19 @@ func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req 
 
 	item := &model.SubItem{
 		TeamID:      teamID,
-		MainItemID:  req.MainItemID,
+		MainItemKey: int64(req.MainItemID),
 		Code:        code,
 		Title:       req.Title,
-		Description: req.Description,
+		ItemDesc:    req.Description,
 		Priority:    req.Priority,
-		AssigneeID:  &req.AssigneeID,
-		Status:      "pending",
+		AssigneeKey: func() *int64 { if req.AssigneeID != 0 { v := int64(req.AssigneeID); return &v }; return nil }(),
+		ItemStatus:  "pending",
 		Weight:      1.0,
 	}
 
 	if req.StartDate != nil {
 		if t, err := dates.ParseDate(*req.StartDate); err == nil {
-			item.StartDate = &t
+			item.PlanStartDate = &t
 		}
 	}
 	if req.ExpectedEndDate != nil {
@@ -83,7 +83,7 @@ func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req 
 	}
 
 	// Trigger linkage evaluation after creating a new sub-item
-	_, _ = s.mainItemSvc.EvaluateLinkage(ctx, item.MainItemID, callerID)
+	_, _ = s.mainItemSvc.EvaluateLinkage(ctx, uint(item.MainItemKey), callerID)
 
 	return item, nil
 }
@@ -133,12 +133,12 @@ func (s *subItemService) ChangeStatus(ctx context.Context, teamID, callerID, ite
 		return nil, apperrors.ErrForbidden
 	}
 
-	if !status.IsValidTransition(status.SubItemTransitions, item.Status, newStatus) {
+	if !status.IsValidTransition(status.SubItemTransitions, item.ItemStatus, newStatus) {
 		return nil, apperrors.ErrInvalidStatus
 	}
 
 	fields := map[string]interface{}{
-		"status": newStatus,
+		"item_status": newStatus,
 	}
 
 	// Terminal side effects: force completion=100 and set actual_end_date
@@ -149,7 +149,7 @@ func (s *subItemService) ChangeStatus(ctx context.Context, teamID, callerID, ite
 	}
 
 	// Capture old status before update (repo may mutate the item)
-	oldStatus := item.Status
+	oldStatus := item.ItemStatus
 
 	if err := s.subItemRepo.Update(ctx, item, fields); err != nil {
 		return nil, err
@@ -157,7 +157,7 @@ func (s *subItemService) ChangeStatus(ctx context.Context, teamID, callerID, ite
 
 	// After terminal transition, recalculate parent MainItem completion
 	if newStatus == "completed" || newStatus == "closed" {
-		if err := s.mainItemSvc.RecalcCompletion(ctx, item.MainItemID); err != nil {
+		if err := s.mainItemSvc.RecalcCompletion(ctx, uint(item.MainItemKey)); err != nil {
 			return nil, err
 		}
 	}
@@ -166,16 +166,16 @@ func (s *subItemService) ChangeStatus(ctx context.Context, teamID, callerID, ite
 	if s.statusHistorySvc != nil {
 		_ = s.statusHistorySvc.Record(ctx, &model.StatusHistory{
 			ItemType:   "sub_item",
-			ItemID:     itemID,
+			ItemKey:    int64(itemID),
 			FromStatus: oldStatus,
 			ToStatus:   newStatus,
-			ChangedBy:  callerID,
-			IsAuto:     false,
+			ChangedBy:  int64(callerID),
+			IsAuto:     0,
 		})
 	}
 
 	// Evaluate linkage after status change
-	linkageResult, _ := s.mainItemSvc.EvaluateLinkage(ctx, item.MainItemID, callerID)
+	linkageResult, _ := s.mainItemSvc.EvaluateLinkage(ctx, uint(item.MainItemKey), callerID)
 
 	// Fetch updated item
 	updated, err := s.subItemRepo.FindByID(ctx, itemID)
@@ -200,7 +200,7 @@ func (s *subItemService) Delete(ctx context.Context, teamID, callerID, itemID ui
 	}
 
 	// Trigger linkage evaluation after deleting a sub-item
-	_, _ = s.mainItemSvc.EvaluateLinkage(ctx, item.MainItemID, callerID)
+	_, _ = s.mainItemSvc.EvaluateLinkage(ctx, uint(item.MainItemKey), callerID)
 
 	return nil
 }
@@ -213,7 +213,7 @@ func (s *subItemService) AvailableTransitions(ctx context.Context, teamID, subID
 	if item.TeamID != teamID {
 		return nil, apperrors.ErrForbidden
 	}
-	return status.GetAvailableTransitions(status.SubItemTransitions, item.Status), nil
+	return status.GetAvailableTransitions(status.SubItemTransitions, item.ItemStatus), nil
 }
 
 func (s *subItemService) Get(ctx context.Context, teamID, itemID uint) (*model.SubItem, error) {

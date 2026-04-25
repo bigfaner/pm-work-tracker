@@ -104,7 +104,7 @@ func (s *roleService) ListRoles(ctx context.Context) ([]RoleListItem, error) {
 			IsPreset:        r.IsPreset,
 			PermissionCount: permCount,
 			MemberCount:     memberCount,
-			CreatedAt:       r.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			CreatedAt:       r.CreateTime.Format("2006-01-02T15:04:05Z"),
 		})
 	}
 	return items, nil
@@ -139,7 +139,7 @@ func (s *roleService) GetRole(ctx context.Context, roleID uint) (*RoleDetail, er
 		IsPreset:    role.IsPreset,
 		Permissions: codesToItems(codes),
 		MemberCount: memberCount,
-		CreatedAt:   role.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		CreatedAt:   role.CreateTime.Format("2006-01-02T15:04:05Z"),
 	}, nil
 }
 
@@ -179,7 +179,7 @@ func (s *roleService) CreateRole(ctx context.Context, req dto.CreateRoleReq) (*R
 		IsPreset:        false,
 		PermissionCount: len(req.PermissionCodes),
 		MemberCount:     0,
-		CreatedAt:       role.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		CreatedAt:       role.CreateTime.Format("2006-01-02T15:04:05Z"),
 	}, nil
 }
 
@@ -258,7 +258,7 @@ func (s *roleService) UpdateRole(ctx context.Context, roleID uint, req dto.Updat
 		IsPreset:    role.IsPreset,
 		Permissions: codesToItems(codes),
 		MemberCount: memberCount,
-		CreatedAt:   role.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		CreatedAt:   role.CreateTime.Format("2006-01-02T15:04:05Z"),
 	}, nil
 }
 

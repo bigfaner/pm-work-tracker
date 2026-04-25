@@ -115,7 +115,7 @@ func (s *adminService) CreateUser(ctx context.Context, req *dto.CreateUserReq) (
 		DisplayName:  req.DisplayName,
 		Email:        req.Email,
 		PasswordHash: string(hash),
-		Status:       "enabled",
+		UserStatus:   "enabled",
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
@@ -130,9 +130,8 @@ func (s *adminService) CreateUser(ctx context.Context, req *dto.CreateUserReq) (
 			return nil, apperrors.ErrTeamNotFound
 		}
 		member := &model.TeamMember{
-			TeamID: *req.TeamID,
-			UserID: user.ID,
-			Role:   "member",
+			TeamKey: int64(*req.TeamID),
+			UserKey: int64(user.ID),
 		}
 		if err := s.teamRepo.AddMember(ctx, member); err != nil {
 			return nil, err
@@ -150,7 +149,7 @@ func (s *adminService) CreateUser(ctx context.Context, req *dto.CreateUserReq) (
 		Username:        user.Username,
 		DisplayName:     user.DisplayName,
 		Email:           user.Email,
-		Status:          user.Status,
+		Status:          user.UserStatus,
 		Teams:           teams,
 		InitialPassword: password,
 	}, nil
@@ -189,9 +188,8 @@ func (s *adminService) UpdateUser(ctx context.Context, userID uint, req *dto.Upd
 				return nil, apperrors.ErrTeamNotFound
 			}
 			member := &model.TeamMember{
-				TeamID: *req.TeamID,
-				UserID: userID,
-				Role:   "member",
+				TeamKey: int64(*req.TeamID),
+				UserKey: int64(userID),
 			}
 			if err := s.teamRepo.AddMember(ctx, member); err != nil {
 				return nil, err
@@ -218,7 +216,7 @@ func (s *adminService) ToggleUserStatus(ctx context.Context, callerID, targetUse
 		return nil, err
 	}
 
-	user.Status = status
+	user.UserStatus = status
 	if err := s.userRepo.Update(ctx, user); err != nil {
 		return nil, err
 	}
@@ -244,7 +242,7 @@ func modelToAdminUserDTO(u *model.User, teams []dto.TeamSummary) *dto.AdminUserD
 		Username:     u.Username,
 		DisplayName:  u.DisplayName,
 		Email:        u.Email,
-		Status:       u.Status,
+		Status:       u.UserStatus,
 		IsSuperAdmin: u.IsSuperAdmin,
 		Teams:        teams,
 	}

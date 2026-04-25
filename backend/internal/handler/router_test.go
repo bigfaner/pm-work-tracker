@@ -510,7 +510,7 @@ func (m *mockTeamRepo) FindMember(_ context.Context, _, _ uint) (*model.TeamMemb
 	}
 	// Default: member with RoleID=1 (PM role seeded in testDeps)
 	pmRoleID := uint(1)
-	return &model.TeamMember{Role: "pm", RoleID: &pmRoleID}, nil
+	return &model.TeamMember{ RoleKey: func() *int64 { v := int64(pmRoleID); return &v }()}, nil
 }
 func (m *mockTeamRepo) ListMembers(_ context.Context, _ uint) ([]*dto.TeamMemberDTO, error) {
 	return nil, nil

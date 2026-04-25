@@ -47,23 +47,24 @@ func NewTeamService(teamRepo repository.TeamRepo, userRepo repository.UserRepo, 
 
 func (s *teamService) CreateTeam(ctx context.Context, creatorID uint, req dto.CreateTeamReq) (*model.Team, error) {
 	team := &model.Team{
-		Name:        req.Name,
-		Description: req.Description,
-		Code:        req.Code,
-		PmID:        creatorID,
+		TeamName: req.Name,
+		TeamDesc: req.Description,
+		Code:     req.Code,
+		PmKey:    int64(creatorID),
 	}
 	if err := s.teamRepo.Create(ctx, team); err != nil {
 		return nil, err
 	}
 
 	member := &model.TeamMember{
-		TeamID:   team.ID,
-		UserID:   creatorID,
+		TeamKey:  int64(team.ID),
+		UserKey:  int64(creatorID),
 		JoinedAt: time.Now(),
 	}
 	if s.roleRepo != nil {
 		if pmRole, err := s.roleRepo.FindByName(ctx, "pm"); err == nil {
-			member.RoleID = &pmRole.ID
+			roleKey := int64(pmRole.ID)
+			member.RoleKey = &roleKey
 		}
 	}
 	if err := s.teamRepo.AddMember(ctx, member); err != nil {
@@ -98,13 +99,13 @@ func (s *teamService) ListTeams(ctx context.Context, _ uint, _ bool, search stri
 	for i, t := range teams {
 		result[i] = &dto.TeamListResp{
 			ID:            t.ID,
-			Name:          t.Name,
-			Description:   t.Description,
+			Name:          t.TeamName,
+			Description:   t.TeamDesc,
 			Code:          t.Code,
-			PmID:          t.PmID,
+			PmID:          uint(t.PmKey),
 			PmDisplayName: pmNames[t.ID],
-			CreatedAt:     t.CreatedAt.Format(time.RFC3339),
-			UpdatedAt:     t.UpdatedAt.Format(time.RFC3339),
+			CreatedAt:     t.CreateTime.Format(time.RFC3339),
+			UpdatedAt:     t.DbUpdateTime.Format(time.RFC3339),
 		}
 	}
 	return result, total, nil
@@ -116,7 +117,7 @@ func (s *teamService) GetTeamDetail(ctx context.Context, teamID uint) (*dto.Team
 		return nil, apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
 
-	pm, err := s.userRepo.FindByID(ctx, team.PmID)
+	pm, err := s.userRepo.FindByID(ctx, uint(team.PmKey))
 	if err != nil {
 		return nil, err
 	}
@@ -139,15 +140,15 @@ func (s *teamService) GetTeamDetail(ctx context.Context, teamID uint) (*dto.Team
 
 	return &dto.TeamDetailResp{
 		ID:            team.ID,
-		Name:          team.Name,
-		Description:   team.Description,
+		Name:          team.TeamName,
+		Description:   team.TeamDesc,
 		Code:          team.Code,
-		PmID:          team.PmID,
+		PmID:          uint(team.PmKey),
 		PmDisplayName: pm.DisplayName,
 		MemberCount:   int(memberCount),
 		MainItemCount: int(mainItemCount),
-		CreatedAt:     team.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:     team.UpdatedAt.Format(time.RFC3339),
+		CreatedAt:     team.CreateTime.Format(time.RFC3339),
+		UpdatedAt:     team.DbUpdateTime.Format(time.RFC3339),
 	}, nil
 }
 
@@ -156,12 +157,12 @@ func (s *teamService) UpdateTeam(ctx context.Context, pmID, teamID uint, req dto
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
-	if team.PmID != pmID {
+	if team.PmKey != int64(pmID) {
 		return nil, apperrors.ErrForbidden
 	}
 
-	team.Name = req.Name
-	team.Description = req.Description
+	team.TeamName = req.Name
+	team.TeamDesc = req.Description
 	if err := s.teamRepo.Update(ctx, team); err != nil {
 		return nil, err
 	}
@@ -173,7 +174,7 @@ func (s *teamService) InviteMember(ctx context.Context, pmID, teamID uint, req d
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
-	_ = team.PmID // permission is enforced by RequirePermission middleware
+	_ = team.PmKey // permission is enforced by RequirePermission middleware
 
 	if s.isPMRole(ctx, req.RoleID) {
 		return apperrors.ErrCannotAssignPMRole
@@ -193,9 +194,9 @@ func (s *teamService) InviteMember(ctx context.Context, pmID, teamID uint, req d
 	}
 
 	member := &model.TeamMember{
-		TeamID:   teamID,
-		UserID:   user.ID,
-		RoleID:   &req.RoleID,
+		TeamKey:  int64(teamID),
+		UserKey:  int64(user.ID),
+		RoleKey:  func() *int64 { v := int64(req.RoleID); return &v }(),
 		JoinedAt: time.Now(),
 	}
 	return s.teamRepo.AddMember(ctx, member)
@@ -206,7 +207,7 @@ func (s *teamService) RemoveMember(ctx context.Context, pmID, teamID, targetUser
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
-	if team.PmID != pmID {
+	if team.PmKey != int64(pmID) {
 		return apperrors.ErrForbidden
 	}
 	if targetUserID == pmID {
@@ -221,7 +222,7 @@ func (s *teamService) TransferPM(ctx context.Context, currentPMID, teamID, newPM
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
-	if team.PmID != currentPMID {
+	if team.PmKey != int64(currentPMID) {
 		return apperrors.ErrForbidden
 	}
 
@@ -234,7 +235,7 @@ func (s *teamService) TransferPM(ctx context.Context, currentPMID, teamID, newPM
 	// Atomic transfer via transaction
 	return s.db.Transaction(func(_ *gorm.DB) error {
 		// Update team PM
-		team.PmID = newPMID
+		team.PmKey = int64(newPMID)
 		if err := s.teamRepo.Update(ctx, team); err != nil {
 			return err
 		}
@@ -242,7 +243,8 @@ func (s *teamService) TransferPM(ctx context.Context, currentPMID, teamID, newPM
 		// New PM gets "pm" role
 		if s.roleRepo != nil {
 			if pmRole, err := s.roleRepo.FindByName(ctx, "pm"); err == nil {
-				newPMMember.RoleID = &pmRole.ID
+				roleKey := int64(pmRole.ID)
+				newPMMember.RoleKey = &roleKey
 			}
 		}
 		if err := s.teamRepo.UpdateMember(ctx, newPMMember); err != nil {
@@ -256,7 +258,8 @@ func (s *teamService) TransferPM(ctx context.Context, currentPMID, teamID, newPM
 		}
 		if s.roleRepo != nil {
 			if memberRole, err := s.roleRepo.FindByName(ctx, "member"); err == nil {
-				oldPMMember.RoleID = &memberRole.ID
+				roleKey := int64(memberRole.ID)
+				oldPMMember.RoleKey = &roleKey
 			}
 		}
 		return s.teamRepo.UpdateMember(ctx, oldPMMember)
@@ -268,10 +271,10 @@ func (s *teamService) DisbandTeam(ctx context.Context, callerID uint, teamID uin
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
-	if team.PmID != callerID {
+	if team.PmKey != int64(callerID) {
 		return apperrors.ErrForbidden
 	}
-	if team.Name != confirmName {
+	if team.TeamName != confirmName {
 		return apperrors.ErrValidation
 	}
 
@@ -283,7 +286,7 @@ func (s *teamService) UpdateMemberRole(ctx context.Context, pmID, teamID, target
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
-	if team.PmID != pmID {
+	if team.PmKey != int64(pmID) {
 		return apperrors.ErrForbidden
 	}
 
@@ -296,7 +299,8 @@ func (s *teamService) UpdateMemberRole(ctx context.Context, pmID, teamID, target
 		return apperrors.MapNotFound(err, apperrors.ErrNotTeamMember)
 	}
 
-	member.RoleID = &roleID
+	roleKey := int64(roleID)
+	member.RoleKey = &roleKey
 	return s.teamRepo.UpdateMember(ctx, member)
 }
 

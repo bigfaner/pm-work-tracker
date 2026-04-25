@@ -224,7 +224,7 @@ func (h *TeamHandler) TransferPM(c *gin.Context) {
 			apperrors.RespondError(c, err)
 			return
 		}
-		pmID = team.PmID
+		pmID = uint(team.PmKey)
 	}
 
 	err := h.teamSvc.TransferPM(c.Request.Context(), pmID, teamID, req.NewPmUserID)
@@ -254,11 +254,11 @@ func (h *TeamHandler) SearchUsers(c *gin.Context) {
 func teamToDTO(team *model.Team) gin.H {
 	return gin.H{
 		"id":          team.ID,
-		"name":        team.Name,
-		"description": team.Description,
+		"name":        team.TeamName,
+		"description": team.TeamDesc,
 		"code":        team.Code,
-		"pmId":        team.PmID,
-		"createdAt":   team.CreatedAt,
-		"updatedAt":   team.UpdatedAt,
+		"pmId":        team.PmKey,
+		"createdAt":   team.CreateTime,
+		"updatedAt":   team.DbUpdateTime,
 	}
 }

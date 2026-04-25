@@ -14,17 +14,17 @@ type ItemPoolVO struct {
 	Title             string  `json:"title"`
 	Background        string  `json:"background"`
 	ExpectedOutput    string  `json:"expectedOutput"`
-	SubmitterID       uint    `json:"submitterId"`
+	SubmitterKey      int64   `json:"submitterKey"`
 	SubmitterName     string  `json:"submitterName"`
 	Status            string  `json:"status"`
-	AssignedMainID    *uint   `json:"assignedMainId"`
-	AssignedSubID     *uint   `json:"assignedSubId"`
+	AssignedMainKey   *int64  `json:"assignedMainKey"`
+	AssignedSubKey    *int64  `json:"assignedSubKey"`
 	AssignedMainCode  string  `json:"assignedMainCode"`
 	AssignedMainTitle string  `json:"assignedMainTitle"`
-	AssigneeID        *uint   `json:"assigneeId"`
+	AssigneeKey       *int64  `json:"assigneeKey"`
 	RejectReason      string  `json:"rejectReason"`
 	ReviewedAt        *string `json:"reviewedAt"`
-	ReviewerID        *uint   `json:"reviewerId"`
+	ReviewerKey       *int64  `json:"reviewerKey"`
 	CreatedAt         string  `json:"createdAt"`
 	UpdatedAt         string  `json:"updatedAt"`
 }
@@ -37,16 +37,16 @@ func NewItemPoolVO(m *model.ItemPool, submitterName string) ItemPoolVO {
 		Title:          m.Title,
 		Background:     m.Background,
 		ExpectedOutput: m.ExpectedOutput,
-		SubmitterID:    m.SubmitterID,
+		SubmitterKey:   m.SubmitterKey,
 		SubmitterName:  submitterName,
-		Status:         m.Status,
-		AssignedMainID: m.AssignedMainID,
-		AssignedSubID:  m.AssignedSubID,
-		AssigneeID:     m.AssigneeID,
+		Status:         m.PoolStatus,
+		AssignedMainKey: m.AssignedMainKey,
+		AssignedSubKey:  m.AssignedSubKey,
+		AssigneeKey:     m.AssigneeKey,
 		RejectReason:   m.RejectReason,
 		ReviewedAt:     dates.FormatTimePtr(m.ReviewedAt),
-		ReviewerID:     m.ReviewerID,
-		CreatedAt:      m.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:      m.UpdatedAt.Format(time.RFC3339),
+		ReviewerKey:    m.ReviewerKey,
+		CreatedAt:      m.CreateTime.Format(time.RFC3339),
+		UpdatedAt:      m.DbUpdateTime.Format(time.RFC3339),
 	}
 }

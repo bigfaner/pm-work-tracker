@@ -149,7 +149,7 @@ func (m *mockSubItemService) Delete(_ context.Context, _, _, _ uint) error {
 func depsWithSubItemSvc(t *testing.T, svc *mockSubItemService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.SubItem = NewSubItemHandler(svc)
 	return deps
 }
@@ -159,7 +159,7 @@ func depsWithSubItemSvc(t *testing.T, svc *mockSubItemService) *Dependencies {
 func depsWithSubItemSvcMemberRole(t *testing.T, svc *mockSubItemService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "member", RoleID: ptrUint(2)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(2); return &v }()}}
 	deps.SubItem = NewSubItemHandler(svc)
 	return deps
 }
@@ -167,11 +167,11 @@ func depsWithSubItemSvcMemberRole(t *testing.T, svc *mockSubItemService) *Depend
 // testSubItem creates a SubItem model for tests.
 func testSubItem(id uint, teamID uint) *model.SubItem {
 	return &model.SubItem{
-		TeamID:     teamID,
-		MainItemID: 1,
+		TeamID: teamID,
+		MainItemKey: int64(1),
 		Title:      "Test SubItem",
 		Priority:   "P2",
-		Status:     "pending",
+		ItemStatus: "pending",
 	}
 }
 
@@ -348,7 +348,7 @@ func TestGetSubItem_Success(t *testing.T) {
 	svc := &mockSubItemService{}
 	item := testSubItem(1, 10)
 	item.ID = 1
-	item.Status = "progressing"
+	item.ItemStatus = "progressing"
 	item.Completion = 60
 	svc.getResult.item = item
 
@@ -446,7 +446,7 @@ func TestUpdateSubItem_Success_AsAssignee(t *testing.T) {
 	assigneeID := uint(5)
 	item := testSubItem(1, 10)
 	item.ID = 1
-	item.AssigneeID = &assigneeID
+	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
 	item.Title = "Updated"
 	svc.getResult.item = item
 
@@ -470,7 +470,7 @@ func TestUpdateSubItem_Forbidden_NonPMNonAssignee(t *testing.T) {
 	assigneeID := uint(99) // different user
 	item := testSubItem(1, 10)
 	item.ID = 1
-	item.AssigneeID = &assigneeID
+	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
 	svc.getResult.item = item
 
 	deps := depsWithSubItemSvcMemberRole(t, svc)
@@ -532,7 +532,7 @@ func TestChangeStatus_Success(t *testing.T) {
 	svc := &mockSubItemService{}
 	item := testSubItem(1, 10)
 	item.ID = 1
-	item.Status = "progressing"
+	item.ItemStatus = "progressing"
 	svc.changeStatusResult.result = &service.SubItemChangeResult{SubItem: item}
 
 	deps := depsWithSubItemSvc(t, svc)
@@ -624,8 +624,8 @@ func TestChangeStatus_AsAssignee(t *testing.T) {
 	assigneeID := uint(5)
 	item := testSubItem(1, 10)
 	item.ID = 1
-	item.AssigneeID = &assigneeID
-	item.Status = "progressing"
+	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
+	item.ItemStatus = "progressing"
 	svc.getResult.item = item // needed for assignee check
 	svc.changeStatusResult.result = &service.SubItemChangeResult{SubItem: item}
 
@@ -649,7 +649,7 @@ func TestChangeStatus_Forbidden_NonPMNonAssignee(t *testing.T) {
 	assigneeID := uint(99)
 	item := testSubItem(1, 10)
 	item.ID = 1
-	item.AssigneeID = &assigneeID
+	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
 	svc.getResult.item = item
 
 	deps := depsWithSubItemSvcMemberRole(t, svc)
@@ -840,15 +840,15 @@ func TestGetSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	now := time.Now()
 	assigneeID := uint(3)
 	item := &model.SubItem{
-		TeamID:          10,
-		MainItemID:      1,
+		TeamID: 10,
+		MainItemKey: int64(1),
 		Title:           "实现支付接口",
-		Description:     "对接微信支付",
+		ItemDesc: "对接微信支付",
 		Priority:        "P2",
-		AssigneeID:      &assigneeID,
-		StartDate:       &now,
+		AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
+		PlanStartDate: &now,
 		ExpectedEndDate: &now,
-		Status:          "progressing",
+		ItemStatus: "progressing",
 		Completion:      60.0,
 		IsKeyItem:       false,
 		Weight:          1.0,
@@ -881,19 +881,19 @@ func TestGetSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	assert.Equal(t, "progressing", data["status"])
 	assert.Equal(t, 60.0, data["completion"])
 	assert.Equal(t, false, data["isKeyItem"])
-	assert.Equal(t, float64(1), data["mainItemId"])
+	assert.Equal(t, float64(1), data["mainItemKey"])
 }
 
 func TestCreateSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	svc := &mockSubItemService{}
 	assigneeID := uint(3)
 	item := &model.SubItem{
-		TeamID:     10,
-		MainItemID: 1,
+		TeamID: 10,
+		MainItemKey: int64(1),
 		Title:      "New SubItem",
 		Priority:   "P2",
-		AssigneeID: &assigneeID,
-		Status:     "pending",
+		AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
+		ItemStatus: "pending",
 		Weight:     1.0,
 	}
 	item.ID = 5

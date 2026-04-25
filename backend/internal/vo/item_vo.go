@@ -15,8 +15,8 @@ type MainItemVO struct {
 	Code            string  `json:"code"`
 	Title           string  `json:"title"`
 	Priority        string  `json:"priority"`
-	ProposerID      uint    `json:"proposerId"`
-	AssigneeID      *uint   `json:"assigneeId"`
+	ProposerID      int64   `json:"proposerId"`
+	AssigneeID      *int64  `json:"assigneeId"`
 	StartDate       *string `json:"startDate"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
 	ActualEndDate   *string `json:"actualEndDate"`
@@ -34,11 +34,11 @@ type SubItemVO struct {
 	ID              uint    `json:"id"`
 	Code            string  `json:"code"`
 	TeamID          uint    `json:"teamId"`
-	MainItemID      uint    `json:"mainItemId"`
+	MainItemKey     int64   `json:"mainItemKey"`
 	Title           string  `json:"title"`
 	Description     string  `json:"description"`
 	Priority        string  `json:"priority"`
-	AssigneeID      *uint   `json:"assigneeId"`
+	AssigneeID      *int64  `json:"assigneeId"`
 	StartDate       *string `json:"startDate"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
 	ActualEndDate   *string `json:"actualEndDate"`
@@ -54,15 +54,15 @@ type SubItemVO struct {
 // ProgressRecordVO is the frontend-facing view object for a progress record.
 type ProgressRecordVO struct {
 	ID          uint    `json:"id"`
-	SubItemID   uint    `json:"subItemId"`
-	TeamID      uint    `json:"teamId"`
-	AuthorID    uint    `json:"authorId"`
+	SubItemKey  int64   `json:"subItemKey"`
+	TeamKey     int64   `json:"teamKey"`
+	AuthorKey   int64   `json:"authorKey"`
 	AuthorName  string  `json:"authorName"`
 	Completion  float64 `json:"completion"`
 	Achievement string  `json:"achievement"`
 	Blocker     string  `json:"blocker"`
 	Lesson      string  `json:"lesson"`
-	IsPMCorrect bool    `json:"isPMCorrect"`
+	IsPmCorrect int     `json:"isPmCorrect"`
 	CreatedAt   string  `json:"createdAt"`
 }
 
@@ -74,7 +74,7 @@ type SubItemSummaryVO struct {
 	Status          string  `json:"status"`
 	StatusName      string  `json:"statusName"`
 	Completion      float64 `json:"completion"`
-	AssigneeID      *uint   `json:"assigneeId"`
+	AssigneeID      *int64  `json:"assigneeId"`
 	Priority        string  `json:"priority"`
 	StartDate       *string `json:"startDate"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
@@ -84,7 +84,7 @@ type SubItemSummaryVO struct {
 // NewMainItemVO converts a model.MainItem to a MainItemVO.
 func NewMainItemVO(m *model.MainItem) MainItemVO {
 	statusName := ""
-	if def, ok := status.GetMainItemStatus(m.Status); ok {
+	if def, ok := status.GetMainItemStatus(m.ItemStatus); ok {
 		statusName = def.Name
 	}
 	return MainItemVO{
@@ -93,46 +93,46 @@ func NewMainItemVO(m *model.MainItem) MainItemVO {
 		Code:            m.Code,
 		Title:           m.Title,
 		Priority:        m.Priority,
-		ProposerID:      m.ProposerID,
-		AssigneeID:      m.AssigneeID,
-		StartDate:       dates.FormatTimePtr(m.StartDate),
+		ProposerID:      m.ProposerKey,
+		AssigneeID:      m.AssigneeKey,
+		StartDate:       dates.FormatTimePtr(m.PlanStartDate),
 		ExpectedEndDate: dates.FormatTimePtr(m.ExpectedEndDate),
 		ActualEndDate:   dates.FormatTimePtr(m.ActualEndDate),
-		Status:          m.Status,
+		Status:          m.ItemStatus,
 		StatusName:      statusName,
 		Completion:      m.Completion,
 		IsKeyItem:       m.IsKeyItem,
 		ArchivedAt:      dates.FormatTimePtr(m.ArchivedAt),
-		CreatedAt:       m.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:       m.UpdatedAt.Format(time.RFC3339),
+		CreatedAt:       m.CreateTime.Format(time.RFC3339),
+		UpdatedAt:       m.DbUpdateTime.Format(time.RFC3339),
 	}
 }
 
 // NewSubItemVO converts a model.SubItem to a SubItemVO.
 func NewSubItemVO(m *model.SubItem) SubItemVO {
 	statusName := ""
-	if def, ok := status.GetSubItemStatus(m.Status); ok {
+	if def, ok := status.GetSubItemStatus(m.ItemStatus); ok {
 		statusName = def.Name
 	}
 	return SubItemVO{
 		ID:              m.ID,
 		Code:            m.Code,
 		TeamID:          m.TeamID,
-		MainItemID:      m.MainItemID,
+		MainItemKey:     m.MainItemKey,
 		Title:           m.Title,
-		Description:     m.Description,
+		Description:     m.ItemDesc,
 		Priority:        m.Priority,
-		AssigneeID:      m.AssigneeID,
-		StartDate:       dates.FormatTimePtr(m.StartDate),
+		AssigneeID:      m.AssigneeKey,
+		StartDate:       dates.FormatTimePtr(m.PlanStartDate),
 		ExpectedEndDate: dates.FormatTimePtr(m.ExpectedEndDate),
 		ActualEndDate:   dates.FormatTimePtr(m.ActualEndDate),
-		Status:          m.Status,
+		Status:          m.ItemStatus,
 		StatusName:      statusName,
 		Completion:      m.Completion,
 		IsKeyItem:       m.IsKeyItem,
 		Weight:          m.Weight,
-		CreatedAt:       m.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:       m.UpdatedAt.Format(time.RFC3339),
+		CreatedAt:       m.CreateTime.Format(time.RFC3339),
+		UpdatedAt:       m.DbUpdateTime.Format(time.RFC3339),
 	}
 }
 
@@ -140,16 +140,16 @@ func NewSubItemVO(m *model.SubItem) SubItemVO {
 func NewProgressRecordVO(m *model.ProgressRecord, authorName string) ProgressRecordVO {
 	return ProgressRecordVO{
 		ID:          m.ID,
-		SubItemID:   m.SubItemID,
-		TeamID:      m.TeamID,
-		AuthorID:    m.AuthorID,
+		SubItemKey:  m.SubItemKey,
+		TeamKey:     m.TeamKey,
+		AuthorKey:   m.AuthorKey,
 		AuthorName:  authorName,
 		Completion:  m.Completion,
 		Achievement: m.Achievement,
 		Blocker:     m.Blocker,
 		Lesson:      m.Lesson,
-		IsPMCorrect: m.IsPMCorrect,
-		CreatedAt:   m.CreatedAt.Format(time.RFC3339),
+		IsPmCorrect: m.IsPmCorrect,
+		CreatedAt:   m.CreateTime.Format(time.RFC3339),
 	}
 }
 
@@ -158,19 +158,19 @@ func NewSubItemSummaryVOs(items []*model.SubItem) []SubItemSummaryVO {
 	result := make([]SubItemSummaryVO, 0, len(items))
 	for _, si := range items {
 		statusName := ""
-		if def, ok := status.GetSubItemStatus(si.Status); ok {
+		if def, ok := status.GetSubItemStatus(si.ItemStatus); ok {
 			statusName = def.Name
 		}
 		result = append(result, SubItemSummaryVO{
 			ID:              si.ID,
 			Code:            si.Code,
 			Title:           si.Title,
-			Status:          si.Status,
+			Status:          si.ItemStatus,
 			StatusName:      statusName,
 			Completion:      si.Completion,
-			AssigneeID:      si.AssigneeID,
+			AssigneeID:      si.AssigneeKey,
 			Priority:        si.Priority,
-			StartDate:       dates.FormatTimePtr(si.StartDate),
+			StartDate:       dates.FormatTimePtr(si.PlanStartDate),
 			ExpectedEndDate: dates.FormatTimePtr(si.ExpectedEndDate),
 			ActualEndDate:   dates.FormatTimePtr(si.ActualEndDate),
 		})

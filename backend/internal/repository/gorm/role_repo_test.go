@@ -286,16 +286,16 @@ func TestRoleRepo_CountMembersByRoleID(t *testing.T) {
 	u1 := seedRoleUser(t, db, "user1")
 	u2 := seedRoleUser(t, db, "user2")
 
-	team := model.Team{Name: "Team", PmID: u1.ID, Code: "TM01"}
+	team := model.Team{TeamName: "Team", PmKey: int64(u1.ID), Code: "TM01"}
 	require.NoError(t, db.Create(&team).Error)
 
 	r := seedRole(t, db, "member", "Member role", true)
 	rOther := seedRole(t, db, "other", "Other role", false)
 
 	// One member with this role
-	require.NoError(t, db.Create(&model.TeamMember{TeamID: team.ID, UserID: u1.ID, RoleID: &r.ID, JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u1.ID), RoleKey: func() *int64 { v := int64(r.ID); return &v }(), JoinedAt: timeNow()}).Error)
 	// One member with different role
-	require.NoError(t, db.Create(&model.TeamMember{TeamID: team.ID, UserID: u2.ID, RoleID: &rOther.ID, JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u2.ID), RoleKey: func() *int64 { v := int64(rOther.ID); return &v }(), JoinedAt: timeNow()}).Error)
 
 	count, err := repo.CountMembersByRoleID(ctx, r.ID)
 	require.NoError(t, err)
@@ -320,12 +320,12 @@ func TestRoleRepo_HasPermission_True(t *testing.T) {
 	ctx := context.Background()
 
 	u := seedRoleUser(t, db, "user1")
-	team := model.Team{Name: "Team", PmID: u.ID, Code: "TM01"}
+	team := model.Team{TeamName: "Team", PmKey: int64(u.ID), Code: "TM01"}
 	require.NoError(t, db.Create(&team).Error)
 	r := seedRole(t, db, "pm", "PM role", true)
 
 	require.NoError(t, db.Create(&model.RolePermission{RoleID: r.ID, PermissionCode: "team:create"}).Error)
-	require.NoError(t, db.Create(&model.TeamMember{TeamID: team.ID, UserID: u.ID, RoleID: &r.ID, JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r.ID); return &v }(), JoinedAt: timeNow()}).Error)
 
 	has, err := repo.HasPermission(ctx, u.ID, "team:create")
 	require.NoError(t, err)
@@ -338,12 +338,12 @@ func TestRoleRepo_HasPermission_False(t *testing.T) {
 	ctx := context.Background()
 
 	u := seedRoleUser(t, db, "user1")
-	team := model.Team{Name: "Team", PmID: u.ID, Code: "TM01"}
+	team := model.Team{TeamName: "Team", PmKey: int64(u.ID), Code: "TM01"}
 	require.NoError(t, db.Create(&team).Error)
 	r := seedRole(t, db, "member", "Member role", true)
 
 	require.NoError(t, db.Create(&model.RolePermission{RoleID: r.ID, PermissionCode: "team:read"}).Error)
-	require.NoError(t, db.Create(&model.TeamMember{TeamID: team.ID, UserID: u.ID, RoleID: &r.ID, JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r.ID); return &v }(), JoinedAt: timeNow()}).Error)
 
 	has, err := repo.HasPermission(ctx, u.ID, "team:delete")
 	require.NoError(t, err)
@@ -368,9 +368,9 @@ func TestRoleRepo_HasPermission_ChecksAcrossTeams(t *testing.T) {
 	ctx := context.Background()
 
 	u := seedRoleUser(t, db, "user1")
-	team1 := model.Team{Name: "Team1", PmID: u.ID, Code: "TM01"}
+	team1 := model.Team{TeamName: "Team1", PmKey: int64(u.ID), Code: "TM01"}
 	require.NoError(t, db.Create(&team1).Error)
-	team2 := model.Team{Name: "Team2", PmID: u.ID, Code: "TM02"}
+	team2 := model.Team{TeamName: "Team2", PmKey: int64(u.ID), Code: "TM02"}
 	require.NoError(t, db.Create(&team2).Error)
 
 	r1 := seedRole(t, db, "role1", "Role 1", false)
@@ -379,8 +379,8 @@ func TestRoleRepo_HasPermission_ChecksAcrossTeams(t *testing.T) {
 	require.NoError(t, db.Create(&model.RolePermission{RoleID: r1.ID, PermissionCode: "team:read"}).Error)
 	require.NoError(t, db.Create(&model.RolePermission{RoleID: r2.ID, PermissionCode: "team:delete"}).Error)
 
-	require.NoError(t, db.Create(&model.TeamMember{TeamID: team1.ID, UserID: u.ID, RoleID: &r1.ID, JoinedAt: timeNow()}).Error)
-	require.NoError(t, db.Create(&model.TeamMember{TeamID: team2.ID, UserID: u.ID, RoleID: &r2.ID, JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team1.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r1.ID); return &v }(), JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team2.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r2.ID); return &v }(), JoinedAt: timeNow()}).Error)
 
 	// User has team:delete via role2 in team2
 	has, err := repo.HasPermission(ctx, u.ID, "team:delete")
@@ -396,9 +396,9 @@ func TestRoleRepo_GetUserTeamPermissions(t *testing.T) {
 	ctx := context.Background()
 
 	u := seedRoleUser(t, db, "user1")
-	team1 := model.Team{Name: "Team1", PmID: u.ID, Code: "TM01"}
+	team1 := model.Team{TeamName: "Team1", PmKey: int64(u.ID), Code: "TM01"}
 	require.NoError(t, db.Create(&team1).Error)
-	team2 := model.Team{Name: "Team2", PmID: u.ID, Code: "TM02"}
+	team2 := model.Team{TeamName: "Team2", PmKey: int64(u.ID), Code: "TM02"}
 	require.NoError(t, db.Create(&team2).Error)
 
 	r1 := seedRole(t, db, "pm-role", "PM Role", true)
@@ -408,8 +408,8 @@ func TestRoleRepo_GetUserTeamPermissions(t *testing.T) {
 	require.NoError(t, db.Create(&model.RolePermission{RoleID: r1.ID, PermissionCode: "team:read"}).Error)
 	require.NoError(t, db.Create(&model.RolePermission{RoleID: r2.ID, PermissionCode: "team:read"}).Error)
 
-	require.NoError(t, db.Create(&model.TeamMember{TeamID: team1.ID, UserID: u.ID, RoleID: &r1.ID, JoinedAt: timeNow()}).Error)
-	require.NoError(t, db.Create(&model.TeamMember{TeamID: team2.ID, UserID: u.ID, RoleID: &r2.ID, JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team1.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r1.ID); return &v }(), JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team2.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r2.ID); return &v }(), JoinedAt: timeNow()}).Error)
 
 	result, err := repo.GetUserTeamPermissions(ctx, u.ID)
 	require.NoError(t, err)
@@ -437,11 +437,11 @@ func TestRoleRepo_GetUserTeamPermissions_NoRoleID(t *testing.T) {
 	ctx := context.Background()
 
 	u := seedRoleUser(t, db, "user1")
-	team := model.Team{Name: "Team", PmID: u.ID, Code: "TM01"}
+	team := model.Team{TeamName: "Team", PmKey: int64(u.ID), Code: "TM01"}
 	require.NoError(t, db.Create(&team).Error)
 
 	// Member without a RoleID (legacy data)
-	require.NoError(t, db.Create(&model.TeamMember{TeamID: team.ID, UserID: u.ID, RoleID: nil, JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID), RoleKey: nil, JoinedAt: timeNow()}).Error)
 
 	result, err := repo.GetUserTeamPermissions(ctx, u.ID)
 	require.NoError(t, err)

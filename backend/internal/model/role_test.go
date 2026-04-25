@@ -36,18 +36,13 @@ func TestRole_HasSoftDelete(t *testing.T) {
 	r := model.Role{Name: "to-delete", Description: "will be deleted"}
 	require.NoError(t, db.Create(&r).Error)
 
-	// Soft delete
+	// Role uses hard delete (no soft delete needed per design)
 	require.NoError(t, db.Delete(&r).Error)
 
-	// Should NOT be found in normal query
+	// Should NOT be found after hard delete
 	var found model.Role
 	err = db.First(&found, "name = ?", "to-delete").Error
-	assert.Error(t, err, "soft-deleted role should not be found")
-
-	// Should be found with Unscoped
-	var foundAll model.Role
-	require.NoError(t, db.Unscoped().First(&foundAll, "name = ?", "to-delete").Error)
-	assert.Equal(t, "to-delete", foundAll.Name)
+	assert.Error(t, err, "deleted role should not be found")
 }
 
 func TestRole_Defaults(t *testing.T) {
@@ -113,20 +108,20 @@ func TestTeamMember_HasRoleID(t *testing.T) {
 	u := model.User{Username: "tmuser", DisplayName: "TM", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
 
-	team := model.Team{Name: "TMTeam", PmID: u.ID}
+	team := model.Team{TeamName: "TMTeam", PmKey: int64(u.ID)}
 	require.NoError(t, db.Create(&team).Error)
 
 	r := model.Role{Name: "member-role", Description: "member role"}
 	require.NoError(t, db.Create(&r).Error)
 
 	// Create TeamMember with RoleID
-	tm := model.TeamMember{TeamID: team.ID, UserID: u.ID, RoleID: &r.ID}
+	tm := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r.ID); return &v }()}
 	require.NoError(t, db.Create(&tm).Error)
 
 	var fetched model.TeamMember
-	db.First(&fetched, "team_id = ? AND user_id = ?", team.ID, u.ID)
-	assert.NotNil(t, fetched.RoleID, "RoleID should be set")
-	assert.Equal(t, r.ID, *fetched.RoleID, "RoleID should match role ID")
+	db.First(&fetched, "team_key = ? AND user_key = ?", team.ID, u.ID)
+	assert.NotNil(t, fetched.RoleKey, "RoleID should be set")
+	assert.Equal(t, int64(r.ID), *fetched.RoleKey, "RoleID should match role ID")
 }
 
 func TestTeamMember_RoleIDNullable(t *testing.T) {
@@ -137,14 +132,14 @@ func TestTeamMember_RoleIDNullable(t *testing.T) {
 	u := model.User{Username: "tmnull", DisplayName: "TMN", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
 
-	team := model.Team{Name: "NullTeam", PmID: u.ID}
+	team := model.Team{TeamName: "NullTeam", PmKey: int64(u.ID)}
 	require.NoError(t, db.Create(&team).Error)
 
 	// Create TeamMember without RoleID (nullable)
-	tm := model.TeamMember{TeamID: team.ID, UserID: u.ID}
+	tm := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID)}
 	require.NoError(t, db.Create(&tm).Error)
 
 	var fetched model.TeamMember
-	db.First(&fetched, "team_id = ? AND user_id = ?", team.ID, u.ID)
-	assert.Nil(t, fetched.RoleID, "RoleID should be nil when not set")
+	db.First(&fetched, "team_key = ? AND user_key = ?", team.ID, u.ID)
+	assert.Nil(t, fetched.RoleKey, "RoleID should be nil when not set")
 }

@@ -157,65 +157,74 @@ func getRoleIDMap(tx *gorm.DB) (map[string]uint, error) {
 }
 
 func rebuildTeamMembersTable(tx *gorm.DB, roleMap map[string]uint) error {
-	// Check if team_members table exists
-	if !tableExists(tx, "team_members") {
+	// Check if legacy team_members table exists (pre-rename schema)
+	legacyExists := tableExists(tx, "team_members")
+	newExists := tableExists(tx, "pmw_team_members")
+
+	if !legacyExists && !newExists {
 		// Fresh install: create the new table directly
 		return tx.Exec(`
-			CREATE TABLE team_members (
-				id         INTEGER PRIMARY KEY AUTOINCREMENT,
-				team_id    INTEGER NOT NULL,
-				user_id    INTEGER NOT NULL,
-				role_id    INTEGER,
-				joined_at  DATETIME NOT NULL,
-				created_at DATETIME,
-				updated_at DATETIME,
-				UNIQUE(team_id, user_id)
+			CREATE TABLE pmw_team_members (
+				id              INTEGER PRIMARY KEY AUTOINCREMENT,
+				biz_key         INTEGER NOT NULL DEFAULT 0,
+				create_time     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				db_update_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				deleted_flag    INTEGER NOT NULL DEFAULT 0,
+				deleted_time    DATETIME NOT NULL DEFAULT '1970-01-01 08:00:00',
+				team_key        INTEGER NOT NULL,
+				user_key        INTEGER NOT NULL,
+				role_key        INTEGER,
+				joined_at       DATETIME NOT NULL,
+				UNIQUE(team_key, user_key)
 			)
 		`).Error
 	}
 
-	// SQLite doesn't support DROP COLUMN; use CREATE -> COPY -> DROP -> RENAME.
-	// We also migrate role string -> role_id during the copy step.
+	if newExists {
+		// Already migrated to new schema — nothing to do
+		return nil
+	}
 
-	// Default to member role for unknown role strings
+	// Legacy table exists: rebuild as pmw_team_members with new column names.
 	memberRoleID := roleMap["member"]
-
-	// Build CASE expression for role migration
 	pmRoleID := roleMap["pm"]
 
 	if err := tx.Exec(`
-		CREATE TABLE team_members_new (
-			id         INTEGER PRIMARY KEY AUTOINCREMENT,
-			team_id    INTEGER NOT NULL,
-			user_id    INTEGER NOT NULL,
-			role_id    INTEGER,
-			joined_at  DATETIME NOT NULL,
-			created_at DATETIME,
-			updated_at DATETIME,
-			UNIQUE(team_id, user_id)
+		CREATE TABLE pmw_team_members (
+			id              INTEGER PRIMARY KEY AUTOINCREMENT,
+			biz_key         INTEGER NOT NULL DEFAULT 0,
+			create_time     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			db_update_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			deleted_flag    INTEGER NOT NULL DEFAULT 0,
+			deleted_time    DATETIME NOT NULL DEFAULT '1970-01-01 08:00:00',
+			team_key        INTEGER NOT NULL,
+			user_key        INTEGER NOT NULL,
+			role_key        INTEGER,
+			joined_at       DATETIME NOT NULL,
+			UNIQUE(team_key, user_key)
 		)
 	`).Error; err != nil {
-		return fmt.Errorf("create team_members_new: %w", err)
+		return fmt.Errorf("create pmw_team_members: %w", err)
 	}
 
 	if columnExists(tx, "team_members", "role") {
 		if err := tx.Exec(`
-			INSERT INTO team_members_new (id, team_id, user_id, role_id, joined_at, created_at, updated_at)
+			INSERT INTO pmw_team_members (id, team_key, user_key, role_key, joined_at)
 			SELECT id, team_id, user_id,
 				CASE
 					WHEN role = 'pm' THEN ?
 					WHEN role = 'member' THEN ?
 					ELSE ?
 				END,
-				joined_at, created_at, updated_at
+				joined_at
 			FROM team_members
 		`, pmRoleID, memberRoleID, memberRoleID).Error; err != nil {
 			return fmt.Errorf("copy team_members data: %w", err)
 		}
 	} else {
 		if err := tx.Exec(`
-			INSERT INTO team_members_new (id, team_id, user_id, role_id, joined_at, created_at, updated_at)
-			SELECT id, team_id, user_id, ?, joined_at, created_at, updated_at
+			INSERT INTO pmw_team_members (id, team_key, user_key, role_key, joined_at)
+			SELECT id, team_id, user_id, ?, joined_at
 			FROM team_members
 		`, memberRoleID).Error; err != nil {
 			return fmt.Errorf("copy team_members data: %w", err)
@@ -224,10 +233,6 @@ func rebuildTeamMembersTable(tx *gorm.DB, roleMap map[string]uint) error {
 
 	if err := tx.Exec("DROP TABLE team_members").Error; err != nil {
 		return fmt.Errorf("drop old team_members: %w", err)
-	}
-
-	if err := tx.Exec("ALTER TABLE team_members_new RENAME TO team_members").Error; err != nil {
-		return fmt.Errorf("rename team_members_new: %w", err)
 	}
 
 	return nil

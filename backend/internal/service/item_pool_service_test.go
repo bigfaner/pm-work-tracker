@@ -176,8 +176,8 @@ func TestItemPoolSubmit_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, uint(1), poolRepo.createdItem.TeamID)
-	assert.Equal(t, uint(10), poolRepo.createdItem.SubmitterID)
-	assert.Equal(t, "pending", poolRepo.createdItem.Status)
+	assert.Equal(t, int64(10), poolRepo.createdItem.SubmitterKey)
+	assert.Equal(t, "pending", poolRepo.createdItem.PoolStatus)
 	assert.Equal(t, "Optimize homepage", poolRepo.createdItem.Title)
 	assert.Equal(t, "Users complain about slow load", poolRepo.createdItem.Background)
 	assert.Equal(t, "LCP < 1.5s", poolRepo.createdItem.ExpectedOutput)
@@ -201,10 +201,10 @@ func TestItemPoolSubmit_RepoError(t *testing.T) {
 func TestItemPoolAssign_Success(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:   model.BaseModel{ID: 5},
-		TeamID:  1,
+		TeamID: 1,
 		Title:   "Pool item",
-		Status:  "pending",
-		SubmitterID: 10,
+		PoolStatus: "pending",
+		SubmitterKey: 10,
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	subRepo := &mockSubItemRepoForPool{}
@@ -220,35 +220,35 @@ func TestItemPoolAssign_Success(t *testing.T) {
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
 		AssigneeID: uintPtr(30),
-			StartDate:       strPtr("2024-01-01"),
+			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	require.NoError(t, err)
 	assert.True(t, txExecuted, "should execute within a transaction")
 
 	// Verify pool item was updated
-	assert.Equal(t, "assigned", poolRepo.updatedFields["status"])
-	assert.Equal(t, uint(20), poolRepo.updatedFields["assigned_main_id"])
-	assert.Equal(t, uint(10), poolRepo.updatedFields["assigned_sub_id"]) // SubItem.ID set to 10 by mock
-	assert.Equal(t, uintPtr(30), poolRepo.updatedFields["assignee_id"])
-	assert.Equal(t, uint(100), poolRepo.updatedFields["reviewer_id"])
+	assert.Equal(t, "assigned", poolRepo.updatedFields["pool_status"])
+	assert.Equal(t, uint(20), poolRepo.updatedFields["assigned_main_key"])
+	assert.Equal(t, uint(10), poolRepo.updatedFields["assigned_sub_key"]) // SubItem.ID set to 10 by mock
+	assert.Equal(t, uintPtr(30), poolRepo.updatedFields["assignee_key"])
+	assert.Equal(t, uint(100), poolRepo.updatedFields["reviewer_key"])
 	assert.NotNil(t, poolRepo.updatedFields["reviewed_at"])
 
 	// Verify SubItem was created
 	assert.Equal(t, uint(1), subRepo.createdItem.TeamID)
-	assert.Equal(t, uint(20), subRepo.createdItem.MainItemID)
+	assert.Equal(t, uint(20), uint(subRepo.createdItem.MainItemKey))
 	assert.Equal(t, "Pool item", subRepo.createdItem.Title)
-	assert.Equal(t, "pending", subRepo.createdItem.Status)
-	assert.Equal(t, uint(30), *subRepo.createdItem.AssigneeID)
+	assert.Equal(t, "pending", subRepo.createdItem.ItemStatus)
+	assert.Equal(t, int64(30), *subRepo.createdItem.AssigneeKey)
 }
 
 func TestItemPoolAssign_SubItemInheritsBackgroundAsDescription(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:      model.BaseModel{ID: 5},
-		TeamID:     1,
+		TeamID: 1,
 		Title:      "Pool item",
 		Background: "some background info",
-		Status:     "pending",
+		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	subRepo := &mockSubItemRepoForPool{}
@@ -259,11 +259,11 @@ func TestItemPoolAssign_SubItemInheritsBackgroundAsDescription(t *testing.T) {
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
 		AssigneeID: uintPtr(30),
-			StartDate:       strPtr("2024-01-01"),
+			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	require.NoError(t, err)
-	assert.Equal(t, "some background info", subRepo.createdItem.Description)
+	assert.Equal(t, "some background info", subRepo.createdItem.ItemDesc)
 }
 
 // ---------------------------------------------------------------------------
@@ -277,7 +277,7 @@ func TestItemPoolAssign_PoolItemNotFound(t *testing.T) {
 	err := svc.Assign(context.Background(), 1, 100, 99, dto.AssignItemPoolReq{
 		MainItemID: 20,
 		AssigneeID: uintPtr(30),
-			StartDate:       strPtr("2024-01-01"),
+			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
@@ -287,7 +287,7 @@ func TestItemPoolAssign_AlreadyProcessed_AlreadyAssigned(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
-		Status: "assigned",
+		PoolStatus: "assigned",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
@@ -295,7 +295,7 @@ func TestItemPoolAssign_AlreadyProcessed_AlreadyAssigned(t *testing.T) {
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
 		AssigneeID: uintPtr(30),
-			StartDate:       strPtr("2024-01-01"),
+			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrItemAlreadyProcessed)
@@ -305,7 +305,7 @@ func TestItemPoolAssign_AlreadyProcessed_Rejected(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
-		Status: "rejected",
+		PoolStatus: "rejected",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
@@ -313,7 +313,7 @@ func TestItemPoolAssign_AlreadyProcessed_Rejected(t *testing.T) {
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
 		AssigneeID: uintPtr(30),
-			StartDate:       strPtr("2024-01-01"),
+			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrItemAlreadyProcessed)
@@ -323,7 +323,7 @@ func TestItemPoolAssign_MainItemNotFound(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
-		Status: "pending",
+		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	mainRepo := &mockMainItemRepoForPool{findErr: gorm.ErrRecordNotFound}
@@ -333,7 +333,7 @@ func TestItemPoolAssign_MainItemNotFound(t *testing.T) {
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 99,
 		AssigneeID: uintPtr(30),
-			StartDate:       strPtr("2024-01-01"),
+			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
@@ -343,7 +343,7 @@ func TestItemPoolAssign_TeamMismatch(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 2,
-		Status: "pending",
+		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
@@ -351,7 +351,7 @@ func TestItemPoolAssign_TeamMismatch(t *testing.T) {
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
 		AssigneeID: uintPtr(30),
-			StartDate:       strPtr("2024-01-01"),
+			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrForbidden)
@@ -364,9 +364,9 @@ func TestItemPoolAssign_TeamMismatch(t *testing.T) {
 func TestItemPoolAssign_RollbackOnSubItemCreateError(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:   model.BaseModel{ID: 5},
-		TeamID:  1,
+		TeamID: 1,
 		Title:   "Pool item",
-		Status:  "pending",
+		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	subRepo := &mockSubItemRepoForPool{createErr: errors.New("sub item creation failed")}
@@ -382,7 +382,7 @@ func TestItemPoolAssign_RollbackOnSubItemCreateError(t *testing.T) {
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
 		AssigneeID: uintPtr(30),
-			StartDate:       strPtr("2024-01-01"),
+			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.Error(t, err)
@@ -397,8 +397,8 @@ func TestItemPoolAssign_RollbackOnSubItemCreateError(t *testing.T) {
 func TestItemPoolReject_Success(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:   model.BaseModel{ID: 5},
-		TeamID:  1,
-		Status:  "pending",
+		TeamID: 1,
+		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
@@ -406,9 +406,9 @@ func TestItemPoolReject_Success(t *testing.T) {
 	err := svc.Reject(context.Background(), 1, 100, 5, "Not enough priority")
 	require.NoError(t, err)
 
-	assert.Equal(t, "rejected", poolRepo.updatedFields["status"])
+	assert.Equal(t, "rejected", poolRepo.updatedFields["pool_status"])
 	assert.Equal(t, "Not enough priority", poolRepo.updatedFields["reject_reason"])
-	assert.Equal(t, uint(100), poolRepo.updatedFields["reviewer_id"])
+	assert.Equal(t, uint(100), poolRepo.updatedFields["reviewer_key"])
 	assert.NotNil(t, poolRepo.updatedFields["reviewed_at"])
 }
 
@@ -416,7 +416,7 @@ func TestItemPoolReject_AlreadyProcessed(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
-		Status: "assigned",
+		PoolStatus: "assigned",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
@@ -437,7 +437,7 @@ func TestItemPoolReject_TeamMismatch(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 2,
-		Status: "pending",
+		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
@@ -504,7 +504,7 @@ func TestItemPoolList_Success(t *testing.T) {
 
 func TestItemPoolList_WithStatusFilter(t *testing.T) {
 	items := []model.ItemPool{
-		{BaseModel: model.BaseModel{ID: 1}, Title: "Pool 1", Status: "pending"},
+		{BaseModel: model.BaseModel{ID: 1}, Title: "Pool 1", PoolStatus: "pending"},
 	}
 	poolRepo := &mockItemPoolRepo{items: items}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
@@ -531,7 +531,7 @@ func TestItemPoolAssign_ReviewedAtIsSet(t *testing.T) {
 		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
 		Title:  "Pool item",
-		Status: "pending",
+		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	subRepo := &mockSubItemRepoForPool{}
@@ -543,7 +543,7 @@ func TestItemPoolAssign_ReviewedAtIsSet(t *testing.T) {
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
 		AssigneeID: uintPtr(30),
-			StartDate:       strPtr("2024-01-01"),
+			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	require.NoError(t, err)
@@ -561,7 +561,7 @@ func TestItemPoolReject_ReviewedAtIsSet(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
-		Status: "pending",
+		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
@@ -583,7 +583,7 @@ func TestItemPoolAssign_MainItemTeamMismatch(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
-		Status: "pending",
+		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{BaseModel: model.BaseModel{ID: 20}, TeamID: 99}}
@@ -593,7 +593,7 @@ func TestItemPoolAssign_MainItemTeamMismatch(t *testing.T) {
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
 		AssigneeID: uintPtr(30),
-			StartDate:       strPtr("2024-01-01"),
+			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
@@ -610,7 +610,7 @@ func TestItemPoolAssign_PoolItemGenericError(t *testing.T) {
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
 		AssigneeID: uintPtr(30),
-			StartDate:       strPtr("2024-01-01"),
+			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.Equal(t, "generic db error", err.Error())
@@ -620,7 +620,7 @@ func TestItemPoolAssign_MainItemGenericError(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
-		Status: "pending",
+		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	mainRepo := &mockMainItemRepoForPool{findErr: errors.New("main item db error")}
@@ -630,7 +630,7 @@ func TestItemPoolAssign_MainItemGenericError(t *testing.T) {
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
 		AssigneeID: uintPtr(30),
-			StartDate:       strPtr("2024-01-01"),
+			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.Equal(t, "main item db error", err.Error())
@@ -663,7 +663,7 @@ func TestItemPoolAssign_PoolItemErrNotFound(t *testing.T) {
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
 		AssigneeID: uintPtr(30),
-			StartDate:       strPtr("2024-01-01"),
+			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
@@ -673,7 +673,7 @@ func TestItemPoolAssign_MainItemErrNotFound(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
 		TeamID: 1,
-		Status: "pending",
+		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	mainRepo := &mockMainItemRepoForPool{findErr: apperrors.ErrNotFound}
@@ -683,7 +683,7 @@ func TestItemPoolAssign_MainItemErrNotFound(t *testing.T) {
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
 		MainItemID: 20,
 		AssigneeID: uintPtr(30),
-			StartDate:       strPtr("2024-01-01"),
+			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)

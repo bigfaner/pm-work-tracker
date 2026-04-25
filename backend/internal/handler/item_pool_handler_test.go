@@ -33,13 +33,13 @@ func seedItemPoolBenchData(n int) (*mockItemPoolService, *trackingUserRepo, *tra
 
 	for i := range items {
 		items[i] = model.ItemPool{
-			TeamID:      10,
+			TeamID: 10,
 			Title:       fmt.Sprintf("Pool Item %d", i),
-			Status:      []string{"pending", "assigned", "rejected"}[i%3],
-			SubmitterID: uint(i%50 + 1),
+			PoolStatus: []string{"pending", "assigned", "rejected"}[i%3],
+			SubmitterKey: int64(i%50 + 1),
 		}
-		if items[i].Status == "assigned" {
-			items[i].AssignedMainID = &assignedMainID
+		if items[i].PoolStatus == "assigned" {
+			items[i].AssignedMainKey = func() *int64 { v := int64(assignedMainID); return &v }()
 		}
 		users[uint(i%50+1)] = &model.User{DisplayName: fmt.Sprintf("User %d", i%50+1)}
 	}
@@ -63,7 +63,7 @@ func BenchmarkItemPoolHandler_List(b *testing.B) {
 	svc, trackingUser, trackingMainItem := seedItemPoolBenchData(200)
 
 	deps, _ := testDeps(b)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.ItemPool = NewItemPoolHandler(svc, trackingUser, trackingMainItem)
 	r := SetupRouter(deps, nil)
 
@@ -86,7 +86,7 @@ func BenchmarkItemPoolHandler_List_LargePage(b *testing.B) {
 	svc, trackingUser, trackingMainItem := seedItemPoolBenchData(200)
 
 	deps, _ := testDeps(b)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.ItemPool = NewItemPoolHandler(svc, trackingUser, trackingMainItem)
 	r := SetupRouter(deps, nil)
 
@@ -203,7 +203,7 @@ func ptrUint(v uint) *uint { return &v }
 func depsWithItemPoolSvc(t *testing.T, svc *mockItemPoolService, userRepo repository.UserRepo) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.ItemPool = NewItemPoolHandler(svc, userRepo, &mockMainItemRepoForPool{})
 	return deps
 }
@@ -212,7 +212,7 @@ func depsWithItemPoolSvc(t *testing.T, svc *mockItemPoolService, userRepo reposi
 func depsWithItemPoolMemberRole(t *testing.T, svc *mockItemPoolService, userRepo repository.UserRepo) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "member", RoleID: ptrUint(2)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(2); return &v }()}}
 	deps.ItemPool = NewItemPoolHandler(svc, userRepo, &mockMainItemRepoForPool{})
 	return deps
 }
@@ -220,10 +220,10 @@ func depsWithItemPoolMemberRole(t *testing.T, svc *mockItemPoolService, userRepo
 // helper to create an ItemPool model for tests.
 func testItemPool(id uint, teamID uint) *model.ItemPool {
 	return &model.ItemPool{
-		TeamID:     teamID,
+		TeamID: teamID,
 		Title:      "Test Pool Item",
-		Status:     "pending",
-		SubmitterID: 5,
+		PoolStatus: "pending",
+		SubmitterKey: 5,
 	}
 }
 
@@ -493,13 +493,13 @@ func TestAssignItemPool_Success(t *testing.T) {
 	assignedMainID := uint(1)
 	assigneeID := uint(3)
 	updatedItem := &model.ItemPool{
-		TeamID:         10,
+		TeamID: 10,
 		Title:          "Pool item",
-		Status:         "assigned",
-		AssignedMainID: &assignedMainID,
-		AssignedSubID:  &assignedSubID,
-		AssigneeID:     &assigneeID,
-		SubmitterID:    5,
+		PoolStatus: "assigned",
+		AssignedMainKey: func() *int64 { v := int64(assignedMainID); return &v }(),
+		AssignedSubKey: func() *int64 { v := int64(assignedSubID); return &v }(),
+		AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
+		SubmitterKey:    5,
 	}
 	updatedItem.ID = 5
 	svc.getResult.item = updatedItem
@@ -625,12 +625,12 @@ func TestAssignItemPool_SuperAdminBypass(t *testing.T) {
 	assignedMainID := uint(1)
 	assigneeID := uint(3)
 	updatedItem := &model.ItemPool{
-		TeamID:         10,
-		Status:         "assigned",
-		AssignedMainID: &assignedMainID,
-		AssignedSubID:  &assignedSubID,
-		AssigneeID:     &assigneeID,
-		SubmitterID:    5,
+		TeamID: 10,
+		PoolStatus: "assigned",
+		AssignedMainKey: func() *int64 { v := int64(assignedMainID); return &v }(),
+		AssignedSubKey: func() *int64 { v := int64(assignedSubID); return &v }(),
+		AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
+		SubmitterKey:    5,
 	}
 	updatedItem.ID = 5
 	svc.getResult.item = updatedItem
@@ -662,11 +662,11 @@ func TestRejectItemPool_Success(t *testing.T) {
 
 	// Reject handler calls Get after Reject to retrieve the updated item
 	rejectedItem := &model.ItemPool{
-		TeamID:       10,
+		TeamID: 10,
 		Title:        "Pool item",
-		Status:       "rejected",
+		PoolStatus: "rejected",
 		RejectReason: "Not enough priority",
-		SubmitterID:  5,
+		SubmitterKey:  5,
 	}
 	rejectedItem.ID = 5
 	svc.getResult.item = rejectedItem
@@ -785,18 +785,18 @@ func TestGetItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	reviewerID := uint(2)
 
 	item := &model.ItemPool{
-		TeamID:         10,
+		TeamID: 10,
 		Title:          "优化首页加载速度",
 		Background:     "用户反馈首页加载超过 3 秒",
 		ExpectedOutput: "首页 LCP < 1.5 秒",
-		SubmitterID:    5,
-		Status:         "assigned",
-		AssignedMainID: &assignedMainID,
-		AssignedSubID:  &assignedSubID,
-		AssigneeID:     &assigneeID,
+		SubmitterKey:    5,
+		PoolStatus: "assigned",
+		AssignedMainKey: func() *int64 { v := int64(assignedMainID); return &v }(),
+		AssignedSubKey: func() *int64 { v := int64(assignedSubID); return &v }(),
+		AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
 		RejectReason:   "",
 		ReviewedAt:     &now,
-		ReviewerID:     &reviewerID,
+		ReviewerKey: func() *int64 { v := int64(reviewerID); return &v }(),
 	}
 	item.ID = 50
 
@@ -826,23 +826,23 @@ func TestGetItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	assert.Equal(t, "优化首页加载速度", data["title"])
 	assert.Equal(t, "用户反馈首页加载超过 3 秒", data["background"])
 	assert.Equal(t, "首页 LCP < 1.5 秒", data["expectedOutput"])
-	assert.Equal(t, float64(5), data["submitterId"])
+	assert.Equal(t, float64(5), data["submitterKey"])
 	assert.Equal(t, "王五", data["submitterName"])
 	assert.Equal(t, "assigned", data["status"])
-	assert.Equal(t, float64(1), data["assignedMainId"])
-	assert.Equal(t, float64(10), data["assignedSubId"])
-	assert.Equal(t, float64(3), data["assigneeId"])
+	assert.Equal(t, float64(1), data["assignedMainKey"])
+	assert.Equal(t, float64(10), data["assignedSubKey"])
+	assert.Equal(t, float64(3), data["assigneeKey"])
 }
 
 func TestSubmitItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	svc := &mockItemPoolService{}
 	item := &model.ItemPool{
-		TeamID:         10,
+		TeamID: 10,
 		Title:          "优化首页加载速度",
 		Background:     "用户反馈首页加载超过 3 秒",
 		ExpectedOutput: "首页 LCP < 1.5 秒",
-		SubmitterID:    5,
-		Status:         "pending",
+		SubmitterKey:    5,
+		PoolStatus: "pending",
 	}
 	item.ID = 50
 
@@ -870,7 +870,7 @@ func TestSubmitItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	data := resp["data"].(map[string]interface{})
 	assert.Equal(t, "pending", data["status"])
 	assert.Equal(t, "王五", data["submitterName"])
-	assert.Equal(t, float64(5), data["submitterId"])
+	assert.Equal(t, float64(5), data["submitterKey"])
 }
 
 // ---------------------------------------------------------------------------
@@ -887,13 +887,13 @@ func TestAssignItemPool_ReturnsSubItemId(t *testing.T) {
 
 	// The handler will call Get after Assign to retrieve the updated item
 	updatedItem := &model.ItemPool{
-		TeamID:         10,
+		TeamID: 10,
 		Title:          "Pool item",
-		Status:         "assigned",
-		AssignedMainID: &assignedMainID,
-		AssignedSubID:  &assignedSubID,
-		AssigneeID:     &assigneeID,
-		SubmitterID:    5,
+		PoolStatus: "assigned",
+		AssignedMainKey: func() *int64 { v := int64(assignedMainID); return &v }(),
+		AssignedSubKey: func() *int64 { v := int64(assignedSubID); return &v }(),
+		AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
+		SubmitterKey:    5,
 	}
 	updatedItem.ID = 5
 
@@ -933,11 +933,11 @@ func TestListItemPool_UsesBatchLookup(t *testing.T) {
 	svc := &mockItemPoolService{}
 
 	assignedMainID := uint(100)
-	item1 := &model.ItemPool{TeamID: 10, Title: "A", Status: "assigned", SubmitterID: 5, AssignedMainID: &assignedMainID}
+	item1 := &model.ItemPool{PoolStatus: "assigned", SubmitterKey: 5, AssignedMainKey: func() *int64 { v := int64(assignedMainID); return &v }()}
 	item1.ID = 1
-	item2 := &model.ItemPool{TeamID: 10, Title: "B", Status: "assigned", SubmitterID: 7, AssignedMainID: &assignedMainID}
+	item2 := &model.ItemPool{PoolStatus: "assigned", SubmitterKey: 7, AssignedMainKey: func() *int64 { v := int64(assignedMainID); return &v }()}
 	item2.ID = 2
-	item3 := &model.ItemPool{TeamID: 10, Title: "C", Status: "pending", SubmitterID: 5}
+	item3 := &model.ItemPool{PoolStatus: "pending", SubmitterKey: 5}
 	item3.ID = 3
 
 	svc.listResult.page = &dto.PageResult[model.ItemPool]{
@@ -958,7 +958,7 @@ func TestListItemPool_UsesBatchLookup(t *testing.T) {
 	}
 
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.ItemPool = NewItemPoolHandler(svc, trackingUser, trackingMainItem)
 	r := SetupRouter(deps, nil)
 

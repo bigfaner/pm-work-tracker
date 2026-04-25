@@ -267,10 +267,9 @@ func TestTeamScopeMiddleware_Member_SetsContext(t *testing.T) {
 	teamRepo := new(mockTeamRepo)
 	roleRepo := new(mockRoleRepo)
 	teamRepo.On("FindMember", mock.Anything, uint(5), uint(10)).Return(&model.TeamMember{
-		TeamID: 5,
-		UserID: 10,
-		Role:   "pm",
-		RoleID: &roleID,
+		TeamKey: int64(5),
+		UserKey: 10,
+		RoleKey: func() *int64 { v := int64(roleID); return &v }(),
 	}, nil)
 	roleRepo.On("ListPermissions", mock.Anything, uint(3)).Return([]string{"team:update", "team:invite"}, nil)
 	r, cc := setupTeamScopeRouter(teamRepo, roleRepo)
@@ -303,10 +302,9 @@ func TestTeamScopeMiddleware_MemberNoRoleID_SetsEmptyPermCodes(t *testing.T) {
 	teamRepo := new(mockTeamRepo)
 	roleRepo := new(mockRoleRepo)
 	teamRepo.On("FindMember", mock.Anything, uint(3), uint(7)).Return(&model.TeamMember{
-		TeamID: 3,
-		UserID: 7,
-		Role:   "member",
-		RoleID: nil,
+		TeamKey: int64(3),
+		UserKey: 7,
+		RoleKey: nil,
 	}, nil)
 	r, cc := setupTeamScopeRouter(teamRepo, roleRepo)
 

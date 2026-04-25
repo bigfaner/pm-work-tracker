@@ -29,32 +29,32 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 	t.Helper()
 
 	mainItem := &model.MainItem{
-		TeamID:     teamID,
-		Code:       "TAMA-00001",
-		Title:      "Test Main Item",
-		Priority:   "P1",
-		ProposerID: userID,
-		Status:     "pending",
+		TeamID:      teamID,
+		Code:        "TAMA-00001",
+		Title:       "Test Main Item",
+		Priority:    "P1",
+		ProposerKey: int64(userID),
+		ItemStatus: "pending",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
 	sub1 := &model.SubItem{
-		TeamID:     teamID,
-		MainItemID: mainItem.ID,
-		Title:      "Sub Item 1",
-		Priority:   "P2",
-		Status:     "pending",
-		Weight:     1.0,
+		TeamID:      teamID,
+		MainItemKey: int64(mainItem.ID),
+		Title:       "Sub Item 1",
+		Priority:    "P2",
+		ItemStatus: "pending",
+		Weight:      1.0,
 	}
 	require.NoError(t, db.Create(sub1).Error)
 
 	sub2 := &model.SubItem{
-		TeamID:     teamID,
-		MainItemID: mainItem.ID,
-		Title:      "Sub Item 2",
-		Priority:   "P2",
-		Status:     "pending",
-		Weight:     1.0,
+		TeamID:      teamID,
+		MainItemKey: int64(mainItem.ID),
+		Title:       "Sub Item 2",
+		Priority:    "P2",
+		ItemStatus: "pending",
+		Weight:      1.0,
 	}
 	require.NoError(t, db.Create(sub2).Error)
 
@@ -168,21 +168,21 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamID, userID uint) (poolID, mainI
 	t.Helper()
 
 	poolItem := &model.ItemPool{
-		TeamID:      teamID,
-		Title:       "Pool Item Title",
-		Background:  "Some background",
-		SubmitterID: userID,
-		Status:      "pending",
+		TeamID:       teamID,
+		Title:        "Pool Item Title",
+		Background:   "Some background",
+		SubmitterKey: int64(userID),
+		PoolStatus: "pending",
 	}
 	require.NoError(t, db.Create(poolItem).Error)
 
 	mainItem := &model.MainItem{
-		TeamID:     teamID,
-		Code:       "TAMA-00002",
-		Title:      "Main Item for Pool",
-		Priority:   "P1",
-		ProposerID: userID,
-		Status:     "pending",
+		TeamID:      teamID,
+		Code:        "TAMA-00002",
+		Title:       "Main Item for Pool",
+		Priority:    "P1",
+		ProposerKey: int64(userID),
+		ItemStatus: "pending",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
@@ -211,15 +211,15 @@ func TestItemPool_Assign_Success(t *testing.T) {
 	// Verify ItemPool.Status = "assigned"
 	var pool model.ItemPool
 	require.NoError(t, db.First(&pool, poolID).Error)
-	assert.Equal(t, "assigned", pool.Status)
-	assert.NotNil(t, pool.AssignedSubID)
+	assert.Equal(t, "assigned", pool.PoolStatus)
+	assert.NotNil(t, pool.AssignedSubKey)
 
 	// Verify a new SubItem exists under the main item
 	var subItems []model.SubItem
-	require.NoError(t, db.Where("main_item_id = ?", mainItemID).Find(&subItems).Error)
+	require.NoError(t, db.Where("main_item_key = ?", mainItemID).Find(&subItems).Error)
 	require.Len(t, subItems, 1)
 	assert.Equal(t, "Pool Item Title", subItems[0].Title)
-	assert.Equal(t, data.userAID, *subItems[0].AssigneeID)
+	assert.Equal(t, int64(data.userAID), *subItems[0].AssigneeKey)
 }
 
 func TestItemPool_Assign_Rollback_OnInvalidMainItem(t *testing.T) {
@@ -246,7 +246,7 @@ func TestItemPool_Assign_Rollback_OnInvalidMainItem(t *testing.T) {
 	// Verify ItemPool.Status remains "pending"
 	var pool model.ItemPool
 	require.NoError(t, db.First(&pool, poolID).Error)
-	assert.Equal(t, "pending", pool.Status)
+	assert.Equal(t, "pending", pool.PoolStatus)
 
 	// Verify no SubItem was created
 	var count int64
@@ -261,34 +261,34 @@ func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart ti
 	t.Helper()
 
 	mainItem := &model.MainItem{
-		TeamID:     teamID,
-		Code:       "TAMA-00003",
-		Title:      "Report Test Main Item",
-		Priority:   "P1",
-		ProposerID: userID,
-		Status:     "progressing",
+		TeamID:      teamID,
+		Code:        "TAMA-00003",
+		Title:       "Report Test Main Item",
+		Priority:    "P1",
+		ProposerKey: int64(userID),
+		ItemStatus: "progressing",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
 	subItem := &model.SubItem{
-		TeamID:     teamID,
-		MainItemID: mainItem.ID,
-		Title:      "Report Test Sub Item",
-		Priority:   "P2",
-		Status:     "progressing",
-		Completion: 50,
-		Weight:     1.0,
+		TeamID:      teamID,
+		MainItemKey: int64(mainItem.ID),
+		Title:       "Report Test Sub Item",
+		Priority:    "P2",
+		ItemStatus: "progressing",
+		Completion:  50,
+		Weight:      1.0,
 	}
 	require.NoError(t, db.Create(subItem).Error)
 
 	// Create a progress record within the week
 	record := &model.ProgressRecord{
-		SubItemID:   subItem.ID,
-		TeamID:      teamID,
-		AuthorID:    userID,
+		SubItemKey:  int64(subItem.ID),
+		TeamKey: int64(teamID),
+		AuthorKey:   int64(userID),
 		Completion:  50,
 		Achievement: "Completed half the work",
-		CreatedAt:   weekStart.Add(24 * time.Hour), // Tuesday of the week
+		CreateTime:  weekStart.Add(24 * time.Hour), // Tuesday of the week
 	}
 	require.NoError(t, db.Create(record).Error)
 

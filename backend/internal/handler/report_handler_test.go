@@ -62,7 +62,7 @@ func (m *mockReportService) ExportMarkdown(_ context.Context, teamID uint, weekS
 func depsWithReportSvc(t *testing.T, svc *mockReportService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.Report = NewReportHandler(svc)
 	return deps
 }

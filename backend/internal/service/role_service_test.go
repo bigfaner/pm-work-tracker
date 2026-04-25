@@ -256,7 +256,7 @@ func TestRoleService_CreateRole_Success(t *testing.T) {
 
 	result, err := svc.CreateRole(context.Background(), dto.CreateRoleReq{
 		Name:            "viewer",
-		Description:     "read only",
+		Description: "read only",
 		PermissionCodes: []string{"team:read", "main_item:read"},
 	})
 	require.NoError(t, err)

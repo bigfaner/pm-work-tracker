@@ -135,7 +135,7 @@ func (h *ItemPoolHandler) Assign(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": 0, "data": gin.H{"mainItemId": updated.AssignedMainID, "subItemId": updated.AssignedSubID}})
+	c.JSON(http.StatusOK, gin.H{"code": 0, "data": gin.H{"mainItemId": updated.AssignedMainKey, "subItemId": updated.AssignedSubKey}})
 }
 
 // ConvertToMain handles POST /api/v1/teams/:teamId/item-pool/:poolId/convert-to-main
@@ -209,14 +209,14 @@ func parsePoolID(c *gin.Context) (uint, bool) {
 // itemPoolToVO converts a single model.ItemPool to an ItemPoolVO using individual lookups.
 func itemPoolToVO(item *model.ItemPool, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, c *gin.Context) vo.ItemPoolVO {
 	submitterName := ""
-	if userRepo != nil && item.SubmitterID > 0 {
-		if user, err := userRepo.FindByID(c.Request.Context(), item.SubmitterID); err == nil && user != nil {
+	if userRepo != nil && item.SubmitterKey > 0 {
+		if user, err := userRepo.FindByID(c.Request.Context(), uint(item.SubmitterKey)); err == nil && user != nil {
 			submitterName = user.DisplayName
 		}
 	}
 	v := vo.NewItemPoolVO(item, submitterName)
-	if mainItemRepo != nil && item.AssignedMainID != nil {
-		if mi, err := mainItemRepo.FindByID(c.Request.Context(), *item.AssignedMainID); err == nil && mi != nil {
+	if mainItemRepo != nil && item.AssignedMainKey != nil {
+		if mi, err := mainItemRepo.FindByID(c.Request.Context(), uint(*item.AssignedMainKey)); err == nil && mi != nil {
 			v.AssignedMainCode = mi.Code
 			v.AssignedMainTitle = mi.Title
 		}
@@ -236,11 +236,11 @@ func itemPoolsToVOs(items []model.ItemPool, userRepo repository.UserRepo, mainIt
 	submitterIDs := make(map[uint]struct{})
 	mainItemIDs := make(map[uint]struct{})
 	for i := range items {
-		if items[i].SubmitterID > 0 {
-			submitterIDs[items[i].SubmitterID] = struct{}{}
+		if items[i].SubmitterKey > 0 {
+			submitterIDs[uint(items[i].SubmitterKey)] = struct{}{}
 		}
-		if items[i].AssignedMainID != nil {
-			mainItemIDs[*items[i].AssignedMainID] = struct{}{}
+		if items[i].AssignedMainKey != nil {
+			mainItemIDs[uint(*items[i].AssignedMainKey)] = struct{}{}
 		}
 	}
 
@@ -265,12 +265,12 @@ func itemPoolsToVOs(items []model.ItemPool, userRepo repository.UserRepo, mainIt
 	result := make([]vo.ItemPoolVO, 0, len(items))
 	for i := range items {
 		submitterName := ""
-		if u, ok := userMap[items[i].SubmitterID]; ok {
+		if u, ok := userMap[uint(items[i].SubmitterKey)]; ok {
 			submitterName = u.DisplayName
 		}
 		v := vo.NewItemPoolVO(&items[i], submitterName)
-		if items[i].AssignedMainID != nil {
-			if mi, ok := mainItemMap[*items[i].AssignedMainID]; ok {
+		if items[i].AssignedMainKey != nil {
+			if mi, ok := mainItemMap[uint(*items[i].AssignedMainKey)]; ok {
 				v.AssignedMainCode = mi.Code
 				v.AssignedMainTitle = mi.Title
 			}

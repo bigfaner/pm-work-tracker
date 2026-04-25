@@ -255,7 +255,7 @@ type TableFilter struct {
 	Type       string   `form:"type" json:"type"`                     // "main"|"sub"|"" (empty = both)
 	Priority   []string `form:"priority" json:"priority"`             // ["P1","P2","P3"]
 	Status     []string `form:"status" json:"status"`
-	AssigneeID *uint    `form:"assigneeId" json:"assigneeId"`
+	AssigneeID *int64   `form:"assigneeId" json:"assigneeId"`
 	SortBy     string   `form:"sortBy" json:"sortBy"`                 // field name
 	SortOrder  string   `form:"sortOrder" json:"sortOrder"`           // "asc"|"desc"
 }
@@ -267,7 +267,7 @@ type TableRow struct {
 	Code            string  `json:"code"`
 	Title           string  `json:"title"`
 	Priority        string  `json:"priority"`
-	AssigneeID      *uint   `json:"assigneeId"`
+	AssigneeID      *int64  `json:"assigneeId"`
 	AssigneeName    string  `json:"assigneeName"`
 	Status          string  `json:"status"`
 	Completion      float64 `json:"completion"`
@@ -330,7 +330,7 @@ type ReportSubItemDTO struct {
 	ID           uint     `json:"id"`
 	Title        string   `json:"title"`
 	Completion   float64  `json:"completion"`
-	AssigneeID   *uint    `json:"assigneeId"`
+	AssigneeID   *int64   `json:"assigneeId"`
 	AssigneeName string   `json:"assigneeName"`
 	Achievements []string `json:"achievements"`
 	Blockers     []string `json:"blockers"`

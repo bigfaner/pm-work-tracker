@@ -79,7 +79,7 @@ func (r *mainItemRepo) NextCode(ctx context.Context, teamID uint) (string, error
 	var code string
 	err := r.db.WithContext(ctx).Transaction(func(tx *gormlib.DB) error {
 		// Increment counter first — real write acquires SQLite write lock, serializing concurrent calls.
-		if err := tx.Exec("UPDATE teams SET item_seq = item_seq + 1 WHERE id = ?", teamID).Error; err != nil {
+		if err := tx.Exec("UPDATE pmw_teams SET item_seq = item_seq + 1 WHERE id = ?", teamID).Error; err != nil {
 			return err
 		}
 		var team model.Team
@@ -98,7 +98,7 @@ func (r *mainItemRepo) NextCode(ctx context.Context, teamID uint) (string, error
 		}
 		if maxSeq != nil && uint(*maxSeq) >= seq {
 			seq = uint(*maxSeq) + 1
-			if err := tx.Exec("UPDATE teams SET item_seq = ? WHERE id = ?", seq, teamID).Error; err != nil {
+			if err := tx.Exec("UPDATE pmw_teams SET item_seq = ? WHERE id = ?", seq, teamID).Error; err != nil {
 				return err
 			}
 		}
@@ -130,7 +130,7 @@ func (r *mainItemRepo) FindByIDs(ctx context.Context, ids []uint) (map[uint]*mod
 func (r *mainItemRepo) ListByTeamAndStatus(ctx context.Context, teamID uint, status string) ([]model.MainItem, error) {
 	var items []model.MainItem
 	err := r.db.WithContext(ctx).
-		Where("team_id = ? AND status = ?", teamID, status).
+		Where("team_id = ? AND item_status = ?", teamID, status).
 		Find(&items).Error
 	return items, err
 }

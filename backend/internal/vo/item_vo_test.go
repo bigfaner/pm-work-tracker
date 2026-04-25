@@ -13,13 +13,13 @@ import (
 func TestNewSubItemVO_PopulatesStatusName(t *testing.T) {
 	now := time.Now()
 	subItem := &model.SubItem{
-		BaseModel:   model.BaseModel{ID: 1, CreatedAt: now, UpdatedAt: now},
-		TeamID:      1,
-		MainItemID:  10,
+		BaseModel:   model.BaseModel{ID: 1, CreateTime: now, DbUpdateTime: now},
+		TeamID: 1,
+		MainItemKey: int64(10),
 		Title:       "Test SubItem",
-		Description: "desc",
+		ItemDesc:    "desc",
 		Priority:    "P0",
-		Status:      "progressing",
+		ItemStatus: "progressing",
 		Completion:  50.0,
 		IsKeyItem:   false,
 		Weight:      1.0,
@@ -34,8 +34,8 @@ func TestNewSubItemVO_PopulatesStatusName(t *testing.T) {
 func TestNewSubItemVO_UnknownStatus(t *testing.T) {
 	now := time.Now()
 	subItem := &model.SubItem{
-		BaseModel: model.BaseModel{ID: 2, CreatedAt: now, UpdatedAt: now},
-		Status:    "unknown_status",
+		BaseModel:  model.BaseModel{ID: 2, CreateTime: now, DbUpdateTime: now},
+		ItemStatus: "unknown_status",
 	}
 
 	result := NewSubItemVO(subItem)
@@ -47,10 +47,10 @@ func TestNewSubItemVO_UnknownStatus(t *testing.T) {
 func TestNewSubItemVO_CodePropagated(t *testing.T) {
 	now := time.Now()
 	subItem := &model.SubItem{
-		BaseModel:  model.BaseModel{ID: 3, CreatedAt: now, UpdatedAt: now},
-		Code:       "ALPHA-00001-02",
-		MainItemID: 1,
-		Status:     "pending",
+		BaseModel:   model.BaseModel{ID: 3, CreateTime: now, DbUpdateTime: now},
+		Code:        "ALPHA-00001-02",
+		MainItemKey: int64(1),
+		ItemStatus: "pending",
 	}
 
 	result := NewSubItemVO(subItem)
@@ -61,8 +61,8 @@ func TestNewSubItemVO_CodePropagated(t *testing.T) {
 func TestNewSubItemSummaryVOs_CodePropagated(t *testing.T) {
 	now := time.Now()
 	items := []*model.SubItem{
-		{BaseModel: model.BaseModel{ID: 1, CreatedAt: now, UpdatedAt: now}, Code: "TEAM1-00001-01", Status: "pending"},
-		{BaseModel: model.BaseModel{ID: 2, CreatedAt: now, UpdatedAt: now}, Code: "TEAM1-00001-02", Status: "progressing"},
+		{BaseModel: model.BaseModel{ID: 1, CreateTime: now, DbUpdateTime: now}, Code: "TEAM1-00001-01", ItemStatus: "pending"},
+		{BaseModel: model.BaseModel{ID: 2, CreateTime: now, DbUpdateTime: now}, Code: "TEAM1-00001-02", ItemStatus: "progressing"},
 	}
 
 	result := NewSubItemSummaryVOs(items)

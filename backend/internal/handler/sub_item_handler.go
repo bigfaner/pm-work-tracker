@@ -155,7 +155,7 @@ func (h *SubItemHandler) Update(c *gin.Context) {
 			return
 		}
 		callerID := middleware.GetUserID(c)
-		if item.AssigneeID == nil || *item.AssigneeID != callerID {
+		if item.AssigneeKey == nil || uint(*item.AssigneeKey) != callerID {
 			apperrors.RespondError(c, apperrors.ErrForbidden)
 			return
 		}
@@ -202,7 +202,7 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 			return
 		}
 		callerID := middleware.GetUserID(c)
-		if item.AssigneeID == nil || *item.AssigneeID != callerID {
+		if item.AssigneeKey == nil || uint(*item.AssigneeKey) != callerID {
 			apperrors.RespondError(c, apperrors.ErrForbidden)
 			return
 		}

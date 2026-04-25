@@ -237,8 +237,8 @@ func TestAdminCreateUser_Success(t *testing.T) {
 		Username:        "newuser",
 		DisplayName:     "New User",
 		Email:           "new@test.com",
-		Status:          "enabled",
-		Teams:           []dto.TeamSummary{{ID: 10, Name: "Team A", Role: "member"}},
+		Status: "enabled",
+		Teams:           []dto.TeamSummary{{ID: 10, Name: "Team A", }},
 		InitialPassword: "Abc123XYZdef",
 	}
 
@@ -321,9 +321,9 @@ func TestAdminGetUser_Success(t *testing.T) {
 		Username:     "bob",
 		DisplayName:  "Bob",
 		Email:        "bob@test.com",
-		Status:       "enabled",
+		Status: "enabled",
 		IsSuperAdmin: false,
-		Teams:        []dto.TeamSummary{{ID: 1, Name: "Team A", Role: "member"}},
+		Teams:        []dto.TeamSummary{{ID: 1, Name: "Team A", }},
 	}
 
 	deps := depsWithAdminSvc(t, svc)
@@ -395,8 +395,8 @@ func TestAdminUpdateUser_Success(t *testing.T) {
 		Username:    "bob",
 		DisplayName: "Robert",
 		Email:       "robert@test.com",
-		Status:      "enabled",
-		Teams:       []dto.TeamSummary{{ID: 2, Name: "Team B", Role: "member"}},
+		Status: "enabled",
+		Teams:       []dto.TeamSummary{{ID: 2, Name: "Team B", }},
 	}
 
 	deps := depsWithAdminSvc(t, svc)
@@ -443,7 +443,7 @@ func TestAdminToggleUserStatus_DisableSuccess(t *testing.T) {
 	svc.toggleUserStatusResult.user = &dto.AdminUserDTO{
 		ID:       5,
 		Username: "bob",
-		Status:   "disabled",
+		Status: "disabled",
 		Teams:    []dto.TeamSummary{},
 	}
 

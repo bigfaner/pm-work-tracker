@@ -51,8 +51,8 @@ func (s *itemPoolService) Submit(ctx context.Context, teamID, submitterID uint, 
 		Title:          req.Title,
 		Background:     req.Background,
 		ExpectedOutput: req.ExpectedOutput,
-		SubmitterID:    submitterID,
-		Status:         "pending",
+		SubmitterKey:   int64(submitterID),
+		PoolStatus:     "pending",
 	}
 	if err := s.poolRepo.Create(ctx, item); err != nil {
 		return nil, err
@@ -68,7 +68,7 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 	if poolItem.TeamID != teamID {
 		return apperrors.ErrForbidden
 	}
-	if poolItem.Status != "pending" {
+	if poolItem.PoolStatus != "pending" {
 		return apperrors.ErrItemAlreadyProcessed
 	}
 
@@ -87,21 +87,21 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 		// Create SubItem under the MainItem
 		subItem := &model.SubItem{
 			TeamID:      teamID,
-			MainItemID:  req.MainItemID,
+			MainItemKey: int64(req.MainItemID),
 			Title:       poolItem.Title,
-			Description: poolItem.Background,
+			ItemDesc:    poolItem.Background,
 			Priority:    defaultPriority(req.Priority),
-			AssigneeID:  req.AssigneeID,
-			Status:      "pending",
+			AssigneeKey: func() *int64 { if req.AssigneeID != nil { v := int64(*req.AssigneeID); return &v }; return nil }(),
+			ItemStatus:  "pending",
 			Weight:      1.0,
 		}
 		if req.StartDate != nil {
-			if t, e := dates.ParseDate( *req.StartDate); e == nil {
-				subItem.StartDate = &t
+			if t, e := dates.ParseDate(*req.StartDate); e == nil {
+				subItem.PlanStartDate = &t
 			}
 		}
 		if req.ExpectedEndDate != nil {
-			if t, e := dates.ParseDate( *req.ExpectedEndDate); e == nil {
+			if t, e := dates.ParseDate(*req.ExpectedEndDate); e == nil {
 				subItem.ExpectedEndDate = &t
 			}
 		}
@@ -111,12 +111,12 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 
 		// Update pool item
 		fields := map[string]interface{}{
-			"status":           "assigned",
-			"assigned_main_id": req.MainItemID,
-			"assigned_sub_id":  subItem.ID,
-			"assignee_id":      req.AssigneeID,
-			"reviewer_id":      pmID,
-			"reviewed_at":      now,
+			"pool_status":      "assigned",
+			"assigned_main_key": req.MainItemID,
+			"assigned_sub_key":  subItem.ID,
+			"assignee_key":      req.AssigneeID,
+			"reviewer_key":      pmID,
+			"reviewed_at":       now,
 		}
 		return s.poolRepo.Update(ctx, poolItem, fields)
 	})
@@ -130,7 +130,7 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamID, pmID, poolI
 	if poolItem.TeamID != teamID {
 		return nil, apperrors.ErrForbidden
 	}
-	if poolItem.Status != "pending" {
+	if poolItem.PoolStatus != "pending" {
 		return nil, apperrors.ErrItemAlreadyProcessed
 	}
 
@@ -148,19 +148,19 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamID, pmID, poolI
 			Code:        code,
 			Title:       poolItem.Title,
 			Priority:    req.Priority,
-			ProposerID:  pmID,
-			AssigneeID:  req.AssigneeID,
+			ProposerKey: int64(pmID),
+			AssigneeKey: func() *int64 { if req.AssigneeID != nil { v := int64(*req.AssigneeID); return &v }; return nil }(),
 			IsKeyItem:   false,
-			Status:      "pending",
+			ItemStatus:  "pending",
 		}
 
 		if req.StartDate != nil {
-			if t, e := dates.ParseDate( *req.StartDate); e == nil {
-				mainItem.StartDate = &t
+			if t, e := dates.ParseDate(*req.StartDate); e == nil {
+				mainItem.PlanStartDate = &t
 			}
 		}
 		if req.ExpectedEndDate != nil {
-			if t, e := dates.ParseDate( *req.ExpectedEndDate); e == nil {
+			if t, e := dates.ParseDate(*req.ExpectedEndDate); e == nil {
 				mainItem.ExpectedEndDate = &t
 			}
 		}
@@ -170,11 +170,11 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamID, pmID, poolI
 		}
 
 		fields := map[string]interface{}{
-			"status":           "assigned",
-			"assigned_main_id": mainItem.ID,
-			"assignee_id":      req.AssigneeID,
-			"reviewer_id":      pmID,
-			"reviewed_at":      now,
+			"pool_status":       "assigned",
+			"assigned_main_key": mainItem.ID,
+			"assignee_key":      req.AssigneeID,
+			"reviewer_key":      pmID,
+			"reviewed_at":       now,
 		}
 		if err := s.poolRepo.Update(ctx, poolItem, fields); err != nil {
 			return err
@@ -194,15 +194,15 @@ func (s *itemPoolService) Reject(ctx context.Context, teamID, pmID, poolItemID u
 	if poolItem.TeamID != teamID {
 		return apperrors.ErrForbidden
 	}
-	if poolItem.Status != "pending" {
+	if poolItem.PoolStatus != "pending" {
 		return apperrors.ErrItemAlreadyProcessed
 	}
 
 	now := time.Now()
 	fields := map[string]interface{}{
-		"status":        "rejected",
+		"pool_status":   "rejected",
 		"reject_reason": reason,
-		"reviewer_id":   pmID,
+		"reviewer_key":  pmID,
 		"reviewed_at":   now,
 	}
 	return s.poolRepo.Update(ctx, poolItem, fields)

@@ -45,7 +45,7 @@ func (r *itemPoolRepo) List(ctx context.Context, teamID uint, filter dto.ItemPoo
 	query := r.db.WithContext(ctx).Where("team_id = ?", teamID)
 
 	if filter.Status != "" {
-		query = query.Where("status = ?", filter.Status)
+		query = query.Where("pool_status = ?", filter.Status)
 	}
 
 	var total int64

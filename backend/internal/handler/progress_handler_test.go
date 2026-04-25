@@ -31,15 +31,15 @@ func seedProgressBenchData(n int) (*mockProgressService, *trackingUserRepo) {
 	for i := range records {
 		records[i] = model.ProgressRecord{
 			ID:          uint(i + 1),
-			SubItemID:   5,
-			TeamID:      10,
-			AuthorID:    uint(i%50 + 1),
+			SubItemKey:   5,
+			TeamKey: 10,
+			AuthorKey: int64(i%50 + 1),
 			Completion:  float64(i % 100),
 			Achievement: fmt.Sprintf("Achievement %d", i),
 			Blocker:     "",
 			Lesson:      "",
-			IsPMCorrect: false,
-			CreatedAt:   time.Now().Add(-time.Duration(i) * time.Minute),
+			IsPmCorrect: 0,
+			CreateTime:   time.Now().Add(-time.Duration(i) * time.Minute),
 		}
 		users[uint(i%50+1)] = &model.User{DisplayName: fmt.Sprintf("User %d", i%50+1)}
 	}
@@ -56,7 +56,7 @@ func BenchmarkProgressHandler_List(b *testing.B) {
 	svc, trackingRepo := seedProgressBenchData(200)
 
 	deps, _ := testDeps(b)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.Progress = NewProgressHandler(svc, trackingRepo)
 	r := SetupRouter(deps, nil)
 
@@ -147,7 +147,7 @@ func (m *mockProgressService) List(_ context.Context, teamID, subItemID uint) ([
 func depsWithProgressSvc(t *testing.T, svc *mockProgressService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.Progress = NewProgressHandler(svc, &mockUserRepoForHandler{})
 	return deps
 }
@@ -157,7 +157,7 @@ func depsWithProgressSvc(t *testing.T, svc *mockProgressService) *Dependencies {
 func depsWithProgressSvcMemberRole(t *testing.T, svc *mockProgressService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "member", RoleID: ptrUint(2)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(2); return &v }()}}
 	deps.Progress = NewProgressHandler(svc, &mockUserRepoForHandler{})
 	return deps
 }
@@ -167,7 +167,7 @@ func depsWithProgressSvcMemberRole(t *testing.T, svc *mockProgressService) *Depe
 func depsWithProgressSvcAndUser(t *testing.T, svc *mockProgressService, userRepo repository.UserRepo) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.Progress = NewProgressHandler(svc, userRepo)
 	return deps
 }
@@ -176,15 +176,15 @@ func depsWithProgressSvcAndUser(t *testing.T, svc *mockProgressService, userRepo
 func testProgressRecord(id uint, subItemID uint, authorID uint) *model.ProgressRecord {
 	return &model.ProgressRecord{
 		ID:          id,
-		SubItemID:   subItemID,
-		TeamID:      10,
-		AuthorID:    authorID,
+		SubItemKey: int64(subItemID),
+		TeamKey: 10,
+		AuthorKey: int64(authorID),
 		Completion:  60.0,
 		Achievement: "completed feature",
 		Blocker:     "none",
 		Lesson:      "test early",
-		IsPMCorrect: false,
-		CreatedAt:   time.Now(),
+		IsPmCorrect: 0,
+		CreateTime:   time.Now(),
 	}
 }
 
@@ -796,15 +796,15 @@ func TestAppendProgress_ResponseShapeMatchesDataContract(t *testing.T) {
 	now := time.Now()
 	record := &model.ProgressRecord{
 		ID:          100,
-		SubItemID:   10,
-		TeamID:      1,
-		AuthorID:    3,
+		SubItemKey:   10,
+		TeamKey: 1,
+		AuthorKey:    3,
 		Completion:  60,
 		Achievement: "completed SDK init",
 		Blocker:     "certificate pending",
 		Lesson:      "sandbox vs prod config diff",
-		IsPMCorrect: false,
-		CreatedAt:   now,
+		IsPmCorrect: 0,
+		CreateTime:   now,
 	}
 	svc.appendResult.record = record
 
@@ -833,12 +833,12 @@ func TestAppendProgress_ResponseShapeMatchesDataContract(t *testing.T) {
 
 	// Verify all expected fields from ProgressRecord Object contract
 	assert.Equal(t, float64(100), data["id"])
-	assert.Equal(t, float64(10), data["subItemId"])
-	assert.Equal(t, float64(3), data["authorId"])
+	assert.Equal(t, float64(10), data["subItemKey"])
+	assert.Equal(t, float64(3), data["authorKey"])
 	assert.Equal(t, "李四", data["authorName"])
 	assert.Equal(t, 60.0, data["completion"])
 	assert.Equal(t, "completed SDK init", data["achievement"])
 	assert.Equal(t, "certificate pending", data["blocker"])
-	assert.Equal(t, false, data["isPMCorrect"])
+	assert.Equal(t, float64(0), data["isPmCorrect"])
 	assert.NotNil(t, data["createdAt"])
 }

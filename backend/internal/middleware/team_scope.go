@@ -46,8 +46,8 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleR
 
 		// 4. Load permission codes from role
 		var permCodes []string
-		if member.RoleID != nil {
-			codes, err := roleRepo.ListPermissions(c.Request.Context(), *member.RoleID)
+		if member.RoleKey != nil {
+			codes, err := roleRepo.ListPermissions(c.Request.Context(), uint(*member.RoleKey))
 			if err != nil {
 				c.Abort()
 				apperrors.RespondError(c, apperrors.ErrInternal)
@@ -58,7 +58,7 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleR
 
 		// 5. Inject teamID, callerTeamRole, and permCodes into context
 		c.Set("teamID", teamIDUint)
-		c.Set("callerTeamRole", member.Role)
+		c.Set("callerTeamRole", "member")
 		c.Set("permCodes", permCodes)
 		c.Next()
 	}

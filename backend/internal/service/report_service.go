@@ -58,13 +58,13 @@ func (s *reportService) Preview(ctx context.Context, teamID uint, weekStart time
 	// Index sub-items by main item ID
 	subItemsByMain := make(map[uint][]model.SubItem)
 	for _, si := range subItems {
-		subItemsByMain[si.MainItemID] = append(subItemsByMain[si.MainItemID], si)
+		subItemsByMain[uint(si.MainItemKey)] = append(subItemsByMain[uint(si.MainItemKey)], si)
 	}
 
 	// Index progress records by sub item ID
 	progressBySub := make(map[uint][]model.ProgressRecord)
 	for _, pr := range progressRecords {
-		progressBySub[pr.SubItemID] = append(progressBySub[pr.SubItemID], pr)
+		progressBySub[uint(pr.SubItemKey)] = append(progressBySub[uint(pr.SubItemKey)], pr)
 	}
 
 	// Build sections
@@ -93,7 +93,7 @@ func (s *reportService) Preview(ctx context.Context, teamID uint, weekStart time
 				ID:           si.ID,
 				Title:        si.Title,
 				Completion:   si.Completion,
-				AssigneeID:   si.AssigneeID,
+				AssigneeID:   si.AssigneeKey,
 				Achievements: achievements,
 				Blockers:     blockers,
 			})

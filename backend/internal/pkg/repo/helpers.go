@@ -13,10 +13,10 @@ import (
 
 // acceptedFields maps model table names to their updatable field whitelist.
 var acceptedFields = map[string]map[string]bool{
-	model.MainItem{}.TableName(): {"title": true, "priority": true, "status": true, "assignee_id": true, "completion": true, "actual_end_date": true, "archived_at": true},
-	model.SubItem{}.TableName():  {"title": true, "status": true, "priority": true, "assignee_id": true, "completion": true, "actual_end_date": true},
+	model.MainItem{}.TableName(): {"title": true, "priority": true, "item_status": true, "assignee_key": true, "completion": true, "actual_end_date": true, "archived_at": true},
+	model.SubItem{}.TableName():  {"title": true, "item_status": true, "priority": true, "assignee_key": true, "completion": true, "actual_end_date": true},
 	model.User{}.TableName():     {"display_name": true},
-	model.ItemPool{}.TableName(): {"status": true, "assigned_main_id": true, "assigned_sub_id": true, "assignee_id": true, "reject_reason": true, "reviewed_at": true, "reviewer_id": true},
+	model.ItemPool{}.TableName(): {"pool_status": true, "assigned_main_key": true, "assigned_sub_key": true, "assignee_key": true, "reject_reason": true, "reviewed_at": true, "reviewer_key": true},
 }
 
 // identifiable constrains T to model types that have an ID field.

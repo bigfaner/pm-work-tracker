@@ -53,6 +53,7 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		&model.MainItem{}, &model.SubItem{},
 		&model.ProgressRecord{}, &model.ItemPool{},
 		&model.Role{}, &model.RolePermission{},
+		&model.StatusHistory{},
 	)
 	require.NoError(t, err)
 
@@ -108,21 +109,21 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	}
 
 	// Seed teams
-	teamA := &model.Team{Name: "Team A", PmID: userA.ID, Code: "TAMA"}
-	teamB := &model.Team{Name: "Team B", PmID: userB.ID, Code: "TAMB"}
+	teamA := &model.Team{TeamName: "Team A", PmKey: int64(userA.ID), Code: "TAMA"}
+	teamB := &model.Team{TeamName: "Team B", PmKey: int64(userB.ID), Code: "TAMB"}
 	require.NoError(t, db.Create(teamA).Error)
 	require.NoError(t, db.Create(teamB).Error)
 
 	// Seed team members (with RoleID pointing to seeded roles)
 	now := time.Now()
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamID: teamA.ID, UserID: userA.ID, Role: "pm", RoleID: &pmRole.ID, JoinedAt: now,
+		TeamKey: int64(teamA.ID), UserKey: int64(userA.ID),  RoleKey: func() *int64 { v := int64(pmRole.ID); return &v }(), JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamID: teamA.ID, UserID: memberA.ID, Role: "member", RoleID: &memberRole.ID, JoinedAt: now,
+		TeamKey: int64(teamA.ID), UserKey: int64(memberA.ID),  RoleKey: func() *int64 { v := int64(memberRole.ID); return &v }(), JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamID: teamB.ID, UserID: userB.ID, Role: "pm", RoleID: &pmRole.ID, JoinedAt: now,
+		TeamKey: int64(teamB.ID), UserKey: int64(userB.ID),  RoleKey: func() *int64 { v := int64(pmRole.ID); return &v }(), JoinedAt: now,
 	}).Error)
 
 	return db, &seedData{

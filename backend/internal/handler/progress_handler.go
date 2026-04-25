@@ -136,7 +136,7 @@ func (h *ProgressHandler) CorrectCompletion(c *gin.Context) {
 func progressRecordToVO(record *model.ProgressRecord, userRepo repository.UserRepo, c *gin.Context) vo.ProgressRecordVO {
 	authorName := ""
 	if userRepo != nil {
-		user, err := userRepo.FindByID(c.Request.Context(), record.AuthorID)
+		user, err := userRepo.FindByID(c.Request.Context(), uint(record.AuthorKey))
 		if err == nil && user != nil {
 			authorName = user.DisplayName
 		}
@@ -155,7 +155,7 @@ func progressRecordsToVOs(records []model.ProgressRecord, userRepo repository.Us
 	// Collect unique author IDs
 	authorIDs := make(map[uint]struct{})
 	for i := range records {
-		authorIDs[records[i].AuthorID] = struct{}{}
+		authorIDs[uint(records[i].AuthorKey)] = struct{}{}
 	}
 
 	// Batch lookup
@@ -174,7 +174,7 @@ func progressRecordsToVOs(records []model.ProgressRecord, userRepo repository.Us
 	result := make([]vo.ProgressRecordVO, 0, len(records))
 	for i := range records {
 		authorName := ""
-		if u, ok := userMap[records[i].AuthorID]; ok {
+		if u, ok := userMap[uint(records[i].AuthorKey)]; ok {
 			authorName = u.DisplayName
 		}
 		result = append(result, vo.NewProgressRecordVO(&records[i], authorName))
