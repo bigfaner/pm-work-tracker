@@ -186,7 +186,7 @@
         "3.1",
         "3.2"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.3-frontend-page-components.md",
       "record": "records/3.3-frontend-page-components.md"
     },
@@ -198,7 +198,7 @@
       "dependencies": [
         "3.3"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "T-test-1-gen-test-cases.md",
       "record": "records/T-test-1-gen-test-cases.md"
     },
@@ -210,7 +210,7 @@
       "dependencies": [
         "T-test-1"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "T-test-2-gen-test-scripts.md",
       "record": "records/T-test-2-gen-test-scripts.md"
     }
