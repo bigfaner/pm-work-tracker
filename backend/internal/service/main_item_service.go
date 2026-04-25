@@ -10,6 +10,7 @@ import (
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg/dates"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/pkg/status"
 	"pm-work-tracker/backend/internal/repository"
 )
@@ -92,6 +93,7 @@ type MainItemService interface {
 	Archive(ctx context.Context, teamID, itemID uint) error
 	List(ctx context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error)
 	Get(ctx context.Context, itemID uint) (*model.MainItem, error)
+	GetByBizKey(ctx context.Context, bizKey int64) (*model.MainItem, error)
 	RecalcCompletion(ctx context.Context, mainItemID uint) error
 	ChangeStatus(ctx context.Context, teamID, callerID, itemID uint, newStatus string) (*model.MainItem, error)
 	AvailableTransitions(ctx context.Context, teamID, callerID, itemID uint) ([]string, error)
@@ -116,20 +118,21 @@ func (s *mainItemService) Create(ctx context.Context, teamID, pmID uint, req dto
 	}
 
 	item := &model.MainItem{
+		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
 		TeamID:      teamID,
 		Code:        code,
 		Title:       req.Title,
-		Description: req.Description,
+		ItemDesc:    req.Description,
 		Priority:    req.Priority,
-		ProposerID:  pmID,
-		AssigneeID:  &req.AssigneeID,
+		ProposerKey: int64(pmID),
+		AssigneeKey: func() *int64 { if req.AssigneeID != 0 { v := int64(req.AssigneeID); return &v }; return nil }(),
 		IsKeyItem:   req.IsKeyItem,
-		Status:      "pending",
+		ItemStatus:  "pending",
 	}
 
 	if req.StartDate != nil {
 		if t, err := dates.ParseDate(*req.StartDate); err == nil {
-			item.StartDate = &t
+			item.PlanStartDate = &t
 		}
 	}
 	if req.ExpectedEndDate != nil {
@@ -139,6 +142,9 @@ func (s *mainItemService) Create(ctx context.Context, teamID, pmID uint, req dto
 	}
 
 	if err := s.mainItemRepo.Create(ctx, item); err != nil {
+		if apperrors.IsMySQLDuplicateError(err) {
+			return nil, apperrors.ErrDuplicateBizKey
+		}
 		return nil, err
 	}
 	return item, nil
@@ -152,7 +158,7 @@ func (s *mainItemService) Update(ctx context.Context, teamID, itemID uint, req d
 	if item.TeamID != teamID {
 		return apperrors.ErrForbidden
 	}
-	if status.IsMainTerminal(item.Status) {
+	if status.IsMainTerminal(item.ItemStatus) {
 		return apperrors.ErrTerminalMainItem
 	}
 
@@ -195,7 +201,7 @@ func (s *mainItemService) Archive(ctx context.Context, teamID, itemID uint) erro
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 
-	if item.Status != "completed" && item.Status != "closed" {
+	if item.ItemStatus != "completed" && item.ItemStatus != "closed" {
 		return apperrors.ErrArchiveNotAllowed
 	}
 
@@ -211,6 +217,14 @@ func (s *mainItemService) List(ctx context.Context, teamID uint, filter dto.Main
 
 func (s *mainItemService) Get(ctx context.Context, itemID uint) (*model.MainItem, error) {
 	item, err := s.mainItemRepo.FindByID(ctx, itemID)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
+	}
+	return item, nil
+}
+
+func (s *mainItemService) GetByBizKey(ctx context.Context, bizKey int64) (*model.MainItem, error) {
+	item, err := s.mainItemRepo.FindByBizKey(ctx, bizKey)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
@@ -244,18 +258,18 @@ func (s *mainItemService) ChangeStatus(ctx context.Context, teamID, callerID, it
 	}
 
 	// Self-transition check
-	if newStatus == item.Status {
+	if newStatus == item.ItemStatus {
 		return nil, apperrors.ErrInvalidStatus
 	}
 
 	// Validate transition
-	if !status.IsValidTransition(status.MainItemTransitions, item.Status, newStatus) {
+	if !status.IsValidTransition(status.MainItemTransitions, item.ItemStatus, newStatus) {
 		return nil, apperrors.ErrInvalidStatus
 	}
 
 	// PM-only check: reviewing -> completed/progressing requires caller == proposer
-	if item.Status == "reviewing" && (newStatus == "completed" || newStatus == "progressing") {
-		if callerID != item.ProposerID {
+	if item.ItemStatus == "reviewing" && (newStatus == "completed" || newStatus == "progressing") {
+		if callerID != uint(item.ProposerKey) {
 			return nil, apperrors.ErrForbidden
 		}
 	}
@@ -267,14 +281,14 @@ func (s *mainItemService) ChangeStatus(ctx context.Context, teamID, callerID, it
 			return nil, err
 		}
 		for _, sub := range subs {
-			if !status.IsSubTerminal(sub.Status) {
+			if !status.IsSubTerminal(sub.ItemStatus) {
 				return nil, apperrors.ErrSubItemsNotTerminal
 			}
 		}
 	}
 
 	fields := map[string]interface{}{
-		"status": newStatus,
+		"item_status": newStatus,
 	}
 
 	// Terminal side effects
@@ -285,7 +299,7 @@ func (s *mainItemService) ChangeStatus(ctx context.Context, teamID, callerID, it
 	}
 
 	// Capture old status before update (repo may mutate the item)
-	oldStatus := item.Status
+	oldStatus := item.ItemStatus
 
 	if err := s.mainItemRepo.Update(ctx, item, fields); err != nil {
 		return nil, err
@@ -295,11 +309,11 @@ func (s *mainItemService) ChangeStatus(ctx context.Context, teamID, callerID, it
 	if s.statusHistorySvc != nil {
 		_ = s.statusHistorySvc.Record(ctx, &model.StatusHistory{
 			ItemType:   "main_item",
-			ItemID:     itemID,
+			ItemKey:    int64(itemID),
 			FromStatus: oldStatus,
 			ToStatus:   newStatus,
-			ChangedBy:  callerID,
-			IsAuto:     false,
+			ChangedBy:  int64(callerID),
+			IsAuto:     0,
 		})
 	}
 
@@ -320,10 +334,10 @@ func (s *mainItemService) AvailableTransitions(ctx context.Context, teamID, call
 		return nil, apperrors.ErrForbidden
 	}
 
-	transitions := status.GetAvailableTransitions(status.MainItemTransitions, item.Status)
+	transitions := status.GetAvailableTransitions(status.MainItemTransitions, item.ItemStatus)
 
 	// PM-only filter: non-PM callers don't see completed/progressing when reviewing
-	if item.Status == "reviewing" && callerID != item.ProposerID {
+	if item.ItemStatus == "reviewing" && callerID != uint(item.ProposerKey) {
 		filtered := make([]string, 0, len(transitions))
 		for _, t := range transitions {
 			if t != "completed" && t != "progressing" {
@@ -359,23 +373,23 @@ func (s *mainItemService) EvaluateLinkage(ctx context.Context, mainItemID uint, 
 	}
 
 	// Evaluate 5-level priority rules
-	targetStatus := evaluateLinkageTarget(subItems, mainItem.Status)
-	if targetStatus == "" || targetStatus == mainItem.Status {
+	targetStatus := evaluateLinkageTarget(subItems, mainItem.ItemStatus)
+	if targetStatus == "" || targetStatus == mainItem.ItemStatus {
 		return nil, nil
 	}
 
 	// Check if transition is valid
-	if !status.IsValidTransition(status.MainItemTransitions, mainItem.Status, targetStatus) {
+	if !status.IsValidTransition(status.MainItemTransitions, mainItem.ItemStatus, targetStatus) {
 		// Linkage failed: record intent in status history
-		remark := fmt.Sprintf("%s→%s 不允许", mainItem.Status, targetStatus)
+		remark := fmt.Sprintf("%s→%s 不允许", mainItem.ItemStatus, targetStatus)
 		if s.statusHistorySvc != nil {
 			_ = s.statusHistorySvc.Record(ctx, &model.StatusHistory{
 				ItemType:   "main_item",
-				ItemID:     mainItemID,
-				FromStatus: mainItem.Status,
+				ItemKey:    int64(mainItemID),
+				FromStatus: mainItem.ItemStatus,
 				ToStatus:   targetStatus,
-				ChangedBy:  changedBy,
-				IsAuto:     true,
+				ChangedBy:  int64(changedBy),
+				IsAuto:     1,
 				Remark:     remark,
 			})
 		}
@@ -389,7 +403,7 @@ func (s *mainItemService) EvaluateLinkage(ctx context.Context, mainItemID uint, 
 
 	// Apply transition
 	fields := map[string]interface{}{
-		"status": targetStatus,
+		"item_status": targetStatus,
 	}
 
 	// Terminal side effects
@@ -399,7 +413,7 @@ func (s *mainItemService) EvaluateLinkage(ctx context.Context, mainItemID uint, 
 		fields["actual_end_date"] = &now
 	}
 
-	oldStatus := mainItem.Status
+	oldStatus := mainItem.ItemStatus
 
 	if err := s.mainItemRepo.Update(ctx, mainItem, fields); err != nil {
 		return nil, err
@@ -409,11 +423,11 @@ func (s *mainItemService) EvaluateLinkage(ctx context.Context, mainItemID uint, 
 	if s.statusHistorySvc != nil {
 		_ = s.statusHistorySvc.Record(ctx, &model.StatusHistory{
 			ItemType:   "main_item",
-			ItemID:     mainItemID,
+			ItemKey:    int64(mainItemID),
 			FromStatus: oldStatus,
 			ToStatus:   targetStatus,
-			ChangedBy:  changedBy,
-			IsAuto:     true,
+			ChangedBy:  int64(changedBy),
+			IsAuto:     1,
 		})
 	}
 
@@ -435,7 +449,7 @@ func evaluateLinkageTarget(subItems []*model.SubItem, currentMainStatus string) 
 	hasProgressing := false
 
 	for _, si := range subItems {
-		s := si.Status
+		s := si.ItemStatus
 		isCompleted := s == "completed"
 		isClosed := s == "closed"
 		isTerminal := isCompleted || isClosed

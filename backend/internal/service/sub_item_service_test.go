@@ -151,6 +151,10 @@ func (m *mockMainItemSvcTM) EvaluateLinkage(ctx context.Context, mainItemID uint
 	return args.Get(0).(*LinkageResult), args.Error(1)
 }
 
+func (m *mockMainItemSvcTM) GetByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
+	return nil, nil
+}
+
 // mockStatusHistorySvcTM uses testify/mock to satisfy StatusHistoryService.
 type mockStatusHistorySvcTM struct {
 	mock.Mock
@@ -180,10 +184,10 @@ func TestSubItemCreate_Success(t *testing.T) {
 	svc := NewSubItemService(repo, mainSvc, historySvc)
 
 	repo.On("Create", mock.Anything, mock.MatchedBy(func(item *model.SubItem) bool {
-		return item.TeamID == 1 && item.MainItemID == 5 && item.Title == "Sub task A" && item.Status == "pending"
+		return item.TeamID == 1 && uint(item.MainItemKey) == 5 && item.Title == "Sub task A" && item.ItemStatus == "pending"
 	})).Return(nil)
 	repo.On("NextSubCode", mock.Anything, uint(5)).Return("FEAT-00001-01", nil)
-	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{BaseModel: model.BaseModel{ID: 5}, Status: "pending"}, nil)
+	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{ItemStatus: "pending"}, nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
 	item, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
@@ -194,12 +198,12 @@ func TestSubItemCreate_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, uint(1), item.TeamID)
-	assert.Equal(t, uint(5), item.MainItemID)
-	assert.Equal(t, "pending", item.Status)
+	assert.Equal(t, uint(5), uint(item.MainItemKey))
+	assert.Equal(t, "pending", item.ItemStatus)
 	assert.Equal(t, "Sub task A", item.Title)
 	assert.Equal(t, "P2", item.Priority)
-	assert.NotNil(t, item.AssigneeID)
-	assert.Equal(t, uint(42), *item.AssigneeID)
+	assert.NotNil(t, item.AssigneeKey)
+	assert.Equal(t, int64(42), *item.AssigneeKey)
 
 	repo.AssertExpectations(t)
 }
@@ -212,7 +216,7 @@ func TestSubItemCreate_RepoError(t *testing.T) {
 
 	repo.On("Create", mock.Anything, mock.Anything).Return(errors.New("db error"))
 	repo.On("NextSubCode", mock.Anything, uint(5)).Return("FEAT-00001-01", nil)
-	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{BaseModel: model.BaseModel{ID: 5}, Status: "pending"}, nil)
+	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{ItemStatus: "pending"}, nil)
 
 	_, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
 		MainItemID: 5,
@@ -351,15 +355,15 @@ func testValidTransitionTM(t *testing.T, from, to string) {
 	t.Helper()
 	existing := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID:     1,
-		MainItemID: 5,
-		Status:     from,
+		TeamID: 1,
+		MainItemKey: int64(5),
+		ItemStatus: from,
 	}
 	updated := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID:     1,
-		MainItemID: 5,
-		Status:     to,
+		TeamID: 1,
+		MainItemKey: int64(5),
+		ItemStatus: to,
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -368,7 +372,7 @@ func testValidTransitionTM(t *testing.T, from, to string) {
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil).Once()
 	repo.On("Update", mock.Anything, existing, mock.MatchedBy(func(fields map[string]interface{}) bool {
-		if fields["status"] != to {
+		if fields["item_status"] != to {
 			return false
 		}
 		if to == "completed" || to == "closed" {
@@ -385,7 +389,7 @@ func testValidTransitionTM(t *testing.T, from, to string) {
 
 	// Status history is always recorded
 	historySvc.On("Record", mock.Anything, mock.MatchedBy(func(record *model.StatusHistory) bool {
-		return record.ItemID == 1 && record.FromStatus == from && record.ToStatus == to && record.IsAuto == false
+		return uint(record.ItemKey) == 1 && record.FromStatus == from && record.ToStatus == to && record.IsAuto == 0
 	})).Return(nil)
 
 	// EvaluateLinkage is always called after status change
@@ -395,7 +399,7 @@ func testValidTransitionTM(t *testing.T, from, to string) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.SubItem)
-	assert.Equal(t, to, result.SubItem.Status)
+	assert.Equal(t, to, result.SubItem.ItemStatus)
 	assert.Nil(t, result.LinkageResult)
 
 	repo.AssertExpectations(t)
@@ -413,7 +417,7 @@ func TestChangeStatus_Invalid_CompletedToAnything(t *testing.T) {
 			existing := &model.SubItem{
 				BaseModel:  model.BaseModel{ID: 1},
 				TeamID: 1,
-				Status: "completed",
+				ItemStatus: "completed",
 			}
 			repo := new(mockSubItemRepoTM)
 			mainSvc := new(mockMainItemSvcTM)
@@ -437,7 +441,7 @@ func TestChangeStatus_Invalid_ClosedToAnything(t *testing.T) {
 			existing := &model.SubItem{
 				BaseModel:  model.BaseModel{ID: 1},
 				TeamID: 1,
-				Status: "closed",
+				ItemStatus: "closed",
 			}
 			repo := new(mockSubItemRepoTM)
 			mainSvc := new(mockMainItemSvcTM)
@@ -476,7 +480,7 @@ func testInvalidTransitionTM(t *testing.T, from, to string) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
-		Status: from,
+		ItemStatus: from,
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -499,15 +503,15 @@ func testInvalidTransitionTM(t *testing.T, from, to string) {
 func TestChangeStatus_Completed_SetsCompletionAndActualEndDate(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID:     1,
-		MainItemID: 5,
-		Status:     "progressing",
+		TeamID: 1,
+		MainItemKey: int64(5),
+		ItemStatus: "progressing",
 	}
 	updated := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID:     1,
-		MainItemID: 5,
-		Status:     "completed",
+		TeamID: 1,
+		MainItemKey: int64(5),
+		ItemStatus: "completed",
 		Completion: 100,
 	}
 	repo := new(mockSubItemRepoTM)
@@ -517,7 +521,7 @@ func TestChangeStatus_Completed_SetsCompletionAndActualEndDate(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil).Once()
 	repo.On("Update", mock.Anything, existing, mock.MatchedBy(func(fields map[string]interface{}) bool {
-		return fields["status"] == "completed" &&
+		return fields["item_status"] == "completed" &&
 			fields["completion"] == float64(100) &&
 			fields["actual_end_date"] != nil
 	})).Return(nil)
@@ -529,7 +533,7 @@ func TestChangeStatus_Completed_SetsCompletionAndActualEndDate(t *testing.T) {
 	result, err := svc.ChangeStatus(context.Background(), 1, 10, 1, "completed")
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	assert.Equal(t, "completed", result.SubItem.Status)
+	assert.Equal(t, "completed", result.SubItem.ItemStatus)
 
 	repo.AssertExpectations(t)
 	mainSvc.AssertExpectations(t)
@@ -539,15 +543,15 @@ func TestChangeStatus_Completed_SetsCompletionAndActualEndDate(t *testing.T) {
 func TestChangeStatus_Closed_SetsCompletionAndActualEndDate(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID:     1,
-		MainItemID: 5,
-		Status:     "progressing",
+		TeamID: 1,
+		MainItemKey: int64(5),
+		ItemStatus: "progressing",
 	}
 	updated := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID:     1,
-		MainItemID: 5,
-		Status:     "closed",
+		TeamID: 1,
+		MainItemKey: int64(5),
+		ItemStatus: "closed",
 		Completion: 100,
 	}
 	repo := new(mockSubItemRepoTM)
@@ -557,7 +561,7 @@ func TestChangeStatus_Closed_SetsCompletionAndActualEndDate(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil).Once()
 	repo.On("Update", mock.Anything, existing, mock.MatchedBy(func(fields map[string]interface{}) bool {
-		return fields["status"] == "closed" &&
+		return fields["item_status"] == "closed" &&
 			fields["completion"] == float64(100) &&
 			fields["actual_end_date"] != nil
 	})).Return(nil)
@@ -569,7 +573,7 @@ func TestChangeStatus_Closed_SetsCompletionAndActualEndDate(t *testing.T) {
 	result, err := svc.ChangeStatus(context.Background(), 1, 10, 1, "closed")
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	assert.Equal(t, "closed", result.SubItem.Status)
+	assert.Equal(t, "closed", result.SubItem.ItemStatus)
 
 	repo.AssertExpectations(t)
 	mainSvc.AssertExpectations(t)
@@ -579,15 +583,15 @@ func TestChangeStatus_Closed_SetsCompletionAndActualEndDate(t *testing.T) {
 func TestChangeStatus_Completed_RecalcCompletion_CalledWithCorrectMainItemID(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID:     1,
-		MainItemID: 42,
-		Status:     "progressing",
+		TeamID: 1,
+		MainItemKey: int64(42),
+		ItemStatus: "progressing",
 	}
 	updated := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID:     1,
-		MainItemID: 42,
-		Status:     "completed",
+		TeamID: 1,
+		MainItemKey: int64(42),
+		ItemStatus: "completed",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -612,9 +616,9 @@ func TestChangeStatus_Completed_RecalcCompletion_CalledWithCorrectMainItemID(t *
 func TestChangeStatus_Completed_RecalcError(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID:     1,
-		MainItemID: 5,
-		Status:     "progressing",
+		TeamID: 1,
+		MainItemKey: int64(5),
+		ItemStatus: "progressing",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -640,15 +644,15 @@ func TestChangeStatus_Completed_RecalcError(t *testing.T) {
 func TestChangeStatus_RecordsHistory(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 7},
-		TeamID:     1,
-		MainItemID: 5,
-		Status:     "pending",
+		TeamID: 1,
+		MainItemKey: int64(5),
+		ItemStatus: "pending",
 	}
 	updated := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 7},
-		TeamID:     1,
-		MainItemID: 5,
-		Status:     "progressing",
+		TeamID: 1,
+		MainItemKey: int64(5),
+		ItemStatus: "progressing",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -660,11 +664,11 @@ func TestChangeStatus_RecordsHistory(t *testing.T) {
 	repo.On("FindByID", mock.Anything, uint(7)).Return(updated, nil).Once()
 	historySvc.On("Record", mock.Anything, mock.MatchedBy(func(record *model.StatusHistory) bool {
 		return record.ItemType == "sub_item" &&
-			record.ItemID == 7 &&
+			uint(record.ItemKey) == 7 &&
 			record.FromStatus == "pending" &&
 			record.ToStatus == "progressing" &&
 			record.ChangedBy == 10 &&
-			record.IsAuto == false
+			record.IsAuto == 0
 	})).Return(nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
@@ -699,7 +703,7 @@ func TestChangeStatus_TeamMismatch(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 2,
-		Status: "pending",
+		ItemStatus: "pending",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -722,8 +726,8 @@ func TestChangeStatus_TeamMismatch(t *testing.T) {
 func TestSubItemAvailableTransitions_Pending(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel: model.BaseModel{ID: 1},
-		TeamID:    1,
-		Status:    "pending",
+		TeamID: 1,
+		ItemStatus: "pending",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -742,8 +746,8 @@ func TestSubItemAvailableTransitions_Pending(t *testing.T) {
 func TestSubItemAvailableTransitions_Progressing(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel: model.BaseModel{ID: 1},
-		TeamID:    1,
-		Status:    "progressing",
+		TeamID: 1,
+		ItemStatus: "progressing",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -762,8 +766,8 @@ func TestSubItemAvailableTransitions_Progressing(t *testing.T) {
 func TestSubItemAvailableTransitions_TerminalStatus(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel: model.BaseModel{ID: 1},
-		TeamID:    1,
-		Status:    "completed",
+		TeamID: 1,
+		ItemStatus: "completed",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -796,8 +800,8 @@ func TestSubItemAvailableTransitions_NotFound(t *testing.T) {
 func TestSubItemAvailableTransitions_TeamMismatch(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel: model.BaseModel{ID: 1},
-		TeamID:    2,
-		Status:    "pending",
+		TeamID: 2,
+		ItemStatus: "pending",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -980,7 +984,7 @@ func TestSubItemCreate_TriggersLinkage(t *testing.T) {
 
 	repo.On("NextSubCode", mock.Anything, uint(5)).Return("FEAT-00001-01", nil)
 	repo.On("Create", mock.Anything, mock.Anything).Return(nil)
-	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{BaseModel: model.BaseModel{ID: 5}, Status: "pending"}, nil)
+	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{ItemStatus: "pending"}, nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
 	_, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
@@ -1003,8 +1007,8 @@ func TestSubItemDelete_TriggersLinkage(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
-		MainItemID: 5,
-		Status: "pending",
+		MainItemKey: int64(5),
+		ItemStatus: "pending",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -1041,7 +1045,7 @@ func TestSubItemDelete_TeamMismatch(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 2,
-		Status: "pending",
+		ItemStatus: "pending",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -1060,8 +1064,8 @@ func TestSubItemDelete_RepoError(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
-		MainItemID: 5,
-		Status: "pending",
+		MainItemKey: int64(5),
+		ItemStatus: "pending",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -1085,14 +1089,14 @@ func TestChangeStatus_ReturnsLinkageResult(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
-		MainItemID: 5,
-		Status: "pending",
+		MainItemKey: int64(5),
+		ItemStatus: "pending",
 	}
 	updated := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
-		MainItemID: 5,
-		Status: "progressing",
+		MainItemKey: int64(5),
+		ItemStatus: "progressing",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -1115,7 +1119,7 @@ func TestChangeStatus_ReturnsLinkageResult(t *testing.T) {
 	result, err := svc.ChangeStatus(context.Background(), 1, 10, 1, "progressing")
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	assert.Equal(t, "progressing", result.SubItem.Status)
+	assert.Equal(t, "progressing", result.SubItem.ItemStatus)
 	require.NotNil(t, result.LinkageResult)
 	assert.Equal(t, "主事项状态联动失败：blocking→reviewing 不允许", result.LinkageResult.Warning())
 
@@ -1138,7 +1142,7 @@ func TestSubItemCreate_AssignsCode(t *testing.T) {
 	repo.On("Create", mock.Anything, mock.MatchedBy(func(item *model.SubItem) bool {
 		return item.Code == "FEAT-00001-01"
 	})).Return(nil)
-	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{BaseModel: model.BaseModel{ID: 5}, Status: "pending"}, nil)
+	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{ItemStatus: "pending"}, nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
 	item, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
@@ -1159,7 +1163,7 @@ func TestSubItemCreate_NextSubCodeError_ReturnsError(t *testing.T) {
 	svc := NewSubItemService(repo, mainSvc, historySvc)
 
 	repo.On("NextSubCode", mock.Anything, uint(5)).Return("", errors.New("code gen failed"))
-	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{BaseModel: model.BaseModel{ID: 5}, Status: "pending"}, nil)
+	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{ItemStatus: "pending"}, nil)
 
 	_, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
 		MainItemID: 5,
@@ -1178,14 +1182,14 @@ func TestChangeStatus_RecalcCompletionBeforeLinkage(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
-		MainItemID: 5,
-		Status: "progressing",
+		MainItemKey: int64(5),
+		ItemStatus: "progressing",
 	}
 	updated := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
 		TeamID: 1,
-		MainItemID: 5,
-		Status: "completed",
+		MainItemKey: int64(5),
+		ItemStatus: "completed",
 		Completion: 100,
 	}
 	repo := new(mockSubItemRepoTM)

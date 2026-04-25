@@ -35,15 +35,15 @@ func NewMainItemHandler(svc service.MainItemService, userRepo repository.UserRep
 	return &MainItemHandler{svc: svc, userRepo: userRepo, subItemRepo: subItemRepo}
 }
 
-// parseItemID extracts and validates the itemId path param as uint.
-func parseItemID(c *gin.Context) (uint, bool) {
+// parseBizKey extracts and validates the itemId path param as int64 bizKey.
+func parseBizKey(c *gin.Context) (int64, bool) {
 	idStr := c.Param("itemId")
-	id, err := strconv.ParseUint(idStr, 10, 64)
+	bizKey, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return 0, false
 	}
-	return uint(id), true
+	return bizKey, true
 }
 
 // Create handles POST /api/v1/teams/:teamId/main-items
@@ -103,12 +103,12 @@ func (h *MainItemHandler) List(c *gin.Context) {
 
 // Get handles GET /api/v1/teams/:teamId/main-items/:itemId
 func (h *MainItemHandler) Get(c *gin.Context) {
-	itemID, ok := parseItemID(c)
+	bizKey, ok := parseBizKey(c)
 	if !ok {
 		return
 	}
 
-	item, err := h.svc.Get(c.Request.Context(), itemID)
+	item, err := h.svc.GetByBizKey(c.Request.Context(), bizKey)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -117,7 +117,7 @@ func (h *MainItemHandler) Get(c *gin.Context) {
 	itemVO := vo.NewMainItemVO(item)
 
 	// Fetch subItems summary
-	subItems, _ := h.subItemRepo.ListByMainItem(c.Request.Context(), itemID)
+	subItems, _ := h.subItemRepo.ListByMainItem(c.Request.Context(), item.ID)
 
 	apperrors.RespondOK(c, gin.H{
 		"id":              itemVO.ID,
@@ -142,7 +142,7 @@ func (h *MainItemHandler) Get(c *gin.Context) {
 
 // Update handles PUT /api/v1/teams/:teamId/main-items/:itemId
 func (h *MainItemHandler) Update(c *gin.Context) {
-	itemID, ok := parseItemID(c)
+	bizKey, ok := parseBizKey(c)
 	if !ok {
 		return
 	}
@@ -155,14 +155,20 @@ func (h *MainItemHandler) Update(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.Update(c.Request.Context(), teamID, itemID, req)
+	item, err := h.svc.GetByBizKey(c.Request.Context(), bizKey)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	err = h.svc.Update(c.Request.Context(), teamID, item.ID, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
 	}
 
 	// Fetch updated item for response
-	updated, err := h.svc.Get(c.Request.Context(), itemID)
+	updated, err := h.svc.Get(c.Request.Context(), item.ID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -173,14 +179,20 @@ func (h *MainItemHandler) Update(c *gin.Context) {
 
 // Archive handles POST /api/v1/teams/:teamId/main-items/:itemId/archive
 func (h *MainItemHandler) Archive(c *gin.Context) {
-	itemID, ok := parseItemID(c)
+	bizKey, ok := parseBizKey(c)
 	if !ok {
 		return
 	}
 
 	teamID := middleware.GetTeamID(c)
 
-	err := h.svc.Archive(c.Request.Context(), teamID, itemID)
+	item, err := h.svc.GetByBizKey(c.Request.Context(), bizKey)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	err = h.svc.Archive(c.Request.Context(), teamID, item.ID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -191,7 +203,7 @@ func (h *MainItemHandler) Archive(c *gin.Context) {
 
 // ChangeStatus handles PUT /api/v1/teams/:teamId/main-items/:itemId/status
 func (h *MainItemHandler) ChangeStatus(c *gin.Context) {
-	itemID, ok := parseItemID(c)
+	bizKey, ok := parseBizKey(c)
 	if !ok {
 		return
 	}
@@ -205,7 +217,13 @@ func (h *MainItemHandler) ChangeStatus(c *gin.Context) {
 		return
 	}
 
-	item, err := h.svc.ChangeStatus(c.Request.Context(), teamID, callerID, itemID, req.Status)
+	record, err := h.svc.GetByBizKey(c.Request.Context(), bizKey)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	item, err := h.svc.ChangeStatus(c.Request.Context(), teamID, callerID, record.ID, req.Status)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -216,7 +234,7 @@ func (h *MainItemHandler) ChangeStatus(c *gin.Context) {
 
 // AvailableTransitions handles GET /api/v1/teams/:teamId/main-items/:itemId/available-transitions
 func (h *MainItemHandler) AvailableTransitions(c *gin.Context) {
-	itemID, ok := parseItemID(c)
+	bizKey, ok := parseBizKey(c)
 	if !ok {
 		return
 	}
@@ -224,7 +242,13 @@ func (h *MainItemHandler) AvailableTransitions(c *gin.Context) {
 	teamID := middleware.GetTeamID(c)
 	callerID := middleware.GetUserID(c)
 
-	transitions, err := h.svc.AvailableTransitions(c.Request.Context(), teamID, callerID, itemID)
+	record, err := h.svc.GetByBizKey(c.Request.Context(), bizKey)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	transitions, err := h.svc.AvailableTransitions(c.Request.Context(), teamID, callerID, record.ID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

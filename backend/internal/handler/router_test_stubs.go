@@ -73,6 +73,9 @@ func (s *StubMainItemSvc) List(_ context.Context, _ uint, _ dto.MainItemFilter, 
 func (s *StubMainItemSvc) Get(_ context.Context, _ uint) (*model.MainItem, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
+func (s *StubMainItemSvc) GetByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
 func (s *StubMainItemSvc) RecalcCompletion(_ context.Context, _ uint) error {
 	return fmt.Errorf("stub: not implemented")
 }

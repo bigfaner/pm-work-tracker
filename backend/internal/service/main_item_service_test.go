@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,7 +13,13 @@ import (
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 )
+
+func TestMain(m *testing.M) {
+	_ = snowflake.Init(1)
+	os.Exit(m.Run())
+}
 
 // ---------------------------------------------------------------------------
 // Mock repos for MainItemService tests
@@ -20,11 +27,13 @@ import (
 
 type mockMainItemRepo struct {
 	item        *model.MainItem
+	bizKeyItem  *model.MainItem
 	items       []model.MainItem
 	pageResult  *dto.PageResult[model.MainItem]
 	nextCodeVal string
 	// per-operation errors
 	findErr   error
+	bizKeyErr error
 	createErr error
 	updateErr error
 	listErr   error
@@ -89,7 +98,10 @@ func (m *mockMainItemRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*mod
 	return nil, nil
 }
 func (m *mockMainItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
-	return nil, nil
+	if m.bizKeyItem != nil {
+		return m.bizKeyItem, nil
+	}
+	return nil, m.bizKeyErr
 }
 func (m *mockMainItemRepo) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
 	return nil, nil
@@ -366,6 +378,35 @@ func TestMainItemGet_NotFound(t *testing.T) {
 	svc := NewMainItemService(mainRepo, subRepo, nil)
 
 	_, err := svc.Get(context.Background(), 99)
+	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: GetByBizKey
+// ---------------------------------------------------------------------------
+
+func TestMainItemGetByBizKey_Success(t *testing.T) {
+	existing := &model.MainItem{
+		BaseModel: model.BaseModel{ID: 1, BizKey: 123456},
+		TeamID:    1,
+		Title:     "Item 1",
+	}
+	mainRepo := &mockMainItemRepo{}
+	mainRepo.bizKeyItem = existing
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	item, err := svc.GetByBizKey(context.Background(), 123456)
+	require.NoError(t, err)
+	assert.Equal(t, "Item 1", item.Title)
+}
+
+func TestMainItemGetByBizKey_NotFound(t *testing.T) {
+	mainRepo := &mockMainItemRepo{bizKeyErr: gorm.ErrRecordNotFound}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	_, err := svc.GetByBizKey(context.Background(), 999)
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
 }
 
