@@ -84,7 +84,7 @@
       "dependencies": [
         "2.3a"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.3b-main-item-service-handler.md",
       "record": "records/2.3b-main-item-service-handler.md"
     },
@@ -101,7 +101,7 @@
         "2.2",
         "2.3a"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.4a-sub-item-model-repo.md",
       "record": "records/2.4a-sub-item-model-repo.md"
     },

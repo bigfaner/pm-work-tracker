@@ -27,9 +27,9 @@ func seedSubItemData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team, *m
 	t.Helper()
 	u := model.User{Username: "si_pm", DisplayName: "SI PM", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "SI Team", PmID: u.ID, Code: "SITE"}
+	team := model.Team{TeamName: "SI Team", PmKey: int64(u.ID), Code: "SITE"}
 	require.NoError(t, db.Create(&team).Error)
-	mi := model.MainItem{TeamID: team.ID, Code: "MI-SI01", Title: "Main", Priority: "P1", ProposerID: u.ID, Status: "pending"}
+	mi := model.MainItem{ItemStatus: "pending"}
 	require.NoError(t, db.Create(&mi).Error)
 	return &u, &team, &mi
 }
@@ -37,11 +37,11 @@ func seedSubItemData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team, *m
 func createSubItem(t *testing.T, db *gormlib.DB, teamID, mainItemID uint, title, priority, status string) *model.SubItem {
 	t.Helper()
 	item := model.SubItem{
-		TeamID:     teamID,
-		MainItemID: mainItemID,
+		TeamID: teamID,
+		MainItemKey: int64(mainItemID),
 		Title:      title,
 		Priority:   priority,
-		Status:     status,
+		ItemStatus: status,
 	}
 	require.NoError(t, db.Create(&item).Error)
 	return &item
@@ -56,11 +56,11 @@ func TestSubItemRepo_Create(t *testing.T) {
 
 	_, team, mi := seedSubItemData(t, db)
 	item := &model.SubItem{
-		TeamID:     team.ID,
-		MainItemID: mi.ID,
+		TeamID: team.ID,
+		MainItemKey: int64(mi.ID),
 		Title:      "Sub 1",
 		Priority:   "P1",
-		Status:     "pending",
+		ItemStatus: "pending",
 	}
 	require.NoError(t, repo.Create(ctx, item))
 	assert.NotZero(t, item.ID)
@@ -81,7 +81,7 @@ func TestSubItemRepo_FindByID(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "Find Me", found.Title)
 		assert.Equal(t, team.ID, found.TeamID)
-		assert.Equal(t, mi.ID, found.MainItemID)
+		assert.Equal(t, mi.ID, uint(found.MainItemKey))
 	})
 
 	t.Run("not_found", func(t *testing.T) {
@@ -101,16 +101,16 @@ func TestSubItemRepo_Update(t *testing.T) {
 	item := createSubItem(t, db, team.ID, mi.ID, "Update Me", "P1", "pending")
 
 	fields := map[string]interface{}{
-		"title":    "Updated Sub",
-		"status":   "progressing",
-		"priority": "P2",
+		"title":       "Updated Sub",
+		"item_status": "progressing",
+		"priority":    "P2",
 	}
 	require.NoError(t, repo.Update(ctx, item, fields))
 
 	found, err := repo.FindByID(ctx, item.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "Updated Sub", found.Title)
-	assert.Equal(t, "progressing", found.Status)
+	assert.Equal(t, "progressing", found.ItemStatus)
 	assert.Equal(t, "P2", found.Priority)
 }
 
@@ -140,7 +140,7 @@ func TestSubItemRepo_List(t *testing.T) {
 	createSubItem(t, db, team.ID, mi.ID, "Sub C", "P1", "completed")
 
 	// Create another main item with sub in same team
-	mi2 := model.MainItem{TeamID: team.ID, Code: "MI-SI02", Title: "Main2", Priority: "P1", ProposerID: team.PmID, Status: "pending"}
+	mi2 := model.MainItem{ItemStatus: "pending", Code: "MI2"}
 	require.NoError(t, db.Create(&mi2).Error)
 	createSubItem(t, db, team.ID, mi2.ID, "Sub Other", "P1", "pending")
 
@@ -187,9 +187,9 @@ func TestSubItemRepo_List(t *testing.T) {
 	t.Run("team_isolation", func(t *testing.T) {
 		u2 := model.User{Username: "other_pm", DisplayName: "OP", PasswordHash: "h"}
 		require.NoError(t, db.Create(&u2).Error)
-		team2 := model.Team{Name: "Other SI Team", PmID: u2.ID, Code: "OSIT"}
+		team2 := model.Team{TeamName: "Other SI Team", PmKey: int64(u2.ID), Code: "OSIT"}
 		require.NoError(t, db.Create(&team2).Error)
-		mi3 := model.MainItem{TeamID: team2.ID, Code: "MI-SI03", Title: "M3", Priority: "P1", ProposerID: u2.ID, Status: "pending"}
+		mi3 := model.MainItem{ItemStatus: "pending", Code: "MI3"}
 		require.NoError(t, db.Create(&mi3).Error)
 		createSubItem(t, db, team2.ID, mi3.ID, "Other Sub", "P1", "pending")
 
@@ -208,7 +208,7 @@ func TestSubItemRepo_List_FilterByAssignee(t *testing.T) {
 	u, team, mi := seedSubItemData(t, db)
 
 	item := createSubItem(t, db, team.ID, mi.ID, "Assigned Sub", "P1", "pending")
-	require.NoError(t, db.Model(item).Update("assignee_id", u.ID).Error)
+	require.NoError(t, db.Model(item).Update("assignee_key", u.ID).Error)
 
 	createSubItem(t, db, team.ID, mi.ID, "Unassigned Sub", "P2", "pending")
 
@@ -290,7 +290,7 @@ func TestNextSubCode(t *testing.T) {
 	})
 
 	t.Run("sequential", func(t *testing.T) {
-		sub := model.SubItem{TeamID: team.ID, MainItemID: mi.ID, Title: "S1", Priority: "P1", Status: "pending", Code: "MI-SI01-01"}
+		sub := model.SubItem{TeamID: team.ID, MainItemKey: int64(mi.ID), Title: "S1", Priority: "P1", ItemStatus: "pending", Code: "MI-SI01-01"}
 		require.NoError(t, db.Create(&sub).Error)
 
 		code, err := repo.NextSubCode(ctx, mi.ID)
@@ -299,7 +299,7 @@ func TestNextSubCode(t *testing.T) {
 	})
 
 	t.Run("skips_gaps", func(t *testing.T) {
-		sub := model.SubItem{TeamID: team.ID, MainItemID: mi.ID, Title: "S5", Priority: "P1", Status: "pending", Code: "MI-SI01-05"}
+		sub := model.SubItem{TeamID: team.ID, MainItemKey: int64(mi.ID), Title: "S5", Priority: "P1", ItemStatus: "pending", Code: "MI-SI01-05"}
 		require.NoError(t, db.Create(&sub).Error)
 
 		code, err := repo.NextSubCode(ctx, mi.ID)
@@ -308,7 +308,7 @@ func TestNextSubCode(t *testing.T) {
 	})
 
 	t.Run("main_item_isolation", func(t *testing.T) {
-		mi2 := model.MainItem{TeamID: team.ID, Code: "MI-SI02", Title: "Main2", Priority: "P1", ProposerID: team.PmID, Status: "pending"}
+		mi2 := model.MainItem{ItemStatus: "pending"}
 		require.NoError(t, db.Create(&mi2).Error)
 
 		code, err := repo.NextSubCode(ctx, mi2.ID)
