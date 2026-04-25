@@ -220,7 +220,7 @@ func depsWithMemberRoleMainItem(t *testing.T, svc *mockMainItemService, userRepo
 // helper to create a MainItem model for tests.
 func testMainItem(id uint, teamID uint) *model.MainItem {
 	return &model.MainItem{
-		TeamID: teamID,
+		TeamKey: int64(teamID),
 		Code:     fmt.Sprintf("TEST-%05d", id),
 		Title:    "Test Item",
 		Priority: "P1",
@@ -988,7 +988,7 @@ func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	now := time.Now()
 	assigneeID := uint(3)
 	item := &model.MainItem{
-		TeamID: 10,
+		TeamKey: 10,
 		Code:            "TEST-00001",
 		Title:           "接入新支付渠道",
 		Priority:        "P1",

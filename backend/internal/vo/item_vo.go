@@ -11,12 +11,12 @@ import (
 // MainItemVO is the frontend-facing view object for a main item.
 type MainItemVO struct {
 	ID              uint    `json:"id"`
-	TeamID          uint    `json:"teamId"`
+	TeamKey         int64   `json:"teamKey"`
 	Code            string  `json:"code"`
 	Title           string  `json:"title"`
 	Priority        string  `json:"priority"`
-	ProposerID      int64   `json:"proposerId"`
-	AssigneeID      *int64  `json:"assigneeId"`
+	ProposerKey     int64   `json:"proposerKey"`
+	AssigneeKey     *int64  `json:"assigneeKey"`
 	StartDate       *string `json:"startDate"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
 	ActualEndDate   *string `json:"actualEndDate"`
@@ -33,12 +33,12 @@ type MainItemVO struct {
 type SubItemVO struct {
 	ID              uint    `json:"id"`
 	Code            string  `json:"code"`
-	TeamID          uint    `json:"teamId"`
+	TeamKey         int64   `json:"teamKey"`
 	MainItemKey     int64   `json:"mainItemKey"`
 	Title           string  `json:"title"`
 	Description     string  `json:"description"`
 	Priority        string  `json:"priority"`
-	AssigneeID      *int64  `json:"assigneeId"`
+	AssigneeKey     *int64  `json:"assigneeKey"`
 	StartDate       *string `json:"startDate"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
 	ActualEndDate   *string `json:"actualEndDate"`
@@ -74,7 +74,7 @@ type SubItemSummaryVO struct {
 	Status          string  `json:"status"`
 	StatusName      string  `json:"statusName"`
 	Completion      float64 `json:"completion"`
-	AssigneeID      *int64  `json:"assigneeId"`
+	AssigneeKey     *int64  `json:"assigneeKey"`
 	Priority        string  `json:"priority"`
 	StartDate       *string `json:"startDate"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
@@ -89,12 +89,12 @@ func NewMainItemVO(m *model.MainItem) MainItemVO {
 	}
 	return MainItemVO{
 		ID:              m.ID,
-		TeamID:          m.TeamID,
+		TeamKey:         m.TeamKey,
 		Code:            m.Code,
 		Title:           m.Title,
 		Priority:        m.Priority,
-		ProposerID:      m.ProposerKey,
-		AssigneeID:      m.AssigneeKey,
+		ProposerKey:     m.ProposerKey,
+		AssigneeKey:     m.AssigneeKey,
 		StartDate:       dates.FormatTimePtr(m.PlanStartDate),
 		ExpectedEndDate: dates.FormatTimePtr(m.ExpectedEndDate),
 		ActualEndDate:   dates.FormatTimePtr(m.ActualEndDate),
@@ -117,12 +117,12 @@ func NewSubItemVO(m *model.SubItem) SubItemVO {
 	return SubItemVO{
 		ID:              m.ID,
 		Code:            m.Code,
-		TeamID:          m.TeamID,
+		TeamKey:         m.TeamKey,
 		MainItemKey:     m.MainItemKey,
 		Title:           m.Title,
 		Description:     m.ItemDesc,
 		Priority:        m.Priority,
-		AssigneeID:      m.AssigneeKey,
+		AssigneeKey:     m.AssigneeKey,
 		StartDate:       dates.FormatTimePtr(m.PlanStartDate),
 		ExpectedEndDate: dates.FormatTimePtr(m.ExpectedEndDate),
 		ActualEndDate:   dates.FormatTimePtr(m.ActualEndDate),
@@ -168,7 +168,7 @@ func NewSubItemSummaryVOs(items []*model.SubItem) []SubItemSummaryVO {
 			Status:          si.ItemStatus,
 			StatusName:      statusName,
 			Completion:      si.Completion,
-			AssigneeID:      si.AssigneeKey,
+			AssigneeKey:     si.AssigneeKey,
 			Priority:        si.Priority,
 			StartDate:       dates.FormatTimePtr(si.PlanStartDate),
 			ExpectedEndDate: dates.FormatTimePtr(si.ExpectedEndDate),

@@ -5,7 +5,7 @@ import "time"
 // ItemPool status values: pending, assigned, rejected
 type ItemPool struct {
 	BaseModel
-	TeamID          uint       `gorm:"not null;index" json:"teamId"`
+	TeamKey         int64      `gorm:"not null;index" json:"teamKey"`
 	Title           string     `gorm:"type:varchar(100);not null" json:"title"`
 	Background      string     `gorm:"type:text" json:"background"`
 	ExpectedOutput  string     `gorm:"type:text" json:"expectedOutput"`

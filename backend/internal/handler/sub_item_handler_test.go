@@ -167,7 +167,7 @@ func depsWithSubItemSvcMemberRole(t *testing.T, svc *mockSubItemService) *Depend
 // testSubItem creates a SubItem model for tests.
 func testSubItem(id uint, teamID uint) *model.SubItem {
 	return &model.SubItem{
-		TeamID: teamID,
+		TeamKey: int64(teamID),
 		MainItemKey: int64(1),
 		Title:      "Test SubItem",
 		Priority:   "P2",
@@ -840,7 +840,7 @@ func TestGetSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	now := time.Now()
 	assigneeID := uint(3)
 	item := &model.SubItem{
-		TeamID: 10,
+		TeamKey: 10,
 		MainItemKey: int64(1),
 		Title:           "实现支付接口",
 		ItemDesc: "对接微信支付",
@@ -877,7 +877,7 @@ func TestGetSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	// Verify all expected fields
 	assert.Equal(t, "实现支付接口", data["title"])
 	assert.Equal(t, "P2", data["priority"])
-	assert.Equal(t, float64(3), data["assigneeId"])
+	assert.Equal(t, float64(3), data["assigneeKey"])
 	assert.Equal(t, "progressing", data["status"])
 	assert.Equal(t, 60.0, data["completion"])
 	assert.Equal(t, false, data["isKeyItem"])
@@ -888,7 +888,7 @@ func TestCreateSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	svc := &mockSubItemService{}
 	assigneeID := uint(3)
 	item := &model.SubItem{
-		TeamID: 10,
+		TeamKey: 10,
 		MainItemKey: int64(1),
 		Title:      "New SubItem",
 		Priority:   "P2",

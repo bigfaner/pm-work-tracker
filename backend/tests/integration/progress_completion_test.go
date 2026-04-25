@@ -29,7 +29,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 	t.Helper()
 
 	mainItem := &model.MainItem{
-		TeamID:      teamID,
+		TeamKey:      int64(teamID),
 		Code:        "TAMA-00001",
 		Title:       "Test Main Item",
 		Priority:    "P1",
@@ -39,7 +39,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 	require.NoError(t, db.Create(mainItem).Error)
 
 	sub1 := &model.SubItem{
-		TeamID:      teamID,
+		TeamKey:      int64(teamID),
 		MainItemKey: int64(mainItem.ID),
 		Title:       "Sub Item 1",
 		Priority:    "P2",
@@ -49,7 +49,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 	require.NoError(t, db.Create(sub1).Error)
 
 	sub2 := &model.SubItem{
-		TeamID:      teamID,
+		TeamKey:      int64(teamID),
 		MainItemKey: int64(mainItem.ID),
 		Title:       "Sub Item 2",
 		Priority:    "P2",
@@ -168,7 +168,7 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamID, userID uint) (poolID, mainI
 	t.Helper()
 
 	poolItem := &model.ItemPool{
-		TeamID:       teamID,
+		TeamKey:       int64(teamID),
 		Title:        "Pool Item Title",
 		Background:   "Some background",
 		SubmitterKey: int64(userID),
@@ -177,7 +177,7 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamID, userID uint) (poolID, mainI
 	require.NoError(t, db.Create(poolItem).Error)
 
 	mainItem := &model.MainItem{
-		TeamID:      teamID,
+		TeamKey:      int64(teamID),
 		Code:        "TAMA-00002",
 		Title:       "Main Item for Pool",
 		Priority:    "P1",
@@ -261,7 +261,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart ti
 	t.Helper()
 
 	mainItem := &model.MainItem{
-		TeamID:      teamID,
+		TeamKey:      int64(teamID),
 		Code:        "TAMA-00003",
 		Title:       "Report Test Main Item",
 		Priority:    "P1",
@@ -271,7 +271,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart ti
 	require.NoError(t, db.Create(mainItem).Error)
 
 	subItem := &model.SubItem{
-		TeamID:      teamID,
+		TeamKey:      int64(teamID),
 		MainItemKey: int64(mainItem.ID),
 		Title:       "Report Test Sub Item",
 		Priority:    "P2",

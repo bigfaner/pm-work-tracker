@@ -56,7 +56,7 @@ func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req 
 	}
 
 	item := &model.SubItem{
-		TeamID:      teamID,
+		TeamKey:     int64(teamID),
 		MainItemKey: int64(req.MainItemID),
 		Code:        code,
 		Title:       req.Title,
@@ -93,7 +93,7 @@ func (s *subItemService) Update(ctx context.Context, teamID, itemID uint, req dt
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if item.TeamID != teamID {
+	if item.TeamKey != int64(teamID) {
 		return apperrors.ErrForbidden
 	}
 
@@ -129,7 +129,7 @@ func (s *subItemService) ChangeStatus(ctx context.Context, teamID, callerID, ite
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if item.TeamID != teamID {
+	if item.TeamKey != int64(teamID) {
 		return nil, apperrors.ErrForbidden
 	}
 
@@ -191,7 +191,7 @@ func (s *subItemService) Delete(ctx context.Context, teamID, callerID, itemID ui
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if item.TeamID != teamID {
+	if item.TeamKey != int64(teamID) {
 		return apperrors.ErrForbidden
 	}
 
@@ -210,7 +210,7 @@ func (s *subItemService) AvailableTransitions(ctx context.Context, teamID, subID
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if item.TeamID != teamID {
+	if item.TeamKey != int64(teamID) {
 		return nil, apperrors.ErrForbidden
 	}
 	return status.GetAvailableTransitions(status.SubItemTransitions, item.ItemStatus), nil
@@ -237,7 +237,7 @@ func (s *subItemService) Assign(ctx context.Context, teamID, pmID, itemID, assig
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if item.TeamID != teamID {
+	if item.TeamKey != int64(teamID) {
 		return apperrors.ErrForbidden
 	}
 

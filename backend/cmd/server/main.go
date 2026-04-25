@@ -51,9 +51,12 @@ func run(configPath string, devMode bool) error {
 		return fmt.Errorf("database error: %w", err)
 	}
 
-	// 3. Run migrations
-	runner := migration.NewRunner(db, "migrations")
-	if err := runner.Run(); err != nil {
+	// 3. Run schema migration
+	schemaFile := "migrations/SQLite-schema.sql"
+	if cfg.Database.Driver == "mysql" {
+		schemaFile = "migrations/MySql-schema.sql"
+	}
+	if err := migration.RunSchema(db, schemaFile); err != nil {
 		return fmt.Errorf("migration error: %w", err)
 	}
 

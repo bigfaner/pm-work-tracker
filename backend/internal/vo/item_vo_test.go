@@ -14,7 +14,7 @@ func TestNewSubItemVO_PopulatesStatusName(t *testing.T) {
 	now := time.Now()
 	subItem := &model.SubItem{
 		BaseModel:   model.BaseModel{ID: 1, CreateTime: now, DbUpdateTime: now},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(10),
 		Title:       "Test SubItem",
 		ItemDesc:    "desc",

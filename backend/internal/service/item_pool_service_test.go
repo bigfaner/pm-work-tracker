@@ -175,7 +175,7 @@ func TestItemPoolSubmit_Success(t *testing.T) {
 		ExpectedOutput: "LCP < 1.5s",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, uint(1), poolRepo.createdItem.TeamID)
+	assert.Equal(t, int64(1), poolRepo.createdItem.TeamKey)
 	assert.Equal(t, int64(10), poolRepo.createdItem.SubmitterKey)
 	assert.Equal(t, "pending", poolRepo.createdItem.PoolStatus)
 	assert.Equal(t, "Optimize homepage", poolRepo.createdItem.Title)
@@ -201,14 +201,14 @@ func TestItemPoolSubmit_RepoError(t *testing.T) {
 func TestItemPoolAssign_Success(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:   model.BaseModel{ID: 5},
-		TeamID: 1,
+		TeamKey: 1,
 		Title:   "Pool item",
 		PoolStatus: "pending",
 		SubmitterKey: 10,
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	subRepo := &mockSubItemRepoForPool{}
-	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{BaseModel: model.BaseModel{ID: 20}, TeamID: 1}}
+	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{BaseModel: model.BaseModel{ID: 20}, TeamKey: 1}}
 
 	txExecuted := false
 	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error {
@@ -235,7 +235,7 @@ func TestItemPoolAssign_Success(t *testing.T) {
 	assert.NotNil(t, poolRepo.updatedFields["reviewed_at"])
 
 	// Verify SubItem was created
-	assert.Equal(t, uint(1), subRepo.createdItem.TeamID)
+	assert.Equal(t, int64(1), subRepo.createdItem.TeamKey)
 	assert.Equal(t, uint(20), uint(subRepo.createdItem.MainItemKey))
 	assert.Equal(t, "Pool item", subRepo.createdItem.Title)
 	assert.Equal(t, "pending", subRepo.createdItem.ItemStatus)
@@ -245,14 +245,14 @@ func TestItemPoolAssign_Success(t *testing.T) {
 func TestItemPoolAssign_SubItemInheritsBackgroundAsDescription(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:      model.BaseModel{ID: 5},
-		TeamID: 1,
+		TeamKey: 1,
 		Title:      "Pool item",
 		Background: "some background info",
 		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	subRepo := &mockSubItemRepoForPool{}
-	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{BaseModel: model.BaseModel{ID: 20}, TeamID: 1}}
+	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{BaseModel: model.BaseModel{ID: 20}, TeamKey: 1}}
 	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error { return fc(nil) }}
 	svc := NewItemPoolService(poolRepo, subRepo, mainRepo, dbtx)
 
@@ -286,7 +286,7 @@ func TestItemPoolAssign_PoolItemNotFound(t *testing.T) {
 func TestItemPoolAssign_AlreadyProcessed_AlreadyAssigned(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
-		TeamID: 1,
+		TeamKey: 1,
 		PoolStatus: "assigned",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
@@ -304,7 +304,7 @@ func TestItemPoolAssign_AlreadyProcessed_AlreadyAssigned(t *testing.T) {
 func TestItemPoolAssign_AlreadyProcessed_Rejected(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
-		TeamID: 1,
+		TeamKey: 1,
 		PoolStatus: "rejected",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
@@ -322,7 +322,7 @@ func TestItemPoolAssign_AlreadyProcessed_Rejected(t *testing.T) {
 func TestItemPoolAssign_MainItemNotFound(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
-		TeamID: 1,
+		TeamKey: 1,
 		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
@@ -342,7 +342,7 @@ func TestItemPoolAssign_MainItemNotFound(t *testing.T) {
 func TestItemPoolAssign_TeamMismatch(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
-		TeamID: 2,
+		TeamKey: 2,
 		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
@@ -364,13 +364,13 @@ func TestItemPoolAssign_TeamMismatch(t *testing.T) {
 func TestItemPoolAssign_RollbackOnSubItemCreateError(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:   model.BaseModel{ID: 5},
-		TeamID: 1,
+		TeamKey: 1,
 		Title:   "Pool item",
 		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	subRepo := &mockSubItemRepoForPool{createErr: errors.New("sub item creation failed")}
-	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{BaseModel: model.BaseModel{ID: 20}, TeamID: 1}}
+	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{BaseModel: model.BaseModel{ID: 20}, TeamKey: 1}}
 
 	txCallbackExecuted := false
 	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error {
@@ -397,7 +397,7 @@ func TestItemPoolAssign_RollbackOnSubItemCreateError(t *testing.T) {
 func TestItemPoolReject_Success(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:   model.BaseModel{ID: 5},
-		TeamID: 1,
+		TeamKey: 1,
 		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
@@ -415,7 +415,7 @@ func TestItemPoolReject_Success(t *testing.T) {
 func TestItemPoolReject_AlreadyProcessed(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
-		TeamID: 1,
+		TeamKey: 1,
 		PoolStatus: "assigned",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
@@ -436,7 +436,7 @@ func TestItemPoolReject_NotFound(t *testing.T) {
 func TestItemPoolReject_TeamMismatch(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
-		TeamID: 2,
+		TeamKey: 2,
 		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
@@ -453,7 +453,7 @@ func TestItemPoolReject_TeamMismatch(t *testing.T) {
 func TestItemPoolGet_Success(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
-		TeamID: 1,
+		TeamKey: 1,
 		Title:  "My Pool Item",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
@@ -475,7 +475,7 @@ func TestItemPoolGet_NotFound(t *testing.T) {
 func TestItemPoolGet_TeamMismatch(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
-		TeamID: 2,
+		TeamKey: 2,
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
@@ -529,13 +529,13 @@ func TestItemPoolList_RepoError(t *testing.T) {
 func TestItemPoolAssign_ReviewedAtIsSet(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
-		TeamID: 1,
+		TeamKey: 1,
 		Title:  "Pool item",
 		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	subRepo := &mockSubItemRepoForPool{}
-	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{BaseModel: model.BaseModel{ID: 20}, TeamID: 1}}
+	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{BaseModel: model.BaseModel{ID: 20}, TeamKey: 1}}
 	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error { return fc(nil) }}
 	svc := NewItemPoolService(poolRepo, subRepo, mainRepo, dbtx)
 
@@ -560,7 +560,7 @@ func TestItemPoolAssign_ReviewedAtIsSet(t *testing.T) {
 func TestItemPoolReject_ReviewedAtIsSet(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
-		TeamID: 1,
+		TeamKey: 1,
 		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
@@ -582,11 +582,11 @@ func TestItemPoolReject_ReviewedAtIsSet(t *testing.T) {
 func TestItemPoolAssign_MainItemTeamMismatch(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
-		TeamID: 1,
+		TeamKey: 1,
 		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
-	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{BaseModel: model.BaseModel{ID: 20}, TeamID: 99}}
+	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{BaseModel: model.BaseModel{ID: 20}, TeamKey: 99}}
 	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error { return fc(nil) }}
 	svc := NewItemPoolService(poolRepo, nil, mainRepo, dbtx)
 
@@ -619,7 +619,7 @@ func TestItemPoolAssign_PoolItemGenericError(t *testing.T) {
 func TestItemPoolAssign_MainItemGenericError(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
-		TeamID: 1,
+		TeamKey: 1,
 		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}
@@ -672,7 +672,7 @@ func TestItemPoolAssign_PoolItemErrNotFound(t *testing.T) {
 func TestItemPoolAssign_MainItemErrNotFound(t *testing.T) {
 	poolItem := &model.ItemPool{
 		BaseModel:  model.BaseModel{ID: 5},
-		TeamID: 1,
+		TeamKey: 1,
 		PoolStatus: "pending",
 	}
 	poolRepo := &mockItemPoolRepo{item: poolItem}

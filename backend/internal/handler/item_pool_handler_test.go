@@ -33,7 +33,7 @@ func seedItemPoolBenchData(n int) (*mockItemPoolService, *trackingUserRepo, *tra
 
 	for i := range items {
 		items[i] = model.ItemPool{
-			TeamID: 10,
+			TeamKey: 10,
 			Title:       fmt.Sprintf("Pool Item %d", i),
 			PoolStatus: []string{"pending", "assigned", "rejected"}[i%3],
 			SubmitterKey: int64(i%50 + 1),
@@ -220,7 +220,7 @@ func depsWithItemPoolMemberRole(t *testing.T, svc *mockItemPoolService, userRepo
 // helper to create an ItemPool model for tests.
 func testItemPool(id uint, teamID uint) *model.ItemPool {
 	return &model.ItemPool{
-		TeamID: teamID,
+		TeamKey: int64(teamID),
 		Title:      "Test Pool Item",
 		PoolStatus: "pending",
 		SubmitterKey: 5,
@@ -493,7 +493,7 @@ func TestAssignItemPool_Success(t *testing.T) {
 	assignedMainID := uint(1)
 	assigneeID := uint(3)
 	updatedItem := &model.ItemPool{
-		TeamID: 10,
+		TeamKey: 10,
 		Title:          "Pool item",
 		PoolStatus: "assigned",
 		AssignedMainKey: func() *int64 { v := int64(assignedMainID); return &v }(),
@@ -625,7 +625,7 @@ func TestAssignItemPool_SuperAdminBypass(t *testing.T) {
 	assignedMainID := uint(1)
 	assigneeID := uint(3)
 	updatedItem := &model.ItemPool{
-		TeamID: 10,
+		TeamKey: 10,
 		PoolStatus: "assigned",
 		AssignedMainKey: func() *int64 { v := int64(assignedMainID); return &v }(),
 		AssignedSubKey: func() *int64 { v := int64(assignedSubID); return &v }(),
@@ -662,7 +662,7 @@ func TestRejectItemPool_Success(t *testing.T) {
 
 	// Reject handler calls Get after Reject to retrieve the updated item
 	rejectedItem := &model.ItemPool{
-		TeamID: 10,
+		TeamKey: 10,
 		Title:        "Pool item",
 		PoolStatus: "rejected",
 		RejectReason: "Not enough priority",
@@ -785,7 +785,7 @@ func TestGetItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	reviewerID := uint(2)
 
 	item := &model.ItemPool{
-		TeamID: 10,
+		TeamKey: 10,
 		Title:          "优化首页加载速度",
 		Background:     "用户反馈首页加载超过 3 秒",
 		ExpectedOutput: "首页 LCP < 1.5 秒",
@@ -837,7 +837,7 @@ func TestGetItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 func TestSubmitItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	svc := &mockItemPoolService{}
 	item := &model.ItemPool{
-		TeamID: 10,
+		TeamKey: 10,
 		Title:          "优化首页加载速度",
 		Background:     "用户反馈首页加载超过 3 秒",
 		ExpectedOutput: "首页 LCP < 1.5 秒",
@@ -887,7 +887,7 @@ func TestAssignItemPool_ReturnsSubItemId(t *testing.T) {
 
 	// The handler will call Get after Assign to retrieve the updated item
 	updatedItem := &model.ItemPool{
-		TeamID: 10,
+		TeamKey: 10,
 		Title:          "Pool item",
 		PoolStatus: "assigned",
 		AssignedMainKey: func() *int64 { v := int64(assignedMainID); return &v }(),

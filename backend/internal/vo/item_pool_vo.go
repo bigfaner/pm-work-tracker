@@ -10,7 +10,7 @@ import (
 // ItemPoolVO is the frontend-facing view object for an item pool entry.
 type ItemPoolVO struct {
 	ID                uint    `json:"id"`
-	TeamID            uint    `json:"teamId"`
+	TeamKey           int64   `json:"teamKey"`
 	Title             string  `json:"title"`
 	Background        string  `json:"background"`
 	ExpectedOutput    string  `json:"expectedOutput"`
@@ -33,7 +33,7 @@ type ItemPoolVO struct {
 func NewItemPoolVO(m *model.ItemPool, submitterName string) ItemPoolVO {
 	return ItemPoolVO{
 		ID:             m.ID,
-		TeamID:         m.TeamID,
+		TeamKey:        m.TeamKey,
 		Title:          m.Title,
 		Background:     m.Background,
 		ExpectedOutput: m.ExpectedOutput,

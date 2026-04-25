@@ -29,7 +29,7 @@ func seedSubItemData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team, *m
 	require.NoError(t, db.Create(&u).Error)
 	team := model.Team{TeamName: "SI Team", PmKey: int64(u.ID), Code: "SITE"}
 	require.NoError(t, db.Create(&team).Error)
-	mi := model.MainItem{TeamID: team.ID, Code: "MI-SI01", ItemStatus: "pending", Priority: "P1", Title: "SI01"}
+	mi := model.MainItem{TeamKey: int64(team.ID), Code: "MI-SI01", ItemStatus: "pending", Priority: "P1", Title: "SI01"}
 	require.NoError(t, db.Create(&mi).Error)
 	return &u, &team, &mi
 }
@@ -37,7 +37,7 @@ func seedSubItemData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team, *m
 func createSubItem(t *testing.T, db *gormlib.DB, teamID, mainItemID uint, title, priority, status string) *model.SubItem {
 	t.Helper()
 	item := model.SubItem{
-		TeamID: teamID,
+		TeamKey: int64(teamID),
 		MainItemKey: int64(mainItemID),
 		Title:      title,
 		Priority:   priority,
@@ -56,7 +56,7 @@ func TestSubItemRepo_Create(t *testing.T) {
 
 	_, team, mi := seedSubItemData(t, db)
 	item := &model.SubItem{
-		TeamID: team.ID,
+		TeamKey: int64(team.ID),
 		MainItemKey: int64(mi.ID),
 		Title:      "Sub 1",
 		Priority:   "P1",
@@ -80,7 +80,7 @@ func TestSubItemRepo_FindByID(t *testing.T) {
 		found, err := repo.FindByID(ctx, item.ID)
 		require.NoError(t, err)
 		assert.Equal(t, "Find Me", found.Title)
-		assert.Equal(t, team.ID, found.TeamID)
+		assert.Equal(t, int64(team.ID), found.TeamKey)
 		assert.Equal(t, mi.ID, uint(found.MainItemKey))
 	})
 
@@ -120,7 +120,7 @@ func TestSubItemRepo_Update_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	_, team, _ := seedSubItemData(t, db)
-	fakeItem := &model.SubItem{BaseModel: model.BaseModel{ID: 9999}, TeamID: team.ID}
+	fakeItem := &model.SubItem{BaseModel: model.BaseModel{ID: 9999}, TeamKey: int64(team.ID)}
 	fields := map[string]interface{}{"title": "Nope"}
 	err := repo.Update(ctx, fakeItem, fields)
 	assert.ErrorIs(t, err, pkgerrors.ErrNotFound)
@@ -290,7 +290,7 @@ func TestNextSubCode(t *testing.T) {
 	})
 
 	t.Run("sequential", func(t *testing.T) {
-		sub := model.SubItem{TeamID: team.ID, MainItemKey: int64(mi.ID), Title: "S1", Priority: "P1", ItemStatus: "pending", Code: "MI-SI01-01"}
+		sub := model.SubItem{TeamKey: int64(team.ID), MainItemKey: int64(mi.ID), Title: "S1", Priority: "P1", ItemStatus: "pending", Code: "MI-SI01-01"}
 		require.NoError(t, db.Create(&sub).Error)
 
 		code, err := repo.NextSubCode(ctx, mi.ID)
@@ -299,7 +299,7 @@ func TestNextSubCode(t *testing.T) {
 	})
 
 	t.Run("skips_gaps", func(t *testing.T) {
-		sub := model.SubItem{TeamID: team.ID, MainItemKey: int64(mi.ID), Title: "S5", Priority: "P1", ItemStatus: "pending", Code: "MI-SI01-05"}
+		sub := model.SubItem{TeamKey: int64(team.ID), MainItemKey: int64(mi.ID), Title: "S5", Priority: "P1", ItemStatus: "pending", Code: "MI-SI01-05"}
 		require.NoError(t, db.Create(&sub).Error)
 
 		code, err := repo.NextSubCode(ctx, mi.ID)
@@ -308,7 +308,7 @@ func TestNextSubCode(t *testing.T) {
 	})
 
 	t.Run("main_item_isolation", func(t *testing.T) {
-		mi2 := model.MainItem{TeamID: team.ID, Code: "MI-SI02", ItemStatus: "pending", Priority: "P1", Title: "SI02"}
+		mi2 := model.MainItem{TeamKey: int64(team.ID), Code: "MI-SI02", ItemStatus: "pending", Priority: "P1", Title: "SI02"}
 		require.NoError(t, db.Create(&mi2).Error)
 
 		code, err := repo.NextSubCode(ctx, mi2.ID)

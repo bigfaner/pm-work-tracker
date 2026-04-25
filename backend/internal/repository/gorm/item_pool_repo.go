@@ -38,11 +38,11 @@ func (r *itemPoolRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.I
 }
 
 func (r *itemPoolRepo) Update(ctx context.Context, item *model.ItemPool, fields map[string]interface{}) error {
-	return repo.UpdateFields[model.ItemPool](r.db, ctx, item, item.TeamID, fields)
+	return repo.UpdateFields[model.ItemPool](r.db, ctx, item, item.TeamKey, fields)
 }
 
 func (r *itemPoolRepo) List(ctx context.Context, teamID uint, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error) {
-	query := r.db.WithContext(ctx).Where("team_id = ?", teamID)
+	query := r.db.WithContext(ctx).Where("team_key = ?", teamID)
 
 	if filter.Status != "" {
 		query = query.Where("pool_status = ?", filter.Status)

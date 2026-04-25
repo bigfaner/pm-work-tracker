@@ -87,7 +87,7 @@ func getID[T identifiable](v *T) uint {
 // Fields are validated against a whitelist per entity type.
 // Returns apperrors.ErrInvalidField for unknown field keys.
 // Returns apperrors.ErrNotFound if the team_id check fails (zero rows affected).
-func UpdateFields[T any](db *gormlib.DB, ctx context.Context, item *T, teamID uint, fields map[string]any) error {
+func UpdateFields[T any](db *gormlib.DB, ctx context.Context, item *T, teamKey int64, fields map[string]any) error {
 	if len(fields) == 0 {
 		return nil
 	}
@@ -106,8 +106,8 @@ func UpdateFields[T any](db *gormlib.DB, ctx context.Context, item *T, teamID ui
 	}
 
 	query := db.WithContext(ctx).Model(item)
-	if teamID != 0 {
-		query = query.Where("team_id = ?", teamID)
+	if teamKey != 0 {
+		query = query.Where("team_key = ?", teamKey)
 	}
 	result := query.Updates(fields)
 	if result.Error != nil {

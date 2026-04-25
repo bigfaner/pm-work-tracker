@@ -35,7 +35,7 @@ func seedItemPoolData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team) {
 func createItemPool(t *testing.T, db *gormlib.DB, teamID, submitterID uint, title, status string) *model.ItemPool {
 	t.Helper()
 	item := model.ItemPool{
-		TeamID: teamID,
+		TeamKey: int64(teamID),
 		Title:       title,
 		SubmitterKey: int64(submitterID),
 		PoolStatus: status,
@@ -53,7 +53,7 @@ func TestItemPoolRepo_Create(t *testing.T) {
 
 	u, team := seedItemPoolData(t, db)
 	item := &model.ItemPool{
-		TeamID: team.ID,
+		TeamKey: int64(team.ID),
 		Title:          "New Suggestion",
 		Background:     "Some context",
 		ExpectedOutput: "Expected result",
@@ -78,7 +78,7 @@ func TestItemPoolRepo_FindByID(t *testing.T) {
 		found, err := repo.FindByID(ctx, item.ID)
 		require.NoError(t, err)
 		assert.Equal(t, "Find Me", found.Title)
-		assert.Equal(t, team.ID, found.TeamID)
+		assert.Equal(t, int64(team.ID), found.TeamKey)
 	})
 
 	t.Run("not_found", func(t *testing.T) {
@@ -120,7 +120,7 @@ func TestItemPoolRepo_Update_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	_, team := seedItemPoolData(t, db)
-	fakeItem := &model.ItemPool{BaseModel: model.BaseModel{ID: 9999}, TeamID: team.ID}
+	fakeItem := &model.ItemPool{BaseModel: model.BaseModel{ID: 9999}, TeamKey: int64(team.ID)}
 	fields := map[string]interface{}{"pool_status": "assigned"}
 	err := repo.Update(ctx, fakeItem, fields)
 	assert.ErrorIs(t, err, pkgerrors.ErrNotFound)

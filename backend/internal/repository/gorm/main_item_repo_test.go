@@ -36,7 +36,7 @@ func seedMainItemTeam(t *testing.T, db *gormlib.DB) (*model.User, *model.Team) {
 func createMainItem(t *testing.T, db *gormlib.DB, teamID, proposerID uint, code, title, priority, status string) *model.MainItem {
 	t.Helper()
 	item := model.MainItem{
-		TeamID: teamID,
+		TeamKey: int64(teamID),
 		Code:       code,
 		Title:      title,
 		Priority:   priority,
@@ -56,7 +56,7 @@ func TestMainItemRepo_Create(t *testing.T) {
 
 	u, team := seedMainItemTeam(t, db)
 	item := &model.MainItem{
-		TeamID: team.ID,
+		TeamKey: int64(team.ID),
 		Code:       "FEAT-00001",
 		Title:      "Test Item",
 		Priority:   "P1",
@@ -81,7 +81,7 @@ func TestMainItemRepo_FindByID(t *testing.T) {
 		found, err := repo.FindByID(ctx, item.ID)
 		require.NoError(t, err)
 		assert.Equal(t, "Find Me", found.Title)
-		assert.Equal(t, team.ID, found.TeamID)
+		assert.Equal(t, int64(team.ID), found.TeamKey)
 	})
 
 	t.Run("not_found", func(t *testing.T) {
@@ -120,7 +120,7 @@ func TestMainItemRepo_Update_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	_, team := seedMainItemTeam(t, db)
-	fakeItem := &model.MainItem{BaseModel: model.BaseModel{ID: 9999}, TeamID: team.ID}
+	fakeItem := &model.MainItem{BaseModel: model.BaseModel{ID: 9999}, TeamKey: int64(team.ID)}
 	fields := map[string]interface{}{"title": "Nope"}
 	err := repo.Update(ctx, fakeItem, fields)
 	assert.ErrorIs(t, err, pkgerrors.ErrNotFound)

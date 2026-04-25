@@ -121,12 +121,12 @@ func (h *MainItemHandler) Get(c *gin.Context) {
 
 	apperrors.RespondOK(c, gin.H{
 		"id":              itemVO.ID,
-		"teamId":          itemVO.TeamID,
+		"teamId":          itemVO.TeamKey,
 		"code":            itemVO.Code,
 		"title":           itemVO.Title,
 		"priority":        itemVO.Priority,
-		"proposerId":      itemVO.ProposerID,
-		"assigneeId":      itemVO.AssigneeID,
+		"proposerId":      itemVO.ProposerKey,
+		"assigneeId":      itemVO.AssigneeKey,
 		"startDate":       itemVO.StartDate,
 		"expectedEndDate": itemVO.ExpectedEndDate,
 		"actualEndDate":   itemVO.ActualEndDate,

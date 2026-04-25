@@ -144,8 +144,8 @@ func TestFindByIDs_SubItemType(t *testing.T) {
 	db.Create(&model.Team{Code: "TST", TeamName: "Test"})
 	db.Create(&model.MainItem{ItemStatus: "open", Code: "TST-00001"})
 
-	sub1 := &model.SubItem{TeamID: 1, MainItemKey: int64(1), Title: "sub1", ItemStatus: "open"}
-	sub2 := &model.SubItem{TeamID: 1, MainItemKey: int64(1), Title: "sub2", ItemStatus: "pending"}
+	sub1 := &model.SubItem{TeamKey: 1, MainItemKey: int64(1), Title: "sub1", ItemStatus: "open"}
+	sub2 := &model.SubItem{TeamKey: 1, MainItemKey: int64(1), Title: "sub2", ItemStatus: "pending"}
 	require.NoError(t, db.Create(sub1).Error)
 	require.NoError(t, db.Create(sub2).Error)
 
@@ -180,7 +180,7 @@ func TestUpdateFields_MainItem_ValidFields(t *testing.T) {
 	require.NoError(t, db.Create(item).Error)
 
 	fields := map[string]any{"title": "updated", "priority": "P0"}
-	err := UpdateFields[model.MainItem](db, ctx, item, item.TeamID, fields)
+	err := UpdateFields[model.MainItem](db, ctx, item, item.TeamKey, fields)
 	require.NoError(t, err)
 
 	var updated model.MainItem
@@ -196,11 +196,11 @@ func TestUpdateFields_SubItem_ValidFields(t *testing.T) {
 	db.Create(&model.Team{Code: "TST", TeamName: "Test"})
 	db.Create(&model.MainItem{ItemStatus: "open", Code: "TST-00001"})
 
-	item := &model.SubItem{TeamID: 1, MainItemKey: int64(1), Title: "sub1", ItemStatus: "open"}
+	item := &model.SubItem{TeamKey: 1, MainItemKey: int64(1), Title: "sub1", ItemStatus: "open"}
 	require.NoError(t, db.Create(item).Error)
 
 	fields := map[string]any{"title": "updated sub", "item_status": "in_progress"}
-	err := UpdateFields[model.SubItem](db, ctx, item, item.TeamID, fields)
+	err := UpdateFields[model.SubItem](db, ctx, item, item.TeamKey, fields)
 	require.NoError(t, err)
 
 	var updated model.SubItem
@@ -235,7 +235,7 @@ func TestUpdateFields_InvalidField(t *testing.T) {
 	require.NoError(t, db.Create(item).Error)
 
 	fields := map[string]any{"title": "ok", "evil_field": "bad"}
-	err := UpdateFields[model.MainItem](db, ctx, item, item.TeamID, fields)
+	err := UpdateFields[model.MainItem](db, ctx, item, item.TeamKey, fields)
 	assert.ErrorIs(t, err, apperrors.ErrInvalidField)
 }
 
@@ -248,7 +248,7 @@ func TestUpdateFields_EmptyFields(t *testing.T) {
 	item := &model.MainItem{ItemStatus: "open", Code: "TST-00001", Title: "test item"}
 	require.NoError(t, db.Create(item).Error)
 
-	err := UpdateFields[model.MainItem](db, ctx, item, item.TeamID, map[string]any{})
+	err := UpdateFields[model.MainItem](db, ctx, item, item.TeamKey, map[string]any{})
 	require.NoError(t, err)
 
 	// Verify no changes
@@ -268,7 +268,7 @@ func TestUpdateFields_TeamIDMismatch(t *testing.T) {
 	require.NoError(t, db.Create(item).Error)
 
 	fields := map[string]any{"title": "hacked"}
-	err := UpdateFields[model.MainItem](db, ctx, item, 2, fields) // teamID 2 != item.TeamID 1
+	err := UpdateFields[model.MainItem](db, ctx, item, 2, fields) // teamID 2 != item.TeamKey 1
 	assert.ErrorIs(t, err, apperrors.ErrNotFound)
 }
 

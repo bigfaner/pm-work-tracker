@@ -77,7 +77,7 @@ func TestConcurrentNextSubCode(t *testing.T) {
 	require.NoError(t, db.Create(&u).Error)
 	team := model.Team{TeamName: "CS Team", PmKey: int64(u.ID), Code: "CSUB"}
 	require.NoError(t, db.Create(&team).Error)
-	mi := model.MainItem{TeamID: team.ID, Code: "CSUB-00001", Title: "Main", Priority: "P1", ProposerKey: int64(u.ID), ItemStatus: "pending"}
+	mi := model.MainItem{TeamKey: int64(team.ID), Code: "CSUB-00001", Title: "Main", Priority: "P1", ProposerKey: int64(u.ID), ItemStatus: "pending"}
 	require.NoError(t, db.Create(&mi).Error)
 
 	results := make(chan string, 2)

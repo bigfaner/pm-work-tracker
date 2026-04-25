@@ -39,11 +39,11 @@ func (r *mainItemRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.M
 }
 
 func (r *mainItemRepo) Update(ctx context.Context, item *model.MainItem, fields map[string]interface{}) error {
-	return repo.UpdateFields[model.MainItem](r.db, ctx, item, item.TeamID, fields)
+	return repo.UpdateFields[model.MainItem](r.db, ctx, item, item.TeamKey, fields)
 }
 
 func (r *mainItemRepo) List(ctx context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
-	query := r.db.WithContext(ctx).Where("team_id = ?", teamID)
+	query := r.db.WithContext(ctx).Where("team_key = ?", teamID)
 
 	// Filter out archived by default; include when filter.Archived is true
 	if !filter.Archived {
@@ -91,7 +91,7 @@ func (r *mainItemRepo) NextCode(ctx context.Context, teamID uint) (string, error
 		// If items were inserted directly with a higher seq (e.g. migration), skip past them.
 		var maxSeq *int
 		if err := tx.Model(&model.MainItem{}).
-			Where("team_id = ?", teamID).
+			Where("team_key = ?", teamID).
 			Select("MAX(CAST(SUBSTR(code, ?) AS INTEGER))", len(team.Code)+2).
 			Scan(&maxSeq).Error; err != nil {
 			return err
@@ -111,14 +111,14 @@ func (r *mainItemRepo) NextCode(ctx context.Context, teamID uint) (string, error
 
 func (r *mainItemRepo) CountByTeam(ctx context.Context, teamID uint) (int64, error) {
 	var count int64
-	err := r.db.WithContext(ctx).Model(&model.MainItem{}).Where("team_id = ?", teamID).Count(&count).Error
+	err := r.db.WithContext(ctx).Model(&model.MainItem{}).Where("team_key = ?", teamID).Count(&count).Error
 	return count, err
 }
 
 func (r *mainItemRepo) ListNonArchivedByTeam(ctx context.Context, teamID uint) ([]model.MainItem, error) {
 	var items []model.MainItem
 	err := r.db.WithContext(ctx).
-		Where("team_id = ? AND archived_at IS NULL", teamID).
+		Where("team_key = ? AND archived_at IS NULL", teamID).
 		Find(&items).Error
 	return items, err
 }
@@ -130,7 +130,7 @@ func (r *mainItemRepo) FindByIDs(ctx context.Context, ids []uint) (map[uint]*mod
 func (r *mainItemRepo) ListByTeamAndStatus(ctx context.Context, teamID uint, status string) ([]model.MainItem, error) {
 	var items []model.MainItem
 	err := r.db.WithContext(ctx).
-		Where("team_id = ? AND item_status = ?", teamID, status).
+		Where("team_key = ? AND item_status = ?", teamID, status).
 		Find(&items).Error
 	return items, err
 }

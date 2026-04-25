@@ -197,14 +197,14 @@ func TestWeeklyComparison_StatsCounts(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "In Progress", ItemStatus: "progressing", Completion: 60},
-			{BaseModel: model.BaseModel{ID: 11}, TeamID: 1, MainItemKey: int64(1), Title: "Blocked", ItemStatus: "blocking", Completion: 30},
-			{BaseModel: model.BaseModel{ID: 12}, TeamID: 1, MainItemKey: int64(1), Title: "Completed", ItemStatus: "completed", Completion: 100, ActualEndDate: &completedDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "In Progress", ItemStatus: "progressing", Completion: 60},
+			{BaseModel: model.BaseModel{ID: 11}, TeamKey: 1, MainItemKey: int64(1), Title: "Blocked", ItemStatus: "blocking", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 12}, TeamKey: 1, MainItemKey: int64(1), Title: "Completed", ItemStatus: "completed", Completion: 100, ActualEndDate: &completedDate},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -230,12 +230,12 @@ func TestWeeklyComparison_DeltaComputation(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "Sub A", ItemStatus: "progressing", Completion: 70},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub A", ItemStatus: "progressing", Completion: 70},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -271,12 +271,12 @@ func TestWeeklyComparison_IsNew(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "New Sub", ItemStatus: "pending", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "New Sub", ItemStatus: "pending", Completion: 0},
 		},
 	}
 	// Only this week progress, no last week progress
@@ -304,14 +304,14 @@ func TestWeeklyComparison_JustCompleted(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 100},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1", Completion: 100},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
 				BaseModel:         model.BaseModel{ID: 10},
-				TeamID: 1,
+				TeamKey: 1,
 				MainItemKey: int64(1),
 				Title:         "Just Done",
 				ItemStatus: "completed",
@@ -344,14 +344,14 @@ func TestWeeklyComparison_CompletedNoChange(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 100},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1", Completion: 100},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
 				BaseModel:         model.BaseModel{ID: 10},
-				TeamID: 1,
+				TeamKey: 1,
 				MainItemKey: int64(1),
 				Title:         "Old Completed",
 				ItemStatus: "completed",
@@ -379,16 +379,16 @@ func TestWeeklyComparison_GroupsSortedByPriority(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "P3 Item", Priority: "P3", Completion: 10},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "P1 Item", Priority: "P1", Completion: 50},
-			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Title: "P2 Item", Priority: "P2", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "P3 Item", Priority: "P3", Completion: 10},
+			{BaseModel: model.BaseModel{ID: 2}, TeamKey: 1, Title: "P1 Item", Priority: "P1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 3}, TeamKey: 1, Title: "P2 Item", Priority: "P2", Completion: 30},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "Sub 1", ItemStatus: "progressing", Completion: 10},
-			{BaseModel: model.BaseModel{ID: 20}, TeamID: 1, MainItemKey: int64(2), Title: "Sub 2", ItemStatus: "progressing", Completion: 50},
-			{BaseModel: model.BaseModel{ID: 30}, TeamID: 1, MainItemKey: int64(3), Title: "Sub 3", ItemStatus: "progressing", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub 1", ItemStatus: "progressing", Completion: 10},
+			{BaseModel: model.BaseModel{ID: 20}, TeamKey: 1, MainItemKey: int64(2), Title: "Sub 2", ItemStatus: "progressing", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 30}, TeamKey: 1, MainItemKey: int64(3), Title: "Sub 3", ItemStatus: "progressing", Completion: 30},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
@@ -412,7 +412,7 @@ func TestWeeklyComparison_MainItemSummary(t *testing.T) {
 		items: []model.MainItem{
 			{
 				BaseModel:           model.BaseModel{ID: 1},
-				TeamID: 1,
+				TeamKey: 1,
 				Title:           "Main 1",
 				Priority:        "P1",
 				PlanStartDate: &startDate,
@@ -423,8 +423,8 @@ func TestWeeklyComparison_MainItemSummary(t *testing.T) {
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "Sub A", ItemStatus: "progressing", Completion: 60},
-			{BaseModel: model.BaseModel{ID: 11}, TeamID: 1, MainItemKey: int64(1), Title: "Sub B", ItemStatus: "pending", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub A", ItemStatus: "progressing", Completion: 60},
+			{BaseModel: model.BaseModel{ID: 11}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub B", ItemStatus: "pending", Completion: 0},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
@@ -449,7 +449,7 @@ func TestWeeklyComparison_MainItemWithNoSubItems_Omitted(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Empty Main", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Empty Main", Completion: 0},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -466,12 +466,12 @@ func TestWeeklyComparison_ProgressDescriptionFromLatestRecord(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "Sub A", ItemStatus: "progressing", Completion: 60},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub A", ItemStatus: "progressing", Completion: 60},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -503,12 +503,12 @@ func TestWeeklyComparison_SnapshotCodePropagated(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main", Priority: "P1"},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main", Priority: "P1"},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Code: "ALPHA-00001-01", Title: "Sub", ItemStatus: "progressing", Completion: 60},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Code: "ALPHA-00001-01", Title: "Sub", ItemStatus: "progressing", Completion: 60},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -540,7 +540,7 @@ func TestWeeklyComparison_RepoErrors(t *testing.T) {
 
 	// SubItemRepo error
 	svc = NewViewService(
-		&mockViewMainItemRepo{items: []model.MainItem{{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1"}}},
+		&mockViewMainItemRepo{items: []model.MainItem{{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1"}}},
 		&mockViewSubItemRepo{listErr: errors.New("db error")},
 		&mockViewProgressRepo{},
 	)
@@ -549,8 +549,8 @@ func TestWeeklyComparison_RepoErrors(t *testing.T) {
 
 	// ProgressRepo error
 	svc = NewViewService(
-		&mockViewMainItemRepo{items: []model.MainItem{{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1"}}},
-		&mockViewSubItemRepo{items: []model.SubItem{{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "Sub A"}}},
+		&mockViewMainItemRepo{items: []model.MainItem{{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1"}}},
+		&mockViewSubItemRepo{items: []model.SubItem{{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub A"}}},
 		&mockViewProgressRepo{listErr: errors.New("db error")},
 	)
 	_, err = svc.WeeklyComparison(context.Background(), 1, monday)
@@ -563,14 +563,14 @@ func TestWeeklyComparison_SubItemCreatedAfterWeek_NotActive(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
 				BaseModel:  model.BaseModel{ID: 10, CreateTime: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
-				TeamID: 1,
+				TeamKey: 1,
 				MainItemKey: int64(1),
 				Title:      "Future Sub",
 				ItemStatus: "progressing",
@@ -595,14 +595,14 @@ func TestWeeklyComparison_SubItemCompletedBeforeWeek_NotActive(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 100},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1", Completion: 100},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
 				BaseModel:      model.BaseModel{ID: 10, CreateTime: time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)},
-				TeamID: 1,
+				TeamKey: 1,
 				MainItemKey: int64(1),
 				Title:          "Old Completed Sub",
 				ItemStatus: "completed",
@@ -633,14 +633,14 @@ func TestWeeklyComparison_SubItemCreatedAfterWeek_Completed_NotShown(t *testing.
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 100},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1", Completion: 100},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
 				BaseModel:     model.BaseModel{ID: 10, CreateTime: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
-				TeamID: 1,
+				TeamKey: 1,
 				MainItemKey: int64(1),
 				Title:         "Future Completed Sub",
 				ItemStatus: "completed",
@@ -666,14 +666,14 @@ func TestWeeklyComparison_SubItemCompletedAfterWeek_NotShown(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Test Item", Priority: "P2", Completion: 100},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Test Item", Priority: "P2", Completion: 100},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
 				BaseModel:     model.BaseModel{ID: 10, CreateTime: time.Date(2026, 4, 21, 0, 0, 0, 0, time.UTC)},
-				TeamID: 1,
+				TeamKey: 1,
 				MainItemKey: int64(1),
 				Title:         "Future Sub",
 				ItemStatus: "completed",
@@ -697,12 +697,12 @@ func TestWeeklyComparison_StatsPending(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1"},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "Pending Sub", ItemStatus: "pending"},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Pending Sub", ItemStatus: "pending"},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -724,12 +724,12 @@ func TestWeeklyComparison_StatsPausing(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1"},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "Pausing Sub", ItemStatus: "pausing"},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Pausing Sub", ItemStatus: "pausing"},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -753,12 +753,12 @@ func TestWeeklyComparison_StatsOverdue(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1"},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "Overdue Sub", ItemStatus: "progressing", ExpectedEndDate: &overdueDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Overdue Sub", ItemStatus: "progressing", ExpectedEndDate: &overdueDate},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -780,13 +780,13 @@ func TestWeeklyComparison_StatsOverdue_NilExpectedEndDate_NotCounted(t *testing.
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1"},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			// ExpectedEndDate is nil — must NOT be counted as overdue
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "No Deadline Sub", ItemStatus: "progressing", ExpectedEndDate: nil},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "No Deadline Sub", ItemStatus: "progressing", ExpectedEndDate: nil},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -809,13 +809,13 @@ func TestWeeklyComparison_StatsOverdue_CompletedNotCounted(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1"},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			// completed — must NOT be counted as overdue even if past deadline
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "Completed Sub", ItemStatus: "completed", ExpectedEndDate: &overdueDate, ActualEndDate: &completedDate, Completion: 100},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Completed Sub", ItemStatus: "completed", ExpectedEndDate: &overdueDate, ActualEndDate: &completedDate, Completion: 100},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -837,13 +837,13 @@ func TestWeeklyComparison_StatsOverdue_ClosedNotCounted(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1"},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1"},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			// closed — must NOT be counted as overdue
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "Closed Sub", ItemStatus: "closed", ExpectedEndDate: &overdueDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Closed Sub", ItemStatus: "closed", ExpectedEndDate: &overdueDate},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -878,7 +878,7 @@ func TestGanttView_BasicStructure(t *testing.T) {
 		items: []model.MainItem{
 			{
 				BaseModel:           model.BaseModel{ID: 1},
-				TeamID: 1,
+				TeamKey: 1,
 				Title:           "Main 1",
 				Priority:        "P1",
 				PlanStartDate: &startDate,
@@ -915,7 +915,7 @@ func TestGanttView_OverdueItem(t *testing.T) {
 		items: []model.MainItem{
 			{
 				BaseModel:           model.BaseModel{ID: 1},
-				TeamID: 1,
+				TeamKey: 1,
 				Title:           "Overdue Main",
 				Priority:        "P1",
 				PlanStartDate: &startDate,
@@ -944,7 +944,7 @@ func TestGanttView_Overdue_ExemptWhenCompleted(t *testing.T) {
 				items: []model.MainItem{
 					{
 						BaseModel:           model.BaseModel{ID: 1},
-						TeamID: 1,
+						TeamKey: 1,
 						Title:           "Completed",
 						Priority:        "P1",
 						PlanStartDate: &startDate,
@@ -970,10 +970,10 @@ func TestGanttView_StatusFilter(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "In Progress", ItemStatus: "progressing", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "In Progress", ItemStatus: "progressing", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 		listByTeamAndStatusResult: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "In Progress", ItemStatus: "progressing", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "In Progress", ItemStatus: "progressing", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 	}
 	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
@@ -992,7 +992,7 @@ func TestGanttView_StatusFilter_UsesSQLPushdown(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		listByTeamAndStatusResult: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "In Progress", ItemStatus: "progressing", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "In Progress", ItemStatus: "progressing", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 	}
 	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
@@ -1014,7 +1014,7 @@ func TestGanttView_NoStatusFilter_UsesListNonArchived(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "A", ItemStatus: "progressing", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "A", ItemStatus: "progressing", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 	}
 	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
@@ -1044,8 +1044,8 @@ func TestGanttView_StatusFilterEmpty_ReturnsAll(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "A", ItemStatus: "progressing", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "B", ItemStatus: "completed", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "A", ItemStatus: "progressing", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamKey: 1, Title: "B", ItemStatus: "completed", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 	}
 	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
@@ -1064,7 +1064,7 @@ func TestGanttView_SubItemsNested(t *testing.T) {
 		items: []model.MainItem{
 			{
 				BaseModel:           model.BaseModel{ID: 1},
-				TeamID: 1,
+				TeamKey: 1,
 				Title:           "Main 1",
 				Priority:        "P1",
 				PlanStartDate: &startDate,
@@ -1077,7 +1077,7 @@ func TestGanttView_SubItemsNested(t *testing.T) {
 		items: []model.SubItem{
 			{
 				BaseModel:           model.BaseModel{ID: 10},
-				TeamID: 1,
+				TeamKey: 1,
 				MainItemKey: int64(1),
 				Title:           "Sub A",
 				PlanStartDate: &startDate,
@@ -1109,14 +1109,14 @@ func TestGanttView_SubItemsFromOtherMainItemNotIncluded(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", PlanStartDate: &startDate, ExpectedEndDate: &endDate, ItemStatus: "progressing"},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "Main 2", PlanStartDate: &startDate, ExpectedEndDate: &endDate, ItemStatus: "progressing"},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", PlanStartDate: &startDate, ExpectedEndDate: &endDate, ItemStatus: "progressing"},
+			{BaseModel: model.BaseModel{ID: 2}, TeamKey: 1, Title: "Main 2", PlanStartDate: &startDate, ExpectedEndDate: &endDate, ItemStatus: "progressing"},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "Sub for Main 1", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 20}, TeamID: 1, MainItemKey: int64(2), Title: "Sub for Main 2", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub for Main 1", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 20}, TeamKey: 1, MainItemKey: int64(2), Title: "Sub for Main 2", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 	}
 	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
@@ -1141,7 +1141,7 @@ func TestGanttView_ArchivedItemsExcluded(t *testing.T) {
 		items: []model.MainItem{
 			{
 				BaseModel:           model.BaseModel{ID: 1},
-				TeamID: 1,
+				TeamKey: 1,
 				Title:           "Active",
 				PlanStartDate: &startDate,
 				ExpectedEndDate: &endDate,
@@ -1167,7 +1167,7 @@ func TestGanttView_DatesFormattedAsISO8601(t *testing.T) {
 		items: []model.MainItem{
 			{
 				BaseModel:           model.BaseModel{ID: 1},
-				TeamID: 1,
+				TeamKey: 1,
 				Title:           "Main 1",
 				PlanStartDate: &startDate,
 				ExpectedEndDate: &endDate,
@@ -1179,7 +1179,7 @@ func TestGanttView_DatesFormattedAsISO8601(t *testing.T) {
 		items: []model.SubItem{
 			{
 				BaseModel:           model.BaseModel{ID: 10},
-				TeamID: 1,
+				TeamKey: 1,
 				MainItemKey: int64(1),
 				Title:           "Sub 1",
 				PlanStartDate: &startDate,
@@ -1205,7 +1205,7 @@ func TestGanttView_NilDates_FormatAsEmptyString(t *testing.T) {
 		items: []model.MainItem{
 			{
 				BaseModel:  model.BaseModel{ID: 1},
-				TeamID: 1,
+				TeamKey: 1,
 				Title:  "No dates",
 				ItemStatus: "pending",
 			},
@@ -1232,7 +1232,7 @@ func TestGanttView_MainItemRepoError(t *testing.T) {
 func TestGanttView_SubItemRepoError(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1"},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1"},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{listErr: errors.New("db error")}
@@ -1248,14 +1248,14 @@ func TestGanttView_SubItemSummaryFieldsOnly(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", PlanStartDate: &startDate, ExpectedEndDate: &endDate, ItemStatus: "progressing"},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", PlanStartDate: &startDate, ExpectedEndDate: &endDate, ItemStatus: "progressing"},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
 				BaseModel:           model.BaseModel{ID: 10},
-				TeamID: 1,
+				TeamKey: 1,
 				MainItemKey: int64(1),
 				Title:           "Sub A",
 				ItemDesc: "Should not appear in gantt sub-item DTO",
@@ -1294,7 +1294,7 @@ func TestGanttView_Overdue_NilExpectedEndDate(t *testing.T) {
 		items: []model.MainItem{
 			{
 				BaseModel:  model.BaseModel{ID: 1},
-				TeamID: 1,
+				TeamKey: 1,
 				Title:  "No end date",
 				ItemStatus: "progressing",
 			},
@@ -1393,7 +1393,7 @@ func TestTableView_CombinesMainAndSubItems(t *testing.T) {
 		items: []model.MainItem{
 			{
 				BaseModel:           model.BaseModel{ID: 1},
-				TeamID: 1,
+				TeamKey: 1,
 				Code:            "TEST-00001",
 				Title:           "Main Item",
 				Priority:        "P1",
@@ -1408,7 +1408,7 @@ func TestTableView_CombinesMainAndSubItems(t *testing.T) {
 		items: []model.SubItem{
 			{
 				BaseModel:           model.BaseModel{ID: 10},
-				TeamID: 1,
+				TeamKey: 1,
 				MainItemKey: int64(1),
 				Title:           "Sub Item",
 				Priority:        "P2",
@@ -1448,12 +1448,12 @@ func TestTableView_FilterByTypeMain(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "Sub", Priority: "P2", ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub", Priority: "P2", ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 
@@ -1471,12 +1471,12 @@ func TestTableView_FilterByTypeSub(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "Sub", Priority: "P2", ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub", Priority: "P2", ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 
@@ -1494,8 +1494,8 @@ func TestTableView_FilterByPriority(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "P1 Item", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "TEST-00002", Title: "P3 Item", Priority: "P3", ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "P1 Item", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamKey: 1, Code: "TEST-00002", Title: "P3 Item", Priority: "P3", ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1514,8 +1514,8 @@ func TestTableView_FilterByStatus(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "Active", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "TEST-00002", Title: "Done", Priority: "P1", ItemStatus: "completed", Completion: 100, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "Active", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamKey: 1, Code: "TEST-00002", Title: "Done", Priority: "P1", ItemStatus: "completed", Completion: 100, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1536,8 +1536,8 @@ func TestTableView_FilterByAssigneeID(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "Alice's", Priority: "P1", AssigneeKey: func() *int64 { v := int64(assignee1); return &v }(), ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "TEST-00002", Title: "Bob's", Priority: "P1", AssigneeKey: func() *int64 { v := int64(assignee2); return &v }(), ItemStatus: "progressing", Completion: 30, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "Alice's", Priority: "P1", AssigneeKey: func() *int64 { v := int64(assignee1); return &v }(), ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamKey: 1, Code: "TEST-00002", Title: "Bob's", Priority: "P1", AssigneeKey: func() *int64 { v := int64(assignee2); return &v }(), ItemStatus: "progressing", Completion: 30, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1556,9 +1556,9 @@ func TestTableView_Pagination(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "A", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "TEST-00002", Title: "B", Priority: "P2", ItemStatus: "progressing", Completion: 30, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Code: "TEST-00003", Title: "C", Priority: "P3", ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "A", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamKey: 1, Code: "TEST-00002", Title: "B", Priority: "P2", ItemStatus: "progressing", Completion: 30, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 3}, TeamKey: 1, Code: "TEST-00003", Title: "C", Priority: "P3", ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1583,9 +1583,9 @@ func TestTableView_DefaultSort_PriorityDescThenExpectedEndDateAsc(t *testing.T) 
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "P2 Late", Priority: "P2", ItemStatus: "progressing", Completion: 30, ExpectedEndDate: &endDate3},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "TEST-00002", Title: "P2 Early", Priority: "P2", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate2},
-			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Code: "TEST-00003", Title: "P1", Priority: "P1", ItemStatus: "progressing", Completion: 80, ExpectedEndDate: &endDate1},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "P2 Late", Priority: "P2", ItemStatus: "progressing", Completion: 30, ExpectedEndDate: &endDate3},
+			{BaseModel: model.BaseModel{ID: 2}, TeamKey: 1, Code: "TEST-00002", Title: "P2 Early", Priority: "P2", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate2},
+			{BaseModel: model.BaseModel{ID: 3}, TeamKey: 1, Code: "TEST-00003", Title: "P1", Priority: "P1", ItemStatus: "progressing", Completion: 80, ExpectedEndDate: &endDate1},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1606,8 +1606,8 @@ func TestTableView_SortByCompletion_Asc(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "High", Priority: "P1", ItemStatus: "progressing", Completion: 80, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "TEST-00002", Title: "Low", Priority: "P1", ItemStatus: "pending", Completion: 10, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "High", Priority: "P1", ItemStatus: "progressing", Completion: 80, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamKey: 1, Code: "TEST-00002", Title: "Low", Priority: "P1", ItemStatus: "pending", Completion: 10, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1626,8 +1626,8 @@ func TestTableView_SortByCompletion_Desc(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "Low", Priority: "P1", ItemStatus: "progressing", Completion: 10, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "TEST-00002", Title: "High", Priority: "P1", ItemStatus: "pending", Completion: 80, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "Low", Priority: "P1", ItemStatus: "progressing", Completion: 10, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamKey: 1, Code: "TEST-00002", Title: "High", Priority: "P1", ItemStatus: "pending", Completion: 80, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1647,7 +1647,7 @@ func TestTableView_SubItemCodeFormat(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Code: "TEST-00001-01", Title: "Sub", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Code: "TEST-00001-01", Title: "Sub", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 
@@ -1665,7 +1665,7 @@ func TestTableView_AssigneeNameResolved(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(), ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(), ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1688,7 +1688,7 @@ func TestTableView_AssigneeNameEmpty_WhenNoAssignee(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "No Assignee", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "No Assignee", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1708,7 +1708,7 @@ func TestTableView_ExpectedEndDateAndActualEndDateFormatted(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", ItemStatus: "completed", Completion: 100, ExpectedEndDate: &expectedEnd, ActualEndDate: &actualEnd},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", ItemStatus: "completed", Completion: 100, ExpectedEndDate: &expectedEnd, ActualEndDate: &actualEnd},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1727,7 +1727,7 @@ func TestTableView_ExpectedEndDateAndActualEndDateFormatted(t *testing.T) {
 func TestTableView_NilDates_ReturnNil(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "No Dates", Priority: "P1", ItemStatus: "pending", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "No Dates", Priority: "P1", ItemStatus: "pending", Completion: 0},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1746,9 +1746,9 @@ func TestTableView_Page2_ReturnsSecondPage(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "A", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "TEST-00002", Title: "B", Priority: "P2", ItemStatus: "progressing", Completion: 30, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 3}, TeamID: 1, Code: "TEST-00003", Title: "C", Priority: "P3", ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "A", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamKey: 1, Code: "TEST-00002", Title: "B", Priority: "P2", ItemStatus: "progressing", Completion: 30, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 3}, TeamKey: 1, Code: "TEST-00003", Title: "C", Priority: "P3", ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1801,7 +1801,7 @@ func TestTableExportCSV_ReturnsValidCSV(t *testing.T) {
 		items: []model.MainItem{
 			{
 				BaseModel:           model.BaseModel{ID: 1},
-				TeamID: 1,
+				TeamKey: 1,
 				Code:            "TEST-00001",
 				Title:           "Main Item",
 				Priority:        "P1",
@@ -1853,12 +1853,12 @@ func TestTableExportCSV_MultipleRows(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "Sub", Priority: "P2", ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub", Priority: "P2", ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 
@@ -1882,8 +1882,8 @@ func TestTableExportCSV_ExportWithFilter(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "P1", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Code: "TEST-00002", Title: "P3", Priority: "P3", ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "P1", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2}, TeamKey: 1, Code: "TEST-00002", Title: "P3", Priority: "P3", ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1905,7 +1905,7 @@ func TestTableExportCSV_ExportWithFilter(t *testing.T) {
 func TestTableExportCSV_NilDates_AsEmpty(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "No Dates", Priority: "P1", ItemStatus: "pending", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "No Dates", Priority: "P1", ItemStatus: "pending", Completion: 0},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -1926,7 +1926,7 @@ func TestTableExportCSV_NilDates_AsEmpty(t *testing.T) {
 func TestTableExportCSV_UTF8BOM(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "Item", Priority: "P1", ItemStatus: "progressing", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "Item", Priority: "P1", ItemStatus: "progressing", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
@@ -2011,14 +2011,14 @@ func TestWeeklyComparison_UsesBatchFindByIDs(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Priority: "P1", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "Sub A", ItemStatus: "progressing", Completion: 60, AssigneeKey: func() *int64 { v := int64(assignee1); return &v }()},
-			{BaseModel: model.BaseModel{ID: 11}, TeamID: 1, MainItemKey: int64(1), Title: "Sub B", ItemStatus: "pending", Completion: 0, AssigneeKey: func() *int64 { v := int64(assignee2); return &v }()},
-			{BaseModel: model.BaseModel{ID: 12}, TeamID: 1, MainItemKey: int64(1), Title: "Sub C", ItemStatus: "pending", Completion: 0, AssigneeKey: func() *int64 { v := int64(assignee1); return &v }()}, // same assignee
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub A", ItemStatus: "progressing", Completion: 60, AssigneeKey: func() *int64 { v := int64(assignee1); return &v }()},
+			{BaseModel: model.BaseModel{ID: 11}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub B", ItemStatus: "pending", Completion: 0, AssigneeKey: func() *int64 { v := int64(assignee2); return &v }()},
+			{BaseModel: model.BaseModel{ID: 12}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub C", ItemStatus: "pending", Completion: 0, AssigneeKey: func() *int64 { v := int64(assignee1); return &v }()}, // same assignee
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
@@ -2062,12 +2062,12 @@ func TestTableView_UsesBatchFindByIDs(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", AssigneeKey: func() *int64 { v := int64(assignee1); return &v }(), ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", AssigneeKey: func() *int64 { v := int64(assignee1); return &v }(), ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "Sub", Priority: "P2", AssigneeKey: func() *int64 { v := int64(assignee2); return &v }(), ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub", Priority: "P2", AssigneeKey: func() *int64 { v := int64(assignee2); return &v }(), ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 	userRepo := &mockViewUserRepo{
@@ -2098,12 +2098,12 @@ func TestTableExportCSV_UsesBatchFindByIDs(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", AssigneeKey: func() *int64 { v := int64(assignee1); return &v }(), ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", AssigneeKey: func() *int64 { v := int64(assignee1); return &v }(), ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemKey: int64(1), Title: "Sub", Priority: "P2", AssigneeKey: func() *int64 { v := int64(assignee2); return &v }(), ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub", Priority: "P2", AssigneeKey: func() *int64 { v := int64(assignee2); return &v }(), ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
 		},
 	}
 	userRepo := &mockViewUserRepo{
@@ -2134,7 +2134,7 @@ func TestBuildWeeklyGroups_Stats(t *testing.T) {
 	completedInWeek := time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)   // within week
 	beforeWeekStart := time.Date(2026, 4, 5, 0, 0, 0, 0, time.UTC)    // before weekStart
 
-	mainItem := model.MainItem{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "M", Priority: "P1"}
+	mainItem := model.MainItem{BaseModel: model.BaseModel{ID: 1}, TeamKey: 1, Title: "M", Priority: "P1"}
 
 	activeSet := func(ids ...uint) map[uint]struct{} {
 		m := make(map[uint]struct{})
@@ -2295,7 +2295,7 @@ func seedBenchmarkData(n int) (*mockViewMainItemRepo, *mockViewSubItemRepo, *moc
 		assigneeID := uint((i % 50) + 1) // 50 unique assignees
 		mainItems[i] = model.MainItem{
 			BaseModel:      model.BaseModel{ID: id},
-			TeamID: 1,
+			TeamKey: 1,
 			Code:           fmt.Sprintf("BENCH-%05d", id),
 			Title:          fmt.Sprintf("Main Item %d", id),
 			Priority:       []string{"P1", "P2", "P3"}[i%3],
@@ -2313,7 +2313,7 @@ func seedBenchmarkData(n int) (*mockViewMainItemRepo, *mockViewSubItemRepo, *moc
 		mainID := uint(i/2 + 1)
 		subItems[i] = model.SubItem{
 			BaseModel:       model.BaseModel{ID: uint(i + 1)},
-			TeamID: 1,
+			TeamKey: 1,
 			MainItemKey: int64(mainID),
 			Title:           fmt.Sprintf("Sub Item %d", i+1),
 			Priority:        []string{"P1", "P2", "P3"}[(i/2)%3],

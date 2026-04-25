@@ -119,7 +119,7 @@ func (s *mainItemService) Create(ctx context.Context, teamID, pmID uint, req dto
 
 	item := &model.MainItem{
 		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
-		TeamID:      teamID,
+		TeamKey:     int64(teamID),
 		Code:        code,
 		Title:       req.Title,
 		ItemDesc:    req.Description,
@@ -155,7 +155,7 @@ func (s *mainItemService) Update(ctx context.Context, teamID, itemID uint, req d
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if item.TeamID != teamID {
+	if item.TeamKey != int64(teamID) {
 		return apperrors.ErrForbidden
 	}
 	if status.IsMainTerminal(item.ItemStatus) {
@@ -253,7 +253,7 @@ func (s *mainItemService) ChangeStatus(ctx context.Context, teamID, callerID, it
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if item.TeamID != teamID {
+	if item.TeamKey != int64(teamID) {
 		return nil, apperrors.ErrForbidden
 	}
 
@@ -330,7 +330,7 @@ func (s *mainItemService) AvailableTransitions(ctx context.Context, teamID, call
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if item.TeamID != teamID {
+	if item.TeamKey != int64(teamID) {
 		return nil, apperrors.ErrForbidden
 	}
 

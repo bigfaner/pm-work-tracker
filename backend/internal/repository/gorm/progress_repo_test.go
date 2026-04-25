@@ -33,7 +33,7 @@ func seedProgressData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team, *
 	require.NoError(t, db.Create(&team).Error)
 	mi := model.MainItem{ItemStatus: "pending"}
 	require.NoError(t, db.Create(&mi).Error)
-	si := model.SubItem{TeamID: team.ID, MainItemKey: int64(mi.ID), Title: "Sub", Priority: "P1", ItemStatus: "progressing"}
+	si := model.SubItem{TeamKey: int64(team.ID), MainItemKey: int64(mi.ID), Title: "Sub", Priority: "P1", ItemStatus: "progressing"}
 	require.NoError(t, db.Create(&si).Error)
 	return &u, &team, &mi, &si
 }

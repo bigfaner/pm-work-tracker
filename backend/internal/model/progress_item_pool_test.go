@@ -50,9 +50,9 @@ func TestProgressRecord_Defaults(t *testing.T) {
 	require.NoError(t, db.Create(&u).Error)
 	team := model.Team{TeamName: "PRTeam", PmKey: int64(u.ID), Code: "PRTE"}
 	require.NoError(t, db.Create(&team).Error)
-	mi := model.MainItem{TeamID: team.ID, Code: "PRTE-00001", Title: "Main", Priority: "P1", ProposerKey: int64(u.ID)}
+	mi := model.MainItem{TeamKey: int64(team.ID), Code: "PRTE-00001", Title: "Main", Priority: "P1", ProposerKey: int64(u.ID)}
 	require.NoError(t, db.Create(&mi).Error)
-	si := model.SubItem{TeamID: team.ID, MainItemKey: int64(mi.ID), Title: "Sub", Priority: "P1"}
+	si := model.SubItem{TeamKey: int64(team.ID), MainItemKey: int64(mi.ID), Title: "Sub", Priority: "P1"}
 	require.NoError(t, db.Create(&si).Error)
 
 	pr := model.ProgressRecord{
@@ -79,9 +79,9 @@ func TestProgressRecord_InsertAndQuery(t *testing.T) {
 	require.NoError(t, db.Create(&u).Error)
 	team := model.Team{TeamName: "PRQTeam", PmKey: int64(u.ID), Code: "PRQT"}
 	require.NoError(t, db.Create(&team).Error)
-	mi := model.MainItem{TeamID: team.ID, Code: "PRQT-00001", Title: "Main", Priority: "P1", ProposerKey: int64(u.ID)}
+	mi := model.MainItem{TeamKey: int64(team.ID), Code: "PRQT-00001", Title: "Main", Priority: "P1", ProposerKey: int64(u.ID)}
 	require.NoError(t, db.Create(&mi).Error)
-	si := model.SubItem{TeamID: team.ID, MainItemKey: int64(mi.ID), Title: "Sub", Priority: "P1"}
+	si := model.SubItem{TeamKey: int64(team.ID), MainItemKey: int64(mi.ID), Title: "Sub", Priority: "P1"}
 	require.NoError(t, db.Create(&si).Error)
 
 	records := []model.ProgressRecord{
@@ -126,7 +126,7 @@ func TestItemPool_DefaultStatus(t *testing.T) {
 	require.NoError(t, db.Create(&team).Error)
 
 	ip := model.ItemPool{
-		TeamID: team.ID,
+		TeamKey: int64(team.ID),
 		Title:       "Proposed Item",
 		SubmitterKey: int64(u.ID),
 	}
@@ -146,9 +146,9 @@ func TestItemPool_AllFields(t *testing.T) {
 	require.NoError(t, db.Create(&u).Error)
 	team := model.Team{TeamName: "IPAllTeam", PmKey: int64(u.ID), Code: "IPAL"}
 	require.NoError(t, db.Create(&team).Error)
-	mi := model.MainItem{TeamID: team.ID, Code: "IPAL-00001", Title: "Main", Priority: "P1", ProposerKey: int64(u.ID)}
+	mi := model.MainItem{TeamKey: int64(team.ID), Code: "IPAL-00001", Title: "Main", Priority: "P1", ProposerKey: int64(u.ID)}
 	require.NoError(t, db.Create(&mi).Error)
-	si := model.SubItem{TeamID: team.ID, MainItemKey: int64(mi.ID), Title: "Sub", Priority: "P1"}
+	si := model.SubItem{TeamKey: int64(team.ID), MainItemKey: int64(mi.ID), Title: "Sub", Priority: "P1"}
 	require.NoError(t, db.Create(&si).Error)
 
 	now := time.Now()
@@ -158,7 +158,7 @@ func TestItemPool_AllFields(t *testing.T) {
 	assigneeID := u.ID
 
 	ip := model.ItemPool{
-		TeamID: team.ID,
+		TeamKey: int64(team.ID),
 		Title:          "Full Item",
 		Background:     "some background",
 		ExpectedOutput: "some output",
@@ -199,7 +199,7 @@ func TestItemPool_StatusValues(t *testing.T) {
 	statuses := []string{"pending", "assigned", "rejected"}
 	for i, s := range statuses {
 		ip := model.ItemPool{
-			TeamID: team.ID,
+			TeamKey: int64(team.ID),
 			Title:       "Item " + string(rune('A'+i)),
 			SubmitterKey: int64(u.ID),
 			PoolStatus:      s,
@@ -208,7 +208,7 @@ func TestItemPool_StatusValues(t *testing.T) {
 	}
 
 	var items []model.ItemPool
-	db.Where("team_id = ?", team.ID).Order("title").Find(&items)
+	db.Where("team_key = ?", team.ID).Order("title").Find(&items)
 	assert.Len(t, items, 3)
 	assert.Equal(t, "pending", items[0].PoolStatus)
 	assert.Equal(t, "assigned", items[1].PoolStatus)
@@ -227,7 +227,7 @@ func TestItemPool_TeamStatusCompositeIndex(t *testing.T) {
 
 	for _, s := range []string{"pending", "assigned", "rejected"} {
 		ip := model.ItemPool{
-			TeamID: team.ID,
+			TeamKey: int64(team.ID),
 			Title:       "Pool " + s,
 			SubmitterKey: int64(u.ID),
 			PoolStatus:      s,
@@ -236,7 +236,7 @@ func TestItemPool_TeamStatusCompositeIndex(t *testing.T) {
 	}
 
 	var items []model.ItemPool
-	err = db.Where("team_id = ? AND pool_status = ?", team.ID, "assigned").Find(&items).Error
+	err = db.Where("team_key = ? AND pool_status = ?", team.ID, "assigned").Find(&items).Error
 	assert.NoError(t, err)
 	assert.Len(t, items, 1)
 }

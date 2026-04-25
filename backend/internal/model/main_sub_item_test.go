@@ -43,7 +43,7 @@ func TestMainItem_Defaults(t *testing.T) {
 	team := model.Team{TeamName: "T2", PmKey: int64(u.ID), Code: "T2CD"}
 	require.NoError(t, db.Create(&team).Error)
 
-	m := model.MainItem{TeamID: team.ID, Code: "T2CD-00002", Title: "Item", Priority: "P2", ProposerKey: int64(u.ID)}
+	m := model.MainItem{TeamKey: int64(team.ID), Code: "T2CD-00002", Title: "Item", Priority: "P2", ProposerKey: int64(u.ID)}
 	require.NoError(t, db.Create(&m).Error)
 
 	var fetched model.MainItem
@@ -65,7 +65,7 @@ func TestMainItem_ArchivedAt(t *testing.T) {
 
 	now := time.Now()
 	m := model.MainItem{
-		TeamID: team.ID,
+		TeamKey: int64(team.ID),
 		Code:       "T3CD-00003",
 		Title:      "Archived Item",
 		Priority:   "P3",
@@ -94,11 +94,11 @@ func TestSubItem_DefaultStatus(t *testing.T) {
 	team := model.Team{TeamName: "ST1", PmKey: int64(u.ID), Code: "ST1C"}
 	require.NoError(t, db.Create(&team).Error)
 
-	mi := model.MainItem{TeamID: team.ID, Code: "ST1C-00001", Title: "Main", Priority: "P1", ProposerKey: int64(u.ID)}
+	mi := model.MainItem{TeamKey: int64(team.ID), Code: "ST1C-00001", Title: "Main", Priority: "P1", ProposerKey: int64(u.ID)}
 	require.NoError(t, db.Create(&mi).Error)
 
 	s := model.SubItem{
-		TeamID: team.ID,
+		TeamKey: int64(team.ID),
 		MainItemKey: int64(mi.ID),
 		Title:      "Sub 1",
 		Priority:   "P2",
@@ -123,11 +123,11 @@ func TestSubItem_WeightCanBeCustom(t *testing.T) {
 	team := model.Team{TeamName: "WT1", PmKey: int64(u.ID), Code: "WT1C"}
 	require.NoError(t, db.Create(&team).Error)
 
-	mi := model.MainItem{TeamID: team.ID, Code: "WT1C-00001", Title: "Main", Priority: "P1", ProposerKey: int64(u.ID)}
+	mi := model.MainItem{TeamKey: int64(team.ID), Code: "WT1C-00001", Title: "Main", Priority: "P1", ProposerKey: int64(u.ID)}
 	require.NoError(t, db.Create(&mi).Error)
 
 	s := model.SubItem{
-		TeamID: team.ID,
+		TeamKey: int64(team.ID),
 		MainItemKey: int64(mi.ID),
 		Title:      "Weighted Sub",
 		Priority:   "P1",
@@ -155,7 +155,7 @@ func TestMainItem_TeamStatusAndPriorityIndexes(t *testing.T) {
 		statuses := []string{"pending", "progressing", "completed"}
 		priorities := []string{"P1", "P2", "P3"}
 		m := model.MainItem{
-			TeamID: team.ID,
+			TeamKey: int64(team.ID),
 			Code:       "IDXT-0000" + string(rune('1'+i)),
 			Title:      "Idx Item",
 			Priority:   priorities[i],
@@ -167,11 +167,11 @@ func TestMainItem_TeamStatusAndPriorityIndexes(t *testing.T) {
 
 	// Query using the composite indexes
 	var items []model.MainItem
-	err = db.Where("team_id = ? AND item_status = ?", team.ID, "progressing").Find(&items).Error
+	err = db.Where("team_key = ? AND item_status = ?", team.ID, "progressing").Find(&items).Error
 	assert.NoError(t, err)
 	assert.Len(t, items, 1)
 
-	err = db.Where("team_id = ? AND priority = ?", team.ID, "P1").Find(&items).Error
+	err = db.Where("team_key = ? AND priority = ?", team.ID, "P1").Find(&items).Error
 	assert.NoError(t, err)
 	assert.Len(t, items, 1)
 }
@@ -186,14 +186,14 @@ func TestSubItem_TeamStatusAndPriorityIndexes(t *testing.T) {
 	team := model.Team{TeamName: "SubIdxTeam", PmKey: int64(u.ID), Code: "SIDX"}
 	require.NoError(t, db.Create(&team).Error)
 
-	mi := model.MainItem{TeamID: team.ID, Code: "SIDX-00001", Title: "Main", Priority: "P1", ProposerKey: int64(u.ID)}
+	mi := model.MainItem{TeamKey: int64(team.ID), Code: "SIDX-00001", Title: "Main", Priority: "P1", ProposerKey: int64(u.ID)}
 	require.NoError(t, db.Create(&mi).Error)
 
 	for i := 0; i < 3; i++ {
 		statuses := []string{"pending", "progressing", "completed"}
 		priorities := []string{"P1", "P2", "P3"}
 		s := model.SubItem{
-			TeamID: team.ID,
+			TeamKey: int64(team.ID),
 			MainItemKey: int64(mi.ID),
 			Title:      "Idx Sub",
 			Priority:   priorities[i],
@@ -203,11 +203,11 @@ func TestSubItem_TeamStatusAndPriorityIndexes(t *testing.T) {
 	}
 
 	var items []model.SubItem
-	err = db.Where("team_id = ? AND item_status = ?", team.ID, "progressing").Find(&items).Error
+	err = db.Where("team_key = ? AND item_status = ?", team.ID, "progressing").Find(&items).Error
 	assert.NoError(t, err)
 	assert.Len(t, items, 1)
 
-	err = db.Where("team_id = ? AND priority = ?", team.ID, "P1").Find(&items).Error
+	err = db.Where("team_key = ? AND priority = ?", team.ID, "P1").Find(&items).Error
 	assert.NoError(t, err)
 	assert.Len(t, items, 1)
 }

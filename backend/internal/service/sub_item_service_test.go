@@ -184,7 +184,7 @@ func TestSubItemCreate_Success(t *testing.T) {
 	svc := NewSubItemService(repo, mainSvc, historySvc)
 
 	repo.On("Create", mock.Anything, mock.MatchedBy(func(item *model.SubItem) bool {
-		return item.TeamID == 1 && uint(item.MainItemKey) == 5 && item.Title == "Sub task A" && item.ItemStatus == "pending"
+		return item.TeamKey == 1 && uint(item.MainItemKey) == 5 && item.Title == "Sub task A" && item.ItemStatus == "pending"
 	})).Return(nil)
 	repo.On("NextSubCode", mock.Anything, uint(5)).Return("FEAT-00001-01", nil)
 	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{ItemStatus: "pending"}, nil)
@@ -197,7 +197,7 @@ func TestSubItemCreate_Success(t *testing.T) {
 		Priority:   "P2",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, uint(1), item.TeamID)
+	assert.Equal(t, int64(1), item.TeamKey)
 	assert.Equal(t, uint(5), uint(item.MainItemKey))
 	assert.Equal(t, "pending", item.ItemStatus)
 	assert.Equal(t, "Sub task A", item.Title)
@@ -235,7 +235,7 @@ func TestSubItemCreate_RepoError(t *testing.T) {
 func TestSubItemUpdate_Success(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		Title:  "Old Title",
 	}
 	repo := new(mockSubItemRepoTM)
@@ -259,7 +259,7 @@ func TestSubItemUpdate_Success(t *testing.T) {
 func TestSubItemUpdate_TeamMismatch(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 2,
+		TeamKey: 2,
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -295,7 +295,7 @@ func TestSubItemUpdate_NotFound(t *testing.T) {
 func TestSubItemUpdate_NoFields_Noop(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -355,13 +355,13 @@ func testValidTransitionTM(t *testing.T, from, to string) {
 	t.Helper()
 	existing := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: from,
 	}
 	updated := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: to,
 	}
@@ -416,7 +416,7 @@ func TestChangeStatus_Invalid_CompletedToAnything(t *testing.T) {
 		t.Run("completed->"+target, func(t *testing.T) {
 			existing := &model.SubItem{
 				BaseModel:  model.BaseModel{ID: 1},
-				TeamID: 1,
+				TeamKey: 1,
 				ItemStatus: "completed",
 			}
 			repo := new(mockSubItemRepoTM)
@@ -440,7 +440,7 @@ func TestChangeStatus_Invalid_ClosedToAnything(t *testing.T) {
 		t.Run("closed->"+target, func(t *testing.T) {
 			existing := &model.SubItem{
 				BaseModel:  model.BaseModel{ID: 1},
-				TeamID: 1,
+				TeamKey: 1,
 				ItemStatus: "closed",
 			}
 			repo := new(mockSubItemRepoTM)
@@ -479,7 +479,7 @@ func testInvalidTransitionTM(t *testing.T, from, to string) {
 	t.Helper()
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		ItemStatus: from,
 	}
 	repo := new(mockSubItemRepoTM)
@@ -503,13 +503,13 @@ func testInvalidTransitionTM(t *testing.T, from, to string) {
 func TestChangeStatus_Completed_SetsCompletionAndActualEndDate(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: "progressing",
 	}
 	updated := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: "completed",
 		Completion: 100,
@@ -543,13 +543,13 @@ func TestChangeStatus_Completed_SetsCompletionAndActualEndDate(t *testing.T) {
 func TestChangeStatus_Closed_SetsCompletionAndActualEndDate(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: "progressing",
 	}
 	updated := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: "closed",
 		Completion: 100,
@@ -583,13 +583,13 @@ func TestChangeStatus_Closed_SetsCompletionAndActualEndDate(t *testing.T) {
 func TestChangeStatus_Completed_RecalcCompletion_CalledWithCorrectMainItemID(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(42),
 		ItemStatus: "progressing",
 	}
 	updated := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(42),
 		ItemStatus: "completed",
 	}
@@ -616,7 +616,7 @@ func TestChangeStatus_Completed_RecalcCompletion_CalledWithCorrectMainItemID(t *
 func TestChangeStatus_Completed_RecalcError(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: "progressing",
 	}
@@ -644,13 +644,13 @@ func TestChangeStatus_Completed_RecalcError(t *testing.T) {
 func TestChangeStatus_RecordsHistory(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 7},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: "pending",
 	}
 	updated := &model.SubItem{
 		BaseModel:      model.BaseModel{ID: 7},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: "progressing",
 	}
@@ -702,7 +702,7 @@ func TestChangeStatus_NotFound(t *testing.T) {
 func TestChangeStatus_TeamMismatch(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 2,
+		TeamKey: 2,
 		ItemStatus: "pending",
 	}
 	repo := new(mockSubItemRepoTM)
@@ -726,7 +726,7 @@ func TestChangeStatus_TeamMismatch(t *testing.T) {
 func TestSubItemAvailableTransitions_Pending(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel: model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		ItemStatus: "pending",
 	}
 	repo := new(mockSubItemRepoTM)
@@ -746,7 +746,7 @@ func TestSubItemAvailableTransitions_Pending(t *testing.T) {
 func TestSubItemAvailableTransitions_Progressing(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel: model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		ItemStatus: "progressing",
 	}
 	repo := new(mockSubItemRepoTM)
@@ -766,7 +766,7 @@ func TestSubItemAvailableTransitions_Progressing(t *testing.T) {
 func TestSubItemAvailableTransitions_TerminalStatus(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel: model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		ItemStatus: "completed",
 	}
 	repo := new(mockSubItemRepoTM)
@@ -800,7 +800,7 @@ func TestSubItemAvailableTransitions_NotFound(t *testing.T) {
 func TestSubItemAvailableTransitions_TeamMismatch(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel: model.BaseModel{ID: 1},
-		TeamID: 2,
+		TeamKey: 2,
 		ItemStatus: "pending",
 	}
 	repo := new(mockSubItemRepoTM)
@@ -823,7 +823,7 @@ func TestSubItemAvailableTransitions_TeamMismatch(t *testing.T) {
 func TestSubItemAssign_Success(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -859,7 +859,7 @@ func TestSubItemAssign_NotFound(t *testing.T) {
 func TestSubItemAssign_TeamMismatch(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 2,
+		TeamKey: 2,
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -881,7 +881,7 @@ func TestSubItemAssign_TeamMismatch(t *testing.T) {
 func TestSubItemGet_Success(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		Title:  "Sub 1",
 	}
 	repo := new(mockSubItemRepoTM)
@@ -1006,7 +1006,7 @@ func TestSubItemCreate_TriggersLinkage(t *testing.T) {
 func TestSubItemDelete_TriggersLinkage(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: "pending",
 	}
@@ -1044,7 +1044,7 @@ func TestSubItemDelete_NotFound(t *testing.T) {
 func TestSubItemDelete_TeamMismatch(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 2,
+		TeamKey: 2,
 		ItemStatus: "pending",
 	}
 	repo := new(mockSubItemRepoTM)
@@ -1063,7 +1063,7 @@ func TestSubItemDelete_TeamMismatch(t *testing.T) {
 func TestSubItemDelete_RepoError(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: "pending",
 	}
@@ -1088,13 +1088,13 @@ func TestSubItemDelete_RepoError(t *testing.T) {
 func TestChangeStatus_ReturnsLinkageResult(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: "pending",
 	}
 	updated := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: "progressing",
 	}
@@ -1181,13 +1181,13 @@ func TestSubItemCreate_NextSubCodeError_ReturnsError(t *testing.T) {
 func TestChangeStatus_RecalcCompletionBeforeLinkage(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: "progressing",
 	}
 	updated := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: "completed",
 		Completion: 100,

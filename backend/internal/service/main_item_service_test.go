@@ -182,7 +182,7 @@ func TestMainItemCreate_Success(t *testing.T) {
 	assert.Equal(t, "MI-0001", item.Code)
 	assert.Equal(t, int64(10), item.ProposerKey)
 	assert.Equal(t, "pending", item.ItemStatus)
-	assert.Equal(t, uint(1), item.TeamID)
+	assert.Equal(t, int64(1), item.TeamKey)
 	assert.Equal(t, "Feature A", item.Title)
 	assert.Equal(t, "P0", item.Priority)
 }
@@ -212,7 +212,7 @@ func TestMainItemCreate_RepoCreateError(t *testing.T) {
 func TestMainItemUpdate_Success(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		Title:  "Old Title",
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
@@ -232,7 +232,7 @@ func TestMainItemUpdate_Success(t *testing.T) {
 func TestMainItemUpdate_TeamMismatch(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 2, // different team
+		TeamKey: 2, // different team
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
@@ -262,7 +262,7 @@ func TestMainItemUpdate_NotFound(t *testing.T) {
 func TestMainItemArchive_Success(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		ItemStatus: "completed",
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
@@ -277,7 +277,7 @@ func TestMainItemArchive_Success(t *testing.T) {
 func TestMainItemArchive_ClosedStatus(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		ItemStatus: "closed",
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
@@ -291,7 +291,7 @@ func TestMainItemArchive_ClosedStatus(t *testing.T) {
 func TestMainItemArchive_NotAllowed_InProgress(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		ItemStatus: "in_progress",
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
@@ -305,7 +305,7 @@ func TestMainItemArchive_NotAllowed_InProgress(t *testing.T) {
 func TestMainItemArchive_NotAllowed_Pending(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		ItemStatus: "pending",
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
@@ -360,7 +360,7 @@ func TestMainItemList_RepoError(t *testing.T) {
 func TestMainItemGet_Success(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		Title:  "Item 1",
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
@@ -388,7 +388,7 @@ func TestMainItemGet_NotFound(t *testing.T) {
 func TestMainItemGetByBizKey_Success(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel: model.BaseModel{ID: 1, BizKey: 123456},
-		TeamID:    1,
+		TeamKey:    1,
 		Title:     "Item 1",
 	}
 	mainRepo := &mockMainItemRepo{}
@@ -417,7 +417,7 @@ func TestMainItemGetByBizKey_NotFound(t *testing.T) {
 func TestRecalcCompletion_ZeroSubItems(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		Completion: 50,
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
@@ -432,7 +432,7 @@ func TestRecalcCompletion_ZeroSubItems(t *testing.T) {
 func TestRecalcCompletion_OneSubItem(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		Completion: 0,
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
@@ -451,7 +451,7 @@ func TestRecalcCompletion_OneSubItem(t *testing.T) {
 func TestRecalcCompletion_MultipleSubItems_EqualWeights(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		Completion: 0,
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
@@ -473,7 +473,7 @@ func TestRecalcCompletion_MultipleSubItems_EqualWeights(t *testing.T) {
 func TestRecalcCompletion_AllZeroWeights_FallbackSimpleAvg(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		Completion: 0,
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
@@ -494,7 +494,7 @@ func TestRecalcCompletion_AllZeroWeights_FallbackSimpleAvg(t *testing.T) {
 func TestRecalcCompletion_VaryingWeights(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:      model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		Completion: 0,
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
@@ -555,7 +555,7 @@ func TestChangeStatus_AllValidTransitions(t *testing.T) {
 		t.Run(tt.from+"->"+tt.to, func(t *testing.T) {
 			item := &model.MainItem{
 				BaseModel:   model.BaseModel{ID: 1},
-				TeamID: 1,
+				TeamKey: 1,
 				ItemStatus: tt.from,
 				ProposerKey: int64(10), // PM
 			}
@@ -582,7 +582,7 @@ func TestChangeStatus_AllValidTransitions(t *testing.T) {
 func TestChangeStatus_SelfTransition(t *testing.T) {
 	item := &model.MainItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		ItemStatus: "pending",
 		ProposerKey: int64(10),
 	}
@@ -614,7 +614,7 @@ func TestChangeStatus_InvalidTransitions(t *testing.T) {
 		t.Run(tt.from+"->"+tt.to, func(t *testing.T) {
 			item := &model.MainItem{
 				BaseModel:   model.BaseModel{ID: 1},
-				TeamID: 1,
+				TeamKey: 1,
 				ItemStatus: tt.from,
 				ProposerKey: int64(10),
 			}
@@ -630,7 +630,7 @@ func TestChangeStatus_InvalidTransitions(t *testing.T) {
 func TestChangeStatus_PMOnly_ReviewingToCompleted(t *testing.T) {
 	item := &model.MainItem{
 		BaseModel:   model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		ItemStatus: "reviewing",
 		ProposerKey: int64(10), // PM is user 10
 	}
@@ -645,7 +645,7 @@ func TestChangeStatus_PMOnly_ReviewingToCompleted(t *testing.T) {
 func TestChangeStatus_PMOnly_ReviewingToProgressing(t *testing.T) {
 	item := &model.MainItem{
 		BaseModel:   model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		ItemStatus: "reviewing",
 		ProposerKey: int64(10),
 	}
@@ -675,7 +675,7 @@ func TestChangeStatus_TerminalSideEffects(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			item := &model.MainItem{
 				BaseModel:   model.BaseModel{ID: 1},
-				TeamID: 1,
+				TeamKey: 1,
 				ItemStatus: tt.fromStatus,
 				ProposerKey: int64(10),
 				Completion:  50,
@@ -695,7 +695,7 @@ func TestChangeStatus_TerminalSideEffects(t *testing.T) {
 func TestChangeStatus_NonTerminal_NoSideEffects(t *testing.T) {
 	item := &model.MainItem{
 		BaseModel:   model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		ItemStatus: "pending",
 		ProposerKey: int64(10),
 		Completion:  30,
@@ -724,7 +724,7 @@ func TestChangeStatus_ItemNotFound(t *testing.T) {
 func TestMainItemChangeStatus_TeamMismatch(t *testing.T) {
 	item := &model.MainItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamID: 2,
+		TeamKey: 2,
 		ItemStatus: "pending",
 		ProposerKey: int64(10),
 	}
@@ -738,7 +738,7 @@ func TestMainItemChangeStatus_TeamMismatch(t *testing.T) {
 func TestChangeStatus_StatusHistoryRecorded(t *testing.T) {
 	item := &model.MainItem{
 		BaseModel:   model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		ItemStatus: "pending",
 		ProposerKey: int64(10),
 	}
@@ -783,7 +783,7 @@ func TestAvailableTransitions_Success(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			item := &model.MainItem{
 				BaseModel:   model.BaseModel{ID: 1},
-				TeamID: 1,
+				TeamKey: 1,
 				ItemStatus: tt.status,
 				ProposerKey: int64(tt.proposerID),
 			}
@@ -800,7 +800,7 @@ func TestAvailableTransitions_Success(t *testing.T) {
 func TestAvailableTransitions_NonPMReviewing_FiltersCompletedProgressing(t *testing.T) {
 	item := &model.MainItem{
 		BaseModel:   model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		ItemStatus: "reviewing",
 		ProposerKey: int64(10), // PM is user 10
 	}
@@ -824,7 +824,7 @@ func TestAvailableTransitions_ItemNotFound(t *testing.T) {
 func TestAvailableTransitions_TeamMismatch(t *testing.T) {
 	item := &model.MainItem{
 		BaseModel:   model.BaseModel{ID: 1},
-		TeamID: 2,
+		TeamKey: 2,
 		ItemStatus: "pending",
 		ProposerKey: int64(10),
 	}
@@ -842,7 +842,7 @@ func TestAvailableTransitions_TeamMismatch(t *testing.T) {
 func TestEvaluateLinkage_NoSubItems_NoLinkageTriggered(t *testing.T) {
 	mainItem := &model.MainItem{
 		BaseModel: model.BaseModel{ID: 1},
-		TeamID: 1,
+		TeamKey: 1,
 		ItemStatus: "pending",
 	}
 	mainRepo := &mockMainItemRepo{item: mainItem}

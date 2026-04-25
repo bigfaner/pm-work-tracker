@@ -47,7 +47,7 @@ func NewItemPoolService(poolRepo repository.ItemPoolRepo, subRepo repository.Sub
 
 func (s *itemPoolService) Submit(ctx context.Context, teamID, submitterID uint, req dto.SubmitItemPoolReq) (*model.ItemPool, error) {
 	item := &model.ItemPool{
-		TeamID:         teamID,
+		TeamKey:        int64(teamID),
 		Title:          req.Title,
 		Background:     req.Background,
 		ExpectedOutput: req.ExpectedOutput,
@@ -65,7 +65,7 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if poolItem.TeamID != teamID {
+	if poolItem.TeamKey != int64(teamID) {
 		return apperrors.ErrForbidden
 	}
 	if poolItem.PoolStatus != "pending" {
@@ -77,7 +77,7 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if mainItem.TeamID != teamID {
+	if mainItem.TeamKey != int64(teamID) {
 		return apperrors.ErrItemNotFound
 	}
 
@@ -86,7 +86,7 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 
 		// Create SubItem under the MainItem
 		subItem := &model.SubItem{
-			TeamID:      teamID,
+			TeamKey:     int64(teamID),
 			MainItemKey: int64(req.MainItemID),
 			Title:       poolItem.Title,
 			ItemDesc:    poolItem.Background,
@@ -127,7 +127,7 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamID, pmID, poolI
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if poolItem.TeamID != teamID {
+	if poolItem.TeamKey != int64(teamID) {
 		return nil, apperrors.ErrForbidden
 	}
 	if poolItem.PoolStatus != "pending" {
@@ -144,7 +144,7 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamID, pmID, poolI
 		}
 
 		mainItem := &model.MainItem{
-			TeamID:      teamID,
+			TeamKey:     int64(teamID),
 			Code:        code,
 			Title:       poolItem.Title,
 			Priority:    req.Priority,
@@ -191,7 +191,7 @@ func (s *itemPoolService) Reject(ctx context.Context, teamID, pmID, poolItemID u
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if poolItem.TeamID != teamID {
+	if poolItem.TeamKey != int64(teamID) {
 		return apperrors.ErrForbidden
 	}
 	if poolItem.PoolStatus != "pending" {
@@ -217,7 +217,7 @@ func (s *itemPoolService) Get(ctx context.Context, teamID, poolItemID uint) (*mo
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if item.TeamID != teamID {
+	if item.TeamKey != int64(teamID) {
 		return nil, apperrors.ErrForbidden
 	}
 	return item, nil

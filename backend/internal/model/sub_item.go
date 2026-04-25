@@ -4,7 +4,7 @@ import "time"
 
 type SubItem struct {
 	BaseModel
-	TeamID          uint       `gorm:"not null;index" json:"teamId"`
+	TeamKey         int64      `gorm:"not null;index" json:"teamKey"`
 	MainItemKey     int64      `gorm:"not null;index" json:"mainItemKey"`
 	Title           string     `gorm:"type:varchar(100);not null" json:"title"`
 	ItemDesc        string     `gorm:"type:text" json:"itemDesc"`
@@ -16,6 +16,7 @@ type SubItem struct {
 	ItemStatus      string     `gorm:"type:varchar(20);not null;default:'pending'" json:"itemStatus"`
 	Completion      float64    `gorm:"type:decimal(5,2);default:0" json:"completion"`
 	IsKeyItem       bool       `gorm:"not null;default:false" json:"isKeyItem"`
+	DelayCount      int        `gorm:"not null;default:0" json:"delayCount"`
 	Weight          float64    `gorm:"default:1" json:"weight"`
 	Code            string     `gorm:"type:varchar(15);not null;default:''" json:"code"`
 }
