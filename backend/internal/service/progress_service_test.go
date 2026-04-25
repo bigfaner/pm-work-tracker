@@ -114,8 +114,11 @@ func (m *mockSubItemRepoForProgress) ListByTeam(_ context.Context, _ uint) ([]mo
 	return nil, nil
 }
 
-func (m *mockSubItemRepoForProgress) Delete(_ context.Context, _ uint) error {
+func (m *mockSubItemRepoForProgress) SoftDelete(_ context.Context, _ uint) error {
 	return nil
+}
+func (m *mockSubItemRepoForProgress) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
+	return nil, nil
 }
 func (m *mockSubItemRepoForProgress) NextSubCode(_ context.Context, _ uint) (string, error) {
 	return "", nil

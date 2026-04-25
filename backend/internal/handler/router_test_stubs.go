@@ -208,6 +208,9 @@ func (s *StubRouterRepoUser) Create(_ context.Context, _ *model.User) error { re
 func (s *StubRouterRepoUser) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.User, error) {
 	return nil, nil
 }
+func (s *StubRouterRepoUser) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
+	return nil, nil
+}
 func (s *StubRouterRepoUser) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil
 }
@@ -235,7 +238,10 @@ func (s *StubRouterRepoSubItem) ListByMainItem(_ context.Context, _ uint) ([]*mo
 func (s *StubRouterRepoSubItem) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
 	return nil, nil
 }
-func (s *StubRouterRepoSubItem) Delete(_ context.Context, _ uint) error { return nil }
+func (s *StubRouterRepoSubItem) SoftDelete(_ context.Context, _ uint) error { return nil }
+func (s *StubRouterRepoSubItem) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
+	return nil, nil
+}
 func (s *StubRouterRepoSubItem) NextSubCode(_ context.Context, _ uint) (string, error) {
 	return "", nil
 }
@@ -246,6 +252,9 @@ type StubRouterRepoMainItem struct{}
 
 func (s *StubRouterRepoMainItem) Create(_ context.Context, _ *model.MainItem) error { return nil }
 func (s *StubRouterRepoMainItem) FindByID(_ context.Context, _ uint) (*model.MainItem, error) {
+	return nil, nil
+}
+func (s *StubRouterRepoMainItem) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
 	return nil, nil
 }
 func (s *StubRouterRepoMainItem) Update(_ context.Context, _ *model.MainItem, _ map[string]interface{}) error {

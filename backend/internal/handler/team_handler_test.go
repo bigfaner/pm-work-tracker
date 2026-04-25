@@ -204,6 +204,9 @@ func (m *mockUserRepoForHandler) FindByIDs(_ context.Context, ids []uint) (map[u
 	}
 	return result, nil
 }
+func (m *mockUserRepoForHandler) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
+	return nil, nil
+}
 func (m *mockUserRepoForHandler) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil
 }

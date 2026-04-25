@@ -10,7 +10,7 @@
       "title": "Repo Interface Definitions",
       "priority": "P0",
       "estimatedTime": "2h",
-      "status": "in_progress",
+      "status": "completed",
       "file": "1.1-repo-interfaces.md",
       "record": "records/1.1-repo-interfaces.md"
     },

@@ -29,6 +29,15 @@ func (r *mainItemRepo) FindByID(ctx context.Context, id uint) (*model.MainItem, 
 	return repo.FindByID[model.MainItem](r.db, ctx, id)
 }
 
+func (r *mainItemRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.MainItem, error) {
+	var item model.MainItem
+	err := r.db.WithContext(ctx).Where("biz_key = ?", bizKey).First(&item).Error
+	if err != nil {
+		return nil, err
+	}
+	return &item, nil
+}
+
 func (r *mainItemRepo) Update(ctx context.Context, item *model.MainItem, fields map[string]interface{}) error {
 	return repo.UpdateFields[model.MainItem](r.db, ctx, item, item.TeamID, fields)
 }

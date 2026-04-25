@@ -59,8 +59,17 @@ func (r *teamRepo) Update(ctx context.Context, team *model.Team) error {
 	return r.db.WithContext(ctx).Save(team).Error
 }
 
-func (r *teamRepo) Delete(ctx context.Context, teamID uint) error {
+func (r *teamRepo) SoftDelete(ctx context.Context, teamID uint) error {
 	return r.db.WithContext(ctx).Delete(&model.Team{}, teamID).Error
+}
+
+func (r *teamRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.Team, error) {
+	var team model.Team
+	err := r.db.WithContext(ctx).Where("biz_key = ?", bizKey).First(&team).Error
+	if err != nil {
+		return nil, err
+	}
+	return &team, nil
 }
 
 func (r *teamRepo) AddMember(ctx context.Context, member *model.TeamMember) error {

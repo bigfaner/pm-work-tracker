@@ -69,6 +69,9 @@ func (m *mockViewMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ uint) 
 func (m *mockViewMainItemRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
 	return nil, nil
 }
+func (m *mockViewMainItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
+	return nil, nil
+}
 func (m *mockViewMainItemRepo) ListByTeamAndStatus(_ context.Context, teamID uint, status string) ([]model.MainItem, error) {
 	m.listByTeamAndStatusCalled = true
 	m.listByTeamAndStatusTeamID = teamID
@@ -108,8 +111,11 @@ func (m *mockViewSubItemRepo) ListByTeam(_ context.Context, _ uint) ([]model.Sub
 	}
 	return m.items, nil
 }
-func (m *mockViewSubItemRepo) Delete(_ context.Context, _ uint) error {
+func (m *mockViewSubItemRepo) SoftDelete(_ context.Context, _ uint) error {
 	return nil
+}
+func (m *mockViewSubItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
+	return nil, nil
 }
 func (m *mockViewSubItemRepo) NextSubCode(_ context.Context, _ uint) (string, error) {
 	return "", nil
@@ -1344,6 +1350,9 @@ func (m *mockViewUserRepo) FindByIDs(_ context.Context, ids []uint) (map[uint]*m
 		}
 	}
 	return result, nil
+}
+func (m *mockViewUserRepo) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
+	return nil, nil
 }
 func (m *mockViewUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil

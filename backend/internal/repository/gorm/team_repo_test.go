@@ -116,7 +116,7 @@ func TestTeamRepo_Delete_SoftDelete(t *testing.T) {
 	team := model.Team{Name: "ToDelete", PmID: pm.ID, Code: "TDEL"}
 	require.NoError(t, repo.Create(ctx, &team))
 
-	require.NoError(t, repo.Delete(ctx, team.ID))
+	require.NoError(t, repo.SoftDelete(ctx, team.ID))
 
 	// FindByID should return ErrNotFound (soft-deleted rows excluded by GORM)
 	_, err := repo.FindByID(ctx, team.ID)

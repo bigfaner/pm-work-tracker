@@ -81,9 +81,13 @@ func (m *mockTeamRepo) Update(_ context.Context, team *model.Team) error {
 	return m.updateErr
 }
 
-func (m *mockTeamRepo) Delete(_ context.Context, teamID uint) error {
+func (m *mockTeamRepo) SoftDelete(_ context.Context, teamID uint) error {
 	m.deletedTeamID = teamID
 	return m.deleteErr
+}
+
+func (m *mockTeamRepo) FindByBizKey(_ context.Context, _ int64) (*model.Team, error) {
+	return nil, nil
 }
 
 func (m *mockTeamRepo) AddMember(_ context.Context, member *model.TeamMember) error {
@@ -185,6 +189,9 @@ func (m *mockTeamUserRepo) Create(_ context.Context, _ *model.User) error {
 	return nil
 }
 func (m *mockTeamUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.User, error) {
+	return nil, nil
+}
+func (m *mockTeamUserRepo) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
 	return nil, nil
 }
 func (m *mockTeamUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {

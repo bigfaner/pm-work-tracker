@@ -1029,6 +1029,9 @@ func (t *trackingMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ uint) 
 func (t *trackingMainItemRepo) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
 	return nil, nil
 }
+func (t *trackingMainItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
+	return nil, nil
+}
 
 // compile-time check
 var _ repository.MainItemRepo = (*trackingMainItemRepo)(nil)
@@ -1059,5 +1062,8 @@ func (m *mockMainItemRepoForPool) FindByIDs(_ context.Context, _ []uint) (map[ui
 	return nil, nil
 }
 func (m *mockMainItemRepoForPool) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
+	return nil, nil
+}
+func (m *mockMainItemRepoForPool) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
 	return nil, nil
 }

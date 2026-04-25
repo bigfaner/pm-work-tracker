@@ -275,7 +275,7 @@ func (s *teamService) DisbandTeam(ctx context.Context, callerID uint, teamID uin
 		return apperrors.ErrValidation
 	}
 
-	return s.teamRepo.Delete(ctx, teamID)
+	return s.teamRepo.SoftDelete(ctx, teamID)
 }
 
 func (s *teamService) UpdateMemberRole(ctx context.Context, pmID, teamID, targetUserID, roleID uint) error {

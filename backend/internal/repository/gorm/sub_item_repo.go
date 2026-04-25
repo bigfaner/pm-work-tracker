@@ -33,8 +33,17 @@ func (r *subItemRepo) Update(ctx context.Context, item *model.SubItem, fields ma
 	return repo.UpdateFields[model.SubItem](r.db, ctx, item, item.TeamID, fields)
 }
 
-func (r *subItemRepo) Delete(ctx context.Context, id uint) error {
+func (r *subItemRepo) SoftDelete(ctx context.Context, id uint) error {
 	return r.db.WithContext(ctx).Delete(&model.SubItem{}, id).Error
+}
+
+func (r *subItemRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.SubItem, error) {
+	var item model.SubItem
+	err := r.db.WithContext(ctx).Where("biz_key = ?", bizKey).First(&item).Error
+	if err != nil {
+		return nil, err
+	}
+	return &item, nil
 }
 
 func (r *subItemRepo) List(ctx context.Context, teamID uint, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {

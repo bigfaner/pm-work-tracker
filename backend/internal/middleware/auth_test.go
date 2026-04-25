@@ -64,6 +64,9 @@ func (m *mockUserRepo) Update(ctx context.Context, user *model.User) error {
 func (m *mockUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.User, error) {
 	return nil, nil
 }
+func (m *mockUserRepo) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
+	return nil, nil
+}
 func (m *mockUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil
 }

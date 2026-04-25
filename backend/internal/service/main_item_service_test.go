@@ -88,6 +88,9 @@ func (m *mockMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ uint) ([]m
 func (m *mockMainItemRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
 	return nil, nil
 }
+func (m *mockMainItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
+	return nil, nil
+}
 func (m *mockMainItemRepo) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
 	return nil, nil
 }
@@ -124,8 +127,11 @@ func (m *mockSubItemRepo) ListByTeam(_ context.Context, _ uint) ([]model.SubItem
 	return nil, nil
 }
 
-func (m *mockSubItemRepo) Delete(_ context.Context, _ uint) error {
+func (m *mockSubItemRepo) SoftDelete(_ context.Context, _ uint) error {
 	return nil
+}
+func (m *mockSubItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
+	return nil, nil
 }
 func (m *mockSubItemRepo) NextSubCode(_ context.Context, _ uint) (string, error) {
 	return "", nil

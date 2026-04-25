@@ -195,7 +195,7 @@ func (s *subItemService) Delete(ctx context.Context, teamID, callerID, itemID ui
 		return apperrors.ErrForbidden
 	}
 
-	if err := s.subItemRepo.Delete(ctx, itemID); err != nil {
+	if err := s.subItemRepo.SoftDelete(ctx, itemID); err != nil {
 		return err
 	}
 

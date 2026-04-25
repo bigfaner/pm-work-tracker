@@ -53,6 +53,10 @@ func (m *mockItemPoolRepo) FindByID(_ context.Context, id uint) (*model.ItemPool
 	return nil, m.findErr
 }
 
+func (m *mockItemPoolRepo) FindByBizKey(_ context.Context, _ int64) (*model.ItemPool, error) {
+	return nil, nil
+}
+
 func (m *mockItemPoolRepo) Update(_ context.Context, item *model.ItemPool, fields map[string]interface{}) error {
 	m.updatedItem = item
 	m.updatedFields = fields
@@ -98,8 +102,11 @@ func (m *mockSubItemRepoForPool) ListByMainItem(_ context.Context, mainItemID ui
 func (m *mockSubItemRepoForPool) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
 	return nil, nil
 }
-func (m *mockSubItemRepoForPool) Delete(_ context.Context, _ uint) error {
+func (m *mockSubItemRepoForPool) SoftDelete(_ context.Context, _ uint) error {
 	return nil
+}
+func (m *mockSubItemRepoForPool) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
+	return nil, nil
 }
 func (m *mockSubItemRepoForPool) NextSubCode(_ context.Context, _ uint) (string, error) {
 	return "", nil
@@ -136,6 +143,9 @@ func (m *mockMainItemRepoForPool) ListNonArchivedByTeam(_ context.Context, _ uin
 	return nil, nil
 }
 func (m *mockMainItemRepoForPool) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
+	return nil, nil
+}
+func (m *mockMainItemRepoForPool) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
 	return nil, nil
 }
 func (m *mockMainItemRepoForPool) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {

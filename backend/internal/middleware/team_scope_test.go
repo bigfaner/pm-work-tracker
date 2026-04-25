@@ -51,9 +51,13 @@ func (m *mockTeamRepo) Update(ctx context.Context, team *model.Team) error {
 	return args.Error(0)
 }
 
-func (m *mockTeamRepo) Delete(ctx context.Context, teamID uint) error {
+func (m *mockTeamRepo) SoftDelete(ctx context.Context, teamID uint) error {
 	args := m.Called(ctx, teamID)
 	return args.Error(0)
+}
+
+func (m *mockTeamRepo) FindByBizKey(_ context.Context, _ int64) (*model.Team, error) {
+	return nil, nil
 }
 
 func (m *mockTeamRepo) AddMember(ctx context.Context, member *model.TeamMember) error {

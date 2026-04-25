@@ -72,7 +72,9 @@ func (m *mockAdminUserRepo) Update(_ context.Context, user *model.User) error {
 func (m *mockAdminUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.User, error) {
 	return nil, nil
 }
-
+func (m *mockAdminUserRepo) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
+	return nil, nil
+}
 func (m *mockAdminUserRepo) ListFiltered(ctx context.Context, search string, offset, limit int) ([]*model.User, int64, error) {
 	m.listFilteredCalled = true
 	m.listFilteredSearch = search
@@ -109,7 +111,10 @@ func (m *mockAdminTeamRepo) ListFiltered(_ context.Context, _ string, _, _ int) 
 	return nil, 0, nil
 }
 func (m *mockAdminTeamRepo) Update(_ context.Context, _ *model.Team) error { return nil }
-func (m *mockAdminTeamRepo) Delete(_ context.Context, _ uint) error              { return nil }
+func (m *mockAdminTeamRepo) SoftDelete(_ context.Context, _ uint) error              { return nil }
+func (m *mockAdminTeamRepo) FindByBizKey(_ context.Context, _ int64) (*model.Team, error) {
+	return nil, nil
+}
 func (m *mockAdminTeamRepo) AddMember(_ context.Context, member *model.TeamMember) error {
 	return m.addMemberErr
 }

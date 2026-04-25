@@ -169,8 +169,11 @@ func (m *mockSubItemRepoForHandler) ListByMainItem(_ context.Context, _ uint) ([
 func (m *mockSubItemRepoForHandler) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
 	return nil, nil
 }
-func (m *mockSubItemRepoForHandler) Delete(_ context.Context, _ uint) error {
+func (m *mockSubItemRepoForHandler) SoftDelete(_ context.Context, _ uint) error {
 	return nil
+}
+func (m *mockSubItemRepoForHandler) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
+	return nil, nil
 }
 func (m *mockSubItemRepoForHandler) NextSubCode(_ context.Context, _ uint) (string, error) {
 	return "", nil

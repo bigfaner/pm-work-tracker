@@ -71,6 +71,15 @@ func (m *mockSubItemRepoTM) Delete(ctx context.Context, id uint) error {
 	return args.Error(0)
 }
 
+func (m *mockSubItemRepoTM) SoftDelete(ctx context.Context, id uint) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *mockSubItemRepoTM) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
+	return nil, nil
+}
+
 func (m *mockSubItemRepoTM) NextSubCode(ctx context.Context, mainItemID uint) (string, error) {
 	args := m.Called(ctx, mainItemID)
 	return args.String(0), args.Error(1)
@@ -1003,7 +1012,7 @@ func TestSubItemDelete_TriggersLinkage(t *testing.T) {
 	svc := NewSubItemService(repo, mainSvc, historySvc)
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
-	repo.On("Delete", mock.Anything, uint(1)).Return(nil)
+	repo.On("SoftDelete", mock.Anything, uint(1)).Return(nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
 	err := svc.Delete(context.Background(), 1, 10, 1)
@@ -1060,7 +1069,7 @@ func TestSubItemDelete_RepoError(t *testing.T) {
 	svc := NewSubItemService(repo, mainSvc, historySvc)
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
-	repo.On("Delete", mock.Anything, uint(1)).Return(errors.New("db error"))
+	repo.On("SoftDelete", mock.Anything, uint(1)).Return(errors.New("db error"))
 
 	err := svc.Delete(context.Background(), 1, 10, 1)
 	assert.Error(t, err)
