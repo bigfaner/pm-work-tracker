@@ -1,0 +1,12 @@
+# E2E Test Configuration
+baseUrl: http://localhost:5173
+
+# Test account credentials (leave empty if no auth required)
+username: "admin"
+password: "admin123"
+
+# Login page locators (uncomment and customize if defaults don't match)
+# loginLocators:
+#   usernameField: "input[name='username']"
+#   passwordField: "input[name='password']"
+#   submitButton: "button[type='submit']"
