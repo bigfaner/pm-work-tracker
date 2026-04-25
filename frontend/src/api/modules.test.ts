@@ -54,136 +54,136 @@ describe('API modules', () => {
       expect(mockClient.get).toHaveBeenCalledWith('/teams', { params: undefined })
     })
 
-    it('getTeamApi should GET /teams/:id', async () => {
+    it('getTeamApi should GET /teams/:bizKey', async () => {
       mockClient.get.mockResolvedValue({})
-      await teamsApi.getTeamApi(5)
-      expect(mockClient.get).toHaveBeenCalledWith('/teams/5')
+      await teamsApi.getTeamApi('team-bk')
+      expect(mockClient.get).toHaveBeenCalledWith('/teams/team-bk')
     })
 
-    it('updateTeamApi should PUT /teams/:id', async () => {
+    it('updateTeamApi should PUT /teams/:bizKey', async () => {
       mockClient.put.mockResolvedValue({})
-      await teamsApi.updateTeamApi(5, { name: 'New' })
-      expect(mockClient.put).toHaveBeenCalledWith('/teams/5', { name: 'New' })
+      await teamsApi.updateTeamApi('team-bk', { name: 'New' })
+      expect(mockClient.put).toHaveBeenCalledWith('/teams/team-bk', { name: 'New' })
     })
 
-    it('deleteTeamApi should DELETE /teams/:id with body', async () => {
+    it('deleteTeamApi should DELETE /teams/:bizKey with body', async () => {
       mockClient.delete.mockResolvedValue(undefined)
-      await teamsApi.deleteTeamApi(5, { confirmName: 'Team' })
-      expect(mockClient.delete).toHaveBeenCalledWith('/teams/5', { data: { confirmName: 'Team' } })
+      await teamsApi.deleteTeamApi('team-bk', { confirmName: 'Team' })
+      expect(mockClient.delete).toHaveBeenCalledWith('/teams/team-bk', { data: { confirmName: 'Team' } })
     })
 
-    it('listMembersApi should GET /teams/:id/members', async () => {
+    it('listMembersApi should GET /teams/:bizKey/members', async () => {
       mockClient.get.mockResolvedValue([])
-      await teamsApi.listMembersApi(5)
-      expect(mockClient.get).toHaveBeenCalledWith('/teams/5/members')
+      await teamsApi.listMembersApi('team-bk')
+      expect(mockClient.get).toHaveBeenCalledWith('/teams/team-bk/members')
     })
 
-    it('inviteMemberApi should POST to /teams/:id/members', async () => {
+    it('inviteMemberApi should POST to /teams/:bizKey/members', async () => {
       mockClient.post.mockResolvedValue(undefined)
-      await teamsApi.inviteMemberApi(5, { username: 'u', roleId: 3 })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/5/members', { username: 'u', roleId: 3 })
+      await teamsApi.inviteMemberApi('team-bk', { username: 'u', roleId: 3 })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/members', { username: 'u', roleId: 3 })
     })
 
-    it('removeMemberApi should DELETE /teams/:teamId/members/:userId', async () => {
+    it('removeMemberApi should DELETE /teams/:bizKey/members/:userId', async () => {
       mockClient.delete.mockResolvedValue(undefined)
-      await teamsApi.removeMemberApi(5, 10)
-      expect(mockClient.delete).toHaveBeenCalledWith('/teams/5/members/10')
+      await teamsApi.removeMemberApi('team-bk', 10)
+      expect(mockClient.delete).toHaveBeenCalledWith('/teams/team-bk/members/10')
     })
 
-    it('transferPmApi should PUT /teams/:id/pm', async () => {
+    it('transferPmApi should PUT /teams/:bizKey/pm', async () => {
       mockClient.put.mockResolvedValue(undefined)
-      await teamsApi.transferPmApi(5, { newPmUserId: 3 })
-      expect(mockClient.put).toHaveBeenCalledWith('/teams/5/pm', { newPmUserId: 3 })
+      await teamsApi.transferPmApi('team-bk', { newPmUserId: 3 })
+      expect(mockClient.put).toHaveBeenCalledWith('/teams/team-bk/pm', { newPmUserId: 3 })
     })
   })
 
   describe('mainItems', () => {
-    it('createMainItemApi should POST /teams/:id/main-items', async () => {
+    it('createMainItemApi should POST /teams/:teamBizKey/main-items', async () => {
       mockClient.post.mockResolvedValue({})
-      await mainItemsApi.createMainItemApi(1, { title: 'Item', priority: 'P0', assigneeId: 0, startDate: '', expectedEndDate: '' })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/1/main-items', { title: 'Item', priority: 'P0', assigneeId: 0, startDate: '', expectedEndDate: '' })
+      await mainItemsApi.createMainItemApi('team-bk', { title: 'Item', priority: 'P0', assigneeId: 0, startDate: '', expectedEndDate: '' })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/main-items', { title: 'Item', priority: 'P0', assigneeId: 0, startDate: '', expectedEndDate: '' })
     })
 
-    it('listMainItemsApi should GET /teams/:id/main-items with params', async () => {
+    it('listMainItemsApi should GET /teams/:teamBizKey/main-items with params', async () => {
       mockClient.get.mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 })
-      await mainItemsApi.listMainItemsApi(1, { status: 'open' })
-      expect(mockClient.get).toHaveBeenCalledWith('/teams/1/main-items', { params: { status: 'open' } })
+      await mainItemsApi.listMainItemsApi('team-bk', { status: 'open' })
+      expect(mockClient.get).toHaveBeenCalledWith('/teams/team-bk/main-items', { params: { status: 'open' } })
     })
 
-    it('getMainItemApi should GET /teams/:id/main-items/:itemId', async () => {
+    it('getMainItemApi should GET /teams/:teamBizKey/main-items/:bizKey', async () => {
       mockClient.get.mockResolvedValue({})
-      await mainItemsApi.getMainItemApi(1, 2)
-      expect(mockClient.get).toHaveBeenCalledWith('/teams/1/main-items/2')
+      await mainItemsApi.getMainItemApi('team-bk', 'item-bk')
+      expect(mockClient.get).toHaveBeenCalledWith('/teams/team-bk/main-items/item-bk')
     })
 
-    it('updateMainItemApi should PUT /teams/:id/main-items/:itemId', async () => {
+    it('updateMainItemApi should PUT /teams/:teamBizKey/main-items/:bizKey', async () => {
       mockClient.put.mockResolvedValue({})
-      await mainItemsApi.updateMainItemApi(1, 2, { title: 'Updated' })
-      expect(mockClient.put).toHaveBeenCalledWith('/teams/1/main-items/2', { title: 'Updated' })
+      await mainItemsApi.updateMainItemApi('team-bk', 'item-bk', { title: 'Updated' })
+      expect(mockClient.put).toHaveBeenCalledWith('/teams/team-bk/main-items/item-bk', { title: 'Updated' })
     })
 
-    it('changeMainItemStatusApi should PUT /teams/:id/main-items/:itemId/status', async () => {
+    it('changeMainItemStatusApi should PUT /teams/:teamBizKey/main-items/:bizKey/status', async () => {
       mockClient.put.mockResolvedValue({ status: 'completed' })
-      await mainItemsApi.changeMainItemStatusApi(1, 2, { status: 'completed' })
-      expect(mockClient.put).toHaveBeenCalledWith('/teams/1/main-items/2/status', { status: 'completed' })
+      await mainItemsApi.changeMainItemStatusApi('team-bk', 'item-bk', { status: 'completed' })
+      expect(mockClient.put).toHaveBeenCalledWith('/teams/team-bk/main-items/item-bk/status', { status: 'completed' })
     })
 
-    it('getMainItemTransitionsApi should GET /teams/:id/main-items/:itemId/available-transitions', async () => {
+    it('getMainItemTransitionsApi should GET /teams/:teamBizKey/main-items/:bizKey/available-transitions', async () => {
       mockClient.get.mockResolvedValue(['progressing', 'closed'])
-      await mainItemsApi.getMainItemTransitionsApi(1, 2)
-      expect(mockClient.get).toHaveBeenCalledWith('/teams/1/main-items/2/available-transitions')
+      await mainItemsApi.getMainItemTransitionsApi('team-bk', 'item-bk')
+      expect(mockClient.get).toHaveBeenCalledWith('/teams/team-bk/main-items/item-bk/available-transitions')
     })
   })
 
   describe('subItems', () => {
     it('createSubItemApi should POST to correct URL', async () => {
       mockClient.post.mockResolvedValue({})
-      await subItemsApi.createSubItemApi(1, 2, { title: 'Sub', priority: 'P1', assigneeId: 3, startDate: '', expectedEndDate: '' })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/1/main-items/2/sub-items', { mainItemId: 2, title: 'Sub', priority: 'P1', assigneeId: 3, startDate: '', expectedEndDate: '' })
+      await subItemsApi.createSubItemApi('team-bk', 'main-bk', { title: 'Sub', priority: 'P1', assigneeId: 3, startDate: '', expectedEndDate: '' })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/main-items/main-bk/sub-items', { mainItemBizKey: 'main-bk', title: 'Sub', priority: 'P1', assigneeId: 3, startDate: '', expectedEndDate: '' })
     })
 
     it('listSubItemsApi should GET with params', async () => {
       mockClient.get.mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 })
-      await subItemsApi.listSubItemsApi(1, 2, { status: 'open' })
-      expect(mockClient.get).toHaveBeenCalledWith('/teams/1/main-items/2/sub-items', { params: { status: 'open' } })
+      await subItemsApi.listSubItemsApi('team-bk', 'main-bk', { status: 'open' })
+      expect(mockClient.get).toHaveBeenCalledWith('/teams/team-bk/main-items/main-bk/sub-items', { params: { status: 'open' } })
     })
 
-    it('getSubItemApi should GET /teams/:id/sub-items/:itemId', async () => {
+    it('getSubItemApi should GET /teams/:teamBizKey/sub-items/:bizKey', async () => {
       mockClient.get.mockResolvedValue({})
-      await subItemsApi.getSubItemApi(1, 3)
-      expect(mockClient.get).toHaveBeenCalledWith('/teams/1/sub-items/3')
+      await subItemsApi.getSubItemApi('team-bk', 'sub-bk')
+      expect(mockClient.get).toHaveBeenCalledWith('/teams/team-bk/sub-items/sub-bk')
     })
 
-    it('updateSubItemApi should PUT /teams/:id/sub-items/:itemId', async () => {
+    it('updateSubItemApi should PUT /teams/:teamBizKey/sub-items/:bizKey', async () => {
       mockClient.put.mockResolvedValue({})
-      await subItemsApi.updateSubItemApi(1, 3, { title: 'Updated' })
-      expect(mockClient.put).toHaveBeenCalledWith('/teams/1/sub-items/3', { title: 'Updated' })
+      await subItemsApi.updateSubItemApi('team-bk', 'sub-bk', { title: 'Updated' })
+      expect(mockClient.put).toHaveBeenCalledWith('/teams/team-bk/sub-items/sub-bk', { title: 'Updated' })
     })
 
     it('changeSubItemStatusApi should PUT to status endpoint', async () => {
       mockClient.put.mockResolvedValue(undefined)
-      await subItemsApi.changeSubItemStatusApi(1, 3, { status: 'done' })
-      expect(mockClient.put).toHaveBeenCalledWith('/teams/1/sub-items/3/status', { status: 'done' })
+      await subItemsApi.changeSubItemStatusApi('team-bk', 'sub-bk', { status: 'done' })
+      expect(mockClient.put).toHaveBeenCalledWith('/teams/team-bk/sub-items/sub-bk/status', { status: 'done' })
     })
 
-    it('getSubItemTransitionsApi should GET /teams/:id/sub-items/:subId/available-transitions', async () => {
+    it('getSubItemTransitionsApi should GET /teams/:teamBizKey/sub-items/:bizKey/available-transitions', async () => {
       mockClient.get.mockResolvedValue(['progressing', 'completed'])
-      await subItemsApi.getSubItemTransitionsApi(1, 3)
-      expect(mockClient.get).toHaveBeenCalledWith('/teams/1/sub-items/3/available-transitions')
+      await subItemsApi.getSubItemTransitionsApi('team-bk', 'sub-bk')
+      expect(mockClient.get).toHaveBeenCalledWith('/teams/team-bk/sub-items/sub-bk/available-transitions')
     })
   })
 
   describe('progress', () => {
     it('appendProgressApi should POST to progress endpoint', async () => {
       mockClient.post.mockResolvedValue({})
-      await progressApi.appendProgressApi(1, 2, { completion: 80 })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/1/sub-items/2/progress', { completion: 80 })
+      await progressApi.appendProgressApi('team-bk', 'sub-bk', { completion: 80 })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/sub-items/sub-bk/progress', { completion: 80 })
     })
 
     it('listProgressApi should GET progress list', async () => {
       mockClient.get.mockResolvedValue([])
-      await progressApi.listProgressApi(1, 2)
-      expect(mockClient.get).toHaveBeenCalledWith('/teams/1/sub-items/2/progress')
+      await progressApi.listProgressApi('team-bk', 'sub-bk')
+      expect(mockClient.get).toHaveBeenCalledWith('/teams/team-bk/sub-items/sub-bk/progress')
     })
 
   })
@@ -203,14 +203,14 @@ describe('API modules', () => {
 
     it('assignItemPoolApi should POST to assign endpoint', async () => {
       mockClient.post.mockResolvedValue({ subItemId: 10 })
-      await itemPoolApi.assignItemPoolApi(1, 3, { mainItemId: 2, assigneeId: 5, priority: 'P2', startDate: '', expectedEndDate: '' })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/1/item-pool/3/assign', { mainItemId: 2, assigneeId: 5, priority: 'P2', startDate: '', expectedEndDate: '' })
+      await itemPoolApi.assignItemPoolApi('team-bk', 'pool-bk', { mainItemId: 2, assigneeId: 5, priority: 'P2', startDate: '', expectedEndDate: '' })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/item-pool/pool-bk/assign', { mainItemId: 2, assigneeId: 5, priority: 'P2', startDate: '', expectedEndDate: '' })
     })
 
     it('rejectItemPoolApi should POST to reject endpoint', async () => {
       mockClient.post.mockResolvedValue({})
-      await itemPoolApi.rejectItemPoolApi(1, 3, { reason: 'bad' })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/1/item-pool/3/reject', { reason: 'bad' })
+      await itemPoolApi.rejectItemPoolApi('team-bk', 'pool-bk', { reason: 'bad' })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/item-pool/pool-bk/reject', { reason: 'bad' })
     })
   })
 

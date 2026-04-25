@@ -9,12 +9,12 @@ import type {
   PageResult,
 } from '@/types'
 
-export function createMainItemApi(teamId: number, req: CreateMainItemReq): Promise<MainItem> {
-  return client.post<never, MainItem>(`/teams/${teamId}/main-items`, req)
+export function createMainItemApi(teamBizKey: string, req: CreateMainItemReq): Promise<MainItem> {
+  return client.post<never, MainItem>(`/teams/${teamBizKey}/main-items`, req)
 }
 
-export function listMainItemsApi(teamId: number, filter?: MainItemFilter): Promise<PageResult<MainItem>> {
-  return client.get<never, PageResult<MainItem>>(`/teams/${teamId}/main-items`, { params: filter })
+export function listMainItemsApi(teamBizKey: string, filter?: MainItemFilter): Promise<PageResult<MainItem>> {
+  return client.get<never, PageResult<MainItem>>(`/teams/${teamBizKey}/main-items`, { params: filter })
 }
 
 export type MainItemDetailResp = MainItem & {
@@ -23,19 +23,19 @@ export type MainItemDetailResp = MainItem & {
   blockers?: string[]
 }
 
-export function getMainItemApi(teamId: number, itemId: number): Promise<MainItemDetailResp> {
-  return client.get<never, MainItemDetailResp>(`/teams/${teamId}/main-items/${itemId}`)
+export function getMainItemApi(teamBizKey: string, bizKey: string): Promise<MainItemDetailResp> {
+  return client.get<never, MainItemDetailResp>(`/teams/${teamBizKey}/main-items/${bizKey}`)
 }
 
-export function updateMainItemApi(teamId: number, itemId: number, req: UpdateMainItemReq): Promise<MainItem> {
-  return client.put<never, MainItem>(`/teams/${teamId}/main-items/${itemId}`, req)
+export function updateMainItemApi(teamBizKey: string, bizKey: string, req: UpdateMainItemReq): Promise<MainItem> {
+  return client.put<never, MainItem>(`/teams/${teamBizKey}/main-items/${bizKey}`, req)
 }
 
-export function changeMainItemStatusApi(teamId: number, itemId: number, req: ChangeStatusReq): Promise<MainItem> {
-  return client.put<never, MainItem>(`/teams/${teamId}/main-items/${itemId}/status`, req)
+export function changeMainItemStatusApi(teamBizKey: string, bizKey: string, req: ChangeStatusReq): Promise<MainItem> {
+  return client.put<never, MainItem>(`/teams/${teamBizKey}/main-items/${bizKey}/status`, req)
 }
 
-export function getMainItemTransitionsApi(teamId: number, itemId: number): Promise<string[]> {
-  return client.get<never, { transitions: string[] }>(`/teams/${teamId}/main-items/${itemId}/available-transitions`)
+export function getMainItemTransitionsApi(teamBizKey: string, bizKey: string): Promise<string[]> {
+  return client.get<never, { transitions: string[] }>(`/teams/${teamBizKey}/main-items/${bizKey}/available-transitions`)
     .then((res) => res.transitions ?? [])
 }
