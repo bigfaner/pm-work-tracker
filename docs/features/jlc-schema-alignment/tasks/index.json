@@ -56,7 +56,7 @@
         "1.2",
         "1.3"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.2-team-table-alignment.md",
       "record": "records/2.2-team-table-alignment.md"
     },
@@ -72,7 +72,7 @@
         "2.1",
         "2.2"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.3a-main-item-model-repo.md",
       "record": "records/2.3a-main-item-model-repo.md"
     },
