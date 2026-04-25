@@ -33,7 +33,7 @@ export default function MainItemDetailPage() {
   const { mainItemId } = useParams<{ mainItemId: string }>()
   const teamId = useTeamStore((s) => s.currentTeamId)
   const qc = useQueryClient()
-  const itemId = Number(mainItemId)
+  const itemId = mainItemId!
   // State
   const [expanded, setExpanded] = useState(false)
   const today = () => new Date().toISOString().slice(0, 10)
@@ -55,13 +55,13 @@ export default function MainItemDetailPage() {
 
   const { data: item, isLoading } = useQuery({
     queryKey: ['mainItem', teamId, itemId],
-    queryFn: () => getMainItemApi(teamId!, itemId),
+    queryFn: () => getMainItemApi(String(teamId!), itemId),
     enabled: !!teamId && !!itemId,
   })
 
   const { data: members } = useQuery({
     queryKey: ['members', teamId],
-    queryFn: () => listMembersApi(teamId!),
+    queryFn: () => listMembersApi(String(teamId!)),
     enabled: !!teamId,
   })
 
@@ -73,9 +73,9 @@ export default function MainItemDetailPage() {
       setEditForm({
         title: item.title,
         priority: item.priority,
-        assigneeId: item.assigneeId ? String(item.assigneeId) : '',
+        assigneeId: item.assigneeKey ? String(item.assigneeKey) : '',
         expectedEndDate: item.expectedEndDate || '',
-        description: item.description || '',
+        description: item.itemDesc || '',
       })
     }
   }, [item])
@@ -84,7 +84,7 @@ export default function MainItemDetailPage() {
 
   const updateMutation = useMutation({
     mutationFn: (req: { title?: string; priority?: string; assigneeId?: number | null; expectedEndDate?: string | null; actualEndDate?: string | null; description?: string }) =>
-      updateMainItemApi(teamId!, itemId, req),
+      updateMainItemApi(String(teamId!), itemId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       setEditOpen(false)
@@ -93,7 +93,7 @@ export default function MainItemDetailPage() {
 
   const createSubMutation = useMutation({
     mutationFn: (req: { title: string; priority: string; assigneeId: number; startDate?: string; expectedEndDate?: string; description?: string }) =>
-      createSubItemApi(teamId!, itemId, req),
+      createSubItemApi(String(teamId!), itemId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       setCreateSubOpen(false)
@@ -102,8 +102,8 @@ export default function MainItemDetailPage() {
   })
 
   const updateSubMutation = useMutation({
-    mutationFn: ({ subId, req }: { subId: number; req: { title?: string; priority?: string; expectedEndDate?: string; description?: string } }) =>
-      updateSubItemApi(teamId!, subId, req),
+    mutationFn: ({ subId, req }: { subId: string; req: { title?: string; priority?: string; expectedEndDate?: string; description?: string } }) =>
+      updateSubItemApi(String(teamId!), subId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       setEditSubOpen(false)
@@ -112,8 +112,8 @@ export default function MainItemDetailPage() {
   })
 
   const appendProgressMutation = useMutation({
-    mutationFn: ({ subId, req }: { subId: number; req: { completion: number; achievement?: string; blocker?: string } }) =>
-      appendProgressApi(teamId!, subId, req),
+    mutationFn: ({ subId, req }: { subId: string; req: { completion: number; achievement?: string; blocker?: string } }) =>
+      appendProgressApi(String(teamId!), subId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       setAppendProgressOpen(false)
@@ -153,7 +153,7 @@ export default function MainItemDetailPage() {
       title: sub.title,
       priority: sub.priority,
       expectedEndDate: sub.expectedEndDate || '',
-      description: sub.description || '',
+      description: sub.itemDesc || '',
     })
     setEditSubOpen(true)
   }, [])
@@ -161,7 +161,7 @@ export default function MainItemDetailPage() {
   const handleEditSub = useCallback(() => {
     if (!editSubTarget || !editSubForm.title.trim()) return
     updateSubMutation.mutate({
-      subId: editSubTarget.id,
+      subId: editSubTarget.bizKey,
       req: {
         title: editSubForm.title.trim(),
         priority: editSubForm.priority,
@@ -180,7 +180,7 @@ export default function MainItemDetailPage() {
   const handleAppendProgress = useCallback(() => {
     if (!appendProgressTarget || appendProgressForm.completion === '') return
     appendProgressMutation.mutate({
-      subId: appendProgressTarget.id,
+      subId: appendProgressTarget.bizKey,
       req: {
         completion: Number(appendProgressForm.completion),
         ...(appendProgressForm.achievement && { achievement: appendProgressForm.achievement }),
@@ -190,7 +190,7 @@ export default function MainItemDetailPage() {
   }, [appendProgressTarget, appendProgressForm, appendProgressMutation])
 
   const subItems: SubItem[] = item?.subItems || []
-  const completedCount = subItems.filter((s) => s.status === 'completed').length
+  const completedCount = subItems.filter((s) => s.itemStatus === 'completed').length
   const completion = item?.completion ?? 0
 
   // --- Render ---
@@ -216,10 +216,10 @@ export default function MainItemDetailPage() {
             <Badge variant="default" className="font-mono">{item.code}</Badge>
             <h1 className="text-xl font-semibold text-primary m-0">{item.title}</h1>
             <PriorityBadge priority={item.priority} />
-            <StatusTransitionDropdown currentStatus={item.status} itemType="main" teamId={teamId!} itemId={item.id} onStatusChanged={() => { qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] }) }} />
+            <StatusTransitionDropdown currentStatus={item.itemStatus} itemType="main" teamId={teamId!} itemId={item.bizKey} onStatusChanged={() => { qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] }) }} />
             <div className="flex-1" />
             <PermissionGuard code="main_item:update">
-              <Button variant="secondary" disabled={!!MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal} onClick={() => setEditOpen(true)}>
+              <Button variant="secondary" disabled={!!MAIN_ITEM_STATUSES[item.itemStatus as keyof typeof MAIN_ITEM_STATUSES]?.terminal} onClick={() => setEditOpen(true)}>
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
@@ -229,12 +229,12 @@ export default function MainItemDetailPage() {
           </div>
           {/* Info Grid */}
           <ItemInfoCard
-            assigneeName={memberName(item.assigneeId)}
-            startDate={item.startDate}
+            assigneeName={memberName(item.assigneeKey ? Number(item.assigneeKey) : null)}
+            startDate={item.planStartDate}
             expectedEndDate={item.expectedEndDate}
             actualEndDate={item.actualEndDate}
-            status={item.status}
-            description={item.description}
+            status={item.itemStatus}
+            description={item.itemDesc}
           />
           {/* Progress & Summary Card */}
           <ProgressSummaryCard
@@ -249,8 +249,8 @@ export default function MainItemDetailPage() {
           {/* Sub-items Table */}
           <SubItemsTable
             subItems={subItems}
-            mainItemId={item.id}
-            mainStatus={item.status}
+            mainItemId={item.bizKey}
+            mainStatus={item.itemStatus}
             teamId={teamId!}
             memberName={memberName}
             onStatusChanged={() => { qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] }) }}

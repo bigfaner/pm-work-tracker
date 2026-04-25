@@ -68,20 +68,20 @@ interface PoolItemCardProps {
 }
 
 function PoolItemCard({ item, onConvertToMain, onConvertToSub, onReject }: PoolItemCardProps) {
-  const isPending = item.status === 'pending'
+  const isPending = item.poolStatus === 'pending'
 
   return (
     <div
-      data-testid={`pool-item-${item.id}`}
-      className={`rounded-xl border border-border bg-white shadow-sm ${STATUS_BORDER[item.status] || ''}`}
+      data-testid={`pool-item-${item.bizKey}`}
+      className={`rounded-xl border border-border bg-white shadow-sm ${STATUS_BORDER[item.poolStatus] || ''}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-primary max-w-xs truncate" title={item.title}>{item.title}</span>
-          <Badge variant={STATUS_BADGE_VARIANT[item.status]}>{STATUS_LABEL[item.status]}</Badge>
+          <Badge variant={STATUS_BADGE_VARIANT[item.poolStatus]}>{STATUS_LABEL[item.poolStatus]}</Badge>
         </div>
-        <span className="text-xs text-tertiary">{formatRelativeTime(item.createdAt)}</span>
+        <span className="text-xs text-tertiary">{formatRelativeTime(item.createTime)}</span>
       </div>
 
       {/* Body */}
@@ -96,15 +96,15 @@ function PoolItemCard({ item, onConvertToMain, onConvertToSub, onReject }: PoolI
             <span className="text-tertiary">预期产出：</span>{item.expectedOutput}
           </p>
         )}
-        {item.status === 'assigned' && item.assignedMainId && (
+        {item.poolStatus === 'assigned' && item.assignedMainKey && (
           <div className="mt-2 text-[13px] text-secondary">
-            {item.assignedSubId ? '已转为子事项挂载至：' : '已转为主事项：'}
-            <Link to={`/items/${item.assignedMainId}`} className="font-medium text-primary-600 hover:text-primary-700 hover:underline">
-              {item.assignedMainCode ? `${item.assignedMainCode} ${item.assignedMainTitle}` : `主事项 #${item.assignedMainId}`}
+            {item.assignedSubKey ? '已转为子事项挂载至：' : '已转为主事项：'}
+            <Link to={`/items/${item.assignedMainKey}`} className="font-medium text-primary-600 hover:text-primary-700 hover:underline">
+              {item.assignedMainCode ? `${item.assignedMainCode} ${item.assignedMainTitle}` : `主事项 #${item.assignedMainKey}`}
             </Link>
           </div>
         )}
-        {item.status === 'rejected' && item.rejectReason && (
+        {item.poolStatus === 'rejected' && item.rejectReason && (
           <div className="mt-2 text-[13px] text-tertiary">
             拒绝原因：{item.rejectReason}
           </div>
@@ -115,15 +115,15 @@ function PoolItemCard({ item, onConvertToMain, onConvertToSub, onReject }: PoolI
       {isPending && (
         <PermissionGuard code="item_pool:review">
           <div className="flex justify-end gap-2 px-5 py-2 border-t border-border/50">
-            <Button variant="ghost" size="sm" className="text-primary-600" data-testid={`to-main-${item.id}`} onClick={() => onConvertToMain(item)}>
+            <Button variant="ghost" size="sm" className="text-primary-600" data-testid={`to-main-${item.bizKey}`} onClick={() => onConvertToMain(item)}>
               <ArrowUpCircle className="w-3.5 h-3.5" />
               转为主事项
             </Button>
-            <Button variant="ghost" size="sm" className="text-primary-600" data-testid={`to-sub-${item.id}`} onClick={() => onConvertToSub(item)}>
+            <Button variant="ghost" size="sm" className="text-primary-600" data-testid={`to-sub-${item.bizKey}`} onClick={() => onConvertToSub(item)}>
               <ArrowDownCircle className="w-3.5 h-3.5" />
               转为子事项
             </Button>
-            <Button variant="ghost" size="sm" className="text-error" data-testid={`reject-${item.id}`} onClick={() => onReject(item)}>
+            <Button variant="ghost" size="sm" className="text-error" data-testid={`reject-${item.bizKey}`} onClick={() => onReject(item)}>
               <XCircle className="w-3.5 h-3.5" />
               拒绝
             </Button>
@@ -172,7 +172,7 @@ export default function ItemPoolPage() {
     refetch,
   } = useInfiniteQuery({
     queryKey: ['itemPool', teamId],
-    queryFn: ({ pageParam }) => listItemPoolApi(teamId!, { page: pageParam as number, pageSize: POOL_BATCH_SIZE }),
+    queryFn: ({ pageParam }) => listItemPoolApi(String(teamId!), { page: pageParam as number, pageSize: POOL_BATCH_SIZE }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       const totalPages = Math.ceil(lastPage.total / lastPage.size)
@@ -183,13 +183,13 @@ export default function ItemPoolPage() {
 
   const { data: membersData } = useQuery({
     queryKey: ['members', teamId],
-    queryFn: () => listMembersApi(teamId!),
+    queryFn: () => listMembersApi(String(teamId!)),
     enabled: !!teamId,
   })
 
   const { data: mainItemsData } = useQuery({
     queryKey: ['mainItemsList', teamId],
-    queryFn: () => listMainItemsApi(teamId!),
+    queryFn: () => listMainItemsApi(String(teamId!)),
     enabled: !!teamId,
   })
 
@@ -209,11 +209,11 @@ export default function ItemPoolPage() {
       items = items.filter(
         (item) =>
           item.title.toLowerCase().includes(q) ||
-          `pool-${String(item.id).padStart(3, '0')}`.includes(q),
+          `pool-${String(item.bizKey).padStart(3, '0')}`.includes(q),
       )
     }
     if (statusFilter) {
-      items = items.filter((item) => item.status === statusFilter)
+      items = items.filter((item) => item.poolStatus === statusFilter)
     }
     return items
   }, [allItems, searchText, statusFilter])
@@ -243,7 +243,7 @@ export default function ItemPoolPage() {
 
   const submitMutation = useMutation({
     mutationFn: (req: { title: string; background?: string; expectedOutput?: string }) =>
-      submitItemPoolApi(teamId!, req),
+      submitItemPoolApi(String(teamId!), req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
       setSubmitOpen(false)
@@ -252,8 +252,8 @@ export default function ItemPoolPage() {
   })
 
   const assignMutation = useMutation({
-    mutationFn: ({ poolId, req }: { poolId: number; req: AssignItemPoolReq }) =>
-      assignItemPoolApi(teamId!, poolId, req),
+    mutationFn: ({ poolId, req }: { poolId: string; req: AssignItemPoolReq }) =>
+      assignItemPoolApi(String(teamId!), poolId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
       qc.invalidateQueries({ queryKey: ['mainItemsList', teamId] })
@@ -263,8 +263,8 @@ export default function ItemPoolPage() {
   })
 
   const convertToMainMutation = useMutation({
-    mutationFn: ({ poolId, req }: { poolId: number; req: ConvertToMainItemReq }) =>
-      convertToMainApi(teamId!, poolId, req),
+    mutationFn: ({ poolId, req }: { poolId: string; req: ConvertToMainItemReq }) =>
+      convertToMainApi(String(teamId!), poolId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
       qc.invalidateQueries({ queryKey: ['mainItemsList', teamId] })
@@ -274,8 +274,8 @@ export default function ItemPoolPage() {
   })
 
   const rejectMutation = useMutation({
-    mutationFn: ({ poolId, req }: { poolId: number; req: { reason: string } }) =>
-      rejectItemPoolApi(teamId!, poolId, req),
+    mutationFn: ({ poolId, req }: { poolId: string; req: { reason: string } }) =>
+      rejectItemPoolApi(String(teamId!), poolId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
       setRejectOpen(false)
@@ -321,7 +321,7 @@ export default function ItemPoolPage() {
   const handleToMain = useCallback(() => {
     if (!selectedItem) return
     convertToMainMutation.mutate({
-      poolId: selectedItem.id,
+      poolId: selectedItem.bizKey,
       req: {
         priority: toMainForm.priority || 'P2',
         assigneeId: toMainForm.assigneeId ? Number(toMainForm.assigneeId) : 0,
@@ -334,7 +334,7 @@ export default function ItemPoolPage() {
   const handleToSub = useCallback(() => {
     if (!selectedItem || !toSubForm.parentItemId) return
     assignMutation.mutate({
-      poolId: selectedItem.id,
+      poolId: selectedItem.bizKey,
       req: {
         mainItemId: Number(toSubForm.parentItemId),
         assigneeId: toSubForm.assigneeId ? Number(toSubForm.assigneeId) : 0,
@@ -348,7 +348,7 @@ export default function ItemPoolPage() {
   const handleReject = useCallback(() => {
     if (!selectedItem || !rejectForm.reason.trim()) return
     rejectMutation.mutate({
-      poolId: selectedItem.id,
+      poolId: selectedItem.bizKey,
       req: { reason: rejectForm.reason.trim() },
     })
   }, [selectedItem, rejectForm, rejectMutation])
@@ -413,7 +413,7 @@ export default function ItemPoolPage() {
             <div className="space-y-3">
               {visibleItems.map((item) => (
                 <PoolItemCard
-                  key={item.id}
+                  key={item.bizKey}
                   item={item}
                   onConvertToMain={openConvertToMain}
                   onConvertToSub={openConvertToSub}
@@ -561,7 +561,7 @@ export default function ItemPoolPage() {
                     <SelectContent>
                       <SelectItem value="_none">请选择主事项</SelectItem>
                       {mainItems.map((mi) => (
-                        <SelectItem key={mi.id} value={String(mi.id)}>
+                        <SelectItem key={mi.bizKey} value={String(mi.bizKey)}>
                           {mi.code} {mi.title}
                         </SelectItem>
                       ))}

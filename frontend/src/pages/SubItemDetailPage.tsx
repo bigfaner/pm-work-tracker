@@ -47,8 +47,8 @@ export default function SubItemDetailPage() {
   const { mainItemId, subItemId } = useParams<{ mainItemId: string; subItemId: string }>()
   const teamId = useTeamStore((s) => s.currentTeamId)
   const qc = useQueryClient()
-  const mId = Number(mainItemId)
-  const sId = Number(subItemId)
+  const mId = mainItemId!
+  const sId = subItemId!
 
   // State
   const [appendOpen, setAppendOpen] = useState(false)
@@ -64,25 +64,25 @@ export default function SubItemDetailPage() {
 
   const { data: subItem, isLoading: subLoading } = useQuery({
     queryKey: ['subItem', teamId, sId],
-    queryFn: () => getSubItemApi(teamId!, sId),
+    queryFn: () => getSubItemApi(String(teamId!), sId),
     enabled: !!teamId && !!sId,
   })
 
   const { data: mainItem } = useQuery({
     queryKey: ['mainItem', teamId, mId],
-    queryFn: () => getMainItemApi(teamId!, mId),
+    queryFn: () => getMainItemApi(String(teamId!), mId),
     enabled: !!teamId && !!mId,
   })
 
   const { data: progressRecords } = useQuery({
     queryKey: ['progress', teamId, sId],
-    queryFn: () => listProgressApi(teamId!, sId),
+    queryFn: () => listProgressApi(String(teamId!), sId),
     enabled: !!teamId && !!sId,
   })
 
   const { data: members } = useQuery({
     queryKey: ['members', teamId],
-    queryFn: () => listMembersApi(teamId!),
+    queryFn: () => listMembersApi(String(teamId!)),
     enabled: !!teamId,
   })
 
@@ -97,7 +97,7 @@ export default function SubItemDetailPage() {
 
   const editMutation = useMutation({
     mutationFn: (req: { title: string; priority: string; assigneeId?: number; expectedEndDate?: string; description?: string }) =>
-      updateSubItemApi(teamId!, sId, req),
+      updateSubItemApi(String(teamId!), sId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['subItem', teamId, sId] })
       setEditOpen(false)
@@ -106,7 +106,7 @@ export default function SubItemDetailPage() {
 
   const appendMutation = useMutation({
     mutationFn: (req: { completion: number; achievement?: string; blocker?: string }) =>
-      appendProgressApi(teamId!, sId, req),
+      appendProgressApi(String(teamId!), sId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['progress', teamId, sId] })
       qc.invalidateQueries({ queryKey: ['subItem', teamId, sId] })
@@ -117,10 +117,10 @@ export default function SubItemDetailPage() {
 
   const achievementStatusMutation = useMutation({
     mutationFn: async (status: string) => {
-      await changeSubItemStatusApi(teamId!, sId, { status })
+      await changeSubItemStatusApi(String(teamId!), sId, { status })
       const achievement = achievementText.trim()
       if (achievement) {
-        await appendProgressApi(teamId!, sId, { completion: 100, achievement })
+        await appendProgressApi(String(teamId!), sId, { completion: 100, achievement })
       }
     },
     onSuccess: () => {
@@ -188,7 +188,7 @@ export default function SubItemDetailPage() {
 
   // Terminal status guard
   const isTerminalStatus = subItem
-    ? !!(SUB_ITEM_STATUSES[subItem.status as keyof typeof SUB_ITEM_STATUSES]?.terminal)
+    ? !!(SUB_ITEM_STATUSES[subItem.itemStatus as keyof typeof SUB_ITEM_STATUSES]?.terminal)
     : false
 
   // --- Render ---
@@ -222,7 +222,7 @@ export default function SubItemDetailPage() {
             <h1 className="text-xl font-semibold text-primary m-0">{subItem.title}</h1>
             <PriorityBadge priority={subItem.priority} />
             <StatusTransitionDropdown
-              currentStatus={subItem.status}
+              currentStatus={subItem.itemStatus}
               itemType="sub"
               teamId={teamId!}
               itemId={sId}
@@ -235,9 +235,9 @@ export default function SubItemDetailPage() {
                 setEditForm({
                   title: subItem.title,
                   priority: subItem.priority,
-                  assigneeId: subItem.assigneeId ? String(subItem.assigneeId) : '',
+                  assigneeId: subItem.assigneeKey ? String(subItem.assigneeKey) : '',
                   expectedEndDate: subItem.expectedEndDate || '',
-                  description: subItem.description || '',
+                  description: subItem.itemDesc || '',
                 })
                 setEditOpen(true)
               }}>
@@ -255,17 +255,17 @@ export default function SubItemDetailPage() {
               <div className="grid grid-cols-4 gap-4 mb-4">
                 <div>
                   <div className="text-xs text-tertiary mb-1">负责人</div>
-                  <span className="text-[13px] font-medium">{memberName(subItem.assigneeId)}</span>
+                  <span className="text-[13px] font-medium">{memberName(subItem.assigneeKey ? Number(subItem.assigneeKey) : null)}</span>
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">开始时间</div>
-                  <span className="text-[13px] font-medium">{formatDate(subItem.startDate)}</span>
+                  <span className="text-[13px] font-medium">{formatDate(subItem.planStartDate)}</span>
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">预期完成时间</div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[13px] font-medium">{formatDate(subItem.expectedEndDate)}</span>
-                    {isOverdue(subItem.expectedEndDate ?? undefined, subItem.status, new Date()) && (
+                    {isOverdue(subItem.expectedEndDate ?? undefined, subItem.itemStatus, new Date()) && (
                       <Badge variant="error">延期</Badge>
                     )}
                   </div>
@@ -277,7 +277,7 @@ export default function SubItemDetailPage() {
               </div>
               <div>
                 <div className="text-xs text-tertiary mb-1">描述</div>
-                <span className="text-[13px] text-secondary leading-relaxed">{subItem.description || '暂无描述'}</span>
+                <span className="text-[13px] text-secondary leading-relaxed">{subItem.itemDesc || '暂无描述'}</span>
               </div>
             </CardContent>
           </Card>
@@ -306,11 +306,11 @@ export default function SubItemDetailPage() {
                 <div className="text-tertiary text-sm">暂无进度记录</div>
               ) : (
                 <div className="relative pl-6 border-l-2 border-border space-y-5">
-                  {sortedRecords.map((record) => {
-                    const date = new Date(record.createdAt)
+                  {sortedRecords.map((record, idx) => {
+                    const date = new Date(record.createTime)
                     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
                     return (
-                      <div key={record.id} className="relative">
+                      <div key={`${record.createTime}-${idx}`} className="relative">
                         {/* Timeline dot */}
                         <div className="absolute -left-6.25 top-1 w-2.5 h-2.5 rounded-full bg-primary-500 border-2 border-white" />
                         <div className="mb-1">

@@ -61,7 +61,7 @@ export default function TeamDetailPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { addToast } = useToast()
-  const numericTeamId = Number(teamId)
+  const numericTeamId = teamId!
 
   // --- Data fetching ---
 
@@ -86,10 +86,10 @@ export default function TeamDetailPage() {
 
   const roles = useMemo(() => {
     if (!rolesData?.items) return []
-    return rolesData.items.filter((r) => r.name !== 'superadmin' && r.name !== 'pm')
+    return rolesData.items.filter((r) => r.roleName !== 'superadmin' && r.roleName !== 'pm')
   }, [rolesData])
 
-  const defaultRoleId = roles.find((r) => r.name === 'member')?.id ?? roles[0]?.id
+  const defaultRoleId = roles.find((r) => r.roleName === 'member')?.id ?? roles[0]?.id
 
   const isLoading = teamLoading || membersLoading
 
@@ -232,7 +232,7 @@ export default function TeamDetailPage() {
   }
 
   const isPm = (member: TeamMemberResp) => member.role === 'pm'
-  const isSelf = (member: TeamMemberResp) => member.userId === currentUser?.id
+  const isSelf = (member: TeamMemberResp) => currentUser != null && member.userId === Number(currentUser.bizKey)
 
   return (
     <div data-testid="team-detail-page">
@@ -425,7 +425,7 @@ export default function TeamDetailPage() {
               <SelectContent>
                 {roles.map((role) => (
                   <SelectItem key={role.id} value={String(role.id)}>
-                    {role.name}
+                    {role.roleName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -546,7 +546,7 @@ export default function TeamDetailPage() {
                   <SelectContent>
                     {roles.map((role) => (
                       <SelectItem key={role.id} value={String(role.id)}>
-                        {role.name}
+                        {role.roleName}
                       </SelectItem>
                     ))}
                   </SelectContent>

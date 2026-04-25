@@ -55,7 +55,7 @@ export default function TeamManagementPage() {
 
   // Add member dialog state
   const [addMemberOpen, setAddMemberOpen] = useState(false)
-  const [addMemberTeamId, setAddMemberTeamId] = useState<number | null>(null)
+  const [addMemberTeamId, setAddMemberTeamId] = useState<string | null>(null)
   const [userSearch, setUserSearch] = useState('')
   const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null)
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
@@ -84,10 +84,10 @@ export default function TeamManagementPage() {
 
   const roles = useMemo(() => {
     if (!rolesData?.items) return []
-    return rolesData.items.filter((r) => r.name !== 'superadmin' && r.name !== 'pm')
+    return rolesData.items.filter((r) => r.roleName !== 'superadmin' && r.roleName !== 'pm')
   }, [rolesData])
 
-  const defaultRoleId = roles.find((r) => r.name === 'member')?.id ?? roles[0]?.id
+  const defaultRoleId = roles.find((r) => r.roleName === 'member')?.id ?? roles[0]?.id
 
   // User search for add member dialog
   const { data: userSearchResults = [] } = useQuery({
@@ -143,7 +143,7 @@ export default function TeamManagementPage() {
     setInviteRoleId(undefined)
   }, [])
 
-  const openAddMemberDialog = useCallback((teamId: number) => {
+  const openAddMemberDialog = useCallback((teamId: string) => {
     setAddMemberTeamId(teamId)
     setInviteRoleId(defaultRoleId)
     setUserSearch('')
@@ -229,13 +229,13 @@ export default function TeamManagementPage() {
             </TableHeader>
             <TableBody>
               {teamList.map((team) => (
-                <TableRow key={team.id}>
+                <TableRow key={team.bizKey}>
                   <TableCell>
                     <Link
-                      to={`/teams/${team.id}`}
+                      to={`/teams/${team.bizKey}`}
                       className="font-medium text-primary-600 hover:text-primary-700 hover:underline"
                     >
-                      {team.name}
+                      {team.teamName}
                     </Link>
                   </TableCell>
                   <TableCell>
@@ -246,12 +246,12 @@ export default function TeamManagementPage() {
                   </TableCell>
                   <TableCell>
                     <span className="text-[13px] text-secondary" style={{ maxWidth: 200 }}>
-                      {team.description || '-'}
+                      {team.teamDesc || '-'}
                     </span>
                   </TableCell>
                   <TableCell>
                     <span className="text-[13px] text-secondary">
-                      {formatDate(team.createdAt)}
+                      {formatDate(team.createTime)}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -260,8 +260,8 @@ export default function TeamManagementPage() {
                         variant="ghost"
                         size="sm"
                         className="text-primary-600"
-                        onClick={() => openAddMemberDialog(team.id)}
-                        data-testid={`add-member-btn-${team.id}`}
+                        onClick={() => openAddMemberDialog(team.bizKey)}
+                        data-testid={`add-member-btn-${team.bizKey}`}
                       >
                         <UserPlus className="w-3.5 h-3.5" />
                         添加成员
@@ -402,7 +402,7 @@ export default function TeamManagementPage() {
                   <SelectContent>
                     {roles.map((role) => (
                       <SelectItem key={role.id} value={String(role.id)}>
-                        {role.name}
+                        {role.roleName}
                       </SelectItem>
                     ))}
                   </SelectContent>

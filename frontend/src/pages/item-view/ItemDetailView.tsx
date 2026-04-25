@@ -21,7 +21,7 @@ import { isOverdue } from '@/lib/status'
 
 interface DetailViewProps {
   items: (MainItem & { subItems?: SubItem[] })[]
-  subItemsMap: Record<number, SubItem[]>
+  subItemsMap: Record<string, SubItem[]>
   memberName: (id: number | null) => string
   formatDate: (date: string | null) => string
   teamId: number
@@ -32,9 +32,9 @@ interface DetailViewProps {
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
   totalItems: number
-  onAddSubItem: (mainItemId: number, mainItemTitle: string) => void
+  onAddSubItem: (mainItemId: string, mainItemTitle: string) => void
   onEditMainItem: (item: MainItem) => void
-  onAppendProgress: (subItemId: number, subItemTitle: string, subItemCompletion: number) => void
+  onAppendProgress: (subItemId: string, subItemTitle: string, subItemCompletion: number) => void
   onEditSubItem: (sub: SubItem) => void
 }
 
@@ -76,9 +76,9 @@ export default function ItemDetailView({
           </TableHeader>
           <TableBody>
             {items.map((item) => {
-              const subs = subItemsMap[item.id]
+              const subs = subItemsMap[item.bizKey]
               return (
-                <Fragment key={item.id}>
+                <Fragment key={item.bizKey}>
                   <TableRow className={subs?.length ? 'bg-blue-50/40' : ''}>
                     <TableCell className="whitespace-nowrap">
                       <span className="font-mono text-xs">{item.code}</span>
@@ -87,34 +87,34 @@ export default function ItemDetailView({
                       <PriorityBadge priority={item.priority} />
                     </TableCell>
                     <TableCell>
-                      <Link to={`/items/${item.id}`} className="font-medium text-primary-600 hover:text-primary-700 hover:underline truncate block max-w-xs" title={item.title}>
+                      <Link to={`/items/${item.bizKey}`} className="font-medium text-primary-600 hover:text-primary-700 hover:underline truncate block max-w-xs" title={item.title}>
                         {item.title}
                       </Link>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">{memberName(item.assigneeId)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{memberName(item.assigneeKey ? Number(item.assigneeKey) : null)}</TableCell>
                     <TableCell className="whitespace-nowrap">
                       <span className="text-xs">{item.completion}%</span>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      <StatusTransitionDropdown currentStatus={item.status} itemType="main" teamId={teamId} itemId={item.id} onStatusChanged={onRefresh} />
+                      <StatusTransitionDropdown currentStatus={item.itemStatus} itemType="main" teamId={teamId} itemId={item.bizKey} onStatusChanged={onRefresh} />
                     </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap">{formatDate(item.startDate)}</TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">{formatDate(item.planStartDate)}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap">
                       <span>{formatDate(item.expectedEndDate)}</span>
-                      {isOverdue(item.expectedEndDate ?? undefined, item.status, new Date()) && (
+                      {isOverdue(item.expectedEndDate ?? undefined, item.itemStatus, new Date()) && (
                         <Badge variant="error" className="ml-1">延期</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-xs whitespace-nowrap">{formatDate(item.actualEndDate)}</TableCell>
                     <TableCell>
                       <div className="flex gap-0.5 whitespace-nowrap">
-                        <Link to={`/items/${item.id}`}><Button variant="ghost" size="sm" className="text-primary-600" disabled={!!MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal}><Pencil size={14} />编辑</Button></Link>
-                        <Button variant="ghost" size="sm" className="text-primary-600" disabled={!!MAIN_ITEM_STATUSES[item.status as keyof typeof MAIN_ITEM_STATUSES]?.terminal} onClick={() => onAddSubItem(item.id, item.title)}><Plus size={14} />添加子事项</Button>
+                        <Link to={`/items/${item.bizKey}`}><Button variant="ghost" size="sm" className="text-primary-600" disabled={!!MAIN_ITEM_STATUSES[item.itemStatus as keyof typeof MAIN_ITEM_STATUSES]?.terminal}><Pencil size={14} />编辑</Button></Link>
+                        <Button variant="ghost" size="sm" className="text-primary-600" disabled={!!MAIN_ITEM_STATUSES[item.itemStatus as keyof typeof MAIN_ITEM_STATUSES]?.terminal} onClick={() => onAddSubItem(item.bizKey, item.title)}><Plus size={14} />添加子事项</Button>
                       </div>
                     </TableCell>
                   </TableRow>
                   {subs?.map((sub) => (
-                    <TableRow key={`sub-${sub.id}`} className="bg-bg-alt/60">
+                    <TableRow key={`sub-${sub.bizKey}`} className="bg-bg-alt/60">
                       <TableCell className="whitespace-nowrap">
                         <span className="font-mono text-[11px] text-tertiary ml-4">{sub.code}</span>
                       </TableCell>
@@ -122,27 +122,27 @@ export default function ItemDetailView({
                         <PriorityBadge priority={sub.priority} />
                       </TableCell>
                       <TableCell>
-                        <Link to={`/items/${item.id}/sub/${sub.id}`} className="font-medium text-primary-600 hover:text-primary-700 hover:underline ml-4">
+                        <Link to={`/items/${item.bizKey}/sub/${sub.bizKey}`} className="font-medium text-primary-600 hover:text-primary-700 hover:underline ml-4">
                           {sub.title}
                         </Link>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">{memberName(sub.assigneeId)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{memberName(sub.assigneeKey ? Number(sub.assigneeKey) : null)}</TableCell>
                       <TableCell className="whitespace-nowrap">
                         <span className="text-xs">{sub.completion}%</span>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        <StatusTransitionDropdown currentStatus={sub.status} itemType="sub" teamId={teamId} itemId={sub.id} onStatusChanged={onRefresh} />
+                        <StatusTransitionDropdown currentStatus={sub.itemStatus} itemType="sub" teamId={teamId} itemId={sub.bizKey} onStatusChanged={onRefresh} />
                       </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">{formatDate(sub.startDate)}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{formatDate(sub.planStartDate)}</TableCell>
                       <TableCell className="text-xs whitespace-nowrap">{formatDate(sub.expectedEndDate)}</TableCell>
                       <TableCell className="text-xs whitespace-nowrap">{formatDate(sub.actualEndDate)}</TableCell>
                       <TableCell>
                         <div className="flex gap-0.5 whitespace-nowrap">
                           <PermissionGuard code="main_item:update">
-                            <Button variant="ghost" size="sm" className="text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.status as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onEditSubItem(sub)}><Pencil size={14} />编辑</Button>
+                            <Button variant="ghost" size="sm" className="text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.itemStatus as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onEditSubItem(sub)}><Pencil size={14} />编辑</Button>
                           </PermissionGuard>
                           <PermissionGuard code="progress:update">
-                            <Button variant="ghost" size="sm" className="text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.status as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onAppendProgress(sub.id, sub.title, sub.completion)}><Plus size={14} />追加进度</Button>
+                            <Button variant="ghost" size="sm" className="text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.itemStatus as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onAppendProgress(sub.bizKey, sub.title, sub.completion)}><Plus size={14} />追加进度</Button>
                           </PermissionGuard>
                         </div>
                       </TableCell>

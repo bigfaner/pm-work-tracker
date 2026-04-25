@@ -245,12 +245,12 @@ export default function RoleManagementPage() {
                         data-testid={`role-name-${role.id}`}
                         onClick={() => openPermissions(role)}
                       >
-                        {role.name}
+                        {role.roleName}
                       </button>
                     </TableCell>
                     <TableCell>
                       <span className="text-secondary">
-                        {role.description || '-'}
+                        {role.roleDesc || '-'}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -265,7 +265,7 @@ export default function RoleManagementPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <span className="text-tertiary">{formatDate(role.createdAt)}</span>
+                      <span className="text-tertiary">{formatDate(role.createTime)}</span>
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
@@ -361,7 +361,7 @@ export default function RoleManagementPage() {
           title="删除角色"
           description={
             deleteRole
-              ? `确定要删除角色"${deleteRole.name}"吗？此操作不可撤销。`
+              ? `确定要删除角色"${deleteRole.roleName}"吗？此操作不可撤销。`
               : ''
           }
           confirmLabel="确认删除"

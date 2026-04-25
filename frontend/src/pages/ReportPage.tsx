@@ -91,7 +91,7 @@ export default function ReportPage() {
   const handleExportPersonal = () => {
     if (!preview || !currentUser) return
     downloadMarkdown(
-      renderMarkdown(preview, currentUser.id),
+      renderMarkdown(preview, Number(currentUser.bizKey)),
       `weekly-report-${weekValue}-${currentUser.username}.md`,
     )
   }
