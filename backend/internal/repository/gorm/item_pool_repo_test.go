@@ -27,7 +27,7 @@ func seedItemPoolData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team) {
 	t.Helper()
 	u := model.User{Username: "ip_user", DisplayName: "IP User", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "IP Team", PmID: u.ID, Code: "IPTE"}
+	team := model.Team{TeamName: "IP Team", PmKey: int64(u.ID), Code: "IPTE"}
 	require.NoError(t, db.Create(&team).Error)
 	return &u, &team
 }
@@ -35,10 +35,10 @@ func seedItemPoolData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team) {
 func createItemPool(t *testing.T, db *gormlib.DB, teamID, submitterID uint, title, status string) *model.ItemPool {
 	t.Helper()
 	item := model.ItemPool{
-		TeamID:      teamID,
+		TeamID: teamID,
 		Title:       title,
-		SubmitterID: submitterID,
-		Status:      status,
+		SubmitterKey: int64(submitterID),
+		PoolStatus: status,
 	}
 	require.NoError(t, db.Create(&item).Error)
 	return &item
@@ -53,12 +53,12 @@ func TestItemPoolRepo_Create(t *testing.T) {
 
 	u, team := seedItemPoolData(t, db)
 	item := &model.ItemPool{
-		TeamID:         team.ID,
+		TeamID: team.ID,
 		Title:          "New Suggestion",
 		Background:     "Some context",
 		ExpectedOutput: "Expected result",
-		SubmitterID:    u.ID,
-		Status:         "pending",
+		SubmitterKey: int64(u.ID),
+		PoolStatus: "pending",
 	}
 	require.NoError(t, repo.Create(ctx, item))
 	assert.NotZero(t, item.ID)
@@ -101,17 +101,17 @@ func TestItemPoolRepo_Update(t *testing.T) {
 	subID := u.ID
 	assigneeID := u.ID
 	fields := map[string]interface{}{
-		"status":           "assigned",
-		"assigned_main_id": mainID,
-		"assigned_sub_id":  subID,
-		"assignee_id":      assigneeID,
+		"pool_status":       "assigned",
+		"assigned_main_key": mainID,
+		"assigned_sub_key":  subID,
+		"assignee_key":      assigneeID,
 	}
 	require.NoError(t, repo.Update(ctx, item, fields))
 
 	found, err := repo.FindByID(ctx, item.ID)
 	require.NoError(t, err)
-	assert.Equal(t, "assigned", found.Status)
-	assert.Equal(t, mainID, *found.AssignedMainID)
+	assert.Equal(t, "assigned", found.PoolStatus)
+	assert.Equal(t, int64(mainID), *found.AssignedMainKey)
 }
 
 func TestItemPoolRepo_Update_NotFound(t *testing.T) {
@@ -121,7 +121,7 @@ func TestItemPoolRepo_Update_NotFound(t *testing.T) {
 
 	_, team := seedItemPoolData(t, db)
 	fakeItem := &model.ItemPool{BaseModel: model.BaseModel{ID: 9999}, TeamID: team.ID}
-	fields := map[string]interface{}{"status": "assigned"}
+	fields := map[string]interface{}{"pool_status": "assigned"}
 	err := repo.Update(ctx, fakeItem, fields)
 	assert.ErrorIs(t, err, pkgerrors.ErrNotFound)
 }
@@ -142,7 +142,7 @@ func TestItemPoolRepo_List(t *testing.T) {
 	// Another team - should not appear
 	u2 := model.User{Username: "ip_other", DisplayName: "IP Other", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u2).Error)
-	team2 := model.Team{Name: "IP Team2", PmID: u2.ID, Code: "IPT2"}
+	team2 := model.Team{TeamName: "IP Team2", PmKey: int64(u2.ID), Code: "IPT2"}
 	require.NoError(t, db.Create(&team2).Error)
 	createItemPool(t, db, team2.ID, u2.ID, "Other Team", "pending")
 
