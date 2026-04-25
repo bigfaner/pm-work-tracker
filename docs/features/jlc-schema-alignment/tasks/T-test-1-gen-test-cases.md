@@ -3,7 +3,7 @@ id: "T-test-1"
 title: "生成 e2e 测试用例"
 priority: "P1"
 estimated_time: "1-2h"
-dependencies: ["4.3"]
+dependencies: ["3.3"]
 status: pending
 ---
 
