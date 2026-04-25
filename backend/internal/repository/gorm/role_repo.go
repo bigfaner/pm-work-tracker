@@ -3,12 +3,12 @@ package gorm
 import (
 	"context"
 	stderrors "errors"
+	"time"
 
 	gormlib "gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/model"
 	"pm-work-tracker/backend/internal/pkg/errors"
-	"pm-work-tracker/backend/internal/pkg/repo"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -23,12 +23,20 @@ func NewGormRoleRepo(db *gormlib.DB) repository.RoleRepo {
 
 func (r *roleRepo) List(ctx context.Context) ([]model.Role, error) {
 	var roles []model.Role
-	err := r.db.WithContext(ctx).Order("created_at ASC").Find(&roles).Error
+	err := r.db.WithContext(ctx).Order("create_time ASC").Find(&roles).Error
 	return roles, err
 }
 
 func (r *roleRepo) FindByID(ctx context.Context, id uint) (*model.Role, error) {
-	return repo.FindByID[model.Role](r.db, ctx, id)
+	var role model.Role
+	err := r.db.WithContext(ctx).Where("id = ? AND deleted_flag = 0", id).First(&role).Error
+	if err != nil {
+		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
+			return nil, errors.ErrNotFound
+		}
+		return nil, err
+	}
+	return &role, nil
 }
 
 func (r *roleRepo) FindByName(ctx context.Context, name string) (*model.Role, error) {
@@ -52,7 +60,9 @@ func (r *roleRepo) Update(ctx context.Context, role *model.Role) error {
 }
 
 func (r *roleRepo) Delete(ctx context.Context, id uint) error {
-	return r.db.WithContext(ctx).Delete(&model.Role{}, id).Error
+	return r.db.WithContext(ctx).Model(&model.Role{}).
+		Where("id = ?", id).
+		Updates(map[string]any{"deleted_flag": 1, "deleted_time": time.Now()}).Error
 }
 
 func (r *roleRepo) ListPermissions(ctx context.Context, roleID uint) ([]string, error) {
@@ -85,7 +95,7 @@ func (r *roleRepo) CountMembersByRoleID(ctx context.Context, roleID uint) (int64
 	var count int64
 	err := r.db.WithContext(ctx).
 		Model(&model.TeamMember{}).
-		Where("role_id = ?", roleID).
+		Where("role_key = ?", roleID).
 		Count(&count).Error
 	return count, err
 }
@@ -93,9 +103,9 @@ func (r *roleRepo) CountMembersByRoleID(ctx context.Context, roleID uint) (int64
 func (r *roleRepo) HasPermission(ctx context.Context, userID uint, code string) (bool, error) {
 	var count int64
 	err := r.db.WithContext(ctx).
-		Table("team_members").
-		Joins("JOIN role_permissions ON role_permissions.role_id = team_members.role_id").
-		Where("team_members.user_id = ? AND role_permissions.permission_code = ?", userID, code).
+		Table("pmw_team_members").
+		Joins("JOIN role_permissions ON role_permissions.role_id = pmw_team_members.role_key").
+		Where("pmw_team_members.user_key = ? AND role_permissions.permission_code = ?", userID, code).
 		Count(&count).Error
 	if err != nil {
 		return false, err
@@ -105,17 +115,17 @@ func (r *roleRepo) HasPermission(ctx context.Context, userID uint, code string) 
 
 // teamPermRow is a helper struct for scanning the GetUserTeamPermissions join query.
 type teamPermRow struct {
-	TeamID          uint   `gorm:"column:team_id"`
-	PermissionCode  string `gorm:"column:permission_code"`
+	TeamKey        uint   `gorm:"column:team_key"`
+	PermissionCode string `gorm:"column:permission_code"`
 }
 
 func (r *roleRepo) GetUserTeamPermissions(ctx context.Context, userID uint) (map[uint][]string, error) {
 	var rows []teamPermRow
 	err := r.db.WithContext(ctx).
-		Table("team_members").
-		Select("team_members.team_id, role_permissions.permission_code").
-		Joins("JOIN role_permissions ON role_permissions.role_id = team_members.role_id").
-		Where("team_members.user_id = ?", userID).
+		Table("pmw_team_members").
+		Select("pmw_team_members.team_key, role_permissions.permission_code").
+		Joins("JOIN role_permissions ON role_permissions.role_id = pmw_team_members.role_key").
+		Where("pmw_team_members.user_key = ?", userID).
 		Find(&rows).Error
 	if err != nil {
 		return nil, err
@@ -123,7 +133,7 @@ func (r *roleRepo) GetUserTeamPermissions(ctx context.Context, userID uint) (map
 
 	result := make(map[uint][]string)
 	for _, row := range rows {
-		result[row.TeamID] = append(result[row.TeamID], row.PermissionCode)
+		result[row.TeamKey] = append(result[row.TeamKey], row.PermissionCode)
 	}
 	return result, nil
 }

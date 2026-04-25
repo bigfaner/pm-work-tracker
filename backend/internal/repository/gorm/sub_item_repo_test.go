@@ -29,7 +29,7 @@ func seedSubItemData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team, *m
 	require.NoError(t, db.Create(&u).Error)
 	team := model.Team{TeamName: "SI Team", PmKey: int64(u.ID), Code: "SITE"}
 	require.NoError(t, db.Create(&team).Error)
-	mi := model.MainItem{ItemStatus: "pending"}
+	mi := model.MainItem{TeamID: team.ID, Code: "MI-SI01", ItemStatus: "pending", Priority: "P1", Title: "SI01"}
 	require.NoError(t, db.Create(&mi).Error)
 	return &u, &team, &mi
 }
@@ -308,7 +308,7 @@ func TestNextSubCode(t *testing.T) {
 	})
 
 	t.Run("main_item_isolation", func(t *testing.T) {
-		mi2 := model.MainItem{ItemStatus: "pending"}
+		mi2 := model.MainItem{TeamID: team.ID, Code: "MI-SI02", ItemStatus: "pending", Priority: "P1", Title: "SI02"}
 		require.NoError(t, db.Create(&mi2).Error)
 
 		code, err := repo.NextSubCode(ctx, mi2.ID)
