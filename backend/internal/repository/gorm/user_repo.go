@@ -86,7 +86,7 @@ func (r *userRepo) ListFiltered(ctx context.Context, search string, offset, limi
 
 func (r *userRepo) SearchAvailable(ctx context.Context, teamID uint, search string, limit int) ([]*model.User, error) {
 	query := r.db.WithContext(ctx).Model(&model.User{}).
-		Where("id NOT IN (?)", r.db.Table("team_members").Select("user_id").Where("team_id = ?", teamID))
+		Where("id NOT IN (?)", r.db.Table("pmw_team_members").Select("user_key").Where("team_key = ?", teamID))
 	if search != "" {
 		pattern := "%" + search + "%"
 		query = query.Where("username LIKE ? OR display_name LIKE ?", pattern, pattern)
