@@ -1,0 +1,172 @@
+{
+  "feature": "jlc-schema-alignment",
+  "prd": "prd/prd-spec.md",
+  "design": "design/tech-design.md",
+  "created": "2026-04-25",
+  "status": "planning",
+  "tasks": {
+    "1.1-repo-interfaces": {
+      "id": "1.1",
+      "title": "Repo Interface Definitions",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "status": "in_progress",
+      "file": "1.1-repo-interfaces.md",
+      "record": "records/1.1-repo-interfaces.md"
+    },
+    "2.1-base-model-and-structs": {
+      "id": "2.1",
+      "title": "BaseModel 替换 + Model Struct 更新",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "status": "pending",
+      "file": "2.1-base-model-and-structs.md",
+      "record": "records/2.1-base-model-and-structs.md"
+    },
+    "3.1-schema-sql-rewrite": {
+      "id": "3.1",
+      "title": "schema.sql MySQL 化重写",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "status": "pending",
+      "file": "3.1-schema-sql-rewrite.md",
+      "record": "records/3.1-schema-sql-rewrite.md"
+    },
+    "3.2-snowflake-and-errors": {
+      "id": "3.2",
+      "title": "Snowflake 生成器 + ErrDuplicateBizKey",
+      "priority": "P0",
+      "estimatedTime": "1-2h",
+      "status": "pending",
+      "file": "3.2-snowflake-and-errors.md",
+      "record": "records/3.2-snowflake-and-errors.md"
+    },
+    "3.3-not-deleted-scope-and-soft-delete": {
+      "id": "3.3",
+      "title": "NotDeleted Scope + SoftDelete Repo 实现",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "1.1",
+        "2.1"
+      ],
+      "status": "pending",
+      "file": "3.3-not-deleted-scope-and-soft-delete.md",
+      "record": "records/3.3-not-deleted-scope-and-soft-delete.md"
+    },
+    "3.4-find-by-biz-key-repo": {
+      "id": "3.4",
+      "title": "FindByBizKey Repo 实现",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1.1",
+        "2.1"
+      ],
+      "status": "pending",
+      "file": "3.4-find-by-biz-key-repo.md",
+      "record": "records/3.4-find-by-biz-key-repo.md"
+    },
+    "3.5-service-layer-updates": {
+      "id": "3.5",
+      "title": "Service 层：biz_key 赋值 + SoftDelete 调用 + GetByBizKey",
+      "priority": "P0",
+      "estimatedTime": "4h",
+      "dependencies": [
+        "1.1",
+        "2.1",
+        "3.2",
+        "3.3",
+        "3.4"
+      ],
+      "status": "pending",
+      "file": "3.5-service-layer-updates.md",
+      "record": "records/3.5-service-layer-updates.md"
+    },
+    "3.6-handler-layer-updates": {
+      "id": "3.6",
+      "title": "Handler 层：路径参数 uint→int64 + GetByBizKey 调用",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "3.5"
+      ],
+      "status": "pending",
+      "file": "3.6-handler-layer-updates.md",
+      "record": "records/3.6-handler-layer-updates.md"
+    },
+    "4.1-frontend-types-update": {
+      "id": "4.1",
+      "title": "前端 types/index.ts 字段名更新",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1.1",
+        "2.1"
+      ],
+      "status": "pending",
+      "file": "4.1-frontend-types-update.md",
+      "record": "records/4.1-frontend-types-update.md"
+    },
+    "4.2-frontend-api-modules": {
+      "id": "4.2",
+      "title": "前端 API 模块路径参数更新（id → bizKey）",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "4.1"
+      ],
+      "status": "pending",
+      "file": "4.2-frontend-api-modules.md",
+      "record": "records/4.2-frontend-api-modules.md"
+    },
+    "4.3-frontend-page-components": {
+      "id": "4.3",
+      "title": "前端页面组件字段引用更新",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "4.1"
+      ],
+      "status": "pending",
+      "file": "4.3-frontend-page-components.md",
+      "record": "records/4.3-frontend-page-components.md"
+    },
+    "T-test-1-gen-test-cases": {
+      "id": "T-test-1",
+      "title": "生成 e2e 测试用例",
+      "priority": "P1",
+      "estimatedTime": "1-2h",
+      "dependencies": [
+        "4.3"
+      ],
+      "status": "pending",
+      "file": "T-test-1-gen-test-cases.md",
+      "record": "records/T-test-1-gen-test-cases.md"
+    },
+    "T-test-2-gen-test-scripts": {
+      "id": "T-test-2",
+      "title": "生成 e2e 测试脚本",
+      "priority": "P1",
+      "estimatedTime": "1-2h",
+      "dependencies": [
+        "T-test-1"
+      ],
+      "status": "pending",
+      "file": "T-test-2-gen-test-scripts.md",
+      "record": "records/T-test-2-gen-test-scripts.md"
+    }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
+}
