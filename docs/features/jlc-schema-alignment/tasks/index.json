@@ -213,6 +213,30 @@
       "status": "completed",
       "file": "T-test-2-gen-test-scripts.md",
       "record": "records/T-test-2-gen-test-scripts.md"
+    },
+    "fix-e2e-1-1": {
+      "id": "fix-e2e-1-1",
+      "title": "修复 e2e 测试失败: unknown",
+      "priority": "P0",
+      "status": "completed",
+      "file": "fix-e2e-1-1.md",
+      "record": "records/fix-e2e-1-1.md"
+    },
+    "fix-e2e-2-1": {
+      "id": "fix-e2e-2-1",
+      "title": "修复 e2e 测试失败: unknown",
+      "priority": "P0",
+      "status": "completed",
+      "file": "fix-e2e-2-1.md",
+      "record": "records/fix-e2e-2-1.md"
+    },
+    "fix-e2e-3-1": {
+      "id": "fix-e2e-3-1",
+      "title": "修复 e2e 测试失败: unknown",
+      "priority": "P0",
+      "status": "completed",
+      "file": "fix-e2e-3-1.md",
+      "record": "records/fix-e2e-3-1.md"
     }
   },
   "statusEnum": [
@@ -226,5 +250,6 @@
     "P0",
     "P1",
     "P2"
-  ]
+  ],
+  "e2eRound": 3
 }
