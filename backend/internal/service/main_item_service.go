@@ -168,19 +168,23 @@ func (s *mainItemService) Update(ctx context.Context, teamID, itemID uint, req d
 		fields["title"] = *req.Title
 	}
 	if req.Description != nil {
-		fields["description"] = *req.Description
+		fields["item_desc"] = *req.Description
 	}
 	if req.Priority != nil {
 		fields["priority"] = *req.Priority
 	}
 	if req.AssigneeKey != nil {
-		fields["assignee_id"] = *req.AssigneeKey
+		assigneeKey, err := pkg.ParseIDPtr(req.AssigneeKey)
+		if err != nil {
+			return apperrors.ErrValidation
+		}
+		fields["assignee_key"] = assigneeKey
 	}
 	if req.IsKeyItem != nil {
 		fields["is_key_item"] = *req.IsKeyItem
 	}
 	if req.StartDate != nil {
-		fields["start_date"] = *req.StartDate
+		fields["plan_start_date"] = *req.StartDate
 	}
 	if req.ExpectedEndDate != nil {
 		fields["expected_end_date"] = *req.ExpectedEndDate

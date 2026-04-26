@@ -7,6 +7,7 @@ import (
 
 	"pm-work-tracker/backend/internal/model"
 	"pm-work-tracker/backend/internal/pkg/permissions"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 )
 
 const rbacMigrationVersion = "rbac_001"
@@ -118,10 +119,17 @@ func seedRole(tx *gorm.DB, name, description string, isPreset bool, codes []stri
 	var existing model.Role
 	result := tx.Where("name = ?", name).First(&existing)
 	if result.RowsAffected > 0 {
+		// Backfill bizKey if it was left at default 0 from a pre-migration database
+		if existing.BizKey == 0 {
+			if err := tx.Model(&existing).Update("biz_key", snowflake.Generate()).Error; err != nil {
+				return fmt.Errorf("backfill biz_key for role %s: %w", name, err)
+			}
+		}
 		return nil // already seeded
 	}
 
 	role := model.Role{
+		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
 		Name:        name,
 		Description: description,
 		IsPreset:    isPreset,

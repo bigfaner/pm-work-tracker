@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Eye } from 'lucide-react'
 import { getWeeklyReportPreviewApi } from '@/api/reports'
 import { useTeamStore } from '@/store/team'
 import { useAuthStore } from '@/store/auth'
@@ -32,10 +33,10 @@ function renderMarkdown(preview: ReportPreviewResp, filterUserKey?: string): str
     for (const sub of subs) {
       const status = sub.completion === 100 ? '已完成' : `进行中 (${sub.completion}%)`
       md += `  - **${sub.title}** -- ${status}\n`
-      for (const a of sub.achievements) {
+      for (const a of sub.achievements ?? []) {
         md += `    成果：${a}\n`
       }
-      for (const b of sub.blockers) {
+      for (const b of sub.blockers ?? []) {
         md += `    卡点：${b}\n`
       }
       md += '\n'
@@ -112,6 +113,7 @@ export default function ReportPage() {
             <WeekPicker weekStart={weekValue} onChange={setWeekValue} />
           </div>
           <Button size="sm" onClick={handlePreview} disabled={loading}>
+            <Eye className="w-4 h-4" />
             {loading ? '生成中...' : '生成预览'}
           </Button>
         </CardContent>

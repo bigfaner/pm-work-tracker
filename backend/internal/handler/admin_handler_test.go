@@ -62,12 +62,12 @@ type mockAdminService struct {
 	lastListUsersSearch   string
 	lastListUsersPage     int
 	lastListUsersPageSize int
-	lastGetUserID         uint
+	lastGetUserID         int64
 	lastCreateUserReq     *dto.CreateUserReq
-	lastUpdateUserID      uint
+	lastUpdateUserID      int64
 	lastUpdateUserReq     *dto.UpdateUserReq
 	lastToggleCallerID    uint
-	lastToggleTargetID    uint
+	lastToggleTargetID    int64
 	lastToggleStatus      string
 }
 
@@ -79,7 +79,7 @@ func (m *mockAdminService) ListUsers(_ context.Context, search string, page, pag
 	return m.listUsersFilteredResult.items, m.listUsersFilteredResult.total, m.listUsersFilteredResult.err
 }
 
-func (m *mockAdminService) GetUser(_ context.Context, userID uint) (*dto.AdminUserDTO, error) {
+func (m *mockAdminService) GetUser(_ context.Context, userID int64) (*dto.AdminUserDTO, error) {
 	m.lastGetUserID = userID
 	return m.getUserResult.user, m.getUserResult.err
 }
@@ -89,13 +89,13 @@ func (m *mockAdminService) CreateUser(_ context.Context, req *dto.CreateUserReq)
 	return m.createUserResult.user, m.createUserResult.err
 }
 
-func (m *mockAdminService) UpdateUser(_ context.Context, userID uint, req *dto.UpdateUserReq) (*dto.AdminUserDTO, error) {
+func (m *mockAdminService) UpdateUser(_ context.Context, userID int64, req *dto.UpdateUserReq) (*dto.AdminUserDTO, error) {
 	m.lastUpdateUserID = userID
 	m.lastUpdateUserReq = req
 	return m.updateUserResult.user, m.updateUserResult.err
 }
 
-func (m *mockAdminService) ToggleUserStatus(_ context.Context, callerID, targetUserID uint, status string) (*dto.AdminUserDTO, error) {
+func (m *mockAdminService) ToggleUserStatus(_ context.Context, callerID uint, targetUserID int64, status string) (*dto.AdminUserDTO, error) {
 	m.lastToggleCallerID = callerID
 	m.lastToggleTargetID = targetUserID
 	m.lastToggleStatus = status
@@ -336,7 +336,7 @@ func TestAdminGetUser_Success(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, uint(5), svc.lastGetUserID)
+	assert.Equal(t, int64(5), svc.lastGetUserID)
 
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
@@ -411,7 +411,7 @@ func TestAdminUpdateUser_Success(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, uint(5), svc.lastUpdateUserID)
+	assert.Equal(t, int64(5), svc.lastUpdateUserID)
 	require.NotNil(t, svc.lastUpdateUserReq.DisplayName)
 	assert.Equal(t, "Robert", *svc.lastUpdateUserReq.DisplayName)
 }
@@ -460,7 +460,7 @@ func TestAdminToggleUserStatus_DisableSuccess(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, uint(1), svc.lastToggleCallerID)
-	assert.Equal(t, uint(5), svc.lastToggleTargetID)
+	assert.Equal(t, int64(5), svc.lastToggleTargetID)
 	assert.Equal(t, "disabled", svc.lastToggleStatus)
 }
 

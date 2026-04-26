@@ -27,6 +27,7 @@ type SubItemService interface {
 	ChangeStatus(ctx context.Context, teamID, callerID, itemID uint, newStatus string) (*SubItemChangeResult, error)
 	Delete(ctx context.Context, teamID, callerID, itemID uint) error
 	Get(ctx context.Context, teamID, itemID uint) (*model.SubItem, error)
+	GetByBizKey(ctx context.Context, bizKey int64) (*model.SubItem, error)
 	List(ctx context.Context, teamID uint, mainItemID *uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error)
 	Assign(ctx context.Context, teamID, pmID, itemID, assigneeID uint) error
 	AvailableTransitions(ctx context.Context, teamID, subID uint) ([]string, error)
@@ -44,7 +45,8 @@ func NewSubItemService(subItemRepo repository.SubItemRepo, mainItemSvc MainItemS
 }
 
 func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req dto.SubItemCreateReq) (*model.SubItem, error) {
-	mainItem, err := s.mainItemSvc.Get(ctx, func() uint { id, _ := pkg.ParseID(req.MainItemKey); return uint(id) }())
+	mainBizKey, _ := pkg.ParseID(req.MainItemKey)
+	mainItem, err := s.mainItemSvc.GetByBizKey(ctx, mainBizKey)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +54,7 @@ func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req 
 		return nil, apperrors.ErrTerminalMainItem
 	}
 
-	code, err := s.subItemRepo.NextSubCode(ctx, func() uint { id, _ := pkg.ParseID(req.MainItemKey); return uint(id) }())
+	code, err := s.subItemRepo.NextSubCode(ctx, mainItem.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +62,7 @@ func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req 
 	item := &model.SubItem{
 		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:     int64(teamID),
-		MainItemKey: func() int64 { id, _ := pkg.ParseID(req.MainItemKey); return id }(),
+		MainItemKey: int64(mainItem.ID),
 		Code:        code,
 		Title:       req.Title,
 		ItemDesc:    req.Description,
@@ -86,7 +88,7 @@ func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req 
 	}
 
 	// Trigger linkage evaluation after creating a new sub-item
-	_, _ = s.mainItemSvc.EvaluateLinkage(ctx, uint(item.MainItemKey), callerID)
+	_, _ = s.mainItemSvc.EvaluateLinkage(ctx, mainItem.ID, callerID)
 
 	return item, nil
 }
@@ -105,16 +107,20 @@ func (s *subItemService) Update(ctx context.Context, teamID, itemID uint, req dt
 		fields["title"] = *req.Title
 	}
 	if req.Description != nil {
-		fields["description"] = *req.Description
+		fields["item_desc"] = *req.Description
 	}
 	if req.Priority != nil {
 		fields["priority"] = *req.Priority
 	}
 	if req.AssigneeKey != nil {
-		fields["assignee_id"] = *req.AssigneeKey
+		assigneeKey, err := pkg.ParseIDPtr(req.AssigneeKey)
+		if err != nil {
+			return apperrors.ErrValidation
+		}
+		fields["assignee_key"] = assigneeKey
 	}
 	if req.StartDate != nil {
-		fields["start_date"] = *req.StartDate
+		fields["plan_start_date"] = *req.StartDate
 	}
 	if req.ExpectedEndDate != nil {
 		fields["expected_end_date"] = *req.ExpectedEndDate
@@ -221,6 +227,14 @@ func (s *subItemService) AvailableTransitions(ctx context.Context, teamID, subID
 
 func (s *subItemService) Get(ctx context.Context, teamID, itemID uint) (*model.SubItem, error) {
 	item, err := s.subItemRepo.FindByID(ctx, itemID)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
+	}
+	return item, nil
+}
+
+func (s *subItemService) GetByBizKey(ctx context.Context, bizKey int64) (*model.SubItem, error) {
+	item, err := s.subItemRepo.FindByBizKey(ctx, bizKey)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}

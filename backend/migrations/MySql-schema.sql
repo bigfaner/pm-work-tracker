@@ -142,7 +142,7 @@ CREATE TABLE pmw_item_pools (
     background        VARCHAR(2000),
     expected_output   VARCHAR(1000),
     submitter_key     BIGINT          NOT NULL,
-    pool_status       VARCHAR(20)     NOT NULL DEFAULT '待分配',
+    pool_status       VARCHAR(20)     NOT NULL DEFAULT 'pending',
     assigned_main_key BIGINT,
     assigned_sub_key  BIGINT,
     assignee_key      BIGINT,
@@ -157,9 +157,10 @@ CREATE TABLE pmw_item_pools (
     KEY idx_item_pools_deleted_flag (deleted_flag)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='需求池表';
 
--- pmw_progress_records（append-only：无软删，无 biz_key）
+-- pmw_progress_records（append-only：无软删）
 CREATE TABLE pmw_progress_records (
     id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    biz_key         BIGINT          NOT NULL,
     sub_item_key    BIGINT          NOT NULL,
     team_key        BIGINT          NOT NULL,
     author_key      BIGINT          NOT NULL,
@@ -170,6 +171,7 @@ CREATE TABLE pmw_progress_records (
     is_pm_correct   TINYINT(1)      NOT NULL DEFAULT 0,
     create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
+    UNIQUE KEY uk_biz_key (biz_key),
     KEY idx_progress_records_sub_item_key (sub_item_key),
     KEY idx_progress_records_sub_item_created (sub_item_key, create_time),
     KEY idx_progress_records_team_key (team_key),

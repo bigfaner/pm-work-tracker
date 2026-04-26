@@ -9,11 +9,11 @@ async function createTestMember(token: string, tid: string, label: string) {
     body: JSON.stringify({ username, displayName: `E2E测试${label}` }),
   });
   const data = await res.json();
-  const userId = String(data.data?.id || data.id);
+  const userId = String(data.data?.bizKey || data.bizKey);
   const inviteRes = await fetch(`${API}/teams/${tid}/members`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, roleId: 3 }),
+    body: JSON.stringify({ username, roleKey: '3' }),
   });
   if (!inviteRes.ok) {
     const err = await inviteRes.text();
@@ -329,12 +329,12 @@ test.describe('Team Detail - Remove Member', () => {
     });
     if (createRes.status !== 200 && createRes.status !== 201) { test.skip(); return; }
     const created = await createRes.json();
-    const userId = created.data?.id || created.id;
+    const userId = created.data?.bizKey || created.bizKey;
 
     await fetch(`${API}/teams/${teamId}/members`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, roleId: 3 }),
+      body: JSON.stringify({ username, roleKey: '3' }),
     });
 
     await page.goto(`${BASE}/teams/${teamId}`);

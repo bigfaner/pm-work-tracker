@@ -29,7 +29,7 @@ func seedItemPoolBenchData(n int) (*mockItemPoolService, *trackingUserRepo, *tra
 	assignedMainID := uint(100)
 	items := make([]model.ItemPool, n)
 	users := make(map[uint]*model.User, n)
-	mainItems := map[uint]*model.MainItem{100: {Code: "M-001", Title: "Main One"}}
+	mainItems := map[int64]*model.MainItem{100: {Code: "M-001", Title: "Main One"}}
 
 	for i := range items {
 		items[i] = model.ItemPool{
@@ -191,6 +191,10 @@ func (m *mockItemPoolService) Reject(_ context.Context, teamID, pmID, poolID uin
 	m.lastPoolID = poolID
 	m.lastReason = reason
 	return m.rejectResult.err
+}
+
+func (m *mockItemPoolService) GetByBizKey(_ context.Context, _ int64) (*model.ItemPool, error) {
+	return m.getResult.item, m.getResult.err
 }
 
 // ---------------------------------------------------------------------------
@@ -934,10 +938,10 @@ func TestAssignItemPool_ReturnsSubItemId(t *testing.T) {
 func TestListItemPool_UsesBatchLookup(t *testing.T) {
 	svc := &mockItemPoolService{}
 
-	assignedMainID := uint(100)
-	item1 := &model.ItemPool{PoolStatus: "assigned", SubmitterKey: 5, AssignedMainKey: func() *int64 { v := int64(assignedMainID); return &v }()}
+	assignedMainID := int64(100)
+	item1 := &model.ItemPool{PoolStatus: "assigned", SubmitterKey: 5, AssignedMainKey: &assignedMainID}
 	item1.ID = 1
-	item2 := &model.ItemPool{PoolStatus: "assigned", SubmitterKey: 7, AssignedMainKey: func() *int64 { v := int64(assignedMainID); return &v }()}
+	item2 := &model.ItemPool{PoolStatus: "assigned", SubmitterKey: 7, AssignedMainKey: &assignedMainID}
 	item2.ID = 2
 	item3 := &model.ItemPool{PoolStatus: "pending", SubmitterKey: 5}
 	item3.ID = 3
@@ -954,7 +958,7 @@ func TestListItemPool_UsesBatchLookup(t *testing.T) {
 		},
 	}
 	trackingMainItem := &trackingMainItemRepo{
-		items: map[uint]*model.MainItem{
+		items: map[int64]*model.MainItem{
 			100: {Code: "M-001", Title: "Main One"},
 		},
 	}
@@ -973,8 +977,8 @@ func TestListItemPool_UsesBatchLookup(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 1, trackingUser.findByIDsCallCount, "FindByIDs should be called once for users")
 	assert.Equal(t, 0, trackingUser.findByIDCallCount, "FindByID should not be called in batch path")
-	assert.Equal(t, 1, trackingMainItem.findByIDsCallCount, "FindByIDs should be called once for main items")
-	assert.Equal(t, 0, trackingMainItem.findByIDCallCount, "FindByID should not be called in batch path")
+	assert.Equal(t, 1, trackingMainItem.findByBizKeysCallCount, "FindByBizKeys should be called once for main items")
+	assert.Equal(t, 0, trackingMainItem.findByBizKeyCallCount, "FindByBizKey should not be called in batch path")
 
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
@@ -997,25 +1001,34 @@ func TestListItemPool_UsesBatchLookup(t *testing.T) {
 
 // trackingMainItemRepo tracks call counts to verify batch vs individual lookups.
 type trackingMainItemRepo struct {
-	items              map[uint]*model.MainItem
-	findByIDsCallCount int
-	findByIDCallCount  int
+	items                    map[int64]*model.MainItem
+	findByBizKeysCallCount   int
+	findByBizKeyCallCount    int
 }
 
 func (t *trackingMainItemRepo) Create(_ context.Context, _ *model.MainItem) error { return nil }
 func (t *trackingMainItemRepo) FindByID(_ context.Context, _ uint) (*model.MainItem, error) {
-	t.findByIDCallCount++
 	return nil, nil
 }
-func (t *trackingMainItemRepo) FindByIDs(_ context.Context, ids []uint) (map[uint]*model.MainItem, error) {
-	t.findByIDsCallCount++
-	result := make(map[uint]*model.MainItem, len(ids))
-	for _, id := range ids {
-		if item, ok := t.items[id]; ok {
-			result[id] = item
+func (t *trackingMainItemRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
+	return nil, nil
+}
+func (t *trackingMainItemRepo) FindByBizKeys(_ context.Context, bizKeys []int64) (map[int64]*model.MainItem, error) {
+	t.findByBizKeysCallCount++
+	result := make(map[int64]*model.MainItem, len(bizKeys))
+	for _, key := range bizKeys {
+		if item, ok := t.items[key]; ok {
+			result[key] = item
 		}
 	}
 	return result, nil
+}
+func (t *trackingMainItemRepo) FindByBizKey(_ context.Context, key int64) (*model.MainItem, error) {
+	t.findByBizKeyCallCount++
+	if item, ok := t.items[key]; ok {
+		return item, nil
+	}
+	return nil, nil
 }
 func (t *trackingMainItemRepo) Update(_ context.Context, _ *model.MainItem, _ map[string]interface{}) error {
 	return nil
@@ -1029,9 +1042,6 @@ func (t *trackingMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ uint) 
 	return nil, nil
 }
 func (t *trackingMainItemRepo) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
-	return nil, nil
-}
-func (t *trackingMainItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
 	return nil, nil
 }
 
@@ -1061,6 +1071,9 @@ func (m *mockMainItemRepoForPool) ListNonArchivedByTeam(_ context.Context, _ uin
 	return nil, nil
 }
 func (m *mockMainItemRepoForPool) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
+	return nil, nil
+}
+func (m *mockMainItemRepoForPool) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.MainItem, error) {
 	return nil, nil
 }
 func (m *mockMainItemRepoForPool) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {

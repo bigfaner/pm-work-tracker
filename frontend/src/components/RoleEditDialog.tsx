@@ -20,7 +20,7 @@ import { PERMISSION_GROUPS } from '@/lib/permissions'
 interface RoleEditDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  roleId?: number | null // null/undefined = create mode
+  roleId?: string | null // null/undefined = create mode
   onSuccess?: () => void
 }
 
@@ -87,7 +87,7 @@ export default function RoleEditDialog({
   })
 
   const updateMutation = useMutation({
-    mutationFn: (req: { id: number; data: Parameters<typeof updateRoleApi>[1] }) =>
+    mutationFn: (req: { id: string; data: Parameters<typeof updateRoleApi>[1] }) =>
       updateRoleApi(req.id, req.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['roles'] })

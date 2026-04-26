@@ -4,9 +4,9 @@ import userEvent from '@testing-library/user-event'
 import { MemberSelect } from './MemberSelect'
 
 const members = [
-  { bizKey: 'alice-key', displayName: 'Alice' },
-  { bizKey: 'bob-key', displayName: 'Bob' },
-  { bizKey: 'charlie-key', displayName: 'Charlie' },
+  { userKey: 'alice-key', displayName: 'Alice' },
+  { userKey: 'bob-key', displayName: 'Bob' },
+  { userKey: 'charlie-key', displayName: 'Charlie' },
 ]
 
 describe('MemberSelect', () => {

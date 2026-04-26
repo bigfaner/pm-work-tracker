@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { BASE, API, login, getAuthToken, parseApiData } from './test-helpers';
+import { BASE, API, login, getAuthToken, parseApiData, extractBizKey } from './test-helpers';
 
 const TIMEOUT = 120000;
 
@@ -38,23 +38,31 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
     const teamsRaw = parseApiData(await teamsRes.json());
     const teamsData = Array.isArray(teamsRaw) ? teamsRaw : (teamsRaw?.items ?? []);
     if (teamsData.length === 0) throw new Error('beforeAll: no teams found');
-    teamId = String(teamsData[0].id);
+    teamId = String(teamsData[0].bizKey);
+
+    // Get team members for assigneeKey
+    const membersRes = await request.get(`/v1/teams/${teamId}/members`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const membersData = parseApiData(await membersRes.json());
+    const memberList = Array.isArray(membersData) ? membersData : (membersData?.items ?? []);
+    const assigneeKey = memberList[0]?.userKey ?? '';
 
     // Create main item
     const mainRes = await request.post(`/v1/teams/${teamId}/main-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
-      data: { title: 'E2E测试-主事项-详情页', priority: 'P2', assigneeId: 1, startDate: '2026-04-19', expectedEndDate: '2026-05-19' },
+      data: { title: 'E2E测试-主事项-详情页', priority: 'P2', assigneeKey, startDate: '2026-04-19', expectedEndDate: '2026-05-19' },
     });
     const mainData = parseApiData(await mainRes.json());
-    testMainItemId = String(mainData.id);
+    testMainItemId = extractBizKey(mainData) ?? '';
 
     // Create sub-item
     const subRes = await request.post(`/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
-      data: { mainItemId: Number(testMainItemId), title: 'E2E测试-子事项-详情页', priority: 'P2', assigneeId: 1, startDate: '2026-04-19', expectedEndDate: '2026-05-19' },
+      data: { mainItemKey: String(testMainItemId), title: 'E2E测试-子事项-详情页', priority: 'P2', assigneeKey, startDate: '2026-04-19', expectedEndDate: '2026-05-19' },
     });
     const subData = parseApiData(await subRes.json());
-    testSubItemId = String(subData.id);
+    testSubItemId = extractBizKey(subData) ?? '';
 
     await request.dispose();
     console.log(`Setup: team=${teamId}, main=${testMainItemId}, sub=${testSubItemId}`);

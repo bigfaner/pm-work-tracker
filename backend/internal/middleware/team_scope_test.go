@@ -145,6 +145,14 @@ func (m *mockRoleRepo) FindByID(ctx context.Context, id uint) (*model.Role, erro
 	return args.Get(0).(*model.Role), args.Error(1)
 }
 
+func (m *mockRoleRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.Role, error) {
+	args := m.Called(ctx, bizKey)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Role), args.Error(1)
+}
+
 func (m *mockRoleRepo) FindByName(ctx context.Context, name string) (*model.Role, error) {
 	args := m.Called(ctx, name)
 	if args.Get(0) == nil {

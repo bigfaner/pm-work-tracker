@@ -38,7 +38,7 @@ function renderPage() {
 
 const seedRoles = [
   {
-    id: 1,
+    bizKey: '1',
     roleName: 'superadmin',
     roleDesc: '超级管理员',
     isPreset: true,
@@ -47,7 +47,7 @@ const seedRoles = [
     createTime: '2026-04-01T00:00:00Z',
   },
   {
-    id: 2,
+    bizKey: '2',
     roleName: 'pm',
     roleDesc: '团队管理权限',
     isPreset: true,
@@ -56,7 +56,7 @@ const seedRoles = [
     createTime: '2026-04-01T00:00:00Z',
   },
   {
-    id: 3,
+    bizKey: '3',
     roleName: 'member',
     roleDesc: '普通成员权限',
     isPreset: true,
@@ -65,7 +65,7 @@ const seedRoles = [
     createTime: '2026-04-01T00:00:00Z',
   },
   {
-    id: 4,
+    bizKey: '4',
     roleName: 'viewer',
     roleDesc: '只读查看者',
     isPreset: false,
@@ -124,8 +124,8 @@ function setupHandlers() {
 
     // Get role detail
     http.get('/v1/admin/roles/:id', ({ params }) => {
-      const id = Number(params.id)
-      const role = seedRoles.find((r) => r.id === id)
+      const bizKey = params.id as string
+      const role = seedRoles.find((r) => r.bizKey === bizKey)
       if (!role) {
         return HttpResponse.json(
           { code: 'ERR_ROLE_NOT_FOUND', message: '角色不存在' },
@@ -159,7 +159,7 @@ function setupHandlers() {
       return HttpResponse.json({
         code: 0,
         data: {
-          id: 100,
+          bizKey: '100',
           roleName: name,
           roleDesc: body.description || '',
           isPreset: false,
@@ -172,8 +172,8 @@ function setupHandlers() {
 
     // Update role
     http.put('/v1/admin/roles/:id', async ({ params }) => {
-      const id = Number(params.id)
-      const role = seedRoles.find((r) => r.id === id)
+      const bizKey = params.id as string
+      const role = seedRoles.find((r) => r.bizKey === bizKey)
       if (!role) {
         return HttpResponse.json(
           { code: 'ERR_ROLE_NOT_FOUND', message: '角色不存在' },
@@ -193,8 +193,8 @@ function setupHandlers() {
 
     // Delete role
     http.delete('/v1/admin/roles/:id', ({ params }) => {
-      const id = Number(params.id)
-      const role = seedRoles.find((r) => r.id === id)
+      const bizKey = params.id as string
+      const role = seedRoles.find((r) => r.bizKey === bizKey)
       if (!role) {
         return HttpResponse.json(
           { code: 'ERR_ROLE_NOT_FOUND', message: '角色不存在' },

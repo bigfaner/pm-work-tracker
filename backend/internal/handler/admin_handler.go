@@ -64,13 +64,13 @@ func (h *AdminHandler) CreateUser(c *gin.Context) {
 
 // GetUser handles GET /api/v1/admin/users/:userId
 func (h *AdminHandler) GetUser(c *gin.Context) {
-	userID, err := parseUserID(c)
-	if err != nil {
+	bizKey, ok := parseUserBizKey(c)
+	if !ok {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
 	}
 
-	user, err := h.adminSvc.GetUser(c.Request.Context(), userID)
+	user, err := h.adminSvc.GetUser(c.Request.Context(), bizKey)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -81,8 +81,8 @@ func (h *AdminHandler) GetUser(c *gin.Context) {
 
 // UpdateUser handles PUT /api/v1/admin/users/:userId
 func (h *AdminHandler) UpdateUser(c *gin.Context) {
-	userID, err := parseUserID(c)
-	if err != nil {
+	bizKey, ok := parseUserBizKey(c)
+	if !ok {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
 	}
@@ -93,7 +93,7 @@ func (h *AdminHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	user, err := h.adminSvc.UpdateUser(c.Request.Context(), userID, &req)
+	user, err := h.adminSvc.UpdateUser(c.Request.Context(), bizKey, &req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -104,8 +104,8 @@ func (h *AdminHandler) UpdateUser(c *gin.Context) {
 
 // ToggleUserStatus handles PUT /api/v1/admin/users/:userId/status
 func (h *AdminHandler) ToggleUserStatus(c *gin.Context) {
-	userID, err := parseUserID(c)
-	if err != nil {
+	bizKey, ok := parseUserBizKey(c)
+	if !ok {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
 	}
@@ -117,7 +117,7 @@ func (h *AdminHandler) ToggleUserStatus(c *gin.Context) {
 	}
 
 	callerID := middleware.GetUserID(c)
-	user, err := h.adminSvc.ToggleUserStatus(c.Request.Context(), callerID, userID, req.Status)
+	user, err := h.adminSvc.ToggleUserStatus(c.Request.Context(), callerID, bizKey, req.Status)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -145,14 +145,14 @@ func (h *AdminHandler) ListTeams(c *gin.Context) {
 	})
 }
 
-// parseUserID extracts userId from the URL path parameter.
-func parseUserID(c *gin.Context) (uint, error) {
-	userIDStr := c.Param("userId")
-	userID, err := strconv.ParseUint(userIDStr, 10, 64)
+// parseUserBizKey extracts the user bizKey from the URL path parameter.
+func parseUserBizKey(c *gin.Context) (int64, bool) {
+	idStr := c.Param("userId")
+	bizKey, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return 0, err
+		return 0, false
 	}
-	return uint(userID), nil
+	return bizKey, true
 }
 
 // parsePagination extracts page and pageSize from query params with defaults.

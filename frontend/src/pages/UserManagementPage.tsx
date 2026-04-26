@@ -141,7 +141,7 @@ export default function UserManagementPage() {
 
   const editMutation = useMutation({
     mutationFn: ({ userId, req }: { userId: string; req: UpdateUserReq }) =>
-      updateUserApi(Number(userId), req),
+      updateUserApi(userId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['adminUsers'] })
       setEditOpen(false)
@@ -151,7 +151,7 @@ export default function UserManagementPage() {
 
   const statusMutation = useMutation({
     mutationFn: ({ userId, status }: { userId: string; status: 'enabled' | 'disabled' }) =>
-      toggleUserStatusApi(Number(userId), { status }),
+      toggleUserStatusApi(userId, { status }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['adminUsers'] })
       setStatusOpen(false)

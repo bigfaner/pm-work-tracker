@@ -3,8 +3,8 @@ package dto
 // TeamMemberDTO is the response DTO for team membership with joined user info.
 type TeamMemberDTO struct {
 	BizKey      string `json:"bizKey"`
-	TeamID      uint   `json:"teamId"`
-	UserID      uint   `json:"userId"`
+	TeamKey     string `json:"teamKey"`
+	UserKey  string `json:"userKey"`
 	Role        string `json:"role"`
 	JoinedAt    string `json:"joinedAt"`
 	DisplayName string `json:"displayName"`

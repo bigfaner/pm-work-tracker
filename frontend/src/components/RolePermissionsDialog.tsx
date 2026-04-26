@@ -15,7 +15,7 @@ import { PERMISSION_GROUPS } from '@/lib/permissions'
 interface RolePermissionsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  roleId: number | null
+  roleId: string | null
 }
 
 export default function RolePermissionsDialog({

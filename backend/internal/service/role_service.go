@@ -2,11 +2,13 @@ package service
 
 import (
 	"context"
+	"strconv"
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg/permissions"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -22,24 +24,24 @@ var (
 
 // RoleListItem is the response shape for a role in list view.
 type RoleListItem struct {
-	ID              uint   `json:"id"`
-	Name            string `json:"name"`
-	Description     string `json:"description"`
+	BizKey          string `json:"bizKey"`
+	Name            string `json:"roleName"`
+	Description     string `json:"roleDesc"`
 	IsPreset        bool   `json:"isPreset"`
 	PermissionCount int    `json:"permissionCount"`
 	MemberCount     int64  `json:"memberCount"`
-	CreatedAt       string `json:"createdAt"`
+	CreatedAt       string `json:"createTime"`
 }
 
 // RoleDetail is the response shape for a single role with full permission list.
 type RoleDetail struct {
-	ID          uint               `json:"id"`
-	Name        string             `json:"name"`
-	Description string             `json:"description"`
+	BizKey      string             `json:"bizKey"`
+	Name        string             `json:"roleName"`
+	Description string             `json:"roleDesc"`
 	IsPreset    bool               `json:"isPreset"`
 	Permissions []PermissionItem   `json:"permissions"`
 	MemberCount int64              `json:"memberCount"`
-	CreatedAt   string             `json:"createdAt"`
+	CreatedAt   string             `json:"createTime"`
 }
 
 // PermissionItem describes a single permission code in a role.
@@ -57,10 +59,10 @@ type UserPermissions struct {
 // RoleService defines business logic for role management.
 type RoleService interface {
 	ListRoles(ctx context.Context) ([]RoleListItem, error)
-	GetRole(ctx context.Context, roleID uint) (*RoleDetail, error)
+	GetRole(ctx context.Context, roleBizKey int64) (*RoleDetail, error)
 	CreateRole(ctx context.Context, req dto.CreateRoleReq) (*RoleListItem, error)
-	UpdateRole(ctx context.Context, roleID uint, req dto.UpdateRoleReq) (*RoleDetail, error)
-	DeleteRole(ctx context.Context, roleID uint) error
+	UpdateRole(ctx context.Context, roleBizKey int64, req dto.UpdateRoleReq) (*RoleDetail, error)
+	DeleteRole(ctx context.Context, roleBizKey int64) error
 	ListPermissionCodes(ctx context.Context) []permissions.ResourcePermissions
 	GetUserPermissions(ctx context.Context, userID uint) (*UserPermissions, error)
 }
@@ -98,7 +100,7 @@ func (s *roleService) ListRoles(ctx context.Context) ([]RoleListItem, error) {
 			return nil, err
 		}
 		items = append(items, RoleListItem{
-			ID:              r.ID,
+			BizKey:          strconv.FormatInt(r.BizKey, 10),
 			Name:            r.Name,
 			Description:     r.Description,
 			IsPreset:        r.IsPreset,
@@ -110,8 +112,8 @@ func (s *roleService) ListRoles(ctx context.Context) ([]RoleListItem, error) {
 	return items, nil
 }
 
-func (s *roleService) GetRole(ctx context.Context, roleID uint) (*RoleDetail, error) {
-	role, err := s.roleRepo.FindByID(ctx, roleID)
+func (s *roleService) GetRole(ctx context.Context, roleBizKey int64) (*RoleDetail, error) {
+	role, err := s.roleRepo.FindByBizKey(ctx, roleBizKey)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, ErrRoleNotFound)
 	}
@@ -121,19 +123,19 @@ func (s *roleService) GetRole(ctx context.Context, roleID uint) (*RoleDetail, er
 		codes = allCodes()
 	} else {
 		var err error
-		codes, err = s.roleRepo.ListPermissions(ctx, roleID)
+		codes, err = s.roleRepo.ListPermissions(ctx, role.ID)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	memberCount, err := s.roleRepo.CountMembersByRoleID(ctx, roleID)
+	memberCount, err := s.roleRepo.CountMembersByRoleID(ctx, role.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	return &RoleDetail{
-		ID:          role.ID,
+		BizKey:      strconv.FormatInt(role.BizKey, 10),
 		Name:        role.Name,
 		Description: role.Description,
 		IsPreset:    role.IsPreset,
@@ -160,6 +162,7 @@ func (s *roleService) CreateRole(ctx context.Context, req dto.CreateRoleReq) (*R
 	}
 
 	role := &model.Role{
+		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
 		Name:        req.Name,
 		Description: req.Description,
 		IsPreset:    false,
@@ -173,7 +176,7 @@ func (s *roleService) CreateRole(ctx context.Context, req dto.CreateRoleReq) (*R
 	}
 
 	return &RoleListItem{
-		ID:              role.ID,
+		BizKey:          strconv.FormatInt(role.BizKey, 10),
 		Name:            role.Name,
 		Description:     role.Description,
 		IsPreset:        false,
@@ -183,8 +186,8 @@ func (s *roleService) CreateRole(ctx context.Context, req dto.CreateRoleReq) (*R
 	}, nil
 }
 
-func (s *roleService) UpdateRole(ctx context.Context, roleID uint, req dto.UpdateRoleReq) (*RoleDetail, error) {
-	role, err := s.roleRepo.FindByID(ctx, roleID)
+func (s *roleService) UpdateRole(ctx context.Context, roleBizKey int64, req dto.UpdateRoleReq) (*RoleDetail, error) {
+	role, err := s.roleRepo.FindByBizKey(ctx, roleBizKey)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, ErrRoleNotFound)
 	}
@@ -236,23 +239,23 @@ func (s *roleService) UpdateRole(ctx context.Context, roleID uint, req dto.Updat
 
 	// Update permissions if provided
 	if req.PermissionCodes != nil {
-		if err := s.roleRepo.SetPermissions(ctx, roleID, req.PermissionCodes); err != nil {
+		if err := s.roleRepo.SetPermissions(ctx, role.ID, req.PermissionCodes); err != nil {
 			return nil, err
 		}
 	}
 
 	// Reload permissions for response
-	codes, err := s.roleRepo.ListPermissions(ctx, roleID)
+	codes, err := s.roleRepo.ListPermissions(ctx, role.ID)
 	if err != nil {
 		return nil, err
 	}
-	memberCount, err := s.roleRepo.CountMembersByRoleID(ctx, roleID)
+	memberCount, err := s.roleRepo.CountMembersByRoleID(ctx, role.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	return &RoleDetail{
-		ID:          role.ID,
+		BizKey:      strconv.FormatInt(role.BizKey, 10),
 		Name:        role.Name,
 		Description: role.Description,
 		IsPreset:    role.IsPreset,
@@ -262,8 +265,8 @@ func (s *roleService) UpdateRole(ctx context.Context, roleID uint, req dto.Updat
 	}, nil
 }
 
-func (s *roleService) DeleteRole(ctx context.Context, roleID uint) error {
-	role, err := s.roleRepo.FindByID(ctx, roleID)
+func (s *roleService) DeleteRole(ctx context.Context, roleBizKey int64) error {
+	role, err := s.roleRepo.FindByBizKey(ctx, roleBizKey)
 	if err != nil {
 		return apperrors.MapNotFound(err, ErrRoleNotFound)
 	}
@@ -272,7 +275,7 @@ func (s *roleService) DeleteRole(ctx context.Context, roleID uint) error {
 		return ErrPresetRoleImmutable
 	}
 
-	count, err := s.roleRepo.CountMembersByRoleID(ctx, roleID)
+	count, err := s.roleRepo.CountMembersByRoleID(ctx, role.ID)
 	if err != nil {
 		return err
 	}
@@ -280,7 +283,7 @@ func (s *roleService) DeleteRole(ctx context.Context, roleID uint) error {
 		return ErrRoleInUse
 	}
 
-	return s.roleRepo.Delete(ctx, roleID)
+	return s.roleRepo.Delete(ctx, role.ID)
 }
 
 func (s *roleService) ListPermissionCodes(_ context.Context) []permissions.ResourcePermissions {

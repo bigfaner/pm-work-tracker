@@ -97,6 +97,9 @@ func (m *mockMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ uint) ([]m
 func (m *mockMainItemRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
 	return nil, nil
 }
+func (m *mockMainItemRepo) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.MainItem, error) {
+	return nil, nil
+}
 func (m *mockMainItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
 	if m.bizKeyItem != nil {
 		return m.bizKeyItem, nil

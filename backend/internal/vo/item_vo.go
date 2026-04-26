@@ -15,6 +15,7 @@ type MainItemVO struct {
 	TeamKey         string  `json:"teamKey"`
 	Code            string  `json:"code"`
 	Title           string  `json:"title"`
+	ItemDesc        string  `json:"itemDesc"`
 	Priority        string  `json:"priority"`
 	ProposerKey     string  `json:"proposerKey"`
 	AssigneeKey     *string `json:"assigneeKey"`
@@ -37,7 +38,7 @@ type SubItemVO struct {
 	TeamKey         string  `json:"teamKey"`
 	MainItemKey     string  `json:"mainItemKey"`
 	Title           string  `json:"title"`
-	Description     string  `json:"description"`
+	ItemDesc        string  `json:"itemDesc"`
 	Priority        string  `json:"priority"`
 	AssigneeKey     *string `json:"assigneeKey"`
 	PlanStartDate   *string `json:"planStartDate"`
@@ -93,6 +94,7 @@ func NewMainItemVO(m *model.MainItem) MainItemVO {
 		TeamKey:         pkg.FormatID(m.TeamKey),
 		Code:            m.Code,
 		Title:           m.Title,
+		ItemDesc:        m.ItemDesc,
 		Priority:        m.Priority,
 		ProposerKey:     pkg.FormatID(m.ProposerKey),
 		AssigneeKey:     pkg.FormatIDPtr(m.AssigneeKey),
@@ -121,7 +123,7 @@ func NewSubItemVO(m *model.SubItem) SubItemVO {
 		TeamKey:         pkg.FormatID(m.TeamKey),
 		MainItemKey:     pkg.FormatID(m.MainItemKey),
 		Title:           m.Title,
-		Description:     m.ItemDesc,
+		ItemDesc:        m.ItemDesc,
 		Priority:        m.Priority,
 		AssigneeKey:     pkg.FormatIDPtr(m.AssigneeKey),
 		PlanStartDate:   dates.FormatTimePtr(m.PlanStartDate),

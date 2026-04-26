@@ -311,8 +311,8 @@ func TestListTeams_Success(t *testing.T) {
 			{BaseModel: model.BaseModel{ID: 2}, TeamName: "Team B", PmKey: 20},
 		},
 		members: []*dto.TeamMemberDTO{
-			{TeamKey: "1", UserBizKey: "10", Role: "pm", DisplayName: "Alice"},
-			{TeamKey: "2", UserBizKey: "20", Role: "pm", DisplayName: "Bob"},
+			{TeamKey: "1", UserKey: "10", Role: "pm", DisplayName: "Alice"},
+			{TeamKey: "2", UserKey: "20", Role: "pm", DisplayName: "Bob"},
 		},
 	}
 	svc := NewTeamService(repo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
@@ -564,8 +564,8 @@ func TestListMembers_Success(t *testing.T) {
 	now := time.Now()
 	teamRepo := &mockTeamRepo{
 		members: []*dto.TeamMemberDTO{
-			{TeamKey: "1", UserBizKey: "10", DisplayName: "Alice", Username: "alice", Role: "pm", JoinedAt: now.Format(time.RFC3339)},
-			{TeamKey: "1", UserBizKey: "5", DisplayName: "Bob", Username: "bob", JoinedAt: now.Format(time.RFC3339)},
+			{TeamKey: "1", UserKey: "10", DisplayName: "Alice", Username: "alice", Role: "pm", JoinedAt: now.Format(time.RFC3339)},
+			{TeamKey: "1", UserKey: "5", DisplayName: "Bob", Username: "bob", JoinedAt: now.Format(time.RFC3339)},
 		},
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
@@ -727,9 +727,9 @@ func TestGetTeamDetail_UsesCountMembers(t *testing.T) {
 			PmKey:      10,
 		},
 		members: []*dto.TeamMemberDTO{
-			{TeamKey: "1", UserBizKey: "10", DisplayName: "Alice", },
-			{TeamKey: "1", UserBizKey: "20", DisplayName: "Bob", },
-			{TeamKey: "1", UserBizKey: "30", DisplayName: "Charlie", },
+			{TeamKey: "1", UserKey: "10", DisplayName: "Alice", },
+			{TeamKey: "1", UserKey: "20", DisplayName: "Bob", },
+			{TeamKey: "1", UserKey: "30", DisplayName: "Charlie", },
 		},
 		countMembersVal: 3,
 	}
@@ -755,7 +755,7 @@ func TestGetTeamDetail_CountMembersFallback(t *testing.T) {
 		},
 		countMembersErr: errors.New("not supported"),
 		members: []*dto.TeamMemberDTO{
-			{TeamKey: "1", UserBizKey: "10", DisplayName: "Alice", },
+			{TeamKey: "1", UserKey: "10", DisplayName: "Alice", },
 		},
 	}
 	userRepo := &mockTeamUserRepo{

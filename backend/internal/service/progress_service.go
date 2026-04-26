@@ -6,6 +6,7 @@ import (
 
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/pkg/status"
 	"pm-work-tracker/backend/internal/repository"
 )
@@ -15,6 +16,7 @@ type ProgressService interface {
 	Append(ctx context.Context, teamID, authorID, subItemID uint, completion float64, achievement, blocker, lesson string, isPM bool) (*model.ProgressRecord, error)
 	CorrectCompletion(ctx context.Context, teamID, recordID uint, completion float64) error
 	List(ctx context.Context, teamID, subItemID uint) ([]model.ProgressRecord, error)
+	GetByBizKey(ctx context.Context, bizKey int64) (*model.ProgressRecord, error)
 }
 
 type progressService struct {
@@ -50,6 +52,7 @@ func (s *progressService) Append(ctx context.Context, teamID, authorID, subItemI
 	isFirstProgress := latest == nil
 
 	record := &model.ProgressRecord{
+		BizKey:      snowflake.Generate(),
 		SubItemKey:  int64(subItemID),
 		TeamKey:     int64(teamID),
 		AuthorKey:   int64(authorID),
@@ -115,6 +118,14 @@ func (s *progressService) Append(ctx context.Context, teamID, authorID, subItemI
 		return nil, err
 	}
 
+	return record, nil
+}
+
+func (s *progressService) GetByBizKey(ctx context.Context, bizKey int64) (*model.ProgressRecord, error) {
+	record, err := s.progressRepo.FindByBizKey(ctx, bizKey)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
+	}
 	return record, nil
 }
 

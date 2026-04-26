@@ -127,6 +127,21 @@ func (r *mainItemRepo) FindByIDs(ctx context.Context, ids []uint) (map[uint]*mod
 	return repo.FindByIDs[model.MainItem](r.db, ctx, ids)
 }
 
+func (r *mainItemRepo) FindByBizKeys(ctx context.Context, bizKeys []int64) (map[int64]*model.MainItem, error) {
+	result := make(map[int64]*model.MainItem)
+	if len(bizKeys) == 0 {
+		return result, nil
+	}
+	var items []*model.MainItem
+	if err := r.db.WithContext(ctx).Where("biz_key IN ?", bizKeys).Find(&items).Error; err != nil {
+		return nil, err
+	}
+	for _, item := range items {
+		result[item.BizKey] = item
+	}
+	return result, nil
+}
+
 func (r *mainItemRepo) ListByTeamAndStatus(ctx context.Context, teamID uint, status string) ([]model.MainItem, error) {
 	var items []model.MainItem
 	err := r.db.WithContext(ctx).

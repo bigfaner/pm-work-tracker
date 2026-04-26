@@ -90,7 +90,7 @@ func (h *ItemPoolHandler) List(c *gin.Context) {
 
 // Get handles GET /api/v1/teams/:teamId/item-pool/:poolId
 func (h *ItemPoolHandler) Get(c *gin.Context) {
-	poolID, ok := parsePoolID(c)
+	poolID, ok := h.resolvePoolID(c)
 	if !ok {
 		return
 	}
@@ -108,7 +108,7 @@ func (h *ItemPoolHandler) Get(c *gin.Context) {
 
 // Assign handles POST /api/v1/teams/:teamId/item-pool/:poolId/assign
 func (h *ItemPoolHandler) Assign(c *gin.Context) {
-	poolID, ok := parsePoolID(c)
+	poolID, ok := h.resolvePoolID(c)
 	if !ok {
 		return
 	}
@@ -140,7 +140,7 @@ func (h *ItemPoolHandler) Assign(c *gin.Context) {
 
 // ConvertToMain handles POST /api/v1/teams/:teamId/item-pool/:poolId/convert-to-main
 func (h *ItemPoolHandler) ConvertToMain(c *gin.Context) {
-	poolID, ok := parsePoolID(c)
+	poolID, ok := h.resolvePoolID(c)
 	if !ok {
 		return
 	}
@@ -165,7 +165,7 @@ func (h *ItemPoolHandler) ConvertToMain(c *gin.Context) {
 
 // Reject handles POST /api/v1/teams/:teamId/item-pool/:poolId/reject
 func (h *ItemPoolHandler) Reject(c *gin.Context) {
-	poolID, ok := parsePoolID(c)
+	poolID, ok := h.resolvePoolID(c)
 	if !ok {
 		return
 	}
@@ -195,15 +195,20 @@ func (h *ItemPoolHandler) Reject(c *gin.Context) {
 	apperrors.RespondOK(c, itemPoolToVO(updated, h.userRepo, h.mainItemRepo, c))
 }
 
-// parsePoolID extracts and validates the poolId path param as uint.
-func parsePoolID(c *gin.Context) (uint, bool) {
+// resolvePoolID parses the poolId path param as a bizKey and resolves it to an internal uint ID.
+func (h *ItemPoolHandler) resolvePoolID(c *gin.Context) (uint, bool) {
 	idStr := c.Param("poolId")
-	id, err := strconv.ParseUint(idStr, 10, 64)
+	bizKey, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return 0, false
 	}
-	return uint(id), true
+	item, err := h.svc.GetByBizKey(c.Request.Context(), bizKey)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return 0, false
+	}
+	return item.ID, true
 }
 
 // itemPoolToVO converts a single model.ItemPool to an ItemPoolVO using individual lookups.
@@ -216,7 +221,7 @@ func itemPoolToVO(item *model.ItemPool, userRepo repository.UserRepo, mainItemRe
 	}
 	v := vo.NewItemPoolVO(item, submitterName)
 	if mainItemRepo != nil && item.AssignedMainKey != nil {
-		if mi, err := mainItemRepo.FindByID(c.Request.Context(), uint(*item.AssignedMainKey)); err == nil && mi != nil {
+		if mi, err := mainItemRepo.FindByBizKey(c.Request.Context(), *item.AssignedMainKey); err == nil && mi != nil {
 			v.AssignedMainCode = mi.Code
 			v.AssignedMainTitle = mi.Title
 		}
@@ -234,13 +239,13 @@ func itemPoolsToVOs(items []model.ItemPool, userRepo repository.UserRepo, mainIt
 
 	// Collect unique IDs
 	submitterIDs := make(map[uint]struct{})
-	mainItemIDs := make(map[uint]struct{})
+	mainItemBizKeys := make(map[int64]struct{})
 	for i := range items {
 		if items[i].SubmitterKey > 0 {
 			submitterIDs[uint(items[i].SubmitterKey)] = struct{}{}
 		}
 		if items[i].AssignedMainKey != nil {
-			mainItemIDs[uint(*items[i].AssignedMainKey)] = struct{}{}
+			mainItemBizKeys[*items[i].AssignedMainKey] = struct{}{}
 		}
 	}
 
@@ -253,10 +258,10 @@ func itemPoolsToVOs(items []model.ItemPool, userRepo repository.UserRepo, mainIt
 		}
 	}
 
-	mainItemMap := make(map[uint]*model.MainItem)
-	if mainItemRepo != nil && len(mainItemIDs) > 0 {
-		ids := mapKeysToSlice(mainItemIDs)
-		if m, err := mainItemRepo.FindByIDs(ctx, ids); err == nil {
+	mainItemMap := make(map[int64]*model.MainItem)
+	if mainItemRepo != nil && len(mainItemBizKeys) > 0 {
+		keys := int64MapKeysToSlice(mainItemBizKeys)
+		if m, err := mainItemRepo.FindByBizKeys(ctx, keys); err == nil {
 			mainItemMap = m
 		}
 	}
@@ -270,7 +275,7 @@ func itemPoolsToVOs(items []model.ItemPool, userRepo repository.UserRepo, mainIt
 		}
 		v := vo.NewItemPoolVO(&items[i], submitterName)
 		if items[i].AssignedMainKey != nil {
-			if mi, ok := mainItemMap[uint(*items[i].AssignedMainKey)]; ok {
+			if mi, ok := mainItemMap[*items[i].AssignedMainKey]; ok {
 				v.AssignedMainCode = mi.Code
 				v.AssignedMainTitle = mi.Title
 			}
@@ -287,4 +292,13 @@ func mapKeysToSlice(m map[uint]struct{}) []uint {
 		ids = append(ids, id)
 	}
 	return ids
+}
+
+// int64MapKeysToSlice extracts int64 map keys to a slice for batch lookups.
+func int64MapKeysToSlice(m map[int64]struct{}) []int64 {
+	keys := make([]int64, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }

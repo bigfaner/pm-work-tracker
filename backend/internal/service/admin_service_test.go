@@ -73,7 +73,10 @@ func (m *mockAdminUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*mo
 	return nil, nil
 }
 func (m *mockAdminUserRepo) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
-	return nil, nil
+	if m.findErr != nil {
+		return nil, m.findErr
+	}
+	return m.user, m.err
 }
 func (m *mockAdminUserRepo) ListFiltered(ctx context.Context, search string, offset, limit int) ([]*model.User, int64, error) {
 	m.listFilteredCalled = true

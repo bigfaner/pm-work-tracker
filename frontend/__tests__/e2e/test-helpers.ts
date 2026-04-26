@@ -37,6 +37,36 @@ export function parseApiData(resp: any): any {
   return resp.data !== undefined ? resp.data : resp;
 }
 
+export async function getFirstMemberKey(token: string, teamId: string): Promise<string | null> {
+  const res = await fetch(`${API}/teams/${teamId}/members`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  const data = parseApiData(json);
+  const list = Array.isArray(data) ? data : (data?.items ?? []);
+  if (list.length > 0) {
+    return String(list[0].userKey ?? list[0].userId ?? list[0].id);
+  }
+  return null;
+}
+
+export async function getRoleKey(token: string, roleName: string): Promise<string | null> {
+  const res = await fetch(`${API}/admin/roles`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  const data = parseApiData(json);
+  const list = Array.isArray(data) ? data : (data?.items ?? []);
+  const role = list.find((r: any) => r.name === roleName);
+  return role ? String(role.id) : null;
+}
+
+export function extractBizKey(data: any): string | null {
+  if (!data) return null;
+  const val = data.bizKey ?? data.id ?? data.ID ?? data.data?.bizKey ?? data.data?.id;
+  return val != null ? String(val) : null;
+}
+
 export async function login(page: Page): Promise<void> {
   const token = await getAuthToken();
 

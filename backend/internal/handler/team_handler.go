@@ -164,14 +164,12 @@ func (h *TeamHandler) RemoveMember(c *gin.Context) {
 	teamID := middleware.GetTeamID(c)
 	pmID := middleware.GetUserID(c)
 
-	targetUserIDStr := c.Param("userId")
-	targetUserID, err := strconv.ParseUint(targetUserIDStr, 10, 64)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrValidation)
+	targetUserID, ok := h.resolveUserBizKey(c)
+	if !ok {
 		return
 	}
 
-	err = h.teamSvc.RemoveMember(c.Request.Context(), pmID, teamID, uint(targetUserID))
+	err := h.teamSvc.RemoveMember(c.Request.Context(), pmID, teamID, targetUserID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -185,10 +183,8 @@ func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 	teamID := middleware.GetTeamID(c)
 	pmID := middleware.GetUserID(c)
 
-	targetUserIDStr := c.Param("userId")
-	targetUserID, err := strconv.ParseUint(targetUserIDStr, 10, 64)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrValidation)
+	targetUserID, ok := h.resolveUserBizKey(c)
+	if !ok {
 		return
 	}
 
@@ -199,9 +195,9 @@ func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 	}
 
 	roleKey, _ := pkg.ParseID(req.RoleKey)
-		if err := h.teamSvc.UpdateMemberRole(c.Request.Context(), pmID, teamID, uint(targetUserID), uint(roleKey)); err != nil {
-		apperrors.RespondError(c, err)
-		return
+	if err := h.teamSvc.UpdateMemberRole(c.Request.Context(), pmID, teamID, targetUserID, uint(roleKey)); err != nil {
+	apperrors.RespondError(c, err)
+	return
 	}
 
 	apperrors.RespondOK(c, nil)
@@ -263,4 +259,20 @@ func teamToDTO(team *model.Team) gin.H {
 		"createdAt":   team.CreateTime,
 		"updatedAt":   team.DbUpdateTime,
 	}
+}
+
+// resolveUserBizKey parses the userId path param as a bizKey and resolves it to an internal uint ID.
+func (h *TeamHandler) resolveUserBizKey(c *gin.Context) (uint, bool) {
+	idStr := c.Param("userId")
+	bizKey, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return 0, false
+	}
+	user, err := h.userRepo.FindByBizKey(c.Request.Context(), bizKey)
+	if err != nil {
+		apperrors.RespondError(c, apperrors.ErrItemNotFound)
+		return 0, false
+	}
+	return user.ID, true
 }

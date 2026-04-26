@@ -69,6 +69,9 @@ func (m *mockViewMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ uint) 
 func (m *mockViewMainItemRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
 	return nil, nil
 }
+func (m *mockViewMainItemRepo) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.MainItem, error) {
+	return nil, nil
+}
 func (m *mockViewMainItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
 	return nil, nil
 }
@@ -146,6 +149,9 @@ func (m *mockViewProgressRepo) ListByTeamInRange(_ context.Context, _ uint, _, _
 		return nil, m.listErr
 	}
 	return m.records, nil
+}
+func (m *mockViewProgressRepo) FindByBizKey(_ context.Context, _ int64) (*model.ProgressRecord, error) {
+	return nil, nil
 }
 
 // ---------------------------------------------------------------------------

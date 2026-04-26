@@ -53,13 +53,13 @@ export default function RoleManagementPage() {
 
   // Dialogs
   const [editOpen, setEditOpen] = useState(false)
-  const [editRoleId, setEditRoleId] = useState<number | null>(null)
+  const [editRoleId, setEditRoleId] = useState<string | null>(null)
   const [browseOpen, setBrowseOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteRole, setDeleteRole] = useState<Role | null>(null)
   const [deleteError, setDeleteError] = useState('')
   const [permissionsOpen, setPermissionsOpen] = useState(false)
-  const [permissionsRoleId, setPermissionsRoleId] = useState<number | null>(null)
+  const [permissionsRoleId, setPermissionsRoleId] = useState<string | null>(null)
 
   // Data
   const { data: rolesData, isLoading, isFetching, refetch } = useQuery({
@@ -90,7 +90,7 @@ export default function RoleManagementPage() {
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => deleteRoleApi(id),
+    mutationFn: (bizKey: string) => deleteRoleApi(bizKey),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['roles'] })
       setDeleteOpen(false)
@@ -110,7 +110,7 @@ export default function RoleManagementPage() {
   })
 
   const openEdit = useCallback((role: Role) => {
-    setEditRoleId(role.id)
+    setEditRoleId(role.bizKey)
     setEditOpen(true)
   }, [])
 
@@ -126,13 +126,13 @@ export default function RoleManagementPage() {
   }, [])
 
   const openPermissions = useCallback((role: Role) => {
-    setPermissionsRoleId(role.id)
+    setPermissionsRoleId(role.bizKey)
     setPermissionsOpen(true)
   }, [])
 
   const handleDeleteConfirm = useCallback(() => {
     if (deleteRole) {
-      deleteMutation.mutate(deleteRole.id)
+      deleteMutation.mutate(deleteRole.bizKey)
     }
   }, [deleteRole, deleteMutation])
 
@@ -237,12 +237,12 @@ export default function RoleManagementPage() {
               </TableHeader>
               <TableBody>
                 {roles.map((role) => (
-                  <TableRow key={role.id}>
+                  <TableRow key={role.bizKey}>
                     <TableCell>
                       <button
                         type="button"
-                        className="font-medium text-primary hover:underline cursor-pointer"
-                        data-testid={`role-name-${role.id}`}
+                        className="font-medium text-primary-600 hover:text-primary-700 hover:underline cursor-pointer"
+                        data-testid={`role-name-${role.bizKey}`}
                         onClick={() => openPermissions(role)}
                       >
                         {role.roleName}
@@ -277,7 +277,7 @@ export default function RoleManagementPage() {
                                 size="sm"
                                 className="text-primary-600"
                                 disabled={role.isPreset}
-                                data-testid={`edit-role-${role.id}`}
+                                data-testid={`edit-role-${role.bizKey}`}
                                 onClick={() => openEdit(role)}
                               >
                                 <Pencil className="w-3.5 h-3.5" />

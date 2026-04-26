@@ -139,6 +139,35 @@ func (m *mockSubItemService) AvailableTransitions(_ context.Context, teamID, sub
 func (m *mockSubItemService) Delete(_ context.Context, _, _, _ uint) error {
 	return nil
 }
+func (m *mockSubItemService) GetByBizKey(_ context.Context, bizKey int64) (*model.SubItem, error) {
+	return &model.SubItem{BaseModel: model.BaseModel{ID: uint(bizKey)}}, nil
+}
+
+// mockMainItemSvcForSubItem resolves bizKey for SubItemHandler List tests.
+type mockMainItemSvcForSubItem struct{}
+
+func (m *mockMainItemSvcForSubItem) Create(_ context.Context, _, _ uint, _ dto.MainItemCreateReq) (*model.MainItem, error) {
+	return nil, nil
+}
+func (m *mockMainItemSvcForSubItem) Update(_ context.Context, _ uint, _ uint, _ dto.MainItemUpdateReq) error { return nil }
+func (m *mockMainItemSvcForSubItem) Archive(_ context.Context, _ uint, _ uint) error                        { return nil }
+func (m *mockMainItemSvcForSubItem) List(_ context.Context, _ uint, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+	return nil, nil
+}
+func (m *mockMainItemSvcForSubItem) Get(_ context.Context, _ uint) (*model.MainItem, error) { return nil, nil }
+func (m *mockMainItemSvcForSubItem) GetByBizKey(_ context.Context, bizKey int64) (*model.MainItem, error) {
+	return &model.MainItem{BaseModel: model.BaseModel{ID: uint(bizKey)}}, nil
+}
+func (m *mockMainItemSvcForSubItem) RecalcCompletion(_ context.Context, _ uint) error { return nil }
+func (m *mockMainItemSvcForSubItem) ChangeStatus(_ context.Context, _, _, _ uint, _ string) (*model.MainItem, error) {
+	return nil, nil
+}
+func (m *mockMainItemSvcForSubItem) AvailableTransitions(_ context.Context, _, _, _ uint) ([]string, error) {
+	return nil, nil
+}
+func (m *mockMainItemSvcForSubItem) EvaluateLinkage(_ context.Context, _ uint, _ uint) (*service.LinkageResult, error) {
+	return nil, nil
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -150,7 +179,7 @@ func depsWithSubItemSvc(t *testing.T, svc *mockSubItemService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
-	deps.SubItem = NewSubItemHandler(svc)
+	deps.SubItem = NewSubItemHandler(svc, &mockMainItemSvcForSubItem{})
 	return deps
 }
 
@@ -160,7 +189,7 @@ func depsWithSubItemSvcMemberRole(t *testing.T, svc *mockSubItemService) *Depend
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(2); return &v }()}}
-	deps.SubItem = NewSubItemHandler(svc)
+	deps.SubItem = NewSubItemHandler(svc, &mockMainItemSvcForSubItem{})
 	return deps
 }
 

@@ -6,7 +6,7 @@ export interface PermissionData {
 }
 
 export interface Role {
-  id: number
+  bizKey: string
   roleName: string
   roleDesc: string
   isPreset: boolean
@@ -26,7 +26,7 @@ export interface PermissionGroup {
 }
 
 export interface RoleDetail {
-  id: number
+  bizKey: string
   roleName: string
   roleDesc: string
   isPreset: boolean
@@ -219,8 +219,8 @@ export interface TeamDetailResp {
 export interface TeamMemberResp {
   id: number
   bizKey: string
-  teamId: number
-  userId: number
+  teamKey: string
+  userKey: string
   role: string
   roleId: number
   roleName: string

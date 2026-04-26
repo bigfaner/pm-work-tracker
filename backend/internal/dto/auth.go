@@ -56,7 +56,7 @@ type AdminUserDTO struct {
 	Username        string       `json:"username"`
 	DisplayName     string       `json:"displayName"`
 	Email           string       `json:"email"`
-	Status          string       `json:"status"`
+	Status          string       `json:"userStatus"`
 	IsSuperAdmin    bool         `json:"isSuperAdmin"`
 	Teams           []TeamSummary `json:"teams"`
 	InitialPassword string       `json:"initialPassword,omitempty"`

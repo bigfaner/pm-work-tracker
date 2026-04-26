@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { getMemberName } from './useMemberName'
 
 const members = [
-  { bizKey: 'U001', displayName: 'Alice', username: 'alice', role: 'pm', joinedAt: '2024-01-01' },
-  { bizKey: 'U002', displayName: 'Bob', username: 'bob', role: 'member', joinedAt: '2024-01-01' },
+  { userKey: 'U001', displayName: 'Alice', username: 'alice', role: 'pm', joinedAt: '2024-01-01' },
+  { userKey: 'U002', displayName: 'Bob', username: 'bob', role: 'member', joinedAt: '2024-01-01' },
 ]
 
 describe('getMemberName', () => {

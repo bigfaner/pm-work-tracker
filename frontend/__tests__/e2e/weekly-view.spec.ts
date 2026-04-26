@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { BASE, API, login, getAuthToken, parseApiData, navTo } from './test-helpers';
+import { BASE, API, login, getAuthToken, parseApiData, navTo, extractBizKey } from './test-helpers';
 
 const TIMEOUT = 60000;
 
@@ -27,8 +27,16 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     const teamsData = await teamsResp.json();
     const teamsRaw = parseApiData(teamsData) || teamsData;
     const teams = Array.isArray(teamsRaw) ? teamsRaw : (teamsRaw?.items ?? []);
-    teamId = String(teams[0]?.id || teams[0]?.ID);
+    teamId = String(teams[0]?.bizKey);
     if (!teamId || teamId === 'undefined') throw new Error('No team found');
+
+    // Get team members for assigneeKey
+    const membersResp = await fetch(`${API}/teams/${teamId}/members`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const membersRaw = parseApiData(await membersResp.json());
+    const memberList = Array.isArray(membersRaw) ? membersRaw : (membersRaw?.items ?? []);
+    const assigneeKey = memberList[0]?.userKey ?? '';
 
     // Clean up stale test data from previous runs
     try {
@@ -39,7 +47,7 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
       const items = parseApiData(itemsData) || [];
       for (const item of items) {
         if (item.title === 'E2E周视图测试主事项') {
-          await fetch(`${API}/teams/${teamId}/main-items/${item.id}/archive`, {
+          await fetch(`${API}/teams/${teamId}/main-items/${extractBizKey(item)}/archive`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
           });
@@ -54,51 +62,51 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
       body: JSON.stringify({
         title: 'E2E周视图测试主事项',
         priority: 'P1',
-        assigneeId: 1,
+        assigneeKey,
         startDate: '2026-04-13',
         expectedEndDate: '2026-04-25',
       }),
     });
     const mainData = await mainResp.json();
-    testMainItemId = String(parseApiData(mainData)?.id || mainData?.id);
+    testMainItemId = extractBizKey(parseApiData(mainData)) || extractBizKey(mainData) || '';
 
     // Create sub-item 1
     const sub1Resp = await fetch(`${API}/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        mainItemId: Number(testMainItemId),
+        mainItemKey: String(testMainItemId),
         title: 'E2E子事项-进度测试A',
         priority: 'P2',
-        assigneeId: 1,
+        assigneeKey,
         startDate: '2026-04-13',
         expectedEndDate: '2026-04-20',
       }),
     });
     const sub1Data = await sub1Resp.json();
-    testSubItemId1 = String(parseApiData(sub1Data)?.id || sub1Data?.id);
+    testSubItemId1 = extractBizKey(parseApiData(sub1Data)) || extractBizKey(sub1Data) || '';
 
     // Create sub-item 2
     const sub2Resp = await fetch(`${API}/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        mainItemId: Number(testMainItemId),
+        mainItemKey: String(testMainItemId),
         title: 'E2E子事项-进度测试B',
         priority: 'P3',
-        assigneeId: 1,
+        assigneeKey,
         startDate: '2026-04-13',
         expectedEndDate: '2026-04-22',
       }),
     });
     const sub2Data = await sub2Resp.json();
-    testSubItemId2 = String(parseApiData(sub2Data)?.id || sub2Data?.id);
+    testSubItemId2 = extractBizKey(parseApiData(sub2Data)) || extractBizKey(sub2Data) || '';
 
     // Change sub-item 1 to in-progress
     await fetch(`${API}/teams/${teamId}/sub-items/${testSubItemId1}/status`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: '进行中' }),
+      body: JSON.stringify({ status: 'progressing' }),
     });
 
     // Append progress record 1 for sub-item 1 (this week)
@@ -129,7 +137,7 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     await fetch(`${API}/teams/${teamId}/sub-items/${testSubItemId2}/status`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: '进行中' }),
+      body: JSON.stringify({ status: 'progressing' }),
     });
     await fetch(`${API}/teams/${teamId}/sub-items/${testSubItemId2}/progress`, {
       method: 'POST',

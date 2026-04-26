@@ -1,15 +1,16 @@
 import { test, expect, Page } from '@playwright/test';
-import { BASE, API, login, getAuthToken, getFirstTeamId, parseApiData, navTo } from './test-helpers';
+import { BASE, API, login, getAuthToken, getFirstTeamId, parseApiData, navTo, extractBizKey, getFirstMemberKey } from './test-helpers';
 
 // Helper: create main item via API
-async function createMainItemApi(token: string, teamId: string, title: string) {
+async function createMainItemApi(token: string, teamId: string, title: string, assigneeKey?: string) {
+  const memberKey = assigneeKey ?? await getFirstMemberKey(token, teamId) ?? '';
   const res = await fetch(`${API}/teams/${teamId}/main-items`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, priority: 'P2', startDate: '2026-04-19', expectedEndDate: '2026-05-19' }),
+    body: JSON.stringify({ title, priority: 'P2', assigneeKey: memberKey, startDate: '2026-04-19', expectedEndDate: '2026-05-19' }),
   });
   const data = await res.json();
-  return data.id || data.data?.id;
+  return extractBizKey(data) ?? extractBizKey(data.data) ?? data.id;
 }
 
 // Helper: create pool item via API
@@ -20,7 +21,7 @@ async function createPoolItemApi(token: string, teamId: string, title: string, b
     body: JSON.stringify({ title, background: background || '测试背景', expectedOutput: '测试产出' }),
   });
   const data = await res.json();
-  return data.id || data.data?.id;
+  return extractBizKey(data) ?? extractBizKey(data.data) ?? data.id;
 }
 
 // Helper: dialog scope
@@ -320,11 +321,11 @@ test.describe('待办事项 (ItemPool) - E2E Business Flow', () => {
   });
 
   // ====== 7. ITEM STATUS & DISPLAY ======
-  test('7.1 items show POOL-XXX ID format', async () => {
-    const poolIds = page.locator('text=/POOL-\\d{3}/');
-    const count = await poolIds.count();
+  test('7.1 pool items render with data-testid', async () => {
+    const poolItems = page.locator('[data-testid^="pool-item-"]');
+    const count = await poolItems.count();
     expect(count).toBeGreaterThan(0);
-    console.log(`Items with POOL-XXX format: ${count}`);
+    console.log(`Pool items with data-testid: ${count}`);
   });
 
   test('7.2 items show relative time labels', async () => {
@@ -532,7 +533,7 @@ test.describe('待办事项 (ItemPool) - E2E Business Flow', () => {
     });
     expect(cRes.status).toBe(201);
     const cData = await cRes.json();
-    const poolId = cData.id || cData.data?.id;
+    const poolId = extractBizKey(cData) ?? extractBizKey(cData.data) ?? cData.id;
     expect(poolId).toBeTruthy();
 
     const rRes = await fetch(`${API}/teams/${teamId}/item-pool/${poolId}/reject`, {
@@ -546,26 +547,28 @@ test.describe('待办事项 (ItemPool) - E2E Business Flow', () => {
 
   test('10.3 API: create → assign to main item', async () => {
     if (!teamId) return;
+    const memberKey = await getFirstMemberKey(authToken, teamId) ?? '';
+
     const pRes = await fetch(`${API}/teams/${teamId}/item-pool`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: 'API验证-待分配', background: '测试', expectedOutput: '测试' }),
     });
     const pData = await pRes.json();
-    const poolId = pData.id || pData.data?.id;
+    const poolId = extractBizKey(pData) ?? extractBizKey(pData.data) ?? pData.id;
 
     const mRes = await fetch(`${API}/teams/${teamId}/main-items`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: 'API验证-分配目标', priority: 'P2', assigneeId: 1, startDate: '2026-04-19', expectedEndDate: '2026-05-19' }),
+      body: JSON.stringify({ title: 'API验证-分配目标', priority: 'P2', assigneeKey: memberKey, startDate: '2026-04-19', expectedEndDate: '2026-05-19' }),
     });
     const mData = await mRes.json();
-    const mainItemId = mData.id || mData.data?.id;
+    const mainItemKey = extractBizKey(mData) ?? extractBizKey(mData.data) ?? mData.id;
 
     const aRes = await fetch(`${API}/teams/${teamId}/item-pool/${poolId}/assign`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mainItemId, assigneeId: 1, startDate: '2026-04-19', expectedEndDate: '2026-05-19' }),
+      body: JSON.stringify({ mainItemKey, assigneeKey: memberKey, startDate: '2026-04-19', expectedEndDate: '2026-05-19' }),
     });
     expect(aRes.status).toBe(200);
     console.log('API assign verified');
@@ -573,18 +576,20 @@ test.describe('待办事项 (ItemPool) - E2E Business Flow', () => {
 
   test('10.4 API: convert pool item to new main item', async () => {
     if (!teamId) return;
+    const memberKey = await getFirstMemberKey(authToken, teamId) ?? '';
+
     const pRes = await fetch(`${API}/teams/${teamId}/item-pool`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: 'API验证-转新主事项', background: '测试', expectedOutput: '测试' }),
     });
     const pData = await pRes.json();
-    const poolId = pData.id || pData.data?.id;
+    const poolId = extractBizKey(pData) ?? extractBizKey(pData.data) ?? pData.id;
 
     const aRes = await fetch(`${API}/teams/${teamId}/item-pool/${poolId}/convert-to-main`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ priority: 'P2', assigneeId: 1, startDate: '2026-04-19', expectedEndDate: '2026-05-19' }),
+      body: JSON.stringify({ priority: 'P2', assigneeKey: memberKey, startDate: '2026-04-19', expectedEndDate: '2026-05-19' }),
     });
     expect(aRes.status).toBe(200);
     console.log('API convert-to-main verified');

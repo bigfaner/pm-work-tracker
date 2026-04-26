@@ -51,7 +51,12 @@ func run(configPath string, devMode bool) error {
 		return fmt.Errorf("database error: %w", err)
 	}
 
-	// 3. Run schema migration
+	// 3. Init snowflake generator (single-node, worker-id=1)
+	if err := snowflake.Init(1); err != nil {
+		return fmt.Errorf("snowflake init error: %w", err)
+	}
+
+	// 3b. Run schema migration
 	schemaFile := "migrations/SQLite-schema.sql"
 	if cfg.Database.Driver == "mysql" {
 		schemaFile = "migrations/MySql-schema.sql"
@@ -60,14 +65,13 @@ func run(configPath string, devMode bool) error {
 		return fmt.Errorf("migration error: %w", err)
 	}
 
-	// 3b. RBAC migration (roles, role_permissions, preset roles)
+	// 3c. RBAC migration (roles, role_permissions, preset roles)
 	if err := migration.MigrateToRBAC(db); err != nil {
 		return fmt.Errorf("rbac migration error: %w", err)
 	}
-
-	// 3c. Init snowflake generator (single-node, worker-id=1)
-	if err := snowflake.Init(1); err != nil {
-		return fmt.Errorf("snowflake init error: %w", err)
+	// 3d. Backfill biz_key = 0 records with snowflake IDs
+	if err := migration.BackfillBizKeys(db); err != nil {
+		return fmt.Errorf("bizkey backfill error: %w", err)
 	}
 
 	// 4. Seed admin user
@@ -107,8 +111,8 @@ func run(configPath string, devMode bool) error {
 		Auth:       handler.NewAuthHandler(authSvc),
 		Team:       handler.NewTeamHandler(teamSvc, userRepo),
 		MainItem:   handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
-		SubItem:    handler.NewSubItemHandler(subItemSvc),
-		Progress:   handler.NewProgressHandler(progressSvc, userRepo),
+		SubItem:    handler.NewSubItemHandler(subItemSvc, mainItemSvc),
+		Progress:   handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
 		ItemPool:   handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
 		View:       handler.NewViewHandler(viewSvc),
 		Report:     handler.NewReportHandler(reportSvc),

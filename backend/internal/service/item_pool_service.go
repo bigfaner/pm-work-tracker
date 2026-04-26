@@ -24,6 +24,7 @@ type ItemPoolService interface {
 	Reject(ctx context.Context, teamID, pmID, poolItemID uint, reason string) error
 	List(ctx context.Context, teamID uint, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error)
 	Get(ctx context.Context, teamID, poolItemID uint) (*model.ItemPool, error)
+	GetByBizKey(ctx context.Context, bizKey int64) (*model.ItemPool, error)
 }
 
 type dbTransactor interface {
@@ -76,7 +77,8 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 	}
 
 	// Validate main item exists
-	mainItem, err := s.mainRepo.FindByID(ctx, func() uint { id, _ := pkg.ParseID(req.MainItemKey); return uint(id) }())
+	mainBizKey, _ := pkg.ParseID(req.MainItemKey)
+	mainItem, err := s.mainRepo.FindByBizKey(ctx, mainBizKey)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
@@ -91,7 +93,7 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 		subItem := &model.SubItem{
 			BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
 			TeamKey:     int64(teamID),
-			MainItemKey: func() int64 { id, _ := pkg.ParseID(req.MainItemKey); return id }(),
+			MainItemKey: int64(mainItem.ID),
 			Title:       poolItem.Title,
 			ItemDesc:    poolItem.Background,
 			Priority:    defaultPriority(req.Priority),
@@ -116,8 +118,8 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 		// Update pool item
 		fields := map[string]interface{}{
 			"pool_status":      "assigned",
-			"assigned_main_key": func() int64 { id, _ := pkg.ParseID(req.MainItemKey); return id }(),
-			"assigned_sub_key":  subItem.ID,
+			"assigned_main_key": mainItem.BizKey,
+			"assigned_sub_key":  subItem.BizKey,
 			"assignee_key":      func() *int64 { if req.AssigneeKey != nil { v, _ := pkg.ParseID(*req.AssigneeKey); return &v }; return nil }(),
 			"reviewer_key":      pmID,
 			"reviewed_at":       now,
@@ -176,7 +178,7 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamID, pmID, poolI
 
 		fields := map[string]interface{}{
 			"pool_status":       "assigned",
-			"assigned_main_key": mainItem.ID,
+			"assigned_main_key": mainItem.BizKey,
 			"assignee_key":      func() *int64 { if req.AssigneeKey != nil { v, _ := pkg.ParseID(*req.AssigneeKey); return &v }; return nil }(),
 			"reviewer_key":      pmID,
 			"reviewed_at":       now,
@@ -224,6 +226,14 @@ func (s *itemPoolService) Get(ctx context.Context, teamID, poolItemID uint) (*mo
 	}
 	if item.TeamKey != int64(teamID) {
 		return nil, apperrors.ErrForbidden
+	}
+	return item, nil
+}
+
+func (s *itemPoolService) GetByBizKey(ctx context.Context, bizKey int64) (*model.ItemPool, error) {
+	item, err := s.poolRepo.FindByBizKey(ctx, bizKey)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 	return item, nil
 }

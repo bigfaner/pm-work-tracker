@@ -87,7 +87,7 @@ export default function TeamManagementPage() {
     return rolesData.items.filter((r) => r.roleName !== 'superadmin' && r.roleName !== 'pm')
   }, [rolesData])
 
-  const defaultRoleId = roles.find((r) => r.roleName === 'member')?.id ?? roles[0]?.id
+  const defaultRoleId = roles.find((r) => r.roleName === 'member')?.bizKey ?? roles[0]?.bizKey
 
   // User search for add member dialog
   const { data: userSearchResults = [] } = useQuery({
@@ -401,7 +401,7 @@ export default function TeamManagementPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {roles.map((role) => (
-                      <SelectItem key={role.id} value={String(role.id)}>
+                      <SelectItem key={role.bizKey} value={String(role.bizKey)}>
                         {role.roleName}
                       </SelectItem>
                     ))}

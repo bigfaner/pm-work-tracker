@@ -73,6 +73,15 @@ func (m *mockProgressRepo) ListByTeamInRange(_ context.Context, _ uint, _, _ tim
 	return nil, nil
 }
 
+func (m *mockProgressRepo) FindByBizKey(_ context.Context, bizKey int64) (*model.ProgressRecord, error) {
+	for _, r := range m.records {
+		if r.BizKey == bizKey {
+			return &r, nil
+		}
+	}
+	return nil, apperrors.ErrNotFound
+}
+
 // compile-time checks
 var _ repository.ProgressRepo = (*mockProgressRepo)(nil)
 

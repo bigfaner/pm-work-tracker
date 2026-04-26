@@ -84,7 +84,7 @@ describe('API modules', () => {
       expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/members', { username: 'u', roleKey: 'member' })
     })
 
-    it('removeMemberApi should DELETE /teams/:bizKey/members/:userBizKey', async () => {
+    it('removeMemberApi should DELETE /teams/:bizKey/members/:userKey', async () => {
       mockClient.delete.mockResolvedValue(undefined)
       await teamsApi.removeMemberApi('team-bk', 'user-10')
       expect(mockClient.delete).toHaveBeenCalledWith('/teams/team-bk/members/user-10')

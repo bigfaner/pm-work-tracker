@@ -125,8 +125,8 @@ func (r *teamRepo) FindMember(ctx context.Context, teamID, userID uint) (*model.
 func (r *teamRepo) ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMemberDTO, error) {
 	type scanRow struct {
 		BizKey      int64
-		TeamID      uint
-		UserID      uint
+		TeamKey     int64
+		UserKey  int64
 		Role        string
 		JoinedAt    string
 		DisplayName string
@@ -135,7 +135,7 @@ func (r *teamRepo) ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMem
 	var rows []scanRow
 	err := r.db.WithContext(ctx).
 		Table("pmw_team_members").
-		Select("pmw_team_members.biz_key, pmw_team_members.team_key as team_id, pmw_team_members.user_key as user_id, "+
+		Select("pmw_team_members.biz_key, pmw_teams.biz_key as team_key, pmw_users.biz_key as user_key, "+
 			"CASE WHEN roles.name IS NOT NULL THEN roles.name "+
 			"     WHEN pmw_team_members.user_key = pmw_teams.pm_key THEN 'pm' "+
 			"     ELSE 'member' END as role, "+
@@ -152,8 +152,8 @@ func (r *teamRepo) ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMem
 	for i, row := range rows {
 		results[i] = &dto.TeamMemberDTO{
 			BizKey:      pkg.FormatID(row.BizKey),
-			TeamID:      row.TeamID,
-			UserID:      row.UserID,
+			TeamKey:     pkg.FormatID(row.TeamKey),
+			UserKey:  pkg.FormatID(row.UserKey),
 			Role:        row.Role,
 			JoinedAt:    row.JoinedAt,
 			DisplayName: row.DisplayName,

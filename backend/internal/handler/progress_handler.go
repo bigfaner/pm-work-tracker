@@ -16,19 +16,23 @@ import (
 
 // ProgressHandler handles progress record endpoints.
 type ProgressHandler struct {
-	svc      service.ProgressService
-	userRepo repository.UserRepo
+	svc        service.ProgressService
+	userRepo   repository.UserRepo
+	subItemSvc service.SubItemService
 }
 
 // NewProgressHandler creates a new ProgressHandler with service and repo dependencies.
-func NewProgressHandler(svc service.ProgressService, userRepo repository.UserRepo) *ProgressHandler {
+func NewProgressHandler(svc service.ProgressService, userRepo repository.UserRepo, subItemSvc service.SubItemService) *ProgressHandler {
 	if svc == nil {
 		panic("progress_handler: progressService must not be nil")
 	}
 	if userRepo == nil {
 		panic("progress_handler: userRepo must not be nil")
 	}
-	return &ProgressHandler{svc: svc, userRepo: userRepo}
+	if subItemSvc == nil {
+		panic("progress_handler: subItemService must not be nil")
+	}
+	return &ProgressHandler{svc: svc, userRepo: userRepo, subItemSvc: subItemSvc}
 }
 
 // appendProgressReq is the request DTO for appending progress.
@@ -50,9 +54,23 @@ func validateCompletion(val float64) bool {
 	return val >= 0 && val <= 100
 }
 
+// resolveSubID parses the subId path param as a bizKey and resolves it to an internal uint ID.
+func (h *ProgressHandler) resolveSubID(c *gin.Context) (uint, bool) {
+	bizKey, ok := parseSubBizKey(c)
+	if !ok {
+		return 0, false
+	}
+	item, err := h.subItemSvc.GetByBizKey(c.Request.Context(), bizKey)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return 0, false
+	}
+	return item.ID, true
+}
+
 // Append handles POST /api/v1/teams/:teamId/sub-items/:subId/progress
 func (h *ProgressHandler) Append(c *gin.Context) {
-	subID, ok := parseSubID(c)
+	subID, ok := h.resolveSubID(c)
 	if !ok {
 		return
 	}
@@ -84,7 +102,7 @@ func (h *ProgressHandler) Append(c *gin.Context) {
 
 // List handles GET /api/v1/teams/:teamId/sub-items/:subId/progress
 func (h *ProgressHandler) List(c *gin.Context) {
-	subID, ok := parseSubID(c)
+	subID, ok := h.resolveSubID(c)
 	if !ok {
 		return
 	}
@@ -102,10 +120,16 @@ func (h *ProgressHandler) List(c *gin.Context) {
 
 // CorrectCompletion handles PATCH /api/v1/teams/:teamId/progress/:recordId/completion
 func (h *ProgressHandler) CorrectCompletion(c *gin.Context) {
-	recordIDStr := c.Param("recordId")
-	recordID, err := strconv.ParseUint(recordIDStr, 10, 64)
+	recordBizKeyStr := c.Param("recordId")
+	recordBizKey, err := strconv.ParseInt(recordBizKeyStr, 10, 64)
 	if err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	record, err := h.svc.GetByBizKey(c.Request.Context(), recordBizKey)
+	if err != nil {
+		apperrors.RespondError(c, err)
 		return
 	}
 
@@ -123,7 +147,7 @@ func (h *ProgressHandler) CorrectCompletion(c *gin.Context) {
 
 	teamID := middleware.GetTeamID(c)
 
-	err = h.svc.CorrectCompletion(c.Request.Context(), teamID, uint(recordID), completion)
+	err = h.svc.CorrectCompletion(c.Request.Context(), teamID, record.ID, completion)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

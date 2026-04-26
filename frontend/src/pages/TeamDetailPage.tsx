@@ -89,7 +89,7 @@ export default function TeamDetailPage() {
     return rolesData.items.filter((r) => r.roleName !== 'superadmin' && r.roleName !== 'pm')
   }, [rolesData])
 
-  const defaultRoleId = roles.find((r) => r.roleName === 'member')?.id ?? roles[0]?.id
+  const defaultRoleId = roles.find((r) => r.roleName === 'member')?.bizKey ?? roles[0]?.bizKey
 
   const isLoading = teamLoading || membersLoading
 
@@ -140,7 +140,7 @@ export default function TeamDetailPage() {
   // --- Mutations ---
 
   const transferMutation = useMutation({
-    mutationFn: () => transferPmApi(numericTeamId, { newPmUserKey: String(transferTarget!.userBizKey) }),
+    mutationFn: () => transferPmApi(numericTeamId, { newPmUserKey: String(transferTarget!.userKey) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['team', numericTeamId] })
       qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
@@ -150,12 +150,15 @@ export default function TeamDetailPage() {
   })
 
   const removeMutation = useMutation({
-    mutationFn: () => removeMemberApi(numericTeamId, removeTarget!.userBizKey),
+    mutationFn: () => removeMemberApi(numericTeamId, removeTarget!.userKey),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['team', numericTeamId] })
       qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
       setRemoveTarget(null)
       addToast('已移除成员', 'success')
+    },
+    onError: () => {
+      addToast('移除成员失败', 'error')
     },
   })
 
@@ -232,7 +235,7 @@ export default function TeamDetailPage() {
   }
 
   const isPm = (member: TeamMemberResp) => member.role === 'pm'
-  const isSelf = (member: TeamMemberResp) => currentUser != null && String(member.userBizKey) === currentUser.bizKey
+  const isSelf = (member: TeamMemberResp) => currentUser != null && String(member.userKey) === currentUser.bizKey
 
   return (
     <div data-testid="team-detail-page">
@@ -322,7 +325,7 @@ export default function TeamDetailPage() {
           </TableHeader>
           <TableBody>
             {filteredMembers.map((member) => (
-              <TableRow key={member.userBizKey}>
+              <TableRow key={member.userKey}>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <UserAvatar name={member.displayName} size="sm" />
@@ -424,7 +427,7 @@ export default function TeamDetailPage() {
               </SelectTrigger>
               <SelectContent>
                 {roles.map((role) => (
-                  <SelectItem key={role.id} value={String(role.id)}>
+                  <SelectItem key={role.bizKey} value={String(role.bizKey)}>
                     {role.roleName}
                   </SelectItem>
                 ))}
@@ -434,7 +437,7 @@ export default function TeamDetailPage() {
           <DialogFooter>
             <Button variant="secondary" onClick={() => setRoleEditTarget(null)}>取消</Button>
             <Button
-              onClick={() => changeRoleMutation.mutate({ memberId: roleEditTarget!.userBizKey, roleId: roleEditRoleId! })}
+              onClick={() => changeRoleMutation.mutate({ memberId: roleEditTarget!.userKey, roleId: roleEditRoleId! })}
               disabled={roleEditRoleId == null || roleEditRoleId === roleEditTarget?.roleId || changeRoleMutation.isPending}
             >
               确认修改
@@ -545,7 +548,7 @@ export default function TeamDetailPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {roles.map((role) => (
-                      <SelectItem key={role.id} value={String(role.id)}>
+                      <SelectItem key={role.bizKey} value={String(role.bizKey)}>
                         {role.roleName}
                       </SelectItem>
                     ))}

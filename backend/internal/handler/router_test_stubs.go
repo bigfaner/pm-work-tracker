@@ -120,6 +120,9 @@ func (s *StubSubItemSvc) AvailableTransitions(_ context.Context, _, _ uint) ([]s
 func (s *StubSubItemSvc) Delete(_ context.Context, _, _, _ uint) error {
 	return fmt.Errorf("stub: not implemented")
 }
+func (s *StubSubItemSvc) GetByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
 
 var _ service.SubItemService = (*StubSubItemSvc)(nil)
 
@@ -143,6 +146,9 @@ func (s *StubItemPoolSvc) List(_ context.Context, _ uint, _ dto.ItemPoolFilter, 
 func (s *StubItemPoolSvc) Get(_ context.Context, _, _ uint) (*model.ItemPool, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
+func (s *StubItemPoolSvc) GetByBizKey(_ context.Context, _ int64) (*model.ItemPool, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
 
 var _ service.ItemPoolService = (*StubItemPoolSvc)(nil)
 
@@ -151,16 +157,16 @@ type StubAdminSvc struct{}
 func (s *StubAdminSvc) ListUsers(_ context.Context, _ string, _, _ int) ([]*dto.AdminUserDTO, int, error) {
 	return nil, 0, fmt.Errorf("stub: not implemented")
 }
-func (s *StubAdminSvc) GetUser(_ context.Context, _ uint) (*dto.AdminUserDTO, error) {
+func (s *StubAdminSvc) GetUser(_ context.Context, _ int64) (*dto.AdminUserDTO, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubAdminSvc) CreateUser(_ context.Context, _ *dto.CreateUserReq) (*dto.AdminUserDTO, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubAdminSvc) UpdateUser(_ context.Context, _ uint, _ *dto.UpdateUserReq) (*dto.AdminUserDTO, error) {
+func (s *StubAdminSvc) UpdateUser(_ context.Context, _ int64, _ *dto.UpdateUserReq) (*dto.AdminUserDTO, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubAdminSvc) ToggleUserStatus(_ context.Context, _, _ uint, _ string) (*dto.AdminUserDTO, error) {
+func (s *StubAdminSvc) ToggleUserStatus(_ context.Context, _ uint, _ int64, _ string) (*dto.AdminUserDTO, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubAdminSvc) ListAllTeams(_ context.Context) ([]*dto.AdminTeamDTO, error) {
@@ -174,16 +180,16 @@ type StubRoleSvc struct{}
 func (s *StubRoleSvc) ListRoles(_ context.Context) ([]service.RoleListItem, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubRoleSvc) GetRole(_ context.Context, _ uint) (*service.RoleDetail, error) {
+func (s *StubRoleSvc) GetRole(_ context.Context, _ int64) (*service.RoleDetail, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubRoleSvc) CreateRole(_ context.Context, _ dto.CreateRoleReq) (*service.RoleListItem, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubRoleSvc) UpdateRole(_ context.Context, _ uint, _ dto.UpdateRoleReq) (*service.RoleDetail, error) {
+func (s *StubRoleSvc) UpdateRole(_ context.Context, _ int64, _ dto.UpdateRoleReq) (*service.RoleDetail, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubRoleSvc) DeleteRole(_ context.Context, _ uint) error {
+func (s *StubRoleSvc) DeleteRole(_ context.Context, _ int64) error {
 	return fmt.Errorf("stub: not implemented")
 }
 func (s *StubRoleSvc) ListPermissionCodes(_ context.Context) []permissions.ResourcePermissions {
@@ -260,6 +266,10 @@ func (s *StubRouterRepoMainItem) FindByID(_ context.Context, _ uint) (*model.Mai
 func (s *StubRouterRepoMainItem) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
 	return nil, nil
 }
+
+func (s *StubRouterRepoMainItem) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.MainItem, error) {
+	return nil, nil
+}
 func (s *StubRouterRepoMainItem) Update(_ context.Context, _ *model.MainItem, _ map[string]interface{}) error {
 	return nil
 }
@@ -324,6 +334,9 @@ func (s *StubProgressSvc) CorrectCompletion(_ context.Context, _, _ uint, _ floa
 	return fmt.Errorf("stub: not implemented")
 }
 func (s *StubProgressSvc) List(_ context.Context, _, _ uint) ([]model.ProgressRecord, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+func (s *StubProgressSvc) GetByBizKey(_ context.Context, _ int64) (*model.ProgressRecord, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 

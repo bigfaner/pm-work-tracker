@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS pmw_item_pools (
     background        VARCHAR(2000),
     expected_output   VARCHAR(1000),
     submitter_key     INTEGER       NOT NULL,
-    pool_status       VARCHAR(20)   NOT NULL DEFAULT '待分配',
+    pool_status       VARCHAR(20)   NOT NULL DEFAULT 'pending',
     assigned_main_key INTEGER,
     assigned_sub_key  INTEGER,
     assignee_key      INTEGER,
@@ -151,9 +151,10 @@ CREATE INDEX IF NOT EXISTS idx_item_pools_team_status ON pmw_item_pools(team_key
 CREATE INDEX IF NOT EXISTS idx_item_pools_submitter_key ON pmw_item_pools(submitter_key);
 CREATE INDEX IF NOT EXISTS idx_item_pools_deleted_flag ON pmw_item_pools(deleted_flag);
 
--- pmw_progress_records (append-only: no soft-delete, no biz_key)
+-- pmw_progress_records (append-only: no soft-delete)
 CREATE TABLE IF NOT EXISTS pmw_progress_records (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    biz_key         INTEGER       NOT NULL,
     sub_item_key    INTEGER       NOT NULL,
     team_key        INTEGER       NOT NULL,
     author_key      INTEGER       NOT NULL,
@@ -164,6 +165,7 @@ CREATE TABLE IF NOT EXISTS pmw_progress_records (
     is_pm_correct   INTEGER       NOT NULL DEFAULT 0,
     create_time     DATETIME      NOT NULL DEFAULT (datetime('now'))
 );
+CREATE UNIQUE INDEX IF NOT EXISTS uk_progress_records_biz_key ON pmw_progress_records(biz_key);
 CREATE INDEX IF NOT EXISTS idx_progress_records_sub_item_key ON pmw_progress_records(sub_item_key);
 CREATE INDEX IF NOT EXISTS idx_progress_records_sub_item_created ON pmw_progress_records(sub_item_key, create_time);
 CREATE INDEX IF NOT EXISTS idx_progress_records_team_key ON pmw_progress_records(team_key);

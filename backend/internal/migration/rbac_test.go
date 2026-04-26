@@ -9,10 +9,12 @@ import (
 	"gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 )
 
 func setupRBACTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
+	_ = snowflake.Init(1)
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
 

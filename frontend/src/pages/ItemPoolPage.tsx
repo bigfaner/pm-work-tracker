@@ -78,7 +78,13 @@ function PoolItemCard({ item, onConvertToMain, onConvertToSub, onReject }: PoolI
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-primary max-w-xs truncate" title={item.title}>{item.title}</span>
+          {item.poolStatus === 'assigned' && item.assignedMainKey ? (
+            <Link to={`/items/${item.assignedMainKey}`} className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline max-w-xs truncate" title={item.title}>
+              {item.assignedMainCode ? `${item.assignedMainCode} ` : ''}{item.title}
+            </Link>
+          ) : (
+            <span className="text-sm font-medium text-primary max-w-xs truncate" title={item.title}>{item.title}</span>
+          )}
           <Badge variant={STATUS_BADGE_VARIANT[item.poolStatus]}>{STATUS_LABEL[item.poolStatus]}</Badge>
         </div>
         <span className="text-xs text-tertiary">{formatRelativeTime(item.createTime)}</span>
@@ -507,7 +513,7 @@ export default function ItemPoolPage() {
                       <SelectContent>
                         <SelectItem value="_none">请选择</SelectItem>
                         {members.map((m) => (
-                          <SelectItem key={m.bizKey} value={m.bizKey}>{m.displayName}</SelectItem>
+                          <SelectItem key={m.userKey} value={m.userKey}>{m.displayName}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -591,7 +597,7 @@ export default function ItemPoolPage() {
                       <SelectContent>
                         <SelectItem value="_none">请选择</SelectItem>
                         {members.map((m) => (
-                          <SelectItem key={m.bizKey} value={m.bizKey}>{m.displayName}</SelectItem>
+                          <SelectItem key={m.userKey} value={m.userKey}>{m.displayName}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

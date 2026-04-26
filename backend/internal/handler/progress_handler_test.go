@@ -14,9 +14,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/repository"
+	"pm-work-tracker/backend/internal/service"
 )
 
 // ---------------------------------------------------------------------------
@@ -57,7 +59,7 @@ func BenchmarkProgressHandler_List(b *testing.B) {
 
 	deps, _ := testDeps(b)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
-	deps.Progress = NewProgressHandler(svc, trackingRepo)
+	deps.Progress = NewProgressHandler(svc, trackingRepo, &mockSubItemSvcForProgress{})
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(b, 3, "testuser")
@@ -131,11 +133,41 @@ func (m *mockProgressService) CorrectCompletion(_ context.Context, teamID, recor
 	return m.correctResult.err
 }
 
+func (m *mockProgressService) GetByBizKey(_ context.Context, bizKey int64) (*model.ProgressRecord, error) {
+	return &model.ProgressRecord{ID: uint(bizKey)}, nil
+}
+
 func (m *mockProgressService) List(_ context.Context, teamID, subItemID uint) ([]model.ProgressRecord, error) {
 	m.listCalled = true
 	m.lastTeamID = teamID
 	m.listSubItemID = subItemID
 	return m.listResult.records, m.listResult.err
+}
+
+// ---------------------------------------------------------------------------
+// Mock SubItemService for bizKey resolution in progress handler tests
+// ---------------------------------------------------------------------------
+
+type mockSubItemSvcForProgress struct{}
+
+func (m *mockSubItemSvcForProgress) Create(_ context.Context, _, _ uint, _ dto.SubItemCreateReq) (*model.SubItem, error) {
+	return nil, nil
+}
+func (m *mockSubItemSvcForProgress) Update(_ context.Context, _ uint, _ uint, _ dto.SubItemUpdateReq) error { return nil }
+func (m *mockSubItemSvcForProgress) ChangeStatus(_ context.Context, _, _, _ uint, _ string) (*service.SubItemChangeResult, error) {
+	return nil, nil
+}
+func (m *mockSubItemSvcForProgress) Delete(_ context.Context, _, _, _ uint) error { return nil }
+func (m *mockSubItemSvcForProgress) Get(_ context.Context, _, _ uint) (*model.SubItem, error) { return nil, nil }
+func (m *mockSubItemSvcForProgress) GetByBizKey(_ context.Context, bizKey int64) (*model.SubItem, error) {
+	return &model.SubItem{BaseModel: model.BaseModel{ID: uint(bizKey)}}, nil
+}
+func (m *mockSubItemSvcForProgress) List(_ context.Context, _ uint, _ *uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+	return nil, nil
+}
+func (m *mockSubItemSvcForProgress) Assign(_ context.Context, _, _, _, _ uint) error { return nil }
+func (m *mockSubItemSvcForProgress) AvailableTransitions(_ context.Context, _, _ uint) ([]string, error) {
+	return nil, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -148,7 +180,7 @@ func depsWithProgressSvc(t *testing.T, svc *mockProgressService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
-	deps.Progress = NewProgressHandler(svc, &mockUserRepoForHandler{})
+	deps.Progress = NewProgressHandler(svc, &mockUserRepoForHandler{}, &mockSubItemSvcForProgress{})
 	return deps
 }
 
@@ -158,7 +190,7 @@ func depsWithProgressSvcMemberRole(t *testing.T, svc *mockProgressService) *Depe
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(2); return &v }()}}
-	deps.Progress = NewProgressHandler(svc, &mockUserRepoForHandler{})
+	deps.Progress = NewProgressHandler(svc, &mockUserRepoForHandler{}, &mockSubItemSvcForProgress{})
 	return deps
 }
 
@@ -168,7 +200,7 @@ func depsWithProgressSvcAndUser(t *testing.T, svc *mockProgressService, userRepo
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
-	deps.Progress = NewProgressHandler(svc, userRepo)
+	deps.Progress = NewProgressHandler(svc, userRepo, &mockSubItemSvcForProgress{})
 	return deps
 }
 

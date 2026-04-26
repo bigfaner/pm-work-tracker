@@ -31,7 +31,7 @@ interface EditSubItemDialogProps {
   onOpenChange: (open: boolean) => void
   form: EditSubItemFormState
   onFormChange: (updater: (prev: EditSubItemFormState) => EditSubItemFormState) => void
-  members: { bizKey: string; displayName: string }[]
+  members: { userKey: string; displayName: string }[]
   onSubmit: () => void
   isPending: boolean
 }
