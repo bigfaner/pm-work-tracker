@@ -7,6 +7,7 @@ import (
 
 	"pm-work-tracker/backend/internal/model"
 	"pm-work-tracker/backend/internal/pkg/permissions"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 )
 
 const rbacMigrationVersion = "rbac_001"
@@ -50,7 +51,7 @@ func MigrateToRBAC(db *gorm.DB) error {
 
 func runRBACMigration(tx *gorm.DB) error {
 	// 1. Create new tables (roles, role_permissions)
-	if err := tx.AutoMigrate(&model.Role{}, &model.RolePermission{}); err != nil {
+	if err := createRBACTables(tx); err != nil {
 		return fmt.Errorf("create rbac tables: %w", err)
 	}
 
@@ -73,6 +74,65 @@ func runRBACMigration(tx *gorm.DB) error {
 	// 4. Users table: can_create_team column removed (handled by RBAC team:create permission).
 
 	return nil
+}
+
+func createRBACTables(tx *gorm.DB) error {
+	for _, stmt := range rbacTableDDL(tx) {
+		if err := tx.Exec(stmt).Error; err != nil {
+			if tableExists(tx, "roles") && tableExists(tx, "role_permissions") {
+				return nil
+			}
+			return fmt.Errorf("create RBAC tables: %w (hint: run schema SQL as root, or set auto_schema: true)", err)
+		}
+	}
+	return nil
+}
+
+func rbacTableDDL(tx *gorm.DB) []string {
+	if isMySQL(tx) {
+		return []string{
+			`CREATE TABLE IF NOT EXISTS roles (
+    id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    biz_key         BIGINT          NOT NULL,
+    create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    db_update_time  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_flag    TINYINT(1)      NOT NULL DEFAULT 0,
+    deleted_time    DATETIME        NOT NULL DEFAULT '1970-01-01 08:00:00',
+    name            VARCHAR(50)     NOT NULL,
+    description     VARCHAR(200)    NOT NULL DEFAULT '',
+    is_preset       TINYINT(1)      NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_roles_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+			`CREATE TABLE IF NOT EXISTS role_permissions (
+    id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    role_id          BIGINT UNSIGNED NOT NULL,
+    permission_code  VARCHAR(50)     NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_role_permission (role_id, permission_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+		}
+	}
+	return []string{
+		`CREATE TABLE IF NOT EXISTS roles (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    biz_key         INTEGER       NOT NULL,
+    create_time     DATETIME      NOT NULL DEFAULT (datetime('now')),
+    db_update_time  DATETIME      NOT NULL DEFAULT (datetime('now')),
+    deleted_flag    INTEGER       NOT NULL DEFAULT 0,
+    deleted_time    DATETIME      NOT NULL DEFAULT '1970-01-01 08:00:00',
+    name            VARCHAR(50)   NOT NULL,
+    description     VARCHAR(200)  NOT NULL DEFAULT '',
+    is_preset       INTEGER       NOT NULL DEFAULT 0
+)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS uk_roles_name ON roles(name)`,
+		`CREATE TABLE IF NOT EXISTS role_permissions (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    role_id          INTEGER      NOT NULL,
+    permission_code  VARCHAR(50)  NOT NULL,
+    UNIQUE(role_id, permission_code)
+)`,
+	}
 }
 
 func seedPresetRoles(tx *gorm.DB) error {
@@ -118,10 +178,17 @@ func seedRole(tx *gorm.DB, name, description string, isPreset bool, codes []stri
 	var existing model.Role
 	result := tx.Where("name = ?", name).First(&existing)
 	if result.RowsAffected > 0 {
+		// Backfill bizKey if it was left at default 0 from a pre-migration database
+		if existing.BizKey == 0 {
+			if err := tx.Model(&existing).Update("biz_key", snowflake.Generate()).Error; err != nil {
+				return fmt.Errorf("backfill biz_key for role %s: %w", name, err)
+			}
+		}
 		return nil // already seeded
 	}
 
 	role := model.Role{
+		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
 		Name:        name,
 		Description: description,
 		IsPreset:    isPreset,
@@ -157,65 +224,74 @@ func getRoleIDMap(tx *gorm.DB) (map[string]uint, error) {
 }
 
 func rebuildTeamMembersTable(tx *gorm.DB, roleMap map[string]uint) error {
-	// Check if team_members table exists
-	if !tableExists(tx, "team_members") {
+	// Check if legacy team_members table exists (pre-rename schema)
+	legacyExists := tableExists(tx, "team_members")
+	newExists := tableExists(tx, "pmw_team_members")
+
+	if !legacyExists && !newExists {
 		// Fresh install: create the new table directly
 		return tx.Exec(`
-			CREATE TABLE team_members (
-				id         INTEGER PRIMARY KEY AUTOINCREMENT,
-				team_id    INTEGER NOT NULL,
-				user_id    INTEGER NOT NULL,
-				role_id    INTEGER,
-				joined_at  DATETIME NOT NULL,
-				created_at DATETIME,
-				updated_at DATETIME,
-				UNIQUE(team_id, user_id)
+			CREATE TABLE pmw_team_members (
+				id              INTEGER PRIMARY KEY AUTOINCREMENT,
+				biz_key         INTEGER NOT NULL DEFAULT 0,
+				create_time     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				db_update_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				deleted_flag    INTEGER NOT NULL DEFAULT 0,
+				deleted_time    DATETIME NOT NULL DEFAULT '1970-01-01 08:00:00',
+				team_key        INTEGER NOT NULL,
+				user_key        INTEGER NOT NULL,
+				role_key        INTEGER,
+				joined_at       DATETIME NOT NULL,
+				UNIQUE(team_key, user_key)
 			)
 		`).Error
 	}
 
-	// SQLite doesn't support DROP COLUMN; use CREATE -> COPY -> DROP -> RENAME.
-	// We also migrate role string -> role_id during the copy step.
+	if newExists {
+		// Already migrated to new schema — nothing to do
+		return nil
+	}
 
-	// Default to member role for unknown role strings
+	// Legacy table exists: rebuild as pmw_team_members with new column names.
 	memberRoleID := roleMap["member"]
-
-	// Build CASE expression for role migration
 	pmRoleID := roleMap["pm"]
 
 	if err := tx.Exec(`
-		CREATE TABLE team_members_new (
-			id         INTEGER PRIMARY KEY AUTOINCREMENT,
-			team_id    INTEGER NOT NULL,
-			user_id    INTEGER NOT NULL,
-			role_id    INTEGER,
-			joined_at  DATETIME NOT NULL,
-			created_at DATETIME,
-			updated_at DATETIME,
-			UNIQUE(team_id, user_id)
+		CREATE TABLE pmw_team_members (
+			id              INTEGER PRIMARY KEY AUTOINCREMENT,
+			biz_key         INTEGER NOT NULL DEFAULT 0,
+			create_time     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			db_update_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			deleted_flag    INTEGER NOT NULL DEFAULT 0,
+			deleted_time    DATETIME NOT NULL DEFAULT '1970-01-01 08:00:00',
+			team_key        INTEGER NOT NULL,
+			user_key        INTEGER NOT NULL,
+			role_key        INTEGER,
+			joined_at       DATETIME NOT NULL,
+			UNIQUE(team_key, user_key)
 		)
 	`).Error; err != nil {
-		return fmt.Errorf("create team_members_new: %w", err)
+		return fmt.Errorf("create pmw_team_members: %w", err)
 	}
 
 	if columnExists(tx, "team_members", "role") {
 		if err := tx.Exec(`
-			INSERT INTO team_members_new (id, team_id, user_id, role_id, joined_at, created_at, updated_at)
+			INSERT INTO pmw_team_members (id, team_key, user_key, role_key, joined_at)
 			SELECT id, team_id, user_id,
 				CASE
 					WHEN role = 'pm' THEN ?
 					WHEN role = 'member' THEN ?
 					ELSE ?
 				END,
-				joined_at, created_at, updated_at
+				joined_at
 			FROM team_members
 		`, pmRoleID, memberRoleID, memberRoleID).Error; err != nil {
 			return fmt.Errorf("copy team_members data: %w", err)
 		}
 	} else {
 		if err := tx.Exec(`
-			INSERT INTO team_members_new (id, team_id, user_id, role_id, joined_at, created_at, updated_at)
-			SELECT id, team_id, user_id, ?, joined_at, created_at, updated_at
+			INSERT INTO pmw_team_members (id, team_key, user_key, role_key, joined_at)
+			SELECT id, team_id, user_id, ?, joined_at
 			FROM team_members
 		`, memberRoleID).Error; err != nil {
 			return fmt.Errorf("copy team_members data: %w", err)
@@ -224,10 +300,6 @@ func rebuildTeamMembersTable(tx *gorm.DB, roleMap map[string]uint) error {
 
 	if err := tx.Exec("DROP TABLE team_members").Error; err != nil {
 		return fmt.Errorf("drop old team_members: %w", err)
-	}
-
-	if err := tx.Exec("ALTER TABLE team_members_new RENAME TO team_members").Error; err != nil {
-		return fmt.Errorf("rename team_members_new: %w", err)
 	}
 
 	return nil
@@ -250,29 +322,49 @@ func HasColumn(db *gorm.DB, table, column string) bool {
 	return count > 0
 }
 
-// columnExists checks if a column exists in a SQLite table.
+// isMySQL returns true if the underlying database is MySQL.
+func isMySQL(db *gorm.DB) bool {
+	return db.Dialector.Name() == "mysql"
+}
+
+// columnExists checks if a column exists in a table.
 func columnExists(db *gorm.DB, table, column string) bool {
 	var count int64
-	db.Raw("SELECT count(*) FROM pragma_table_info(?) WHERE name = ?", table, column).Scan(&count)
+	if isMySQL(db) {
+		db.Raw("SELECT count(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?", table, column).Scan(&count)
+	} else {
+		db.Raw("SELECT count(*) FROM pragma_table_info(?) WHERE name = ?", table, column).Scan(&count)
+	}
 	return count > 0
 }
 
-// tableExists checks if a table exists in the SQLite database.
+// tableExists checks if a table exists in the database.
 func tableExists(db *gorm.DB, table string) bool {
 	var count int64
-	db.Raw("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = ?", table).Scan(&count)
+	if isMySQL(db) {
+		db.Raw("SELECT count(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", table).Scan(&count)
+	} else {
+		db.Raw("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = ?", table).Scan(&count)
+	}
 	return count > 0
 }
 
-// ensureSchemaMigrationsTable is the package-level version used by rbac.go.
+// ensureSchemaMigrationsTable creates the schema_migrations table if it does not exist.
+// Tolerates missing CREATE privilege when the table already exists.
 func ensureSchemaMigrationsTable(db *gorm.DB) error {
-	sql := `
-CREATE TABLE IF NOT EXISTS schema_migrations (
-    version  VARCHAR(255) PRIMARY KEY,
-    applied  DATETIME NOT NULL DEFAULT (datetime('now'))
-);
-`
-	return db.Exec(sql).Error
+	var ddl string
+	if isMySQL(db) {
+		ddl = `CREATE TABLE IF NOT EXISTS schema_migrations (version VARCHAR(255) PRIMARY KEY, applied DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)`
+	} else {
+		ddl = `CREATE TABLE IF NOT EXISTS schema_migrations (version VARCHAR(255) PRIMARY KEY, applied DATETIME NOT NULL DEFAULT (datetime('now')))`
+	}
+	if err := db.Exec(ddl).Error; err != nil {
+		if tableExists(db, "schema_migrations") {
+			return nil
+		}
+		return fmt.Errorf("create schema_migrations table: %w (hint: run schema SQL as root, or set auto_schema: true)", err)
+	}
+	return nil
 }
 
 // VerifyPresetRoleCodes checks that pm and member preset roles have the expected

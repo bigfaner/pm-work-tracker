@@ -1,0 +1,255 @@
+{
+  "feature": "jlc-schema-alignment",
+  "prd": "prd/prd-spec.md",
+  "design": "design/tech-design.md",
+  "created": "2026-04-25",
+  "status": "in-progress",
+  "tasks": {
+    "1.1-repo-interfaces": {
+      "id": "1.1",
+      "title": "Repo Interface Definitions",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "status": "completed",
+      "file": "1.1-repo-interfaces.md",
+      "record": "records/1.1-repo-interfaces.md"
+    },
+    "1.2-schema-sql-rewrite": {
+      "id": "1.2",
+      "title": "schema.sql MySQL 化重写",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "status": "completed",
+      "file": "1.2-schema-sql-rewrite.md",
+      "record": "records/1.2-schema-sql-rewrite.md"
+    },
+    "1.3-foundation-snowflake-scope-errors": {
+      "id": "1.3",
+      "title": "基础设施：Snowflake 生成器 + NotDeleted Scope + ErrDuplicateBizKey",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "status": "completed",
+      "file": "1.3-foundation-snowflake-scope-errors.md",
+      "record": "records/1.3-foundation-snowflake-scope-errors.md"
+    },
+    "2.1-user-table-alignment": {
+      "id": "2.1",
+      "title": "User 表全栈对齐（model + repo + service + handler）",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "1.1",
+        "1.2",
+        "1.3"
+      ],
+      "status": "completed",
+      "file": "2.1-user-table-alignment.md",
+      "record": "records/2.1-user-table-alignment.md"
+    },
+    "2.2-team-table-alignment": {
+      "id": "2.2",
+      "title": "Team + TeamMember 表全栈对齐（model + repo + service + handler）",
+      "priority": "P0",
+      "estimatedTime": "4h",
+      "dependencies": [
+        "1.1",
+        "1.2",
+        "1.3"
+      ],
+      "status": "completed",
+      "file": "2.2-team-table-alignment.md",
+      "record": "records/2.2-team-table-alignment.md"
+    },
+    "2.3a-main-item-model-repo": {
+      "id": "2.3a",
+      "title": "MainItem model + repo 对齐（字段重命名 + FindByBizKey + NotDeleted）",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1.1",
+        "1.2",
+        "1.3",
+        "2.1",
+        "2.2"
+      ],
+      "status": "completed",
+      "file": "2.3a-main-item-model-repo.md",
+      "record": "records/2.3a-main-item-model-repo.md"
+    },
+    "2.3b-main-item-service-handler": {
+      "id": "2.3b",
+      "title": "MainItem service + handler 对齐（BizKey 赋值 + GetByBizKey + 路径参数）",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "2.3a"
+      ],
+      "status": "completed",
+      "file": "2.3b-main-item-service-handler.md",
+      "record": "records/2.3b-main-item-service-handler.md"
+    },
+    "2.4a-sub-item-model-repo": {
+      "id": "2.4a",
+      "title": "SubItem model + repo 对齐（字段重命名 + FindByBizKey + SoftDelete + NotDeleted）",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1.1",
+        "1.2",
+        "1.3",
+        "2.1",
+        "2.2",
+        "2.3a"
+      ],
+      "status": "completed",
+      "file": "2.4a-sub-item-model-repo.md",
+      "record": "records/2.4a-sub-item-model-repo.md"
+    },
+    "2.4b-sub-item-service-handler": {
+      "id": "2.4b",
+      "title": "SubItem service + handler 对齐（BizKey 赋值 + GetByBizKey + SoftDelete 调用）",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "2.4a"
+      ],
+      "status": "completed",
+      "file": "2.4b-sub-item-service-handler.md",
+      "record": "records/2.4b-sub-item-service-handler.md"
+    },
+    "2.5-item-pool-table-alignment": {
+      "id": "2.5",
+      "title": "ItemPool 表全栈对齐（model + repo + service + handler）",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "1.1",
+        "1.2",
+        "1.3",
+        "2.1",
+        "2.2",
+        "2.3a"
+      ],
+      "status": "completed",
+      "file": "2.5-item-pool-table-alignment.md",
+      "record": "records/2.5-item-pool-table-alignment.md"
+    },
+    "2.6-progress-record-status-history-alignment": {
+      "id": "2.6",
+      "title": "ProgressRecord + StatusHistory 表对齐（append-only model + repo）",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1.1",
+        "1.2",
+        "1.3",
+        "2.1",
+        "2.2"
+      ],
+      "status": "completed",
+      "file": "2.6-progress-record-status-history-alignment.md",
+      "record": "records/2.6-progress-record-status-history-alignment.md"
+    },
+    "3.1-frontend-types-update": {
+      "id": "3.1",
+      "title": "前端 types/index.ts 字段名全量更新",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "2.3b",
+        "2.4b",
+        "2.5",
+        "2.6"
+      ],
+      "status": "completed",
+      "file": "3.1-frontend-types-update.md",
+      "record": "records/3.1-frontend-types-update.md"
+    },
+    "3.2-frontend-api-modules": {
+      "id": "3.2",
+      "title": "前端 API 模块路径参数更新（id → bizKey）",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "3.1"
+      ],
+      "status": "completed",
+      "file": "3.2-frontend-api-modules.md",
+      "record": "records/3.2-frontend-api-modules.md"
+    },
+    "3.3-frontend-page-components": {
+      "id": "3.3",
+      "title": "前端页面组件字段引用更新",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "3.1",
+        "3.2"
+      ],
+      "status": "completed",
+      "file": "3.3-frontend-page-components.md",
+      "record": "records/3.3-frontend-page-components.md"
+    },
+    "T-test-1-gen-test-cases": {
+      "id": "T-test-1",
+      "title": "生成 e2e 测试用例",
+      "priority": "P1",
+      "estimatedTime": "1-2h",
+      "dependencies": [
+        "3.3"
+      ],
+      "status": "completed",
+      "file": "T-test-1-gen-test-cases.md",
+      "record": "records/T-test-1-gen-test-cases.md"
+    },
+    "T-test-2-gen-test-scripts": {
+      "id": "T-test-2",
+      "title": "生成 e2e 测试脚本",
+      "priority": "P1",
+      "estimatedTime": "1-2h",
+      "dependencies": [
+        "T-test-1"
+      ],
+      "status": "completed",
+      "file": "T-test-2-gen-test-scripts.md",
+      "record": "records/T-test-2-gen-test-scripts.md"
+    },
+    "fix-e2e-1-1": {
+      "id": "fix-e2e-1-1",
+      "title": "修复 e2e 测试失败: unknown",
+      "priority": "P0",
+      "status": "completed",
+      "file": "fix-e2e-1-1.md",
+      "record": "records/fix-e2e-1-1.md"
+    },
+    "fix-e2e-2-1": {
+      "id": "fix-e2e-2-1",
+      "title": "修复 e2e 测试失败: unknown",
+      "priority": "P0",
+      "status": "completed",
+      "file": "fix-e2e-2-1.md",
+      "record": "records/fix-e2e-2-1.md"
+    },
+    "fix-e2e-3-1": {
+      "id": "fix-e2e-3-1",
+      "title": "修复 e2e 测试失败: unknown",
+      "priority": "P0",
+      "status": "completed",
+      "file": "fix-e2e-3-1.md",
+      "record": "records/fix-e2e-3-1.md"
+    }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ],
+  "e2eRound": 3
+}

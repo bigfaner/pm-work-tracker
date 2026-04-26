@@ -8,22 +8,24 @@ import type { User, Team } from '@/types'
 
 // Mock the teams API
 vi.mock('@/api/teams', () => ({
-  listTeamsApi: vi.fn().mockResolvedValue([]),
+  listTeamsApi: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 }),
 }))
 
 const mockUser: User = {
-  id: 1,
+  bizKey: '1',
   username: 'testuser',
   displayName: 'Test User',
   isSuperAdmin: false,
+  createTime: '',
 }
 
 const mockTeams: Team[] = [
   {
-    id: 1,
+    bizKey: '1',
     name: 'Team Alpha',
     description: '',
-    pmId: 1,
+    code: '',
+    pmKey: '1',
   createdAt: '2024-01-01',
   updatedAt: '2024-01-01',
   },
@@ -68,7 +70,7 @@ describe('AppLayout', () => {
   it('fetches teams on mount', async () => {
     const { listTeamsApi } = await import('@/api/teams')
     const mocked = vi.mocked(listTeamsApi)
-    mocked.mockResolvedValueOnce(mockTeams)
+    mocked.mockResolvedValueOnce({ items: mockTeams, total: mockTeams.length, page: 1, pageSize: 20 })
 
     renderWithRouter()
     await screen.findByTestId('app-layout')

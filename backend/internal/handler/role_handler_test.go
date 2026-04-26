@@ -16,6 +16,7 @@ import (
 	"pm-work-tracker/backend/config"
 	"pm-work-tracker/backend/internal/model"
 	appjwt "pm-work-tracker/backend/internal/pkg/jwt"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/service"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 
@@ -30,6 +31,8 @@ func rbacTestEnv(t *testing.T) (*gin.Engine, *gorm.DB) {
 
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
+
+	snowflake.Init(1)
 
 	require.NoError(t, db.AutoMigrate(
 		&model.User{},
@@ -48,9 +51,9 @@ func rbacTestEnv(t *testing.T) (*gin.Engine, *gorm.DB) {
 	}).Error)
 
 	// Seed preset roles
-	require.NoError(t, db.Create(&model.Role{Name: "superadmin", Description: "superadmin", IsPreset: true}).Error)
-	require.NoError(t, db.Create(&model.Role{Name: "pm", Description: "PM", IsPreset: true}).Error)
-	require.NoError(t, db.Create(&model.Role{Name: "member", Description: "Member", IsPreset: true}).Error)
+	require.NoError(t, db.Create(&model.Role{BaseModel: model.BaseModel{BizKey: 1}, Name: "superadmin", Description: "superadmin", IsPreset: true}).Error)
+	require.NoError(t, db.Create(&model.Role{BaseModel: model.BaseModel{BizKey: 2}, Name: "pm", Description: "PM", IsPreset: true}).Error)
+	require.NoError(t, db.Create(&model.Role{BaseModel: model.BaseModel{BizKey: 3}, Name: "member", Description: "Member", IsPreset: true}).Error)
 
 	userRepo := gormrepo.NewGormUserRepo(db)
 	roleRepo := gormrepo.NewGormRoleRepo(db)
@@ -78,8 +81,8 @@ func rbacTestEnv(t *testing.T) (*gin.Engine, *gorm.DB) {
 		Auth:       NewAuthHandler(&rbacStubAuthService{}),
 		Team:       NewTeamHandler(&StubTeamSvc{}, &StubRouterRepoUser{}),
 		MainItem:   NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, &StubRouterRepoSubItem{}),
-		SubItem:    NewSubItemHandler(&StubSubItemSvc{}),
-		Progress:   NewProgressHandler(&StubProgressSvc{}, &StubRouterRepoUser{}),
+		SubItem:    NewSubItemHandler(&StubSubItemSvc{}, &StubMainItemSvc{}),
+		Progress:   NewProgressHandler(&StubProgressSvc{}, &StubRouterRepoUser{}, &StubSubItemSvc{}),
 		ItemPool:   NewItemPoolHandler(&StubItemPoolSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMainItem{}),
 		View:       NewViewHandler(&StubViewSvc{}),
 		Report:     NewReportHandler(&StubReportSvc{}),
@@ -184,7 +187,7 @@ func TestCreateRole_Success(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.Equal(t, float64(0), resp["code"])
 	data := resp["data"].(map[string]interface{})
-	assert.Equal(t, "viewer", data["name"])
+	assert.Equal(t, "viewer", data["roleName"])
 	assert.Equal(t, false, data["isPreset"])
 }
 
@@ -269,7 +272,7 @@ func TestGetRole_Success(t *testing.T) {
 	var resp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	data := resp["data"].(map[string]interface{})
-	assert.Equal(t, "pm", data["name"])
+	assert.Equal(t, "pm", data["roleName"])
 	assert.Equal(t, true, data["isPreset"])
 }
 
@@ -291,14 +294,14 @@ func TestUpdateRole_Success(t *testing.T) {
 	r, db := rbacTestEnv(t)
 
 	// Create a custom role
-	require.NoError(t, db.Create(&model.Role{Name: "custom1", Description: "custom role", IsPreset: false}).Error)
+	require.NoError(t, db.Create(&model.Role{BaseModel: model.BaseModel{BizKey: 100}, Name: "custom1", Description: "custom role", IsPreset: false}).Error)
 	var customRole model.Role
 	require.NoError(t, db.Where("name = ?", "custom1").First(&customRole).Error)
 
 	token := rbacSignSuperToken(t)
 	body := `{"description":"updated desc","permissionCodes":["team:read"]}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%d", customRole.ID), strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%d", customRole.BizKey), strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
@@ -308,7 +311,7 @@ func TestUpdateRole_Success(t *testing.T) {
 	var resp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	data := resp["data"].(map[string]interface{})
-	assert.Equal(t, "updated desc", data["description"])
+	assert.Equal(t, "updated desc", data["roleDesc"])
 }
 
 func TestUpdateRole_PresetSuperAdmin_Immutable(t *testing.T) {
@@ -362,13 +365,13 @@ func TestUpdateRole_NotFound(t *testing.T) {
 func TestDeleteRole_Success(t *testing.T) {
 	r, db := rbacTestEnv(t)
 
-	require.NoError(t, db.Create(&model.Role{Name: "deleteme", Description: "will be deleted", IsPreset: false}).Error)
+	require.NoError(t, db.Create(&model.Role{BaseModel: model.BaseModel{BizKey: 101}, Name: "deleteme", Description: "will be deleted", IsPreset: false}).Error)
 	var customRole model.Role
 	require.NoError(t, db.Where("name = ?", "deleteme").First(&customRole).Error)
 
 	token := rbacSignSuperToken(t)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/admin/roles/%d", customRole.ID), nil)
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/admin/roles/%d", customRole.BizKey), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 

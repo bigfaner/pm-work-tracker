@@ -12,55 +12,56 @@ import type {
 // --- Seed data ---
 
 export const seedUser: User = {
-  id: 1,
+  bizKey: '1',
   username: 'testuser',
   displayName: 'Test User',
   isSuperAdmin: false,
+  createTime: '',
 }
 
 export const seedMembers: TeamMemberResp[] = [
-  { id: 1, teamId: 1, userId: 1, displayName: 'Test User', username: 'testuser', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
+  { id: 1, bizKey: '1', teamKey: '1', userKey: 'U001', displayName: 'Test User', username: 'testuser', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
 ]
 
 export function makeMainItem(overrides: Partial<MainItem> = {}): MainItem {
   return {
-    id: 1,
-    teamId: 1,
+    bizKey: '1',
+    teamKey: '1',
     code: 'MI-0001',
     title: 'Test Main Item',
     priority: 'P2',
-    proposerId: 1,
-    assigneeId: 1,
-    startDate: null,
+    proposerKey: 'U001',
+    assigneeKey: 'U001',
+    planStartDate: null,
     expectedEndDate: null,
     actualEndDate: null,
-    status: 'progressing',
+    itemStatus: 'progressing',
     completion: 50,
-    createdAt: '2024-06-01T10:00:00Z',
-    updatedAt: '2024-06-01T10:00:00Z',
+    createTime: '2024-06-01T10:00:00Z',
+    dbUpdateTime: '2024-06-01T10:00:00Z',
     ...overrides,
   }
 }
 
 export function makeItemPool(overrides: Partial<ItemPool> = {}): ItemPool {
   return {
-    id: 1,
-    teamId: 1,
+    bizKey: '1',
+    teamKey: '1',
     title: 'Test Pool Item',
     background: '',
     expectedOutput: '',
-    submitterId: 1,
-    status: '待分配',
-    assignedMainId: null,
-    assignedSubId: null,
+    submitterKey: 'U001',
+    poolStatus: '待分配',
+    assignedMainKey: null,
+    assignedSubKey: null,
     assignedMainCode: '',
     assignedMainTitle: '',
-    assigneeId: null,
+    assigneeKey: null,
     rejectReason: '',
     reviewedAt: null,
-    reviewerId: null,
-    createdAt: '2024-06-01T10:00:00Z',
-    updatedAt: '2024-06-01T10:00:00Z',
+    reviewerKey: null,
+    createTime: '2024-06-01T10:00:00Z',
+    dbUpdateTime: '2024-06-01T10:00:00Z',
     ...overrides,
   }
 }
@@ -95,9 +96,9 @@ export const handlers = [
     const archived = url.searchParams.get('archived')
 
     let items = [
-      makeMainItem({ id: 1, code: 'MI-0001', title: 'Alpha', priority: 'P1', status: 'progressing', completion: 50 }),
-      makeMainItem({ id: 2, code: 'MI-0002', title: 'Beta', priority: 'P2', status: 'pending', completion: 0 }),
-      makeMainItem({ id: 3, code: 'MI-0003', title: 'Gamma', priority: 'P3', status: 'completed', completion: 100 }),
+      makeMainItem({ bizKey: '1', code: 'MI-0001', title: 'Alpha', priority: 'P1', itemStatus: 'progressing', completion: 50 }),
+      makeMainItem({ bizKey: '2', code: 'MI-0002', title: 'Beta', priority: 'P2', itemStatus: 'pending', completion: 0 }),
+      makeMainItem({ bizKey: '3', code: 'MI-0003', title: 'Gamma', priority: 'P3', itemStatus: 'completed', completion: 100 }),
     ]
 
     if (priority) {
@@ -117,13 +118,13 @@ export const handlers = [
     const status = url.searchParams.get('status')
 
     let items = [
-      makeItemPool({ id: 1, title: 'Pending Item', status: '待分配' }),
-      makeItemPool({ id: 2, title: 'Assigned Item', status: '已分配', assignedMainId: 1, assigneeId: 1 }),
-      makeItemPool({ id: 3, title: 'Rejected Item', status: '已拒绝', rejectReason: 'Not suitable' }),
+      makeItemPool({ bizKey: '1', title: 'Pending Item', poolStatus: '待分配' }),
+      makeItemPool({ bizKey: '2', title: 'Assigned Item', poolStatus: '已分配', assignedMainKey: '1', assigneeKey: 'U001' }),
+      makeItemPool({ bizKey: '3', title: 'Rejected Item', poolStatus: '已拒绝', rejectReason: 'Not suitable' }),
     ]
 
     if (status) {
-      items = items.filter((i) => i.status === status)
+      items = items.filter((i) => i.poolStatus === status)
     }
 
     const page: PageResult<ItemPool> = { items, total: items.length, page: 1, size: 20 }
@@ -133,13 +134,13 @@ export const handlers = [
   // Item pool: assign
   http.post('/v1/teams/:teamId/item-pool/:poolId/assign', async ({ params }) => {
     const poolId = Number(params.poolId)
-    const resp: AssignItemPoolResp = { mainItemId: 100 + poolId, subItemId: 1000 + poolId }
+    const resp: AssignItemPoolResp = { mainItemBizKey: `mi-${100 + poolId}`, subItemBizKey: `si-${1000 + poolId}` }
     return HttpResponse.json({ code: 0, data: resp })
   }),
 
   // Item pool: reject
   http.post('/v1/teams/:teamId/item-pool/:poolId/reject', async ({ params }) => {
-    const updated = makeItemPool({ id: Number(params.poolId), status: '已拒绝' })
+    const updated = makeItemPool({ bizKey: String(params.poolId), poolStatus: '已拒绝' })
     return HttpResponse.json({ code: 0, data: updated })
   }),
 

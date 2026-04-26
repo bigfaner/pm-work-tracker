@@ -38,7 +38,7 @@ func TestTeamRepo_Create(t *testing.T) {
 	ctx := context.Background()
 
 	pm := seedUser(t, db, "pm1")
-	team := model.Team{Name: "Team A", PmID: pm.ID, Code: "TAMA"}
+	team := model.Team{TeamName: "Team A", PmKey: int64(pm.ID), Code: "TAMA"}
 	require.NoError(t, repo.Create(ctx, &team))
 	assert.NotZero(t, team.ID)
 }
@@ -49,9 +49,9 @@ func TestTeamRepo_Create_DuplicateCode(t *testing.T) {
 	ctx := context.Background()
 
 	pm := seedUser(t, db, "pm_dc")
-	require.NoError(t, repo.Create(ctx, &model.Team{Name: "Team X", PmID: pm.ID, Code: "DUPX"}))
+	require.NoError(t, repo.Create(ctx, &model.Team{TeamName: "Team X", PmKey: int64(pm.ID), Code: "DUPX"}))
 
-	err := repo.Create(ctx, &model.Team{Name: "Team Y", PmID: pm.ID, Code: "DUPX"})
+	err := repo.Create(ctx, &model.Team{TeamName: "Team Y", PmKey: int64(pm.ID), Code: "DUPX"})
 	assert.ErrorIs(t, err, pkgerrors.ErrTeamCodeDuplicate)
 }
 
@@ -61,13 +61,13 @@ func TestTeamRepo_FindByID(t *testing.T) {
 	ctx := context.Background()
 
 	pm := seedUser(t, db, "pm2")
-	team := model.Team{Name: "Team B", PmID: pm.ID, Code: "TAMB"}
+	team := model.Team{TeamName: "Team B", PmKey: int64(pm.ID), Code: "TAMB"}
 	require.NoError(t, repo.Create(ctx, &team))
 
 	t.Run("found", func(t *testing.T) {
 		found, err := repo.FindByID(ctx, team.ID)
 		require.NoError(t, err)
-		assert.Equal(t, "Team B", found.Name)
+		assert.Equal(t, "Team B", found.TeamName)
 	})
 
 	t.Run("not_found", func(t *testing.T) {
@@ -82,8 +82,8 @@ func TestTeamRepo_List(t *testing.T) {
 	ctx := context.Background()
 
 	pm := seedUser(t, db, "pm3")
-	require.NoError(t, repo.Create(ctx, &model.Team{Name: "T1", PmID: pm.ID, Code: "TT01"}))
-	require.NoError(t, repo.Create(ctx, &model.Team{Name: "T2", PmID: pm.ID, Code: "TT02"}))
+	require.NoError(t, repo.Create(ctx, &model.Team{TeamName: "T1", PmKey: int64(pm.ID), Code: "TT01"}))
+	require.NoError(t, repo.Create(ctx, &model.Team{TeamName: "T2", PmKey: int64(pm.ID), Code: "TT02"}))
 
 	teams, err := repo.List(ctx)
 	require.NoError(t, err)
@@ -96,15 +96,15 @@ func TestTeamRepo_Update(t *testing.T) {
 	ctx := context.Background()
 
 	pm := seedUser(t, db, "pm4")
-	team := model.Team{Name: "Old Name", PmID: pm.ID, Code: "OLDN"}
+	team := model.Team{TeamName: "Old Name", PmKey: int64(pm.ID), Code: "OLDN"}
 	require.NoError(t, repo.Create(ctx, &team))
 
-	team.Name = "New Name"
+	team.TeamName = "New Name"
 	require.NoError(t, repo.Update(ctx, &team))
 
 	found, err := repo.FindByID(ctx, team.ID)
 	require.NoError(t, err)
-	assert.Equal(t, "New Name", found.Name)
+	assert.Equal(t, "New Name", found.TeamName)
 }
 
 func TestTeamRepo_Delete_SoftDelete(t *testing.T) {
@@ -113,10 +113,10 @@ func TestTeamRepo_Delete_SoftDelete(t *testing.T) {
 	ctx := context.Background()
 
 	pm := seedUser(t, db, "pm5")
-	team := model.Team{Name: "ToDelete", PmID: pm.ID, Code: "TDEL"}
+	team := model.Team{TeamName: "ToDelete", PmKey: int64(pm.ID), Code: "TDEL"}
 	require.NoError(t, repo.Create(ctx, &team))
 
-	require.NoError(t, repo.Delete(ctx, team.ID))
+	require.NoError(t, repo.SoftDelete(ctx, team.ID))
 
 	// FindByID should return ErrNotFound (soft-deleted rows excluded by GORM)
 	_, err := repo.FindByID(ctx, team.ID)
@@ -137,14 +137,13 @@ func TestTeamRepo_AddMember(t *testing.T) {
 
 	pm := seedUser(t, db, "pm6")
 	member := seedUser(t, db, "member6")
-	team := model.Team{Name: "Team M", PmID: pm.ID, Code: "TAMM"}
+	team := model.Team{TeamName: "Team M", PmKey: int64(pm.ID), Code: "TAMM"}
 	require.NoError(t, repo.Create(ctx, &team))
 
 	t.Run("success", func(t *testing.T) {
 		tm := model.TeamMember{
-			TeamID:   team.ID,
-			UserID:   member.ID,
-			Role:     "member",
+			TeamKey: int64(team.ID),
+			UserKey: int64(member.ID),
 			JoinedAt: time.Now(),
 		}
 		require.NoError(t, repo.AddMember(ctx, &tm))
@@ -153,9 +152,8 @@ func TestTeamRepo_AddMember(t *testing.T) {
 
 	t.Run("duplicate_returns_ErrAlreadyExists", func(t *testing.T) {
 		tm := model.TeamMember{
-			TeamID:   team.ID,
-			UserID:   member.ID,
-			Role:     "pm",
+			TeamKey: int64(team.ID),
+			UserKey: int64(member.ID),
 			JoinedAt: time.Now(),
 		}
 		err := repo.AddMember(ctx, &tm)
@@ -170,10 +168,10 @@ func TestTeamRepo_RemoveMember(t *testing.T) {
 
 	pm := seedUser(t, db, "pm7")
 	member := seedUser(t, db, "member7")
-	team := model.Team{Name: "Team R", PmID: pm.ID, Code: "TAMR"}
+	team := model.Team{TeamName: "Team R", PmKey: int64(pm.ID), Code: "TAMR"}
 	require.NoError(t, repo.Create(ctx, &team))
 
-	tm := model.TeamMember{TeamID: team.ID, UserID: member.ID, Role: "member", JoinedAt: time.Now()}
+	tm := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(member.ID),  JoinedAt: time.Now()}
 	require.NoError(t, repo.AddMember(ctx, &tm))
 
 	t.Run("success", func(t *testing.T) {
@@ -196,17 +194,17 @@ func TestTeamRepo_FindMember(t *testing.T) {
 
 	pm := seedUser(t, db, "pm8")
 	member := seedUser(t, db, "member8")
-	team := model.Team{Name: "Team F", PmID: pm.ID, Code: "TAMF"}
+	team := model.Team{TeamName: "Team F", PmKey: int64(pm.ID), Code: "TAMF"}
 	require.NoError(t, repo.Create(ctx, &team))
 
-	tm := model.TeamMember{TeamID: team.ID, UserID: member.ID, Role: "member", JoinedAt: time.Now()}
+	tm := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(member.ID),  JoinedAt: time.Now()}
 	require.NoError(t, repo.AddMember(ctx, &tm))
 
 	t.Run("found", func(t *testing.T) {
 		found, err := repo.FindMember(ctx, team.ID, member.ID)
 		require.NoError(t, err)
-		assert.Equal(t, team.ID, found.TeamID)
-		assert.Equal(t, member.ID, found.UserID)
+		assert.Equal(t, int64(team.ID), found.TeamKey)
+		assert.Equal(t, member.ID, uint(found.UserKey))
 	})
 
 	t.Run("not_found", func(t *testing.T) {
@@ -229,14 +227,14 @@ func TestTeamRepo_ListMembers(t *testing.T) {
 	pm := seedUser(t, db, "pm9")
 	m1 := seedUser(t, db, "m1")
 	m2 := seedUser(t, db, "m2")
-	team := model.Team{Name: "Team LM", PmID: pm.ID, Code: "TALM"}
+	team := model.Team{TeamName: "Team LM", PmKey: int64(pm.ID), Code: "TALM"}
 	require.NoError(t, repo.Create(ctx, &team))
 
 	require.NoError(t, repo.AddMember(ctx, &model.TeamMember{
-		TeamID: team.ID, UserID: m1.ID, RoleID: &pmRole.ID, JoinedAt: time.Now(),
+		TeamKey: int64(team.ID), UserKey: int64(m1.ID), RoleKey: func() *int64 { v := int64(pmRole.ID); return &v }(), JoinedAt: time.Now(),
 	}))
 	require.NoError(t, repo.AddMember(ctx, &model.TeamMember{
-		TeamID: team.ID, UserID: m2.ID, RoleID: &memberRole.ID, JoinedAt: time.Now(),
+		TeamKey: int64(team.ID), UserKey: int64(m2.ID), RoleKey: func() *int64 { v := int64(memberRole.ID); return &v }(), JoinedAt: time.Now(),
 	}))
 
 	results, err := repo.ListMembers(ctx, team.ID)
@@ -265,15 +263,15 @@ func TestTeamRepo_ListMembers_NullRoleID(t *testing.T) {
 
 	pmUser := seedUser(t, db, "pm_null")
 	memberUser := seedUser(t, db, "member_null")
-	team := model.Team{Name: "Team Null", PmID: pmUser.ID, Code: "TNUL"}
+	team := model.Team{TeamName: "Team Null", PmKey: int64(pmUser.ID), Code: "TNUL"}
 	require.NoError(t, repo.Create(ctx, &team))
 
 	// Add members with no RoleID (legacy data)
 	require.NoError(t, repo.AddMember(ctx, &model.TeamMember{
-		TeamID: team.ID, UserID: pmUser.ID, JoinedAt: time.Now(),
+		TeamKey: int64(team.ID), UserKey: int64(pmUser.ID), JoinedAt: time.Now(),
 	}))
 	require.NoError(t, repo.AddMember(ctx, &model.TeamMember{
-		TeamID: team.ID, UserID: memberUser.ID, JoinedAt: time.Now(),
+		TeamKey: int64(team.ID), UserKey: int64(memberUser.ID), JoinedAt: time.Now(),
 	}))
 
 	results, err := repo.ListMembers(ctx, team.ID)
@@ -305,17 +303,16 @@ func TestTeamRepo_UpdateMember(t *testing.T) {
 
 	pm := seedUser(t, db, "pm10")
 	member := seedUser(t, db, "member10")
-	team := model.Team{Name: "Team UM", PmID: pm.ID, Code: "TAUM"}
+	team := model.Team{TeamName: "Team UM", PmKey: int64(pm.ID), Code: "TAUM"}
 	require.NoError(t, repo.Create(ctx, &team))
 
-	tm := model.TeamMember{TeamID: team.ID, UserID: member.ID, Role: "member", JoinedAt: time.Now()}
+	tm := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(member.ID),  JoinedAt: time.Now()}
 	require.NoError(t, repo.AddMember(ctx, &tm))
 
-	tm.Role = "pm"
 	require.NoError(t, repo.UpdateMember(ctx, &tm))
 
 	found, err := repo.FindMember(ctx, team.ID, member.ID)
 	require.NoError(t, err)
-	assert.Equal(t, team.ID, found.TeamID)
-	assert.Equal(t, member.ID, found.UserID)
+	assert.Equal(t, int64(team.ID), found.TeamKey)
+	assert.Equal(t, member.ID, uint(found.UserKey))
 }

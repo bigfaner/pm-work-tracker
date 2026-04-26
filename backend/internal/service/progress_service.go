@@ -6,6 +6,7 @@ import (
 
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/pkg/status"
 	"pm-work-tracker/backend/internal/repository"
 )
@@ -15,6 +16,7 @@ type ProgressService interface {
 	Append(ctx context.Context, teamID, authorID, subItemID uint, completion float64, achievement, blocker, lesson string, isPM bool) (*model.ProgressRecord, error)
 	CorrectCompletion(ctx context.Context, teamID, recordID uint, completion float64) error
 	List(ctx context.Context, teamID, subItemID uint) ([]model.ProgressRecord, error)
+	GetByBizKey(ctx context.Context, bizKey int64) (*model.ProgressRecord, error)
 }
 
 type progressService struct {
@@ -50,14 +52,15 @@ func (s *progressService) Append(ctx context.Context, teamID, authorID, subItemI
 	isFirstProgress := latest == nil
 
 	record := &model.ProgressRecord{
-		SubItemID:   subItemID,
-		TeamID:      teamID,
-		AuthorID:    authorID,
+		BizKey:      snowflake.Generate(),
+		SubItemKey:  int64(subItemID),
+		TeamKey:     int64(teamID),
+		AuthorKey:   int64(authorID),
 		Completion:  completion,
 		Achievement: achievement,
 		Blocker:     blocker,
 		Lesson:      lesson,
-		CreatedAt:   time.Now(),
+		CreateTime:  time.Now(),
 	}
 
 	if err := s.progressRepo.Create(ctx, record); err != nil {
@@ -65,7 +68,7 @@ func (s *progressService) Append(ctx context.Context, teamID, authorID, subItemI
 	}
 
 	// Auto-status-transition: determine target status
-	currentStatus := subItem.Status
+	currentStatus := subItem.ItemStatus
 	targetStatus := currentStatus
 
 	// Rule 1: first progress on pending sub-item -> progressing
@@ -86,7 +89,7 @@ func (s *progressService) Append(ctx context.Context, teamID, authorID, subItemI
 	}
 
 	if targetStatus != currentStatus {
-		fields["status"] = targetStatus
+		fields["item_status"] = targetStatus
 		if targetStatus == "completed" {
 			now := time.Now()
 			fields["completion"] = float64(100)
@@ -97,11 +100,11 @@ func (s *progressService) Append(ctx context.Context, teamID, authorID, subItemI
 		if s.statusHistorySvc != nil {
 			_ = s.statusHistorySvc.Record(ctx, &model.StatusHistory{
 				ItemType:   "sub_item",
-				ItemID:     subItemID,
+				ItemKey:    int64(subItemID),
 				FromStatus: currentStatus,
 				ToStatus:   targetStatus,
-				ChangedBy:  authorID,
-				IsAuto:     true,
+				ChangedBy:  int64(authorID),
+				IsAuto:     1,
 			})
 		}
 	}
@@ -111,10 +114,18 @@ func (s *progressService) Append(ctx context.Context, teamID, authorID, subItemI
 	}
 
 	// Trigger MainItem completion rollup
-	if err := s.mainItemSvc.RecalcCompletion(ctx, subItem.MainItemID); err != nil {
+	if err := s.mainItemSvc.RecalcCompletion(ctx, uint(subItem.MainItemKey)); err != nil {
 		return nil, err
 	}
 
+	return record, nil
+}
+
+func (s *progressService) GetByBizKey(ctx context.Context, bizKey int64) (*model.ProgressRecord, error) {
+	record, err := s.progressRepo.FindByBizKey(ctx, bizKey)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
+	}
 	return record, nil
 }
 
@@ -129,12 +140,12 @@ func (s *progressService) CorrectCompletion(ctx context.Context, teamID, recordI
 	}
 
 	// Re-sync SubItem.Completion to the latest record's completion
-	latest, err := s.progressRepo.LatestBySubItem(ctx, record.SubItemID)
+	latest, err := s.progressRepo.LatestBySubItem(ctx, uint(record.SubItemKey))
 	if err != nil {
 		return err
 	}
 
-	subItem, err := s.subItemRepo.FindByID(ctx, record.SubItemID)
+	subItem, err := s.subItemRepo.FindByID(ctx, uint(record.SubItemKey))
 	if err != nil {
 		return err
 	}
@@ -156,7 +167,7 @@ func (s *progressService) CorrectCompletion(ctx context.Context, teamID, recordI
 	}
 
 	// Trigger MainItem completion rollup
-	return s.mainItemSvc.RecalcCompletion(ctx, subItem.MainItemID)
+	return s.mainItemSvc.RecalcCompletion(ctx, uint(subItem.MainItemKey))
 }
 
 func (s *progressService) List(ctx context.Context, teamID, subItemID uint) ([]model.ProgressRecord, error) {

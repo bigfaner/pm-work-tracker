@@ -10,7 +10,9 @@ import (
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/pkg/dates"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -22,6 +24,7 @@ type ItemPoolService interface {
 	Reject(ctx context.Context, teamID, pmID, poolItemID uint, reason string) error
 	List(ctx context.Context, teamID uint, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error)
 	Get(ctx context.Context, teamID, poolItemID uint) (*model.ItemPool, error)
+	GetByBizKey(ctx context.Context, bizKey int64) (*model.ItemPool, error)
 }
 
 type dbTransactor interface {
@@ -47,12 +50,13 @@ func NewItemPoolService(poolRepo repository.ItemPoolRepo, subRepo repository.Sub
 
 func (s *itemPoolService) Submit(ctx context.Context, teamID, submitterID uint, req dto.SubmitItemPoolReq) (*model.ItemPool, error) {
 	item := &model.ItemPool{
-		TeamID:         teamID,
+		BaseModel:      model.BaseModel{BizKey: snowflake.Generate()},
+		TeamKey:        int64(teamID),
 		Title:          req.Title,
 		Background:     req.Background,
 		ExpectedOutput: req.ExpectedOutput,
-		SubmitterID:    submitterID,
-		Status:         "pending",
+		SubmitterKey:   int64(submitterID),
+		PoolStatus:     "pending",
 	}
 	if err := s.poolRepo.Create(ctx, item); err != nil {
 		return nil, err
@@ -65,19 +69,20 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if poolItem.TeamID != teamID {
+	if poolItem.TeamKey != int64(teamID) {
 		return apperrors.ErrForbidden
 	}
-	if poolItem.Status != "pending" {
+	if poolItem.PoolStatus != "pending" {
 		return apperrors.ErrItemAlreadyProcessed
 	}
 
 	// Validate main item exists
-	mainItem, err := s.mainRepo.FindByID(ctx, req.MainItemID)
+	mainBizKey, _ := pkg.ParseID(req.MainItemKey)
+	mainItem, err := s.mainRepo.FindByBizKey(ctx, mainBizKey)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if mainItem.TeamID != teamID {
+	if mainItem.TeamKey != int64(teamID) {
 		return apperrors.ErrItemNotFound
 	}
 
@@ -86,22 +91,23 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 
 		// Create SubItem under the MainItem
 		subItem := &model.SubItem{
-			TeamID:      teamID,
-			MainItemID:  req.MainItemID,
+			BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
+			TeamKey:     int64(teamID),
+			MainItemKey: int64(mainItem.ID),
 			Title:       poolItem.Title,
-			Description: poolItem.Background,
+			ItemDesc:    poolItem.Background,
 			Priority:    defaultPriority(req.Priority),
-			AssigneeID:  req.AssigneeID,
-			Status:      "pending",
+			AssigneeKey: func() *int64 { if req.AssigneeKey != nil { v, _ := pkg.ParseID(*req.AssigneeKey); return &v }; return nil }(),
+			ItemStatus:  "pending",
 			Weight:      1.0,
 		}
 		if req.StartDate != nil {
-			if t, e := dates.ParseDate( *req.StartDate); e == nil {
-				subItem.StartDate = &t
+			if t, e := dates.ParseDate(*req.StartDate); e == nil {
+				subItem.PlanStartDate = &t
 			}
 		}
 		if req.ExpectedEndDate != nil {
-			if t, e := dates.ParseDate( *req.ExpectedEndDate); e == nil {
+			if t, e := dates.ParseDate(*req.ExpectedEndDate); e == nil {
 				subItem.ExpectedEndDate = &t
 			}
 		}
@@ -111,12 +117,12 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 
 		// Update pool item
 		fields := map[string]interface{}{
-			"status":           "assigned",
-			"assigned_main_id": req.MainItemID,
-			"assigned_sub_id":  subItem.ID,
-			"assignee_id":      req.AssigneeID,
-			"reviewer_id":      pmID,
-			"reviewed_at":      now,
+			"pool_status":      "assigned",
+			"assigned_main_key": mainItem.BizKey,
+			"assigned_sub_key":  subItem.BizKey,
+			"assignee_key":      func() *int64 { if req.AssigneeKey != nil { v, _ := pkg.ParseID(*req.AssigneeKey); return &v }; return nil }(),
+			"reviewer_key":      pmID,
+			"reviewed_at":       now,
 		}
 		return s.poolRepo.Update(ctx, poolItem, fields)
 	})
@@ -127,10 +133,10 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamID, pmID, poolI
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if poolItem.TeamID != teamID {
+	if poolItem.TeamKey != int64(teamID) {
 		return nil, apperrors.ErrForbidden
 	}
-	if poolItem.Status != "pending" {
+	if poolItem.PoolStatus != "pending" {
 		return nil, apperrors.ErrItemAlreadyProcessed
 	}
 
@@ -144,23 +150,24 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamID, pmID, poolI
 		}
 
 		mainItem := &model.MainItem{
-			TeamID:      teamID,
+			BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
+			TeamKey:     int64(teamID),
 			Code:        code,
 			Title:       poolItem.Title,
 			Priority:    req.Priority,
-			ProposerID:  pmID,
-			AssigneeID:  req.AssigneeID,
+			ProposerKey: int64(pmID),
+			AssigneeKey: func() *int64 { if req.AssigneeKey != nil { v, _ := pkg.ParseID(*req.AssigneeKey); return &v }; return nil }(),
 			IsKeyItem:   false,
-			Status:      "pending",
+			ItemStatus:  "pending",
 		}
 
 		if req.StartDate != nil {
-			if t, e := dates.ParseDate( *req.StartDate); e == nil {
-				mainItem.StartDate = &t
+			if t, e := dates.ParseDate(*req.StartDate); e == nil {
+				mainItem.PlanStartDate = &t
 			}
 		}
 		if req.ExpectedEndDate != nil {
-			if t, e := dates.ParseDate( *req.ExpectedEndDate); e == nil {
+			if t, e := dates.ParseDate(*req.ExpectedEndDate); e == nil {
 				mainItem.ExpectedEndDate = &t
 			}
 		}
@@ -170,11 +177,11 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamID, pmID, poolI
 		}
 
 		fields := map[string]interface{}{
-			"status":           "assigned",
-			"assigned_main_id": mainItem.ID,
-			"assignee_id":      req.AssigneeID,
-			"reviewer_id":      pmID,
-			"reviewed_at":      now,
+			"pool_status":       "assigned",
+			"assigned_main_key": mainItem.BizKey,
+			"assignee_key":      func() *int64 { if req.AssigneeKey != nil { v, _ := pkg.ParseID(*req.AssigneeKey); return &v }; return nil }(),
+			"reviewer_key":      pmID,
+			"reviewed_at":       now,
 		}
 		if err := s.poolRepo.Update(ctx, poolItem, fields); err != nil {
 			return err
@@ -191,18 +198,18 @@ func (s *itemPoolService) Reject(ctx context.Context, teamID, pmID, poolItemID u
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if poolItem.TeamID != teamID {
+	if poolItem.TeamKey != int64(teamID) {
 		return apperrors.ErrForbidden
 	}
-	if poolItem.Status != "pending" {
+	if poolItem.PoolStatus != "pending" {
 		return apperrors.ErrItemAlreadyProcessed
 	}
 
 	now := time.Now()
 	fields := map[string]interface{}{
-		"status":        "rejected",
+		"pool_status":   "rejected",
 		"reject_reason": reason,
-		"reviewer_id":   pmID,
+		"reviewer_key":  pmID,
 		"reviewed_at":   now,
 	}
 	return s.poolRepo.Update(ctx, poolItem, fields)
@@ -217,8 +224,16 @@ func (s *itemPoolService) Get(ctx context.Context, teamID, poolItemID uint) (*mo
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if item.TeamID != teamID {
+	if item.TeamKey != int64(teamID) {
 		return nil, apperrors.ErrForbidden
+	}
+	return item, nil
+}
+
+func (s *itemPoolService) GetByBizKey(ctx context.Context, bizKey int64) (*model.ItemPool, error) {
+	item, err := s.poolRepo.FindByBizKey(ctx, bizKey)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 	return item, nil
 }

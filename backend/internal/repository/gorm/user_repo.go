@@ -25,6 +25,18 @@ func (r *userRepo) FindByID(ctx context.Context, id uint) (*model.User, error) {
 	return repo.FindByID[model.User](r.db, ctx, id)
 }
 
+func (r *userRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.User, error) {
+	var user model.User
+	err := r.db.WithContext(ctx).Where("biz_key = ?", bizKey).First(&user).Error
+	if err != nil {
+		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
+			return nil, errors.ErrNotFound
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (r *userRepo) FindByUsername(ctx context.Context, username string) (*model.User, error) {
 	var user model.User
 	err := r.db.WithContext(ctx).Where("username = ?", username).First(&user).Error
@@ -74,7 +86,7 @@ func (r *userRepo) ListFiltered(ctx context.Context, search string, offset, limi
 
 func (r *userRepo) SearchAvailable(ctx context.Context, teamID uint, search string, limit int) ([]*model.User, error) {
 	query := r.db.WithContext(ctx).Model(&model.User{}).
-		Where("id NOT IN (?)", r.db.Table("team_members").Select("user_id").Where("team_id = ?", teamID))
+		Where("id NOT IN (?)", r.db.Table("pmw_team_members").Select("user_key").Where("team_key = ?", teamID))
 	if search != "" {
 		pattern := "%" + search + "%"
 		query = query.Where("username LIKE ? OR display_name LIKE ?", pattern, pattern)

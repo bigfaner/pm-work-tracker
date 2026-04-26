@@ -11,8 +11,9 @@ import (
 type SubItemRepo interface {
 	Create(ctx context.Context, item *model.SubItem) error
 	FindByID(ctx context.Context, id uint) (*model.SubItem, error)
+	FindByBizKey(ctx context.Context, bizKey int64) (*model.SubItem, error)
 	Update(ctx context.Context, item *model.SubItem, fields map[string]interface{}) error
-	Delete(ctx context.Context, id uint) error
+	SoftDelete(ctx context.Context, id uint) error
 	List(ctx context.Context, teamID uint, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error)
 	ListByMainItem(ctx context.Context, mainItemID uint) ([]*model.SubItem, error)
 	ListByTeam(ctx context.Context, teamID uint) ([]model.SubItem, error)

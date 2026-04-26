@@ -53,13 +53,13 @@ export default function RoleManagementPage() {
 
   // Dialogs
   const [editOpen, setEditOpen] = useState(false)
-  const [editRoleId, setEditRoleId] = useState<number | null>(null)
+  const [editRoleId, setEditRoleId] = useState<string | null>(null)
   const [browseOpen, setBrowseOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteRole, setDeleteRole] = useState<Role | null>(null)
   const [deleteError, setDeleteError] = useState('')
   const [permissionsOpen, setPermissionsOpen] = useState(false)
-  const [permissionsRoleId, setPermissionsRoleId] = useState<number | null>(null)
+  const [permissionsRoleId, setPermissionsRoleId] = useState<string | null>(null)
 
   // Data
   const { data: rolesData, isLoading, isFetching, refetch } = useQuery({
@@ -90,7 +90,7 @@ export default function RoleManagementPage() {
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => deleteRoleApi(id),
+    mutationFn: (bizKey: string) => deleteRoleApi(bizKey),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['roles'] })
       setDeleteOpen(false)
@@ -110,7 +110,7 @@ export default function RoleManagementPage() {
   })
 
   const openEdit = useCallback((role: Role) => {
-    setEditRoleId(role.id)
+    setEditRoleId(role.bizKey)
     setEditOpen(true)
   }, [])
 
@@ -126,17 +126,17 @@ export default function RoleManagementPage() {
   }, [])
 
   const openPermissions = useCallback((role: Role) => {
-    setPermissionsRoleId(role.id)
+    setPermissionsRoleId(role.bizKey)
     setPermissionsOpen(true)
   }, [])
 
   const handleDeleteConfirm = useCallback(() => {
     if (deleteRole) {
-      deleteMutation.mutate(deleteRole.id)
+      deleteMutation.mutate(deleteRole.bizKey)
     }
   }, [deleteRole, deleteMutation])
 
-  const formatDate = (dateStr: string) => _formatDate(dateStr.slice(0, 10))
+  const formatDate = (dateStr?: string) => dateStr ? _formatDate(dateStr.slice(0, 10)) : '-'
 
   return (
     <TooltipProvider>
@@ -237,20 +237,20 @@ export default function RoleManagementPage() {
               </TableHeader>
               <TableBody>
                 {roles.map((role) => (
-                  <TableRow key={role.id}>
+                  <TableRow key={role.bizKey}>
                     <TableCell>
                       <button
                         type="button"
-                        className="font-medium text-primary hover:underline cursor-pointer"
-                        data-testid={`role-name-${role.id}`}
+                        className="font-medium text-primary-600 hover:text-primary-700 hover:underline cursor-pointer"
+                        data-testid={`role-name-${role.bizKey}`}
                         onClick={() => openPermissions(role)}
                       >
-                        {role.name}
+                        {role.roleName}
                       </button>
                     </TableCell>
                     <TableCell>
                       <span className="text-secondary">
-                        {role.description || '-'}
+                        {role.roleDesc || '-'}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -265,7 +265,7 @@ export default function RoleManagementPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <span className="text-tertiary">{formatDate(role.createdAt)}</span>
+                      <span className="text-tertiary">{formatDate(role.createTime)}</span>
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
@@ -277,7 +277,7 @@ export default function RoleManagementPage() {
                                 size="sm"
                                 className="text-primary-600"
                                 disabled={role.isPreset}
-                                data-testid={`edit-role-${role.id}`}
+                                data-testid={`edit-role-${role.bizKey}`}
                                 onClick={() => openEdit(role)}
                               >
                                 <Pencil className="w-3.5 h-3.5" />
@@ -361,7 +361,7 @@ export default function RoleManagementPage() {
           title="删除角色"
           description={
             deleteRole
-              ? `确定要删除角色"${deleteRole.name}"吗？此操作不可撤销。`
+              ? `确定要删除角色"${deleteRole.roleName}"吗？此操作不可撤销。`
               : ''
           }
           confirmLabel="确认删除"

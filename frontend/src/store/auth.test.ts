@@ -3,15 +3,16 @@ import { useAuthStore } from './auth'
 import type { User, PermissionData } from '@/types'
 
 const mockUser: User = {
-  id: 1,
+  bizKey: '1',
   username: 'testuser',
   displayName: 'Test User',
   isSuperAdmin: false,
+  createTime: '',
 }
 
 const superAdminUser: User = {
   ...mockUser,
-  id: 2,
+  bizKey: '2',
   username: 'admin',
   isSuperAdmin: true,
 }

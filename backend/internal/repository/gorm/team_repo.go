@@ -4,13 +4,14 @@ import (
 	"context"
 	stderrors "errors"
 	"strings"
+	"time"
 
 	gormlib "gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/pkg/errors"
-	"pm-work-tracker/backend/internal/pkg/repo"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -32,7 +33,15 @@ func (r *teamRepo) Create(ctx context.Context, team *model.Team) error {
 }
 
 func (r *teamRepo) FindByID(ctx context.Context, teamID uint) (*model.Team, error) {
-	return repo.FindByID[model.Team](r.db, ctx, teamID)
+	var team model.Team
+	err := r.db.WithContext(ctx).Where("id = ? AND deleted_flag = 0", teamID).First(&team).Error
+	if err != nil {
+		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
+			return nil, errors.ErrNotFound
+		}
+		return nil, err
+	}
+	return &team, nil
 }
 
 func (r *teamRepo) List(ctx context.Context) ([]*model.Team, error) {
@@ -44,14 +53,14 @@ func (r *teamRepo) List(ctx context.Context) ([]*model.Team, error) {
 func (r *teamRepo) ListFiltered(ctx context.Context, search string, offset, limit int) ([]*model.Team, int64, error) {
 	q := r.db.WithContext(ctx).Model(&model.Team{})
 	if search != "" {
-		q = q.Where("name LIKE ? OR code LIKE ?", "%"+search+"%", "%"+search+"%")
+		q = q.Where("team_name LIKE ? OR code LIKE ?", "%"+search+"%", "%"+search+"%")
 	}
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 	var teams []*model.Team
-	err := q.Order("created_at DESC").Offset(offset).Limit(limit).Find(&teams).Error
+	err := q.Order("create_time DESC").Offset(offset).Limit(limit).Find(&teams).Error
 	return teams, total, err
 }
 
@@ -59,8 +68,19 @@ func (r *teamRepo) Update(ctx context.Context, team *model.Team) error {
 	return r.db.WithContext(ctx).Save(team).Error
 }
 
-func (r *teamRepo) Delete(ctx context.Context, teamID uint) error {
-	return r.db.WithContext(ctx).Delete(&model.Team{}, teamID).Error
+func (r *teamRepo) SoftDelete(ctx context.Context, teamID uint) error {
+	return r.db.WithContext(ctx).Model(&model.Team{}).
+		Where("id = ?", teamID).
+		Updates(map[string]any{"deleted_flag": 1, "deleted_time": time.Now()}).Error
+}
+
+func (r *teamRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.Team, error) {
+	var team model.Team
+	err := r.db.WithContext(ctx).Where("biz_key = ?", bizKey).First(&team).Error
+	if err != nil {
+		return nil, err
+	}
+	return &team, nil
 }
 
 func (r *teamRepo) AddMember(ctx context.Context, member *model.TeamMember) error {
@@ -77,7 +97,7 @@ func (r *teamRepo) AddMember(ctx context.Context, member *model.TeamMember) erro
 
 func (r *teamRepo) RemoveMember(ctx context.Context, teamID, userID uint) error {
 	result := r.db.WithContext(ctx).
-		Where("team_id = ? AND user_id = ?", teamID, userID).
+		Where("team_key = ? AND user_key = ?", teamID, userID).
 		Delete(&model.TeamMember{})
 	if result.Error != nil {
 		return result.Error
@@ -91,7 +111,7 @@ func (r *teamRepo) RemoveMember(ctx context.Context, teamID, userID uint) error 
 func (r *teamRepo) FindMember(ctx context.Context, teamID, userID uint) (*model.TeamMember, error) {
 	var member model.TeamMember
 	err := r.db.WithContext(ctx).
-		Where("team_id = ? AND user_id = ?", teamID, userID).
+		Where("team_key = ? AND user_key = ?", teamID, userID).
 		First(&member).Error
 	if err != nil {
 		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
@@ -103,25 +123,51 @@ func (r *teamRepo) FindMember(ctx context.Context, teamID, userID uint) (*model.
 }
 
 func (r *teamRepo) ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMemberDTO, error) {
-	var results []*dto.TeamMemberDTO
+	type scanRow struct {
+		BizKey      int64
+		TeamKey     int64
+		UserKey  int64
+		Role        string
+		JoinedAt    string
+		DisplayName string
+		Username    string
+	}
+	var rows []scanRow
 	err := r.db.WithContext(ctx).
-		Table("team_members").
-		Select("team_members.id, team_members.team_id, team_members.user_id, " +
-			"COALESCE(roles.name, CASE WHEN teams.pm_id = team_members.user_id THEN 'pm' ELSE 'member' END) as role, " +
-			"team_members.joined_at, users.display_name, users.username").
-		Joins("LEFT JOIN users ON users.id = team_members.user_id").
-		Joins("LEFT JOIN roles ON roles.id = team_members.role_id").
-		Joins("LEFT JOIN teams ON teams.id = team_members.team_id").
-		Where("team_members.team_id = ?", teamID).
-		Scan(&results).Error
-	return results, err
+		Table("pmw_team_members").
+		Select("pmw_team_members.biz_key, pmw_teams.biz_key as team_key, pmw_users.biz_key as user_key, "+
+			"CASE WHEN roles.name IS NOT NULL THEN roles.name "+
+			"     WHEN pmw_team_members.user_key = pmw_teams.pm_key THEN 'pm' "+
+			"     ELSE 'member' END as role, "+
+			"pmw_team_members.joined_at, pmw_users.display_name, pmw_users.username").
+		Joins("LEFT JOIN pmw_users ON pmw_users.id = pmw_team_members.user_key").
+		Joins("LEFT JOIN roles ON roles.id = pmw_team_members.role_key").
+		Joins("LEFT JOIN pmw_teams ON pmw_teams.id = pmw_team_members.team_key").
+		Where("pmw_team_members.team_key = ?", teamID).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	results := make([]*dto.TeamMemberDTO, len(rows))
+	for i, row := range rows {
+		results[i] = &dto.TeamMemberDTO{
+			BizKey:      pkg.FormatID(row.BizKey),
+			TeamKey:     pkg.FormatID(row.TeamKey),
+			UserKey:  pkg.FormatID(row.UserKey),
+			Role:        row.Role,
+			JoinedAt:    row.JoinedAt,
+			DisplayName: row.DisplayName,
+			Username:    row.Username,
+		}
+	}
+	return results, nil
 }
 
 func (r *teamRepo) CountMembers(ctx context.Context, teamID uint) (int64, error) {
 	var count int64
 	err := r.db.WithContext(ctx).
-		Table("team_members").
-		Where("team_id = ?", teamID).
+		Table("pmw_team_members").
+		Where("team_key = ?", teamID).
 		Count(&count).Error
 	return count, err
 }
@@ -136,17 +182,17 @@ func (r *teamRepo) FindPMMembers(ctx context.Context, teamIDs []uint) (map[uint]
 	}
 
 	type row struct {
-		TeamID      uint
+		TeamKey     uint
 		DisplayName string
 	}
 
 	var rows []row
 	err := r.db.WithContext(ctx).
-		Table("team_members").
-		Select("team_members.team_id, users.display_name").
-		Joins("JOIN users ON users.id = team_members.user_id").
-		Joins("JOIN roles ON roles.id = team_members.role_id").
-		Where("team_members.team_id IN ? AND roles.name = ?", teamIDs, "pm").
+		Table("pmw_team_members").
+		Select("pmw_team_members.team_key, pmw_users.display_name").
+		Joins("JOIN pmw_users ON pmw_users.id = pmw_team_members.user_key").
+		Joins("JOIN roles ON roles.id = pmw_team_members.role_key").
+		Where("pmw_team_members.team_key IN ? AND roles.name = ?", teamIDs, "pm").
 		Scan(&rows).Error
 	if err != nil {
 		return nil, err
@@ -154,23 +200,45 @@ func (r *teamRepo) FindPMMembers(ctx context.Context, teamIDs []uint) (map[uint]
 
 	result := make(map[uint]string, len(rows))
 	for _, r := range rows {
-		result[r.TeamID] = r.DisplayName
+		result[r.TeamKey] = r.DisplayName
 	}
 	return result, nil
 }
 
 func (r *teamRepo) ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error) {
-	var results []*dto.AdminTeamDTO
+	type scanRow struct {
+		BizKey        int64
+		Name          string
+		PMDisplayName string
+		MemberCount   int
+		MainItemCount int
+		CreatedAt     string
+	}
+	var rows []scanRow
 	err := r.db.WithContext(ctx).
-		Table("teams").
-		Select("teams.id, teams.name, users.display_name as pm_display_name, "+
-			"(SELECT COUNT(*) FROM team_members WHERE team_members.team_id = teams.id) as member_count, "+
-			"(SELECT COUNT(*) FROM main_items WHERE main_items.team_id = teams.id AND main_items.deleted_at IS NULL) as main_item_count, "+
-			"teams.created_at").
-		Joins("LEFT JOIN users ON users.id = teams.pm_id").
-		Where("teams.deleted_at IS NULL").
-		Scan(&results).Error
-	return results, err
+		Table("pmw_teams").
+		Select("pmw_teams.biz_key, pmw_teams.team_name as name, pmw_users.display_name as pm_display_name, "+
+			"(SELECT COUNT(*) FROM pmw_team_members WHERE pmw_team_members.team_key = pmw_teams.id) as member_count, "+
+			"(SELECT COUNT(*) FROM pmw_main_items WHERE pmw_main_items.team_key = pmw_teams.id AND pmw_main_items.deleted_flag = 0) as main_item_count, "+
+			"pmw_teams.create_time as created_at").
+		Joins("LEFT JOIN pmw_users ON pmw_users.id = pmw_teams.pm_key").
+		Where("pmw_teams.deleted_flag = 0").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	results := make([]*dto.AdminTeamDTO, len(rows))
+	for i, row := range rows {
+		results[i] = &dto.AdminTeamDTO{
+			BizKey:        pkg.FormatID(row.BizKey),
+			Name:          row.Name,
+			PMDisplayName: row.PMDisplayName,
+			MemberCount:   row.MemberCount,
+			MainItemCount: row.MainItemCount,
+			CreatedAt:     row.CreatedAt,
+		}
+	}
+	return results, nil
 }
 
 // isDuplicateKeyError checks if the error is a unique constraint violation.
@@ -188,19 +256,20 @@ func (r *teamRepo) FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[
 	}
 
 	type row struct {
-		UserID  uint
-		TeamID  uint
-		Name    string
-		Role    string
+		UserID uint
+		TeamID uint
+		BizKey int64
+		Name   string
+		Role   string
 	}
 
 	var rows []row
 	err := r.db.WithContext(ctx).
-		Table("team_members").
-		Select("team_members.user_id, team_members.team_id, teams.name, roles.name as role").
-			Joins("JOIN teams ON teams.id = team_members.team_id").
-			Joins("JOIN roles ON roles.id = team_members.role_id").
-		Where("team_members.user_id IN ?", userIDs).
+		Table("pmw_team_members").
+		Select("pmw_team_members.user_key as user_id, pmw_team_members.team_key as team_id, pmw_teams.biz_key, pmw_teams.team_name as name, roles.name as role").
+		Joins("JOIN pmw_teams ON pmw_teams.id = pmw_team_members.team_key").
+		Joins("JOIN roles ON roles.id = pmw_team_members.role_key").
+		Where("pmw_team_members.user_key IN ?", userIDs).
 		Scan(&rows).Error
 	if err != nil {
 		return nil, err
@@ -209,9 +278,10 @@ func (r *teamRepo) FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[
 	result := make(map[uint][]dto.TeamSummary)
 	for _, r := range rows {
 		result[r.UserID] = append(result[r.UserID], dto.TeamSummary{
-			ID:   r.TeamID,
-			Name: r.Name,
-			Role: r.Role,
+			BizKey: pkg.FormatID(r.BizKey),
+			TeamID: r.TeamID,
+			Name:   r.Name,
+			Role:   r.Role,
 		})
 	}
 	return result, nil

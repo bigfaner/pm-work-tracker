@@ -9,10 +9,12 @@ import (
 	"gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 )
 
 func setupRBACTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
+	_ = snowflake.Init(1)
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
 
@@ -64,7 +66,7 @@ func seedPreRBACData(t *testing.T, db *gorm.DB) {
 	require.NoError(t, db.Create(&u4).Error)
 
 	// Create teams
-	team1 := model.Team{Name: "Team 1", PmID: u2.ID}
+	team1 := model.Team{TeamName: "Team 1", PmKey: int64(u2.ID)}
 	require.NoError(t, db.Create(&team1).Error)
 
 	// Insert team members with legacy role strings via raw SQL (role column is gorm:"-")
@@ -141,17 +143,17 @@ func TestMigrateToRBAC_TeamMemberRoleMigrated(t *testing.T) {
 	err = MigrateToRBAC(db)
 	require.NoError(t, err)
 
-	// Check pm user has role_id = 2
+	// Check pm user has role_key = 2
 	var pmMember model.TeamMember
-	require.NoError(t, db.Where("user_id = ? AND team_id = ?", 2, 1).First(&pmMember).Error)
-	require.NotNil(t, pmMember.RoleID)
-	assert.Equal(t, uint(2), *pmMember.RoleID, "pm user should have role_id=2")
+	require.NoError(t, db.Where("user_key = ? AND team_key = ?", 2, 1).First(&pmMember).Error)
+	require.NotNil(t, pmMember.RoleKey)
+	assert.Equal(t, int64(2), *pmMember.RoleKey, "pm user should have role_id=2")
 
-	// Check member users have role_id = 3
+	// Check member users have role_key = 3
 	var memberUser model.TeamMember
-	require.NoError(t, db.Where("user_id = ? AND team_id = ?", 3, 1).First(&memberUser).Error)
-	require.NotNil(t, memberUser.RoleID)
-	assert.Equal(t, uint(3), *memberUser.RoleID, "member user should have role_id=3")
+	require.NoError(t, db.Where("user_key = ? AND team_key = ?", 3, 1).First(&memberUser).Error)
+	require.NotNil(t, memberUser.RoleKey)
+	assert.Equal(t, int64(3), *memberUser.RoleKey, "member user should have role_id=3")
 }
 
 func TestMigrateToRBAC_TeamMembersRoleColumnRemoved(t *testing.T) {
@@ -165,12 +167,12 @@ func TestMigrateToRBAC_TeamMembersRoleColumnRemoved(t *testing.T) {
 	require.NoError(t, err)
 
 	// team_members table should no longer have role string column
-	assert.False(t, HasColumn(db, "team_members", "role"),
+	assert.False(t, HasColumn(db, "pmw_team_members", "role"),
 		"role string column should be removed from team_members table")
 
-	// but should have role_id
-	assert.True(t, HasColumn(db, "team_members", "role_id"),
-		"role_id column should exist in team_members table")
+	// but should have role_key
+	assert.True(t, HasColumn(db, "pmw_team_members", "role_key"),
+		"role_key column should exist in team_members table")
 }
 
 func TestMigrateToRBAC_UsersDataPreserved(t *testing.T) {
@@ -300,8 +302,8 @@ func TestMigrateToRBAC_EmptyDBSucceeds(t *testing.T) {
 	// Verify tables created
 	assert.True(t, tableExists(db, "roles"))
 	assert.True(t, tableExists(db, "role_permissions"))
-	assert.True(t, tableExists(db, "team_members"))
-	assert.False(t, HasColumn(db, "team_members", "role"))
+	assert.True(t, tableExists(db, "pmw_team_members"))
+	assert.False(t, HasColumn(db, "pmw_team_members", "role"))
 }
 
 func TestMigrateToRBAC_TransactionRollback(t *testing.T) {
@@ -452,7 +454,7 @@ func TestMigrateToRBAC_UnknownRoleDefaultsToMember(t *testing.T) {
 	// Create user and team
 	u := model.User{Username: "unknown_role_user", DisplayName: "URU", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "UnknownTeam", PmID: u.ID}
+	team := model.Team{TeamName: "UnknownTeam", PmKey: int64(u.ID)}
 	require.NoError(t, db.Create(&team).Error)
 
 	// Create team member with an unknown role string via raw SQL (role column is gorm:"-")
@@ -463,9 +465,9 @@ func TestMigrateToRBAC_UnknownRoleDefaultsToMember(t *testing.T) {
 
 	// The member with unknown role should default to member role_id=3
 	var fetched model.TeamMember
-	require.NoError(t, db.Where("user_id = ? AND team_id = ?", u.ID, team.ID).First(&fetched).Error)
-	require.NotNil(t, fetched.RoleID)
-	assert.Equal(t, uint(3), *fetched.RoleID, "unknown role should default to member (role_id=3)")
+	require.NoError(t, db.Where("user_key = ? AND team_key = ?", u.ID, team.ID).First(&fetched).Error)
+	require.NotNil(t, fetched.RoleKey)
+	assert.Equal(t, int64(3), *fetched.RoleKey, "unknown role should default to member (role_id=3)")
 }
 
 func TestSeedRole_SkipsExisting(t *testing.T) {
@@ -511,8 +513,8 @@ func TestTableExists(t *testing.T) {
 	require.NoError(t, err)
 	defer sqlDB.Close()
 
-	assert.False(t, tableExists(db, "users"))
+	assert.False(t, tableExists(db, "pmw_users"))
 
-	require.NoError(t, db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY)").Error)
-	assert.True(t, tableExists(db, "users"))
+	require.NoError(t, db.Exec("CREATE TABLE pmw_users (id INTEGER PRIMARY KEY)").Error)
+	assert.True(t, tableExists(db, "pmw_users"))
 }

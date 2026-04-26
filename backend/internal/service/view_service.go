@@ -11,6 +11,7 @@ import (
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/pkg/dates"
 	"pm-work-tracker/backend/internal/repository"
 )
@@ -126,11 +127,11 @@ func splitProgressByWeek(allProgress []model.ProgressRecord, lastWeekStart, this
 	lastWeek := make(map[uint][]model.ProgressRecord)
 	thisWeek := make(map[uint][]model.ProgressRecord)
 	for _, pr := range allProgress {
-		if !pr.CreatedAt.Before(lastWeekStart) && pr.CreatedAt.Before(lastWeekEnd) {
-			lastWeek[pr.SubItemID] = append(lastWeek[pr.SubItemID], pr)
+		if !pr.CreateTime.Before(lastWeekStart) && pr.CreateTime.Before(lastWeekEnd) {
+			lastWeek[uint(pr.SubItemKey)] = append(lastWeek[uint(pr.SubItemKey)], pr)
 		}
-		if !pr.CreatedAt.Before(thisWeekStart) && pr.CreatedAt.Before(thisWeekEnd) {
-			thisWeek[pr.SubItemID] = append(thisWeek[pr.SubItemID], pr)
+		if !pr.CreateTime.Before(thisWeekStart) && pr.CreateTime.Before(thisWeekEnd) {
+			thisWeek[uint(pr.SubItemKey)] = append(thisWeek[uint(pr.SubItemKey)], pr)
 		}
 	}
 	return lastWeek, thisWeek
@@ -200,10 +201,10 @@ func resolveSubItemAssigneeNames(ctx context.Context, subItems []model.SubItem, 
 	seen := make(map[uint]struct{})
 	var ids []uint
 	for _, si := range subItems {
-		if si.AssigneeID != nil {
-			if _, ok := seen[*si.AssigneeID]; !ok {
-				seen[*si.AssigneeID] = struct{}{}
-				ids = append(ids, *si.AssigneeID)
+		if si.AssigneeKey != nil {
+			if _, ok := seen[uint(*si.AssigneeKey)]; !ok {
+				seen[uint(*si.AssigneeKey)] = struct{}{}
+				ids = append(ids, uint(*si.AssigneeKey))
 			}
 		}
 	}
@@ -224,7 +225,7 @@ func resolveSubItemAssigneeNames(ctx context.Context, subItems []model.SubItem, 
 func indexSubItemsByMain(subItems []model.SubItem) map[uint][]model.SubItem {
 	result := make(map[uint][]model.SubItem)
 	for _, si := range subItems {
-		result[si.MainItemID] = append(result[si.MainItemID], si)
+		result[uint(si.MainItemKey)] = append(result[uint(si.MainItemKey)], si)
 	}
 	return result
 }
@@ -232,13 +233,13 @@ func indexSubItemsByMain(subItems []model.SubItem) map[uint][]model.SubItem {
 // buildSubItemSnapshot creates a SubItemSnapshot for a sub-item with optional progress and delta info.
 func buildSubItemSnapshot(si model.SubItem, assigneeName, progressDesc string, thisWeekProgress map[uint][]model.ProgressRecord, lastWeekCompletion map[uint]float64, weekStart, weekEnd time.Time) dto.SubItemSnapshot {
 	snapshot := dto.SubItemSnapshot{
-		ID:                  si.ID,
+		BizKey:              pkg.FormatID(si.BizKey),
 		Code:                si.Code,
 		Title:               si.Title,
 		Priority:            si.Priority,
-		Status:              si.Status,
+		Status:              si.ItemStatus,
 		AssigneeName:        assigneeName,
-		StartDate:           formatDate(si.StartDate),
+		StartDate:           formatDate(si.PlanStartDate),
 		ExpectedEndDate:     formatDate(si.ExpectedEndDate),
 		ActualEndDate:       dates.FormatTimePtr(si.ActualEndDate),
 		Completion:          si.Completion,
@@ -254,7 +255,7 @@ func buildSubItemSnapshot(si model.SubItem, assigneeName, progressDesc string, t
 				Completion:  pr.Completion,
 				Achievement: pr.Achievement,
 				Blocker:     pr.Blocker,
-				CreatedAt:   pr.CreatedAt.Format(time.RFC3339),
+				CreatedAt:   pr.CreateTime.Format(time.RFC3339),
 			})
 		}
 	}
@@ -295,12 +296,12 @@ func buildWeeklyGroups(
 
 		group := dto.WeeklyComparisonGroup{
 			MainItem: dto.WeeklyMainItemSummary{
-				ID:              mi.ID,
+				BizKey:          pkg.FormatID(mi.BizKey),
 				Code:            mi.Code,
 				Title:           mi.Title,
 				Priority:        mi.Priority,
-				Status:          mi.Status,
-				StartDate:       formatDate(mi.StartDate),
+				Status:          mi.ItemStatus,
+				StartDate:       formatDate(mi.PlanStartDate),
 				ExpectedEndDate: formatDate(mi.ExpectedEndDate),
 				ActualEndDate:   dates.FormatTimePtr(mi.ActualEndDate),
 				Completion:      mi.Completion,
@@ -310,8 +311,8 @@ func buildWeeklyGroups(
 
 		for _, si := range subs {
 			assigneeName := ""
-			if si.AssigneeID != nil {
-				assigneeName = assigneeNames[*si.AssigneeID]
+			if si.AssigneeKey != nil {
+				assigneeName = assigneeNames[uint(*si.AssigneeKey)]
 			}
 
 			inThisWeek := isInThisWeek(si.ID, thisWeekActive, thisWeekProgress)
@@ -332,19 +333,19 @@ func buildWeeklyGroups(
 			if inThisWeek || justCompleted {
 				group.ThisWeek = append(group.ThisWeek, snapshot)
 				stats.ActiveSubItems++
-				if si.Status == "progressing" {
+				if si.ItemStatus == "progressing" {
 					stats.InProgress++
 				}
-				if si.Status == "blocking" {
+				if si.ItemStatus == "blocking" {
 					stats.Blocked++
 				}
-				if si.Status == "pending" {
+				if si.ItemStatus == "pending" {
 					stats.Pending++
 				}
-				if si.Status == "pausing" {
+				if si.ItemStatus == "pausing" {
 					stats.Pausing++
 				}
-				if si.ExpectedEndDate != nil && si.ExpectedEndDate.Before(weekEnd) && si.Status != "completed" && si.Status != "closed" {
+				if si.ExpectedEndDate != nil && si.ExpectedEndDate.Before(weekEnd) && si.ItemStatus != "completed" && si.ItemStatus != "closed" {
 					stats.Overdue++
 				}
 			}
@@ -378,13 +379,13 @@ func appendLastWeekSnapshot(group *dto.WeeklyComparisonGroup, si model.SubItem, 
 		return
 	}
 	lastSnapshot := dto.SubItemSnapshot{
-		ID:              si.ID,
+		BizKey:              pkg.FormatID(si.BizKey),
 		Code:            si.Code,
 		Title:           si.Title,
 		Priority:        si.Priority,
-		Status:          si.Status,
+		Status:          si.ItemStatus,
 		AssigneeName:    assigneeName,
-		StartDate:       formatDate(si.StartDate),
+		StartDate:       formatDate(si.PlanStartDate),
 		ExpectedEndDate: formatDate(si.ExpectedEndDate),
 		ActualEndDate:   dates.FormatTimePtr(si.ActualEndDate),
 		Completion:      lastWeekCompletion[si.ID],
@@ -394,11 +395,11 @@ func appendLastWeekSnapshot(group *dto.WeeklyComparisonGroup, si model.SubItem, 
 
 // isCompletedNoChange returns true if a sub-item was completed before this week and not just completed.
 func isCompletedNoChange(si model.SubItem, justCompleted bool, weekEnd time.Time) bool {
-	if si.Status != "completed" || justCompleted {
+	if si.ItemStatus != "completed" || justCompleted {
 		return false
 	}
 	completedBeforeOrDuringWeek := si.ActualEndDate == nil || !si.ActualEndDate.After(weekEnd)
-	existedDuringWeek := si.CreatedAt.Before(weekEnd.AddDate(0, 0, 1))
+	existedDuringWeek := si.CreateTime.Before(weekEnd.AddDate(0, 0, 1))
 	return completedBeforeOrDuringWeek && existedDuringWeek
 }
 
@@ -424,7 +425,7 @@ func startOfDay(t time.Time) time.Time {
 
 // isNewlyCompleted checks if a sub-item's ActualEndDate falls within the week range.
 func isNewlyCompleted(si model.SubItem, weekStart, weekEnd time.Time) bool {
-	if si.Status != "completed" {
+	if si.ItemStatus != "completed" {
 		return false
 	}
 	if si.ActualEndDate == nil {
@@ -438,7 +439,7 @@ func isNewlyCompleted(si model.SubItem, weekStart, weekEnd time.Time) bool {
 // Active means: created before the week ends, and not completed before the week starts.
 func isActiveInWeek(si model.SubItem, weekStart, weekEnd time.Time) bool {
 	weekEndNextDay := weekEnd.AddDate(0, 0, 1)
-	if si.CreatedAt.After(weekEndNextDay) || si.CreatedAt.Equal(weekEndNextDay) {
+	if si.CreateTime.After(weekEndNextDay) || si.CreateTime.Equal(weekEndNextDay) {
 		return false
 	}
 	if si.ActualEndDate != nil && si.ActualEndDate.Before(weekStart) {
@@ -473,7 +474,7 @@ func (s *viewService) GanttView(ctx context.Context, teamID uint, filter dto.Gan
 		if pi != pj {
 			return pi < pj
 		}
-		return mainItems[i].CreatedAt.Before(mainItems[j].CreatedAt)
+		return mainItems[i].CreateTime.Before(mainItems[j].CreateTime)
 	})
 
 	// Fetch all sub-items for the team (single query, avoid N+1)
@@ -485,7 +486,7 @@ func (s *viewService) GanttView(ctx context.Context, teamID uint, filter dto.Gan
 	// Index sub-items by main item ID
 	subItemsByMain := make(map[uint][]model.SubItem)
 	for _, si := range subItems {
-		subItemsByMain[si.MainItemID] = append(subItemsByMain[si.MainItemID], si)
+		subItemsByMain[uint(si.MainItemKey)] = append(subItemsByMain[uint(si.MainItemKey)], si)
 	}
 
 	now := time.Now()
@@ -497,24 +498,24 @@ func (s *viewService) GanttView(ctx context.Context, teamID uint, filter dto.Gan
 		subDTOs := make([]dto.GanttSubItemDTO, 0, len(subs))
 		for _, si := range subs {
 			subDTOs = append(subDTOs, dto.GanttSubItemDTO{
-				ID:              si.ID,
+				BizKey:              pkg.FormatID(si.BizKey),
 				Title:           si.Title,
-				StartDate:       formatDate(si.StartDate),
+				StartDate:       formatDate(si.PlanStartDate),
 				ExpectedEndDate: formatDate(si.ExpectedEndDate),
 				Completion:      si.Completion,
-				Status:          si.Status,
+				Status:          si.ItemStatus,
 			})
 		}
 
 		items = append(items, dto.GanttMainItemDTO{
-			ID:              mi.ID,
+			BizKey:          pkg.FormatID(mi.BizKey),
 			Title:           mi.Title,
 			Priority:        mi.Priority,
-			StartDate:       formatDate(mi.StartDate),
+			StartDate:       formatDate(mi.PlanStartDate),
 			ExpectedEndDate: formatDate(mi.ExpectedEndDate),
 			Completion:      mi.Completion,
-			Status:          mi.Status,
-			IsOverdue:       computeIsOverdue(mi.ExpectedEndDate, mi.Status, today),
+			Status:          mi.ItemStatus,
+			IsOverdue:       computeIsOverdue(mi.ExpectedEndDate, mi.ItemStatus, today),
 			SubItems:        subDTOs,
 		})
 	}
@@ -685,13 +686,13 @@ func derefString(s *string) string {
 
 func mainItemToRow(mi model.MainItem) dto.TableRow {
 	return dto.TableRow{
-		ID:              mi.ID,
+		BizKey:          pkg.FormatID(mi.BizKey),
 		Type:            "main",
 		Code:            mi.Code,
 		Title:           mi.Title,
 		Priority:        mi.Priority,
-		AssigneeID:      mi.AssigneeID,
-		Status:          mi.Status,
+		AssigneeID:      pkg.FormatIDPtr(mi.AssigneeKey),
+		Status:          mi.ItemStatus,
 		Completion:      mi.Completion,
 		ExpectedEndDate: dates.FormatTimePtr(mi.ExpectedEndDate),
 		ActualEndDate:   dates.FormatTimePtr(mi.ActualEndDate),
@@ -700,13 +701,13 @@ func mainItemToRow(mi model.MainItem) dto.TableRow {
 
 func subItemToRow(si model.SubItem) dto.TableRow {
 	return dto.TableRow{
-		ID:              si.ID,
+		BizKey:              pkg.FormatID(si.BizKey),
 		Type:            "sub",
 		Code:            si.Code,
 		Title:           si.Title,
 		Priority:        si.Priority,
-		AssigneeID:      si.AssigneeID,
-		Status:          si.Status,
+		AssigneeID:      pkg.FormatIDPtr(si.AssigneeKey),
+		Status:          si.ItemStatus,
 		Completion:      si.Completion,
 		ExpectedEndDate: dates.FormatTimePtr(si.ExpectedEndDate),
 		ActualEndDate:   dates.FormatTimePtr(si.ActualEndDate),
@@ -717,11 +718,11 @@ func matchesFilterMain(mi model.MainItem, filter dto.TableFilter) bool {
 	if len(filter.Priority) > 0 && !contains(filter.Priority, mi.Priority) {
 		return false
 	}
-	if len(filter.Status) > 0 && !contains(filter.Status, mi.Status) {
+	if len(filter.Status) > 0 && !contains(filter.Status, mi.ItemStatus) {
 		return false
 	}
-	if filter.AssigneeID != nil {
-		if mi.AssigneeID == nil || *mi.AssigneeID != *filter.AssigneeID {
+	if filter.AssigneeKey != nil {
+		if mi.AssigneeKey == nil || pkg.FormatID(*mi.AssigneeKey) != *filter.AssigneeKey {
 			return false
 		}
 	}
@@ -732,11 +733,11 @@ func matchesFilterSub(si model.SubItem, filter dto.TableFilter) bool {
 	if len(filter.Priority) > 0 && !contains(filter.Priority, si.Priority) {
 		return false
 	}
-	if len(filter.Status) > 0 && !contains(filter.Status, si.Status) {
+	if len(filter.Status) > 0 && !contains(filter.Status, si.ItemStatus) {
 		return false
 	}
-	if filter.AssigneeID != nil {
-		if si.AssigneeID == nil || *si.AssigneeID != *filter.AssigneeID {
+	if filter.AssigneeKey != nil {
+		if si.AssigneeKey == nil || pkg.FormatID(*si.AssigneeKey) != *filter.AssigneeKey {
 			return false
 		}
 	}
@@ -839,7 +840,9 @@ func resolveAssigneeNames(ctx context.Context, rows []dto.TableRow, userRepo rep
 	assigneeIDs := make(map[uint]struct{})
 	for _, row := range rows {
 		if row.AssigneeID != nil {
-			assigneeIDs[*row.AssigneeID] = struct{}{}
+			if id, err := pkg.ParseID(*row.AssigneeID); err == nil {
+				assigneeIDs[uint(id)] = struct{}{}
+			}
 		}
 	}
 	if len(assigneeIDs) == 0 {
@@ -863,7 +866,9 @@ func resolveAssigneeNames(ctx context.Context, rows []dto.TableRow, userRepo rep
 	// Fill names into rows
 	for i := range rows {
 		if rows[i].AssigneeID != nil {
-			rows[i].AssigneeName = names[*rows[i].AssigneeID]
+			if id, err := pkg.ParseID(*rows[i].AssigneeID); err == nil {
+				rows[i].AssigneeName = names[uint(id)]
+			}
 		}
 	}
 }

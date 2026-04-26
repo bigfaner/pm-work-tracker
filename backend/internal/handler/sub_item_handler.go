@@ -9,21 +9,26 @@ import (
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/middleware"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/service"
 	"pm-work-tracker/backend/internal/vo"
 )
 
 // SubItemHandler handles sub item endpoints.
 type SubItemHandler struct {
-	svc service.SubItemService
+	svc         service.SubItemService
+	mainItemSvc service.MainItemService
 }
 
 // NewSubItemHandler creates a new SubItemHandler with service dependency.
-func NewSubItemHandler(svc service.SubItemService) *SubItemHandler {
+func NewSubItemHandler(svc service.SubItemService, mainItemSvc service.MainItemService) *SubItemHandler {
 	if svc == nil {
 		panic("sub_item_handler: subItemService must not be nil")
 	}
-	return &SubItemHandler{svc: svc}
+	if mainItemSvc == nil {
+		panic("sub_item_handler: mainItemService must not be nil")
+	}
+	return &SubItemHandler{svc: svc, mainItemSvc: mainItemSvc}
 }
 
 // isPMOrSuperAdmin checks if the caller is a PM or superadmin using the permission codes in context.
@@ -45,15 +50,29 @@ func isPMOrSuperAdmin(c *gin.Context) bool {
 	return false
 }
 
-// parseSubID extracts and validates the subId path param as uint.
-func parseSubID(c *gin.Context) (uint, bool) {
+// parseSubBizKey extracts and validates the subId path param as int64 bizKey.
+func parseSubBizKey(c *gin.Context) (int64, bool) {
 	idStr := c.Param("subId")
-	id, err := strconv.ParseUint(idStr, 10, 64)
+	bizKey, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return 0, false
 	}
-	return uint(id), true
+	return bizKey, true
+}
+
+// resolveSubID parses the subId path param as a bizKey and resolves it to an internal uint ID.
+func (h *SubItemHandler) resolveSubID(c *gin.Context) (uint, bool) {
+	bizKey, ok := parseSubBizKey(c)
+	if !ok {
+		return 0, false
+	}
+	item, err := h.svc.GetByBizKey(c.Request.Context(), bizKey)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return 0, false
+	}
+	return item.ID, true
 }
 
 // Create handles POST /api/v1/teams/:teamId/main-items/:itemId/sub-items
@@ -80,13 +99,16 @@ func (h *SubItemHandler) Create(c *gin.Context) {
 func (h *SubItemHandler) List(c *gin.Context) {
 	teamID := middleware.GetTeamID(c)
 
-	mainIDStr := c.Param("itemId")
-	mainIDUint, err := strconv.ParseUint(mainIDStr, 10, 64)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrValidation)
+	mainBizKey, ok := parseBizKey(c)
+	if !ok {
 		return
 	}
-	mainID := uint(mainIDUint)
+	mainItem, err := h.mainItemSvc.GetByBizKey(c.Request.Context(), mainBizKey)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+	mainID := mainItem.ID
 
 	var filter dto.SubItemFilter
 	if err := c.ShouldBindQuery(&filter); err != nil {
@@ -121,7 +143,7 @@ func (h *SubItemHandler) List(c *gin.Context) {
 
 // Get handles GET /api/v1/teams/:teamId/sub-items/:subId
 func (h *SubItemHandler) Get(c *gin.Context) {
-	subID, ok := parseSubID(c)
+	subID, ok := h.resolveSubID(c)
 	if !ok {
 		return
 	}
@@ -139,7 +161,7 @@ func (h *SubItemHandler) Get(c *gin.Context) {
 
 // Update handles PUT /api/v1/teams/:teamId/sub-items/:subId
 func (h *SubItemHandler) Update(c *gin.Context) {
-	subID, ok := parseSubID(c)
+	subID, ok := h.resolveSubID(c)
 	if !ok {
 		return
 	}
@@ -155,7 +177,7 @@ func (h *SubItemHandler) Update(c *gin.Context) {
 			return
 		}
 		callerID := middleware.GetUserID(c)
-		if item.AssigneeID == nil || *item.AssigneeID != callerID {
+		if item.AssigneeKey == nil || uint(*item.AssigneeKey) != callerID {
 			apperrors.RespondError(c, apperrors.ErrForbidden)
 			return
 		}
@@ -187,7 +209,7 @@ func (h *SubItemHandler) Update(c *gin.Context) {
 
 // ChangeStatus handles PUT /api/v1/teams/:teamId/sub-items/:subId/status
 func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
-	subID, ok := parseSubID(c)
+	subID, ok := h.resolveSubID(c)
 	if !ok {
 		return
 	}
@@ -202,7 +224,7 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 			return
 		}
 		callerID := middleware.GetUserID(c)
-		if item.AssigneeID == nil || *item.AssigneeID != callerID {
+		if item.AssigneeKey == nil || uint(*item.AssigneeKey) != callerID {
 			apperrors.RespondError(c, apperrors.ErrForbidden)
 			return
 		}
@@ -232,7 +254,7 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 
 // AvailableTransitions handles GET /api/v1/teams/:teamId/sub-items/:subId/available-transitions
 func (h *SubItemHandler) AvailableTransitions(c *gin.Context) {
-	subID, ok := parseSubID(c)
+	subID, ok := h.resolveSubID(c)
 	if !ok {
 		return
 	}
@@ -250,7 +272,7 @@ func (h *SubItemHandler) AvailableTransitions(c *gin.Context) {
 
 // Assign handles PUT /api/v1/teams/:teamId/sub-items/:subId/assignee
 func (h *SubItemHandler) Assign(c *gin.Context) {
-	subID, ok := parseSubID(c)
+	subID, ok := h.resolveSubID(c)
 	if !ok {
 		return
 	}
@@ -264,7 +286,7 @@ func (h *SubItemHandler) Assign(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.Assign(c.Request.Context(), teamID, pmID, subID, req.AssigneeID)
+	err := h.svc.Assign(c.Request.Context(), teamID, pmID, subID, func() uint { v, _ := pkg.ParseID(req.AssigneeKey); return uint(v) }())
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

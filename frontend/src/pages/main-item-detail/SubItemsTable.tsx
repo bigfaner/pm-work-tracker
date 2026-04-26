@@ -18,10 +18,10 @@ import { formatDate } from '@/lib/format'
 
 interface SubItemsTableProps {
   subItems: SubItem[]
-  mainItemId: number
+  mainItemId: string
   mainStatus: string
-  teamId: number
-  memberName: (assigneeId: number | null) => string
+  teamId: string
+  memberName: (assigneeId: string | null) => string
   onStatusChanged: () => void
   onEditSub: (sub: SubItem) => void
   onAppendProgress: (sub: SubItem) => void
@@ -64,33 +64,34 @@ export default function SubItemsTable({
           </TableHeader>
           <TableBody>
             {subItems.map((sub) => (
-              <TableRow key={sub.id}>
+              <TableRow key={sub.bizKey}>
                 <TableCell>
                   <Badge variant="default" className="font-mono text-[11px]">{sub.code}</Badge>
                 </TableCell>
                 <TableCell>
                   <Link
-                    to={`/items/${mainItemId}/sub/${sub.id}`}
+                    to={`/items/${mainItemId}/sub/${sub.bizKey}`}
                     className="text-[13px] font-medium text-primary-600 hover:text-primary-700 hover:underline truncate block max-w-xs"
                     title={sub.title}
                   >
                     {sub.title}
                   </Link>
                 </TableCell>
-                <TableCell>{memberName(sub.assigneeId)}</TableCell>
+                <TableCell>{memberName(sub.assigneeKey)}</TableCell>
                 <TableCell>
                   <span>{sub.completion}%</span>
                 </TableCell>
                 <TableCell>
                   <StatusTransitionDropdown
-                    currentStatus={sub.status}
+                    currentStatus={sub.itemStatus}
                     itemType="sub"
                     teamId={teamId}
-                    itemId={sub.id}
+                    itemId={sub.bizKey}
+                    parentItemId={mainItemId}
                     onStatusChanged={onStatusChanged}
                   />
                 </TableCell>
-                <TableCell className="text-xs">{formatDate(sub.startDate)}</TableCell>
+                <TableCell className="text-xs">{formatDate(sub.planStartDate)}</TableCell>
                 <TableCell className="text-xs">{formatDate(sub.expectedEndDate)}</TableCell>
                 <TableCell className="text-xs">{formatDate(sub.actualEndDate)}</TableCell>
                 <TableCell>

@@ -18,7 +18,7 @@ export type ViewMode = 'summary' | 'detail'
 
 const DEFAULT_PAGE_SIZE = 20
 
-export function useItemViewPage(teamId: number | null) {
+export function useItemViewPage(teamId: string | null) {
   const qc = useQueryClient()
   const { addToast } = useToast()
 
@@ -46,16 +46,16 @@ export function useItemViewPage(teamId: number | null) {
   const [createForm, setCreateForm] = useState<CreateMainItemFormState>({ title: '', description: '', priority: 'P2', assigneeId: '', startDate: today(), expectedEndDate: '' })
 
   const [createSubOpen, setCreateSubOpen] = useState(false)
-  const [createSubTarget, setCreateSubTarget] = useState<number | null>(null)
+  const [createSubTarget, setCreateSubTarget] = useState<string | null>(null)
   const [createSubTargetName, setCreateSubTargetName] = useState('')
   const [createSubForm, setCreateSubForm] = useState<CreateSubItemFormState>({ title: '', priority: 'P2', assigneeId: '', startDate: today(), expectedEndDate: '', description: '' })
 
   const [editOpen, setEditOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<number | null>(null)
+  const [editTarget, setEditTarget] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<EditMainItemFormState>({ title: '', priority: '', assigneeId: '', expectedEndDate: '', description: '' })
 
   const [appendOpen, setAppendOpen] = useState(false)
-  const [appendTarget, setAppendTarget] = useState<number | null>(null)
+  const [appendTarget, setAppendTarget] = useState<string | null>(null)
   const [appendTargetName, setAppendTargetName] = useState('')
   const [appendForm, setAppendForm] = useState<AppendProgressFormState>({ completion: '', achievement: '', blocker: '' })
 
@@ -64,7 +64,7 @@ export function useItemViewPage(teamId: number | null) {
   const [editSubForm, setEditSubForm] = useState<EditSubItemFormState>({ title: '', priority: '', assigneeId: '', expectedEndDate: '', description: '' })
 
   // Expanded cards
-  const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set())
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
 
   // --- Data fetching ---
 
@@ -112,10 +112,10 @@ export function useItemViewPage(teamId: number | null) {
       )
     }
     if (statusFilter) {
-      items = items.filter((item) => item.status === statusFilter)
+      items = items.filter((item) => item.itemStatus === statusFilter)
     }
     if (assigneeFilter) {
-      items = items.filter((item) => String(item.assigneeId) === assigneeFilter)
+      items = items.filter((item) => String(item.assigneeKey) === assigneeFilter)
     }
     return items
   }, [allItems, searchText, statusFilter, assigneeFilter])
@@ -159,7 +159,7 @@ export function useItemViewPage(teamId: number | null) {
 
   // --- Sub-items via React Query ---
 
-  const subItemIds = viewMode === 'summary' ? expandedCards : new Set(paginatedItems.map((i) => i.id))
+  const subItemIds = viewMode === 'summary' ? expandedCards : new Set(paginatedItems.map((i) => i.bizKey))
 
   const subItemQueries = useQueries({
     queries: Array.from(subItemIds).map((itemId) => ({
@@ -170,7 +170,7 @@ export function useItemViewPage(teamId: number | null) {
     })),
   })
 
-  const subItemsMap: Record<number, SubItem[]> = {}
+  const subItemsMap: Record<string, SubItem[]> = {}
   const idArray = Array.from(subItemIds)
   subItemQueries.forEach((result, index) => {
     if (result.data) {
@@ -181,7 +181,7 @@ export function useItemViewPage(teamId: number | null) {
   // --- Mutations ---
 
   const createMutation = useMutation({
-    mutationFn: (req: { title: string; description?: string; priority: string; assigneeId: number; startDate: string; expectedEndDate: string }) =>
+    mutationFn: (req: { title: string; description?: string; priority: string; assigneeKey: string; startDate: string; expectedEndDate: string }) =>
       createMainItemApi(teamId!, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -191,18 +191,18 @@ export function useItemViewPage(teamId: number | null) {
   })
 
   const createSubMutation = useMutation({
-    mutationFn: (req: { mainItemId: number; title: string; priority: string; assigneeId: number; startDate: string; expectedEndDate: string; description?: string }) =>
-      createSubItemApi(teamId!, req.mainItemId, req),
+    mutationFn: (req: { mainItemKey: string; title: string; priority: string; assigneeKey: string; startDate: string; expectedEndDate: string; description?: string }) =>
+      createSubItemApi(teamId!, req.mainItemKey, req),
     onSuccess: (_, req) => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
-      qc.invalidateQueries({ queryKey: ['subItems', teamId, req.mainItemId] })
+      qc.invalidateQueries({ queryKey: ['subItems', teamId, req.mainItemKey] })
       setCreateSubOpen(false)
       setCreateSubForm({ title: '', priority: 'P2', assigneeId: '', startDate: today(), expectedEndDate: '', description: '' })
     },
   })
 
   const updateMutation = useMutation({
-    mutationFn: (req: { itemId: number; data: { title: string; priority: string; assigneeId: number | null; expectedEndDate: string | null; actualEndDate: string | null; description: string } }) =>
+    mutationFn: (req: { itemId: string; data: { title: string; priority: string; assigneeKey: string | null; expectedEndDate: string | null; actualEndDate: string | null; description: string } }) =>
       updateMainItemApi(teamId!, req.itemId, req.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -211,16 +211,16 @@ export function useItemViewPage(teamId: number | null) {
   })
 
   const updateSubMutation = useMutation({
-    mutationFn: (req: { subId: number; mainItemId: number; data: { title: string; priority: string; assigneeId?: number; expectedEndDate?: string; description?: string } }) =>
+    mutationFn: (req: { subId: string; mainItemKey: string; data: { title: string; priority: string; assigneeKey?: string; expectedEndDate?: string; description?: string } }) =>
       updateSubItemApi(teamId!, req.subId, req.data),
     onSuccess: (_, req) => {
-      qc.invalidateQueries({ queryKey: ['subItems', teamId, req.mainItemId] })
+      qc.invalidateQueries({ queryKey: ['subItems', teamId, req.mainItemKey] })
       setEditSubOpen(false)
     },
   })
 
   const appendMutation = useMutation({
-    mutationFn: (req: { subItemId: number; data: { completion: number; achievement?: string; blocker?: string } }) =>
+    mutationFn: (req: { subItemId: string; data: { completion: number; achievement?: string; blocker?: string } }) =>
       appendProgressApi(teamId!, req.subItemId, req.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -236,7 +236,7 @@ export function useItemViewPage(teamId: number | null) {
 
   // --- Handlers ---
 
-  const toggleExpand = useCallback((itemId: number) => {
+  const toggleExpand = useCallback((itemId: string) => {
     setExpandedCards((prev) => {
       const next = new Set(prev)
       if (next.has(itemId)) next.delete(itemId)
@@ -263,7 +263,7 @@ export function useItemViewPage(teamId: number | null) {
       title: createForm.title.trim(),
       description: createForm.description,
       priority: createForm.priority,
-      assigneeId: Number(createForm.assigneeId),
+      assigneeKey: createForm.assigneeId,
       startDate: createForm.startDate,
       expectedEndDate: createForm.expectedEndDate,
     })
@@ -272,10 +272,10 @@ export function useItemViewPage(teamId: number | null) {
   const handleCreateSub = useCallback(() => {
     if (!createSubForm.title.trim() || !createSubTarget || !createSubForm.priority || !createSubForm.assigneeId || !createSubForm.startDate || !createSubForm.expectedEndDate) return
     createSubMutation.mutate({
-      mainItemId: createSubTarget,
+      mainItemKey: createSubTarget,
       title: createSubForm.title.trim(),
       priority: createSubForm.priority,
-      assigneeId: Number(createSubForm.assigneeId),
+      assigneeKey: createSubForm.assigneeId,
       startDate: createSubForm.startDate,
       expectedEndDate: createSubForm.expectedEndDate,
       ...(createSubForm.description && { description: createSubForm.description }),
@@ -283,13 +283,13 @@ export function useItemViewPage(teamId: number | null) {
   }, [createSubForm, createSubTarget, createSubMutation])
 
   const openEditDialog = useCallback((item: MainItem) => {
-    setEditTarget(item.id)
+    setEditTarget(item.bizKey)
     setEditForm({
       title: item.title,
       priority: item.priority,
-      assigneeId: item.assigneeId ? String(item.assigneeId) : '',
+      assigneeId: item.assigneeKey ? String(item.assigneeKey) : '',
       expectedEndDate: item.expectedEndDate || '',
-      description: item.description || '',
+      description: item.itemDesc || '',
     })
     setEditOpen(true)
   }, [])
@@ -301,7 +301,7 @@ export function useItemViewPage(teamId: number | null) {
       data: {
         title: editForm.title.trim(),
         priority: editForm.priority,
-        assigneeId: editForm.assigneeId ? Number(editForm.assigneeId) : null,
+        assigneeKey: editForm.assigneeId || null,
         expectedEndDate: editForm.expectedEndDate || null,
         actualEndDate: null,
         description: editForm.description,
@@ -309,7 +309,7 @@ export function useItemViewPage(teamId: number | null) {
     })
   }, [editForm, editTarget, updateMutation])
 
-  const openAppendDialog = useCallback((subItemId: number, subItemTitle: string, subItemCompletion: number) => {
+  const openAppendDialog = useCallback((subItemId: string, subItemTitle: string, subItemCompletion: number) => {
     setAppendTarget(subItemId)
     setAppendTargetName(subItemTitle)
     setAppendForm({ completion: String(subItemCompletion), achievement: '', blocker: '' })
@@ -321,9 +321,9 @@ export function useItemViewPage(teamId: number | null) {
     setEditSubForm({
       title: sub.title,
       priority: sub.priority,
-      assigneeId: sub.assigneeId ? String(sub.assigneeId) : '',
+      assigneeId: sub.assigneeKey ? String(sub.assigneeKey) : '',
       expectedEndDate: sub.expectedEndDate || '',
-      description: sub.description || '',
+      description: sub.itemDesc || '',
     })
     setEditSubOpen(true)
   }, [])
@@ -331,12 +331,12 @@ export function useItemViewPage(teamId: number | null) {
   const handleEditSub = useCallback(() => {
     if (!editSubTarget || !editSubForm.title.trim()) return
     updateSubMutation.mutate({
-      subId: editSubTarget.id,
-      mainItemId: editSubTarget.mainItemId,
+      subId: editSubTarget.bizKey,
+      mainItemKey: editSubTarget.mainItemKey,
       data: {
         title: editSubForm.title.trim(),
         priority: editSubForm.priority,
-        assigneeId: editSubForm.assigneeId ? Number(editSubForm.assigneeId) : undefined,
+        assigneeKey: editSubForm.assigneeId || undefined,
         expectedEndDate: editSubForm.expectedEndDate || undefined,
         description: editSubForm.description,
       },

@@ -1,0 +1,385 @@
+{
+  "baseUrl": "http://localhost:5173",
+  "updatedAt": "2026-04-25T00:00:00+08:00",
+  "layout": {
+    "name": "AppLayout",
+    "wraps": [
+      "/items",
+      "/items/:mainItemId",
+      "/items/:mainItemId/sub/:subItemId",
+      "/weekly",
+      "/gantt",
+      "/table",
+      "/item-pool",
+      "/report",
+      "/teams",
+      "/teams/:teamId",
+      "/users",
+      "/roles"
+    ],
+    "elements": [
+      { "id": "L-001", "role": "heading", "name": "PM Tracker", "level": 2 },
+      { "id": "L-002", "role": "combobox", "name": "团队选择器" },
+      { "id": "L-003", "role": "link", "name": "事项清单" },
+      { "id": "L-004", "role": "link", "name": "待办事项" },
+      { "id": "L-005", "role": "link", "name": "每周进展" },
+      { "id": "L-006", "role": "link", "name": "整体进度" },
+      { "id": "L-007", "role": "link", "name": "周报导出" },
+      { "id": "L-008", "role": "link", "name": "团队管理" },
+      { "id": "L-009", "role": "link", "name": "用户管理" },
+      { "id": "L-010", "role": "link", "name": "角色管理" },
+      { "id": "L-011", "role": "button", "name": "" }
+    ]
+  },
+  "pages": [
+    {
+      "route": "/login",
+      "title": "PM Work Tracker",
+      "elements": [
+        { "id": "E-001", "role": "heading", "name": "PM Tracker", "level": 2 },
+        { "id": "E-002", "role": "textbox", "name": "账号", "label": "账号" },
+        { "id": "E-003", "role": "textbox", "name": "密码", "label": "密码" },
+        { "id": "E-004", "role": "button", "name": "登录" }
+      ],
+      "states": []
+    },
+    {
+      "route": "/items",
+      "title": "事项清单",
+      "elements": [
+        { "id": "E-005", "role": "heading", "name": "事项清单", "level": 1 },
+        { "id": "E-006", "role": "button", "name": "汇总" },
+        { "id": "E-007", "role": "button", "name": "明细" },
+        { "id": "E-008", "role": "button", "name": "新增主事项" },
+        { "id": "E-009", "role": "textbox", "name": "搜索标题或编号...", "placeholder": "搜索标题或编号..." },
+        { "id": "E-010", "role": "combobox", "name": "状态：全部" },
+        { "id": "E-011", "role": "combobox", "name": "负责人：全部" },
+        { "id": "E-012", "role": "button", "name": "重置" },
+        { "id": "E-013", "role": "button", "name": "刷新" }
+      ],
+      "states": [
+        {
+          "name": "新增主事项 modal",
+          "trigger": "E-008",
+          "elements": [
+            { "id": "E-014", "role": "textbox", "name": "请输入标题", "placeholder": "请输入标题" },
+            { "id": "E-015", "role": "combobox", "name": "优先级", "label": "优先级" },
+            { "id": "E-016", "role": "combobox", "name": "选择负责人", "label": "负责人" },
+            { "id": "E-017", "role": "textbox", "name": "请输入描述（可选）", "placeholder": "请输入描述（可选）" },
+            { "id": "E-018", "role": "button", "name": "取消" },
+            { "id": "E-019", "role": "button", "name": "确认" },
+            { "id": "E-020", "role": "button", "name": "Close" }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/items/:mainItemId",
+      "title": "主事项详情",
+      "elements": [
+        { "id": "E-021", "role": "navigation", "name": "Breadcrumb" },
+        { "id": "E-022", "role": "button", "name": "编辑" },
+        { "id": "E-023", "role": "heading", "name": "进度与汇总", "level": 3 },
+        { "id": "E-024", "role": "heading", "name": "子事项列表", "level": 3 },
+        { "id": "E-025", "role": "button", "name": "+ 新增子事项" },
+        { "id": "E-026", "role": "columnheader", "name": "编号" },
+        { "id": "E-027", "role": "columnheader", "name": "标题" },
+        { "id": "E-028", "role": "columnheader", "name": "负责人" },
+        { "id": "E-029", "role": "columnheader", "name": "进度" },
+        { "id": "E-030", "role": "columnheader", "name": "状态" },
+        { "id": "E-031", "role": "columnheader", "name": "开始时间" },
+        { "id": "E-032", "role": "columnheader", "name": "预期完成时间" },
+        { "id": "E-033", "role": "columnheader", "name": "结束时间" },
+        { "id": "E-034", "role": "columnheader", "name": "操作" }
+      ],
+      "states": [
+        {
+          "name": "编辑主事项 modal",
+          "trigger": "E-022",
+          "elements": [
+            { "id": "E-035", "role": "heading", "name": "编辑主事项", "level": 2 },
+            { "id": "E-036", "role": "combobox", "name": "优先级" },
+            { "id": "E-037", "role": "combobox", "name": "负责人" },
+            { "id": "E-038", "role": "textbox", "name": "描述" },
+            { "id": "E-039", "role": "button", "name": "取消" },
+            { "id": "E-040", "role": "button", "name": "保存" },
+            { "id": "E-041", "role": "button", "name": "Close" }
+          ]
+        },
+        {
+          "name": "追加进度 modal",
+          "trigger": "E-034",
+          "elements": [
+            { "id": "E-042", "role": "heading", "name": "追加进度", "level": 2 },
+            { "id": "E-043", "role": "spinbutton", "name": "完成度" },
+            { "id": "E-044", "role": "textbox", "name": "本次进展成果（可选）", "placeholder": "本次进展成果（可选）" },
+            { "id": "E-045", "role": "textbox", "name": "遇到的阻碍（可选）", "placeholder": "遇到的阻碍（可选）" },
+            { "id": "E-046", "role": "button", "name": "取消" },
+            { "id": "E-047", "role": "button", "name": "确认" },
+            { "id": "E-048", "role": "button", "name": "Close" }
+          ]
+        },
+        {
+          "name": "新增子事项 modal",
+          "trigger": "E-025",
+          "elements": [
+            { "id": "E-049", "role": "heading", "name": "新增子事项", "level": 2 },
+            { "id": "E-050", "role": "textbox", "name": "请输入子事项标题", "placeholder": "请输入子事项标题" },
+            { "id": "E-051", "role": "combobox", "name": "优先级" },
+            { "id": "E-052", "role": "combobox", "name": "负责人" },
+            { "id": "E-053", "role": "textbox", "name": "请输入子事项描述（可选）", "placeholder": "请输入子事项描述（可选）" },
+            { "id": "E-054", "role": "button", "name": "取消" },
+            { "id": "E-055", "role": "button", "name": "确认" },
+            { "id": "E-056", "role": "button", "name": "Close" }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/items/:mainItemId/sub/:subItemId",
+      "title": "子事项详情",
+      "elements": [
+        { "id": "E-057", "role": "navigation", "name": "Breadcrumb" },
+        { "id": "E-058", "role": "heading", "name": "子事项标题", "level": 1 },
+        { "id": "E-059", "role": "button", "name": "状态切换" },
+        { "id": "E-060", "role": "button", "name": "编辑" },
+        { "id": "E-061", "role": "heading", "name": "进度记录", "level": 3 },
+        { "id": "E-062", "role": "button", "name": "追加进度" }
+      ],
+      "states": []
+    },
+    {
+      "route": "/weekly",
+      "title": "每周进展",
+      "elements": [
+        { "id": "E-063", "role": "heading", "name": "每周进展", "level": 1 },
+        { "id": "E-064", "role": "button", "name": "prev week" },
+        { "id": "E-065", "role": "button", "name": "next week" },
+        { "id": "E-066", "role": "button", "name": "回到本周" },
+        { "id": "E-067", "role": "button", "name": "本周活跃" },
+        { "id": "E-068", "role": "button", "name": "本周新完成" },
+        { "id": "E-069", "role": "button", "name": "进行中" },
+        { "id": "E-070", "role": "button", "name": "阻塞中" },
+        { "id": "E-071", "role": "button", "name": "未开始" },
+        { "id": "E-072", "role": "button", "name": "暂停中" },
+        { "id": "E-073", "role": "button", "name": "逾期中" }
+      ],
+      "states": []
+    },
+    {
+      "route": "/gantt",
+      "title": "整体进度",
+      "elements": [
+        { "id": "E-074", "role": "heading", "name": "整体进度", "level": 1 },
+        { "id": "E-075", "role": "textbox", "name": "搜索事项标题…", "placeholder": "搜索事项标题…" },
+        { "id": "E-076", "role": "button", "name": "重置时间" },
+        { "id": "E-077", "role": "button", "name": "刷新" }
+      ],
+      "states": []
+    },
+    {
+      "route": "/table",
+      "title": "表格视图",
+      "elements": [
+        { "id": "E-078", "role": "heading", "name": "表格视图", "level": 1 },
+        { "id": "E-079", "role": "button", "name": "导出 CSV" },
+        { "id": "E-080", "role": "textbox", "name": "搜索标题...", "placeholder": "搜索标题..." },
+        { "id": "E-081", "role": "combobox", "name": "类型：全部" },
+        { "id": "E-082", "role": "combobox", "name": "优先级：全部" },
+        { "id": "E-083", "role": "combobox", "name": "负责人：全部" },
+        { "id": "E-084", "role": "combobox", "name": "状态：全部" },
+        { "id": "E-085", "role": "button", "name": "重置" },
+        { "id": "E-086", "role": "button", "name": "刷新" },
+        { "id": "E-087", "role": "columnheader", "name": "类型" },
+        { "id": "E-088", "role": "columnheader", "name": "编号" },
+        { "id": "E-089", "role": "columnheader", "name": "标题" },
+        { "id": "E-090", "role": "columnheader", "name": "优先级" },
+        { "id": "E-091", "role": "columnheader", "name": "负责人" },
+        { "id": "E-092", "role": "columnheader", "name": "进度" },
+        { "id": "E-093", "role": "columnheader", "name": "状态" },
+        { "id": "E-094", "role": "columnheader", "name": "预期完成" },
+        { "id": "E-095", "role": "columnheader", "name": "实际完成" },
+        { "id": "E-096", "role": "navigation", "name": "Pagination" }
+      ],
+      "states": []
+    },
+    {
+      "route": "/item-pool",
+      "title": "待办事项",
+      "elements": [
+        { "id": "E-097", "role": "heading", "name": "待办事项", "level": 1 },
+        { "id": "E-098", "role": "button", "name": "新增待办事项" },
+        { "id": "E-099", "role": "textbox", "name": "搜索标题或编号...", "placeholder": "搜索标题或编号..." },
+        { "id": "E-100", "role": "combobox", "name": "状态：全部" },
+        { "id": "E-101", "role": "button", "name": "重置" },
+        { "id": "E-102", "role": "button", "name": "刷新" }
+      ],
+      "states": [
+        {
+          "name": "新增待办事项 modal",
+          "trigger": "E-098",
+          "elements": [
+            { "id": "E-103", "role": "heading", "name": "新增待办事项", "level": 2 },
+            { "id": "E-104", "role": "textbox", "name": "请输入事项标题", "placeholder": "请输入事项标题" },
+            { "id": "E-105", "role": "textbox", "name": "描述提交该事项的背景和原因", "placeholder": "描述提交该事项的背景和原因" },
+            { "id": "E-106", "role": "textbox", "name": "描述希望达成的产出或目标", "placeholder": "描述希望达成的产出或目标" },
+            { "id": "E-107", "role": "button", "name": "取消" },
+            { "id": "E-108", "role": "button", "name": "提交" },
+            { "id": "E-109", "role": "button", "name": "Close" }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/report",
+      "title": "周报导出",
+      "elements": [
+        { "id": "E-110", "role": "heading", "name": "周报导出", "level": 1 },
+        { "id": "E-111", "role": "button", "name": "prev week" },
+        { "id": "E-112", "role": "button", "name": "next week" },
+        { "id": "E-113", "role": "button", "name": "生成预览" }
+      ],
+      "states": []
+    },
+    {
+      "route": "/teams",
+      "title": "团队管理",
+      "elements": [
+        { "id": "E-114", "role": "heading", "name": "团队管理", "level": 1 },
+        { "id": "E-115", "role": "button", "name": "创建团队" },
+        { "id": "E-116", "role": "textbox", "name": "搜索团队名称或CODE...", "placeholder": "搜索团队名称或CODE..." },
+        { "id": "E-117", "role": "button", "name": "刷新" },
+        { "id": "E-118", "role": "columnheader", "name": "团队名称" },
+        { "id": "E-119", "role": "columnheader", "name": "CODE" },
+        { "id": "E-120", "role": "columnheader", "name": "项目经理" },
+        { "id": "E-121", "role": "columnheader", "name": "简介" },
+        { "id": "E-122", "role": "columnheader", "name": "创建时间" },
+        { "id": "E-123", "role": "columnheader", "name": "操作" },
+        { "id": "E-124", "role": "navigation", "name": "Pagination" }
+      ],
+      "states": [
+        {
+          "name": "创建团队 modal",
+          "trigger": "E-115",
+          "elements": [
+            { "id": "E-125", "role": "heading", "name": "创建团队", "level": 2 },
+            { "id": "E-126", "role": "textbox", "name": "请输入团队名称", "placeholder": "请输入团队名称" },
+            { "id": "E-127", "role": "textbox", "name": "如 FEAT、CORE", "placeholder": "如 FEAT、CORE" },
+            { "id": "E-128", "role": "textbox", "name": "请输入团队简介（选填）", "placeholder": "请输入团队简介（选填）" },
+            { "id": "E-129", "role": "button", "name": "取消" },
+            { "id": "E-130", "role": "button", "name": "确认创建" },
+            { "id": "E-131", "role": "button", "name": "Close" }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/teams/:teamId",
+      "title": "团队详情",
+      "elements": [
+        { "id": "E-132", "role": "navigation", "name": "Breadcrumb" },
+        { "id": "E-133", "role": "heading", "name": "团队名称", "level": 1 },
+        { "id": "E-134", "role": "heading", "name": "成员列表", "level": 3 },
+        { "id": "E-135", "role": "button", "name": "添加成员" },
+        { "id": "E-136", "role": "textbox", "name": "搜索姓名...", "placeholder": "搜索姓名..." },
+        { "id": "E-137", "role": "combobox", "name": "角色：全部" },
+        { "id": "E-138", "role": "button", "name": "刷新" },
+        { "id": "E-139", "role": "columnheader", "name": "姓名" },
+        { "id": "E-140", "role": "columnheader", "name": "角色" },
+        { "id": "E-141", "role": "columnheader", "name": "加入时间" },
+        { "id": "E-142", "role": "columnheader", "name": "操作" },
+        { "id": "E-143", "role": "heading", "name": "危险操作", "level": 3 },
+        { "id": "E-144", "role": "button", "name": "解散团队" }
+      ],
+      "states": [
+        {
+          "name": "添加成员 modal",
+          "trigger": "E-135",
+          "elements": [
+            { "id": "E-145", "role": "heading", "name": "添加成员", "level": 2 },
+            { "id": "E-146", "role": "textbox", "name": "输入用户名或姓名搜索...", "placeholder": "输入用户名或姓名搜索..." },
+            { "id": "E-147", "role": "combobox", "name": "角色" },
+            { "id": "E-148", "role": "button", "name": "取消" },
+            { "id": "E-149", "role": "button", "name": "确认添加" },
+            { "id": "E-150", "role": "button", "name": "Close" }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/users",
+      "title": "用户管理",
+      "elements": [
+        { "id": "E-151", "role": "heading", "name": "用户管理", "level": 1 },
+        { "id": "E-152", "role": "button", "name": "创建用户" },
+        { "id": "E-153", "role": "textbox", "name": "搜索用户名/姓名", "placeholder": "搜索用户名/姓名" },
+        { "id": "E-154", "role": "button", "name": "刷新" },
+        { "id": "E-155", "role": "columnheader", "name": "姓名" },
+        { "id": "E-156", "role": "columnheader", "name": "账号" },
+        { "id": "E-157", "role": "columnheader", "name": "邮箱" },
+        { "id": "E-158", "role": "columnheader", "name": "所属团队" },
+        { "id": "E-159", "role": "columnheader", "name": "状态" },
+        { "id": "E-160", "role": "columnheader", "name": "操作" },
+        { "id": "E-161", "role": "navigation", "name": "Pagination" }
+      ],
+      "states": [
+        {
+          "name": "创建用户 modal",
+          "trigger": "E-152",
+          "elements": [
+            { "id": "E-162", "role": "heading", "name": "创建用户", "level": 2 },
+            { "id": "E-163", "role": "textbox", "name": "请输入姓名", "placeholder": "请输入姓名" },
+            { "id": "E-164", "role": "textbox", "name": "请输入账号", "placeholder": "请输入账号" },
+            { "id": "E-165", "role": "textbox", "name": "请输入邮箱", "placeholder": "请输入邮箱" },
+            { "id": "E-166", "role": "combobox", "name": "所属团队" },
+            { "id": "E-167", "role": "button", "name": "取消" },
+            { "id": "E-168", "role": "button", "name": "确认创建" },
+            { "id": "E-169", "role": "button", "name": "Close" }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/roles",
+      "title": "角色管理",
+      "elements": [
+        { "id": "E-170", "role": "navigation", "name": "Breadcrumb" },
+        { "id": "E-171", "role": "heading", "name": "角色管理", "level": 1 },
+        { "id": "E-172", "role": "button", "name": "权限列表" },
+        { "id": "E-173", "role": "button", "name": "创建角色" },
+        { "id": "E-174", "role": "textbox", "name": "搜索角色名称", "placeholder": "搜索角色名称" },
+        { "id": "E-175", "role": "combobox", "name": "全部类型" },
+        { "id": "E-176", "role": "button", "name": "刷新" },
+        { "id": "E-177", "role": "columnheader", "name": "角色名称" },
+        { "id": "E-178", "role": "columnheader", "name": "描述" },
+        { "id": "E-179", "role": "columnheader", "name": "权限数量" },
+        { "id": "E-180", "role": "columnheader", "name": "使用人数" },
+        { "id": "E-181", "role": "columnheader", "name": "类型" },
+        { "id": "E-182", "role": "columnheader", "name": "创建时间" },
+        { "id": "E-183", "role": "columnheader", "name": "操作" }
+      ],
+      "states": [
+        {
+          "name": "创建角色 modal",
+          "trigger": "E-173",
+          "elements": [
+            { "id": "E-184", "role": "heading", "name": "创建角色", "level": 2 },
+            { "id": "E-185", "role": "textbox", "name": "请输入角色名称（2-50 个字符）", "placeholder": "请输入角色名称（2-50 个字符）" },
+            { "id": "E-186", "role": "textbox", "name": "请输入角色描述（最多 200 字符）", "placeholder": "请输入角色描述（最多 200 字符）" },
+            { "id": "E-187", "role": "button", "name": "团队管理" },
+            { "id": "E-188", "role": "button", "name": "主事项" },
+            { "id": "E-189", "role": "button", "name": "子事项" },
+            { "id": "E-190", "role": "button", "name": "进度管理" },
+            { "id": "E-191", "role": "button", "name": "事项池" },
+            { "id": "E-192", "role": "button", "name": "视图" },
+            { "id": "E-193", "role": "button", "name": "周报" },
+            { "id": "E-194", "role": "button", "name": "用户管理" },
+            { "id": "E-195", "role": "button", "name": "取消" },
+            { "id": "E-196", "role": "button", "name": "保存" },
+            { "id": "E-197", "role": "button", "name": "Close" }
+          ]
+        }
+      ]
+    }
+  ]
+}

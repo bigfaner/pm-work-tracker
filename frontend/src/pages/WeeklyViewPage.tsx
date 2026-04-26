@@ -70,7 +70,7 @@ export default function WeeklyViewPage() {
                     if (!data.weekEnd) throw new Error("weekEnd is required")
                     const referenceDate = new Date(data.weekEnd)
                     return data.groups.map((group) => (
-                      <ComparisonCard key={group.mainItem.id} group={group} weekStart={weekStart} referenceDate={referenceDate} />
+                      <ComparisonCard key={group.mainItem.bizKey} group={group} weekStart={weekStart} referenceDate={referenceDate} />
                     ))
                   })()}
                 </>
@@ -198,12 +198,12 @@ function ComparisonCard({ group, weekStart, referenceDate }: ComparisonCardProps
   const hasCompleted = completedNoChange.length > 0
 
   return (
-    <div className="rounded-xl border border-border bg-white shadow-sm mb-5" data-testid={`group-card-${mainItem.id}`}>
+    <div className="rounded-xl border border-border bg-white shadow-sm mb-5" data-testid={`group-card-${mainItem.bizKey}`}>
       {/* Card Header */}
       <div className="flex items-center justify-between flex-wrap gap-2 px-5 py-3 bg-bg-alt rounded-t-xl border-b border-border">
         <div className="flex items-center gap-2 flex-wrap">
           <Link
-            to={`/items/${mainItem.id}`}
+            to={`/items/${mainItem.bizKey}`}
             className="text-[15px] font-semibold text-primary-600 hover:text-primary-700 hover:underline"
           >
             <span className="text-tertiary font-normal mr-1">{mainItem.code}</span>{mainItem.title}
@@ -212,12 +212,12 @@ function ComparisonCard({ group, weekStart, referenceDate }: ComparisonCardProps
           <span className="text-xs text-tertiary whitespace-nowrap">
             计划周期 {formatDate(mainItem.startDate)}~{formatDate(mainItem.expectedEndDate)}
           </span>
-          {isOverdue(mainItem.expectedEndDate, mainItem.status, referenceDate) && (
+          {isOverdue(mainItem.expectedEndDate, mainItem.itemStatus, referenceDate) && (
             <span className="inline-flex items-center rounded-md bg-error-bg px-2 py-0.5 text-[11px] font-medium text-error-text">
               延期
             </span>
           )}
-          {(mainItem.status === 'completed' || mainItem.status === 'closed') && mainItem.actualEndDate && (
+          {(mainItem.itemStatus === 'completed' || mainItem.itemStatus === 'closed') && mainItem.actualEndDate && (
             <span className="text-xs text-tertiary whitespace-nowrap">
               结束于 {formatDate(mainItem.actualEndDate)}
             </span>
@@ -227,7 +227,7 @@ function ComparisonCard({ group, weekStart, referenceDate }: ComparisonCardProps
           </span>
           {hasCompleted && (
             <button
-              data-testid={`expand-completed-${mainItem.id}`}
+              data-testid={`expand-completed-${mainItem.bizKey}`}
               className="p-1 rounded hover:bg-bg-alt"
               onClick={() => setExpanded((v) => !v)}
               title={expanded ? '折叠已完成、无变化的子事项' : '已完成、无变化的子事项已被折叠，点击展开'}
@@ -264,7 +264,7 @@ function ComparisonCard({ group, weekStart, referenceDate }: ComparisonCardProps
           </div>
           <div className="flex flex-col gap-2.5">
             {lastWeek.map((item) => (
-              <SubItemRow key={item.id} item={item} mainItemId={mainItem.id} referenceDate={referenceDate} />
+              <SubItemRow key={item.bizKey} item={item} mainItemId={mainItem.bizKey} referenceDate={referenceDate} />
             ))}
             {lastWeek.length === 0 && (
               <div className="text-xs text-tertiary">无活跃事项</div>
@@ -275,13 +275,13 @@ function ComparisonCard({ group, weekStart, referenceDate }: ComparisonCardProps
             <div className="mt-2.5 pt-2.5 border-t border-dashed border-border">
               <div className="text-xs text-tertiary mb-1.5">已完成无变化</div>
               {completedNoChange.map((item) => (
-                <div key={item.id} className="flex items-center gap-1.5 flex-wrap opacity-70">
-                  <StatusBadge status={item.status} className="text-[11px]" />
+                <div key={item.bizKey} className="flex items-center gap-1.5 flex-wrap opacity-70">
+                  <StatusBadge status={item.itemStatus} className="text-[11px]" />
                   <PriorityBadge priority={item.priority} className="text-[10px]" />
                   <TooltipProvider delayDuration={300}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Link to={`/items/${mainItem.id}/sub/${item.id}`} className="text-[13px] text-primary-600 hover:text-primary-700 hover:underline truncate max-w-[160px]">{item.title}</Link>
+                        <Link to={`/items/${mainItem.bizKey}/sub/${item.bizKey}`} className="text-[13px] text-primary-600 hover:text-primary-700 hover:underline truncate max-w-[160px]">{item.title}</Link>
                       </TooltipTrigger>
                       <TooltipContent>{item.title}</TooltipContent>
                     </Tooltip>
@@ -302,7 +302,7 @@ function ComparisonCard({ group, weekStart, referenceDate }: ComparisonCardProps
           </div>
           <div className="flex flex-col gap-2.5">
             {thisWeek.map((item) => (
-              <SubItemRow key={item.id} item={item} mainItemId={mainItem.id} showDelta referenceDate={referenceDate} />
+              <SubItemRow key={item.bizKey} item={item} mainItemId={mainItem.bizKey} showDelta referenceDate={referenceDate} />
             ))}
             {thisWeek.length === 0 && (
               <div className="text-xs text-tertiary">无活跃事项</div>
@@ -313,13 +313,13 @@ function ComparisonCard({ group, weekStart, referenceDate }: ComparisonCardProps
             <div className="mt-2.5 pt-2.5 border-t border-dashed border-border">
               <div className="text-xs text-tertiary mb-1.5">已完成无变化</div>
               {completedNoChange.map((item) => (
-                <div key={item.id} className="flex items-center gap-1.5 flex-wrap opacity-70">
-                  <StatusBadge status={item.status} className="text-[11px]" />
+                <div key={item.bizKey} className="flex items-center gap-1.5 flex-wrap opacity-70">
+                  <StatusBadge status={item.itemStatus} className="text-[11px]" />
                   <PriorityBadge priority={item.priority} className="text-[10px]" />
                   <TooltipProvider delayDuration={300}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Link to={`/items/${mainItem.id}/sub/${item.id}`} className="text-[13px] text-primary-600 hover:text-primary-700 hover:underline truncate max-w-[160px]">{item.title}</Link>
+                        <Link to={`/items/${mainItem.bizKey}/sub/${item.bizKey}`} className="text-[13px] text-primary-600 hover:text-primary-700 hover:underline truncate max-w-[160px]">{item.title}</Link>
                       </TooltipTrigger>
                       <TooltipContent>{item.title}</TooltipContent>
                     </Tooltip>
@@ -338,13 +338,13 @@ function ComparisonCard({ group, weekStart, referenceDate }: ComparisonCardProps
 
 interface SubItemRowProps {
   item: SubItemSnapshot
-  mainItemId: number
+  mainItemId: string
   showDelta?: boolean
   referenceDate: Date
 }
 
 function SubItemRow({ item, mainItemId, showDelta, referenceDate }: SubItemRowProps) {
-  const overdue = isOverdue(item.expectedEndDate, item.status, referenceDate)
+  const overdue = isOverdue(item.expectedEndDate, item.itemStatus, referenceDate)
   const periodText = item.startDate && item.expectedEndDate
     ? `计划周期 ${formatDate(item.startDate)}~${formatDate(item.expectedEndDate)}`
     : item.expectedEndDate ? `计划 ${formatDate(item.expectedEndDate)}` : ''
@@ -352,13 +352,13 @@ function SubItemRow({ item, mainItemId, showDelta, referenceDate }: SubItemRowPr
   return (
     <div className="py-1">
       <div className="flex items-center gap-1.5 flex-wrap">
-        <StatusBadge status={item.status} className="text-[11px]" />
+        <StatusBadge status={item.itemStatus} className="text-[11px]" />
         <PriorityBadge priority={item.priority} className="text-[10px]" />
         <TooltipProvider delayDuration={300}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Link
-                to={`/items/${mainItemId}/sub/${item.id}`}
+                to={`/items/${mainItemId}/sub/${item.bizKey}`}
                 className="text-[13px] text-primary-600 hover:text-primary-700 hover:underline truncate max-w-[160px]"
               >
                 {item.title}
@@ -373,7 +373,7 @@ function SubItemRow({ item, mainItemId, showDelta, referenceDate }: SubItemRowPr
                   延期
                 </span>
               )}
-              {(item.status === 'completed' || item.status === 'closed') && item.actualEndDate && (
+              {(item.itemStatus === 'completed' || item.itemStatus === 'closed') && item.actualEndDate && (
                 <span className="text-white/70">结束于 {formatDate(item.actualEndDate)}</span>
               )}
             </TooltipContent>
@@ -403,8 +403,8 @@ function SubItemRow({ item, mainItemId, showDelta, referenceDate }: SubItemRowPr
       </div>
       {item.progressRecords && item.progressRecords.length > 0 ? (
         <div className="pl-14 mt-1.5 flex flex-col gap-1">
-          {item.progressRecords.map((record) => (
-            <div key={record.id} className="text-xs text-tertiary">
+          {item.progressRecords.map((record, idx) => (
+            <div key={`${record.createTime}-${idx}`} className="text-xs text-tertiary">
               {record.achievement && (
                 <span className="text-success-text">成果：{record.achievement}</span>
               )}

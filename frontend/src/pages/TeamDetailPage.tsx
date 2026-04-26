@@ -61,7 +61,7 @@ export default function TeamDetailPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { addToast } = useToast()
-  const numericTeamId = Number(teamId)
+  const numericTeamId = teamId!
 
   // --- Data fetching ---
 
@@ -86,10 +86,10 @@ export default function TeamDetailPage() {
 
   const roles = useMemo(() => {
     if (!rolesData?.items) return []
-    return rolesData.items.filter((r) => r.name !== 'superadmin' && r.name !== 'pm')
+    return rolesData.items.filter((r) => r.roleName !== 'superadmin' && r.roleName !== 'pm')
   }, [rolesData])
 
-  const defaultRoleId = roles.find((r) => r.name === 'member')?.id ?? roles[0]?.id
+  const defaultRoleId = roles.find((r) => r.roleName === 'member')?.bizKey ?? roles[0]?.bizKey
 
   const isLoading = teamLoading || membersLoading
 
@@ -140,7 +140,7 @@ export default function TeamDetailPage() {
   // --- Mutations ---
 
   const transferMutation = useMutation({
-    mutationFn: () => transferPmApi(numericTeamId, { newPmUserId: transferTarget!.userId }),
+    mutationFn: () => transferPmApi(numericTeamId, { newPmUserKey: String(transferTarget!.userKey) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['team', numericTeamId] })
       qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
@@ -150,17 +150,20 @@ export default function TeamDetailPage() {
   })
 
   const removeMutation = useMutation({
-    mutationFn: () => removeMemberApi(numericTeamId, removeTarget!.userId),
+    mutationFn: () => removeMemberApi(numericTeamId, removeTarget!.userKey),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['team', numericTeamId] })
       qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
       setRemoveTarget(null)
       addToast('已移除成员', 'success')
     },
+    onError: () => {
+      addToast('移除成员失败', 'error')
+    },
   })
 
   const inviteMutation = useMutation({
-    mutationFn: () => inviteMemberApi(numericTeamId, { username: inviteUsername, roleId: inviteRoleId! }),
+    mutationFn: () => inviteMemberApi(numericTeamId, { username: inviteUsername, roleKey: String(inviteRoleId!) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['team', numericTeamId] })
       qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
@@ -182,8 +185,8 @@ export default function TeamDetailPage() {
   })
 
   const changeRoleMutation = useMutation({
-    mutationFn: ({ memberId, roleId }: { memberId: number; roleId: number }) =>
-      changeMemberRoleApi(numericTeamId, memberId, { roleId }),
+    mutationFn: ({ memberId, roleId }: { memberId: string; roleId: number }) =>
+      changeMemberRoleApi(numericTeamId, memberId, { roleKey: String(roleId) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
       setRoleEditTarget(null)
@@ -232,7 +235,7 @@ export default function TeamDetailPage() {
   }
 
   const isPm = (member: TeamMemberResp) => member.role === 'pm'
-  const isSelf = (member: TeamMemberResp) => member.userId === currentUser?.id
+  const isSelf = (member: TeamMemberResp) => currentUser != null && String(member.userKey) === currentUser.bizKey
 
   return (
     <div data-testid="team-detail-page">
@@ -322,7 +325,7 @@ export default function TeamDetailPage() {
           </TableHeader>
           <TableBody>
             {filteredMembers.map((member) => (
-              <TableRow key={member.userId}>
+              <TableRow key={member.userKey}>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <UserAvatar name={member.displayName} size="sm" />
@@ -424,8 +427,8 @@ export default function TeamDetailPage() {
               </SelectTrigger>
               <SelectContent>
                 {roles.map((role) => (
-                  <SelectItem key={role.id} value={String(role.id)}>
-                    {role.name}
+                  <SelectItem key={role.bizKey} value={String(role.bizKey)}>
+                    {role.roleName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -434,7 +437,7 @@ export default function TeamDetailPage() {
           <DialogFooter>
             <Button variant="secondary" onClick={() => setRoleEditTarget(null)}>取消</Button>
             <Button
-              onClick={() => changeRoleMutation.mutate({ memberId: roleEditTarget!.userId, roleId: roleEditRoleId! })}
+              onClick={() => changeRoleMutation.mutate({ memberId: roleEditTarget!.userKey, roleId: roleEditRoleId! })}
               disabled={roleEditRoleId == null || roleEditRoleId === roleEditTarget?.roleId || changeRoleMutation.isPending}
             >
               确认修改
@@ -514,7 +517,7 @@ export default function TeamDetailPage() {
                   <div className="absolute z-50 mt-1 w-full max-h-48 overflow-auto rounded-md border border-border bg-white shadow-lg" data-testid="invite-user-dropdown">
                     {userSearchResults.map((u) => (
                       <button
-                        key={u.id}
+                        key={u.bizKey}
                         type="button"
                         className="w-full px-3 py-2 text-left text-sm hover:bg-bg-alt focus:bg-bg-alt focus:outline-none"
                         onClick={() => {
@@ -523,7 +526,7 @@ export default function TeamDetailPage() {
                           setUserSearch('')
                           setUserDropdownOpen(false)
                         }}
-                        data-testid={`invite-user-option-${u.id}`}
+                        data-testid={`invite-user-option-${u.bizKey}`}
                       >
                         <span className="font-medium text-primary">{u.displayName}</span>
                         <span className="ml-2 text-tertiary">{u.username}</span>
@@ -545,8 +548,8 @@ export default function TeamDetailPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {roles.map((role) => (
-                      <SelectItem key={role.id} value={String(role.id)}>
-                        {role.name}
+                      <SelectItem key={role.bizKey} value={String(role.bizKey)}>
+                        {role.roleName}
                       </SelectItem>
                     ))}
                   </SelectContent>

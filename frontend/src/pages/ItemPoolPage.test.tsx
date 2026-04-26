@@ -40,47 +40,51 @@ function renderPage() {
 
 const seedPoolItems = [
   {
-    id: 1, teamId: 1, title: '移动端适配需求',
+    bizKey: '1', teamKey: '1', title: '移动端适配需求',
     background: '当前系统在移动端浏览器下布局错位', expectedOutput: '响应式适配',
-    submitterId: 1, status: 'pending',
-    assignedMainId: null, assignedSubId: null, assigneeId: null,
-    rejectReason: '', reviewedAt: null, reviewerId: null,
-    createdAt: '2026-04-17T00:00:00Z', updatedAt: '2026-04-17T00:00:00Z',
+    submitterKey: 'U001', poolStatus: 'pending',
+    assignedMainKey: null, assignedSubKey: null, assigneeKey: null,
+    rejectReason: '', reviewedAt: null, reviewerKey: null,
+    assignedMainCode: '', assignedMainTitle: '',
+    createTime: '2026-04-17T00:00:00Z', dbUpdateTime: '2026-04-17T00:00:00Z',
   },
   {
-    id: 2, teamId: 1, title: '用户反馈收集功能',
+    bizKey: '2', teamKey: '1', title: '用户反馈收集功能',
     background: '需要一个系统化的用户反馈收集机制', expectedOutput: '反馈系统',
-    submitterId: 1, status: 'pending',
-    assignedMainId: null, assignedSubId: null, assigneeId: null,
-    rejectReason: '', reviewedAt: null, reviewerId: null,
-    createdAt: '2026-04-16T00:00:00Z', updatedAt: '2026-04-16T00:00:00Z',
+    submitterKey: 'U001', poolStatus: 'pending',
+    assignedMainKey: null, assignedSubKey: null, assigneeKey: null,
+    rejectReason: '', reviewedAt: null, reviewerKey: null,
+    assignedMainCode: '', assignedMainTitle: '',
+    createTime: '2026-04-16T00:00:00Z', dbUpdateTime: '2026-04-16T00:00:00Z',
   },
   {
-    id: 3, teamId: 1, title: '性能优化建议',
+    bizKey: '3', teamKey: '1', title: '性能优化建议',
     background: '首页加载时间超过3秒', expectedOutput: '加载时间降低到1秒内',
-    submitterId: 1, status: 'assigned',
-    assignedMainId: 1, assignedSubId: 11, assigneeId: 2,
-    rejectReason: '', reviewedAt: '2026-04-15T00:00:00Z', reviewerId: 1,
-    createdAt: '2026-04-12T00:00:00Z', updatedAt: '2026-04-15T00:00:00Z',
+    submitterKey: 'U001', poolStatus: 'assigned',
+    assignedMainKey: '1', assignedSubKey: '11', assigneeKey: 'U002',
+    rejectReason: '', reviewedAt: '2026-04-15T00:00:00Z', reviewerKey: 'U001',
+    assignedMainCode: 'MI-001', assignedMainTitle: '',
+    createTime: '2026-04-12T00:00:00Z', dbUpdateTime: '2026-04-15T00:00:00Z',
   },
   {
-    id: 4, teamId: 1, title: '旧版API废弃',
+    bizKey: '4', teamKey: '1', title: '旧版API废弃',
     background: 'v1版本API仍有部分客户端在使用', expectedOutput: '废弃计划',
-    submitterId: 1, status: 'rejected',
-    assignedMainId: null, assignedSubId: null, assigneeId: null,
-    rejectReason: '优先级不足，安排至下个季度处理', reviewedAt: '2026-04-10T00:00:00Z', reviewerId: 1,
-    createdAt: '2026-04-08T00:00:00Z', updatedAt: '2026-04-10T00:00:00Z',
+    submitterKey: 'U001', poolStatus: 'rejected',
+    assignedMainKey: null, assignedSubKey: null, assigneeKey: null,
+    rejectReason: '优先级不足，安排至下个季度处理', reviewedAt: '2026-04-10T00:00:00Z', reviewerKey: 'U001',
+    assignedMainCode: '', assignedMainTitle: '',
+    createTime: '2026-04-08T00:00:00Z', dbUpdateTime: '2026-04-10T00:00:00Z',
   },
 ]
 
 const seedMembers = [
-  { userId: 1, displayName: '张明', username: 'zhangming', role: 'pm', joinedAt: '2024-01-01' },
-  { userId: 2, displayName: '李华', username: 'lihua', role: 'member', joinedAt: '2024-01-01' },
+  { id: 1, bizKey: '1', teamKey: '1', userKey: 'U001', displayName: '张明', username: 'zhangming', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
+  { id: 2, bizKey: '2', teamKey: '1', userKey: 'U002', displayName: '李华', username: 'lihua', role: 'member', roleId: 2, roleName: 'member', joinedAt: '2024-01-01' },
 ]
 
 const seedMainItems = [
-  { id: 1, teamId: 1, code: 'MI-001', title: '用户认证模块开发', priority: 'P1', status: 'progressing' },
-  { id: 2, teamId: 1, code: 'MI-002', title: '数据看板设计', priority: 'P2', status: 'pending' },
+  { bizKey: '1', teamKey: '1', code: 'MI-001', title: '用户认证模块开发', priority: 'P1', itemStatus: 'progressing' },
+  { bizKey: '2', teamKey: '1', code: 'MI-002', title: '数据看板设计', priority: 'P2', itemStatus: 'pending' },
 ]
 
 function setupHandlers() {
@@ -105,11 +109,12 @@ function setupHandlers() {
       return HttpResponse.json({
         code: 0,
         data: {
-          id: 100, teamId: 1, ...body,
-          submitterId: 1, status: 'pending',
-          assignedMainId: null, assignedSubId: null, assigneeId: null,
-          rejectReason: '', reviewedAt: null, reviewerId: null,
-          createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+          bizKey: '100', teamKey: '1', ...body,
+          submitterKey: 'U001', poolStatus: 'pending',
+          assignedMainKey: null, assignedSubKey: null, assigneeKey: null,
+          rejectReason: '', reviewedAt: null, reviewerKey: null,
+          assignedMainCode: '', assignedMainTitle: '',
+          createTime: new Date().toISOString(), dbUpdateTime: new Date().toISOString(),
         },
       })
     }),
@@ -117,7 +122,7 @@ function setupHandlers() {
       const body = (await request.json()) as Record<string, unknown>
       return HttpResponse.json({
         code: 0,
-        data: { subItemId: 200, ...body },
+        data: { mainItemBizKey: 'mi-200', subItemBizKey: 'si-200', ...body },
       })
     }),
     http.post('/v1/teams/:teamId/item-pool/:poolId/reject', async ({ request }) => {
@@ -125,11 +130,12 @@ function setupHandlers() {
       return HttpResponse.json({
         code: 0,
         data: {
-          id: 4, teamId: 1, title: '旧版API废弃',
-          background: '', expectedOutput: '', submitterId: 1,
-          status: 'rejected', assignedMainId: null, assignedSubId: null, assigneeId: null,
-          rejectReason: body.reason, reviewedAt: new Date().toISOString(), reviewerId: 1,
-          createdAt: '2026-04-08T00:00:00Z', updatedAt: new Date().toISOString(),
+          bizKey: '4', teamKey: '1', title: '旧版API废弃',
+          background: '', expectedOutput: '', submitterKey: 'U001',
+          poolStatus: 'rejected', assignedMainKey: null, assignedSubKey: null, assigneeKey: null,
+          assignedMainCode: '', assignedMainTitle: '',
+          rejectReason: body.reason, reviewedAt: new Date().toISOString(), reviewerKey: 'U001',
+          createTime: '2026-04-08T00:00:00Z', dbUpdateTime: new Date().toISOString(),
         },
       })
     }),
@@ -138,7 +144,7 @@ function setupHandlers() {
       return HttpResponse.json({
         code: 0,
         data: {
-          id: 300, teamId: 1, code: 'MI-0300', priority: 'P2', proposerId: 1,
+          bizKey: '300', teamKey: '1', code: 'MI-0300', priority: 'P2', proposerKey: 'U001',
           ...body,
         },
       })
@@ -148,7 +154,7 @@ function setupHandlers() {
 
 describe('ItemPoolPage', () => {
   beforeEach(() => {
-    useTeamStore.setState({ currentTeamId: 1, teams: [{ id: 1, name: 'Test Team', description: '', pmId: 1, createdAt: '', updatedAt: '' }] })
+    useTeamStore.setState({ currentTeamId: '1', teams: [{ bizKey: '1', name: 'Test Team', description: '', code: '', pmKey: '1', createdAt: '', updatedAt: '' }] })
     useAuthStore.getState().setPermissions({
       isSuperAdmin: false,
       teamPermissions: { 1: ['item_pool:review'] },
@@ -174,7 +180,7 @@ describe('ItemPoolPage', () => {
     await waitFor(() => {
       expect(screen.getByText('移动端适配需求')).toBeInTheDocument()
       expect(screen.getByText('用户反馈收集功能')).toBeInTheDocument()
-      expect(screen.getByText('性能优化建议')).toBeInTheDocument()
+      expect(screen.getByText(/性能优化建议/)).toBeInTheDocument()
       expect(screen.getByText('旧版API废弃')).toBeInTheDocument()
     })
   })
@@ -193,7 +199,7 @@ describe('ItemPoolPage', () => {
   it('shows assigned items with gray left border and reduced opacity', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText('性能优化建议')).toBeInTheDocument()
+      expect(screen.getByText(/性能优化建议/)).toBeInTheDocument()
     })
     const card = screen.getByTestId('pool-item-3')
     expect(card.className).toContain('border-l-tertiary')
@@ -301,7 +307,7 @@ describe('ItemPoolPage', () => {
   it('does not show action buttons for assigned/rejected items', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText('性能优化建议')).toBeInTheDocument()
+      expect(screen.getByText(/性能优化建议/)).toBeInTheDocument()
     })
     expect(screen.queryByTestId('to-main-3')).not.toBeInTheDocument()
     expect(screen.queryByTestId('reject-4')).not.toBeInTheDocument()
@@ -391,7 +397,7 @@ describe('ItemPoolPage', () => {
   it('shows assignment info for assigned items', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText('性能优化建议')).toBeInTheDocument()
+      expect(screen.getByText(/性能优化建议/)).toBeInTheDocument()
     })
     expect(screen.getByText(/已转为子事项/)).toBeInTheDocument()
   })

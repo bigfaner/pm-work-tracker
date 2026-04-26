@@ -51,9 +51,17 @@ func (m *mockTeamRepo) Update(ctx context.Context, team *model.Team) error {
 	return args.Error(0)
 }
 
-func (m *mockTeamRepo) Delete(ctx context.Context, teamID uint) error {
+func (m *mockTeamRepo) SoftDelete(ctx context.Context, teamID uint) error {
 	args := m.Called(ctx, teamID)
 	return args.Error(0)
+}
+
+func (m *mockTeamRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.Team, error) {
+	args := m.Called(ctx, bizKey)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Team), args.Error(1)
 }
 
 func (m *mockTeamRepo) AddMember(ctx context.Context, member *model.TeamMember) error {
@@ -131,6 +139,14 @@ func (m *mockRoleRepo) List(ctx context.Context) ([]model.Role, error) {
 
 func (m *mockRoleRepo) FindByID(ctx context.Context, id uint) (*model.Role, error) {
 	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Role), args.Error(1)
+}
+
+func (m *mockRoleRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.Role, error) {
+	args := m.Called(ctx, bizKey)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -247,6 +263,7 @@ func TestTeamScopeMiddleware_InvalidTeamID(t *testing.T) {
 func TestTeamScopeMiddleware_NonMember_Returns403(t *testing.T) {
 	teamRepo := new(mockTeamRepo)
 	roleRepo := new(mockRoleRepo)
+	teamRepo.On("FindByBizKey", mock.Anything, int64(1)).Return(&model.Team{BaseModel: model.BaseModel{ID: 1}}, nil)
 	teamRepo.On("FindMember", mock.Anything, uint(1), uint(2)).Return(nil, fmt.Errorf("not found"))
 	r, _ := setupTeamScopeRouter(teamRepo, roleRepo)
 
@@ -262,11 +279,11 @@ func TestTeamScopeMiddleware_Member_SetsContext(t *testing.T) {
 	roleID := uint(3)
 	teamRepo := new(mockTeamRepo)
 	roleRepo := new(mockRoleRepo)
+	teamRepo.On("FindByBizKey", mock.Anything, int64(5)).Return(&model.Team{BaseModel: model.BaseModel{ID: 5}}, nil)
 	teamRepo.On("FindMember", mock.Anything, uint(5), uint(10)).Return(&model.TeamMember{
-		TeamID: 5,
-		UserID: 10,
-		Role:   "pm",
-		RoleID: &roleID,
+		TeamKey: int64(5),
+		UserKey: 10,
+		RoleKey: func() *int64 { v := int64(roleID); return &v }(),
 	}, nil)
 	roleRepo.On("ListPermissions", mock.Anything, uint(3)).Return([]string{"team:update", "team:invite"}, nil)
 	r, cc := setupTeamScopeRouter(teamRepo, roleRepo)
@@ -283,6 +300,7 @@ func TestTeamScopeMiddleware_Member_SetsContext(t *testing.T) {
 func TestTeamScopeMiddleware_SuperAdmin_BypassesMembership(t *testing.T) {
 	teamRepo := new(mockTeamRepo)
 	roleRepo := new(mockRoleRepo)
+	teamRepo.On("FindByBizKey", mock.Anything, int64(99)).Return(&model.Team{BaseModel: model.BaseModel{ID: 99}}, nil)
 	r, cc := setupTeamScopeRouter(teamRepo, roleRepo)
 
 	w := httptest.NewRecorder()
@@ -298,11 +316,11 @@ func TestTeamScopeMiddleware_SuperAdmin_BypassesMembership(t *testing.T) {
 func TestTeamScopeMiddleware_MemberNoRoleID_SetsEmptyPermCodes(t *testing.T) {
 	teamRepo := new(mockTeamRepo)
 	roleRepo := new(mockRoleRepo)
+	teamRepo.On("FindByBizKey", mock.Anything, int64(3)).Return(&model.Team{BaseModel: model.BaseModel{ID: 3}}, nil)
 	teamRepo.On("FindMember", mock.Anything, uint(3), uint(7)).Return(&model.TeamMember{
-		TeamID: 3,
-		UserID: 7,
-		Role:   "member",
-		RoleID: nil,
+		TeamKey: int64(3),
+		UserKey: 7,
+		RoleKey: nil,
 	}, nil)
 	r, cc := setupTeamScopeRouter(teamRepo, roleRepo)
 

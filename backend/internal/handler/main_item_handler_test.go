@@ -34,6 +34,10 @@ type mockMainItemService struct {
 		item *model.MainItem
 		err  error
 	}
+	getByBizKeyResult struct {
+		item *model.MainItem
+		err  error
+	}
 	listResult struct {
 		page *dto.PageResult[model.MainItem]
 		err  error
@@ -61,6 +65,9 @@ type mockMainItemService struct {
 
 	getCalled  bool
 	lastItemID uint
+
+	getByBizKeyCalled bool
+	lastBizKey        int64
 
 	listCalled   bool
 	lastFilter   dto.MainItemFilter
@@ -117,6 +124,16 @@ func (m *mockMainItemService) Get(_ context.Context, itemID uint) (*model.MainIt
 	return m.getResult.item, m.getResult.err
 }
 
+func (m *mockMainItemService) GetByBizKey(_ context.Context, bizKey int64) (*model.MainItem, error) {
+	m.getByBizKeyCalled = true
+	m.lastBizKey = bizKey
+	// Fall back to getResult if getByBizKeyResult not explicitly set
+	if m.getByBizKeyResult.item != nil || m.getByBizKeyResult.err != nil {
+		return m.getByBizKeyResult.item, m.getByBizKeyResult.err
+	}
+	return m.getResult.item, m.getResult.err
+}
+
 func (m *mockMainItemService) RecalcCompletion(_ context.Context, _ uint) error {
 	return nil
 }
@@ -169,8 +186,11 @@ func (m *mockSubItemRepoForHandler) ListByMainItem(_ context.Context, _ uint) ([
 func (m *mockSubItemRepoForHandler) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
 	return nil, nil
 }
-func (m *mockSubItemRepoForHandler) Delete(_ context.Context, _ uint) error {
+func (m *mockSubItemRepoForHandler) SoftDelete(_ context.Context, _ uint) error {
 	return nil
+}
+func (m *mockSubItemRepoForHandler) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
+	return nil, nil
 }
 func (m *mockSubItemRepoForHandler) NextSubCode(_ context.Context, _ uint) (string, error) {
 	return "", nil
@@ -183,7 +203,7 @@ func (m *mockSubItemRepoForHandler) NextSubCode(_ context.Context, _ uint) (stri
 func depsWithMainItemSvc(t *testing.T, svc *mockMainItemService, userRepo repository.UserRepo, subItemRepo *mockSubItemRepoForHandler) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.MainItem = NewMainItemHandler(svc, userRepo, subItemRepo)
 	return deps
 }
@@ -192,7 +212,7 @@ func depsWithMainItemSvc(t *testing.T, svc *mockMainItemService, userRepo reposi
 func depsWithMemberRoleMainItem(t *testing.T, svc *mockMainItemService, userRepo repository.UserRepo, subItemRepo *mockSubItemRepoForHandler) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "member", RoleID: ptrUint(2)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(2); return &v }()}}
 	deps.MainItem = NewMainItemHandler(svc, userRepo, subItemRepo)
 	return deps
 }
@@ -200,11 +220,11 @@ func depsWithMemberRoleMainItem(t *testing.T, svc *mockMainItemService, userRepo
 // helper to create a MainItem model for tests.
 func testMainItem(id uint, teamID uint) *model.MainItem {
 	return &model.MainItem{
-		TeamID:   teamID,
+		TeamKey: int64(teamID),
 		Code:     fmt.Sprintf("TEST-%05d", id),
 		Title:    "Test Item",
 		Priority: "P1",
-		Status:   "pending",
+		ItemStatus: "pending",
 	}
 }
 
@@ -216,7 +236,7 @@ func TestCreateMainItem_Success(t *testing.T) {
 	svc := &mockMainItemService{}
 	item := testMainItem(1, 10)
 	item.ID = 1
-	item.ProposerID = 5
+	item.ProposerKey = 5
 	svc.createResult.item = item
 
 	userRepo := &mockUserRepoForHandler{}
@@ -226,7 +246,7 @@ func TestCreateMainItem_Success(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"title":"Test Item","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"title":"Test Item","priority":"P1","assigneeKey":"1","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -261,7 +281,7 @@ func TestCreateMainItem_WithOptionalFields(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"title":"Test Item","priority":"P1","assigneeId":3,"startDate":"2026-04-01","expectedEndDate":"2026-04-30","isKeyItem":true}`
+	body := `{"title":"Test Item","priority":"P1","assigneeKey":"3","startDate":"2026-04-01","expectedEndDate":"2026-04-30","isKeyItem":true}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -270,7 +290,7 @@ func TestCreateMainItem_WithOptionalFields(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.True(t, svc.createCalled)
-	assert.Equal(t, uint(3), svc.lastCreateReq.AssigneeID)
+	assert.Equal(t, "3", svc.lastCreateReq.AssigneeKey)
 	assert.True(t, svc.lastCreateReq.IsKeyItem)
 }
 
@@ -284,7 +304,7 @@ func TestCreateMainItem_RequiresPM(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"title":"Test Item","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"title":"Test Item","priority":"P1","assigneeKey":"1","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -327,7 +347,7 @@ func TestCreateMainItem_ServiceError(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"title":"Test","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"title":"Test","priority":"P1","assigneeKey":"1","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -426,18 +446,18 @@ func TestGetMainItem_Success(t *testing.T) {
 	svc := &mockMainItemService{}
 	item := testMainItem(1, 10)
 	item.ID = 1
-	item.Status = "progressing"
+	item.ItemStatus = "progressing"
 	item.Completion = 45.5
 	svc.getResult.item = item
 
 	userRepo := &mockUserRepoForHandler{}
 	subItemRepo := &mockSubItemRepoForHandler{
 		items: []*model.SubItem{
-			{Title: "Sub 1", Status: "progressing", Completion: 60},
+			{Title: "Sub 1", ItemStatus: "progressing", Completion: 60},
 		},
 	}
 	subItemRepo.items[0].ID = 10
-	subItemRepo.items[0].MainItemID = 1
+	subItemRepo.items[0].MainItemKey = int64(1)
 
 	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
 	r := SetupRouter(deps, nil)
@@ -458,8 +478,8 @@ func TestGetMainItem_Success(t *testing.T) {
 	data, ok := resp["data"].(map[string]interface{})
 	require.True(t, ok)
 	assert.Equal(t, "Test Item", data["title"])
-	assert.True(t, svc.getCalled)
-	assert.Equal(t, uint(1), svc.lastItemID)
+	assert.True(t, svc.getByBizKeyCalled)
+	assert.Equal(t, int64(1), svc.lastBizKey)
 
 	// Check subItems array is present
 	subItems, ok := data["subItems"].([]interface{})
@@ -488,7 +508,7 @@ func TestGetMainItem_InvalidItemID(t *testing.T) {
 
 func TestGetMainItem_NotFound(t *testing.T) {
 	svc := &mockMainItemService{}
-	svc.getResult.err = apperrors.ErrItemNotFound
+	svc.getByBizKeyResult.err = apperrors.ErrItemNotFound
 
 	userRepo := &mockUserRepoForHandler{}
 	subItemRepo := &mockSubItemRepoForHandler{}
@@ -587,6 +607,9 @@ func TestUpdateMainItem_InvalidItemID(t *testing.T) {
 
 func TestUpdateMainItem_ItemNotFound(t *testing.T) {
 	svc := &mockMainItemService{}
+	item := testMainItem(1, 10)
+	item.ID = 1
+	svc.getResult.item = item
 	svc.updateResult.err = apperrors.ErrItemNotFound
 
 	userRepo := &mockUserRepoForHandler{}
@@ -612,6 +635,9 @@ func TestUpdateMainItem_ItemNotFound(t *testing.T) {
 
 func TestArchiveMainItem_Success(t *testing.T) {
 	svc := &mockMainItemService{}
+	item := testMainItem(1, 10)
+	item.ID = 1
+	svc.getResult.item = item
 
 	userRepo := &mockUserRepoForHandler{}
 	subItemRepo := &mockSubItemRepoForHandler{}
@@ -651,6 +677,9 @@ func TestArchiveMainItem_RequiresPM(t *testing.T) {
 
 func TestArchiveMainItem_ArchiveNotAllowed(t *testing.T) {
 	svc := &mockMainItemService{}
+	item := testMainItem(1, 10)
+	item.ID = 1
+	svc.getResult.item = item
 	svc.archiveResult.err = apperrors.ErrArchiveNotAllowed
 
 	userRepo := &mockUserRepoForHandler{}
@@ -694,7 +723,7 @@ func TestArchiveMainItem_InvalidItemID(t *testing.T) {
 
 func TestArchiveMainItem_ItemNotFound(t *testing.T) {
 	svc := &mockMainItemService{}
-	svc.archiveResult.err = apperrors.ErrItemNotFound
+	svc.getByBizKeyResult.err = apperrors.ErrItemNotFound
 
 	userRepo := &mockUserRepoForHandler{}
 	subItemRepo := &mockSubItemRepoForHandler{}
@@ -729,7 +758,7 @@ func TestCreateMainItem_SuperAdminBypass(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
-	body := `{"title":"Test","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"title":"Test","priority":"P1","assigneeKey":"1","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -754,7 +783,8 @@ func TestChangeStatusMainItem_Success(t *testing.T) {
 	svc := &mockMainItemService{}
 	updatedItem := testMainItem(1, 10)
 	updatedItem.ID = 1
-	updatedItem.Status = "progressing"
+	updatedItem.ItemStatus = "progressing"
+	svc.getResult.item = updatedItem
 	svc.changeStatusResult.item = updatedItem
 
 	userRepo := &mockUserRepoForHandler{}
@@ -806,6 +836,9 @@ func TestChangeStatusMainItem_InvalidBody(t *testing.T) {
 
 func TestChangeStatusMainItem_InvalidTransition(t *testing.T) {
 	svc := &mockMainItemService{}
+	item := testMainItem(1, 10)
+	item.ID = 1
+	svc.getResult.item = item
 	svc.changeStatusResult.err = apperrors.ErrInvalidStatus
 
 	userRepo := &mockUserRepoForHandler{}
@@ -874,6 +907,9 @@ func TestChangeStatusMainItem_InvalidItemID(t *testing.T) {
 
 func TestAvailableTransitionsMainItem_Success(t *testing.T) {
 	svc := &mockMainItemService{}
+	item := testMainItem(1, 10)
+	item.ID = 1
+	svc.getResult.item = item
 	svc.availableTransitionsResult.transitions = []string{"progressing", "closed"}
 
 	userRepo := &mockUserRepoForHandler{}
@@ -907,7 +943,7 @@ func TestAvailableTransitionsMainItem_Success(t *testing.T) {
 
 func TestAvailableTransitionsMainItem_ItemNotFound(t *testing.T) {
 	svc := &mockMainItemService{}
-	svc.availableTransitionsResult.err = apperrors.ErrItemNotFound
+	svc.getByBizKeyResult.err = apperrors.ErrItemNotFound
 
 	userRepo := &mockUserRepoForHandler{}
 	subItemRepo := &mockSubItemRepoForHandler{}
@@ -952,15 +988,15 @@ func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	now := time.Now()
 	assigneeID := uint(3)
 	item := &model.MainItem{
-		TeamID:          10,
+		TeamKey: 10,
 		Code:            "TEST-00001",
 		Title:           "接入新支付渠道",
 		Priority:        "P1",
-		ProposerID:      2,
-		AssigneeID:      &assigneeID,
-		StartDate:       &now,
+		ProposerKey:      2,
+		AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
+		PlanStartDate: &now,
 		ExpectedEndDate: &now,
-		Status:          "progressing",
+		ItemStatus: "progressing",
 		Completion:      45.5,
 		IsKeyItem:       false,
 	}
@@ -999,9 +1035,9 @@ func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	assert.Equal(t, "TEST-00001", data["code"])
 	assert.Equal(t, "接入新支付渠道", data["title"])
 	assert.Equal(t, "P1", data["priority"])
-	assert.Equal(t, float64(2), data["proposerId"])
-	assert.Equal(t, float64(3), data["assigneeId"])
-	assert.Equal(t, "progressing", data["status"])
+	assert.Equal(t, "2", data["proposerKey"])
+	assert.Equal(t, "3", data["assigneeKey"])
+	assert.Equal(t, "progressing", data["itemStatus"])
 	assert.Equal(t, 45.5, data["completion"])
 	assert.Equal(t, false, data["isKeyItem"])
 	assert.NotNil(t, data["subItems"])

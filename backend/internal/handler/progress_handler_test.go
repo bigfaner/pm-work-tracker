@@ -14,9 +14,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/repository"
+	"pm-work-tracker/backend/internal/service"
 )
 
 // ---------------------------------------------------------------------------
@@ -31,15 +33,15 @@ func seedProgressBenchData(n int) (*mockProgressService, *trackingUserRepo) {
 	for i := range records {
 		records[i] = model.ProgressRecord{
 			ID:          uint(i + 1),
-			SubItemID:   5,
-			TeamID:      10,
-			AuthorID:    uint(i%50 + 1),
+			SubItemKey:   5,
+			TeamKey: 10,
+			AuthorKey: int64(i%50 + 1),
 			Completion:  float64(i % 100),
 			Achievement: fmt.Sprintf("Achievement %d", i),
 			Blocker:     "",
 			Lesson:      "",
-			IsPMCorrect: false,
-			CreatedAt:   time.Now().Add(-time.Duration(i) * time.Minute),
+			IsPmCorrect: 0,
+			CreateTime:   time.Now().Add(-time.Duration(i) * time.Minute),
 		}
 		users[uint(i%50+1)] = &model.User{DisplayName: fmt.Sprintf("User %d", i%50+1)}
 	}
@@ -56,8 +58,8 @@ func BenchmarkProgressHandler_List(b *testing.B) {
 	svc, trackingRepo := seedProgressBenchData(200)
 
 	deps, _ := testDeps(b)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	deps.Progress = NewProgressHandler(svc, trackingRepo)
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.Progress = NewProgressHandler(svc, trackingRepo, &mockSubItemSvcForProgress{})
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(b, 3, "testuser")
@@ -131,11 +133,41 @@ func (m *mockProgressService) CorrectCompletion(_ context.Context, teamID, recor
 	return m.correctResult.err
 }
 
+func (m *mockProgressService) GetByBizKey(_ context.Context, bizKey int64) (*model.ProgressRecord, error) {
+	return &model.ProgressRecord{ID: uint(bizKey)}, nil
+}
+
 func (m *mockProgressService) List(_ context.Context, teamID, subItemID uint) ([]model.ProgressRecord, error) {
 	m.listCalled = true
 	m.lastTeamID = teamID
 	m.listSubItemID = subItemID
 	return m.listResult.records, m.listResult.err
+}
+
+// ---------------------------------------------------------------------------
+// Mock SubItemService for bizKey resolution in progress handler tests
+// ---------------------------------------------------------------------------
+
+type mockSubItemSvcForProgress struct{}
+
+func (m *mockSubItemSvcForProgress) Create(_ context.Context, _, _ uint, _ dto.SubItemCreateReq) (*model.SubItem, error) {
+	return nil, nil
+}
+func (m *mockSubItemSvcForProgress) Update(_ context.Context, _ uint, _ uint, _ dto.SubItemUpdateReq) error { return nil }
+func (m *mockSubItemSvcForProgress) ChangeStatus(_ context.Context, _, _, _ uint, _ string) (*service.SubItemChangeResult, error) {
+	return nil, nil
+}
+func (m *mockSubItemSvcForProgress) Delete(_ context.Context, _, _, _ uint) error { return nil }
+func (m *mockSubItemSvcForProgress) Get(_ context.Context, _, _ uint) (*model.SubItem, error) { return nil, nil }
+func (m *mockSubItemSvcForProgress) GetByBizKey(_ context.Context, bizKey int64) (*model.SubItem, error) {
+	return &model.SubItem{BaseModel: model.BaseModel{ID: uint(bizKey)}}, nil
+}
+func (m *mockSubItemSvcForProgress) List(_ context.Context, _ uint, _ *uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+	return nil, nil
+}
+func (m *mockSubItemSvcForProgress) Assign(_ context.Context, _, _, _, _ uint) error { return nil }
+func (m *mockSubItemSvcForProgress) AvailableTransitions(_ context.Context, _, _ uint) ([]string, error) {
+	return nil, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -147,8 +179,8 @@ func (m *mockProgressService) List(_ context.Context, teamID, subItemID uint) ([
 func depsWithProgressSvc(t *testing.T, svc *mockProgressService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	deps.Progress = NewProgressHandler(svc, &mockUserRepoForHandler{})
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.Progress = NewProgressHandler(svc, &mockUserRepoForHandler{}, &mockSubItemSvcForProgress{})
 	return deps
 }
 
@@ -157,8 +189,8 @@ func depsWithProgressSvc(t *testing.T, svc *mockProgressService) *Dependencies {
 func depsWithProgressSvcMemberRole(t *testing.T, svc *mockProgressService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "member", RoleID: ptrUint(2)}}
-	deps.Progress = NewProgressHandler(svc, &mockUserRepoForHandler{})
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(2); return &v }()}}
+	deps.Progress = NewProgressHandler(svc, &mockUserRepoForHandler{}, &mockSubItemSvcForProgress{})
 	return deps
 }
 
@@ -167,8 +199,8 @@ func depsWithProgressSvcMemberRole(t *testing.T, svc *mockProgressService) *Depe
 func depsWithProgressSvcAndUser(t *testing.T, svc *mockProgressService, userRepo repository.UserRepo) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	deps.Progress = NewProgressHandler(svc, userRepo)
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.Progress = NewProgressHandler(svc, userRepo, &mockSubItemSvcForProgress{})
 	return deps
 }
 
@@ -176,15 +208,15 @@ func depsWithProgressSvcAndUser(t *testing.T, svc *mockProgressService, userRepo
 func testProgressRecord(id uint, subItemID uint, authorID uint) *model.ProgressRecord {
 	return &model.ProgressRecord{
 		ID:          id,
-		SubItemID:   subItemID,
-		TeamID:      10,
-		AuthorID:    authorID,
+		SubItemKey: int64(subItemID),
+		TeamKey: 10,
+		AuthorKey: int64(authorID),
 		Completion:  60.0,
 		Achievement: "completed feature",
 		Blocker:     "none",
 		Lesson:      "test early",
-		IsPMCorrect: false,
-		CreatedAt:   time.Now(),
+		IsPmCorrect: 0,
+		CreateTime:   time.Now(),
 	}
 }
 
@@ -219,6 +251,9 @@ func (t *trackingUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, 
 }
 func (t *trackingUserRepo) Create(_ context.Context, _ *model.User) error { return nil }
 func (t *trackingUserRepo) Update(_ context.Context, _ *model.User) error { return nil }
+func (t *trackingUserRepo) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
+	return nil, nil
+}
 
 // compile-time check
 var _ repository.UserRepo = (*trackingUserRepo)(nil)
@@ -793,15 +828,16 @@ func TestAppendProgress_ResponseShapeMatchesDataContract(t *testing.T) {
 	now := time.Now()
 	record := &model.ProgressRecord{
 		ID:          100,
-		SubItemID:   10,
-		TeamID:      1,
-		AuthorID:    3,
+		BizKey: 100,
+		SubItemKey:   10,
+		TeamKey: 1,
+		AuthorKey:    3,
 		Completion:  60,
 		Achievement: "completed SDK init",
 		Blocker:     "certificate pending",
 		Lesson:      "sandbox vs prod config diff",
-		IsPMCorrect: false,
-		CreatedAt:   now,
+		IsPmCorrect: 0,
+		CreateTime:   now,
 	}
 	svc.appendResult.record = record
 
@@ -829,13 +865,13 @@ func TestAppendProgress_ResponseShapeMatchesDataContract(t *testing.T) {
 	data := resp["data"].(map[string]interface{})
 
 	// Verify all expected fields from ProgressRecord Object contract
-	assert.Equal(t, float64(100), data["id"])
-	assert.Equal(t, float64(10), data["subItemId"])
-	assert.Equal(t, float64(3), data["authorId"])
+	assert.Equal(t, "100", data["bizKey"])
+	assert.Equal(t, "10", data["subItemKey"])
+	assert.Equal(t, "3", data["authorKey"])
 	assert.Equal(t, "李四", data["authorName"])
 	assert.Equal(t, 60.0, data["completion"])
 	assert.Equal(t, "completed SDK init", data["achievement"])
 	assert.Equal(t, "certificate pending", data["blocker"])
-	assert.Equal(t, false, data["isPMCorrect"])
-	assert.NotNil(t, data["createdAt"])
+	assert.Equal(t, float64(0), data["isPmCorrect"])
+	assert.NotNil(t, data["createTime"])
 }

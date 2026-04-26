@@ -1,33 +1,28 @@
 package model
 
-import (
-	"time"
-)
+import "time"
 
 type Team struct {
 	BaseModel
-	Name        string `gorm:"type:varchar(100);not null"                         json:"name"`
-	Description string `gorm:"type:varchar(500)"                                  json:"description"`
-	PmID        uint   `gorm:"not null"                                           json:"pmId"`
-	Code        string `gorm:"type:varchar(6);not null;uniqueIndex:idx_teams_code" json:"code"`
-	ItemSeq     uint   `gorm:"not null;default:0"                                  json:"itemSeq"`
+	TeamName string `gorm:"type:varchar(100);not null" json:"teamName"`
+	TeamDesc string `gorm:"type:varchar(500)" json:"teamDesc"`
+	PmKey    int64  `gorm:"not null" json:"pmKey"`
+	Code     string `gorm:"type:varchar(6);not null;uniqueIndex:idx_teams_code" json:"code"`
+	ItemSeq  uint   `gorm:"not null;default:0" json:"itemSeq"`
 }
 
 func (Team) TableName() string {
-	return "teams"
+	return "pmw_teams"
 }
 
 type TeamMember struct {
-	ID        uint      `gorm:"primarykey" json:"id"`
-	TeamID    uint      `gorm:"not null;uniqueIndex:idx_team_user" json:"teamId"`
-	UserID    uint      `gorm:"not null;uniqueIndex:idx_team_user" json:"userId"`
-	Role      string    `gorm:"-" json:"role"`
-	RoleID    *uint     `gorm:"index" json:"roleId"`
-	JoinedAt  time.Time `gorm:"not null" json:"joinedAt"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	BaseModel
+	TeamKey  int64     `gorm:"not null;uniqueIndex:idx_team_member" json:"teamKey"`
+	UserKey  int64     `gorm:"not null;uniqueIndex:idx_team_member" json:"userKey"`
+	RoleKey  *int64    `json:"roleKey"`
+	JoinedAt time.Time `gorm:"not null" json:"joinedAt"`
 }
 
 func (TeamMember) TableName() string {
-	return "team_members"
+	return "pmw_team_members"
 }

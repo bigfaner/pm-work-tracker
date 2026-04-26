@@ -2,6 +2,7 @@ package gorm_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -28,7 +29,7 @@ func seedMainItemTeam(t *testing.T, db *gormlib.DB) (*model.User, *model.Team) {
 	t.Helper()
 	u := model.User{Username: "mi_pm", DisplayName: "MI PM", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "MI Team", PmID: u.ID, Code: "FEAT"}
+	team := model.Team{TeamName: "MI Team", PmKey: int64(u.ID), Code: "FEAT"}
 	require.NoError(t, db.Create(&team).Error)
 	return &u, &team
 }
@@ -36,12 +37,12 @@ func seedMainItemTeam(t *testing.T, db *gormlib.DB) (*model.User, *model.Team) {
 func createMainItem(t *testing.T, db *gormlib.DB, teamID, proposerID uint, code, title, priority, status string) *model.MainItem {
 	t.Helper()
 	item := model.MainItem{
-		TeamID:     teamID,
+		TeamKey: int64(teamID),
 		Code:       code,
 		Title:      title,
 		Priority:   priority,
-		ProposerID: proposerID,
-		Status:     status,
+		ProposerKey: int64(proposerID),
+		ItemStatus: status,
 	}
 	require.NoError(t, db.Create(&item).Error)
 	return &item
@@ -56,12 +57,12 @@ func TestMainItemRepo_Create(t *testing.T) {
 
 	u, team := seedMainItemTeam(t, db)
 	item := &model.MainItem{
-		TeamID:     team.ID,
+		TeamKey: int64(team.ID),
 		Code:       "FEAT-00001",
 		Title:      "Test Item",
 		Priority:   "P1",
-		ProposerID: u.ID,
-		Status:     "pending",
+		ProposerKey: int64(u.ID),
+		ItemStatus: "pending",
 	}
 	require.NoError(t, repo.Create(ctx, item))
 	assert.NotZero(t, item.ID)
@@ -81,7 +82,7 @@ func TestMainItemRepo_FindByID(t *testing.T) {
 		found, err := repo.FindByID(ctx, item.ID)
 		require.NoError(t, err)
 		assert.Equal(t, "Find Me", found.Title)
-		assert.Equal(t, team.ID, found.TeamID)
+		assert.Equal(t, int64(team.ID), found.TeamKey)
 	})
 
 	t.Run("not_found", func(t *testing.T) {
@@ -101,16 +102,16 @@ func TestMainItemRepo_Update(t *testing.T) {
 	item := createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Update Me", "P1", "pending")
 
 	fields := map[string]interface{}{
-		"title":    "Updated Title",
-		"status":   "progressing",
-		"priority": "P2",
+		"title":       "Updated Title",
+		"item_status": "progressing",
+		"priority":    "P2",
 	}
 	require.NoError(t, repo.Update(ctx, item, fields))
 
 	found, err := repo.FindByID(ctx, item.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "Updated Title", found.Title)
-	assert.Equal(t, "progressing", found.Status)
+	assert.Equal(t, "progressing", found.ItemStatus)
 	assert.Equal(t, "P2", found.Priority)
 }
 
@@ -120,7 +121,7 @@ func TestMainItemRepo_Update_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	_, team := seedMainItemTeam(t, db)
-	fakeItem := &model.MainItem{BaseModel: model.BaseModel{ID: 9999}, TeamID: team.ID}
+	fakeItem := &model.MainItem{BaseModel: model.BaseModel{ID: 9999}, TeamKey: int64(team.ID)}
 	fields := map[string]interface{}{"title": "Nope"}
 	err := repo.Update(ctx, fakeItem, fields)
 	assert.ErrorIs(t, err, pkgerrors.ErrNotFound)
@@ -161,7 +162,7 @@ func TestMainItemRepo_NextCode(t *testing.T) {
 		// Different team should start fresh with its own code prefix
 		u2 := model.User{Username: "pm_other", DisplayName: "Other PM", PasswordHash: "h"}
 		require.NoError(t, db.Create(&u2).Error)
-		team2 := model.Team{Name: "Other Team", PmID: u2.ID, Code: "OTHR"}
+		team2 := model.Team{TeamName: "Other Team", PmKey: int64(u2.ID), Code: "OTHR"}
 		require.NoError(t, db.Create(&team2).Error)
 
 		code, err := repo.NextCode(ctx, team2.ID)
@@ -186,7 +187,7 @@ func TestMainItemRepo_List(t *testing.T) {
 	// Create one in another team — should not appear
 	u2 := model.User{Username: "pm_other2", DisplayName: "P2", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u2).Error)
-	team2 := model.Team{Name: "Team2", PmID: u2.ID}
+	team2 := model.Team{TeamName: "Team2", PmKey: int64(u2.ID)}
 	require.NoError(t, db.Create(&team2).Error)
 	createMainItem(t, db, team2.ID, u2.ID, "FEAT-00004", "Other Team Item", "P1", "pending")
 
@@ -297,12 +298,12 @@ func TestMainItemRepo_List_FilterByAssignee(t *testing.T) {
 	u, team := seedMainItemTeam(t, db)
 
 	item := createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Assigned", "P1", "pending")
-	require.NoError(t, db.Model(item).Update("assignee_id", u.ID).Error)
+	require.NoError(t, db.Model(item).Update("assignee_key", u.ID).Error)
 
 	createMainItem(t, db, team.ID, u.ID, "FEAT-00002", "Unassigned", "P2", "pending")
 
-	assigneeID := u.ID
-	result, err := repo.List(ctx, team.ID, dto.MainItemFilter{AssigneeID: &assigneeID}, dto.Pagination{Page: 1, PageSize: 10})
+	assigneeKey := fmt.Sprintf("%d", u.ID)
+	result, err := repo.List(ctx, team.ID, dto.MainItemFilter{AssigneeKey: &assigneeKey}, dto.Pagination{Page: 1, PageSize: 10})
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), result.Total)
 	assert.Equal(t, "Assigned", result.Items[0].Title)
@@ -370,7 +371,7 @@ func TestMainItemRepo_ListByTeamAndStatus(t *testing.T) {
 	t.Run("team_isolation", func(t *testing.T) {
 		u2 := model.User{Username: "other_pm", DisplayName: "Other PM", PasswordHash: "h"}
 		require.NoError(t, db.Create(&u2).Error)
-		team2 := model.Team{Name: "Team2", PmID: u2.ID, Code: "T2"}
+		team2 := model.Team{TeamName: "Team2", PmKey: int64(u2.ID), Code: "T2"}
 		require.NoError(t, db.Create(&team2).Error)
 		createMainItem(t, db, team2.ID, u2.ID, "T2-00001", "Other Pending", "P1", "pending")
 

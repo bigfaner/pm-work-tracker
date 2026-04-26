@@ -12,6 +12,8 @@ type MainItemRepo interface {
 	Create(ctx context.Context, item *model.MainItem) error
 	FindByID(ctx context.Context, id uint) (*model.MainItem, error)
 	FindByIDs(ctx context.Context, ids []uint) (map[uint]*model.MainItem, error)
+	FindByBizKey(ctx context.Context, bizKey int64) (*model.MainItem, error)
+	FindByBizKeys(ctx context.Context, bizKeys []int64) (map[int64]*model.MainItem, error)
 	Update(ctx context.Context, item *model.MainItem, fields map[string]interface{}) error
 	List(ctx context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error)
 	ListByTeamAndStatus(ctx context.Context, teamID uint, status string) ([]model.MainItem, error)

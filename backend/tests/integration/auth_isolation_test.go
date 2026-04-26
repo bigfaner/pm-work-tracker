@@ -22,6 +22,7 @@ import (
 	"pm-work-tracker/backend/internal/handler"
 	"pm-work-tracker/backend/internal/model"
 	appjwt "pm-work-tracker/backend/internal/pkg/jwt"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 	"pm-work-tracker/backend/internal/service"
 )
@@ -36,12 +37,16 @@ type seedData struct {
 	superAdminID uint
 	teamAID      uint
 	teamBID      uint
+	teamABizKey  int64
+	teamBBizKey  int64
 }
 
 // setupTestDB creates an in-memory SQLite DB, runs migrations, and seeds test data.
 // Each call gets a unique database to avoid cross-test state leakage.
 func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	t.Helper()
+
+	snowflake.Init(1)
 
 	dbName := fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())
 	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
@@ -53,6 +58,7 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		&model.MainItem{}, &model.SubItem{},
 		&model.ProgressRecord{}, &model.ItemPool{},
 		&model.Role{}, &model.RolePermission{},
+		&model.StatusHistory{},
 	)
 	require.NoError(t, err)
 
@@ -107,22 +113,22 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		require.NoError(t, db.Create(&model.RolePermission{RoleID: memberRole.ID, PermissionCode: code}).Error)
 	}
 
-	// Seed teams
-	teamA := &model.Team{Name: "Team A", PmID: userA.ID, Code: "TAMA"}
-	teamB := &model.Team{Name: "Team B", PmID: userB.ID, Code: "TAMB"}
+	// Seed teams (with BizKey so middleware can resolve bizKey to internal ID)
+	teamA := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team A", PmKey: int64(userA.ID), Code: "TAMA"}
+	teamB := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team B", PmKey: int64(userB.ID), Code: "TAMB"}
 	require.NoError(t, db.Create(teamA).Error)
 	require.NoError(t, db.Create(teamB).Error)
 
 	// Seed team members (with RoleID pointing to seeded roles)
 	now := time.Now()
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamID: teamA.ID, UserID: userA.ID, Role: "pm", RoleID: &pmRole.ID, JoinedAt: now,
+		TeamKey: int64(teamA.ID), UserKey: int64(userA.ID),  RoleKey: func() *int64 { v := int64(pmRole.ID); return &v }(), JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamID: teamA.ID, UserID: memberA.ID, Role: "member", RoleID: &memberRole.ID, JoinedAt: now,
+		TeamKey: int64(teamA.ID), UserKey: int64(memberA.ID),  RoleKey: func() *int64 { v := int64(memberRole.ID); return &v }(), JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamID: teamB.ID, UserID: userB.ID, Role: "pm", RoleID: &pmRole.ID, JoinedAt: now,
+		TeamKey: int64(teamB.ID), UserKey: int64(userB.ID),  RoleKey: func() *int64 { v := int64(pmRole.ID); return &v }(), JoinedAt: now,
 	}).Error)
 
 	return db, &seedData{
@@ -132,6 +138,8 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		superAdminID: superAdmin.ID,
 		teamAID:      teamA.ID,
 		teamBID:      teamB.ID,
+		teamABizKey:  teamA.BizKey,
+		teamBBizKey:  teamB.BizKey,
 	}
 }
 
@@ -183,8 +191,8 @@ func setupTestRouter(t *testing.T) (*gin.Engine, *seedData) {
 		Auth:     handler.NewAuthHandler(authSvc),
 		Team:     handler.NewTeamHandler(teamSvc, userRepo),
 		MainItem: handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
-		SubItem:  handler.NewSubItemHandler(subItemSvc),
-		Progress: handler.NewProgressHandler(progressSvc, userRepo),
+		SubItem:  handler.NewSubItemHandler(subItemSvc, mainItemSvc),
+		Progress: handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
 		ItemPool: handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
 		View:     handler.NewViewHandler(viewSvc),
 		Report:   handler.NewReportHandler(reportSvc),
@@ -246,7 +254,7 @@ func TestAuthFlow_TokenOnProtectedRoute_Returns200(t *testing.T) {
 	// Use the token on a protected route: GET /api/v1/teams/:teamAId/main-items
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), nil)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamABizKey), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -295,7 +303,7 @@ func TestTeamIsolation_UserACannotAccessTeamB_Returns403(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamBID), nil)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamBBizKey), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -313,7 +321,7 @@ func TestTeamIsolation_UserACanAccessTeamA_Returns200(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), nil)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamABizKey), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -327,7 +335,7 @@ func TestTeamIsolation_UserBCannotAccessTeamA_Returns403(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), nil)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamABizKey), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -347,7 +355,7 @@ func TestSuperAdmin_CanAccessTeamA(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), nil)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamABizKey), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -361,7 +369,7 @@ func TestSuperAdmin_CanAccessTeamB(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamBID), nil)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamBBizKey), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 

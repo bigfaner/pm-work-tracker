@@ -62,15 +62,15 @@ export default function Sidebar() {
       {teams.length > 0 && (
         <div className="px-3 pt-3">
           <Select
-            value={currentTeamId ? String(currentTeamId) : undefined}
-            onValueChange={(val) => setCurrentTeam(Number(val))}
+            value={currentTeamId ?? undefined}
+            onValueChange={(val) => setCurrentTeam(val)}
           >
             <SelectTrigger data-testid="team-switcher" className="w-full h-8 text-[13px] [&>span:first-child]:flex-1 [&>span:first-child]:text-center">
               <SelectValue placeholder="选择团队" />
             </SelectTrigger>
             <SelectContent>
               {teams.map((t) => (
-                <SelectItem key={t.id} value={String(t.id)} className="justify-center">
+                <SelectItem key={t.bizKey} value={String(t.bizKey)} className="justify-center">
                   {t.name}
                 </SelectItem>
               ))}

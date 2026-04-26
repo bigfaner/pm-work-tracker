@@ -22,21 +22,21 @@ func setupTestDB(t *testing.T) *gorm.DB {
 
 func seedTeam(t *testing.T, db *gorm.DB, code string) model.Team {
 	t.Helper()
-	team := model.Team{Name: "Team " + code, Code: code, PmID: 1}
+	team := model.Team{TeamName: "Team " + code, Code: code, PmKey: 1}
 	require.NoError(t, db.Create(&team).Error)
 	return team
 }
 
 func seedMainItem(t *testing.T, db *gorm.DB, teamID uint, oldCode string) model.MainItem {
 	t.Helper()
-	item := model.MainItem{TeamID: teamID, Code: oldCode, Title: "item", Priority: "P1", ProposerID: 1}
+	item := model.MainItem{TeamKey: int64(teamID), Code: oldCode, Title: "item", Priority: "P1", ProposerKey: 1}
 	require.NoError(t, db.Create(&item).Error)
 	return item
 }
 
 func seedSubItem(t *testing.T, db *gorm.DB, teamID, mainItemID uint) model.SubItem {
 	t.Helper()
-	sub := model.SubItem{TeamID: teamID, MainItemID: mainItemID, Title: "sub", Priority: "P1"}
+	sub := model.SubItem{TeamKey: int64(teamID), MainItemKey: int64(mainItemID), Title: "sub", Priority: "P1"}
 	require.NoError(t, db.Create(&sub).Error)
 	return sub
 }
@@ -98,7 +98,7 @@ func TestMigrate_GeneratesSubItemCodes(t *testing.T) {
 func TestMigrate_PreConditionFails(t *testing.T) {
 	db := setupTestDB(t)
 	// Insert a team with empty code directly via raw SQL to bypass model constraints.
-	require.NoError(t, db.Exec("INSERT INTO teams (name, code, pm_id, created_at, updated_at) VALUES ('NoCode', '', 1, datetime('now'), datetime('now'))").Error)
+	require.NoError(t, db.Exec("INSERT INTO pmw_teams (team_name, code, pm_key, biz_key, create_time, db_update_time, deleted_flag, deleted_time) VALUES ('NoCode', '', 1, 0, datetime('now'), datetime('now'), 0, '1970-01-01 08:00:00')").Error)
 
 	err := migrate(context.Background(), db, false)
 	require.Error(t, err)
@@ -148,9 +148,9 @@ func TestMigrate_ValidationFailsOldFormatRemains(t *testing.T) {
 	db := setupTestDB(t)
 	// Seed a real team so pre-condition passes.
 	seedTeam(t, db, "ECHO")
-	// Insert an orphaned main_item with a non-existent team_id — migration loop won't touch it.
+	// Insert an orphaned main_item with a non-existent team_key — migration loop won't touch it.
 	require.NoError(t, db.Exec(
-		"INSERT INTO main_items (team_id, code, title, priority, proposer_id, description, status, completion, is_key_item, created_at, updated_at) VALUES (9999, 'MI-0001', 'orphan', 'P1', 1, '', 'pending', 0, 0, datetime('now'), datetime('now'))",
+		"INSERT INTO pmw_main_items (team_key, code, title, priority, proposer_key, item_desc, item_status, completion, is_key_item, biz_key, create_time, db_update_time, deleted_flag, deleted_time) VALUES (9999, 'MI-0001', 'orphan', 'P1', 1, '', 'pending', 0, 0, 0, datetime('now'), datetime('now'), 0, '1970-01-01 08:00:00')",
 	).Error)
 
 	err := migrate(context.Background(), db, false)
@@ -166,7 +166,7 @@ func TestMigrate_ValidationFailsEmptySubCode(t *testing.T) {
 	item := seedMainItem(t, db, team.ID, "MI-0001")
 	// Insert an orphaned sub_item with empty code — migration loop won't touch it.
 	require.NoError(t, db.Exec(
-		"INSERT INTO sub_items (team_id, main_item_id, code, title, priority, status, completion, is_key_item, weight, created_at, updated_at) VALUES (?, 9999, '', 'orphan', 'P1', 'pending', 0, 0, 1, datetime('now'), datetime('now'))",
+		"INSERT INTO pmw_sub_items (team_key, main_item_key, code, title, priority, item_status, completion, is_key_item, weight, biz_key, create_time, db_update_time, deleted_flag, deleted_time) VALUES (?, 9999, '', 'orphan', 'P1', 'pending', 0, 0, 1, 0, datetime('now'), datetime('now'), 0, '1970-01-01 08:00:00')",
 		team.ID,
 	).Error)
 	// Also seed a normal item so the main_item loop runs.

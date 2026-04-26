@@ -40,70 +40,70 @@ function renderPage() {
 
 const seedRows: TableRow[] = [
   {
-    id: 1,
+    bizKey: '1',
     type: 'main',
     code: 'MI-0001',
     title: '用户认证模块开发',
     priority: 'P1',
-    assigneeId: 1,
+    assigneeKey: 'U001',
     assigneeName: '张明',
-    status: 'progressing',
+    itemStatus: 'progressing',
     completion: 65,
     expectedEndDate: '2026-04-15',
     actualEndDate: null,
     mainItemId: null,
   },
   {
-    id: 2,
+    bizKey: '2',
     type: 'sub',
     code: 'SI-0002',
     title: '登录页开发',
     priority: 'P1',
-    assigneeId: 2,
+    assigneeKey: 'U002',
     assigneeName: '李华',
-    status: 'completed',
+    itemStatus: 'completed',
     completion: 100,
     expectedEndDate: '2026-04-10',
     actualEndDate: '2026-04-09',
     mainItemId: 1,
   },
   {
-    id: 3,
+    bizKey: '3',
     type: 'sub',
     code: 'SI-0003',
     title: 'JWT Token 集成',
     priority: 'P2',
-    assigneeId: 3,
+    assigneeKey: 'U003',
     assigneeName: '王芳',
-    status: 'progressing',
+    itemStatus: 'progressing',
     completion: 80,
     expectedEndDate: '2026-04-18',
     actualEndDate: null,
     mainItemId: 1,
   },
   {
-    id: 4,
+    bizKey: '4',
     type: 'main',
     code: 'MI-0004',
     title: '数据看板设计',
     priority: 'P2',
-    assigneeId: 4,
+    assigneeKey: 'U004',
     assigneeName: '赵强',
-    status: 'progressing',
+    itemStatus: 'progressing',
     completion: 40,
     expectedEndDate: '2026-05-05',
     actualEndDate: null,
     mainItemId: null,
   },
   {
-    id: 5,
+    bizKey: '5',
     type: 'sub',
     code: 'SI-0005',
     title: '看板数据接口',
     priority: 'P2',
-    assigneeId: 4,
+    assigneeKey: 'U004',
     assigneeName: '赵强',
-    status: 'completed',
+    itemStatus: 'completed',
     completion: 100,
     expectedEndDate: '2026-04-05',
     actualEndDate: '2026-04-04',
@@ -143,11 +143,11 @@ function setupTableHandler(rows = seedRows) {
       }
       const statusFilter = url.searchParams.getAll('status')
       if (statusFilter.length > 0) {
-        filtered = filtered.filter((r) => statusFilter.includes(r.status))
+        filtered = filtered.filter((r) => statusFilter.includes(r.itemStatus))
       }
-      const assigneeFilter = url.searchParams.get('assigneeId')
+      const assigneeFilter = url.searchParams.get('assigneeKey')
       if (assigneeFilter) {
-        filtered = filtered.filter((r) => String(r.assigneeId) === assigneeFilter)
+        filtered = filtered.filter((r) => r.assigneeKey === assigneeFilter)
       }
 
       const start = (page - 1) * pageSize
@@ -177,10 +177,10 @@ function setupTableHandler(rows = seedRows) {
       return HttpResponse.json({
         code: 0,
         data: [
-          { userId: 1, displayName: '张明', username: 'zhangming', role: 'pm', joinedAt: '2024-01-01' },
-          { userId: 2, displayName: '李华', username: 'lihua', role: 'member', joinedAt: '2024-01-01' },
-          { userId: 3, displayName: '王芳', username: 'wangfang', role: 'member', joinedAt: '2024-01-01' },
-          { userId: 4, displayName: '赵强', username: 'zhaoqiang', role: 'member', joinedAt: '2024-01-01' },
+          { id: 1, bizKey: '1', teamKey: '1', userKey: 'U001', displayName: '张明', username: 'zhangming', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
+          { id: 2, bizKey: '2', teamKey: '1', userKey: 'U002', displayName: '李华', username: 'lihua', role: 'member', roleId: 2, roleName: 'member', joinedAt: '2024-01-01' },
+          { id: 3, bizKey: '3', teamKey: '1', userKey: 'U003', displayName: '王芳', username: 'wangfang', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2024-01-01' },
+          { id: 4, bizKey: '4', teamKey: '1', userKey: 'U004', displayName: '赵强', username: 'zhaoqiang', role: 'member', roleId: 4, roleName: 'member', joinedAt: '2024-01-01' },
         ],
       })
     }),
@@ -192,8 +192,8 @@ function setupTableHandler(rows = seedRows) {
 describe('TableViewPage', () => {
   beforeEach(() => {
     useTeamStore.setState({
-      currentTeamId: 1,
-      teams: [{ id: 1, name: 'Test Team', description: '', pmId: 1, createdAt: '', updatedAt: '' }],
+      currentTeamId: '1',
+      teams: [{ bizKey: '1', name: 'Test Team', description: '', code: '', pmKey: '1', createdAt: '', updatedAt: '' }],
     })
     setupTableHandler()
   })

@@ -65,10 +65,10 @@ function formatDateInput(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
-function getBarClass(item: { isOverdue?: boolean; status: string; startDate: string | null }): string {
+function getBarClass(item: { isOverdue?: boolean; itemStatus: string; startDate: string | null }): string {
   if (!item.startDate) return 'no-data'
   if (item.isOverdue) return 'overdue'
-  if (item.status === 'completed') return 'completed'
+  if (item.itemStatus === 'completed') return 'completed'
   return ''
 }
 
@@ -78,7 +78,7 @@ export default function GanttViewPage() {
   const teamId = useTeamStore((s) => s.currentTeamId)
   const { addToast } = useToast()
   const [searchKeyword, setSearchKeyword] = useState('')
-  const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [loadedCount, setLoadedCount] = useState(ITEMS_PER_PAGE)
   const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null)
 
@@ -130,7 +130,7 @@ export default function GanttViewPage() {
   }, [searchKeyword])
 
   // Toggle expand
-  const toggleExpand = useCallback((itemId: number) => {
+  const toggleExpand = useCallback((itemId: string) => {
     setExpandedGroups((prev) => {
       const next = new Set(prev)
       if (next.has(itemId)) next.delete(itemId)
@@ -226,9 +226,9 @@ interface GanttChartProps {
   rangeStart: Date
   rangeEnd: Date
   totalDays: number
-  expandedGroups: Set<number>
+  expandedGroups: Set<string>
   searchKeyword: string
-  onToggleExpand: (id: number) => void
+  onToggleExpand: (id: string) => void
   onSearchChange: (kw: string) => void
   hasMore: boolean
   onLoadMore: () => void
@@ -272,7 +272,7 @@ function GanttChart({
     for (const item of items) {
       const kw = searchKeyword.toLowerCase()
       const hasMatchingSub = item.subItems.some((sub) => sub.title.toLowerCase().includes(kw))
-      if (hasMatchingSub) expanded.add(item.id)
+      if (hasMatchingSub) expanded.add(item.bizKey)
     }
     return expanded
   }, [expandedGroups, searchKeyword, items])
@@ -301,10 +301,10 @@ function GanttChart({
             </div>
             {items.map((item) => (
               <GanttLabelRow
-                key={item.id}
+                key={item.bizKey}
                 item={item}
-                isExpanded={effectiveExpanded.has(item.id)}
-                onToggle={() => onToggleExpand(item.id)}
+                isExpanded={effectiveExpanded.has(item.bizKey)}
+                onToggle={() => onToggleExpand(item.bizKey)}
               />
             ))}
             {hasMore && (
@@ -328,9 +328,9 @@ function GanttChart({
             <div className="gantt-body">
               <div className="gantt-body-inner" ref={bodyInnerRef} style={{ width: bodyWidth, position: 'relative' }}>
                 {items.map((item) => (
-                  <Fragment key={item.id}>
+                  <Fragment key={item.bizKey}>
                     <GanttTimelineRow
-                      itemId={item.id}
+                      itemId={item.bizKey}
                       subId={undefined}
                       startDate={item.startDate}
                       endDate={item.expectedEndDate}
@@ -339,21 +339,21 @@ function GanttChart({
                       rangeStart={rangeStart}
                       totalDays={totalDays}
                       isSub={false}
-                      isExpanded={effectiveExpanded.has(item.id)}
+                      isExpanded={effectiveExpanded.has(item.bizKey)}
                     />
                     {item.subItems.map((sub) => (
                       <GanttTimelineRow
-                        key={sub.id}
-                        itemId={item.id}
-                        subId={sub.id}
+                        key={sub.bizKey}
+                        itemId={item.bizKey}
+                        subId={sub.bizKey}
                         startDate={sub.startDate}
                         endDate={sub.expectedEndDate}
                         completion={sub.completion}
-                        barClass={getBarClass({ status: sub.status, startDate: sub.startDate })}
+                        barClass={getBarClass({ itemStatus: sub.itemStatus, startDate: sub.startDate })}
                         rangeStart={rangeStart}
                         totalDays={totalDays}
                         isSub={true}
-                        isExpanded={effectiveExpanded.has(item.id)}
+                        isExpanded={effectiveExpanded.has(item.bizKey)}
                       />
                     ))}
                   </Fragment>
@@ -385,7 +385,7 @@ function GanttLabelRow({ item, isExpanded, onToggle }: GanttLabelRowProps) {
     <>
       <div className="gantt-label-row main-item" onClick={hasSubs ? onToggle : undefined}>
         <button
-          data-testid={`collapse-toggle-${item.id}`}
+          data-testid={`collapse-toggle-${item.bizKey}`}
           data-hidden={hasSubs ? undefined : 'true'}
           className="collapse-toggle"
           onClick={(e) => {
@@ -400,7 +400,7 @@ function GanttLabelRow({ item, isExpanded, onToggle }: GanttLabelRowProps) {
       </div>
       {item.subItems.map((sub) => (
         <div
-          key={sub.id}
+          key={sub.bizKey}
           className={`gantt-label-row sub ${isExpanded ? 'visible' : ''}`}
           style={{ display: isExpanded ? undefined : 'none' }}
         >
@@ -414,8 +414,8 @@ function GanttLabelRow({ item, isExpanded, onToggle }: GanttLabelRowProps) {
 // --- Timeline Row ---
 
 interface GanttTimelineRowProps {
-  itemId: number
-  subId?: number
+  itemId: string
+  subId?: string
   startDate: string | null
   endDate: string | null
   completion: number

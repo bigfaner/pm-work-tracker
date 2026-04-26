@@ -32,7 +32,7 @@ func (r *statusHistoryRepo) FindByID(ctx context.Context, id uint) (*model.Statu
 }
 
 func (r *statusHistoryRepo) ListByItem(ctx context.Context, itemType string, itemID uint, page dto.Pagination) (*dto.PageResult[model.StatusHistory], error) {
-	query := r.db.WithContext(ctx).Where("item_type = ? AND item_id = ?", itemType, itemID)
+	query := r.db.WithContext(ctx).Where("item_type = ? AND item_key = ?", itemType, itemID)
 
 	var total int64
 	if err := query.Model(&model.StatusHistory{}).Count(&total).Error; err != nil {

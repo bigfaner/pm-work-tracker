@@ -4,26 +4,26 @@ package dto
 type MainItemFilter struct {
 	Status    string `form:"status"`
 	Priority  string `form:"priority"`
-	AssigneeID *uint `form:"assigneeId"`
-	IsKeyItem *bool  `form:"isKeyItem"`
-	Archived  bool   `form:"archived"`
+	AssigneeKey *string `form:"assigneeKey" json:"assigneeKey"`
+	IsKeyItem   *bool   `form:"isKeyItem"`
+	Archived    bool    `form:"archived"`
 }
 
 // SubItemFilter holds filter parameters for listing SubItems.
 type SubItemFilter struct {
 	Status    string `form:"status"`
 	Priority  string `form:"priority"`
-	AssigneeID *uint `form:"assigneeId"`
-	IsKeyItem *bool  `form:"isKeyItem"`
+	AssigneeKey *string `form:"assigneeKey" json:"assigneeKey"`
+	IsKeyItem   *bool   `form:"isKeyItem"`
 }
 
 // SubItemCreateReq is the request DTO for creating a sub item.
 type SubItemCreateReq struct {
-	MainItemID      uint    `json:"mainItemId" binding:"required"`
+	MainItemKey     string  `json:"mainItemKey" binding:"required"`
 	Title           string  `json:"title" binding:"required,max=100"`
 	Description     string  `json:"description"`
 	Priority        string  `json:"priority" binding:"required,oneof=P1 P2 P3"`
-	AssigneeID      uint    `json:"assigneeId" binding:"required"`
+	AssigneeKey     string  `json:"assigneeKey" binding:"required"`
 	StartDate       *string `json:"startDate" binding:"required"`
 	ExpectedEndDate *string `json:"expectedEndDate" binding:"required"`
 }
@@ -34,7 +34,7 @@ type SubItemUpdateReq struct {
 	Title           *string `json:"title"`
 	Description     *string `json:"description"`
 	Priority        *string `json:"priority"`
-	AssigneeID      *uint   `json:"assigneeId"`
+	AssigneeKey     *string `json:"assigneeKey"`
 	StartDate       *string `json:"startDate"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
 }
@@ -53,8 +53,8 @@ type SubmitItemPoolReq struct {
 
 // AssignItemPoolReq is the request DTO for assigning a pool item to an existing main item as sub-item.
 type AssignItemPoolReq struct {
-	MainItemID      uint    `json:"mainItemId" binding:"required"`
-	AssigneeID      *uint   `json:"assigneeId" binding:"required"`
+	MainItemKey     string  `json:"mainItemKey" binding:"required"`
+	AssigneeKey     *string `json:"assigneeKey" binding:"required"`
 	Priority        string  `json:"priority"`
 	StartDate       *string `json:"startDate" binding:"required"`
 	ExpectedEndDate *string `json:"expectedEndDate" binding:"required"`
@@ -63,7 +63,7 @@ type AssignItemPoolReq struct {
 // ConvertToMainItemReq is the request DTO for converting a pool item to a new main item.
 type ConvertToMainItemReq struct {
 	Priority        string  `json:"priority" binding:"required,oneof=P0 P1 P2 P3"`
-	AssigneeID      *uint   `json:"assigneeId" binding:"required"`
+	AssigneeKey     *string `json:"assigneeKey" binding:"required"`
 	StartDate       *string `json:"startDate" binding:"required"`
 	ExpectedEndDate *string `json:"expectedEndDate" binding:"required"`
 }
@@ -78,7 +78,7 @@ type MainItemCreateReq struct {
 	Title           string  `json:"title" binding:"required,max=100"`
 	Description     string  `json:"description"`
 	Priority        string  `json:"priority" binding:"required,oneof=P0 P1 P2 P3"`
-	AssigneeID      uint    `json:"assigneeId" binding:"required"`
+	AssigneeKey     string  `json:"assigneeKey" binding:"required"`
 	StartDate       *string `json:"startDate" binding:"required"`
 	ExpectedEndDate *string `json:"expectedEndDate" binding:"required"`
 	IsKeyItem       bool    `json:"isKeyItem"`
@@ -90,7 +90,7 @@ type MainItemUpdateReq struct {
 	Title           *string `json:"title"`
 	Description     *string `json:"description"`
 	Priority        *string `json:"priority"`
-	AssigneeID      *uint   `json:"assigneeId"`
+	AssigneeKey     *string `json:"assigneeKey"`
 	StartDate       *string `json:"startDate"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
 	ActualEndDate   *string `json:"actualEndDate"`
@@ -104,7 +104,7 @@ type ChangeStatusReq struct {
 
 // AssignSubItemReq is the request DTO for assigning a sub-item to a user.
 type AssignSubItemReq struct {
-	AssigneeID uint `json:"assigneeId" binding:"required"`
+	AssigneeKey string `json:"assigneeKey" binding:"required"`
 }
 
 // CreateRoleReq is the request DTO for creating a role.
@@ -166,7 +166,7 @@ type WeeklyComparisonGroup struct {
 
 // WeeklyMainItemSummary is a summary of a main item for the weekly comparison view.
 type WeeklyMainItemSummary struct {
-	ID              uint    `json:"id"`
+	BizKey          string  `json:"bizKey"`
 	Code            string  `json:"code"`
 	Title           string  `json:"title"`
 	Priority        string  `json:"priority"`
@@ -180,7 +180,7 @@ type WeeklyMainItemSummary struct {
 
 // SubItemSnapshot represents a sub-item snapshot in the weekly comparison view.
 type SubItemSnapshot struct {
-	ID                  uint                `json:"id"`
+	BizKey              string              `json:"bizKey"`
 	Code                string              `json:"code"`
 	Title               string              `json:"title"`
 	Priority            string              `json:"priority"`
@@ -215,7 +215,7 @@ type WeeklyGroupDTO struct {
 
 // MainItemSummaryDTO is a lightweight summary of a main item.
 type MainItemSummaryDTO struct {
-	ID         uint    `json:"id"`
+	BizKey     string  `json:"bizKey"`
 	Title      string  `json:"title"`
 	Completion float64 `json:"completion"`
 	IsKeyItem  bool    `json:"isKeyItem,omitempty"`
@@ -223,7 +223,7 @@ type MainItemSummaryDTO struct {
 
 // SubItemSummaryDTO is a lightweight summary of a sub-item.
 type SubItemSummaryDTO struct {
-	ID         uint    `json:"id"`
+	BizKey     string  `json:"bizKey"`
 	Title      string  `json:"title"`
 	Status     string  `json:"status"`
 	Completion float64 `json:"completion"`
@@ -231,7 +231,7 @@ type SubItemSummaryDTO struct {
 
 // SubItemWeekDTO is a sub-item with its progress records for the week.
 type SubItemWeekDTO struct {
-	ID               uint                  `json:"id"`
+	BizKey           string                `json:"bizKey"`
 	Title            string                `json:"title"`
 	Status           string                `json:"status"`
 	Completion       float64               `json:"completion"`
@@ -255,19 +255,19 @@ type TableFilter struct {
 	Type       string   `form:"type" json:"type"`                     // "main"|"sub"|"" (empty = both)
 	Priority   []string `form:"priority" json:"priority"`             // ["P1","P2","P3"]
 	Status     []string `form:"status" json:"status"`
-	AssigneeID *uint    `form:"assigneeId" json:"assigneeId"`
+	AssigneeKey *string `form:"assigneeKey" json:"assigneeKey"`
 	SortBy     string   `form:"sortBy" json:"sortBy"`                 // field name
 	SortOrder  string   `form:"sortOrder" json:"sortOrder"`           // "asc"|"desc"
 }
 
 // TableRow represents a single row in the table view (main item or sub-item).
 type TableRow struct {
-	ID              uint    `json:"id"`
+	BizKey         string  `json:"bizKey"`
 	Type            string  `json:"type"`        // "main"|"sub"
 	Code            string  `json:"code"`
 	Title           string  `json:"title"`
 	Priority        string  `json:"priority"`
-	AssigneeID      *uint   `json:"assigneeId"`
+	AssigneeID      *string `json:"assigneeKey"`
 	AssigneeName    string  `json:"assigneeName"`
 	Status          string  `json:"status"`
 	Completion      float64 `json:"completion"`
@@ -289,7 +289,7 @@ type GanttResult struct {
 
 // GanttMainItemDTO represents a main item in the gantt view.
 type GanttMainItemDTO struct {
-	ID             uint              `json:"id"`
+	BizKey         string            `json:"bizKey"`
 	Title          string            `json:"title"`
 	Priority       string            `json:"priority"`
 	StartDate      string            `json:"startDate"`
@@ -302,7 +302,7 @@ type GanttMainItemDTO struct {
 
 // GanttSubItemDTO represents a sub-item summary in the gantt view.
 type GanttSubItemDTO struct {
-	ID              uint    `json:"id"`
+	BizKey          string  `json:"bizKey"`
 	Title           string  `json:"title"`
 	StartDate       string  `json:"startDate"`
 	ExpectedEndDate string  `json:"expectedEndDate"`
@@ -327,10 +327,10 @@ type ReportSectionDTO struct {
 
 // ReportSubItemDTO represents a sub-item in the weekly report.
 type ReportSubItemDTO struct {
-	ID           uint     `json:"id"`
+	BizKey       string   `json:"bizKey"`
 	Title        string   `json:"title"`
 	Completion   float64  `json:"completion"`
-	AssigneeID   *uint    `json:"assigneeId"`
+	AssigneeID   *string  `json:"assigneeKey"`
 	AssigneeName string   `json:"assigneeName"`
 	Achievements []string `json:"achievements"`
 	Blockers     []string `json:"blockers"`

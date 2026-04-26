@@ -19,7 +19,7 @@ func TestLogin_DisabledUserCorrectPassword_ReturnsErrUserDisabled(t *testing.T) 
 			BaseModel:    model.BaseModel{ID: 10},
 			Username:     "disabled",
 			PasswordHash: prehashedPassword123,
-			Status:       "disabled",
+			UserStatus: "disabled",
 		}, nil)
 
 	svc := NewAuthService(repo, testJWTSecret)
@@ -42,7 +42,7 @@ func TestLogin_DisabledUserWrongPassword_ReturnsErrUnauthorized(t *testing.T) {
 			BaseModel:    model.BaseModel{ID: 10},
 			Username:     "disabled",
 			PasswordHash: prehashedPassword123,
-			Status:       "disabled",
+			UserStatus: "disabled",
 		}, nil)
 
 	svc := NewAuthService(repo, testJWTSecret)
@@ -58,7 +58,7 @@ func TestLogin_EnabledUser_Succeeds(t *testing.T) {
 			BaseModel:    model.BaseModel{ID: 11},
 			Username:     "active",
 			PasswordHash: prehashedPassword123,
-			Status:       "enabled",
+			UserStatus: "enabled",
 		}, nil)
 
 	svc := NewAuthService(repo, testJWTSecret)
@@ -77,7 +77,7 @@ func TestLogin_DefaultStatus_Succeeds(t *testing.T) {
 			BaseModel:    model.BaseModel{ID: 12},
 			Username:     "legacy",
 			PasswordHash: prehashedPassword123,
-			Status:       "",
+			UserStatus:   "",
 		}, nil)
 
 	svc := NewAuthService(repo, testJWTSecret)

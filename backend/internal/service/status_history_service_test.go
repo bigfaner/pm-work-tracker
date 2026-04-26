@@ -55,9 +55,9 @@ func TestStatusHistoryService_Record_Success(t *testing.T) {
 
 	record := &model.StatusHistory{
 		ItemType:   "sub_item",
-		ItemID:     1,
+		ItemKey: int64(1),
 		FromStatus: "pending",
-		ToStatus:   "progressing",
+		ToStatus: "progressing",
 		ChangedBy:  10,
 	}
 	repo.On("Create", mock.Anything, record).Return(nil)
@@ -74,9 +74,9 @@ func TestStatusHistoryService_Record_RepoError(t *testing.T) {
 
 	record := &model.StatusHistory{
 		ItemType:   "sub_item",
-		ItemID:     1,
+		ItemKey: int64(1),
 		FromStatus: "pending",
-		ToStatus:   "progressing",
+		ToStatus: "progressing",
 		ChangedBy:  10,
 	}
 	repo.On("Create", mock.Anything, mock.Anything).Return(errors.New("db error"))
@@ -94,8 +94,8 @@ func TestStatusHistoryService_ListByItem_Success(t *testing.T) {
 	svc := NewStatusHistoryService(repo)
 
 	records := []model.StatusHistory{
-		{ID: 1, ItemType: "sub_item", ItemID: 1, FromStatus: "pending", ToStatus: "progressing"},
-		{ID: 2, ItemType: "sub_item", ItemID: 1, FromStatus: "progressing", ToStatus: "blocking"},
+		{ID: 1, ItemType: "sub_item", ItemKey: int64(1), FromStatus: "pending", ToStatus: "progressing"},
+		{ID: 2, ItemType: "sub_item", ItemKey: int64(1), FromStatus: "progressing", ToStatus: "blocking"},
 	}
 	repo.On("ListByItem", mock.Anything, "sub_item", uint(1), dto.Pagination{Page: 1, PageSize: 20}).
 		Return(&dto.PageResult[model.StatusHistory]{Items: records, Total: 2}, nil)

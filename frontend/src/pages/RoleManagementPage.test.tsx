@@ -38,40 +38,40 @@ function renderPage() {
 
 const seedRoles = [
   {
-    id: 1,
-    name: 'superadmin',
-    description: '超级管理员',
+    bizKey: '1',
+    roleName: 'superadmin',
+    roleDesc: '超级管理员',
     isPreset: true,
     permissionCount: 30,
     memberCount: 2,
-    createdAt: '2026-04-01T00:00:00Z',
+    createTime: '2026-04-01T00:00:00Z',
   },
   {
-    id: 2,
-    name: 'pm',
-    description: '团队管理权限',
+    bizKey: '2',
+    roleName: 'pm',
+    roleDesc: '团队管理权限',
     isPreset: true,
     permissionCount: 22,
     memberCount: 5,
-    createdAt: '2026-04-01T00:00:00Z',
+    createTime: '2026-04-01T00:00:00Z',
   },
   {
-    id: 3,
-    name: 'member',
-    description: '普通成员权限',
+    bizKey: '3',
+    roleName: 'member',
+    roleDesc: '普通成员权限',
     isPreset: true,
     permissionCount: 8,
     memberCount: 10,
-    createdAt: '2026-04-01T00:00:00Z',
+    createTime: '2026-04-01T00:00:00Z',
   },
   {
-    id: 4,
-    name: 'viewer',
-    description: '只读查看者',
+    bizKey: '4',
+    roleName: 'viewer',
+    roleDesc: '只读查看者',
     isPreset: false,
     permissionCount: 3,
     memberCount: 0,
-    createdAt: '2026-04-15T12:00:00Z',
+    createTime: '2026-04-15T12:00:00Z',
   },
 ]
 
@@ -105,7 +105,7 @@ function setupHandlers() {
       let filtered = [...seedRoles]
       if (search) {
         const q = search.toLowerCase()
-        filtered = filtered.filter((r) => r.name.toLowerCase().includes(q))
+        filtered = filtered.filter((r) => r.roleName.toLowerCase().includes(q))
       }
       if (isPresetParam === 'preset') {
         filtered = filtered.filter((r) => r.isPreset)
@@ -124,8 +124,8 @@ function setupHandlers() {
 
     // Get role detail
     http.get('/v1/admin/roles/:id', ({ params }) => {
-      const id = Number(params.id)
-      const role = seedRoles.find((r) => r.id === id)
+      const bizKey = params.id as string
+      const role = seedRoles.find((r) => r.bizKey === bizKey)
       if (!role) {
         return HttpResponse.json(
           { code: 'ERR_ROLE_NOT_FOUND', message: '角色不存在' },
@@ -159,21 +159,21 @@ function setupHandlers() {
       return HttpResponse.json({
         code: 0,
         data: {
-          id: 100,
-          name,
-          description: body.description || '',
+          bizKey: '100',
+          roleName: name,
+          roleDesc: body.description || '',
           isPreset: false,
           permissionCount: (body.permissionCodes as string[]).length,
           memberCount: 0,
-          createdAt: '2026-04-19T12:00:00Z',
+          createTime: '2026-04-19T12:00:00Z',
         },
       })
     }),
 
     // Update role
     http.put('/v1/admin/roles/:id', async ({ params }) => {
-      const id = Number(params.id)
-      const role = seedRoles.find((r) => r.id === id)
+      const bizKey = params.id as string
+      const role = seedRoles.find((r) => r.bizKey === bizKey)
       if (!role) {
         return HttpResponse.json(
           { code: 'ERR_ROLE_NOT_FOUND', message: '角色不存在' },
@@ -193,8 +193,8 @@ function setupHandlers() {
 
     // Delete role
     http.delete('/v1/admin/roles/:id', ({ params }) => {
-      const id = Number(params.id)
-      const role = seedRoles.find((r) => r.id === id)
+      const bizKey = params.id as string
+      const role = seedRoles.find((r) => r.bizKey === bizKey)
       if (!role) {
         return HttpResponse.json(
           { code: 'ERR_ROLE_NOT_FOUND', message: '角色不存在' },

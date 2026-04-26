@@ -62,12 +62,12 @@ type mockAdminService struct {
 	lastListUsersSearch   string
 	lastListUsersPage     int
 	lastListUsersPageSize int
-	lastGetUserID         uint
+	lastGetUserID         int64
 	lastCreateUserReq     *dto.CreateUserReq
-	lastUpdateUserID      uint
+	lastUpdateUserID      int64
 	lastUpdateUserReq     *dto.UpdateUserReq
 	lastToggleCallerID    uint
-	lastToggleTargetID    uint
+	lastToggleTargetID    int64
 	lastToggleStatus      string
 }
 
@@ -79,7 +79,7 @@ func (m *mockAdminService) ListUsers(_ context.Context, search string, page, pag
 	return m.listUsersFilteredResult.items, m.listUsersFilteredResult.total, m.listUsersFilteredResult.err
 }
 
-func (m *mockAdminService) GetUser(_ context.Context, userID uint) (*dto.AdminUserDTO, error) {
+func (m *mockAdminService) GetUser(_ context.Context, userID int64) (*dto.AdminUserDTO, error) {
 	m.lastGetUserID = userID
 	return m.getUserResult.user, m.getUserResult.err
 }
@@ -89,13 +89,13 @@ func (m *mockAdminService) CreateUser(_ context.Context, req *dto.CreateUserReq)
 	return m.createUserResult.user, m.createUserResult.err
 }
 
-func (m *mockAdminService) UpdateUser(_ context.Context, userID uint, req *dto.UpdateUserReq) (*dto.AdminUserDTO, error) {
+func (m *mockAdminService) UpdateUser(_ context.Context, userID int64, req *dto.UpdateUserReq) (*dto.AdminUserDTO, error) {
 	m.lastUpdateUserID = userID
 	m.lastUpdateUserReq = req
 	return m.updateUserResult.user, m.updateUserResult.err
 }
 
-func (m *mockAdminService) ToggleUserStatus(_ context.Context, callerID, targetUserID uint, status string) (*dto.AdminUserDTO, error) {
+func (m *mockAdminService) ToggleUserStatus(_ context.Context, callerID uint, targetUserID int64, status string) (*dto.AdminUserDTO, error) {
 	m.lastToggleCallerID = callerID
 	m.lastToggleTargetID = targetUserID
 	m.lastToggleStatus = status
@@ -132,8 +132,8 @@ func signSuperAdminToken(t *testing.T, userID uint) string {
 func TestAdminListUsers_Success(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.listUsersFilteredResult.items = []*dto.AdminUserDTO{
-		{ID: 1, Username: "alice", DisplayName: "Alice", IsSuperAdmin: true, Status: "enabled", Teams: []dto.TeamSummary{}},
-		{ID: 2, Username: "bob", DisplayName: "Bob", Status: "enabled", Teams: []dto.TeamSummary{}},
+		{BizKey: "1", Username: "alice", DisplayName: "Alice", IsSuperAdmin: true, Status: "enabled", Teams: []dto.TeamSummary{}},
+		{BizKey: "2", Username: "bob", DisplayName: "Bob", Status: "enabled", Teams: []dto.TeamSummary{}},
 	}
 	svc.listUsersFilteredResult.total = 2
 
@@ -161,7 +161,7 @@ func TestAdminListUsers_Success(t *testing.T) {
 	assert.Len(t, items, 2)
 
 	user0 := items[0].(map[string]interface{})
-	assert.Equal(t, float64(1), user0["id"])
+	assert.Equal(t, "1", user0["bizKey"])
 	assert.Equal(t, "alice", user0["username"])
 	assert.Equal(t, "Alice", user0["displayName"])
 	assert.Equal(t, true, user0["isSuperAdmin"])
@@ -174,7 +174,7 @@ func TestAdminListUsers_Success(t *testing.T) {
 func TestAdminListUsers_WithSearch(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.listUsersFilteredResult.items = []*dto.AdminUserDTO{
-		{ID: 1, Username: "alice", DisplayName: "Alice"},
+		{BizKey: "1", Username: "alice", DisplayName: "Alice"},
 	}
 	svc.listUsersFilteredResult.total = 1
 
@@ -233,12 +233,12 @@ func TestAdminListUsers_ServiceError(t *testing.T) {
 func TestAdminCreateUser_Success(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.createUserResult.user = &dto.AdminUserDTO{
-		ID:              3,
+		BizKey: "3",
 		Username:        "newuser",
 		DisplayName:     "New User",
 		Email:           "new@test.com",
-		Status:          "enabled",
-		Teams:           []dto.TeamSummary{{ID: 10, Name: "Team A", Role: "member"}},
+		Status: "enabled",
+		Teams:           []dto.TeamSummary{{BizKey: "10", Name: "Team A", }},
 		InitialPassword: "Abc123XYZdef",
 	}
 
@@ -246,7 +246,7 @@ func TestAdminCreateUser_Success(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signSuperAdminToken(t, 1)
-	body := `{"username":"newuser","displayName":"New User","email":"new@test.com","teamId":10}`
+	body := `{"username":"newuser","displayName":"New User","email":"new@test.com","teamKey":"10"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/users", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -266,8 +266,8 @@ func TestAdminCreateUser_Success(t *testing.T) {
 	assert.Equal(t, "Abc123XYZdef", data["initialPassword"])
 	assert.NotNil(t, svc.lastCreateUserReq)
 	assert.Equal(t, "newuser", svc.lastCreateUserReq.Username)
-	require.NotNil(t, svc.lastCreateUserReq.TeamID)
-	assert.Equal(t, uint(10), *svc.lastCreateUserReq.TeamID)
+	require.NotNil(t, svc.lastCreateUserReq.TeamKey)
+	assert.Equal(t, "10", *svc.lastCreateUserReq.TeamKey)
 }
 
 func TestAdminCreateUser_DuplicateUsername(t *testing.T) {
@@ -317,13 +317,13 @@ func TestAdminCreateUser_ValidationFail(t *testing.T) {
 func TestAdminGetUser_Success(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.getUserResult.user = &dto.AdminUserDTO{
-		ID:           5,
+		BizKey: "5",
 		Username:     "bob",
 		DisplayName:  "Bob",
 		Email:        "bob@test.com",
-		Status:       "enabled",
+		Status: "enabled",
 		IsSuperAdmin: false,
-		Teams:        []dto.TeamSummary{{ID: 1, Name: "Team A", Role: "member"}},
+		Teams:        []dto.TeamSummary{{BizKey: "1", Name: "Team A", }},
 	}
 
 	deps := depsWithAdminSvc(t, svc)
@@ -336,7 +336,7 @@ func TestAdminGetUser_Success(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, uint(5), svc.lastGetUserID)
+	assert.Equal(t, int64(5), svc.lastGetUserID)
 
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
@@ -391,12 +391,12 @@ func TestAdminGetUser_InvalidId(t *testing.T) {
 func TestAdminUpdateUser_Success(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.updateUserResult.user = &dto.AdminUserDTO{
-		ID:          5,
+		BizKey: "5",
 		Username:    "bob",
 		DisplayName: "Robert",
 		Email:       "robert@test.com",
-		Status:      "enabled",
-		Teams:       []dto.TeamSummary{{ID: 2, Name: "Team B", Role: "member"}},
+		Status: "enabled",
+		Teams:       []dto.TeamSummary{{BizKey: "2", Name: "Team B", }},
 	}
 
 	deps := depsWithAdminSvc(t, svc)
@@ -411,7 +411,7 @@ func TestAdminUpdateUser_Success(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, uint(5), svc.lastUpdateUserID)
+	assert.Equal(t, int64(5), svc.lastUpdateUserID)
 	require.NotNil(t, svc.lastUpdateUserReq.DisplayName)
 	assert.Equal(t, "Robert", *svc.lastUpdateUserReq.DisplayName)
 }
@@ -441,9 +441,9 @@ func TestAdminUpdateUser_NotFound(t *testing.T) {
 func TestAdminToggleUserStatus_DisableSuccess(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.toggleUserStatusResult.user = &dto.AdminUserDTO{
-		ID:       5,
+		BizKey: "5",
 		Username: "bob",
-		Status:   "disabled",
+		Status: "disabled",
 		Teams:    []dto.TeamSummary{},
 	}
 
@@ -460,7 +460,7 @@ func TestAdminToggleUserStatus_DisableSuccess(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, uint(1), svc.lastToggleCallerID)
-	assert.Equal(t, uint(5), svc.lastToggleTargetID)
+	assert.Equal(t, int64(5), svc.lastToggleTargetID)
 	assert.Equal(t, "disabled", svc.lastToggleStatus)
 }
 
@@ -529,8 +529,8 @@ func TestAdminToggleUserStatus_UserNotFound(t *testing.T) {
 func TestAdminListTeams_Success(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.listAllTeamsResult.teams = []*dto.AdminTeamDTO{
-		{ID: 1, Name: "Alpha", PMDisplayName: "Alice", MemberCount: 3, MainItemCount: 5, CreatedAt: "2026-01-01T00:00:00Z"},
-		{ID: 2, Name: "Beta", PMDisplayName: "Bob", MemberCount: 2, MainItemCount: 10, CreatedAt: "2026-02-01T00:00:00Z"},
+		{BizKey: "1", Name: "Alpha", PMDisplayName: "Alice", MemberCount: 3, MainItemCount: 5, CreatedAt: "2026-01-01T00:00:00Z"},
+		{BizKey: "2", Name: "Beta", PMDisplayName: "Bob", MemberCount: 2, MainItemCount: 10, CreatedAt: "2026-02-01T00:00:00Z"},
 	}
 
 	deps := depsWithAdminSvc(t, svc)
@@ -557,7 +557,7 @@ func TestAdminListTeams_Success(t *testing.T) {
 	assert.Len(t, items, 2)
 
 	team0 := items[0].(map[string]interface{})
-	assert.Equal(t, float64(1), team0["id"])
+	assert.Equal(t, "1", team0["bizKey"])
 	assert.Equal(t, "Alpha", team0["name"])
 	assert.Equal(t, "Alice", team0["pmDisplayName"])
 	assert.Equal(t, float64(3), team0["memberCount"])
@@ -570,9 +570,9 @@ func TestAdminListTeams_Success(t *testing.T) {
 
 func TestAdminListTeams_Pagination(t *testing.T) {
 	teams := []*dto.AdminTeamDTO{
-		{ID: 1, Name: "T1", PMDisplayName: "PM1", MemberCount: 1, MainItemCount: 1},
-		{ID: 2, Name: "T2", PMDisplayName: "PM2", MemberCount: 2, MainItemCount: 2},
-		{ID: 3, Name: "T3", PMDisplayName: "PM3", MemberCount: 3, MainItemCount: 3},
+		{BizKey: "1", Name: "T1", PMDisplayName: "PM1", MemberCount: 1, MainItemCount: 1},
+		{BizKey: "2", Name: "T2", PMDisplayName: "PM2", MemberCount: 2, MainItemCount: 2},
+		{BizKey: "3", Name: "T3", PMDisplayName: "PM3", MemberCount: 3, MainItemCount: 3},
 	}
 
 	svc := &mockAdminService{}

@@ -29,32 +29,32 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 	t.Helper()
 
 	mainItem := &model.MainItem{
-		TeamID:     teamID,
-		Code:       "TAMA-00001",
-		Title:      "Test Main Item",
-		Priority:   "P1",
-		ProposerID: userID,
-		Status:     "pending",
+		TeamKey:      int64(teamID),
+		Code:        "TAMA-00001",
+		Title:       "Test Main Item",
+		Priority:    "P1",
+		ProposerKey: int64(userID),
+		ItemStatus: "pending",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
 	sub1 := &model.SubItem{
-		TeamID:     teamID,
-		MainItemID: mainItem.ID,
-		Title:      "Sub Item 1",
-		Priority:   "P2",
-		Status:     "pending",
-		Weight:     1.0,
+		TeamKey:      int64(teamID),
+		MainItemKey: int64(mainItem.ID),
+		Title:       "Sub Item 1",
+		Priority:    "P2",
+		ItemStatus: "pending",
+		Weight:      1.0,
 	}
 	require.NoError(t, db.Create(sub1).Error)
 
 	sub2 := &model.SubItem{
-		TeamID:     teamID,
-		MainItemID: mainItem.ID,
-		Title:      "Sub Item 2",
-		Priority:   "P2",
-		Status:     "pending",
-		Weight:     1.0,
+		TeamKey:      int64(teamID),
+		MainItemKey: int64(mainItem.ID),
+		Title:       "Sub Item 2",
+		Priority:    "P2",
+		ItemStatus: "pending",
+		Weight:      1.0,
 	}
 	require.NoError(t, db.Create(sub2).Error)
 
@@ -62,13 +62,13 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 }
 
 // appendProgress sends a progress append request via the router.
-func appendProgress(t *testing.T, r *gin.Engine, token string, teamID, subID uint, completion float64) *httptest.ResponseRecorder {
+func appendProgress(t *testing.T, r *gin.Engine, token string, teamBizKey int64, subID uint, completion float64) *httptest.ResponseRecorder {
 	t.Helper()
 
 	body := fmt.Sprintf(`{"completion":%.0f,"achievement":"some progress"}`, completion)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/sub-items/%d/progress", teamID, subID),
+		fmt.Sprintf("/api/v1/teams/%d/sub-items/%d/progress", teamBizKey, subID),
 		strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -100,7 +100,7 @@ func TestProgress_AppendToSubItem1_UpdatesMainItemCompletion(t *testing.T) {
 	mainID, sub1ID, _ := seedProgressData(t, db, data.teamAID, data.userAID)
 
 	// Append progress (completion=60) to SubItem1
-	w := appendProgress(t, r, token, data.teamAID, sub1ID, 60)
+	w := appendProgress(t, r, token, data.teamABizKey, sub1ID, 60)
 	assert.Equal(t, http.StatusCreated, w.Code)
 
 	// Verify SubItem1.Completion = 60
@@ -120,11 +120,11 @@ func TestProgress_AppendToSubItem2_UpdatesMainItemCompletion(t *testing.T) {
 	mainID, sub1ID, sub2ID := seedProgressData(t, db, data.teamAID, data.userAID)
 
 	// First append to SubItem1 (completion=60)
-	w := appendProgress(t, r, token, data.teamAID, sub1ID, 60)
+	w := appendProgress(t, r, token, data.teamABizKey, sub1ID, 60)
 	require.Equal(t, http.StatusCreated, w.Code)
 
 	// Then append to SubItem2 (completion=80)
-	w = appendProgress(t, r, token, data.teamAID, sub2ID, 80)
+	w = appendProgress(t, r, token, data.teamABizKey, sub2ID, 80)
 	require.Equal(t, http.StatusCreated, w.Code)
 
 	// Verify MainItem.Completion = 70 (avg of 60 and 80)
@@ -141,7 +141,7 @@ func TestProgress_RegressionBlocked_Returns422(t *testing.T) {
 	mainID, sub1ID, _ := seedProgressData(t, db, data.teamAID, data.userAID)
 
 	// First append completion=60 to SubItem1
-	w := appendProgress(t, r, token, data.teamAID, sub1ID, 60)
+	w := appendProgress(t, r, token, data.teamABizKey, sub1ID, 60)
 	require.Equal(t, http.StatusCreated, w.Code)
 
 	// Capture MainItem completion after first append
@@ -149,7 +149,7 @@ func TestProgress_RegressionBlocked_Returns422(t *testing.T) {
 	completionBefore := mainAfterFirst.Completion
 
 	// Try to append completion=50 (regression from 60) — should fail
-	w = appendProgress(t, r, token, data.teamAID, sub1ID, 50)
+	w = appendProgress(t, r, token, data.teamABizKey, sub1ID, 50)
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 
 	var resp map[string]interface{}
@@ -168,21 +168,21 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamID, userID uint) (poolID, mainI
 	t.Helper()
 
 	poolItem := &model.ItemPool{
-		TeamID:      teamID,
-		Title:       "Pool Item Title",
-		Background:  "Some background",
-		SubmitterID: userID,
-		Status:      "pending",
+		TeamKey:       int64(teamID),
+		Title:        "Pool Item Title",
+		Background:   "Some background",
+		SubmitterKey: int64(userID),
+		PoolStatus: "pending",
 	}
 	require.NoError(t, db.Create(poolItem).Error)
 
 	mainItem := &model.MainItem{
-		TeamID:     teamID,
-		Code:       "TAMA-00002",
-		Title:      "Main Item for Pool",
-		Priority:   "P1",
-		ProposerID: userID,
-		Status:     "pending",
+		TeamKey:      int64(teamID),
+		Code:        "TAMA-00002",
+		Title:       "Main Item for Pool",
+		Priority:    "P1",
+		ProposerKey: int64(userID),
+		ItemStatus: "pending",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
@@ -197,10 +197,10 @@ func TestItemPool_Assign_Success(t *testing.T) {
 	poolID, mainItemID := seedPoolData(t, db, data.teamAID, data.userAID)
 
 	// Assign the pool item
-	body := fmt.Sprintf(`{"mainItemId":%d,"assigneeId":%d,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, mainItemID, data.userAID)
+	body := fmt.Sprintf(`{"mainItemKey":"%d","assigneeKey":"%d","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, mainItemID, data.userAID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamAID, poolID),
+		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamABizKey, poolID),
 		strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -211,15 +211,15 @@ func TestItemPool_Assign_Success(t *testing.T) {
 	// Verify ItemPool.Status = "assigned"
 	var pool model.ItemPool
 	require.NoError(t, db.First(&pool, poolID).Error)
-	assert.Equal(t, "assigned", pool.Status)
-	assert.NotNil(t, pool.AssignedSubID)
+	assert.Equal(t, "assigned", pool.PoolStatus)
+	assert.NotNil(t, pool.AssignedSubKey)
 
 	// Verify a new SubItem exists under the main item
 	var subItems []model.SubItem
-	require.NoError(t, db.Where("main_item_id = ?", mainItemID).Find(&subItems).Error)
+	require.NoError(t, db.Where("main_item_key = ?", mainItemID).Find(&subItems).Error)
 	require.Len(t, subItems, 1)
 	assert.Equal(t, "Pool Item Title", subItems[0].Title)
-	assert.Equal(t, data.userAID, *subItems[0].AssigneeID)
+	assert.Equal(t, int64(data.userAID), *subItems[0].AssigneeKey)
 }
 
 func TestItemPool_Assign_Rollback_OnInvalidMainItem(t *testing.T) {
@@ -231,10 +231,10 @@ func TestItemPool_Assign_Rollback_OnInvalidMainItem(t *testing.T) {
 
 	// Assign with a non-existent mainItemID to trigger failure
 	invalidMainID := uint(99999)
-	body := fmt.Sprintf(`{"mainItemId":%d,"assigneeId":%d,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, invalidMainID, data.userAID)
+	body := fmt.Sprintf(`{"mainItemKey":"%d","assigneeKey":"%d","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, invalidMainID, data.userAID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamAID, poolID),
+		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamABizKey, poolID),
 		strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -246,7 +246,7 @@ func TestItemPool_Assign_Rollback_OnInvalidMainItem(t *testing.T) {
 	// Verify ItemPool.Status remains "pending"
 	var pool model.ItemPool
 	require.NoError(t, db.First(&pool, poolID).Error)
-	assert.Equal(t, "pending", pool.Status)
+	assert.Equal(t, "pending", pool.PoolStatus)
 
 	// Verify no SubItem was created
 	var count int64
@@ -261,34 +261,34 @@ func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart ti
 	t.Helper()
 
 	mainItem := &model.MainItem{
-		TeamID:     teamID,
-		Code:       "TAMA-00003",
-		Title:      "Report Test Main Item",
-		Priority:   "P1",
-		ProposerID: userID,
-		Status:     "progressing",
+		TeamKey:      int64(teamID),
+		Code:        "TAMA-00003",
+		Title:       "Report Test Main Item",
+		Priority:    "P1",
+		ProposerKey: int64(userID),
+		ItemStatus: "progressing",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
 	subItem := &model.SubItem{
-		TeamID:     teamID,
-		MainItemID: mainItem.ID,
-		Title:      "Report Test Sub Item",
-		Priority:   "P2",
-		Status:     "progressing",
-		Completion: 50,
-		Weight:     1.0,
+		TeamKey:      int64(teamID),
+		MainItemKey: int64(mainItem.ID),
+		Title:       "Report Test Sub Item",
+		Priority:    "P2",
+		ItemStatus: "progressing",
+		Completion:  50,
+		Weight:      1.0,
 	}
 	require.NoError(t, db.Create(subItem).Error)
 
 	// Create a progress record within the week
 	record := &model.ProgressRecord{
-		SubItemID:   subItem.ID,
-		TeamID:      teamID,
-		AuthorID:    userID,
+		SubItemKey:  int64(subItem.ID),
+		TeamKey: int64(teamID),
+		AuthorKey:   int64(userID),
 		Completion:  50,
 		Achievement: "Completed half the work",
-		CreatedAt:   weekStart.Add(24 * time.Hour), // Tuesday of the week
+		CreateTime:  weekStart.Add(24 * time.Hour), // Tuesday of the week
 	}
 	require.NoError(t, db.Create(record).Error)
 
@@ -311,7 +311,7 @@ func TestWeeklyExport_ReturnsMarkdownWithMainItemTitle(t *testing.T) {
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
 		fmt.Sprintf("/api/v1/teams/%d/reports/weekly/export?weekStart=%s",
-			data.teamAID, weekStart.Format("2006-01-02")), nil)
+				data.teamABizKey, weekStart.Format("2006-01-02")), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -371,8 +371,8 @@ func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engi
 		Auth:     handler.NewAuthHandler(authSvc),
 		Team:     handler.NewTeamHandler(teamSvc, userRepo),
 		MainItem: handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
-		SubItem:  handler.NewSubItemHandler(subItemSvc),
-		Progress: handler.NewProgressHandler(progressSvc, userRepo),
+		SubItem:  handler.NewSubItemHandler(subItemSvc, mainItemSvc),
+		Progress: handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
 		ItemPool: handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
 		View:     handler.NewViewHandler(viewSvc),
 		Report:   handler.NewReportHandler(reportSvc),

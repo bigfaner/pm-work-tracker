@@ -1,24 +1,22 @@
 package model
 
-import (
-	"time"
-)
+import "time"
 
-// ProgressRecord is append-only: no UpdatedAt, no DeletedAt.
-// Only Completion and IsPMCorrect may be updated (PM correction).
+// ProgressRecord is append-only: no soft-delete fields.
 type ProgressRecord struct {
-	ID          uint      `gorm:"primaryKey;autoIncrement" json:"id"`
-	SubItemID   uint      `gorm:"not null;index" json:"subItemId"`
-	TeamID      uint      `gorm:"not null;index" json:"teamId"`
-	AuthorID    uint      `gorm:"not null" json:"authorId"`
-	Completion  float64   `gorm:"not null" json:"completion"`
-	Achievement string    `gorm:"type:text" json:"achievement"`
-	Blocker     string    `gorm:"type:text" json:"blocker"`
-	Lesson      string    `gorm:"type:text" json:"lesson"`
-	IsPMCorrect bool      `gorm:"not null;default:false" json:"isPmCorrect"`
-	CreatedAt   time.Time `gorm:"not null;index" json:"createdAt"`
+	ID          uint      `gorm:"primarykey;autoIncrement" json:"-"`
+	BizKey      int64     `gorm:"not null" json:"bizKey"`
+	SubItemKey  int64     `gorm:"not null" json:"subItemKey"`
+	TeamKey     int64     `gorm:"not null" json:"teamKey"`
+	AuthorKey   int64     `gorm:"not null" json:"authorKey"`
+	Completion  float64   `gorm:"type:decimal(5,2);not null" json:"completion"`
+	Achievement string    `gorm:"type:varchar(1000)" json:"achievement"`
+	Blocker     string    `gorm:"type:varchar(1000)" json:"blocker"`
+	Lesson      string    `gorm:"type:varchar(1000)" json:"lesson"`
+	IsPmCorrect int       `gorm:"not null;default:0" json:"isPmCorrect"`
+	CreateTime  time.Time `gorm:"not null;default:CURRENT_TIMESTAMP" json:"createTime"`
 }
 
 func (ProgressRecord) TableName() string {
-	return "progress_records"
+	return "pmw_progress_records"
 }

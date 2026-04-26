@@ -43,8 +43,8 @@ describe('StatusTransitionDropdown', () => {
       <StatusTransitionDropdown
         currentStatus="pending"
         itemType="main"
-        teamId={1}
-        itemId={10}
+        teamId="t1"
+        itemId="i10"
         onStatusChanged={() => {}}
       />,
     )
@@ -58,15 +58,15 @@ describe('StatusTransitionDropdown', () => {
       <StatusTransitionDropdown
         currentStatus="pending"
         itemType="main"
-        teamId={1}
-        itemId={10}
+        teamId="t1"
+        itemId="i10"
         onStatusChanged={() => {}}
       />,
     )
     // Click the badge to open dropdown
     await user.click(screen.getByText('待开始'))
     await waitFor(() => {
-      expect(getMainItemTransitionsApi).toHaveBeenCalledWith(1, 10)
+      expect(getMainItemTransitionsApi).toHaveBeenCalledWith('t1', 'i10')
     })
   })
 
@@ -77,14 +77,14 @@ describe('StatusTransitionDropdown', () => {
       <StatusTransitionDropdown
         currentStatus="pending"
         itemType="sub"
-        teamId={1}
-        itemId={20}
+        teamId="t1"
+        itemId="i20"
         onStatusChanged={() => {}}
       />,
     )
     await user.click(screen.getByText('待开始'))
     await waitFor(() => {
-      expect(getSubItemTransitionsApi).toHaveBeenCalledWith(1, 20)
+      expect(getSubItemTransitionsApi).toHaveBeenCalledWith('t1', 'i20')
     })
   })
 
@@ -95,8 +95,8 @@ describe('StatusTransitionDropdown', () => {
       <StatusTransitionDropdown
         currentStatus="pending"
         itemType="main"
-        teamId={1}
-        itemId={10}
+        teamId="t1"
+        itemId="i10"
         onStatusChanged={() => {}}
       />,
     )
@@ -116,8 +116,8 @@ describe('StatusTransitionDropdown', () => {
       <StatusTransitionDropdown
         currentStatus="pending"
         itemType="main"
-        teamId={1}
-        itemId={10}
+        teamId="t1"
+        itemId="i10"
         onStatusChanged={onStatusChanged}
       />,
     )
@@ -126,7 +126,7 @@ describe('StatusTransitionDropdown', () => {
     await user.click(screen.getByText('进行中'))
 
     await waitFor(() => {
-      expect(changeMainItemStatusApi).toHaveBeenCalledWith(1, 10, { status: 'progressing' })
+      expect(changeMainItemStatusApi).toHaveBeenCalledWith('t1', 'i10', { status: 'progressing' })
     })
   })
 
@@ -137,8 +137,8 @@ describe('StatusTransitionDropdown', () => {
       <StatusTransitionDropdown
         currentStatus="progressing"
         itemType="main"
-        teamId={1}
-        itemId={10}
+        teamId="t1"
+        itemId="i10"
         onStatusChanged={() => {}}
       />,
     )
@@ -160,8 +160,8 @@ describe('StatusTransitionDropdown', () => {
       <StatusTransitionDropdown
         currentStatus="progressing"
         itemType="main"
-        teamId={1}
-        itemId={10}
+        teamId="t1"
+        itemId="i10"
         onStatusChanged={onStatusChanged}
       />,
     )
@@ -173,7 +173,7 @@ describe('StatusTransitionDropdown', () => {
     await user.click(screen.getByRole('button', { name: '确认' }))
 
     await waitFor(() => {
-      expect(changeMainItemStatusApi).toHaveBeenCalledWith(1, 10, { status: 'completed' })
+      expect(changeMainItemStatusApi).toHaveBeenCalledWith('t1', 'i10', { status: 'completed' })
     })
   })
 
@@ -185,8 +185,8 @@ describe('StatusTransitionDropdown', () => {
       <StatusTransitionDropdown
         currentStatus="progressing"
         itemType="sub"
-        teamId={1}
-        itemId={20}
+        teamId="t1"
+        itemId="i20"
         onStatusChanged={() => {}}
         onBeforeTerminalStatus={onBeforeTerminalStatus}
       />,
@@ -207,8 +207,8 @@ describe('StatusTransitionDropdown', () => {
       <StatusTransitionDropdown
         currentStatus="progressing"
         itemType="sub"
-        teamId={1}
-        itemId={20}
+        teamId="t1"
+        itemId="i20"
         onStatusChanged={() => {}}
         onBeforeTerminalStatus={onBeforeTerminalStatus}
       />,
@@ -232,8 +232,8 @@ describe('StatusTransitionDropdown', () => {
       <StatusTransitionDropdown
         currentStatus="completed"
         itemType="main"
-        teamId={1}
-        itemId={10}
+        teamId="t1"
+        itemId="i10"
         onStatusChanged={() => {}}
       />,
     )
@@ -253,8 +253,8 @@ describe('StatusTransitionDropdown', () => {
       <StatusTransitionDropdown
         currentStatus="pending"
         itemType="main"
-        teamId={1}
-        itemId={10}
+        teamId="t1"
+        itemId="i10"
         onStatusChanged={() => {}}
         disabled
       />,
@@ -273,15 +273,15 @@ describe('StatusTransitionDropdown', () => {
       <StatusTransitionDropdown
         currentStatus="pending"
         itemType="sub"
-        teamId={1}
-        itemId={20}
+        teamId="t1"
+        itemId="i20"
         onStatusChanged={() => {}}
       />,
     )
     // Verify sub item transitions API is called
     await user.click(screen.getByText('待开始'))
     await waitFor(() => {
-      expect(getSubItemTransitionsApi).toHaveBeenCalledWith(1, 20)
+      expect(getSubItemTransitionsApi).toHaveBeenCalledWith('t1', 'i20')
     })
     // Verify the transition option renders
     await waitFor(() => {
@@ -290,7 +290,7 @@ describe('StatusTransitionDropdown', () => {
     // Select the status and verify change API is called
     await user.click(screen.getByText('进行中'))
     await waitFor(() => {
-      expect(changeSubItemStatusApi).toHaveBeenCalledWith(1, 20, { status: 'progressing' })
+      expect(changeSubItemStatusApi).toHaveBeenCalledWith('t1', 'i20', { status: 'progressing' })
     }, { timeout: 3000 })
   })
 })

@@ -35,9 +35,10 @@ type mockRoleRepo struct {
 	userTeamPerms map[uint][]string
 
 	// Error controls
-	listErr      error
-	findByIDErr  error
-	findByNameErr error
+	listErr         error
+	findByIDErr     error
+	findByBizKeyErr error
+	findByNameErr   error
 	createErr    error
 	updateErr    error
 	deleteErr    error
@@ -62,6 +63,21 @@ func (m *mockRoleRepo) FindByID(_ context.Context, id uint) (*model.Role, error)
 	// search in roles list
 	for i := range m.roles {
 		if m.roles[i].ID == id {
+			return &m.roles[i], nil
+		}
+	}
+	return nil, apperrors.ErrNotFound
+}
+
+func (m *mockRoleRepo) FindByBizKey(_ context.Context, bizKey int64) (*model.Role, error) {
+	if m.findByBizKeyErr != nil {
+		return nil, m.findByBizKeyErr
+	}
+	if m.roleByID != nil {
+		return m.roleByID, nil
+	}
+	for i := range m.roles {
+		if m.roles[i].BizKey == bizKey {
 			return &m.roles[i], nil
 		}
 	}
@@ -170,6 +186,9 @@ func (m *mockRoleUserRepo) Update(_ context.Context, _ *model.User) error {
 func (m *mockRoleUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.User, error) {
 	return nil, nil
 }
+func (m *mockRoleUserRepo) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
+	return nil, nil
+}
 func (m *mockRoleUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil
 }
@@ -224,19 +243,19 @@ func TestRoleService_ListRoles_RepoError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestRoleService_GetRole_Found(t *testing.T) {
-	role := &model.Role{BaseModel: model.BaseModel{ID: 2}, Name: "pm", Description: "PM role", IsPreset: true}
+	role := &model.Role{BaseModel: model.BaseModel{ID: 2, BizKey: 2}, Name: "pm", Description: "PM role", IsPreset: true}
 	repo := &mockRoleRepo{roleByID: role, perms: []string{"team:create", "team:read"}, memberCount: 5}
 	svc := newTestRoleService(repo, nil)
 
 	result, err := svc.GetRole(context.Background(), 2)
 	require.NoError(t, err)
-	assert.Equal(t, uint(2), result.ID)
+	assert.Equal(t, "2", result.BizKey)
 	assert.Equal(t, "pm", result.Name)
 	assert.Equal(t, int64(5), result.MemberCount)
 }
 
 func TestRoleService_GetRole_NotFound(t *testing.T) {
-	repo := &mockRoleRepo{findByIDErr: apperrors.ErrNotFound}
+	repo := &mockRoleRepo{findByBizKeyErr: apperrors.ErrNotFound}
 	svc := newTestRoleService(repo, nil)
 
 	_, err := svc.GetRole(context.Background(), 999)
@@ -253,7 +272,7 @@ func TestRoleService_CreateRole_Success(t *testing.T) {
 
 	result, err := svc.CreateRole(context.Background(), dto.CreateRoleReq{
 		Name:            "viewer",
-		Description:     "read only",
+		Description: "read only",
 		PermissionCodes: []string{"team:read", "main_item:read"},
 	})
 	require.NoError(t, err)
@@ -372,7 +391,7 @@ func TestRoleService_UpdateRole_Success(t *testing.T) {
 }
 
 func TestRoleService_UpdateRole_NotFound(t *testing.T) {
-	repo := &mockRoleRepo{findByIDErr: apperrors.ErrNotFound}
+	repo := &mockRoleRepo{findByBizKeyErr: apperrors.ErrNotFound}
 	svc := newTestRoleService(repo, nil)
 
 	name := "x"
@@ -473,7 +492,7 @@ func TestRoleService_DeleteRole_Success(t *testing.T) {
 }
 
 func TestRoleService_DeleteRole_NotFound(t *testing.T) {
-	repo := &mockRoleRepo{findByIDErr: apperrors.ErrNotFound}
+	repo := &mockRoleRepo{findByBizKeyErr: apperrors.ErrNotFound}
 	svc := newTestRoleService(repo, nil)
 
 	err := svc.DeleteRole(context.Background(), 999)

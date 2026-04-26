@@ -10,6 +10,7 @@ import (
 type UserRepo interface {
 	FindByID(ctx context.Context, id uint) (*model.User, error)
 	FindByIDs(ctx context.Context, ids []uint) (map[uint]*model.User, error)
+	FindByBizKey(ctx context.Context, bizKey int64) (*model.User, error)
 	FindByUsername(ctx context.Context, username string) (*model.User, error)
 	List(ctx context.Context) ([]*model.User, error)
 	ListFiltered(ctx context.Context, search string, offset, limit int) ([]*model.User, int64, error)

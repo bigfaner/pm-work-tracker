@@ -62,7 +62,7 @@ func (m *mockReportService) ExportMarkdown(_ context.Context, teamID uint, weekS
 func depsWithReportSvc(t *testing.T, svc *mockReportService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.Report = NewReportHandler(svc)
 	return deps
 }
@@ -78,9 +78,9 @@ func TestWeeklyPreview_Success(t *testing.T) {
 		WeekEnd:   "2026-04-19",
 		Sections: []dto.ReportSectionDTO{
 			{
-				MainItem: dto.MainItemSummaryDTO{ID: 1, Title: "Backend", Completion: 60},
+				MainItem: dto.MainItemSummaryDTO{BizKey: "1", Title: "Backend", Completion: 60},
 				SubItems: []dto.ReportSubItemDTO{
-					{ID: 10, Title: "Auth", Completion: 80, Achievements: []string{"done"}, Blockers: []string{}},
+					{BizKey: "10", Title: "Auth", Completion: 80, Achievements: []string{"done"}, Blockers: []string{}},
 				},
 			},
 		},
@@ -217,6 +217,7 @@ func TestWeeklyPreview_RequiresTeamMembership(t *testing.T) {
 	deps, db := testDeps(t)
 	// Ensure user ID=99 exists so AuthMiddleware doesn't return 401
 	db.Create(&model.User{BaseModel: model.BaseModel{ID: 99}, Username: "testuser99", DisplayName: "Test User 99"})
+	db.Create(&model.Team{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamName: "Test", PmKey: 1, Code: "TEST"})
 	deps.Report = NewReportHandler(svc)
 	// default TeamRepo from testDeps has no members
 	r := SetupRouter(deps, nil)

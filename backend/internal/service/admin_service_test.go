@@ -72,7 +72,12 @@ func (m *mockAdminUserRepo) Update(_ context.Context, user *model.User) error {
 func (m *mockAdminUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.User, error) {
 	return nil, nil
 }
-
+func (m *mockAdminUserRepo) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
+	if m.findErr != nil {
+		return nil, m.findErr
+	}
+	return m.user, m.err
+}
 func (m *mockAdminUserRepo) ListFiltered(ctx context.Context, search string, offset, limit int) ([]*model.User, int64, error) {
 	m.listFilteredCalled = true
 	m.listFilteredSearch = search
@@ -109,7 +114,10 @@ func (m *mockAdminTeamRepo) ListFiltered(_ context.Context, _ string, _, _ int) 
 	return nil, 0, nil
 }
 func (m *mockAdminTeamRepo) Update(_ context.Context, _ *model.Team) error { return nil }
-func (m *mockAdminTeamRepo) Delete(_ context.Context, _ uint) error              { return nil }
+func (m *mockAdminTeamRepo) SoftDelete(_ context.Context, _ uint) error              { return nil }
+func (m *mockAdminTeamRepo) FindByBizKey(_ context.Context, _ int64) (*model.Team, error) {
+	return nil, nil
+}
 func (m *mockAdminTeamRepo) AddMember(_ context.Context, member *model.TeamMember) error {
 	return m.addMemberErr
 }
@@ -261,7 +269,7 @@ func TestAdminListUsers_WithTeams(t *testing.T) {
 	}
 	teamRepo := &mockAdminTeamRepo{
 		teamsByUserIDs: map[uint][]dto.TeamSummary{
-			1: {{ID: 10, Name: "Team A", Role: "member"}},
+			1: {{BizKey: "10", Name: "Team A", }},
 		},
 	}
 	svc := NewAdminService(userRepo, teamRepo)
@@ -271,7 +279,7 @@ func TestAdminListUsers_WithTeams(t *testing.T) {
 	assert.Equal(t, 1, int(total))
 	require.Len(t, items, 1)
 	require.Len(t, items[0].Teams, 1)
-	assert.Equal(t, uint(10), items[0].Teams[0].ID)
+	assert.Equal(t, "10", items[0].Teams[0].BizKey)
 	assert.Equal(t, "Team A", items[0].Teams[0].Name)
 }
 
@@ -281,18 +289,18 @@ func TestAdminListUsers_WithTeams(t *testing.T) {
 
 func TestAdminGetUser_Success(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", DisplayName: "Bob", Email: "bob@test.com", Status: "enabled"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", DisplayName: "Bob", Email: "bob@test.com", UserStatus: "enabled"},
 	}
 	teamRepo := &mockAdminTeamRepo{
 		teamsByUserIDs: map[uint][]dto.TeamSummary{
-			5: {{ID: 1, Name: "Team A", Role: "member"}},
+			5: {{BizKey: "1", Name: "Team A", }},
 		},
 	}
 	svc := NewAdminService(userRepo, teamRepo)
 
 	user, err := svc.GetUser(context.Background(), 5)
 	require.NoError(t, err)
-	assert.Equal(t, uint(5), user.ID)
+	assert.Equal(t, "0", user.BizKey)
 	assert.Equal(t, "bob", user.Username)
 	assert.Equal(t, "bob@test.com", user.Email)
 	require.Len(t, user.Teams, 1)
@@ -314,9 +322,9 @@ func TestAdminGetUser_NotFound(t *testing.T) {
 func TestAdminCreateUser_Success(t *testing.T) {
 	userRepo := &mockAdminUserRepo{}
 	teamRepo := &mockAdminTeamRepo{
-		teamByID: &model.Team{BaseModel: model.BaseModel{ID: 10}, Name: "Team A"},
+		teamByID: &model.Team{TeamName: "Team A"},
 		teamsByUserIDs: map[uint][]dto.TeamSummary{
-			100: {{ID: 10, Name: "Team A", Role: "member"}},
+			100: {{BizKey: "10", Name: "Team A", }},
 		},
 	}
 	svc := NewAdminService(userRepo, teamRepo)
@@ -326,7 +334,7 @@ func TestAdminCreateUser_Success(t *testing.T) {
 		Username:    "newuser",
 		DisplayName: "New User",
 		Email:       "new@test.com",
-		TeamID:      &teamID,
+		TeamKey: strPtr(fmt.Sprintf("%d", teamID)),
 	}
 
 	user, err := svc.CreateUser(context.Background(), req)
@@ -371,7 +379,7 @@ func TestAdminCreateUser_TeamNotFound(t *testing.T) {
 	req := &dto.CreateUserReq{
 		Username:    "newuser",
 		DisplayName: "New User",
-		TeamID:      &teamID,
+		TeamKey: strPtr(fmt.Sprintf("%d", teamID)),
 	}
 
 	_, err := svc.CreateUser(context.Background(), req)
@@ -404,7 +412,7 @@ func TestAdminUpdateUser_Success(t *testing.T) {
 	}
 	teamRepo := &mockAdminTeamRepo{
 		teamsByUserIDs: map[uint][]dto.TeamSummary{
-			5: {{ID: 2, Name: "Team B", Role: "member"}},
+			5: {{BizKey: "2", Name: "Team B", }},
 		},
 	}
 	svc := NewAdminService(userRepo, teamRepo)
@@ -437,7 +445,7 @@ func TestAdminUpdateUser_NotFound(t *testing.T) {
 
 func TestAdminToggleUserStatus_DisableSuccess(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", Status: "enabled"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", UserStatus: "enabled"},
 	}
 	teamRepo := &mockAdminTeamRepo{
 		teamsByUserIDs: map[uint][]dto.TeamSummary{},
@@ -447,12 +455,12 @@ func TestAdminToggleUserStatus_DisableSuccess(t *testing.T) {
 	user, err := svc.ToggleUserStatus(context.Background(), 1, 5, "disabled")
 	require.NoError(t, err)
 	assert.Equal(t, "disabled", user.Status)
-	assert.Equal(t, "disabled", userRepo.updated.Status)
+	assert.Equal(t, "disabled", userRepo.updated.UserStatus)
 }
 
 func TestAdminToggleUserStatus_EnableSuccess(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", Status: "disabled"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", UserStatus: "disabled"},
 	}
 	teamRepo := &mockAdminTeamRepo{
 		teamsByUserIDs: map[uint][]dto.TeamSummary{},
@@ -466,7 +474,7 @@ func TestAdminToggleUserStatus_EnableSuccess(t *testing.T) {
 
 func TestAdminToggleUserStatus_CannotDisableSelf(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 1}, Username: "admin", Status: "enabled"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 1}, Username: "admin", UserStatus: "enabled"},
 	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
 
@@ -489,8 +497,8 @@ func TestAdminToggleUserStatus_UserNotFound(t *testing.T) {
 func TestAdminListAllTeams_Success(t *testing.T) {
 	teamRepo := &mockAdminTeamRepo{
 		teams: []*dto.AdminTeamDTO{
-			{ID: 1, Name: "Alpha", PMDisplayName: "Alice", MemberCount: 3, MainItemCount: 5, CreatedAt: "2026-01-01T00:00:00Z"},
-			{ID: 2, Name: "Beta", PMDisplayName: "Bob", MemberCount: 2, MainItemCount: 10, CreatedAt: "2026-02-01T00:00:00Z"},
+			{BizKey: "1", Name: "Alpha", PMDisplayName: "Alice", MemberCount: 3, MainItemCount: 5, CreatedAt: "2026-01-01T00:00:00Z"},
+			{BizKey: "2", Name: "Beta", PMDisplayName: "Bob", MemberCount: 2, MainItemCount: 10, CreatedAt: "2026-02-01T00:00:00Z"},
 		},
 	}
 	svc := NewAdminService(&mockAdminUserRepo{}, teamRepo)
@@ -565,7 +573,7 @@ func BenchmarkAdminListUsers(b *testing.B) {
 			Username:    fmt.Sprintf("user%d", i+1),
 			DisplayName: fmt.Sprintf("User %d", i+1),
 			Email:       fmt.Sprintf("user%d@test.com", i+1),
-			Status:      "enabled",
+			UserStatus: "enabled",
 		}
 	}
 	userRepo := &mockAdminUserRepo{
@@ -624,7 +632,7 @@ func BenchmarkAdminListUsers_WithSearch(b *testing.B) {
 	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{
 		teamsByUserIDs: map[uint][]dto.TeamSummary{
-			1: {{ID: 1, Name: "Team A", Role: "member"}},
+			1: {{BizKey: "1", Name: "Team A", }},
 		},
 	})
 	ctx := context.Background()

@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 )
 
 // SeedAdmin creates the initial admin user if configured and not already present.
@@ -28,6 +29,7 @@ func SeedAdmin(db *gorm.DB, authCfg *AuthConfig) error {
 	}
 
 	user := model.User{
+		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
 		Username:     authCfg.InitialAdmin.Username,
 		DisplayName:  authCfg.InitialAdmin.Username,
 		PasswordHash: string(hash),

@@ -29,17 +29,17 @@ func seedItemPoolBenchData(n int) (*mockItemPoolService, *trackingUserRepo, *tra
 	assignedMainID := uint(100)
 	items := make([]model.ItemPool, n)
 	users := make(map[uint]*model.User, n)
-	mainItems := map[uint]*model.MainItem{100: {Code: "M-001", Title: "Main One"}}
+	mainItems := map[int64]*model.MainItem{100: {Code: "M-001", Title: "Main One"}}
 
 	for i := range items {
 		items[i] = model.ItemPool{
-			TeamID:      10,
+			TeamKey: 10,
 			Title:       fmt.Sprintf("Pool Item %d", i),
-			Status:      []string{"pending", "assigned", "rejected"}[i%3],
-			SubmitterID: uint(i%50 + 1),
+			PoolStatus: []string{"pending", "assigned", "rejected"}[i%3],
+			SubmitterKey: int64(i%50 + 1),
 		}
-		if items[i].Status == "assigned" {
-			items[i].AssignedMainID = &assignedMainID
+		if items[i].PoolStatus == "assigned" {
+			items[i].AssignedMainKey = func() *int64 { v := int64(assignedMainID); return &v }()
 		}
 		users[uint(i%50+1)] = &model.User{DisplayName: fmt.Sprintf("User %d", i%50+1)}
 	}
@@ -63,7 +63,7 @@ func BenchmarkItemPoolHandler_List(b *testing.B) {
 	svc, trackingUser, trackingMainItem := seedItemPoolBenchData(200)
 
 	deps, _ := testDeps(b)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.ItemPool = NewItemPoolHandler(svc, trackingUser, trackingMainItem)
 	r := SetupRouter(deps, nil)
 
@@ -86,7 +86,7 @@ func BenchmarkItemPoolHandler_List_LargePage(b *testing.B) {
 	svc, trackingUser, trackingMainItem := seedItemPoolBenchData(200)
 
 	deps, _ := testDeps(b)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.ItemPool = NewItemPoolHandler(svc, trackingUser, trackingMainItem)
 	r := SetupRouter(deps, nil)
 
@@ -193,6 +193,10 @@ func (m *mockItemPoolService) Reject(_ context.Context, teamID, pmID, poolID uin
 	return m.rejectResult.err
 }
 
+func (m *mockItemPoolService) GetByBizKey(_ context.Context, _ int64) (*model.ItemPool, error) {
+	return m.getResult.item, m.getResult.err
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -203,7 +207,7 @@ func ptrUint(v uint) *uint { return &v }
 func depsWithItemPoolSvc(t *testing.T, svc *mockItemPoolService, userRepo repository.UserRepo) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.ItemPool = NewItemPoolHandler(svc, userRepo, &mockMainItemRepoForPool{})
 	return deps
 }
@@ -212,7 +216,7 @@ func depsWithItemPoolSvc(t *testing.T, svc *mockItemPoolService, userRepo reposi
 func depsWithItemPoolMemberRole(t *testing.T, svc *mockItemPoolService, userRepo repository.UserRepo) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "member", RoleID: ptrUint(2)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(2); return &v }()}}
 	deps.ItemPool = NewItemPoolHandler(svc, userRepo, &mockMainItemRepoForPool{})
 	return deps
 }
@@ -220,10 +224,10 @@ func depsWithItemPoolMemberRole(t *testing.T, svc *mockItemPoolService, userRepo
 // helper to create an ItemPool model for tests.
 func testItemPool(id uint, teamID uint) *model.ItemPool {
 	return &model.ItemPool{
-		TeamID:     teamID,
+		TeamKey: int64(teamID),
 		Title:      "Test Pool Item",
-		Status:     "pending",
-		SubmitterID: 5,
+		PoolStatus: "pending",
+		SubmitterKey: 5,
 	}
 }
 
@@ -493,13 +497,13 @@ func TestAssignItemPool_Success(t *testing.T) {
 	assignedMainID := uint(1)
 	assigneeID := uint(3)
 	updatedItem := &model.ItemPool{
-		TeamID:         10,
+		TeamKey: 10,
 		Title:          "Pool item",
-		Status:         "assigned",
-		AssignedMainID: &assignedMainID,
-		AssignedSubID:  &assignedSubID,
-		AssigneeID:     &assigneeID,
-		SubmitterID:    5,
+		PoolStatus: "assigned",
+		AssignedMainKey: func() *int64 { v := int64(assignedMainID); return &v }(),
+		AssignedSubKey: func() *int64 { v := int64(assignedSubID); return &v }(),
+		AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
+		SubmitterKey:    5,
 	}
 	updatedItem.ID = 5
 	svc.getResult.item = updatedItem
@@ -510,7 +514,7 @@ func TestAssignItemPool_Success(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"mainItemId":1,"assigneeId":3,"startDate":"2026-01-01","expectedEndDate":"2026-02-01"}`
+	body := `{"mainItemKey":"1","assigneeKey":"3","startDate":"2026-01-01","expectedEndDate":"2026-02-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -526,12 +530,12 @@ func TestAssignItemPool_Success(t *testing.T) {
 
 	data, ok := resp["data"].(map[string]interface{})
 	require.True(t, ok)
-	assert.Equal(t, float64(10), data["subItemId"])
+	assert.Equal(t, float64(10), data["subItemBizKey"])
 
 	assert.True(t, svc.assignCalled)
 	assert.Equal(t, uint(10), svc.lastTeamID)
-	assert.Equal(t, uint(1), svc.lastAssignReq.MainItemID)
-	assert.Equal(t, ptrUint(3), svc.lastAssignReq.AssigneeID)
+	assert.Equal(t, "1", svc.lastAssignReq.MainItemKey)
+	assert.Equal(t, ptrStr("3"), svc.lastAssignReq.AssigneeKey)
 }
 
 func TestAssignItemPool_RequiresPM(t *testing.T) {
@@ -543,7 +547,7 @@ func TestAssignItemPool_RequiresPM(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"mainItemId":1,"assigneeId":3,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"mainItemKey":"1","assigneeKey":"3","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -562,7 +566,7 @@ func TestAssignItemPool_InvalidPoolID(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"mainItemId":1,"assigneeId":3,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"mainItemKey":"1","assigneeKey":"3","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/abc/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -575,6 +579,8 @@ func TestAssignItemPool_InvalidPoolID(t *testing.T) {
 
 func TestAssignItemPool_MissingRequiredFields(t *testing.T) {
 	svc := &mockItemPoolService{}
+	svc.getResult.item = &model.ItemPool{}
+	svc.getResult.item.ID = 5
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
@@ -594,6 +600,8 @@ func TestAssignItemPool_MissingRequiredFields(t *testing.T) {
 
 func TestAssignItemPool_AlreadyProcessed(t *testing.T) {
 	svc := &mockItemPoolService{}
+	svc.getResult.item = &model.ItemPool{}
+	svc.getResult.item.ID = 5
 	svc.assignResult.err = apperrors.ErrItemAlreadyProcessed
 
 	userRepo := &mockUserRepoForHandler{}
@@ -602,7 +610,7 @@ func TestAssignItemPool_AlreadyProcessed(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"mainItemId":1,"assigneeId":3,"startDate":"2026-01-01","expectedEndDate":"2026-02-01"}`
+	body := `{"mainItemKey":"1","assigneeKey":"3","startDate":"2026-01-01","expectedEndDate":"2026-02-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -625,12 +633,12 @@ func TestAssignItemPool_SuperAdminBypass(t *testing.T) {
 	assignedMainID := uint(1)
 	assigneeID := uint(3)
 	updatedItem := &model.ItemPool{
-		TeamID:         10,
-		Status:         "assigned",
-		AssignedMainID: &assignedMainID,
-		AssignedSubID:  &assignedSubID,
-		AssigneeID:     &assigneeID,
-		SubmitterID:    5,
+		TeamKey: 10,
+		PoolStatus: "assigned",
+		AssignedMainKey: func() *int64 { v := int64(assignedMainID); return &v }(),
+		AssignedSubKey: func() *int64 { v := int64(assignedSubID); return &v }(),
+		AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
+		SubmitterKey:    5,
 	}
 	updatedItem.ID = 5
 	svc.getResult.item = updatedItem
@@ -642,7 +650,7 @@ func TestAssignItemPool_SuperAdminBypass(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
-	body := `{"mainItemId":1,"assigneeId":3,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"mainItemKey":"1","assigneeKey":"3","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -662,11 +670,11 @@ func TestRejectItemPool_Success(t *testing.T) {
 
 	// Reject handler calls Get after Reject to retrieve the updated item
 	rejectedItem := &model.ItemPool{
-		TeamID:       10,
+		TeamKey: 10,
 		Title:        "Pool item",
-		Status:       "rejected",
+		PoolStatus: "rejected",
 		RejectReason: "Not enough priority",
-		SubmitterID:  5,
+		SubmitterKey:  5,
 	}
 	rejectedItem.ID = 5
 	svc.getResult.item = rejectedItem
@@ -730,6 +738,8 @@ func TestRejectItemPool_InvalidPoolID(t *testing.T) {
 
 func TestRejectItemPool_ReasonRequired(t *testing.T) {
 	svc := &mockItemPoolService{}
+	svc.getResult.item = &model.ItemPool{}
+	svc.getResult.item.ID = 5
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
@@ -749,6 +759,8 @@ func TestRejectItemPool_ReasonRequired(t *testing.T) {
 
 func TestRejectItemPool_AlreadyProcessed(t *testing.T) {
 	svc := &mockItemPoolService{}
+	svc.getResult.item = &model.ItemPool{}
+	svc.getResult.item.ID = 5
 	svc.rejectResult.err = apperrors.ErrItemAlreadyProcessed
 
 	userRepo := &mockUserRepoForHandler{}
@@ -785,20 +797,21 @@ func TestGetItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	reviewerID := uint(2)
 
 	item := &model.ItemPool{
-		TeamID:         10,
+		TeamKey: 10,
 		Title:          "优化首页加载速度",
 		Background:     "用户反馈首页加载超过 3 秒",
 		ExpectedOutput: "首页 LCP < 1.5 秒",
-		SubmitterID:    5,
-		Status:         "assigned",
-		AssignedMainID: &assignedMainID,
-		AssignedSubID:  &assignedSubID,
-		AssigneeID:     &assigneeID,
+		SubmitterKey:    5,
+		PoolStatus: "assigned",
+		AssignedMainKey: func() *int64 { v := int64(assignedMainID); return &v }(),
+		AssignedSubKey: func() *int64 { v := int64(assignedSubID); return &v }(),
+		AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
 		RejectReason:   "",
 		ReviewedAt:     &now,
-		ReviewerID:     &reviewerID,
+		ReviewerKey: func() *int64 { v := int64(reviewerID); return &v }(),
 	}
 	item.ID = 50
+	item.BizKey = 50
 
 	svc.getResult.item = item
 
@@ -822,29 +835,30 @@ func TestGetItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	data := resp["data"].(map[string]interface{})
 
 	// Verify all fields from Data Contract are present
-	assert.Equal(t, float64(50), data["id"])
+	assert.Equal(t, "50", data["bizKey"])
 	assert.Equal(t, "优化首页加载速度", data["title"])
 	assert.Equal(t, "用户反馈首页加载超过 3 秒", data["background"])
 	assert.Equal(t, "首页 LCP < 1.5 秒", data["expectedOutput"])
-	assert.Equal(t, float64(5), data["submitterId"])
+	assert.Equal(t, "5", data["submitterKey"])
 	assert.Equal(t, "王五", data["submitterName"])
-	assert.Equal(t, "assigned", data["status"])
-	assert.Equal(t, float64(1), data["assignedMainId"])
-	assert.Equal(t, float64(10), data["assignedSubId"])
-	assert.Equal(t, float64(3), data["assigneeId"])
+	assert.Equal(t, "assigned", data["poolStatus"])
+	assert.Equal(t, "1", data["assignedMainKey"])
+	assert.Equal(t, "10", data["assignedSubKey"])
+	assert.Equal(t, "3", data["assigneeKey"])
 }
 
 func TestSubmitItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	svc := &mockItemPoolService{}
 	item := &model.ItemPool{
-		TeamID:         10,
+		TeamKey: 10,
 		Title:          "优化首页加载速度",
 		Background:     "用户反馈首页加载超过 3 秒",
 		ExpectedOutput: "首页 LCP < 1.5 秒",
-		SubmitterID:    5,
-		Status:         "pending",
+		SubmitterKey:    5,
+		PoolStatus: "pending",
 	}
 	item.ID = 50
+	item.BizKey = 50
 
 	svc.submitResult.item = item
 
@@ -868,9 +882,9 @@ func TestSubmitItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	require.NoError(t, err)
 
 	data := resp["data"].(map[string]interface{})
-	assert.Equal(t, "pending", data["status"])
+	assert.Equal(t, "pending", data["poolStatus"])
 	assert.Equal(t, "王五", data["submitterName"])
-	assert.Equal(t, float64(5), data["submitterId"])
+	assert.Equal(t, "5", data["submitterKey"])
 }
 
 // ---------------------------------------------------------------------------
@@ -887,13 +901,13 @@ func TestAssignItemPool_ReturnsSubItemId(t *testing.T) {
 
 	// The handler will call Get after Assign to retrieve the updated item
 	updatedItem := &model.ItemPool{
-		TeamID:         10,
+		TeamKey: 10,
 		Title:          "Pool item",
-		Status:         "assigned",
-		AssignedMainID: &assignedMainID,
-		AssignedSubID:  &assignedSubID,
-		AssigneeID:     &assigneeID,
-		SubmitterID:    5,
+		PoolStatus: "assigned",
+		AssignedMainKey: func() *int64 { v := int64(assignedMainID); return &v }(),
+		AssignedSubKey: func() *int64 { v := int64(assignedSubID); return &v }(),
+		AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
+		SubmitterKey:    5,
 	}
 	updatedItem.ID = 5
 
@@ -906,7 +920,7 @@ func TestAssignItemPool_ReturnsSubItemId(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := fmt.Sprintf(`{"mainItemId":%d,"assigneeId":%d,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, assignedMainID, assigneeID)
+	body := fmt.Sprintf(`{"mainItemKey":"%d","assigneeKey":"%d","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, assignedMainID, assigneeID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -922,7 +936,7 @@ func TestAssignItemPool_ReturnsSubItemId(t *testing.T) {
 
 	data, ok := resp["data"].(map[string]interface{})
 	require.True(t, ok)
-	assert.Equal(t, float64(123), data["subItemId"])
+	assert.Equal(t, float64(123), data["subItemBizKey"])
 }
 
 // ---------------------------------------------------------------------------
@@ -932,12 +946,12 @@ func TestAssignItemPool_ReturnsSubItemId(t *testing.T) {
 func TestListItemPool_UsesBatchLookup(t *testing.T) {
 	svc := &mockItemPoolService{}
 
-	assignedMainID := uint(100)
-	item1 := &model.ItemPool{TeamID: 10, Title: "A", Status: "assigned", SubmitterID: 5, AssignedMainID: &assignedMainID}
+	assignedMainID := int64(100)
+	item1 := &model.ItemPool{PoolStatus: "assigned", SubmitterKey: 5, AssignedMainKey: &assignedMainID}
 	item1.ID = 1
-	item2 := &model.ItemPool{TeamID: 10, Title: "B", Status: "assigned", SubmitterID: 7, AssignedMainID: &assignedMainID}
+	item2 := &model.ItemPool{PoolStatus: "assigned", SubmitterKey: 7, AssignedMainKey: &assignedMainID}
 	item2.ID = 2
-	item3 := &model.ItemPool{TeamID: 10, Title: "C", Status: "pending", SubmitterID: 5}
+	item3 := &model.ItemPool{PoolStatus: "pending", SubmitterKey: 5}
 	item3.ID = 3
 
 	svc.listResult.page = &dto.PageResult[model.ItemPool]{
@@ -952,13 +966,13 @@ func TestListItemPool_UsesBatchLookup(t *testing.T) {
 		},
 	}
 	trackingMainItem := &trackingMainItemRepo{
-		items: map[uint]*model.MainItem{
+		items: map[int64]*model.MainItem{
 			100: {Code: "M-001", Title: "Main One"},
 		},
 	}
 
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.ItemPool = NewItemPoolHandler(svc, trackingUser, trackingMainItem)
 	r := SetupRouter(deps, nil)
 
@@ -971,8 +985,8 @@ func TestListItemPool_UsesBatchLookup(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 1, trackingUser.findByIDsCallCount, "FindByIDs should be called once for users")
 	assert.Equal(t, 0, trackingUser.findByIDCallCount, "FindByID should not be called in batch path")
-	assert.Equal(t, 1, trackingMainItem.findByIDsCallCount, "FindByIDs should be called once for main items")
-	assert.Equal(t, 0, trackingMainItem.findByIDCallCount, "FindByID should not be called in batch path")
+	assert.Equal(t, 1, trackingMainItem.findByBizKeysCallCount, "FindByBizKeys should be called once for main items")
+	assert.Equal(t, 0, trackingMainItem.findByBizKeyCallCount, "FindByBizKey should not be called in batch path")
 
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
@@ -995,25 +1009,34 @@ func TestListItemPool_UsesBatchLookup(t *testing.T) {
 
 // trackingMainItemRepo tracks call counts to verify batch vs individual lookups.
 type trackingMainItemRepo struct {
-	items              map[uint]*model.MainItem
-	findByIDsCallCount int
-	findByIDCallCount  int
+	items                    map[int64]*model.MainItem
+	findByBizKeysCallCount   int
+	findByBizKeyCallCount    int
 }
 
 func (t *trackingMainItemRepo) Create(_ context.Context, _ *model.MainItem) error { return nil }
 func (t *trackingMainItemRepo) FindByID(_ context.Context, _ uint) (*model.MainItem, error) {
-	t.findByIDCallCount++
 	return nil, nil
 }
-func (t *trackingMainItemRepo) FindByIDs(_ context.Context, ids []uint) (map[uint]*model.MainItem, error) {
-	t.findByIDsCallCount++
-	result := make(map[uint]*model.MainItem, len(ids))
-	for _, id := range ids {
-		if item, ok := t.items[id]; ok {
-			result[id] = item
+func (t *trackingMainItemRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
+	return nil, nil
+}
+func (t *trackingMainItemRepo) FindByBizKeys(_ context.Context, bizKeys []int64) (map[int64]*model.MainItem, error) {
+	t.findByBizKeysCallCount++
+	result := make(map[int64]*model.MainItem, len(bizKeys))
+	for _, key := range bizKeys {
+		if item, ok := t.items[key]; ok {
+			result[key] = item
 		}
 	}
 	return result, nil
+}
+func (t *trackingMainItemRepo) FindByBizKey(_ context.Context, key int64) (*model.MainItem, error) {
+	t.findByBizKeyCallCount++
+	if item, ok := t.items[key]; ok {
+		return item, nil
+	}
+	return nil, nil
 }
 func (t *trackingMainItemRepo) Update(_ context.Context, _ *model.MainItem, _ map[string]interface{}) error {
 	return nil
@@ -1058,6 +1081,14 @@ func (m *mockMainItemRepoForPool) ListNonArchivedByTeam(_ context.Context, _ uin
 func (m *mockMainItemRepoForPool) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
 	return nil, nil
 }
+func (m *mockMainItemRepoForPool) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.MainItem, error) {
+	return nil, nil
+}
 func (m *mockMainItemRepoForPool) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
 	return nil, nil
 }
+func (m *mockMainItemRepoForPool) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
+	return nil, nil
+}
+
+func ptrStr(s string) *string { return &s }

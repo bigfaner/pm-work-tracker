@@ -11,9 +11,10 @@ import (
 type TeamRepo interface {
 	Create(ctx context.Context, team *model.Team) error
 	FindByID(ctx context.Context, teamID uint) (*model.Team, error)
+	FindByBizKey(ctx context.Context, bizKey int64) (*model.Team, error)
 	List(ctx context.Context) ([]*model.Team, error)
 	Update(ctx context.Context, team *model.Team) error
-	Delete(ctx context.Context, teamID uint) error
+	SoftDelete(ctx context.Context, id uint) error
 
 	// TeamMember operations
 	AddMember(ctx context.Context, member *model.TeamMember) error
@@ -30,4 +31,16 @@ type TeamRepo interface {
 	// Admin operations
 	ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error)
 	FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[uint][]dto.TeamSummary, error)
+}
+
+// TeamMemberRepo defines persistence operations for TeamMember entities.
+type TeamMemberRepo interface {
+	AddMember(ctx context.Context, member *model.TeamMember) error
+	RemoveMember(ctx context.Context, teamID, userID uint) error
+	FindMember(ctx context.Context, teamID, userID uint) (*model.TeamMember, error)
+	ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMemberDTO, error)
+	CountMembers(ctx context.Context, teamID uint) (int64, error)
+	UpdateMember(ctx context.Context, member *model.TeamMember) error
+	FindPMMembers(ctx context.Context, teamIDs []uint) (map[uint]string, error)
+	SoftDelete(ctx context.Context, id uint) error
 }

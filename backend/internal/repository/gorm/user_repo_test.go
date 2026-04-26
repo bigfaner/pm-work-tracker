@@ -203,10 +203,10 @@ func TestUserRepo_SearchAvailable(t *testing.T) {
 	require.NoError(t, db.Create(&u2).Error)
 	require.NoError(t, db.Create(&u3).Error)
 
-	team := model.Team{Name: "Team1", PmID: u1.ID, Code: "T1"}
+	team := model.Team{TeamName: "Team1", PmKey: int64(u1.ID), Code: "T1"}
 	require.NoError(t, db.Create(&team).Error)
 	// u2 is already a team member
-	require.NoError(t, db.Create(&model.TeamMember{TeamID: team.ID, UserID: u2.ID, JoinedAt: time.Now()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u2.ID), JoinedAt: time.Now()}).Error)
 
 	t.Run("excludes_team_members", func(t *testing.T) {
 		users, err := repo.SearchAvailable(ctx, team.ID, "", 10)

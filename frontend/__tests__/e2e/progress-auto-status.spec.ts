@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { BASE, API, login, getAuthToken, parseApiData } from './test-helpers';
+import { BASE, API, login, getAuthToken, parseApiData, extractBizKey } from './test-helpers';
 
 const TIMEOUT = 120000;
 
@@ -11,6 +11,7 @@ test.describe.serial('进度追加 - 自动状态流转', () => {
   let testMainItemId: string;
   let subItem1Id: string; // for first-progress -> progressing test
   let subItem2Id: string; // for 100% -> completed test
+  let assigneeKey: string;
 
   // ====== SETUP ======
   test.beforeAll(async ({ playwright }) => {
@@ -29,31 +30,39 @@ test.describe.serial('进度追加 - 自动状态流转', () => {
     const teamsRaw = parseApiData(await teamsRes.json());
     const teamsData = Array.isArray(teamsRaw) ? teamsRaw : (teamsRaw?.items ?? []);
     if (teamsData.length === 0) throw new Error('beforeAll: no teams found');
-    teamId = String(teamsData[0].id);
+    teamId = String(teamsData[0].bizKey);
+
+    // Get team members for assigneeKey
+    const membersRes = await request.get(`/v1/teams/${teamId}/members`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const membersData = parseApiData(await membersRes.json());
+    const memberList = Array.isArray(membersData) ? membersData : (membersData?.items ?? []);
+    assigneeKey = memberList[0]?.userKey ?? '';
 
     // Create main item
     const mainRes = await request.post(`/v1/teams/${teamId}/main-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
-      data: { title: 'E2E自动状态测试-主事项', priority: 'P2', assigneeId: 1, startDate: '2026-04-19', expectedEndDate: '2026-05-19' },
+      data: { title: 'E2E自动状态测试-主事项', priority: 'P2', assigneeKey, startDate: '2026-04-19', expectedEndDate: '2026-05-19' },
     });
     const mainData = parseApiData(await mainRes.json());
-    testMainItemId = String(mainData.id);
+    testMainItemId = extractBizKey(mainData) ?? '';
 
     // Create sub-item 1 (for first-progress test)
     const sub1Res = await request.post(`/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
-      data: { mainItemId: Number(testMainItemId), title: 'E2E自动状态-首次进度', priority: 'P2', assigneeId: 1 },
+      data: { mainItemKey: String(testMainItemId), title: 'E2E自动状态-首次进度', priority: 'P2', assigneeKey, startDate: '2026-04-19', expectedEndDate: '2026-05-19' },
     });
     const sub1Data = parseApiData(await sub1Res.json());
-    subItem1Id = String(sub1Data.id);
+    subItem1Id = extractBizKey(sub1Data) ?? '';
 
     // Create sub-item 2 (for 100% completion test)
     const sub2Res = await request.post(`/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
-      data: { mainItemId: Number(testMainItemId), title: 'E2E自动状态-100%完成', priority: 'P2', assigneeId: 1 },
+      data: { mainItemKey: String(testMainItemId), title: 'E2E自动状态-100%完成', priority: 'P2', assigneeKey, startDate: '2026-04-19', expectedEndDate: '2026-05-19' },
     });
     const sub2Data = parseApiData(await sub2Res.json());
-    subItem2Id = String(sub2Data.id);
+    subItem2Id = extractBizKey(sub2Data) ?? '';
 
     // Transition sub-item 2 to progressing first (so 100% can reach completed)
     await request.put(`/v1/teams/${teamId}/sub-items/${subItem2Id}/status`, {
@@ -144,13 +153,13 @@ test.describe.serial('进度追加 - 自动状态流转', () => {
     // Create a new sub-item via API
     const subRes = await request.post(`/v1/teams/${teamId}/main-items/${testMainItemId}/sub-items`, {
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-      data: { mainItemId: Number(testMainItemId), title: 'API自动状态-pending直接100%', priority: 'P2', assigneeId: 1 },
+      data: { mainItemKey: String(testMainItemId), title: 'API自动状态-pending直接100%', priority: 'P2', assigneeKey, startDate: '2026-04-19', expectedEndDate: '2026-05-19' },
     });
     const subData = parseApiData(await subRes.json());
-    const subId = subData.id;
+    const subId = extractBizKey(subData);
 
     // Verify initial status is pending
-    expect(subData.status).toBe('pending');
+    expect(subData.itemStatus).toBe('pending');
 
     // Append progress with 100%
     const progressRes = await request.post(`/v1/teams/${teamId}/sub-items/${subId}/progress`, {
@@ -164,7 +173,7 @@ test.describe.serial('进度追加 - 自动状态流转', () => {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     const fetchData = parseApiData(await fetchRes.json());
-    expect(fetchData.status).toBe('completed');
+    expect(fetchData.itemStatus).toBe('completed');
     expect(fetchData.completion).toBe(100);
   });
 

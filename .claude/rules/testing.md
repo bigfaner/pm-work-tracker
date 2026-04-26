@@ -154,6 +154,27 @@ it('calls correct endpoint for list', async () => {
 });
 ```
 
+## Running Tests
+
+**Only run tests directly related to the files you changed.** Do not run `go test ./...` or `go test ./internal/...` unless explicitly asked.
+
+```bash
+# ✅ Correct — run only the package you modified
+go test ./internal/service/team_service_test.go ./internal/service/team_service.go
+go test ./internal/handler/ -run TestTeam
+go test ./internal/model/ -run TestTeam
+
+# ❌ Wrong — runs everything, surfaces unrelated failures
+go test ./...
+go test ./internal/...
+```
+
+Map changed files to their test targets:
+- `model/team.go` → `go test ./internal/model/ -run TestTeam`
+- `service/team_service.go` → `go test ./internal/service/ -run TestTeam`
+- `handler/team_handler.go` → `go test ./internal/handler/ -run TestTeam`
+- `repository/gorm/team_repo.go` → `go test ./internal/repository/gorm/ -run TestTeam`
+
 ## Test Assertions
 
 Go: use `github.com/stretchr/testify` — `assert` for non-fatal, `require` for fatal (stops test on failure).

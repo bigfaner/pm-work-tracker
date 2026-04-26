@@ -27,12 +27,12 @@ func assertPanicMessage(t *testing.T, name string, f func(), want string) {
 
 func TestNewSubItemHandler_PanicsOnNilService(t *testing.T) {
 	assertPanicMessage(t, "SubItemHandler/nil-svc", func() {
-		NewSubItemHandler(nil)
+		NewSubItemHandler(nil, &StubMainItemSvc{})
 	}, "sub_item_handler: subItemService must not be nil")
 }
 
 func TestNewSubItemHandler_SucceedsWithValidDeps(t *testing.T) {
-	h := NewSubItemHandler(&StubSubItemSvc{})
+	h := NewSubItemHandler(&StubSubItemSvc{}, &StubMainItemSvc{})
 	if h == nil {
 		t.Fatal("expected non-nil handler")
 	}
@@ -177,18 +177,18 @@ func TestNewViewHandler_SucceedsWithValidDeps(t *testing.T) {
 
 func TestNewProgressHandler_PanicsOnNilService(t *testing.T) {
 	assertPanicMessage(t, "ProgressHandler/nil-svc", func() {
-		NewProgressHandler(nil, &StubRouterRepoUser{})
+		NewProgressHandler(nil, &StubRouterRepoUser{}, &StubSubItemSvc{})
 	}, "progress_handler: progressService must not be nil")
 }
 
 func TestNewProgressHandler_PanicsOnNilUserRepo(t *testing.T) {
 	assertPanicMessage(t, "ProgressHandler/nil-userRepo", func() {
-		NewProgressHandler(&StubProgressSvc{}, nil)
+		NewProgressHandler(&StubProgressSvc{}, nil, &StubSubItemSvc{})
 	}, "progress_handler: userRepo must not be nil")
 }
 
 func TestNewProgressHandler_SucceedsWithValidDeps(t *testing.T) {
-	h := NewProgressHandler(&StubProgressSvc{}, &StubRouterRepoUser{})
+	h := NewProgressHandler(&StubProgressSvc{}, &StubRouterRepoUser{}, &StubSubItemSvc{})
 	if h == nil {
 		t.Fatal("expected non-nil handler")
 	}

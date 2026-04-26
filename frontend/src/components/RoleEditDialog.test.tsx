@@ -17,7 +17,7 @@ function createQueryClient() {
   })
 }
 
-function renderDialog(props: { open: boolean; onOpenChange: (v: boolean) => void; roleId?: number | null }) {
+function renderDialog(props: { open: boolean; onOpenChange: (v: boolean) => void; roleId?: string | null }) {
   const qc = createQueryClient()
   return render(
     <QueryClientProvider client={qc}>
@@ -31,38 +31,38 @@ function renderDialog(props: { open: boolean; onOpenChange: (v: boolean) => void
 function setupHandlers() {
   server.use(
     http.get('/v1/admin/roles/:id', ({ params }) => {
-      const id = Number(params.id)
-      if (id === 1) {
+      const id = params.id as string
+      if (id === '1') {
         return HttpResponse.json({
           code: 0,
           data: {
-            id: 1,
-            name: 'superadmin',
-            description: '超级管理员',
+            bizKey: '1',
+            roleName: 'superadmin',
+            roleDesc: '超级管理员',
             isPreset: true,
             permissions: [
               { code: 'team:create', description: '创建团队' },
               { code: 'team:read', description: '查看团队信息' },
             ],
             memberCount: 2,
-            createdAt: '2026-04-01T00:00:00Z',
+            createTime: '2026-04-01T00:00:00Z',
           },
         })
       }
-      if (id === 4) {
+      if (id === '4') {
         return HttpResponse.json({
           code: 0,
           data: {
-            id: 4,
-            name: 'viewer',
-            description: '只读查看者',
+            bizKey: '4',
+            roleName: 'viewer',
+            roleDesc: '只读查看者',
             isPreset: false,
             permissions: [
               { code: 'team:read', description: '查看团队信息' },
               { code: 'main_item:read', description: '查看主事项' },
             ],
             memberCount: 0,
-            createdAt: '2026-04-15T12:00:00Z',
+            createTime: '2026-04-15T12:00:00Z',
           },
         })
       }
@@ -84,29 +84,29 @@ function setupHandlers() {
       return HttpResponse.json({
         code: 0,
         data: {
-          id: 100,
-          name,
-          description: body.description || '',
+          bizKey: '100',
+          roleName: name,
+          roleDesc: body.description || '',
           isPreset: false,
           permissionCount: (body.permissionCodes as string[]).length,
           memberCount: 0,
-          createdAt: '2026-04-19T12:00:00Z',
+          createTime: '2026-04-19T12:00:00Z',
         },
       })
     }),
 
     http.put('/v1/admin/roles/:id', async ({ params }) => {
-      const id = Number(params.id)
+      const id = params.id as string
       return HttpResponse.json({
         code: 0,
         data: {
-          id,
-          name: 'viewer',
-          description: 'updated',
+          bizKey: id,
+          roleName: 'viewer',
+          roleDesc: 'updated',
           isPreset: false,
           permissions: [{ code: 'team:read', description: '查看团队信息' }],
           memberCount: 0,
-          createdAt: '2026-04-15T12:00:00Z',
+          createTime: '2026-04-15T12:00:00Z',
         },
       })
     }),
@@ -124,14 +124,14 @@ describe('RoleEditDialog', () => {
   })
 
   it('shows edit mode title with role name', async () => {
-    renderDialog({ open: true, onOpenChange: vi.fn(), roleId: 4 })
+    renderDialog({ open: true, onOpenChange: vi.fn(), roleId: '4' })
     await waitFor(() => {
       expect(screen.getByText(/编辑角色.*viewer/)).toBeInTheDocument()
     })
   })
 
   it('pre-fills form in edit mode', async () => {
-    renderDialog({ open: true, onOpenChange: vi.fn(), roleId: 4 })
+    renderDialog({ open: true, onOpenChange: vi.fn(), roleId: '4' })
     await waitFor(() => {
       const input = screen.getByPlaceholderText('请输入角色名称（2-50 个字符）') as HTMLInputElement
       expect(input.value).toBe('viewer')
@@ -139,7 +139,7 @@ describe('RoleEditDialog', () => {
   })
 
   it('disables name input for preset roles', async () => {
-    renderDialog({ open: true, onOpenChange: vi.fn(), roleId: 1 })
+    renderDialog({ open: true, onOpenChange: vi.fn(), roleId: '1' })
     await waitFor(() => {
       const input = screen.getByPlaceholderText('请输入角色名称（2-50 个字符）') as HTMLInputElement
       expect(input.disabled).toBe(true)

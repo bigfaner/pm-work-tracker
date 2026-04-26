@@ -39,7 +39,7 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 	require.NoError(t, err)
 
 	// Auto-migrate RBAC tables so RequirePermission middleware can query roles
-	err = db.AutoMigrate(&model.Role{}, &model.RolePermission{}, &model.TeamMember{})
+	err = db.AutoMigrate(&model.Team{}, &model.Role{}, &model.RolePermission{}, &model.TeamMember{})
 	require.NoError(t, err)
 
 	// Seed a PM role (ID=1) with a broad set of permissions for testing.
@@ -128,8 +128,8 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 		Auth:     NewAuthHandler(&stubAuthService{}),
 		Team:     NewTeamHandler(&StubTeamSvc{}, &StubRouterRepoUser{}),
 		MainItem: NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, &StubRouterRepoSubItem{}),
-		SubItem:  NewSubItemHandler(&StubSubItemSvc{}),
-		Progress: NewProgressHandler(&StubProgressSvc{}, &StubRouterRepoUser{}),
+		SubItem:  NewSubItemHandler(&StubSubItemSvc{}, &StubMainItemSvc{}),
+		Progress: NewProgressHandler(&StubProgressSvc{}, &StubRouterRepoUser{}, &StubSubItemSvc{}),
 		ItemPool: NewItemPoolHandler(&StubItemPoolSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMainItem{}),
 		View:     NewViewHandler(&StubViewSvc{}),
 		Report:   NewReportHandler(&StubReportSvc{}),
@@ -496,7 +496,10 @@ func (m *mockTeamRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*m
 	return nil, 0, nil
 }
 func (m *mockTeamRepo) Update(_ context.Context, _ *model.Team) error { return nil }
-func (m *mockTeamRepo) Delete(_ context.Context, _ uint) error        { return nil }
+func (m *mockTeamRepo) SoftDelete(_ context.Context, _ uint) error    { return nil }
+func (m *mockTeamRepo) FindByBizKey(_ context.Context, bizKey int64) (*model.Team, error) {
+	return &model.Team{BaseModel: model.BaseModel{ID: uint(bizKey)}}, nil
+}
 func (m *mockTeamRepo) AddMember(_ context.Context, _ *model.TeamMember) error {
 	return nil
 }
@@ -507,7 +510,7 @@ func (m *mockTeamRepo) FindMember(_ context.Context, _, _ uint) (*model.TeamMemb
 	}
 	// Default: member with RoleID=1 (PM role seeded in testDeps)
 	pmRoleID := uint(1)
-	return &model.TeamMember{Role: "pm", RoleID: &pmRoleID}, nil
+	return &model.TeamMember{ RoleKey: func() *int64 { v := int64(pmRoleID); return &v }()}, nil
 }
 func (m *mockTeamRepo) ListMembers(_ context.Context, _ uint) ([]*dto.TeamMemberDTO, error) {
 	return nil, nil

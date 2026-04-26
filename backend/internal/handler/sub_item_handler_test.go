@@ -139,6 +139,35 @@ func (m *mockSubItemService) AvailableTransitions(_ context.Context, teamID, sub
 func (m *mockSubItemService) Delete(_ context.Context, _, _, _ uint) error {
 	return nil
 }
+func (m *mockSubItemService) GetByBizKey(_ context.Context, bizKey int64) (*model.SubItem, error) {
+	return &model.SubItem{BaseModel: model.BaseModel{ID: uint(bizKey)}}, nil
+}
+
+// mockMainItemSvcForSubItem resolves bizKey for SubItemHandler List tests.
+type mockMainItemSvcForSubItem struct{}
+
+func (m *mockMainItemSvcForSubItem) Create(_ context.Context, _, _ uint, _ dto.MainItemCreateReq) (*model.MainItem, error) {
+	return nil, nil
+}
+func (m *mockMainItemSvcForSubItem) Update(_ context.Context, _ uint, _ uint, _ dto.MainItemUpdateReq) error { return nil }
+func (m *mockMainItemSvcForSubItem) Archive(_ context.Context, _ uint, _ uint) error                        { return nil }
+func (m *mockMainItemSvcForSubItem) List(_ context.Context, _ uint, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+	return nil, nil
+}
+func (m *mockMainItemSvcForSubItem) Get(_ context.Context, _ uint) (*model.MainItem, error) { return nil, nil }
+func (m *mockMainItemSvcForSubItem) GetByBizKey(_ context.Context, bizKey int64) (*model.MainItem, error) {
+	return &model.MainItem{BaseModel: model.BaseModel{ID: uint(bizKey)}}, nil
+}
+func (m *mockMainItemSvcForSubItem) RecalcCompletion(_ context.Context, _ uint) error { return nil }
+func (m *mockMainItemSvcForSubItem) ChangeStatus(_ context.Context, _, _, _ uint, _ string) (*model.MainItem, error) {
+	return nil, nil
+}
+func (m *mockMainItemSvcForSubItem) AvailableTransitions(_ context.Context, _, _, _ uint) ([]string, error) {
+	return nil, nil
+}
+func (m *mockMainItemSvcForSubItem) EvaluateLinkage(_ context.Context, _ uint, _ uint) (*service.LinkageResult, error) {
+	return nil, nil
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -149,8 +178,8 @@ func (m *mockSubItemService) Delete(_ context.Context, _, _, _ uint) error {
 func depsWithSubItemSvc(t *testing.T, svc *mockSubItemService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "pm", RoleID: ptrUint(1)}}
-	deps.SubItem = NewSubItemHandler(svc)
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.SubItem = NewSubItemHandler(svc, &mockMainItemSvcForSubItem{})
 	return deps
 }
 
@@ -159,19 +188,19 @@ func depsWithSubItemSvc(t *testing.T, svc *mockSubItemService) *Dependencies {
 func depsWithSubItemSvcMemberRole(t *testing.T, svc *mockSubItemService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{Role: "member", RoleID: ptrUint(2)}}
-	deps.SubItem = NewSubItemHandler(svc)
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(2); return &v }()}}
+	deps.SubItem = NewSubItemHandler(svc, &mockMainItemSvcForSubItem{})
 	return deps
 }
 
 // testSubItem creates a SubItem model for tests.
 func testSubItem(id uint, teamID uint) *model.SubItem {
 	return &model.SubItem{
-		TeamID:     teamID,
-		MainItemID: 1,
+		TeamKey: int64(teamID),
+		MainItemKey: int64(1),
 		Title:      "Test SubItem",
 		Priority:   "P2",
-		Status:     "pending",
+		ItemStatus: "pending",
 	}
 }
 
@@ -189,7 +218,7 @@ func TestCreateSubItem_Success(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"mainItemId":1,"title":"Test SubItem","priority":"P2","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"mainItemKey":"1","title":"Test SubItem","priority":"P2","assigneeKey":"1","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/sub-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -221,7 +250,7 @@ func TestCreateSubItem_MemberCanCreate(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"mainItemId":1,"title":"Test SubItem","priority":"P2","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"mainItemKey":"1","title":"Test SubItem","priority":"P2","assigneeKey":"1","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/sub-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -258,7 +287,7 @@ func TestCreateSubItem_ServiceError(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"mainItemId":1,"title":"Test","priority":"P2","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"mainItemKey":"1","title":"Test","priority":"P2","assigneeKey":"1","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/sub-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -348,7 +377,8 @@ func TestGetSubItem_Success(t *testing.T) {
 	svc := &mockSubItemService{}
 	item := testSubItem(1, 10)
 	item.ID = 1
-	item.Status = "progressing"
+	item.BizKey = 1
+	item.ItemStatus = "progressing"
 	item.Completion = 60
 	svc.getResult.item = item
 
@@ -446,7 +476,7 @@ func TestUpdateSubItem_Success_AsAssignee(t *testing.T) {
 	assigneeID := uint(5)
 	item := testSubItem(1, 10)
 	item.ID = 1
-	item.AssigneeID = &assigneeID
+	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
 	item.Title = "Updated"
 	svc.getResult.item = item
 
@@ -470,7 +500,7 @@ func TestUpdateSubItem_Forbidden_NonPMNonAssignee(t *testing.T) {
 	assigneeID := uint(99) // different user
 	item := testSubItem(1, 10)
 	item.ID = 1
-	item.AssigneeID = &assigneeID
+	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
 	svc.getResult.item = item
 
 	deps := depsWithSubItemSvcMemberRole(t, svc)
@@ -532,7 +562,8 @@ func TestChangeStatus_Success(t *testing.T) {
 	svc := &mockSubItemService{}
 	item := testSubItem(1, 10)
 	item.ID = 1
-	item.Status = "progressing"
+	item.BizKey = 1
+	item.ItemStatus = "progressing"
 	svc.changeStatusResult.result = &service.SubItemChangeResult{SubItem: item}
 
 	deps := depsWithSubItemSvc(t, svc)
@@ -557,7 +588,7 @@ func TestChangeStatus_Success(t *testing.T) {
 	require.True(t, ok)
 	subItem, ok := data["subItem"].(map[string]interface{})
 	require.True(t, ok)
-	assert.Equal(t, "progressing", subItem["status"])
+	assert.Equal(t, "progressing", subItem["itemStatus"])
 }
 
 func TestChangeStatus_InvalidStatus_422(t *testing.T) {
@@ -624,8 +655,8 @@ func TestChangeStatus_AsAssignee(t *testing.T) {
 	assigneeID := uint(5)
 	item := testSubItem(1, 10)
 	item.ID = 1
-	item.AssigneeID = &assigneeID
-	item.Status = "progressing"
+	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
+	item.ItemStatus = "progressing"
 	svc.getResult.item = item // needed for assignee check
 	svc.changeStatusResult.result = &service.SubItemChangeResult{SubItem: item}
 
@@ -649,7 +680,7 @@ func TestChangeStatus_Forbidden_NonPMNonAssignee(t *testing.T) {
 	assigneeID := uint(99)
 	item := testSubItem(1, 10)
 	item.ID = 1
-	item.AssigneeID = &assigneeID
+	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
 	svc.getResult.item = item
 
 	deps := depsWithSubItemSvcMemberRole(t, svc)
@@ -726,7 +757,7 @@ func TestAssignSubItem_Success(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"assigneeId":3}`
+	body := `{"assigneeKey":"3"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/assignee", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -747,7 +778,7 @@ func TestAssignSubItem_RequiresPM(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"assigneeId":3}`
+	body := `{"assigneeKey":"3"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/assignee", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -765,7 +796,7 @@ func TestAssignSubItem_InvalidID(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"assigneeId":3}`
+	body := `{"assigneeKey":"3"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/abc/assignee", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -802,7 +833,7 @@ func TestAssignSubItem_ItemNotFound(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"assigneeId":3}`
+	body := `{"assigneeKey":"3"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/999/assignee", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -820,7 +851,7 @@ func TestAssignSubItem_SuperAdminBypass(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
-	body := `{"assigneeId":3}`
+	body := `{"assigneeKey":"3"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/assignee", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -840,20 +871,21 @@ func TestGetSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	now := time.Now()
 	assigneeID := uint(3)
 	item := &model.SubItem{
-		TeamID:          10,
-		MainItemID:      1,
+		TeamKey: 10,
+		MainItemKey: int64(1),
 		Title:           "实现支付接口",
-		Description:     "对接微信支付",
+		ItemDesc: "对接微信支付",
 		Priority:        "P2",
-		AssigneeID:      &assigneeID,
-		StartDate:       &now,
+		AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
+		PlanStartDate: &now,
 		ExpectedEndDate: &now,
-		Status:          "progressing",
+		ItemStatus: "progressing",
 		Completion:      60.0,
 		IsKeyItem:       false,
 		Weight:          1.0,
 	}
 	item.ID = 1
+	item.BizKey = 1
 
 	svc.getResult.item = item
 
@@ -877,33 +909,34 @@ func TestGetSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	// Verify all expected fields
 	assert.Equal(t, "实现支付接口", data["title"])
 	assert.Equal(t, "P2", data["priority"])
-	assert.Equal(t, float64(3), data["assigneeId"])
-	assert.Equal(t, "progressing", data["status"])
+	assert.Equal(t, "3", data["assigneeKey"])
+	assert.Equal(t, "progressing", data["itemStatus"])
 	assert.Equal(t, 60.0, data["completion"])
 	assert.Equal(t, false, data["isKeyItem"])
-	assert.Equal(t, float64(1), data["mainItemId"])
+	assert.Equal(t, "1", data["mainItemKey"])
 }
 
 func TestCreateSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	svc := &mockSubItemService{}
 	assigneeID := uint(3)
 	item := &model.SubItem{
-		TeamID:     10,
-		MainItemID: 1,
+		TeamKey: 10,
+		MainItemKey: int64(1),
 		Title:      "New SubItem",
 		Priority:   "P2",
-		AssigneeID: &assigneeID,
-		Status:     "pending",
+		AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
+		ItemStatus: "pending",
 		Weight:     1.0,
 	}
 	item.ID = 5
+	item.BizKey = 5
 	svc.createResult.item = item
 
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := fmt.Sprintf(`{"mainItemId":1,"title":"New SubItem","priority":"P2","assigneeId":%d,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, assigneeID)
+	body := fmt.Sprintf(`{"mainItemKey":"1","title":"New SubItem","priority":"P2","assigneeKey":"%d","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, assigneeID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/sub-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -917,8 +950,8 @@ func TestCreateSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	require.NoError(t, err)
 
 	data := resp["data"].(map[string]interface{})
-	assert.Equal(t, float64(5), data["id"])
+	assert.Equal(t, "5", data["bizKey"])
 	assert.Equal(t, "New SubItem", data["title"])
 	assert.Equal(t, "P2", data["priority"])
-	assert.Equal(t, "pending", data["status"])
+	assert.Equal(t, "pending", data["itemStatus"])
 }

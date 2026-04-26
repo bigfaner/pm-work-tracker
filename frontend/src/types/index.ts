@@ -6,13 +6,13 @@ export interface PermissionData {
 }
 
 export interface Role {
-  id: number
-  name: string
-  description: string
+  bizKey: string
+  roleName: string
+  roleDesc: string
   isPreset: boolean
   permissionCount: number
   memberCount: number
-  createdAt: string
+  createTime: string
 }
 
 export interface PermissionItem {
@@ -26,13 +26,13 @@ export interface PermissionGroup {
 }
 
 export interface RoleDetail {
-  id: number
-  name: string
-  description: string
+  bizKey: string
+  roleName: string
+  roleDesc: string
   isPreset: boolean
   permissions: PermissionItem[]
   memberCount: number
-  createdAt: string
+  createTime: string
 }
 
 export interface CreateRoleReq {
@@ -57,104 +57,104 @@ export interface RoleListParams {
 // Domain models
 
 export interface TeamSummary {
-  id: number
+  bizKey: string
   name: string
   role: string
 }
 
 export interface User {
-  id: number
+  bizKey: string
   username: string
   displayName: string
   email?: string
   isSuperAdmin: boolean
-  status?: 'enabled' | 'disabled'
+  userStatus?: 'enabled' | 'disabled'
   teams?: TeamSummary[]
+  createTime: string
 }
 
 export interface Team {
-  id: number
+  bizKey: string
   name: string
   code?: string
   description: string
-  pmId: number
+  pmKey: string
   pmDisplayName?: string
   createdAt: string
   updatedAt: string
 }
 
 export interface MainItem {
-  id: number
-  teamId: number
+  bizKey: string
+  teamKey: string
   code: string
   title: string
-  description?: string
+  itemDesc?: string
   priority: string
-  proposerId: number
-  assigneeId: number | null
-  startDate: string | null
+  proposerKey: string
+  assigneeKey: string | null
+  planStartDate: string | null
   expectedEndDate: string | null
   actualEndDate: string | null
-  status: string
+  itemStatus: string
   statusName?: string
   completion: number
-  createdAt: string
-  updatedAt: string
+  createTime: string
+  dbUpdateTime: string
 }
 
 export interface SubItem {
-  id: number
-  teamId: number
-  mainItemId: number
+  bizKey: string
+  teamKey: string
+  mainItemKey: string
   code: string
   title: string
-  description: string
+  itemDesc: string
   priority: string
-  assigneeId: number | null
-  startDate: string | null
+  assigneeKey: string | null
+  planStartDate: string | null
   expectedEndDate: string | null
   actualEndDate: string | null
-  status: string
+  itemStatus: string
   statusName?: string
   completion: number
   weight: number
-  createdAt: string
-  updatedAt: string
+  createTime: string
+  dbUpdateTime: string
 }
 
 export interface ProgressRecord {
-  id: number
-  subItemId: number
-  teamId: number
-  authorId: number
+  subItemKey: string
+  teamKey: string
+  authorKey: string
   authorName?: string
   completion: number
   achievement: string
   blocker: string
   lesson: string
   isPMCorrect: boolean
-  createdAt: string
+  createTime: string
 }
 
 export interface ItemPool {
-  id: number
-  teamId: number
+  bizKey: string
+  teamKey: string
   title: string
   background: string
   expectedOutput: string
-  submitterId: number
+  submitterKey: string
   submitterName?: string
-  status: string
-  assignedMainId: number | null
-  assignedSubId: number | null
+  poolStatus: string
+  assignedMainKey: string | null
+  assignedSubKey: string | null
   assignedMainCode: string
   assignedMainTitle: string
-  assigneeId: number | null
+  assigneeKey: string | null
   rejectReason: string
   reviewedAt: string | null
-  reviewerId: number | null
-  createdAt: string
-  updatedAt: string
+  reviewerKey: string | null
+  createTime: string
+  dbUpdateTime: string
 }
 
 // Paginated result
@@ -196,29 +196,31 @@ export interface DeleteTeamReq {
 
 export interface InviteMemberReq {
   username: string
-  roleId: number
+  roleKey: string
 }
 
 export interface TransferPMReq {
-  newPmUserId: number
+  newPmUserKey: string
 }
 
 export interface TeamDetailResp {
-  id: number
+  bizKey: string
   name: string
   code: string
   description: string
-  pmId: number
+  pmKey: string
   pmDisplayName: string
   memberCount: number
   mainItemCount: number
-  createdAt: string
+  createTime: string
+  dbUpdateTime: string
 }
 
 export interface TeamMemberResp {
   id: number
-  teamId: number
-  userId: number
+  bizKey: string
+  teamKey: string
+  userKey: string
   role: string
   roleId: number
   roleName: string
@@ -232,7 +234,7 @@ export interface CreateMainItemReq {
   title: string
   description?: string
   priority: string
-  assigneeId: number
+  assigneeKey: string
   startDate: string
   expectedEndDate: string
 }
@@ -241,7 +243,7 @@ export interface UpdateMainItemReq {
   title?: string
   description?: string
   priority?: string
-  assigneeId?: number | null
+  assigneeKey?: string | null
   startDate?: string | null
   expectedEndDate?: string | null
   actualEndDate?: string | null
@@ -250,7 +252,7 @@ export interface UpdateMainItemReq {
 export interface MainItemFilter {
   priority?: string
   status?: string
-  assigneeId?: number
+  assigneeKey?: string
   archived?: boolean
   page?: number
   pageSize?: number
@@ -261,7 +263,7 @@ export interface CreateSubItemReq {
   title: string
   description?: string
   priority: string
-  assigneeId: number
+  assigneeKey: string
   startDate?: string
   expectedEndDate?: string
 }
@@ -280,7 +282,7 @@ export interface ChangeStatusReq {
 export interface SubItemFilter {
   priority?: string
   status?: string
-  assigneeId?: number
+  assigneeKey?: string
   page?: number
   pageSize?: number
 }
@@ -301,8 +303,8 @@ export interface SubmitItemPoolReq {
 }
 
 export interface AssignItemPoolReq {
-  mainItemId: number
-  assigneeId: number
+  mainItemKey: string
+  assigneeKey: string
   priority?: string
   startDate: string
   expectedEndDate: string
@@ -310,7 +312,7 @@ export interface AssignItemPoolReq {
 
 export interface ConvertToMainItemReq {
   priority: string
-  assigneeId: number
+  assigneeKey: string
   startDate: string
   expectedEndDate: string
 }
@@ -326,8 +328,8 @@ export interface ItemPoolFilter {
 }
 
 export interface AssignItemPoolResp {
-  mainItemId: number
-  subItemId: number
+  mainItemBizKey: string
+  subItemBizKey: string
 }
 
 // Views
@@ -336,31 +338,31 @@ export interface GanttViewResp {
 }
 
 export interface GanttMainItem {
-  id: number
+  bizKey: string
   title: string
   priority: string
   startDate: string | null
   expectedEndDate: string | null
   completion: number
-  status: string
+  itemStatus: string
   isOverdue: boolean
   subItems: GanttSubItem[]
 }
 
 export interface GanttSubItem {
-  id: number
+  bizKey: string
   title: string
   startDate: string | null
   expectedEndDate: string | null
   completion: number
-  status: string
+  itemStatus: string
 }
 
 export interface TableFilter {
   type?: string
   priority?: string
   status?: string
-  assigneeId?: number
+  assigneeKey?: string
   sortBy?: string
   sortOrder?: string
   page?: number
@@ -368,14 +370,14 @@ export interface TableFilter {
 }
 
 export interface TableRow {
-  id: number
+  bizKey: string
   type: string
   code: string
   title: string
   priority: string
-  assigneeId: number | null
+  assigneeKey: string | null
   assigneeName: string
-  status: string
+  itemStatus: string
   completion: number
   expectedEndDate: string | null
   actualEndDate: string | null
@@ -390,15 +392,15 @@ export interface ReportPreviewResp {
 }
 
 export interface ReportSection {
-  mainItem: { id: number; title: string; completion: number; isKeyItem?: boolean }
+  mainItem: { bizKey: string; title: string; completion: number; isKeyItem?: boolean }
   subItems: ReportSubItem[]
 }
 
 export interface ReportSubItem {
-  id: number
+  bizKey: string
   title: string
   completion: number
-  assigneeId?: number | null
+  assigneeKey?: string | null
   assigneeName?: string
   achievements: string[]
   blockers: string[]
@@ -406,37 +408,37 @@ export interface ReportSubItem {
 
 // Admin
 export interface AdminUser {
-  id: number
+  bizKey: string
   username: string
   displayName: string
   email?: string
   isSuperAdmin: boolean
-  status?: 'enabled' | 'disabled'
+  userStatus?: 'enabled' | 'disabled'
   teams?: TeamSummary[]
 }
 
 export interface AdminTeam {
-  id: number
+  bizKey: string
   name: string
   pmDisplayName: string
   memberCount: number
   mainItemCount: number
-  createdAt: string
+  createTime: string
 }
 
 export interface CreateUserReq {
   username: string
   displayName: string
   email?: string
-  teamId?: number
+  teamKey?: string
 }
 
 export interface CreateUserResp {
-  id: number
+  bizKey: string
   username: string
   displayName: string
   email: string
-  status: string
+  userStatus: string
   teams: TeamSummary[]
   initialPassword: string
 }
@@ -444,15 +446,15 @@ export interface CreateUserResp {
 export interface UpdateUserReq {
   displayName?: string
   email?: string
-  teamId?: number
+  teamKey?: string
 }
 
 export interface UpdateUserResp {
-  id: number
+  bizKey: string
   username: string
   displayName: string
   email: string
-  status: string
+  userStatus: string
   teams: TeamSummary[]
 }
 
@@ -461,28 +463,28 @@ export interface ToggleUserStatusReq {
 }
 
 export interface ToggleUserStatusResp {
-  id: number
+  bizKey: string
   username: string
-  status: string
+  userStatus: string
 }
 
 export interface GetUserResp {
-  id: number
+  bizKey: string
   username: string
   displayName: string
   email: string
   isSuperAdmin: boolean
-  status: string
+  userStatus: string
   teams: TeamSummary[]
 }
 
 // Weekly view (enhanced)
 export interface MainItemSummary {
-  id: number
+  bizKey: string
   code: string
   title: string
   priority: string
-  status: string
+  itemStatus: string
   startDate: string
   expectedEndDate: string
   actualEndDate: string | null
@@ -513,11 +515,11 @@ export interface WeeklyComparisonGroup {
 }
 
 export interface SubItemSnapshot {
-  id: number
+  bizKey: string
   code: string
   title: string
   priority: string
-  status: string
+  itemStatus: string
   assigneeName: string
   startDate: string
   expectedEndDate: string

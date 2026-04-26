@@ -75,7 +75,7 @@ func migrate(ctx context.Context, db *gorm.DB, dryRun bool) error {
 
 		for _, team := range teams {
 			var items []model.MainItem
-			if err := tx.Where("team_id = ?", team.ID).Order("id").Find(&items).Error; err != nil {
+			if err := tx.Where("team_key = ?", team.ID).Order("id").Find(&items).Error; err != nil {
 				return fmt.Errorf("load main_items for team %d: %w", team.ID, err)
 			}
 			for i, item := range items {
@@ -105,7 +105,7 @@ func migrate(ctx context.Context, db *gorm.DB, dryRun bool) error {
 			}
 
 			var subs []model.SubItem
-			if err := tx.Where("main_item_id = ?", mainItem.ID).Order("id").Find(&subs).Error; err != nil {
+			if err := tx.Where("main_item_key = ?", mainItem.ID).Order("id").Find(&subs).Error; err != nil {
 				return fmt.Errorf("load sub_items for main_item %d: %w", mainItem.ID, err)
 			}
 			for i, sub := range subs {

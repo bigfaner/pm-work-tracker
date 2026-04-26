@@ -29,19 +29,28 @@ func (r *mainItemRepo) FindByID(ctx context.Context, id uint) (*model.MainItem, 
 	return repo.FindByID[model.MainItem](r.db, ctx, id)
 }
 
+func (r *mainItemRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.MainItem, error) {
+	var item model.MainItem
+	err := r.db.WithContext(ctx).Where("biz_key = ?", bizKey).First(&item).Error
+	if err != nil {
+		return nil, err
+	}
+	return &item, nil
+}
+
 func (r *mainItemRepo) Update(ctx context.Context, item *model.MainItem, fields map[string]interface{}) error {
-	return repo.UpdateFields[model.MainItem](r.db, ctx, item, item.TeamID, fields)
+	return repo.UpdateFields[model.MainItem](r.db, ctx, item, item.TeamKey, fields)
 }
 
 func (r *mainItemRepo) List(ctx context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
-	query := r.db.WithContext(ctx).Where("team_id = ?", teamID)
+	query := r.db.WithContext(ctx).Where("team_key = ?", teamID)
 
 	// Filter out archived by default; include when filter.Archived is true
 	if !filter.Archived {
 		query = query.Where("archived_at IS NULL")
 	}
 
-	query = applyItemFilter(query, filter.Status, filter.Priority, filter.AssigneeID, filter.IsKeyItem)
+	query = applyItemFilter(query, filter.Status, filter.Priority, filter.AssigneeKey, filter.IsKeyItem)
 
 	var total int64
 	if err := query.Model(&model.MainItem{}).Count(&total).Error; err != nil {
@@ -70,7 +79,7 @@ func (r *mainItemRepo) NextCode(ctx context.Context, teamID uint) (string, error
 	var code string
 	err := r.db.WithContext(ctx).Transaction(func(tx *gormlib.DB) error {
 		// Increment counter first — real write acquires SQLite write lock, serializing concurrent calls.
-		if err := tx.Exec("UPDATE teams SET item_seq = item_seq + 1 WHERE id = ?", teamID).Error; err != nil {
+		if err := tx.Exec("UPDATE pmw_teams SET item_seq = item_seq + 1 WHERE id = ?", teamID).Error; err != nil {
 			return err
 		}
 		var team model.Team
@@ -82,14 +91,14 @@ func (r *mainItemRepo) NextCode(ctx context.Context, teamID uint) (string, error
 		// If items were inserted directly with a higher seq (e.g. migration), skip past them.
 		var maxSeq *int
 		if err := tx.Model(&model.MainItem{}).
-			Where("team_id = ?", teamID).
+			Where("team_key = ?", teamID).
 			Select("MAX(CAST(SUBSTR(code, ?) AS INTEGER))", len(team.Code)+2).
 			Scan(&maxSeq).Error; err != nil {
 			return err
 		}
 		if maxSeq != nil && uint(*maxSeq) >= seq {
 			seq = uint(*maxSeq) + 1
-			if err := tx.Exec("UPDATE teams SET item_seq = ? WHERE id = ?", seq, teamID).Error; err != nil {
+			if err := tx.Exec("UPDATE pmw_teams SET item_seq = ? WHERE id = ?", seq, teamID).Error; err != nil {
 				return err
 			}
 		}
@@ -102,14 +111,14 @@ func (r *mainItemRepo) NextCode(ctx context.Context, teamID uint) (string, error
 
 func (r *mainItemRepo) CountByTeam(ctx context.Context, teamID uint) (int64, error) {
 	var count int64
-	err := r.db.WithContext(ctx).Model(&model.MainItem{}).Where("team_id = ?", teamID).Count(&count).Error
+	err := r.db.WithContext(ctx).Model(&model.MainItem{}).Where("team_key = ?", teamID).Count(&count).Error
 	return count, err
 }
 
 func (r *mainItemRepo) ListNonArchivedByTeam(ctx context.Context, teamID uint) ([]model.MainItem, error) {
 	var items []model.MainItem
 	err := r.db.WithContext(ctx).
-		Where("team_id = ? AND archived_at IS NULL", teamID).
+		Where("team_key = ? AND archived_at IS NULL", teamID).
 		Find(&items).Error
 	return items, err
 }
@@ -118,10 +127,25 @@ func (r *mainItemRepo) FindByIDs(ctx context.Context, ids []uint) (map[uint]*mod
 	return repo.FindByIDs[model.MainItem](r.db, ctx, ids)
 }
 
+func (r *mainItemRepo) FindByBizKeys(ctx context.Context, bizKeys []int64) (map[int64]*model.MainItem, error) {
+	result := make(map[int64]*model.MainItem)
+	if len(bizKeys) == 0 {
+		return result, nil
+	}
+	var items []*model.MainItem
+	if err := r.db.WithContext(ctx).Where("biz_key IN ?", bizKeys).Find(&items).Error; err != nil {
+		return nil, err
+	}
+	for _, item := range items {
+		result[item.BizKey] = item
+	}
+	return result, nil
+}
+
 func (r *mainItemRepo) ListByTeamAndStatus(ctx context.Context, teamID uint, status string) ([]model.MainItem, error) {
 	var items []model.MainItem
 	err := r.db.WithContext(ctx).
-		Where("team_id = ? AND status = ?", teamID, status).
+		Where("team_key = ? AND item_status = ?", teamID, status).
 		Find(&items).Error
 	return items, err
 }

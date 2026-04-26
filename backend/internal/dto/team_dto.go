@@ -2,9 +2,9 @@ package dto
 
 // TeamMemberDTO is the response DTO for team membership with joined user info.
 type TeamMemberDTO struct {
-	ID          uint   `json:"id"`
-	TeamID      uint   `json:"teamId"`
-	UserID      uint   `json:"userId"`
+	BizKey      string `json:"bizKey"`
+	TeamKey     string `json:"teamKey"`
+	UserKey  string `json:"userKey"`
 	Role        string `json:"role"`
 	JoinedAt    string `json:"joinedAt"`
 	DisplayName string `json:"displayName"`
@@ -27,12 +27,12 @@ type UpdateTeamReq struct {
 // InviteMemberReq is the request DTO for inviting a member to a team.
 type InviteMemberReq struct {
 	Username string `json:"username" binding:"required"`
-	RoleID   uint   `json:"roleId" binding:"required"`
+	RoleKey  string `json:"roleKey" binding:"required"`
 }
 
 // TransferPMReq is the request DTO for transferring PM role.
 type TransferPMReq struct {
-	NewPmUserID uint `json:"newPmUserId" binding:"required"`
+	NewPmUserKey string `json:"newPmUserKey" binding:"required"`
 }
 
 // DisbandTeamReq is the request DTO for disbanding a team.
@@ -42,23 +42,23 @@ type DisbandTeamReq struct {
 
 // UpdateMemberRoleReq is the request DTO for updating a team member's role.
 type UpdateMemberRoleReq struct {
-	RoleID uint `json:"roleId" binding:"required"`
+	RoleKey string `json:"roleKey" binding:"required"`
 }
 
 // UserSearchDTO is a lightweight user DTO for the invite member search.
 type UserSearchDTO struct {
-	ID          uint   `json:"id"`
+	BizKey      string `json:"bizKey"`
 	Username    string `json:"username"`
 	DisplayName string `json:"displayName"`
 }
 
 // TeamDetailResp is the response DTO for team detail.
 type TeamDetailResp struct {
-	ID            uint   `json:"id"`
+	BizKey        string `json:"bizKey"`
 	Name          string `json:"name"`
 	Description   string `json:"description"`
 	Code          string `json:"code"`
-	PmID          uint   `json:"pmId"`
+	PmKey         string `json:"pmKey"`
 	PmDisplayName string `json:"pmDisplayName"`
 	MemberCount   int    `json:"memberCount"`
 	MainItemCount int    `json:"mainItemCount"`
@@ -68,11 +68,11 @@ type TeamDetailResp struct {
 
 // TeamListResp is the response DTO for team listing with PM display name.
 type TeamListResp struct {
-	ID            uint   `json:"id"`
+	BizKey        string `json:"bizKey"`
 	Name          string `json:"name"`
 	Description   string `json:"description"`
 	Code          string `json:"code"`
-	PmID          uint   `json:"pmId"`
+	PmKey         string `json:"pmKey"`
 	PmDisplayName string `json:"pmDisplayName"`
 	CreatedAt     string `json:"createdAt"`
 	UpdatedAt     string `json:"updatedAt"`
@@ -80,7 +80,7 @@ type TeamListResp struct {
 
 // AdminTeamDTO is the response DTO for admin team listing with aggregated counts.
 type AdminTeamDTO struct {
-	ID            uint   `json:"id"`
+	BizKey        string `json:"bizKey"`
 	Name          string `json:"name"`
 	PMDisplayName string `json:"pmDisplayName"`
 	MemberCount   int    `json:"memberCount"`

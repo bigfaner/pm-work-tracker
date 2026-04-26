@@ -1,7 +1,4 @@
 {
-  "enabledPlugins": {
-    "zcode@zcode-marketplace": true
-  },
   "permissions": {
     "allow": [
       "Bash(task *)",
@@ -17,5 +14,6 @@
       "Write",
       "Edit"
     ]
-  }
+  },
+  "enabledPlugins": {}
 }

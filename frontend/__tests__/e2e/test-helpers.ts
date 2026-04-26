@@ -4,19 +4,24 @@ export const BASE = 'http://localhost:5173';
 export const API = 'http://localhost:8080/v1';
 
 let cachedToken: string | null = null;
+let cachedTokenExpiry = 0;
 let cachedTeamId: string | null = null;
 
 export async function getAuthToken(): Promise<string> {
-  if (cachedToken) return cachedToken;
+  if (cachedToken && Date.now() < cachedTokenExpiry) {
+    return cachedToken;
+  }
   const res = await fetch(`${API}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username: 'admin', password: 'admin123' }),
   });
   const json = await res.json();
-  cachedToken = json.data?.token || json.token;
-  if (!cachedToken) throw new Error('Login failed: no token in response');
-  return cachedToken;
+  const token = json.data?.token || json.token;
+  if (!token) throw new Error('Login failed: no token in response');
+  cachedToken = token;
+  cachedTokenExpiry = Date.now() + 23 * 60 * 60 * 1000; // JWT ~24h, cache 23h
+  return token;
 }
 
 export async function getFirstTeamId(token: string): Promise<string | null> {
@@ -28,13 +33,49 @@ export async function getFirstTeamId(token: string): Promise<string | null> {
   const data = json.data ?? json;
   const list = Array.isArray(data) ? data : (data?.items ?? []);
   if (list.length > 0) {
-    cachedTeamId = String(list[0].id || list[0].ID);
+    cachedTeamId = String(list[0].bizKey ?? list[0].id ?? list[0].ID);
   }
   return cachedTeamId;
 }
 
 export function parseApiData(resp: any): any {
   return resp.data !== undefined ? resp.data : resp;
+}
+
+export async function getFirstMemberKey(token: string, teamId: string): Promise<string | null> {
+  const res = await fetch(`${API}/teams/${teamId}/members`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  const data = parseApiData(json);
+  const list = Array.isArray(data) ? data : (data?.items ?? []);
+  if (list.length > 0) {
+    return String(list[0].userKey ?? list[0].userId ?? list[0].id);
+  }
+  return null;
+}
+
+export async function getRoleKey(token: string, roleName: string): Promise<string | null> {
+  const res = await fetch(`${API}/admin/roles`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  const data = parseApiData(json);
+  const list = Array.isArray(data) ? data : (data?.items ?? []);
+  const role = list.find((r: any) => r.name === roleName);
+  return role ? String(role.id) : null;
+}
+
+/** Clear cached token so next getAuthToken() fetches a fresh one. */
+export function invalidateAuthCache(): void {
+  cachedToken = null;
+  cachedTokenExpiry = 0;
+}
+
+export function extractBizKey(data: any): string | null {
+  if (!data) return null;
+  const val = data.bizKey ?? data.id ?? data.ID ?? data.data?.bizKey ?? data.data?.id;
+  return val != null ? String(val) : null;
 }
 
 export async function login(page: Page): Promise<void> {

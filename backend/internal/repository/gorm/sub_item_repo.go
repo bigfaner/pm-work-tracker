@@ -30,21 +30,30 @@ func (r *subItemRepo) FindByID(ctx context.Context, id uint) (*model.SubItem, er
 }
 
 func (r *subItemRepo) Update(ctx context.Context, item *model.SubItem, fields map[string]interface{}) error {
-	return repo.UpdateFields[model.SubItem](r.db, ctx, item, item.TeamID, fields)
+	return repo.UpdateFields[model.SubItem](r.db, ctx, item, item.TeamKey, fields)
 }
 
-func (r *subItemRepo) Delete(ctx context.Context, id uint) error {
+func (r *subItemRepo) SoftDelete(ctx context.Context, id uint) error {
 	return r.db.WithContext(ctx).Delete(&model.SubItem{}, id).Error
 }
 
+func (r *subItemRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.SubItem, error) {
+	var item model.SubItem
+	err := r.db.WithContext(ctx).Where("biz_key = ?", bizKey).First(&item).Error
+	if err != nil {
+		return nil, err
+	}
+	return &item, nil
+}
+
 func (r *subItemRepo) List(ctx context.Context, teamID uint, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
-	query := r.db.WithContext(ctx).Where("team_id = ?", teamID)
+	query := r.db.WithContext(ctx).Where("team_key = ?", teamID)
 
 	if mainItemID > 0 {
-		query = query.Where("main_item_id = ?", mainItemID)
+		query = query.Where("main_item_key = ?", mainItemID)
 	}
 
-	query = applyItemFilter(query, filter.Status, filter.Priority, filter.AssigneeID, filter.IsKeyItem)
+	query = applyItemFilter(query, filter.Status, filter.Priority, filter.AssigneeKey, filter.IsKeyItem)
 
 	var total int64
 	if err := query.Model(&model.SubItem{}).Count(&total).Error; err != nil {
@@ -71,7 +80,7 @@ func (r *subItemRepo) List(ctx context.Context, teamID uint, mainItemID uint, fi
 func (r *subItemRepo) ListByMainItem(ctx context.Context, mainItemID uint) ([]*model.SubItem, error) {
 	var items []*model.SubItem
 	err := r.db.WithContext(ctx).
-		Where("main_item_id = ?", mainItemID).
+		Where("main_item_key = ?", mainItemID).
 		Find(&items).Error
 	return items, err
 }
@@ -79,7 +88,7 @@ func (r *subItemRepo) ListByMainItem(ctx context.Context, mainItemID uint) ([]*m
 func (r *subItemRepo) ListByTeam(ctx context.Context, teamID uint) ([]model.SubItem, error) {
 	var items []model.SubItem
 	err := r.db.WithContext(ctx).
-		Where("team_id = ?", teamID).
+		Where("team_key = ?", teamID).
 		Find(&items).Error
 	return items, err
 }
@@ -91,7 +100,7 @@ func (r *subItemRepo) NextSubCode(ctx context.Context, mainItemID uint) (string,
 	var code string
 	err := r.db.WithContext(ctx).Transaction(func(tx *gormlib.DB) error {
 		// Atomically increment the counter — real write forces SQLite write lock.
-		if err := tx.Exec("UPDATE main_items SET sub_item_seq = sub_item_seq + 1 WHERE id = ?", mainItemID).Error; err != nil {
+		if err := tx.Exec("UPDATE pmw_main_items SET sub_item_seq = sub_item_seq + 1 WHERE id = ?", mainItemID).Error; err != nil {
 			return err
 		}
 		var mainItem model.MainItem
@@ -103,14 +112,14 @@ func (r *subItemRepo) NextSubCode(ctx context.Context, mainItemID uint) (string,
 		// If sub-items were inserted directly with a higher seq, skip past them.
 		var maxSeq *int
 		if err := tx.Model(&model.SubItem{}).
-			Where("main_item_id = ?", mainItemID).
+			Where("main_item_key = ?", mainItemID).
 			Select("MAX(CAST(SUBSTR(code, ?) AS INTEGER))", len(mainItem.Code)+2).
 			Scan(&maxSeq).Error; err != nil {
 			return err
 		}
 		if maxSeq != nil && uint(*maxSeq) >= seq {
 			seq = uint(*maxSeq) + 1
-			if err := tx.Exec("UPDATE main_items SET sub_item_seq = ? WHERE id = ?", seq, mainItemID).Error; err != nil {
+			if err := tx.Exec("UPDATE pmw_main_items SET sub_item_seq = ? WHERE id = ?", seq, mainItemID).Error; err != nil {
 				return err
 			}
 		}

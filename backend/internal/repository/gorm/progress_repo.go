@@ -30,11 +30,23 @@ func (r *progressRepo) FindByID(ctx context.Context, id uint) (*model.ProgressRe
 	return repo.FindByID[model.ProgressRecord](r.db, ctx, id)
 }
 
+func (r *progressRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.ProgressRecord, error) {
+	var record model.ProgressRecord
+	err := r.db.WithContext(ctx).Where("biz_key = ?", bizKey).First(&record).Error
+	if err != nil {
+		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
+			return nil, errors.ErrNotFound
+		}
+		return nil, err
+	}
+	return &record, nil
+}
+
 func (r *progressRepo) ListBySubItem(ctx context.Context, teamID uint, subItemID uint) ([]model.ProgressRecord, error) {
 	var records []model.ProgressRecord
 	err := r.db.WithContext(ctx).
-		Where("team_id = ? AND sub_item_id = ?", teamID, subItemID).
-		Order("created_at ASC").
+		Where("team_key = ? AND sub_item_key = ?", teamID, subItemID).
+		Order("create_time ASC").
 		Find(&records).Error
 	return records, err
 }
@@ -42,8 +54,8 @@ func (r *progressRepo) ListBySubItem(ctx context.Context, teamID uint, subItemID
 func (r *progressRepo) LatestBySubItem(ctx context.Context, subItemID uint) (*model.ProgressRecord, error) {
 	var record model.ProgressRecord
 	err := r.db.WithContext(ctx).
-		Where("sub_item_id = ?", subItemID).
-		Order("created_at DESC").
+		Where("sub_item_key = ?", subItemID).
+		Order("create_time DESC").
 		First(&record).Error
 	if err != nil {
 		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
@@ -60,7 +72,7 @@ func (r *progressRepo) UpdateCompletion(ctx context.Context, recordID uint, comp
 		Where("id = ?", recordID).
 		Updates(map[string]interface{}{
 			"completion":    completion,
-			"is_pm_correct": true,
+			"is_pm_correct": 1,
 		})
 	if result.Error != nil {
 		return result.Error
@@ -74,8 +86,8 @@ func (r *progressRepo) UpdateCompletion(ctx context.Context, recordID uint, comp
 func (r *progressRepo) ListByTeamInRange(ctx context.Context, teamID uint, start, end time.Time) ([]model.ProgressRecord, error) {
 	var records []model.ProgressRecord
 	err := r.db.WithContext(ctx).
-		Where("team_id = ? AND created_at >= ? AND created_at < ?", teamID, start, end).
-		Order("created_at ASC").
+		Where("team_key = ? AND create_time >= ? AND create_time < ?", teamID, start, end).
+		Order("create_time ASC").
 		Find(&records).Error
 	return records, err
 }

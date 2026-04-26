@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Eye } from 'lucide-react'
 import { getWeeklyReportPreviewApi } from '@/api/reports'
 import { useTeamStore } from '@/store/team'
 import { useAuthStore } from '@/store/auth'
@@ -9,11 +10,11 @@ import { WeekPicker } from '@/components/shared/WeekPicker'
 import { getCurrentWeekStart, getWeekNumber, getISOWeekYear } from '@/utils/weekUtils'
 import type { ReportPreviewResp } from '@/types'
 
-function renderMarkdown(preview: ReportPreviewResp, filterUserId?: number): string {
+function renderMarkdown(preview: ReportPreviewResp, filterUserKey?: string): string {
   const isoYear = getISOWeekYear(preview.weekStart)
   const weekNum = getWeekNumber(preview.weekStart)
   const user = useAuthStore.getState().user
-  const isPersonal = filterUserId != null
+  const isPersonal = filterUserKey != null
 
   let md = `## ${isoYear}年第${weekNum}周 工作周报`
   if (isPersonal && user?.displayName) {
@@ -23,7 +24,7 @@ function renderMarkdown(preview: ReportPreviewResp, filterUserId?: number): stri
 
   for (const section of preview.sections) {
     const subs = isPersonal
-      ? section.subItems.filter((s) => s.assigneeId === filterUserId)
+      ? section.subItems.filter((s) => s.assigneeKey === filterUserKey)
       : section.subItems
     if (subs.length === 0) continue
 
@@ -32,10 +33,10 @@ function renderMarkdown(preview: ReportPreviewResp, filterUserId?: number): stri
     for (const sub of subs) {
       const status = sub.completion === 100 ? '已完成' : `进行中 (${sub.completion}%)`
       md += `  - **${sub.title}** -- ${status}\n`
-      for (const a of sub.achievements) {
+      for (const a of sub.achievements ?? []) {
         md += `    成果：${a}\n`
       }
-      for (const b of sub.blockers) {
+      for (const b of sub.blockers ?? []) {
         md += `    卡点：${b}\n`
       }
       md += '\n'
@@ -91,7 +92,7 @@ export default function ReportPage() {
   const handleExportPersonal = () => {
     if (!preview || !currentUser) return
     downloadMarkdown(
-      renderMarkdown(preview, currentUser.id),
+      renderMarkdown(preview, currentUser.bizKey),
       `weekly-report-${weekValue}-${currentUser.username}.md`,
     )
   }
@@ -112,6 +113,7 @@ export default function ReportPage() {
             <WeekPicker weekStart={weekValue} onChange={setWeekValue} />
           </div>
           <Button size="sm" onClick={handlePreview} disabled={loading}>
+            <Eye className="w-4 h-4" />
             {loading ? '生成中...' : '生成预览'}
           </Button>
         </CardContent>

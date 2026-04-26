@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 )
 
@@ -47,6 +48,7 @@ var (
 	ErrTeamCodeDuplicate    = &AppError{Code: "TEAM_CODE_DUPLICATE", Status: 400, Message: "该CODE已被使用"}
 	ErrInvalidField         = &AppError{Code: "INVALID_FIELD", Status: 422, Message: "invalid field name"}
 	ErrCannotAssignPMRole   = &AppError{Code: "CANNOT_ASSIGN_PM_ROLE", Status: 422, Message: "use transfer PM to change the team PM"}
+	ErrDuplicateBizKey      = &AppError{Code: "DUPLICATE_BIZ_KEY", Status: 409, Message: "biz_key uniqueness violation"}
 )
 
 // MapNotFound maps gorm.ErrRecordNotFound and ErrNotFound to the provided domain error.
@@ -74,4 +76,10 @@ func RespondError(c *gin.Context, err error) {
 // RespondOK writes a standard success envelope with the given data.
 func RespondOK(c *gin.Context, data any) {
 	c.JSON(http.StatusOK, gin.H{"code": 0, "data": data})
+}
+
+// IsMySQLDuplicateError returns true if err is a MySQL duplicate entry error (1062).
+func IsMySQLDuplicateError(err error) bool {
+	var mysqlErr *mysql.MySQLError
+	return stderrors.As(err, &mysqlErr) && mysqlErr.Number == 1062
 }

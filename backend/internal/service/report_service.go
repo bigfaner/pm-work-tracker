@@ -7,6 +7,7 @@ import (
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/pkg/report"
 	"pm-work-tracker/backend/internal/repository"
 )
@@ -58,13 +59,13 @@ func (s *reportService) Preview(ctx context.Context, teamID uint, weekStart time
 	// Index sub-items by main item ID
 	subItemsByMain := make(map[uint][]model.SubItem)
 	for _, si := range subItems {
-		subItemsByMain[si.MainItemID] = append(subItemsByMain[si.MainItemID], si)
+		subItemsByMain[uint(si.MainItemKey)] = append(subItemsByMain[uint(si.MainItemKey)], si)
 	}
 
 	// Index progress records by sub item ID
 	progressBySub := make(map[uint][]model.ProgressRecord)
 	for _, pr := range progressRecords {
-		progressBySub[pr.SubItemID] = append(progressBySub[pr.SubItemID], pr)
+		progressBySub[uint(pr.SubItemKey)] = append(progressBySub[uint(pr.SubItemKey)], pr)
 	}
 
 	// Build sections
@@ -90,10 +91,10 @@ func (s *reportService) Preview(ctx context.Context, teamID uint, weekStart time
 			})
 
 			reportSubs = append(reportSubs, dto.ReportSubItemDTO{
-				ID:           si.ID,
+				BizKey:       pkg.FormatID(si.BizKey),
 				Title:        si.Title,
 				Completion:   si.Completion,
-				AssigneeID:   si.AssigneeID,
+				AssigneeID:   pkg.FormatIDPtr(si.AssigneeKey),
 				Achievements: achievements,
 				Blockers:     blockers,
 			})
@@ -105,7 +106,7 @@ func (s *reportService) Preview(ctx context.Context, teamID uint, weekStart time
 
 		sections = append(sections, dto.ReportSectionDTO{
 			MainItem: dto.MainItemSummaryDTO{
-				ID:         mi.ID,
+				BizKey:     pkg.FormatID(mi.BizKey),
 				Title:      mi.Title,
 				Completion: mi.Completion,
 				IsKeyItem:  mi.IsKeyItem,

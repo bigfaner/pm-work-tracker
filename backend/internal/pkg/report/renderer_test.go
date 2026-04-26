@@ -28,9 +28,9 @@ func TestRenderMarkdown_KeyItem(t *testing.T) {
 	preview := &dto.ReportPreview{
 		Sections: []dto.ReportSectionDTO{
 			{
-				MainItem: dto.MainItemSummaryDTO{ID: 1, Title: "重点项目", IsKeyItem: true},
+				MainItem: dto.MainItemSummaryDTO{BizKey: "1", Title: "重点项目", IsKeyItem: true},
 				SubItems: []dto.ReportSubItemDTO{
-					{ID: 10, Title: "Sub", Completion: 50, Achievements: []string{"done"}},
+					{BizKey: "10", Title: "Sub", Completion: 50, Achievements: []string{"done"}},
 				},
 			},
 		},
@@ -44,9 +44,9 @@ func TestRenderMarkdown_NoKeyItem(t *testing.T) {
 	preview := &dto.ReportPreview{
 		Sections: []dto.ReportSectionDTO{
 			{
-				MainItem: dto.MainItemSummaryDTO{ID: 1, Title: "普通项目"},
+				MainItem: dto.MainItemSummaryDTO{BizKey: "1", Title: "普通项目"},
 				SubItems: []dto.ReportSubItemDTO{
-					{ID: 10, Title: "Sub", Completion: 50, Achievements: []string{"done"}},
+					{BizKey: "10", Title: "Sub", Completion: 50, Achievements: []string{"done"}},
 				},
 			},
 		},
@@ -61,9 +61,9 @@ func TestRenderMarkdown_CompletionFormatting(t *testing.T) {
 	preview := &dto.ReportPreview{
 		Sections: []dto.ReportSectionDTO{
 			{
-				MainItem: dto.MainItemSummaryDTO{ID: 1, Title: "M"},
+				MainItem: dto.MainItemSummaryDTO{BizKey: "1", Title: "M"},
 				SubItems: []dto.ReportSubItemDTO{
-					{ID: 10, Title: "S", Completion: 75.5, Achievements: []string{"done"}},
+					{BizKey: "10", Title: "S", Completion: 75.5, Achievements: []string{"done"}},
 				},
 			},
 		},
@@ -78,9 +78,9 @@ func TestRenderMarkdown_NoAchievementsOrBlockers(t *testing.T) {
 	preview := &dto.ReportPreview{
 		Sections: []dto.ReportSectionDTO{
 			{
-				MainItem: dto.MainItemSummaryDTO{ID: 1, Title: "M"},
+				MainItem: dto.MainItemSummaryDTO{BizKey: "1", Title: "M"},
 				SubItems: []dto.ReportSubItemDTO{
-					{ID: 10, Title: "S", Completion: 10},
+					{BizKey: "10", Title: "S", Completion: 10},
 				},
 			},
 		},
@@ -96,10 +96,10 @@ func TestRenderMarkdown_MultipleSubItems(t *testing.T) {
 	preview := &dto.ReportPreview{
 		Sections: []dto.ReportSectionDTO{
 			{
-				MainItem: dto.MainItemSummaryDTO{ID: 1, Title: "M"},
+				MainItem: dto.MainItemSummaryDTO{BizKey: "1", Title: "M"},
 				SubItems: []dto.ReportSubItemDTO{
-					{ID: 10, Title: "S1", Completion: 50, Achievements: []string{"a1"}, Blockers: []string{"b1"}},
-					{ID: 11, Title: "S2", Completion: 80, Achievements: []string{"a2"}},
+					{BizKey: "10", Title: "S1", Completion: 50, Achievements: []string{"a1"}, Blockers: []string{"b1"}},
+					{BizKey: "11", Title: "S2", Completion: 80, Achievements: []string{"a2"}},
 				},
 			},
 		},

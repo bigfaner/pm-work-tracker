@@ -56,11 +56,11 @@ const mockWeeklyResponse: WeeklyViewResponse = {
   groups: [
     {
       mainItem: {
-        id: 1,
+        bizKey: '1',
         code: 'M-001',
         title: '用户认证模块开发',
         priority: 'P1',
-        status: '进行中',
+        itemStatus: '进行中',
         startDate: '2026-04-01',
         expectedEndDate: '2026-04-25',
         actualEndDate: null,
@@ -69,10 +69,11 @@ const mockWeeklyResponse: WeeklyViewResponse = {
       },
       lastWeek: [
         {
-          id: 10,
+          bizKey: '10',
+          code: 'SI-001',
           title: 'JWT Token 集成',
           priority: 'P2',
-          status: 'progressing',
+          itemStatus: 'progressing',
           assigneeName: '李伟',
           startDate: '2026-04-10',
           expectedEndDate: '2026-04-18',
@@ -81,10 +82,11 @@ const mockWeeklyResponse: WeeklyViewResponse = {
           progressRecords: [],
         },
         {
-          id: 11,
+          bizKey: '11',
+          code: 'SI-002',
           title: '权限中间件',
           priority: 'P2',
-          status: 'progressing',
+          itemStatus: 'progressing',
           assigneeName: '张明',
           startDate: '2026-04-12',
           expectedEndDate: '2026-04-21',
@@ -95,45 +97,48 @@ const mockWeeklyResponse: WeeklyViewResponse = {
       ],
       thisWeek: [
         {
-          id: 10,
+          bizKey: '10',
+          code: 'SI-001',
           title: 'JWT Token 集成',
           priority: 'P2',
-          status: 'progressing',
+          itemStatus: 'progressing',
           assigneeName: '李伟',
           startDate: '2026-04-10',
           expectedEndDate: '2026-04-18',
           completion: 70,
           progressDescription: 'Token 签发完成，黑名单联调中',
           progressRecords: [
-            { id: 1, subItemId: 10, teamId: 1, authorId: 2, completion: 60, achievement: 'Token 签发完成', blocker: '', lesson: '', isPMCorrect: false, createdAt: '2026-04-15T10:00:00Z' },
-            { id: 2, subItemId: 10, teamId: 1, authorId: 2, completion: 70, achievement: '黑名单联调中', blocker: 'Redis 连接超时', lesson: '', isPMCorrect: false, createdAt: '2026-04-17T14:00:00Z' },
+            { subItemKey: '10', teamKey: '1', authorKey: '2', completion: 60, achievement: 'Token 签发完成', blocker: '', lesson: '', isPMCorrect: false, createTime: '2026-04-15T10:00:00Z' },
+            { subItemKey: '10', teamKey: '1', authorKey: '2', completion: 70, achievement: '黑名单联调中', blocker: 'Redis 连接超时', lesson: '', isPMCorrect: false, createTime: '2026-04-17T14:00:00Z' },
           ],
           delta: 30,
           isNew: false,
           justCompleted: false,
         },
         {
-          id: 11,
+          bizKey: '11',
+          code: 'SI-002',
           title: '权限中间件',
           priority: 'P2',
-          status: 'progressing',
+          itemStatus: 'progressing',
           assigneeName: '张明',
           startDate: '2026-04-12',
           expectedEndDate: '2026-04-21',
           completion: 45,
           progressDescription: '中间件完成，RBAC 冲突待讨论',
           progressRecords: [
-            { id: 3, subItemId: 11, teamId: 1, authorId: 3, completion: 45, achievement: '中间件完成', blocker: 'RBAC 冲突待讨论', lesson: '', isPMCorrect: false, createdAt: '2026-04-16T09:00:00Z' },
+            { subItemKey: '11', teamKey: '1', authorKey: '3', completion: 45, achievement: '中间件完成', blocker: 'RBAC 冲突待讨论', lesson: '', isPMCorrect: false, createTime: '2026-04-16T09:00:00Z' },
           ],
           delta: 25,
           isNew: false,
           justCompleted: false,
         },
         {
-          id: 15,
+          bizKey: '15',
+          code: 'SI-005',
           title: 'OAuth2 第三方登录',
           priority: 'P1',
-          status: 'pending',
+          itemStatus: 'pending',
           assigneeName: '张明',
           startDate: '2026-04-20',
           expectedEndDate: '2026-04-25',
@@ -147,10 +152,11 @@ const mockWeeklyResponse: WeeklyViewResponse = {
       ],
       completedNoChange: [
         {
-          id: 8,
+          bizKey: '8',
+          code: 'SI-008',
           title: '登录页开发',
           priority: 'P1',
-          status: 'completed',
+          itemStatus: 'completed',
           assigneeName: '王芳',
           startDate: '2026-04-01',
           expectedEndDate: '2026-04-10',
@@ -162,11 +168,11 @@ const mockWeeklyResponse: WeeklyViewResponse = {
     },
     {
       mainItem: {
-        id: 2,
+        bizKey: '2',
         code: 'M-002',
         title: '数据看板设计',
         priority: 'P2',
-        status: '进行中',
+        itemStatus: '进行中',
         startDate: '2026-04-05',
         expectedEndDate: '2026-04-20',
         actualEndDate: null,
@@ -175,10 +181,11 @@ const mockWeeklyResponse: WeeklyViewResponse = {
       },
       lastWeek: [
         {
-          id: 20,
+          bizKey: '20',
+          code: 'SI-020',
           title: '数据看板前端',
           priority: 'P1',
-          status: 'progressing',
+          itemStatus: 'progressing',
           assigneeName: '刘洋',
           startDate: '2026-04-05',
           expectedEndDate: '2026-04-18',
@@ -189,27 +196,29 @@ const mockWeeklyResponse: WeeklyViewResponse = {
       ],
       thisWeek: [
         {
-          id: 20,
+          bizKey: '20',
+          code: 'SI-020',
           title: '数据看板前端',
           priority: 'P1',
-          status: 'completed',
+          itemStatus: 'completed',
           assigneeName: '刘洋',
           startDate: '2026-04-05',
           expectedEndDate: '2026-04-18',
           completion: 100,
           progressDescription: '图表渲染性能达标',
           progressRecords: [
-            { id: 4, subItemId: 20, teamId: 1, authorId: 4, completion: 100, achievement: '图表渲染性能达标', blocker: '', lesson: '', isPMCorrect: false, createdAt: '2026-04-14T11:00:00Z' },
+            { subItemKey: '20', teamKey: '1', authorKey: '4', completion: 100, achievement: '图表渲染性能达标', blocker: '', lesson: '', isPMCorrect: false, createTime: '2026-04-14T11:00:00Z' },
           ],
           delta: 45,
           isNew: false,
           justCompleted: true,
         },
         {
-          id: 21,
+          bizKey: '21',
+          code: 'SI-021',
           title: '看板数据接口',
           priority: 'P2',
-          status: 'progressing',
+          itemStatus: 'progressing',
           assigneeName: '陈刚',
           startDate: '2026-04-10',
           expectedEndDate: '2026-04-20',
@@ -245,8 +254,8 @@ function setupWeeklyHandler(response = mockWeeklyResponse) {
 describe('WeeklyViewPage', () => {
   beforeEach(() => {
     useTeamStore.setState({
-      currentTeamId: 1,
-      teams: [{ id: 1, name: 'Test Team', description: '', pmId: 1, createdAt: '', updatedAt: '' }],
+      currentTeamId: '1',
+      teams: [{ bizKey: '1', name: 'Test Team', description: '', code: '', pmKey: '1', createdAt: '', updatedAt: '' }],
     })
     setupWeeklyHandler()
   })
@@ -491,14 +500,14 @@ describe('WeeklyViewPage', () => {
     setupWeeklyHandler({
       weekStart: '2026-04-13',
       weekEnd: '2026-04-19',
-      stats: { activeSubItems: 1, newlyCompleted: 0, inProgress: 1, blocked: 0 },
+      stats: { activeSubItems: 1, newlyCompleted: 0, inProgress: 1, blocked: 0, pending: 0, pausing: 0, overdue: 0 },
       groups: [{
         mainItem: {
-          id: 99,
+          bizKey: '99',
           code: 'M-099',
           title: 'Fallback测试',
           priority: 'P2',
-          status: '进行中',
+          itemStatus: '进行中',
           startDate: '2026-04-13',
           expectedEndDate: '2026-04-19',
           actualEndDate: null,
@@ -507,10 +516,11 @@ describe('WeeklyViewPage', () => {
         },
         lastWeek: [],
         thisWeek: [{
-          id: 90,
+          bizKey: '90',
+          code: 'SI-090',
           title: '回退测试子事项',
           priority: 'P2',
-          status: 'progressing',
+          itemStatus: 'progressing',
           assigneeName: '测试',
           startDate: '2026-04-13',
           expectedEndDate: '2026-04-19',
@@ -654,7 +664,7 @@ describe('WeeklyViewPage', () => {
     setupWeeklyHandler({
       weekStart: '2026-04-13',
       weekEnd: '2026-04-19',
-      stats: { activeSubItems: 0, newlyCompleted: 0, inProgress: 0, blocked: 0 },
+      stats: { activeSubItems: 0, newlyCompleted: 0, inProgress: 0, blocked: 0, pending: 0, pausing: 0, overdue: 0 },
       groups: [],
     })
     renderPage()
@@ -698,11 +708,11 @@ describe('WeeklyViewPage', () => {
       groups: [{
         ...mockWeeklyResponse.groups[0],
         thisWeek: [{
-          id: 10,
+          bizKey: '10',
           code: 'AUTH-00001-01',
           title: 'JWT Token 集成',
           priority: 'P2',
-          status: 'progressing',
+          itemStatus: 'progressing',
           assigneeName: '李伟',
           startDate: '2026-04-10',
           expectedEndDate: '2026-04-18',

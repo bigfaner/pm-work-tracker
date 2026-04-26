@@ -16,10 +16,11 @@ import type {
 describe('shared TypeScript interfaces', () => {
   it('should define a valid User', () => {
     const user: User = {
-      id: 1,
+      bizKey: '1',
       username: 'testuser',
       displayName: 'Test User',
       isSuperAdmin: false,
+      createTime: '',
     }
     expect(user.username).toBe('testuser')
     expect(user.isSuperAdmin).toBe(false)
@@ -27,10 +28,11 @@ describe('shared TypeScript interfaces', () => {
 
   it('should define a valid Team', () => {
     const team: Team = {
-      id: 1,
+      bizKey: '1',
       name: 'Team Alpha',
       description: 'A team',
-      pmId: 1,
+      code: '',
+      pmKey: '1',
       createdAt: '2024-01-01',
       updatedAt: '2024-01-01',
     }
@@ -39,83 +41,82 @@ describe('shared TypeScript interfaces', () => {
 
   it('should define a valid MainItem', () => {
     const item: MainItem = {
-      id: 1,
-      teamId: 1,
+      bizKey: '1',
+      teamKey: '1',
       code: 'A001',
       title: 'Feature A',
       priority: 'P0',
-      proposerId: 1,
-      assigneeId: null,
-      startDate: null,
+      proposerKey: '1',
+      assigneeKey: null,
+      planStartDate: null,
       expectedEndDate: null,
       actualEndDate: null,
-      status: 'pending',
+      itemStatus: 'pending',
       completion: 0,
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01',
+      createTime: '2024-01-01',
+      dbUpdateTime: '2024-01-01',
     }
     expect(item.code).toBe('A001')
   })
 
   it('should define a valid SubItem', () => {
     const sub: SubItem = {
-      id: 1,
-      teamId: 1,
-      mainItemId: 1,
+      bizKey: '1',
+      teamKey: '1',
+      mainItemKey: '1',
       code: 'A001-01',
       title: 'Sub task',
-      description: 'Details',
+      itemDesc: 'Details',
       priority: 'P1',
-      assigneeId: 2,
-      startDate: '2026-01-01T00:00:00Z',
+      assigneeKey: '2',
+      planStartDate: '2026-01-01T00:00:00Z',
       expectedEndDate: '2026-01-15T00:00:00Z',
       actualEndDate: null,
-      status: 'progressing',
+      itemStatus: 'progressing',
       completion: 50,
-      weight: 1.5,
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01',
+      weight: 1,
+      createTime: '2024-01-01',
+      dbUpdateTime: '2024-01-01',
     }
-    expect(sub.weight).toBe(1.5)
+    expect(sub.weight).toBe(1)
   })
 
   it('should define a valid ProgressRecord', () => {
     const record: ProgressRecord = {
-      id: 1,
-      subItemId: 1,
-      teamId: 1,
-      authorId: 1,
+      subItemKey: '1',
+      teamKey: '1',
+      authorKey: '1',
       completion: 60,
       achievement: 'Done something',
       blocker: '',
       lesson: '',
       isPMCorrect: false,
-      createdAt: '2024-01-01',
+      createTime: '2024-01-01',
     }
     expect(record.completion).toBe(60)
   })
 
   it('should define a valid ItemPool', () => {
     const pool: ItemPool = {
-      id: 1,
-      teamId: 1,
+      bizKey: '1',
+      teamKey: '1',
       title: 'Pool item',
       background: 'Context',
       expectedOutput: 'Result',
-      submitterId: 1,
-      status: '待分配',
-      assignedMainId: null,
-      assignedSubId: null,
+      submitterKey: '1',
+      poolStatus: '待分配',
+      assignedMainKey: null,
+      assignedSubKey: null,
       assignedMainCode: '',
       assignedMainTitle: '',
-      assigneeId: null,
+      assigneeKey: null,
       rejectReason: '',
       reviewedAt: null,
-      reviewerId: null,
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01',
+      reviewerKey: null,
+      createTime: '2024-01-01',
+      dbUpdateTime: '2024-01-01',
     }
-    expect(pool.status).toBe('待分配')
+    expect(pool.poolStatus).toBe('待分配')
   })
 
   it('should define a valid PermissionData', () => {
@@ -130,14 +131,14 @@ describe('shared TypeScript interfaces', () => {
   it('should define a valid Role', () => {
     const role: Role = {
       id: 1,
-      name: 'PM',
-      description: 'Project Manager',
+      roleName: 'PM',
+      roleDesc: 'Project Manager',
       isPreset: true,
       permissionCount: 5,
       memberCount: 3,
-      createdAt: '2024-01-01',
+      createTime: '2024-01-01',
     }
-    expect(role.name).toBe('PM')
+    expect(role.roleName).toBe('PM')
     expect(role.isPreset).toBe(true)
   })
 
@@ -162,12 +163,12 @@ describe('shared TypeScript interfaces', () => {
 
   it('should define AdminTeam with flat pmDisplayName', () => {
     const team: AdminTeam = {
-      id: 1,
+      bizKey: '1',
       name: 'Team A',
       pmDisplayName: 'Alice',
       memberCount: 5,
       mainItemCount: 10,
-      createdAt: '2024-01-01',
+      createTime: '2024-01-01',
     }
     expect(team.pmDisplayName).toBe('Alice')
   })

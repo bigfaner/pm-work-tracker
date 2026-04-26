@@ -60,13 +60,12 @@ func (h *RoleHandler) CreateRole(c *gin.Context) {
 
 // GetRole handles GET /api/v1/admin/roles/:id
 func (h *RoleHandler) GetRole(c *gin.Context) {
-	roleID, err := parseRoleID(c)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrValidation)
+	bizKey, ok := parseRoleBizKey(c)
+	if !ok {
 		return
 	}
 
-	detail, err := h.roleSvc.GetRole(c.Request.Context(), roleID)
+	detail, err := h.roleSvc.GetRole(c.Request.Context(), bizKey)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -77,9 +76,8 @@ func (h *RoleHandler) GetRole(c *gin.Context) {
 
 // UpdateRole handles PUT /api/v1/admin/roles/:id
 func (h *RoleHandler) UpdateRole(c *gin.Context) {
-	roleID, err := parseRoleID(c)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrValidation)
+	bizKey, ok := parseRoleBizKey(c)
+	if !ok {
 		return
 	}
 
@@ -89,7 +87,7 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 		return
 	}
 
-	detail, err := h.roleSvc.UpdateRole(c.Request.Context(), roleID, req)
+	detail, err := h.roleSvc.UpdateRole(c.Request.Context(), bizKey, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -100,13 +98,12 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 
 // DeleteRole handles DELETE /api/v1/admin/roles/:id
 func (h *RoleHandler) DeleteRole(c *gin.Context) {
-	roleID, err := parseRoleID(c)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrValidation)
+	bizKey, ok := parseRoleBizKey(c)
+	if !ok {
 		return
 	}
 
-	if err := h.roleSvc.DeleteRole(c.Request.Context(), roleID); err != nil {
+	if err := h.roleSvc.DeleteRole(c.Request.Context(), bizKey); err != nil {
 		apperrors.RespondError(c, err)
 		return
 	}
@@ -114,12 +111,13 @@ func (h *RoleHandler) DeleteRole(c *gin.Context) {
 	apperrors.RespondOK(c, nil)
 }
 
-// parseRoleID extracts the role ID from the URL path parameter.
-func parseRoleID(c *gin.Context) (uint, error) {
+// parseRoleBizKey extracts the role bizKey from the URL path parameter.
+func parseRoleBizKey(c *gin.Context) (int64, bool) {
 	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 64)
+	bizKey, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return 0, err
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return 0, false
 	}
-	return uint(id), nil
+	return bizKey, true
 }

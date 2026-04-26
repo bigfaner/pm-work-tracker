@@ -24,14 +24,14 @@ export function createUserApi(req: CreateUserReq): Promise<CreateUserResp> {
   return client.post<never, CreateUserResp>('/admin/users', req)
 }
 
-export function getUserApi(userId: number): Promise<GetUserResp> {
+export function getUserApi(userId: string): Promise<GetUserResp> {
   return client.get<never, GetUserResp>(`/admin/users/${userId}`)
 }
 
-export function updateUserApi(userId: number, req: UpdateUserReq): Promise<UpdateUserResp> {
+export function updateUserApi(userId: string, req: UpdateUserReq): Promise<UpdateUserResp> {
   return client.put<never, UpdateUserResp>(`/admin/users/${userId}`, req)
 }
 
-export function toggleUserStatusApi(userId: number, req: ToggleUserStatusReq): Promise<ToggleUserStatusResp> {
+export function toggleUserStatusApi(userId: string, req: ToggleUserStatusReq): Promise<ToggleUserStatusResp> {
   return client.put<never, ToggleUserStatusResp>(`/admin/users/${userId}/status`, req)
 }

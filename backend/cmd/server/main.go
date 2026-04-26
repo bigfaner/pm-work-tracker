@@ -16,6 +16,7 @@ import (
 	"pm-work-tracker/backend/internal/migration"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 	"pm-work-tracker/backend/internal/service"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/web"
 )
 
@@ -50,15 +51,29 @@ func run(configPath string, devMode bool) error {
 		return fmt.Errorf("database error: %w", err)
 	}
 
-	// 3. Run migrations
-	runner := migration.NewRunner(db, "migrations")
-	if err := runner.Run(); err != nil {
-		return fmt.Errorf("migration error: %w", err)
+	// 3. Init snowflake generator (single-node, worker-id=1)
+	if err := snowflake.Init(1); err != nil {
+		return fmt.Errorf("snowflake init error: %w", err)
 	}
 
-	// 3b. RBAC migration (roles, role_permissions, preset roles)
+	// 3b. Run schema DDL (CREATE TABLE) — skip when auto_schema is false
+	if cfg.Database.AutoSchema {
+		schemaFile := "migrations/SQLite-schema.sql"
+		if cfg.Database.Driver == "mysql" {
+			schemaFile = "migrations/MySql-schema.sql"
+		}
+		if err := migration.RunSchema(db, schemaFile); err != nil {
+			return fmt.Errorf("migration error: %w", err)
+		}
+	}
+
+	// 3c. RBAC migration — seeds roles and rebuilds team_members (DML, always runs)
 	if err := migration.MigrateToRBAC(db); err != nil {
 		return fmt.Errorf("rbac migration error: %w", err)
+	}
+	// 3d. Backfill biz_key = 0 records with snowflake IDs
+	if err := migration.BackfillBizKeys(db); err != nil {
+		return fmt.Errorf("bizkey backfill error: %w", err)
 	}
 
 	// 4. Seed admin user
@@ -98,8 +113,8 @@ func run(configPath string, devMode bool) error {
 		Auth:       handler.NewAuthHandler(authSvc),
 		Team:       handler.NewTeamHandler(teamSvc, userRepo),
 		MainItem:   handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
-		SubItem:    handler.NewSubItemHandler(subItemSvc),
-		Progress:   handler.NewProgressHandler(progressSvc, userRepo),
+		SubItem:    handler.NewSubItemHandler(subItemSvc, mainItemSvc),
+		Progress:   handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
 		ItemPool:   handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
 		View:       handler.NewViewHandler(viewSvc),
 		Report:     handler.NewReportHandler(reportSvc),

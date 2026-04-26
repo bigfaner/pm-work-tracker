@@ -73,6 +73,15 @@ func (m *mockProgressRepo) ListByTeamInRange(_ context.Context, _ uint, _, _ tim
 	return nil, nil
 }
 
+func (m *mockProgressRepo) FindByBizKey(_ context.Context, bizKey int64) (*model.ProgressRecord, error) {
+	for _, r := range m.records {
+		if r.BizKey == bizKey {
+			return &r, nil
+		}
+	}
+	return nil, apperrors.ErrNotFound
+}
+
 // compile-time checks
 var _ repository.ProgressRepo = (*mockProgressRepo)(nil)
 
@@ -114,8 +123,11 @@ func (m *mockSubItemRepoForProgress) ListByTeam(_ context.Context, _ uint) ([]mo
 	return nil, nil
 }
 
-func (m *mockSubItemRepoForProgress) Delete(_ context.Context, _ uint) error {
+func (m *mockSubItemRepoForProgress) SoftDelete(_ context.Context, _ uint) error {
 	return nil
+}
+func (m *mockSubItemRepoForProgress) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
+	return nil, nil
 }
 func (m *mockSubItemRepoForProgress) NextSubCode(_ context.Context, _ uint) (string, error) {
 	return "", nil
@@ -168,6 +180,10 @@ func (m *mockMainItemSvcForProgress) EvaluateLinkage(_ context.Context, _ uint, 
 	return nil, nil
 }
 
+func (m *mockMainItemSvcForProgress) GetByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
+	return nil, nil
+}
+
 var _ MainItemService = (*mockMainItemSvcForProgress)(nil)
 
 // mockStatusHistorySvcForProgress captures Record calls.
@@ -194,7 +210,7 @@ var _ StatusHistoryService = (*mockStatusHistorySvcForProgress)(nil)
 func TestProgressAppend_FirstRecord_NoRegression(t *testing.T) {
 	progressRepo := &mockProgressRepo{latest: nil}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 0},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), Completion: 0},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -202,10 +218,10 @@ func TestProgressAppend_FirstRecord_NoRegression(t *testing.T) {
 
 	record, err := svc.Append(context.Background(), 1, 2, 5, 30.0, "achievement", "blocker", "lesson", false)
 	require.NoError(t, err)
-	assert.Equal(t, uint(5), record.SubItemID)
+	assert.Equal(t, int64(5), record.SubItemKey)
 	assert.Equal(t, float64(30.0), record.Completion)
-	assert.Equal(t, uint(2), record.AuthorID)
-	assert.False(t, record.IsPMCorrect)
+	assert.Equal(t, int64(2), record.AuthorKey)
+	assert.Equal(t, 0, record.IsPmCorrect)
 }
 
 func TestProgressAppend_RegressionDetected(t *testing.T) {
@@ -213,7 +229,7 @@ func TestProgressAppend_RegressionDetected(t *testing.T) {
 		latest: &model.ProgressRecord{Completion: 50.0},
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 50},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), Completion: 50},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -228,7 +244,7 @@ func TestProgressAppend_EqualCompletion_NoRegression(t *testing.T) {
 		latest: &model.ProgressRecord{Completion: 50.0},
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 50},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), Completion: 50},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -244,7 +260,7 @@ func TestProgressAppend_HigherCompletion_Passes(t *testing.T) {
 		latest: &model.ProgressRecord{Completion: 50.0},
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 50},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), Completion: 50},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -260,7 +276,7 @@ func TestProgressAppend_PMCanBypassRegression(t *testing.T) {
 		latest: &model.ProgressRecord{Completion: 80.0},
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 80},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), Completion: 80},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -274,7 +290,7 @@ func TestProgressAppend_PMCanBypassRegression(t *testing.T) {
 func TestProgressAppend_UpdatesSubItemCompletion(t *testing.T) {
 	progressRepo := &mockProgressRepo{}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 0},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), Completion: 0},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -289,7 +305,7 @@ func TestProgressAppend_UpdatesSubItemCompletion(t *testing.T) {
 func TestProgressAppend_TriggersRecalcCompletion(t *testing.T) {
 	progressRepo := &mockProgressRepo{}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 0},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), Completion: 0},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -315,7 +331,7 @@ func TestProgressAppend_SubItemNotFound(t *testing.T) {
 func TestProgressAppend_LatestBySubItemError(t *testing.T) {
 	progressRepo := &mockProgressRepo{latestErr: errors.New("db error")}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10)},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -328,7 +344,7 @@ func TestProgressAppend_LatestBySubItemError(t *testing.T) {
 func TestProgressAppend_CreateError(t *testing.T) {
 	progressRepo := &mockProgressRepo{createErr: errors.New("db error")}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10)},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -345,17 +361,17 @@ func TestProgressAppend_CreateError(t *testing.T) {
 func TestProgressCorrectCompletion_Success(t *testing.T) {
 	record := &model.ProgressRecord{
 		ID:         100,
-		SubItemID:  5,
-		TeamID:     1,
-		AuthorID:   2,
+		SubItemKey:  5,
+		TeamKey: 1,
+		AuthorKey:   2,
 		Completion: 50.0,
-		CreatedAt:  time.Now(),
+		CreateTime:  time.Now(),
 	}
 	progressRepo := &mockProgressRepo{
 		records: []model.ProgressRecord{*record},
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 50},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), Completion: 50},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -370,17 +386,17 @@ func TestProgressCorrectCompletion_Success(t *testing.T) {
 func TestProgressCorrectCompletion_IsLatest_SyncsSubItem(t *testing.T) {
 	record := &model.ProgressRecord{
 		ID:         100,
-		SubItemID:  5,
-		TeamID:     1,
+		SubItemKey:  5,
+		TeamKey: 1,
 		Completion: 50.0,
-		CreatedAt:  time.Now(),
+		CreateTime:  time.Now(),
 	}
 	progressRepo := &mockProgressRepo{
 		records: []model.ProgressRecord{*record},
 		latest:  record,
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 50},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), Completion: 50},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -395,23 +411,23 @@ func TestProgressCorrectCompletion_IsLatest_SyncsSubItem(t *testing.T) {
 func TestProgressCorrectCompletion_NotLatest_SyncsToLatest(t *testing.T) {
 	record := &model.ProgressRecord{
 		ID:         100,
-		SubItemID:  5,
-		TeamID:     1,
+		SubItemKey:  5,
+		TeamKey: 1,
 		Completion: 50.0,
-		CreatedAt:  time.Now().Add(-2 * time.Hour),
+		CreateTime:  time.Now().Add(-2 * time.Hour),
 	}
 	latestRecord := &model.ProgressRecord{
 		ID:         200,
-		SubItemID:  5,
+		SubItemKey:  5,
 		Completion: 90.0,
-		CreatedAt:  time.Now(),
+		CreateTime:  time.Now(),
 	}
 	progressRepo := &mockProgressRepo{
 		records: []model.ProgressRecord{*record, *latestRecord},
 		latest:  latestRecord,
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 90},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), Completion: 90},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -427,17 +443,17 @@ func TestProgressCorrectCompletion_NotLatest_SyncsToLatest(t *testing.T) {
 func TestProgressCorrectCompletion_TriggersRecalc(t *testing.T) {
 	record := &model.ProgressRecord{
 		ID:         100,
-		SubItemID:  5,
-		TeamID:     1,
+		SubItemKey:  5,
+		TeamKey: 1,
 		Completion: 50.0,
-		CreatedAt:  time.Now(),
+		CreateTime:  time.Now(),
 	}
 	progressRepo := &mockProgressRepo{
 		records: []model.ProgressRecord{*record},
 		latest:  record,
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Completion: 50},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), Completion: 50},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -463,16 +479,16 @@ func TestProgressCorrectCompletion_RecordNotFound(t *testing.T) {
 func TestProgressCorrectCompletion_UpdateError(t *testing.T) {
 	record := &model.ProgressRecord{
 		ID:        100,
-		SubItemID: 5,
-		TeamID:    1,
-		CreatedAt: time.Now(),
+		SubItemKey: 5,
+		TeamKey: 1,
+		CreateTime: time.Now(),
 	}
 	progressRepo := &mockProgressRepo{
 		records:   []model.ProgressRecord{*record},
 		updateErr: errors.New("db error"),
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10)},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 
@@ -488,9 +504,9 @@ func TestProgressCorrectCompletion_UpdateError(t *testing.T) {
 
 func TestProgressList_Success(t *testing.T) {
 	records := []model.ProgressRecord{
-		{ID: 1, SubItemID: 5, Completion: 30.0, CreatedAt: time.Now().Add(-2 * time.Hour)},
-		{ID: 2, SubItemID: 5, Completion: 60.0, CreatedAt: time.Now().Add(-1 * time.Hour)},
-		{ID: 3, SubItemID: 5, Completion: 90.0, CreatedAt: time.Now()},
+		{ID: 1, SubItemKey: 5, Completion: 30.0, CreateTime: time.Now().Add(-2 * time.Hour)},
+		{ID: 2, SubItemKey: 5, Completion: 60.0, CreateTime: time.Now().Add(-1 * time.Hour)},
+		{ID: 3, SubItemKey: 5, Completion: 90.0, CreateTime: time.Now()},
 	}
 	progressRepo := &mockProgressRepo{records: records}
 	subItemRepo := &mockSubItemRepoForProgress{}
@@ -536,7 +552,7 @@ func TestProgressList_RepoError(t *testing.T) {
 func TestProgressAppend_Pending_FirstProgress_TransitionsToProgressing(t *testing.T) {
 	progressRepo := &mockProgressRepo{latest: nil}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Status: "pending", Completion: 0},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), ItemStatus: "pending", Completion: 0},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 	historySvc := &mockStatusHistorySvcForProgress{}
@@ -548,21 +564,21 @@ func TestProgressAppend_Pending_FirstProgress_TransitionsToProgressing(t *testin
 	assert.Equal(t, float64(30.0), record.Completion)
 
 	// Verify status transitioned to "progressing"
-	assert.Equal(t, "progressing", subItemRepo.updatedFields["status"])
+	assert.Equal(t, "progressing", subItemRepo.updatedFields["item_status"])
 	assert.InDelta(t, 30.0, subItemRepo.updatedFields["completion"], 0.001)
 
 	// Verify status history was recorded
 	require.Len(t, historySvc.recorded, 1)
 	assert.Equal(t, "pending", historySvc.recorded[0].FromStatus)
 	assert.Equal(t, "progressing", historySvc.recorded[0].ToStatus)
-	assert.Equal(t, uint(2), historySvc.recorded[0].ChangedBy)
-	assert.True(t, historySvc.recorded[0].IsAuto)
+	assert.Equal(t, int64(2), historySvc.recorded[0].ChangedBy)
+	assert.Equal(t, 1, historySvc.recorded[0].IsAuto)
 }
 
 func TestProgressAppend_Progressing_FirstProgressDoesNotApply(t *testing.T) {
 	progressRepo := &mockProgressRepo{latest: nil}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Status: "progressing", Completion: 0},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), ItemStatus: "progressing", Completion: 0},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 	historySvc := &mockStatusHistorySvcForProgress{}
@@ -573,7 +589,7 @@ func TestProgressAppend_Progressing_FirstProgressDoesNotApply(t *testing.T) {
 	require.NoError(t, err)
 
 	// No status change
-	assert.Nil(t, subItemRepo.updatedFields["status"])
+	assert.Nil(t, subItemRepo.updatedFields["item_status"])
 	assert.Empty(t, historySvc.recorded)
 }
 
@@ -582,7 +598,7 @@ func TestProgressAppend_Pending_NotFirstProgress_NoAutoTransition(t *testing.T) 
 		latest: &model.ProgressRecord{Completion: 20.0},
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Status: "pending", Completion: 20},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), ItemStatus: "pending", Completion: 20},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 	historySvc := &mockStatusHistorySvcForProgress{}
@@ -593,7 +609,7 @@ func TestProgressAppend_Pending_NotFirstProgress_NoAutoTransition(t *testing.T) 
 	require.NoError(t, err)
 
 	// No status change (not first progress)
-	assert.Nil(t, subItemRepo.updatedFields["status"])
+	assert.Nil(t, subItemRepo.updatedFields["item_status"])
 	assert.Empty(t, historySvc.recorded)
 }
 
@@ -602,7 +618,7 @@ func TestProgressAppend_Progressing_100Percent_TransitionsToCompleted(t *testing
 		latest: &model.ProgressRecord{Completion: 80.0},
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Status: "progressing", Completion: 80},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), ItemStatus: "progressing", Completion: 80},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 	historySvc := &mockStatusHistorySvcForProgress{}
@@ -614,7 +630,7 @@ func TestProgressAppend_Progressing_100Percent_TransitionsToCompleted(t *testing
 	assert.Equal(t, float64(100.0), record.Completion)
 
 	// Verify status transitioned to "completed"
-	assert.Equal(t, "completed", subItemRepo.updatedFields["status"])
+	assert.Equal(t, "completed", subItemRepo.updatedFields["item_status"])
 	assert.InDelta(t, 100.0, subItemRepo.updatedFields["completion"], 0.001)
 	assert.NotNil(t, subItemRepo.updatedFields["actual_end_date"])
 
@@ -622,7 +638,7 @@ func TestProgressAppend_Progressing_100Percent_TransitionsToCompleted(t *testing
 	require.Len(t, historySvc.recorded, 1)
 	assert.Equal(t, "progressing", historySvc.recorded[0].FromStatus)
 	assert.Equal(t, "completed", historySvc.recorded[0].ToStatus)
-	assert.True(t, historySvc.recorded[0].IsAuto)
+	assert.Equal(t, 1, historySvc.recorded[0].IsAuto)
 
 	// Verify recalc was triggered (needed for completed status)
 	assert.True(t, mainItemSvc.recalcCalled)
@@ -631,7 +647,7 @@ func TestProgressAppend_Progressing_100Percent_TransitionsToCompleted(t *testing
 func TestProgressAppend_Pending_FirstProgress_100Percent_TransitionsToCompleted(t *testing.T) {
 	progressRepo := &mockProgressRepo{latest: nil}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Status: "pending", Completion: 0},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), ItemStatus: "pending", Completion: 0},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 	historySvc := &mockStatusHistorySvcForProgress{}
@@ -644,7 +660,7 @@ func TestProgressAppend_Pending_FirstProgress_100Percent_TransitionsToCompleted(
 
 	// Both rules apply: pending->progressing (rule 1), then progressing->completed (rule 2)
 	// End result: "completed"
-	assert.Equal(t, "completed", subItemRepo.updatedFields["status"])
+	assert.Equal(t, "completed", subItemRepo.updatedFields["item_status"])
 	assert.InDelta(t, 100.0, subItemRepo.updatedFields["completion"], 0.001)
 	assert.NotNil(t, subItemRepo.updatedFields["actual_end_date"])
 
@@ -659,7 +675,7 @@ func TestProgressAppend_100Percent_Blocked_NoTransition(t *testing.T) {
 		latest: &model.ProgressRecord{Completion: 80.0},
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Status: "blocking", Completion: 80},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), ItemStatus: "blocking", Completion: 80},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 	historySvc := &mockStatusHistorySvcForProgress{}
@@ -670,7 +686,7 @@ func TestProgressAppend_100Percent_Blocked_NoTransition(t *testing.T) {
 	require.NoError(t, err)
 
 	// "blocking" -> "completed" is NOT a valid transition
-	assert.Nil(t, subItemRepo.updatedFields["status"])
+	assert.Nil(t, subItemRepo.updatedFields["item_status"])
 	assert.Empty(t, historySvc.recorded)
 }
 
@@ -679,7 +695,7 @@ func TestProgressAppend_100Percent_Pausing_NoTransition(t *testing.T) {
 		latest: &model.ProgressRecord{Completion: 80.0},
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Status: "pausing", Completion: 80},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), ItemStatus: "pausing", Completion: 80},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 	historySvc := &mockStatusHistorySvcForProgress{}
@@ -690,7 +706,7 @@ func TestProgressAppend_100Percent_Pausing_NoTransition(t *testing.T) {
 	require.NoError(t, err)
 
 	// "pausing" -> "completed" is NOT a valid transition
-	assert.Nil(t, subItemRepo.updatedFields["status"])
+	assert.Nil(t, subItemRepo.updatedFields["item_status"])
 	assert.Empty(t, historySvc.recorded)
 }
 
@@ -699,7 +715,7 @@ func TestProgressAppend_Progressing_LessThan100_NoStatusChange(t *testing.T) {
 		latest: &model.ProgressRecord{Completion: 30.0},
 	}
 	subItemRepo := &mockSubItemRepoForProgress{
-		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemID: 10, Status: "progressing", Completion: 30},
+		item: &model.SubItem{BaseModel: model.BaseModel{ID: 5}, MainItemKey: int64(10), ItemStatus: "progressing", Completion: 30},
 	}
 	mainItemSvc := &mockMainItemSvcForProgress{}
 	historySvc := &mockStatusHistorySvcForProgress{}
@@ -710,6 +726,6 @@ func TestProgressAppend_Progressing_LessThan100_NoStatusChange(t *testing.T) {
 	require.NoError(t, err)
 
 	// Already progressing, not 100%, no transition
-	assert.Nil(t, subItemRepo.updatedFields["status"])
+	assert.Nil(t, subItemRepo.updatedFields["item_status"])
 	assert.Empty(t, historySvc.recorded)
 }

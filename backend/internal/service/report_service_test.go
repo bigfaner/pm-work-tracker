@@ -21,12 +21,12 @@ import (
 func TestReportService_Preview_NoProgressRecords_ReturnsNoData(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main 1", Completion: 0},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "pending", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub A", ItemStatus: "pending", Completion: 0},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
@@ -42,24 +42,24 @@ func TestReportService_Preview_WithProgressRecords(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 60},
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main 1", Completion: 60},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "progressing", Completion: 60},
+			{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub A", ItemStatus: "progressing", Completion: 60},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
 		records: []model.ProgressRecord{
 			{
 				ID:          100,
-				SubItemID:   10,
-				TeamID:      1,
+				SubItemKey:  10,
+				TeamKey: 1,
 				Completion:  60,
 				Achievement: "完成了前端开发",
 				Blocker:     "",
-				CreatedAt:   time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC),
+				CreateTime:  time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC),
 			},
 		},
 	}
@@ -72,13 +72,13 @@ func TestReportService_Preview_WithProgressRecords(t *testing.T) {
 	assert.Equal(t, "2026-04-19", result.WeekEnd)
 	require.Len(t, result.Sections, 1)
 	section := result.Sections[0]
-	assert.Equal(t, uint(1), section.MainItem.ID)
+	assert.Equal(t, "1", section.MainItem.BizKey)
 	assert.Equal(t, "Main 1", section.MainItem.Title)
 	assert.Equal(t, 60.0, section.MainItem.Completion)
 
 	require.Len(t, section.SubItems, 1)
 	sub := section.SubItems[0]
-	assert.Equal(t, uint(10), sub.ID)
+	assert.Equal(t, "10", sub.BizKey)
 	assert.Equal(t, "Sub A", sub.Title)
 	assert.Equal(t, 60.0, sub.Completion)
 	require.Len(t, sub.Achievements, 1)
@@ -91,33 +91,33 @@ func TestReportService_Preview_AchievementsAndBlockers(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 40},
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main 1", Completion: 40},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Status: "progressing", Completion: 40},
+			{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub A", ItemStatus: "progressing", Completion: 40},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
 		records: []model.ProgressRecord{
 			{
 				ID:          100,
-				SubItemID:   10,
-				TeamID:      1,
+				SubItemKey:  10,
+				TeamKey: 1,
 				Completion:  20,
 				Achievement: "完成了设计",
 				Blocker:     "接口未就绪",
-				CreatedAt:   time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC),
+				CreateTime:  time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC),
 			},
 			{
 				ID:          101,
-				SubItemID:   10,
-				TeamID:      1,
+				SubItemKey:  10,
+				TeamKey: 1,
 				Completion:  40,
 				Achievement: "完成了前端页面",
 				Blocker:     "",
-				CreatedAt:   time.Date(2026, 4, 16, 10, 0, 0, 0, time.UTC),
+				CreateTime:  time.Date(2026, 4, 16, 10, 0, 0, 0, time.UTC),
 			},
 		},
 	}
@@ -142,22 +142,22 @@ func TestReportService_Preview_GroupsByMainItem(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "Main 2", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main 1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 2, BizKey: 2}, TeamKey: 1, Title: "Main 2", Completion: 30},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 50},
-			{BaseModel: model.BaseModel{ID: 20}, TeamID: 1, MainItemID: 2, Title: "Sub B", Completion: 30},
-			{BaseModel: model.BaseModel{ID: 21}, TeamID: 1, MainItemID: 2, Title: "Sub C", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub A", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 20, BizKey: 20}, TeamKey: 1, MainItemKey: int64(2), Title: "Sub B", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 21, BizKey: 21}, TeamKey: 1, MainItemKey: int64(2), Title: "Sub C", Completion: 30},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
 		records: []model.ProgressRecord{
-			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 50, Achievement: "A done", CreatedAt: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
-			{ID: 200, SubItemID: 20, TeamID: 1, Completion: 30, Achievement: "B done", CreatedAt: time.Date(2026, 4, 15, 10, 0, 0, 0, time.UTC)},
-			{ID: 201, SubItemID: 21, TeamID: 1, Completion: 30, Achievement: "C done", CreatedAt: time.Date(2026, 4, 16, 10, 0, 0, 0, time.UTC)},
+			{ID: 100, SubItemKey: 10, TeamKey: 1, Completion: 50, Achievement: "A done", CreateTime: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
+			{ID: 200, SubItemKey: 20, TeamKey: 1, Completion: 30, Achievement: "B done", CreateTime: time.Date(2026, 4, 15, 10, 0, 0, 0, time.UTC)},
+			{ID: 201, SubItemKey: 21, TeamKey: 1, Completion: 30, Achievement: "C done", CreateTime: time.Date(2026, 4, 16, 10, 0, 0, 0, time.UTC)},
 		},
 	}
 
@@ -167,10 +167,10 @@ func TestReportService_Preview_GroupsByMainItem(t *testing.T) {
 
 	require.Len(t, result.Sections, 2)
 	// Main 1 has 1 sub-item
-	assert.Equal(t, uint(1), result.Sections[0].MainItem.ID)
+	assert.Equal(t, "1", result.Sections[0].MainItem.BizKey)
 	require.Len(t, result.Sections[0].SubItems, 1)
 	// Main 2 has 2 sub-items
-	assert.Equal(t, uint(2), result.Sections[1].MainItem.ID)
+	assert.Equal(t, "2", result.Sections[1].MainItem.BizKey)
 	require.Len(t, result.Sections[1].SubItems, 2)
 }
 
@@ -179,19 +179,19 @@ func TestReportService_Preview_SubItemNoProgressThisWeek_NotIncluded(t *testing.
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main 1", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 50},
-			{BaseModel: model.BaseModel{ID: 11}, TeamID: 1, MainItemID: 1, Title: "Sub B", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub A", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 11, BizKey: 11}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub B", Completion: 0},
 		},
 	}
 	// Only Sub A has progress this week; Sub B has none
 	progressRepo := &mockViewProgressRepo{
 		records: []model.ProgressRecord{
-			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 50, Achievement: "A done", CreatedAt: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
+			{ID: 100, SubItemKey: 10, TeamKey: 1, Completion: 50, Achievement: "A done", CreateTime: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
 		},
 	}
 
@@ -202,7 +202,7 @@ func TestReportService_Preview_SubItemNoProgressThisWeek_NotIncluded(t *testing.
 	require.Len(t, result.Sections, 1)
 	// Only sub-items with progress records this week should appear
 	require.Len(t, result.Sections[0].SubItems, 1)
-	assert.Equal(t, uint(10), result.Sections[0].SubItems[0].ID)
+	assert.Equal(t, "10", result.Sections[0].SubItems[0].BizKey)
 }
 
 func TestReportService_Preview_MainItemWithNoSubItemProgress_Omitted(t *testing.T) {
@@ -210,20 +210,20 @@ func TestReportService_Preview_MainItemWithNoSubItemProgress_Omitted(t *testing.
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "Main 2", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main 1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 2, BizKey: 2}, TeamKey: 1, Title: "Main 2", Completion: 0},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 50},
-			{BaseModel: model.BaseModel{ID: 20}, TeamID: 1, MainItemID: 2, Title: "Sub B", Completion: 0},
+			{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub A", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 20, BizKey: 20}, TeamKey: 1, MainItemKey: int64(2), Title: "Sub B", Completion: 0},
 		},
 	}
 	// Only Sub A (MainItem 1) has progress
 	progressRepo := &mockViewProgressRepo{
 		records: []model.ProgressRecord{
-			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 50, Achievement: "A done", CreatedAt: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
+			{ID: 100, SubItemKey: 10, TeamKey: 1, Completion: 50, Achievement: "A done", CreateTime: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
 		},
 	}
 
@@ -233,7 +233,7 @@ func TestReportService_Preview_MainItemWithNoSubItemProgress_Omitted(t *testing.
 
 	// Main 2 has no sub-items with progress, so it should be omitted from sections
 	require.Len(t, result.Sections, 1)
-	assert.Equal(t, uint(1), result.Sections[0].MainItem.ID)
+	assert.Equal(t, "1", result.Sections[0].MainItem.BizKey)
 }
 
 func TestReportService_Preview_RepoError(t *testing.T) {
@@ -262,24 +262,24 @@ func TestReportService_ExportMarkdown_Format(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "主事项A", Completion: 60, IsKeyItem: true},
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "主事项A", Completion: 60, IsKeyItem: true},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "子事项A1", Completion: 60},
+			{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "子事项A1", Completion: 60},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
 		records: []model.ProgressRecord{
 			{
 				ID:          100,
-				SubItemID:   10,
-				TeamID:      1,
+				SubItemKey:  10,
+				TeamKey: 1,
 				Completion:  60,
 				Achievement: "完成了前端页面",
 				Blocker:     "接口未就绪",
-				CreatedAt:   time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC),
+				CreateTime:  time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC),
 			},
 		},
 	}
@@ -310,17 +310,17 @@ func TestReportService_ExportMarkdown_NoKeyItem_NoPrefix(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "普通事项", Completion: 30, IsKeyItem: false},
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "普通事项", Completion: 30, IsKeyItem: false},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "子事项", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "子事项", Completion: 30},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
 		records: []model.ProgressRecord{
-			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 30, Achievement: "进展中", CreatedAt: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
+			{ID: 100, SubItemKey: 10, TeamKey: 1, Completion: 30, Achievement: "进展中", CreateTime: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
 		},
 	}
 
@@ -338,17 +338,17 @@ func TestReportService_ExportMarkdown_EmptyAchievementsAndBlockers(t *testing.T)
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 10},
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main 1", Completion: 10},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 10},
+			{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub A", Completion: 10},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
 		records: []model.ProgressRecord{
-			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 10, Achievement: "", Blocker: "", CreatedAt: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
+			{ID: 100, SubItemKey: 10, TeamKey: 1, Completion: 10, Achievement: "", Blocker: "", CreateTime: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
 		},
 	}
 
@@ -368,20 +368,20 @@ func TestReportService_ExportMarkdown_MultipleSections(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 50},
-			{BaseModel: model.BaseModel{ID: 2}, TeamID: 1, Title: "Main 2", Completion: 80, IsKeyItem: true},
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main 1", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 2, BizKey: 2}, TeamKey: 1, Title: "Main 2", Completion: 80, IsKeyItem: true},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 50},
-			{BaseModel: model.BaseModel{ID: 20}, TeamID: 1, MainItemID: 2, Title: "Sub B", Completion: 80},
+			{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub A", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 20, BizKey: 20}, TeamKey: 1, MainItemKey: int64(2), Title: "Sub B", Completion: 80},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
 		records: []model.ProgressRecord{
-			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 50, Achievement: "A done", CreatedAt: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
-			{ID: 200, SubItemID: 20, TeamID: 1, Completion: 80, Achievement: "B done", CreatedAt: time.Date(2026, 4, 15, 10, 0, 0, 0, time.UTC)},
+			{ID: 100, SubItemKey: 10, TeamKey: 1, Completion: 50, Achievement: "A done", CreateTime: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
+			{ID: 200, SubItemKey: 20, TeamKey: 1, Completion: 80, Achievement: "B done", CreateTime: time.Date(2026, 4, 15, 10, 0, 0, 0, time.UTC)},
 		},
 	}
 
@@ -403,17 +403,17 @@ func TestReportService_ExportMarkdown_FilenameFormat(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main", Completion: 50},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub", Completion: 50},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
 		records: []model.ProgressRecord{
-			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 50, Achievement: "done", CreatedAt: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
+			{ID: 100, SubItemKey: 10, TeamKey: 1, Completion: 50, Achievement: "done", CreateTime: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
 		},
 	}
 
@@ -431,17 +431,17 @@ func TestReportService_ExportMarkdown_BlockersSectionLabel(t *testing.T) {
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1}, TeamID: 1, Title: "Main 1", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main 1", Completion: 30},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10}, TeamID: 1, MainItemID: 1, Title: "Sub A", Completion: 30},
+			{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub A", Completion: 30},
 		},
 	}
 	progressRepo := &mockViewProgressRepo{
 		records: []model.ProgressRecord{
-			{ID: 100, SubItemID: 10, TeamID: 1, Completion: 30, Achievement: "设计完成", Blocker: "等待审批", CreatedAt: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
+			{ID: 100, SubItemKey: 10, TeamKey: 1, Completion: 30, Achievement: "设计完成", Blocker: "等待审批", CreateTime: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
 		},
 	}
 

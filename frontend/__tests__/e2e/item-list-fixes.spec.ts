@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { BASE, API, login, getAuthToken, parseApiData } from './test-helpers';
+import { BASE, API, login, getAuthToken, parseApiData, extractBizKey } from './test-helpers';
 
 const TIMEOUT = 60000;
 
@@ -26,7 +26,15 @@ test.describe.serial('事项清单 Bug修复验证', () => {
     const teamsRaw = parseApiData(await teamsRes.json());
     const teamsData = Array.isArray(teamsRaw) ? teamsRaw : (teamsRaw?.items ?? []);
     if (teamsData.length === 0) throw new Error('beforeAll: no teams found');
-    teamId = String(teamsData[0].id);
+    teamId = String(teamsData[0].bizKey);
+
+    // Get team members for assigneeKey
+    const membersRes = await request.get(`/v1/teams/${teamId}/members`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const membersData = parseApiData(await membersRes.json());
+    const memberList = Array.isArray(membersData) ? membersData : (membersData?.items ?? []);
+    const assigneeKey = memberList[0]?.userKey ?? '';
 
     // Create main item with dates (use snake_case field names for backend)
     const mainARes = await request.post(`/v1/teams/${teamId}/main-items`, {
@@ -34,36 +42,36 @@ test.describe.serial('事项清单 Bug修复验证', () => {
       data: {
         title: 'E2E修复测试-带日期',
         priority: 'P1',
-        assigneeId: 1,
+        assigneeKey,
         startDate: '2026-04-01',
         expectedEndDate: '2026-04-30',
       },
     });
     const mainAData = parseApiData(await mainARes.json());
-    itemA = String(mainAData.id);
+    itemA = extractBizKey(mainAData) ?? '';
 
     // Create sub-item (backend DTO requires camelCase fields)
     const subRes = await request.post(`/v1/teams/${teamId}/main-items/${itemA}/sub-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
-        mainItemId: Number(itemA),
+        mainItemKey: String(itemA),
         title: '子事项-已有',
         priority: 'P1',
-        assigneeId: 1,
+        assigneeKey,
         startDate: '2026-04-01',
         expectedEndDate: '2026-04-30',
       },
     });
     const subData = parseApiData(await subRes.json());
-    subItemA1 = String(subData.id);
+    subItemA1 = extractBizKey(subData) ?? '';
 
     // Create main item B (with dates since API requires them)
     const mainBRes = await request.post(`/v1/teams/${teamId}/main-items`, {
       headers: { Authorization: `Bearer ${authToken}` },
-      data: { title: 'E2E修复测试-无日期', priority: 'P2', assigneeId: 1, startDate: '2026-05-01', expectedEndDate: '2026-05-31' },
+      data: { title: 'E2E修复测试-无日期', priority: 'P2', assigneeKey, startDate: '2026-05-01', expectedEndDate: '2026-05-31' },
     });
     const mainBData = parseApiData(await mainBRes.json());
-    itemB = String(mainBData.id);
+    itemB = extractBizKey(mainBData) ?? '';
 
     await request.dispose();
     console.log(`Setup: team=${teamId}, itemA=${itemA}, itemB=${itemB}, subA1=${subItemA1}`);
@@ -135,10 +143,16 @@ test.describe.serial('事项清单 Bug修复验证', () => {
       extraHTTPHeaders: { 'Content-Type': 'application/json' },
     });
     const token = await getAuthToken();
+    const membersRes = await req.get(`/v1/teams/${teamId}/members`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const membersRaw = parseApiData(await membersRes.json());
+    const memberList = Array.isArray(membersRaw) ? membersRaw : (membersRaw?.items ?? []);
+    const assigneeKey = memberList[0]?.userKey ?? '';
     const subTitle = `子事项-API创建-${Date.now()}`;
     await req.post(`/v1/teams/${teamId}/main-items/${itemA}/sub-items`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { mainItemId: Number(itemA), title: subTitle, priority: 'P2', assigneeId: 1, startDate: '2026-04-20', expectedEndDate: '2026-05-20' },
+      data: { mainItemKey: String(itemA), title: subTitle, priority: 'P2', assigneeKey, startDate: '2026-04-20', expectedEndDate: '2026-05-20' },
     });
     await req.dispose();
 
@@ -216,8 +230,9 @@ test.describe.serial('事项清单 Bug修复验证', () => {
     // Sub-item should be visible
     await expect(page.locator('text=子事项-已有').first()).toBeVisible({ timeout: 10000 });
 
-    // Find the status badge for the sub-item row (should show "待开始" = pending)
-    const subItemRow = page.locator('div').filter({ hasText: /^子事项-已有/ }).first();
+    // Find the specific sub-item row via its link, then scope to its parent div
+    const subItemLink = page.locator('a', { hasText: /^子事项-已有$/ }).first();
+    const subItemRow = subItemLink.locator('xpath=..');
     const statusBadge = subItemRow.locator('button').filter({ hasText: '待开始' }).first();
     await expect(statusBadge).toBeVisible({ timeout: 5000 });
 
@@ -263,9 +278,13 @@ test.describe.serial('事项清单 Bug修复验证', () => {
     });
     const token = await getAuthToken();
     const freshTitle = `刷新测试-${Date.now()}`;
+    const membersRes = await req.get(`/v1/teams/${teamId}/members`, { headers: { Authorization: `Bearer ${token}` } });
+    const membersData = parseApiData(await membersRes.json());
+    const memberList = Array.isArray(membersData) ? membersData : (membersData?.items ?? []);
+    const assigneeKey = memberList[0]?.userKey ?? '';
     await req.post(`/v1/teams/${teamId}/main-items`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { title: freshTitle, priority: 'P2', assigneeId: 1, startDate: '2026-04-20', expectedEndDate: '2026-05-20' },
+      data: { title: freshTitle, priority: 'P2', assigneeKey, startDate: '2026-04-20', expectedEndDate: '2026-05-20' },
     });
     await req.dispose();
 

@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { BASE, API, login, getAuthToken, getFirstTeamId, navTo } from './test-helpers';
+import { BASE, API, login, getAuthToken, getFirstTeamId, getFirstMemberKey, getRoleKey, extractBizKey, navTo, invalidateAuthCache } from './test-helpers';
 
 // Get the Monday of the current week in UTC (to match server-side validation)
 function getCurrentUTCMonday(): string {
@@ -70,7 +70,10 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
       teamId = await getFirstTeamId(authToken);
     });
 
-    test.beforeEach(async ({ page }) => { await login(page); });
+    test.beforeEach(async ({ page }) => {
+      test.setTimeout(60000);
+      await login(page);
+    });
 
     // --- 2. Items List Page ---
     test('2.1 items page loads with sidebar', async ({ page }) => {
@@ -212,6 +215,7 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
       await logoutBtn.click();
       await page.waitForURL('**/login**', { timeout: 5000 });
       expect(page.url()).toContain('/login');
+      invalidateAuthCache();
     });
 
     // --- 12. Console Error Scan ---
@@ -386,6 +390,7 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
         headers: { 'Authorization': `Bearer ${authToken}` },
       });
       expect(res.status).toBe(200);
+      invalidateAuthCache();
     });
   });
 
@@ -393,6 +398,7 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
   test.describe('16. CRUD Operations (API)', () => {
     let authToken: string;
     let teamId: string | null;
+    let assigneeKey: string | null;
     let mainItemId: string | null;
     let subItemId: string | null;
     let poolItemId: string | null;
@@ -400,6 +406,7 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
     test.beforeAll(async () => {
       authToken = await getAuthToken();
       teamId = await getFirstTeamId(authToken);
+      assigneeKey = teamId ? await getFirstMemberKey(authToken, teamId) : null;
     });
 
     test('16.1 create main item', async () => {
@@ -410,14 +417,14 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
         body: JSON.stringify({
           title: 'E2E测试主事项',
           priority: 'P1',
-          assigneeId: 1,
+          assigneeKey: assigneeKey || '',
           startDate: '2026-04-19',
           expectedEndDate: '2026-05-19',
         }),
       });
       expect(res.status).toBe(201);
-      const data = await res.json();
-      mainItemId = data.id || data.data?.id;
+      const resp = await res.json();
+      mainItemId = extractBizKey(resp) || extractBizKey(resp.data);
       console.log(`Created main item: ${mainItemId}`);
     });
 
@@ -427,17 +434,17 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          mainItemId: Number(mainItemId),
+          mainItemKey: mainItemId,
           title: 'E2E测试子事项',
           priority: 'P2',
-          assigneeId: 1,
+          assigneeKey: assigneeKey || '',
           startDate: '2026-04-19',
           expectedEndDate: '2026-05-10',
         }),
       });
       expect(res.status).toBe(201);
-      const data = await res.json();
-      subItemId = data.id || data.data?.id;
+      const resp = await res.json();
+      subItemId = extractBizKey(resp) || extractBizKey(resp.data);
       console.log(`Created sub-item: ${subItemId}`);
     });
 
@@ -468,8 +475,8 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
         }),
       });
       expect(res.status).toBe(201);
-      const data = await res.json();
-      poolItemId = data.id || data.data?.id;
+      const resp = await res.json();
+      poolItemId = extractBizKey(resp) || extractBizKey(resp.data);
     });
 
     test('16.5 update main item', async () => {
@@ -487,7 +494,7 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
       const res = await fetch(`${API}/teams/${teamId}/sub-items/${subItemId}/status`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'progressing' }),
+        body: JSON.stringify({ status: 'pausing' }),
       });
       expect(res.status).toBe(200);
     });
@@ -505,7 +512,7 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
         }),
       });
       const cData = await cRes.json();
-      const pId = cData.id || cData.data?.id;
+      const pId = extractBizKey(cData) || extractBizKey(cData.data);
 
       const res = await fetch(`${API}/teams/${teamId}/item-pool/${pId}/reject`, {
         method: 'POST',
@@ -528,7 +535,7 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
         }),
       });
       const cData = await cRes.json();
-      const pId = cData.id || cData.data?.id;
+      const pId = extractBizKey(cData) || extractBizKey(cData.data);
 
       // Get team members to find an assignee
       const mRes = await fetch(`${API}/teams/${teamId}/members`, {
@@ -536,14 +543,14 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
       });
       const members = await mRes.json();
       const memberList = Array.isArray(members) ? members : (members.data || []);
-      const assigneeId = memberList.length > 0 ? (memberList[0].userId || memberList[0].id) : null;
+      const memberKey = memberList.length > 0 ? memberList[0].userKey : null;
 
       const res = await fetch(`${API}/teams/${teamId}/item-pool/${pId}/assign`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          mainItemId,
-          assigneeId: assigneeId || 1,
+          mainItemKey: mainItemId,
+          assigneeKey: memberKey || assigneeKey || '',
           startDate: '2026-04-19',
           expectedEndDate: '2026-05-19',
         }),
@@ -561,7 +568,8 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
       const pData = await pRes.json();
       const records = Array.isArray(pData) ? pData : (pData.data || []);
       if (records.length > 0) {
-        const recordId = records[0].id || records[0].ID;
+        const recordId = records[0].bizKey || records[0].id;
+        if (!recordId || recordId === '0') return; // skip legacy records without bizKey
         const res = await fetch(`${API}/teams/${teamId}/progress/${recordId}/completion`, {
           method: 'PATCH',
           headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },

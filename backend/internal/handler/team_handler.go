@@ -10,6 +10,7 @@ import (
 	"pm-work-tracker/backend/internal/middleware"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/repository"
 	"pm-work-tracker/backend/internal/service"
 )
@@ -163,14 +164,12 @@ func (h *TeamHandler) RemoveMember(c *gin.Context) {
 	teamID := middleware.GetTeamID(c)
 	pmID := middleware.GetUserID(c)
 
-	targetUserIDStr := c.Param("userId")
-	targetUserID, err := strconv.ParseUint(targetUserIDStr, 10, 64)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrValidation)
+	targetUserID, ok := h.resolveUserBizKey(c)
+	if !ok {
 		return
 	}
 
-	err = h.teamSvc.RemoveMember(c.Request.Context(), pmID, teamID, uint(targetUserID))
+	err := h.teamSvc.RemoveMember(c.Request.Context(), pmID, teamID, targetUserID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -184,10 +183,8 @@ func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 	teamID := middleware.GetTeamID(c)
 	pmID := middleware.GetUserID(c)
 
-	targetUserIDStr := c.Param("userId")
-	targetUserID, err := strconv.ParseUint(targetUserIDStr, 10, 64)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrValidation)
+	targetUserID, ok := h.resolveUserBizKey(c)
+	if !ok {
 		return
 	}
 
@@ -197,9 +194,10 @@ func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 		return
 	}
 
-	if err := h.teamSvc.UpdateMemberRole(c.Request.Context(), pmID, teamID, uint(targetUserID), req.RoleID); err != nil {
-		apperrors.RespondError(c, err)
-		return
+	roleKey, _ := pkg.ParseID(req.RoleKey)
+	if err := h.teamSvc.UpdateMemberRole(c.Request.Context(), pmID, teamID, targetUserID, uint(roleKey)); err != nil {
+	apperrors.RespondError(c, err)
+	return
 	}
 
 	apperrors.RespondOK(c, nil)
@@ -224,10 +222,10 @@ func (h *TeamHandler) TransferPM(c *gin.Context) {
 			apperrors.RespondError(c, err)
 			return
 		}
-		pmID = team.PmID
+		pmID = uint(team.PmKey)
 	}
 
-	err := h.teamSvc.TransferPM(c.Request.Context(), pmID, teamID, req.NewPmUserID)
+	err := h.teamSvc.TransferPM(c.Request.Context(), pmID, teamID, func() uint { v, _ := pkg.ParseID(req.NewPmUserKey); return uint(v) }())
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -253,12 +251,28 @@ func (h *TeamHandler) SearchUsers(c *gin.Context) {
 // teamToDTO converts a model.Team to a response map.
 func teamToDTO(team *model.Team) gin.H {
 	return gin.H{
-		"id":          team.ID,
-		"name":        team.Name,
-		"description": team.Description,
+		"bizKey":      pkg.FormatID(team.BizKey),
+		"name":        team.TeamName,
+		"description": team.TeamDesc,
 		"code":        team.Code,
-		"pmId":        team.PmID,
-		"createdAt":   team.CreatedAt,
-		"updatedAt":   team.UpdatedAt,
+		"pmKey":       pkg.FormatID(team.PmKey),
+		"createdAt":   team.CreateTime,
+		"updatedAt":   team.DbUpdateTime,
 	}
+}
+
+// resolveUserBizKey parses the userId path param as a bizKey and resolves it to an internal uint ID.
+func (h *TeamHandler) resolveUserBizKey(c *gin.Context) (uint, bool) {
+	idStr := c.Param("userId")
+	bizKey, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return 0, false
+	}
+	user, err := h.userRepo.FindByBizKey(c.Request.Context(), bizKey)
+	if err != nil {
+		apperrors.RespondError(c, apperrors.ErrItemNotFound)
+		return 0, false
+	}
+	return user.ID, true
 }

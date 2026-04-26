@@ -37,7 +37,7 @@ func TestConcurrentNextCode(t *testing.T) {
 
 	u := model.User{Username: "cc_pm", DisplayName: "CC PM", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "CC Team", PmID: u.ID, Code: "CONC"}
+	team := model.Team{TeamName: "CC Team", PmKey: int64(u.ID), Code: "CONC"}
 	require.NoError(t, db.Create(&team).Error)
 
 	results := make(chan string, 2)
@@ -75,9 +75,9 @@ func TestConcurrentNextSubCode(t *testing.T) {
 
 	u := model.User{Username: "cs_pm", DisplayName: "CS PM", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
-	team := model.Team{Name: "CS Team", PmID: u.ID, Code: "CSUB"}
+	team := model.Team{TeamName: "CS Team", PmKey: int64(u.ID), Code: "CSUB"}
 	require.NoError(t, db.Create(&team).Error)
-	mi := model.MainItem{TeamID: team.ID, Code: "CSUB-00001", Title: "Main", Priority: "P1", ProposerID: u.ID, Status: "pending"}
+	mi := model.MainItem{TeamKey: int64(team.ID), Code: "CSUB-00001", Title: "Main", Priority: "P1", ProposerKey: int64(u.ID), ItemStatus: "pending"}
 	require.NoError(t, db.Create(&mi).Error)
 
 	results := make(chan string, 2)

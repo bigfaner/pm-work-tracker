@@ -27,10 +27,10 @@ func createTestStatusHistory(t *testing.T, db *gormlib.DB, itemType string, item
 	t.Helper()
 	record := &model.StatusHistory{
 		ItemType:   itemType,
-		ItemID:     itemID,
+		ItemKey: int64(itemID),
 		FromStatus: from,
 		ToStatus:   to,
-		ChangedBy:  changedBy,
+		ChangedBy: int64(changedBy),
 	}
 	require.NoError(t, db.Create(record).Error)
 	return record
@@ -53,9 +53,9 @@ func TestStatusHistoryRepo_Create(t *testing.T) {
 
 	record := &model.StatusHistory{
 		ItemType:   "sub_item",
-		ItemID:     1,
+		ItemKey: int64(1),
 		FromStatus: "pending",
-		ToStatus:   "progressing",
+		ToStatus: "progressing",
 		ChangedBy:  10,
 	}
 	require.NoError(t, repo.Create(ctx, record))
@@ -74,10 +74,10 @@ func TestStatusHistoryRepo_FindByID_Found(t *testing.T) {
 	found, err := repo.FindByID(ctx, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "sub_item", found.ItemType)
-	assert.Equal(t, uint(1), found.ItemID)
+	assert.Equal(t, uint(1), uint(found.ItemKey))
 	assert.Equal(t, "pending", found.FromStatus)
 	assert.Equal(t, "progressing", found.ToStatus)
-	assert.Equal(t, uint(10), found.ChangedBy)
+	assert.Equal(t, int64(10), found.ChangedBy)
 }
 
 func TestStatusHistoryRepo_FindByID_NotFound(t *testing.T) {

@@ -20,6 +20,7 @@ import (
 	"pm-work-tracker/backend/internal/handler"
 	"pm-work-tracker/backend/internal/migration"
 	"pm-work-tracker/backend/internal/model"
+		"pm-work-tracker/backend/internal/pkg/snowflake"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 	"pm-work-tracker/backend/internal/service"
 )
@@ -204,7 +205,7 @@ func TestPermissionDenied_MemberCannotAccessPMEndpoints(t *testing.T) {
 	// POST /api/v1/teams/:teamId/members (invite) requires "team:invite"
 	body := `{"username":"userB"}`
 	w := makeRequest(t, r, http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/members", data.teamAID), body, memberToken)
+		fmt.Sprintf("/api/v1/teams/%d/members", data.teamABizKey), body, memberToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 
 	var resp map[string]interface{}
@@ -219,7 +220,7 @@ func TestPermissionDenied_MemberCannotInvite(t *testing.T) {
 
 	body := `{"username":"userB"}`
 	w := makeRequest(t, r, http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/members", data.teamAID), body, memberToken)
+		fmt.Sprintf("/api/v1/teams/%d/members", data.teamABizKey), body, memberToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
@@ -229,7 +230,7 @@ func TestPermissionDenied_MemberCannotArchiveMainItem(t *testing.T) {
 	memberToken := loginAs(t, r, "memberA", "passwordMemberA")
 
 	w := makeRequest(t, r, http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/main-items/999/archive", data.teamAID), "", memberToken)
+		fmt.Sprintf("/api/v1/teams/%d/main-items/999/archive", data.teamABizKey), "", memberToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
@@ -243,12 +244,12 @@ func TestSuperAdmin_BypassesTeamLevelPermissions(t *testing.T) {
 	// SuperAdmin should be able to access team-scoped routes even though they
 	// are not a member of the team
 	w := makeRequest(t, r, http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), "", adminToken)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamABizKey), "", adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// SuperAdmin can also list members
 	w = makeRequest(t, r, http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/members", data.teamAID), "", adminToken)
+		fmt.Sprintf("/api/v1/teams/%d/members", data.teamABizKey), "", adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
@@ -276,12 +277,12 @@ func TestCrossTeamIsolation_PMInTeamACannotUsePMPermissionsInTeamB(t *testing.T)
 
 	// UserA is PM of TeamA, should be able to read main items in TeamA
 	w := makeRequest(t, r, http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), "", userAToken)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamABizKey), "", userAToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// But UserA should NOT be able to access TeamB (not a member)
 	w = makeRequest(t, r, http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamBID), "", userAToken)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamBBizKey), "", userAToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 
 	var resp map[string]interface{}
@@ -299,7 +300,7 @@ func TestRoleEdit_ImmediateEffectOnNextRequest(t *testing.T) {
 
 	// Member should be able to read main items (member has main_item:read)
 	w := makeRequest(t, r, http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), "", memberToken)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamABizKey), "", memberToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// Create a new custom role with NO team:read or main_item:read
@@ -312,18 +313,18 @@ func TestRoleEdit_ImmediateEffectOnNextRequest(t *testing.T) {
 
 	// Update memberA's role in teamA to the new custom role
 	var member model.TeamMember
-	require.NoError(t, db.Where("team_id = ? AND user_id = ?", data.teamAID, data.memberAID).First(&member).Error)
-	member.RoleID = &customRoleID
+	require.NoError(t, db.Where("team_key = ? AND user_key = ?", data.teamAID, data.memberAID).First(&member).Error)
+	roleKey := int64(customRoleID); member.RoleKey = &roleKey
 	require.NoError(t, db.Save(&member).Error)
 
 	// Now member should NOT be able to read main items (no main_item:read permission)
 	w = makeRequest(t, r, http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), "", memberToken)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamABizKey), "", memberToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 
 	// But sub_item:read should still work
 	w = makeRequest(t, r, http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/sub-items/999", data.teamAID), "", memberToken)
+		fmt.Sprintf("/api/v1/teams/%d/sub-items/999", data.teamABizKey), "", memberToken)
 	// 404 is expected (sub-item doesn't exist), not 403 (permission denied)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
@@ -346,8 +347,8 @@ func TestDeleteRole_WithUsers_Rejected(t *testing.T) {
 
 	// Assign custom role to memberA in teamA
 	var member model.TeamMember
-	require.NoError(t, db.Where("team_id = ? AND user_id = ?", data.teamAID, data.memberAID).First(&member).Error)
-	member.RoleID = &customRoleID
+	require.NoError(t, db.Where("team_key = ? AND user_key = ?", data.teamAID, data.memberAID).First(&member).Error)
+	roleKey := int64(customRoleID); member.RoleKey = &roleKey
 	require.NoError(t, db.Save(&member).Error)
 
 	// Try to delete the role — should be rejected because it's in use
@@ -397,8 +398,8 @@ func TestInviteMember_WithRoleID_MemberHasCorrectPermissions(t *testing.T) {
 
 	memberRoleID := findRoleIDByName(t, db, "member")
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamID: data.teamAID, UserID: newUser.ID, Role: "member",
-		RoleID: &memberRoleID, JoinedAt: time.Now(),
+		TeamKey: int64(data.teamAID), UserKey: int64(newUser.ID), 
+		RoleKey: func() *int64 { v := int64(memberRoleID); return &v }(), JoinedAt: time.Now(),
 	}).Error)
 
 	// Login as newuser and verify member-level permissions
@@ -406,12 +407,12 @@ func TestInviteMember_WithRoleID_MemberHasCorrectPermissions(t *testing.T) {
 
 	// Should be able to read main items (member has main_item:read)
 	w := makeRequest(t, r, http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), "", newUserToken)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamABizKey), "", newUserToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// Should NOT be able to invite others (member does NOT have team:invite)
 	w = makeRequest(t, r, http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/members", data.teamAID),
+		fmt.Sprintf("/api/v1/teams/%d/members", data.teamABizKey),
 		`{"username":"userB"}`, newUserToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
@@ -487,6 +488,8 @@ func createFreshDB(t *testing.T) *gorm.DB {
 // setupRBACTestDB creates an in-memory DB with RBAC tables seeded via the migration path.
 func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	t.Helper()
+	snowflake.Init(1)
+
 
 	dbName := fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())
 	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
@@ -498,6 +501,7 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		&model.MainItem{}, &model.SubItem{},
 		&model.ProgressRecord{}, &model.ItemPool{},
 		&model.Role{}, &model.RolePermission{},
+		&model.StatusHistory{},
 	)
 	require.NoError(t, err)
 
@@ -569,22 +573,22 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	// Superadmin has no permission codes (bypasses all checks)
 	_ = superadminRoleID
 
-	// Seed teams
-	teamA := &model.Team{Name: "Team A", PmID: userA.ID, Code: "TAMA"}
-	teamB := &model.Team{Name: "Team B", PmID: userB.ID, Code: "TAMB"}
+	// Seed teams (with BizKey so middleware can resolve bizKey to internal ID)
+	teamA := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team A", PmKey: int64(userA.ID), Code: "TAMA"}
+	teamB := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team B", PmKey: int64(userB.ID), Code: "TAMB"}
 	require.NoError(t, db.Create(teamA).Error)
 	require.NoError(t, db.Create(teamB).Error)
 
 	// Seed team members
 	now := time.Now()
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamID: teamA.ID, UserID: userA.ID, Role: "pm", RoleID: &pmRoleID, JoinedAt: now,
+		TeamKey: int64(teamA.ID), UserKey: int64(userA.ID),  RoleKey: func() *int64 { v := int64(pmRoleID); return &v }(), JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamID: teamA.ID, UserID: memberA.ID, Role: "member", RoleID: &memberRoleID, JoinedAt: now,
+		TeamKey: int64(teamA.ID), UserKey: int64(memberA.ID),  RoleKey: func() *int64 { v := int64(memberRoleID); return &v }(), JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamID: teamB.ID, UserID: userB.ID, Role: "pm", RoleID: &pmRoleID, JoinedAt: now,
+		TeamKey: int64(teamB.ID), UserKey: int64(userB.ID),  RoleKey: func() *int64 { v := int64(pmRoleID); return &v }(), JoinedAt: now,
 	}).Error)
 
 	return db, &seedData{
@@ -594,6 +598,8 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		superAdminID: superAdmin.ID,
 		teamAID:      teamA.ID,
 		teamBID:      teamB.ID,
+		teamABizKey:  teamA.BizKey,
+		teamBBizKey:  teamB.BizKey,
 	}
 }
 
@@ -643,8 +649,8 @@ func setupRBACTestRouter(t *testing.T, db *gorm.DB, data *seedData) *gin.Engine 
 		Auth:       handler.NewAuthHandler(authSvc),
 		Team:       handler.NewTeamHandler(teamSvc, userRepo),
 		MainItem:   handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
-		SubItem:    handler.NewSubItemHandler(subItemSvc),
-		Progress:   handler.NewProgressHandler(progressSvc, userRepo),
+		SubItem:    handler.NewSubItemHandler(subItemSvc, mainItemSvc),
+		Progress:   handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
 		ItemPool:   handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
 		View:       handler.NewViewHandler(viewSvc),
 		Report:     handler.NewReportHandler(reportSvc),
