@@ -10,6 +10,7 @@ import (
 	"pm-work-tracker/backend/internal/middleware"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/repository"
 	"pm-work-tracker/backend/internal/service"
 )
@@ -197,7 +198,8 @@ func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 		return
 	}
 
-	if err := h.teamSvc.UpdateMemberRole(c.Request.Context(), pmID, teamID, uint(targetUserID), req.RoleID); err != nil {
+	roleKey, _ := pkg.ParseID(req.RoleKey)
+		if err := h.teamSvc.UpdateMemberRole(c.Request.Context(), pmID, teamID, uint(targetUserID), uint(roleKey)); err != nil {
 		apperrors.RespondError(c, err)
 		return
 	}
@@ -227,7 +229,7 @@ func (h *TeamHandler) TransferPM(c *gin.Context) {
 		pmID = uint(team.PmKey)
 	}
 
-	err := h.teamSvc.TransferPM(c.Request.Context(), pmID, teamID, req.NewPmUserID)
+	err := h.teamSvc.TransferPM(c.Request.Context(), pmID, teamID, func() uint { v, _ := pkg.ParseID(req.NewPmUserKey); return uint(v) }())
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -253,11 +255,11 @@ func (h *TeamHandler) SearchUsers(c *gin.Context) {
 // teamToDTO converts a model.Team to a response map.
 func teamToDTO(team *model.Team) gin.H {
 	return gin.H{
-		"id":          team.ID,
+		"bizKey":      pkg.FormatID(team.BizKey),
 		"name":        team.TeamName,
 		"description": team.TeamDesc,
 		"code":        team.Code,
-		"pmId":        team.PmKey,
+		"pmKey":       pkg.FormatID(team.PmKey),
 		"createdAt":   team.CreateTime,
 		"updatedAt":   team.DbUpdateTime,
 	}

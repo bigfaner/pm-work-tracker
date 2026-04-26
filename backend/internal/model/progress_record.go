@@ -2,9 +2,10 @@ package model
 
 import "time"
 
-// ProgressRecord is append-only: no biz_key, no soft-delete fields.
+// ProgressRecord is append-only: no soft-delete fields.
 type ProgressRecord struct {
 	ID          uint      `gorm:"primarykey;autoIncrement" json:"-"`
+	BizKey      int64     `gorm:"not null" json:"bizKey"`
 	SubItemKey  int64     `gorm:"not null" json:"subItemKey"`
 	TeamKey     int64     `gorm:"not null" json:"teamKey"`
 	AuthorKey   int64     `gorm:"not null" json:"authorKey"`

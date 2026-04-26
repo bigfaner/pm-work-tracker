@@ -218,8 +218,8 @@ func TestItemPoolAssign_Success(t *testing.T) {
 	svc := NewItemPoolService(poolRepo, subRepo, mainRepo, dbtx)
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
-		MainItemID: 20,
-		AssigneeID: uintPtr(30),
+		MainItemKey: "20",
+		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
@@ -228,9 +228,9 @@ func TestItemPoolAssign_Success(t *testing.T) {
 
 	// Verify pool item was updated
 	assert.Equal(t, "assigned", poolRepo.updatedFields["pool_status"])
-	assert.Equal(t, uint(20), poolRepo.updatedFields["assigned_main_key"])
+	assert.Equal(t, int64(20), poolRepo.updatedFields["assigned_main_key"])
 	assert.Equal(t, uint(10), poolRepo.updatedFields["assigned_sub_key"]) // SubItem.ID set to 10 by mock
-	assert.Equal(t, uintPtr(30), poolRepo.updatedFields["assignee_key"])
+	assert.Equal(t, func() *int64 { v := int64(30); return &v }(), poolRepo.updatedFields["assignee_key"])
 	assert.Equal(t, uint(100), poolRepo.updatedFields["reviewer_key"])
 	assert.NotNil(t, poolRepo.updatedFields["reviewed_at"])
 
@@ -257,8 +257,8 @@ func TestItemPoolAssign_SubItemInheritsBackgroundAsDescription(t *testing.T) {
 	svc := NewItemPoolService(poolRepo, subRepo, mainRepo, dbtx)
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
-		MainItemID: 20,
-		AssigneeID: uintPtr(30),
+		MainItemKey: "20",
+		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
@@ -275,8 +275,8 @@ func TestItemPoolAssign_PoolItemNotFound(t *testing.T) {
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
 	err := svc.Assign(context.Background(), 1, 100, 99, dto.AssignItemPoolReq{
-		MainItemID: 20,
-		AssigneeID: uintPtr(30),
+		MainItemKey: "20",
+		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
@@ -293,8 +293,8 @@ func TestItemPoolAssign_AlreadyProcessed_AlreadyAssigned(t *testing.T) {
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
-		MainItemID: 20,
-		AssigneeID: uintPtr(30),
+		MainItemKey: "20",
+		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
@@ -311,8 +311,8 @@ func TestItemPoolAssign_AlreadyProcessed_Rejected(t *testing.T) {
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
-		MainItemID: 20,
-		AssigneeID: uintPtr(30),
+		MainItemKey: "20",
+		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
@@ -331,8 +331,8 @@ func TestItemPoolAssign_MainItemNotFound(t *testing.T) {
 	svc := NewItemPoolService(poolRepo, nil, mainRepo, dbtx)
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
-		MainItemID: 99,
-		AssigneeID: uintPtr(30),
+		MainItemKey: "99",
+		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
@@ -349,8 +349,8 @@ func TestItemPoolAssign_TeamMismatch(t *testing.T) {
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
-		MainItemID: 20,
-		AssigneeID: uintPtr(30),
+		MainItemKey: "20",
+		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
@@ -380,8 +380,8 @@ func TestItemPoolAssign_RollbackOnSubItemCreateError(t *testing.T) {
 	svc := NewItemPoolService(poolRepo, subRepo, mainRepo, dbtx)
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
-		MainItemID: 20,
-		AssigneeID: uintPtr(30),
+		MainItemKey: "20",
+		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
@@ -541,8 +541,8 @@ func TestItemPoolAssign_ReviewedAtIsSet(t *testing.T) {
 
 	before := time.Now()
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
-		MainItemID: 20,
-		AssigneeID: uintPtr(30),
+		MainItemKey: "20",
+		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
@@ -591,8 +591,8 @@ func TestItemPoolAssign_MainItemTeamMismatch(t *testing.T) {
 	svc := NewItemPoolService(poolRepo, nil, mainRepo, dbtx)
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
-		MainItemID: 20,
-		AssigneeID: uintPtr(30),
+		MainItemKey: "20",
+		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
@@ -608,8 +608,8 @@ func TestItemPoolAssign_PoolItemGenericError(t *testing.T) {
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
-		MainItemID: 20,
-		AssigneeID: uintPtr(30),
+		MainItemKey: "20",
+		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
@@ -628,8 +628,8 @@ func TestItemPoolAssign_MainItemGenericError(t *testing.T) {
 	svc := NewItemPoolService(poolRepo, nil, mainRepo, dbtx)
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
-		MainItemID: 20,
-		AssigneeID: uintPtr(30),
+		MainItemKey: "20",
+		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
@@ -661,8 +661,8 @@ func TestItemPoolAssign_PoolItemErrNotFound(t *testing.T) {
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
-		MainItemID: 20,
-		AssigneeID: uintPtr(30),
+		MainItemKey: "20",
+		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
@@ -681,8 +681,8 @@ func TestItemPoolAssign_MainItemErrNotFound(t *testing.T) {
 	svc := NewItemPoolService(poolRepo, nil, mainRepo, dbtx)
 
 	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
-		MainItemID: 20,
-		AssigneeID: uintPtr(30),
+		MainItemKey: "20",
+		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
 			ExpectedEndDate: strPtr("2024-03-01"),
 	})
@@ -704,3 +704,4 @@ func TestItemPoolReject_ErrNotFound(t *testing.T) {
 	err := svc.Reject(context.Background(), 1, 100, 5, "reason")
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
 }
+

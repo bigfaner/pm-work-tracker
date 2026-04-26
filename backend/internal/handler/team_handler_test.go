@@ -345,8 +345,8 @@ func TestListTeams_Success(t *testing.T) {
 		{Name: "Team A"},
 		{Name: "Team B"},
 	}
-	svc.listTeamsResult.teams[0].ID = 1
-	svc.listTeamsResult.teams[1].ID = 2
+	svc.listTeamsResult.teams[0].BizKey = "1"
+	svc.listTeamsResult.teams[1].BizKey = "2"
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	r := SetupRouter(deps, nil)
@@ -378,7 +378,7 @@ func TestListTeams_Success(t *testing.T) {
 func TestGetTeam_Success(t *testing.T) {
 	svc := &mockTeamService{}
 	svc.getTeamDetailResult.detail = &dto.TeamDetailResp{
-		ID:            1,
+		BizKey: "1",
 		Name:          "Alpha",
 		PmDisplayName: "Alice",
 		MemberCount:   3,
@@ -561,7 +561,7 @@ func TestInviteMember_Success(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
-	body := `{"username":"bob","roleId":3}`
+	body := `{"username":"bob","roleKey":"3"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/1/members", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -582,7 +582,7 @@ func TestInviteMember_AlreadyMember(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
-	body := `{"username":"bob","roleId":3}`
+	body := `{"username":"bob","roleKey":"3"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/1/members", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -606,7 +606,7 @@ func TestInviteMember_UserNotFound(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
-	body := `{"username":"ghost","roleId":3}`
+	body := `{"username":"ghost","roleKey":"3"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/1/members", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -625,7 +625,7 @@ func TestInviteMember_CannotAssignPMRole(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
-	body := `{"username":"bob","roleId":2}`
+	body := `{"username":"bob","roleKey":"2"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/1/members", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -694,7 +694,7 @@ func TestUpdateMemberRole_Success(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
-	body := `{"roleId":3}`
+	body := `{"roleKey":"3"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/1/members/5/role", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -730,7 +730,7 @@ func TestUpdateMemberRole_InvalidUserID(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
-	body := `{"roleId":3}`
+	body := `{"roleKey":"3"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/1/members/abc/role", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -749,7 +749,7 @@ func TestUpdateMemberRole_NotMember(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
-	body := `{"roleId":3}`
+	body := `{"roleKey":"3"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/1/members/99/role", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -771,7 +771,7 @@ func TestUpdateMemberRole_CannotAssignPMRole(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
-	body := `{"roleId":2}`
+	body := `{"roleKey":"2"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/1/members/5/role", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -797,7 +797,7 @@ func TestTransferPM_Success(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
-	body := `{"newPmUserId":5}`
+	body := `{"newPmUserKey":"5"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/1/pm", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -819,7 +819,7 @@ func TestTransferPM_TargetNotMember(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
-	body := `{"newPmUserId":99}`
+	body := `{"newPmUserKey":"99"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/1/pm", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -863,7 +863,7 @@ func TestTransferPM_ServiceError(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
-	body := `{"newPmUserId":5}`
+	body := `{"newPmUserKey":"5"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/1/pm", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

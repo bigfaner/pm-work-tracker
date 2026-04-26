@@ -11,6 +11,7 @@ import (
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/pkg/dates"
 	"pm-work-tracker/backend/internal/repository"
 )
@@ -232,7 +233,7 @@ func indexSubItemsByMain(subItems []model.SubItem) map[uint][]model.SubItem {
 // buildSubItemSnapshot creates a SubItemSnapshot for a sub-item with optional progress and delta info.
 func buildSubItemSnapshot(si model.SubItem, assigneeName, progressDesc string, thisWeekProgress map[uint][]model.ProgressRecord, lastWeekCompletion map[uint]float64, weekStart, weekEnd time.Time) dto.SubItemSnapshot {
 	snapshot := dto.SubItemSnapshot{
-		ID:                  si.ID,
+		BizKey:              pkg.FormatID(si.BizKey),
 		Code:                si.Code,
 		Title:               si.Title,
 		Priority:            si.Priority,
@@ -295,7 +296,7 @@ func buildWeeklyGroups(
 
 		group := dto.WeeklyComparisonGroup{
 			MainItem: dto.WeeklyMainItemSummary{
-				ID:              mi.ID,
+				BizKey:          pkg.FormatID(mi.BizKey),
 				Code:            mi.Code,
 				Title:           mi.Title,
 				Priority:        mi.Priority,
@@ -378,7 +379,7 @@ func appendLastWeekSnapshot(group *dto.WeeklyComparisonGroup, si model.SubItem, 
 		return
 	}
 	lastSnapshot := dto.SubItemSnapshot{
-		ID:              si.ID,
+		BizKey:              pkg.FormatID(si.BizKey),
 		Code:            si.Code,
 		Title:           si.Title,
 		Priority:        si.Priority,
@@ -497,7 +498,7 @@ func (s *viewService) GanttView(ctx context.Context, teamID uint, filter dto.Gan
 		subDTOs := make([]dto.GanttSubItemDTO, 0, len(subs))
 		for _, si := range subs {
 			subDTOs = append(subDTOs, dto.GanttSubItemDTO{
-				ID:              si.ID,
+				BizKey:              pkg.FormatID(si.BizKey),
 				Title:           si.Title,
 				StartDate:       formatDate(si.PlanStartDate),
 				ExpectedEndDate: formatDate(si.ExpectedEndDate),
@@ -507,7 +508,7 @@ func (s *viewService) GanttView(ctx context.Context, teamID uint, filter dto.Gan
 		}
 
 		items = append(items, dto.GanttMainItemDTO{
-			ID:              mi.ID,
+			BizKey:          pkg.FormatID(mi.BizKey),
 			Title:           mi.Title,
 			Priority:        mi.Priority,
 			StartDate:       formatDate(mi.PlanStartDate),
@@ -685,12 +686,12 @@ func derefString(s *string) string {
 
 func mainItemToRow(mi model.MainItem) dto.TableRow {
 	return dto.TableRow{
-		ID:              mi.ID,
+		BizKey:          pkg.FormatID(mi.BizKey),
 		Type:            "main",
 		Code:            mi.Code,
 		Title:           mi.Title,
 		Priority:        mi.Priority,
-		AssigneeID:      mi.AssigneeKey,
+		AssigneeID:      pkg.FormatIDPtr(mi.AssigneeKey),
 		Status:          mi.ItemStatus,
 		Completion:      mi.Completion,
 		ExpectedEndDate: dates.FormatTimePtr(mi.ExpectedEndDate),
@@ -700,12 +701,12 @@ func mainItemToRow(mi model.MainItem) dto.TableRow {
 
 func subItemToRow(si model.SubItem) dto.TableRow {
 	return dto.TableRow{
-		ID:              si.ID,
+		BizKey:              pkg.FormatID(si.BizKey),
 		Type:            "sub",
 		Code:            si.Code,
 		Title:           si.Title,
 		Priority:        si.Priority,
-		AssigneeID:      si.AssigneeKey,
+		AssigneeID:      pkg.FormatIDPtr(si.AssigneeKey),
 		Status:          si.ItemStatus,
 		Completion:      si.Completion,
 		ExpectedEndDate: dates.FormatTimePtr(si.ExpectedEndDate),
@@ -720,8 +721,8 @@ func matchesFilterMain(mi model.MainItem, filter dto.TableFilter) bool {
 	if len(filter.Status) > 0 && !contains(filter.Status, mi.ItemStatus) {
 		return false
 	}
-	if filter.AssigneeID != nil {
-		if mi.AssigneeKey == nil || *mi.AssigneeKey != *filter.AssigneeID {
+	if filter.AssigneeKey != nil {
+		if mi.AssigneeKey == nil || pkg.FormatID(*mi.AssigneeKey) != *filter.AssigneeKey {
 			return false
 		}
 	}
@@ -735,8 +736,8 @@ func matchesFilterSub(si model.SubItem, filter dto.TableFilter) bool {
 	if len(filter.Status) > 0 && !contains(filter.Status, si.ItemStatus) {
 		return false
 	}
-	if filter.AssigneeID != nil {
-		if si.AssigneeKey == nil || *si.AssigneeKey != *filter.AssigneeID {
+	if filter.AssigneeKey != nil {
+		if si.AssigneeKey == nil || pkg.FormatID(*si.AssigneeKey) != *filter.AssigneeKey {
 			return false
 		}
 	}
@@ -839,7 +840,9 @@ func resolveAssigneeNames(ctx context.Context, rows []dto.TableRow, userRepo rep
 	assigneeIDs := make(map[uint]struct{})
 	for _, row := range rows {
 		if row.AssigneeID != nil {
-			assigneeIDs[uint(*row.AssigneeID)] = struct{}{}
+			if id, err := pkg.ParseID(*row.AssigneeID); err == nil {
+				assigneeIDs[uint(id)] = struct{}{}
+			}
 		}
 	}
 	if len(assigneeIDs) == 0 {
@@ -863,7 +866,9 @@ func resolveAssigneeNames(ctx context.Context, rows []dto.TableRow, userRepo rep
 	// Fill names into rows
 	for i := range rows {
 		if rows[i].AssigneeID != nil {
-			rows[i].AssigneeName = names[uint(*rows[i].AssigneeID)]
+			if id, err := pkg.ParseID(*rows[i].AssigneeID); err == nil {
+				rows[i].AssigneeName = names[uint(id)]
+			}
 		}
 	}
 }

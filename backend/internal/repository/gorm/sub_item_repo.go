@@ -53,7 +53,7 @@ func (r *subItemRepo) List(ctx context.Context, teamID uint, mainItemID uint, fi
 		query = query.Where("main_item_key = ?", mainItemID)
 	}
 
-	query = applyItemFilter(query, filter.Status, filter.Priority, filter.AssigneeID, filter.IsKeyItem)
+	query = applyItemFilter(query, filter.Status, filter.Priority, filter.AssigneeKey, filter.IsKeyItem)
 
 	var total int64
 	if err := query.Model(&model.SubItem{}).Count(&total).Error; err != nil {

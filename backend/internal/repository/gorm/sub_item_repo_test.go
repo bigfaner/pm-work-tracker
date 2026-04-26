@@ -3,6 +3,7 @@ package gorm_test
 import (
 	"context"
 	"testing"
+	"fmt"
 
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
@@ -212,8 +213,8 @@ func TestSubItemRepo_List_FilterByAssignee(t *testing.T) {
 
 	createSubItem(t, db, team.ID, mi.ID, "Unassigned Sub", "P2", "pending")
 
-	assigneeID := u.ID
-	result, err := repo.List(ctx, team.ID, mi.ID, dto.SubItemFilter{AssigneeID: &assigneeID}, dto.Pagination{Page: 1, PageSize: 10})
+	assigneeKey := fmt.Sprintf("%d", u.ID)
+	result, err := repo.List(ctx, team.ID, mi.ID, dto.SubItemFilter{AssigneeKey: &assigneeKey}, dto.Pagination{Page: 1, PageSize: 10})
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), result.Total)
 	assert.Equal(t, "Assigned Sub", result.Items[0].Title)

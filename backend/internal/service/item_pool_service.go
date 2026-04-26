@@ -10,7 +10,9 @@ import (
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/pkg/dates"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -47,6 +49,7 @@ func NewItemPoolService(poolRepo repository.ItemPoolRepo, subRepo repository.Sub
 
 func (s *itemPoolService) Submit(ctx context.Context, teamID, submitterID uint, req dto.SubmitItemPoolReq) (*model.ItemPool, error) {
 	item := &model.ItemPool{
+		BaseModel:      model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:        int64(teamID),
 		Title:          req.Title,
 		Background:     req.Background,
@@ -73,7 +76,7 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 	}
 
 	// Validate main item exists
-	mainItem, err := s.mainRepo.FindByID(ctx, req.MainItemID)
+	mainItem, err := s.mainRepo.FindByID(ctx, func() uint { id, _ := pkg.ParseID(req.MainItemKey); return uint(id) }())
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
@@ -86,12 +89,13 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 
 		// Create SubItem under the MainItem
 		subItem := &model.SubItem{
+			BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
 			TeamKey:     int64(teamID),
-			MainItemKey: int64(req.MainItemID),
+			MainItemKey: func() int64 { id, _ := pkg.ParseID(req.MainItemKey); return id }(),
 			Title:       poolItem.Title,
 			ItemDesc:    poolItem.Background,
 			Priority:    defaultPriority(req.Priority),
-			AssigneeKey: func() *int64 { if req.AssigneeID != nil { v := int64(*req.AssigneeID); return &v }; return nil }(),
+			AssigneeKey: func() *int64 { if req.AssigneeKey != nil { v, _ := pkg.ParseID(*req.AssigneeKey); return &v }; return nil }(),
 			ItemStatus:  "pending",
 			Weight:      1.0,
 		}
@@ -112,9 +116,9 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 		// Update pool item
 		fields := map[string]interface{}{
 			"pool_status":      "assigned",
-			"assigned_main_key": req.MainItemID,
+			"assigned_main_key": func() int64 { id, _ := pkg.ParseID(req.MainItemKey); return id }(),
 			"assigned_sub_key":  subItem.ID,
-			"assignee_key":      req.AssigneeID,
+			"assignee_key":      func() *int64 { if req.AssigneeKey != nil { v, _ := pkg.ParseID(*req.AssigneeKey); return &v }; return nil }(),
 			"reviewer_key":      pmID,
 			"reviewed_at":       now,
 		}
@@ -144,12 +148,13 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamID, pmID, poolI
 		}
 
 		mainItem := &model.MainItem{
+			BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
 			TeamKey:     int64(teamID),
 			Code:        code,
 			Title:       poolItem.Title,
 			Priority:    req.Priority,
 			ProposerKey: int64(pmID),
-			AssigneeKey: func() *int64 { if req.AssigneeID != nil { v := int64(*req.AssigneeID); return &v }; return nil }(),
+			AssigneeKey: func() *int64 { if req.AssigneeKey != nil { v, _ := pkg.ParseID(*req.AssigneeKey); return &v }; return nil }(),
 			IsKeyItem:   false,
 			ItemStatus:  "pending",
 		}
@@ -172,7 +177,7 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamID, pmID, poolI
 		fields := map[string]interface{}{
 			"pool_status":       "assigned",
 			"assigned_main_key": mainItem.ID,
-			"assignee_key":      req.AssigneeID,
+			"assignee_key":      func() *int64 { if req.AssigneeKey != nil { v, _ := pkg.ParseID(*req.AssigneeKey); return &v }; return nil }(),
 			"reviewer_key":      pmID,
 			"reviewed_at":       now,
 		}

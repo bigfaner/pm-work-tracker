@@ -9,6 +9,7 @@ import (
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/middleware"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/service"
 	"pm-work-tracker/backend/internal/vo"
 )
@@ -264,7 +265,7 @@ func (h *SubItemHandler) Assign(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.Assign(c.Request.Context(), teamID, pmID, subID, req.AssigneeID)
+	err := h.svc.Assign(c.Request.Context(), teamID, pmID, subID, func() uint { v, _ := pkg.ParseID(req.AssigneeKey); return uint(v) }())
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

@@ -27,7 +27,7 @@ func TestNewSubItemVO_PopulatesStatusName(t *testing.T) {
 
 	result := NewSubItemVO(subItem)
 
-	assert.Equal(t, "progressing", result.Status)
+	assert.Equal(t, "progressing", result.ItemStatus)
 	assert.Equal(t, "进行中", result.StatusName)
 }
 
@@ -40,7 +40,7 @@ func TestNewSubItemVO_UnknownStatus(t *testing.T) {
 
 	result := NewSubItemVO(subItem)
 
-	assert.Equal(t, "unknown_status", result.Status)
+	assert.Equal(t, "unknown_status", result.ItemStatus)
 	assert.Equal(t, "", result.StatusName)
 }
 

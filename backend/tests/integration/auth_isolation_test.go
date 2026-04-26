@@ -22,6 +22,7 @@ import (
 	"pm-work-tracker/backend/internal/handler"
 	"pm-work-tracker/backend/internal/model"
 	appjwt "pm-work-tracker/backend/internal/pkg/jwt"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 	"pm-work-tracker/backend/internal/service"
 )
@@ -42,6 +43,8 @@ type seedData struct {
 // Each call gets a unique database to avoid cross-test state leakage.
 func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	t.Helper()
+
+	snowflake.Init(1)
 
 	dbName := fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())
 	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})

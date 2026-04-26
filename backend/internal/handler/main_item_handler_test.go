@@ -246,7 +246,7 @@ func TestCreateMainItem_Success(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"title":"Test Item","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"title":"Test Item","priority":"P1","assigneeKey":"1","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -281,7 +281,7 @@ func TestCreateMainItem_WithOptionalFields(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"title":"Test Item","priority":"P1","assigneeId":3,"startDate":"2026-04-01","expectedEndDate":"2026-04-30","isKeyItem":true}`
+	body := `{"title":"Test Item","priority":"P1","assigneeKey":"3","startDate":"2026-04-01","expectedEndDate":"2026-04-30","isKeyItem":true}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -290,7 +290,7 @@ func TestCreateMainItem_WithOptionalFields(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.True(t, svc.createCalled)
-	assert.Equal(t, uint(3), svc.lastCreateReq.AssigneeID)
+	assert.Equal(t, "3", svc.lastCreateReq.AssigneeKey)
 	assert.True(t, svc.lastCreateReq.IsKeyItem)
 }
 
@@ -304,7 +304,7 @@ func TestCreateMainItem_RequiresPM(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"title":"Test Item","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"title":"Test Item","priority":"P1","assigneeKey":"1","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -347,7 +347,7 @@ func TestCreateMainItem_ServiceError(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"title":"Test","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"title":"Test","priority":"P1","assigneeKey":"1","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -758,7 +758,7 @@ func TestCreateMainItem_SuperAdminBypass(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
-	body := `{"title":"Test","priority":"P1","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"title":"Test","priority":"P1","assigneeKey":"1","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -1035,9 +1035,9 @@ func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	assert.Equal(t, "TEST-00001", data["code"])
 	assert.Equal(t, "接入新支付渠道", data["title"])
 	assert.Equal(t, "P1", data["priority"])
-	assert.Equal(t, float64(2), data["proposerId"])
-	assert.Equal(t, float64(3), data["assigneeId"])
-	assert.Equal(t, "progressing", data["status"])
+	assert.Equal(t, "2", data["proposerKey"])
+	assert.Equal(t, "3", data["assigneeKey"])
+	assert.Equal(t, "progressing", data["itemStatus"])
 	assert.Equal(t, 45.5, data["completion"])
 	assert.Equal(t, false, data["isKeyItem"])
 	assert.NotNil(t, data["subItems"])

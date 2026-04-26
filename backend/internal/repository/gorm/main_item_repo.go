@@ -50,7 +50,7 @@ func (r *mainItemRepo) List(ctx context.Context, teamID uint, filter dto.MainIte
 		query = query.Where("archived_at IS NULL")
 	}
 
-	query = applyItemFilter(query, filter.Status, filter.Priority, filter.AssigneeID, filter.IsKeyItem)
+	query = applyItemFilter(query, filter.Status, filter.Priority, filter.AssigneeKey, filter.IsKeyItem)
 
 	var total int64
 	if err := query.Model(&model.MainItem{}).Count(&total).Error; err != nil {

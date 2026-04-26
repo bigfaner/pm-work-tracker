@@ -5,9 +5,11 @@ import (
 	"time"
 
 	"pm-work-tracker/backend/internal/dto"
+	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg/dates"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/pkg/status"
 	"pm-work-tracker/backend/internal/repository"
 )
@@ -42,7 +44,7 @@ func NewSubItemService(subItemRepo repository.SubItemRepo, mainItemSvc MainItemS
 }
 
 func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req dto.SubItemCreateReq) (*model.SubItem, error) {
-	mainItem, err := s.mainItemSvc.Get(ctx, req.MainItemID)
+	mainItem, err := s.mainItemSvc.Get(ctx, func() uint { id, _ := pkg.ParseID(req.MainItemKey); return uint(id) }())
 	if err != nil {
 		return nil, err
 	}
@@ -50,19 +52,20 @@ func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req 
 		return nil, apperrors.ErrTerminalMainItem
 	}
 
-	code, err := s.subItemRepo.NextSubCode(ctx, req.MainItemID)
+	code, err := s.subItemRepo.NextSubCode(ctx, func() uint { id, _ := pkg.ParseID(req.MainItemKey); return uint(id) }())
 	if err != nil {
 		return nil, err
 	}
 
 	item := &model.SubItem{
+		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:     int64(teamID),
-		MainItemKey: int64(req.MainItemID),
+		MainItemKey: func() int64 { id, _ := pkg.ParseID(req.MainItemKey); return id }(),
 		Code:        code,
 		Title:       req.Title,
 		ItemDesc:    req.Description,
 		Priority:    req.Priority,
-		AssigneeKey: func() *int64 { if req.AssigneeID != 0 { v := int64(req.AssigneeID); return &v }; return nil }(),
+		AssigneeKey: func() *int64 { if req.AssigneeKey != "" { v, _ := pkg.ParseID(req.AssigneeKey); return &v }; return nil }(),
 		ItemStatus:  "pending",
 		Weight:      1.0,
 	}
@@ -107,8 +110,8 @@ func (s *subItemService) Update(ctx context.Context, teamID, itemID uint, req dt
 	if req.Priority != nil {
 		fields["priority"] = *req.Priority
 	}
-	if req.AssigneeID != nil {
-		fields["assignee_id"] = *req.AssigneeID
+	if req.AssigneeKey != nil {
+		fields["assignee_id"] = *req.AssigneeKey
 	}
 	if req.StartDate != nil {
 		fields["start_date"] = *req.StartDate

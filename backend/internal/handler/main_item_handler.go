@@ -120,22 +120,23 @@ func (h *MainItemHandler) Get(c *gin.Context) {
 	subItems, _ := h.subItemRepo.ListByMainItem(c.Request.Context(), item.ID)
 
 	apperrors.RespondOK(c, gin.H{
-		"id":              itemVO.ID,
-		"teamId":          itemVO.TeamKey,
+		"bizKey":          itemVO.BizKey,
+		"teamKey":         itemVO.TeamKey,
 		"code":            itemVO.Code,
 		"title":           itemVO.Title,
 		"priority":        itemVO.Priority,
-		"proposerId":      itemVO.ProposerKey,
-		"assigneeId":      itemVO.AssigneeKey,
+		"proposerKey":     itemVO.ProposerKey,
+		"assigneeKey":     itemVO.AssigneeKey,
 		"startDate":       itemVO.StartDate,
 		"expectedEndDate": itemVO.ExpectedEndDate,
 		"actualEndDate":   itemVO.ActualEndDate,
-		"status":          itemVO.Status,
+		"itemStatus":      itemVO.ItemStatus,
+		"statusName":      itemVO.StatusName,
 		"completion":      itemVO.Completion,
 		"isKeyItem":       itemVO.IsKeyItem,
 		"archivedAt":      itemVO.ArchivedAt,
-		"createdAt":       itemVO.CreatedAt,
-		"updatedAt":       itemVO.UpdatedAt,
+		"createTime":      itemVO.CreateTime,
+		"dbUpdateTime":    itemVO.DbUpdateTime,
 		"subItems":        vo.NewSubItemSummaryVOs(subItems),
 	})
 }

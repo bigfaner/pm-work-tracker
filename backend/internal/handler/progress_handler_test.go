@@ -796,6 +796,7 @@ func TestAppendProgress_ResponseShapeMatchesDataContract(t *testing.T) {
 	now := time.Now()
 	record := &model.ProgressRecord{
 		ID:          100,
+		BizKey: 100,
 		SubItemKey:   10,
 		TeamKey: 1,
 		AuthorKey:    3,
@@ -832,13 +833,13 @@ func TestAppendProgress_ResponseShapeMatchesDataContract(t *testing.T) {
 	data := resp["data"].(map[string]interface{})
 
 	// Verify all expected fields from ProgressRecord Object contract
-	assert.Equal(t, float64(100), data["id"])
-	assert.Equal(t, float64(10), data["subItemKey"])
-	assert.Equal(t, float64(3), data["authorKey"])
+	assert.Equal(t, "100", data["bizKey"])
+	assert.Equal(t, "10", data["subItemKey"])
+	assert.Equal(t, "3", data["authorKey"])
 	assert.Equal(t, "李四", data["authorName"])
 	assert.Equal(t, 60.0, data["completion"])
 	assert.Equal(t, "completed SDK init", data["achievement"])
 	assert.Equal(t, "certificate pending", data["blocker"])
 	assert.Equal(t, float64(0), data["isPmCorrect"])
-	assert.NotNil(t, data["createdAt"])
+	assert.NotNil(t, data["createTime"])
 }

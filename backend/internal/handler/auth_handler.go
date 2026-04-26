@@ -6,6 +6,7 @@ import (
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/service"
 )
 
@@ -47,7 +48,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 // userToDTO converts a model.User to dto.UserDTO.
 func userToDTO(u *model.User) dto.UserDTO {
 	return dto.UserDTO{
-		ID:            u.ID,
+		BizKey:        pkg.FormatID(u.BizKey),
 		Username:      u.Username,
 		DisplayName:   u.DisplayName,
 		Email:         u.Email,

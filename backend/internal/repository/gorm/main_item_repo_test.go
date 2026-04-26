@@ -2,6 +2,7 @@ package gorm_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -301,8 +302,8 @@ func TestMainItemRepo_List_FilterByAssignee(t *testing.T) {
 
 	createMainItem(t, db, team.ID, u.ID, "FEAT-00002", "Unassigned", "P2", "pending")
 
-	assigneeID := u.ID
-	result, err := repo.List(ctx, team.ID, dto.MainItemFilter{AssigneeID: &assigneeID}, dto.Pagination{Page: 1, PageSize: 10})
+	assigneeKey := fmt.Sprintf("%d", u.ID)
+	result, err := repo.List(ctx, team.ID, dto.MainItemFilter{AssigneeKey: &assigneeKey}, dto.Pagination{Page: 1, PageSize: 10})
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), result.Total)
 	assert.Equal(t, "Assigned", result.Items[0].Title)

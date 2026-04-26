@@ -9,6 +9,7 @@ import (
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/pkg/dates"
 	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/pkg/status"
@@ -125,7 +126,7 @@ func (s *mainItemService) Create(ctx context.Context, teamID, pmID uint, req dto
 		ItemDesc:    req.Description,
 		Priority:    req.Priority,
 		ProposerKey: int64(pmID),
-		AssigneeKey: func() *int64 { if req.AssigneeID != 0 { v := int64(req.AssigneeID); return &v }; return nil }(),
+		AssigneeKey: func() *int64 { if req.AssigneeKey != "" { v, _ := pkg.ParseID(req.AssigneeKey); return &v }; return nil }(),
 		IsKeyItem:   req.IsKeyItem,
 		ItemStatus:  "pending",
 	}
@@ -172,8 +173,8 @@ func (s *mainItemService) Update(ctx context.Context, teamID, itemID uint, req d
 	if req.Priority != nil {
 		fields["priority"] = *req.Priority
 	}
-	if req.AssigneeID != nil {
-		fields["assignee_id"] = *req.AssigneeID
+	if req.AssigneeKey != nil {
+		fields["assignee_id"] = *req.AssigneeKey
 	}
 	if req.IsKeyItem != nil {
 		fields["is_key_item"] = *req.IsKeyItem

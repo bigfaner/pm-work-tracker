@@ -191,8 +191,8 @@ func TestSubItemCreate_Success(t *testing.T) {
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
 	item, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
-		AssigneeID:      42,
-		MainItemID: 5,
+		AssigneeKey: "42",
+		MainItemKey: "5",
 		Title:      "Sub task A",
 		Priority:   "P2",
 	})
@@ -219,7 +219,7 @@ func TestSubItemCreate_RepoError(t *testing.T) {
 	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{ItemStatus: "pending"}, nil)
 
 	_, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
-		MainItemID: 5,
+		MainItemKey: "5",
 		Title:      "Sub task",
 		Priority:   "P2",
 	})
@@ -988,7 +988,7 @@ func TestSubItemCreate_TriggersLinkage(t *testing.T) {
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
 	_, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
-		MainItemID: 5,
+		MainItemKey: "5",
 		Title:      "Sub task",
 		Priority:   "P2",
 	})
@@ -1146,7 +1146,7 @@ func TestSubItemCreate_AssignsCode(t *testing.T) {
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
 	item, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
-		MainItemID: 5,
+		MainItemKey: "5",
 		Title:      "Sub task",
 		Priority:   "P2",
 	})
@@ -1166,7 +1166,7 @@ func TestSubItemCreate_NextSubCodeError_ReturnsError(t *testing.T) {
 	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{ItemStatus: "pending"}, nil)
 
 	_, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
-		MainItemID: 5,
+		MainItemKey: "5",
 		Title:      "Sub task",
 		Priority:   "P2",
 	})

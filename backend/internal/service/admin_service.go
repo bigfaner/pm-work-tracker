@@ -10,6 +10,8 @@ import (
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -111,6 +113,7 @@ func (s *adminService) CreateUser(ctx context.Context, req *dto.CreateUserReq) (
 	}
 
 	user := &model.User{
+		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
 		Username:     req.Username,
 		DisplayName:  req.DisplayName,
 		Email:        req.Email,
@@ -122,21 +125,26 @@ func (s *adminService) CreateUser(ctx context.Context, req *dto.CreateUserReq) (
 		return nil, err
 	}
 
-	// If teamId provided, add to team
+	// If teamKey provided, add to team
 	var teams []dto.TeamSummary
-	if req.TeamID != nil {
-		_, err := s.teamRepo.FindByID(ctx, *req.TeamID)
+	if req.TeamKey != nil && *req.TeamKey != "" {
+		teamKey, err := pkg.ParseID(*req.TeamKey)
+		if err != nil {
+			return nil, apperrors.ErrTeamNotFound
+		}
+		teamID := uint(teamKey)
+		_, err = s.teamRepo.FindByID(ctx, teamID)
 		if err != nil {
 			return nil, apperrors.ErrTeamNotFound
 		}
 		member := &model.TeamMember{
-			TeamKey: int64(*req.TeamID),
+			TeamKey: int64(teamID),
 			UserKey: int64(user.ID),
 		}
 		if err := s.teamRepo.AddMember(ctx, member); err != nil {
 			return nil, err
 		}
-		teams = []dto.TeamSummary{{ID: *req.TeamID, Name: "", Role: "member"}}
+		teams = []dto.TeamSummary{{BizKey: pkg.FormatID(int64(teamID)), TeamID: teamID, Name: "", Role: "member"}}
 		// Fetch team name
 		teamsMap, err := s.teamRepo.FindTeamsByUserIDs(ctx, []uint{user.ID})
 		if err == nil && len(teamsMap[user.ID]) > 0 {
@@ -145,7 +153,7 @@ func (s *adminService) CreateUser(ctx context.Context, req *dto.CreateUserReq) (
 	}
 
 	return &dto.AdminUserDTO{
-		ID:              user.ID,
+		BizKey:          pkg.FormatID(user.BizKey),
 		Username:        user.Username,
 		DisplayName:     user.DisplayName,
 		Email:           user.Email,
@@ -173,22 +181,27 @@ func (s *adminService) UpdateUser(ctx context.Context, userID uint, req *dto.Upd
 	}
 
 	// Handle team assignment
-	if req.TeamID != nil {
+	if req.TeamKey != nil {
 		// Remove from all current teams, add to new one
 		teamsMap, err := s.teamRepo.FindTeamsByUserIDs(ctx, []uint{userID})
 		if err != nil {
 			return nil, err
 		}
 		for _, t := range teamsMap[userID] {
-			_ = s.teamRepo.RemoveMember(ctx, t.ID, userID)
+			_ = s.teamRepo.RemoveMember(ctx, t.TeamID, userID)
 		}
-		if *req.TeamID > 0 {
-			_, err := s.teamRepo.FindByID(ctx, *req.TeamID)
+		if *req.TeamKey != "" {
+			teamKey, err := pkg.ParseID(*req.TeamKey)
+			if err != nil {
+				return nil, apperrors.ErrTeamNotFound
+			}
+			teamID := uint(teamKey)
+			_, err = s.teamRepo.FindByID(ctx, teamID)
 			if err != nil {
 				return nil, apperrors.ErrTeamNotFound
 			}
 			member := &model.TeamMember{
-				TeamKey: int64(*req.TeamID),
+				TeamKey: int64(teamID),
 				UserKey: int64(userID),
 			}
 			if err := s.teamRepo.AddMember(ctx, member); err != nil {
@@ -238,7 +251,7 @@ func modelToAdminUserDTO(u *model.User, teams []dto.TeamSummary) *dto.AdminUserD
 		teams = []dto.TeamSummary{}
 	}
 	return &dto.AdminUserDTO{
-		ID:           u.ID,
+		BizKey:       pkg.FormatID(u.BizKey),
 		Username:     u.Username,
 		DisplayName:  u.DisplayName,
 		Email:        u.Email,

@@ -189,7 +189,7 @@ func TestCreateSubItem_Success(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"mainItemId":1,"title":"Test SubItem","priority":"P2","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"mainItemKey":"1","title":"Test SubItem","priority":"P2","assigneeKey":"1","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/sub-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -221,7 +221,7 @@ func TestCreateSubItem_MemberCanCreate(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"mainItemId":1,"title":"Test SubItem","priority":"P2","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"mainItemKey":"1","title":"Test SubItem","priority":"P2","assigneeKey":"1","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/sub-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -258,7 +258,7 @@ func TestCreateSubItem_ServiceError(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"mainItemId":1,"title":"Test","priority":"P2","assigneeId":1,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"mainItemKey":"1","title":"Test","priority":"P2","assigneeKey":"1","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/sub-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -348,6 +348,7 @@ func TestGetSubItem_Success(t *testing.T) {
 	svc := &mockSubItemService{}
 	item := testSubItem(1, 10)
 	item.ID = 1
+	item.BizKey = 1
 	item.ItemStatus = "progressing"
 	item.Completion = 60
 	svc.getResult.item = item
@@ -532,6 +533,7 @@ func TestChangeStatus_Success(t *testing.T) {
 	svc := &mockSubItemService{}
 	item := testSubItem(1, 10)
 	item.ID = 1
+	item.BizKey = 1
 	item.ItemStatus = "progressing"
 	svc.changeStatusResult.result = &service.SubItemChangeResult{SubItem: item}
 
@@ -557,7 +559,7 @@ func TestChangeStatus_Success(t *testing.T) {
 	require.True(t, ok)
 	subItem, ok := data["subItem"].(map[string]interface{})
 	require.True(t, ok)
-	assert.Equal(t, "progressing", subItem["status"])
+	assert.Equal(t, "progressing", subItem["itemStatus"])
 }
 
 func TestChangeStatus_InvalidStatus_422(t *testing.T) {
@@ -726,7 +728,7 @@ func TestAssignSubItem_Success(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"assigneeId":3}`
+	body := `{"assigneeKey":"3"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/assignee", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -747,7 +749,7 @@ func TestAssignSubItem_RequiresPM(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"assigneeId":3}`
+	body := `{"assigneeKey":"3"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/assignee", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -765,7 +767,7 @@ func TestAssignSubItem_InvalidID(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"assigneeId":3}`
+	body := `{"assigneeKey":"3"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/abc/assignee", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -802,7 +804,7 @@ func TestAssignSubItem_ItemNotFound(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"assigneeId":3}`
+	body := `{"assigneeKey":"3"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/999/assignee", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -820,7 +822,7 @@ func TestAssignSubItem_SuperAdminBypass(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
-	body := `{"assigneeId":3}`
+	body := `{"assigneeKey":"3"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/assignee", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -854,6 +856,7 @@ func TestGetSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 		Weight:          1.0,
 	}
 	item.ID = 1
+	item.BizKey = 1
 
 	svc.getResult.item = item
 
@@ -877,11 +880,11 @@ func TestGetSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	// Verify all expected fields
 	assert.Equal(t, "实现支付接口", data["title"])
 	assert.Equal(t, "P2", data["priority"])
-	assert.Equal(t, float64(3), data["assigneeKey"])
-	assert.Equal(t, "progressing", data["status"])
+	assert.Equal(t, "3", data["assigneeKey"])
+	assert.Equal(t, "progressing", data["itemStatus"])
 	assert.Equal(t, 60.0, data["completion"])
 	assert.Equal(t, false, data["isKeyItem"])
-	assert.Equal(t, float64(1), data["mainItemKey"])
+	assert.Equal(t, "1", data["mainItemKey"])
 }
 
 func TestCreateSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
@@ -897,13 +900,14 @@ func TestCreateSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 		Weight:     1.0,
 	}
 	item.ID = 5
+	item.BizKey = 5
 	svc.createResult.item = item
 
 	deps := depsWithSubItemSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := fmt.Sprintf(`{"mainItemId":1,"title":"New SubItem","priority":"P2","assigneeId":%d,"startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, assigneeID)
+	body := fmt.Sprintf(`{"mainItemKey":"1","title":"New SubItem","priority":"P2","assigneeKey":"%d","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, assigneeID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/main-items/1/sub-items", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -917,8 +921,8 @@ func TestCreateSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	require.NoError(t, err)
 
 	data := resp["data"].(map[string]interface{})
-	assert.Equal(t, float64(5), data["id"])
+	assert.Equal(t, "5", data["bizKey"])
 	assert.Equal(t, "New SubItem", data["title"])
 	assert.Equal(t, "P2", data["priority"])
-	assert.Equal(t, "pending", data["status"])
+	assert.Equal(t, "pending", data["itemStatus"])
 }

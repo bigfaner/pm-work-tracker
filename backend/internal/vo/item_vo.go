@@ -4,77 +4,78 @@ import (
 	"time"
 
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/pkg/dates"
 	"pm-work-tracker/backend/internal/pkg/status"
 )
 
 // MainItemVO is the frontend-facing view object for a main item.
 type MainItemVO struct {
-	ID              uint    `json:"id"`
-	TeamKey         int64   `json:"teamKey"`
+	BizKey          string  `json:"bizKey"`
+	TeamKey         string  `json:"teamKey"`
 	Code            string  `json:"code"`
 	Title           string  `json:"title"`
 	Priority        string  `json:"priority"`
-	ProposerKey     int64   `json:"proposerKey"`
-	AssigneeKey     *int64  `json:"assigneeKey"`
+	ProposerKey     string  `json:"proposerKey"`
+	AssigneeKey     *string `json:"assigneeKey"`
 	StartDate       *string `json:"startDate"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
 	ActualEndDate   *string `json:"actualEndDate"`
-	Status          string  `json:"status"`
+	ItemStatus      string  `json:"itemStatus"`
 	StatusName      string  `json:"statusName"`
 	Completion      float64 `json:"completion"`
 	IsKeyItem       bool    `json:"isKeyItem"`
 	ArchivedAt      *string `json:"archivedAt"`
-	CreatedAt       string  `json:"createdAt"`
-	UpdatedAt       string  `json:"updatedAt"`
+	CreateTime      string  `json:"createTime"`
+	DbUpdateTime    string  `json:"dbUpdateTime"`
 }
 
 // SubItemVO is the frontend-facing view object for a sub item.
 type SubItemVO struct {
-	ID              uint    `json:"id"`
+	BizKey          string  `json:"bizKey"`
 	Code            string  `json:"code"`
-	TeamKey         int64   `json:"teamKey"`
-	MainItemKey     int64   `json:"mainItemKey"`
+	TeamKey         string  `json:"teamKey"`
+	MainItemKey     string  `json:"mainItemKey"`
 	Title           string  `json:"title"`
 	Description     string  `json:"description"`
 	Priority        string  `json:"priority"`
-	AssigneeKey     *int64  `json:"assigneeKey"`
+	AssigneeKey     *string `json:"assigneeKey"`
 	StartDate       *string `json:"startDate"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
 	ActualEndDate   *string `json:"actualEndDate"`
-	Status          string  `json:"status"`
+	ItemStatus      string  `json:"itemStatus"`
 	StatusName      string  `json:"statusName"`
 	Completion      float64 `json:"completion"`
 	IsKeyItem       bool    `json:"isKeyItem"`
 	Weight          float64 `json:"weight"`
-	CreatedAt       string  `json:"createdAt"`
-	UpdatedAt       string  `json:"updatedAt"`
+	CreateTime      string  `json:"createTime"`
+	DbUpdateTime    string  `json:"dbUpdateTime"`
 }
 
 // ProgressRecordVO is the frontend-facing view object for a progress record.
 type ProgressRecordVO struct {
-	ID          uint    `json:"id"`
-	SubItemKey  int64   `json:"subItemKey"`
-	TeamKey     int64   `json:"teamKey"`
-	AuthorKey   int64   `json:"authorKey"`
+	BizKey      string  `json:"bizKey"`
+	SubItemKey  string  `json:"subItemKey"`
+	TeamKey     string  `json:"teamKey"`
+	AuthorKey   string  `json:"authorKey"`
 	AuthorName  string  `json:"authorName"`
 	Completion  float64 `json:"completion"`
 	Achievement string  `json:"achievement"`
 	Blocker     string  `json:"blocker"`
 	Lesson      string  `json:"lesson"`
 	IsPmCorrect int     `json:"isPmCorrect"`
-	CreatedAt   string  `json:"createdAt"`
+	CreateTime  string  `json:"createTime"`
 }
 
 // SubItemSummaryVO is a lightweight sub-item summary for nesting in MainItemVO responses.
 type SubItemSummaryVO struct {
-	ID              uint    `json:"id"`
+	BizKey          string  `json:"bizKey"`
 	Code            string  `json:"code"`
 	Title           string  `json:"title"`
-	Status          string  `json:"status"`
+	ItemStatus      string  `json:"itemStatus"`
 	StatusName      string  `json:"statusName"`
 	Completion      float64 `json:"completion"`
-	AssigneeKey     *int64  `json:"assigneeKey"`
+	AssigneeKey     *string `json:"assigneeKey"`
 	Priority        string  `json:"priority"`
 	StartDate       *string `json:"startDate"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
@@ -88,23 +89,23 @@ func NewMainItemVO(m *model.MainItem) MainItemVO {
 		statusName = def.Name
 	}
 	return MainItemVO{
-		ID:              m.ID,
-		TeamKey:         m.TeamKey,
+		BizKey:          pkg.FormatID(m.BizKey),
+		TeamKey:         pkg.FormatID(m.TeamKey),
 		Code:            m.Code,
 		Title:           m.Title,
 		Priority:        m.Priority,
-		ProposerKey:     m.ProposerKey,
-		AssigneeKey:     m.AssigneeKey,
+		ProposerKey:     pkg.FormatID(m.ProposerKey),
+		AssigneeKey:     pkg.FormatIDPtr(m.AssigneeKey),
 		StartDate:       dates.FormatTimePtr(m.PlanStartDate),
 		ExpectedEndDate: dates.FormatTimePtr(m.ExpectedEndDate),
 		ActualEndDate:   dates.FormatTimePtr(m.ActualEndDate),
-		Status:          m.ItemStatus,
+		ItemStatus:      m.ItemStatus,
 		StatusName:      statusName,
 		Completion:      m.Completion,
 		IsKeyItem:       m.IsKeyItem,
 		ArchivedAt:      dates.FormatTimePtr(m.ArchivedAt),
-		CreatedAt:       m.CreateTime.Format(time.RFC3339),
-		UpdatedAt:       m.DbUpdateTime.Format(time.RFC3339),
+		CreateTime:      m.CreateTime.Format(time.RFC3339),
+		DbUpdateTime:    m.DbUpdateTime.Format(time.RFC3339),
 	}
 }
 
@@ -115,41 +116,41 @@ func NewSubItemVO(m *model.SubItem) SubItemVO {
 		statusName = def.Name
 	}
 	return SubItemVO{
-		ID:              m.ID,
+		BizKey:          pkg.FormatID(m.BizKey),
 		Code:            m.Code,
-		TeamKey:         m.TeamKey,
-		MainItemKey:     m.MainItemKey,
+		TeamKey:         pkg.FormatID(m.TeamKey),
+		MainItemKey:     pkg.FormatID(m.MainItemKey),
 		Title:           m.Title,
 		Description:     m.ItemDesc,
 		Priority:        m.Priority,
-		AssigneeKey:     m.AssigneeKey,
+		AssigneeKey:     pkg.FormatIDPtr(m.AssigneeKey),
 		StartDate:       dates.FormatTimePtr(m.PlanStartDate),
 		ExpectedEndDate: dates.FormatTimePtr(m.ExpectedEndDate),
 		ActualEndDate:   dates.FormatTimePtr(m.ActualEndDate),
-		Status:          m.ItemStatus,
+		ItemStatus:      m.ItemStatus,
 		StatusName:      statusName,
 		Completion:      m.Completion,
 		IsKeyItem:       m.IsKeyItem,
 		Weight:          m.Weight,
-		CreatedAt:       m.CreateTime.Format(time.RFC3339),
-		UpdatedAt:       m.DbUpdateTime.Format(time.RFC3339),
+		CreateTime:      m.CreateTime.Format(time.RFC3339),
+		DbUpdateTime:    m.DbUpdateTime.Format(time.RFC3339),
 	}
 }
 
 // NewProgressRecordVO converts a model.ProgressRecord to a ProgressRecordVO.
 func NewProgressRecordVO(m *model.ProgressRecord, authorName string) ProgressRecordVO {
 	return ProgressRecordVO{
-		ID:          m.ID,
-		SubItemKey:  m.SubItemKey,
-		TeamKey:     m.TeamKey,
-		AuthorKey:   m.AuthorKey,
+		BizKey:     pkg.FormatID(m.BizKey),
+		SubItemKey: pkg.FormatID(m.SubItemKey),
+		TeamKey:    pkg.FormatID(m.TeamKey),
+		AuthorKey:  pkg.FormatID(m.AuthorKey),
 		AuthorName:  authorName,
 		Completion:  m.Completion,
 		Achievement: m.Achievement,
 		Blocker:     m.Blocker,
 		Lesson:      m.Lesson,
 		IsPmCorrect: m.IsPmCorrect,
-		CreatedAt:   m.CreateTime.Format(time.RFC3339),
+		CreateTime:  m.CreateTime.Format(time.RFC3339),
 	}
 }
 
@@ -162,13 +163,13 @@ func NewSubItemSummaryVOs(items []*model.SubItem) []SubItemSummaryVO {
 			statusName = def.Name
 		}
 		result = append(result, SubItemSummaryVO{
-			ID:              si.ID,
+			BizKey:          pkg.FormatID(si.BizKey),
 			Code:            si.Code,
 			Title:           si.Title,
-			Status:          si.ItemStatus,
+			ItemStatus:      si.ItemStatus,
 			StatusName:      statusName,
 			Completion:      si.Completion,
-			AssigneeKey:     si.AssigneeKey,
+			AssigneeKey:     pkg.FormatIDPtr(si.AssigneeKey),
 			Priority:        si.Priority,
 			StartDate:       dates.FormatTimePtr(si.PlanStartDate),
 			ExpectedEndDate: dates.FormatTimePtr(si.ExpectedEndDate),

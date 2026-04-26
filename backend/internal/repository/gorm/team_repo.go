@@ -10,6 +10,7 @@ import (
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/repository"
 )
@@ -122,20 +123,44 @@ func (r *teamRepo) FindMember(ctx context.Context, teamID, userID uint) (*model.
 }
 
 func (r *teamRepo) ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMemberDTO, error) {
-	var results []*dto.TeamMemberDTO
+	type scanRow struct {
+		BizKey      int64
+		TeamID      uint
+		UserID      uint
+		Role        string
+		JoinedAt    string
+		DisplayName string
+		Username    string
+	}
+	var rows []scanRow
 	err := r.db.WithContext(ctx).
 		Table("pmw_team_members").
-		Select("pmw_team_members.id, pmw_team_members.team_key as team_id, pmw_team_members.user_key as user_id, " +
-			"CASE WHEN roles.name IS NOT NULL THEN roles.name " +
-			"     WHEN pmw_team_members.user_key = pmw_teams.pm_key THEN 'pm' " +
-			"     ELSE 'member' END as role, " +
+		Select("pmw_team_members.biz_key, pmw_team_members.team_key as team_id, pmw_team_members.user_key as user_id, "+
+			"CASE WHEN roles.name IS NOT NULL THEN roles.name "+
+			"     WHEN pmw_team_members.user_key = pmw_teams.pm_key THEN 'pm' "+
+			"     ELSE 'member' END as role, "+
 			"pmw_team_members.joined_at, pmw_users.display_name, pmw_users.username").
 		Joins("LEFT JOIN pmw_users ON pmw_users.id = pmw_team_members.user_key").
 		Joins("LEFT JOIN roles ON roles.id = pmw_team_members.role_key").
 		Joins("LEFT JOIN pmw_teams ON pmw_teams.id = pmw_team_members.team_key").
 		Where("pmw_team_members.team_key = ?", teamID).
-		Scan(&results).Error
-	return results, err
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	results := make([]*dto.TeamMemberDTO, len(rows))
+	for i, row := range rows {
+		results[i] = &dto.TeamMemberDTO{
+			BizKey:      pkg.FormatID(row.BizKey),
+			TeamID:      row.TeamID,
+			UserID:      row.UserID,
+			Role:        row.Role,
+			JoinedAt:    row.JoinedAt,
+			DisplayName: row.DisplayName,
+			Username:    row.Username,
+		}
+	}
+	return results, nil
 }
 
 func (r *teamRepo) CountMembers(ctx context.Context, teamID uint) (int64, error) {
@@ -181,17 +206,39 @@ func (r *teamRepo) FindPMMembers(ctx context.Context, teamIDs []uint) (map[uint]
 }
 
 func (r *teamRepo) ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error) {
-	var results []*dto.AdminTeamDTO
+	type scanRow struct {
+		BizKey        int64
+		Name          string
+		PMDisplayName string
+		MemberCount   int
+		MainItemCount int
+		CreatedAt     string
+	}
+	var rows []scanRow
 	err := r.db.WithContext(ctx).
 		Table("pmw_teams").
-		Select("pmw_teams.id, pmw_teams.team_name as name, pmw_users.display_name as pm_display_name, "+
+		Select("pmw_teams.biz_key, pmw_teams.team_name as name, pmw_users.display_name as pm_display_name, "+
 			"(SELECT COUNT(*) FROM pmw_team_members WHERE pmw_team_members.team_key = pmw_teams.id) as member_count, "+
 			"(SELECT COUNT(*) FROM pmw_main_items WHERE pmw_main_items.team_key = pmw_teams.id AND pmw_main_items.deleted_flag = 0) as main_item_count, "+
 			"pmw_teams.create_time as created_at").
 		Joins("LEFT JOIN pmw_users ON pmw_users.id = pmw_teams.pm_key").
 		Where("pmw_teams.deleted_flag = 0").
-		Scan(&results).Error
-	return results, err
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	results := make([]*dto.AdminTeamDTO, len(rows))
+	for i, row := range rows {
+		results[i] = &dto.AdminTeamDTO{
+			BizKey:        pkg.FormatID(row.BizKey),
+			Name:          row.Name,
+			PMDisplayName: row.PMDisplayName,
+			MemberCount:   row.MemberCount,
+			MainItemCount: row.MainItemCount,
+			CreatedAt:     row.CreatedAt,
+		}
+	}
+	return results, nil
 }
 
 // isDuplicateKeyError checks if the error is a unique constraint violation.
@@ -209,18 +256,19 @@ func (r *teamRepo) FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[
 	}
 
 	type row struct {
-		UserID  uint
-		TeamID  uint
-		Name    string
-		Role    string
+		UserID uint
+		TeamID uint
+		BizKey int64
+		Name   string
+		Role   string
 	}
 
 	var rows []row
 	err := r.db.WithContext(ctx).
 		Table("pmw_team_members").
-		Select("pmw_team_members.user_key as user_id, pmw_team_members.team_key as team_id, pmw_teams.team_name as name, roles.name as role").
-			Joins("JOIN pmw_teams ON pmw_teams.id = pmw_team_members.team_key").
-			Joins("JOIN roles ON roles.id = pmw_team_members.role_key").
+		Select("pmw_team_members.user_key as user_id, pmw_team_members.team_key as team_id, pmw_teams.biz_key, pmw_teams.team_name as name, roles.name as role").
+		Joins("JOIN pmw_teams ON pmw_teams.id = pmw_team_members.team_key").
+		Joins("JOIN roles ON roles.id = pmw_team_members.role_key").
 		Where("pmw_team_members.user_key IN ?", userIDs).
 		Scan(&rows).Error
 	if err != nil {
@@ -230,9 +278,10 @@ func (r *teamRepo) FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[
 	result := make(map[uint][]dto.TeamSummary)
 	for _, r := range rows {
 		result[r.UserID] = append(result[r.UserID], dto.TeamSummary{
-			ID:   r.TeamID,
-			Name: r.Name,
-			Role: r.Role,
+			BizKey: pkg.FormatID(r.BizKey),
+			TeamID: r.TeamID,
+			Name:   r.Name,
+			Role:   r.Role,
 		})
 	}
 	return result, nil

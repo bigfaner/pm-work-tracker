@@ -78,9 +78,9 @@ func TestWeeklyPreview_Success(t *testing.T) {
 		WeekEnd:   "2026-04-19",
 		Sections: []dto.ReportSectionDTO{
 			{
-				MainItem: dto.MainItemSummaryDTO{ID: 1, Title: "Backend", Completion: 60},
+				MainItem: dto.MainItemSummaryDTO{BizKey: "1", Title: "Backend", Completion: 60},
 				SubItems: []dto.ReportSubItemDTO{
-					{ID: 10, Title: "Auth", Completion: 80, Achievements: []string{"done"}, Blockers: []string{}},
+					{BizKey: "10", Title: "Auth", Completion: 80, Achievements: []string{"done"}, Blockers: []string{}},
 				},
 			},
 		},

@@ -392,7 +392,7 @@ func TestInviteMember_CannotAssignPMRole(t *testing.T) {
 	}
 	svc := NewTeamService(teamRepo, userRepo, &mockMainItemRepo{}, roleRepo, &mockDB{})
 
-	err := svc.InviteMember(context.Background(), 10, 1, dto.InviteMemberReq{Username: "bob", RoleID: 2})
+	err := svc.InviteMember(context.Background(), 10, 1, dto.InviteMemberReq{Username: "bob", RoleKey: "2"})
 	assert.ErrorIs(t, err, apperrors.ErrCannotAssignPMRole)
 }
 
@@ -654,8 +654,8 @@ func TestSearchAvailableUsers_Success(t *testing.T) {
 	userRepo := &mockTeamUserRepo{
 		searchAvailableFn: func(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
 			return []*model.User{
-				{BaseModel: model.BaseModel{ID: 10}, Username: "alice", DisplayName: "Alice"},
-				{BaseModel: model.BaseModel{ID: 20}, Username: "bob", DisplayName: "Bob"},
+				{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, Username: "alice", DisplayName: "Alice"},
+				{BaseModel: model.BaseModel{ID: 20, BizKey: 20}, Username: "bob", DisplayName: "Bob"},
 			}, nil
 		},
 	}
@@ -664,7 +664,7 @@ func TestSearchAvailableUsers_Success(t *testing.T) {
 	result, err := svc.SearchAvailableUsers(context.Background(), 1, "ali")
 	require.NoError(t, err)
 	require.Len(t, result, 2)
-	assert.Equal(t, uint(10), result[0].ID)
+	assert.Equal(t, "10", result[0].BizKey)
 	assert.Equal(t, "alice", result[0].Username)
 	assert.True(t, userRepo.searchAvailableCalled)
 	assert.Equal(t, uint(1), userRepo.searchAvailableTeamID)

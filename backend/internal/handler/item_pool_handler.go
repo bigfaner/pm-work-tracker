@@ -135,7 +135,7 @@ func (h *ItemPoolHandler) Assign(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": 0, "data": gin.H{"mainItemId": updated.AssignedMainKey, "subItemId": updated.AssignedSubKey}})
+	c.JSON(http.StatusOK, gin.H{"code": 0, "data": gin.H{"mainItemBizKey": updated.AssignedMainKey, "subItemBizKey": updated.AssignedSubKey}})
 }
 
 // ConvertToMain handles POST /api/v1/teams/:teamId/item-pool/:poolId/convert-to-main
@@ -160,7 +160,7 @@ func (h *ItemPoolHandler) ConvertToMain(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": 0, "data": gin.H{"mainItemId": mainItem.ID}})
+	c.JSON(http.StatusOK, gin.H{"code": 0, "data": gin.H{"mainItemBizKey": mainItem.BizKey}})
 }
 
 // Reject handles POST /api/v1/teams/:teamId/item-pool/:poolId/reject

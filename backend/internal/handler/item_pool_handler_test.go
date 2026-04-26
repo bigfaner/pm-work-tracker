@@ -510,7 +510,7 @@ func TestAssignItemPool_Success(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"mainItemId":1,"assigneeId":3,"startDate":"2026-01-01","expectedEndDate":"2026-02-01"}`
+	body := `{"mainItemKey":"1","assigneeKey":"3","startDate":"2026-01-01","expectedEndDate":"2026-02-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -526,12 +526,12 @@ func TestAssignItemPool_Success(t *testing.T) {
 
 	data, ok := resp["data"].(map[string]interface{})
 	require.True(t, ok)
-	assert.Equal(t, float64(10), data["subItemId"])
+	assert.Equal(t, float64(10), data["subItemBizKey"])
 
 	assert.True(t, svc.assignCalled)
 	assert.Equal(t, uint(10), svc.lastTeamID)
-	assert.Equal(t, uint(1), svc.lastAssignReq.MainItemID)
-	assert.Equal(t, ptrUint(3), svc.lastAssignReq.AssigneeID)
+	assert.Equal(t, "1", svc.lastAssignReq.MainItemKey)
+	assert.Equal(t, ptrStr("3"), svc.lastAssignReq.AssigneeKey)
 }
 
 func TestAssignItemPool_RequiresPM(t *testing.T) {
@@ -543,7 +543,7 @@ func TestAssignItemPool_RequiresPM(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"mainItemId":1,"assigneeId":3,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"mainItemKey":"1","assigneeKey":"3","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -562,7 +562,7 @@ func TestAssignItemPool_InvalidPoolID(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"mainItemId":1,"assigneeId":3,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"mainItemKey":"1","assigneeKey":"3","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/abc/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -602,7 +602,7 @@ func TestAssignItemPool_AlreadyProcessed(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"mainItemId":1,"assigneeId":3,"startDate":"2026-01-01","expectedEndDate":"2026-02-01"}`
+	body := `{"mainItemKey":"1","assigneeKey":"3","startDate":"2026-01-01","expectedEndDate":"2026-02-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -642,7 +642,7 @@ func TestAssignItemPool_SuperAdminBypass(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
-	body := `{"mainItemId":1,"assigneeId":3,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
+	body := `{"mainItemKey":"1","assigneeKey":"3","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -799,6 +799,7 @@ func TestGetItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 		ReviewerKey: func() *int64 { v := int64(reviewerID); return &v }(),
 	}
 	item.ID = 50
+	item.BizKey = 50
 
 	svc.getResult.item = item
 
@@ -822,16 +823,16 @@ func TestGetItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	data := resp["data"].(map[string]interface{})
 
 	// Verify all fields from Data Contract are present
-	assert.Equal(t, float64(50), data["id"])
+	assert.Equal(t, "50", data["bizKey"])
 	assert.Equal(t, "优化首页加载速度", data["title"])
 	assert.Equal(t, "用户反馈首页加载超过 3 秒", data["background"])
 	assert.Equal(t, "首页 LCP < 1.5 秒", data["expectedOutput"])
-	assert.Equal(t, float64(5), data["submitterKey"])
+	assert.Equal(t, "5", data["submitterKey"])
 	assert.Equal(t, "王五", data["submitterName"])
-	assert.Equal(t, "assigned", data["status"])
-	assert.Equal(t, float64(1), data["assignedMainKey"])
-	assert.Equal(t, float64(10), data["assignedSubKey"])
-	assert.Equal(t, float64(3), data["assigneeKey"])
+	assert.Equal(t, "assigned", data["poolStatus"])
+	assert.Equal(t, "1", data["assignedMainKey"])
+	assert.Equal(t, "10", data["assignedSubKey"])
+	assert.Equal(t, "3", data["assigneeKey"])
 }
 
 func TestSubmitItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
@@ -845,6 +846,7 @@ func TestSubmitItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 		PoolStatus: "pending",
 	}
 	item.ID = 50
+	item.BizKey = 50
 
 	svc.submitResult.item = item
 
@@ -868,9 +870,9 @@ func TestSubmitItemPool_ResponseShapeMatchesDataContract(t *testing.T) {
 	require.NoError(t, err)
 
 	data := resp["data"].(map[string]interface{})
-	assert.Equal(t, "pending", data["status"])
+	assert.Equal(t, "pending", data["poolStatus"])
 	assert.Equal(t, "王五", data["submitterName"])
-	assert.Equal(t, float64(5), data["submitterKey"])
+	assert.Equal(t, "5", data["submitterKey"])
 }
 
 // ---------------------------------------------------------------------------
@@ -906,7 +908,7 @@ func TestAssignItemPool_ReturnsSubItemId(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := fmt.Sprintf(`{"mainItemId":%d,"assigneeId":%d,"priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, assignedMainID, assigneeID)
+	body := fmt.Sprintf(`{"mainItemKey":"%d","assigneeKey":"%d","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, assignedMainID, assigneeID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -922,7 +924,7 @@ func TestAssignItemPool_ReturnsSubItemId(t *testing.T) {
 
 	data, ok := resp["data"].(map[string]interface{})
 	require.True(t, ok)
-	assert.Equal(t, float64(123), data["subItemId"])
+	assert.Equal(t, float64(123), data["subItemBizKey"])
 }
 
 // ---------------------------------------------------------------------------
@@ -1067,3 +1069,5 @@ func (m *mockMainItemRepoForPool) ListByTeamAndStatus(_ context.Context, _ uint,
 func (m *mockMainItemRepoForPool) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
 	return nil, nil
 }
+
+func ptrStr(s string) *string { return &s }

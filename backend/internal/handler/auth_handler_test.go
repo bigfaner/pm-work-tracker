@@ -52,6 +52,7 @@ func TestLogin_Success(t *testing.T) {
 	}
 	// GORM Model has ID field
 	authSvc.loginResult.user.ID = 1
+	authSvc.loginResult.user.BizKey = 1
 
 	deps := depsWithAuthSvc(t, authSvc)
 	r := SetupRouter(deps, nil)
@@ -78,7 +79,7 @@ func TestLogin_Success(t *testing.T) {
 	user, ok := data["user"].(map[string]interface{})
 	require.True(t, ok, "user should be an object")
 
-	assert.Equal(t, float64(1), user["id"])
+	assert.Equal(t, "1", user["bizKey"])
 	assert.Equal(t, "alice", user["username"])
 	assert.Equal(t, "Alice", user["displayName"])
 	assert.Equal(t, true, user["isSuperAdmin"])
