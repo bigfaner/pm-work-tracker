@@ -45,7 +45,7 @@
       "title": "Fix filter type mismatch",
       "priority": "P0",
       "estimatedTime": "1h",
-      "status": "pending",
+      "status": "completed",
       "file": "1.2-fix-filter-type-mismatch.md",
       "record": "records/1.2-fix-filter-type-mismatch.md",
       "breaking": true
