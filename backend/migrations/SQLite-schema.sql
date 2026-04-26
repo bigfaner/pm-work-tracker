@@ -171,8 +171,8 @@ CREATE INDEX IF NOT EXISTS idx_progress_records_sub_item_created ON pmw_progress
 CREATE INDEX IF NOT EXISTS idx_progress_records_team_key ON pmw_progress_records(team_key);
 CREATE INDEX IF NOT EXISTS idx_progress_records_create_time ON pmw_progress_records(create_time);
 
--- roles (RBAC)
-CREATE TABLE IF NOT EXISTS roles (
+-- pmw_roles (RBAC)
+CREATE TABLE IF NOT EXISTS pmw_roles (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     biz_key         INTEGER       NOT NULL,
     create_time     DATETIME      NOT NULL DEFAULT (datetime('now')),
@@ -183,10 +183,10 @@ CREATE TABLE IF NOT EXISTS roles (
     description     VARCHAR(200)  NOT NULL DEFAULT '',
     is_preset       INTEGER       NOT NULL DEFAULT 0
 );
-CREATE UNIQUE INDEX IF NOT EXISTS uk_roles_name ON roles(name);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_roles_name ON pmw_roles(name);
 
--- role_permissions (RBAC)
-CREATE TABLE IF NOT EXISTS role_permissions (
+-- pmw_role_permissions (RBAC)
+CREATE TABLE IF NOT EXISTS pmw_role_permissions (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     role_id          INTEGER      NOT NULL,
     permission_code  VARCHAR(50)  NOT NULL,

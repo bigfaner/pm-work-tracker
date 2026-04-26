@@ -216,7 +216,7 @@
       "dependencies": [
         "3.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "4.1-table-rename-pmw-prefix.md",
       "record": "records/4.1-table-rename-pmw-prefix.md",
       "breaking": true

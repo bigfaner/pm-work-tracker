@@ -9,7 +9,7 @@ type Role struct {
 }
 
 func (Role) TableName() string {
-	return "roles"
+	return "pmw_roles"
 }
 
 // RolePermission binds a permission code to a role.
@@ -20,5 +20,5 @@ type RolePermission struct {
 }
 
 func (RolePermission) TableName() string {
-	return "role_permissions"
+	return "pmw_role_permissions"
 }

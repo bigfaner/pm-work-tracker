@@ -79,7 +79,7 @@ func runRBACMigration(tx *gorm.DB) error {
 func createRBACTables(tx *gorm.DB) error {
 	for _, stmt := range rbacTableDDL(tx) {
 		if err := tx.Exec(stmt).Error; err != nil {
-			if tableExists(tx, "roles") && tableExists(tx, "role_permissions") {
+			if tableExists(tx, "pmw_roles") && tableExists(tx, "pmw_role_permissions") {
 				return nil
 			}
 			return fmt.Errorf("create RBAC tables: %w (hint: run schema SQL as root, or set auto_schema: true)", err)
@@ -91,7 +91,7 @@ func createRBACTables(tx *gorm.DB) error {
 func rbacTableDDL(tx *gorm.DB) []string {
 	if isMySQL(tx) {
 		return []string{
-			`CREATE TABLE IF NOT EXISTS roles (
+			`CREATE TABLE IF NOT EXISTS pmw_roles (
     id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     biz_key         BIGINT          NOT NULL,
     create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -104,7 +104,7 @@ func rbacTableDDL(tx *gorm.DB) []string {
     PRIMARY KEY (id),
     UNIQUE KEY uk_roles_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
-			`CREATE TABLE IF NOT EXISTS role_permissions (
+			`CREATE TABLE IF NOT EXISTS pmw_role_permissions (
     id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     role_id          BIGINT UNSIGNED NOT NULL,
     permission_code  VARCHAR(50)     NOT NULL,
@@ -114,7 +114,7 @@ func rbacTableDDL(tx *gorm.DB) []string {
 		}
 	}
 	return []string{
-		`CREATE TABLE IF NOT EXISTS roles (
+		`CREATE TABLE IF NOT EXISTS pmw_roles (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     biz_key         INTEGER       NOT NULL,
     create_time     DATETIME      NOT NULL DEFAULT (datetime('now')),
@@ -125,8 +125,8 @@ func rbacTableDDL(tx *gorm.DB) []string {
     description     VARCHAR(200)  NOT NULL DEFAULT '',
     is_preset       INTEGER       NOT NULL DEFAULT 0
 )`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS uk_roles_name ON roles(name)`,
-		`CREATE TABLE IF NOT EXISTS role_permissions (
+		`CREATE UNIQUE INDEX IF NOT EXISTS uk_roles_name ON pmw_roles(name)`,
+		`CREATE TABLE IF NOT EXISTS pmw_role_permissions (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     role_id          INTEGER      NOT NULL,
     permission_code  VARCHAR(50)  NOT NULL,
