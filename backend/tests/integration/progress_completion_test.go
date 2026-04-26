@@ -17,6 +17,7 @@ import (
 	"pm-work-tracker/backend/config"
 	"pm-work-tracker/backend/internal/handler"
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/dbutil"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 	"pm-work-tracker/backend/internal/service"
 )
@@ -332,8 +333,9 @@ func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engi
 
 	userRepo := gormrepo.NewGormUserRepo(db)
 	teamRepo := gormrepo.NewGormTeamRepo(db)
-	mainItemRepo := gormrepo.NewGormMainItemRepo(db)
-	subItemRepo := gormrepo.NewGormSubItemRepo(db)
+	dialect := dbutil.NewDialect(db)
+	mainItemRepo := gormrepo.NewGormMainItemRepo(db, dialect)
+	subItemRepo := gormrepo.NewGormSubItemRepo(db, dialect)
 	progressRepo := gormrepo.NewGormProgressRepo(db)
 	itemPoolRepo := gormrepo.NewGormItemPoolRepo(db)
 

@@ -8,17 +8,19 @@ import (
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/dbutil"
 	"pm-work-tracker/backend/internal/pkg/repo"
 	"pm-work-tracker/backend/internal/repository"
 )
 
 type subItemRepo struct {
-	db *gormlib.DB
+	db      *gormlib.DB
+	dialect dbutil.Dialect
 }
 
 // NewGormSubItemRepo creates a GORM-backed SubItemRepo.
-func NewGormSubItemRepo(db *gormlib.DB) repository.SubItemRepo {
-	return &subItemRepo{db: db}
+func NewGormSubItemRepo(db *gormlib.DB, dialect dbutil.Dialect) repository.SubItemRepo {
+	return &subItemRepo{db: db, dialect: dialect}
 }
 
 func (r *subItemRepo) Create(ctx context.Context, item *model.SubItem) error {
@@ -111,9 +113,11 @@ func (r *subItemRepo) NextSubCode(ctx context.Context, mainItemID uint) (string,
 
 		// If sub-items were inserted directly with a higher seq, skip past them.
 		var maxSeq *int
+		subExpr := r.dialect.Substr(dbutil.ColCode, len(mainItem.Code)+2)
+		castExpr := r.dialect.CastInt(dbutil.NewColumnExpr(subExpr))
 		if err := tx.Model(&model.SubItem{}).
 			Where("main_item_key = ?", mainItemID).
-			Select("MAX(CAST(SUBSTR(code, ?) AS INTEGER))", len(mainItem.Code)+2).
+			Select("MAX(" + castExpr + ")").
 			Scan(&maxSeq).Error; err != nil {
 			return err
 		}

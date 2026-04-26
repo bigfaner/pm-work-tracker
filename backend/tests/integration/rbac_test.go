@@ -21,6 +21,7 @@ import (
 	"pm-work-tracker/backend/internal/handler"
 	"pm-work-tracker/backend/internal/migration"
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/dbutil"
 	"pm-work-tracker/backend/internal/pkg/snowflake"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 	"pm-work-tracker/backend/internal/service"
@@ -615,8 +616,9 @@ func setupRBACTestRouter(t *testing.T, db *gorm.DB, data *seedData) *gin.Engine 
 
 	userRepo := gormrepo.NewGormUserRepo(db)
 	teamRepo := gormrepo.NewGormTeamRepo(db)
-	mainItemRepo := gormrepo.NewGormMainItemRepo(db)
-	subItemRepo := gormrepo.NewGormSubItemRepo(db)
+	dialect := dbutil.NewDialect(db)
+	mainItemRepo := gormrepo.NewGormMainItemRepo(db, dialect)
+	subItemRepo := gormrepo.NewGormSubItemRepo(db, dialect)
 	progressRepo := gormrepo.NewGormProgressRepo(db)
 	itemPoolRepo := gormrepo.NewGormItemPoolRepo(db)
 	roleRepo := gormrepo.NewGormRoleRepo(db)

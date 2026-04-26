@@ -14,9 +14,10 @@ import (
 	"pm-work-tracker/backend/config"
 	"pm-work-tracker/backend/internal/handler"
 	"pm-work-tracker/backend/internal/migration"
+	"pm-work-tracker/backend/internal/pkg/dbutil"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 	"pm-work-tracker/backend/internal/service"
-	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/web"
 )
 
@@ -82,10 +83,11 @@ func run(configPath string, devMode bool) error {
 	}
 
 	// 4. Init repositories
+	dialect := dbutil.NewDialect(db)
 	teamRepo := gormrepo.NewGormTeamRepo(db)
 	userRepo := gormrepo.NewGormUserRepo(db)
-	mainItemRepo := gormrepo.NewGormMainItemRepo(db)
-	subItemRepo := gormrepo.NewGormSubItemRepo(db)
+	mainItemRepo := gormrepo.NewGormMainItemRepo(db, dialect)
+	subItemRepo := gormrepo.NewGormSubItemRepo(db, dialect)
 	progressRepo := gormrepo.NewGormProgressRepo(db)
 	itemPoolRepo := gormrepo.NewGormItemPoolRepo(db)
 
