@@ -352,8 +352,8 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
     await page.waitForTimeout(3000);
     const subPage = page.locator('[data-testid="sub-item-detail-page"]');
     await expect(subPage).toBeVisible({ timeout: 10000 });
-    await expect(subPage.locator('text=所属主事项').first()).toBeVisible();
     await expect(subPage.locator('text=负责人').first()).toBeVisible();
+    await expect(subPage.locator('text=开始时间').first()).toBeVisible();
     await expect(subPage.locator('text=预期完成时间').first()).toBeVisible();
   });
 

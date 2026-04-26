@@ -32,6 +32,8 @@ export interface StatusTransitionDropdownProps {
   teamId: string
   itemId: string
   onStatusChanged: () => void
+  /** For sub-items: the parent main item's bizKey, needed to invalidate the correct query */
+  parentItemId?: string
   /** Called before terminal status transition. Return true to proceed, false to cancel. */
   onBeforeTerminalStatus?: (status: string) => Promise<boolean>
   disabled?: boolean
@@ -45,6 +47,7 @@ export default function StatusTransitionDropdown({
   onStatusChanged,
   onBeforeTerminalStatus,
   disabled,
+  parentItemId,
 }: StatusTransitionDropdownProps) {
   const qc = useQueryClient()
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -91,7 +94,7 @@ export default function StatusTransitionDropdown({
         qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
         qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       } else {
-        qc.invalidateQueries({ queryKey: ['subItem', teamId, itemId] })
+        qc.invalidateQueries({ queryKey: ['subItems', teamId, parentItemId || itemId] })
       }
       qc.invalidateQueries({ queryKey })
       setOpen(false)

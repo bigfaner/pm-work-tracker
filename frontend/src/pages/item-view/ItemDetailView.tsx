@@ -131,7 +131,7 @@ export default function ItemDetailView({
                         <span className="text-xs">{sub.completion}%</span>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        <StatusTransitionDropdown currentStatus={sub.itemStatus} itemType="sub" teamId={teamId} itemId={sub.bizKey} onStatusChanged={onRefresh} />
+                        <StatusTransitionDropdown currentStatus={sub.itemStatus} itemType="sub" teamId={teamId} itemId={sub.bizKey} parentItemId={item.bizKey} onStatusChanged={onRefresh} />
                       </TableCell>
                       <TableCell className="text-xs whitespace-nowrap">{formatDate(sub.planStartDate)}</TableCell>
                       <TableCell className="text-xs whitespace-nowrap">{formatDate(sub.expectedEndDate)}</TableCell>

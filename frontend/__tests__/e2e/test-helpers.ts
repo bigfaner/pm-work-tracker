@@ -3,20 +3,18 @@ import { type Page } from '@playwright/test';
 export const BASE = 'http://localhost:5173';
 export const API = 'http://localhost:8080/v1';
 
-let cachedToken: string | null = null;
 let cachedTeamId: string | null = null;
 
 export async function getAuthToken(): Promise<string> {
-  if (cachedToken) return cachedToken;
   const res = await fetch(`${API}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username: 'admin', password: 'admin123' }),
   });
   const json = await res.json();
-  cachedToken = json.data?.token || json.token;
-  if (!cachedToken) throw new Error('Login failed: no token in response');
-  return cachedToken;
+  const token = json.data?.token || json.token;
+  if (!token) throw new Error('Login failed: no token in response');
+  return token;
 }
 
 export async function getFirstTeamId(token: string): Promise<string | null> {

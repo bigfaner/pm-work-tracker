@@ -87,6 +87,7 @@ export default function SubItemsTable({
                     itemType="sub"
                     teamId={teamId}
                     itemId={sub.bizKey}
+                    parentItemId={mainItemId}
                     onStatusChanged={onStatusChanged}
                   />
                 </TableCell>

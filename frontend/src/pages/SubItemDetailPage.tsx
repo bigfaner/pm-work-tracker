@@ -226,6 +226,7 @@ export default function SubItemDetailPage() {
               itemType="sub"
               teamId={teamId!}
               itemId={sId}
+              parentItemId={mId}
               onStatusChanged={() => { qc.invalidateQueries({ queryKey: ['subItem', teamId, sId] }) }}
               onBeforeTerminalStatus={handleBeforeTerminalStatus}
             />

@@ -230,8 +230,9 @@ test.describe.serial('事项清单 Bug修复验证', () => {
     // Sub-item should be visible
     await expect(page.locator('text=子事项-已有').first()).toBeVisible({ timeout: 10000 });
 
-    // Find the status badge for the sub-item row (should show "待开始" = pending)
-    const subItemRow = page.locator('div').filter({ hasText: /子事项-已有/ }).first();
+    // Find the specific sub-item row via its link, then scope to its parent div
+    const subItemLink = page.locator('a', { hasText: /^子事项-已有$/ }).first();
+    const subItemRow = subItemLink.locator('xpath=..');
     const statusBadge = subItemRow.locator('button').filter({ hasText: '待开始' }).first();
     await expect(statusBadge).toBeVisible({ timeout: 5000 });
 
