@@ -180,7 +180,7 @@ describe('ItemPoolPage', () => {
     await waitFor(() => {
       expect(screen.getByText('移动端适配需求')).toBeInTheDocument()
       expect(screen.getByText('用户反馈收集功能')).toBeInTheDocument()
-      expect(screen.getByText('性能优化建议')).toBeInTheDocument()
+      expect(screen.getByText(/性能优化建议/)).toBeInTheDocument()
       expect(screen.getByText('旧版API废弃')).toBeInTheDocument()
     })
   })
@@ -199,7 +199,7 @@ describe('ItemPoolPage', () => {
   it('shows assigned items with gray left border and reduced opacity', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText('性能优化建议')).toBeInTheDocument()
+      expect(screen.getByText(/性能优化建议/)).toBeInTheDocument()
     })
     const card = screen.getByTestId('pool-item-3')
     expect(card.className).toContain('border-l-tertiary')
@@ -307,7 +307,7 @@ describe('ItemPoolPage', () => {
   it('does not show action buttons for assigned/rejected items', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText('性能优化建议')).toBeInTheDocument()
+      expect(screen.getByText(/性能优化建议/)).toBeInTheDocument()
     })
     expect(screen.queryByTestId('to-main-3')).not.toBeInTheDocument()
     expect(screen.queryByTestId('reject-4')).not.toBeInTheDocument()
@@ -397,7 +397,7 @@ describe('ItemPoolPage', () => {
   it('shows assignment info for assigned items', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText('性能优化建议')).toBeInTheDocument()
+      expect(screen.getByText(/性能优化建议/)).toBeInTheDocument()
     })
     expect(screen.getByText(/已转为子事项/)).toBeInTheDocument()
   })

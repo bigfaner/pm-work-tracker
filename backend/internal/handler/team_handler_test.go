@@ -205,7 +205,7 @@ func (m *mockUserRepoForHandler) FindByIDs(_ context.Context, ids []uint) (map[u
 	return result, nil
 }
 func (m *mockUserRepoForHandler) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
-	return nil, nil
+	return m.user, m.err
 }
 func (m *mockUserRepoForHandler) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil
@@ -644,8 +644,10 @@ func TestInviteMember_CannotAssignPMRole(t *testing.T) {
 
 func TestRemoveMember_Success(t *testing.T) {
 	svc := &mockTeamService{}
+	userRepo := &mockUserRepoForHandler{user: &model.User{}}
+	userRepo.user.ID = 5
 
-	deps := depsWithTeamSvc(t, svc, nil)
+	deps := depsWithTeamSvc(t, svc, userRepo)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
@@ -663,8 +665,10 @@ func TestRemoveMember_Success(t *testing.T) {
 func TestRemoveMember_CannotRemoveSelf(t *testing.T) {
 	svc := &mockTeamService{}
 	svc.removeMemberErr = apperrors.ErrCannotRemoveSelf
+	userRepo := &mockUserRepoForHandler{user: &model.User{}}
+	userRepo.user.ID = 1
 
-	deps := depsWithTeamSvc(t, svc, nil)
+	deps := depsWithTeamSvc(t, svc, userRepo)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
@@ -688,8 +692,10 @@ func TestRemoveMember_CannotRemoveSelf(t *testing.T) {
 
 func TestUpdateMemberRole_Success(t *testing.T) {
 	svc := &mockTeamService{}
+	userRepo := &mockUserRepoForHandler{user: &model.User{}}
+	userRepo.user.ID = 5
 
-	deps := depsWithTeamSvc(t, svc, nil)
+	deps := depsWithTeamSvc(t, svc, userRepo)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
@@ -706,8 +712,10 @@ func TestUpdateMemberRole_Success(t *testing.T) {
 
 func TestUpdateMemberRole_InvalidBody(t *testing.T) {
 	svc := &mockTeamService{}
+	userRepo := &mockUserRepoForHandler{user: &model.User{}}
+	userRepo.user.ID = 5
 
-	deps := depsWithTeamSvc(t, svc, nil)
+	deps := depsWithTeamSvc(t, svc, userRepo)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
@@ -743,8 +751,10 @@ func TestUpdateMemberRole_InvalidUserID(t *testing.T) {
 func TestUpdateMemberRole_NotMember(t *testing.T) {
 	svc := &mockTeamService{}
 	svc.updateMemberRoleErr = apperrors.ErrNotTeamMember
+	userRepo := &mockUserRepoForHandler{user: &model.User{}}
+	userRepo.user.ID = 99
 
-	deps := depsWithTeamSvc(t, svc, nil)
+	deps := depsWithTeamSvc(t, svc, userRepo)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
@@ -765,8 +775,10 @@ func TestUpdateMemberRole_NotMember(t *testing.T) {
 func TestUpdateMemberRole_CannotAssignPMRole(t *testing.T) {
 	svc := &mockTeamService{}
 	svc.updateMemberRoleErr = apperrors.ErrCannotAssignPMRole
+	userRepo := &mockUserRepoForHandler{user: &model.User{}}
+	userRepo.user.ID = 5
 
-	deps := depsWithTeamSvc(t, svc, nil)
+	deps := depsWithTeamSvc(t, svc, userRepo)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 

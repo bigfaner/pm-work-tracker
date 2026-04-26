@@ -151,8 +151,12 @@ func (m *mockMainItemSvcTM) EvaluateLinkage(ctx context.Context, mainItemID uint
 	return args.Get(0).(*LinkageResult), args.Error(1)
 }
 
-func (m *mockMainItemSvcTM) GetByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
-	return nil, nil
+func (m *mockMainItemSvcTM) GetByBizKey(ctx context.Context, bizKey int64) (*model.MainItem, error) {
+	args := m.Called(ctx, bizKey)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.MainItem), args.Error(1)
 }
 
 // mockStatusHistorySvcTM uses testify/mock to satisfy StatusHistoryService.
@@ -187,7 +191,7 @@ func TestSubItemCreate_Success(t *testing.T) {
 		return item.TeamKey == 1 && uint(item.MainItemKey) == 5 && item.Title == "Sub task A" && item.ItemStatus == "pending"
 	})).Return(nil)
 	repo.On("NextSubCode", mock.Anything, uint(5)).Return("FEAT-00001-01", nil)
-	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{ItemStatus: "pending"}, nil)
+	mainSvc.On("GetByBizKey", mock.Anything, int64(5)).Return(&model.MainItem{BaseModel: model.BaseModel{ID: 5}, ItemStatus: "pending"}, nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
 	item, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
@@ -216,7 +220,7 @@ func TestSubItemCreate_RepoError(t *testing.T) {
 
 	repo.On("Create", mock.Anything, mock.Anything).Return(errors.New("db error"))
 	repo.On("NextSubCode", mock.Anything, uint(5)).Return("FEAT-00001-01", nil)
-	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{ItemStatus: "pending"}, nil)
+	mainSvc.On("GetByBizKey", mock.Anything, int64(5)).Return(&model.MainItem{BaseModel: model.BaseModel{ID: 5}, ItemStatus: "pending"}, nil)
 
 	_, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
 		MainItemKey: "5",
@@ -984,7 +988,7 @@ func TestSubItemCreate_TriggersLinkage(t *testing.T) {
 
 	repo.On("NextSubCode", mock.Anything, uint(5)).Return("FEAT-00001-01", nil)
 	repo.On("Create", mock.Anything, mock.Anything).Return(nil)
-	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{ItemStatus: "pending"}, nil)
+	mainSvc.On("GetByBizKey", mock.Anything, int64(5)).Return(&model.MainItem{BaseModel: model.BaseModel{ID: 5}, ItemStatus: "pending"}, nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
 	_, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
@@ -1142,7 +1146,7 @@ func TestSubItemCreate_AssignsCode(t *testing.T) {
 	repo.On("Create", mock.Anything, mock.MatchedBy(func(item *model.SubItem) bool {
 		return item.Code == "FEAT-00001-01"
 	})).Return(nil)
-	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{ItemStatus: "pending"}, nil)
+	mainSvc.On("GetByBizKey", mock.Anything, int64(5)).Return(&model.MainItem{BaseModel: model.BaseModel{ID: 5}, ItemStatus: "pending"}, nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
 	item, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
@@ -1163,7 +1167,7 @@ func TestSubItemCreate_NextSubCodeError_ReturnsError(t *testing.T) {
 	svc := NewSubItemService(repo, mainSvc, historySvc)
 
 	repo.On("NextSubCode", mock.Anything, uint(5)).Return("", errors.New("code gen failed"))
-	mainSvc.On("Get", mock.Anything, uint(5)).Return(&model.MainItem{ItemStatus: "pending"}, nil)
+	mainSvc.On("GetByBizKey", mock.Anything, int64(5)).Return(&model.MainItem{BaseModel: model.BaseModel{ID: 5}, ItemStatus: "pending"}, nil)
 
 	_, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
 		MainItemKey: "5",

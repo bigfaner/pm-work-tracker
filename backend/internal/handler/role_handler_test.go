@@ -16,6 +16,7 @@ import (
 	"pm-work-tracker/backend/config"
 	"pm-work-tracker/backend/internal/model"
 	appjwt "pm-work-tracker/backend/internal/pkg/jwt"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/service"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 
@@ -30,6 +31,8 @@ func rbacTestEnv(t *testing.T) (*gin.Engine, *gorm.DB) {
 
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
+
+	snowflake.Init(1)
 
 	require.NoError(t, db.AutoMigrate(
 		&model.User{},

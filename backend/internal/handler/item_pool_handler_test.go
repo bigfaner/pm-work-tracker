@@ -579,6 +579,8 @@ func TestAssignItemPool_InvalidPoolID(t *testing.T) {
 
 func TestAssignItemPool_MissingRequiredFields(t *testing.T) {
 	svc := &mockItemPoolService{}
+	svc.getResult.item = &model.ItemPool{}
+	svc.getResult.item.ID = 5
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
@@ -598,6 +600,8 @@ func TestAssignItemPool_MissingRequiredFields(t *testing.T) {
 
 func TestAssignItemPool_AlreadyProcessed(t *testing.T) {
 	svc := &mockItemPoolService{}
+	svc.getResult.item = &model.ItemPool{}
+	svc.getResult.item.ID = 5
 	svc.assignResult.err = apperrors.ErrItemAlreadyProcessed
 
 	userRepo := &mockUserRepoForHandler{}
@@ -734,6 +738,8 @@ func TestRejectItemPool_InvalidPoolID(t *testing.T) {
 
 func TestRejectItemPool_ReasonRequired(t *testing.T) {
 	svc := &mockItemPoolService{}
+	svc.getResult.item = &model.ItemPool{}
+	svc.getResult.item.ID = 5
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithItemPoolSvc(t, svc, userRepo)
@@ -753,6 +759,8 @@ func TestRejectItemPool_ReasonRequired(t *testing.T) {
 
 func TestRejectItemPool_AlreadyProcessed(t *testing.T) {
 	svc := &mockItemPoolService{}
+	svc.getResult.item = &model.ItemPool{}
+	svc.getResult.item.ID = 5
 	svc.rejectResult.err = apperrors.ErrItemAlreadyProcessed
 
 	userRepo := &mockUserRepoForHandler{}
