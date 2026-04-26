@@ -259,6 +259,6 @@ func (s *subItemService) Assign(ctx context.Context, teamID, pmID, itemID, assig
 	}
 
 	return s.subItemRepo.Update(ctx, item, map[string]interface{}{
-		"assignee_id": assigneeID,
+		"assignee_key": assigneeID,
 	})
 }

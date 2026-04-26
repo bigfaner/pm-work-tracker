@@ -4,126 +4,162 @@
   "design": "design/tech-design.md",
   "created": "2026-04-26",
   "status": "planning",
-  "statusEnum": ["pending", "in_progress", "completed", "blocked", "skipped"],
-  "priorityEnum": ["P0", "P1", "P2"],
-  "e2eRound": 0,
   "tasks": {
-    "1.1-fix-assign-column": {
-      "id": "1.1",
-      "title": "Fix Assign column name",
+    "1-gate": {
+      "id": "1.gate",
+      "title": "Phase 1 Exit Gate",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": [],
+      "dependencies": [
+        "1.summary"
+      ],
       "status": "pending",
-      "breaking": true,
-      "file": "1.1-fix-assign-column.md",
-      "record": "records/1.1-fix-assign-column.md"
-    },
-    "1.2-fix-filter-type": {
-      "id": "1.2",
-      "title": "Fix filter type mismatch",
-      "priority": "P0",
-      "estimatedTime": "1h",
-      "dependencies": [],
-      "status": "pending",
-      "breaking": true,
-      "file": "1.2-fix-filter-type-mismatch.md",
-      "record": "records/1.2-fix-filter-type-mismatch.md"
+      "file": "1-gate.md",
+      "record": "records/1-gate.md",
+      "breaking": true
     },
     "1-summary": {
       "id": "1.summary",
       "title": "Phase 1 Summary",
       "priority": "P0",
       "estimatedTime": "15min",
-      "dependencies": ["1.x"],
+      "dependencies": [
+        "1.x"
+      ],
       "status": "pending",
       "file": "1-summary.md",
       "record": "records/1-summary.md"
     },
-    "1-gate": {
-      "id": "1.gate",
-      "title": "Phase 1 Exit Gate",
+    "1.1-fix-assign-column": {
+      "id": "1.1",
+      "title": "Fix Assign column name",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["1.summary"],
-      "status": "pending",
-      "breaking": true,
-      "file": "1-gate.md",
-      "record": "records/1-gate.md"
+      "status": "completed",
+      "file": "1.1-fix-assign-column.md",
+      "record": "records/1.1-fix-assign-column.md",
+      "breaking": true
     },
-    "2.1-backend-dead-code": {
-      "id": "2.1",
-      "title": "Remove backend dead code",
-      "priority": "P1",
-      "estimatedTime": "2h",
-      "dependencies": ["1.gate"],
-      "status": "pending",
-      "breaking": true,
-      "file": "2.1-remove-backend-dead-code.md",
-      "record": "records/2.1-remove-backend-dead-code.md"
-    },
-    "2.2-frontend-dead-code": {
-      "id": "2.2",
-      "title": "Fix frontend dead code",
-      "priority": "P1",
-      "estimatedTime": "1h",
-      "dependencies": ["1.gate"],
-      "status": "pending",
-      "breaking": false,
-      "file": "2.2-fix-frontend-dead-code.md",
-      "record": "records/2.2-fix-frontend-dead-code.md"
-    },
-    "2-summary": {
-      "id": "2.summary",
-      "title": "Phase 2 Summary",
+    "1.2-fix-filter-type": {
+      "id": "1.2",
+      "title": "Fix filter type mismatch",
       "priority": "P0",
-      "estimatedTime": "15min",
-      "dependencies": ["2.x"],
+      "estimatedTime": "1h",
       "status": "pending",
-      "file": "2-summary.md",
-      "record": "records/2-summary.md"
+      "file": "1.2-fix-filter-type-mismatch.md",
+      "record": "records/1.2-fix-filter-type-mismatch.md",
+      "breaking": true
     },
     "2-gate": {
       "id": "2.gate",
       "title": "Phase 2 Exit Gate",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["2.summary"],
+      "dependencies": [
+        "2.summary"
+      ],
       "status": "pending",
-      "breaking": true,
       "file": "2-gate.md",
-      "record": "records/2-gate.md"
+      "record": "records/2-gate.md",
+      "breaking": true
+    },
+    "2-summary": {
+      "id": "2.summary",
+      "title": "Phase 2 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "2.x"
+      ],
+      "status": "pending",
+      "file": "2-summary.md",
+      "record": "records/2-summary.md"
+    },
+    "2.1-backend-dead-code": {
+      "id": "2.1",
+      "title": "Remove backend dead code",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1.gate"
+      ],
+      "status": "pending",
+      "file": "2.1-remove-backend-dead-code.md",
+      "record": "records/2.1-remove-backend-dead-code.md",
+      "breaking": true
+    },
+    "2.2-frontend-dead-code": {
+      "id": "2.2",
+      "title": "Fix frontend dead code",
+      "priority": "P1",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "1.gate"
+      ],
+      "status": "pending",
+      "file": "2.2-fix-frontend-dead-code.md",
+      "record": "records/2.2-fix-frontend-dead-code.md"
+    },
+    "3-gate": {
+      "id": "3.gate",
+      "title": "Phase 3 Exit Gate",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "3.summary"
+      ],
+      "status": "pending",
+      "file": "3-gate.md",
+      "record": "records/3-gate.md",
+      "breaking": true
+    },
+    "3-summary": {
+      "id": "3.summary",
+      "title": "Phase 3 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "3.x"
+      ],
+      "status": "pending",
+      "file": "3-summary.md",
+      "record": "records/3-summary.md"
     },
     "3.1-shared-interfaces": {
       "id": "3.1",
-      "title": "Extract shared transaction & bizKey helpers",
+      "title": "Extract shared transaction \u0026 bizKey helpers",
       "priority": "P1",
       "estimatedTime": "3h",
-      "dependencies": ["2.gate"],
+      "dependencies": [
+        "2.gate"
+      ],
       "status": "pending",
-      "breaking": true,
       "file": "3.1-extract-shared-interfaces.md",
-      "record": "records/3.1-extract-shared-interfaces.md"
+      "record": "records/3.1-extract-shared-interfaces.md",
+      "breaking": true
     },
     "3.2-vo-and-helpers": {
       "id": "3.2",
-      "title": "Extract shared VO & service helpers",
+      "title": "Extract shared VO \u0026 service helpers",
       "priority": "P1",
       "estimatedTime": "2h",
-      "dependencies": ["2.gate"],
+      "dependencies": [
+        "2.gate"
+      ],
       "status": "pending",
-      "breaking": true,
       "file": "3.2-extract-vo-and-helpers.md",
-      "record": "records/3.2-extract-vo-and-helpers.md"
+      "record": "records/3.2-extract-vo-and-helpers.md",
+      "breaking": true
     },
     "3.3-unify-pagination": {
       "id": "3.3",
       "title": "Unify pagination pattern",
       "priority": "P2",
       "estimatedTime": "1h",
-      "dependencies": ["2.gate"],
+      "dependencies": [
+        "2.gate"
+      ],
       "status": "pending",
-      "breaking": false,
       "file": "3.3-unify-pagination.md",
       "record": "records/3.3-unify-pagination.md"
     },
@@ -132,93 +168,86 @@
       "title": "Frontend type alignment",
       "priority": "P1",
       "estimatedTime": "2h",
-      "dependencies": ["2.gate"],
+      "dependencies": [
+        "2.gate"
+      ],
       "status": "pending",
-      "breaking": true,
       "file": "3.4-frontend-type-alignment.md",
-      "record": "records/3.4-frontend-type-alignment.md"
-    },
-    "3-summary": {
-      "id": "3.summary",
-      "title": "Phase 3 Summary",
-      "priority": "P0",
-      "estimatedTime": "15min",
-      "dependencies": ["3.x"],
-      "status": "pending",
-      "file": "3-summary.md",
-      "record": "records/3-summary.md"
-    },
-    "3-gate": {
-      "id": "3.gate",
-      "title": "Phase 3 Exit Gate",
-      "priority": "P0",
-      "estimatedTime": "1h",
-      "dependencies": ["3.summary"],
-      "status": "pending",
-      "breaking": true,
-      "file": "3-gate.md",
-      "record": "records/3-gate.md"
-    },
-    "4.1-table-rename": {
-      "id": "4.1",
-      "title": "Table rename to pmw_ prefix",
-      "priority": "P1",
-      "estimatedTime": "1h",
-      "dependencies": ["3.gate"],
-      "status": "pending",
-      "breaking": true,
-      "file": "4.1-table-rename-pmw-prefix.md",
-      "record": "records/4.1-table-rename-pmw-prefix.md"
-    },
-    "4.2-merge-constructors": {
-      "id": "4.2",
-      "title": "Merge constructors & VO conversion",
-      "priority": "P2",
-      "estimatedTime": "2h",
-      "dependencies": ["3.gate"],
-      "status": "pending",
-      "breaking": true,
-      "file": "4.2-merge-constructors-and-vos.md",
-      "record": "records/4.2-merge-constructors-and-vos.md"
-    },
-    "4.3-scope-frontend": {
-      "id": "4.3",
-      "title": "Unify soft-delete scope & frontend fixes",
-      "priority": "P2",
-      "estimatedTime": "1.5h",
-      "dependencies": ["3.gate"],
-      "status": "pending",
-      "breaking": true,
-      "file": "4.3-scope-frontend-fixes.md",
-      "record": "records/4.3-scope-frontend-fixes.md"
-    },
-    "4-summary": {
-      "id": "4.summary",
-      "title": "Phase 4 Summary",
-      "priority": "P0",
-      "estimatedTime": "15min",
-      "dependencies": ["4.x"],
-      "status": "pending",
-      "file": "4-summary.md",
-      "record": "records/4-summary.md"
+      "record": "records/3.4-frontend-type-alignment.md",
+      "breaking": true
     },
     "4-gate": {
       "id": "4.gate",
       "title": "Phase 4 Exit Gate",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["4.summary"],
+      "dependencies": [
+        "4.summary"
+      ],
       "status": "pending",
-      "breaking": true,
       "file": "4-gate.md",
-      "record": "records/4-gate.md"
+      "record": "records/4-gate.md",
+      "breaking": true
+    },
+    "4-summary": {
+      "id": "4.summary",
+      "title": "Phase 4 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "4.x"
+      ],
+      "status": "pending",
+      "file": "4-summary.md",
+      "record": "records/4-summary.md"
+    },
+    "4.1-table-rename": {
+      "id": "4.1",
+      "title": "Table rename to pmw_ prefix",
+      "priority": "P1",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "3.gate"
+      ],
+      "status": "pending",
+      "file": "4.1-table-rename-pmw-prefix.md",
+      "record": "records/4.1-table-rename-pmw-prefix.md",
+      "breaking": true
+    },
+    "4.2-merge-constructors": {
+      "id": "4.2",
+      "title": "Merge constructors \u0026 VO conversion",
+      "priority": "P2",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "3.gate"
+      ],
+      "status": "pending",
+      "file": "4.2-merge-constructors-and-vos.md",
+      "record": "records/4.2-merge-constructors-and-vos.md",
+      "breaking": true
+    },
+    "4.3-scope-frontend": {
+      "id": "4.3",
+      "title": "Unify soft-delete scope \u0026 frontend fixes",
+      "priority": "P2",
+      "estimatedTime": "1.5h",
+      "dependencies": [
+        "3.gate"
+      ],
+      "status": "pending",
+      "file": "4.3-scope-frontend-fixes.md",
+      "record": "records/4.3-scope-frontend-fixes.md",
+      "breaking": true
     },
     "T-test-1": {
       "id": "T-test-1",
       "title": "Generate e2e Test Cases",
       "priority": "P1",
       "estimatedTime": "1-2h",
-      "dependencies": ["4.gate"],
+      "dependencies": [
+        "4.gate"
+      ],
       "status": "pending",
       "file": "T-test-1.md",
       "record": "records/T-test-1.md"
@@ -228,10 +257,24 @@
       "title": "Generate e2e Test Scripts",
       "priority": "P1",
       "estimatedTime": "1-2h",
-      "dependencies": ["T-test-1"],
+      "dependencies": [
+        "T-test-1"
+      ],
       "status": "pending",
       "file": "T-test-2.md",
       "record": "records/T-test-2.md"
     }
-  }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
 }
