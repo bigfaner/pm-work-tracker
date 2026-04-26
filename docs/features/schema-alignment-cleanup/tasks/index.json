@@ -151,7 +151,7 @@
       "dependencies": [
         "2.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.2-extract-vo-and-helpers.md",
       "record": "records/3.2-extract-vo-and-helpers.md",
       "breaking": true

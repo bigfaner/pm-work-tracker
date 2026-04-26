@@ -214,4 +214,3 @@ func depsWithAuthSvc(t *testing.T, authSvc *mockAuthService) *Dependencies {
 // Ensure dto types compile (compile-time check).
 var _ dto.LoginReq
 var _ dto.LoginResp
-var _ dto.UserDTO

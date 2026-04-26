@@ -97,15 +97,8 @@ func (s *progressService) Append(ctx context.Context, teamID, authorID, subItemI
 		}
 
 		// Record auto-transition to status history
-		if s.statusHistorySvc != nil {
-			_ = s.statusHistorySvc.Record(ctx, &model.StatusHistory{
-				ItemType:   "sub_item",
-				ItemKey:    int64(subItemID),
-				FromStatus: currentStatus,
-				ToStatus:   targetStatus,
-				ChangedBy:  int64(authorID),
-				IsAuto:     1,
-			})
+		if err := RecordStatusChange(s.statusHistorySvc, ctx, "sub_item", int64(subItemID), currentStatus, targetStatus, authorID, 1, ""); err != nil {
+			return nil, err
 		}
 	}
 

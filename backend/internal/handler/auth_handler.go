@@ -4,10 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"pm-work-tracker/backend/internal/dto"
-	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
-	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/service"
+	"pm-work-tracker/backend/internal/vo"
 )
 
 // AuthHandler handles authentication endpoints.
@@ -36,23 +35,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	apperrors.RespondOK(c, dto.LoginResp{
 		Token: token,
-		User:  userToDTO(user),
+		User:  vo.NewUserVO(user),
 	})
 }
 
 // Logout handles POST /api/v1/auth/logout
 func (h *AuthHandler) Logout(c *gin.Context) {
 	apperrors.RespondOK(c, nil)
-}
-
-// userToDTO converts a model.User to dto.UserDTO.
-func userToDTO(u *model.User) dto.UserDTO {
-	return dto.UserDTO{
-		BizKey:        pkg.FormatID(u.BizKey),
-		Username:      u.Username,
-		DisplayName:   u.DisplayName,
-		Email:         u.Email,
-		Status:        u.UserStatus,
-		IsSuperAdmin:  u.IsSuperAdmin,
-	}
 }

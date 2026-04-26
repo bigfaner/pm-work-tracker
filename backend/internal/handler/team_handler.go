@@ -2,18 +2,17 @@ package handler
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/middleware"
-	"pm-work-tracker/backend/internal/model"
-	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg"
+	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	pkgHandler "pm-work-tracker/backend/internal/pkg/handler"
 	"pm-work-tracker/backend/internal/repository"
 	"pm-work-tracker/backend/internal/service"
+	"pm-work-tracker/backend/internal/vo"
 )
 
 // TeamHandler handles team endpoints.
@@ -50,7 +49,7 @@ func (h *TeamHandler) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": teamToDTO(team)})
+	apperrors.RespondCreated(c, vo.NewTeamVO(team))
 }
 
 // List handles GET /api/v1/teams
@@ -66,11 +65,11 @@ func (h *TeamHandler) List(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, gin.H{
-		"items":    teams,
-		"total":    total,
-		"page":     page,
-		"pageSize": pageSize,
+	apperrors.RespondOK(c, dto.TeamListPage{
+		Items:    teams,
+		Total:    total,
+		Page:     page,
+		PageSize: pageSize,
 	})
 }
 
@@ -104,7 +103,7 @@ func (h *TeamHandler) Update(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, teamToDTO(team))
+	apperrors.RespondOK(c, vo.NewTeamVO(team))
 }
 
 // Disband handles DELETE /api/v1/teams/:teamId
@@ -209,8 +208,8 @@ func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 
 	roleKey, _ := pkg.ParseID(req.RoleKey)
 	if err := h.teamSvc.UpdateMemberRole(c.Request.Context(), pmID, teamID, targetUserID, uint(roleKey)); err != nil {
-	apperrors.RespondError(c, err)
-	return
+		apperrors.RespondError(c, err)
+		return
 	}
 
 	apperrors.RespondOK(c, nil)
@@ -259,17 +258,4 @@ func (h *TeamHandler) SearchUsers(c *gin.Context) {
 	}
 
 	apperrors.RespondOK(c, users)
-}
-
-// teamToDTO converts a model.Team to a response map.
-func teamToDTO(team *model.Team) gin.H {
-	return gin.H{
-		"bizKey":      pkg.FormatID(team.BizKey),
-		"name":        team.TeamName,
-		"description": team.TeamDesc,
-		"code":        team.Code,
-		"pmKey":       pkg.FormatID(team.PmKey),
-		"createdAt":   team.CreateTime,
-		"updatedAt":   team.DbUpdateTime,
-	}
 }

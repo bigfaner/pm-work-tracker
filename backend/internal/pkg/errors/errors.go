@@ -78,6 +78,11 @@ func RespondOK(c *gin.Context, data any) {
 	c.JSON(http.StatusOK, gin.H{"code": 0, "data": data})
 }
 
+// RespondCreated writes a standard success envelope with HTTP 201 status.
+func RespondCreated(c *gin.Context, data any) {
+	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": data})
+}
+
 // IsMySQLDuplicateError returns true if err is a MySQL duplicate entry error (1062).
 func IsMySQLDuplicateError(err error) bool {
 	var mysqlErr *mysql.MySQLError
