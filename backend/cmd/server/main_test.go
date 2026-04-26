@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -13,9 +14,19 @@ import (
 	"pm-work-tracker/backend/config"
 	"pm-work-tracker/backend/internal/handler"
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 	"pm-work-tracker/backend/internal/service"
 )
+
+var snowflakeOnce sync.Once
+
+func initSnowflake(t *testing.T) {
+	t.Helper()
+	snowflakeOnce.Do(func() {
+		require.NoError(t, snowflake.Init(1))
+	})
+}
 
 // writeTestConfig writes a minimal valid config.yaml to a temp file and returns its path.
 func writeTestConfig(t *testing.T, jwtSecret string) string {
@@ -99,6 +110,8 @@ func TestRun_SeedAdminSkippedWhenNoUsername(t *testing.T) {
 }
 
 func TestRun_SeedAdminCreatesUser(t *testing.T) {
+	initSnowflake(t)
+
 	content := []byte(`server:
   port: "18080"
   gin_mode: test

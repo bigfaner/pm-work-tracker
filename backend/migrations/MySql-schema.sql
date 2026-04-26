@@ -2,7 +2,7 @@
 -- Replaces SQLite schema. All tables use pmw_ prefix.
 
 -- pmw_users
-CREATE TABLE pmw_users (
+CREATE TABLE IF NOT EXISTS pmw_users (
     id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     biz_key         BIGINT          NOT NULL,
     create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -22,7 +22,7 @@ CREATE TABLE pmw_users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- pmw_teams
-CREATE TABLE pmw_teams (
+CREATE TABLE IF NOT EXISTS pmw_teams (
     id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     biz_key         BIGINT          NOT NULL,
     create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -42,7 +42,7 @@ CREATE TABLE pmw_teams (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队表';
 
 -- pmw_team_members（有软删：成员可被移出团队）
-CREATE TABLE pmw_team_members (
+CREATE TABLE IF NOT EXISTS pmw_team_members (
     id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     biz_key         BIGINT          NOT NULL,
     create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -60,7 +60,7 @@ CREATE TABLE pmw_team_members (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队成员表';
 
 -- pmw_main_items
-CREATE TABLE pmw_main_items (
+CREATE TABLE IF NOT EXISTS pmw_main_items (
     id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     biz_key           BIGINT          NOT NULL,
     create_time       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -95,7 +95,7 @@ CREATE TABLE pmw_main_items (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='主事项表';
 
 -- pmw_sub_items
-CREATE TABLE pmw_sub_items (
+CREATE TABLE IF NOT EXISTS pmw_sub_items (
     id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     biz_key           BIGINT          NOT NULL,
     create_time       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -130,7 +130,7 @@ CREATE TABLE pmw_sub_items (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='子事项表';
 
 -- pmw_item_pools
-CREATE TABLE pmw_item_pools (
+CREATE TABLE IF NOT EXISTS pmw_item_pools (
     id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     biz_key           BIGINT          NOT NULL,
     create_time       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -158,7 +158,7 @@ CREATE TABLE pmw_item_pools (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='需求池表';
 
 -- pmw_progress_records（append-only：无软删）
-CREATE TABLE pmw_progress_records (
+CREATE TABLE IF NOT EXISTS pmw_progress_records (
     id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     biz_key         BIGINT          NOT NULL,
     sub_item_key    BIGINT          NOT NULL,
@@ -179,7 +179,7 @@ CREATE TABLE pmw_progress_records (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='进度记录表（追加写入）';
 
 -- pmw_status_histories（append-only：无软删，无 biz_key）
-CREATE TABLE pmw_status_histories (
+CREATE TABLE IF NOT EXISTS pmw_status_histories (
     id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     item_type    VARCHAR(20)     NOT NULL,
     item_key     BIGINT          NOT NULL,
@@ -194,7 +194,7 @@ CREATE TABLE pmw_status_histories (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='状态变更历史表（追加写入）';
 
 -- roles (RBAC)
-CREATE TABLE roles (
+CREATE TABLE IF NOT EXISTS roles (
     id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     biz_key         BIGINT          NOT NULL,
     create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -209,7 +209,7 @@ CREATE TABLE roles (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色表';
 
 -- role_permissions (RBAC)
-CREATE TABLE role_permissions (
+CREATE TABLE IF NOT EXISTS role_permissions (
     id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     role_id          BIGINT UNSIGNED NOT NULL,
     permission_code  VARCHAR(50)     NOT NULL,

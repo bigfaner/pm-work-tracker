@@ -1,6 +1,7 @@
 package config
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/glebarez/sqlite"
@@ -10,10 +11,16 @@ import (
 	"gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 )
+
+var snowflakeOnce sync.Once
 
 func setupTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
+	snowflakeOnce.Do(func() {
+		require.NoError(t, snowflake.Init(1))
+	})
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, db.AutoMigrate(&model.User{}))

@@ -56,16 +56,18 @@ func run(configPath string, devMode bool) error {
 		return fmt.Errorf("snowflake init error: %w", err)
 	}
 
-	// 3b. Run schema migration
-	schemaFile := "migrations/SQLite-schema.sql"
-	if cfg.Database.Driver == "mysql" {
-		schemaFile = "migrations/MySql-schema.sql"
-	}
-	if err := migration.RunSchema(db, schemaFile); err != nil {
-		return fmt.Errorf("migration error: %w", err)
+	// 3b. Run schema DDL (CREATE TABLE) — skip when auto_schema is false
+	if cfg.Database.AutoSchema {
+		schemaFile := "migrations/SQLite-schema.sql"
+		if cfg.Database.Driver == "mysql" {
+			schemaFile = "migrations/MySql-schema.sql"
+		}
+		if err := migration.RunSchema(db, schemaFile); err != nil {
+			return fmt.Errorf("migration error: %w", err)
+		}
 	}
 
-	// 3c. RBAC migration (roles, role_permissions, preset roles)
+	// 3c. RBAC migration — seeds roles and rebuilds team_members (DML, always runs)
 	if err := migration.MigrateToRBAC(db); err != nil {
 		return fmt.Errorf("rbac migration error: %w", err)
 	}

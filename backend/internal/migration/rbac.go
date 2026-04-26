@@ -51,7 +51,7 @@ func MigrateToRBAC(db *gorm.DB) error {
 
 func runRBACMigration(tx *gorm.DB) error {
 	// 1. Create new tables (roles, role_permissions)
-	if err := tx.AutoMigrate(&model.Role{}, &model.RolePermission{}); err != nil {
+	if err := createRBACTables(tx); err != nil {
 		return fmt.Errorf("create rbac tables: %w", err)
 	}
 
@@ -74,6 +74,65 @@ func runRBACMigration(tx *gorm.DB) error {
 	// 4. Users table: can_create_team column removed (handled by RBAC team:create permission).
 
 	return nil
+}
+
+func createRBACTables(tx *gorm.DB) error {
+	for _, stmt := range rbacTableDDL(tx) {
+		if err := tx.Exec(stmt).Error; err != nil {
+			if tableExists(tx, "roles") && tableExists(tx, "role_permissions") {
+				return nil
+			}
+			return fmt.Errorf("create RBAC tables: %w (hint: run schema SQL as root, or set auto_schema: true)", err)
+		}
+	}
+	return nil
+}
+
+func rbacTableDDL(tx *gorm.DB) []string {
+	if isMySQL(tx) {
+		return []string{
+			`CREATE TABLE IF NOT EXISTS roles (
+    id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    biz_key         BIGINT          NOT NULL,
+    create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    db_update_time  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_flag    TINYINT(1)      NOT NULL DEFAULT 0,
+    deleted_time    DATETIME        NOT NULL DEFAULT '1970-01-01 08:00:00',
+    name            VARCHAR(50)     NOT NULL,
+    description     VARCHAR(200)    NOT NULL DEFAULT '',
+    is_preset       TINYINT(1)      NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_roles_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+			`CREATE TABLE IF NOT EXISTS role_permissions (
+    id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    role_id          BIGINT UNSIGNED NOT NULL,
+    permission_code  VARCHAR(50)     NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_role_permission (role_id, permission_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+		}
+	}
+	return []string{
+		`CREATE TABLE IF NOT EXISTS roles (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    biz_key         INTEGER       NOT NULL,
+    create_time     DATETIME      NOT NULL DEFAULT (datetime('now')),
+    db_update_time  DATETIME      NOT NULL DEFAULT (datetime('now')),
+    deleted_flag    INTEGER       NOT NULL DEFAULT 0,
+    deleted_time    DATETIME      NOT NULL DEFAULT '1970-01-01 08:00:00',
+    name            VARCHAR(50)   NOT NULL,
+    description     VARCHAR(200)  NOT NULL DEFAULT '',
+    is_preset       INTEGER       NOT NULL DEFAULT 0
+)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS uk_roles_name ON roles(name)`,
+		`CREATE TABLE IF NOT EXISTS role_permissions (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    role_id          INTEGER      NOT NULL,
+    permission_code  VARCHAR(50)  NOT NULL,
+    UNIQUE(role_id, permission_code)
+)`,
+	}
 }
 
 func seedPresetRoles(tx *gorm.DB) error {
@@ -263,29 +322,49 @@ func HasColumn(db *gorm.DB, table, column string) bool {
 	return count > 0
 }
 
-// columnExists checks if a column exists in a SQLite table.
+// isMySQL returns true if the underlying database is MySQL.
+func isMySQL(db *gorm.DB) bool {
+	return db.Dialector.Name() == "mysql"
+}
+
+// columnExists checks if a column exists in a table.
 func columnExists(db *gorm.DB, table, column string) bool {
 	var count int64
-	db.Raw("SELECT count(*) FROM pragma_table_info(?) WHERE name = ?", table, column).Scan(&count)
+	if isMySQL(db) {
+		db.Raw("SELECT count(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?", table, column).Scan(&count)
+	} else {
+		db.Raw("SELECT count(*) FROM pragma_table_info(?) WHERE name = ?", table, column).Scan(&count)
+	}
 	return count > 0
 }
 
-// tableExists checks if a table exists in the SQLite database.
+// tableExists checks if a table exists in the database.
 func tableExists(db *gorm.DB, table string) bool {
 	var count int64
-	db.Raw("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = ?", table).Scan(&count)
+	if isMySQL(db) {
+		db.Raw("SELECT count(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", table).Scan(&count)
+	} else {
+		db.Raw("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = ?", table).Scan(&count)
+	}
 	return count > 0
 }
 
-// ensureSchemaMigrationsTable is the package-level version used by rbac.go.
+// ensureSchemaMigrationsTable creates the schema_migrations table if it does not exist.
+// Tolerates missing CREATE privilege when the table already exists.
 func ensureSchemaMigrationsTable(db *gorm.DB) error {
-	sql := `
-CREATE TABLE IF NOT EXISTS schema_migrations (
-    version  VARCHAR(255) PRIMARY KEY,
-    applied  DATETIME NOT NULL DEFAULT (datetime('now'))
-);
-`
-	return db.Exec(sql).Error
+	var ddl string
+	if isMySQL(db) {
+		ddl = `CREATE TABLE IF NOT EXISTS schema_migrations (version VARCHAR(255) PRIMARY KEY, applied DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)`
+	} else {
+		ddl = `CREATE TABLE IF NOT EXISTS schema_migrations (version VARCHAR(255) PRIMARY KEY, applied DATETIME NOT NULL DEFAULT (datetime('now')))`
+	}
+	if err := db.Exec(ddl).Error; err != nil {
+		if tableExists(db, "schema_migrations") {
+			return nil
+		}
+		return fmt.Errorf("create schema_migrations table: %w (hint: run schema SQL as root, or set auto_schema: true)", err)
+	}
+	return nil
 }
 
 // VerifyPresetRoleCodes checks that pm and member preset roles have the expected
