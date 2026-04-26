@@ -3,7 +3,7 @@ import { usePermission } from '@/hooks/usePermission'
 
 interface PermissionGuardProps {
   code: string
-  teamId?: number
+  teamId?: string
   children: ReactNode
 }
 

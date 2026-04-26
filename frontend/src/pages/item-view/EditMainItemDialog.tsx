@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button'
 export interface EditMainItemFormState {
   title: string
   priority: string
-  assigneeId: string
+  assigneeKey: string
   expectedEndDate: string
   description: string
 }
@@ -77,8 +77,8 @@ export default function EditMainItemDialog({
               <label className="block text-sm font-medium text-primary mb-1">负责人</label>
               <MemberSelect
                 members={members}
-                selectedId={form.assigneeId}
-                onSelect={(v) => onFormChange((f) => ({ ...f, assigneeId: v }))}
+                selectedId={form.assigneeKey}
+                onSelect={(v) => onFormChange((f) => ({ ...f, assigneeKey: v }))}
               />
             </div>
           </div>

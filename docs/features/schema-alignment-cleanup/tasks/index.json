@@ -176,7 +176,7 @@
       "dependencies": [
         "2.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.4-frontend-type-alignment.md",
       "record": "records/3.4-frontend-type-alignment.md",
       "breaking": true

@@ -15,7 +15,7 @@ interface AuthState {
   clearAuth: () => void
   setPermissions: (permissions: PermissionData) => void
   fetchPermissions: () => Promise<void>
-  hasPermission: (code: string, teamId?: number) => boolean
+  hasPermission: (code: string, teamId?: string) => boolean
   _setHasHydrated: (v: boolean) => void
 }
 

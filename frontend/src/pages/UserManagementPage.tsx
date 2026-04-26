@@ -385,7 +385,7 @@ export default function UserManagementPage() {
                   <SelectContent>
                     <SelectItem value="_none">不指定</SelectItem>
                     {teams.map((t) => (
-                      <SelectItem key={t.bizKey} value={String(t.bizKey)}>{t.name}</SelectItem>
+                      <SelectItem key={t.bizKey} value={t.bizKey}>{t.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -469,7 +469,7 @@ export default function UserManagementPage() {
                   <SelectContent>
                     <SelectItem value="_none">不指定</SelectItem>
                     {teams.map((t) => (
-                      <SelectItem key={t.bizKey} value={String(t.bizKey)}>{t.name}</SelectItem>
+                      <SelectItem key={t.bizKey} value={t.bizKey}>{t.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

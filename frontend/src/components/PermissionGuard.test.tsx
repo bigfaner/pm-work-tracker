@@ -12,12 +12,12 @@ describe('PermissionGuard', () => {
   it('renders children when permission is granted', () => {
     const perms: PermissionData = {
       isSuperAdmin: false,
-      teamPermissions: { 1: ['team:read'] },
+      teamPermissions: { '1': ['team:read'] },
     }
     useAuthStore.getState().setPermissions(perms)
 
     const { getByText } = render(
-      <PermissionGuard code="team:read" teamId={1}>
+      <PermissionGuard code="team:read" teamId="1">
         <div>Protected Content</div>
       </PermissionGuard>,
     )
@@ -27,12 +27,12 @@ describe('PermissionGuard', () => {
   it('returns null when permission is denied', () => {
     const perms: PermissionData = {
       isSuperAdmin: false,
-      teamPermissions: { 1: ['team:read'] },
+      teamPermissions: { '1': ['team:read'] },
     }
     useAuthStore.getState().setPermissions(perms)
 
     const { container } = render(
-      <PermissionGuard code="team:write" teamId={1}>
+      <PermissionGuard code="team:write" teamId="1">
         <div>Protected Content</div>
       </PermissionGuard>,
     )
@@ -67,8 +67,8 @@ describe('PermissionGuard', () => {
     const perms: PermissionData = {
       isSuperAdmin: false,
       teamPermissions: {
-        1: ['team:read'],
-        2: ['team:write'],
+        '1': ['team:read'],
+        '2': ['team:write'],
       },
     }
     useAuthStore.getState().setPermissions(perms)

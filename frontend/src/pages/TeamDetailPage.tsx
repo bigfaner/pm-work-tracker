@@ -119,7 +119,7 @@ export default function TeamDetailPage() {
   const [removeTarget, setRemoveTarget] = useState<TeamMemberResp | null>(null)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteUsername, setInviteUsername] = useState('')
-  const [inviteRoleId, setInviteRoleId] = useState<number | undefined>(undefined)
+  const [inviteRoleId, setInviteRoleId] = useState<string | undefined>(undefined)
   const [userSearch, setUserSearch] = useState('')
   const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null)
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
@@ -128,7 +128,7 @@ export default function TeamDetailPage() {
 
   // Role edit dialog state
   const [roleEditTarget, setRoleEditTarget] = useState<TeamMemberResp | null>(null)
-  const [roleEditRoleId, setRoleEditRoleId] = useState<number | undefined>(undefined)
+  const [roleEditRoleId, setRoleEditRoleId] = useState<string | undefined>(undefined)
 
   // User search for invite dialog
   const { data: userSearchResults = [] } = useQuery({
@@ -140,7 +140,7 @@ export default function TeamDetailPage() {
   // --- Mutations ---
 
   const transferMutation = useMutation({
-    mutationFn: () => transferPmApi(numericTeamId, { newPmUserKey: String(transferTarget!.userKey) }),
+    mutationFn: () => transferPmApi(numericTeamId, { newPmUserKey: transferTarget!.userKey }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['team', numericTeamId] })
       qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
@@ -163,7 +163,7 @@ export default function TeamDetailPage() {
   })
 
   const inviteMutation = useMutation({
-    mutationFn: () => inviteMemberApi(numericTeamId, { username: inviteUsername, roleKey: String(inviteRoleId!) }),
+    mutationFn: () => inviteMemberApi(numericTeamId, { username: inviteUsername, roleKey: inviteRoleId! }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['team', numericTeamId] })
       qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
@@ -185,8 +185,8 @@ export default function TeamDetailPage() {
   })
 
   const changeRoleMutation = useMutation({
-    mutationFn: ({ memberId, roleId }: { memberId: string; roleId: number }) =>
-      changeMemberRoleApi(numericTeamId, memberId, { roleKey: String(roleId) }),
+    mutationFn: ({ memberId, roleKey }: { memberId: string; roleKey: string }) =>
+      changeMemberRoleApi(numericTeamId, memberId, { roleKey }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
       setRoleEditTarget(null)
@@ -235,7 +235,7 @@ export default function TeamDetailPage() {
   }
 
   const isPm = (member: TeamMemberResp) => member.role === 'pm'
-  const isSelf = (member: TeamMemberResp) => currentUser != null && String(member.userKey) === currentUser.bizKey
+  const isSelf = (member: TeamMemberResp) => currentUser != null && member.userKey === currentUser.bizKey
 
   return (
     <div data-testid="team-detail-page">
@@ -354,7 +354,7 @@ export default function TeamDetailPage() {
                           variant="ghost"
                           size="sm"
                           className="text-primary-600"
-                          onClick={() => { setRoleEditTarget(member); setRoleEditRoleId(member.roleId) }}
+                          onClick={() => { setRoleEditTarget(member); setRoleEditRoleId(String(member.roleId)) }}
                           data-testid="change-role-btn"
                         >
                           <Edit className="w-3.5 h-3.5" />
@@ -419,15 +419,15 @@ export default function TeamDetailPage() {
           </DialogHeader>
           <DialogBody>
             <Select
-              value={roleEditRoleId != null ? String(roleEditRoleId) : ''}
-              onValueChange={(v) => setRoleEditRoleId(Number(v))}
+              value={roleEditRoleId ?? ''}
+              onValueChange={(v) => setRoleEditRoleId(v)}
             >
               <SelectTrigger data-testid="role-edit-select">
                 <SelectValue placeholder="选择角色" />
               </SelectTrigger>
               <SelectContent>
                 {roles.map((role) => (
-                  <SelectItem key={role.bizKey} value={String(role.bizKey)}>
+                  <SelectItem key={role.bizKey} value={role.bizKey}>
                     {role.roleName}
                   </SelectItem>
                 ))}
@@ -437,8 +437,8 @@ export default function TeamDetailPage() {
           <DialogFooter>
             <Button variant="secondary" onClick={() => setRoleEditTarget(null)}>取消</Button>
             <Button
-              onClick={() => changeRoleMutation.mutate({ memberId: roleEditTarget!.userKey, roleId: roleEditRoleId! })}
-              disabled={roleEditRoleId == null || roleEditRoleId === roleEditTarget?.roleId || changeRoleMutation.isPending}
+              onClick={() => changeRoleMutation.mutate({ memberId: roleEditTarget!.userKey, roleKey: roleEditRoleId! })}
+              disabled={roleEditRoleId == null || roleEditRoleId === String(roleEditTarget?.roleId) || changeRoleMutation.isPending}
             >
               确认修改
             </Button>
@@ -540,15 +540,15 @@ export default function TeamDetailPage() {
                   角色 <span className="text-error">*</span>
                 </label>
                 <Select
-                  value={inviteRoleId != null ? String(inviteRoleId) : ''}
-                  onValueChange={(v) => setInviteRoleId(Number(v))}
+                  value={inviteRoleId ?? ''}
+                  onValueChange={(v) => setInviteRoleId(v)}
                 >
                   <SelectTrigger data-testid="invite-role-select">
                     <SelectValue placeholder="选择角色" />
                   </SelectTrigger>
                   <SelectContent>
                     {roles.map((role) => (
-                      <SelectItem key={role.bizKey} value={String(role.bizKey)}>
+                      <SelectItem key={role.bizKey} value={role.bizKey}>
                         {role.roleName}
                       </SelectItem>
                     ))}

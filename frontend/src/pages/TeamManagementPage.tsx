@@ -59,7 +59,7 @@ export default function TeamManagementPage() {
   const [userSearch, setUserSearch] = useState('')
   const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null)
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
-  const [inviteRoleId, setInviteRoleId] = useState<number | undefined>(undefined)
+  const [inviteRoleId, setInviteRoleId] = useState<string | undefined>(undefined)
 
   // Search + pagination state
   const [search, setSearch] = useState('')
@@ -118,7 +118,7 @@ export default function TeamManagementPage() {
 
   // Add member mutation
   const inviteMutation = useMutation({
-    mutationFn: () => inviteMemberApi(addMemberTeamId!, { username: selectedUser!.username, roleKey: String(inviteRoleId!) }),
+    mutationFn: () => inviteMemberApi(addMemberTeamId!, { username: selectedUser!.username, roleKey: inviteRoleId! }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['teams'] })
       closeAddMemberDialog()
@@ -393,15 +393,15 @@ export default function TeamManagementPage() {
                   角色 <span className="text-error">*</span>
                 </label>
                 <Select
-                  value={inviteRoleId != null ? String(inviteRoleId) : ''}
-                  onValueChange={(v) => setInviteRoleId(Number(v))}
+                  value={inviteRoleId ?? ''}
+                  onValueChange={(v) => setInviteRoleId(v)}
                 >
                   <SelectTrigger data-testid="add-member-role-select">
                     <SelectValue placeholder="选择角色" />
                   </SelectTrigger>
                   <SelectContent>
                     {roles.map((role) => (
-                      <SelectItem key={role.bizKey} value={String(role.bizKey)}>
+                      <SelectItem key={role.bizKey} value={role.bizKey}>
                         {role.roleName}
                       </SelectItem>
                     ))}

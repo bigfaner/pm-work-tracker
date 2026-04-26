@@ -2,7 +2,7 @@
 
 export interface PermissionData {
   isSuperAdmin: boolean
-  teamPermissions: Record<number, string[]>
+  teamPermissions: Record<string, string[]>
 }
 
 export interface Role {
