@@ -28,7 +28,8 @@ func NewAdminHandler(adminSvc service.AdminService) *AdminHandler {
 
 // ListUsers handles GET /api/v1/admin/users
 func (h *AdminHandler) ListUsers(c *gin.Context) {
-	page, pageSize := parsePagination(c, 20)
+	page, pageSize := parsePageParams(c)
+	_, page, pageSize = dto.ApplyPaginationDefaults(page, pageSize)
 
 	search := c.Query("search")
 
@@ -126,7 +127,8 @@ func (h *AdminHandler) ToggleUserStatus(c *gin.Context) {
 
 // ListTeams handles GET /api/v1/admin/teams
 func (h *AdminHandler) ListTeams(c *gin.Context) {
-	page, pageSize := parsePagination(c, 50)
+	page, pageSize := parsePageParams(c)
+	_, page, pageSize = dto.ApplyPaginationWithDefault(page, pageSize, 50)
 
 	teams, err := h.adminSvc.ListAllTeams(c.Request.Context())
 	if err != nil {
@@ -143,22 +145,19 @@ func (h *AdminHandler) ListTeams(c *gin.Context) {
 	})
 }
 
-// parsePagination extracts page and pageSize from query params with defaults.
-func parsePagination(c *gin.Context, defaultPageSize int) (int, int) {
-	page := 1
-	pageSize := defaultPageSize
-
+// parsePageParams extracts page and pageSize from query params (returns 0 if absent/invalid).
+func parsePageParams(c *gin.Context) (int, int) {
+	var page, pageSize int
 	if p := c.Query("page"); p != "" {
-		if v, err := strconv.Atoi(p); err == nil && v > 0 {
+		if v, err := strconv.Atoi(p); err == nil {
 			page = v
 		}
 	}
 	if ps := c.Query("pageSize"); ps != "" {
-		if v, err := strconv.Atoi(ps); err == nil && v > 0 {
+		if v, err := strconv.Atoi(ps); err == nil {
 			pageSize = v
 		}
 	}
-
 	return page, pageSize
 }
 

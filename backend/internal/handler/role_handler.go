@@ -32,7 +32,8 @@ func (h *RoleHandler) ListRoles(c *gin.Context) {
 		return
 	}
 
-	page, pageSize := parsePagination(c, 20)
+	page, pageSize := parsePageParams(c)
+	_, page, pageSize = dto.ApplyPaginationDefaults(page, pageSize)
 	apperrors.RespondOK(c, gin.H{
 		"items":    items,
 		"total":    len(items),

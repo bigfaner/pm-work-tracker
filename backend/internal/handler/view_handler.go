@@ -94,17 +94,9 @@ func (h *ViewHandler) Table(c *gin.Context) {
 		return
 	}
 
-	page := dto.Pagination{Page: 1, PageSize: 50}
-	if err := c.ShouldBindQuery(&page); err != nil {
-		apperrors.RespondError(c, apperrors.ErrValidation)
-		return
-	}
-	if page.Page < 1 {
-		page.Page = 1
-	}
-	if page.PageSize < 1 {
-		page.PageSize = 50
-	}
+	var page dto.Pagination
+	_ = c.ShouldBindQuery(&page)
+	_, page.Page, page.PageSize = dto.ApplyPaginationWithDefault(page.Page, page.PageSize, 50)
 
 	teamID := middleware.GetTeamID(c)
 

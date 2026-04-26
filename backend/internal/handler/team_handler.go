@@ -57,7 +57,8 @@ func (h *TeamHandler) List(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	isSuperAdmin := middleware.IsSuperAdmin(c)
 	search := c.Query("search")
-	page, pageSize := parsePagination(c, 20)
+	page, pageSize := parsePageParams(c)
+	_, page, pageSize = dto.ApplyPaginationDefaults(page, pageSize)
 
 	teams, total, err := h.teamSvc.ListTeams(c.Request.Context(), userID, isSuperAdmin, search, page, pageSize)
 	if err != nil {

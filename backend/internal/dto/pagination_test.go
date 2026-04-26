@@ -47,3 +47,31 @@ func TestApplyPaginationDefaults_NegativePageSize(t *testing.T) {
 	assert.Equal(t, 5, page)
 	assert.Equal(t, 20, pageSize)
 }
+
+func TestApplyPaginationWithDefault_ZeroValues_CustomDefault(t *testing.T) {
+	offset, page, pageSize := ApplyPaginationWithDefault(0, 0, 50)
+	assert.Equal(t, 0, offset)
+	assert.Equal(t, 1, page)
+	assert.Equal(t, 50, pageSize)
+}
+
+func TestApplyPaginationWithDefault_NegativeValues_CustomDefault(t *testing.T) {
+	offset, page, pageSize := ApplyPaginationWithDefault(-1, -5, 30)
+	assert.Equal(t, 0, offset)
+	assert.Equal(t, 1, page)
+	assert.Equal(t, 30, pageSize)
+}
+
+func TestApplyPaginationWithDefault_NormalValues_IgnoresDefault(t *testing.T) {
+	offset, page, pageSize := ApplyPaginationWithDefault(3, 10, 50)
+	assert.Equal(t, 20, offset)
+	assert.Equal(t, 3, page)
+	assert.Equal(t, 10, pageSize)
+}
+
+func TestApplyPaginationWithDefault_ZeroPageSize_UsesDefault(t *testing.T) {
+	offset, page, pageSize := ApplyPaginationWithDefault(2, 0, 50)
+	assert.Equal(t, 50, offset)
+	assert.Equal(t, 2, page)
+	assert.Equal(t, 50, pageSize)
+}
