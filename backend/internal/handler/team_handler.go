@@ -227,6 +227,18 @@ func (h *TeamHandler) TransferPM(c *gin.Context) {
 		return
 	}
 
+	// Resolve newPmUserKey (bizKey) to internal user ID
+	newPmBizKey, err := pkg.ParseID(req.NewPmUserKey)
+	if err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+	newPmUser, err := h.userRepo.FindByBizKey(c.Request.Context(), newPmBizKey)
+	if err != nil {
+		apperrors.RespondError(c, apperrors.ErrUserNotFound)
+		return
+	}
+
 	// SuperAdmin is not the team PM, so fetch the actual PM ID to pass the ownership check.
 	pmID := callerID
 	if middleware.IsSuperAdmin(c) {
@@ -238,7 +250,7 @@ func (h *TeamHandler) TransferPM(c *gin.Context) {
 		pmID = uint(team.PmKey)
 	}
 
-	err := h.teamSvc.TransferPM(c.Request.Context(), pmID, teamID, func() uint { v, _ := pkg.ParseID(req.NewPmUserKey); return uint(v) }())
+	err = h.teamSvc.TransferPM(c.Request.Context(), pmID, teamID, newPmUser.ID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
