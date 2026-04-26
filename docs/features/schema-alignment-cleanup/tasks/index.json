@@ -267,7 +267,7 @@
       "dependencies": [
         "T-test-1"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "T-test-2.md",
       "record": "records/T-test-2.md"
     }
