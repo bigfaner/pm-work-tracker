@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -20,7 +21,7 @@ import (
 	"pm-work-tracker/backend/internal/handler"
 	"pm-work-tracker/backend/internal/migration"
 	"pm-work-tracker/backend/internal/model"
-		"pm-work-tracker/backend/internal/pkg/snowflake"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 	"pm-work-tracker/backend/internal/service"
 )
@@ -95,8 +96,8 @@ func TestRoleCRUD_FullFlow(t *testing.T) {
 	var createResp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &createResp))
 	createData := createResp["data"].(map[string]interface{})
-	roleID := uint(createData["id"].(float64))
-	assert.Equal(t, "custom-role", createData["name"])
+	roleBizKey := createData["bizKey"].(string)
+	assert.Equal(t, "custom-role", createData["roleName"])
 	assert.Equal(t, false, createData["isPreset"])
 
 	// READ (list)
@@ -108,32 +109,32 @@ func TestRoleCRUD_FullFlow(t *testing.T) {
 	assert.GreaterOrEqual(t, len(items), 4) // 3 preset + 1 custom
 
 	// READ (single)
-	w = makeRequest(t, r, http.MethodGet, fmt.Sprintf("/api/v1/admin/roles/%d", roleID), "", adminToken)
+	w = makeRequest(t, r, http.MethodGet, fmt.Sprintf("/api/v1/admin/roles/%s", roleBizKey), "", adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 	var getResp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &getResp))
 	getData := getResp["data"].(map[string]interface{})
-	assert.Equal(t, "custom-role", getData["name"])
+	assert.Equal(t, "custom-role", getData["roleName"])
 	perms := getData["permissions"].([]interface{})
 	assert.Len(t, perms, 2)
 
 	// UPDATE
 	updateBody := `{"description":"Updated description","permissionCodes":["team:read","main_item:read","main_item:create"]}`
-	w = makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%d", roleID), updateBody, adminToken)
+	w = makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%s", roleBizKey), updateBody, adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 	var updateResp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &updateResp))
 	updateData := updateResp["data"].(map[string]interface{})
-	assert.Equal(t, "Updated description", updateData["description"])
+	assert.Equal(t, "Updated description", updateData["roleDesc"])
 	updatedPerms := updateData["permissions"].([]interface{})
 	assert.Len(t, updatedPerms, 3)
 
 	// DELETE
-	w = makeRequest(t, r, http.MethodDelete, fmt.Sprintf("/api/v1/admin/roles/%d", roleID), "", adminToken)
+	w = makeRequest(t, r, http.MethodDelete, fmt.Sprintf("/api/v1/admin/roles/%s", roleBizKey), "", adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// Verify deleted
-	w = makeRequest(t, r, http.MethodGet, fmt.Sprintf("/api/v1/admin/roles/%d", roleID), "", adminToken)
+	w = makeRequest(t, r, http.MethodGet, fmt.Sprintf("/api/v1/admin/roles/%s", roleBizKey), "", adminToken)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
@@ -144,9 +145,10 @@ func TestPresetRole_SuperadminCannotBeUpdated(t *testing.T) {
 	r := setupRBACTestRouter(t, db, data)
 	adminToken := loginAs(t, r, "superadmin", "adminPass")
 
-	// Try to update superadmin role (id=1)
+	// Try to update superadmin role
+	superadminBizKey := findRoleBizKeyByName(t, db, "superadmin")
 	body := `{"description":"hacked"}`
-	w := makeRequest(t, r, http.MethodPut, "/api/v1/admin/roles/1", body, adminToken)
+	w := makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%s", superadminBizKey), body, adminToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 
 	var resp map[string]interface{}
@@ -159,7 +161,8 @@ func TestPresetRole_SuperadminCannotBeDeleted(t *testing.T) {
 	r := setupRBACTestRouter(t, db, data)
 	adminToken := loginAs(t, r, "superadmin", "adminPass")
 
-	w := makeRequest(t, r, http.MethodDelete, "/api/v1/admin/roles/1", "", adminToken)
+	superadminBizKey := findRoleBizKeyByName(t, db, "superadmin")
+	w := makeRequest(t, r, http.MethodDelete, fmt.Sprintf("/api/v1/admin/roles/%s", superadminBizKey), "", adminToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
@@ -168,17 +171,17 @@ func TestPresetRole_PMNameLocked(t *testing.T) {
 	r := setupRBACTestRouter(t, db, data)
 	adminToken := loginAs(t, r, "superadmin", "adminPass")
 
-	// Find PM role id
-	roleID := findRoleIDByName(t, db, "pm")
+	// Find PM role bizKey
+	roleBizKey := findRoleBizKeyByName(t, db, "pm")
 
 	// Try to rename PM role
 	body := fmt.Sprintf(`{"name":"renamed-pm"}`)
-	w := makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%d", roleID), body, adminToken)
+	w := makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%s", roleBizKey), body, adminToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 
 	// But description change should succeed
 	body = fmt.Sprintf(`{"description":"new PM desc"}`)
-	w = makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%d", roleID), body, adminToken)
+	w = makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%s", roleBizKey), body, adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
@@ -187,10 +190,10 @@ func TestPresetRole_MemberNameLocked(t *testing.T) {
 	r := setupRBACTestRouter(t, db, data)
 	adminToken := loginAs(t, r, "superadmin", "adminPass")
 
-	roleID := findRoleIDByName(t, db, "member")
+	roleBizKey := findRoleBizKeyByName(t, db, "member")
 
 	body := fmt.Sprintf(`{"name":"renamed-member"}`)
-	w := makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%d", roleID), body, adminToken)
+	w := makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%s", roleBizKey), body, adminToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
@@ -309,7 +312,10 @@ func TestRoleEdit_ImmediateEffectOnNextRequest(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 	var createResp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &createResp))
-	customRoleID := uint(createResp["data"].(map[string]interface{})["id"].(float64))
+	customRoleBizKey := createResp["data"].(map[string]interface{})["bizKey"].(string)
+
+	// Look up the internal numeric ID for the DB update
+	customRoleID := findRoleIDByBizKey(t, db, customRoleBizKey)
 
 	// Update memberA's role in teamA to the new custom role
 	var member model.TeamMember
@@ -343,7 +349,8 @@ func TestDeleteRole_WithUsers_Rejected(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 	var createResp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &createResp))
-	customRoleID := uint(createResp["data"].(map[string]interface{})["id"].(float64))
+	customRoleBizKey := createResp["data"].(map[string]interface{})["bizKey"].(string)
+	customRoleID := findRoleIDByBizKey(t, db, customRoleBizKey)
 
 	// Assign custom role to memberA in teamA
 	var member model.TeamMember
@@ -353,7 +360,7 @@ func TestDeleteRole_WithUsers_Rejected(t *testing.T) {
 
 	// Try to delete the role — should be rejected because it's in use
 	w = makeRequest(t, r, http.MethodDelete,
-		fmt.Sprintf("/api/v1/admin/roles/%d", customRoleID), "", adminToken)
+	fmt.Sprintf("/api/v1/admin/roles/%s", customRoleBizKey), "", adminToken)
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 
 	var resp map[string]interface{}
@@ -372,11 +379,11 @@ func TestDeleteRole_WithoutUsers_Succeeds(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 	var createResp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &createResp))
-	roleID := uint(createResp["data"].(map[string]interface{})["id"].(float64))
+	roleBizKey := createResp["data"].(map[string]interface{})["bizKey"].(string)
 
 	// Delete should succeed
 	w = makeRequest(t, r, http.MethodDelete,
-		fmt.Sprintf("/api/v1/admin/roles/%d", roleID), "", adminToken)
+		fmt.Sprintf("/api/v1/admin/roles/%s", roleBizKey), "", adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
@@ -529,15 +536,14 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	require.NoError(t, db.Create(superAdmin).Error)
 
 	// Seed roles
-	pmRole := model.Role{Name: "superadmin", Description: "系统超级管理员", IsPreset: true}
-	require.NoError(t, db.Create(&pmRole).Error)
-	superadminRoleID := pmRole.ID
+	superadminRole := model.Role{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Name: "superadmin", Description: "系统超级管理员", IsPreset: true}
+	require.NoError(t, db.Create(&superadminRole).Error)
 
-	pmRole = model.Role{Name: "pm", Description: "Project Manager", IsPreset: true}
+	pmRole := model.Role{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Name: "pm", Description: "Project Manager", IsPreset: true}
 	require.NoError(t, db.Create(&pmRole).Error)
 	pmRoleID := pmRole.ID
 
-	memberRole := model.Role{Name: "member", Description: "Team Member", IsPreset: true}
+	memberRole := model.Role{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Name: "member", Description: "Team Member", IsPreset: true}
 	require.NoError(t, db.Create(&memberRole).Error)
 	memberRoleID := memberRole.ID
 
@@ -571,7 +577,7 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	}
 
 	// Superadmin has no permission codes (bypasses all checks)
-	_ = superadminRoleID
+	_ = superadminRole
 
 	// Seed teams (with BizKey so middleware can resolve bizKey to internal ID)
 	teamA := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team A", PmKey: int64(userA.ID), Code: "TAMA"}
@@ -695,5 +701,23 @@ func findRoleIDByName(t *testing.T, db *gorm.DB, name string) uint {
 	t.Helper()
 	var role model.Role
 	require.NoError(t, db.Where("name = ?", name).First(&role).Error)
+	return role.ID
+}
+
+// findRoleBizKeyByName looks up a role's BizKey as string by name from the database.
+func findRoleBizKeyByName(t *testing.T, db *gorm.DB, name string) string {
+	t.Helper()
+	var role model.Role
+	require.NoError(t, db.Where("name = ?", name).First(&role).Error)
+	return fmt.Sprintf("%d", role.BizKey)
+}
+
+// findRoleIDByBizKey looks up a role's numeric ID by its BizKey string.
+func findRoleIDByBizKey(t *testing.T, db *gorm.DB, bizKey string) uint {
+	t.Helper()
+	var role model.Role
+	bk, err := strconv.ParseInt(bizKey, 10, 64)
+	require.NoError(t, err)
+	require.NoError(t, db.Where("biz_key = ?", bk).First(&role).Error)
 	return role.ID
 }
