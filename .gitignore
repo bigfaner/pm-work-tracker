@@ -38,6 +38,7 @@ backend/web/dist/
 # .idea/
 # .vscode/
 docs/features/*/tasks/process/*
+docs/features/*/testing/scripts/package-lock.json
 frontend/node_modules/*
 tmp/*
 .claude/settings.local.json
