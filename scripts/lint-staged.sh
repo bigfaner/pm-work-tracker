@@ -40,4 +40,24 @@ else
   echo "No staged TS/TSX files."
 fi
 
+check_sqlite_keywords() {
+    local pattern='SUBSTR\(|CAST.*AS INTEGER|datetime\(.*now.*\)|pragma_table_info'
+    local files=$(git diff --cached --name-only --diff-filter=ACM -- 'backend/internal/repository/gorm/*.go' | grep -v '_test.go')
+    if [ -n "$files" ]; then
+        local matches
+        matches=$(grep -En "$pattern" $files | grep -v 'nosqlite') || true
+        if [ -n "$matches" ]; then
+            echo "ERROR: Hardcoded SQLite syntax found in repo layer:"
+            echo "$matches"
+            echo ""
+            echo "Use pkg/dbutil.Dialect instead. See docs/features/db-dialect-compat/."
+            return 1
+        fi
+    fi
+    return 0
+}
+
+echo "=== Checking SQLite keywords in repo layer ==="
+check_sqlite_keywords || { echo "FAIL: SQLite keyword check failed"; exit 1; }
+
 echo "=== lint-staged done ==="
