@@ -188,11 +188,11 @@ export interface CliResult {
   exitCode: number;
 }
 
-export function runCli(cmd: string, cwd?: string): CliResult {
+export function runCli(cmd: string, cwd?: string, timeout?: number): CliResult {
   try {
     const stdout = execSync(cmd, {
       encoding: 'utf-8',
-      timeout: DEFAULT_TIMEOUT,
+      timeout: timeout ?? DEFAULT_TIMEOUT,
       cwd: cwd ?? process.cwd(),
     });
     return { stdout, stderr: '', exitCode: 0 };

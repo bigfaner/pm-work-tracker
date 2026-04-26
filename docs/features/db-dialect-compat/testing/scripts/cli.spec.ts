@@ -1,125 +1,113 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { writeFileSync, unlinkSync, existsSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { runCli } from './helpers.js';
 
-// Path to backend dir (cwd is testing/scripts, backend is ../../../../../backend)
-const BACKEND_DIR = '../../../../../../backend';
+const __dirname = dirname(fileURLToPath(import.meta.url));
+// Path to project root (where scripts/lint-staged.sh lives)
+// scripts/ -> testing/ -> db-dialect-compat/ -> features/ -> docs/ -> pm-work-tracker/
+const PROJECT_ROOT = resolve(__dirname, '..', '..', '..', '..', '..');
+// Directory for temp test files (must match lint-staged.sh check_sqlite_keywords glob)
+const GORM_DIR = resolve(PROJECT_ROOT, 'backend', 'internal', 'repository', 'gorm');
+
+// Helper: create file, stage it, run lint-staged's check_sqlite_keywords, cleanup
+function testLintStagedKeyword(
+  tcId: string,
+  fileName: string,
+  content: string,
+  expectedPattern: RegExp,
+) {
+  const absFile = resolve(GORM_DIR, fileName);
+  const relFile = `backend/internal/repository/gorm/${fileName}`;
+
+  try {
+    writeFileSync(absFile, content);
+    runCli(`git add ${relFile}`, PROJECT_ROOT);
+    // Run only check_sqlite_keywords (extract function from lint-staged.sh) to avoid
+    // slow golangci-lint and pre-existing lint issues unrelated to this feature.
+    const result = runCli('bash -c \'eval "$(sed -n "/^check_sqlite_keywords/,/^}/p" scripts/lint-staged.sh)"; check_sqlite_keywords\'', PROJECT_ROOT, 15000);
+    assert.notEqual(result.exitCode, 0, `${tcId}: lint-staged should block`);
+    assert.match(
+      result.stdout + result.stderr,
+      expectedPattern,
+      `${tcId}: output mentions keyword or dialect: ${result.stdout} ${result.stderr}`,
+    );
+  } finally {
+    runCli(`git reset HEAD -- ${relFile}`, PROJECT_ROOT);
+    if (existsSync(absFile)) unlinkSync(absFile);
+  }
+}
 
 describe('CLI E2E Tests', () => {
   // ── Lint-staged keyword detection tests ──────────────────────────
-  // These tests validate that the lint-staged hook blocks hardcoded SQLite keywords
+  // These tests validate that lint-staged.sh blocks hardcoded SQLite keywords
   // in the repository layer. They create a temporary file with the offending keyword,
-  // stage it, and attempt a commit (which should be blocked).
+  // stage it, and run lint-staged.sh directly.
 
   // Traceability: TC-006 → Story 3 / AC-1
   test('TC-006: Git commit blocked when repo layer contains hardcoded SUBSTR', () => {
-    const testFile = `${BACKEND_DIR}/internal/repository/test_substr_lint.go`;
-    // Write a file with hardcoded SUBSTR
-    runCli(`cat > "${testFile}" << 'EOF'
-package repository
-
-func testFunc() {
-    _ = "SELECT SUBSTR(code, 5) FROM items"
-}
-EOF`, BACKEND_DIR);
-    // Stage the file
-    runCli('git add internal/repository/test_substr_lint.go', BACKEND_DIR);
-    // Attempt commit (should be blocked by lint-staged)
-    const result = runCli('git commit -m "test: hardcoded SUBSTR"', BACKEND_DIR);
-    // Cleanup: unstage and remove test file
-    runCli('git reset HEAD internal/repository/test_substr_lint.go', BACKEND_DIR);
-    runCli(`rm -f "${testFile}"`, BACKEND_DIR);
-
-    assert.notEqual(result.exitCode, 0, 'Commit should be blocked');
-    assert.match(result.stderr, /SUBSTR|dialect/i, `Error message mentions SUBSTR or dialect: ${result.stderr}`);
+    testLintStagedKeyword(
+      'TC-006',
+      'lint_test_substr.go',
+      'package gorm\n\nfunc lintTestSubstr() { _ = "SELECT SUBSTR(code, 5) FROM items" }\n',
+      /SUBSTR|dialect/i,
+    );
   });
 
   // Traceability: TC-007 → Story 3 / AC-1
   test('TC-007: Git commit blocked when repo layer contains hardcoded CAST', () => {
-    const testFile = `${BACKEND_DIR}/internal/repository/test_cast_lint.go`;
-    runCli(`cat > "${testFile}" << 'EOF'
-package repository
-
-func testFunc() {
-    _ = "SELECT CAST(x AS INTEGER) FROM items"
-}
-EOF`, BACKEND_DIR);
-    runCli('git add internal/repository/test_cast_lint.go', BACKEND_DIR);
-    const result = runCli('git commit -m "test: hardcoded CAST"', BACKEND_DIR);
-    runCli('git reset HEAD internal/repository/test_cast_lint.go', BACKEND_DIR);
-    runCli(`rm -f "${testFile}"`, BACKEND_DIR);
-
-    assert.notEqual(result.exitCode, 0, 'Commit should be blocked');
-    assert.match(result.stderr, /CAST|dialect/i, `Error message mentions CAST or dialect: ${result.stderr}`);
+    testLintStagedKeyword(
+      'TC-007',
+      'lint_test_cast.go',
+      'package gorm\n\nfunc lintTestCast() { _ = "SELECT CAST(x AS INTEGER) FROM items" }\n',
+      /CAST|dialect/i,
+    );
   });
 
   // Traceability: TC-008 → Story 3 / AC-1
   test('TC-008: Git commit blocked when repo layer contains hardcoded datetime', () => {
-    const testFile = `${BACKEND_DIR}/internal/repository/test_datetime_lint.go`;
-    runCli(`cat > "${testFile}" << 'EOF'
-package repository
-
-func testFunc() {
-    _ = "datetime('now')"
-}
-EOF`, BACKEND_DIR);
-    runCli('git add internal/repository/test_datetime_lint.go', BACKEND_DIR);
-    const result = runCli('git commit -m "test: hardcoded datetime"', BACKEND_DIR);
-    runCli('git reset HEAD internal/repository/test_datetime_lint.go', BACKEND_DIR);
-    runCli(`rm -f "${testFile}"`, BACKEND_DIR);
-
-    assert.notEqual(result.exitCode, 0, 'Commit should be blocked');
-    assert.match(result.stderr, /datetime|dialect/i, `Error message mentions datetime or dialect: ${result.stderr}`);
+    testLintStagedKeyword(
+      'TC-008',
+      'lint_test_datetime.go',
+      'package gorm\n\nfunc lintTestDatetime() { _ = "datetime(\'now\')" }\n',
+      /datetime|dialect/i,
+    );
   });
 
   // Traceability: TC-009 → Story 3 / AC-1
   test('TC-009: Git commit blocked when repo layer contains hardcoded pragma_', () => {
-    const testFile = `${BACKEND_DIR}/internal/repository/test_pragma_lint.go`;
-    runCli(`cat > "${testFile}" << 'EOF'
-package repository
-
-func testFunc() {
-    _ = "pragma_table_info('table_name')"
-}
-EOF`, BACKEND_DIR);
-    runCli('git add internal/repository/test_pragma_lint.go', BACKEND_DIR);
-    const result = runCli('git commit -m "test: hardcoded pragma_"', BACKEND_DIR);
-    runCli('git reset HEAD internal/repository/test_pragma_lint.go', BACKEND_DIR);
-    runCli(`rm -f "${testFile}"`, BACKEND_DIR);
-
-    assert.notEqual(result.exitCode, 0, 'Commit should be blocked');
-    assert.match(result.stderr, /pragma_|dialect/i, `Error message mentions pragma_ or dialect: ${result.stderr}`);
+    testLintStagedKeyword(
+      'TC-009',
+      'lint_test_pragma.go',
+      'package gorm\n\nfunc lintTestPragma() { _ = "pragma_table_info(\'table_name\')" }\n',
+      /pragma_|dialect/i,
+    );
   });
 
   // Traceability: TC-010 → Story 3 / AC-2
   test('TC-010: Git commit passes when repo layer uses dialect package', () => {
-    const testFile = `${BACKEND_DIR}/internal/repository/test_dialect_clean.go`;
-    // This file uses dialect package methods, no hardcoded SQLite keywords
-    runCli(`cat > "${testFile}" << 'EOF'
-package repository
+    const fileName = 'lint_test_clean.go';
+    const absFile = resolve(GORM_DIR, fileName);
+    const relFile = `backend/internal/repository/gorm/${fileName}`;
+    // This file has no hardcoded SQLite keywords
+    const content = 'package gorm\n\nfunc lintTestClean() { _ = "SELECT * FROM items WHERE status = ?" }\n';
 
-import "backend/internal/pkg/dbutil"
-
-func testFunc() {
-    _ = dbutil.ColCode
-    _ = "SELECT * FROM items WHERE status = ?"
-}
-EOF`, BACKEND_DIR);
-    runCli('git add internal/repository/test_dialect_clean.go', BACKEND_DIR);
-    const result = runCli('git commit -m "test: clean dialect usage" --no-verify', BACKEND_DIR);
-    // Cleanup regardless of result
-    runCli('git reset --soft HEAD~1', BACKEND_DIR);
-    runCli('git reset HEAD internal/repository/test_dialect_clean.go', BACKEND_DIR);
-    runCli(`rm -f "${testFile}"`, BACKEND_DIR);
-
-    // With --no-verify the commit should succeed; the real test is that
-    // WITHOUT --no-verify, a clean file would also pass lint-staged.
-    // We use --no-verify here because we don't want to affect the real commit history.
-    assert.equal(result.exitCode, 0, `Commit with clean dialect code should succeed: ${result.stderr}`);
+    try {
+      writeFileSync(absFile, content);
+      runCli(`git add ${relFile}`, PROJECT_ROOT);
+      // Run only check_sqlite_keywords to avoid pre-existing golangci-lint issues
+      const result = runCli('bash -c \'eval "$(sed -n "/^check_sqlite_keywords/,/^}/p" scripts/lint-staged.sh)"; check_sqlite_keywords\'', PROJECT_ROOT, 15000);
+      assert.equal(result.exitCode, 0, `check_sqlite_keywords should pass for clean code: ${result.stdout} ${result.stderr}`);
+    } finally {
+      runCli(`git reset HEAD -- ${relFile}`, PROJECT_ROOT);
+      if (existsSync(absFile)) unlinkSync(absFile);
+    }
   });
 
   // Traceability: TC-011 → Story 2 / AC-1, Story 4 / AC-1
-  test('TC-011: Fresh MySQL startup initializes RBAC with preset roles', () => {
+  test('TC-011: Fresh MySQL startup initializes RBAC with preset roles', { skip: !process.env.MYSQL_HOST }, () => {
     // This test verifies that the application starts successfully against MySQL
     // and initializes RBAC correctly.
     //
@@ -130,6 +118,8 @@ EOF`, BACKEND_DIR);
     // The test starts the app, queries the roles table, and verifies preset data.
     // Requires environment variables:
     //   MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE
+    //
+    // Set MYSQL_HOST to enable this test (e.g. MYSQL_HOST=127.0.0.1)
 
     const mysqlHost = process.env.MYSQL_HOST ?? '127.0.0.1';
     const mysqlPort = process.env.MYSQL_PORT ?? '3306';
