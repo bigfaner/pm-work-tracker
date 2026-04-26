@@ -62,13 +62,13 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 }
 
 // appendProgress sends a progress append request via the router.
-func appendProgress(t *testing.T, r *gin.Engine, token string, teamID, subID uint, completion float64) *httptest.ResponseRecorder {
+func appendProgress(t *testing.T, r *gin.Engine, token string, teamBizKey int64, subID uint, completion float64) *httptest.ResponseRecorder {
 	t.Helper()
 
 	body := fmt.Sprintf(`{"completion":%.0f,"achievement":"some progress"}`, completion)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/sub-items/%d/progress", teamID, subID),
+		fmt.Sprintf("/api/v1/teams/%d/sub-items/%d/progress", teamBizKey, subID),
 		strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -100,7 +100,7 @@ func TestProgress_AppendToSubItem1_UpdatesMainItemCompletion(t *testing.T) {
 	mainID, sub1ID, _ := seedProgressData(t, db, data.teamAID, data.userAID)
 
 	// Append progress (completion=60) to SubItem1
-	w := appendProgress(t, r, token, data.teamAID, sub1ID, 60)
+	w := appendProgress(t, r, token, data.teamABizKey, sub1ID, 60)
 	assert.Equal(t, http.StatusCreated, w.Code)
 
 	// Verify SubItem1.Completion = 60
@@ -120,11 +120,11 @@ func TestProgress_AppendToSubItem2_UpdatesMainItemCompletion(t *testing.T) {
 	mainID, sub1ID, sub2ID := seedProgressData(t, db, data.teamAID, data.userAID)
 
 	// First append to SubItem1 (completion=60)
-	w := appendProgress(t, r, token, data.teamAID, sub1ID, 60)
+	w := appendProgress(t, r, token, data.teamABizKey, sub1ID, 60)
 	require.Equal(t, http.StatusCreated, w.Code)
 
 	// Then append to SubItem2 (completion=80)
-	w = appendProgress(t, r, token, data.teamAID, sub2ID, 80)
+	w = appendProgress(t, r, token, data.teamABizKey, sub2ID, 80)
 	require.Equal(t, http.StatusCreated, w.Code)
 
 	// Verify MainItem.Completion = 70 (avg of 60 and 80)
@@ -141,7 +141,7 @@ func TestProgress_RegressionBlocked_Returns422(t *testing.T) {
 	mainID, sub1ID, _ := seedProgressData(t, db, data.teamAID, data.userAID)
 
 	// First append completion=60 to SubItem1
-	w := appendProgress(t, r, token, data.teamAID, sub1ID, 60)
+	w := appendProgress(t, r, token, data.teamABizKey, sub1ID, 60)
 	require.Equal(t, http.StatusCreated, w.Code)
 
 	// Capture MainItem completion after first append
@@ -149,7 +149,7 @@ func TestProgress_RegressionBlocked_Returns422(t *testing.T) {
 	completionBefore := mainAfterFirst.Completion
 
 	// Try to append completion=50 (regression from 60) — should fail
-	w = appendProgress(t, r, token, data.teamAID, sub1ID, 50)
+	w = appendProgress(t, r, token, data.teamABizKey, sub1ID, 50)
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 
 	var resp map[string]interface{}
@@ -200,7 +200,7 @@ func TestItemPool_Assign_Success(t *testing.T) {
 	body := fmt.Sprintf(`{"mainItemKey":"%d","assigneeKey":"%d","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, mainItemID, data.userAID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamAID, poolID),
+		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamABizKey, poolID),
 		strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -234,7 +234,7 @@ func TestItemPool_Assign_Rollback_OnInvalidMainItem(t *testing.T) {
 	body := fmt.Sprintf(`{"mainItemKey":"%d","assigneeKey":"%d","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, invalidMainID, data.userAID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamAID, poolID),
+		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamABizKey, poolID),
 		strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -311,7 +311,7 @@ func TestWeeklyExport_ReturnsMarkdownWithMainItemTitle(t *testing.T) {
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
 		fmt.Sprintf("/api/v1/teams/%d/reports/weekly/export?weekStart=%s",
-			data.teamAID, weekStart.Format("2006-01-02")), nil)
+				data.teamABizKey, weekStart.Format("2006-01-02")), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 

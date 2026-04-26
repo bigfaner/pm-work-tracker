@@ -37,6 +37,8 @@ type seedData struct {
 	superAdminID uint
 	teamAID      uint
 	teamBID      uint
+	teamABizKey  int64
+	teamBBizKey  int64
 }
 
 // setupTestDB creates an in-memory SQLite DB, runs migrations, and seeds test data.
@@ -111,9 +113,9 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		require.NoError(t, db.Create(&model.RolePermission{RoleID: memberRole.ID, PermissionCode: code}).Error)
 	}
 
-	// Seed teams
-	teamA := &model.Team{TeamName: "Team A", PmKey: int64(userA.ID), Code: "TAMA"}
-	teamB := &model.Team{TeamName: "Team B", PmKey: int64(userB.ID), Code: "TAMB"}
+	// Seed teams (with BizKey so middleware can resolve bizKey to internal ID)
+	teamA := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team A", PmKey: int64(userA.ID), Code: "TAMA"}
+	teamB := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team B", PmKey: int64(userB.ID), Code: "TAMB"}
 	require.NoError(t, db.Create(teamA).Error)
 	require.NoError(t, db.Create(teamB).Error)
 
@@ -136,6 +138,8 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		superAdminID: superAdmin.ID,
 		teamAID:      teamA.ID,
 		teamBID:      teamB.ID,
+		teamABizKey:  teamA.BizKey,
+		teamBBizKey:  teamB.BizKey,
 	}
 }
 
@@ -250,7 +254,7 @@ func TestAuthFlow_TokenOnProtectedRoute_Returns200(t *testing.T) {
 	// Use the token on a protected route: GET /api/v1/teams/:teamAId/main-items
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), nil)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamABizKey), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -299,7 +303,7 @@ func TestTeamIsolation_UserACannotAccessTeamB_Returns403(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamBID), nil)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamBBizKey), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -317,7 +321,7 @@ func TestTeamIsolation_UserACanAccessTeamA_Returns200(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), nil)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamABizKey), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -331,7 +335,7 @@ func TestTeamIsolation_UserBCannotAccessTeamA_Returns403(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), nil)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamABizKey), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -351,7 +355,7 @@ func TestSuperAdmin_CanAccessTeamA(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamAID), nil)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamABizKey), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -365,7 +369,7 @@ func TestSuperAdmin_CanAccessTeamB(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamBID), nil)
+		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamBBizKey), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
