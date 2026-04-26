@@ -381,7 +381,7 @@ export interface TableRow {
   completion: number
   expectedEndDate: string | null
   actualEndDate: string | null
-  mainItemId?: number | null
+  mainItemId?: string | null
 }
 
 // Reports

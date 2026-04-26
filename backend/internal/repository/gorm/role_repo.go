@@ -29,7 +29,7 @@ func (r *roleRepo) List(ctx context.Context) ([]model.Role, error) {
 
 func (r *roleRepo) FindByID(ctx context.Context, id uint) (*model.Role, error) {
 	var role model.Role
-	err := r.db.WithContext(ctx).Where("id = ? AND deleted_flag = 0", id).First(&role).Error
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).Where("id = ?", id).First(&role).Error
 	if err != nil {
 		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
 			return nil, errors.ErrNotFound
@@ -41,7 +41,7 @@ func (r *roleRepo) FindByID(ctx context.Context, id uint) (*model.Role, error) {
 
 func (r *roleRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.Role, error) {
 	var role model.Role
-	err := r.db.WithContext(ctx).Where("biz_key = ? AND deleted_flag = 0", bizKey).First(&role).Error
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).Where("biz_key = ?", bizKey).First(&role).Error
 	if err != nil {
 		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
 			return nil, errors.ErrNotFound

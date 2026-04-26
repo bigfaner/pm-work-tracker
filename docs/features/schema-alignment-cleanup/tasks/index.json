@@ -242,7 +242,7 @@
       "dependencies": [
         "3.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "4.3-scope-frontend-fixes.md",
       "record": "records/4.3-scope-frontend-fixes.md",
       "breaking": true

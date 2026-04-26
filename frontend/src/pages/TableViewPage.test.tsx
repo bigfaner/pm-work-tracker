@@ -65,7 +65,7 @@ const seedRows: TableRow[] = [
     completion: 100,
     expectedEndDate: '2026-04-10',
     actualEndDate: '2026-04-09',
-    mainItemId: 1,
+    mainItemId: '1',
   },
   {
     bizKey: '3',
@@ -79,7 +79,7 @@ const seedRows: TableRow[] = [
     completion: 80,
     expectedEndDate: '2026-04-18',
     actualEndDate: null,
-    mainItemId: 1,
+    mainItemId: '1',
   },
   {
     bizKey: '4',
@@ -107,7 +107,7 @@ const seedRows: TableRow[] = [
     completion: 100,
     expectedEndDate: '2026-04-05',
     actualEndDate: '2026-04-04',
-    mainItemId: 4,
+    mainItemId: '4',
   },
 ]
 

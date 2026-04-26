@@ -34,7 +34,7 @@ func (r *teamRepo) Create(ctx context.Context, team *model.Team) error {
 
 func (r *teamRepo) FindByID(ctx context.Context, teamID uint) (*model.Team, error) {
 	var team model.Team
-	err := r.db.WithContext(ctx).Where("id = ? AND deleted_flag = 0", teamID).First(&team).Error
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).Where("id = ?", teamID).First(&team).Error
 	if err != nil {
 		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
 			return nil, errors.ErrNotFound
@@ -222,7 +222,7 @@ func (r *teamRepo) ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error
 			"(SELECT COUNT(*) FROM pmw_main_items WHERE pmw_main_items.team_key = pmw_teams.id AND pmw_main_items.deleted_flag = 0) as main_item_count, "+
 			"pmw_teams.create_time as created_at").
 		Joins("LEFT JOIN pmw_users ON pmw_users.id = pmw_teams.pm_key").
-		Where("pmw_teams.deleted_flag = 0").
+		Scopes(NotDeletedTable("pmw_teams")).
 		Scan(&rows).Error
 	if err != nil {
 		return nil, err

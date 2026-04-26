@@ -34,14 +34,9 @@ import {
 } from '@/components/ui/table'
 import PaginationBar from '@/components/shared/PaginationBar'
 import { useToast } from '@/components/ui/toast'
-import { formatDate as _formatDate } from '@/lib/format'
+import { formatDateOnly } from '@/lib/format'
 
 const PAGE_SIZE = 10
-
-// TeamManagementPage receives ISO datetime strings; truncate to date before formatting
-function formatDate(dateStr?: string): string {
-  return dateStr ? _formatDate(dateStr.slice(0, 10)) : '-'
-}
 
 export default function TeamManagementPage() {
   const qc = useQueryClient()
@@ -251,7 +246,7 @@ export default function TeamManagementPage() {
                   </TableCell>
                   <TableCell>
                     <span className="text-[13px] text-secondary">
-                      {formatDate(team.createdAt)}
+                      {formatDateOnly(team.createdAt)}
                     </span>
                   </TableCell>
                   <TableCell>

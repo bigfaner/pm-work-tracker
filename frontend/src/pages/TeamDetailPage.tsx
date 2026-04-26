@@ -47,12 +47,7 @@ import { Badge } from '@/components/ui/badge'
 import UserAvatar from '@/components/shared/UserAvatar'
 import { useToast } from '@/components/ui/toast'
 import { useAuthStore } from '@/store/auth'
-import { formatDate as _formatDate } from '@/lib/format'
-
-// TeamDetailPage receives ISO datetime strings; truncate to date before formatting
-function formatDate(dateStr: string): string {
-  return _formatDate(dateStr.slice(0, 10))
-}
+import { formatDateOnly } from '@/lib/format'
 
 // --- Main Component ---
 
@@ -342,7 +337,7 @@ export default function TeamDetailPage() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm text-primary">{formatDate(member.joinedAt)}</span>
+                  <span className="text-sm text-primary">{formatDateOnly(member.joinedAt)}</span>
                 </TableCell>
                 <TableCell>
                   {isPm(member) ? (
