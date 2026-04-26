@@ -1,0 +1,116 @@
+{
+  "feature": "db-dialect-compat",
+  "prd": "prd/prd-spec.md",
+  "design": "design/tech-design.md",
+  "created": "2026-04-26",
+  "status": "planning",
+  "statusEnum": ["pending", "in_progress", "completed", "blocked", "skipped"],
+  "priorityEnum": ["P0", "P1", "P2"],
+  "e2eRound": 0,
+  "tasks": {
+    "1.1-dialect-module": {
+      "id": "1.1",
+      "title": "Create Dialect Module",
+      "priority": "P0",
+      "estimatedTime": "2-3h",
+      "dependencies": [],
+      "status": "pending",
+      "breaking": false,
+      "file": "1.1-dialect-module.md",
+      "record": "records/1.1-dialect-module.md"
+    },
+    "1-summary": {
+      "id": "1.summary",
+      "title": "Phase 1 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": ["1.x"],
+      "status": "pending",
+      "file": "1-summary.md",
+      "record": "records/1-summary.md"
+    },
+    "1-gate": {
+      "id": "1.gate",
+      "title": "Phase 1 Exit Gate",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": ["1.summary"],
+      "status": "pending",
+      "breaking": true,
+      "file": "1-gate.md",
+      "record": "records/1-gate.md"
+    },
+    "2.1-apply-dialect-to-repos": {
+      "id": "2.1",
+      "title": "Apply Dialect to Repos (P1/P2)",
+      "priority": "P0",
+      "estimatedTime": "1-2h",
+      "dependencies": ["1.gate"],
+      "status": "pending",
+      "breaking": true,
+      "file": "2.1-apply-dialect-to-repos.md",
+      "record": "records/2.1-apply-dialect-to-repos.md"
+    },
+    "2.2-fix-migration-layer": {
+      "id": "2.2",
+      "title": "Fix Migration Layer (P3/P4)",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": ["1.gate"],
+      "status": "pending",
+      "file": "2.2-fix-migration-layer.md",
+      "record": "records/2.2-fix-migration-layer.md"
+    },
+    "2.3-add-lint-check": {
+      "id": "2.3",
+      "title": "Add SQLite Keyword Lint Check",
+      "priority": "P1",
+      "estimatedTime": "30min",
+      "dependencies": ["1.gate"],
+      "status": "pending",
+      "file": "2.3-add-lint-check.md",
+      "record": "records/2.3-add-lint-check.md"
+    },
+    "2-summary": {
+      "id": "2.summary",
+      "title": "Phase 2 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": ["2.x"],
+      "status": "pending",
+      "file": "2-summary.md",
+      "record": "records/2-summary.md"
+    },
+    "2-gate": {
+      "id": "2.gate",
+      "title": "Phase 2 Exit Gate",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": ["2.summary"],
+      "status": "pending",
+      "breaking": true,
+      "file": "2-gate.md",
+      "record": "records/2-gate.md"
+    },
+    "gen-test-cases": {
+      "id": "T-test-1",
+      "title": "Generate e2e Test Cases",
+      "priority": "P1",
+      "estimatedTime": "1-2h",
+      "dependencies": ["2.gate"],
+      "status": "pending",
+      "file": "gen-test-cases.md",
+      "record": "records/gen-test-cases.md"
+    },
+    "gen-test-scripts": {
+      "id": "T-test-2",
+      "title": "Generate e2e Test Scripts",
+      "priority": "P1",
+      "estimatedTime": "1-2h",
+      "dependencies": ["T-test-1"],
+      "status": "pending",
+      "file": "gen-test-scripts.md",
+      "record": "records/gen-test-scripts.md"
+    }
+  }
+}
