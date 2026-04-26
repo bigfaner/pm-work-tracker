@@ -98,7 +98,7 @@
       "dependencies": [
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.2-fix-frontend-dead-code.md",
       "record": "records/2.2-fix-frontend-dead-code.md"
     },
