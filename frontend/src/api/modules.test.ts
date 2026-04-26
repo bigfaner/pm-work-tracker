@@ -84,10 +84,10 @@ describe('API modules', () => {
       expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/members', { username: 'u', roleKey: 'member' })
     })
 
-    it('removeMemberApi should DELETE /teams/:bizKey/members/:userId', async () => {
+    it('removeMemberApi should DELETE /teams/:bizKey/members/:userBizKey', async () => {
       mockClient.delete.mockResolvedValue(undefined)
-      await teamsApi.removeMemberApi('team-bk', 10)
-      expect(mockClient.delete).toHaveBeenCalledWith('/teams/team-bk/members/10')
+      await teamsApi.removeMemberApi('team-bk', 'user-10')
+      expect(mockClient.delete).toHaveBeenCalledWith('/teams/team-bk/members/user-10')
     })
 
     it('transferPmApi should PUT /teams/:bizKey/pm', async () => {

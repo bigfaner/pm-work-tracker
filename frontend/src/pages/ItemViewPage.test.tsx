@@ -41,19 +41,19 @@ function renderPage() {
 const seedMainItems = [
   {
     bizKey: '1', teamKey: '1', code: 'MI-0001', title: 'Alpha Task', priority: 'P1',
-    proposerKey: '1', assigneeKey: '1', planStartDate: '2026-04-01', expectedEndDate: '2026-04-15',
+    proposerKey: 'U001', assigneeKey: 'U001', planStartDate: '2026-04-01', expectedEndDate: '2026-04-15',
     actualEndDate: null, itemStatus: 'progressing', completion: 65,
     createTime: '2026-04-01T00:00:00Z', dbUpdateTime: '2026-04-01T00:00:00Z',
     subItems: [
       {
         bizKey: '11', teamKey: '1', mainItemKey: '1', code: 'MI-0001-01', title: 'Sub Alpha 1', itemDesc: '',
-        priority: 'P1', assigneeKey: '2', planStartDate: '2026-04-01', expectedEndDate: '2026-04-10',
+        priority: 'P1', assigneeKey: 'U002', planStartDate: '2026-04-01', expectedEndDate: '2026-04-10',
         actualEndDate: '2026-04-09', itemStatus: 'completed', completion: 100,
         weight: 1, createTime: '2026-04-01T00:00:00Z', dbUpdateTime: '2026-04-09T00:00:00Z',
       },
       {
         bizKey: '12', teamKey: '1', mainItemKey: '1', code: 'MI-0001-02', title: 'Sub Alpha 2', itemDesc: '',
-        priority: 'P2', assigneeKey: '3', planStartDate: '2026-04-08', expectedEndDate: '2026-04-18',
+        priority: 'P2', assigneeKey: 'U003', planStartDate: '2026-04-08', expectedEndDate: '2026-04-18',
         actualEndDate: null, itemStatus: 'progressing', completion: 80,
         weight: 1, createTime: '2026-04-01T00:00:00Z', dbUpdateTime: '2026-04-08T00:00:00Z',
       },
@@ -61,14 +61,14 @@ const seedMainItems = [
   },
   {
     bizKey: '2', teamKey: '1', code: 'MI-0002', title: 'Beta Task', priority: 'P2',
-    proposerKey: '1', assigneeKey: '2', planStartDate: '2026-04-15', expectedEndDate: '2026-04-25',
+    proposerKey: 'U001', assigneeKey: 'U002', planStartDate: '2026-04-15', expectedEndDate: '2026-04-25',
     actualEndDate: null, itemStatus: 'progressing', completion: 40,
     createTime: '2026-04-15T00:00:00Z', dbUpdateTime: '2026-04-15T00:00:00Z',
     subItems: [],
   },
   {
     bizKey: '3', teamKey: '1', code: 'MI-0003', title: 'Gamma Task', priority: 'P3',
-    proposerKey: '1', assigneeKey: '3', planStartDate: '2026-04-05', expectedEndDate: '2026-04-12',
+    proposerKey: 'U001', assigneeKey: 'U003', planStartDate: '2026-04-05', expectedEndDate: '2026-04-12',
     actualEndDate: '2026-04-12', itemStatus: 'completed', completion: 100,
     createTime: '2026-04-05T00:00:00Z', dbUpdateTime: '2026-04-12T00:00:00Z',
     subItems: [],
@@ -76,9 +76,9 @@ const seedMainItems = [
 ]
 
 const seedMembers = [
-  { id: 1, bizKey: '1', teamId: 1, userId: 1, displayName: 'Test User', username: 'testuser', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
-  { id: 2, bizKey: '2', teamId: 1, userId: 2, displayName: 'Alice', username: 'alice', role: 'member', roleId: 2, roleName: 'member', joinedAt: '2024-01-01' },
-  { id: 3, bizKey: '3', teamId: 1, userId: 3, displayName: 'Bob', username: 'bob', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2024-01-01' },
+  { id: 1, bizKey: '1', teamKey: '1', userBizKey: 'U001', displayName: 'Test User', username: 'testuser', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
+  { id: 2, bizKey: '2', teamKey: '1', userBizKey: 'U002', displayName: 'Alice', username: 'alice', role: 'member', roleId: 2, roleName: 'member', joinedAt: '2024-01-01' },
+  { id: 3, bizKey: '3', teamKey: '1', userBizKey: 'U003', displayName: 'Bob', username: 'bob', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2024-01-01' },
 ]
 
 function setupHandlers() {
@@ -134,7 +134,7 @@ function setupHandlers() {
       return HttpResponse.json({
         code: 0,
         data: {
-          bizKey: '100', teamKey: '1', code: 'MI-0100', priority: 'P2', proposerKey: '1',
+          bizKey: '100', teamKey: '1', code: 'MI-0100', priority: 'P2', proposerKey: 'U001',
           assigneeKey: null, planStartDate: null, expectedEndDate: null, actualEndDate: null,
           itemStatus: 'pending', completion: 0,
           createTime: new Date().toISOString(), dbUpdateTime: new Date().toISOString(),
@@ -450,7 +450,7 @@ describe('ItemViewPage', () => {
     const overdueItems = [
       {
         bizKey: '10', teamKey: '1', code: 'MI-0010', title: 'Overdue Task', priority: 'P1',
-        proposerKey: '1', assigneeKey: '1', planStartDate: '2020-01-01', expectedEndDate: '2020-02-01',
+        proposerKey: 'U001', assigneeKey: 'U001', planStartDate: '2020-01-01', expectedEndDate: '2020-02-01',
         actualEndDate: null, itemStatus: 'progressing', completion: 30,
         createTime: '2020-01-01T00:00:00Z', dbUpdateTime: '2020-01-01T00:00:00Z',
         subItems: [],
@@ -473,7 +473,7 @@ describe('ItemViewPage', () => {
     const completedItems = [
       {
         bizKey: '11', teamKey: '1', code: 'MI-0011', title: 'Completed Task', priority: 'P1',
-        proposerKey: '1', assigneeKey: '1', planStartDate: '2020-01-01', expectedEndDate: '2020-02-01',
+        proposerKey: 'U001', assigneeKey: 'U001', planStartDate: '2020-01-01', expectedEndDate: '2020-02-01',
         actualEndDate: '2020-02-01', itemStatus: 'completed', completion: 100,
         createTime: '2020-01-01T00:00:00Z', dbUpdateTime: '2020-02-01T00:00:00Z',
         subItems: [],

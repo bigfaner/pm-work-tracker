@@ -51,16 +51,16 @@ export function inviteMemberApi(bizKey: string, req: InviteMemberReq): Promise<v
   return client.post<never, void>(`/teams/${bizKey}/members`, req)
 }
 
-export function removeMemberApi(bizKey: string, userId: number): Promise<void> {
-  return client.delete<never, void>(`/teams/${bizKey}/members/${userId}`)
+export function removeMemberApi(bizKey: string, userBizKey: string): Promise<void> {
+  return client.delete<never, void>(`/teams/${bizKey}/members/${userBizKey}`)
 }
 
 export function transferPmApi(bizKey: string, req: TransferPMReq): Promise<void> {
   return client.put<never, void>(`/teams/${bizKey}/pm`, req)
 }
 
-export function changeMemberRoleApi(bizKey: string, memberId: number, req: { roleKey: string }): Promise<void> {
-  return client.put<never, void>(`/teams/${bizKey}/members/${memberId}/role`, req)
+export function changeMemberRoleApi(bizKey: string, userBizKey: string, req: { roleKey: string }): Promise<void> {
+  return client.put<never, void>(`/teams/${bizKey}/members/${userBizKey}/role`, req)
 }
 
 export interface UserSearchResult {

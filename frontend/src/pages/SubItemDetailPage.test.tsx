@@ -38,14 +38,14 @@ function renderPage(mainItemId = '1', subItemId = '12') {
 // --- Seed data ---
 
 const seedMembers = [
-  { id: 1, bizKey: '1', teamId: 1, userId: 1, displayName: 'Test User', username: 'testuser', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
-  { id: 2, bizKey: '2', teamId: 1, userId: 2, displayName: 'Alice', username: 'alice', role: 'member', roleId: 2, roleName: 'member', joinedAt: '2024-01-01' },
-  { id: 3, bizKey: '3', teamId: 1, userId: 3, displayName: 'Bob', username: 'bob', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2024-01-01' },
+  { id: 1, bizKey: '1', teamKey: '1', userBizKey: 'U001', displayName: 'Test User', username: 'testuser', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
+  { id: 2, bizKey: '2', teamKey: '1', userBizKey: 'U002', displayName: 'Alice', username: 'alice', role: 'member', roleId: 2, roleName: 'member', joinedAt: '2024-01-01' },
+  { id: 3, bizKey: '3', teamKey: '1', userBizKey: 'U003', displayName: 'Bob', username: 'bob', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2024-01-01' },
 ]
 
 const seedMainItem = {
   bizKey: '1', teamKey: '1', code: 'MI-0001', title: 'Alpha Task', priority: 'P1',
-  proposerKey: '1', assigneeKey: '1', planStartDate: '2026-03-20', expectedEndDate: '2026-04-15',
+  proposerKey: 'U001', assigneeKey: 'U001', planStartDate: '2026-03-20', expectedEndDate: '2026-04-15',
   actualEndDate: null, itemStatus: 'progressing', completion: 65,
   createTime: '2026-03-20T00:00:00Z', dbUpdateTime: '2026-04-01T00:00:00Z',
   subItems: [],
@@ -53,7 +53,7 @@ const seedMainItem = {
 
 const seedSubItem = {
   bizKey: '12', teamKey: '1', mainItemKey: '1', code: 'SI-001-12', title: 'Sub Alpha 2', itemDesc: 'JWT Token implementation',
-  priority: 'P2', assigneeKey: '3', planStartDate: '2026-04-08', expectedEndDate: '2026-04-18',
+  priority: 'P2', assigneeKey: 'U003', planStartDate: '2026-04-08', expectedEndDate: '2026-04-18',
   actualEndDate: null, itemStatus: 'progressing', completion: 80,
   weight: 1,
   createTime: '2026-04-01T00:00:00Z', dbUpdateTime: '2026-04-08T00:00:00Z',
@@ -61,20 +61,20 @@ const seedSubItem = {
 
 const seedProgressRecords = [
   {
-    subItemKey: '12', teamKey: '1', authorKey: '3', completion: 10,
+    subItemKey: '12', teamKey: '1', authorKey: 'U003', completion: 10,
     achievement: '完成 JWT Token 签发逻辑的基础代码框架搭建',
     blocker: '', lesson: '', isPMCorrect: false,
     createTime: '2026-04-01T10:00:00Z',
   },
   {
-    subItemKey: '12', teamKey: '1', authorKey: '3', completion: 40,
+    subItemKey: '12', teamKey: '1', authorKey: 'U003', completion: 40,
     achievement: 'Token 刷新机制实现，AccessToken + RefreshToken 双 Token 模式',
     blocker: 'Redis 集群偶发连接超时，影响 Token 黑名单方案',
     lesson: '', isPMCorrect: false,
     createTime: '2026-04-08T10:00:00Z',
   },
   {
-    subItemKey: '12', teamKey: '1', authorKey: '3', completion: 80,
+    subItemKey: '12', teamKey: '1', authorKey: 'U003', completion: 80,
     achievement: 'Token 黑名单方案实现完成，集成测试通过',
     blocker: '部分旧接口 Token 格式兼容问题待修复',
     lesson: '', isPMCorrect: false,
@@ -119,7 +119,7 @@ function setupHandlers() {
       return HttpResponse.json({
         code: 0,
         data: {
-          subItemKey: '12', teamKey: '1', authorKey: '1',
+          subItemKey: '12', teamKey: '1', authorKey: 'U001',
           lesson: '', isPMCorrect: false,
           createTime: new Date().toISOString(),
           ...body,

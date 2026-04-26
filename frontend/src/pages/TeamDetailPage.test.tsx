@@ -54,11 +54,11 @@ const seedTeamDetail = {
 }
 
 const seedMembers = [
-  { id: 1, bizKey: '1', teamId: 1, userId: 1, displayName: '张明', username: 'zhangming', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2026-03-01' },
-  { id: 2, bizKey: '2', teamId: 1, userId: 2, displayName: '李华', username: 'lihua', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-05' },
-  { id: 3, bizKey: '3', teamId: 1, userId: 3, displayName: '王芳', username: 'wangfang', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-10' },
-  { id: 4, bizKey: '4', teamId: 1, userId: 4, displayName: '赵强', username: 'zhaoqiang', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-12' },
-  { id: 5, bizKey: '5', teamId: 1, userId: 5, displayName: '陈静', username: 'chenjing', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-15' },
+  { id: 1, bizKey: '1', teamKey: '1', userBizKey: 'U001', displayName: '张明', username: 'zhangming', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2026-03-01' },
+  { id: 2, bizKey: '2', teamKey: '1', userBizKey: 'U002', displayName: '李华', username: 'lihua', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-05' },
+  { id: 3, bizKey: '3', teamKey: '1', userBizKey: 'U003', displayName: '王芳', username: 'wangfang', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-10' },
+  { id: 4, bizKey: '4', teamKey: '1', userBizKey: 'U004', displayName: '赵强', username: 'zhaoqiang', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-12' },
+  { id: 5, bizKey: '5', teamKey: '1', userBizKey: 'U005', displayName: '陈静', username: 'chenjing', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-15' },
 ]
 
 const seedRoles = [
@@ -103,7 +103,7 @@ function setupHandlers() {
     // Transfer PM
     http.put('/v1/teams/:teamId/pm', async ({ request }) => {
       const body = (await request.json()) as { newPmUserKey: string }
-      const newPm = seedMembers.find((m) => String(m.userId) === body.newPmUserKey)
+      const newPm = seedMembers.find((m) => String(m.userBizKey) === body.newPmUserKey)
       return HttpResponse.json({ code: 0, data: { newPmName: newPm?.displayName } })
     }),
 
@@ -597,7 +597,7 @@ describe('TeamDetailPage', () => {
     await waitFor(() => {
       expect(capturedBody).not.toBeNull()
       expect(capturedBody.roleKey).toBe('4') // viewer role key (string)
-      expect(capturedMemberId).toBe('2') // 李华's userId
+      expect(capturedMemberId).toBe('U002') // 李华's userBizKey
     })
   })
 

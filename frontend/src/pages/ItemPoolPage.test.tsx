@@ -42,7 +42,7 @@ const seedPoolItems = [
   {
     bizKey: '1', teamKey: '1', title: '移动端适配需求',
     background: '当前系统在移动端浏览器下布局错位', expectedOutput: '响应式适配',
-    submitterKey: '1', poolStatus: 'pending',
+    submitterKey: 'U001', poolStatus: 'pending',
     assignedMainKey: null, assignedSubKey: null, assigneeKey: null,
     rejectReason: '', reviewedAt: null, reviewerKey: null,
     assignedMainCode: '', assignedMainTitle: '',
@@ -51,7 +51,7 @@ const seedPoolItems = [
   {
     bizKey: '2', teamKey: '1', title: '用户反馈收集功能',
     background: '需要一个系统化的用户反馈收集机制', expectedOutput: '反馈系统',
-    submitterKey: '1', poolStatus: 'pending',
+    submitterKey: 'U001', poolStatus: 'pending',
     assignedMainKey: null, assignedSubKey: null, assigneeKey: null,
     rejectReason: '', reviewedAt: null, reviewerKey: null,
     assignedMainCode: '', assignedMainTitle: '',
@@ -60,26 +60,26 @@ const seedPoolItems = [
   {
     bizKey: '3', teamKey: '1', title: '性能优化建议',
     background: '首页加载时间超过3秒', expectedOutput: '加载时间降低到1秒内',
-    submitterKey: '1', poolStatus: 'assigned',
-    assignedMainKey: '1', assignedSubKey: '11', assigneeKey: '2',
-    rejectReason: '', reviewedAt: '2026-04-15T00:00:00Z', reviewerKey: '1',
+    submitterKey: 'U001', poolStatus: 'assigned',
+    assignedMainKey: '1', assignedSubKey: '11', assigneeKey: 'U002',
+    rejectReason: '', reviewedAt: '2026-04-15T00:00:00Z', reviewerKey: 'U001',
     assignedMainCode: 'MI-001', assignedMainTitle: '',
     createTime: '2026-04-12T00:00:00Z', dbUpdateTime: '2026-04-15T00:00:00Z',
   },
   {
     bizKey: '4', teamKey: '1', title: '旧版API废弃',
     background: 'v1版本API仍有部分客户端在使用', expectedOutput: '废弃计划',
-    submitterKey: '1', poolStatus: 'rejected',
+    submitterKey: 'U001', poolStatus: 'rejected',
     assignedMainKey: null, assignedSubKey: null, assigneeKey: null,
-    rejectReason: '优先级不足，安排至下个季度处理', reviewedAt: '2026-04-10T00:00:00Z', reviewerKey: '1',
+    rejectReason: '优先级不足，安排至下个季度处理', reviewedAt: '2026-04-10T00:00:00Z', reviewerKey: 'U001',
     assignedMainCode: '', assignedMainTitle: '',
     createTime: '2026-04-08T00:00:00Z', dbUpdateTime: '2026-04-10T00:00:00Z',
   },
 ]
 
 const seedMembers = [
-  { id: 1, bizKey: '1', teamId: 1, userId: 1, displayName: '张明', username: 'zhangming', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
-  { id: 2, bizKey: '2', teamId: 1, userId: 2, displayName: '李华', username: 'lihua', role: 'member', roleId: 2, roleName: 'member', joinedAt: '2024-01-01' },
+  { id: 1, bizKey: '1', teamKey: '1', userBizKey: 'U001', displayName: '张明', username: 'zhangming', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
+  { id: 2, bizKey: '2', teamKey: '1', userBizKey: 'U002', displayName: '李华', username: 'lihua', role: 'member', roleId: 2, roleName: 'member', joinedAt: '2024-01-01' },
 ]
 
 const seedMainItems = [
@@ -110,7 +110,7 @@ function setupHandlers() {
         code: 0,
         data: {
           bizKey: '100', teamKey: '1', ...body,
-          submitterKey: '1', poolStatus: 'pending',
+          submitterKey: 'U001', poolStatus: 'pending',
           assignedMainKey: null, assignedSubKey: null, assigneeKey: null,
           rejectReason: '', reviewedAt: null, reviewerKey: null,
           assignedMainCode: '', assignedMainTitle: '',
@@ -131,10 +131,10 @@ function setupHandlers() {
         code: 0,
         data: {
           bizKey: '4', teamKey: '1', title: '旧版API废弃',
-          background: '', expectedOutput: '', submitterKey: '1',
+          background: '', expectedOutput: '', submitterKey: 'U001',
           poolStatus: 'rejected', assignedMainKey: null, assignedSubKey: null, assigneeKey: null,
           assignedMainCode: '', assignedMainTitle: '',
-          rejectReason: body.reason, reviewedAt: new Date().toISOString(), reviewerKey: '1',
+          rejectReason: body.reason, reviewedAt: new Date().toISOString(), reviewerKey: 'U001',
           createTime: '2026-04-08T00:00:00Z', dbUpdateTime: new Date().toISOString(),
         },
       })
@@ -144,7 +144,7 @@ function setupHandlers() {
       return HttpResponse.json({
         code: 0,
         data: {
-          bizKey: '300', teamKey: '1', code: 'MI-0300', priority: 'P2', proposerKey: '1',
+          bizKey: '300', teamKey: '1', code: 'MI-0300', priority: 'P2', proposerKey: 'U001',
           ...body,
         },
       })

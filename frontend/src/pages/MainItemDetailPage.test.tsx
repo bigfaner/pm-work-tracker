@@ -43,32 +43,32 @@ function renderPage(mainItemId = '1') {
 // --- Seed data ---
 
 const seedMembers = [
-  { id: 1, bizKey: '1', teamId: 1, userId: 1, displayName: 'Test User', username: 'testuser', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
-  { id: 2, bizKey: '2', teamId: 1, userId: 2, displayName: 'Alice', username: 'alice', role: 'member', roleId: 2, roleName: 'member', joinedAt: '2024-01-01' },
-  { id: 3, bizKey: '3', teamId: 1, userId: 3, displayName: 'Bob', username: 'bob', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2024-01-01' },
+  { id: 1, bizKey: '1', teamKey: '1', userBizKey: 'U001', displayName: 'Test User', username: 'testuser', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
+  { id: 2, bizKey: '2', teamKey: '1', userBizKey: 'U002', displayName: 'Alice', username: 'alice', role: 'member', roleId: 2, roleName: 'member', joinedAt: '2024-01-01' },
+  { id: 3, bizKey: '3', teamKey: '1', userBizKey: 'U003', displayName: 'Bob', username: 'bob', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2024-01-01' },
 ]
 
 const seedMainItem = {
   bizKey: '1', teamKey: '1', code: 'MI-0001', title: 'Alpha Task', priority: 'P1',
-  proposerKey: '1', assigneeKey: '1', planStartDate: '2026-03-20', expectedEndDate: '2026-04-15',
+  proposerKey: 'U001', assigneeKey: 'U001', planStartDate: '2026-03-20', expectedEndDate: '2026-04-15',
   actualEndDate: null, itemStatus: 'progressing', completion: 65,
   createTime: '2026-03-20T00:00:00Z', dbUpdateTime: '2026-04-01T00:00:00Z',
   subItems: [
     {
       bizKey: '11', teamKey: '1', mainItemKey: '1', title: 'Sub Alpha 1', itemDesc: '',
-      priority: 'P1', assigneeKey: '2', planStartDate: '2026-04-01', expectedEndDate: '2026-04-10',
+      priority: 'P1', assigneeKey: 'U002', planStartDate: '2026-04-01', expectedEndDate: '2026-04-10',
       actualEndDate: '2026-04-09', itemStatus: 'completed', completion: 100,
       weight: 1, createTime: '2026-04-01T00:00:00Z', dbUpdateTime: '2026-04-09T00:00:00Z',
     },
     {
       bizKey: '12', teamKey: '1', mainItemKey: '1', title: 'Sub Alpha 2', itemDesc: '',
-      priority: 'P2', assigneeKey: '3', planStartDate: '2026-04-08', expectedEndDate: '2026-04-18',
+      priority: 'P2', assigneeKey: 'U003', planStartDate: '2026-04-08', expectedEndDate: '2026-04-18',
       actualEndDate: null, itemStatus: 'progressing', completion: 80,
       weight: 1, createTime: '2026-04-01T00:00:00Z', dbUpdateTime: '2026-04-08T00:00:00Z',
     },
     {
       bizKey: '13', teamKey: '1', mainItemKey: '1', title: 'Sub Alpha 3', itemDesc: '',
-      priority: 'P2', assigneeKey: '3', planStartDate: '2026-04-15', expectedEndDate: '2026-04-25',
+      priority: 'P2', assigneeKey: 'U003', planStartDate: '2026-04-15', expectedEndDate: '2026-04-25',
       actualEndDate: null, itemStatus: 'progressing', completion: 30,
       weight: 1, createTime: '2026-04-01T00:00:00Z', dbUpdateTime: '2026-04-15T00:00:00Z',
     },

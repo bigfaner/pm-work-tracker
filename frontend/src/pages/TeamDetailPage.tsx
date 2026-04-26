@@ -140,7 +140,7 @@ export default function TeamDetailPage() {
   // --- Mutations ---
 
   const transferMutation = useMutation({
-    mutationFn: () => transferPmApi(numericTeamId, { newPmUserKey: String(transferTarget!.userId) }),
+    mutationFn: () => transferPmApi(numericTeamId, { newPmUserKey: String(transferTarget!.userBizKey) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['team', numericTeamId] })
       qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
@@ -150,7 +150,7 @@ export default function TeamDetailPage() {
   })
 
   const removeMutation = useMutation({
-    mutationFn: () => removeMemberApi(numericTeamId, removeTarget!.userId),
+    mutationFn: () => removeMemberApi(numericTeamId, removeTarget!.userBizKey),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['team', numericTeamId] })
       qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
@@ -182,7 +182,7 @@ export default function TeamDetailPage() {
   })
 
   const changeRoleMutation = useMutation({
-    mutationFn: ({ memberId, roleId }: { memberId: number; roleId: number }) =>
+    mutationFn: ({ memberId, roleId }: { memberId: string; roleId: number }) =>
       changeMemberRoleApi(numericTeamId, memberId, { roleKey: String(roleId) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
@@ -232,7 +232,7 @@ export default function TeamDetailPage() {
   }
 
   const isPm = (member: TeamMemberResp) => member.role === 'pm'
-  const isSelf = (member: TeamMemberResp) => currentUser != null && String(member.userId) === currentUser.bizKey
+  const isSelf = (member: TeamMemberResp) => currentUser != null && String(member.userBizKey) === currentUser.bizKey
 
   return (
     <div data-testid="team-detail-page">
@@ -322,7 +322,7 @@ export default function TeamDetailPage() {
           </TableHeader>
           <TableBody>
             {filteredMembers.map((member) => (
-              <TableRow key={member.userId}>
+              <TableRow key={member.userBizKey}>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <UserAvatar name={member.displayName} size="sm" />
@@ -434,7 +434,7 @@ export default function TeamDetailPage() {
           <DialogFooter>
             <Button variant="secondary" onClick={() => setRoleEditTarget(null)}>取消</Button>
             <Button
-              onClick={() => changeRoleMutation.mutate({ memberId: roleEditTarget!.userId, roleId: roleEditRoleId! })}
+              onClick={() => changeRoleMutation.mutate({ memberId: roleEditTarget!.userBizKey, roleId: roleEditRoleId! })}
               disabled={roleEditRoleId == null || roleEditRoleId === roleEditTarget?.roleId || changeRoleMutation.isPending}
             >
               确认修改

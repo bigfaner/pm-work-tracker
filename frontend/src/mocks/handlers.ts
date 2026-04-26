@@ -20,7 +20,7 @@ export const seedUser: User = {
 }
 
 export const seedMembers: TeamMemberResp[] = [
-  { id: 1, bizKey: '1', teamId: 1, userId: 1, displayName: 'Test User', username: 'testuser', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
+  { id: 1, bizKey: '1', teamKey: '1', userBizKey: 'U001', displayName: 'Test User', username: 'testuser', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
 ]
 
 export function makeMainItem(overrides: Partial<MainItem> = {}): MainItem {
@@ -30,8 +30,8 @@ export function makeMainItem(overrides: Partial<MainItem> = {}): MainItem {
     code: 'MI-0001',
     title: 'Test Main Item',
     priority: 'P2',
-    proposerKey: '1',
-    assigneeKey: '1',
+    proposerKey: 'U001',
+    assigneeKey: 'U001',
     planStartDate: null,
     expectedEndDate: null,
     actualEndDate: null,
@@ -50,7 +50,7 @@ export function makeItemPool(overrides: Partial<ItemPool> = {}): ItemPool {
     title: 'Test Pool Item',
     background: '',
     expectedOutput: '',
-    submitterKey: '1',
+    submitterKey: 'U001',
     poolStatus: '待分配',
     assignedMainKey: null,
     assignedSubKey: null,
@@ -119,7 +119,7 @@ export const handlers = [
 
     let items = [
       makeItemPool({ bizKey: '1', title: 'Pending Item', poolStatus: '待分配' }),
-      makeItemPool({ bizKey: '2', title: 'Assigned Item', poolStatus: '已分配', assignedMainKey: '1', assigneeKey: '1' }),
+      makeItemPool({ bizKey: '2', title: 'Assigned Item', poolStatus: '已分配', assignedMainKey: '1', assigneeKey: 'U001' }),
       makeItemPool({ bizKey: '3', title: 'Rejected Item', poolStatus: '已拒绝', rejectReason: 'Not suitable' }),
     ]
 
