@@ -155,6 +155,23 @@ func (m *mockViewProgressRepo) FindByBizKey(_ context.Context, _ int64) (*model.
 }
 
 // ---------------------------------------------------------------------------
+// Tests: NewViewService constructor
+// ---------------------------------------------------------------------------
+
+func TestNewViewService_WithoutUserRepo(t *testing.T) {
+	svc := NewViewService(&mockViewMainItemRepo{}, &mockViewSubItemRepo{}, &mockViewProgressRepo{})
+	vs := svc.(*viewService)
+	assert.Nil(t, vs.userRepo, "userRepo should be nil when not provided")
+}
+
+func TestNewViewService_WithUserRepo(t *testing.T) {
+	ur := &mockViewUserRepo{}
+	svc := NewViewService(&mockViewMainItemRepo{}, &mockViewSubItemRepo{}, &mockViewProgressRepo{}, ur)
+	vs := svc.(*viewService)
+	assert.NotNil(t, vs.userRepo, "userRepo should be set when provided")
+}
+
+// ---------------------------------------------------------------------------
 // Tests: WeeklyComparison
 // ---------------------------------------------------------------------------
 
@@ -2039,7 +2056,7 @@ func TestWeeklyComparison_UsesBatchFindByIDs(t *testing.T) {
 		},
 	}
 
-	svc := NewViewServiceWithUserRepo(mainRepo, subRepo, progressRepo, userRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, userRepo)
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 

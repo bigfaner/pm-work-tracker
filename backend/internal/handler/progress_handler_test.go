@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -19,6 +20,7 @@ import (
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/repository"
 	"pm-work-tracker/backend/internal/service"
+	"pm-work-tracker/backend/internal/vo"
 )
 
 // ---------------------------------------------------------------------------
@@ -874,4 +876,32 @@ func TestAppendProgress_ResponseShapeMatchesDataContract(t *testing.T) {
 	assert.Equal(t, "certificate pending", data["blocker"])
 	assert.Equal(t, float64(0), data["isPmCorrect"])
 	assert.NotNil(t, data["createTime"])
+}
+
+// ---------------------------------------------------------------------------
+// Tests: buildProgressRecordVOs unified function
+// ---------------------------------------------------------------------------
+
+func TestBuildProgressRecordVOs_EmptySlice(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/", nil)
+	result := buildProgressRecordVOs(nil, &mockUserRepoForHandler{}, c)
+	assert.Equal(t, []vo.ProgressRecordVO{}, result)
+}
+
+func TestBuildProgressRecordVOs_SingleItem(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/", nil)
+
+	record := model.ProgressRecord{ID: 1, AuthorKey: 3, Completion: 50, Achievement: "did it"}
+	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "Bob"}}
+
+	result := buildProgressRecordVOs([]model.ProgressRecord{record}, userRepo, c)
+	require.Len(t, result, 1)
+	assert.Equal(t, "Bob", result[0].AuthorName)
+	assert.Equal(t, 50.0, result[0].Completion)
 }

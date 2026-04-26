@@ -91,7 +91,7 @@ func (h *ProgressHandler) Append(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": progressRecordToVO(record, h.userRepo, c)})
+	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": buildProgressRecordVOs([]model.ProgressRecord{*record}, h.userRepo, c)[0]})
 }
 
 // List handles GET /api/v1/teams/:teamId/sub-items/:subId/progress
@@ -115,7 +115,7 @@ func (h *ProgressHandler) List(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, progressRecordsToVOs(records, h.userRepo, c))
+	apperrors.RespondOK(c, buildProgressRecordVOs(records, h.userRepo, c))
 }
 
 // CorrectCompletion handles PATCH /api/v1/teams/:teamId/progress/:recordId/completion
@@ -156,18 +156,9 @@ func (h *ProgressHandler) CorrectCompletion(c *gin.Context) {
 	apperrors.RespondOK(c, nil)
 }
 
-// progressRecordToVO converts a model.ProgressRecord to a ProgressRecordVO.
-func progressRecordToVO(record *model.ProgressRecord, userRepo repository.UserRepo, c *gin.Context) vo.ProgressRecordVO {
-	authorName := ""
-	user, err := userRepo.FindByID(c.Request.Context(), uint(record.AuthorKey))
-	if err == nil && user != nil {
-		authorName = user.DisplayName
-	}
-	return vo.NewProgressRecordVO(record, authorName)
-}
-
-// progressRecordsToVOs converts a slice of ProgressRecord to ProgressRecordVO using batch lookups (fixes N+1).
-func progressRecordsToVOs(records []model.ProgressRecord, userRepo repository.UserRepo, c *gin.Context) []vo.ProgressRecordVO {
+// buildProgressRecordVOs converts a slice of ProgressRecord to ProgressRecordVO using batch lookups (fixes N+1).
+// Single-item callers pass a 1-element slice; the batch path has no N+1 overhead.
+func buildProgressRecordVOs(records []model.ProgressRecord, userRepo repository.UserRepo, c *gin.Context) []vo.ProgressRecordVO {
 	if len(records) == 0 {
 		return []vo.ProgressRecordVO{}
 	}

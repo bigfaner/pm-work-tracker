@@ -54,7 +54,7 @@ func (h *ItemPoolHandler) Submit(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": itemPoolToVO(item, h.userRepo, h.mainItemRepo, c)})
+	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": buildItemPoolVOs([]model.ItemPool{*item}, h.userRepo, h.mainItemRepo, c)[0]})
 }
 
 // List handles GET /api/v1/teams/:teamId/item-pool
@@ -80,7 +80,7 @@ func (h *ItemPoolHandler) List(c *gin.Context) {
 		return
 	}
 
-	voItems := itemPoolsToVOs(result.Items, h.userRepo, h.mainItemRepo, c)
+	voItems := buildItemPoolVOs(result.Items, h.userRepo, h.mainItemRepo, c)
 	apperrors.RespondOK(c, gin.H{
 		"items": voItems,
 		"total": result.Total,
@@ -110,7 +110,7 @@ func (h *ItemPoolHandler) Get(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, itemPoolToVO(item, h.userRepo, h.mainItemRepo, c))
+	apperrors.RespondOK(c, buildItemPoolVOs([]model.ItemPool{*item}, h.userRepo, h.mainItemRepo, c)[0])
 }
 
 // Assign handles POST /api/v1/teams/:teamId/item-pool/:poolId/assign
@@ -217,29 +217,12 @@ func (h *ItemPoolHandler) Reject(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, itemPoolToVO(updated, h.userRepo, h.mainItemRepo, c))
+	apperrors.RespondOK(c, buildItemPoolVOs([]model.ItemPool{*updated}, h.userRepo, h.mainItemRepo, c)[0])
 }
 
-// itemPoolToVO converts a single model.ItemPool to an ItemPoolVO using individual lookups.
-func itemPoolToVO(item *model.ItemPool, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, c *gin.Context) vo.ItemPoolVO {
-	submitterName := ""
-	if item.SubmitterKey > 0 {
-		if user, err := userRepo.FindByID(c.Request.Context(), uint(item.SubmitterKey)); err == nil && user != nil {
-			submitterName = user.DisplayName
-		}
-	}
-	v := vo.NewItemPoolVO(item, submitterName)
-	if item.AssignedMainKey != nil {
-		if mi, err := mainItemRepo.FindByBizKey(c.Request.Context(), *item.AssignedMainKey); err == nil && mi != nil {
-			v.AssignedMainCode = mi.Code
-			v.AssignedMainTitle = mi.Title
-		}
-	}
-	return v
-}
-
-// itemPoolsToVOs converts a slice of ItemPool to VOs using batch lookups (fixes N+1).
-func itemPoolsToVOs(items []model.ItemPool, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, c *gin.Context) []vo.ItemPoolVO {
+// buildItemPoolVOs converts a slice of ItemPool to VOs using batch lookups (fixes N+1).
+// Single-item callers pass a 1-element slice; the batch path has no N+1 overhead.
+func buildItemPoolVOs(items []model.ItemPool, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, c *gin.Context) []vo.ItemPoolVO {
 	if len(items) == 0 {
 		return []vo.ItemPoolVO{}
 	}
