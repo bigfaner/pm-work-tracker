@@ -172,15 +172,8 @@ func (s *subItemService) ChangeStatus(ctx context.Context, teamID, callerID, ite
 	}
 
 	// Record to status history
-	if s.statusHistorySvc != nil {
-		_ = s.statusHistorySvc.Record(ctx, &model.StatusHistory{
-			ItemType:   "sub_item",
-			ItemKey:    int64(itemID),
-			FromStatus: oldStatus,
-			ToStatus:   newStatus,
-			ChangedBy:  int64(callerID),
-			IsAuto:     0,
-		})
+	if err := RecordStatusChange(s.statusHistorySvc, ctx, "sub_item", int64(itemID), oldStatus, newStatus, callerID, 0, ""); err != nil {
+		return nil, err
 	}
 
 	// Evaluate linkage after status change
@@ -259,6 +252,6 @@ func (s *subItemService) Assign(ctx context.Context, teamID, pmID, itemID, assig
 	}
 
 	return s.subItemRepo.Update(ctx, item, map[string]interface{}{
-		"assignee_id": assigneeID,
+		"assignee_key": assigneeID,
 	})
 }

@@ -91,7 +91,7 @@ describe('useAuthStore permissions', () => {
     it('clearAuth resets permissions', () => {
       const perms: PermissionData = {
         isSuperAdmin: false,
-        teamPermissions: { 1: ['team:read'] },
+        teamPermissions: { '1': ['team:read'] },
       }
       useAuthStore.getState().setPermissions(perms)
       expect(useAuthStore.getState().permissions).not.toBeNull()
@@ -119,36 +119,36 @@ describe('useAuthStore permissions', () => {
     it('returns true when teamId matches and team has the permission', () => {
       const perms: PermissionData = {
         isSuperAdmin: false,
-        teamPermissions: { 1: ['team:read', 'team:write'] },
+        teamPermissions: { '1': ['team:read', 'team:write'] },
       }
       useAuthStore.getState().setPermissions(perms)
-      expect(useAuthStore.getState().hasPermission('team:write', 1)).toBe(true)
+      expect(useAuthStore.getState().hasPermission('team:write', '1')).toBe(true)
     })
 
     it('returns false when teamId matches but team lacks the permission', () => {
       const perms: PermissionData = {
         isSuperAdmin: false,
-        teamPermissions: { 1: ['team:read'] },
+        teamPermissions: { '1': ['team:read'] },
       }
       useAuthStore.getState().setPermissions(perms)
-      expect(useAuthStore.getState().hasPermission('team:write', 1)).toBe(false)
+      expect(useAuthStore.getState().hasPermission('team:write', '1')).toBe(false)
     })
 
     it('returns false when teamId is not in teamPermissions', () => {
       const perms: PermissionData = {
         isSuperAdmin: false,
-        teamPermissions: { 1: ['team:read'] },
+        teamPermissions: { '1': ['team:read'] },
       }
       useAuthStore.getState().setPermissions(perms)
-      expect(useAuthStore.getState().hasPermission('team:read', 99)).toBe(false)
+      expect(useAuthStore.getState().hasPermission('team:read', '99')).toBe(false)
     })
 
     it('returns true when no teamId and any team has the permission', () => {
       const perms: PermissionData = {
         isSuperAdmin: false,
         teamPermissions: {
-          1: ['team:read'],
-          2: ['team:write', 'item:create'],
+          '1': ['team:read'],
+          '2': ['team:write', 'item:create'],
         },
       }
       useAuthStore.getState().setPermissions(perms)
@@ -158,7 +158,7 @@ describe('useAuthStore permissions', () => {
     it('returns false when no teamId and no team has the permission', () => {
       const perms: PermissionData = {
         isSuperAdmin: false,
-        teamPermissions: { 1: ['team:read'] },
+        teamPermissions: { '1': ['team:read'] },
       }
       useAuthStore.getState().setPermissions(perms)
       expect(useAuthStore.getState().hasPermission('admin:manage')).toBe(false)
@@ -176,10 +176,10 @@ describe('useAuthStore permissions', () => {
     it('superadmin overrides team-specific check even if team lacks permission', () => {
       const perms: PermissionData = {
         isSuperAdmin: true,
-        teamPermissions: { 1: [] },
+        teamPermissions: { '1': [] },
       }
       useAuthStore.getState().setPermissions(perms)
-      expect(useAuthStore.getState().hasPermission('team:write', 1)).toBe(true)
+      expect(useAuthStore.getState().hasPermission('team:write', '1')).toBe(true)
     })
   })
 
@@ -187,7 +187,7 @@ describe('useAuthStore permissions', () => {
     it('calls API and stores permissions', async () => {
       const mockPerms: PermissionData = {
         isSuperAdmin: false,
-        teamPermissions: { 1: ['team:read', 'team:write'] },
+        teamPermissions: { '1': ['team:read', 'team:write'] },
       }
       const { getPermissionsApi } = await import('@/api/permissions')
       vi.spyOn(await import('@/api/permissions'), 'getPermissionsApi').mockResolvedValue(mockPerms)
@@ -206,7 +206,7 @@ describe('useAuthStore permissions', () => {
       // Set some existing permissions first
       useAuthStore.getState().setPermissions({
         isSuperAdmin: false,
-        teamPermissions: { 1: ['team:read'] },
+        teamPermissions: { '1': ['team:read'] },
       })
       expect(useAuthStore.getState().permissions).not.toBeNull()
 

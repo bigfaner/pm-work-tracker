@@ -40,8 +40,8 @@ export default function MainItemDetailPage() {
 
   const [editOpen, setEditOpen] = useState(false)
   const [createSubOpen, setCreateSubOpen] = useState(false)
-  const [editForm, setEditForm] = useState<EditMainItemFormState>({ title: '', priority: '', assigneeId: '', expectedEndDate: '', description: '' })
-  const [subForm, setSubForm] = useState<CreateSubItemFormState>({ title: '', priority: 'P2', assigneeId: '', startDate: today(), expectedEndDate: '', description: '' })
+  const [editForm, setEditForm] = useState<EditMainItemFormState>({ title: '', priority: '', assigneeKey: '', expectedEndDate: '', description: '' })
+  const [subForm, setSubForm] = useState<CreateSubItemFormState>({ title: '', priority: 'P2', assigneeKey: '', startDate: today(), expectedEndDate: '', description: '' })
 
   const [editSubOpen, setEditSubOpen] = useState(false)
   const [editSubTarget, setEditSubTarget] = useState<SubItem | null>(null)
@@ -73,7 +73,7 @@ export default function MainItemDetailPage() {
       setEditForm({
         title: item.title,
         priority: item.priority,
-        assigneeId: item.assigneeKey ? String(item.assigneeKey) : '',
+        assigneeKey: item.assigneeKey || '',
         expectedEndDate: item.expectedEndDate || '',
         description: item.itemDesc || '',
       })
@@ -97,7 +97,7 @@ export default function MainItemDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       setCreateSubOpen(false)
-      setSubForm({ title: '', priority: 'P2', assigneeId: '', startDate: today(), expectedEndDate: '', description: '' })
+      setSubForm({ title: '', priority: 'P2', assigneeKey: '', startDate: today(), expectedEndDate: '', description: '' })
     },
   })
 
@@ -129,18 +129,18 @@ export default function MainItemDetailPage() {
     updateMutation.mutate({
       title: editForm.title.trim(),
       priority: editForm.priority,
-      assigneeKey: editForm.assigneeId || null,
+      assigneeKey: editForm.assigneeKey || null,
       expectedEndDate: editForm.expectedEndDate || null,
       description: editForm.description,
     })
   }, [editForm, updateMutation])
 
   const handleCreateSub = useCallback(() => {
-    if (!subForm.title.trim() || !subForm.priority || !subForm.assigneeId || !subForm.startDate || !subForm.expectedEndDate) return
+    if (!subForm.title.trim() || !subForm.priority || !subForm.assigneeKey || !subForm.startDate || !subForm.expectedEndDate) return
     createSubMutation.mutate({
       title: subForm.title.trim(),
       priority: subForm.priority,
-      assigneeKey: subForm.assigneeId || '',
+      assigneeKey: subForm.assigneeKey || '',
       startDate: subForm.startDate,
       expectedEndDate: subForm.expectedEndDate,
       ...(subForm.description && { description: subForm.description }),

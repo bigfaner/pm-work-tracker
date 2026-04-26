@@ -193,8 +193,8 @@ CREATE TABLE IF NOT EXISTS pmw_status_histories (
     KEY idx_item (item_type, item_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='状态变更历史表（追加写入）';
 
--- roles (RBAC)
-CREATE TABLE IF NOT EXISTS roles (
+-- pmw_roles (RBAC)
+CREATE TABLE IF NOT EXISTS pmw_roles (
     id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     biz_key         BIGINT          NOT NULL,
     create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -208,8 +208,8 @@ CREATE TABLE IF NOT EXISTS roles (
     UNIQUE KEY uk_roles_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色表';
 
--- role_permissions (RBAC)
-CREATE TABLE IF NOT EXISTS role_permissions (
+-- pmw_role_permissions (RBAC)
+CREATE TABLE IF NOT EXISTS pmw_role_permissions (
     id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     role_id          BIGINT UNSIGNED NOT NULL,
     permission_code  VARCHAR(50)     NOT NULL,

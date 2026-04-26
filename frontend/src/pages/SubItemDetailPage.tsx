@@ -54,7 +54,7 @@ export default function SubItemDetailPage() {
   const [appendOpen, setAppendOpen] = useState(false)
   const [appendForm, setAppendForm] = useState({ completion: '', achievement: '', blocker: '' })
   const [editOpen, setEditOpen] = useState(false)
-  const [editForm, setEditForm] = useState({ title: '', priority: '', assigneeId: '', expectedEndDate: '', description: '' })
+  const [editForm, setEditForm] = useState({ title: '', priority: '', assigneeKey: '', expectedEndDate: '', description: '' })
   const [achievementOpen, setAchievementOpen] = useState(false)
   const [achievementText, setAchievementText] = useState('')
   const [achievementPendingStatus, setAchievementPendingStatus] = useState<string | null>(null)
@@ -166,7 +166,7 @@ export default function SubItemDetailPage() {
     editMutation.mutate({
       title: editForm.title.trim(),
       priority: editForm.priority,
-      assigneeKey: editForm.assigneeId || undefined,
+      assigneeKey: editForm.assigneeKey || undefined,
       expectedEndDate: editForm.expectedEndDate || undefined,
       description: editForm.description,
     })
@@ -236,7 +236,7 @@ export default function SubItemDetailPage() {
                 setEditForm({
                   title: subItem.title,
                   priority: subItem.priority,
-                  assigneeId: subItem.assigneeKey ? String(subItem.assigneeKey) : '',
+                  assigneeKey: subItem.assigneeKey || '',
                   expectedEndDate: subItem.expectedEndDate || '',
                   description: subItem.itemDesc || '',
                 })
@@ -368,8 +368,8 @@ export default function SubItemDetailPage() {
                     <label className="block text-sm font-medium text-primary mb-1">负责人</label>
                     <MemberSelect
                       members={members || []}
-                      selectedId={editForm.assigneeId}
-                      onSelect={(v) => setEditForm((f) => ({ ...f, assigneeId: v }))}
+                      selectedId={editForm.assigneeKey}
+                      onSelect={(v) => setEditForm((f) => ({ ...f, assigneeKey: v }))}
                     />
                   </div>
                 </div>

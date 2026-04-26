@@ -309,6 +309,27 @@ func TestMainItemRepo_List_FilterByAssignee(t *testing.T) {
 	assert.Equal(t, "Assigned", result.Items[0].Title)
 }
 
+func TestMainItemRepo_List_FilterByAssignee_InvalidString(t *testing.T) {
+	db := setupMainItemTestDB(t)
+	repo := gormrepo.NewGormMainItemRepo(db)
+	ctx := context.Background()
+
+	u, team := seedMainItemTeam(t, db)
+
+	// Create an item assigned to user u
+	item := createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Assigned", "P1", "pending")
+	require.NoError(t, db.Model(item).Update("assignee_key", u.ID).Error)
+
+	// Create another unassigned item
+	createMainItem(t, db, team.ID, u.ID, "FEAT-00002", "Unassigned", "P2", "pending")
+
+	// Invalid assigneeKey (non-numeric) should return zero results, not all items
+	invalidKey := "not-a-number"
+	result, err := repo.List(ctx, team.ID, dto.MainItemFilter{AssigneeKey: &invalidKey}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), result.Total, "invalid assigneeKey should return zero results (fail-closed)")
+}
+
 // --- FindByIDs ---
 
 func TestMainItemRepo_FindByIDs(t *testing.T) {

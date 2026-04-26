@@ -837,7 +837,8 @@ func TestSubItemAssign_Success(t *testing.T) {
 	var assigneeID uint = 42
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 	repo.On("Update", mock.Anything, existing, mock.MatchedBy(func(fields map[string]interface{}) bool {
-		return fields["assignee_id"] == assigneeID
+		_, hasWrong := fields["assignee_id"]
+		return fields["assignee_key"] == assigneeID && !hasWrong
 	})).Return(nil)
 
 	err := svc.Assign(context.Background(), 1, 10, 1, assigneeID)

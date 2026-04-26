@@ -10,7 +10,7 @@ import (
 
 func TestRole_TableName(t *testing.T) {
 	r := model.Role{}
-	assert.Equal(t, "roles", r.TableName())
+	assert.Equal(t, "pmw_roles", r.TableName())
 }
 
 func TestRole_AutoMigrateCreatesCorrectSchema(t *testing.T) {
@@ -62,7 +62,7 @@ func TestRole_Defaults(t *testing.T) {
 
 func TestRolePermission_TableName(t *testing.T) {
 	rp := model.RolePermission{}
-	assert.Equal(t, "role_permissions", rp.TableName())
+	assert.Equal(t, "pmw_role_permissions", rp.TableName())
 }
 
 func TestRolePermission_UniqueConstraint(t *testing.T) {
@@ -70,11 +70,11 @@ func TestRolePermission_UniqueConstraint(t *testing.T) {
 	err := db.AutoMigrate(&model.Role{})
 	require.NoError(t, err)
 
-	// Use raw SQL to create role_permissions with unique constraint
+	// Use raw SQL to create pmw_role_permissions with unique constraint
 	err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS role_permissions (
+		CREATE TABLE IF NOT EXISTS pmw_role_permissions (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			role_id INTEGER NOT NULL REFERENCES roles(id),
+			role_id INTEGER NOT NULL REFERENCES pmw_roles(id),
 			permission_code TEXT NOT NULL,
 			UNIQUE(role_id, permission_code)
 		)

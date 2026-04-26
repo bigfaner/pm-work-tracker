@@ -1,8 +1,8 @@
 package handler
 
 import (
+	"context"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -10,6 +10,7 @@ import (
 	"pm-work-tracker/backend/internal/middleware"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	pkgHandler "pm-work-tracker/backend/internal/pkg/handler"
 	"pm-work-tracker/backend/internal/repository"
 	"pm-work-tracker/backend/internal/service"
 	"pm-work-tracker/backend/internal/vo"
@@ -53,7 +54,7 @@ func (h *ItemPoolHandler) Submit(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": itemPoolToVO(item, h.userRepo, h.mainItemRepo, c)})
+	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": buildItemPoolVOs([]model.ItemPool{*item}, h.userRepo, h.mainItemRepo, c)[0]})
 }
 
 // List handles GET /api/v1/teams/:teamId/item-pool
@@ -79,7 +80,7 @@ func (h *ItemPoolHandler) List(c *gin.Context) {
 		return
 	}
 
-	voItems := itemPoolsToVOs(result.Items, h.userRepo, h.mainItemRepo, c)
+	voItems := buildItemPoolVOs(result.Items, h.userRepo, h.mainItemRepo, c)
 	apperrors.RespondOK(c, gin.H{
 		"items": voItems,
 		"total": result.Total,
@@ -90,7 +91,13 @@ func (h *ItemPoolHandler) List(c *gin.Context) {
 
 // Get handles GET /api/v1/teams/:teamId/item-pool/:poolId
 func (h *ItemPoolHandler) Get(c *gin.Context) {
-	poolID, ok := h.resolvePoolID(c)
+	poolID, ok := pkgHandler.ResolveBizKey(c, "poolId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.svc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -103,12 +110,18 @@ func (h *ItemPoolHandler) Get(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, itemPoolToVO(item, h.userRepo, h.mainItemRepo, c))
+	apperrors.RespondOK(c, buildItemPoolVOs([]model.ItemPool{*item}, h.userRepo, h.mainItemRepo, c)[0])
 }
 
 // Assign handles POST /api/v1/teams/:teamId/item-pool/:poolId/assign
 func (h *ItemPoolHandler) Assign(c *gin.Context) {
-	poolID, ok := h.resolvePoolID(c)
+	poolID, ok := pkgHandler.ResolveBizKey(c, "poolId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.svc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -140,7 +153,13 @@ func (h *ItemPoolHandler) Assign(c *gin.Context) {
 
 // ConvertToMain handles POST /api/v1/teams/:teamId/item-pool/:poolId/convert-to-main
 func (h *ItemPoolHandler) ConvertToMain(c *gin.Context) {
-	poolID, ok := h.resolvePoolID(c)
+	poolID, ok := pkgHandler.ResolveBizKey(c, "poolId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.svc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -165,7 +184,13 @@ func (h *ItemPoolHandler) ConvertToMain(c *gin.Context) {
 
 // Reject handles POST /api/v1/teams/:teamId/item-pool/:poolId/reject
 func (h *ItemPoolHandler) Reject(c *gin.Context) {
-	poolID, ok := h.resolvePoolID(c)
+	poolID, ok := pkgHandler.ResolveBizKey(c, "poolId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.svc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -192,45 +217,12 @@ func (h *ItemPoolHandler) Reject(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, itemPoolToVO(updated, h.userRepo, h.mainItemRepo, c))
+	apperrors.RespondOK(c, buildItemPoolVOs([]model.ItemPool{*updated}, h.userRepo, h.mainItemRepo, c)[0])
 }
 
-// resolvePoolID parses the poolId path param as a bizKey and resolves it to an internal uint ID.
-func (h *ItemPoolHandler) resolvePoolID(c *gin.Context) (uint, bool) {
-	idStr := c.Param("poolId")
-	bizKey, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrValidation)
-		return 0, false
-	}
-	item, err := h.svc.GetByBizKey(c.Request.Context(), bizKey)
-	if err != nil {
-		apperrors.RespondError(c, err)
-		return 0, false
-	}
-	return item.ID, true
-}
-
-// itemPoolToVO converts a single model.ItemPool to an ItemPoolVO using individual lookups.
-func itemPoolToVO(item *model.ItemPool, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, c *gin.Context) vo.ItemPoolVO {
-	submitterName := ""
-	if userRepo != nil && item.SubmitterKey > 0 {
-		if user, err := userRepo.FindByID(c.Request.Context(), uint(item.SubmitterKey)); err == nil && user != nil {
-			submitterName = user.DisplayName
-		}
-	}
-	v := vo.NewItemPoolVO(item, submitterName)
-	if mainItemRepo != nil && item.AssignedMainKey != nil {
-		if mi, err := mainItemRepo.FindByBizKey(c.Request.Context(), *item.AssignedMainKey); err == nil && mi != nil {
-			v.AssignedMainCode = mi.Code
-			v.AssignedMainTitle = mi.Title
-		}
-	}
-	return v
-}
-
-// itemPoolsToVOs converts a slice of ItemPool to VOs using batch lookups (fixes N+1).
-func itemPoolsToVOs(items []model.ItemPool, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, c *gin.Context) []vo.ItemPoolVO {
+// buildItemPoolVOs converts a slice of ItemPool to VOs using batch lookups (fixes N+1).
+// Single-item callers pass a 1-element slice; the batch path has no N+1 overhead.
+func buildItemPoolVOs(items []model.ItemPool, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, c *gin.Context) []vo.ItemPoolVO {
 	if len(items) == 0 {
 		return []vo.ItemPoolVO{}
 	}
@@ -251,7 +243,7 @@ func itemPoolsToVOs(items []model.ItemPool, userRepo repository.UserRepo, mainIt
 
 	// Batch lookups
 	userMap := make(map[uint]*model.User)
-	if userRepo != nil && len(submitterIDs) > 0 {
+	if len(submitterIDs) > 0 {
 		ids := mapKeysToSlice(submitterIDs)
 		if m, err := userRepo.FindByIDs(ctx, ids); err == nil {
 			userMap = m
@@ -259,7 +251,7 @@ func itemPoolsToVOs(items []model.ItemPool, userRepo repository.UserRepo, mainIt
 	}
 
 	mainItemMap := make(map[int64]*model.MainItem)
-	if mainItemRepo != nil && len(mainItemBizKeys) > 0 {
+	if len(mainItemBizKeys) > 0 {
 		keys := int64MapKeysToSlice(mainItemBizKeys)
 		if m, err := mainItemRepo.FindByBizKeys(ctx, keys); err == nil {
 			mainItemMap = m

@@ -23,7 +23,7 @@ export interface CreateMainItemFormState {
   title: string
   description: string
   priority: string
-  assigneeId: string
+  assigneeKey: string
   startDate: string
   expectedEndDate: string
 }
@@ -81,8 +81,8 @@ export default function CreateMainItemDialog({
               <label className="block text-sm font-medium text-primary mb-1">负责人 <span className="text-error">*</span></label>
               <MemberSelect
                 members={members}
-                selectedId={form.assigneeId}
-                onSelect={(v) => onFormChange((f) => ({ ...f, assigneeId: v }))}
+                selectedId={form.assigneeKey}
+                onSelect={(v) => onFormChange((f) => ({ ...f, assigneeKey: v }))}
                 allowEmpty={false}
               />
             </div>
@@ -115,7 +115,7 @@ export default function CreateMainItemDialog({
         </DialogBody>
         <DialogFooter>
           <Button variant="secondary" onClick={() => onOpenChange(false)}>取消</Button>
-          <Button onClick={onSubmit} disabled={!form.title.trim() || !form.assigneeId || !form.startDate || !form.expectedEndDate || isPending}>
+          <Button onClick={onSubmit} disabled={!form.title.trim() || !form.assigneeKey || !form.startDate || !form.expectedEndDate || isPending}>
             确认
           </Button>
         </DialogFooter>

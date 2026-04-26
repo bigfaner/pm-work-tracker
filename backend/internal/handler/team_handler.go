@@ -1,18 +1,18 @@
 package handler
 
 import (
-	"net/http"
-	"strconv"
+	"context"
 
 	"github.com/gin-gonic/gin"
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/middleware"
-	"pm-work-tracker/backend/internal/model"
-	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg"
+	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	pkgHandler "pm-work-tracker/backend/internal/pkg/handler"
 	"pm-work-tracker/backend/internal/repository"
 	"pm-work-tracker/backend/internal/service"
+	"pm-work-tracker/backend/internal/vo"
 )
 
 // TeamHandler handles team endpoints.
@@ -49,7 +49,7 @@ func (h *TeamHandler) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": teamToDTO(team)})
+	apperrors.RespondCreated(c, vo.NewTeamVO(team))
 }
 
 // List handles GET /api/v1/teams
@@ -57,7 +57,8 @@ func (h *TeamHandler) List(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	isSuperAdmin := middleware.IsSuperAdmin(c)
 	search := c.Query("search")
-	page, pageSize := parsePagination(c, 20)
+	page, pageSize := parsePageParams(c)
+	_, page, pageSize = dto.ApplyPaginationDefaults(page, pageSize)
 
 	teams, total, err := h.teamSvc.ListTeams(c.Request.Context(), userID, isSuperAdmin, search, page, pageSize)
 	if err != nil {
@@ -65,11 +66,11 @@ func (h *TeamHandler) List(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, gin.H{
-		"items":    teams,
-		"total":    total,
-		"page":     page,
-		"pageSize": pageSize,
+	apperrors.RespondOK(c, dto.TeamListPage{
+		Items:    teams,
+		Total:    total,
+		Page:     page,
+		PageSize: pageSize,
 	})
 }
 
@@ -103,7 +104,7 @@ func (h *TeamHandler) Update(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, teamToDTO(team))
+	apperrors.RespondOK(c, vo.NewTeamVO(team))
 }
 
 // Disband handles DELETE /api/v1/teams/:teamId
@@ -164,7 +165,13 @@ func (h *TeamHandler) RemoveMember(c *gin.Context) {
 	teamID := middleware.GetTeamID(c)
 	pmID := middleware.GetUserID(c)
 
-	targetUserID, ok := h.resolveUserBizKey(c)
+	targetUserID, ok := pkgHandler.ResolveBizKey(c, "userId", func(ctx context.Context, bizKey int64) (uint, error) {
+		user, err := h.userRepo.FindByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, apperrors.ErrItemNotFound
+		}
+		return user.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -183,7 +190,13 @@ func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 	teamID := middleware.GetTeamID(c)
 	pmID := middleware.GetUserID(c)
 
-	targetUserID, ok := h.resolveUserBizKey(c)
+	targetUserID, ok := pkgHandler.ResolveBizKey(c, "userId", func(ctx context.Context, bizKey int64) (uint, error) {
+		user, err := h.userRepo.FindByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, apperrors.ErrItemNotFound
+		}
+		return user.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -196,8 +209,8 @@ func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 
 	roleKey, _ := pkg.ParseID(req.RoleKey)
 	if err := h.teamSvc.UpdateMemberRole(c.Request.Context(), pmID, teamID, targetUserID, uint(roleKey)); err != nil {
-	apperrors.RespondError(c, err)
-	return
+		apperrors.RespondError(c, err)
+		return
 	}
 
 	apperrors.RespondOK(c, nil)
@@ -214,6 +227,18 @@ func (h *TeamHandler) TransferPM(c *gin.Context) {
 		return
 	}
 
+	// Resolve newPmUserKey (bizKey) to internal user ID
+	newPmBizKey, err := pkg.ParseID(req.NewPmUserKey)
+	if err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+	newPmUser, err := h.userRepo.FindByBizKey(c.Request.Context(), newPmBizKey)
+	if err != nil {
+		apperrors.RespondError(c, apperrors.ErrUserNotFound)
+		return
+	}
+
 	// SuperAdmin is not the team PM, so fetch the actual PM ID to pass the ownership check.
 	pmID := callerID
 	if middleware.IsSuperAdmin(c) {
@@ -225,7 +250,7 @@ func (h *TeamHandler) TransferPM(c *gin.Context) {
 		pmID = uint(team.PmKey)
 	}
 
-	err := h.teamSvc.TransferPM(c.Request.Context(), pmID, teamID, func() uint { v, _ := pkg.ParseID(req.NewPmUserKey); return uint(v) }())
+	err = h.teamSvc.TransferPM(c.Request.Context(), pmID, teamID, newPmUser.ID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -246,33 +271,4 @@ func (h *TeamHandler) SearchUsers(c *gin.Context) {
 	}
 
 	apperrors.RespondOK(c, users)
-}
-
-// teamToDTO converts a model.Team to a response map.
-func teamToDTO(team *model.Team) gin.H {
-	return gin.H{
-		"bizKey":      pkg.FormatID(team.BizKey),
-		"name":        team.TeamName,
-		"description": team.TeamDesc,
-		"code":        team.Code,
-		"pmKey":       pkg.FormatID(team.PmKey),
-		"createdAt":   team.CreateTime,
-		"updatedAt":   team.DbUpdateTime,
-	}
-}
-
-// resolveUserBizKey parses the userId path param as a bizKey and resolves it to an internal uint ID.
-func (h *TeamHandler) resolveUserBizKey(c *gin.Context) (uint, bool) {
-	idStr := c.Param("userId")
-	bizKey, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrValidation)
-		return 0, false
-	}
-	user, err := h.userRepo.FindByBizKey(c.Request.Context(), bizKey)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrItemNotFound)
-		return 0, false
-	}
-	return user.ID, true
 }

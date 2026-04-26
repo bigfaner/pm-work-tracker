@@ -29,7 +29,7 @@ func (r *roleRepo) List(ctx context.Context) ([]model.Role, error) {
 
 func (r *roleRepo) FindByID(ctx context.Context, id uint) (*model.Role, error) {
 	var role model.Role
-	err := r.db.WithContext(ctx).Where("id = ? AND deleted_flag = 0", id).First(&role).Error
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).Where("id = ?", id).First(&role).Error
 	if err != nil {
 		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
 			return nil, errors.ErrNotFound
@@ -41,7 +41,7 @@ func (r *roleRepo) FindByID(ctx context.Context, id uint) (*model.Role, error) {
 
 func (r *roleRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.Role, error) {
 	var role model.Role
-	err := r.db.WithContext(ctx).Where("biz_key = ? AND deleted_flag = 0", bizKey).First(&role).Error
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).Where("biz_key = ?", bizKey).First(&role).Error
 	if err != nil {
 		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
 			return nil, errors.ErrNotFound
@@ -116,8 +116,8 @@ func (r *roleRepo) HasPermission(ctx context.Context, userID uint, code string) 
 	var count int64
 	err := r.db.WithContext(ctx).
 		Table("pmw_team_members").
-		Joins("JOIN role_permissions ON role_permissions.role_id = pmw_team_members.role_key").
-		Where("pmw_team_members.user_key = ? AND role_permissions.permission_code = ?", userID, code).
+		Joins("JOIN pmw_role_permissions ON pmw_role_permissions.role_id = pmw_team_members.role_key").
+		Where("pmw_team_members.user_key = ? AND pmw_role_permissions.permission_code = ?", userID, code).
 		Count(&count).Error
 	if err != nil {
 		return false, err
@@ -127,16 +127,16 @@ func (r *roleRepo) HasPermission(ctx context.Context, userID uint, code string) 
 
 // teamPermRow is a helper struct for scanning the GetUserTeamPermissions join query.
 type teamPermRow struct {
-	TeamKey        uint   `gorm:"column:team_key"`
-	PermissionCode string `gorm:"column:permission_code"`
+	TeamKey        uint
+	PermissionCode string
 }
 
 func (r *roleRepo) GetUserTeamPermissions(ctx context.Context, userID uint) (map[uint][]string, error) {
 	var rows []teamPermRow
 	err := r.db.WithContext(ctx).
 		Table("pmw_team_members").
-		Select("pmw_team_members.team_key, role_permissions.permission_code").
-		Joins("JOIN role_permissions ON role_permissions.role_id = pmw_team_members.role_key").
+		Select("pmw_team_members.team_key, pmw_role_permissions.permission_code").
+		Joins("JOIN pmw_role_permissions ON pmw_role_permissions.role_id = pmw_team_members.role_key").
 		Where("pmw_team_members.user_key = ?", userID).
 		Find(&rows).Error
 	if err != nil {

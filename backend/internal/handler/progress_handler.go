@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
@@ -9,6 +10,7 @@ import (
 	"pm-work-tracker/backend/internal/middleware"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	pkgHandler "pm-work-tracker/backend/internal/pkg/handler"
 	"pm-work-tracker/backend/internal/repository"
 	"pm-work-tracker/backend/internal/service"
 	"pm-work-tracker/backend/internal/vo"
@@ -54,23 +56,15 @@ func validateCompletion(val float64) bool {
 	return val >= 0 && val <= 100
 }
 
-// resolveSubID parses the subId path param as a bizKey and resolves it to an internal uint ID.
-func (h *ProgressHandler) resolveSubID(c *gin.Context) (uint, bool) {
-	bizKey, ok := parseSubBizKey(c)
-	if !ok {
-		return 0, false
-	}
-	item, err := h.subItemSvc.GetByBizKey(c.Request.Context(), bizKey)
-	if err != nil {
-		apperrors.RespondError(c, err)
-		return 0, false
-	}
-	return item.ID, true
-}
-
 // Append handles POST /api/v1/teams/:teamId/sub-items/:subId/progress
 func (h *ProgressHandler) Append(c *gin.Context) {
-	subID, ok := h.resolveSubID(c)
+	subID, ok := pkgHandler.ResolveBizKey(c, "subId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.subItemSvc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -97,12 +91,18 @@ func (h *ProgressHandler) Append(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": progressRecordToVO(record, h.userRepo, c)})
+	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": buildProgressRecordVOs([]model.ProgressRecord{*record}, h.userRepo, c)[0]})
 }
 
 // List handles GET /api/v1/teams/:teamId/sub-items/:subId/progress
 func (h *ProgressHandler) List(c *gin.Context) {
-	subID, ok := h.resolveSubID(c)
+	subID, ok := pkgHandler.ResolveBizKey(c, "subId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.subItemSvc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -115,7 +115,7 @@ func (h *ProgressHandler) List(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, progressRecordsToVOs(records, h.userRepo, c))
+	apperrors.RespondOK(c, buildProgressRecordVOs(records, h.userRepo, c))
 }
 
 // CorrectCompletion handles PATCH /api/v1/teams/:teamId/progress/:recordId/completion
@@ -156,20 +156,9 @@ func (h *ProgressHandler) CorrectCompletion(c *gin.Context) {
 	apperrors.RespondOK(c, nil)
 }
 
-// progressRecordToVO converts a model.ProgressRecord to a ProgressRecordVO.
-func progressRecordToVO(record *model.ProgressRecord, userRepo repository.UserRepo, c *gin.Context) vo.ProgressRecordVO {
-	authorName := ""
-	if userRepo != nil {
-		user, err := userRepo.FindByID(c.Request.Context(), uint(record.AuthorKey))
-		if err == nil && user != nil {
-			authorName = user.DisplayName
-		}
-	}
-	return vo.NewProgressRecordVO(record, authorName)
-}
-
-// progressRecordsToVOs converts a slice of ProgressRecord to ProgressRecordVO using batch lookups (fixes N+1).
-func progressRecordsToVOs(records []model.ProgressRecord, userRepo repository.UserRepo, c *gin.Context) []vo.ProgressRecordVO {
+// buildProgressRecordVOs converts a slice of ProgressRecord to ProgressRecordVO using batch lookups (fixes N+1).
+// Single-item callers pass a 1-element slice; the batch path has no N+1 overhead.
+func buildProgressRecordVOs(records []model.ProgressRecord, userRepo repository.UserRepo, c *gin.Context) []vo.ProgressRecordVO {
 	if len(records) == 0 {
 		return []vo.ProgressRecordVO{}
 	}
@@ -184,7 +173,7 @@ func progressRecordsToVOs(records []model.ProgressRecord, userRepo repository.Us
 
 	// Batch lookup
 	userMap := make(map[uint]*model.User)
-	if userRepo != nil && len(authorIDs) > 0 {
+	if len(authorIDs) > 0 {
 		ids := make([]uint, 0, len(authorIDs))
 		for id := range authorIDs {
 			ids = append(ids, id)

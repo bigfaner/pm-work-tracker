@@ -65,7 +65,7 @@ export default function TableViewPage() {
 
   const { data: membersData } = useQuery({
     queryKey: ['members', teamId],
-    queryFn: () => listMembersApi(String(teamId!)),
+    queryFn: () => listMembersApi(teamId!),
     enabled: !!teamId,
   })
 

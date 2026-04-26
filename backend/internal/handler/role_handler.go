@@ -2,12 +2,12 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 
 	"pm-work-tracker/backend/internal/dto"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	pkgHandler "pm-work-tracker/backend/internal/pkg/handler"
 	"pm-work-tracker/backend/internal/service"
 )
 
@@ -32,7 +32,8 @@ func (h *RoleHandler) ListRoles(c *gin.Context) {
 		return
 	}
 
-	page, pageSize := parsePagination(c, 20)
+	page, pageSize := parsePageParams(c)
+	_, page, pageSize = dto.ApplyPaginationDefaults(page, pageSize)
 	apperrors.RespondOK(c, gin.H{
 		"items":    items,
 		"total":    len(items),
@@ -60,7 +61,7 @@ func (h *RoleHandler) CreateRole(c *gin.Context) {
 
 // GetRole handles GET /api/v1/admin/roles/:id
 func (h *RoleHandler) GetRole(c *gin.Context) {
-	bizKey, ok := parseRoleBizKey(c)
+	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "id")
 	if !ok {
 		return
 	}
@@ -76,7 +77,7 @@ func (h *RoleHandler) GetRole(c *gin.Context) {
 
 // UpdateRole handles PUT /api/v1/admin/roles/:id
 func (h *RoleHandler) UpdateRole(c *gin.Context) {
-	bizKey, ok := parseRoleBizKey(c)
+	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "id")
 	if !ok {
 		return
 	}
@@ -98,7 +99,7 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 
 // DeleteRole handles DELETE /api/v1/admin/roles/:id
 func (h *RoleHandler) DeleteRole(c *gin.Context) {
-	bizKey, ok := parseRoleBizKey(c)
+	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "id")
 	if !ok {
 		return
 	}
@@ -111,13 +112,3 @@ func (h *RoleHandler) DeleteRole(c *gin.Context) {
 	apperrors.RespondOK(c, nil)
 }
 
-// parseRoleBizKey extracts the role bizKey from the URL path parameter.
-func parseRoleBizKey(c *gin.Context) (int64, bool) {
-	idStr := c.Param("id")
-	bizKey, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrValidation)
-		return 0, false
-	}
-	return bizKey, true
-}

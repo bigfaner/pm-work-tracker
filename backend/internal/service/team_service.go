@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"gorm.io/gorm"
@@ -11,14 +10,10 @@ import (
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg"
+	"pm-work-tracker/backend/internal/pkg/repo"
 	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/repository"
 )
-
-// TransactionDB abstracts the gorm.DB.Transaction method for testability.
-type TransactionDB interface {
-	Transaction(fc func(tx *gorm.DB) error, opts ...*sql.TxOptions) error
-}
 
 type TeamService interface {
 	CreateTeam(ctx context.Context, creatorID uint, req dto.CreateTeamReq) (*model.Team, error)
@@ -40,10 +35,10 @@ type teamService struct {
 	userRepo    repository.UserRepo
 	mainItemRepo repository.MainItemRepo
 	roleRepo    repository.RoleRepo
-	db          TransactionDB
+	db          repo.DBTransactor
 }
 
-func NewTeamService(teamRepo repository.TeamRepo, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, roleRepo repository.RoleRepo, db TransactionDB) TeamService {
+func NewTeamService(teamRepo repository.TeamRepo, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, roleRepo repository.RoleRepo, db repo.DBTransactor) TeamService {
 	return &teamService{teamRepo: teamRepo, userRepo: userRepo, mainItemRepo: mainItemRepo, roleRepo: roleRepo, db: db}
 }
 
@@ -174,12 +169,9 @@ func (s *teamService) UpdateTeam(ctx context.Context, pmID, teamID uint, req dto
 }
 
 func (s *teamService) InviteMember(ctx context.Context, pmID, teamID uint, req dto.InviteMemberReq) error {
-	team, err := s.teamRepo.FindByID(ctx, teamID)
-	if err != nil {
+	if _, err := s.teamRepo.FindByID(ctx, teamID); err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
-	_ = team.PmKey // permission is enforced by RequirePermission middleware
-
 	if roleID, err := pkg.ParseID(req.RoleKey); err == nil && s.isPMRole(ctx, uint(roleID)) {
 		return apperrors.ErrCannotAssignPMRole
 	}
@@ -340,8 +332,5 @@ func (s *teamService) SearchAvailableUsers(ctx context.Context, teamID uint, sea
 		}
 	}
 
-	if result == nil {
-		result = []*dto.UserSearchDTO{}
-	}
 	return result, nil
 }

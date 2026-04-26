@@ -13,6 +13,7 @@ import (
 	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/repository"
+	"pm-work-tracker/backend/internal/vo"
 )
 
 // AdminService defines admin-only operations.
@@ -252,13 +253,14 @@ func modelToAdminUserDTO(u *model.User, teams []dto.TeamSummary) *dto.AdminUserD
 	if teams == nil {
 		teams = []dto.TeamSummary{}
 	}
+	base := vo.NewUserVO(u)
 	return &dto.AdminUserDTO{
-		BizKey:       pkg.FormatID(u.BizKey),
-		Username:     u.Username,
-		DisplayName:  u.DisplayName,
-		Email:        u.Email,
-		Status:       u.UserStatus,
-		IsSuperAdmin: u.IsSuperAdmin,
+		BizKey:       base.BizKey,
+		Username:     base.Username,
+		DisplayName:  base.DisplayName,
+		Email:        base.Email,
+		Status:       base.Status,
+		IsSuperAdmin: base.IsSuperAdmin,
 		Teams:        teams,
 	}
 }

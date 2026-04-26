@@ -31,22 +31,18 @@ type viewService struct {
 	userRepo     repository.UserRepo
 }
 
-// NewViewService creates a new ViewService.
-func NewViewService(mainItemRepo repository.MainItemRepo, subItemRepo repository.SubItemRepo, progressRepo repository.ProgressRepo) ViewService {
-	return &viewService{
-		mainItemRepo: mainItemRepo,
-		subItemRepo:  subItemRepo,
-		progressRepo: progressRepo,
+// NewViewService creates a new ViewService. userRepo is optional; when provided,
+// it enables assignee name resolution in table view and weekly comparison.
+func NewViewService(mainItemRepo repository.MainItemRepo, subItemRepo repository.SubItemRepo, progressRepo repository.ProgressRepo, userRepo ...repository.UserRepo) ViewService {
+	var ur repository.UserRepo
+	if len(userRepo) > 0 {
+		ur = userRepo[0]
 	}
-}
-
-// NewViewServiceWithUserRepo creates a new ViewService with user repo for table view.
-func NewViewServiceWithUserRepo(mainItemRepo repository.MainItemRepo, subItemRepo repository.SubItemRepo, progressRepo repository.ProgressRepo, userRepo repository.UserRepo) ViewService {
 	return &viewService{
 		mainItemRepo: mainItemRepo,
 		subItemRepo:  subItemRepo,
 		progressRepo: progressRepo,
-		userRepo:     userRepo,
+		userRepo:     ur,
 	}
 }
 

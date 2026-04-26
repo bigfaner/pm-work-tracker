@@ -130,7 +130,7 @@ describe('shared TypeScript interfaces', () => {
 
   it('should define a valid Role', () => {
     const role: Role = {
-      id: 1,
+      bizKey: '1',
       roleName: 'PM',
       roleDesc: 'Project Manager',
       isPreset: true,

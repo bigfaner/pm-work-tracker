@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"gorm.io/gorm"
@@ -12,6 +11,7 @@ import (
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/pkg/dates"
+	"pm-work-tracker/backend/internal/pkg/repo"
 	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/repository"
 )
@@ -27,19 +27,15 @@ type ItemPoolService interface {
 	GetByBizKey(ctx context.Context, bizKey int64) (*model.ItemPool, error)
 }
 
-type dbTransactor interface {
-	Transaction(fc func(tx *gorm.DB) error, opts ...*sql.TxOptions) error
-}
-
 type itemPoolService struct {
 	poolRepo   repository.ItemPoolRepo
 	subRepo    repository.SubItemRepo
 	mainRepo   repository.MainItemRepo
-	db         dbTransactor
+	db         repo.DBTransactor
 }
 
 // NewItemPoolService creates a new ItemPoolService.
-func NewItemPoolService(poolRepo repository.ItemPoolRepo, subRepo repository.SubItemRepo, mainRepo repository.MainItemRepo, db dbTransactor) ItemPoolService {
+func NewItemPoolService(poolRepo repository.ItemPoolRepo, subRepo repository.SubItemRepo, mainRepo repository.MainItemRepo, db repo.DBTransactor) ItemPoolService {
 	return &itemPoolService{
 		poolRepo: poolRepo,
 		subRepo:  subRepo,

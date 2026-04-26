@@ -300,8 +300,8 @@ func TestMigrateToRBAC_EmptyDBSucceeds(t *testing.T) {
 	assert.Equal(t, int64(3), roleCount, "all 3 preset roles should be seeded")
 
 	// Verify tables created
-	assert.True(t, tableExists(db, "roles"))
-	assert.True(t, tableExists(db, "role_permissions"))
+	assert.True(t, tableExists(db, "pmw_roles"))
+	assert.True(t, tableExists(db, "pmw_role_permissions"))
 	assert.True(t, tableExists(db, "pmw_team_members"))
 	assert.False(t, HasColumn(db, "pmw_team_members", "role"))
 }

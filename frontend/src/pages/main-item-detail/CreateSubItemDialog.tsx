@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button'
 export interface CreateSubItemFormState {
   title: string
   priority: string
-  assigneeId: string
+  assigneeKey: string
   startDate: string
   expectedEndDate: string
   description: string
@@ -82,8 +82,8 @@ export default function CreateSubItemDialog({
               </label>
               <MemberSelect
                 members={members}
-                selectedId={form.assigneeId}
-                onSelect={(v) => onFormChange((f) => ({ ...f, assigneeId: v }))}
+                selectedId={form.assigneeKey}
+                onSelect={(v) => onFormChange((f) => ({ ...f, assigneeKey: v }))}
               />
             </div>
           </div>
@@ -119,7 +119,7 @@ export default function CreateSubItemDialog({
         </DialogBody>
         <DialogFooter>
           <Button variant="secondary" onClick={() => onOpenChange(false)}>取消</Button>
-          <Button onClick={onSubmit} disabled={!form.title.trim() || !form.priority || !form.assigneeId || !form.startDate || !form.expectedEndDate || isPending}>确认</Button>
+          <Button onClick={onSubmit} disabled={!form.title.trim() || !form.priority || !form.assigneeKey || !form.startDate || !form.expectedEndDate || isPending}>确认</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

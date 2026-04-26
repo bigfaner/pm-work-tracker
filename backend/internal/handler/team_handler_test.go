@@ -218,6 +218,15 @@ func (m *mockUserRepoForHandler) SearchAvailable(_ context.Context, _ uint, _ st
 // Helpers
 // ---------------------------------------------------------------------------
 
+// notMemberTeamRepo wraps mockTeamRepo but FindMember always returns "not found".
+type notMemberTeamRepo struct {
+	mockTeamRepo
+}
+
+func (m *notMemberTeamRepo) FindMember(_ context.Context, _, _ uint) (*model.TeamMember, error) {
+	return nil, errors.New("not a member")
+}
+
 // depsWithTeamSvc creates test deps with a mock TeamService wired in.
 
 func depsWithTeamSvc(t *testing.T, svc *mockTeamService, userRepo *mockUserRepoForHandler) *Dependencies {
@@ -804,8 +813,9 @@ func TestTransferPM_Success(t *testing.T) {
 	svc := &mockTeamService{}
 	svc.getTeamResult.team = &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10}
 
-	deps := depsWithTeamSvc(t, svc, nil)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	userRepo := &mockUserRepoForHandler{user: &model.User{BaseModel: model.BaseModel{ID: 5}}}
+	deps := depsWithTeamSvc(t, svc, userRepo)
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
@@ -826,8 +836,9 @@ func TestTransferPM_TargetNotMember(t *testing.T) {
 	svc.getTeamResult.team = &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10}
 	svc.transferPMErr = apperrors.ErrNotTeamMember
 
-	deps := depsWithTeamSvc(t, svc, nil)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	userRepo := &mockUserRepoForHandler{user: &model.User{BaseModel: model.BaseModel{ID: 99}}}
+	deps := depsWithTeamSvc(t, svc, userRepo)
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
@@ -850,8 +861,9 @@ func TestTransferPM_InvalidBody(t *testing.T) {
 	svc := &mockTeamService{}
 	svc.getTeamResult.team = &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10}
 
-	deps := depsWithTeamSvc(t, svc, nil)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	userRepo := &mockUserRepoForHandler{user: &model.User{}}
+	deps := depsWithTeamSvc(t, svc, userRepo)
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
@@ -870,8 +882,9 @@ func TestTransferPM_ServiceError(t *testing.T) {
 	svc.getTeamResult.team = &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10}
 	svc.transferPMErr = errors.New("unexpected error")
 
-	deps := depsWithTeamSvc(t, svc, nil)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	userRepo := &mockUserRepoForHandler{user: &model.User{BaseModel: model.BaseModel{ID: 5}}}
+	deps := depsWithTeamSvc(t, svc, userRepo)
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
@@ -883,4 +896,58 @@ func TestTransferPM_ServiceError(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestTransferPM_SuperAdminNotTeamMember_Succeeds(t *testing.T) {
+	svc := &mockTeamService{}
+	svc.getTeamResult.team = &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10}
+
+	userRepo := &mockUserRepoForHandler{user: &model.User{BaseModel: model.BaseModel{ID: 5}}}
+	deps := depsWithTeamSvc(t, svc, userRepo)
+	// mockTeamRepo returns a member for FindMember, but the superadmin bypass
+	// in TeamScopeMiddleware should skip the FindMember call entirely.
+	deps.TeamRepo = &mockTeamRepo{}
+	r := SetupRouter(deps, nil)
+
+	// User ID=1 is superadmin in testDeps. Not a team member, but should bypass.
+	token := signTestToken(t, 1, "admin")
+	body := `{"newPmUserKey":"5"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/1/pm", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, svc.transferCalled)
+	// SuperAdmin → handler fetches team.PmKey (10) as currentPMID
+	assert.Equal(t, uint(10), svc.lastPmID)
+	assert.Equal(t, uint(1), svc.transferTeamID)
+	assert.Equal(t, uint(5), svc.newPmID)
+}
+
+func TestTransferPM_RegularMemberNotInTeam_Returns403(t *testing.T) {
+	svc := &mockTeamService{}
+	svc.getTeamResult.team = &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10}
+
+	deps := depsWithTeamSvc(t, svc, &mockUserRepoForHandler{user: &model.User{BaseModel: model.BaseModel{ID: 5}}})
+	// Use mockTeamRepo — FindByBizKey returns a team, but FindMember returns error (not a member).
+	deps.TeamRepo = &notMemberTeamRepo{}
+	r := SetupRouter(deps, nil)
+
+	// User ID=2 is a regular member (not superadmin) in testDeps
+	token := signTestToken(t, 2, "testuser1")
+	body := `{"newPmUserKey":"5"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/1/pm", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "NOT_TEAM_MEMBER", resp["code"])
+	assert.False(t, svc.transferCalled)
 }

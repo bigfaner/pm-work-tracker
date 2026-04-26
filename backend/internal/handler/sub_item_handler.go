@@ -1,8 +1,8 @@
 package handler
 
 import (
+	"context"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -10,6 +10,7 @@ import (
 	"pm-work-tracker/backend/internal/middleware"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg"
+	pkgHandler "pm-work-tracker/backend/internal/pkg/handler"
 	"pm-work-tracker/backend/internal/service"
 	"pm-work-tracker/backend/internal/vo"
 )
@@ -50,31 +51,6 @@ func isPMOrSuperAdmin(c *gin.Context) bool {
 	return false
 }
 
-// parseSubBizKey extracts and validates the subId path param as int64 bizKey.
-func parseSubBizKey(c *gin.Context) (int64, bool) {
-	idStr := c.Param("subId")
-	bizKey, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrValidation)
-		return 0, false
-	}
-	return bizKey, true
-}
-
-// resolveSubID parses the subId path param as a bizKey and resolves it to an internal uint ID.
-func (h *SubItemHandler) resolveSubID(c *gin.Context) (uint, bool) {
-	bizKey, ok := parseSubBizKey(c)
-	if !ok {
-		return 0, false
-	}
-	item, err := h.svc.GetByBizKey(c.Request.Context(), bizKey)
-	if err != nil {
-		apperrors.RespondError(c, err)
-		return 0, false
-	}
-	return item.ID, true
-}
-
 // Create handles POST /api/v1/teams/:teamId/main-items/:itemId/sub-items
 func (h *SubItemHandler) Create(c *gin.Context) {
 	teamID := middleware.GetTeamID(c)
@@ -99,7 +75,7 @@ func (h *SubItemHandler) Create(c *gin.Context) {
 func (h *SubItemHandler) List(c *gin.Context) {
 	teamID := middleware.GetTeamID(c)
 
-	mainBizKey, ok := parseBizKey(c)
+	mainBizKey, ok := pkgHandler.ParseBizKeyParam(c, "itemId")
 	if !ok {
 		return
 	}
@@ -143,7 +119,13 @@ func (h *SubItemHandler) List(c *gin.Context) {
 
 // Get handles GET /api/v1/teams/:teamId/sub-items/:subId
 func (h *SubItemHandler) Get(c *gin.Context) {
-	subID, ok := h.resolveSubID(c)
+	subID, ok := pkgHandler.ResolveBizKey(c, "subId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.svc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -161,7 +143,13 @@ func (h *SubItemHandler) Get(c *gin.Context) {
 
 // Update handles PUT /api/v1/teams/:teamId/sub-items/:subId
 func (h *SubItemHandler) Update(c *gin.Context) {
-	subID, ok := h.resolveSubID(c)
+	subID, ok := pkgHandler.ResolveBizKey(c, "subId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.svc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -209,7 +197,13 @@ func (h *SubItemHandler) Update(c *gin.Context) {
 
 // ChangeStatus handles PUT /api/v1/teams/:teamId/sub-items/:subId/status
 func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
-	subID, ok := h.resolveSubID(c)
+	subID, ok := pkgHandler.ResolveBizKey(c, "subId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.svc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -254,7 +248,13 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 
 // AvailableTransitions handles GET /api/v1/teams/:teamId/sub-items/:subId/available-transitions
 func (h *SubItemHandler) AvailableTransitions(c *gin.Context) {
-	subID, ok := h.resolveSubID(c)
+	subID, ok := pkgHandler.ResolveBizKey(c, "subId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.svc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -272,7 +272,13 @@ func (h *SubItemHandler) AvailableTransitions(c *gin.Context) {
 
 // Assign handles PUT /api/v1/teams/:teamId/sub-items/:subId/assignee
 func (h *SubItemHandler) Assign(c *gin.Context) {
-	subID, ok := h.resolveSubID(c)
+	subID, ok := pkgHandler.ResolveBizKey(c, "subId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.svc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
 	if !ok {
 		return
 	}

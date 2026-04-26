@@ -2,7 +2,7 @@
 
 export interface PermissionData {
   isSuperAdmin: boolean
-  teamPermissions: Record<number, string[]>
+  teamPermissions: Record<string, string[]>
 }
 
 export interface Role {
@@ -381,7 +381,7 @@ export interface TableRow {
   completion: number
   expectedEndDate: string | null
   actualEndDate: string | null
-  mainItemId?: number | null
+  mainItemId?: string | null
 }
 
 // Reports

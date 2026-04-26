@@ -1,10 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from '@/store/auth'
-
-// TODO: Replace with proper toast system in later task
-const message = {
-  error: (msg: string) => console.error('[API Error]', msg),
-}
+import { showToast } from '@/lib/toast'
 
 const client = axios.create({
   baseURL: `${import.meta.env.VITE_BASE_PATH ?? ''}/v1`,
@@ -41,17 +37,17 @@ client.interceptors.response.use(
         window.location.href = '/login'
         break
       case 403:
-        message.error('权限不足')
+        showToast('权限不足', 'error')
         useAuthStore.getState().fetchPermissions()
         break
       case 404:
-        message.error('资源不存在')
+        showToast('资源不存在', 'error')
         break
       case 422:
         // Re-throw for component-level handling
         break
       case 500:
-        message.error('服务器错误，请稍后重试')
+        showToast('服务器错误，请稍后重试', 'error')
         break
     }
 

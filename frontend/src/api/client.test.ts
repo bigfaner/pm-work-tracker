@@ -1,12 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import client from './client'
 import { useAuthStore } from '@/store/auth'
+import { showToast } from '@/lib/toast'
+
+vi.mock('@/lib/toast', () => ({
+  showToast: vi.fn(),
+}))
 
 describe('API Client', () => {
   beforeEach(() => {
     useAuthStore.getState().clearAuth()
     vi.clearAllMocks()
-    vi.spyOn(console, 'error').mockImplementation(() => {})
     // Reset window.location.href mock
     const originalLocation = window.location
     Object.defineProperty(window, 'location', {
@@ -108,7 +112,7 @@ describe('API Client', () => {
       const error = { response: { status: 403, data: {} } }
 
       await expect(handler(error)).rejects.toBe(error)
-      expect(console.error).toHaveBeenCalledWith('[API Error]', '权限不足')
+      expect(showToast).toHaveBeenCalledWith('权限不足', 'error')
     })
 
     it('should log error on 404', async () => {
@@ -116,7 +120,7 @@ describe('API Client', () => {
       const error = { response: { status: 404, data: {} } }
 
       await expect(handler(error)).rejects.toBe(error)
-      expect(console.error).toHaveBeenCalledWith('[API Error]', '资源不存在')
+      expect(showToast).toHaveBeenCalledWith('资源不存在', 'error')
     })
 
     it('should re-throw 422 errors without logging message', async () => {
@@ -124,7 +128,7 @@ describe('API Client', () => {
       const error = { response: { status: 422, data: { code: 'VALIDATION_ERROR', message: 'bad' } } }
 
       await expect(handler(error)).rejects.toBe(error)
-      expect(console.error).not.toHaveBeenCalled()
+      expect(showToast).not.toHaveBeenCalled()
     })
 
     it('should log error on 500', async () => {
@@ -132,7 +136,7 @@ describe('API Client', () => {
       const error = { response: { status: 500, data: {} } }
 
       await expect(handler(error)).rejects.toBe(error)
-      expect(console.error).toHaveBeenCalledWith('[API Error]', '服务器错误，请稍后重试')
+      expect(showToast).toHaveBeenCalledWith('服务器错误，请稍后重试', 'error')
     })
 
     it('should pass through network errors without response', async () => {
@@ -140,7 +144,7 @@ describe('API Client', () => {
       const error = new Error('Network Error')
 
       await expect(handler(error)).rejects.toThrow('Network Error')
-      expect(console.error).not.toHaveBeenCalled()
+      expect(showToast).not.toHaveBeenCalled()
     })
   })
 })

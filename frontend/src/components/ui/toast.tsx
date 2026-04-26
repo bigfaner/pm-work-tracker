@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import { init as initToastShim } from '@/lib/toast'
 
 interface ToastProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'success' | 'error' | 'warning'
@@ -55,8 +56,13 @@ function ToastProvider({ children }: ToastProviderProps) {
         setToasts((prev) => prev.filter((t) => t.id !== id))
       }, 1000)
     },
-    []
+    [],
   )
+
+  // Wire standalone shim so non-React modules (e.g., Axios interceptor) can show toasts
+  React.useEffect(() => {
+    initToastShim(addToast)
+  }, [addToast])
 
   const removeToast = React.useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))

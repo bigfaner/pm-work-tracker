@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -18,6 +19,7 @@ import (
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/repository"
+	"pm-work-tracker/backend/internal/vo"
 )
 
 // ---------------------------------------------------------------------------
@@ -1092,3 +1094,36 @@ func (m *mockMainItemRepoForPool) FindByBizKey(_ context.Context, _ int64) (*mod
 }
 
 func ptrStr(s string) *string { return &s }
+
+// ---------------------------------------------------------------------------
+// Tests: buildItemPoolVOs unified function
+// ---------------------------------------------------------------------------
+
+func TestBuildItemPoolVOs_EmptySlice(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/", nil)
+	result := buildItemPoolVOs(nil, &mockUserRepoForHandler{}, &mockMainItemRepoForPool{}, c)
+	assert.Equal(t, []vo.ItemPoolVO{}, result)
+}
+
+func TestBuildItemPoolVOs_SingleItem(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/", nil)
+
+	assignedMain := int64(100)
+	item := model.ItemPool{SubmitterKey: 5, AssignedMainKey: &assignedMain}
+	item.ID = 1
+
+	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "Alice"}}
+	mainItemRepo := &trackingMainItemRepo{items: map[int64]*model.MainItem{100: {Code: "M-001", Title: "Main One"}}}
+
+	result := buildItemPoolVOs([]model.ItemPool{item}, userRepo, mainItemRepo, c)
+	require.Len(t, result, 1)
+	assert.Equal(t, "Alice", result[0].SubmitterName)
+	assert.Equal(t, "M-001", result[0].AssignedMainCode)
+	assert.Equal(t, "Main One", result[0].AssignedMainTitle)
+}

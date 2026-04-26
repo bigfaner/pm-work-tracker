@@ -1,0 +1,6 @@
+[
+  {"phase": 1, "name": "P0 Bug Fixes", "source": "PRD-explicit", "gates": [{"afterPhase": 1, "description": "Round 1 测试全部通过? — verify bug fixes compile and tests pass"}]},
+  {"phase": 2, "name": "Dead Code Removal", "source": "PRD-explicit", "gates": [{"afterPhase": 2, "description": "Round 2 编译+测试通过? — verify build after dead code removal"}]},
+  {"phase": 3, "name": "Pattern Unification", "source": "PRD-explicit", "gates": [{"afterPhase": 3, "description": "Round 3 编译+测试通过? — verify shared helpers work correctly"}]},
+  {"phase": 4, "name": "Architecture Alignment", "source": "PRD-explicit", "gates": [{"afterPhase": 4, "description": "Round 4 全量测试通过? — verify full test suite after architecture changes"}]}
+]

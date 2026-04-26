@@ -43,16 +43,16 @@ export function useItemViewPage(teamId: string | null) {
 
   // Dialog state
   const [createOpen, setCreateOpen] = useState(false)
-  const [createForm, setCreateForm] = useState<CreateMainItemFormState>({ title: '', description: '', priority: 'P2', assigneeId: '', startDate: today(), expectedEndDate: '' })
+  const [createForm, setCreateForm] = useState<CreateMainItemFormState>({ title: '', description: '', priority: 'P2', assigneeKey: '', startDate: today(), expectedEndDate: '' })
 
   const [createSubOpen, setCreateSubOpen] = useState(false)
   const [createSubTarget, setCreateSubTarget] = useState<string | null>(null)
   const [createSubTargetName, setCreateSubTargetName] = useState('')
-  const [createSubForm, setCreateSubForm] = useState<CreateSubItemFormState>({ title: '', priority: 'P2', assigneeId: '', startDate: today(), expectedEndDate: '', description: '' })
+  const [createSubForm, setCreateSubForm] = useState<CreateSubItemFormState>({ title: '', priority: 'P2', assigneeKey: '', startDate: today(), expectedEndDate: '', description: '' })
 
   const [editOpen, setEditOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState<EditMainItemFormState>({ title: '', priority: '', assigneeId: '', expectedEndDate: '', description: '' })
+  const [editForm, setEditForm] = useState<EditMainItemFormState>({ title: '', priority: '', assigneeKey: '', expectedEndDate: '', description: '' })
 
   const [appendOpen, setAppendOpen] = useState(false)
   const [appendTarget, setAppendTarget] = useState<string | null>(null)
@@ -61,7 +61,7 @@ export function useItemViewPage(teamId: string | null) {
 
   const [editSubOpen, setEditSubOpen] = useState(false)
   const [editSubTarget, setEditSubTarget] = useState<SubItem | null>(null)
-  const [editSubForm, setEditSubForm] = useState<EditSubItemFormState>({ title: '', priority: '', assigneeId: '', expectedEndDate: '', description: '' })
+  const [editSubForm, setEditSubForm] = useState<EditSubItemFormState>({ title: '', priority: '', assigneeKey: '', expectedEndDate: '', description: '' })
 
   // Expanded cards
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
@@ -115,7 +115,7 @@ export function useItemViewPage(teamId: string | null) {
       items = items.filter((item) => item.itemStatus === statusFilter)
     }
     if (assigneeFilter) {
-      items = items.filter((item) => String(item.assigneeKey) === assigneeFilter)
+      items = items.filter((item) => item.assigneeKey === assigneeFilter)
     }
     return items
   }, [allItems, searchText, statusFilter, assigneeFilter])
@@ -186,7 +186,7 @@ export function useItemViewPage(teamId: string | null) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
       setCreateOpen(false)
-      setCreateForm({ title: '', description: '', priority: 'P2', assigneeId: '', startDate: today(), expectedEndDate: '' })
+      setCreateForm({ title: '', description: '', priority: 'P2', assigneeKey: '', startDate: today(), expectedEndDate: '' })
     },
   })
 
@@ -197,7 +197,7 @@ export function useItemViewPage(teamId: string | null) {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
       qc.invalidateQueries({ queryKey: ['subItems', teamId, req.mainItemKey] })
       setCreateSubOpen(false)
-      setCreateSubForm({ title: '', priority: 'P2', assigneeId: '', startDate: today(), expectedEndDate: '', description: '' })
+      setCreateSubForm({ title: '', priority: 'P2', assigneeKey: '', startDate: today(), expectedEndDate: '', description: '' })
     },
   })
 
@@ -258,24 +258,24 @@ export function useItemViewPage(teamId: string | null) {
   }, [qc, teamId, addToast])
 
   const handleCreate = useCallback(() => {
-    if (!createForm.title.trim() || !createForm.assigneeId || !createForm.startDate || !createForm.expectedEndDate) return
+    if (!createForm.title.trim() || !createForm.assigneeKey || !createForm.startDate || !createForm.expectedEndDate) return
     createMutation.mutate({
       title: createForm.title.trim(),
       description: createForm.description,
       priority: createForm.priority,
-      assigneeKey: createForm.assigneeId,
+      assigneeKey: createForm.assigneeKey,
       startDate: createForm.startDate,
       expectedEndDate: createForm.expectedEndDate,
     })
   }, [createForm, createMutation])
 
   const handleCreateSub = useCallback(() => {
-    if (!createSubForm.title.trim() || !createSubTarget || !createSubForm.priority || !createSubForm.assigneeId || !createSubForm.startDate || !createSubForm.expectedEndDate) return
+    if (!createSubForm.title.trim() || !createSubTarget || !createSubForm.priority || !createSubForm.assigneeKey || !createSubForm.startDate || !createSubForm.expectedEndDate) return
     createSubMutation.mutate({
       mainItemKey: createSubTarget,
       title: createSubForm.title.trim(),
       priority: createSubForm.priority,
-      assigneeKey: createSubForm.assigneeId,
+      assigneeKey: createSubForm.assigneeKey,
       startDate: createSubForm.startDate,
       expectedEndDate: createSubForm.expectedEndDate,
       ...(createSubForm.description && { description: createSubForm.description }),
@@ -287,7 +287,7 @@ export function useItemViewPage(teamId: string | null) {
     setEditForm({
       title: item.title,
       priority: item.priority,
-      assigneeId: item.assigneeKey ? String(item.assigneeKey) : '',
+      assigneeKey: item.assigneeKey || '',
       expectedEndDate: item.expectedEndDate || '',
       description: item.itemDesc || '',
     })
@@ -301,7 +301,7 @@ export function useItemViewPage(teamId: string | null) {
       data: {
         title: editForm.title.trim(),
         priority: editForm.priority,
-        assigneeKey: editForm.assigneeId || null,
+        assigneeKey: editForm.assigneeKey || null,
         expectedEndDate: editForm.expectedEndDate || null,
         actualEndDate: null,
         description: editForm.description,
@@ -321,7 +321,7 @@ export function useItemViewPage(teamId: string | null) {
     setEditSubForm({
       title: sub.title,
       priority: sub.priority,
-      assigneeId: sub.assigneeKey ? String(sub.assigneeKey) : '',
+      assigneeKey: sub.assigneeKey || '',
       expectedEndDate: sub.expectedEndDate || '',
       description: sub.itemDesc || '',
     })
@@ -336,7 +336,7 @@ export function useItemViewPage(teamId: string | null) {
       data: {
         title: editSubForm.title.trim(),
         priority: editSubForm.priority,
-        assigneeKey: editSubForm.assigneeId || undefined,
+        assigneeKey: editSubForm.assigneeKey || undefined,
         expectedEndDate: editSubForm.expectedEndDate || undefined,
         description: editSubForm.description,
       },

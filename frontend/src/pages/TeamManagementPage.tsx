@@ -34,14 +34,9 @@ import {
 } from '@/components/ui/table'
 import PaginationBar from '@/components/shared/PaginationBar'
 import { useToast } from '@/components/ui/toast'
-import { formatDate as _formatDate } from '@/lib/format'
+import { formatDateOnly } from '@/lib/format'
 
 const PAGE_SIZE = 10
-
-// TeamManagementPage receives ISO datetime strings; truncate to date before formatting
-function formatDate(dateStr?: string): string {
-  return dateStr ? _formatDate(dateStr.slice(0, 10)) : '-'
-}
 
 export default function TeamManagementPage() {
   const qc = useQueryClient()
@@ -59,7 +54,7 @@ export default function TeamManagementPage() {
   const [userSearch, setUserSearch] = useState('')
   const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null)
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
-  const [inviteRoleId, setInviteRoleId] = useState<number | undefined>(undefined)
+  const [inviteRoleId, setInviteRoleId] = useState<string | undefined>(undefined)
 
   // Search + pagination state
   const [search, setSearch] = useState('')
@@ -118,7 +113,7 @@ export default function TeamManagementPage() {
 
   // Add member mutation
   const inviteMutation = useMutation({
-    mutationFn: () => inviteMemberApi(addMemberTeamId!, { username: selectedUser!.username, roleKey: String(inviteRoleId!) }),
+    mutationFn: () => inviteMemberApi(addMemberTeamId!, { username: selectedUser!.username, roleKey: inviteRoleId! }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['teams'] })
       closeAddMemberDialog()
@@ -251,7 +246,7 @@ export default function TeamManagementPage() {
                   </TableCell>
                   <TableCell>
                     <span className="text-[13px] text-secondary">
-                      {formatDate(team.createdAt)}
+                      {formatDateOnly(team.createdAt)}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -393,15 +388,15 @@ export default function TeamManagementPage() {
                   角色 <span className="text-error">*</span>
                 </label>
                 <Select
-                  value={inviteRoleId != null ? String(inviteRoleId) : ''}
-                  onValueChange={(v) => setInviteRoleId(Number(v))}
+                  value={inviteRoleId ?? ''}
+                  onValueChange={(v) => setInviteRoleId(v)}
                 >
                   <SelectTrigger data-testid="add-member-role-select">
                     <SelectValue placeholder="选择角色" />
                   </SelectTrigger>
                   <SelectContent>
                     {roles.map((role) => (
-                      <SelectItem key={role.bizKey} value={String(role.bizKey)}>
+                      <SelectItem key={role.bizKey} value={role.bizKey}>
                         {role.roleName}
                       </SelectItem>
                     ))}

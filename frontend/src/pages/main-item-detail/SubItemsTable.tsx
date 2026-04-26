@@ -21,7 +21,7 @@ interface SubItemsTableProps {
   mainItemId: string
   mainStatus: string
   teamId: string
-  memberName: (assigneeId: string | null) => string
+  memberName: (assigneeKey: string | null) => string
   onStatusChanged: () => void
   onEditSub: (sub: SubItem) => void
   onAppendProgress: (sub: SubItem) => void

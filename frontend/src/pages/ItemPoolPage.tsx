@@ -163,8 +163,8 @@ export default function ItemPoolPage() {
 
   // Form states
   const [submitForm, setSubmitForm] = useState({ title: '', background: '', expectedOutput: '' })
-  const [toMainForm, setToMainForm] = useState({ priority: 'P2', assigneeId: '', startDate: '', expectedEndDate: '' })
-  const [toSubForm, setToSubForm] = useState({ parentItemId: '', priority: 'P2', assigneeId: '', startDate: '', expectedEndDate: '' })
+  const [toMainForm, setToMainForm] = useState({ priority: 'P2', assigneeKey: '', startDate: '', expectedEndDate: '' })
+  const [toSubForm, setToSubForm] = useState({ parentItemId: '', priority: 'P2', assigneeKey: '', startDate: '', expectedEndDate: '' })
   const [rejectForm, setRejectForm] = useState({ reason: '' })
 
   // --- Data fetching ---
@@ -215,7 +215,7 @@ export default function ItemPoolPage() {
       items = items.filter(
         (item) =>
           item.title.toLowerCase().includes(q) ||
-          `pool-${String(item.bizKey).padStart(3, '0')}`.includes(q),
+          `pool-${item.bizKey.padStart(3, '0')}`.includes(q),
       )
     }
     if (statusFilter) {
@@ -294,13 +294,13 @@ export default function ItemPoolPage() {
 
   const openConvertToMain = useCallback((item: ItemPool) => {
     setSelectedItem(item)
-    setToMainForm({ priority: 'P2', assigneeId: '', startDate: '', expectedEndDate: '' })
+    setToMainForm({ priority: 'P2', assigneeKey: '', startDate: '', expectedEndDate: '' })
     setToMainOpen(true)
   }, [])
 
   const openConvertToSub = useCallback((item: ItemPool) => {
     setSelectedItem(item)
-    setToSubForm({ parentItemId: '', priority: 'P2', assigneeId: '', startDate: '', expectedEndDate: '' })
+    setToSubForm({ parentItemId: '', priority: 'P2', assigneeKey: '', startDate: '', expectedEndDate: '' })
     setToSubOpen(true)
   }, [])
 
@@ -330,7 +330,7 @@ export default function ItemPoolPage() {
       poolId: selectedItem.bizKey,
       req: {
         priority: toMainForm.priority || 'P2',
-        assigneeKey: toMainForm.assigneeId || '',
+        assigneeKey: toMainForm.assigneeKey || '',
         startDate: toMainForm.startDate || '',
         expectedEndDate: toMainForm.expectedEndDate || '',
       },
@@ -343,7 +343,7 @@ export default function ItemPoolPage() {
       poolId: selectedItem.bizKey,
       req: {
         mainItemKey: toSubForm.parentItemId,
-        assigneeKey: toSubForm.assigneeId || '',
+        assigneeKey: toSubForm.assigneeKey || '',
         priority: toSubForm.priority || 'P2',
         startDate: toSubForm.startDate || '',
         expectedEndDate: toSubForm.expectedEndDate || '',
@@ -508,7 +508,7 @@ export default function ItemPoolPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-primary mb-1">负责人</label>
-                    <Select value={toMainForm.assigneeId || '_none'} onValueChange={(v) => setToMainForm((f) => ({ ...f, assigneeId: v === '_none' ? '' : v }))}>
+                    <Select value={toMainForm.assigneeKey || '_none'} onValueChange={(v) => setToMainForm((f) => ({ ...f, assigneeKey: v === '_none' ? '' : v }))}>
                       <SelectTrigger><SelectValue placeholder="请选择" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="_none">请选择</SelectItem>
@@ -567,7 +567,7 @@ export default function ItemPoolPage() {
                     <SelectContent>
                       <SelectItem value="_none">请选择主事项</SelectItem>
                       {mainItems.map((mi) => (
-                        <SelectItem key={mi.bizKey} value={String(mi.bizKey)}>
+                        <SelectItem key={mi.bizKey} value={mi.bizKey}>
                           {mi.code} {mi.title}
                         </SelectItem>
                       ))}
@@ -592,7 +592,7 @@ export default function ItemPoolPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-primary mb-1">负责人</label>
-                    <Select value={toSubForm.assigneeId || '_none'} onValueChange={(v) => setToSubForm((f) => ({ ...f, assigneeId: v === '_none' ? '' : v }))}>
+                    <Select value={toSubForm.assigneeKey || '_none'} onValueChange={(v) => setToSubForm((f) => ({ ...f, assigneeKey: v === '_none' ? '' : v }))}>
                       <SelectTrigger><SelectValue placeholder="请选择" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="_none">请选择</SelectItem>

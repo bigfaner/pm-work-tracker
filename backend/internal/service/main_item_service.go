@@ -102,9 +102,9 @@ type MainItemService interface {
 }
 
 type mainItemService struct {
-	mainItemRepo      repository.MainItemRepo
-	subItemRepo       repository.SubItemRepo
-	statusHistorySvc  StatusHistoryService
+	mainItemRepo     repository.MainItemRepo
+	subItemRepo      repository.SubItemRepo
+	statusHistorySvc StatusHistoryService
 }
 
 // NewMainItemService creates a new MainItemService.
@@ -311,15 +311,8 @@ func (s *mainItemService) ChangeStatus(ctx context.Context, teamID, callerID, it
 	}
 
 	// Record to status history
-	if s.statusHistorySvc != nil {
-		_ = s.statusHistorySvc.Record(ctx, &model.StatusHistory{
-			ItemType:   "main_item",
-			ItemKey:    int64(itemID),
-			FromStatus: oldStatus,
-			ToStatus:   newStatus,
-			ChangedBy:  int64(callerID),
-			IsAuto:     0,
-		})
+	if err := RecordStatusChange(s.statusHistorySvc, ctx, "main_item", int64(itemID), oldStatus, newStatus, callerID, 0, ""); err != nil {
+		return nil, err
 	}
 
 	// Fetch updated item
@@ -387,17 +380,7 @@ func (s *mainItemService) EvaluateLinkage(ctx context.Context, mainItemID uint, 
 	if !status.IsValidTransition(status.MainItemTransitions, mainItem.ItemStatus, targetStatus) {
 		// Linkage failed: record intent in status history
 		remark := fmt.Sprintf("%s→%s 不允许", mainItem.ItemStatus, targetStatus)
-		if s.statusHistorySvc != nil {
-			_ = s.statusHistorySvc.Record(ctx, &model.StatusHistory{
-				ItemType:   "main_item",
-				ItemKey:    int64(mainItemID),
-				FromStatus: mainItem.ItemStatus,
-				ToStatus:   targetStatus,
-				ChangedBy:  int64(changedBy),
-				IsAuto:     1,
-				Remark:     remark,
-			})
-		}
+		_ = RecordStatusChange(s.statusHistorySvc, ctx, "main_item", int64(mainItemID), mainItem.ItemStatus, targetStatus, changedBy, 1, remark)
 		return &LinkageResult{
 			Triggered:    true,
 			Success:      false,
@@ -425,16 +408,7 @@ func (s *mainItemService) EvaluateLinkage(ctx context.Context, mainItemID uint, 
 	}
 
 	// Record to status history (is_auto=true)
-	if s.statusHistorySvc != nil {
-		_ = s.statusHistorySvc.Record(ctx, &model.StatusHistory{
-			ItemType:   "main_item",
-			ItemKey:    int64(mainItemID),
-			FromStatus: oldStatus,
-			ToStatus:   targetStatus,
-			ChangedBy:  int64(changedBy),
-			IsAuto:     1,
-		})
-	}
+	_ = RecordStatusChange(s.statusHistorySvc, ctx, "main_item", int64(mainItemID), oldStatus, targetStatus, changedBy, 1, "")
 
 	return &LinkageResult{
 		Triggered:    true,
@@ -538,4 +512,3 @@ func calcWeightedCompletion(items []*model.SubItem) float64 {
 
 	return weightedSum / totalWeight
 }
-

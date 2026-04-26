@@ -197,46 +197,12 @@ type SubItemSnapshot struct {
 	JustCompleted       bool                `json:"justCompleted"`
 }
 
-// WeeklyViewResult is the response DTO for the weekly view.
-// Deprecated: Use WeeklyViewResponse for the new comparison format.
-type WeeklyViewResult struct {
-	WeekStart string           `json:"weekStart"`
-	WeekEnd   string           `json:"weekEnd"`
-	Groups    []WeeklyGroupDTO `json:"groups"`
-}
-
-// WeeklyGroupDTO groups sub-items under a main item for the weekly view.
-type WeeklyGroupDTO struct {
-	MainItem             MainItemSummaryDTO   `json:"mainItem"`
-	NewlyCompleted       []SubItemWeekDTO     `json:"newlyCompleted"`
-	HasProgress          []SubItemWeekDTO     `json:"hasProgress"`
-	NoChangeFromLastWeek []SubItemSummaryDTO  `json:"noChangeFromLastWeek"`
-}
-
 // MainItemSummaryDTO is a lightweight summary of a main item.
 type MainItemSummaryDTO struct {
 	BizKey     string  `json:"bizKey"`
 	Title      string  `json:"title"`
 	Completion float64 `json:"completion"`
 	IsKeyItem  bool    `json:"isKeyItem,omitempty"`
-}
-
-// SubItemSummaryDTO is a lightweight summary of a sub-item.
-type SubItemSummaryDTO struct {
-	BizKey     string  `json:"bizKey"`
-	Title      string  `json:"title"`
-	Status     string  `json:"status"`
-	Completion float64 `json:"completion"`
-}
-
-// SubItemWeekDTO is a sub-item with its progress records for the week.
-type SubItemWeekDTO struct {
-	BizKey           string                `json:"bizKey"`
-	Title            string                `json:"title"`
-	Status           string                `json:"status"`
-	Completion       float64               `json:"completion"`
-	MainItemID       uint                  `json:"mainItemId"`
-	ProgressThisWeek []ProgressRecordDTO   `json:"progressThisWeek"`
 }
 
 // ProgressRecordDTO is a lightweight progress record for weekly view.

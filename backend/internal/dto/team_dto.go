@@ -87,3 +87,11 @@ type AdminTeamDTO struct {
 	MainItemCount int    `json:"mainItemCount"`
 	CreatedAt     string `json:"createdAt"`
 }
+
+// TeamListPage is a typed pagination wrapper for team listing.
+type TeamListPage struct {
+	Items    []*TeamListResp `json:"items"`
+	Total    int64           `json:"total"`
+	Page     int             `json:"page"`
+	PageSize int             `json:"pageSize"`
+}

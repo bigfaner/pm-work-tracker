@@ -1,25 +1,17 @@
 package dto
 
+import "pm-work-tracker/backend/internal/vo"
+
 // LoginReq is the request DTO for login.
 type LoginReq struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
-// UserDTO is the user object returned in login responses.
-type UserDTO struct {
-	BizKey        string `json:"bizKey"`
-	Username      string `json:"username"`
-	DisplayName   string `json:"displayName"`
-	Email         string `json:"email"`
-	Status        string `json:"status"`
-	IsSuperAdmin  bool   `json:"isSuperAdmin"`
-}
-
 // LoginResp is the response DTO for a successful login.
 type LoginResp struct {
-	Token string  `json:"token"`
-	User  UserDTO `json:"user"`
+	Token string     `json:"token"`
+	User  vo.UserVO  `json:"user"`
 }
 
 // TeamSummary is a lightweight team representation for user detail views.
