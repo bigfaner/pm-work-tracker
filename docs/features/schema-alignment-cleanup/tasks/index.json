@@ -13,7 +13,7 @@
       "dependencies": [
         "1.summary"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "file": "1-gate.md",
       "record": "records/1-gate.md",
       "breaking": true
@@ -24,9 +24,10 @@
       "priority": "P0",
       "estimatedTime": "15min",
       "dependencies": [
-        "1.x"
+        "1.1",
+        "1.2"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "1-summary.md",
       "record": "records/1-summary.md"
     },
@@ -69,7 +70,8 @@
       "priority": "P0",
       "estimatedTime": "15min",
       "dependencies": [
-        "2.x"
+        "2.1",
+        "2.2"
       ],
       "status": "pending",
       "file": "2-summary.md",
@@ -119,7 +121,10 @@
       "priority": "P0",
       "estimatedTime": "15min",
       "dependencies": [
-        "3.x"
+        "3.1",
+        "3.2",
+        "3.3",
+        "3.4"
       ],
       "status": "pending",
       "file": "3-summary.md",
@@ -195,7 +200,9 @@
       "priority": "P0",
       "estimatedTime": "15min",
       "dependencies": [
-        "4.x"
+        "4.1",
+        "4.2",
+        "4.3"
       ],
       "status": "pending",
       "file": "4-summary.md",
