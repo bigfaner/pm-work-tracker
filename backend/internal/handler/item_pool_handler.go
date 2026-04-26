@@ -214,13 +214,13 @@ func (h *ItemPoolHandler) resolvePoolID(c *gin.Context) (uint, bool) {
 // itemPoolToVO converts a single model.ItemPool to an ItemPoolVO using individual lookups.
 func itemPoolToVO(item *model.ItemPool, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, c *gin.Context) vo.ItemPoolVO {
 	submitterName := ""
-	if userRepo != nil && item.SubmitterKey > 0 {
+	if item.SubmitterKey > 0 {
 		if user, err := userRepo.FindByID(c.Request.Context(), uint(item.SubmitterKey)); err == nil && user != nil {
 			submitterName = user.DisplayName
 		}
 	}
 	v := vo.NewItemPoolVO(item, submitterName)
-	if mainItemRepo != nil && item.AssignedMainKey != nil {
+	if item.AssignedMainKey != nil {
 		if mi, err := mainItemRepo.FindByBizKey(c.Request.Context(), *item.AssignedMainKey); err == nil && mi != nil {
 			v.AssignedMainCode = mi.Code
 			v.AssignedMainTitle = mi.Title
@@ -251,7 +251,7 @@ func itemPoolsToVOs(items []model.ItemPool, userRepo repository.UserRepo, mainIt
 
 	// Batch lookups
 	userMap := make(map[uint]*model.User)
-	if userRepo != nil && len(submitterIDs) > 0 {
+	if len(submitterIDs) > 0 {
 		ids := mapKeysToSlice(submitterIDs)
 		if m, err := userRepo.FindByIDs(ctx, ids); err == nil {
 			userMap = m
@@ -259,7 +259,7 @@ func itemPoolsToVOs(items []model.ItemPool, userRepo repository.UserRepo, mainIt
 	}
 
 	mainItemMap := make(map[int64]*model.MainItem)
-	if mainItemRepo != nil && len(mainItemBizKeys) > 0 {
+	if len(mainItemBizKeys) > 0 {
 		keys := int64MapKeysToSlice(mainItemBizKeys)
 		if m, err := mainItemRepo.FindByBizKeys(ctx, keys); err == nil {
 			mainItemMap = m

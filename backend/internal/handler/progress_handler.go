@@ -159,11 +159,9 @@ func (h *ProgressHandler) CorrectCompletion(c *gin.Context) {
 // progressRecordToVO converts a model.ProgressRecord to a ProgressRecordVO.
 func progressRecordToVO(record *model.ProgressRecord, userRepo repository.UserRepo, c *gin.Context) vo.ProgressRecordVO {
 	authorName := ""
-	if userRepo != nil {
-		user, err := userRepo.FindByID(c.Request.Context(), uint(record.AuthorKey))
-		if err == nil && user != nil {
-			authorName = user.DisplayName
-		}
+	user, err := userRepo.FindByID(c.Request.Context(), uint(record.AuthorKey))
+	if err == nil && user != nil {
+		authorName = user.DisplayName
 	}
 	return vo.NewProgressRecordVO(record, authorName)
 }
@@ -184,7 +182,7 @@ func progressRecordsToVOs(records []model.ProgressRecord, userRepo repository.Us
 
 	// Batch lookup
 	userMap := make(map[uint]*model.User)
-	if userRepo != nil && len(authorIDs) > 0 {
+	if len(authorIDs) > 0 {
 		ids := make([]uint, 0, len(authorIDs))
 		for id := range authorIDs {
 			ids = append(ids, id)

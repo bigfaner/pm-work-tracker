@@ -127,8 +127,8 @@ func (r *roleRepo) HasPermission(ctx context.Context, userID uint, code string) 
 
 // teamPermRow is a helper struct for scanning the GetUserTeamPermissions join query.
 type teamPermRow struct {
-	TeamKey        uint   `gorm:"column:team_key"`
-	PermissionCode string `gorm:"column:permission_code"`
+	TeamKey        uint
+	PermissionCode string
 }
 
 func (r *roleRepo) GetUserTeamPermissions(ctx context.Context, userID uint) (map[uint][]string, error) {

@@ -174,12 +174,9 @@ func (s *teamService) UpdateTeam(ctx context.Context, pmID, teamID uint, req dto
 }
 
 func (s *teamService) InviteMember(ctx context.Context, pmID, teamID uint, req dto.InviteMemberReq) error {
-	team, err := s.teamRepo.FindByID(ctx, teamID)
-	if err != nil {
+	if _, err := s.teamRepo.FindByID(ctx, teamID); err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
-	_ = team.PmKey // permission is enforced by RequirePermission middleware
-
 	if roleID, err := pkg.ParseID(req.RoleKey); err == nil && s.isPMRole(ctx, uint(roleID)) {
 		return apperrors.ErrCannotAssignPMRole
 	}
@@ -340,8 +337,5 @@ func (s *teamService) SearchAvailableUsers(ctx context.Context, teamID uint, sea
 		}
 	}
 
-	if result == nil {
-		result = []*dto.UserSearchDTO{}
-	}
 	return result, nil
 }
