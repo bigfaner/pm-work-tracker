@@ -255,7 +255,7 @@
       "dependencies": [
         "4.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "T-test-1.md",
       "record": "records/T-test-1.md"
     },
