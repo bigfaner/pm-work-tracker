@@ -3,9 +3,14 @@ import { type Page } from '@playwright/test';
 export const BASE = 'http://localhost:5173';
 export const API = 'http://localhost:8080/v1';
 
+let cachedToken: string | null = null;
+let cachedTokenExpiry = 0;
 let cachedTeamId: string | null = null;
 
 export async function getAuthToken(): Promise<string> {
+  if (cachedToken && Date.now() < cachedTokenExpiry) {
+    return cachedToken;
+  }
   const res = await fetch(`${API}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -14,6 +19,8 @@ export async function getAuthToken(): Promise<string> {
   const json = await res.json();
   const token = json.data?.token || json.token;
   if (!token) throw new Error('Login failed: no token in response');
+  cachedToken = token;
+  cachedTokenExpiry = Date.now() + 23 * 60 * 60 * 1000; // JWT ~24h, cache 23h
   return token;
 }
 
@@ -57,6 +64,12 @@ export async function getRoleKey(token: string, roleName: string): Promise<strin
   const list = Array.isArray(data) ? data : (data?.items ?? []);
   const role = list.find((r: any) => r.name === roleName);
   return role ? String(role.id) : null;
+}
+
+/** Clear cached token so next getAuthToken() fetches a fresh one. */
+export function invalidateAuthCache(): void {
+  cachedToken = null;
+  cachedTokenExpiry = 0;
 }
 
 export function extractBizKey(data: any): string | null {

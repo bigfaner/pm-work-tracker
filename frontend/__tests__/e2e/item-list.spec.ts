@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { BASE, API, login, getAuthToken, parseApiData, extractBizKey } from './test-helpers';
+import { BASE, API, login, getAuthToken, parseApiData, extractBizKey, invalidateAuthCache } from './test-helpers';
 
 const TIMEOUT = 120000;
 
@@ -496,6 +496,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
     await page.locator('[data-testid="sidebar-logout"]').click();
     await page.waitForURL(/\/login/, { timeout: 10000 });
     expect(page.url()).toContain('/login');
+    invalidateAuthCache();
   });
 
   // ====== STEP 12: CONSOLE ERROR CHECK ======

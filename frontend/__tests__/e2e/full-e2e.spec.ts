@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { BASE, API, login, getAuthToken, getFirstTeamId, getFirstMemberKey, getRoleKey, extractBizKey, navTo } from './test-helpers';
+import { BASE, API, login, getAuthToken, getFirstTeamId, getFirstMemberKey, getRoleKey, extractBizKey, navTo, invalidateAuthCache } from './test-helpers';
 
 // Get the Monday of the current week in UTC (to match server-side validation)
 function getCurrentUTCMonday(): string {
@@ -215,6 +215,7 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
       await logoutBtn.click();
       await page.waitForURL('**/login**', { timeout: 5000 });
       expect(page.url()).toContain('/login');
+      invalidateAuthCache();
     });
 
     // --- 12. Console Error Scan ---
@@ -389,6 +390,7 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
         headers: { 'Authorization': `Bearer ${authToken}` },
       });
       expect(res.status).toBe(200);
+      invalidateAuthCache();
     });
   });
 

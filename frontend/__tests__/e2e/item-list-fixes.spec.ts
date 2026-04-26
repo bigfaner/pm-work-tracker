@@ -278,9 +278,13 @@ test.describe.serial('事项清单 Bug修复验证', () => {
     });
     const token = await getAuthToken();
     const freshTitle = `刷新测试-${Date.now()}`;
+    const membersRes = await req.get(`/v1/teams/${teamId}/members`, { headers: { Authorization: `Bearer ${token}` } });
+    const membersData = parseApiData(await membersRes.json());
+    const memberList = Array.isArray(membersData) ? membersData : (membersData?.items ?? []);
+    const assigneeKey = memberList[0]?.userKey ?? '';
     await req.post(`/v1/teams/${teamId}/main-items`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { title: freshTitle, priority: 'P2', assigneeKey: '', startDate: '2026-04-20', expectedEndDate: '2026-05-20' },
+      data: { title: freshTitle, priority: 'P2', assigneeKey, startDate: '2026-04-20', expectedEndDate: '2026-05-20' },
     });
     await req.dispose();
 
