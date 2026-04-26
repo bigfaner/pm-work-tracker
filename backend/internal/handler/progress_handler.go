@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
@@ -9,6 +10,7 @@ import (
 	"pm-work-tracker/backend/internal/middleware"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	pkgHandler "pm-work-tracker/backend/internal/pkg/handler"
 	"pm-work-tracker/backend/internal/repository"
 	"pm-work-tracker/backend/internal/service"
 	"pm-work-tracker/backend/internal/vo"
@@ -54,23 +56,15 @@ func validateCompletion(val float64) bool {
 	return val >= 0 && val <= 100
 }
 
-// resolveSubID parses the subId path param as a bizKey and resolves it to an internal uint ID.
-func (h *ProgressHandler) resolveSubID(c *gin.Context) (uint, bool) {
-	bizKey, ok := parseSubBizKey(c)
-	if !ok {
-		return 0, false
-	}
-	item, err := h.subItemSvc.GetByBizKey(c.Request.Context(), bizKey)
-	if err != nil {
-		apperrors.RespondError(c, err)
-		return 0, false
-	}
-	return item.ID, true
-}
-
 // Append handles POST /api/v1/teams/:teamId/sub-items/:subId/progress
 func (h *ProgressHandler) Append(c *gin.Context) {
-	subID, ok := h.resolveSubID(c)
+	subID, ok := pkgHandler.ResolveBizKey(c, "subId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.subItemSvc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -102,7 +96,13 @@ func (h *ProgressHandler) Append(c *gin.Context) {
 
 // List handles GET /api/v1/teams/:teamId/sub-items/:subId/progress
 func (h *ProgressHandler) List(c *gin.Context) {
-	subID, ok := h.resolveSubID(c)
+	subID, ok := pkgHandler.ResolveBizKey(c, "subId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.subItemSvc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
 	if !ok {
 		return
 	}

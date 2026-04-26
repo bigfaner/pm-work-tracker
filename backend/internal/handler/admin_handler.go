@@ -9,6 +9,7 @@ import (
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/middleware"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	pkgHandler "pm-work-tracker/backend/internal/pkg/handler"
 	"pm-work-tracker/backend/internal/service"
 )
 
@@ -64,9 +65,8 @@ func (h *AdminHandler) CreateUser(c *gin.Context) {
 
 // GetUser handles GET /api/v1/admin/users/:userId
 func (h *AdminHandler) GetUser(c *gin.Context) {
-	bizKey, ok := parseUserBizKey(c)
+	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "userId")
 	if !ok {
-		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
 	}
 
@@ -81,9 +81,8 @@ func (h *AdminHandler) GetUser(c *gin.Context) {
 
 // UpdateUser handles PUT /api/v1/admin/users/:userId
 func (h *AdminHandler) UpdateUser(c *gin.Context) {
-	bizKey, ok := parseUserBizKey(c)
+	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "userId")
 	if !ok {
-		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
 	}
 
@@ -104,9 +103,8 @@ func (h *AdminHandler) UpdateUser(c *gin.Context) {
 
 // ToggleUserStatus handles PUT /api/v1/admin/users/:userId/status
 func (h *AdminHandler) ToggleUserStatus(c *gin.Context) {
-	bizKey, ok := parseUserBizKey(c)
+	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "userId")
 	if !ok {
-		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
 	}
 
@@ -143,16 +141,6 @@ func (h *AdminHandler) ListTeams(c *gin.Context) {
 		"page":     page,
 		"pageSize": pageSize,
 	})
-}
-
-// parseUserBizKey extracts the user bizKey from the URL path parameter.
-func parseUserBizKey(c *gin.Context) (int64, bool) {
-	idStr := c.Param("userId")
-	bizKey, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return 0, false
-	}
-	return bizKey, true
 }
 
 // parsePagination extracts page and pageSize from query params with defaults.

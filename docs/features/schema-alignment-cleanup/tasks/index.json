@@ -138,7 +138,7 @@
       "dependencies": [
         "2.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.1-extract-shared-interfaces.md",
       "record": "records/3.1-extract-shared-interfaces.md",
       "breaking": true

@@ -1,8 +1,8 @@
 package handler
 
 import (
+	"context"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -10,6 +10,7 @@ import (
 	"pm-work-tracker/backend/internal/middleware"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	pkgHandler "pm-work-tracker/backend/internal/pkg/handler"
 	"pm-work-tracker/backend/internal/repository"
 	"pm-work-tracker/backend/internal/service"
 	"pm-work-tracker/backend/internal/vo"
@@ -90,7 +91,13 @@ func (h *ItemPoolHandler) List(c *gin.Context) {
 
 // Get handles GET /api/v1/teams/:teamId/item-pool/:poolId
 func (h *ItemPoolHandler) Get(c *gin.Context) {
-	poolID, ok := h.resolvePoolID(c)
+	poolID, ok := pkgHandler.ResolveBizKey(c, "poolId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.svc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -108,7 +115,13 @@ func (h *ItemPoolHandler) Get(c *gin.Context) {
 
 // Assign handles POST /api/v1/teams/:teamId/item-pool/:poolId/assign
 func (h *ItemPoolHandler) Assign(c *gin.Context) {
-	poolID, ok := h.resolvePoolID(c)
+	poolID, ok := pkgHandler.ResolveBizKey(c, "poolId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.svc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -140,7 +153,13 @@ func (h *ItemPoolHandler) Assign(c *gin.Context) {
 
 // ConvertToMain handles POST /api/v1/teams/:teamId/item-pool/:poolId/convert-to-main
 func (h *ItemPoolHandler) ConvertToMain(c *gin.Context) {
-	poolID, ok := h.resolvePoolID(c)
+	poolID, ok := pkgHandler.ResolveBizKey(c, "poolId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.svc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -165,7 +184,13 @@ func (h *ItemPoolHandler) ConvertToMain(c *gin.Context) {
 
 // Reject handles POST /api/v1/teams/:teamId/item-pool/:poolId/reject
 func (h *ItemPoolHandler) Reject(c *gin.Context) {
-	poolID, ok := h.resolvePoolID(c)
+	poolID, ok := pkgHandler.ResolveBizKey(c, "poolId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.svc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -193,22 +218,6 @@ func (h *ItemPoolHandler) Reject(c *gin.Context) {
 	}
 
 	apperrors.RespondOK(c, itemPoolToVO(updated, h.userRepo, h.mainItemRepo, c))
-}
-
-// resolvePoolID parses the poolId path param as a bizKey and resolves it to an internal uint ID.
-func (h *ItemPoolHandler) resolvePoolID(c *gin.Context) (uint, bool) {
-	idStr := c.Param("poolId")
-	bizKey, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrValidation)
-		return 0, false
-	}
-	item, err := h.svc.GetByBizKey(c.Request.Context(), bizKey)
-	if err != nil {
-		apperrors.RespondError(c, err)
-		return 0, false
-	}
-	return item.ID, true
 }
 
 // itemPoolToVO converts a single model.ItemPool to an ItemPoolVO using individual lookups.

@@ -163,9 +163,9 @@ func setupTestRouter(t *testing.T) (*gin.Engine, *seedData) {
 	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo, statusHistorySvc)
 	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc, statusHistorySvc)
 	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc, statusHistorySvc)
-	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, poolTransactor{db: db})
+	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, transactor{db: db})
 	roleRepo := gormrepo.NewGormRoleRepo(db)
-	teamSvc := service.NewTeamService(teamRepo, userRepo, mainItemRepo, roleRepo, teamTransactor{db: db})
+	teamSvc := service.NewTeamService(teamRepo, userRepo, mainItemRepo, roleRepo, transactor{db: db})
 	adminSvc := service.NewAdminService(userRepo, teamRepo)
 	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)
 	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
@@ -462,16 +462,9 @@ func signTokenWithClaims(t *testing.T, claims *appjwt.Claims) string {
 	return s
 }
 
-// teamTransactor wraps *gorm.DB to satisfy service.TransactionDB.
-type teamTransactor struct{ db *gorm.DB }
+// transactor wraps *gorm.DB to satisfy repo.DBTransactor.
+type transactor struct{ db *gorm.DB }
 
-func (t teamTransactor) Transaction(fc func(tx *gorm.DB) error, opts ...*sql.TxOptions) error {
+func (t transactor) Transaction(fc func(tx *gorm.DB) error, opts ...*sql.TxOptions) error {
 	return t.db.Transaction(fc, opts...)
-}
-
-// poolTransactor wraps *gorm.DB to satisfy service.dbTransactor.
-type poolTransactor struct{ db *gorm.DB }
-
-func (p poolTransactor) Transaction(fc func(tx *gorm.DB) error, _ ...*sql.TxOptions) error {
-	return p.db.Transaction(fc)
 }

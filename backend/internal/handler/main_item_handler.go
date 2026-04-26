@@ -2,13 +2,13 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/middleware"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	pkgHandler "pm-work-tracker/backend/internal/pkg/handler"
 	"pm-work-tracker/backend/internal/repository"
 	"pm-work-tracker/backend/internal/service"
 	"pm-work-tracker/backend/internal/vo"
@@ -33,17 +33,6 @@ func NewMainItemHandler(svc service.MainItemService, userRepo repository.UserRep
 		panic("main_item_handler: subItemRepo must not be nil")
 	}
 	return &MainItemHandler{svc: svc, userRepo: userRepo, subItemRepo: subItemRepo}
-}
-
-// parseBizKey extracts and validates the itemId path param as int64 bizKey.
-func parseBizKey(c *gin.Context) (int64, bool) {
-	idStr := c.Param("itemId")
-	bizKey, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrValidation)
-		return 0, false
-	}
-	return bizKey, true
 }
 
 // Create handles POST /api/v1/teams/:teamId/main-items
@@ -103,7 +92,7 @@ func (h *MainItemHandler) List(c *gin.Context) {
 
 // Get handles GET /api/v1/teams/:teamId/main-items/:itemId
 func (h *MainItemHandler) Get(c *gin.Context) {
-	bizKey, ok := parseBizKey(c)
+	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "itemId")
 	if !ok {
 		return
 	}
@@ -144,7 +133,7 @@ func (h *MainItemHandler) Get(c *gin.Context) {
 
 // Update handles PUT /api/v1/teams/:teamId/main-items/:itemId
 func (h *MainItemHandler) Update(c *gin.Context) {
-	bizKey, ok := parseBizKey(c)
+	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "itemId")
 	if !ok {
 		return
 	}
@@ -181,7 +170,7 @@ func (h *MainItemHandler) Update(c *gin.Context) {
 
 // Archive handles POST /api/v1/teams/:teamId/main-items/:itemId/archive
 func (h *MainItemHandler) Archive(c *gin.Context) {
-	bizKey, ok := parseBizKey(c)
+	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "itemId")
 	if !ok {
 		return
 	}
@@ -205,7 +194,7 @@ func (h *MainItemHandler) Archive(c *gin.Context) {
 
 // ChangeStatus handles PUT /api/v1/teams/:teamId/main-items/:itemId/status
 func (h *MainItemHandler) ChangeStatus(c *gin.Context) {
-	bizKey, ok := parseBizKey(c)
+	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "itemId")
 	if !ok {
 		return
 	}
@@ -236,7 +225,7 @@ func (h *MainItemHandler) ChangeStatus(c *gin.Context) {
 
 // AvailableTransitions handles GET /api/v1/teams/:teamId/main-items/:itemId/available-transitions
 func (h *MainItemHandler) AvailableTransitions(c *gin.Context) {
-	bizKey, ok := parseBizKey(c)
+	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "itemId")
 	if !ok {
 		return
 	}

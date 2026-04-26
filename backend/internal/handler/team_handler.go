@@ -1,8 +1,8 @@
 package handler
 
 import (
+	"context"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -11,6 +11,7 @@ import (
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg"
+	pkgHandler "pm-work-tracker/backend/internal/pkg/handler"
 	"pm-work-tracker/backend/internal/repository"
 	"pm-work-tracker/backend/internal/service"
 )
@@ -164,7 +165,13 @@ func (h *TeamHandler) RemoveMember(c *gin.Context) {
 	teamID := middleware.GetTeamID(c)
 	pmID := middleware.GetUserID(c)
 
-	targetUserID, ok := h.resolveUserBizKey(c)
+	targetUserID, ok := pkgHandler.ResolveBizKey(c, "userId", func(ctx context.Context, bizKey int64) (uint, error) {
+		user, err := h.userRepo.FindByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, apperrors.ErrItemNotFound
+		}
+		return user.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -183,7 +190,13 @@ func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 	teamID := middleware.GetTeamID(c)
 	pmID := middleware.GetUserID(c)
 
-	targetUserID, ok := h.resolveUserBizKey(c)
+	targetUserID, ok := pkgHandler.ResolveBizKey(c, "userId", func(ctx context.Context, bizKey int64) (uint, error) {
+		user, err := h.userRepo.FindByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, apperrors.ErrItemNotFound
+		}
+		return user.ID, nil
+	})
 	if !ok {
 		return
 	}
@@ -259,20 +272,4 @@ func teamToDTO(team *model.Team) gin.H {
 		"createdAt":   team.CreateTime,
 		"updatedAt":   team.DbUpdateTime,
 	}
-}
-
-// resolveUserBizKey parses the userId path param as a bizKey and resolves it to an internal uint ID.
-func (h *TeamHandler) resolveUserBizKey(c *gin.Context) (uint, bool) {
-	idStr := c.Param("userId")
-	bizKey, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrValidation)
-		return 0, false
-	}
-	user, err := h.userRepo.FindByBizKey(c.Request.Context(), bizKey)
-	if err != nil {
-		apperrors.RespondError(c, apperrors.ErrItemNotFound)
-		return 0, false
-	}
-	return user.ID, true
 }
