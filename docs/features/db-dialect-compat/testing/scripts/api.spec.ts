@@ -1,54 +1,96 @@
 import { describe, test, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { curl, apiBaseUrl, getApiToken, createAuthCurl } from './helpers.js';
+import { apiBaseUrl, getApiToken, createAuthCurl } from './helpers.js';
+
+/** Required request body for convert-to-main endpoint */
+const convertBody = {
+  priority: 'P1',
+  assigneeKey: '0',
+  startDate: '2026-04-27',
+  expectedEndDate: '2026-05-27',
+};
 
 describe('API E2E Tests', () => {
   let authCurl: ReturnType<typeof createAuthCurl>;
+  let teamId: string;
+  let mainItemId: string;
 
   before(async () => {
     const token = await getApiToken(apiBaseUrl);
     authCurl = createAuthCurl(apiBaseUrl, token);
+
+    // Find or create a team for testing
+    teamId = process.env.E2E_TEAM_ID ?? '';
+    if (!teamId) {
+      // List teams and pick the first one
+      const listRes = await authCurl('GET', '/v1/teams');
+      assert.equal(listRes.status, 200, `List teams failed: ${listRes.status} ${listRes.body}`);
+      const listData = JSON.parse(listRes.body);
+      const teams = listData.data?.items ?? listData;
+      assert.ok(teams.length > 0, 'At least one team must exist for e2e tests');
+      teamId = String(teams[0].bizKey);
+    }
   });
+
+  /** Submit a pool entry and return its bizKey */
+  async function submitPool(title: string): Promise<string> {
+    const res = await authCurl('POST', `/v1/teams/${teamId}/item-pool`, {
+      body: JSON.stringify({ title, background: 'e2e test', expectedOutput: 'e2e test' }),
+    });
+    assert.ok(res.status === 200 || res.status === 201, `Submit pool failed: ${res.status} ${res.body}`);
+    const data = JSON.parse(res.body);
+    const entry = data.data ?? data;
+    return String(entry.bizKey);
+  }
+
+  /** Convert a pool entry to main item, return the main item bizKey as a string */
+  async function convertToMain(poolBizKey: string): Promise<string> {
+    const res = await authCurl('POST', `/v1/teams/${teamId}/item-pool/${poolBizKey}/convert-to-main`, {
+      body: JSON.stringify(convertBody),
+    });
+    assert.equal(res.status, 200, `Convert failed: ${res.status} ${res.body}`);
+    // mainItemBizKey is a JSON number that exceeds JS safe integer range.
+    // Extract it as a string from the raw body to avoid precision loss.
+    const match = res.body.match(/"mainItemBizKey"\s*:\s*(\d+)/);
+    assert.ok(match, `mainItemBizKey not found in response: ${res.body}`);
+    return match[1];
+  }
+
+  /** Fetch a main item and return its code */
+  async function getMainItemCode(mainItemBizKey: string): Promise<string> {
+    const res = await authCurl('GET', `/v1/teams/${teamId}/main-items/${mainItemBizKey}`);
+    assert.equal(res.status, 200, `Get main item failed: ${res.status} ${res.body}`);
+    const data = JSON.parse(res.body);
+    const item = data.data ?? data;
+    assert.ok(item.code, 'Main item has code');
+    return String(item.code);
+  }
 
   // ── Authenticated Tests (use shared auth) ───────────────────────
 
   // Traceability: TC-001 → Story 1 / AC-1
   test('TC-001: Convert item-pool entry to main item returns 200 on MySQL', async () => {
-    // Pre-conditions: team and item-pool entry must exist in MySQL.
-    // This test assumes teamId=1 and a valid item-pool entry exist.
-    // Adjust teamId and poolId to match your MySQL test data.
-    const teamId = parseInt(process.env.E2E_TEAM_ID ?? '1', 10);
-    const poolId = parseInt(process.env.E2E_POOL_ID ?? '1', 10);
+    const poolId = await submitPool('E2E TC-001 convert test');
+    const mainItemBizKey = await convertToMain(poolId);
+    const code = await getMainItemCode(mainItemBizKey);
 
-    const res = await authCurl('POST', `/api/v1/teams/${teamId}/item-pool/${poolId}/convert-to-main`);
-    assert.equal(res.status, 200, `Expected 200, got ${res.status}: ${res.body}`);
-
-    const data = JSON.parse(res.body);
-    const item = data.data ?? data;
-    assert.ok(item.code, 'Response contains main item code');
     // Code format: {teamCode}-{seq:05d} e.g. TEAM-00042
-    assert.match(item.code, /^[A-Z]+-\d{5}$/, `Code "${item.code}" matches format {{teamCode}}-{{seq:05d}}`);
+    assert.match(code, /^[A-Z]+-\d{5}$/, `Code "${code}" matches format {{teamCode}}-{{seq:05d}}`);
+
+    // Save main item ID for TC-003
+    mainItemId = mainItemBizKey;
   });
 
   // Traceability: TC-002 → Story 1 / AC-1 (main item numbering rule)
   test('TC-002: Main item code increments sequentially on MySQL', async () => {
-    const teamId = parseInt(process.env.E2E_TEAM_ID ?? '1', 10);
     const codes: string[] = [];
 
-    // Create 3 item-pool entries and convert them to main items
-    // Assumes 3 item-pool entries exist with IDs 1,2,3 (or set via env)
-    const poolIds = [
-      parseInt(process.env.E2E_POOL_ID_1 ?? '1', 10),
-      parseInt(process.env.E2E_POOL_ID_2 ?? '2', 10),
-      parseInt(process.env.E2E_POOL_ID_3 ?? '3', 10),
-    ];
-
-    for (const poolId of poolIds) {
-      const res = await authCurl('POST', `/api/v1/teams/${teamId}/item-pool/${poolId}/convert-to-main`);
-      assert.equal(res.status, 200, `Convert pool ${poolId} failed: ${res.status} ${res.body}`);
-      const data = JSON.parse(res.body);
-      const item = data.data ?? data;
-      codes.push(item.code);
+    // Submit 3 pool entries and convert them to main items
+    for (let i = 0; i < 3; i++) {
+      const poolId = await submitPool(`E2E TC-002 seq test ${i + 1}`);
+      const mainItemBizKey = await convertToMain(poolId);
+      const code = await getMainItemCode(mainItemBizKey);
+      codes.push(code);
     }
 
     // Extract numeric sequences and verify strict increment
@@ -60,16 +102,27 @@ describe('API E2E Tests', () => {
 
   // Traceability: TC-003 → Story 1 / AC-1 (sub item numbering rule)
   test('TC-003: Sub item code increments sequentially on MySQL', async () => {
-    const teamId = parseInt(process.env.E2E_TEAM_ID ?? '1', 10);
-    const mainItemId = parseInt(process.env.E2E_MAIN_ITEM_ID ?? '1', 10);
+    // If TC-001 didn't set mainItemId, create a main item first
+    if (!mainItemId) {
+      const poolId = await submitPool('E2E TC-003 parent');
+      mainItemId = await convertToMain(poolId);
+    }
+
     const codes: string[] = [];
 
     // Create 3 sub items under the main item
     for (let i = 0; i < 3; i++) {
-      const res = await authCurl('POST', `/api/v1/teams/${teamId}/main-items/${mainItemId}/sub-items`, {
-        body: JSON.stringify({ title: `Sub item test ${i + 1}`, priority: 'P1' }),
+      const res = await authCurl('POST', `/v1/teams/${teamId}/main-items/${mainItemId}/sub-items`, {
+        body: JSON.stringify({
+          mainItemKey: mainItemId,
+          title: `Sub item test ${i + 1}`,
+          priority: 'P1',
+          assigneeKey: '0',
+          startDate: '2026-04-27',
+          expectedEndDate: '2026-05-27',
+        }),
       });
-      assert.equal(res.status, 200, `Create sub item ${i + 1} failed: ${res.status} ${res.body}`);
+      assert.ok(res.status === 200 || res.status === 201, `Create sub item ${i + 1} failed: ${res.status} ${res.body}`);
       const data = JSON.parse(res.body);
       const item = data.data ?? data;
       codes.push(item.code);
@@ -91,15 +144,10 @@ describe('API E2E Tests', () => {
   test('TC-004: Convert item-pool entry returns 200 on SQLite', async () => {
     // Same API call as TC-001 but runs against SQLite (default dev mode).
     // Verifies no regression from dialect changes.
-    const teamId = parseInt(process.env.E2E_TEAM_ID ?? '1', 10);
-    const poolId = parseInt(process.env.E2E_POOL_ID ?? '1', 10);
+    const poolId = await submitPool('E2E TC-004 sqlite test');
+    const mainItemBizKey = await convertToMain(poolId);
+    const code = await getMainItemCode(mainItemBizKey);
 
-    const res = await authCurl('POST', `/api/v1/teams/${teamId}/item-pool/${poolId}/convert-to-main`);
-    assert.equal(res.status, 200, `Expected 200, got ${res.status}: ${res.body}`);
-
-    const data = JSON.parse(res.body);
-    const item = data.data ?? data;
-    assert.ok(item.code, 'Response contains main item code');
-    assert.match(item.code, /^[A-Z]+-\d{5}$/, `Code "${item.code}" matches expected format`);
+    assert.match(code, /^[A-Z]+-\d{5}$/, `Code "${code}" matches expected format`);
   });
 });

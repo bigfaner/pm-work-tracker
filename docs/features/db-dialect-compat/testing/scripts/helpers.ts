@@ -159,8 +159,8 @@ export async function loginViaUI(page: Page, creds: UICredentials = defaultCreds
 }
 
 export async function getApiToken(apiBaseUrl: string, creds: UICredentials = defaultCreds): Promise<string> {
-  // Auth endpoint: POST /api/v1/auth/login (matches backend router)
-  const res = await curl('POST', `${apiBaseUrl}/api/v1/auth/login`, {
+  // Auth endpoint: POST /v1/auth/login (matches backend router)
+  const res = await curl('POST', `${apiBaseUrl}/v1/auth/login`, {
     body: JSON.stringify({ username: creds.username, password: creds.password }),
   });
   if (res.status !== 200) throw new Error(`Auth failed: ${res.status} ${res.body}`);
