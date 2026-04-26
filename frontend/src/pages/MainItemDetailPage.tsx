@@ -55,13 +55,13 @@ export default function MainItemDetailPage() {
 
   const { data: item, isLoading } = useQuery({
     queryKey: ['mainItem', teamId, itemId],
-    queryFn: () => getMainItemApi(String(teamId!), itemId),
+    queryFn: () => getMainItemApi(teamId!, itemId),
     enabled: !!teamId && !!itemId,
   })
 
   const { data: members } = useQuery({
     queryKey: ['members', teamId],
-    queryFn: () => listMembersApi(String(teamId!)),
+    queryFn: () => listMembersApi(teamId!),
     enabled: !!teamId,
   })
 
@@ -83,8 +83,8 @@ export default function MainItemDetailPage() {
   // --- Mutations ---
 
   const updateMutation = useMutation({
-    mutationFn: (req: { title?: string; priority?: string; assigneeId?: number | null; expectedEndDate?: string | null; actualEndDate?: string | null; description?: string }) =>
-      updateMainItemApi(String(teamId!), itemId, req),
+    mutationFn: (req: { title?: string; priority?: string; assigneeKey?: string | null; expectedEndDate?: string | null; actualEndDate?: string | null; description?: string }) =>
+      updateMainItemApi(teamId!, itemId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       setEditOpen(false)
@@ -92,8 +92,8 @@ export default function MainItemDetailPage() {
   })
 
   const createSubMutation = useMutation({
-    mutationFn: (req: { title: string; priority: string; assigneeId: number; startDate?: string; expectedEndDate?: string; description?: string }) =>
-      createSubItemApi(String(teamId!), itemId, req),
+    mutationFn: (req: { title: string; priority: string; assigneeKey: string; startDate?: string; expectedEndDate?: string; description?: string }) =>
+      createSubItemApi(teamId!, itemId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       setCreateSubOpen(false)
@@ -103,7 +103,7 @@ export default function MainItemDetailPage() {
 
   const updateSubMutation = useMutation({
     mutationFn: ({ subId, req }: { subId: string; req: { title?: string; priority?: string; expectedEndDate?: string; description?: string } }) =>
-      updateSubItemApi(String(teamId!), subId, req),
+      updateSubItemApi(teamId!, subId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       setEditSubOpen(false)
@@ -113,7 +113,7 @@ export default function MainItemDetailPage() {
 
   const appendProgressMutation = useMutation({
     mutationFn: ({ subId, req }: { subId: string; req: { completion: number; achievement?: string; blocker?: string } }) =>
-      appendProgressApi(String(teamId!), subId, req),
+      appendProgressApi(teamId!, subId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       setAppendProgressOpen(false)
@@ -129,7 +129,7 @@ export default function MainItemDetailPage() {
     updateMutation.mutate({
       title: editForm.title.trim(),
       priority: editForm.priority,
-      assigneeId: editForm.assigneeId ? Number(editForm.assigneeId) : null,
+      assigneeKey: editForm.assigneeId || null,
       expectedEndDate: editForm.expectedEndDate || null,
       description: editForm.description,
     })
@@ -140,7 +140,7 @@ export default function MainItemDetailPage() {
     createSubMutation.mutate({
       title: subForm.title.trim(),
       priority: subForm.priority,
-      assigneeId: subForm.assigneeId ? Number(subForm.assigneeId) : 0,
+      assigneeKey: subForm.assigneeId || '',
       startDate: subForm.startDate,
       expectedEndDate: subForm.expectedEndDate,
       ...(subForm.description && { description: subForm.description }),
@@ -229,7 +229,7 @@ export default function MainItemDetailPage() {
           </div>
           {/* Info Grid */}
           <ItemInfoCard
-            assigneeName={memberName(item.assigneeKey ? Number(item.assigneeKey) : null)}
+            assigneeName={memberName(item.assigneeKey)}
             startDate={item.planStartDate}
             expectedEndDate={item.expectedEndDate}
             actualEndDate={item.actualEndDate}

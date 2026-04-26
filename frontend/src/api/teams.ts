@@ -59,12 +59,12 @@ export function transferPmApi(bizKey: string, req: TransferPMReq): Promise<void>
   return client.put<never, void>(`/teams/${bizKey}/pm`, req)
 }
 
-export function changeMemberRoleApi(bizKey: string, memberId: number, req: { roleId: number }): Promise<void> {
+export function changeMemberRoleApi(bizKey: string, memberId: number, req: { roleKey: string }): Promise<void> {
   return client.put<never, void>(`/teams/${bizKey}/members/${memberId}/role`, req)
 }
 
 export interface UserSearchResult {
-  id: number
+  bizKey: string
   username: string
   displayName: string
 }

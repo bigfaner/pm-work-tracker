@@ -20,8 +20,8 @@ interface SubItemsTableProps {
   subItems: SubItem[]
   mainItemId: string
   mainStatus: string
-  teamId: number
-  memberName: (assigneeId: number | null) => string
+  teamId: string
+  memberName: (assigneeId: string | null) => string
   onStatusChanged: () => void
   onEditSub: (sub: SubItem) => void
   onAppendProgress: (sub: SubItem) => void
@@ -77,7 +77,7 @@ export default function SubItemsTable({
                     {sub.title}
                   </Link>
                 </TableCell>
-                <TableCell>{memberName(sub.assigneeKey ? Number(sub.assigneeKey) : null)}</TableCell>
+                <TableCell>{memberName(sub.assigneeKey)}</TableCell>
                 <TableCell>
                   <span>{sub.completion}%</span>
                 </TableCell>

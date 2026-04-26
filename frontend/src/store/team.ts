@@ -3,9 +3,9 @@ import { persist } from 'zustand/middleware'
 import type { Team } from '@/types'
 
 interface TeamState {
-  currentTeamId: number | null
+  currentTeamId: string | null
   teams: Team[]
-  setCurrentTeam: (teamId: number | null) => void
+  setCurrentTeam: (teamId: string | null) => void
   setTeams: (teams: Team[]) => void
 }
 

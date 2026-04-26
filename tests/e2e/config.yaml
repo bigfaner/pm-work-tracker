@@ -1,12 +1,13 @@
 # E2E Test Configuration
 baseUrl: http://localhost:5173
+apiBaseUrl: http://localhost:8080
 
 # Test account credentials (leave empty if no auth required)
-username: "admin"
-password: "admin123"
+username: 'admin'
+password: 'admin123'
 
-# Login page locators (uncomment and customize if defaults don't match)
-# loginLocators:
-#   usernameField: "input[name='username']"
-#   passwordField: "input[name='password']"
-#   submitButton: "button[type='submit']"
+# Login page locators (matched to sitemap E-002, E-003, E-004)
+loginLocators:
+  usernameField: "账号"
+  passwordField: "密码"
+  submitButton: "登录"

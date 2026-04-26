@@ -41,72 +41,72 @@ function renderPage() {
 const mockGanttResponse: GanttViewResp = {
   items: [
     {
-      id: 1,
+      bizKey: '1',
       title: '用户认证模块开发',
       priority: 'P1',
       startDate: '2026-04-01',
       expectedEndDate: '2026-04-30',
       completion: 52,
-      status: 'progressing',
+      itemStatus: 'progressing',
       isOverdue: false,
       subItems: [
         {
-          id: 10,
+          bizKey: '10',
           title: '用户注册接口',
           startDate: '2026-04-01',
           expectedEndDate: '2026-04-15',
           completion: 60,
-          status: 'progressing',
+          itemStatus: 'progressing',
         },
         {
-          id: 11,
+          bizKey: '11',
           title: '登录鉴权实现',
           startDate: '2026-04-05',
           expectedEndDate: '2026-04-25',
           completion: 45,
-          status: 'progressing',
+          itemStatus: 'progressing',
         },
       ],
     },
     {
-      id: 2,
+      bizKey: '2',
       title: '数据报表系统',
       priority: 'P2',
       startDate: '2026-03-01',
       expectedEndDate: '2026-04-10',
       completion: 100,
-      status: 'completed',
+      itemStatus: 'completed',
       isOverdue: false,
       subItems: [],
     },
     {
-      id: 3,
+      bizKey: '3',
       title: '性能优化项目',
       priority: 'P3',
       startDate: null,
       expectedEndDate: null,
       completion: 0,
-      status: 'pending',
+      itemStatus: 'pending',
       isOverdue: false,
       subItems: [],
     },
     {
-      id: 4,
+      bizKey: '4',
       title: '移动端适配',
       priority: 'P2',
       startDate: '2026-03-15',
       expectedEndDate: '2026-04-10',
       completion: 30,
-      status: 'progressing',
+      itemStatus: 'progressing',
       isOverdue: true,
       subItems: [
         {
-          id: 40,
+          bizKey: '40',
           title: '响应式布局',
           startDate: '2026-03-15',
           expectedEndDate: '2026-04-08',
           completion: 50,
-          status: 'progressing',
+          itemStatus: 'progressing',
         },
       ],
     },
@@ -124,8 +124,8 @@ function setupGanttHandler(response = mockGanttResponse) {
 describe('GanttViewPage', () => {
   beforeEach(() => {
     useTeamStore.setState({
-      currentTeamId: 1,
-      teams: [{ id: 1, name: 'Test Team', description: '', pmId: 1, createdAt: '', updatedAt: '' }],
+      currentTeamId: '1',
+      teams: [{ bizKey: '1', name: 'Test Team', description: '', code: '', pmKey: '1', createdAt: '', updatedAt: '' }],
     })
     setupGanttHandler()
   })
@@ -297,13 +297,13 @@ describe('GanttViewPage', () => {
     // Create response with more items than page size
     const manyItems: GanttViewResp = {
       items: Array.from({ length: 30 }, (_, i) => ({
-        id: i + 1,
+        bizKey: String(i + 1),
         title: `Item ${i + 1}`,
         priority: 'P2',
         startDate: '2026-04-01',
         expectedEndDate: '2026-04-30',
         completion: 50,
-        status: 'progressing',
+        itemStatus: 'progressing',
         isOverdue: false,
         subItems: [],
       })),
@@ -327,13 +327,13 @@ describe('GanttViewPage', () => {
   it('loads more items on button click', async () => {
     const manyItems: GanttViewResp = {
       items: Array.from({ length: 30 }, (_, i) => ({
-        id: i + 1,
+        bizKey: String(i + 1),
         title: `Item ${i + 1}`,
         priority: 'P2',
         startDate: '2026-04-01',
         expectedEndDate: '2026-04-30',
         completion: 50,
-        status: 'progressing',
+        itemStatus: 'progressing',
         isOverdue: false,
         subItems: [],
       })),

@@ -140,7 +140,7 @@ export default function TeamDetailPage() {
   // --- Mutations ---
 
   const transferMutation = useMutation({
-    mutationFn: () => transferPmApi(numericTeamId, { newPmUserId: transferTarget!.userId }),
+    mutationFn: () => transferPmApi(numericTeamId, { newPmUserKey: String(transferTarget!.userId) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['team', numericTeamId] })
       qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
@@ -160,7 +160,7 @@ export default function TeamDetailPage() {
   })
 
   const inviteMutation = useMutation({
-    mutationFn: () => inviteMemberApi(numericTeamId, { username: inviteUsername, roleId: inviteRoleId! }),
+    mutationFn: () => inviteMemberApi(numericTeamId, { username: inviteUsername, roleKey: String(inviteRoleId!) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['team', numericTeamId] })
       qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
@@ -183,7 +183,7 @@ export default function TeamDetailPage() {
 
   const changeRoleMutation = useMutation({
     mutationFn: ({ memberId, roleId }: { memberId: number; roleId: number }) =>
-      changeMemberRoleApi(numericTeamId, memberId, { roleId }),
+      changeMemberRoleApi(numericTeamId, memberId, { roleKey: String(roleId) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
       setRoleEditTarget(null)
@@ -232,7 +232,7 @@ export default function TeamDetailPage() {
   }
 
   const isPm = (member: TeamMemberResp) => member.role === 'pm'
-  const isSelf = (member: TeamMemberResp) => currentUser != null && member.userId === Number(currentUser.bizKey)
+  const isSelf = (member: TeamMemberResp) => currentUser != null && String(member.userId) === currentUser.bizKey
 
   return (
     <div data-testid="team-detail-page">
@@ -514,7 +514,7 @@ export default function TeamDetailPage() {
                   <div className="absolute z-50 mt-1 w-full max-h-48 overflow-auto rounded-md border border-border bg-white shadow-lg" data-testid="invite-user-dropdown">
                     {userSearchResults.map((u) => (
                       <button
-                        key={u.id}
+                        key={u.bizKey}
                         type="button"
                         className="w-full px-3 py-2 text-left text-sm hover:bg-bg-alt focus:bg-bg-alt focus:outline-none"
                         onClick={() => {
@@ -523,7 +523,7 @@ export default function TeamDetailPage() {
                           setUserSearch('')
                           setUserDropdownOpen(false)
                         }}
-                        data-testid={`invite-user-option-${u.id}`}
+                        data-testid={`invite-user-option-${u.bizKey}`}
                       >
                         <span className="font-medium text-primary">{u.displayName}</span>
                         <span className="ml-2 text-tertiary">{u.username}</span>

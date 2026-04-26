@@ -80,7 +80,7 @@ export default function TableViewPage() {
     if (typeFilter) filter.type = typeFilter
     if (priorityFilter) filter.priority = priorityFilter
     if (statusFilter) filter.status = statusFilter
-    if (assigneeFilter) filter.assigneeId = Number(assigneeFilter)
+    if (assigneeFilter) filter.assigneeKey = assigneeFilter
     return filter
   }, [typeFilter, priorityFilter, statusFilter, assigneeFilter, currentPage, pageSize])
 
@@ -146,10 +146,10 @@ export default function TableViewPage() {
   }
 
   const getItemLink = (row: TableRow): string => {
-    if (row.type === 'main') return `/items/${row.id}`
-    if (row.mainItemId) return `/items/${row.mainItemId}/sub/${row.id}`
+    if (row.type === 'main') return `/items/${row.bizKey}`
+    if (row.mainItemId) return `/items/${row.mainItemId}/sub/${row.bizKey}`
     // Fallback: can't determine parent
-    return `/items/${row.id}`
+    return `/items/${row.bizKey}`
   }
 
   // --- CSV export ---
@@ -161,7 +161,7 @@ export default function TableViewPage() {
       if (typeFilter) exportFilter.type = typeFilter
       if (priorityFilter) exportFilter.priority = priorityFilter
       if (statusFilter) exportFilter.status = statusFilter
-      if (assigneeFilter) exportFilter.assigneeId = Number(assigneeFilter)
+      if (assigneeFilter) exportFilter.assigneeKey = assigneeFilter
 
       const blob = await exportTableCsvApi(teamId, exportFilter)
       const url = URL.createObjectURL(blob)
@@ -228,7 +228,7 @@ export default function TableViewPage() {
               <SelectContent>
                 <SelectItem value="_all">负责人：全部</SelectItem>
                 {members.map((m) => (
-                  <SelectItem key={m.userId} value={String(m.userId)}>
+                  <SelectItem key={m.bizKey} value={m.bizKey}>
                     {m.displayName}
                   </SelectItem>
                 ))}
@@ -280,7 +280,7 @@ export default function TableViewPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredItems.map((row) => (
-                      <TableRowComp key={`${row.type}-${row.id}`}>
+                      <TableRowComp key={`${row.type}-${row.bizKey}`}>
                         <TableCell>
                           <span
                             className={
@@ -316,12 +316,12 @@ export default function TableViewPage() {
                           <ProgressBar value={row.completion} size="sm" showPercentage />
                         </TableCell>
                         <TableCell>
-                          <StatusBadge status={row.status} />
+                          <StatusBadge status={row.itemStatus} />
                         </TableCell>
                         <TableCell>
                           <span
-                            data-testid={`expected-date-${row.id}`}
-                            className={isItemOverdue(row.expectedEndDate, row.status) ? 'text-error text-xs' : 'text-xs'}
+                            data-testid={`expected-date-${row.bizKey}`}
+                            className={isItemOverdue(row.expectedEndDate, row.itemStatus) ? 'text-error text-xs' : 'text-xs'}
                           >
                             {formatDate(row.expectedEndDate)}
                           </span>

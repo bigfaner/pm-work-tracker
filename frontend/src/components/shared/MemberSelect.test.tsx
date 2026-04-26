@@ -4,9 +4,9 @@ import userEvent from '@testing-library/user-event'
 import { MemberSelect } from './MemberSelect'
 
 const members = [
-  { userId: 1, displayName: 'Alice' },
-  { userId: 2, displayName: 'Bob' },
-  { userId: 3, displayName: 'Charlie' },
+  { bizKey: 'alice-key', displayName: 'Alice' },
+  { bizKey: 'bob-key', displayName: 'Bob' },
+  { bizKey: 'charlie-key', displayName: 'Charlie' },
 ]
 
 describe('MemberSelect', () => {
@@ -63,14 +63,14 @@ describe('MemberSelect', () => {
     const trigger = screen.getByRole('combobox')
     await userEvent.click(trigger)
     await userEvent.click(screen.getByText('Bob'))
-    expect(onSelect).toHaveBeenCalledWith('2')
+    expect(onSelect).toHaveBeenCalledWith('bob-key')
   })
 
   it('shows "不指定" option when allowEmpty is true', async () => {
     render(
       <MemberSelect
         members={members}
-        selectedId="1"
+        selectedId="alice-key"
         onSelect={vi.fn()}
         allowEmpty
       />,
@@ -99,7 +99,7 @@ describe('MemberSelect', () => {
     render(
       <MemberSelect
         members={members}
-        selectedId="1"
+        selectedId="alice-key"
         onSelect={onSelect}
         allowEmpty
       />,
@@ -114,7 +114,7 @@ describe('MemberSelect', () => {
     render(
       <MemberSelect
         members={members}
-        selectedId="2"
+        selectedId="bob-key"
         onSelect={vi.fn()}
       />,
     )

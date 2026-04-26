@@ -17,10 +17,11 @@ vi.mock('@/api/reports', () => ({
 
 const mockTeams: Team[] = [
   {
-    id: 1,
+    bizKey: '1',
     name: '产品研发团队',
     description: '',
-    pmId: 1,
+    code: '',
+    pmKey: '1',
   createdAt: '2024-01-01',
   updatedAt: '2024-01-01',
   },
@@ -31,17 +32,17 @@ const mockPreview = {
   weekEnd: '2026-04-20',
   sections: [
     {
-      mainItem: { id: 1, title: '用户认证模块开发', completion: 65, isKeyItem: true },
+      mainItem: { bizKey: '1', title: '用户认证模块开发', completion: 65, isKeyItem: true },
       subItems: [
         {
-          id: 1,
+          bizKey: '1',
           title: '登录页开发',
           completion: 100,
           achievements: ['登录页开发完成，已通过联调测试'],
           blockers: [],
         },
         {
-          id: 2,
+          bizKey: '2',
           title: 'JWT Token 集成',
           completion: 80,
           achievements: ['Token 签发完成，黑名单机制联调中'],
@@ -64,7 +65,7 @@ function renderReportPage() {
 
 describe('ReportPage', () => {
   beforeEach(() => {
-    useTeamStore.getState().setCurrentTeam(1)
+    useTeamStore.getState().setCurrentTeam('1')
     useTeamStore.getState().setTeams(mockTeams)
     useAuthStore.getState().setPermissions({
       isSuperAdmin: false,

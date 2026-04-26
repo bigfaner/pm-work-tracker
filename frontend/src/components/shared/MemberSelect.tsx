@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/select'
 
 interface Member {
-  userId: number
+  bizKey: string
   displayName: string
 }
 
@@ -39,7 +39,7 @@ export function MemberSelect({
       <SelectContent>
         {allowEmpty && <SelectItem value="_none">不指定</SelectItem>}
         {members.map((m) => (
-          <SelectItem key={m.userId} value={String(m.userId)}>
+          <SelectItem key={m.bizKey} value={m.bizKey}>
             {m.displayName}
           </SelectItem>
         ))}

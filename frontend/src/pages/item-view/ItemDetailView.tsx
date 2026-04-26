@@ -22,9 +22,9 @@ import { isOverdue } from '@/lib/status'
 interface DetailViewProps {
   items: (MainItem & { subItems?: SubItem[] })[]
   subItemsMap: Record<string, SubItem[]>
-  memberName: (id: number | null) => string
+  memberName: (id: string | null) => string
   formatDate: (date: string | null) => string
-  teamId: number
+  teamId: string
   onRefresh: () => void
   currentPage: number
   totalPages: number
@@ -91,7 +91,7 @@ export default function ItemDetailView({
                         {item.title}
                       </Link>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">{memberName(item.assigneeKey ? Number(item.assigneeKey) : null)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{memberName(item.assigneeKey)}</TableCell>
                     <TableCell className="whitespace-nowrap">
                       <span className="text-xs">{item.completion}%</span>
                     </TableCell>
@@ -126,7 +126,7 @@ export default function ItemDetailView({
                           {sub.title}
                         </Link>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">{memberName(sub.assigneeKey ? Number(sub.assigneeKey) : null)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{memberName(sub.assigneeKey)}</TableCell>
                       <TableCell className="whitespace-nowrap">
                         <span className="text-xs">{sub.completion}%</span>
                       </TableCell>

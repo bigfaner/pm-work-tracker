@@ -172,7 +172,7 @@ export default function ItemPoolPage() {
     refetch,
   } = useInfiniteQuery({
     queryKey: ['itemPool', teamId],
-    queryFn: ({ pageParam }) => listItemPoolApi(String(teamId!), { page: pageParam as number, pageSize: POOL_BATCH_SIZE }),
+    queryFn: ({ pageParam }) => listItemPoolApi(teamId!, { page: pageParam as number, pageSize: POOL_BATCH_SIZE }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       const totalPages = Math.ceil(lastPage.total / lastPage.size)
@@ -183,13 +183,13 @@ export default function ItemPoolPage() {
 
   const { data: membersData } = useQuery({
     queryKey: ['members', teamId],
-    queryFn: () => listMembersApi(String(teamId!)),
+    queryFn: () => listMembersApi(teamId!),
     enabled: !!teamId,
   })
 
   const { data: mainItemsData } = useQuery({
     queryKey: ['mainItemsList', teamId],
-    queryFn: () => listMainItemsApi(String(teamId!)),
+    queryFn: () => listMainItemsApi(teamId!),
     enabled: !!teamId,
   })
 
@@ -243,7 +243,7 @@ export default function ItemPoolPage() {
 
   const submitMutation = useMutation({
     mutationFn: (req: { title: string; background?: string; expectedOutput?: string }) =>
-      submitItemPoolApi(String(teamId!), req),
+      submitItemPoolApi(teamId!, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
       setSubmitOpen(false)
@@ -253,7 +253,7 @@ export default function ItemPoolPage() {
 
   const assignMutation = useMutation({
     mutationFn: ({ poolId, req }: { poolId: string; req: AssignItemPoolReq }) =>
-      assignItemPoolApi(String(teamId!), poolId, req),
+      assignItemPoolApi(teamId!, poolId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
       qc.invalidateQueries({ queryKey: ['mainItemsList', teamId] })
@@ -264,7 +264,7 @@ export default function ItemPoolPage() {
 
   const convertToMainMutation = useMutation({
     mutationFn: ({ poolId, req }: { poolId: string; req: ConvertToMainItemReq }) =>
-      convertToMainApi(String(teamId!), poolId, req),
+      convertToMainApi(teamId!, poolId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
       qc.invalidateQueries({ queryKey: ['mainItemsList', teamId] })
@@ -275,7 +275,7 @@ export default function ItemPoolPage() {
 
   const rejectMutation = useMutation({
     mutationFn: ({ poolId, req }: { poolId: string; req: { reason: string } }) =>
-      rejectItemPoolApi(String(teamId!), poolId, req),
+      rejectItemPoolApi(teamId!, poolId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
       setRejectOpen(false)
@@ -324,7 +324,7 @@ export default function ItemPoolPage() {
       poolId: selectedItem.bizKey,
       req: {
         priority: toMainForm.priority || 'P2',
-        assigneeId: toMainForm.assigneeId ? Number(toMainForm.assigneeId) : 0,
+        assigneeKey: toMainForm.assigneeId || '',
         startDate: toMainForm.startDate || '',
         expectedEndDate: toMainForm.expectedEndDate || '',
       },
@@ -336,8 +336,8 @@ export default function ItemPoolPage() {
     assignMutation.mutate({
       poolId: selectedItem.bizKey,
       req: {
-        mainItemId: Number(toSubForm.parentItemId),
-        assigneeId: toSubForm.assigneeId ? Number(toSubForm.assigneeId) : 0,
+        mainItemKey: toSubForm.parentItemId,
+        assigneeKey: toSubForm.assigneeId || '',
         priority: toSubForm.priority || 'P2',
         startDate: toSubForm.startDate || '',
         expectedEndDate: toSubForm.expectedEndDate || '',
@@ -507,7 +507,7 @@ export default function ItemPoolPage() {
                       <SelectContent>
                         <SelectItem value="_none">请选择</SelectItem>
                         {members.map((m) => (
-                          <SelectItem key={m.userId} value={String(m.userId)}>{m.displayName}</SelectItem>
+                          <SelectItem key={m.bizKey} value={m.bizKey}>{m.displayName}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -591,7 +591,7 @@ export default function ItemPoolPage() {
                       <SelectContent>
                         <SelectItem value="_none">请选择</SelectItem>
                         {members.map((m) => (
-                          <SelectItem key={m.userId} value={String(m.userId)}>{m.displayName}</SelectItem>
+                          <SelectItem key={m.bizKey} value={m.bizKey}>{m.displayName}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

@@ -41,43 +41,44 @@ function renderPage(teamId = '1') {
 // --- Seed data ---
 
 const seedTeamDetail = {
-  id: 1,
+  bizKey: '1',
   name: '产品研发团队',
+  code: 'TEAM-001',
   description: '负责核心产品的研发与迭代',
-  pmId: 1,
+  pmKey: '1',
   pmDisplayName: '张明',
   memberCount: 5,
   mainItemCount: 3,
-  createdAt: '2026-03-01T00:00:00Z',
-  updatedAt: '2026-03-01T00:00:00Z',
+  createTime: '2026-03-01T00:00:00Z',
+  dbUpdateTime: '2026-03-01T00:00:00Z',
 }
 
 const seedMembers = [
-  { userId: 1, displayName: '张明', username: 'zhangming', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2026-03-01' },
-  { userId: 2, displayName: '李华', username: 'lihua', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-05' },
-  { userId: 3, displayName: '王芳', username: 'wangfang', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-10' },
-  { userId: 4, displayName: '赵强', username: 'zhaoqiang', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-12' },
-  { userId: 5, displayName: '陈静', username: 'chenjing', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-15' },
+  { id: 1, bizKey: '1', teamId: 1, userId: 1, displayName: '张明', username: 'zhangming', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2026-03-01' },
+  { id: 2, bizKey: '2', teamId: 1, userId: 2, displayName: '李华', username: 'lihua', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-05' },
+  { id: 3, bizKey: '3', teamId: 1, userId: 3, displayName: '王芳', username: 'wangfang', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-10' },
+  { id: 4, bizKey: '4', teamId: 1, userId: 4, displayName: '赵强', username: 'zhaoqiang', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-12' },
+  { id: 5, bizKey: '5', teamId: 1, userId: 5, displayName: '陈静', username: 'chenjing', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-15' },
 ]
 
 const seedRoles = [
-  { id: 1, name: 'superadmin', description: '超级管理员', isPreset: true, permissionCount: 30, memberCount: 1, createdAt: '2026-01-01T00:00:00Z' },
-  { id: 2, name: 'pm', description: '团队管理权限', isPreset: true, permissionCount: 22, memberCount: 5, createdAt: '2026-01-01T00:00:00Z' },
-  { id: 3, name: 'member', description: '普通成员', isPreset: true, permissionCount: 10, memberCount: 20, createdAt: '2026-01-01T00:00:00Z' },
-  { id: 4, name: 'viewer', description: '只读查看者', isPreset: false, permissionCount: 3, memberCount: 0, createdAt: '2026-04-01T00:00:00Z' },
+  { id: 1, roleName: 'superadmin', roleDesc: '超级管理员', isPreset: true, permissionCount: 30, memberCount: 1, createTime: '2026-01-01T00:00:00Z' },
+  { id: 2, roleName: 'pm', roleDesc: '团队管理权限', isPreset: true, permissionCount: 22, memberCount: 5, createTime: '2026-01-01T00:00:00Z' },
+  { id: 3, roleName: 'member', roleDesc: '普通成员', isPreset: true, permissionCount: 10, memberCount: 20, createTime: '2026-01-01T00:00:00Z' },
+  { id: 4, roleName: 'viewer', roleDesc: '只读查看者', isPreset: false, permissionCount: 3, memberCount: 0, createTime: '2026-04-01T00:00:00Z' },
 ]
 
 const seedAvailableUsers = [
-  { id: 10, displayName: '刘洋', username: 'liuyang' },
-  { id: 11, displayName: '周磊', username: 'zhoulei' },
+  { bizKey: '10', displayName: '刘洋', username: 'liuyang' },
+  { bizKey: '11', displayName: '周磊', username: 'zhoulei' },
 ]
 
 function setupHandlers() {
   server.use(
     // Get team detail
     http.get('/v1/teams/:teamId', ({ params }) => {
-      const teamId = Number(params.teamId)
-      if (teamId === 999) {
+      const teamId = String(params.teamId)
+      if (teamId === '999') {
         return HttpResponse.json(
           { code: 'NOT_FOUND', message: '团队不存在' },
           { status: 404 },
@@ -85,7 +86,7 @@ function setupHandlers() {
       }
       return HttpResponse.json({
         code: 0,
-        data: { ...seedTeamDetail, id: teamId },
+        data: { ...seedTeamDetail, bizKey: teamId },
       })
     }),
 
@@ -101,8 +102,8 @@ function setupHandlers() {
 
     // Transfer PM
     http.put('/v1/teams/:teamId/pm', async ({ request }) => {
-      const body = (await request.json()) as { newPmUserId: number }
-      const newPm = seedMembers.find((m) => m.userId === body.newPmUserId)
+      const body = (await request.json()) as { newPmUserKey: string }
+      const newPm = seedMembers.find((m) => String(m.userId) === body.newPmUserKey)
       return HttpResponse.json({ code: 0, data: { newPmName: newPm?.displayName } })
     }),
 
@@ -128,15 +129,15 @@ function setupHandlers() {
       return HttpResponse.json({ code: 0, data: seedAvailableUsers })
     }),
 
-    // Invite member (updated: expects roleId)
+    // Invite member (updated: expects roleKey)
     http.post('/v1/teams/:teamId/members', async ({ request }) => {
-      const body = (await request.json()) as { username: string; roleId: number }
+      const body = (await request.json()) as { username: string; roleKey: string }
       return HttpResponse.json({ code: 0, data: null })
     }),
 
     // Change member role
     http.put('/v1/teams/:teamId/members/:memberId/role', async ({ request }) => {
-      const body = (await request.json()) as { roleId: number }
+      const body = (await request.json()) as { roleKey: string }
       return HttpResponse.json({ code: 0, data: null })
     }),
   )
@@ -505,7 +506,7 @@ describe('TeamDetailPage', () => {
 
     await waitFor(() => {
       expect(capturedBody).not.toBeNull()
-      expect(capturedBody.roleId).toBe(3) // member role id
+      expect(capturedBody.roleKey).toBe('3') // member role key (string)
       expect(capturedBody.role).toBeUndefined() // should NOT send role string
     })
   })
@@ -595,7 +596,7 @@ describe('TeamDetailPage', () => {
 
     await waitFor(() => {
       expect(capturedBody).not.toBeNull()
-      expect(capturedBody.roleId).toBe(4) // viewer role id
+      expect(capturedBody.roleKey).toBe('4') // viewer role key (string)
       expect(capturedMemberId).toBe('2') // 李华's userId
     })
   })

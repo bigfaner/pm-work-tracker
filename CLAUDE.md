@@ -99,3 +99,7 @@ cd backend && go test ./...
 npm test          # package.json script already includes --run
 npx vitest run    # equivalent
 ```
+
+### Schema Consistency
+
+`backend/migrations/SQLite-schema.sql` and `backend/migrations/MySql-schema.sql` must always stay in sync. Any DDL change (add table, add column, change type) must be applied to **both** files.

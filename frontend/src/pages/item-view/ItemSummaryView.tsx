@@ -15,11 +15,11 @@ interface SummaryViewProps {
   expandedCards: Set<string>
   onToggleExpand: (id: string) => void
   subItemsMap: Record<string, SubItem[]>
-  memberName: (id: number | null) => string
+  memberName: (id: string | null) => string
   formatDate: (date: string | null) => string
   hasMore: boolean
   sentinelRef: React.RefObject<HTMLDivElement>
-  teamId: number
+  teamId: string
   onRefresh: () => void
   onAddSubItem: (mainItemId: string, mainItemTitle: string) => void
   onEditMainItem: (item: MainItem) => void
@@ -100,7 +100,7 @@ export default function ItemSummaryView({
 
               {/* Assignee */}
               <span className="text-[13px] text-secondary whitespace-nowrap">
-                {memberName(item.assigneeKey ? Number(item.assigneeKey) : null)}
+                {memberName(item.assigneeKey)}
               </span>
 
               {/* Progress */}
@@ -158,7 +158,7 @@ export default function ItemSummaryView({
                       </span>
                     )}
                     <span className="ml-auto text-[13px] text-secondary">
-                      {memberName(sub.assigneeKey ? Number(sub.assigneeKey) : null)}
+                      {memberName(sub.assigneeKey)}
                     </span>
                     <div className="w-16 shrink-0">
                       <ProgressBar value={sub.completion} size="sm" showPercentage />

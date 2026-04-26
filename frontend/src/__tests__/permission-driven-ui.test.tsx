@@ -22,10 +22,11 @@ describe('Permission-driven UI', () => {
   beforeEach(() => {
     useAuthStore.getState().clearAuth()
     useAuthStore.getState().setAuth('token', {
-      id: 1,
+      bizKey: '1',
       username: 'testuser',
       displayName: 'Test User',
       isSuperAdmin: false,
+      createTime: '',
     })
     useTeamStore.getState().setTeams([])
     useTeamStore.getState().setCurrentTeam(null)
@@ -139,15 +140,15 @@ describe('Permission-driven UI', () => {
         http.get('/v1/teams/:teamId', () =>
           HttpResponse.json({
             code: 0, data: {
-              id: 1, name: 'Test Team', description: '', pmId: 1, pmDisplayName: 'PM',
-              memberCount: 2, mainItemCount: 0, createdAt: '2026-01-01', updatedAt: '2026-01-01',
+              bizKey: '1', name: 'Test Team', description: '', code: '', pmKey: '1', pmDisplayName: 'PM',
+              memberCount: 2, mainItemCount: 0, createTime: '2026-01-01', dbUpdateTime: '2026-01-01',
             },
           })),
         http.get('/v1/teams/:teamId/members', () =>
           HttpResponse.json({
             code: 0, data: [
-              { userId: 1, displayName: 'PM', username: 'pm', role: 'pm', joinedAt: '2026-01-01' },
-              { userId: 2, displayName: 'Member', username: 'member', role: 'member', joinedAt: '2026-01-01' },
+              { id: 1, bizKey: '1', teamId: 1, userId: 1, displayName: 'PM', username: 'pm', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2026-01-01' },
+              { id: 2, bizKey: '2', teamId: 1, userId: 2, displayName: 'Member', username: 'member', role: 'member', roleId: 2, roleName: 'member', joinedAt: '2026-01-01' },
             ],
           })),
       )

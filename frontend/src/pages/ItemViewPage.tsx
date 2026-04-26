@@ -95,7 +95,7 @@ export default function ItemViewPage() {
           <SelectContent>
             <SelectItem value="_all">负责人：全部</SelectItem>
             {s.members.map((m) => (
-              <SelectItem key={m.userId} value={String(m.userId)}>
+              <SelectItem key={m.bizKey} value={m.bizKey}>
                 {m.displayName}
               </SelectItem>
             ))}

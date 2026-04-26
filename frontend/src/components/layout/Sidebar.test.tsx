@@ -8,15 +8,16 @@ import { useTeamStore } from '@/store/team'
 import type { User, Team } from '@/types'
 
 const mockUser: User = {
-  id: 1,
+  bizKey: 'U001',
   username: 'testuser',
   displayName: '张明',
   isSuperAdmin: false,
+  createTime: '2024-01-01',
 }
 
 const superAdminUser: User = {
   ...mockUser,
-  id: 2,
+  bizKey: 'U002',
   username: 'admin',
   displayName: 'Admin',
   isSuperAdmin: true,
@@ -24,18 +25,18 @@ const superAdminUser: User = {
 
 const mockTeams: Team[] = [
   {
-    id: 1,
+    bizKey: 'T001',
     name: '产品研发团队',
     description: '',
-    pmId: 1,
+    pmKey: 'U001',
   createdAt: '2024-01-01',
   updatedAt: '2024-01-01',
   },
   {
-    id: 2,
+    bizKey: 'T002',
     name: '设计团队',
     description: '',
-    pmId: 2,
+    pmKey: 'U002',
     createdAt: '2024-01-01',
     updatedAt: '2024-01-01',
   },
@@ -120,7 +121,7 @@ describe('Sidebar', () => {
 
   it('renders team selector with teams from store', () => {
     useTeamStore.getState().setTeams(mockTeams)
-    useTeamStore.getState().setCurrentTeam(1)
+    useTeamStore.getState().setCurrentTeam('T001')
     renderWithRouter()
     // The team selector should show the current team name
     expect(screen.getByText('产品研发团队')).toBeInTheDocument()

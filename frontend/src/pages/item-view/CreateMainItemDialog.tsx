@@ -33,7 +33,7 @@ interface CreateMainItemDialogProps {
   onOpenChange: (open: boolean) => void
   form: CreateMainItemFormState
   onFormChange: (updater: (prev: CreateMainItemFormState) => CreateMainItemFormState) => void
-  members: { userId: number; displayName: string }[]
+  members: { bizKey: string; displayName: string }[]
   onSubmit: () => void
   isPending: boolean
 }

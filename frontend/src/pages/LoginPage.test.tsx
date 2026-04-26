@@ -13,10 +13,11 @@ vi.mock('@/api/auth', () => ({
 }))
 
 const mockUser: User = {
-  id: 1,
+  bizKey: '1',
   username: 'testuser',
   displayName: 'Test User',
   isSuperAdmin: false,
+  createTime: '',
 }
 
 function renderLoginPage(initialPath = '/login', search = '') {

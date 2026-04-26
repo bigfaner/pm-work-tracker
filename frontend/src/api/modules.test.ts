@@ -80,8 +80,8 @@ describe('API modules', () => {
 
     it('inviteMemberApi should POST to /teams/:bizKey/members', async () => {
       mockClient.post.mockResolvedValue(undefined)
-      await teamsApi.inviteMemberApi('team-bk', { username: 'u', roleId: 3 })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/members', { username: 'u', roleId: 3 })
+      await teamsApi.inviteMemberApi('team-bk', { username: 'u', roleKey: 'member' })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/members', { username: 'u', roleKey: 'member' })
     })
 
     it('removeMemberApi should DELETE /teams/:bizKey/members/:userId', async () => {
@@ -92,16 +92,16 @@ describe('API modules', () => {
 
     it('transferPmApi should PUT /teams/:bizKey/pm', async () => {
       mockClient.put.mockResolvedValue(undefined)
-      await teamsApi.transferPmApi('team-bk', { newPmUserId: 3 })
-      expect(mockClient.put).toHaveBeenCalledWith('/teams/team-bk/pm', { newPmUserId: 3 })
+      await teamsApi.transferPmApi('team-bk', { newPmUserKey: 'user-3' })
+      expect(mockClient.put).toHaveBeenCalledWith('/teams/team-bk/pm', { newPmUserKey: 'user-3' })
     })
   })
 
   describe('mainItems', () => {
     it('createMainItemApi should POST /teams/:teamBizKey/main-items', async () => {
       mockClient.post.mockResolvedValue({})
-      await mainItemsApi.createMainItemApi('team-bk', { title: 'Item', priority: 'P0', assigneeId: 0, startDate: '', expectedEndDate: '' })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/main-items', { title: 'Item', priority: 'P0', assigneeId: 0, startDate: '', expectedEndDate: '' })
+      await mainItemsApi.createMainItemApi('team-bk', { title: 'Item', priority: 'P0', assigneeKey: '', startDate: '', expectedEndDate: '' })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/main-items', { title: 'Item', priority: 'P0', assigneeKey: '', startDate: '', expectedEndDate: '' })
     })
 
     it('listMainItemsApi should GET /teams/:teamBizKey/main-items with params', async () => {
@@ -138,8 +138,8 @@ describe('API modules', () => {
   describe('subItems', () => {
     it('createSubItemApi should POST to correct URL', async () => {
       mockClient.post.mockResolvedValue({})
-      await subItemsApi.createSubItemApi('team-bk', 'main-bk', { title: 'Sub', priority: 'P1', assigneeId: 3, startDate: '', expectedEndDate: '' })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/main-items/main-bk/sub-items', { mainItemBizKey: 'main-bk', title: 'Sub', priority: 'P1', assigneeId: 3, startDate: '', expectedEndDate: '' })
+      await subItemsApi.createSubItemApi('team-bk', 'main-bk', { title: 'Sub', priority: 'P1', assigneeKey: 'user-3', startDate: '', expectedEndDate: '' })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/main-items/main-bk/sub-items', { mainItemBizKey: 'main-bk', title: 'Sub', priority: 'P1', assigneeKey: 'user-3', startDate: '', expectedEndDate: '' })
     })
 
     it('listSubItemsApi should GET with params', async () => {
@@ -191,20 +191,20 @@ describe('API modules', () => {
   describe('itemPool', () => {
     it('submitItemPoolApi should POST to item-pool', async () => {
       mockClient.post.mockResolvedValue({})
-      await itemPoolApi.submitItemPoolApi(1, { title: 'Pool Item' })
+      await itemPoolApi.submitItemPoolApi('1', { title: 'Pool Item' })
       expect(mockClient.post).toHaveBeenCalledWith('/teams/1/item-pool', { title: 'Pool Item' })
     })
 
     it('listItemPoolApi should GET with params', async () => {
       mockClient.get.mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 })
-      await itemPoolApi.listItemPoolApi(1, { status: 'open' })
+      await itemPoolApi.listItemPoolApi('1', { status: 'open' })
       expect(mockClient.get).toHaveBeenCalledWith('/teams/1/item-pool', { params: { status: 'open' } })
     })
 
     it('assignItemPoolApi should POST to assign endpoint', async () => {
-      mockClient.post.mockResolvedValue({ subItemId: 10 })
-      await itemPoolApi.assignItemPoolApi('team-bk', 'pool-bk', { mainItemId: 2, assigneeId: 5, priority: 'P2', startDate: '', expectedEndDate: '' })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/item-pool/pool-bk/assign', { mainItemId: 2, assigneeId: 5, priority: 'P2', startDate: '', expectedEndDate: '' })
+      mockClient.post.mockResolvedValue({ mainItemBizKey: 'mi-2', subItemBizKey: 'si-10' })
+      await itemPoolApi.assignItemPoolApi('team-bk', 'pool-bk', { mainItemKey: 'mi-2', assigneeKey: 'user-5', priority: 'P2', startDate: '', expectedEndDate: '' })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/item-pool/pool-bk/assign', { mainItemKey: 'mi-2', assigneeKey: 'user-5', priority: 'P2', startDate: '', expectedEndDate: '' })
     })
 
     it('rejectItemPoolApi should POST to reject endpoint', async () => {
@@ -217,25 +217,25 @@ describe('API modules', () => {
   describe('views', () => {
     it('getWeeklyViewApi should GET weekly view', async () => {
       mockClient.get.mockResolvedValue({})
-      await viewsApi.getWeeklyViewApi(1, '2026-01-06')
+      await viewsApi.getWeeklyViewApi('1', '2026-01-06')
       expect(mockClient.get).toHaveBeenCalledWith('/teams/1/views/weekly', { params: { weekStart: '2026-01-06' } })
     })
 
     it('getGanttViewApi should GET gantt view', async () => {
       mockClient.get.mockResolvedValue({})
-      await viewsApi.getGanttViewApi(1, 'open')
+      await viewsApi.getGanttViewApi('1', 'open')
       expect(mockClient.get).toHaveBeenCalledWith('/teams/1/views/gantt', { params: { status: 'open' } })
     })
 
     it('getTableViewApi should GET table view with filter', async () => {
       mockClient.get.mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 })
-      await viewsApi.getTableViewApi(1, { priority: 'P0' })
+      await viewsApi.getTableViewApi('1', { priority: 'P0' })
       expect(mockClient.get).toHaveBeenCalledWith('/teams/1/views/table', { params: { priority: 'P0' } })
     })
 
     it('exportTableCsvApi should GET table export as blob', async () => {
       mockClient.get.mockResolvedValue(new Blob())
-      await viewsApi.exportTableCsvApi(1)
+      await viewsApi.exportTableCsvApi('1')
       expect(mockClient.get).toHaveBeenCalledWith('/teams/1/views/table/export', { params: undefined, responseType: 'blob' })
     })
   })
@@ -243,13 +243,13 @@ describe('API modules', () => {
   describe('reports', () => {
     it('getWeeklyReportPreviewApi should GET preview', async () => {
       mockClient.get.mockResolvedValue({})
-      await reportsApi.getWeeklyReportPreviewApi(1, '2026-01-06')
+      await reportsApi.getWeeklyReportPreviewApi('1', '2026-01-06')
       expect(mockClient.get).toHaveBeenCalledWith('/teams/1/reports/weekly/preview', { params: { weekStart: '2026-01-06' } })
     })
 
     it('exportWeeklyReportApi should GET export as blob', async () => {
       mockClient.get.mockResolvedValue(new Blob())
-      await reportsApi.exportWeeklyReportApi(1, '2026-01-06')
+      await reportsApi.exportWeeklyReportApi('1', '2026-01-06')
       expect(mockClient.get).toHaveBeenCalledWith('/teams/1/reports/weekly/export', { params: { weekStart: '2026-01-06' }, responseType: 'blob' })
     })
   })

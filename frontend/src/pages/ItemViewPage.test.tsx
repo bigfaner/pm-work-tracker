@@ -40,45 +40,45 @@ function renderPage() {
 
 const seedMainItems = [
   {
-    id: 1, teamId: 1, code: 'MI-0001', title: 'Alpha Task', priority: 'P1',
-    proposerId: 1, assigneeId: 1, startDate: '2026-04-01', expectedEndDate: '2026-04-15',
-    actualEndDate: null, status: 'progressing', completion: 65,
-    createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-01T00:00:00Z',
+    bizKey: '1', teamKey: '1', code: 'MI-0001', title: 'Alpha Task', priority: 'P1',
+    proposerKey: '1', assigneeKey: '1', planStartDate: '2026-04-01', expectedEndDate: '2026-04-15',
+    actualEndDate: null, itemStatus: 'progressing', completion: 65,
+    createTime: '2026-04-01T00:00:00Z', dbUpdateTime: '2026-04-01T00:00:00Z',
     subItems: [
       {
-        id: 11, teamId: 1, mainItemId: 1, code: 'MI-0001-01', title: 'Sub Alpha 1', description: '',
-        priority: 'P1', assigneeId: 2, startDate: '2026-04-01', expectedEndDate: '2026-04-10',
-        actualEndDate: '2026-04-09', status: 'completed', completion: 100,
-        weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-09T00:00:00Z',
+        bizKey: '11', teamKey: '1', mainItemKey: '1', code: 'MI-0001-01', title: 'Sub Alpha 1', itemDesc: '',
+        priority: 'P1', assigneeKey: '2', planStartDate: '2026-04-01', expectedEndDate: '2026-04-10',
+        actualEndDate: '2026-04-09', itemStatus: 'completed', completion: 100,
+        weight: 1, createTime: '2026-04-01T00:00:00Z', dbUpdateTime: '2026-04-09T00:00:00Z',
       },
       {
-        id: 12, teamId: 1, mainItemId: 1, code: 'MI-0001-02', title: 'Sub Alpha 2', description: '',
-        priority: 'P2', assigneeId: 3, startDate: '2026-04-08', expectedEndDate: '2026-04-18',
-        actualEndDate: null, status: 'progressing', completion: 80,
-        weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-08T00:00:00Z',
+        bizKey: '12', teamKey: '1', mainItemKey: '1', code: 'MI-0001-02', title: 'Sub Alpha 2', itemDesc: '',
+        priority: 'P2', assigneeKey: '3', planStartDate: '2026-04-08', expectedEndDate: '2026-04-18',
+        actualEndDate: null, itemStatus: 'progressing', completion: 80,
+        weight: 1, createTime: '2026-04-01T00:00:00Z', dbUpdateTime: '2026-04-08T00:00:00Z',
       },
     ],
   },
   {
-    id: 2, teamId: 1, code: 'MI-0002', title: 'Beta Task', priority: 'P2',
-    proposerId: 1, assigneeId: 2, startDate: '2026-04-15', expectedEndDate: '2026-04-25',
-    actualEndDate: null, status: 'progressing', completion: 40,
-    createdAt: '2026-04-15T00:00:00Z', updatedAt: '2026-04-15T00:00:00Z',
+    bizKey: '2', teamKey: '1', code: 'MI-0002', title: 'Beta Task', priority: 'P2',
+    proposerKey: '1', assigneeKey: '2', planStartDate: '2026-04-15', expectedEndDate: '2026-04-25',
+    actualEndDate: null, itemStatus: 'progressing', completion: 40,
+    createTime: '2026-04-15T00:00:00Z', dbUpdateTime: '2026-04-15T00:00:00Z',
     subItems: [],
   },
   {
-    id: 3, teamId: 1, code: 'MI-0003', title: 'Gamma Task', priority: 'P3',
-    proposerId: 1, assigneeId: 3, startDate: '2026-04-05', expectedEndDate: '2026-04-12',
-    actualEndDate: '2026-04-12', status: 'completed', completion: 100,
-    createdAt: '2026-04-05T00:00:00Z', updatedAt: '2026-04-12T00:00:00Z',
+    bizKey: '3', teamKey: '1', code: 'MI-0003', title: 'Gamma Task', priority: 'P3',
+    proposerKey: '1', assigneeKey: '3', planStartDate: '2026-04-05', expectedEndDate: '2026-04-12',
+    actualEndDate: '2026-04-12', itemStatus: 'completed', completion: 100,
+    createTime: '2026-04-05T00:00:00Z', dbUpdateTime: '2026-04-12T00:00:00Z',
     subItems: [],
   },
 ]
 
 const seedMembers = [
-  { userId: 1, displayName: 'Test User', username: 'testuser', role: 'pm', joinedAt: '2024-01-01' },
-  { userId: 2, displayName: 'Alice', username: 'alice', role: 'member', joinedAt: '2024-01-01' },
-  { userId: 3, displayName: 'Bob', username: 'bob', role: 'member', joinedAt: '2024-01-01' },
+  { id: 1, bizKey: '1', teamId: 1, userId: 1, displayName: 'Test User', username: 'testuser', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
+  { id: 2, bizKey: '2', teamId: 1, userId: 2, displayName: 'Alice', username: 'alice', role: 'member', roleId: 2, roleName: 'member', joinedAt: '2024-01-01' },
+  { id: 3, bizKey: '3', teamId: 1, userId: 3, displayName: 'Bob', username: 'bob', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2024-01-01' },
 ]
 
 function setupHandlers() {
@@ -90,14 +90,14 @@ function setupHandlers() {
 
     // Get single main item with sub items
     http.get('/v1/teams/:teamId/main-items/:itemId', ({ params }) => {
-      const item = seedMainItems.find(i => i.id === Number(params.itemId))
+      const item = seedMainItems.find(i => i.bizKey === String(params.itemId))
       if (!item) return HttpResponse.json({ code: 'NOT_FOUND', message: 'not found' }, { status: 404 })
       return HttpResponse.json({ code: 0, data: item })
     }),
 
     // List sub-items for a main item
     http.get('/v1/teams/:teamId/main-items/:mainId/sub-items', ({ params }) => {
-      const item = seedMainItems.find(i => i.id === Number(params.mainId))
+      const item = seedMainItems.find(i => i.bizKey === String(params.mainId))
       const subs = item?.subItems || []
       return HttpResponse.json({ code: 0, data: { items: subs, total: subs.length, page: 1, pageSize: 20 } })
     }),
@@ -116,16 +116,16 @@ function setupHandlers() {
     // Change main item status
     http.put('/v1/teams/:teamId/main-items/:itemId/status', async ({ request }) => {
       const body = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ code: 0, data: { status: body.status } })
+      return HttpResponse.json({ code: 0, data: { itemStatus: body.status } })
     }),
 
     // Available transitions for main items (default: return all non-self statuses)
     http.get('/v1/teams/:teamId/main-items/:itemId/available-transitions', ({ params }) => {
-      const item = seedMainItems.find(i => i.id === Number(params.itemId))
-      const currentStatus = item?.status || 'pending'
+      const item = seedMainItems.find(i => i.bizKey === String(params.itemId))
+      const currentStatus = item?.itemStatus || 'pending'
       const allStatuses = ['pending', 'progressing', 'blocking', 'pausing', 'reviewing', 'completed', 'closed']
       const transitions = allStatuses.filter(s => s !== currentStatus)
-      return HttpResponse.json({ code: 0, data: transitions })
+      return HttpResponse.json({ code: 0, data: { transitions } })
     }),
 
     // Create main item
@@ -134,25 +134,25 @@ function setupHandlers() {
       return HttpResponse.json({
         code: 0,
         data: {
-          id: 100, teamId: 1, code: 'MI-0100', priority: 'P2', proposerId: 1,
-          assigneeId: null, startDate: null, expectedEndDate: null, actualEndDate: null,
-          status: 'pending', completion: 0,
-          createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+          bizKey: '100', teamKey: '1', code: 'MI-0100', priority: 'P2', proposerKey: '1',
+          assigneeKey: null, planStartDate: null, expectedEndDate: null, actualEndDate: null,
+          itemStatus: 'pending', completion: 0,
+          createTime: new Date().toISOString(), dbUpdateTime: new Date().toISOString(),
           ...body,
         },
       })
     }),
 
     // Create sub-item
-    http.post('/v1/teams/:teamId/main-items/:mainId/sub-items', async ({ request }) => {
+    http.post('/v1/teams/:teamId/main-items/:mainId/sub-items', async ({ request, params }) => {
       const body = await request.json() as Record<string, unknown>
       return HttpResponse.json({
         code: 0,
         data: {
-          id: 200, teamId: 1, mainItemId: Number(body.main_item_id), description: '',
-          priority: 'P2', assigneeId: null, startDate: null, expectedEndDate: null, actualEndDate: null,
-          status: 'pending', completion: 0, weight: 1,
-          createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+          bizKey: '200', teamKey: '1', mainItemKey: String(body.mainItemBizKey || params.mainId), itemDesc: '',
+          priority: 'P2', assigneeKey: null, planStartDate: null, expectedEndDate: null, actualEndDate: null,
+          itemStatus: 'pending', completion: 0, weight: 1,
+          createTime: new Date().toISOString(), dbUpdateTime: new Date().toISOString(),
           ...body,
         },
       })
@@ -162,7 +162,7 @@ function setupHandlers() {
 
 describe('ItemViewPage', () => {
   beforeEach(() => {
-    useTeamStore.setState({ currentTeamId: 1, teams: [{ id: 1, name: 'Test Team', description: '', pmId: 1, createdAt: '', updatedAt: '' }] })
+    useTeamStore.setState({ currentTeamId: '1', teams: [{ bizKey: '1', name: 'Test Team', description: '', code: '', pmKey: '1', createdAt: '', updatedAt: '' }] })
     useAuthStore.getState().setPermissions({
       isSuperAdmin: false,
       teamPermissions: { 1: ['main_item:create', 'progress:update'] },
@@ -363,7 +363,7 @@ describe('ItemViewPage', () => {
     setupHandlers() // ensure handlers
     server.use(
       http.get('/v1/teams/:teamId/main-items/:itemId/available-transitions', () => {
-        return HttpResponse.json({ code: 0, data: ['progressing', 'closed'] })
+        return HttpResponse.json({ code: 0, data: { transitions: ['progressing', 'closed'] } })
       }),
     )
     renderPage()
@@ -389,7 +389,7 @@ describe('ItemViewPage', () => {
     let statusChanged = false
     server.use(
       http.get('/v1/teams/:teamId/main-items/:itemId/available-transitions', () => {
-        return HttpResponse.json({ code: 0, data: ['progressing', 'blocking'] })
+        return HttpResponse.json({ code: 0, data: { transitions: ['progressing', 'blocking'] } })
       }),
       http.put('/v1/teams/:teamId/main-items/:itemId/status', async ({ request }) => {
         const body = await request.json() as Record<string, unknown>
@@ -419,7 +419,7 @@ describe('ItemViewPage', () => {
     const user = userEvent.setup()
     server.use(
       http.get('/v1/teams/:teamId/main-items/:itemId/available-transitions', () => {
-        return HttpResponse.json({ code: 0, data: ['completed', 'blocking'] })
+        return HttpResponse.json({ code: 0, data: { transitions: ['completed', 'blocking'] } })
       }),
     )
     renderPage()
@@ -449,10 +449,10 @@ describe('ItemViewPage', () => {
     // Override main items with one overdue item
     const overdueItems = [
       {
-        id: 10, teamId: 1, code: 'MI-0010', title: 'Overdue Task', priority: 'P1',
-        proposerId: 1, assigneeId: 1, startDate: '2020-01-01', expectedEndDate: '2020-02-01',
-        actualEndDate: null, status: 'progressing', completion: 30,
-        createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z',
+        bizKey: '10', teamKey: '1', code: 'MI-0010', title: 'Overdue Task', priority: 'P1',
+        proposerKey: '1', assigneeKey: '1', planStartDate: '2020-01-01', expectedEndDate: '2020-02-01',
+        actualEndDate: null, itemStatus: 'progressing', completion: 30,
+        createTime: '2020-01-01T00:00:00Z', dbUpdateTime: '2020-01-01T00:00:00Z',
         subItems: [],
       },
     ]
@@ -472,10 +472,10 @@ describe('ItemViewPage', () => {
   it('does not show overdue badge for terminal status items', async () => {
     const completedItems = [
       {
-        id: 11, teamId: 1, code: 'MI-0011', title: 'Completed Task', priority: 'P1',
-        proposerId: 1, assigneeId: 1, startDate: '2020-01-01', expectedEndDate: '2020-02-01',
-        actualEndDate: '2020-02-01', status: 'completed', completion: 100,
-        createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-02-01T00:00:00Z',
+        bizKey: '11', teamKey: '1', code: 'MI-0011', title: 'Completed Task', priority: 'P1',
+        proposerKey: '1', assigneeKey: '1', planStartDate: '2020-01-01', expectedEndDate: '2020-02-01',
+        actualEndDate: '2020-02-01', itemStatus: 'completed', completion: 100,
+        createTime: '2020-01-01T00:00:00Z', dbUpdateTime: '2020-02-01T00:00:00Z',
         subItems: [],
       },
     ]

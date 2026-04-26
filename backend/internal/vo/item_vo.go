@@ -18,7 +18,7 @@ type MainItemVO struct {
 	Priority        string  `json:"priority"`
 	ProposerKey     string  `json:"proposerKey"`
 	AssigneeKey     *string `json:"assigneeKey"`
-	StartDate       *string `json:"startDate"`
+	PlanStartDate   *string `json:"planStartDate"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
 	ActualEndDate   *string `json:"actualEndDate"`
 	ItemStatus      string  `json:"itemStatus"`
@@ -40,7 +40,7 @@ type SubItemVO struct {
 	Description     string  `json:"description"`
 	Priority        string  `json:"priority"`
 	AssigneeKey     *string `json:"assigneeKey"`
-	StartDate       *string `json:"startDate"`
+	PlanStartDate   *string `json:"planStartDate"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
 	ActualEndDate   *string `json:"actualEndDate"`
 	ItemStatus      string  `json:"itemStatus"`
@@ -77,7 +77,7 @@ type SubItemSummaryVO struct {
 	Completion      float64 `json:"completion"`
 	AssigneeKey     *string `json:"assigneeKey"`
 	Priority        string  `json:"priority"`
-	StartDate       *string `json:"startDate"`
+	PlanStartDate   *string `json:"planStartDate"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
 	ActualEndDate   *string `json:"actualEndDate"`
 }
@@ -96,7 +96,7 @@ func NewMainItemVO(m *model.MainItem) MainItemVO {
 		Priority:        m.Priority,
 		ProposerKey:     pkg.FormatID(m.ProposerKey),
 		AssigneeKey:     pkg.FormatIDPtr(m.AssigneeKey),
-		StartDate:       dates.FormatTimePtr(m.PlanStartDate),
+		PlanStartDate:   dates.FormatTimePtr(m.PlanStartDate),
 		ExpectedEndDate: dates.FormatTimePtr(m.ExpectedEndDate),
 		ActualEndDate:   dates.FormatTimePtr(m.ActualEndDate),
 		ItemStatus:      m.ItemStatus,
@@ -124,7 +124,7 @@ func NewSubItemVO(m *model.SubItem) SubItemVO {
 		Description:     m.ItemDesc,
 		Priority:        m.Priority,
 		AssigneeKey:     pkg.FormatIDPtr(m.AssigneeKey),
-		StartDate:       dates.FormatTimePtr(m.PlanStartDate),
+		PlanStartDate:   dates.FormatTimePtr(m.PlanStartDate),
 		ExpectedEndDate: dates.FormatTimePtr(m.ExpectedEndDate),
 		ActualEndDate:   dates.FormatTimePtr(m.ActualEndDate),
 		ItemStatus:      m.ItemStatus,
@@ -171,7 +171,7 @@ func NewSubItemSummaryVOs(items []*model.SubItem) []SubItemSummaryVO {
 			Completion:      si.Completion,
 			AssigneeKey:     pkg.FormatIDPtr(si.AssigneeKey),
 			Priority:        si.Priority,
-			StartDate:       dates.FormatTimePtr(si.PlanStartDate),
+			PlanStartDate:   dates.FormatTimePtr(si.PlanStartDate),
 			ExpectedEndDate: dates.FormatTimePtr(si.ExpectedEndDate),
 			ActualEndDate:   dates.FormatTimePtr(si.ActualEndDate),
 		})

@@ -10,9 +10,10 @@ import App from './App'
 
 // Mock the teams API (called by AppLayout on mount)
 vi.mock('@/api/teams', () => ({
-  listTeamsApi: vi.fn().mockResolvedValue([
-    { id: 1, name: 'Team 1', description: '', pmId: 1, createdAt: '', updatedAt: '' },
-  ]),
+  listTeamsApi: vi.fn().mockResolvedValue({
+    items: [{ bizKey: '1', name: 'Team 1', description: '', code: '', pmKey: '1', createdAt: '', updatedAt: '' }],
+    total: 1, page: 1, pageSize: 20,
+  }),
   listMembersApi: vi.fn().mockResolvedValue([]),
 }))
 
@@ -20,10 +21,10 @@ vi.mock('@/api/teams', () => ({
 vi.mock('@/api/mainItems', () => ({
   listMainItemsApi: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, size: 20 }),
   getMainItemApi: vi.fn().mockResolvedValue({
-    id: 123, teamId: 1, code: 'MI-0123', title: 'Test', priority: 'P2',
-    proposerId: 1, assigneeId: null, startDate: null, expectedEndDate: null,
-    actualEndDate: null, status: 'progressing', completion: 0,
-    createdAt: '', updatedAt: '', subItems: [],
+    bizKey: '123', teamKey: '1', code: 'MI-0123', title: 'Test', priority: 'P2',
+    proposerKey: '1', assigneeKey: null, planStartDate: null, expectedEndDate: null,
+    actualEndDate: null, itemStatus: 'progressing', completion: 0,
+    createTime: '', dbUpdateTime: '', subItems: [],
   }),
   createMainItemApi: vi.fn(),
   updateMainItemApi: vi.fn(),
@@ -35,15 +36,16 @@ vi.mock('@/api/subItems', () => ({
 }))
 
 const mockUser: User = {
-  id: 1,
+  bizKey: '1',
   username: 'testuser',
   displayName: 'Test User',
   isSuperAdmin: false,
+  createTime: '',
 }
 
 const superAdminUser: User = {
   ...mockUser,
-  id: 2,
+  bizKey: '2',
   username: 'admin',
   isSuperAdmin: true,
 }

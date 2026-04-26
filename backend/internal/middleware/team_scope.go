@@ -16,15 +16,23 @@ import (
 // and injects teamID, callerTeamRole, and permCodes into the Gin context.
 func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleRepo) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 1. Parse teamId from URL param
+		// 1. Parse teamId from URL param as bizKey (snowflake int64)
 		teamIDStr := c.Param("teamId")
-		teamID, err := strconv.ParseUint(teamIDStr, 10, 64)
+		teamBizKey, err := strconv.ParseInt(teamIDStr, 10, 64)
 		if err != nil {
 			c.Abort()
 			apperrors.RespondError(c, apperrors.ErrValidation)
 			return
 		}
-		teamIDUint := uint(teamID)
+
+		// Resolve bizKey → internal auto-increment ID
+		team, err := teamRepo.FindByBizKey(c.Request.Context(), teamBizKey)
+		if err != nil {
+			c.Abort()
+			apperrors.RespondError(c, apperrors.ErrTeamNotFound)
+			return
+		}
+		teamIDUint := team.ID
 
 		// 2. SuperAdmin bypasses membership check
 		if IsSuperAdmin(c) {

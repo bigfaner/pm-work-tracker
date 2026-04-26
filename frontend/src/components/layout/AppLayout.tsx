@@ -15,7 +15,7 @@ export default function AppLayout() {
         const teams = Array.isArray(data) ? data : (data.items ?? [])
         setTeams(teams)
         if (teams.length > 0 && !currentTeamId) {
-          setCurrentTeam(teams[0].id)
+          setCurrentTeam(teams[0].bizKey)
         }
       })
       .catch(() => {})

@@ -190,3 +190,27 @@ CREATE TABLE pmw_status_histories (
     PRIMARY KEY (id),
     KEY idx_item (item_type, item_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='状态变更历史表（追加写入）';
+
+-- roles (RBAC)
+CREATE TABLE roles (
+    id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    biz_key         BIGINT          NOT NULL,
+    create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    db_update_time  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_flag    TINYINT(1)      NOT NULL DEFAULT 0,
+    deleted_time    DATETIME        NOT NULL DEFAULT '1970-01-01 08:00:00',
+    name            VARCHAR(50)     NOT NULL,
+    description     VARCHAR(200)    NOT NULL DEFAULT '',
+    is_preset       TINYINT(1)      NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_roles_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色表';
+
+-- role_permissions (RBAC)
+CREATE TABLE role_permissions (
+    id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    role_id          BIGINT UNSIGNED NOT NULL,
+    permission_code  VARCHAR(50)     NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_role_permission (role_id, permission_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色权限表';

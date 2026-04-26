@@ -39,8 +39,8 @@ import { formatDate as _formatDate } from '@/lib/format'
 const PAGE_SIZE = 10
 
 // TeamManagementPage receives ISO datetime strings; truncate to date before formatting
-function formatDate(dateStr: string): string {
-  return _formatDate(dateStr.slice(0, 10))
+function formatDate(dateStr?: string): string {
+  return dateStr ? _formatDate(dateStr.slice(0, 10)) : '-'
 }
 
 export default function TeamManagementPage() {
@@ -118,7 +118,7 @@ export default function TeamManagementPage() {
 
   // Add member mutation
   const inviteMutation = useMutation({
-    mutationFn: () => inviteMemberApi(addMemberTeamId!, { username: selectedUser!.username, roleId: inviteRoleId! }),
+    mutationFn: () => inviteMemberApi(addMemberTeamId!, { username: selectedUser!.username, roleKey: String(inviteRoleId!) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['teams'] })
       closeAddMemberDialog()
@@ -235,7 +235,7 @@ export default function TeamManagementPage() {
                       to={`/teams/${team.bizKey}`}
                       className="font-medium text-primary-600 hover:text-primary-700 hover:underline"
                     >
-                      {team.teamName}
+                      {team.name}
                     </Link>
                   </TableCell>
                   <TableCell>
@@ -246,12 +246,12 @@ export default function TeamManagementPage() {
                   </TableCell>
                   <TableCell>
                     <span className="text-[13px] text-secondary" style={{ maxWidth: 200 }}>
-                      {team.teamDesc || '-'}
+                      {team.description || '-'}
                     </span>
                   </TableCell>
                   <TableCell>
                     <span className="text-[13px] text-secondary">
-                      {formatDate(team.createTime)}
+                      {formatDate(team.createdAt)}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -371,7 +371,7 @@ export default function TeamManagementPage() {
                   <div className="absolute z-50 mt-1 w-full max-h-48 overflow-auto rounded-md border border-border bg-white shadow-lg" data-testid="add-member-user-dropdown">
                     {userSearchResults.map((u) => (
                       <button
-                        key={u.id}
+                        key={u.bizKey}
                         type="button"
                         className="w-full px-3 py-2 text-left text-sm hover:bg-bg-alt focus:bg-bg-alt focus:outline-none"
                         onClick={() => {
@@ -379,7 +379,7 @@ export default function TeamManagementPage() {
                           setUserSearch('')
                           setUserDropdownOpen(false)
                         }}
-                        data-testid={`add-member-user-option-${u.id}`}
+                        data-testid={`add-member-user-option-${u.bizKey}`}
                       >
                         <span className="font-medium text-primary">{u.displayName}</span>
                         <span className="ml-2 text-tertiary">{u.username}</span>

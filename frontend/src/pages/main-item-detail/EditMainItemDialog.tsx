@@ -32,7 +32,7 @@ interface EditMainItemDialogProps {
   onOpenChange: (open: boolean) => void
   form: EditMainItemFormState
   onFormChange: (updater: (prev: EditMainItemFormState) => EditMainItemFormState) => void
-  members: { userId: number; displayName: string }[]
+  members: { bizKey: string; displayName: string }[]
   onSubmit: () => void
   isPending: boolean
 }

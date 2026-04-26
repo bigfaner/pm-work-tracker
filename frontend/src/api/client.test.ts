@@ -32,12 +32,11 @@ describe('API Client', () => {
 
     it('should attach Authorization header when token exists in auth store', () => {
       useAuthStore.getState().setAuth('test-jwt-token', {
-        id: 1,
+        bizKey: '1',
         username: 'testuser',
         displayName: 'Test User',
         isSuperAdmin: false,
-        createdAt: '2026-01-01T00:00:00Z',
-        updatedAt: '2026-01-01T00:00:00Z',
+        createTime: '2026-01-01T00:00:00Z',
       })
 
       // Access the request interceptor directly through client
@@ -89,12 +88,11 @@ describe('API Client', () => {
 
     it('should clear auth and redirect on 401', async () => {
       useAuthStore.getState().setAuth('token', {
-        id: 1,
+        bizKey: '1',
         username: 'u',
         displayName: 'U',
         isSuperAdmin: false,
-        createdAt: '',
-        updatedAt: '',
+        createTime: '',
       })
 
       const handler = getRejectHandler()

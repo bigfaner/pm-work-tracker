@@ -43,34 +43,34 @@ function renderPage(mainItemId = '1') {
 // --- Seed data ---
 
 const seedMembers = [
-  { userId: 1, displayName: 'Test User', username: 'testuser', role: 'pm', joinedAt: '2024-01-01' },
-  { userId: 2, displayName: 'Alice', username: 'alice', role: 'member', joinedAt: '2024-01-01' },
-  { userId: 3, displayName: 'Bob', username: 'bob', role: 'member', joinedAt: '2024-01-01' },
+  { id: 1, bizKey: '1', teamId: 1, userId: 1, displayName: 'Test User', username: 'testuser', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
+  { id: 2, bizKey: '2', teamId: 1, userId: 2, displayName: 'Alice', username: 'alice', role: 'member', roleId: 2, roleName: 'member', joinedAt: '2024-01-01' },
+  { id: 3, bizKey: '3', teamId: 1, userId: 3, displayName: 'Bob', username: 'bob', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2024-01-01' },
 ]
 
 const seedMainItem = {
-  id: 1, teamId: 1, code: 'MI-0001', title: 'Alpha Task', priority: 'P1',
-  proposerId: 1, assigneeId: 1, startDate: '2026-03-20', expectedEndDate: '2026-04-15',
-  actualEndDate: null, status: 'progressing', completion: 65,
-  createdAt: '2026-03-20T00:00:00Z', updatedAt: '2026-04-01T00:00:00Z',
+  bizKey: '1', teamKey: '1', code: 'MI-0001', title: 'Alpha Task', priority: 'P1',
+  proposerKey: '1', assigneeKey: '1', planStartDate: '2026-03-20', expectedEndDate: '2026-04-15',
+  actualEndDate: null, itemStatus: 'progressing', completion: 65,
+  createTime: '2026-03-20T00:00:00Z', dbUpdateTime: '2026-04-01T00:00:00Z',
   subItems: [
     {
-      id: 11, teamId: 1, mainItemId: 1, title: 'Sub Alpha 1', description: '',
-      priority: 'P1', assigneeId: 2, startDate: '2026-04-01', expectedEndDate: '2026-04-10',
-      actualEndDate: '2026-04-09', status: 'completed', completion: 100,
-      weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-09T00:00:00Z',
+      bizKey: '11', teamKey: '1', mainItemKey: '1', title: 'Sub Alpha 1', itemDesc: '',
+      priority: 'P1', assigneeKey: '2', planStartDate: '2026-04-01', expectedEndDate: '2026-04-10',
+      actualEndDate: '2026-04-09', itemStatus: 'completed', completion: 100,
+      weight: 1, createTime: '2026-04-01T00:00:00Z', dbUpdateTime: '2026-04-09T00:00:00Z',
     },
     {
-      id: 12, teamId: 1, mainItemId: 1, title: 'Sub Alpha 2', description: '',
-      priority: 'P2', assigneeId: 3, startDate: '2026-04-08', expectedEndDate: '2026-04-18',
-      actualEndDate: null, status: 'progressing', completion: 80,
-      weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-08T00:00:00Z',
+      bizKey: '12', teamKey: '1', mainItemKey: '1', title: 'Sub Alpha 2', itemDesc: '',
+      priority: 'P2', assigneeKey: '3', planStartDate: '2026-04-08', expectedEndDate: '2026-04-18',
+      actualEndDate: null, itemStatus: 'progressing', completion: 80,
+      weight: 1, createTime: '2026-04-01T00:00:00Z', dbUpdateTime: '2026-04-08T00:00:00Z',
     },
     {
-      id: 13, teamId: 1, mainItemId: 1, title: 'Sub Alpha 3', description: '',
-      priority: 'P2', assigneeId: 3, startDate: '2026-04-15', expectedEndDate: '2026-04-25',
-      actualEndDate: null, status: 'progressing', completion: 30,
-      weight: 1, createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-15T00:00:00Z',
+      bizKey: '13', teamKey: '1', mainItemKey: '1', title: 'Sub Alpha 3', itemDesc: '',
+      priority: 'P2', assigneeKey: '3', planStartDate: '2026-04-15', expectedEndDate: '2026-04-25',
+      actualEndDate: null, itemStatus: 'progressing', completion: 30,
+      weight: 1, createTime: '2026-04-01T00:00:00Z', dbUpdateTime: '2026-04-15T00:00:00Z',
     },
   ],
   achievements: ['登录/注册接口开发完成', 'JWT Token 签发与验证逻辑实现'],
@@ -81,7 +81,7 @@ function setupHandlers() {
   server.use(
     // Get main item with sub items
     http.get('/v1/teams/:teamId/main-items/:itemId', ({ params }) => {
-      const item = Number(params.itemId) === 1 ? seedMainItem : null
+      const item = String(params.itemId) === '1' ? seedMainItem : null
       if (!item) return HttpResponse.json({ code: 'NOT_FOUND', message: 'not found' }, { status: 404 })
       return HttpResponse.json({ code: 0, data: item })
     }),
@@ -103,10 +103,10 @@ function setupHandlers() {
       return HttpResponse.json({
         code: 0,
         data: {
-          id: 100, teamId: 1, mainItemId: 1, description: '', priority: 'P2',
-          assigneeId: null, startDate: null, expectedEndDate: null, actualEndDate: null,
-          status: 'pending', completion: 0, weight: 1,
-          createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+          bizKey: '100', teamKey: '1', mainItemKey: '1', itemDesc: '', priority: 'P2',
+          assigneeKey: null, planStartDate: null, expectedEndDate: null, actualEndDate: null,
+          itemStatus: 'pending', completion: 0, weight: 1,
+          createTime: new Date().toISOString(), dbUpdateTime: new Date().toISOString(),
           ...body,
         },
       })
@@ -120,14 +120,14 @@ function setupHandlers() {
     // Available transitions for sub items
     http.get('/v1/teams/:teamId/sub-items/:subId/available-transitions', () => {
       const allStatuses = ['pending', 'progressing', 'blocking', 'pausing', 'completed', 'closed']
-      return HttpResponse.json({ code: 0, data: allStatuses })
+      return HttpResponse.json({ code: 0, data: { transitions: allStatuses } })
     }),
   )
 }
 
 describe('MainItemDetailPage', () => {
   beforeEach(() => {
-    useTeamStore.setState({ currentTeamId: 1, teams: [{ id: 1, name: 'Test Team', description: '', pmId: 1, createdAt: '', updatedAt: '' }] })
+    useTeamStore.setState({ currentTeamId: '1', teams: [{ bizKey: '1', name: 'Test Team', description: '', code: '', pmKey: '1', createdAt: '', updatedAt: '' }] })
     useAuthStore.getState().setPermissions({
       isSuperAdmin: false,
       teamPermissions: { 1: ['main_item:update'] },
@@ -404,7 +404,7 @@ describe('MainItemDetailPage', () => {
   it('disables sub-item edit and append-progress buttons when main item is terminal', async () => {
     server.use(
       http.get('/v1/teams/:teamId/main-items/:itemId', () => {
-        return HttpResponse.json({ code: 0, data: { ...seedMainItem, status: 'completed' } })
+        return HttpResponse.json({ code: 0, data: { ...seedMainItem, itemStatus: 'completed' } })
       }),
     )
     renderPage()

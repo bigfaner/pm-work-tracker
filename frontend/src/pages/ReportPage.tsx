@@ -9,11 +9,11 @@ import { WeekPicker } from '@/components/shared/WeekPicker'
 import { getCurrentWeekStart, getWeekNumber, getISOWeekYear } from '@/utils/weekUtils'
 import type { ReportPreviewResp } from '@/types'
 
-function renderMarkdown(preview: ReportPreviewResp, filterUserId?: number): string {
+function renderMarkdown(preview: ReportPreviewResp, filterUserKey?: string): string {
   const isoYear = getISOWeekYear(preview.weekStart)
   const weekNum = getWeekNumber(preview.weekStart)
   const user = useAuthStore.getState().user
-  const isPersonal = filterUserId != null
+  const isPersonal = filterUserKey != null
 
   let md = `## ${isoYear}年第${weekNum}周 工作周报`
   if (isPersonal && user?.displayName) {
@@ -23,7 +23,7 @@ function renderMarkdown(preview: ReportPreviewResp, filterUserId?: number): stri
 
   for (const section of preview.sections) {
     const subs = isPersonal
-      ? section.subItems.filter((s) => s.assigneeId === filterUserId)
+      ? section.subItems.filter((s) => s.assigneeKey === filterUserKey)
       : section.subItems
     if (subs.length === 0) continue
 
@@ -91,7 +91,7 @@ export default function ReportPage() {
   const handleExportPersonal = () => {
     if (!preview || !currentUser) return
     downloadMarkdown(
-      renderMarkdown(preview, Number(currentUser.bizKey)),
+      renderMarkdown(preview, currentUser.bizKey),
       `weekly-report-${weekValue}-${currentUser.username}.md`,
     )
   }

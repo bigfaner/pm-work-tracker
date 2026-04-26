@@ -28,7 +28,7 @@ export async function getFirstTeamId(token: string): Promise<string | null> {
   const data = json.data ?? json;
   const list = Array.isArray(data) ? data : (data?.items ?? []);
   if (list.length > 0) {
-    cachedTeamId = String(list[0].id || list[0].ID);
+    cachedTeamId = String(list[0].bizKey ?? list[0].id ?? list[0].ID);
   }
   return cachedTeamId;
 }

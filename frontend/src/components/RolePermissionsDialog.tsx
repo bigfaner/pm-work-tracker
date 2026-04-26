@@ -36,7 +36,7 @@ export default function RolePermissionsDialog({
       <DialogContent size="lg" data-testid="role-permissions-dialog">
         <DialogHeader>
           <DialogTitle data-testid="role-permissions-dialog-title">
-            {roleDetail ? `角色权限: ${roleDetail.name}` : '角色权限'}
+            {roleDetail ? `角色权限: ${roleDetail.roleName}` : '角色权限'}
           </DialogTitle>
         </DialogHeader>
         <DialogBody>

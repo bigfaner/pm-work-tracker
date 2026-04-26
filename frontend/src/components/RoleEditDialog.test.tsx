@@ -37,15 +37,15 @@ function setupHandlers() {
           code: 0,
           data: {
             id: 1,
-            name: 'superadmin',
-            description: '超级管理员',
+            roleName: 'superadmin',
+            roleDesc: '超级管理员',
             isPreset: true,
             permissions: [
               { code: 'team:create', description: '创建团队' },
               { code: 'team:read', description: '查看团队信息' },
             ],
             memberCount: 2,
-            createdAt: '2026-04-01T00:00:00Z',
+            createTime: '2026-04-01T00:00:00Z',
           },
         })
       }
@@ -54,15 +54,15 @@ function setupHandlers() {
           code: 0,
           data: {
             id: 4,
-            name: 'viewer',
-            description: '只读查看者',
+            roleName: 'viewer',
+            roleDesc: '只读查看者',
             isPreset: false,
             permissions: [
               { code: 'team:read', description: '查看团队信息' },
               { code: 'main_item:read', description: '查看主事项' },
             ],
             memberCount: 0,
-            createdAt: '2026-04-15T12:00:00Z',
+            createTime: '2026-04-15T12:00:00Z',
           },
         })
       }
@@ -85,12 +85,12 @@ function setupHandlers() {
         code: 0,
         data: {
           id: 100,
-          name,
-          description: body.description || '',
+          roleName: name,
+          roleDesc: body.description || '',
           isPreset: false,
           permissionCount: (body.permissionCodes as string[]).length,
           memberCount: 0,
-          createdAt: '2026-04-19T12:00:00Z',
+          createTime: '2026-04-19T12:00:00Z',
         },
       })
     }),
@@ -101,12 +101,12 @@ function setupHandlers() {
         code: 0,
         data: {
           id,
-          name: 'viewer',
-          description: 'updated',
+          roleName: 'viewer',
+          roleDesc: 'updated',
           isPreset: false,
           permissions: [{ code: 'team:read', description: '查看团队信息' }],
           memberCount: 0,
-          createdAt: '2026-04-15T12:00:00Z',
+          createTime: '2026-04-15T12:00:00Z',
         },
       })
     }),

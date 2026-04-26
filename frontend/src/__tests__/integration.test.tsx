@@ -15,10 +15,11 @@ afterAll(() => server.close())
 // --- Shared data ---
 
 const mockUser: User = {
-  id: 1,
+  bizKey: '1',
   username: 'testuser',
   displayName: 'Test User',
   isSuperAdmin: false,
+  createTime: '',
 }
 
 function getLoginButton() {

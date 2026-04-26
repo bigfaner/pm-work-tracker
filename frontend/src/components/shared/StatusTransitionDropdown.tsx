@@ -29,8 +29,8 @@ import {
 export interface StatusTransitionDropdownProps {
   currentStatus: string
   itemType: 'main' | 'sub'
-  teamId: number
-  itemId: number | string
+  teamId: string
+  itemId: string
   onStatusChanged: () => void
   /** Called before terminal status transition. Return true to proceed, false to cancel. */
   onBeforeTerminalStatus?: (status: string) => Promise<boolean>
@@ -59,8 +59,8 @@ export default function StatusTransitionDropdown({
     : ['subItemTransitions', teamId, itemId]
 
   const fetchTransitions = itemType === 'main'
-    ? () => getMainItemTransitionsApi(String(teamId), String(itemId))
-    : () => getSubItemTransitionsApi(String(teamId), String(itemId))
+    ? () => getMainItemTransitionsApi(teamId, itemId)
+    : () => getSubItemTransitionsApi(teamId, itemId)
 
   const { data: transitions = [], isFetched, isFetching } = useQuery({
     queryKey,
@@ -78,9 +78,9 @@ export default function StatusTransitionDropdown({
 
   const changeStatus = async (status: string): Promise<void> => {
     if (itemType === 'main') {
-      await changeMainItemStatusApi(String(teamId), String(itemId), { status })
+      await changeMainItemStatusApi(teamId, itemId, { status })
     } else {
-      await changeSubItemStatusApi(String(teamId), String(itemId), { status })
+      await changeSubItemStatusApi(teamId, itemId, { status })
     }
   }
 

@@ -71,7 +71,7 @@ export default function UserManagementPage() {
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false)
-  const [editUserId, setEditUserId] = useState<number | null>(null)
+  const [editUserId, setEditUserId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<UpdateUserReq & { displayName: string; email: string }>({
     displayName: '',
     email: '',
@@ -140,8 +140,8 @@ export default function UserManagementPage() {
   })
 
   const editMutation = useMutation({
-    mutationFn: ({ userId, req }: { userId: number; req: UpdateUserReq }) =>
-      updateUserApi(userId, req),
+    mutationFn: ({ userId, req }: { userId: string; req: UpdateUserReq }) =>
+      updateUserApi(Number(userId), req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['adminUsers'] })
       setEditOpen(false)
@@ -150,8 +150,8 @@ export default function UserManagementPage() {
   })
 
   const statusMutation = useMutation({
-    mutationFn: ({ userId, status }: { userId: number; status: 'enabled' | 'disabled' }) =>
-      toggleUserStatusApi(userId, { status }),
+    mutationFn: ({ userId, status }: { userId: string; status: 'enabled' | 'disabled' }) =>
+      toggleUserStatusApi(Number(userId), { status }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['adminUsers'] })
       setStatusOpen(false)
@@ -184,12 +184,12 @@ export default function UserManagementPage() {
       username: createForm.username.trim(),
       displayName: createForm.displayName.trim(),
       ...(createForm.email.trim() && { email: createForm.email.trim() }),
-      ...(createForm.teamId && { teamId: createForm.teamId }),
+      ...(createForm.teamKey && { teamKey: createForm.teamKey }),
     })
   }, [createForm, createMutation])
 
   const openEdit = useCallback((user: AdminUser) => {
-    setEditUserId(user.id)
+    setEditUserId(user.bizKey)
     setEditForm({
       displayName: user.displayName,
       email: user.email || '',
@@ -216,8 +216,8 @@ export default function UserManagementPage() {
 
   const handleToggleStatus = useCallback(() => {
     if (!statusUser) return
-    const newStatus = statusUser.status === 'enabled' ? 'disabled' : 'enabled'
-    statusMutation.mutate({ userId: statusUser.id, status: newStatus })
+    const newStatus = statusUser.userStatus === 'enabled' ? 'disabled' : 'enabled'
+    statusMutation.mutate({ userId: statusUser.bizKey, status: newStatus })
   }, [statusUser, statusMutation])
 
   // --- Render ---
@@ -271,7 +271,7 @@ export default function UserManagementPage() {
             </TableHeader>
             <TableBody>
               {users.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow key={user.bizKey}>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <UserAvatar name={user.displayName} size="sm" />
@@ -288,7 +288,7 @@ export default function UserManagementPage() {
                     <div className="flex flex-wrap gap-1">
                       {user.teams && user.teams.length > 0 ? (
                         user.teams.map((t) => (
-                          <Badge key={t.id} variant="primary">{t.name}</Badge>
+                          <Badge key={t.bizKey} variant="primary">{t.name}</Badge>
                         ))
                       ) : (
                         <span className="text-tertiary text-xs">-</span>
@@ -296,8 +296,8 @@ export default function UserManagementPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={user.status === 'enabled' ? 'success' : 'warning'}>
-                      {user.status === 'enabled' ? '启用' : '停用'}
+                    <Badge variant={user.userStatus === 'enabled' ? 'success' : 'warning'}>
+                      {user.userStatus === 'enabled' ? '启用' : '停用'}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -307,7 +307,7 @@ export default function UserManagementPage() {
                         编辑
                       </Button>
                       <Button variant="ghost" size="sm" className="text-primary-600" onClick={() => openToggleStatus(user)}>
-                        {user.status === 'enabled' ? (
+                        {user.userStatus === 'enabled' ? (
                           <ToggleRight className="w-3.5 h-3.5" />
                         ) : (
                           <ToggleLeft className="w-3.5 h-3.5" />
@@ -374,9 +374,9 @@ export default function UserManagementPage() {
               <div>
                 <label className="block text-sm font-medium text-primary mb-1">所属团队</label>
                 <Select
-                  value={createForm.teamId ? String(createForm.teamId) : '_none'}
+                  value={createForm.teamKey || '_none'}
                   onValueChange={(v) =>
-                    setCreateForm((f) => ({ ...f, teamId: v === '_none' ? undefined : Number(v) }))
+                    setCreateForm((f) => ({ ...f, teamKey: v === '_none' ? undefined : v }))
                   }
                 >
                   <SelectTrigger>
@@ -385,7 +385,7 @@ export default function UserManagementPage() {
                   <SelectContent>
                     <SelectItem value="_none">不指定</SelectItem>
                     {teams.map((t) => (
-                      <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                      <SelectItem key={t.bizKey} value={String(t.bizKey)}>{t.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -458,9 +458,9 @@ export default function UserManagementPage() {
               <div>
                 <label className="block text-sm font-medium text-primary mb-1">所属团队</label>
                 <Select
-                  value={editForm.teamId ? String(editForm.teamId) : '_none'}
+                  value={editForm.teamKey || '_none'}
                   onValueChange={(v) =>
-                    setEditForm((f) => ({ ...f, teamId: v === '_none' ? undefined : Number(v) }))
+                    setEditForm((f) => ({ ...f, teamKey: v === '_none' ? undefined : v }))
                   }
                 >
                   <SelectTrigger>
@@ -469,7 +469,7 @@ export default function UserManagementPage() {
                   <SelectContent>
                     <SelectItem value="_none">不指定</SelectItem>
                     {teams.map((t) => (
-                      <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                      <SelectItem key={t.bizKey} value={String(t.bizKey)}>{t.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -497,17 +497,17 @@ export default function UserManagementPage() {
               </div>
               <div>
                 <p className="text-sm text-tertiary mb-1">当前状态</p>
-                <Badge variant={statusUser?.status === 'enabled' ? 'success' : 'warning'}>
-                  {statusUser?.status === 'enabled' ? '启用' : '停用'}
+                <Badge variant={statusUser?.userStatus === 'enabled' ? 'success' : 'warning'}>
+                  {statusUser?.userStatus === 'enabled' ? '启用' : '停用'}
                 </Badge>
               </div>
               <div>
                 <p className="text-sm text-tertiary mb-1">新状态</p>
-                <Badge variant={statusUser?.status === 'enabled' ? 'warning' : 'success'}>
-                  {statusUser?.status === 'enabled' ? '停用' : '启用'}
+                <Badge variant={statusUser?.userStatus === 'enabled' ? 'warning' : 'success'}>
+                  {statusUser?.userStatus === 'enabled' ? '停用' : '启用'}
                 </Badge>
               </div>
-              {statusUser?.status === 'enabled' && (
+              {statusUser?.userStatus === 'enabled' && (
                 <div className="bg-warning-bg border border-warning-text/20 rounded-lg p-3 text-sm text-warning-text">
                   <strong>注意：</strong>禁用用户后该用户将无法登录系统，但数据不会被删除。
                 </div>

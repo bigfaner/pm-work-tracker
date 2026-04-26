@@ -127,7 +127,7 @@ func (h *MainItemHandler) Get(c *gin.Context) {
 		"priority":        itemVO.Priority,
 		"proposerKey":     itemVO.ProposerKey,
 		"assigneeKey":     itemVO.AssigneeKey,
-		"startDate":       itemVO.StartDate,
+		"startDate":       itemVO.PlanStartDate,
 		"expectedEndDate": itemVO.ExpectedEndDate,
 		"actualEndDate":   itemVO.ActualEndDate,
 		"itemStatus":      itemVO.ItemStatus,

@@ -39,39 +39,39 @@ function renderPage() {
 const seedRoles = [
   {
     id: 1,
-    name: 'superadmin',
-    description: '超级管理员',
+    roleName: 'superadmin',
+    roleDesc: '超级管理员',
     isPreset: true,
     permissionCount: 30,
     memberCount: 2,
-    createdAt: '2026-04-01T00:00:00Z',
+    createTime: '2026-04-01T00:00:00Z',
   },
   {
     id: 2,
-    name: 'pm',
-    description: '团队管理权限',
+    roleName: 'pm',
+    roleDesc: '团队管理权限',
     isPreset: true,
     permissionCount: 22,
     memberCount: 5,
-    createdAt: '2026-04-01T00:00:00Z',
+    createTime: '2026-04-01T00:00:00Z',
   },
   {
     id: 3,
-    name: 'member',
-    description: '普通成员权限',
+    roleName: 'member',
+    roleDesc: '普通成员权限',
     isPreset: true,
     permissionCount: 8,
     memberCount: 10,
-    createdAt: '2026-04-01T00:00:00Z',
+    createTime: '2026-04-01T00:00:00Z',
   },
   {
     id: 4,
-    name: 'viewer',
-    description: '只读查看者',
+    roleName: 'viewer',
+    roleDesc: '只读查看者',
     isPreset: false,
     permissionCount: 3,
     memberCount: 0,
-    createdAt: '2026-04-15T12:00:00Z',
+    createTime: '2026-04-15T12:00:00Z',
   },
 ]
 
@@ -105,7 +105,7 @@ function setupHandlers() {
       let filtered = [...seedRoles]
       if (search) {
         const q = search.toLowerCase()
-        filtered = filtered.filter((r) => r.name.toLowerCase().includes(q))
+        filtered = filtered.filter((r) => r.roleName.toLowerCase().includes(q))
       }
       if (isPresetParam === 'preset') {
         filtered = filtered.filter((r) => r.isPreset)
@@ -160,12 +160,12 @@ function setupHandlers() {
         code: 0,
         data: {
           id: 100,
-          name,
-          description: body.description || '',
+          roleName: name,
+          roleDesc: body.description || '',
           isPreset: false,
           permissionCount: (body.permissionCodes as string[]).length,
           memberCount: 0,
-          createdAt: '2026-04-19T12:00:00Z',
+          createTime: '2026-04-19T12:00:00Z',
         },
       })
     }),

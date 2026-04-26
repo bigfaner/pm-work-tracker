@@ -539,6 +539,7 @@ func TestWeeklyView_RequiresTeamMembership(t *testing.T) {
 	deps, db := testDeps(t)
 	// Ensure user ID=99 exists so AuthMiddleware doesn't return 401
 	db.Create(&model.User{BaseModel: model.BaseModel{ID: 99}, Username: "testuser99", DisplayName: "Test User 99"})
+	db.Create(&model.Team{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamName: "Test", PmKey: 1, Code: "TEST"})
 	// Use a mock team repo that returns no membership (error)
 	deps.View = NewViewHandler(svc)
 	// default TeamRepo from testDeps has no members, so FindMember returns error

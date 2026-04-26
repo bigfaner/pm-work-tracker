@@ -64,25 +64,25 @@ export default function SubItemDetailPage() {
 
   const { data: subItem, isLoading: subLoading } = useQuery({
     queryKey: ['subItem', teamId, sId],
-    queryFn: () => getSubItemApi(String(teamId!), sId),
+    queryFn: () => getSubItemApi(teamId!, sId),
     enabled: !!teamId && !!sId,
   })
 
   const { data: mainItem } = useQuery({
     queryKey: ['mainItem', teamId, mId],
-    queryFn: () => getMainItemApi(String(teamId!), mId),
+    queryFn: () => getMainItemApi(teamId!, mId),
     enabled: !!teamId && !!mId,
   })
 
   const { data: progressRecords } = useQuery({
     queryKey: ['progress', teamId, sId],
-    queryFn: () => listProgressApi(String(teamId!), sId),
+    queryFn: () => listProgressApi(teamId!, sId),
     enabled: !!teamId && !!sId,
   })
 
   const { data: members } = useQuery({
     queryKey: ['members', teamId],
-    queryFn: () => listMembersApi(String(teamId!)),
+    queryFn: () => listMembersApi(teamId!),
     enabled: !!teamId,
   })
 
@@ -96,8 +96,8 @@ export default function SubItemDetailPage() {
   // --- Mutations ---
 
   const editMutation = useMutation({
-    mutationFn: (req: { title: string; priority: string; assigneeId?: number; expectedEndDate?: string; description?: string }) =>
-      updateSubItemApi(String(teamId!), sId, req),
+    mutationFn: (req: { title: string; priority: string; assigneeKey?: string; expectedEndDate?: string; description?: string }) =>
+      updateSubItemApi(teamId!, sId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['subItem', teamId, sId] })
       setEditOpen(false)
@@ -106,7 +106,7 @@ export default function SubItemDetailPage() {
 
   const appendMutation = useMutation({
     mutationFn: (req: { completion: number; achievement?: string; blocker?: string }) =>
-      appendProgressApi(String(teamId!), sId, req),
+      appendProgressApi(teamId!, sId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['progress', teamId, sId] })
       qc.invalidateQueries({ queryKey: ['subItem', teamId, sId] })
@@ -117,10 +117,10 @@ export default function SubItemDetailPage() {
 
   const achievementStatusMutation = useMutation({
     mutationFn: async (status: string) => {
-      await changeSubItemStatusApi(String(teamId!), sId, { status })
+      await changeSubItemStatusApi(teamId!, sId, { status })
       const achievement = achievementText.trim()
       if (achievement) {
-        await appendProgressApi(String(teamId!), sId, { completion: 100, achievement })
+        await appendProgressApi(teamId!, sId, { completion: 100, achievement })
       }
     },
     onSuccess: () => {
@@ -166,7 +166,7 @@ export default function SubItemDetailPage() {
     editMutation.mutate({
       title: editForm.title.trim(),
       priority: editForm.priority,
-      assigneeId: editForm.assigneeId ? Number(editForm.assigneeId) : undefined,
+      assigneeKey: editForm.assigneeId || undefined,
       expectedEndDate: editForm.expectedEndDate || undefined,
       description: editForm.description,
     })
@@ -255,7 +255,7 @@ export default function SubItemDetailPage() {
               <div className="grid grid-cols-4 gap-4 mb-4">
                 <div>
                   <div className="text-xs text-tertiary mb-1">负责人</div>
-                  <span className="text-[13px] font-medium">{memberName(subItem.assigneeKey ? Number(subItem.assigneeKey) : null)}</span>
+                  <span className="text-[13px] font-medium">{memberName(subItem.assigneeKey)}</span>
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">开始时间</div>

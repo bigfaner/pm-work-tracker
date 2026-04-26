@@ -22,8 +22,8 @@ export function assignItemPoolApi(teamBizKey: string, poolBizKey: string, req: A
   return client.post<never, AssignItemPoolResp>(`/teams/${teamBizKey}/item-pool/${poolBizKey}/assign`, req)
 }
 
-export function convertToMainApi(teamBizKey: string, poolBizKey: string, req: ConvertToMainItemReq): Promise<{ mainItemId: number }> {
-  return client.post<never, { mainItemId: number }>(`/teams/${teamBizKey}/item-pool/${poolBizKey}/convert-to-main`, req)
+export function convertToMainApi(teamBizKey: string, poolBizKey: string, req: ConvertToMainItemReq): Promise<{ mainItemBizKey: string }> {
+  return client.post<never, { mainItemBizKey: string }>(`/teams/${teamBizKey}/item-pool/${poolBizKey}/convert-to-main`, req)
 }
 
 export function rejectItemPoolApi(teamBizKey: string, poolBizKey: string, req: RejectItemPoolReq): Promise<ItemPool> {

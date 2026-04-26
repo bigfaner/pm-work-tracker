@@ -48,8 +48,8 @@ export default function RoleEditDialog({
   // Populate form when role detail loads
   useEffect(() => {
     if (roleDetail) {
-      setName(roleDetail.name)
-      setDescription(roleDetail.description || '')
+      setName(roleDetail.roleName)
+      setDescription(roleDetail.roleDesc || '')
       setSelectedCodes(roleDetail.permissions.map((p) => p.code))
       setError('')
     }
@@ -148,7 +148,7 @@ export default function RoleEditDialog({
       <DialogContent size="lg">
         <DialogHeader>
           <DialogTitle>
-            {isEdit ? `编辑角色: ${roleDetail?.name ?? ''}` : '创建角色'}
+            {isEdit ? `编辑角色: ${roleDetail?.roleName ?? ''}` : '创建角色'}
           </DialogTitle>
         </DialogHeader>
         <DialogBody>

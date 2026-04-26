@@ -136,7 +136,7 @@ export default function RoleManagementPage() {
     }
   }, [deleteRole, deleteMutation])
 
-  const formatDate = (dateStr: string) => _formatDate(dateStr.slice(0, 10))
+  const formatDate = (dateStr?: string) => dateStr ? _formatDate(dateStr.slice(0, 10)) : '-'
 
   return (
     <TooltipProvider>

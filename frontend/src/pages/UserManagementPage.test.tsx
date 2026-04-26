@@ -38,29 +38,29 @@ function renderPage() {
 
 const seedUsers = [
   {
-    id: 1, username: 'zhangming', displayName: '张明', email: 'zhangming@example.com',
-    isSuperAdmin: true, status: 'enabled',
-    teams: [{ id: 1, name: '产品研发团队', role: 'pm' }],
+    bizKey: '1', username: 'zhangming', displayName: '张明', email: 'zhangming@example.com',
+    isSuperAdmin: true, userStatus: 'enabled',
+    teams: [{ bizKey: '1', name: '产品研发团队', role: 'pm' }],
   },
   {
-    id: 2, username: 'lihua', displayName: '李华', email: 'lihua@example.com',
-    isSuperAdmin: false, status: 'enabled',
-    teams: [{ id: 1, name: '产品研发团队', role: 'member' }],
+    bizKey: '2', username: 'lihua', displayName: '李华', email: 'lihua@example.com',
+    isSuperAdmin: false, userStatus: 'enabled',
+    teams: [{ bizKey: '1', name: '产品研发团队', role: 'member' }],
   },
   {
-    id: 3, username: 'wangfang', displayName: '王芳', email: 'wangfang@example.com',
-    isSuperAdmin: false, status: 'enabled',
-    teams: [{ id: 1, name: '产品研发团队', role: 'member' }],
+    bizKey: '3', username: 'wangfang', displayName: '王芳', email: 'wangfang@example.com',
+    isSuperAdmin: false, userStatus: 'enabled',
+    teams: [{ bizKey: '1', name: '产品研发团队', role: 'member' }],
   },
   {
-    id: 4, username: 'zhaoqiang', displayName: '赵强', email: 'zhaoqiang@example.com',
-    isSuperAdmin: false, status: 'disabled',
-    teams: [{ id: 2, name: '设计团队', role: 'member' }],
+    bizKey: '4', username: 'zhaoqiang', displayName: '赵强', email: 'zhaoqiang@example.com',
+    isSuperAdmin: false, userStatus: 'disabled',
+    teams: [{ bizKey: '2', name: '设计团队', role: 'member' }],
   },
 ]
 
 const seedTeams = [
-  { id: 2, name: '设计团队', pm: { displayName: '李华' }, memberCount: 2, mainItemCount: 2, createdAt: '2024-02-01' },
+  { bizKey: '2', name: '设计团队', pmDisplayName: '李华', memberCount: 2, mainItemCount: 2, createTime: '2024-02-01' },
 ]
 
 function setupHandlers() {
@@ -116,7 +116,7 @@ function setupHandlers() {
           username,
           displayName: body.displayName,
           email: body.email || '',
-          status: 'enabled',
+          userStatus: 'enabled',
           teams: [],
           initialPassword: 'Abc123456789',
         },
@@ -127,7 +127,7 @@ function setupHandlers() {
     http.put('/v1/admin/users/:userId', async ({ params, request }) => {
       const userId = Number(params.userId)
       const body = (await request.json()) as Record<string, unknown>
-      const user = seedUsers.find((u) => u.id === userId)
+      const user = seedUsers.find((u) => u.bizKey === String(userId))
       if (!user) {
         return HttpResponse.json({ code: 'USER_NOT_FOUND', message: 'not found' }, { status: 404 })
       }
@@ -141,7 +141,7 @@ function setupHandlers() {
     http.put('/v1/admin/users/:userId/status', async ({ params, request }) => {
       const userId = Number(params.userId)
       const body = (await request.json()) as { status: string }
-      const user = seedUsers.find((u) => u.id === userId)
+      const user = seedUsers.find((u) => u.bizKey === String(userId))
       if (!user) {
         return HttpResponse.json({ code: 'USER_NOT_FOUND', message: 'not found' }, { status: 404 })
       }
@@ -153,7 +153,7 @@ function setupHandlers() {
       }
       return HttpResponse.json({
         code: 0,
-        data: { id: userId, username: user.username, status: body.status },
+        data: { id: userId, username: user.username, userStatus: body.status },
       })
     }),
   )
