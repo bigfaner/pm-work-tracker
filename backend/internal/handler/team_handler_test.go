@@ -523,8 +523,8 @@ func TestDisbandTeam_ConfirmNameMismatch(t *testing.T) {
 func TestListMembers_Success(t *testing.T) {
 	svc := &mockTeamService{}
 	svc.listMembersResult.members = []*dto.TeamMemberDTO{
-		{UserID: 1, DisplayName: "Alice", },
-		{UserID: 2, DisplayName: "Bob", },
+		{UserBizKey: "1", DisplayName: "Alice", },
+		{UserBizKey: "2", DisplayName: "Bob", },
 	}
 
 	deps := depsWithTeamSvc(t, svc, nil)
