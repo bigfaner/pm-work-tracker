@@ -208,7 +208,7 @@
       "dependencies": [
         "5.x"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "5-summary.md",
       "record": "records/5-summary.md"
     },
