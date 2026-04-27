@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS pmw_sub_items (
     weight            REAL          NOT NULL DEFAULT 1.00 -- 权重，用于计算父事项完成度
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uk_sub_items_biz_key ON pmw_sub_items(biz_key);
-CREATE UNIQUE INDEX IF NOT EXISTS uk_sub_items_main_code ON pmw_sub_items(main_item_key, item_code);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_sub_items_main_code ON pmw_sub_items(main_item_key, item_code, deleted_flag, deleted_time);
 CREATE INDEX IF NOT EXISTS idx_sub_items_main_item_key ON pmw_sub_items(main_item_key);
 CREATE INDEX IF NOT EXISTS idx_sub_items_team_key ON pmw_sub_items(team_key);
 CREATE INDEX IF NOT EXISTS idx_sub_items_assignee_key ON pmw_sub_items(assignee_key);

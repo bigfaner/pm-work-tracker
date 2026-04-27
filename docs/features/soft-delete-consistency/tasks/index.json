@@ -170,7 +170,7 @@
       "dependencies": [
         "2.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.2-schema-migration.md",
       "record": "records/3.2-schema-migration.md"
     },

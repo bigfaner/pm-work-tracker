@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS pmw_sub_items (
     weight            DECIMAL(5,2)    NOT NULL DEFAULT 1.00         COMMENT '权重，用于计算父事项完成度',
     PRIMARY KEY (id),
     UNIQUE KEY uk_biz_key (biz_key),
-    UNIQUE KEY uk_sub_items_main_code (main_item_key, item_code),
+    UNIQUE KEY uk_sub_items_main_code (main_item_key, item_code, deleted_flag, deleted_time),
     KEY idx_sub_items_main_item_key (main_item_key),
     KEY idx_sub_items_team_key (team_key),
     KEY idx_sub_items_assignee_key (assignee_key),
