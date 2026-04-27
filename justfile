@@ -16,7 +16,13 @@ build env:
     ./scripts/build.sh {{env}}
 
 start:
-    ./bin/pm-work-tracker -config ./bin/config.yaml
+    ./bin/darwin-amd64/pm-work-tracker -config ./bin/config.yaml
+
+start-linux:
+    ./bin/linux-amd64/pm-work-tracker -config ./bin/config.yaml
+
+start-windows:
+    ./bin/windows-arm64/pm-work-tracker.e2e -config ./bin/config.yaml
 
 test:
     cd backend && go test -race ./...
