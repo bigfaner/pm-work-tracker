@@ -19,12 +19,13 @@ import (
 // ---------------------------------------------------------------------------
 
 type mockAdminUserRepo struct {
-	users   []*model.User
-	user    *model.User
-	err     error
-	created *model.User
-	updated *model.User
-	findErr error // separate error for FindByUsername
+	users     []*model.User
+	user      *model.User
+	err       error
+	created   *model.User
+	updated   *model.User
+	findErr   error // separate error for FindByUsername
+	createErr error
 
 	// ListFiltered captures calls and returns configurable results
 	listFilteredFn func(ctx context.Context, search string, offset, limit int) ([]*model.User, int64, error)
@@ -59,6 +60,9 @@ func (m *mockAdminUserRepo) List(_ context.Context) ([]*model.User, error) {
 }
 
 func (m *mockAdminUserRepo) Create(_ context.Context, user *model.User) error {
+	if m.createErr != nil {
+		return m.createErr
+	}
 	m.created = user
 	user.ID = 100 // simulate auto-increment
 	return nil
@@ -116,7 +120,7 @@ func (m *mockAdminTeamRepo) ListFiltered(_ context.Context, _ string, _, _ int) 
 func (m *mockAdminTeamRepo) Update(_ context.Context, _ *model.Team) error { return nil }
 func (m *mockAdminTeamRepo) SoftDelete(_ context.Context, _ uint) error              { return nil }
 func (m *mockAdminTeamRepo) FindByBizKey(_ context.Context, _ int64) (*model.Team, error) {
-	return nil, nil
+	return m.teamByID, m.teamByIDErr
 }
 func (m *mockAdminTeamRepo) AddMember(_ context.Context, member *model.TeamMember) error {
 	return m.addMemberErr
@@ -400,6 +404,97 @@ func TestAdminCreateUser_NoTeam(t *testing.T) {
 	assert.Equal(t, "newuser", user.Username)
 	assert.Empty(t, user.Teams)
 	assert.NotEmpty(t, user.InitialPassword)
+}
+
+func TestAdminCreateUser_WithTeamKey_TeamsFetchError(t *testing.T) {
+	// AddMember succeeds but FindTeamsByUserIDs fails — should still return user with partial team info
+	userRepo := &mockAdminUserRepo{}
+	teamRepo := &mockAdminTeamRepo{
+		teamByID:      &model.Team{BaseModel: model.BaseModel{ID: 10}, TeamName: "Team A"},
+		teamsByUIDErr: errors.New("db error"),
+	}
+	svc := NewAdminService(userRepo, teamRepo)
+
+	user, err := svc.CreateUser(context.Background(), &dto.CreateUserReq{
+		Username: "newuser",
+		TeamKey:  strPtr("10"),
+	})
+	require.NoError(t, err)
+	require.Len(t, user.Teams, 1)
+	assert.Empty(t, user.Teams[0].Name) // name not enriched due to fetch error
+}
+
+func TestAdminCreateUser_WithTeamKey_TeamsEmpty(t *testing.T) {
+	// AddMember succeeds but FindTeamsByUserIDs returns empty — falls back to partial data
+	userRepo := &mockAdminUserRepo{}
+	teamRepo := &mockAdminTeamRepo{
+		teamByID:       &model.Team{BaseModel: model.BaseModel{ID: 10}, TeamName: "Team A"},
+		teamsByUserIDs: map[uint][]dto.TeamSummary{}, // empty, no entry for user 100
+	}
+	svc := NewAdminService(userRepo, teamRepo)
+
+	user, err := svc.CreateUser(context.Background(), &dto.CreateUserReq{
+		Username: "newuser",
+		TeamKey:  strPtr("10"),
+	})
+	require.NoError(t, err)
+	require.Len(t, user.Teams, 1)
+	assert.Empty(t, user.Teams[0].Name)
+}
+
+func TestAdminCreateUser_FindByUsernameDBError(t *testing.T) {
+	userRepo := &mockAdminUserRepo{findErr: errors.New("db error")}
+	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
+
+	_, err := svc.CreateUser(context.Background(), &dto.CreateUserReq{Username: "newuser"})
+	assert.Error(t, err)
+	assert.NotErrorIs(t, err, apperrors.ErrUserExists)
+}
+
+func TestAdminCreateUser_RepoCreateError(t *testing.T) {
+	userRepo := &mockAdminUserRepo{createErr: errors.New("db error")}
+	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
+
+	_, err := svc.CreateUser(context.Background(), &dto.CreateUserReq{Username: "newuser"})
+	assert.Error(t, err)
+}
+
+func TestAdminCreateUser_EmptyTeamKey(t *testing.T) {
+	userRepo := &mockAdminUserRepo{}
+	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
+
+	user, err := svc.CreateUser(context.Background(), &dto.CreateUserReq{
+		Username: "newuser",
+		TeamKey:  strPtr(""),
+	})
+	require.NoError(t, err)
+	assert.Empty(t, user.Teams)
+}
+
+func TestAdminCreateUser_InvalidTeamKeyFormat(t *testing.T) {
+	userRepo := &mockAdminUserRepo{}
+	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
+
+	_, err := svc.CreateUser(context.Background(), &dto.CreateUserReq{
+		Username: "newuser",
+		TeamKey:  strPtr("not-a-number"),
+	})
+	assert.ErrorIs(t, err, apperrors.ErrTeamNotFound)
+}
+
+func TestAdminCreateUser_AddMemberError(t *testing.T) {
+	userRepo := &mockAdminUserRepo{}
+	teamRepo := &mockAdminTeamRepo{
+		teamByID:     &model.Team{TeamName: "Team A"},
+		addMemberErr: errors.New("db error"),
+	}
+	svc := NewAdminService(userRepo, teamRepo)
+
+	_, err := svc.CreateUser(context.Background(), &dto.CreateUserReq{
+		Username: "newuser",
+		TeamKey:  strPtr("10"),
+	})
+	assert.Error(t, err)
 }
 
 // ---------------------------------------------------------------------------

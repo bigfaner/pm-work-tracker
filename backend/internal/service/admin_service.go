@@ -129,24 +129,23 @@ func (s *adminService) CreateUser(ctx context.Context, req *dto.CreateUserReq) (
 	// If teamKey provided, add to team
 	var teams []dto.TeamSummary
 	if req.TeamKey != nil && *req.TeamKey != "" {
-		teamKey, err := pkg.ParseID(*req.TeamKey)
+		teamBizKey, err := pkg.ParseID(*req.TeamKey)
 		if err != nil {
 			return nil, apperrors.ErrTeamNotFound
 		}
-		teamID := uint(teamKey)
-		_, err = s.teamRepo.FindByID(ctx, teamID)
+		team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 		if err != nil {
 			return nil, apperrors.ErrTeamNotFound
 		}
-	member := &model.TeamMember{
+		member := &model.TeamMember{
 			BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
-			TeamKey:   int64(teamID),
+			TeamKey:   int64(team.ID),
 			UserKey:   int64(user.ID),
 		}
 		if err := s.teamRepo.AddMember(ctx, member); err != nil {
 			return nil, err
 		}
-		teams = []dto.TeamSummary{{BizKey: pkg.FormatID(int64(teamID)), TeamID: teamID, Name: "", Role: "member"}}
+		teams = []dto.TeamSummary{{BizKey: pkg.FormatID(int64(team.ID)), TeamID: team.ID, Name: "", Role: "member"}}
 		// Fetch team name
 		teamsMap, err := s.teamRepo.FindTeamsByUserIDs(ctx, []uint{user.ID})
 		if err == nil && len(teamsMap[user.ID]) > 0 {
@@ -193,18 +192,17 @@ func (s *adminService) UpdateUser(ctx context.Context, userBizKey int64, req *dt
 			_ = s.teamRepo.RemoveMember(ctx, t.TeamID, user.ID)
 		}
 		if *req.TeamKey != "" {
-			teamKey, err := pkg.ParseID(*req.TeamKey)
+			teamBizKey, err := pkg.ParseID(*req.TeamKey)
 			if err != nil {
 				return nil, apperrors.ErrTeamNotFound
 			}
-			teamID := uint(teamKey)
-			_, err = s.teamRepo.FindByID(ctx, teamID)
+			team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 			if err != nil {
 				return nil, apperrors.ErrTeamNotFound
 			}
 			member := &model.TeamMember{
 				BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
-				TeamKey:   int64(teamID),
+				TeamKey:   int64(team.ID),
 				UserKey:   int64(user.ID),
 			}
 			if err := s.teamRepo.AddMember(ctx, member); err != nil {
