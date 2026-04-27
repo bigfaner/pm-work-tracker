@@ -1,0 +1,5 @@
+[
+  {"phase": 1, "name": "Backend Foundation", "source": "fallback", "gates": []},
+  {"phase": 2, "name": "Backend API", "source": "fallback", "gates": []},
+  {"phase": 3, "name": "Frontend", "source": "fallback", "gates": []}
+]
