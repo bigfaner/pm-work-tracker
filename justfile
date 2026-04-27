@@ -22,7 +22,7 @@ start-linux:
     ./bin/linux-amd64/pm-work-tracker -config ./bin/config.yaml
 
 start-windows:
-    ./bin/windows-arm64/pm-work-tracker.e2e -config ./bin/config.yaml
+    ./bin/windows-amd64/pm-work-tracker.exe -config ./bin/config.yaml
 
 test:
     cd backend && go test -race ./...
