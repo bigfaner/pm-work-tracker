@@ -2,8 +2,8 @@ package gorm_test
 
 import (
 	"context"
-	"testing"
 	"fmt"
+	"testing"
 
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
@@ -12,6 +12,7 @@ import (
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/dbutil"
 	pkgerrors "pm-work-tracker/backend/internal/pkg/errors"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 )
@@ -52,7 +53,7 @@ func createSubItem(t *testing.T, db *gormlib.DB, teamID, mainItemID uint, title,
 
 func TestSubItemRepo_Create(t *testing.T) {
 	db := setupSubItemTestDB(t)
-	repo := gormrepo.NewGormSubItemRepo(db)
+	repo := gormrepo.NewGormSubItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	_, team, mi := seedSubItemData(t, db)
@@ -71,7 +72,7 @@ func TestSubItemRepo_Create(t *testing.T) {
 
 func TestSubItemRepo_FindByID(t *testing.T) {
 	db := setupSubItemTestDB(t)
-	repo := gormrepo.NewGormSubItemRepo(db)
+	repo := gormrepo.NewGormSubItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	_, team, mi := seedSubItemData(t, db)
@@ -95,7 +96,7 @@ func TestSubItemRepo_FindByID(t *testing.T) {
 
 func TestSubItemRepo_Update(t *testing.T) {
 	db := setupSubItemTestDB(t)
-	repo := gormrepo.NewGormSubItemRepo(db)
+	repo := gormrepo.NewGormSubItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	_, team, mi := seedSubItemData(t, db)
@@ -117,7 +118,7 @@ func TestSubItemRepo_Update(t *testing.T) {
 
 func TestSubItemRepo_Update_NotFound(t *testing.T) {
 	db := setupSubItemTestDB(t)
-	repo := gormrepo.NewGormSubItemRepo(db)
+	repo := gormrepo.NewGormSubItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	_, team, _ := seedSubItemData(t, db)
@@ -131,7 +132,7 @@ func TestSubItemRepo_Update_NotFound(t *testing.T) {
 
 func TestSubItemRepo_List(t *testing.T) {
 	db := setupSubItemTestDB(t)
-	repo := gormrepo.NewGormSubItemRepo(db)
+	repo := gormrepo.NewGormSubItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	_, team, mi := seedSubItemData(t, db)
@@ -203,7 +204,7 @@ func TestSubItemRepo_List(t *testing.T) {
 
 func TestSubItemRepo_List_FilterByAssignee(t *testing.T) {
 	db := setupSubItemTestDB(t)
-	repo := gormrepo.NewGormSubItemRepo(db)
+	repo := gormrepo.NewGormSubItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	u, team, mi := seedSubItemData(t, db)
@@ -222,7 +223,7 @@ func TestSubItemRepo_List_FilterByAssignee(t *testing.T) {
 
 func TestSubItemRepo_List_FilterByKeyItem(t *testing.T) {
 	db := setupSubItemTestDB(t)
-	repo := gormrepo.NewGormSubItemRepo(db)
+	repo := gormrepo.NewGormSubItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	_, team, mi := seedSubItemData(t, db)
@@ -243,7 +244,7 @@ func TestSubItemRepo_List_FilterByKeyItem(t *testing.T) {
 
 func TestSubItemRepo_ListByMainItem(t *testing.T) {
 	db := setupSubItemTestDB(t)
-	repo := gormrepo.NewGormSubItemRepo(db)
+	repo := gormrepo.NewGormSubItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	_, team, mi := seedSubItemData(t, db)
@@ -267,7 +268,7 @@ func TestSubItemRepo_ListByMainItem(t *testing.T) {
 
 func TestSubItemRepo_ListByMainItem_Empty(t *testing.T) {
 	db := setupSubItemTestDB(t)
-	repo := gormrepo.NewGormSubItemRepo(db)
+	repo := gormrepo.NewGormSubItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	items, err := repo.ListByMainItem(ctx, 9999)
@@ -279,7 +280,7 @@ func TestSubItemRepo_ListByMainItem_Empty(t *testing.T) {
 
 func TestNextSubCode(t *testing.T) {
 	db := setupSubItemTestDB(t)
-	repo := gormrepo.NewGormSubItemRepo(db)
+	repo := gormrepo.NewGormSubItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	_, team, mi := seedSubItemData(t, db) // mi.Code = "MI-SI01"

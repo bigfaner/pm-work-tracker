@@ -230,21 +230,12 @@ func rebuildTeamMembersTable(tx *gorm.DB, roleMap map[string]uint) error {
 
 	if !legacyExists && !newExists {
 		// Fresh install: create the new table directly
-		return tx.Exec(`
-			CREATE TABLE pmw_team_members (
-				id              INTEGER PRIMARY KEY AUTOINCREMENT,
-				biz_key         INTEGER NOT NULL DEFAULT 0,
-				create_time     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				db_update_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				deleted_flag    INTEGER NOT NULL DEFAULT 0,
-				deleted_time    DATETIME NOT NULL DEFAULT '1970-01-01 08:00:00',
-				team_key        INTEGER NOT NULL,
-				user_key        INTEGER NOT NULL,
-				role_key        INTEGER,
-				joined_at       DATETIME NOT NULL,
-				UNIQUE(team_key, user_key)
-			)
-		`).Error
+		for _, stmt := range teamMembersDDL(tx) {
+			if err := tx.Exec(stmt).Error; err != nil {
+				return fmt.Errorf("create pmw_team_members: %w", err)
+			}
+		}
+		return nil
 	}
 
 	if newExists {
@@ -256,22 +247,10 @@ func rebuildTeamMembersTable(tx *gorm.DB, roleMap map[string]uint) error {
 	memberRoleID := roleMap["member"]
 	pmRoleID := roleMap["pm"]
 
-	if err := tx.Exec(`
-		CREATE TABLE pmw_team_members (
-			id              INTEGER PRIMARY KEY AUTOINCREMENT,
-			biz_key         INTEGER NOT NULL DEFAULT 0,
-			create_time     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			db_update_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			deleted_flag    INTEGER NOT NULL DEFAULT 0,
-			deleted_time    DATETIME NOT NULL DEFAULT '1970-01-01 08:00:00',
-			team_key        INTEGER NOT NULL,
-			user_key        INTEGER NOT NULL,
-			role_key        INTEGER,
-			joined_at       DATETIME NOT NULL,
-			UNIQUE(team_key, user_key)
-		)
-	`).Error; err != nil {
-		return fmt.Errorf("create pmw_team_members: %w", err)
+	for _, stmt := range teamMembersDDL(tx) {
+		if err := tx.Exec(stmt).Error; err != nil {
+			return fmt.Errorf("create pmw_team_members: %w", err)
+		}
 	}
 
 	if columnExists(tx, "team_members", "role") {
@@ -305,6 +284,49 @@ func rebuildTeamMembersTable(tx *gorm.DB, roleMap map[string]uint) error {
 	return nil
 }
 
+// teamMembersDDL returns DDL statements to create the pmw_team_members table.
+// Returns 1 statement for SQLite (inline UNIQUE) or 2 statements for MySQL
+// (CREATE TABLE + CREATE UNIQUE INDEX).
+func teamMembersDDL(db *gorm.DB) []string {
+	if isMySQL(db) {
+		return teamMembersDDLMySQL()
+	}
+	return []string{
+		`CREATE TABLE pmw_team_members (
+			id              INTEGER PRIMARY KEY AUTOINCREMENT,
+			biz_key         INTEGER NOT NULL DEFAULT 0,
+			create_time     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			db_update_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			deleted_flag    INTEGER NOT NULL DEFAULT 0,
+			deleted_time    DATETIME NOT NULL DEFAULT '1970-01-01 08:00:00',
+			team_key        INTEGER NOT NULL,
+			user_key        INTEGER NOT NULL,
+			role_key        INTEGER,
+			joined_at       DATETIME NOT NULL,
+			UNIQUE(team_key, user_key)
+		)`,
+	}
+}
+
+// teamMembersDDLMySQL returns MySQL-compatible DDL for pmw_team_members.
+func teamMembersDDLMySQL() []string {
+	return []string{
+		`CREATE TABLE pmw_team_members (
+			id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			biz_key         BIGINT NOT NULL DEFAULT 0,
+			create_time     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			db_update_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			deleted_flag    TINYINT(1) NOT NULL DEFAULT 0,
+			deleted_time    DATETIME NOT NULL DEFAULT '1970-01-01 08:00:00',
+			team_key        BIGINT NOT NULL,
+			user_key        BIGINT NOT NULL,
+			role_key        BIGINT,
+			joined_at       DATETIME NOT NULL,
+			PRIMARY KEY (id)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+		`CREATE UNIQUE INDEX uk_team_members_team_user ON pmw_team_members(team_key, user_key)`,
+	}
+}
 
 // CountPermissionsForRole returns the number of permission codes bound to a role.
 // Exported for testing convenience.
@@ -317,9 +339,7 @@ func CountPermissionsForRole(db *gorm.DB, roleID uint) (int64, error) {
 // HasColumn checks if a table has a specific column.
 // Exported for testing convenience.
 func HasColumn(db *gorm.DB, table, column string) bool {
-	var count int64
-	db.Raw("SELECT count(*) FROM pragma_table_info(?) WHERE name = ?", table, column).Scan(&count)
-	return count > 0
+	return columnExists(db, table, column)
 }
 
 // isMySQL returns true if the underlying database is MySQL.

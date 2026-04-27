@@ -13,6 +13,7 @@ import (
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/dbutil"
 	pkgerrors "pm-work-tracker/backend/internal/pkg/errors"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 )
@@ -52,7 +53,7 @@ func createMainItem(t *testing.T, db *gormlib.DB, teamID, proposerID uint, code,
 
 func TestMainItemRepo_Create(t *testing.T) {
 	db := setupMainItemTestDB(t)
-	repo := gormrepo.NewGormMainItemRepo(db)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)
@@ -72,7 +73,7 @@ func TestMainItemRepo_Create(t *testing.T) {
 
 func TestMainItemRepo_FindByID(t *testing.T) {
 	db := setupMainItemTestDB(t)
-	repo := gormrepo.NewGormMainItemRepo(db)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)
@@ -95,7 +96,7 @@ func TestMainItemRepo_FindByID(t *testing.T) {
 
 func TestMainItemRepo_Update(t *testing.T) {
 	db := setupMainItemTestDB(t)
-	repo := gormrepo.NewGormMainItemRepo(db)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)
@@ -117,7 +118,7 @@ func TestMainItemRepo_Update(t *testing.T) {
 
 func TestMainItemRepo_Update_NotFound(t *testing.T) {
 	db := setupMainItemTestDB(t)
-	repo := gormrepo.NewGormMainItemRepo(db)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	_, team := seedMainItemTeam(t, db)
@@ -131,7 +132,7 @@ func TestMainItemRepo_Update_NotFound(t *testing.T) {
 
 func TestMainItemRepo_NextCode(t *testing.T) {
 	db := setupMainItemTestDB(t)
-	repo := gormrepo.NewGormMainItemRepo(db)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db) // team.Code = "FEAT"
@@ -175,7 +176,7 @@ func TestMainItemRepo_NextCode(t *testing.T) {
 
 func TestMainItemRepo_List(t *testing.T) {
 	db := setupMainItemTestDB(t)
-	repo := gormrepo.NewGormMainItemRepo(db)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)
@@ -244,7 +245,7 @@ func TestMainItemRepo_List(t *testing.T) {
 
 func TestMainItemRepo_List_ArchiveFilter(t *testing.T) {
 	db := setupMainItemTestDB(t)
-	repo := gormrepo.NewGormMainItemRepo(db)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)
@@ -273,7 +274,7 @@ func TestMainItemRepo_List_ArchiveFilter(t *testing.T) {
 
 func TestMainItemRepo_List_FilterByKeyItem(t *testing.T) {
 	db := setupMainItemTestDB(t)
-	repo := gormrepo.NewGormMainItemRepo(db)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)
@@ -292,7 +293,7 @@ func TestMainItemRepo_List_FilterByKeyItem(t *testing.T) {
 
 func TestMainItemRepo_List_FilterByAssignee(t *testing.T) {
 	db := setupMainItemTestDB(t)
-	repo := gormrepo.NewGormMainItemRepo(db)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)
@@ -311,7 +312,7 @@ func TestMainItemRepo_List_FilterByAssignee(t *testing.T) {
 
 func TestMainItemRepo_List_FilterByAssignee_InvalidString(t *testing.T) {
 	db := setupMainItemTestDB(t)
-	repo := gormrepo.NewGormMainItemRepo(db)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)
@@ -334,7 +335,7 @@ func TestMainItemRepo_List_FilterByAssignee_InvalidString(t *testing.T) {
 
 func TestMainItemRepo_FindByIDs(t *testing.T) {
 	db := setupMainItemTestDB(t)
-	repo := gormrepo.NewGormMainItemRepo(db)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)
@@ -369,7 +370,7 @@ func TestMainItemRepo_FindByIDs(t *testing.T) {
 
 func TestMainItemRepo_ListByTeamAndStatus(t *testing.T) {
 	db := setupMainItemTestDB(t)
-	repo := gormrepo.NewGormMainItemRepo(db)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)

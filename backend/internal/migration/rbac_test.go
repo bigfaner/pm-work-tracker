@@ -506,6 +506,58 @@ func TestHasColumn_TableNotExists(t *testing.T) {
 	assert.False(t, HasColumn(db, "nonexistent_table", "some_col"))
 }
 
+func TestHasColumn_DelegatesToColumnExists(t *testing.T) {
+	// HasColumn should delegate to columnExists, which works on SQLite via pragma_table_info.
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	defer sqlDB.Close()
+
+	require.NoError(t, db.Exec("CREATE TABLE test_tbl (id INTEGER PRIMARY KEY, name TEXT)").Error)
+
+	assert.True(t, HasColumn(db, "test_tbl", "name"), "should find existing column")
+	assert.False(t, HasColumn(db, "test_tbl", "nonexistent"), "should not find missing column")
+}
+
+func TestTeamMembersDDL_ContainsSQLiteDialect(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	defer sqlDB.Close()
+
+	ddl := teamMembersDDL(db)
+	require.Len(t, ddl, 1, "SQLite should produce a single DDL statement")
+	assert.Contains(t, ddl[0], "INTEGER PRIMARY KEY AUTOINCREMENT",
+		"SQLite DDL should use AUTOINCREMENT")
+	assert.NotContains(t, ddl[0], "AUTO_INCREMENT",
+		"SQLite DDL should not contain MySQL AUTO_INCREMENT")
+	assert.Contains(t, ddl[0], "UNIQUE(team_key, user_key)",
+		"SQLite DDL should have inline UNIQUE constraint")
+}
+
+func TestTeamMembersDDL_MySQLContainsNoAutoincrement(t *testing.T) {
+	// We can't easily create a MySQL gorm.DB in unit tests, so we test
+	// that teamMembersDDLMySQL produces correct MySQL DDL directly.
+	ddl := teamMembersDDLMySQL()
+	require.Len(t, ddl, 2, "MySQL should produce DDL + index statements")
+
+	// First statement: CREATE TABLE
+	assert.Contains(t, ddl[0], "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT",
+		"MySQL DDL should use AUTO_INCREMENT")
+	assert.Contains(t, ddl[0], "PRIMARY KEY (id)",
+		"MySQL DDL should have PRIMARY KEY (id)")
+	assert.NotContains(t, ddl[0], "AUTOINCREMENT",
+		"MySQL DDL should not contain SQLite AUTOINCREMENT")
+
+	// Second statement: CREATE UNIQUE INDEX
+	assert.Contains(t, ddl[1], "CREATE UNIQUE INDEX",
+		"MySQL DDL should have separate CREATE UNIQUE INDEX")
+	assert.Contains(t, ddl[1], "uk_team_members_team_user",
+		"MySQL unique index should have a named constraint")
+}
+
 func TestTableExists(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)

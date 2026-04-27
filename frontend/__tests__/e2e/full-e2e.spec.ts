@@ -276,6 +276,36 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
     test.beforeAll(async () => {
       authToken = await getAuthToken();
       teamId = await getFirstTeamId(authToken);
+
+      // Ensure the team has at least one item with progress for export/report tests.
+      // Without this, 15.9–15.11 get 422 ErrNoData on a fresh database.
+      if (teamId) {
+        const headers = { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' };
+        const monday = getCurrentUTCMonday();
+        const assignee = await getFirstMemberKey(authToken, teamId);
+        try {
+          const mainRes = await fetch(`${API}/teams/${teamId}/main-items`, {
+            method: 'POST', headers,
+            body: JSON.stringify({ title: 'E2E导出测试主事项', priority: 'P2', assigneeKey: assignee || '', startDate: monday, expectedEndDate: monday }),
+          });
+          const mainData = await mainRes.json();
+          const mainKey = extractBizKey(mainData) || extractBizKey(mainData.data);
+          if (mainKey) {
+            const subRes = await fetch(`${API}/teams/${teamId}/main-items/${mainKey}/sub-items`, {
+              method: 'POST', headers,
+              body: JSON.stringify({ mainItemKey: mainKey, title: 'E2E导出测试子事项', priority: 'P2', assigneeKey: assignee || '', startDate: monday, expectedEndDate: monday }),
+            });
+            const subData = await subRes.json();
+            const subKey = extractBizKey(subData) || extractBizKey(subData.data);
+            if (subKey) {
+              await fetch(`${API}/teams/${teamId}/sub-items/${subKey}/progress`, {
+                method: 'POST', headers,
+                body: JSON.stringify({ completion: 50, achievement: '导出测试数据', blocker: '无' }),
+              });
+            }
+          }
+        } catch { /* setup is best-effort; tests will still validate status */ }
+      }
     });
 
     test('15.1 health check', async () => {

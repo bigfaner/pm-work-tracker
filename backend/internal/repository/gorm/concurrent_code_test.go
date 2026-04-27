@@ -11,6 +11,7 @@ import (
 	gormlib "gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/dbutil"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 )
 
@@ -32,7 +33,7 @@ func setupConcurrentTestDB(t *testing.T) *gormlib.DB {
 
 func TestConcurrentNextCode(t *testing.T) {
 	db := setupConcurrentTestDB(t)
-	repo := gormrepo.NewGormMainItemRepo(db)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	u := model.User{Username: "cc_pm", DisplayName: "CC PM", PasswordHash: "h"}
@@ -70,7 +71,7 @@ func TestConcurrentNextCode(t *testing.T) {
 
 func TestConcurrentNextSubCode(t *testing.T) {
 	db := setupConcurrentTestDB(t)
-	subRepo := gormrepo.NewGormSubItemRepo(db)
+	subRepo := gormrepo.NewGormSubItemRepo(db, dbutil.NewDialect(db))
 	ctx := context.Background()
 
 	u := model.User{Username: "cs_pm", DisplayName: "CS PM", PasswordHash: "h"}

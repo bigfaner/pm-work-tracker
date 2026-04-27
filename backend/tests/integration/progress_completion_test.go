@@ -17,6 +17,8 @@ import (
 	"pm-work-tracker/backend/config"
 	"pm-work-tracker/backend/internal/handler"
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/dbutil"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 	"pm-work-tracker/backend/internal/service"
 )
@@ -24,11 +26,12 @@ import (
 // ========== Progress Append → MainItem Completion Tests ==========
 
 // seedProgressData creates a MainItem with two SubItems (weight=1 each) for progress tests.
-// Returns the main item ID and the two sub item IDs.
-func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemID, subItem1ID, subItem2ID uint) {
+// Returns the main item ID, the two sub item IDs, and their bizKey values.
+func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemID, subItem1ID, subItem2ID uint, subItem1BizKey, subItem2BizKey int64) {
 	t.Helper()
 
 	mainItem := &model.MainItem{
+		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:      int64(teamID),
 		Code:        "TAMA-00001",
 		Title:       "Test Main Item",
@@ -39,6 +42,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 	require.NoError(t, db.Create(mainItem).Error)
 
 	sub1 := &model.SubItem{
+		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:      int64(teamID),
 		MainItemKey: int64(mainItem.ID),
 		Title:       "Sub Item 1",
@@ -49,6 +53,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 	require.NoError(t, db.Create(sub1).Error)
 
 	sub2 := &model.SubItem{
+		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:      int64(teamID),
 		MainItemKey: int64(mainItem.ID),
 		Title:       "Sub Item 2",
@@ -58,17 +63,17 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 	}
 	require.NoError(t, db.Create(sub2).Error)
 
-	return mainItem.ID, sub1.ID, sub2.ID
+	return mainItem.ID, sub1.ID, sub2.ID, sub1.BizKey, sub2.BizKey
 }
 
 // appendProgress sends a progress append request via the router.
-func appendProgress(t *testing.T, r *gin.Engine, token string, teamBizKey int64, subID uint, completion float64) *httptest.ResponseRecorder {
+func appendProgress(t *testing.T, r *gin.Engine, token string, teamBizKey, subBizKey int64, completion float64) *httptest.ResponseRecorder {
 	t.Helper()
 
 	body := fmt.Sprintf(`{"completion":%.0f,"achievement":"some progress"}`, completion)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/sub-items/%d/progress", teamBizKey, subID),
+		fmt.Sprintf("/api/v1/teams/%d/sub-items/%d/progress", teamBizKey, subBizKey),
 		strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -97,10 +102,10 @@ func TestProgress_AppendToSubItem1_UpdatesMainItemCompletion(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	token := loginAs(t, r, "userA", "passwordA")
 
-	mainID, sub1ID, _ := seedProgressData(t, db, data.teamAID, data.userAID)
+	mainID, sub1ID, _, sub1BizKey, _ := seedProgressData(t, db, data.teamAID, data.userAID)
 
 	// Append progress (completion=60) to SubItem1
-	w := appendProgress(t, r, token, data.teamABizKey, sub1ID, 60)
+	w := appendProgress(t, r, token, data.teamABizKey, sub1BizKey, 60)
 	assert.Equal(t, http.StatusCreated, w.Code)
 
 	// Verify SubItem1.Completion = 60
@@ -117,14 +122,14 @@ func TestProgress_AppendToSubItem2_UpdatesMainItemCompletion(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	token := loginAs(t, r, "userA", "passwordA")
 
-	mainID, sub1ID, sub2ID := seedProgressData(t, db, data.teamAID, data.userAID)
+	mainID, _, _, sub1BizKey, sub2BizKey := seedProgressData(t, db, data.teamAID, data.userAID)
 
 	// First append to SubItem1 (completion=60)
-	w := appendProgress(t, r, token, data.teamABizKey, sub1ID, 60)
+	w := appendProgress(t, r, token, data.teamABizKey, sub1BizKey, 60)
 	require.Equal(t, http.StatusCreated, w.Code)
 
 	// Then append to SubItem2 (completion=80)
-	w = appendProgress(t, r, token, data.teamABizKey, sub2ID, 80)
+	w = appendProgress(t, r, token, data.teamABizKey, sub2BizKey, 80)
 	require.Equal(t, http.StatusCreated, w.Code)
 
 	// Verify MainItem.Completion = 70 (avg of 60 and 80)
@@ -138,10 +143,10 @@ func TestProgress_RegressionBlocked_Returns422(t *testing.T) {
 	// Use a regular member (not PM) so the regression check is enforced
 	token := loginAs(t, r, "memberA", "passwordMemberA")
 
-	mainID, sub1ID, _ := seedProgressData(t, db, data.teamAID, data.userAID)
+	mainID, _, _, sub1BizKey, _ := seedProgressData(t, db, data.teamAID, data.userAID)
 
 	// First append completion=60 to SubItem1
-	w := appendProgress(t, r, token, data.teamABizKey, sub1ID, 60)
+	w := appendProgress(t, r, token, data.teamABizKey, sub1BizKey, 60)
 	require.Equal(t, http.StatusCreated, w.Code)
 
 	// Capture MainItem completion after first append
@@ -149,7 +154,7 @@ func TestProgress_RegressionBlocked_Returns422(t *testing.T) {
 	completionBefore := mainAfterFirst.Completion
 
 	// Try to append completion=50 (regression from 60) — should fail
-	w = appendProgress(t, r, token, data.teamABizKey, sub1ID, 50)
+	w = appendProgress(t, r, token, data.teamABizKey, sub1BizKey, 50)
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 
 	var resp map[string]interface{}
@@ -164,10 +169,11 @@ func TestProgress_RegressionBlocked_Returns422(t *testing.T) {
 // ========== ItemPool Assign Transaction Tests ==========
 
 // seedPoolData creates a pool item and a main item for assign tests.
-func seedPoolData(t *testing.T, db *gorm.DB, teamID, userID uint) (poolID, mainItemID uint) {
+func seedPoolData(t *testing.T, db *gorm.DB, teamID, userID uint) (poolID, mainItemID uint, poolBizKey, mainItemBizKey int64) {
 	t.Helper()
 
 	poolItem := &model.ItemPool{
+		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:       int64(teamID),
 		Title:        "Pool Item Title",
 		Background:   "Some background",
@@ -177,6 +183,7 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamID, userID uint) (poolID, mainI
 	require.NoError(t, db.Create(poolItem).Error)
 
 	mainItem := &model.MainItem{
+		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:      int64(teamID),
 		Code:        "TAMA-00002",
 		Title:       "Main Item for Pool",
@@ -186,7 +193,7 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamID, userID uint) (poolID, mainI
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
-	return poolItem.ID, mainItem.ID
+	return poolItem.ID, mainItem.ID, poolItem.BizKey, mainItem.BizKey
 }
 
 func TestItemPool_Assign_Success(t *testing.T) {
@@ -194,13 +201,13 @@ func TestItemPool_Assign_Success(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	token := loginAs(t, r, "userA", "passwordA")
 
-	poolID, mainItemID := seedPoolData(t, db, data.teamAID, data.userAID)
+	poolID, mainItemID, poolBizKey, mainItemBizKey := seedPoolData(t, db, data.teamAID, data.userAID)
 
 	// Assign the pool item
-	body := fmt.Sprintf(`{"mainItemKey":"%d","assigneeKey":"%d","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, mainItemID, data.userAID)
+	body := fmt.Sprintf(`{"mainItemKey":"%d","assigneeKey":"%d","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, mainItemBizKey, data.userAID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamABizKey, poolID),
+		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamABizKey, poolBizKey),
 		strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -227,14 +234,14 @@ func TestItemPool_Assign_Rollback_OnInvalidMainItem(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	token := loginAs(t, r, "userA", "passwordA")
 
-	poolID, _ := seedPoolData(t, db, data.teamAID, data.userAID)
+	poolID, _, poolBizKey, _ := seedPoolData(t, db, data.teamAID, data.userAID)
 
 	// Assign with a non-existent mainItemID to trigger failure
 	invalidMainID := uint(99999)
 	body := fmt.Sprintf(`{"mainItemKey":"%d","assigneeKey":"%d","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, invalidMainID, data.userAID)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamABizKey, poolID),
+		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamABizKey, poolBizKey),
 		strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -261,6 +268,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart ti
 	t.Helper()
 
 	mainItem := &model.MainItem{
+		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:      int64(teamID),
 		Code:        "TAMA-00003",
 		Title:       "Report Test Main Item",
@@ -271,6 +279,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart ti
 	require.NoError(t, db.Create(mainItem).Error)
 
 	subItem := &model.SubItem{
+		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:      int64(teamID),
 		MainItemKey: int64(mainItem.ID),
 		Title:       "Report Test Sub Item",
@@ -283,8 +292,9 @@ func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart ti
 
 	// Create a progress record within the week
 	record := &model.ProgressRecord{
+		BizKey:      snowflake.Generate(),
 		SubItemKey:  int64(subItem.ID),
-		TeamKey: int64(teamID),
+		TeamKey:     int64(teamID),
 		AuthorKey:   int64(userID),
 		Completion:  50,
 		Achievement: "Completed half the work",
@@ -332,8 +342,9 @@ func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engi
 
 	userRepo := gormrepo.NewGormUserRepo(db)
 	teamRepo := gormrepo.NewGormTeamRepo(db)
-	mainItemRepo := gormrepo.NewGormMainItemRepo(db)
-	subItemRepo := gormrepo.NewGormSubItemRepo(db)
+	dialect := dbutil.NewDialect(db)
+	mainItemRepo := gormrepo.NewGormMainItemRepo(db, dialect)
+	subItemRepo := gormrepo.NewGormSubItemRepo(db, dialect)
 	progressRepo := gormrepo.NewGormProgressRepo(db)
 	itemPoolRepo := gormrepo.NewGormItemPoolRepo(db)
 

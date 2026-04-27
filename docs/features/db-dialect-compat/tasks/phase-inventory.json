@@ -1,0 +1,4 @@
+[
+  {"phase": 1, "name": "Dialect Foundation", "source": "fallback", "gates": [{"afterPhase": 1, "description": "Dialect interface compiles, unit tests pass at 100% coverage"}]},
+  {"phase": 2, "name": "Apply to Consumers", "source": "fallback", "gates": [{"afterPhase": 2, "description": "All 4 incompatibilities fixed, existing tests pass, lint check active, e2e pass rate >= 95%"}]}
+]
