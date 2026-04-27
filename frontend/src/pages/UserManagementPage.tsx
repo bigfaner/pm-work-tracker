@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react'
-import { Pencil, ToggleRight, ToggleLeft, RefreshCw, Eye, EyeOff } from 'lucide-react'
+import { Pencil, ToggleRight, ToggleLeft, RefreshCw, Eye, EyeOff, Trash2, Copy } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   listUsersApi,
@@ -7,6 +7,7 @@ import {
   updateUserApi,
   toggleUserStatusApi,
   resetPasswordApi,
+  deleteUserApi,
   listAdminTeamsApi,
 } from '@/api/admin'
 import { useAuthStore } from '@/store/auth'
@@ -42,6 +43,8 @@ import { Pagination, PaginationPageSize } from '@/components/ui/pagination'
 import PaginationBar from '@/components/shared/PaginationBar'
 import UserAvatar from '@/components/shared/UserAvatar'
 import { useToast } from '@/components/ui/toast'
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
+import { copyToClipboard } from '@/lib/utils'
 
 // --- Constants ---
 
@@ -92,6 +95,18 @@ export default function UserManagementPage() {
   const [resetError, setResetError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
+  // Delete dialog
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteUser, setDeleteUser] = useState<AdminUser | null>(null)
+  const [deleteError, setDeleteError] = useState('')
+
+  // Copy credentials
+  const [copied, setCopied] = useState(false)
+  const [createdUsername, setCreatedUsername] = useState('')
+
+  // Current user bizKey for self-check
+  const currentUserBizKey = useAuthStore((s) => s.user?.bizKey ?? null)
+
   // --- Data fetching ---
 
   const { data: usersData, isLoading, isFetching, refetch } = useQuery({
@@ -129,12 +144,14 @@ export default function UserManagementPage() {
 
   const createMutation = useMutation({
     mutationFn: (req: CreateUserReq) => createUserApi(req),
-    onSuccess: (resp) => {
+    onSuccess: (resp, req) => {
       qc.invalidateQueries({ queryKey: ['adminUsers'] })
       setCreateOpen(false)
       setCreateForm({ username: '', displayName: '', email: '' })
       setCreateError('')
+      setCreatedUsername(req.username)
       setInitialPassword(resp.initialPassword)
+      setCopied(false)
       setPasswordOpen(true)
     },
     onError: (err: any) => {
@@ -198,6 +215,30 @@ export default function UserManagementPage() {
         setResetError('用户不存在')
       } else {
         setResetError('操作失败，请稍后重试')
+      }
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: ({ userId }: { userId: string }) => deleteUserApi(userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['adminUsers'] })
+      setDeleteOpen(false)
+      setDeleteUser(null)
+      setDeleteError('')
+      addToast('用户已删除', 'success')
+    },
+    onError: (err: any) => {
+      const status = err?.response?.status
+      const code = err?.response?.data?.code
+      if (status === 404 || code === 'USER_NOT_FOUND') {
+        qc.invalidateQueries({ queryKey: ['adminUsers'] })
+        setDeleteOpen(false)
+        setDeleteUser(null)
+        setDeleteError('')
+        addToast('用户已删除', 'success')
+      } else {
+        setDeleteError('操作失败，请稍后重试')
       }
     },
   })
@@ -292,6 +333,27 @@ export default function UserManagementPage() {
     }
     resetMutation.mutate({ userId: resetUser.bizKey, newPassword: resetForm.newPassword })
   }, [resetUser, resetForm, validatePassword, resetMutation])
+
+  const openDelete = useCallback((user: AdminUser) => {
+    setDeleteUser(user)
+    setDeleteError('')
+    setDeleteOpen(true)
+  }, [])
+
+  const handleDelete = useCallback(() => {
+    if (!deleteUser) return
+    deleteMutation.mutate({ userId: deleteUser.bizKey })
+  }, [deleteUser, deleteMutation])
+
+  const handleCopyCredentials = useCallback(async () => {
+    try {
+      await copyToClipboard(`账号：${createdUsername}\n密码：${initialPassword}`)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      addToast('复制失败，请手动选择文字复制', 'error')
+    }
+  }, [createdUsername, initialPassword, addToast])
 
   // --- Render ---
 
@@ -392,6 +454,28 @@ export default function UserManagementPage() {
                           <RefreshCw className="w-3.5 h-3.5" />
                           重置密码
                         </Button>
+                      )}
+                      {isSuperAdmin && (
+                        user.bizKey === currentUserBizKey ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span>
+                                  <Button variant="ghost" size="sm" className="text-error" disabled>
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    删除
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>不可删除自身账号</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <Button variant="ghost" size="sm" className="text-error" onClick={() => openDelete(user)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                            删除
+                          </Button>
+                        )
                       )}
                     </div>
                   </TableCell>
@@ -504,6 +588,12 @@ export default function UserManagementPage() {
             </div>
           </DialogBody>
           <DialogFooter>
+            {initialPassword && (
+              <Button variant="secondary" onClick={handleCopyCredentials} disabled={copied}>
+                <Copy className="w-3.5 h-3.5" />
+                {copied ? '已复制' : '复制账号与密码'}
+              </Button>
+            )}
             <Button onClick={() => setPasswordOpen(false)}>我知道了</Button>
           </DialogFooter>
         </DialogContent>
@@ -690,6 +780,31 @@ export default function UserManagementPage() {
             </Button>
             <Button onClick={handleResetSubmit} disabled={resetMutation.isPending}>
               {resetMutation.isPending ? '提交中...' : '确认'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteOpen} onOpenChange={(open) => { setDeleteOpen(open); if (!open) setDeleteError('') }}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>确认删除</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <p className="text-sm text-secondary">
+              确认删除用户 {deleteUser?.displayName}？此操作不可通过界面撤销。
+            </p>
+            {deleteError && (
+              <p className="mt-3 text-sm text-error">{deleteError}</p>
+            )}
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => { setDeleteOpen(false); setDeleteError('') }} disabled={deleteMutation.isPending}>
+              取消
+            </Button>
+            <Button variant="danger" onClick={handleDelete} disabled={deleteMutation.isPending}>
+              {deleteMutation.isPending ? '删除中...' : '确认删除'}
             </Button>
           </DialogFooter>
         </DialogContent>

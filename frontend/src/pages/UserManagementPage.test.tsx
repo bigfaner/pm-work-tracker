@@ -9,6 +9,17 @@ import { ToastProvider } from '@/components/ui/toast'
 import { useAuthStore } from '@/store/auth'
 import UserManagementPage from './UserManagementPage'
 
+// Mock clipboard utility
+vi.mock('@/lib/utils', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/utils')>()
+  return {
+    ...actual,
+    copyToClipboard: vi.fn().mockResolvedValue(undefined),
+  }
+})
+
+const { copyToClipboard } = await import('@/lib/utils')
+
 // MSW lifecycle
 beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
 afterEach(() => server.resetHandlers())
@@ -669,6 +680,313 @@ describe('UserManagementPage', () => {
       await user.click(eyeButtons[0])
 
       expect((passwordInputs[0] as HTMLInputElement).type).toBe('text')
+    })
+  })
+
+  // --- Delete Dialog & Action Buttons ---
+
+  describe('delete button and dialog', () => {
+    beforeEach(() => {
+      useAuthStore.setState({
+        token: 'test-token',
+        user: { bizKey: '1', username: 'zhangming', displayName: '张明', isSuperAdmin: true, createTime: '' },
+        isAuthenticated: true,
+        isSuperAdmin: true,
+        _hasHydrated: true,
+      })
+    })
+
+    afterEach(() => {
+      useAuthStore.getState().clearAuth()
+    })
+
+    it('shows delete button for super admin', async () => {
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+      const deleteButtons = screen.getAllByText('删除')
+      expect(deleteButtons.length).toBe(4)
+    })
+
+    it('does not show delete button for non-super-admin', async () => {
+      useAuthStore.setState({ isSuperAdmin: false })
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+      expect(screen.queryByText('删除')).not.toBeInTheDocument()
+    })
+
+    it('disables delete button on self-row with tooltip', async () => {
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+
+      // First user is zhangming (bizKey '1'), which is the current user
+      const deleteButtons = screen.getAllByText('删除')
+      const selfDeleteButton = deleteButtons[0].closest('button')!
+      expect(selfDeleteButton).toBeDisabled()
+    })
+
+    it('opens delete confirmation dialog with username', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+
+      // Click delete on second user (李华)
+      const deleteButtons = screen.getAllByText('删除')
+      await user.click(deleteButtons[1])
+
+      await waitFor(() => {
+        expect(screen.getByText(/确认删除用户.*李华/)).toBeInTheDocument()
+      })
+    })
+
+    it('deletes user successfully and shows toast', async () => {
+      server.use(
+        http.delete('/v1/admin/users/:userId', ({ params }) => {
+          return HttpResponse.json({ code: 0, data: null }, { status: 200 })
+        }),
+      )
+
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+
+      const deleteButtons = screen.getAllByText('删除')
+      await user.click(deleteButtons[1])
+
+      await waitFor(() => {
+        expect(screen.getByText(/确认删除用户.*李华/)).toBeInTheDocument()
+      })
+
+      const confirmBtn = screen.getByRole('button', { name: '确认删除' })
+      await user.click(confirmBtn)
+
+      await waitFor(() => {
+        expect(screen.getByText('用户已删除')).toBeInTheDocument()
+      })
+    })
+
+    it('handles 404 error by removing row and showing error', async () => {
+      server.use(
+        http.delete('/v1/admin/users/:userId', () => {
+          return HttpResponse.json(
+            { code: 'USER_NOT_FOUND', message: '用户不存在' },
+            { status: 404 },
+          )
+        }),
+      )
+
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+
+      const deleteButtons = screen.getAllByText('删除')
+      await user.click(deleteButtons[1])
+
+      await waitFor(() => {
+        expect(screen.getByText(/确认删除用户.*李华/)).toBeInTheDocument()
+      })
+
+      const confirmBtn = screen.getByRole('button', { name: '确认删除' })
+      await user.click(confirmBtn)
+
+      await waitFor(() => {
+        expect(screen.getByText('用户已删除')).toBeInTheDocument()
+      })
+    })
+
+    it('shows error message in dialog on generic API error', async () => {
+      server.use(
+        http.delete('/v1/admin/users/:userId', () => {
+          return HttpResponse.json(
+            { code: 'INTERNAL_ERROR', message: 'internal error' },
+            { status: 500 },
+          )
+        }),
+      )
+
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+
+      const deleteButtons = screen.getAllByText('删除')
+      await user.click(deleteButtons[1])
+
+      await waitFor(() => {
+        expect(screen.getByText(/确认删除用户.*李华/)).toBeInTheDocument()
+      })
+
+      const confirmBtn = screen.getByRole('button', { name: '确认删除' })
+      await user.click(confirmBtn)
+
+      await waitFor(() => {
+        expect(screen.getByText('操作失败，请稍后重试')).toBeInTheDocument()
+      })
+    })
+
+    it('closes dialog on cancel', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+
+      const deleteButtons = screen.getAllByText('删除')
+      await user.click(deleteButtons[1])
+
+      await waitFor(() => {
+        expect(screen.getByText(/确认删除用户.*李华/)).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByRole('button', { name: '取消' }))
+
+      await waitFor(() => {
+        expect(screen.queryByText(/确认删除用户/)).not.toBeInTheDocument()
+      })
+    })
+  })
+
+  // --- Copy Credentials ---
+
+  describe('copy credentials button', () => {
+    beforeEach(() => {
+      useAuthStore.setState({
+        token: 'test-token',
+        user: { bizKey: '1', username: 'zhangming', displayName: '张明', isSuperAdmin: true, createTime: '' },
+        isAuthenticated: true,
+        isSuperAdmin: true,
+        _hasHydrated: true,
+      })
+      vi.mocked(copyToClipboard).mockResolvedValue(undefined)
+    })
+
+    afterEach(() => {
+      useAuthStore.getState().clearAuth()
+    })
+
+    it('shows copy button after creating user', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByText('创建用户'))
+
+      const inputs = screen.getAllByRole('textbox')
+      const usernameInput = inputs.find((el) => (el as HTMLInputElement).placeholder === '请输入账号')!
+      const nameInput = inputs.find((el) => (el as HTMLInputElement).placeholder === '请输入姓名')!
+
+      await user.type(nameInput, '新用户')
+      await user.type(usernameInput, 'newuser')
+      await user.click(screen.getByText('确认创建'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('initial-password')).toHaveTextContent('Abc123456789')
+        expect(screen.getByText('复制账号与密码')).toBeInTheDocument()
+      })
+    })
+
+    it('copies correct format to clipboard', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByText('创建用户'))
+
+      const inputs = screen.getAllByRole('textbox')
+      const usernameInput = inputs.find((el) => (el as HTMLInputElement).placeholder === '请输入账号')!
+      const nameInput = inputs.find((el) => (el as HTMLInputElement).placeholder === '请输入姓名')!
+
+      await user.type(nameInput, '新用户')
+      await user.type(usernameInput, 'newuser')
+      await user.click(screen.getByText('确认创建'))
+
+      await waitFor(() => {
+        expect(screen.getByText('复制账号与密码')).toBeInTheDocument()
+      })
+
+      const copyButton = screen.getByRole('button', { name: /复制账号与密码/ })
+      expect(copyButton).not.toBeDisabled()
+      await user.click(copyButton)
+
+      await waitFor(() => {
+        expect(copyToClipboard).toHaveBeenCalledWith(
+          '账号：newuser\n密码：Abc123456789',
+        )
+      })
+    })
+
+    it('shows "已复制" after successful copy', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByText('创建用户'))
+
+      const inputs = screen.getAllByRole('textbox')
+      const usernameInput = inputs.find((el) => (el as HTMLInputElement).placeholder === '请输入账号')!
+      const nameInput = inputs.find((el) => (el as HTMLInputElement).placeholder === '请输入姓名')!
+
+      await user.type(nameInput, '新用户')
+      await user.type(usernameInput, 'newuser')
+      await user.click(screen.getByText('确认创建'))
+
+      await waitFor(() => {
+        expect(screen.getByText('复制账号与密码')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByText('复制账号与密码'))
+
+      await waitFor(() => {
+        expect(screen.getByText('已复制')).toBeInTheDocument()
+      })
+    })
+
+    it('shows error toast on clipboard failure', async () => {
+      vi.mocked(copyToClipboard).mockRejectedValue(new Error('not allowed'))
+
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByText('创建用户'))
+
+      const inputs = screen.getAllByRole('textbox')
+      const usernameInput = inputs.find((el) => (el as HTMLInputElement).placeholder === '请输入账号')!
+      const nameInput = inputs.find((el) => (el as HTMLInputElement).placeholder === '请输入姓名')!
+
+      await user.type(nameInput, '新用户')
+      await user.type(usernameInput, 'newuser')
+      await user.click(screen.getByText('确认创建'))
+
+      await waitFor(() => {
+        expect(screen.getByText('复制账号与密码')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByText('复制账号与密码'))
+
+      await waitFor(() => {
+        expect(screen.getByText('复制失败，请手动选择文字复制')).toBeInTheDocument()
+      })
     })
   })
 })
