@@ -53,8 +53,8 @@ function toNumber(val: unknown, fallback: number): number {
   return fallback;
 }
 
-export const baseUrl = _config.baseUrl ?? 'http://localhost:5173';
-export const apiBaseUrl = _config.apiBaseUrl ?? 'http://localhost:8080';
+export const baseUrl = _config.baseUrl ?? 'http://localhost:5174';
+export const apiBaseUrl = _config.apiBaseUrl ?? 'http://localhost:8083';
 const DEFAULT_TIMEOUT = toNumber(_config.timeout, 30000);
 
 // ── Browser lifecycle ──────────────────────────────────────────────
