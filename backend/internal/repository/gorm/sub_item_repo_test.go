@@ -318,3 +318,78 @@ func TestNextSubCode(t *testing.T) {
 		assert.Equal(t, "MI-SI02-01", code)
 	})
 }
+
+// --- SoftDelete NotDeleted filtering ---
+
+func TestSubItemRepo_SoftDelete(t *testing.T) {
+	db := setupSubItemTestDB(t)
+	repo := gormrepo.NewGormSubItemRepo(db, dbutil.NewDialect(db))
+	ctx := context.Background()
+
+	_, team, mi := seedSubItemData(t, db)
+
+	t.Run("FindByBizKey_excludes_soft_deleted", func(t *testing.T) {
+		item := createSubItem(t, db, team.ID, mi.ID, "Deleted Sub", "P1", "pending")
+		require.NoError(t, db.Model(item).Update("deleted_flag", 1).Error)
+
+		_, err := repo.FindByBizKey(ctx, item.BizKey)
+		assert.ErrorIs(t, err, gormlib.ErrRecordNotFound)
+	})
+
+	t.Run("List_excludes_soft_deleted", func(t *testing.T) {
+		active := createSubItem(t, db, team.ID, mi.ID, "List Active", "P1", "pending")
+		deleted := createSubItem(t, db, team.ID, mi.ID, "List Deleted", "P2", "pending")
+		require.NoError(t, db.Model(deleted).Update("deleted_flag", 1).Error)
+
+		result, err := repo.List(ctx, team.ID, mi.ID, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+		require.NoError(t, err)
+		for _, item := range result.Items {
+			assert.NotEqual(t, "List Deleted", item.Title, "soft-deleted item should not appear in List")
+		}
+		found := false
+		for _, item := range result.Items {
+			if item.ID == active.ID {
+				found = true
+			}
+		}
+		assert.True(t, found, "active item should be present in List results")
+	})
+
+	t.Run("ListByMainItem_excludes_soft_deleted", func(t *testing.T) {
+		active := createSubItem(t, db, team.ID, mi.ID, "LMI Active", "P1", "pending")
+		deleted := createSubItem(t, db, team.ID, mi.ID, "LMI Deleted", "P2", "pending")
+		require.NoError(t, db.Model(deleted).Update("deleted_flag", 1).Error)
+
+		items, err := repo.ListByMainItem(ctx, mi.ID)
+		require.NoError(t, err)
+		for _, item := range items {
+			assert.NotEqual(t, "LMI Deleted", item.Title, "soft-deleted item should not appear in ListByMainItem")
+		}
+		found := false
+		for _, item := range items {
+			if item.ID == active.ID {
+				found = true
+			}
+		}
+		assert.True(t, found, "active item should be present in ListByMainItem results")
+	})
+
+	t.Run("ListByTeam_excludes_soft_deleted", func(t *testing.T) {
+		active := createSubItem(t, db, team.ID, mi.ID, "LT Active", "P1", "pending")
+		deleted := createSubItem(t, db, team.ID, mi.ID, "LT Deleted", "P2", "pending")
+		require.NoError(t, db.Model(deleted).Update("deleted_flag", 1).Error)
+
+		items, err := repo.ListByTeam(ctx, team.ID)
+		require.NoError(t, err)
+		for _, item := range items {
+			assert.NotEqual(t, "LT Deleted", item.Title, "soft-deleted item should not appear in ListByTeam")
+		}
+		found := false
+		for _, item := range items {
+			if item.ID == active.ID {
+				found = true
+			}
+		}
+		assert.True(t, found, "active item should be present in ListByTeam results")
+	})
+}
