@@ -3,6 +3,7 @@ package gorm
 import (
 	"context"
 	stderrors "errors"
+	"time"
 
 	gormlib "gorm.io/gorm"
 
@@ -27,7 +28,7 @@ func (r *userRepo) FindByID(ctx context.Context, id uint) (*model.User, error) {
 
 func (r *userRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.User, error) {
 	var user model.User
-	err := r.db.WithContext(ctx).Where("biz_key = ?", bizKey).First(&user).Error
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).Where("biz_key = ?", bizKey).First(&user).Error
 	if err != nil {
 		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
 			return nil, errors.ErrNotFound
@@ -67,8 +68,16 @@ func (r *userRepo) FindByIDs(ctx context.Context, ids []uint) (map[uint]*model.U
 	return repo.FindByIDs[model.User](r.db, ctx, ids)
 }
 
+func (r *userRepo) SoftDelete(ctx context.Context, user *model.User) error {
+	now := time.Now()
+	return r.db.WithContext(ctx).Model(user).Updates(map[string]interface{}{
+		"deleted_flag": 1,
+		"deleted_time": now,
+	}).Error
+}
+
 func (r *userRepo) ListFiltered(ctx context.Context, search string, offset, limit int) ([]*model.User, int64, error) {
-	query := r.db.WithContext(ctx).Model(&model.User{})
+	query := r.db.WithContext(ctx).Model(&model.User{}).Scopes(NotDeleted)
 	if search != "" {
 		pattern := "%" + search + "%"
 		query = query.Where("username LIKE ? OR display_name LIKE ?", pattern, pattern)

@@ -1383,6 +1383,7 @@ func (m *mockViewUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) (
 func (m *mockViewUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
 }
+func (m *mockViewUserRepo) SoftDelete(_ context.Context, _ *model.User) error { return nil }
 
 // newViewServiceWithUsers creates a ViewService with a user repo for table view tests.
 func newViewServiceWithUsers(mainRepo *mockViewMainItemRepo, subRepo *mockViewSubItemRepo, userRepo *mockViewUserRepo) ViewService {

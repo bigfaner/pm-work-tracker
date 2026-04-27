@@ -68,6 +68,7 @@ func (m *mockUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*m
 func (m *mockUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
 }
+func (m *mockUserRepo) SoftDelete(_ context.Context, _ *model.User) error { return nil }
 
 // Pre-computed bcrypt hash for "password123" at cost 12.
 // Generated once with bcrypt.GenerateFromPassword; avoids bcrypt calls in unit tests.

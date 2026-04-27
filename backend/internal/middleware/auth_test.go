@@ -73,6 +73,7 @@ func (m *mockUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*m
 func (m *mockUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
 }
+func (m *mockUserRepo) SoftDelete(_ context.Context, _ *model.User) error { return nil }
 
 var _ repository.UserRepo = (*mockUserRepo)(nil)
 

@@ -53,3 +53,15 @@ type AdminUserDTO struct {
 	Teams           []TeamSummary `json:"teams"`
 	InitialPassword string       `json:"initialPassword,omitempty"`
 }
+
+// ResetPasswordReq is the request DTO for resetting a user's password.
+type ResetPasswordReq struct {
+	NewPassword string `json:"newPassword" binding:"required,min=8,max=64"`
+}
+
+// ResetPasswordResp is the response DTO after a password reset.
+type ResetPasswordResp struct {
+	BizKey      string `json:"bizKey"`
+	Username    string `json:"username"`
+	DisplayName string `json:"displayName"`
+}

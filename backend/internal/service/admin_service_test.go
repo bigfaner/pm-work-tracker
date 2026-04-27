@@ -100,6 +100,7 @@ func (m *mockAdminUserRepo) ListFiltered(ctx context.Context, search string, off
 func (m *mockAdminUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
 }
+func (m *mockAdminUserRepo) SoftDelete(_ context.Context, _ *model.User) error { return nil }
 
 // mockAdminTeamRepo implements repository.TeamRepo for admin service tests.
 type mockAdminTeamRepo struct {

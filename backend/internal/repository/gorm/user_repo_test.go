@@ -234,3 +234,46 @@ func TestUserRepo_SearchAvailable(t *testing.T) {
 		assert.Len(t, users, 1)
 	})
 }
+
+// --- SoftDelete ---
+
+func TestUserRepo_SoftDelete(t *testing.T) {
+	db := setupUserTestDB(t)
+	repo := gormrepo.NewGormUserRepo(db)
+	ctx := context.Background()
+
+	u := model.User{Username: "deleteme", DisplayName: "Delete Me", PasswordHash: "h"}
+	require.NoError(t, db.Create(&u).Error)
+
+	t.Run("sets_deleted_flag_and_deleted_time", func(t *testing.T) {
+		require.NoError(t, repo.SoftDelete(ctx, &u))
+
+		var found model.User
+		require.NoError(t, db.Unscoped().First(&found, u.ID).Error)
+		assert.Equal(t, 1, found.DeletedFlag)
+		assert.False(t, found.DeletedTime.IsZero())
+	})
+
+	t.Run("FindByID_still_finds_soft_deleted_row", func(t *testing.T) {
+		// FindByID uses generic repo helper which does not apply NotDeleted scope
+		found, err := repo.FindByID(ctx, u.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "deleteme", found.Username)
+	})
+
+	t.Run("FindByBizKey_excludes_soft_deleted", func(t *testing.T) {
+		_, err := repo.FindByBizKey(ctx, u.BizKey)
+		assert.ErrorIs(t, err, pkgerrors.ErrNotFound)
+	})
+
+	t.Run("ListFiltered_excludes_soft_deleted", func(t *testing.T) {
+		// Create another active user
+		require.NoError(t, db.Create(&model.User{Username: "active", DisplayName: "Active", PasswordHash: "h"}).Error)
+
+		users, total, err := repo.ListFiltered(ctx, "", 0, 10)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), total)
+		assert.Len(t, users, 1)
+		assert.Equal(t, "active", users[0].Username)
+	})
+}

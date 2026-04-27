@@ -210,6 +210,7 @@ func (m *mockTeamUserRepo) SearchAvailable(ctx context.Context, teamID uint, sea
 	}
 	return nil, nil
 }
+func (m *mockTeamUserRepo) SoftDelete(_ context.Context, _ *model.User) error { return nil }
 
 // mockDB used for transaction-based tests (TransferPM).
 type mockDB struct {

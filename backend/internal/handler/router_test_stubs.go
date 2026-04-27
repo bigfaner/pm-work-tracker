@@ -226,6 +226,7 @@ func (s *StubRouterRepoUser) ListFiltered(_ context.Context, _ string, _, _ int)
 func (s *StubRouterRepoUser) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
 }
+func (s *StubRouterRepoUser) SoftDelete(_ context.Context, _ *model.User) error { return nil }
 
 var _ repository.UserRepo = (*StubRouterRepoUser)(nil)
 
