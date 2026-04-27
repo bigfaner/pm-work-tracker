@@ -107,6 +107,14 @@ func (m *mockAdminService) ListAllTeams(_ context.Context) ([]*dto.AdminTeamDTO,
 	return m.listAllTeamsResult.teams, m.listAllTeamsResult.err
 }
 
+func (m *mockAdminService) ResetPassword(_ context.Context, _ int64, _ string) (*dto.ResetPasswordResp, error) {
+	return nil, nil
+}
+
+func (m *mockAdminService) SoftDeleteUser(_ context.Context, _ uint, _ int64) error {
+	return nil
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------

@@ -172,6 +172,12 @@ func (s *StubAdminSvc) ToggleUserStatus(_ context.Context, _ uint, _ int64, _ st
 func (s *StubAdminSvc) ListAllTeams(_ context.Context) ([]*dto.AdminTeamDTO, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
+func (s *StubAdminSvc) ResetPassword(_ context.Context, _ int64, _ string) (*dto.ResetPasswordResp, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+func (s *StubAdminSvc) SoftDeleteUser(_ context.Context, _ uint, _ int64) error {
+	return fmt.Errorf("stub: not implemented")
+}
 
 var _ service.AdminService = (*StubAdminSvc)(nil)
 
