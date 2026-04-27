@@ -6,56 +6,12 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/model"
 	"pm-work-tracker/backend/internal/pkg"
 )
-
-// setupLifecycleTest creates a fresh DB and router for item lifecycle tests.
-// It extends setupRBACTestDB by adding main_item:change_status to the PM role,
-// which is required by the ChangeStatus endpoint but missing from the seed data.
-func setupLifecycleTest(t *testing.T) (*gin.Engine, *seedData, *gorm.DB) {
-	t.Helper()
-
-	db, data := setupRBACTestDB(t)
-
-	// Add main_item:change_status permission for PM role (required by router but missing from seed)
-	pmRoleID := findRoleIDByName(t, db, "pm")
-	require.NoError(t, db.Create(&model.RolePermission{
-		RoleID:          pmRoleID,
-		PermissionCode:  "main_item:change_status",
-	}).Error)
-
-	r := setupRBACTestRouter(t, db, data)
-	return r, data, db
-}
-
-// createTestMainItem is a helper that creates a MainItem via the API and returns the bizKey string.
-func createTestMainItem(t *testing.T, r *gin.Engine, token string, teamBizKey int64, title string) string {
-	t.Helper()
-	body := fmt.Sprintf(`{
-		"title": "%s",
-		"priority": "P1",
-		"assigneeKey": "1",
-		"startDate": "2026-01-01",
-		"expectedEndDate": "2026-06-30",
-		"isKeyItem": false
-	}`, title)
-	w := makeRequest(t, r, http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", teamBizKey), body, token)
-	require.Equal(t, http.StatusCreated, w.Code)
-
-	var resp map[string]interface{}
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	data := resp["data"].(map[string]interface{})
-	bizKey, ok := data["bizKey"].(string)
-	require.True(t, ok, "expected bizKey string in response")
-	return bizKey
-}
 
 // ========== Create Tests ==========
 
@@ -64,13 +20,13 @@ func TestItemLifecycle_CreateMainItem_Returns201(t *testing.T) {
 	pmToken := loginAs(t, r, "userA", "passwordA")
 
 	body := `{
-		"title": "Test Item",
-		"priority": "P1",
-		"assigneeKey": "1",
-		"startDate": "2026-01-01",
-		"expectedEndDate": "2026-06-30",
-		"isKeyItem": false
-	}`
+			"title": "Test Item",
+			"priority": "P1",
+			"assigneeKey": "1",
+			"startDate": "2026-01-01",
+			"expectedEndDate": "2026-06-30",
+			"isKeyItem": false
+		}`
 	w := makeRequest(t, r, http.MethodPost,
 		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamABizKey), body, pmToken)
 
@@ -105,12 +61,12 @@ func TestItemLifecycle_CreateMainItem_Member_Returns403(t *testing.T) {
 	memberToken := loginAs(t, r, "memberA", "passwordMemberA")
 
 	body := `{
-		"title": "Member Item",
-		"priority": "P1",
-		"assigneeKey": "1",
-		"startDate": "2026-01-01",
-		"expectedEndDate": "2026-06-30"
-	}`
+			"title": "Member Item",
+			"priority": "P1",
+			"assigneeKey": "1",
+			"startDate": "2026-01-01",
+			"expectedEndDate": "2026-06-30"
+		}`
 	w := makeRequest(t, r, http.MethodPost,
 		fmt.Sprintf("/api/v1/teams/%d/main-items", data.teamABizKey), body, memberToken)
 
@@ -432,32 +388,6 @@ func TestItemLifecycle_Archive_NotFound_Returns404(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
-// ========== SubItem Helpers ==========
-
-// createTestSubItem creates a SubItem via the API under the given main item.
-// Returns the SubItem bizKey string.
-func createTestSubItem(t *testing.T, r *gin.Engine, token string, teamBizKey int64, mainItemBizKey string, title string) string {
-	t.Helper()
-	body := fmt.Sprintf(`{
-		"mainItemKey": "%s",
-		"title": "%s",
-		"priority": "P2",
-		"assigneeKey": "1",
-		"startDate": "2026-01-01",
-		"expectedEndDate": "2026-06-30"
-	}`, mainItemBizKey, title)
-	w := makeRequest(t, r, http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/main-items/%s/sub-items", teamBizKey, mainItemBizKey), body, token)
-	require.Equal(t, http.StatusCreated, w.Code)
-
-	var resp map[string]interface{}
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	data := resp["data"].(map[string]interface{})
-	bizKey, ok := data["bizKey"].(string)
-	require.True(t, ok, "expected bizKey string in response")
-	return bizKey
-}
-
 // ========== SubItem Create Tests ==========
 
 func TestItemLifecycle_CreateSubItem_Returns201(t *testing.T) {
@@ -467,13 +397,13 @@ func TestItemLifecycle_CreateSubItem_Returns201(t *testing.T) {
 	mainBizKey := createTestMainItem(t, r, pmToken, data.teamABizKey, "Parent Item")
 
 	body := fmt.Sprintf(`{
-		"mainItemKey": "%s",
-		"title": "Sub Item 1",
-		"priority": "P2",
-		"assigneeKey": "%d",
-		"startDate": "2026-01-01",
-		"expectedEndDate": "2026-06-30"
-	}`, mainBizKey, data.userAID)
+			"mainItemKey": "%s",
+			"title": "Sub Item 1",
+			"priority": "P2",
+			"assigneeKey": "%d",
+			"startDate": "2026-01-01",
+			"expectedEndDate": "2026-06-30"
+		}`, mainBizKey, data.userAID)
 	w := makeRequest(t, r, http.MethodPost,
 		fmt.Sprintf("/api/v1/teams/%d/main-items/%s/sub-items", data.teamABizKey, mainBizKey), body, pmToken)
 
@@ -499,13 +429,13 @@ func TestItemLifecycle_CreateSubItem_MemberDenied_Returns403(t *testing.T) {
 	userBToken := loginAs(t, r, "userB", "passwordB")
 
 	body := fmt.Sprintf(`{
-		"mainItemKey": "%s",
-		"title": "Sub Item from B",
-		"priority": "P2",
-		"assigneeKey": "%d",
-		"startDate": "2026-01-01",
-		"expectedEndDate": "2026-06-30"
-	}`, mainBizKey, data.userBID)
+			"mainItemKey": "%s",
+			"title": "Sub Item from B",
+			"priority": "P2",
+			"assigneeKey": "%d",
+			"startDate": "2026-01-01",
+			"expectedEndDate": "2026-06-30"
+		}`, mainBizKey, data.userBID)
 	w := makeRequest(t, r, http.MethodPost,
 		fmt.Sprintf("/api/v1/teams/%d/main-items/%s/sub-items", data.teamABizKey, mainBizKey), body, userBToken)
 
@@ -518,13 +448,13 @@ func TestItemLifecycle_CreateSubItem_ParentNotFound_Returns404(t *testing.T) {
 	pmToken := loginAs(t, r, "userA", "passwordA")
 
 	body := fmt.Sprintf(`{
-		"mainItemKey": "999999",
-		"title": "Sub Item Orphan",
-		"priority": "P2",
-		"assigneeKey": "%d",
-		"startDate": "2026-01-01",
-		"expectedEndDate": "2026-06-30"
-	}`, data.userAID)
+			"mainItemKey": "999999",
+			"title": "Sub Item Orphan",
+			"priority": "P2",
+			"assigneeKey": "%d",
+			"startDate": "2026-01-01",
+			"expectedEndDate": "2026-06-30"
+		}`, data.userAID)
 	w := makeRequest(t, r, http.MethodPost,
 		fmt.Sprintf("/api/v1/teams/%d/main-items/999999/sub-items", data.teamABizKey), body, pmToken)
 
@@ -543,13 +473,13 @@ func TestItemLifecycle_CreateSubItem_TerminalParent_Returns422(t *testing.T) {
 	require.NoError(t, db.Model(&item).Update("item_status", "completed").Error)
 
 	body := fmt.Sprintf(`{
-		"mainItemKey": "%s",
-		"title": "Sub Item After Complete",
-		"priority": "P2",
-		"assigneeKey": "%d",
-		"startDate": "2026-01-01",
-		"expectedEndDate": "2026-06-30"
-	}`, mainBizKey, data.userAID)
+			"mainItemKey": "%s",
+			"title": "Sub Item After Complete",
+			"priority": "P2",
+			"assigneeKey": "%d",
+			"startDate": "2026-01-01",
+			"expectedEndDate": "2026-06-30"
+		}`, mainBizKey, data.userAID)
 	w := makeRequest(t, r, http.MethodPost,
 		fmt.Sprintf("/api/v1/teams/%d/main-items/%s/sub-items", data.teamABizKey, mainBizKey), body, pmToken)
 
@@ -1002,14 +932,6 @@ func TestItemLifecycle_CorrectCompletion_NotFound_Returns404(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
-// ========== Helper: setupRouterFromDB ==========
-
-// setupRouterFromDB creates a router that reuses an existing DB (needed for seedProgressData-based tests).
-func setupRouterFromDB(t *testing.T, db *gorm.DB, data *seedData) *gin.Engine {
-	t.Helper()
-	return setupRBACTestRouter(t, db, data)
-}
-
 // ========== Completion Rollup + Status Cascade Tests ==========
 
 func TestItemLifecycle_CompletionRollsUp_WhenSubItemCompleted(t *testing.T) {
@@ -1050,13 +972,13 @@ func TestItemLifecycle_CreateSubItem_HasBizKey(t *testing.T) {
 	mainBizKey := createTestMainItem(t, r, pmToken, data.teamABizKey, "Parent BizKey")
 
 	body := fmt.Sprintf(`{
-		"mainItemKey": "%s",
-		"title": "Sub BizKey Check",
-		"priority": "P2",
-		"assigneeKey": "%d",
-		"startDate": "2026-01-01",
-		"expectedEndDate": "2026-06-30"
-	}`, mainBizKey, data.userAID)
+			"mainItemKey": "%s",
+			"title": "Sub BizKey Check",
+			"priority": "P2",
+			"assigneeKey": "%d",
+			"startDate": "2026-01-01",
+			"expectedEndDate": "2026-06-30"
+		}`, mainBizKey, data.userAID)
 	w := makeRequest(t, r, http.MethodPost,
 		fmt.Sprintf("/api/v1/teams/%d/main-items/%s/sub-items", data.teamABizKey, mainBizKey), body, pmToken)
 	require.Equal(t, http.StatusCreated, w.Code)

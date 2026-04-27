@@ -84,7 +84,7 @@
       "dependencies": [
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.1-shared-helpers-extraction.md",
       "record": "records/2.1-shared-helpers-extraction.md",
       "breaking": true

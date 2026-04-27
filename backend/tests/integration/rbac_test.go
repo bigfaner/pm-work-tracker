@@ -4,27 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
-	"github.com/glebarez/sqlite"
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 
-	"pm-work-tracker/backend/config"
-	"pm-work-tracker/backend/internal/handler"
 	"pm-work-tracker/backend/internal/migration"
 	"pm-work-tracker/backend/internal/model"
-	"pm-work-tracker/backend/internal/pkg/dbutil"
-	"pm-work-tracker/backend/internal/pkg/snowflake"
-	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
-	"pm-work-tracker/backend/internal/service"
 )
 
 // ========== RBAC Migration Tests ==========
@@ -361,7 +349,7 @@ func TestDeleteRole_WithUsers_Rejected(t *testing.T) {
 
 	// Try to delete the role — should be rejected because it's in use
 	w = makeRequest(t, r, http.MethodDelete,
-	fmt.Sprintf("/api/v1/admin/roles/%s", customRoleBizKey), "", adminToken)
+		fmt.Sprintf("/api/v1/admin/roles/%s", customRoleBizKey), "", adminToken)
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 
 	var resp map[string]interface{}
@@ -406,7 +394,7 @@ func TestInviteMember_WithRoleID_MemberHasCorrectPermissions(t *testing.T) {
 
 	memberRoleID := findRoleIDByName(t, db, "member")
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(data.teamAID), UserKey: int64(newUser.ID), 
+		TeamKey: int64(data.teamAID), UserKey: int64(newUser.ID),
 		RoleKey: func() *int64 { v := int64(memberRoleID); return &v }(), JoinedAt: time.Now(),
 	}).Error)
 
@@ -472,254 +460,4 @@ func TestPermissionCodes_RegistryEndpoint(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	groups := resp["data"].([]interface{})
 	assert.GreaterOrEqual(t, len(groups), 7) // 7+ resource groups
-}
-
-// ========== Helper Functions ==========
-
-// createFreshDB creates a fresh in-memory SQLite database for migration tests.
-func createFreshDB(t *testing.T) *gorm.DB {
-	t.Helper()
-	dbName := fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())
-	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
-	require.NoError(t, err)
-
-	// Create tables that the migration expects to exist
-	err = db.AutoMigrate(
-		&model.User{}, &model.Team{}, &model.TeamMember{},
-		&model.MainItem{}, &model.SubItem{},
-		&model.ProgressRecord{}, &model.ItemPool{},
-	)
-	require.NoError(t, err)
-	return db
-}
-
-// setupRBACTestDB creates an in-memory DB with RBAC tables seeded via the migration path.
-func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
-	t.Helper()
-	snowflake.Init(1)
-
-
-	dbName := fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())
-	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
-	require.NoError(t, err)
-
-	// Create all tables (including Role, RolePermission for RBAC)
-	err = db.AutoMigrate(
-		&model.User{}, &model.Team{}, &model.TeamMember{},
-		&model.MainItem{}, &model.SubItem{},
-		&model.ProgressRecord{}, &model.ItemPool{},
-		&model.Role{}, &model.RolePermission{},
-		&model.StatusHistory{},
-	)
-	require.NoError(t, err)
-
-	// Seed users
-	hashA, err := bcrypt.GenerateFromPassword([]byte("passwordA"), 4)
-	require.NoError(t, err)
-	hashB, err := bcrypt.GenerateFromPassword([]byte("passwordB"), 4)
-	require.NoError(t, err)
-	hashMemberA, err := bcrypt.GenerateFromPassword([]byte("passwordMemberA"), 4)
-	require.NoError(t, err)
-	hashAdmin, err := bcrypt.GenerateFromPassword([]byte("adminPass"), 4)
-	require.NoError(t, err)
-
-	userA := &model.User{Username: "userA", DisplayName: "User A", PasswordHash: string(hashA)}
-	userB := &model.User{Username: "userB", DisplayName: "User B", PasswordHash: string(hashB)}
-	memberA := &model.User{Username: "memberA", DisplayName: "Member A", PasswordHash: string(hashMemberA)}
-	superAdmin := &model.User{
-		Username: "superadmin", DisplayName: "Super Admin",
-		PasswordHash: string(hashAdmin), IsSuperAdmin: true,
-	}
-
-	require.NoError(t, db.Create(userA).Error)
-	require.NoError(t, db.Create(userB).Error)
-	require.NoError(t, db.Create(memberA).Error)
-	require.NoError(t, db.Create(superAdmin).Error)
-
-	// Seed roles
-	superadminRole := model.Role{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Name: "superadmin", Description: "系统超级管理员", IsPreset: true}
-	require.NoError(t, db.Create(&superadminRole).Error)
-
-	pmRole := model.Role{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Name: "pm", Description: "Project Manager", IsPreset: true}
-	require.NoError(t, db.Create(&pmRole).Error)
-	pmRoleID := pmRole.ID
-
-	memberRole := model.Role{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Name: "member", Description: "Team Member", IsPreset: true}
-	require.NoError(t, db.Create(&memberRole).Error)
-	memberRoleID := memberRole.ID
-
-	// PM permissions (matching migration)
-	pmPermCodes := []string{
-		"team:create", "team:read", "team:update", "team:delete",
-		"team:invite", "team:remove", "team:transfer",
-		"main_item:create", "main_item:read", "main_item:update", "main_item:archive",
-		"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:assign", "sub_item:change_status",
-		"progress:create", "progress:read", "progress:update",
-		"item_pool:submit", "item_pool:review",
-		"view:weekly", "view:gantt", "view:table",
-		"report:export",
-		"user:read",
-	}
-	for _, code := range pmPermCodes {
-		require.NoError(t, db.Create(&model.RolePermission{RoleID: pmRoleID, PermissionCode: code}).Error)
-	}
-
-	// Member permissions (matching migration)
-	memberPermCodes := []string{
-		"main_item:read",
-		"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:change_status",
-		"progress:create", "progress:read",
-		"item_pool:submit",
-		"view:weekly", "view:table",
-		"report:export",
-	}
-	for _, code := range memberPermCodes {
-		require.NoError(t, db.Create(&model.RolePermission{RoleID: memberRoleID, PermissionCode: code}).Error)
-	}
-
-	// Superadmin has no permission codes (bypasses all checks)
-	_ = superadminRole
-
-	// Seed teams (with BizKey so middleware can resolve bizKey to internal ID)
-	teamA := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team A", PmKey: int64(userA.ID), Code: "TAMA"}
-	teamB := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team B", PmKey: int64(userB.ID), Code: "TAMB"}
-	require.NoError(t, db.Create(teamA).Error)
-	require.NoError(t, db.Create(teamB).Error)
-
-	// Seed team members
-	now := time.Now()
-	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamA.ID), UserKey: int64(userA.ID),  RoleKey: func() *int64 { v := int64(pmRoleID); return &v }(), JoinedAt: now,
-	}).Error)
-	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamA.ID), UserKey: int64(memberA.ID),  RoleKey: func() *int64 { v := int64(memberRoleID); return &v }(), JoinedAt: now,
-	}).Error)
-	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamB.ID), UserKey: int64(userB.ID),  RoleKey: func() *int64 { v := int64(pmRoleID); return &v }(), JoinedAt: now,
-	}).Error)
-
-	return db, &seedData{
-		userAID:      userA.ID,
-		userBID:      userB.ID,
-		memberAID:    memberA.ID,
-		superAdminID: superAdmin.ID,
-		teamAID:      teamA.ID,
-		teamBID:      teamB.ID,
-		teamABizKey:  teamA.BizKey,
-		teamBBizKey:  teamB.BizKey,
-	}
-}
-
-// setupRBACTestRouter wires the full router with RBAC-aware services.
-func setupRBACTestRouter(t *testing.T, db *gorm.DB, data *seedData) *gin.Engine {
-	t.Helper()
-
-	userRepo := gormrepo.NewGormUserRepo(db)
-	teamRepo := gormrepo.NewGormTeamRepo(db)
-	dialect := dbutil.NewDialect(db)
-	mainItemRepo := gormrepo.NewGormMainItemRepo(db, dialect)
-	subItemRepo := gormrepo.NewGormSubItemRepo(db, dialect)
-	progressRepo := gormrepo.NewGormProgressRepo(db)
-	itemPoolRepo := gormrepo.NewGormItemPoolRepo(db)
-	roleRepo := gormrepo.NewGormRoleRepo(db)
-
-	authSvc := service.NewAuthService(userRepo, testJWTSecret)
-	statusHistoryRepo := gormrepo.NewGormStatusHistoryRepo(db)
-	statusHistorySvc := service.NewStatusHistoryService(statusHistoryRepo)
-	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo, statusHistorySvc)
-	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc, statusHistorySvc)
-	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc, statusHistorySvc)
-	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, transactor{db: db})
-	teamSvc := service.NewTeamService(teamRepo, userRepo, mainItemRepo, roleRepo, transactor{db: db})
-	adminSvc := service.NewAdminService(userRepo, teamRepo)
-	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)
-	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
-	roleSvc := service.NewRoleService(roleRepo, userRepo)
-
-	cfg := &config.Config{
-		Auth: config.AuthConfig{
-			JWTSecret: testJWTSecret,
-		},
-		CORS: config.CORSConfig{
-			Origins: []string{"http://localhost:3000"},
-		},
-		Server: config.ServerConfig{
-			GinMode:  "test",
-			BasePath: "/api",
-		},
-	}
-
-	deps := &handler.Dependencies{
-		Config:     cfg,
-		TeamRepo:   teamRepo,
-		UserRepo:   userRepo,
-		RoleRepo:   roleRepo,
-		Auth:       handler.NewAuthHandler(authSvc),
-		Team:       handler.NewTeamHandler(teamSvc, userRepo),
-		MainItem:   handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
-		SubItem:    handler.NewSubItemHandler(subItemSvc, mainItemSvc),
-		Progress:   handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
-		ItemPool:   handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
-		View:       handler.NewViewHandler(viewSvc),
-		Report:     handler.NewReportHandler(reportSvc),
-		Admin:      handler.NewAdminHandler(adminSvc),
-		Role:       handler.NewRoleHandler(roleSvc),
-		Permission: handler.NewPermissionHandler(roleSvc),
-	}
-
-	return handler.SetupRouter(deps, nil)
-}
-
-// makeRequest is a helper to make an authenticated HTTP request.
-func makeRequest(t *testing.T, r *gin.Engine, method, path, body, token string) *httptest.ResponseRecorder {
-	t.Helper()
-
-	var bodyReader *strings.Reader
-	if body != "" {
-		bodyReader = strings.NewReader(body)
-	}
-
-	var req *http.Request
-	if bodyReader != nil {
-		req = httptest.NewRequest(method, path, bodyReader)
-	} else {
-		req = httptest.NewRequest(method, path, nil)
-	}
-
-	if body != "" {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
-
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-	return w
-}
-
-// findRoleIDByName looks up a role ID by name from the database.
-func findRoleIDByName(t *testing.T, db *gorm.DB, name string) uint {
-	t.Helper()
-	var role model.Role
-	require.NoError(t, db.Where("role_name = ?", name).First(&role).Error)
-	return role.ID
-}
-
-// findRoleBizKeyByName looks up a role's BizKey as string by name from the database.
-func findRoleBizKeyByName(t *testing.T, db *gorm.DB, name string) string {
-	t.Helper()
-	var role model.Role
-	require.NoError(t, db.Where("role_name = ?", name).First(&role).Error)
-	return fmt.Sprintf("%d", role.BizKey)
-}
-
-// findRoleIDByBizKey looks up a role's numeric ID by its BizKey string.
-func findRoleIDByBizKey(t *testing.T, db *gorm.DB, bizKey string) uint {
-	t.Helper()
-	var role model.Role
-	bk, err := strconv.ParseInt(bizKey, 10, 64)
-	require.NoError(t, err)
-	require.NoError(t, db.Where("biz_key = ?", bk).First(&role).Error)
-	return role.ID
 }
