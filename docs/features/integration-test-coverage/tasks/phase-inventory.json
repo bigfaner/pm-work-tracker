@@ -1,0 +1,57 @@
+[
+  {
+    "phase": 1,
+    "name": "Item Lifecycle Integration Tests (F1)",
+    "source": "PRD-explicit",
+    "gates": [
+      {
+        "afterPhase": 1,
+        "description": "F1 tests pass: 17 MainItem/SubItem endpoints covered with happy path, validation, permission, and cascade tests"
+      }
+    ]
+  },
+  {
+    "phase": 2,
+    "name": "Shared Helpers Extraction (F7)",
+    "source": "PRD-explicit",
+    "gates": [
+      {
+        "afterPhase": 2,
+        "description": "helpers.go created with 10 helper functions, existing inline definitions removed, all existing tests still pass"
+      }
+    ]
+  },
+  {
+    "phase": 3,
+    "name": "Core Business Flow Tests (F2, F3, F4)",
+    "source": "PRD-heuristic",
+    "gates": [
+      {
+        "afterPhase": 3,
+        "description": "F2/F3/F4 tests pass: 21 endpoints covered, item pool transaction rollback and team PM protection verified"
+      }
+    ]
+  },
+  {
+    "phase": 4,
+    "name": "Views & Reports Tests (F5)",
+    "source": "PRD-heuristic",
+    "gates": [
+      {
+        "afterPhase": 4,
+        "description": "F5 tests pass: 6 view/report endpoints covered with aggregation, export format, and empty data assertions"
+      }
+    ]
+  },
+  {
+    "phase": 5,
+    "name": "Unit Test Gaps (F6)",
+    "source": "PRD-explicit",
+    "gates": [
+      {
+        "afterPhase": 5,
+        "description": "6 unit test gaps closed: permission_handler, ConvertToMain, UpdateTeam, 3x GetByBizKey"
+      }
+    ]
+  }
+]
