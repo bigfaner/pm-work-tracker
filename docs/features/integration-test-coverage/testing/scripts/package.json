@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:api": "tsx api.spec.ts",
-    "test:all": "tsx api.spec.ts"
+    "test:api": "node --import tsx --test api.spec.ts",
+    "test:all": "node --import tsx --test api.spec.ts"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

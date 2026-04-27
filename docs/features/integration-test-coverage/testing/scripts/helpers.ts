@@ -10,7 +10,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // ── Config ─────────────────────────────────────────────────────────
 const _configPath = findConfigPath();
 
-function findConfigPath(): string {
+function findConfigPath(): string | null {
   const envPath = process.env.E2E_CONFIG_PATH;
   if (envPath && existsSync(envPath)) return resolve(envPath);
 
@@ -22,7 +22,7 @@ function findConfigPath(): string {
     if (parent === dir) break;
     dir = parent;
   }
-  throw new Error(`tests/e2e/config.yaml not found. Searched upward from ${__dirname}. Set E2E_CONFIG_PATH or run /gen-sitemap first.`);
+  return null;
 }
 
 // Screenshots go to <helpers-dir>/../results/screenshots
@@ -38,7 +38,12 @@ interface E2EConfig {
 }
 
 function readConfig(): E2EConfig {
-  return parseYaml(readFileSync(findConfigPath(), 'utf-8'));
+  const path = findConfigPath();
+  if (!path) {
+    console.warn('[e2e] config.yaml not found — using defaults');
+    return {};
+  }
+  return parseYaml(readFileSync(path, 'utf-8'));
 }
 
 const _config = readConfig();
