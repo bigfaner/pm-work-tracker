@@ -172,6 +172,12 @@ func (s *StubAdminSvc) ToggleUserStatus(_ context.Context, _ uint, _ int64, _ st
 func (s *StubAdminSvc) ListAllTeams(_ context.Context) ([]*dto.AdminTeamDTO, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
+func (s *StubAdminSvc) ResetPassword(_ context.Context, _ int64, _ string) (*dto.ResetPasswordResp, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+func (s *StubAdminSvc) SoftDeleteUser(_ context.Context, _ uint, _ int64) error {
+	return fmt.Errorf("stub: not implemented")
+}
 
 var _ service.AdminService = (*StubAdminSvc)(nil)
 
@@ -226,6 +232,7 @@ func (s *StubRouterRepoUser) ListFiltered(_ context.Context, _ string, _, _ int)
 func (s *StubRouterRepoUser) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
 }
+func (s *StubRouterRepoUser) SoftDelete(_ context.Context, _ *model.User) error { return nil }
 
 var _ repository.UserRepo = (*StubRouterRepoUser)(nil)
 

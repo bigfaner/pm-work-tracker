@@ -253,6 +253,7 @@ func (t *trackingUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, 
 }
 func (t *trackingUserRepo) Create(_ context.Context, _ *model.User) error { return nil }
 func (t *trackingUserRepo) Update(_ context.Context, _ *model.User) error { return nil }
+func (t *trackingUserRepo) SoftDelete(_ context.Context, _ *model.User) error { return nil }
 func (t *trackingUserRepo) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
 	return nil, nil
 }

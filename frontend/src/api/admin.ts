@@ -10,6 +10,8 @@ import type {
   ToggleUserStatusReq,
   ToggleUserStatusResp,
   GetUserResp,
+  ResetPasswordReq,
+  ResetPasswordResp,
 } from '@/types'
 
 export function listUsersApi(params?: { page?: number; pageSize?: number; search?: string }): Promise<PageResult<AdminUser>> {
@@ -34,4 +36,12 @@ export function updateUserApi(userId: string, req: UpdateUserReq): Promise<Updat
 
 export function toggleUserStatusApi(userId: string, req: ToggleUserStatusReq): Promise<ToggleUserStatusResp> {
   return client.put<never, ToggleUserStatusResp>(`/admin/users/${userId}/status`, req)
+}
+
+export function resetPasswordApi(userId: string, req: ResetPasswordReq): Promise<ResetPasswordResp> {
+  return client.put<never, ResetPasswordResp>(`/admin/users/${userId}/password`, req)
+}
+
+export function deleteUserApi(userId: string): Promise<void> {
+  return client.delete<never, void>(`/admin/users/${userId}`)
 }

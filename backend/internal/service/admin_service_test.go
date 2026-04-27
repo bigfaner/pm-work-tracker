@@ -28,6 +28,10 @@ type mockAdminUserRepo struct {
 	createErr error
 	updateErr error
 
+	// SoftDelete tracking
+	softDeleteCalled bool
+	softDeleteErr    error
+
 	// ListFiltered captures calls and returns configurable results
 	listFilteredFn func(ctx context.Context, search string, offset, limit int) ([]*model.User, int64, error)
 	listFilteredCalled bool
@@ -99,6 +103,10 @@ func (m *mockAdminUserRepo) ListFiltered(ctx context.Context, search string, off
 
 func (m *mockAdminUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
+}
+func (m *mockAdminUserRepo) SoftDelete(_ context.Context, _ *model.User) error {
+	m.softDeleteCalled = true
+	return m.softDeleteErr
 }
 
 // mockAdminTeamRepo implements repository.TeamRepo for admin service tests.
@@ -756,6 +764,75 @@ func TestAdminToggleUserStatus_RepoUpdateError(t *testing.T) {
 
 	_, err := svc.ToggleUserStatus(context.Background(), 1, 5, "disabled")
 	assert.Error(t, err)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: ResetPassword
+// ---------------------------------------------------------------------------
+
+func TestAdminResetPassword_Success(t *testing.T) {
+	user := &model.User{
+		BaseModel:    model.BaseModel{ID: 5, BizKey: 100},
+		Username:     "bob",
+		DisplayName:  "Bob",
+		PasswordHash: "$2a$10$oldhash",
+	}
+	userRepo := &mockAdminUserRepo{user: user}
+	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
+
+	resp, err := svc.ResetPassword(context.Background(), 100, "newSecret123")
+	require.NoError(t, err)
+	assert.Equal(t, "bob", resp.Username)
+	assert.Equal(t, "Bob", resp.DisplayName)
+	assert.NotEqual(t, "$2a$10$oldhash", userRepo.updated.PasswordHash)
+	// Verify bcrypt hash is valid (starts with $2a$)
+	assert.True(t, len(userRepo.updated.PasswordHash) > 20)
+}
+
+func TestAdminResetPassword_UserNotFound(t *testing.T) {
+	userRepo := &mockAdminUserRepo{findErr: apperrors.ErrNotFound}
+	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
+
+	_, err := svc.ResetPassword(context.Background(), 999, "newSecret123")
+	assert.ErrorIs(t, err, apperrors.ErrUserNotFound)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: SoftDeleteUser
+// ---------------------------------------------------------------------------
+
+func TestAdminSoftDeleteUser_Success(t *testing.T) {
+	user := &model.User{
+		BaseModel:   model.BaseModel{ID: 5, BizKey: 100},
+		Username:    "bob",
+		DisplayName: "Bob",
+	}
+	userRepo := &mockAdminUserRepo{user: user}
+	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
+
+	err := svc.SoftDeleteUser(context.Background(), 1, 100)
+	require.NoError(t, err)
+}
+
+func TestAdminSoftDeleteUser_CannotDeleteSelf(t *testing.T) {
+	user := &model.User{
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 100},
+		Username:    "admin",
+		DisplayName: "Admin",
+	}
+	userRepo := &mockAdminUserRepo{user: user}
+	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
+
+	err := svc.SoftDeleteUser(context.Background(), 1, 100)
+	assert.ErrorIs(t, err, apperrors.ErrCannotDeleteSelf)
+}
+
+func TestAdminSoftDeleteUser_UserNotFound(t *testing.T) {
+	userRepo := &mockAdminUserRepo{findErr: apperrors.ErrNotFound}
+	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
+
+	err := svc.SoftDeleteUser(context.Background(), 1, 999)
+	assert.ErrorIs(t, err, apperrors.ErrUserNotFound)
 }
 
 // ---------------------------------------------------------------------------

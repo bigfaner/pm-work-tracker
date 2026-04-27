@@ -40,6 +40,10 @@ func (s *authService) Login(ctx context.Context, username, password string) (str
 		return "", nil, apperrors.ErrUserDisabled
 	}
 
+	if user.DeletedFlag != 0 {
+		return "", nil, apperrors.ErrUserDeleted
+	}
+
 	token, err := appjwt.Sign(user.ID, user.Username, s.jwtSecret)
 	if err != nil {
 		return "", nil, apperrors.ErrInternal

@@ -195,6 +195,7 @@ func (m *mockRoleUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) (
 func (m *mockRoleUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
 }
+func (m *mockRoleUserRepo) SoftDelete(_ context.Context, _ *model.User) error { return nil }
 
 // ---------------------------------------------------------------------------
 // Helper: build the service under test

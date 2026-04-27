@@ -1,13 +1,16 @@
 import { useState, useCallback, useMemo } from 'react'
-import { Pencil, ToggleRight, ToggleLeft, RefreshCw } from 'lucide-react'
+import { Pencil, ToggleRight, ToggleLeft, RefreshCw, Eye, EyeOff, Trash2, Copy } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   listUsersApi,
   createUserApi,
   updateUserApi,
   toggleUserStatusApi,
+  resetPasswordApi,
+  deleteUserApi,
   listAdminTeamsApi,
 } from '@/api/admin'
+import { useAuthStore } from '@/store/auth'
 import type { AdminUser, CreateUserReq, UpdateUserReq } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -40,6 +43,8 @@ import { Pagination, PaginationPageSize } from '@/components/ui/pagination'
 import PaginationBar from '@/components/shared/PaginationBar'
 import UserAvatar from '@/components/shared/UserAvatar'
 import { useToast } from '@/components/ui/toast'
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
+import { copyToClipboard } from '@/lib/utils'
 
 // --- Constants ---
 
@@ -82,6 +87,26 @@ export default function UserManagementPage() {
   const [statusUser, setStatusUser] = useState<AdminUser | null>(null)
   const [statusError, setStatusError] = useState('')
 
+  // Reset password dialog
+  const [resetOpen, setResetOpen] = useState(false)
+  const [resetUser, setResetUser] = useState<AdminUser | null>(null)
+  const [resetForm, setResetForm] = useState({ newPassword: '', confirmPassword: '' })
+  const [resetErrors, setResetErrors] = useState<{ newPassword?: string; confirmPassword?: string }>({})
+  const [resetError, setResetError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+
+  // Delete dialog
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteUser, setDeleteUser] = useState<AdminUser | null>(null)
+  const [deleteError, setDeleteError] = useState('')
+
+  // Copy credentials
+  const [copied, setCopied] = useState(false)
+  const [createdUsername, setCreatedUsername] = useState('')
+
+  // Current user bizKey for self-check
+  const currentUserBizKey = useAuthStore((s) => s.user?.bizKey ?? null)
+
   // --- Data fetching ---
 
   const { data: usersData, isLoading, isFetching, refetch } = useQuery({
@@ -119,12 +144,14 @@ export default function UserManagementPage() {
 
   const createMutation = useMutation({
     mutationFn: (req: CreateUserReq) => createUserApi(req),
-    onSuccess: (resp) => {
+    onSuccess: (resp, req) => {
       qc.invalidateQueries({ queryKey: ['adminUsers'] })
       setCreateOpen(false)
       setCreateForm({ username: '', displayName: '', email: '' })
       setCreateError('')
+      setCreatedUsername(req.username)
       setInitialPassword(resp.initialPassword)
+      setCopied(false)
       setPasswordOpen(true)
     },
     onError: (err: any) => {
@@ -168,7 +195,57 @@ export default function UserManagementPage() {
     },
   })
 
+  const resetMutation = useMutation({
+    mutationFn: ({ userId, newPassword }: { userId: string; newPassword: string }) =>
+      resetPasswordApi(userId, { newPassword }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['adminUsers'] })
+      setResetOpen(false)
+      setResetUser(null)
+      setResetForm({ newPassword: '', confirmPassword: '' })
+      setResetErrors({})
+      setResetError('')
+      addToast('密码已重置', 'success')
+    },
+    onError: (err: any) => {
+      const code = err?.response?.data?.code
+      if (code === 'VALIDATION_ERROR') {
+        setResetError('密码格式不正确')
+      } else if (code === 'USER_NOT_FOUND') {
+        setResetError('用户不存在')
+      } else {
+        setResetError('操作失败，请稍后重试')
+      }
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: ({ userId }: { userId: string }) => deleteUserApi(userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['adminUsers'] })
+      setDeleteOpen(false)
+      setDeleteUser(null)
+      setDeleteError('')
+      addToast('用户已删除', 'success')
+    },
+    onError: (err: any) => {
+      const status = err?.response?.status
+      const code = err?.response?.data?.code
+      if (status === 404 || code === 'USER_NOT_FOUND') {
+        qc.invalidateQueries({ queryKey: ['adminUsers'] })
+        setDeleteOpen(false)
+        setDeleteUser(null)
+        setDeleteError('')
+        addToast('用户已删除', 'success')
+      } else {
+        setDeleteError('操作失败，请稍后重试')
+      }
+    },
+  })
+
   // --- Handlers ---
+
+  const isSuperAdmin = useAuthStore((s) => s.isSuperAdmin)
 
   const handleCreate = useCallback(() => {
     setCreateError('')
@@ -219,6 +296,64 @@ export default function UserManagementPage() {
     const newStatus = statusUser.userStatus === 'enabled' ? 'disabled' : 'enabled'
     statusMutation.mutate({ userId: statusUser.bizKey, status: newStatus })
   }, [statusUser, statusMutation])
+
+  // Reset password handlers
+
+  const validatePassword = useCallback((form: { newPassword: string; confirmPassword: string }) => {
+    const errors: { newPassword?: string; confirmPassword?: string } = {}
+    if (!form.newPassword) {
+      errors.newPassword = '请输入新密码'
+    } else if (form.newPassword.length < 8 || !/[a-zA-Z]/.test(form.newPassword) || !/[0-9]/.test(form.newPassword)) {
+      errors.newPassword = '密码需至少8位，包含字母和数字'
+    }
+    if (form.confirmPassword && form.confirmPassword !== form.newPassword) {
+      errors.confirmPassword = '两次输入的密码不一致'
+    }
+    return errors
+  }, [])
+
+  const openResetPassword = useCallback((user: AdminUser) => {
+    setResetUser(user)
+    setResetForm({ newPassword: '', confirmPassword: '' })
+    setResetErrors({})
+    setResetError('')
+    setShowPassword(false)
+    setResetOpen(true)
+  }, [])
+
+  const handleResetSubmit = useCallback(() => {
+    if (!resetUser) return
+    const errors = validatePassword(resetForm)
+    if (!resetForm.confirmPassword) {
+      errors.confirmPassword = '请输入确认密码'
+    }
+    if (Object.keys(errors).length > 0) {
+      setResetErrors(errors)
+      return
+    }
+    resetMutation.mutate({ userId: resetUser.bizKey, newPassword: resetForm.newPassword })
+  }, [resetUser, resetForm, validatePassword, resetMutation])
+
+  const openDelete = useCallback((user: AdminUser) => {
+    setDeleteUser(user)
+    setDeleteError('')
+    setDeleteOpen(true)
+  }, [])
+
+  const handleDelete = useCallback(() => {
+    if (!deleteUser) return
+    deleteMutation.mutate({ userId: deleteUser.bizKey })
+  }, [deleteUser, deleteMutation])
+
+  const handleCopyCredentials = useCallback(async () => {
+    try {
+      await copyToClipboard(`账号：${createdUsername}\n密码：${initialPassword}`)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      addToast('复制失败，请手动选择文字复制', 'error')
+    }
+  }, [createdUsername, initialPassword, addToast])
 
   // --- Render ---
 
@@ -314,6 +449,34 @@ export default function UserManagementPage() {
                         )}
                         修改状态
                       </Button>
+                      {isSuperAdmin && (
+                        <Button variant="ghost" size="sm" className="text-primary-600" onClick={() => openResetPassword(user)}>
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          重置密码
+                        </Button>
+                      )}
+                      {isSuperAdmin && (
+                        user.bizKey === currentUserBizKey ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span>
+                                  <Button variant="ghost" size="sm" className="text-error" disabled>
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    删除
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>不可删除自身账号</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <Button variant="ghost" size="sm" className="text-error" onClick={() => openDelete(user)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                            删除
+                          </Button>
+                        )
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -425,6 +588,12 @@ export default function UserManagementPage() {
             </div>
           </DialogBody>
           <DialogFooter>
+            {initialPassword && (
+              <Button variant="secondary" onClick={handleCopyCredentials} disabled={copied}>
+                <Copy className="w-3.5 h-3.5" />
+                {copied ? '已复制' : '复制账号与密码'}
+              </Button>
+            )}
             <Button onClick={() => setPasswordOpen(false)}>我知道了</Button>
           </DialogFooter>
         </DialogContent>
@@ -523,6 +692,119 @@ export default function UserManagementPage() {
             </Button>
             <Button onClick={handleToggleStatus} disabled={statusMutation.isPending}>
               确认修改
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={resetOpen} onOpenChange={(open) => { setResetOpen(open); if (!open) { setResetError(''); setResetErrors({}) } }}>
+        <DialogContent size="md">
+          <DialogHeader>
+            <DialogTitle>重置密码 — {resetUser?.displayName}</DialogTitle>
+            <DialogDescription>为该用户设置新密码</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="block text-sm font-medium text-primary mb-1">
+                  新密码 <span className="text-error">*</span>
+                </label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="请输入新密码"
+                    value={resetForm.newPassword}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setResetForm((f) => ({ ...f, newPassword: val }))
+                      if (resetErrors.newPassword) {
+                        setResetErrors((errs) => ({ ...errs, newPassword: undefined }))
+                      }
+                    }}
+                    onBlur={() => {
+                      const errs = validatePassword(resetForm)
+                      if (errs.newPassword) setResetErrors((e) => ({ ...e, newPassword: errs.newPassword }))
+                    }}
+                    disabled={resetMutation.isPending}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-tertiary hover:text-secondary"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? '隐藏密码' : '显示密码'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {resetErrors.newPassword && (
+                  <p className="mt-1 text-sm text-error">{resetErrors.newPassword}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-primary mb-1">
+                  确认密码 <span className="text-error">*</span>
+                </label>
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="请再次输入新密码"
+                  value={resetForm.confirmPassword}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setResetForm((f) => ({ ...f, confirmPassword: val }))
+                    if (resetErrors.confirmPassword) {
+                      setResetErrors((errs) => ({ ...errs, confirmPassword: undefined }))
+                    }
+                  }}
+                  onBlur={() => {
+                    if (resetForm.confirmPassword && resetForm.confirmPassword !== resetForm.newPassword) {
+                      setResetErrors((e) => ({ ...e, confirmPassword: '两次输入的密码不一致' }))
+                    } else if (resetForm.confirmPassword && resetForm.confirmPassword === resetForm.newPassword) {
+                      setResetErrors((e) => ({ ...e, confirmPassword: undefined }))
+                    }
+                  }}
+                  disabled={resetMutation.isPending}
+                />
+                {resetErrors.confirmPassword && (
+                  <p className="mt-1 text-sm text-error">{resetErrors.confirmPassword}</p>
+                )}
+              </div>
+            </div>
+            {resetError && (
+              <p className="mt-3 text-sm text-error">{resetError}</p>
+            )}
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => { setResetOpen(false); setResetError(''); setResetErrors({}) }}>
+              取消
+            </Button>
+            <Button onClick={handleResetSubmit} disabled={resetMutation.isPending}>
+              {resetMutation.isPending ? '提交中...' : '确认'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteOpen} onOpenChange={(open) => { setDeleteOpen(open); if (!open) setDeleteError('') }}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>确认删除</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <p className="text-sm text-secondary">
+              确认删除用户 {deleteUser?.displayName}？此操作不可通过界面撤销。
+            </p>
+            {deleteError && (
+              <p className="mt-3 text-sm text-error">{deleteError}</p>
+            )}
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => { setDeleteOpen(false); setDeleteError('') }} disabled={deleteMutation.isPending}>
+              取消
+            </Button>
+            <Button variant="danger" onClick={handleDelete} disabled={deleteMutation.isPending}>
+              {deleteMutation.isPending ? '删除中...' : '确认删除'}
             </Button>
           </DialogFooter>
         </DialogContent>

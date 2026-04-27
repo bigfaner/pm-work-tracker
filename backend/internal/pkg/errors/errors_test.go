@@ -43,6 +43,8 @@ func TestPredefinedErrors(t *testing.T) {
 		{"ProgressRegression", ErrProgressRegression, "PROGRESS_REGRESSION", 422, "completion cannot be lower than previous record"},
 		{"Validation", ErrValidation, "VALIDATION_ERROR", 400, "request validation failed"},
 		{"Internal", ErrInternal, "INTERNAL_ERROR", 500, "internal server error"},
+		{"CannotDeleteSelf", ErrCannotDeleteSelf, "CANNOT_DELETE_SELF", 422, "cannot delete your own account"},
+		{"UserDeleted", ErrUserDeleted, "USER_DELETED", 403, "user account has been deleted"},
 	}
 
 	for _, tt := range tests {

@@ -267,5 +267,17 @@ describe('API modules', () => {
       await adminApi.listAdminTeamsApi(2, 10)
       expect(mockClient.get).toHaveBeenCalledWith('/admin/teams', { params: { page: 2, pageSize: 10 } })
     })
+
+    it('resetPasswordApi should PUT /admin/users/:userId/password', async () => {
+      mockClient.put.mockResolvedValue({ bizKey: 'user-1', username: 'alice', displayName: 'Alice' })
+      await adminApi.resetPasswordApi('user-1', { newPassword: 'NewPass123' })
+      expect(mockClient.put).toHaveBeenCalledWith('/admin/users/user-1/password', { newPassword: 'NewPass123' })
+    })
+
+    it('deleteUserApi should DELETE /admin/users/:userId', async () => {
+      mockClient.delete.mockResolvedValue(undefined)
+      await adminApi.deleteUserApi('user-1')
+      expect(mockClient.delete).toHaveBeenCalledWith('/admin/users/user-1')
+    })
   })
 })

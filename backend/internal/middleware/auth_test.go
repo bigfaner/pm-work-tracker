@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"pm-work-tracker/backend/internal/model"
 	jwtpkg "pm-work-tracker/backend/internal/pkg/jwt"
@@ -73,6 +74,7 @@ func (m *mockUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*m
 func (m *mockUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
 }
+func (m *mockUserRepo) SoftDelete(_ context.Context, _ *model.User) error { return nil }
 
 var _ repository.UserRepo = (*mockUserRepo)(nil)
 
@@ -213,4 +215,24 @@ func TestIsSuperAdmin_NoValue(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	assert.False(t, IsSuperAdmin(c))
+}
+
+func TestAuthMiddleware_DeletedUser_Returns401(t *testing.T) {
+	repo := new(mockUserRepo)
+	repo.On("FindByID", mock.Anything, uint(5)).Return(&model.User{
+		BaseModel:   model.BaseModel{ID: 5, DeletedFlag: 1},
+		Username:    "deleted",
+	}, nil)
+
+	r, _ := setupAuthRouter(testSecret, repo)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+
+	tokenStr, err := jwtpkg.Sign(5, "deleted", testSecret)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+tokenStr)
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }

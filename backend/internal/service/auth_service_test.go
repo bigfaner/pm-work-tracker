@@ -68,6 +68,7 @@ func (m *mockUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*m
 func (m *mockUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
 }
+func (m *mockUserRepo) SoftDelete(_ context.Context, _ *model.User) error { return nil }
 
 // Pre-computed bcrypt hash for "password123" at cost 12.
 // Generated once with bcrypt.GenerateFromPassword; avoids bcrypt calls in unit tests.
@@ -174,4 +175,19 @@ func TestLogout_IsNoOp(t *testing.T) {
 
 	err := svc.Logout(context.Background(), "some-token")
 	assert.NoError(t, err)
+}
+
+func TestLogin_DeletedUser_ReturnsErrUserDeleted(t *testing.T) {
+	repo := new(mockUserRepo)
+	repo.On("FindByUsername", mock.Anything, "deleted").
+		Return(&model.User{
+			BaseModel:    model.BaseModel{ID: 10, DeletedFlag: 1},
+			Username:     "deleted",
+			PasswordHash: prehashedPassword123,
+		}, nil)
+
+	svc := NewAuthService(repo, testJWTSecret)
+	_, _, err := svc.Login(context.Background(), "deleted", "password123")
+	assert.ErrorIs(t, err, apperrors.ErrUserDeleted)
+	repo.AssertExpectations(t)
 }

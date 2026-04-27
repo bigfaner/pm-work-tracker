@@ -17,4 +17,5 @@ type UserRepo interface {
 	SearchAvailable(ctx context.Context, teamID uint, search string, limit int) ([]*model.User, error)
 	Create(ctx context.Context, user *model.User) error
 	Update(ctx context.Context, user *model.User) error
+	SoftDelete(ctx context.Context, user *model.User) error
 }

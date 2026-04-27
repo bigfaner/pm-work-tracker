@@ -22,7 +22,7 @@ import (
 // ---------------------------------------------------------------------------
 
 type mockAdminService struct {
-		listUsersResult struct {
+	listUsersResult struct {
 		users []*model.User
 		err   error
 	}
@@ -69,6 +69,21 @@ type mockAdminService struct {
 	lastToggleCallerID    uint
 	lastToggleTargetID    int64
 	lastToggleStatus      string
+
+	// ResetPassword
+	resetPasswordResult struct {
+		resp *dto.ResetPasswordResp
+		err  error
+	}
+	lastResetTargetID int64
+	lastResetPassword string
+
+	// SoftDeleteUser
+	softDeleteResult struct {
+		err error
+	}
+	lastDeleteCallerID uint
+	lastDeleteTargetID int64
 }
 
 func (m *mockAdminService) ListUsers(_ context.Context, search string, page, pageSize int) ([]*dto.AdminUserDTO, int, error) {
@@ -105,6 +120,18 @@ func (m *mockAdminService) ToggleUserStatus(_ context.Context, callerID uint, ta
 func (m *mockAdminService) ListAllTeams(_ context.Context) ([]*dto.AdminTeamDTO, error) {
 	m.listAllTeamsCalled = true
 	return m.listAllTeamsResult.teams, m.listAllTeamsResult.err
+}
+
+func (m *mockAdminService) ResetPassword(_ context.Context, targetID int64, newPassword string) (*dto.ResetPasswordResp, error) {
+	m.lastResetTargetID = targetID
+	m.lastResetPassword = newPassword
+	return m.resetPasswordResult.resp, m.resetPasswordResult.err
+}
+
+func (m *mockAdminService) SoftDeleteUser(_ context.Context, callerID uint, targetID int64) error {
+	m.lastDeleteCallerID = callerID
+	m.lastDeleteTargetID = targetID
+	return m.softDeleteResult.err
 }
 
 // ---------------------------------------------------------------------------
@@ -252,12 +279,12 @@ func TestAdminListUsers_CustomPagination(t *testing.T) {
 func TestAdminCreateUser_Success(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.createUserResult.user = &dto.AdminUserDTO{
-		BizKey: "3",
+		BizKey:          "3",
 		Username:        "newuser",
 		DisplayName:     "New User",
 		Email:           "new@test.com",
-		Status: "enabled",
-		Teams:           []dto.TeamSummary{{BizKey: "10", Name: "Team A", }},
+		Status:          "enabled",
+		Teams:           []dto.TeamSummary{{BizKey: "10", Name: "Team A"}},
 		InitialPassword: "Abc123XYZdef",
 	}
 
@@ -377,13 +404,13 @@ func TestAdminCreateUser_InternalError(t *testing.T) {
 func TestAdminGetUser_Success(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.getUserResult.user = &dto.AdminUserDTO{
-		BizKey: "5",
+		BizKey:       "5",
 		Username:     "bob",
 		DisplayName:  "Bob",
 		Email:        "bob@test.com",
-		Status: "enabled",
+		Status:       "enabled",
 		IsSuperAdmin: false,
-		Teams:        []dto.TeamSummary{{BizKey: "1", Name: "Team A", }},
+		Teams:        []dto.TeamSummary{{BizKey: "1", Name: "Team A"}},
 	}
 
 	deps := depsWithAdminSvc(t, svc)
@@ -467,12 +494,12 @@ func TestAdminGetUser_ServiceError(t *testing.T) {
 func TestAdminUpdateUser_Success(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.updateUserResult.user = &dto.AdminUserDTO{
-		BizKey: "5",
+		BizKey:      "5",
 		Username:    "bob",
 		DisplayName: "Robert",
 		Email:       "robert@test.com",
-		Status: "enabled",
-		Teams:       []dto.TeamSummary{{BizKey: "2", Name: "Team B", }},
+		Status:      "enabled",
+		Teams:       []dto.TeamSummary{{BizKey: "2", Name: "Team B"}},
 	}
 
 	deps := depsWithAdminSvc(t, svc)
@@ -610,9 +637,9 @@ func TestAdminToggleUserStatus_MissingBody(t *testing.T) {
 func TestAdminToggleUserStatus_DisableSuccess(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.toggleUserStatusResult.user = &dto.AdminUserDTO{
-		BizKey: "5",
+		BizKey:   "5",
 		Username: "bob",
-		Status: "disabled",
+		Status:   "disabled",
 		Teams:    []dto.TeamSummary{},
 	}
 
@@ -864,6 +891,218 @@ func TestAdminListTeams_ServiceError(t *testing.T) {
 	token := signSuperAdminToken(t, 1)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/teams", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: PUT /v1/admin/users/:userId/password (ResetPassword)
+// ---------------------------------------------------------------------------
+
+func TestAdminResetPassword_Success(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.resetPasswordResult.resp = &dto.ResetPasswordResp{
+		BizKey:      "5",
+		Username:    "bob",
+		DisplayName: "Bob",
+	}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"newPassword":"newPass123"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/password", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, int64(5), svc.lastResetTargetID)
+	assert.Equal(t, "newPass123", svc.lastResetPassword)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+
+	data, ok := resp["data"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "5", data["bizKey"])
+	assert.Equal(t, "bob", data["username"])
+	assert.Equal(t, "Bob", data["displayName"])
+}
+
+func TestAdminResetPassword_UserNotFound(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.resetPasswordResult.err = apperrors.ErrUserNotFound
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"newPassword":"newPass123"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/999/password", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "USER_NOT_FOUND", resp["code"])
+}
+
+func TestAdminResetPassword_InvalidInput(t *testing.T) {
+	svc := &mockAdminService{}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"newPassword":"short"}` // fails min=8
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/password", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestAdminResetPassword_InvalidUserId(t *testing.T) {
+	svc := &mockAdminService{}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"newPassword":"newPass123"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/abc/password", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestAdminResetPassword_ServiceError(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.resetPasswordResult.err = apperrors.ErrInternal
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"newPassword":"newPass123"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/password", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: DELETE /v1/admin/users/:userId (DeleteUser)
+// ---------------------------------------------------------------------------
+
+func TestAdminDeleteUser_Success(t *testing.T) {
+	svc := &mockAdminService{}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/admin/users/5", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, uint(1), svc.lastDeleteCallerID)
+	assert.Equal(t, int64(5), svc.lastDeleteTargetID)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, float64(0), resp["code"])
+}
+
+func TestAdminDeleteUser_UserNotFound(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.softDeleteResult.err = apperrors.ErrUserNotFound
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/admin/users/999", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "USER_NOT_FOUND", resp["code"])
+}
+
+func TestAdminDeleteUser_SelfDelete(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.softDeleteResult.err = apperrors.ErrCannotDeleteSelf
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/admin/users/1", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "CANNOT_DELETE_SELF", resp["code"])
+}
+
+func TestAdminDeleteUser_InvalidUserId(t *testing.T) {
+	svc := &mockAdminService{}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/admin/users/abc", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestAdminDeleteUser_ServiceError(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.softDeleteResult.err = apperrors.ErrInternal
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/admin/users/5", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 

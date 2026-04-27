@@ -49,6 +49,8 @@ var (
 	ErrInvalidField         = &AppError{Code: "INVALID_FIELD", Status: 422, Message: "invalid field name"}
 	ErrCannotAssignPMRole   = &AppError{Code: "CANNOT_ASSIGN_PM_ROLE", Status: 422, Message: "use transfer PM to change the team PM"}
 	ErrDuplicateBizKey      = &AppError{Code: "DUPLICATE_BIZ_KEY", Status: 409, Message: "biz_key uniqueness violation"}
+	ErrCannotDeleteSelf     = &AppError{Code: "CANNOT_DELETE_SELF", Status: 422, Message: "cannot delete your own account"}
+	ErrUserDeleted          = &AppError{Code: "USER_DELETED", Status: 403, Message: "user account has been deleted"}
 )
 
 // MapNotFound maps gorm.ErrRecordNotFound and ErrNotFound to the provided domain error.
