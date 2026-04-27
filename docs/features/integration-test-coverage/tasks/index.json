@@ -146,7 +146,7 @@
       "dependencies": [
         "2.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.3-admin-user-tests.md",
       "record": "records/3.3-admin-user-tests.md"
     },
