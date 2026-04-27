@@ -1,0 +1,5 @@
+[
+  {"phase": 1, "name": "Generic helpers foundation", "source": "design", "gates": [{"afterPhase": 1, "description": "FindByID/FindByIDs correctly filter soft-deletable types and pass through non-soft-deletable types"}]},
+  {"phase": 2, "name": "Repo method NotDeleted scope", "source": "design", "gates": [{"afterPhase": 2, "description": "All repo query methods exclude soft-deleted records"}]},
+  {"phase": 3, "name": "Soft-delete fixes and schema migration", "source": "design", "gates": [{"afterPhase": 3, "description": "SubItem SoftDelete and TeamMember RemoveMember use correct soft-delete pattern; schema indexes aligned"}]}
+]
