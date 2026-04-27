@@ -368,6 +368,88 @@ func TestMainItemRepo_FindByIDs(t *testing.T) {
 
 // --- ListByTeamAndStatus ---
 
+// --- SoftDelete ---
+
+func TestMainItemRepo_SoftDelete(t *testing.T) {
+	db := setupMainItemTestDB(t)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
+	ctx := context.Background()
+
+	u, team := seedMainItemTeam(t, db)
+
+	t.Run("FindByBizKey_excludes_soft_deleted", func(t *testing.T) {
+		item := createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Deleted", "P1", "pending")
+		// Soft-delete the item
+		require.NoError(t, db.Model(item).Update("deleted_flag", 1).Error)
+
+		_, err := repo.FindByBizKey(ctx, item.BizKey)
+		assert.ErrorIs(t, err, gormlib.ErrRecordNotFound)
+	})
+
+	t.Run("List_excludes_soft_deleted", func(t *testing.T) {
+		// Create one active and one soft-deleted item
+		createMainItem(t, db, team.ID, u.ID, "FEAT-00010", "Active Item", "P1", "pending")
+		deleted := createMainItem(t, db, team.ID, u.ID, "FEAT-00011", "Deleted Item", "P2", "pending")
+		require.NoError(t, db.Model(deleted).Update("deleted_flag", 1).Error)
+
+		result, err := repo.List(ctx, team.ID, dto.MainItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), result.Total)
+		assert.Equal(t, "Active Item", result.Items[0].Title)
+	})
+
+	t.Run("CountByTeam_excludes_soft_deleted", func(t *testing.T) {
+		// Use a separate team to avoid DB state leakage from sibling sub-tests
+		u2 := model.User{Username: "count_pm", DisplayName: "Count PM", PasswordHash: "h"}
+		require.NoError(t, db.Create(&u2).Error)
+		team2 := model.Team{TeamName: "Count Team", PmKey: int64(u2.ID), Code: "CNT"}
+		require.NoError(t, db.Create(&team2).Error)
+
+		createMainItem(t, db, team2.ID, u2.ID, "CNT-00001", "Count Active", "P1", "pending")
+		softDel := createMainItem(t, db, team2.ID, u2.ID, "CNT-00002", "Count Deleted", "P2", "pending")
+		require.NoError(t, db.Model(softDel).Update("deleted_flag", 1).Error)
+
+		count, err := repo.CountByTeam(ctx, team2.ID)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), count)
+	})
+
+	t.Run("ListNonArchivedByTeam_excludes_soft_deleted", func(t *testing.T) {
+		createMainItem(t, db, team.ID, u.ID, "FEAT-00030", "NonArch Active", "P1", "pending")
+		softDel := createMainItem(t, db, team.ID, u.ID, "FEAT-00031", "NonArch Deleted", "P2", "pending")
+		require.NoError(t, db.Model(softDel).Update("deleted_flag", 1).Error)
+
+		items, err := repo.ListNonArchivedByTeam(ctx, team.ID)
+		require.NoError(t, err)
+		for _, item := range items {
+			assert.NotEqual(t, "NonArch Deleted", item.Title, "soft-deleted item should not appear in ListNonArchivedByTeam")
+		}
+	})
+
+	t.Run("FindByBizKeys_excludes_soft_deleted", func(t *testing.T) {
+		active := createMainItem(t, db, team.ID, u.ID, "FEAT-00040", "BizKey Active", "P1", "pending")
+		softDel := createMainItem(t, db, team.ID, u.ID, "FEAT-00041", "BizKey Deleted", "P2", "pending")
+		require.NoError(t, db.Model(softDel).Update("deleted_flag", 1).Error)
+
+		result, err := repo.FindByBizKeys(ctx, []int64{active.BizKey, softDel.BizKey})
+		require.NoError(t, err)
+		assert.Len(t, result, 1)
+		assert.Equal(t, "BizKey Active", result[active.BizKey].Title)
+	})
+
+	t.Run("ListByTeamAndStatus_excludes_soft_deleted", func(t *testing.T) {
+		createMainItem(t, db, team.ID, u.ID, "FEAT-00050", "Status Active", "P1", "pending")
+		softDel := createMainItem(t, db, team.ID, u.ID, "FEAT-00051", "Status Deleted", "P2", "pending")
+		require.NoError(t, db.Model(softDel).Update("deleted_flag", 1).Error)
+
+		items, err := repo.ListByTeamAndStatus(ctx, team.ID, "pending")
+		require.NoError(t, err)
+		for _, item := range items {
+			assert.NotEqual(t, "Status Deleted", item.Title, "soft-deleted item should not appear in ListByTeamAndStatus")
+		}
+	})
+}
+
 func TestMainItemRepo_ListByTeamAndStatus(t *testing.T) {
 	db := setupMainItemTestDB(t)
 	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
