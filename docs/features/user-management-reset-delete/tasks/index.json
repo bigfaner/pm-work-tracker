@@ -133,7 +133,7 @@
       "dependencies": [
         "2.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.1-frontend-api-types.md",
       "record": "records/3.1-frontend-api-types.md"
     },

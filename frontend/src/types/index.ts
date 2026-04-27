@@ -478,6 +478,16 @@ export interface GetUserResp {
   teams: TeamSummary[]
 }
 
+export interface ResetPasswordReq {
+  newPassword: string
+}
+
+export interface ResetPasswordResp {
+  bizKey: string
+  username: string
+  displayName: string
+}
+
 // Weekly view (enhanced)
 export interface MainItemSummary {
   bizKey: string
