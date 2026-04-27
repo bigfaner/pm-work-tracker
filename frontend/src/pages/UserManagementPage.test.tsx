@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { server } from '@/mocks/server'
 import { http, HttpResponse } from 'msw'
 import { ToastProvider } from '@/components/ui/toast'
+import { useAuthStore } from '@/store/auth'
 import UserManagementPage from './UserManagementPage'
 
 // MSW lifecycle
@@ -154,6 +155,26 @@ function setupHandlers() {
       return HttpResponse.json({
         code: 0,
         data: { id: userId, username: user.username, userStatus: body.status },
+      })
+    }),
+
+    // Reset password
+    http.put('/v1/admin/users/:userId/password', async ({ params, request }) => {
+      const userId = String(params.userId)
+      const body = (await request.json()) as { newPassword: string }
+      const user = seedUsers.find((u) => u.bizKey === userId)
+      if (!user) {
+        return HttpResponse.json({ code: 'USER_NOT_FOUND', message: 'not found' }, { status: 404 })
+      }
+      if (!body.newPassword || body.newPassword.length < 8) {
+        return HttpResponse.json(
+          { code: 'VALIDATION_ERROR', message: '密码需至少8位' },
+          { status: 400 },
+        )
+      }
+      return HttpResponse.json({
+        code: 0,
+        data: { bizKey: userId, username: user.username, displayName: user.displayName },
       })
     }),
   )
@@ -410,6 +431,244 @@ describe('UserManagementPage', () => {
     renderPage()
     await waitFor(() => {
       expect(screen.getByText(/共 4 条/)).toBeInTheDocument()
+    })
+  })
+
+  // --- Reset Password Dialog ---
+
+  describe('reset password dialog', () => {
+    beforeEach(() => {
+      // Set current user as super admin
+      useAuthStore.setState({
+        token: 'test-token',
+        user: { bizKey: '1', username: 'zhangming', displayName: '张明', isSuperAdmin: true, createTime: '' },
+        isAuthenticated: true,
+        isSuperAdmin: true,
+        _hasHydrated: true,
+      })
+    })
+
+    afterEach(() => {
+      useAuthStore.getState().clearAuth()
+    })
+
+    it('shows reset password button for super admin', async () => {
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+      const resetButtons = screen.getAllByText('重置密码')
+      expect(resetButtons.length).toBe(4) // one per user row
+    })
+
+    it('does not show reset password button for non-super-admin', async () => {
+      useAuthStore.setState({ isSuperAdmin: false })
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+      expect(screen.queryByText('重置密码')).not.toBeInTheDocument()
+    })
+
+    it('opens reset password dialog with user displayName in title', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+
+      // Click reset on second user (李华)
+      const resetButtons = screen.getAllByText('重置密码')
+      await user.click(resetButtons[1])
+
+      await waitFor(() => {
+        expect(screen.getByText(/重置密码 — 李华/)).toBeInTheDocument()
+      })
+    })
+
+    it('shows validation error when password is empty on submit', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+
+      const resetButtons = screen.getAllByText('重置密码')
+      await user.click(resetButtons[1])
+
+      await waitFor(() => {
+        expect(screen.getByText(/重置密码 — 李华/)).toBeInTheDocument()
+      })
+
+      // Click confirm without filling fields
+      const confirmButtons = screen.getAllByRole('button', { name: '确认' })
+      const confirmBtn = confirmButtons.find((btn) => (btn as HTMLButtonElement).closest('[role="dialog"]') !== null)
+      if (confirmBtn) {
+        await user.click(confirmBtn)
+      }
+
+      await waitFor(() => {
+        expect(screen.getByText('请输入新密码')).toBeInTheDocument()
+      })
+    })
+
+    it('shows error for weak password (less than 8 chars)', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+
+      const resetButtons = screen.getAllByText('重置密码')
+      await user.click(resetButtons[1])
+
+      await waitFor(() => {
+        expect(screen.getByText(/重置密码 — 李华/)).toBeInTheDocument()
+      })
+
+      // Type a short password
+      const passwordInputs = screen.getAllByPlaceholderText('请输入新密码')
+      await user.type(passwordInputs[0], 'Ab1')
+
+      // Trigger blur validation
+      await user.tab()
+
+      await waitFor(() => {
+        expect(screen.getByText('密码需至少8位，包含字母和数字')).toBeInTheDocument()
+      })
+    })
+
+    it('shows error when confirmPassword does not match', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+
+      const resetButtons = screen.getAllByText('重置密码')
+      await user.click(resetButtons[1])
+
+      await waitFor(() => {
+        expect(screen.getByText(/重置密码 — 李华/)).toBeInTheDocument()
+      })
+
+      const passwordInputs = screen.getAllByPlaceholderText('请输入新密码')
+      await user.type(passwordInputs[0], 'Password123')
+      const confirmInputs = screen.getAllByPlaceholderText('请再次输入新密码')
+      await user.type(confirmInputs[0], 'Different456')
+
+      // Trigger blur validation
+      await user.tab()
+
+      await waitFor(() => {
+        expect(screen.getByText('两次输入的密码不一致')).toBeInTheDocument()
+      })
+    })
+
+    it('submits valid form and shows success toast', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+
+      const resetButtons = screen.getAllByText('重置密码')
+      await user.click(resetButtons[1])
+
+      await waitFor(() => {
+        expect(screen.getByText(/重置密码 — 李华/)).toBeInTheDocument()
+      })
+
+      // Fill valid password
+      const passwordInputs = screen.getAllByPlaceholderText('请输入新密码')
+      await user.type(passwordInputs[0], 'Password123')
+      const confirmInputs = screen.getAllByPlaceholderText('请再次输入新密码')
+      await user.type(confirmInputs[0], 'Password123')
+
+      // Submit
+      const confirmButtons = screen.getAllByRole('button', { name: '确认' })
+      const confirmBtn = confirmButtons.find((btn) => (btn as HTMLButtonElement).closest('[role="dialog"]') !== null)
+      if (confirmBtn) {
+        await user.click(confirmBtn)
+      }
+
+      await waitFor(() => {
+        expect(screen.getByText('密码已重置')).toBeInTheDocument()
+      })
+    })
+
+    it('keeps dialog open on API error', async () => {
+      const user = userEvent.setup()
+      // Override to return error for user bizKey 2
+      server.use(
+        http.put('/v1/admin/users/:userId/password', async ({ params }) => {
+          if (params.userId === '2') {
+            return HttpResponse.json(
+              { code: 'USER_NOT_FOUND', message: '用户不存在' },
+              { status: 404 },
+            )
+          }
+          return HttpResponse.json({
+            code: 0,
+            data: { bizKey: params.userId, username: 'u', displayName: 'U' },
+          })
+        }),
+      )
+
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+
+      const resetButtons = screen.getAllByText('重置密码')
+      await user.click(resetButtons[1]) // 李华 (bizKey 2)
+
+      await waitFor(() => {
+        expect(screen.getByText(/重置密码 — 李华/)).toBeInTheDocument()
+      })
+
+      // Fill valid password
+      const passwordInputs = screen.getAllByPlaceholderText('请输入新密码')
+      await user.type(passwordInputs[0], 'Password123')
+      const confirmInputs = screen.getAllByPlaceholderText('请再次输入新密码')
+      await user.type(confirmInputs[0], 'Password123')
+
+      // Submit
+      const confirmButtons = screen.getAllByRole('button', { name: '确认' })
+      const confirmBtn = confirmButtons.find((btn) => (btn as HTMLButtonElement).closest('[role="dialog"]') !== null)
+      if (confirmBtn) {
+        await user.click(confirmBtn)
+      }
+
+      await waitFor(() => {
+        // Dialog should still be open
+        expect(screen.getByText(/重置密码 — 李华/)).toBeInTheDocument()
+      })
+    })
+
+    it('has password visibility toggle', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+
+      const resetButtons = screen.getAllByText('重置密码')
+      await user.click(resetButtons[1])
+
+      await waitFor(() => {
+        expect(screen.getByText(/重置密码 — 李华/)).toBeInTheDocument()
+      })
+
+      // Find the password input — initially type="password"
+      const passwordInputs = screen.getAllByPlaceholderText('请输入新密码')
+      expect((passwordInputs[0] as HTMLInputElement).type).toBe('password')
+
+      // Find and click eye toggle
+      const eyeButtons = screen.getAllByRole('button', { name: /显示密码|隐藏密码/ })
+      await user.click(eyeButtons[0])
+
+      expect((passwordInputs[0] as HTMLInputElement).type).toBe('text')
     })
   })
 })
