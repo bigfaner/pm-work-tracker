@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -59,9 +60,10 @@ func run(configPath string, devMode bool) error {
 
 	// 3b. Run schema DDL (CREATE TABLE) — skip when auto_schema is false
 	if cfg.Database.AutoSchema {
-		schemaFile := "migrations/SQLite-schema.sql"
+		configDir := filepath.Dir(configPath)
+		schemaFile := filepath.Join(configDir, "migrations/SQLite-schema.sql")
 		if cfg.Database.Driver == "mysql" {
-			schemaFile = "migrations/MySql-schema.sql"
+			schemaFile = filepath.Join(configDir, "migrations/MySql-schema.sql")
 		}
 		if err := migration.RunSchema(db, schemaFile); err != nil {
 			return fmt.Errorf("migration error: %w", err)
@@ -126,7 +128,7 @@ func run(configPath string, devMode bool) error {
 	}
 
 	// 7. Setup router
-	r := handler.SetupRouter(deps, nil)
+	r := handler.SetupRouter(deps, web.FS)
 
 	// 8. Start server with timeouts from config
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)

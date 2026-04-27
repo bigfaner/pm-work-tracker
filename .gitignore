@@ -54,3 +54,4 @@ backend/server
 
 # macOS
 .DS_Store
+data/dev.db

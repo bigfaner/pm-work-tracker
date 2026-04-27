@@ -12,9 +12,11 @@ dev:
     cd backend && go run ./cmd/server/main.go -dev &
     cd frontend && npm run dev
 
-build:
-    cd backend && go build ./...
-    cd frontend && npm run build
+build env:
+    ./scripts/build.sh {{env}}
+
+start:
+    ./bin/pm-work-tracker -config ./bin/config.yaml
 
 test:
     cd backend && go test -race ./...

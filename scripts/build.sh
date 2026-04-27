@@ -30,6 +30,7 @@ echo "base_path: '${BASE_PATH}'"
 
 # Build frontend
 cd "$ROOT_DIR/frontend"
+npm i
 VITE_BASE_PATH="$BASE_PATH" npm run build
 
 # Copy to backend embed dir

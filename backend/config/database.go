@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/driver/mysql"
@@ -16,6 +18,11 @@ func InitDB(cfg *DatabaseConfig) (*gorm.DB, error) {
 		path := cfg.Path
 		if path == "" {
 			path = "./data/dev.db"
+		}
+		if dir := filepath.Dir(path); dir != "." {
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				return nil, fmt.Errorf("create database directory: %w", err)
+			}
 		}
 		dialector = sqlite.Open(path)
 	case "mysql":
