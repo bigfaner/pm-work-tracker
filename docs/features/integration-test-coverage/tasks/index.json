@@ -134,7 +134,7 @@
       "dependencies": [
         "2.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.2-team-management-tests.md",
       "record": "records/3.2-team-management-tests.md"
     },
