@@ -45,7 +45,7 @@
       "title": "Auth middleware and login service DeletedFlag checks",
       "priority": "P0",
       "estimatedTime": "1.5h",
-      "status": "pending",
+      "status": "completed",
       "file": "1.2-auth-deleted-check.md",
       "record": "records/1.2-auth-deleted-check.md",
       "breaking": true

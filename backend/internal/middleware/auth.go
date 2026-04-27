@@ -46,6 +46,13 @@ func AuthMiddleware(jwtSecret string, userRepo repository.UserRepo) gin.HandlerF
 			apperrors.RespondError(c, apperrors.ErrUnauthorized)
 			return
 		}
+
+		if user.DeletedFlag != 0 {
+			c.Abort()
+			apperrors.RespondError(c, apperrors.ErrUnauthorized)
+			return
+		}
+
 		c.Set("isSuperAdmin", user.IsSuperAdmin)
 
 		c.Next()
