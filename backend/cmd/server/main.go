@@ -74,10 +74,6 @@ func run(configPath string, devMode bool) error {
 	if err := migration.MigrateToRBAC(db, cfg.Database.AutoSchema); err != nil {
 		return fmt.Errorf("rbac migration error: %w", err)
 	}
-	// 3d. Backfill biz_key = 0 records with snowflake IDs
-	if err := migration.BackfillBizKeys(db); err != nil {
-		return fmt.Errorf("bizkey backfill error: %w", err)
-	}
 
 	// 4. Seed admin user
 	if err := config.SeedAdmin(db, &cfg.Auth); err != nil {
