@@ -18,7 +18,10 @@ func setupTestDB(t *testing.T) *gormlib.DB {
 	t.Helper()
 	db, err := gormlib.Open(sqlite.Open(":memory:"), &gormlib.Config{})
 	require.NoError(t, err)
-	err = db.AutoMigrate(&model.Team{}, &model.MainItem{}, &model.SubItem{}, &model.User{})
+	err = db.AutoMigrate(
+		&model.Team{}, &model.MainItem{}, &model.SubItem{}, &model.User{},
+		&model.ProgressRecord{}, &model.StatusHistory{}, &model.Role{},
+	)
 	require.NoError(t, err)
 	return db
 }
@@ -166,6 +169,125 @@ func TestFindByIDs_DBError(t *testing.T) {
 
 	_, err = FindByIDs[model.MainItem](db, ctx, []uint{1, 2})
 	assert.Error(t, err)
+}
+
+// --- isSoftDeletable tests ---
+
+func TestIsSoftDeletable_SoftDeletableTypes(t *testing.T) {
+	// Types that embed BaseModel should return true
+	assert.True(t, isSoftDeletable[model.User]())
+	assert.True(t, isSoftDeletable[model.Team]())
+	assert.True(t, isSoftDeletable[model.MainItem]())
+	assert.True(t, isSoftDeletable[model.SubItem]())
+	assert.True(t, isSoftDeletable[model.ItemPool]())
+	assert.True(t, isSoftDeletable[model.Role]())
+}
+
+func TestIsSoftDeletable_NonSoftDeletableTypes(t *testing.T) {
+	// Types without BaseModel should return false
+	assert.False(t, isSoftDeletable[model.ProgressRecord]())
+	assert.False(t, isSoftDeletable[model.StatusHistory]())
+}
+
+// --- FindByID soft-delete tests ---
+
+func TestFindByID_SoftDeletedUser_ReturnsNotFound(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+
+	user := &model.User{Username: "deleted_user", PasswordHash: "h", DisplayName: "Deleted"}
+	require.NoError(t, db.Create(user).Error)
+
+	// Soft-delete the user
+	db.Model(user).Update("deleted_flag", 1)
+
+	_, err := FindByID[model.User](db, ctx, user.ID)
+	assert.ErrorIs(t, err, apperrors.ErrNotFound)
+}
+
+func TestFindByID_SoftDeletedMainItem_ReturnsNotFound(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+
+	db.Create(&model.Team{Code: "TST", TeamName: "Test"})
+
+	item := &model.MainItem{ItemStatus: "open", Code: "TST-00001", Title: "deleted item"}
+	require.NoError(t, db.Create(item).Error)
+
+	// Soft-delete the item
+	db.Model(item).Update("deleted_flag", 1)
+
+	_, err := FindByID[model.MainItem](db, ctx, item.ID)
+	assert.ErrorIs(t, err, apperrors.ErrNotFound)
+}
+
+func TestFindByID_SoftDeletedSubItem_ReturnsNotFound(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+
+	db.Create(&model.Team{Code: "TST", TeamName: "Test"})
+	db.Create(&model.MainItem{ItemStatus: "open", Code: "TST-00001"})
+
+	sub := &model.SubItem{TeamKey: 1, MainItemKey: 1, Title: "sub", ItemStatus: "open"}
+	require.NoError(t, db.Create(sub).Error)
+
+	// Soft-delete the sub item
+	db.Model(sub).Update("deleted_flag", 1)
+
+	_, err := FindByID[model.SubItem](db, ctx, sub.ID)
+	assert.ErrorIs(t, err, apperrors.ErrNotFound)
+}
+
+// --- FindByIDs soft-delete tests ---
+
+func TestFindByIDs_SoftDeletedUser_ExcludedFromResults(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+
+	user1 := &model.User{Username: "active", PasswordHash: "h", DisplayName: "Active"}
+	user2 := &model.User{Username: "deleted", PasswordHash: "h", DisplayName: "Deleted"}
+	require.NoError(t, db.Create(user1).Error)
+	require.NoError(t, db.Create(user2).Error)
+
+	// Soft-delete user2
+	db.Model(user2).Update("deleted_flag", 1)
+
+	result, err := FindByIDs[model.User](db, ctx, []uint{user1.ID, user2.ID})
+	require.NoError(t, err)
+	assert.Len(t, result, 1)
+	assert.Contains(t, result, user1.ID)
+	assert.NotContains(t, result, user2.ID)
+}
+
+// --- Non-soft-deletable type tests (no deleted_flag column) ---
+
+func TestFindByID_ProgressRecord_WorksNormal(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+
+	record := &model.ProgressRecord{SubItemKey: 1, TeamKey: 1, AuthorKey: 1, Completion: 50.0}
+	require.NoError(t, db.Create(record).Error)
+
+	found, err := FindByID[model.ProgressRecord](db, ctx, record.ID)
+	require.NoError(t, err)
+	assert.Equal(t, record.ID, found.ID)
+	assert.Equal(t, float64(50.0), found.Completion)
+}
+
+func TestFindByIDs_ProgressRecord_WorksNormal(t *testing.T) {
+	db := setupTestDB(t)
+	ctx := context.Background()
+
+	r1 := &model.ProgressRecord{SubItemKey: 1, TeamKey: 1, AuthorKey: 1, Completion: 50.0}
+	r2 := &model.ProgressRecord{SubItemKey: 2, TeamKey: 1, AuthorKey: 1, Completion: 75.0}
+	require.NoError(t, db.Create(r1).Error)
+	require.NoError(t, db.Create(r2).Error)
+
+	result, err := FindByIDs[model.ProgressRecord](db, ctx, []uint{r1.ID, r2.ID})
+	require.NoError(t, err)
+	assert.Len(t, result, 2)
+	assert.Contains(t, result, r1.ID)
+	assert.Contains(t, result, r2.ID)
 }
 
 // --- UpdateFields tests ---
