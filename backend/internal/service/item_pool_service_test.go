@@ -53,8 +53,11 @@ func (m *mockItemPoolRepo) FindByID(_ context.Context, id uint) (*model.ItemPool
 	return nil, m.findErr
 }
 
-func (m *mockItemPoolRepo) FindByBizKey(_ context.Context, _ int64) (*model.ItemPool, error) {
-	return nil, nil
+func (m *mockItemPoolRepo) FindByBizKey(_ context.Context, bizKey int64) (*model.ItemPool, error) {
+	if m.item != nil && m.item.BizKey == bizKey {
+		return m.item, nil
+	}
+	return nil, m.findErr
 }
 
 func (m *mockItemPoolRepo) Update(_ context.Context, item *model.ItemPool, fields map[string]interface{}) error {
@@ -115,11 +118,19 @@ func (m *mockSubItemRepoForPool) NextSubCode(_ context.Context, _ uint) (string,
 
 // mockMainItemRepoForPool captures FindByID for Assign validation.
 type mockMainItemRepoForPool struct {
-	item     *model.MainItem
-	findErr  error
+	item         *model.MainItem
+	findErr      error
+	nextCodeVal  string
+	nextCodeErr  error
+	createdItem  *model.MainItem
 }
 
-func (m *mockMainItemRepoForPool) Create(_ context.Context, item *model.MainItem) error { return nil }
+func (m *mockMainItemRepoForPool) Create(_ context.Context, item *model.MainItem) error {
+	m.createdItem = item
+	item.ID = 2
+	item.BizKey = 999
+	return nil
+}
 func (m *mockMainItemRepoForPool) FindByID(_ context.Context, id uint) (*model.MainItem, error) {
 	if m.item != nil {
 		return m.item, nil
@@ -133,7 +144,7 @@ func (m *mockMainItemRepoForPool) List(_ context.Context, teamID uint, filter dt
 	return nil, nil
 }
 func (m *mockMainItemRepoForPool) NextCode(_ context.Context, teamID uint) (string, error) {
-	return "", nil
+	return m.nextCodeVal, m.nextCodeErr
 }
 
 func (m *mockMainItemRepoForPool) CountByTeam(_ context.Context, _ uint) (int64, error) {
@@ -709,6 +720,112 @@ func TestItemPoolReject_ErrNotFound(t *testing.T) {
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
 	err := svc.Reject(context.Background(), 1, 100, 5, "reason")
+	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: ConvertToMain
+// ---------------------------------------------------------------------------
+
+func TestItemPoolConvertToMain_Success(t *testing.T) {
+	poolItem := &model.ItemPool{
+		BaseModel:   model.BaseModel{ID: 5},
+		TeamKey:     1,
+		Title:       "Pool item",
+		PoolStatus:  "pending",
+		SubmitterKey: 10,
+	}
+	poolRepo := &mockItemPoolRepo{item: poolItem}
+	mainRepo := &mockMainItemRepoForPool{nextCodeVal: "MI-0001"}
+
+	txExecuted := false
+	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error {
+		txExecuted = true
+		return fc(nil)
+	}}
+	svc := NewItemPoolService(poolRepo, nil, mainRepo, dbtx)
+
+	result, err := svc.ConvertToMain(context.Background(), 1, 100, 5, dto.ConvertToMainItemReq{
+		Priority: "P1",
+	})
+	require.NoError(t, err)
+	assert.True(t, txExecuted, "should execute within a transaction")
+	require.NotNil(t, result)
+	assert.Equal(t, "MI-0001", result.Code)
+	assert.Equal(t, "Pool item", result.Title)
+	assert.Equal(t, "P1", result.Priority)
+	assert.Equal(t, int64(1), result.TeamKey)
+	assert.Equal(t, "pending", result.ItemStatus)
+
+	// Verify pool item was updated to "assigned"
+	assert.Equal(t, "assigned", poolRepo.updatedFields["pool_status"])
+
+	// Verify main item was created
+	assert.NotNil(t, mainRepo.createdItem)
+}
+
+func TestItemPoolConvertToMain_PoolItemNotFound(t *testing.T) {
+	poolRepo := &mockItemPoolRepo{findErr: gorm.ErrRecordNotFound}
+	svc := NewItemPoolService(poolRepo, nil, nil, nil)
+
+	_, err := svc.ConvertToMain(context.Background(), 1, 100, 99, dto.ConvertToMainItemReq{
+		Priority: "P1",
+	})
+	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
+}
+
+func TestItemPoolConvertToMain_TeamMismatch(t *testing.T) {
+	poolItem := &model.ItemPool{
+		BaseModel:  model.BaseModel{ID: 5},
+		TeamKey:    2,
+		PoolStatus: "pending",
+	}
+	poolRepo := &mockItemPoolRepo{item: poolItem}
+	svc := NewItemPoolService(poolRepo, nil, nil, nil)
+
+	_, err := svc.ConvertToMain(context.Background(), 1, 100, 5, dto.ConvertToMainItemReq{
+		Priority: "P1",
+	})
+	assert.ErrorIs(t, err, apperrors.ErrForbidden)
+}
+
+func TestItemPoolConvertToMain_AlreadyProcessed(t *testing.T) {
+	poolItem := &model.ItemPool{
+		BaseModel:  model.BaseModel{ID: 5},
+		TeamKey:    1,
+		PoolStatus: "assigned",
+	}
+	poolRepo := &mockItemPoolRepo{item: poolItem}
+	svc := NewItemPoolService(poolRepo, nil, nil, nil)
+
+	_, err := svc.ConvertToMain(context.Background(), 1, 100, 5, dto.ConvertToMainItemReq{
+		Priority: "P1",
+	})
+	assert.ErrorIs(t, err, apperrors.ErrItemAlreadyProcessed)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: GetByBizKey
+// ---------------------------------------------------------------------------
+
+func TestItemPoolGetByBizKey_Found(t *testing.T) {
+	poolItem := &model.ItemPool{
+		BaseModel: model.BaseModel{BizKey: 123456},
+		Title:     "My Pool Item",
+	}
+	poolRepo := &mockItemPoolRepo{item: poolItem}
+	svc := NewItemPoolService(poolRepo, nil, nil, nil)
+
+	item, err := svc.GetByBizKey(context.Background(), 123456)
+	require.NoError(t, err)
+	assert.Equal(t, "My Pool Item", item.Title)
+}
+
+func TestItemPoolGetByBizKey_NotFound(t *testing.T) {
+	poolRepo := &mockItemPoolRepo{findErr: gorm.ErrRecordNotFound}
+	svc := NewItemPoolService(poolRepo, nil, nil, nil)
+
+	_, err := svc.GetByBizKey(context.Background(), 999)
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
 }
 

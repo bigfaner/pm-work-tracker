@@ -729,3 +729,28 @@ func TestProgressAppend_Progressing_LessThan100_NoStatusChange(t *testing.T) {
 	assert.Nil(t, subItemRepo.updatedFields["item_status"])
 	assert.Empty(t, historySvc.recorded)
 }
+
+// ---------------------------------------------------------------------------
+// Tests: GetByBizKey
+// ---------------------------------------------------------------------------
+
+func TestProgressGetByBizKey_Found(t *testing.T) {
+	records := []model.ProgressRecord{
+		{BizKey: 123456, Completion: 60.0, Achievement: "did stuff"},
+	}
+	progressRepo := &mockProgressRepo{records: records}
+	svc := NewProgressService(progressRepo, &mockSubItemRepoForProgress{}, &mockMainItemSvcForProgress{}, &mockStatusHistorySvcForProgress{})
+
+	record, err := svc.GetByBizKey(context.Background(), 123456)
+	require.NoError(t, err)
+	assert.Equal(t, float64(60.0), record.Completion)
+	assert.Equal(t, "did stuff", record.Achievement)
+}
+
+func TestProgressGetByBizKey_NotFound(t *testing.T) {
+	progressRepo := &mockProgressRepo{records: []model.ProgressRecord{}}
+	svc := NewProgressService(progressRepo, &mockSubItemRepoForProgress{}, &mockMainItemSvcForProgress{}, &mockStatusHistorySvcForProgress{})
+
+	_, err := svc.GetByBizKey(context.Background(), 999)
+	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
+}

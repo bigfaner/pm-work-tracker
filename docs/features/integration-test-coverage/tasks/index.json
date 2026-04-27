@@ -232,7 +232,7 @@
       "dependencies": [
         "4.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "5.2-service-unit-gaps.md",
       "record": "records/5.2-service-unit-gaps.md"
     },

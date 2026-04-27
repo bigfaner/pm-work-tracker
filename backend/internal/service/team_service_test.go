@@ -772,3 +772,68 @@ func TestGetTeamDetail_CountMembersFallback(t *testing.T) {
 	assert.True(t, teamRepo.countMembersCalled, "should try CountMembers first")
 	assert.True(t, teamRepo.listMembersCalled, "should fall back to ListMembers on error")
 }
+
+// ---------------------------------------------------------------------------
+// Tests: UpdateTeam
+// ---------------------------------------------------------------------------
+
+func TestUpdateTeam_Success(t *testing.T) {
+	team := &model.Team{
+		BaseModel: model.BaseModel{ID: 1},
+		TeamName:  "Old Name",
+		TeamDesc:  "Old Description",
+		PmKey:     10,
+	}
+	teamRepo := &mockTeamRepo{team: team}
+	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
+
+	updated, err := svc.UpdateTeam(context.Background(), 10, 1, dto.UpdateTeamReq{
+		Name:        "New Name",
+		Description: "New Description",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "New Name", updated.TeamName)
+	assert.Equal(t, "New Description", updated.TeamDesc)
+	assert.NotNil(t, teamRepo.updatedTeam)
+}
+
+func TestUpdateTeam_NotPM(t *testing.T) {
+	team := &model.Team{
+		BaseModel: model.BaseModel{ID: 1},
+		PmKey:     10,
+	}
+	teamRepo := &mockTeamRepo{team: team}
+	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
+
+	_, err := svc.UpdateTeam(context.Background(), 99, 1, dto.UpdateTeamReq{
+		Name:        "New Name",
+		Description: "New Desc",
+	})
+	assert.ErrorIs(t, err, apperrors.ErrForbidden)
+}
+
+func TestUpdateTeam_TeamNotFound(t *testing.T) {
+	teamRepo := &mockTeamRepo{findByIDErr: gorm.ErrRecordNotFound}
+	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
+
+	_, err := svc.UpdateTeam(context.Background(), 10, 999, dto.UpdateTeamReq{
+		Name:        "Name",
+		Description: "Desc",
+	})
+	assert.ErrorIs(t, err, apperrors.ErrTeamNotFound)
+}
+
+func TestUpdateTeam_RepoUpdateError(t *testing.T) {
+	team := &model.Team{
+		BaseModel: model.BaseModel{ID: 1},
+		PmKey:     10,
+	}
+	teamRepo := &mockTeamRepo{team: team, updateErr: errors.New("db error")}
+	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
+
+	_, err := svc.UpdateTeam(context.Background(), 10, 1, dto.UpdateTeamReq{
+		Name:        "Name",
+		Description: "Desc",
+	})
+	assert.Error(t, err)
+}
