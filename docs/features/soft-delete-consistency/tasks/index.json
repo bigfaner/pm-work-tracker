@@ -121,7 +121,7 @@
       "dependencies": [
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.5-role-repo-joins.md",
       "record": "records/2.5-role-repo-joins.md"
     },

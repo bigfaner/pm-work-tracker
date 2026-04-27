@@ -107,6 +107,7 @@ func (r *roleRepo) CountMembersByRoleID(ctx context.Context, roleID uint) (int64
 	var count int64
 	err := r.db.WithContext(ctx).
 		Model(&model.TeamMember{}).
+		Scopes(NotDeleted).
 		Where("role_key = ?", roleID).
 		Count(&count).Error
 	return count, err
@@ -116,6 +117,7 @@ func (r *roleRepo) HasPermission(ctx context.Context, userID uint, code string) 
 	var count int64
 	err := r.db.WithContext(ctx).
 		Table("pmw_team_members").
+		Scopes(NotDeletedTable("pmw_team_members")).
 		Joins("JOIN pmw_role_permissions ON pmw_role_permissions.role_id = pmw_team_members.role_key").
 		Where("pmw_team_members.user_key = ? AND pmw_role_permissions.permission_code = ?", userID, code).
 		Count(&count).Error
@@ -135,6 +137,7 @@ func (r *roleRepo) GetUserTeamPermissions(ctx context.Context, userID uint) (map
 	var rows []teamPermRow
 	err := r.db.WithContext(ctx).
 		Table("pmw_team_members").
+		Scopes(NotDeletedTable("pmw_team_members")).
 		Select("pmw_team_members.team_key, pmw_role_permissions.permission_code").
 		Joins("JOIN pmw_role_permissions ON pmw_role_permissions.role_id = pmw_team_members.role_key").
 		Where("pmw_team_members.user_key = ?", userID).
