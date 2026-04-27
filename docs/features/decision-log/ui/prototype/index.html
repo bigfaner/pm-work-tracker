@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>决策日志 — Prototype Navigation</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-wrapper">
+    <nav class="sidebar">
+      <div class="sidebar-brand">PM Work Tracker</div>
+      <div class="sidebar-nav">
+        <a href="index.html" class="active">Prototype Index</a>
+        <a href="timeline.html">决策 Timeline</a>
+        <a href="form-dialog.html">添加/编辑决策</a>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar">张</div>
+        <span>张三</span>
+      </div>
+    </nav>
+    <main class="main-content">
+      <h1 class="page-title">决策日志 — Prototype</h1>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+        <a href="timeline.html" class="page-link" style="text-decoration:none; color:inherit;">
+          <div class="card" style="cursor:pointer;">
+            <div style="padding:20px; min-height:120px; background:var(--bg); display:flex; align-items:center; justify-content:center; color:var(--text-tertiary); font-size:12px; border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+              Timeline List Preview
+            </div>
+            <div style="padding:16px;">
+              <h3 style="font-size:14px; font-weight:500; margin-bottom:4px;">决策 Timeline</h3>
+              <p style="font-size:12px; color:var(--text-tertiary);">主事项详情页内嵌决策记录列表，支持展开/折叠、无限滚动、草稿编辑</p>
+            </div>
+          </div>
+        </a>
+
+        <a href="form-dialog.html" class="page-link" style="text-decoration:none; color:inherit;">
+          <div class="card" style="cursor:pointer;">
+            <div style="padding:20px; min-height:120px; background:var(--bg); display:flex; align-items:center; justify-content:center; color:var(--text-tertiary); font-size:12px; border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+              Form Dialog Preview
+            </div>
+            <div style="padding:16px;">
+              <h3 style="font-size:14px; font-weight:500; margin-bottom:4px;">添加/编辑决策表单</h3>
+              <p style="font-size:12px; color:var(--text-tertiary);">Dialog 表单：分类选择、标签输入（含已有标签提示）、多行内容、保存草稿/发布</p>
+            </div>
+          </div>
+        </a>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>决策 Timeline — 决策日志</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-wrapper">
+    <nav class="sidebar">
+      <div class="sidebar-brand">PM Work Tracker</div>
+      <div class="sidebar-nav">
+        <a href="index.html">Prototype Index</a>
+        <a href="timeline.html" class="active">决策 Timeline</a>
+        <a href="form-dialog.html">添加/编辑决策</a>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar">张</div>
+        <span>张三</span>
+      </div>
+    </nav>
+
+    <main class="main-content">
+      <h1 class="page-title">主事项：智能排班系统 v2.0</h1>
+
+      <!-- State toggle bar (prototype only) -->
+      <div class="state-bar">
+        <span>State:</span>
+        <button class="active" onclick="toggleTimelineState('populated', this)">Populated</button>
+        <button onclick="toggleTimelineState('loading', this)">Loading</button>
+        <button onclick="toggleTimelineState('empty', this)">Empty</button>
+        <button onclick="toggleTimelineState('error', this)">Error</button>
+        <button onclick="toggleTimelineState('pagination-error', this)">Pagination Error</button>
+      </div>
+
+      <!-- Decision Timeline Card -->
+      <div class="card" id="timeline-card">
+        <div class="card-header">
+          <h3>决策记录</h3>
+          <button class="btn btn-primary btn-sm" onclick="openDialog('form-dialog-new')">+ 添加决策</button>
+        </div>
+
+        <!-- POPULATED STATE -->
+        <div class="card-body" data-state="populated" id="state-populated">
+          <!-- Item 1: Published -->
+          <div class="timeline-item" role="article" aria-label="技术 — 2026-04-27 14:30">
+            <div class="timeline-rail">
+              <div class="timeline-dot"></div>
+              <div class="timeline-line"></div>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-row-top">
+                <div class="left">
+                  <span class="badge badge-default">技术</span>
+                </div>
+                <span class="time">2026-04-27 14:30</span>
+              </div>
+              <div class="timeline-text" tabindex="0" aria-expanded="false" role="button">决定采用 Redis 缓存热点数据，缓存策略采用 LRU + TTL 混合模式，TTL 设置为 30 分钟。对于写穿透场景，采用先更新数据库再删除缓存的策略，避免缓存与数据库不一致问题。同时引入布隆过滤器防止缓存穿透。</div>
+              <div class="timeline-row-bottom">
+                <span class="tag-badge">缓存策略</span>
+                <span class="tag-badge">性能优化</span>
+                <span class="timeline-creator">张三</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Item 2: Published -->
+          <div class="timeline-item" role="article" aria-label="资源 — 2026-04-26 10:00">
+            <div class="timeline-rail">
+              <div class="timeline-dot"></div>
+              <div class="timeline-line"></div>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-row-top">
+                <div class="left">
+                  <span class="badge badge-default">资源</span>
+                </div>
+                <span class="time">2026-04-26 10:00</span>
+              </div>
+              <div class="timeline-text" tabindex="0" aria-expanded="false" role="button">后端开发李四从下周起投入该事项，负责排班算法模块的开发，预计工期 3 周。需要与前端对接排班规则配置接口。</div>
+              <div class="timeline-row-bottom">
+                <span class="timeline-creator">王五</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Item 3: Draft (current user's) -->
+          <div class="timeline-item" role="article" aria-label="进度 — 2026-04-25 16:00">
+            <div class="timeline-rail">
+              <div class="timeline-dot draft"></div>
+              <div class="timeline-line"></div>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-row-top">
+                <div class="left">
+                  <span class="badge badge-warning">进度</span>
+                  <span class="badge badge-warning">草稿</span>
+                </div>
+                <span class="time">2026-04-25 16:00</span>
+              </div>
+              <div class="timeline-text" tabindex="0" aria-expanded="false" role="button">预计延期一周，原因是第三方地图服务接口变更，需要额外时间适配新接口。已与产品经理沟通，调整里程碑交付时间。</div>
+              <div class="timeline-row-bottom">
+                <span class="tag-badge">里程碑</span>
+                <span class="timeline-creator">张三</span>
+                <button class="btn btn-ghost btn-sm" onclick="openDialog('form-dialog-edit')" aria-label="编辑草稿">编辑</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Item 4: Published -->
+          <div class="timeline-item" role="article" aria-label="需求 — 2026-04-24 09:15">
+            <div class="timeline-rail">
+              <div class="timeline-dot"></div>
+              <div class="timeline-line"></div>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-row-top">
+                <div class="left">
+                  <span class="badge badge-default">需求</span>
+                </div>
+                <span class="time">2026-04-24 09:15</span>
+              </div>
+              <div class="timeline-text" tabindex="0" aria-expanded="false" role="button">经与业务方讨论，排班系统的自动排班功能优先级提升至 P0，手动排班优化降为 P1。自动排班需支持约束条件配置：最大连续工作天数、最小间隔休息时长、技能匹配度权重。</div>
+              <div class="timeline-row-bottom">
+                <span class="tag-badge">优先级调整</span>
+                <span class="tag-badge">自动排班</span>
+                <span class="tag-badge">约束条件</span>
+                <span class="timeline-creator">张三</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Item 5: Risk - published -->
+          <div class="timeline-item" role="article" aria-label="风险 — 2026-04-22 11:00">
+            <div class="timeline-rail">
+              <div class="timeline-dot"></div>
+              <div class="timeline-line"></div>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-row-top">
+                <div class="left">
+                  <span class="badge badge-error">风险</span>
+                </div>
+                <span class="time">2026-04-22 11:00</span>
+              </div>
+              <div class="timeline-text" tabindex="0" aria-expanded="false" role="button">识别到排班算法的合规风险：需确保排班结果符合劳动法规定的最长工时和最低休息时间要求，需要在算法中硬编码合规约束作为最高优先级规则。</div>
+              <div class="timeline-row-bottom">
+                <span class="tag-badge">合规</span>
+                <span class="tag-badge">劳动法</span>
+                <span class="timeline-creator">王五</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Item 6: Tag overflow demo -->
+          <div class="timeline-item" role="article" aria-label="其他 — 2026-04-20 15:30">
+            <div class="timeline-rail">
+              <div class="timeline-dot"></div>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-row-top">
+                <div class="left">
+                  <span class="badge badge-default">其他</span>
+                </div>
+                <span class="time">2026-04-20 15:30</span>
+              </div>
+              <div class="timeline-text" tabindex="0" aria-expanded="false" role="button">团队决定使用 Jira 作为项目管理工具，替代原有的电子表格跟踪方式。</div>
+              <div class="timeline-row-bottom">
+                <span class="tag-badge">工具选型</span>
+                <span class="tag-badge">项目管理</span>
+                <span class="tag-badge">团队协作</span>
+                <span class="tag-badge">流程优化</span>
+                <span class="tag-overflow">+1</span>
+                <span class="timeline-creator">张三</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LOADING STATE -->
+        <div class="card-body" data-state="loading" id="state-loading" style="display:none;">
+          <div class="skeleton skeleton-row"></div>
+          <div class="skeleton skeleton-row"></div>
+          <div class="skeleton skeleton-row"></div>
+        </div>
+
+        <!-- EMPTY STATE -->
+        <div class="card-body" data-state="empty" id="state-empty" style="display:none;">
+          <div class="empty-state">
+            <p>暂无决策记录</p>
+            <button class="btn btn-primary btn-sm" onclick="openDialog('form-dialog-new')">+ 添加决策</button>
+          </div>
+        </div>
+
+        <!-- ERROR STATE -->
+        <div class="card-body" data-state="error" id="state-error" style="display:none;">
+          <div class="alert-error">
+            <span>加载失败</span>
+            <button class="btn btn-ghost btn-sm" style="color:var(--error-text);">重试</button>
+          </div>
+        </div>
+
+        <!-- PAGINATION ERROR STATE -->
+        <div class="card-body" data-state="pagination-error" id="state-pagination-error" style="display:none;">
+          <div class="timeline-item" role="article" aria-label="技术 — 2026-04-27 14:30">
+            <div class="timeline-rail">
+              <div class="timeline-dot"></div>
+              <div class="timeline-line"></div>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-row-top">
+                <div class="left">
+                  <span class="badge badge-default">技术</span>
+                </div>
+                <span class="time">2026-04-27 14:30</span>
+              </div>
+              <div class="timeline-text" tabindex="0">决定采用 Redis 缓存热点数据</div>
+              <div class="timeline-row-bottom">
+                <span class="tag-badge">缓存策略</span>
+                <span class="timeline-creator">张三</span>
+              </div>
+            </div>
+          </div>
+          <div class="pagination-error">
+            <span>加载更多失败</span>
+            <button class="btn btn-ghost btn-sm" style="color:var(--error-text);">重试</button>
+          </div>
+        </div>
+
+        <div class="card-footer">已加载 6 条</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- New Decision Dialog -->
+  <div class="dialog-overlay" id="form-dialog-new" role="dialog" aria-modal="true" aria-labelledby="dialog-new-title">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 id="dialog-new-title">添加决策</h3>
+        <button class="btn btn-icon" onclick="closeDialog('form-dialog-new')">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <div class="form-group">
+          <label class="form-label">分类 <span class="required">*</span></label>
+          <select class="form-select" id="new-category">
+            <option value="">请选择分类</option>
+            <option value="technical">技术</option>
+            <option value="resource">资源</option>
+            <option value="requirement">需求</option>
+            <option value="schedule">进度</option>
+            <option value="risk">风险</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">标签</label>
+          <div class="tag-input-wrapper">
+            <input type="text" placeholder="输入标签，回车添加">
+            <div class="recent-tags-dropdown">
+              <div class="tag-option">性能优化</div>
+              <div class="tag-option">里程碑</div>
+              <div class="tag-option">缓存策略</div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">决策内容 <span class="required">*</span></label>
+          <textarea class="form-textarea" id="new-content" placeholder="请输入决策内容"></textarea>
+          <div class="form-footer">
+            <span></span>
+            <span class="char-counter" data-max="2000">0/2000</span>
+          </div>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button class="btn btn-secondary btn-default" onclick="closeDialog('form-dialog-new')">取消</button>
+        <button class="btn btn-secondary btn-default" onclick="showToast('草稿已保存', 'success'); closeDialog('form-dialog-new');">保存草稿</button>
+        <button class="btn btn-primary btn-default" onclick="showToast('决策已发布', 'success'); closeDialog('form-dialog-new');">发布</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Decision Dialog -->
+  <div class="dialog-overlay" id="form-dialog-edit" role="dialog" aria-modal="true" aria-labelledby="dialog-edit-title">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 id="dialog-edit-title">编辑决策</h3>
+        <button class="btn btn-icon" onclick="closeDialog('form-dialog-edit')">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <div class="form-group">
+          <label class="form-label">分类 <span class="required">*</span></label>
+          <select class="form-select" id="edit-category">
+            <option value="">请选择分类</option>
+            <option value="technical">技术</option>
+            <option value="resource">资源</option>
+            <option value="requirement">需求</option>
+            <option value="schedule" selected>进度</option>
+            <option value="risk">风险</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">标签</label>
+          <div class="tag-input-wrapper">
+            <span class="tag-pill"><span class="tag-text">里程碑</span><span class="remove-tag">&times;</span></span>
+            <input type="text" placeholder="输入标签，回车添加">
+            <div class="recent-tags-dropdown">
+              <div class="tag-option">里程碑</div>
+              <div class="tag-option">延期</div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">决策内容 <span class="required">*</span></label>
+          <textarea class="form-textarea" id="edit-content" placeholder="请输入决策内容">预计延期一周，原因是第三方地图服务接口变更，需要额外时间适配新接口。已与产品经理沟通，调整里程碑交付时间。</textarea>
+          <div class="form-footer">
+            <span></span>
+            <span class="char-counter" data-max="2000">45/2000</span>
+          </div>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button class="btn btn-secondary btn-default" onclick="closeDialog('form-dialog-edit')">取消</button>
+        <button class="btn btn-secondary btn-default" onclick="showToast('草稿已保存', 'success'); closeDialog('form-dialog-edit');">保存草稿</button>
+        <button class="btn btn-primary btn-default" onclick="showToast('决策已发布', 'success'); closeDialog('form-dialog-edit');">发布</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    // Character counters
+    initCharCounter(document.getElementById('new-content'), document.querySelector('#form-dialog-new .char-counter'));
+    initCharCounter(document.getElementById('edit-content'), document.querySelector('#form-dialog-edit .char-counter'));
+
+    // State toggle
+    function toggleTimelineState(state, btn) {
+      document.querySelectorAll('.state-bar button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const card = document.getElementById('timeline-card');
+      showState(state, card);
+    }
+  </script>
+</body>
+</html>
