@@ -23,10 +23,18 @@ describe('API E2E Tests', () => {
   before(async () => {
     // Create test users via admin endpoint first, then log in as each
     // Assumes admin user exists in the system with default credentials
-    const token = await getApiToken(apiBaseUrl);
-    authCurl = createAuthCurl(apiBaseUrl, token);
-    pmToken = token;
-    superAdminToken = token;
+    try {
+      const token = await getApiToken(apiBaseUrl);
+      authCurl = createAuthCurl(apiBaseUrl, token);
+      pmToken = token;
+      superAdminToken = token;
+    } catch (err) {
+      // Server may not be running — set up unauthenticated curl so individual
+      // tests run (and fail with clear connection/auth errors) instead of the
+      // entire suite being cancelled by node:test.
+      authCurl = (method, path, opts) => curl(method, path, opts);
+      console.error(`[setup] Auth failed: ${err instanceof Error ? err.message : err}`);
+    }
   });
 
   // ══════════════════════════════════════════════════════════════════
