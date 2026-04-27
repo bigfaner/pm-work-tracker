@@ -205,7 +205,7 @@ CREATE TABLE IF NOT EXISTS pmw_roles (
     role_desc       VARCHAR(200)    NOT NULL DEFAULT ''           COMMENT '角色描述',
     is_preset       TINYINT(1)      NOT NULL DEFAULT 0            COMMENT '是否预置角色：0=自定义，1=系统预置',
     PRIMARY KEY (id),
-    UNIQUE KEY uk_roles_name (role_name)
+    UNIQUE KEY uk_roles_name (role_name, deleted_flag, deleted_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色表';
 
 -- pmw_role_permissions (RBAC)

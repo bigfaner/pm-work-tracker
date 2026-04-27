@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"math/big"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -141,6 +142,7 @@ func (s *adminService) CreateUser(ctx context.Context, req *dto.CreateUserReq) (
 			BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
 			TeamKey:   int64(team.ID),
 			UserKey:   int64(user.ID),
+			JoinedAt:  time.Now(),
 		}
 		if err := s.teamRepo.AddMember(ctx, member); err != nil {
 			return nil, err
@@ -204,6 +206,7 @@ func (s *adminService) UpdateUser(ctx context.Context, userBizKey int64, req *dt
 				BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
 				TeamKey:   int64(team.ID),
 				UserKey:   int64(user.ID),
+				JoinedAt:  time.Now(),
 			}
 			if err := s.teamRepo.AddMember(ctx, member); err != nil {
 				return nil, err

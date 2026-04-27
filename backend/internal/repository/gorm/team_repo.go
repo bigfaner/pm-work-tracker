@@ -266,9 +266,12 @@ func (r *teamRepo) FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[
 	var rows []row
 	err := r.db.WithContext(ctx).
 		Table("pmw_team_members").
-		Select("pmw_team_members.user_key as user_id, pmw_team_members.team_key as team_id, pmw_teams.biz_key, pmw_teams.team_name as name, pmw_roles.role_name as role").
+		Select("pmw_team_members.user_key as user_id, pmw_team_members.team_key as team_id, pmw_teams.biz_key, pmw_teams.team_name as name, " +
+				"CASE WHEN pmw_roles.role_name IS NOT NULL THEN pmw_roles.role_name " +
+				"     WHEN pmw_team_members.user_key = pmw_teams.pm_key THEN 'pm' " +
+				"     ELSE 'member' END as role").
 		Joins("JOIN pmw_teams ON pmw_teams.id = pmw_team_members.team_key").
-		Joins("JOIN pmw_roles ON pmw_roles.id = pmw_team_members.role_key").
+		Joins("LEFT JOIN pmw_roles ON pmw_roles.id = pmw_team_members.role_key").
 		Where("pmw_team_members.user_key IN ?", userIDs).
 		Scan(&rows).Error
 	if err != nil {

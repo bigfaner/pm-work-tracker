@@ -183,7 +183,7 @@ CREATE TABLE IF NOT EXISTS pmw_roles (
     role_desc       VARCHAR(200)  NOT NULL DEFAULT '', -- 角色描述
     is_preset       INTEGER       NOT NULL DEFAULT 0   -- 是否预置角色：0=自定义，1=系统预置
 );
-CREATE UNIQUE INDEX IF NOT EXISTS uk_roles_name ON pmw_roles(role_name);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_roles_name ON pmw_roles(role_name, deleted_flag, deleted_time);
 
 -- pmw_role_permissions (RBAC)
 CREATE TABLE IF NOT EXISTS pmw_role_permissions (

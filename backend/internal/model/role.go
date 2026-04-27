@@ -3,7 +3,7 @@ package model
 // Role represents a named set of permissions that can be assigned to team members.
 type Role struct {
 	BaseModel
-	Name        string `gorm:"column:role_name;type:varchar(50);uniqueIndex;not null" json:"name"`
+	Name        string `gorm:"column:role_name;type:varchar(50);uniqueIndex:uk_roles_name;not null" json:"name"`
 	Description string `gorm:"column:role_desc;type:varchar(200);not null;default:''" json:"description"`
 	IsPreset    bool   `gorm:"not null;default:false" json:"isPreset"`
 }

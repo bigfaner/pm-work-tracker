@@ -23,7 +23,7 @@ func NewGormRoleRepo(db *gormlib.DB) repository.RoleRepo {
 
 func (r *roleRepo) List(ctx context.Context) ([]model.Role, error) {
 	var roles []model.Role
-	err := r.db.WithContext(ctx).Order("create_time ASC").Find(&roles).Error
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).Order("create_time ASC").Find(&roles).Error
 	return roles, err
 }
 
@@ -53,7 +53,7 @@ func (r *roleRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.Role,
 
 func (r *roleRepo) FindByName(ctx context.Context, name string) (*model.Role, error) {
 	var role model.Role
-	err := r.db.WithContext(ctx).Where("role_name = ?", name).First(&role).Error
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).Where("role_name = ?", name).First(&role).Error
 	if err != nil {
 		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
 			return nil, errors.ErrNotFound
