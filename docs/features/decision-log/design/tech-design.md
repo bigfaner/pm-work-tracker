@@ -59,12 +59,12 @@ type DecisionLogRepo interface {
     Create(ctx context.Context, log *model.DecisionLog) error
     FindByID(ctx context.Context, id uint) (*model.DecisionLog, error)
     FindByBizKey(ctx context.Context, bizKey int64) (*model.DecisionLog, error)
-    ListByItem(ctx context.Context, mainItemID uint, userID uint) ([]model.DecisionLog, error)
+    ListByItem(ctx context.Context, mainItemID uint, userID uint, offset, limit int) ([]model.DecisionLog, int64, error)
     Update(ctx context.Context, log *model.DecisionLog) error
 }
 ```
 
-- `ListByItem` applies draft visibility filter: published decisions for all + drafts for `userID` only.
+- `ListByItem` applies draft visibility filter: published decisions for all + drafts for `userID` only. Returns matching records (paginated via `offset`/`limit`) and total count.
 - `Update` is used for draft editing (service layer enforces status/ownership checks).
 
 ### Service: DecisionLogService
@@ -74,14 +74,14 @@ type DecisionLogService interface {
     Create(ctx context.Context, mainItemID uint, userID uint, req DecisionLogCreateReq) (*model.DecisionLog, error)
     Update(ctx context.Context, bizKey int64, userID uint, req DecisionLogUpdateReq) (*model.DecisionLog, error)
     Publish(ctx context.Context, bizKey int64, userID uint) (*model.DecisionLog, error)
-    List(ctx context.Context, mainItemID uint, userID uint) ([]model.DecisionLog, error)
+    List(ctx context.Context, mainItemID uint, userID uint, page dto.Pagination) (*dto.PageResult[model.DecisionLog], error)
 }
 ```
 
 - `Create` — validates main item exists, generates BizKey via snowflake, sets `CreatedBy` from `userID`.
 - `Update` — enforces draft-only + owner-only; returns `ErrForbidden` if either check fails.
 - `Publish` — enforces draft-only + owner-only; transitions status to "published".
-- `List` — returns published decisions + current user's drafts, ordered by `CreateTime` DESC.
+- `List` — returns published decisions + current user's drafts, ordered by `CreateTime` DESC. Paginated via `dto.Pagination`; returns `*dto.PageResult[model.DecisionLog]` (matches `dto.PageResult[T]` pattern from `item_dto.go`). Handler applies `dto.ApplyPaginationDefaults` before calling service.
 
 ### Handler: DecisionLogHandler
 
@@ -100,7 +100,7 @@ Methods: `Create(c *gin.Context)`, `Update(c *gin.Context)`, `Publish(c *gin.Con
 ### Frontend API: decisionLogs
 
 ```ts
-function listDecisionLogsApi(teamBizKey: string, mainBizKey: string): Promise<DecisionLog[]>
+function listDecisionLogsApi(teamBizKey: string, mainBizKey: string, page?: number, pageSize?: number): Promise<PageResult<DecisionLog>>
 function createDecisionLogApi(teamBizKey: string, mainBizKey: string, req: CreateDecisionLogReq): Promise<DecisionLog>
 function updateDecisionLogApi(teamBizKey: string, mainBizKey: string, bizKey: string, req: UpdateDecisionLogReq): Promise<DecisionLog>
 function publishDecisionLogApi(teamBizKey: string, mainBizKey: string, bizKey: string): Promise<DecisionLog>
@@ -108,7 +108,7 @@ function publishDecisionLogApi(teamBizKey: string, mainBizKey: string, bizKey: s
 
 ### Frontend Components
 
-- `DecisionLogCard` — Card component rendering timeline list with lazy loading
+- `DecisionLogCard` — Card component rendering timeline list with lazy loading (20/page, loads next page on scroll)
 - `DecisionLogDialog` — Dialog for creating/editing decisions (dual-mode: new + edit draft)
 
 ## Data Models
@@ -166,20 +166,21 @@ type DecisionLogVO struct {
 
 ```go
 type DecisionLogCreateReq struct {
-    Category string `json:"category" binding:"required,oneof=technical resource requirement schedule risk other"`
-    Tags     string `json:"tags"`
-    Content  string `json:"content" binding:"required,max=2000"`
-    Status   string `json:"logStatus" binding:"required,oneof=draft published"`
+    Category  string   `json:"category" binding:"required,oneof=technical resource requirement schedule risk other"`
+    Tags      []string `json:"tags" binding:"dive,max=20"`
+    Content   string   `json:"content" binding:"required,max=2000"`
+    LogStatus string   `json:"logStatus" binding:"required,oneof=draft published"`
 }
 
 type DecisionLogUpdateReq struct {
-    Category string `json:"category" binding:"required,oneof=technical resource requirement schedule risk other"`
-    Tags     string `json:"tags"`
-    Content  string `json:"content" binding:"required,max=2000"`
+    Category string   `json:"category" binding:"required,oneof=technical resource requirement schedule risk other"`
+    Tags     []string `json:"tags" binding:"dive,max=20"`
+    Content  string   `json:"content" binding:"required,max=2000"`
 }
 ```
 
-- `Tags` arrives as JSON string from frontend (already serialized). No backend validation on individual tag length — frontend handles this.
+- `Tags` — accepts `[]string` from frontend (sent as JSON array). The `binding:"dive,max=20"` tag validates each individual tag is <= 20 characters at the Gin binding layer. The service serializes `[]string` to a JSON string (`encoding/json.Marshal`) before setting it on the model for DB storage. The VO layer parses it back to `[]string` for API responses.
+- `LogStatus` — renamed from `Status` for consistency with the model field `LogStatus`. JSON tag remains `"logStatus"`.
 
 ### Frontend Type: DecisionLog
 
@@ -238,13 +239,16 @@ No new sentinel errors needed — reuse `ErrForbidden`, `ErrItemNotFound`, `ErrN
 | mainItemKey | INTEGER, NOT NULL, INDEX | int64 | string (FormatID) | string | URL path param |
 | teamKey | INTEGER, NOT NULL | int64 | omitted | — | middleware injection |
 | category | VARCHAR(20), NOT NULL | string | string | string | required, enum of 6 |
-| tags | TEXT, DEFAULT '' | string (JSON) | []string (parsed) | string[] | optional, each ≤20 chars |
+| tags | TEXT, DEFAULT '' | string (JSON) | []string (VO parsed) | string[] | optional, `[]string` in DTO, `binding:"dive,max=20"`, each ≤20 chars (backend-enforced); service serializes to JSON string for storage |
 | content | TEXT, NOT NULL | string | string | string | required, ≤2000 chars |
 | logStatus | VARCHAR(10), NOT NULL, DEFAULT 'draft' (column: log_status) | string | string | 'draft' \| 'published' | required on create |
 | createdBy | INTEGER, NOT NULL | int64 | string (FormatID) | string | system (from auth) |
 | creatorName | — (joined) | — | string | string | — |
 | createTime | DATETIME, DEFAULT NOW | time.Time | string (RFC3339) | string | system-generated |
 | updateTime | DATETIME, AUTO UPDATE | time.Time | string (RFC3339) | string | system-auto |
+| _page | — | — | number (query param) | number | optional, default 1 |
+| _pageSize | — | — | number (query param) | number | optional, default 20 |
+| _total | COUNT(*) | — | number (PageResult.Total) | number | system-computed |
 
 ## Testing Strategy
 
@@ -252,9 +256,9 @@ No new sentinel errors needed — reuse `ErrForbidden`, `ErrItemNotFound`, `ErrN
 
 | Layer | Test Type | Tool | What to Test | Coverage Target |
 |-------|-----------|------|--------------|-----------------|
-| Repository | Unit | go test + mock DB | CRUD operations, ListByItem draft filter | 80% |
+| Repository | Unit | go test + mock DB | CRUD operations, ListByItem draft filter, pagination offset/limit | 80% |
 | Service | Unit | go test + mock repo | Business rules: draft-only edit, owner-only, status transitions | 90% |
-| Handler | Unit | httptest + mock service | Request binding, permission checks, response format | 80% |
+| Handler | Unit | httptest + mock service | Request binding, pagination params, permission checks, response format | 80% |
 | Frontend API | Unit | vitest + mock client | API call patterns (endpoint, method, payload) | 80% |
 | Frontend Components | Unit | vitest + testing-library | Render states, form interactions, expand/collapse | 80% |
 
@@ -270,6 +274,8 @@ No new sentinel errors needed — reuse `ErrForbidden`, `ErrItemNotFound`, `ErrN
 8. **List — ordering** — results sorted by createTime DESC
 9. **Invalid category** — out-of-enum → 400
 10. **Empty content** — blank content → 400
+11. **List — pagination** — page=2&pageSize=5 returns correct offset slice and total count
+12. **List — pagination defaults** — omitted page/pageSize defaults to page=1, size=20
 
 ### Overall Coverage Target
 
@@ -277,39 +283,58 @@ No new sentinel errors needed — reuse `ErrForbidden`, `ErrItemNotFound`, `ErrN
 
 ## Security Considerations
 
+### Route Registration
+
+Decision log routes are registered inside the `teamsGroup` (which applies `AuthMiddleware` + `TeamScopeMiddleware` at the group level). Write operations additionally require the `main_item:update` permission via `deps.perm()`:
+
+```go
+// In router.go SetupRouter, inside the teamsGroup block:
+{
+    // Decision logs (under main-items, inherit auth + team-scope middleware)
+    teamsGroup.GET("/main-items/:itemId/decision-logs", deps.DecisionLog.List)
+    teamsGroup.POST("/main-items/:itemId/decision-logs", deps.perm("main_item:update"), deps.DecisionLog.Create)
+    teamsGroup.PUT("/main-items/:itemId/decision-logs/:logId", deps.perm("main_item:update"), deps.DecisionLog.Update)
+    teamsGroup.PATCH("/main-items/:itemId/decision-logs/:logId/publish", deps.perm("main_item:update"), deps.DecisionLog.Publish)
+}
+```
+
+Read (`List`) requires only team membership (enforced by `TeamScopeMiddleware` on the `teamsGroup`). Write operations (`Create`, `Update`, `Publish`) are gated by `deps.perm("main_item:update")`, which calls `middleware.RequirePermission("main_item:update", roleRepo)`.
+
 ### Threat Model
 
-| Threat | Risk | Mitigation |
-|--------|------|------------|
-| Unauthorized draft access | User sees another's draft | Service filters by `CreatedBy` for drafts |
-| Published decision tampering | User modifies published record | Service enforces draft-only edit; route middleware checks `main_item:update` |
-| Cross-team access | User accesses another team's decisions | Team scope middleware + `TeamKey` in model |
-| Content injection | Malicious content in tags/content | No HTML rendering; content displayed as text |
+| Threat | Risk | Mitigation | Implementation Reference |
+|--------|------|------------|--------------------------|
+| Unauthorized draft access | User sees another's draft | Service filters by `CreatedBy` for drafts | `DecisionLogRepo.ListByItem` WHERE clause: `(log_status = 'published' OR created_by = ?)` |
+| Published decision tampering | User modifies published record | Service enforces draft-only edit + `main_item:update` permission | Route: `deps.perm("main_item:update")` middleware; Service: `LogStatus != "draft"` check returns `ErrForbidden` |
+| Cross-team access | User accesses another team's decisions | Team scope middleware + `TeamKey` in model | `TeamScopeMiddleware` applied to entire `teamsGroup`; `TeamKey` field on model for query-level enforcement |
+| Content injection | Malicious content in tags/content | No HTML rendering; content displayed as plain text | React renders via `{content}` (text node), not `dangerouslySetInnerHTML` |
+| Tag length bypass | Direct API call sends tags > 20 chars | Backend validates tag length via Gin binding | DTO: `Tags []string \`json:"tags" binding:"dive,max=20"\`` — enforced at binding layer, rejects request with 400 |
 
 ### Mitigations
 
-- Write operations gated by `main_item:update` permission middleware at route level
-- Draft ownership verified in service layer (not just frontend hiding)
-- Team scope verified via middleware + `TeamKey` field on model
-- Content stored and served as plain text (no HTML parsing)
+- Write operations gated by `deps.perm("main_item:update")` middleware on each write route (see Route Registration snippet above)
+- Draft ownership verified in service layer via `CreatedBy == userID` check (not just frontend hiding)
+- Team scope verified via `TeamScopeMiddleware` on the `teamsGroup` + `TeamKey` field on model for query-level enforcement
+- Content stored and served as plain text — React renders as text nodes, `dangerouslySetInnerHTML` is never used
+- Tag length validated at backend DTO binding layer via `binding:"dive,max=20"` — direct API calls cannot bypass the PRD's "each tag <= 20 chars" constraint
 
 ## PRD Coverage Map
 
 | PRD Requirement / AC | Design Component | Interface / Model |
 |----------------------|------------------|-------------------|
 | Story 1: Record & publish decision | DecisionLogHandler.Create | POST /main-items/:mainId/decision-logs |
-| Story 1 AC: Published decision visible to all | DecisionLogService.List | ListByItem (no CreatedBy filter for published) |
+| Story 1 AC: Published decision visible to all | DecisionLogService.List | ListByItem (no CreatedBy filter for published), paginated |
 | Story 1 AC: Published decision immutable | DecisionLogService.Update | draft-only check |
-| Story 2: Save as draft | DecisionLogHandler.Create (status=draft) | DecisionLogCreateReq.Status |
-| Story 2 AC: Draft visible to creator only | DecisionLogService.List | ListByItem with userID filter for drafts |
+| Story 2: Save as draft | DecisionLogHandler.Create (status=draft) | DecisionLogCreateReq.LogStatus |
+| Story 2 AC: Draft visible to creator only | DecisionLogService.List | ListByItem with userID filter for drafts, paginated |
 | Story 2 AC: Edit draft | DecisionLogHandler.Update | PUT /main-items/:mainId/decision-logs/:id |
 | Story 2 AC: Publish from draft | DecisionLogHandler.Publish | PATCH /main-items/:mainId/decision-logs/:id/publish |
-| Story 3: View timeline (reverse chronological) | DecisionLogCard + DecisionLogService.List | ORDER BY create_time DESC |
+| Story 3: View timeline (reverse chronological) | DecisionLogCard + DecisionLogService.List | ORDER BY create_time DESC, paginated (20/page) |
 | Story 3 AC: 80-char summary + expand | DecisionLogCard | Frontend truncation logic |
-| Story 4: Draft invisible to other users | DecisionLogService.List | CreatedBy filter on drafts |
+| Story 4: Draft invisible to other users | DecisionLogService.List | CreatedBy filter on drafts, paginated |
 | Story 4 AC: Published edit → 403 | DecisionLogService.Update/Publish | Status check + ErrForbidden |
 | Story 4 AC: No permission → no add button | PermissionGuard | `main_item:update` check |
-| PRD 5.1: Pagination (20/page) | DecisionLogCard | Frontend lazy loading |
+| PRD 5.1: Pagination (20/page) | DecisionLogService.List + DecisionLogCard | `dto.Pagination` param, `dto.PageResult[T]` return, frontend lazy loading |
 | PRD 5.2: Permission = main_item:update | Route middleware | `deps.perm("main_item:update")` |
 | PRD 5.3: Category dropdown (6 options) | DecisionLogDialog | Frontend enum binding |
 | PRD 5.3: Tags input with suggestions | DecisionLogDialog | Frontend extracts tags from existing logs |

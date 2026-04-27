@@ -24,7 +24,7 @@ Creates a new decision log entry. Can be saved as draft or published immediately
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | category | string | Yes | One of: `technical`, `resource`, `requirement`, `schedule`, `risk`, `other` |
-| tags | string[] | No | Free-form tags. Each tag ≤ 20 chars. Sent as JSON array. |
+| tags | string[] | No | Free-form tags. Each tag ≤ 20 chars (backend-enforced). Sent as JSON array. |
 | content | string | Yes | Decision content. ≤ 2000 chars. |
 | logStatus | string | Yes | `"draft"` or `"published"` |
 
@@ -73,7 +73,12 @@ Returns published decisions (all team members) + current user's drafts, ordered 
 
 #### Request
 
-No request body. Parameters from path and auth context.
+No request body. Pagination via query parameters:
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| page | number | 1 | Page number (1-based) |
+| pageSize | number | 20 | Items per page (max 100) |
 
 #### Response (200)
 
@@ -132,7 +137,7 @@ Updates a draft decision log. Only the creator can update their own drafts. Publ
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | category | string | Yes | One of: `technical`, `resource`, `requirement`, `schedule`, `risk`, `other` |
-| tags | string[] | No | Free-form tags. Each tag ≤ 20 chars. |
+| tags | string[] | No | Free-form tags. Each tag ≤ 20 chars (backend-enforced). |
 | content | string | Yes | Decision content. ≤ 2000 chars. |
 
 #### Response (200)
@@ -183,7 +188,7 @@ Same structure as Create response (with `logStatus: "published"`).
 | bizKey | string | Snowflake ID (string-formatted int64) |
 | mainItemKey | string | Parent main item's BizKey |
 | category | string | Enum: technical, resource, requirement, schedule, risk, other |
-| tags | string[] | Free-form tags (parsed from JSON storage) |
+| tags | string[] | Free-form tags (sent as JSON array, stored as JSON string in DB, parsed to string[] in response) |
 | content | string | Full decision text |
 | logStatus | string | Enum: draft, published |
 | createdBy | string | Creator's user BizKey |
