@@ -22,7 +22,7 @@ fi
 # Read base_path from backend config
 CONFIG_FILE="$ROOT_DIR/backend/config.yaml"
 if [[ -f "$CONFIG_FILE" ]]; then
-    BASE_PATH=$(grep '^\s*base_path:' "$CONFIG_FILE" | sed 's/.*base_path:[[:space:]]*//' | tr -d '"' | tr -d "'" | tr -d ' ')
+    BASE_PATH=$(grep '^\s*base_path:' "$CONFIG_FILE" | sed 's/.*base_path:[[:space:]]*//' | tr -d '"' | tr -d "'" | tr -d ' ' || true)
 else
     BASE_PATH=""
 fi
@@ -30,7 +30,6 @@ echo "base_path: '${BASE_PATH}'"
 
 # Build frontend
 cd "$ROOT_DIR/frontend"
-npm ci
 VITE_BASE_PATH="$BASE_PATH" npm run build
 
 # Copy to backend embed dir
