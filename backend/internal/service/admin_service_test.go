@@ -26,6 +26,7 @@ type mockAdminUserRepo struct {
 	updated   *model.User
 	findErr   error // separate error for FindByUsername
 	createErr error
+	updateErr error
 
 	// ListFiltered captures calls and returns configurable results
 	listFilteredFn func(ctx context.Context, search string, offset, limit int) ([]*model.User, int64, error)
@@ -69,6 +70,9 @@ func (m *mockAdminUserRepo) Create(_ context.Context, user *model.User) error {
 }
 
 func (m *mockAdminUserRepo) Update(_ context.Context, user *model.User) error {
+	if m.updateErr != nil {
+		return m.updateErr
+	}
 	m.updated = user
 	return nil
 }
@@ -107,6 +111,7 @@ type mockAdminTeamRepo struct {
 	removeMemberErr error
 	teamsByUserIDs  map[uint][]dto.TeamSummary
 	teamsByUIDErr   error
+	findTeamsByUserIDsFn func(ctx context.Context, ids []uint) (map[uint][]dto.TeamSummary, error)
 }
 
 func (m *mockAdminTeamRepo) Create(_ context.Context, _ *model.Team) error      { return nil }
@@ -143,7 +148,10 @@ func (m *mockAdminTeamRepo) UpdateMember(_ context.Context, _ *model.TeamMember)
 func (m *mockAdminTeamRepo) ListAllTeams(_ context.Context) ([]*dto.AdminTeamDTO, error) {
 	return m.teams, m.listAllErr
 }
-func (m *mockAdminTeamRepo) FindTeamsByUserIDs(_ context.Context, _ []uint) (map[uint][]dto.TeamSummary, error) {
+func (m *mockAdminTeamRepo) FindTeamsByUserIDs(ctx context.Context, ids []uint) (map[uint][]dto.TeamSummary, error) {
+	if m.findTeamsByUserIDsFn != nil {
+		return m.findTeamsByUserIDsFn(ctx, ids)
+	}
 	if m.teamsByUIDErr != nil {
 		return nil, m.teamsByUIDErr
 	}
@@ -287,6 +295,21 @@ func TestAdminListUsers_WithTeams(t *testing.T) {
 	assert.Equal(t, "Team A", items[0].Teams[0].Name)
 }
 
+func TestAdminListUsers_TeamsFetchError(t *testing.T) {
+	userRepo := &mockAdminUserRepo{
+		listFilteredFn: func(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
+			return []*model.User{
+				{BaseModel: model.BaseModel{ID: 1}, Username: "alice"},
+			}, 1, nil
+		},
+	}
+	teamRepo := &mockAdminTeamRepo{teamsByUIDErr: errors.New("db error")}
+	svc := NewAdminService(userRepo, teamRepo)
+
+	_, _, err := svc.ListUsers(context.Background(), "", 1, 20)
+	assert.Error(t, err)
+}
+
 // ---------------------------------------------------------------------------
 // Tests: GetUser
 // ---------------------------------------------------------------------------
@@ -317,6 +340,17 @@ func TestAdminGetUser_NotFound(t *testing.T) {
 
 	_, err := svc.GetUser(context.Background(), 999)
 	assert.ErrorIs(t, err, apperrors.ErrNotFound)
+}
+
+func TestAdminGetUser_TeamsFetchError(t *testing.T) {
+	userRepo := &mockAdminUserRepo{
+		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+	}
+	teamRepo := &mockAdminTeamRepo{teamsByUIDErr: errors.New("db error")}
+	svc := NewAdminService(userRepo, teamRepo)
+
+	_, err := svc.GetUser(context.Background(), 5)
+	assert.Error(t, err)
 }
 
 // ---------------------------------------------------------------------------
@@ -534,6 +568,123 @@ func TestAdminUpdateUser_NotFound(t *testing.T) {
 	assert.ErrorIs(t, err, apperrors.ErrNotFound)
 }
 
+func TestAdminUpdateUser_RepoUpdateError(t *testing.T) {
+	userRepo := &mockAdminUserRepo{
+		user:      &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+		updateErr: errors.New("db error"),
+	}
+	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
+
+	_, err := svc.UpdateUser(context.Background(), 5, &dto.UpdateUserReq{DisplayName: strPtr("Robert")})
+	assert.Error(t, err)
+}
+
+func TestAdminUpdateUser_WithTeamKey_Success(t *testing.T) {
+	userRepo := &mockAdminUserRepo{
+		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+	}
+	teamRepo := &mockAdminTeamRepo{
+		teamByID: &model.Team{BaseModel: model.BaseModel{ID: 10}, TeamName: "Team A"},
+		teamsByUserIDs: map[uint][]dto.TeamSummary{
+			5: {{BizKey: "10", Name: "Team A"}},
+		},
+	}
+	svc := NewAdminService(userRepo, teamRepo)
+
+	user, err := svc.UpdateUser(context.Background(), 5, &dto.UpdateUserReq{TeamKey: strPtr("10")})
+	require.NoError(t, err)
+	require.Len(t, user.Teams, 1)
+	assert.Equal(t, "Team A", user.Teams[0].Name)
+}
+
+func TestAdminUpdateUser_WithTeamKey_EmptyRemovesTeam(t *testing.T) {
+	userRepo := &mockAdminUserRepo{
+		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+	}
+	callCount := 0
+	teamRepo := &mockAdminTeamRepo{
+		findTeamsByUserIDsFn: func(_ context.Context, _ []uint) (map[uint][]dto.TeamSummary, error) {
+			callCount++
+			if callCount == 1 {
+				// first call: return existing team for removal
+				return map[uint][]dto.TeamSummary{5: {{BizKey: "10", Name: "Team A", TeamID: 10}}}, nil
+			}
+			// second call (reload): empty after removal
+			return map[uint][]dto.TeamSummary{}, nil
+		},
+	}
+	svc := NewAdminService(userRepo, teamRepo)
+
+	user, err := svc.UpdateUser(context.Background(), 5, &dto.UpdateUserReq{TeamKey: strPtr("")})
+	require.NoError(t, err)
+	assert.Empty(t, user.Teams)
+}
+
+func TestAdminUpdateUser_WithTeamKey_InvalidFormat(t *testing.T) {
+	userRepo := &mockAdminUserRepo{
+		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+	}
+	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
+
+	_, err := svc.UpdateUser(context.Background(), 5, &dto.UpdateUserReq{TeamKey: strPtr("not-a-number")})
+	assert.ErrorIs(t, err, apperrors.ErrTeamNotFound)
+}
+
+func TestAdminUpdateUser_WithTeamKey_TeamNotFound(t *testing.T) {
+	userRepo := &mockAdminUserRepo{
+		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+	}
+	teamRepo := &mockAdminTeamRepo{
+		teamByIDErr:    apperrors.ErrNotFound,
+		teamsByUserIDs: map[uint][]dto.TeamSummary{},
+	}
+	svc := NewAdminService(userRepo, teamRepo)
+
+	_, err := svc.UpdateUser(context.Background(), 5, &dto.UpdateUserReq{TeamKey: strPtr("99")})
+	assert.ErrorIs(t, err, apperrors.ErrTeamNotFound)
+}
+
+func TestAdminUpdateUser_WithTeamKey_AddMemberError(t *testing.T) {
+	userRepo := &mockAdminUserRepo{
+		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+	}
+	teamRepo := &mockAdminTeamRepo{
+		teamByID:       &model.Team{BaseModel: model.BaseModel{ID: 10}},
+		teamsByUserIDs: map[uint][]dto.TeamSummary{},
+		addMemberErr:   errors.New("db error"),
+	}
+	svc := NewAdminService(userRepo, teamRepo)
+
+	_, err := svc.UpdateUser(context.Background(), 5, &dto.UpdateUserReq{TeamKey: strPtr("10")})
+	assert.Error(t, err)
+}
+
+func TestAdminUpdateUser_FindTeamsByUserIDsError(t *testing.T) {
+	userRepo := &mockAdminUserRepo{
+		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+	}
+	teamRepo := &mockAdminTeamRepo{
+		teamsByUIDErr: errors.New("db error"),
+	}
+	svc := NewAdminService(userRepo, teamRepo)
+
+	// TeamKey is set so FindTeamsByUserIDs is called first for removal
+	_, err := svc.UpdateUser(context.Background(), 5, &dto.UpdateUserReq{TeamKey: strPtr("10")})
+	assert.Error(t, err)
+}
+
+func TestAdminUpdateUser_ReloadTeamsError(t *testing.T) {
+	userRepo := &mockAdminUserRepo{
+		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+	}
+	teamRepo := &mockAdminTeamRepo{teamsByUIDErr: errors.New("db error")}
+	svc := NewAdminService(userRepo, teamRepo)
+
+	// No TeamKey — skips team assignment, but reload at end still fails
+	_, err := svc.UpdateUser(context.Background(), 5, &dto.UpdateUserReq{DisplayName: strPtr("Robert")})
+	assert.Error(t, err)
+}
+
 // ---------------------------------------------------------------------------
 // Tests: ToggleUserStatus
 // ---------------------------------------------------------------------------
@@ -583,6 +734,28 @@ func TestAdminToggleUserStatus_UserNotFound(t *testing.T) {
 
 	_, err := svc.ToggleUserStatus(context.Background(), 1, 999, "disabled")
 	assert.ErrorIs(t, err, apperrors.ErrNotFound)
+}
+
+func TestAdminToggleUserStatus_TeamsFetchError(t *testing.T) {
+	userRepo := &mockAdminUserRepo{
+		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", UserStatus: "enabled"},
+	}
+	teamRepo := &mockAdminTeamRepo{teamsByUIDErr: errors.New("db error")}
+	svc := NewAdminService(userRepo, teamRepo)
+
+	_, err := svc.ToggleUserStatus(context.Background(), 1, 5, "disabled")
+	assert.Error(t, err)
+}
+
+func TestAdminToggleUserStatus_RepoUpdateError(t *testing.T) {
+	userRepo := &mockAdminUserRepo{
+		user:      &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", UserStatus: "enabled"},
+		updateErr: errors.New("db error"),
+	}
+	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
+
+	_, err := svc.ToggleUserStatus(context.Background(), 1, 5, "disabled")
+	assert.Error(t, err)
 }
 
 // ---------------------------------------------------------------------------

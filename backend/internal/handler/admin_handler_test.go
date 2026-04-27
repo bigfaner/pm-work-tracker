@@ -226,6 +226,25 @@ func TestAdminListUsers_ServiceError(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
 
+func TestAdminListUsers_CustomPagination(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.listUsersFilteredResult.items = []*dto.AdminUserDTO{}
+	svc.listUsersFilteredResult.total = 0
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users?page=3&pageSize=10", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 3, svc.lastListUsersPage)
+	assert.Equal(t, 10, svc.lastListUsersPageSize)
+}
+
 // ---------------------------------------------------------------------------
 // Tests: POST /v1/admin/users (CreateUser)
 // ---------------------------------------------------------------------------
@@ -310,6 +329,47 @@ func TestAdminCreateUser_ValidationFail(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
+func TestAdminCreateUser_TeamNotFound(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.createUserResult.err = apperrors.ErrTeamNotFound
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"username":"newuser","displayName":"New User","teamKey":"999"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/users", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "TEAM_NOT_FOUND", resp["code"])
+}
+
+func TestAdminCreateUser_InternalError(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.createUserResult.err = apperrors.ErrInternal
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"username":"newuser","displayName":"New User"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/users", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
 // ---------------------------------------------------------------------------
 // Tests: GET /v1/admin/users/:userId (GetUser)
 // ---------------------------------------------------------------------------
@@ -384,6 +444,22 @@ func TestAdminGetUser_InvalidId(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
+func TestAdminGetUser_ServiceError(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.getUserResult.err = apperrors.ErrInternal
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users/5", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
 // ---------------------------------------------------------------------------
 // Tests: PUT /v1/admin/users/:userId (UpdateUser)
 // ---------------------------------------------------------------------------
@@ -434,9 +510,102 @@ func TestAdminUpdateUser_NotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
+func TestAdminUpdateUser_ValidationFail(t *testing.T) {
+	svc := &mockAdminService{}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"displayName":""}` // fails min=1
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestAdminUpdateUser_InvalidId(t *testing.T) {
+	svc := &mockAdminService{}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"displayName":"Robert"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/abc", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestAdminUpdateUser_ServiceError(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.updateUserResult.err = apperrors.ErrInternal
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"displayName":"Robert"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
 // ---------------------------------------------------------------------------
 // Tests: PUT /v1/admin/users/:userId/status (ToggleUserStatus)
 // ---------------------------------------------------------------------------
+
+func TestAdminListTeams_OutOfBoundsPage(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.listAllTeamsResult.teams = []*dto.AdminTeamDTO{
+		{BizKey: "1", Name: "T1"},
+	}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/teams?page=99&pageSize=10", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]interface{}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	data := resp["data"].(map[string]interface{})
+	items := data["items"].([]interface{})
+	assert.Empty(t, items)
+	assert.Equal(t, float64(1), data["total"])
+}
+
+func TestAdminToggleUserStatus_MissingBody(t *testing.T) {
+	svc := &mockAdminService{}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/status", nil)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
 
 func TestAdminToggleUserStatus_DisableSuccess(t *testing.T) {
 	svc := &mockAdminService{}
@@ -520,6 +689,62 @@ func TestAdminToggleUserStatus_UserNotFound(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestAdminToggleUserStatus_EnableSuccess(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.toggleUserStatusResult.user = &dto.AdminUserDTO{
+		BizKey: "5", Username: "bob", Status: "enabled", Teams: []dto.TeamSummary{},
+	}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"status":"enabled"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/status", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "enabled", svc.lastToggleStatus)
+}
+
+func TestAdminToggleUserStatus_InvalidId(t *testing.T) {
+	svc := &mockAdminService{}
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"status":"disabled"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/abc/status", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestAdminToggleUserStatus_ServiceError(t *testing.T) {
+	svc := &mockAdminService{}
+	svc.toggleUserStatusResult.err = apperrors.ErrInternal
+
+	deps := depsWithAdminSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signSuperAdminToken(t, 1)
+	body := `{"status":"disabled"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/status", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
 
 // ---------------------------------------------------------------------------
