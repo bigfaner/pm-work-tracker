@@ -254,11 +254,10 @@ func TestUserRepo_SoftDelete(t *testing.T) {
 		assert.False(t, found.DeletedTime.IsZero())
 	})
 
-	t.Run("FindByID_still_finds_soft_deleted_row", func(t *testing.T) {
-		// FindByID uses generic repo helper which does not apply NotDeleted scope
-		found, err := repo.FindByID(ctx, u.ID)
-		require.NoError(t, err)
-		assert.Equal(t, "deleteme", found.Username)
+	t.Run("FindByID_excludes_soft_deleted", func(t *testing.T) {
+		// FindByID now auto-filters soft-deleted records via isSoftDeletable[T]()
+		_, err := repo.FindByID(ctx, u.ID)
+		assert.ErrorIs(t, err, pkgerrors.ErrNotFound)
 	})
 
 	t.Run("FindByBizKey_excludes_soft_deleted", func(t *testing.T) {
