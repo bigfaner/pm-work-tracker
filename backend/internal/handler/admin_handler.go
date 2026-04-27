@@ -125,6 +125,44 @@ func (h *AdminHandler) ToggleUserStatus(c *gin.Context) {
 	apperrors.RespondOK(c, user)
 }
 
+// ResetPassword handles PUT /api/v1/admin/users/:userId/password
+func (h *AdminHandler) ResetPassword(c *gin.Context) {
+	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "userId")
+	if !ok {
+		return
+	}
+
+	var req dto.ResetPasswordReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	resp, err := h.adminSvc.ResetPassword(c.Request.Context(), bizKey, req.NewPassword)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, resp)
+}
+
+// DeleteUser handles DELETE /api/v1/admin/users/:userId
+func (h *AdminHandler) DeleteUser(c *gin.Context) {
+	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "userId")
+	if !ok {
+		return
+	}
+
+	callerID := middleware.GetUserID(c)
+	if err := h.adminSvc.SoftDeleteUser(c.Request.Context(), callerID, bizKey); err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, nil)
+}
+
 // ListTeams handles GET /api/v1/admin/teams
 func (h *AdminHandler) ListTeams(c *gin.Context) {
 	page, pageSize := parsePageParams(c)

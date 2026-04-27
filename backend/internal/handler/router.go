@@ -158,6 +158,8 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 		adminGroup.GET("/users/:userId", deps.perm("user:read"), deps.Admin.GetUser)
 		adminGroup.PUT("/users/:userId", deps.perm("user:update"), deps.Admin.UpdateUser)
 		adminGroup.PUT("/users/:userId/status", deps.perm("user:update"), deps.Admin.ToggleUserStatus)
+		adminGroup.PUT("/users/:userId/password", deps.perm("user:update"), deps.Admin.ResetPassword)
+		adminGroup.DELETE("/users/:userId", deps.perm("user:update"), deps.Admin.DeleteUser)
 		adminGroup.GET("/teams", deps.perm("user:read"), deps.Admin.ListTeams)
 
 		// Role management
