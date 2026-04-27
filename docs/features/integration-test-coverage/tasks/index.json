@@ -252,6 +252,14 @@
       "file": "fix-e2e-2-1.md",
       "record": "records/fix-e2e-2-1.md"
     },
+    "fix-e2e-3-1": {
+      "id": "fix-e2e-3-1",
+      "title": "修复 e2e 测试失败: unknown",
+      "priority": "P0",
+      "status": "completed",
+      "file": "fix-e2e-3-1.md",
+      "record": "records/fix-e2e-3-1.md"
+    },
     "gen-test-cases": {
       "id": "T-test-1",
       "title": "Generate e2e Test Cases",
@@ -290,5 +298,5 @@
     "P2"
   ],
   "testCommand": "cd backend \u0026\u0026 go test ./tests/integration/ ./internal/handler/ ./internal/service/",
-  "e2eRound": 2
+  "e2eRound": 3
 }
