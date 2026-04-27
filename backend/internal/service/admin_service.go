@@ -24,6 +24,8 @@ type AdminService interface {
 	CreateUser(ctx context.Context, req *dto.CreateUserReq) (*dto.AdminUserDTO, error)
 	UpdateUser(ctx context.Context, userBizKey int64, req *dto.UpdateUserReq) (*dto.AdminUserDTO, error)
 	ToggleUserStatus(ctx context.Context, callerID uint, targetBizKey int64, status string) (*dto.AdminUserDTO, error)
+	ResetPassword(ctx context.Context, targetBizKey int64, newPassword string) (*dto.ResetPasswordResp, error)
+	SoftDeleteUser(ctx context.Context, callerID uint, targetBizKey int64) error
 	ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error)
 }
 
@@ -244,6 +246,42 @@ func (s *adminService) ToggleUserStatus(ctx context.Context, callerID uint, targ
 	}
 
 	return modelToAdminUserDTO(user, teamsMap[user.ID]), nil
+}
+
+func (s *adminService) ResetPassword(ctx context.Context, targetBizKey int64, newPassword string) (*dto.ResetPasswordResp, error) {
+	user, err := s.userRepo.FindByBizKey(ctx, targetBizKey)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrUserNotFound)
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, apperrors.ErrInternal
+	}
+
+	user.PasswordHash = string(hash)
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return nil, err
+	}
+
+	return &dto.ResetPasswordResp{
+		BizKey:      pkg.FormatID(user.BizKey),
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+	}, nil
+}
+
+func (s *adminService) SoftDeleteUser(ctx context.Context, callerID uint, targetBizKey int64) error {
+	user, err := s.userRepo.FindByBizKey(ctx, targetBizKey)
+	if err != nil {
+		return apperrors.MapNotFound(err, apperrors.ErrUserNotFound)
+	}
+
+	if callerID == user.ID {
+		return apperrors.ErrCannotDeleteSelf
+	}
+
+	return s.userRepo.SoftDelete(ctx, user)
 }
 
 func (s *adminService) ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error) {
