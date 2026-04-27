@@ -10,7 +10,7 @@ setup:
 
 dev:
     cd backend && go run ./cmd/server/main.go -dev &
-    cd frontend && npm run dev
+    cd frontend && npm i && npm run dev
 
 build env:
     ./scripts/build.sh {{env}}
