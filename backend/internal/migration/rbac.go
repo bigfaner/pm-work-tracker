@@ -16,18 +16,21 @@ const rbacMigrationVersion = "rbac_001"
 // It creates new tables, seeds preset roles, migrates team_members.role strings
 // to role_id,.
 // It is idempotent: re-running produces no side effects (tracked via schema_migrations).
-func MigrateToRBAC(db *gorm.DB) error {
-	if err := ensureSchemaMigrationsTable(db); err != nil {
-		return fmt.Errorf("ensure schema_migrations: %w", err)
-	}
+// When autoSchema is false, DDL and schema_migrations tracking are skipped.
+// The underlying DML steps (seed roles, rebuild team_members) are idempotent on their own.
+func MigrateToRBAC(db *gorm.DB, autoSchema bool) error {
+	if autoSchema {
+		if err := ensureSchemaMigrationsTable(db); err != nil {
+			return fmt.Errorf("ensure schema_migrations: %w", err)
+		}
 
-	// Check if already applied
-	var count int64
-	if err := db.Raw("SELECT count(*) FROM schema_migrations WHERE version = ?", rbacMigrationVersion).Scan(&count).Error; err != nil {
-		return fmt.Errorf("check rbac migration status: %w", err)
-	}
-	if count > 0 {
-		return nil // already applied
+		var count int64
+		if err := db.Raw("SELECT count(*) FROM schema_migrations WHERE version = ?", rbacMigrationVersion).Scan(&count).Error; err != nil {
+			return fmt.Errorf("check rbac migration status: %w", err)
+		}
+		if count > 0 {
+			return nil // already applied
+		}
 	}
 
 	tx := db.Begin()
@@ -35,23 +38,24 @@ func MigrateToRBAC(db *gorm.DB) error {
 		return tx.Error
 	}
 
-	if err := runRBACMigration(tx); err != nil {
+	if err := runRBACMigration(tx, autoSchema); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// Mark as applied
-	if err := tx.Exec("INSERT INTO schema_migrations (version) VALUES (?)", rbacMigrationVersion).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("mark rbac migration: %w", err)
+	if autoSchema {
+		if err := tx.Exec("INSERT INTO schema_migrations (version) VALUES (?)", rbacMigrationVersion).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("mark rbac migration: %w", err)
+		}
 	}
 
 	return tx.Commit().Error
 }
 
-func runRBACMigration(tx *gorm.DB) error {
+func runRBACMigration(tx *gorm.DB, autoSchema bool) error {
 	// 1. Create new tables (roles, role_permissions)
-	if err := createRBACTables(tx); err != nil {
+	if err := createRBACTables(tx, autoSchema); err != nil {
 		return fmt.Errorf("create rbac tables: %w", err)
 	}
 
@@ -76,7 +80,10 @@ func runRBACMigration(tx *gorm.DB) error {
 	return nil
 }
 
-func createRBACTables(tx *gorm.DB) error {
+func createRBACTables(tx *gorm.DB, autoSchema bool) error {
+	if !autoSchema {
+		return nil
+	}
 	for _, stmt := range rbacTableDDL(tx) {
 		if err := tx.Exec(stmt).Error; err != nil {
 			if tableExists(tx, "pmw_roles") && tableExists(tx, "pmw_role_permissions") {

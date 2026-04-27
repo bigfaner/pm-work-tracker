@@ -32,7 +32,7 @@ import (
 func TestRBACMigration_RunsSuccessfully(t *testing.T) {
 	db := createFreshDB(t)
 
-	err := migration.MigrateToRBAC(db)
+	err := migration.MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	// Verify roles table exists with preset roles
@@ -50,7 +50,7 @@ func TestRBACMigration_IsIdempotent(t *testing.T) {
 	db := createFreshDB(t)
 
 	// Run migration twice
-	err := migration.MigrateToRBAC(db)
+	err := migration.MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	var rolesAfterFirst []model.Role
@@ -61,7 +61,7 @@ func TestRBACMigration_IsIdempotent(t *testing.T) {
 	require.NoError(t, db.Model(&model.RolePermission{}).Count(&permsAfterFirst).Error)
 
 	// Run again
-	err = migration.MigrateToRBAC(db)
+	err = migration.MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	var rolesAfterSecond []model.Role
@@ -75,7 +75,7 @@ func TestRBACMigration_IsIdempotent(t *testing.T) {
 
 func TestRBACMigration_PresetRoleCodesAreCorrect(t *testing.T) {
 	db := createFreshDB(t)
-	require.NoError(t, migration.MigrateToRBAC(db))
+	require.NoError(t, migration.MigrateToRBAC(db, true))
 
 	// Verify that preset role codes match the expected set
 	err := migration.VerifyPresetRoleCodes(db)

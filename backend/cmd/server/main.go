@@ -71,7 +71,7 @@ func run(configPath string, devMode bool) error {
 	}
 
 	// 3c. RBAC migration — seeds roles and rebuilds team_members (DML, always runs)
-	if err := migration.MigrateToRBAC(db); err != nil {
+	if err := migration.MigrateToRBAC(db, cfg.Database.AutoSchema); err != nil {
 		return fmt.Errorf("rbac migration error: %w", err)
 	}
 	// 3d. Backfill biz_key = 0 records with snowflake IDs
