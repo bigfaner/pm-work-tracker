@@ -152,7 +152,7 @@ func (s *subItemService) ChangeStatus(ctx context.Context, teamID, callerID, ite
 
 	// Terminal side effects: force completion=100 and set actual_end_date
 	if newStatus == "completed" || newStatus == "closed" {
-		fields["completion"] = float64(100)
+		fields["completion_pct"] = float64(100)
 		now := time.Now()
 		fields["actual_end_date"] = &now
 	}

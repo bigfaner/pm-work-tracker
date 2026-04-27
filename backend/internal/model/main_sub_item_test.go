@@ -47,7 +47,7 @@ func TestMainItem_Defaults(t *testing.T) {
 	require.NoError(t, db.Create(&m).Error)
 
 	var fetched model.MainItem
-	db.First(&fetched, "code = ?", "T2CD-00002")
+	db.First(&fetched, "item_code = ?", "T2CD-00002")
 	assert.Equal(t, "pending", fetched.ItemStatus, "status should default to pending")
 	assert.Equal(t, float64(0), fetched.Completion, "completion should default to 0")
 	assert.False(t, fetched.IsKeyItem, "is_key_item should default to false")
@@ -75,7 +75,7 @@ func TestMainItem_ArchivedAt(t *testing.T) {
 	require.NoError(t, db.Create(&m).Error)
 
 	var fetched model.MainItem
-	db.First(&fetched, "code = ?", "T3CD-00003")
+	db.First(&fetched, "item_code = ?", "T3CD-00003")
 	assert.NotNil(t, fetched.ArchivedAt, "archived_at should be set")
 }
 

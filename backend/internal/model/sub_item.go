@@ -14,11 +14,11 @@ type SubItem struct {
 	ExpectedEndDate *time.Time `gorm:"index" json:"expectedEndDate"`
 	ActualEndDate   *time.Time `json:"actualEndDate"`
 	ItemStatus      string     `gorm:"type:varchar(20);not null;default:'pending'" json:"itemStatus"`
-	Completion      float64    `gorm:"type:decimal(5,2);default:0" json:"completion"`
+	Completion      float64    `gorm:"column:completion_pct;type:decimal(5,2);default:0" json:"completion"`
 	IsKeyItem       bool       `gorm:"not null;default:false" json:"isKeyItem"`
 	DelayCount      int        `gorm:"not null;default:0" json:"delayCount"`
 	Weight          float64    `gorm:"default:1" json:"weight"`
-	Code            string     `gorm:"type:varchar(15);not null;default:''" json:"code"`
+	Code            string     `gorm:"column:item_code;type:varchar(15);not null;default:''" json:"code"`
 }
 
 func (SubItem) TableName() string {

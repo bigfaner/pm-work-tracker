@@ -85,14 +85,14 @@ func (s *progressService) Append(ctx context.Context, teamID, authorID, subItemI
 
 	// Build update fields
 	fields := map[string]interface{}{
-		"completion": completion,
+		"completion_pct": completion,
 	}
 
 	if targetStatus != currentStatus {
 		fields["item_status"] = targetStatus
 		if targetStatus == "completed" {
 			now := time.Now()
-			fields["completion"] = float64(100)
+			fields["completion_pct"] = float64(100)
 			fields["actual_end_date"] = &now
 		}
 
@@ -154,7 +154,7 @@ func (s *progressService) CorrectCompletion(ctx context.Context, teamID, recordI
 	}
 
 	if err := s.subItemRepo.Update(ctx, subItem, map[string]interface{}{
-		"completion": syncCompletion,
+		"completion_pct": syncCompletion,
 	}); err != nil {
 		return err
 	}

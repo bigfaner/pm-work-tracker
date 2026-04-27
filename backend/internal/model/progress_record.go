@@ -9,7 +9,7 @@ type ProgressRecord struct {
 	SubItemKey  int64     `gorm:"not null" json:"subItemKey"`
 	TeamKey     int64     `gorm:"not null" json:"teamKey"`
 	AuthorKey   int64     `gorm:"not null" json:"authorKey"`
-	Completion  float64   `gorm:"type:decimal(5,2);not null" json:"completion"`
+	Completion  float64   `gorm:"column:completion_pct;type:decimal(5,2);not null" json:"completion"`
 	Achievement string    `gorm:"type:varchar(1000)" json:"achievement"`
 	Blocker     string    `gorm:"type:varchar(1000)" json:"blocker"`
 	Lesson      string    `gorm:"type:varchar(1000)" json:"lesson"`

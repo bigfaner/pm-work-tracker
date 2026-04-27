@@ -249,7 +249,7 @@ func (s *mainItemService) RecalcCompletion(ctx context.Context, mainItemID uint)
 
 	completion := calcWeightedCompletion(subItems)
 	return s.mainItemRepo.Update(ctx, item, map[string]interface{}{
-		"completion": completion,
+		"completion_pct": completion,
 	})
 }
 
@@ -298,7 +298,7 @@ func (s *mainItemService) ChangeStatus(ctx context.Context, teamID, callerID, it
 
 	// Terminal side effects
 	if status.IsMainTerminal(newStatus) {
-		fields["completion"] = float64(100)
+		fields["completion_pct"] = float64(100)
 		now := time.Now()
 		fields["actual_end_date"] = &now
 	}
@@ -396,7 +396,7 @@ func (s *mainItemService) EvaluateLinkage(ctx context.Context, mainItemID uint, 
 
 	// Terminal side effects
 	if status.IsMainTerminal(targetStatus) {
-		fields["completion"] = float64(100)
+		fields["completion_pct"] = float64(100)
 		now := time.Now()
 		fields["actual_end_date"] = &now
 	}

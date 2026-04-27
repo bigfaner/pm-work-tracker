@@ -98,11 +98,11 @@ func rbacTableDDL(tx *gorm.DB) []string {
     db_update_time  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_flag    TINYINT(1)      NOT NULL DEFAULT 0,
     deleted_time    DATETIME        NOT NULL DEFAULT '1970-01-01 08:00:00',
-    name            VARCHAR(50)     NOT NULL,
-    description     VARCHAR(200)    NOT NULL DEFAULT '',
+    role_name       VARCHAR(50)     NOT NULL,
+    role_desc       VARCHAR(200)    NOT NULL DEFAULT '',
     is_preset       TINYINT(1)      NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
-    UNIQUE KEY uk_roles_name (name)
+    UNIQUE KEY uk_roles_name (role_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 			`CREATE TABLE IF NOT EXISTS pmw_role_permissions (
     id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -121,11 +121,11 @@ func rbacTableDDL(tx *gorm.DB) []string {
     db_update_time  DATETIME      NOT NULL DEFAULT (datetime('now')),
     deleted_flag    INTEGER       NOT NULL DEFAULT 0,
     deleted_time    DATETIME      NOT NULL DEFAULT '1970-01-01 08:00:00',
-    name            VARCHAR(50)   NOT NULL,
-    description     VARCHAR(200)  NOT NULL DEFAULT '',
+    role_name       VARCHAR(50)   NOT NULL,
+    role_desc       VARCHAR(200)  NOT NULL DEFAULT '',
     is_preset       INTEGER       NOT NULL DEFAULT 0
 )`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS uk_roles_name ON pmw_roles(name)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS uk_roles_name ON pmw_roles(role_name)`,
 		`CREATE TABLE IF NOT EXISTS pmw_role_permissions (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     role_id          INTEGER      NOT NULL,
@@ -176,7 +176,7 @@ func seedPresetRoles(tx *gorm.DB) error {
 func seedRole(tx *gorm.DB, name, description string, isPreset bool, codes []string) error {
 	// Check if role already exists
 	var existing model.Role
-	result := tx.Where("name = ?", name).First(&existing)
+	result := tx.Where("role_name = ?", name).First(&existing)
 	if result.RowsAffected > 0 {
 		// Backfill bizKey if it was left at default 0 from a pre-migration database
 		if existing.BizKey == 0 {
@@ -416,7 +416,7 @@ func VerifyPresetRoleCodes(db *gorm.DB) error {
 
 	for roleName, codes := range expected {
 		var role model.Role
-		if err := db.Where("name = ?", roleName).First(&role).Error; err != nil {
+		if err := db.Where("role_name = ?", roleName).First(&role).Error; err != nil {
 			return fmt.Errorf("find role %s: %w", roleName, err)
 		}
 

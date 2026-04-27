@@ -299,7 +299,7 @@ func TestProgressAppend_UpdatesSubItemCompletion(t *testing.T) {
 	_, err := svc.Append(context.Background(), 1, 2, 5, 60.0, "", "", "", false)
 	require.NoError(t, err)
 	assert.Equal(t, uint(5), subItemRepo.updatedID)
-	assert.InDelta(t, 60.0, subItemRepo.updatedFields["completion"], 0.001)
+	assert.InDelta(t, 60.0, subItemRepo.updatedFields["completion_pct"], 0.001)
 }
 
 func TestProgressAppend_TriggersRecalcCompletion(t *testing.T) {
@@ -405,7 +405,7 @@ func TestProgressCorrectCompletion_IsLatest_SyncsSubItem(t *testing.T) {
 	err := svc.CorrectCompletion(context.Background(), 1, 100, 80.0)
 	require.NoError(t, err)
 	assert.Equal(t, uint(5), subItemRepo.updatedID)
-	assert.InDelta(t, 80.0, subItemRepo.updatedFields["completion"], 0.001)
+	assert.InDelta(t, 80.0, subItemRepo.updatedFields["completion_pct"], 0.001)
 }
 
 func TestProgressCorrectCompletion_NotLatest_SyncsToLatest(t *testing.T) {
@@ -437,7 +437,7 @@ func TestProgressCorrectCompletion_NotLatest_SyncsToLatest(t *testing.T) {
 	require.NoError(t, err)
 	// SubItem should be synced to latest record's completion (90), not corrected (80)
 	assert.Equal(t, uint(5), subItemRepo.updatedID)
-	assert.InDelta(t, 90.0, subItemRepo.updatedFields["completion"], 0.001)
+	assert.InDelta(t, 90.0, subItemRepo.updatedFields["completion_pct"], 0.001)
 }
 
 func TestProgressCorrectCompletion_TriggersRecalc(t *testing.T) {
@@ -565,7 +565,7 @@ func TestProgressAppend_Pending_FirstProgress_TransitionsToProgressing(t *testin
 
 	// Verify status transitioned to "progressing"
 	assert.Equal(t, "progressing", subItemRepo.updatedFields["item_status"])
-	assert.InDelta(t, 30.0, subItemRepo.updatedFields["completion"], 0.001)
+	assert.InDelta(t, 30.0, subItemRepo.updatedFields["completion_pct"], 0.001)
 
 	// Verify status history was recorded
 	require.Len(t, historySvc.recorded, 1)
@@ -631,7 +631,7 @@ func TestProgressAppend_Progressing_100Percent_TransitionsToCompleted(t *testing
 
 	// Verify status transitioned to "completed"
 	assert.Equal(t, "completed", subItemRepo.updatedFields["item_status"])
-	assert.InDelta(t, 100.0, subItemRepo.updatedFields["completion"], 0.001)
+	assert.InDelta(t, 100.0, subItemRepo.updatedFields["completion_pct"], 0.001)
 	assert.NotNil(t, subItemRepo.updatedFields["actual_end_date"])
 
 	// Verify status history was recorded
@@ -661,7 +661,7 @@ func TestProgressAppend_Pending_FirstProgress_100Percent_TransitionsToCompleted(
 	// Both rules apply: pending->progressing (rule 1), then progressing->completed (rule 2)
 	// End result: "completed"
 	assert.Equal(t, "completed", subItemRepo.updatedFields["item_status"])
-	assert.InDelta(t, 100.0, subItemRepo.updatedFields["completion"], 0.001)
+	assert.InDelta(t, 100.0, subItemRepo.updatedFields["completion_pct"], 0.001)
 	assert.NotNil(t, subItemRepo.updatedFields["actual_end_date"])
 
 	// Status history should record the overall transition from pending to completed

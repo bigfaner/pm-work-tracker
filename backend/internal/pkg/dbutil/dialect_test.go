@@ -51,8 +51,8 @@ func TestNewDialect_SQLite(t *testing.T) {
 	d := NewDialect(db)
 	require.NotNil(t, d)
 
-	assert.Equal(t, "CAST(code AS INTEGER)", d.CastInt(ColCode))
-	assert.Equal(t, "SUBSTR(code, 7)", d.Substr(ColCode, 7))
+	assert.Equal(t, "CAST(item_code AS INTEGER)", d.CastInt(ColCode))
+	assert.Equal(t, "SUBSTR(item_code, 7)", d.Substr(ColCode, 7))
 	assert.Equal(t, "datetime('now')", d.Now())
 }
 
@@ -61,8 +61,8 @@ func TestNewDialect_MySQL(t *testing.T) {
 	d := NewDialect(db)
 	require.NotNil(t, d)
 
-	assert.Equal(t, "CAST(code AS SIGNED)", d.CastInt(ColCode))
-	assert.Equal(t, "SUBSTRING(code, 7)", d.Substr(ColCode, 7))
+	assert.Equal(t, "CAST(item_code AS SIGNED)", d.CastInt(ColCode))
+	assert.Equal(t, "SUBSTRING(item_code, 7)", d.Substr(ColCode, 7))
 	assert.Equal(t, "CURRENT_TIMESTAMP", d.Now())
 }
 
@@ -104,12 +104,12 @@ func TestDialect_ComposedExpression(t *testing.T) {
 		{
 			name:     "sqlite MAX(CAST(SUBSTR(...)))",
 			dialect:  NewDialect(openDBWithDialector("sqlite")),
-			expected: "MAX(CAST(SUBSTR(code, 4) AS INTEGER))",
+			expected: "MAX(CAST(SUBSTR(item_code, 4) AS INTEGER))",
 		},
 		{
 			name:     "mysql MAX(CAST(SUBSTRING(...)))",
 			dialect:  NewDialect(openDBWithDialector("mysql")),
-			expected: "MAX(CAST(SUBSTRING(code, 4) AS SIGNED))",
+			expected: "MAX(CAST(SUBSTRING(item_code, 4) AS SIGNED))",
 		},
 	}
 	for _, tt := range tests {

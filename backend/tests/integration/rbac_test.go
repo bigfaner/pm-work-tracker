@@ -702,7 +702,7 @@ func makeRequest(t *testing.T, r *gin.Engine, method, path, body, token string) 
 func findRoleIDByName(t *testing.T, db *gorm.DB, name string) uint {
 	t.Helper()
 	var role model.Role
-	require.NoError(t, db.Where("name = ?", name).First(&role).Error)
+	require.NoError(t, db.Where("role_name = ?", name).First(&role).Error)
 	return role.ID
 }
 
@@ -710,7 +710,7 @@ func findRoleIDByName(t *testing.T, db *gorm.DB, name string) uint {
 func findRoleBizKeyByName(t *testing.T, db *gorm.DB, name string) string {
 	t.Helper()
 	var role model.Role
-	require.NoError(t, db.Where("name = ?", name).First(&role).Error)
+	require.NoError(t, db.Where("role_name = ?", name).First(&role).Error)
 	return fmt.Sprintf("%d", role.BizKey)
 }
 

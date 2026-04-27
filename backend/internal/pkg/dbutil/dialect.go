@@ -14,7 +14,7 @@ type ColumnExpr string
 
 // Pre-defined column expressions — the only valid inputs to Dialect methods.
 const (
-	ColCode ColumnExpr = "code"
+	ColCode ColumnExpr = "item_code"
 )
 
 // NewColumnExpr creates a ColumnExpr. Exported for use in tests only.

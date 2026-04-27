@@ -66,12 +66,13 @@ logging:
 }
 
 func TestRun_FailsWhenAssetsInvalid(t *testing.T) {
-	// In the test environment dist/index.html is absent, so ValidateAssets must
-	// cause run() to return a "startup: ..." error before touching the DB.
+	// dist/index.html is embedded, so ValidateAssets passes. The next early-exit
+	// is the schema migration: the temp config dir has no migrations/ folder, so
+	// run() returns a "migration error: ..." before starting the server.
 	path := writeTestConfig(t, "test-secret-that-is-at-least-32-bytes!!")
 	err := run(path, false)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "startup:")
+	assert.Contains(t, err.Error(), "migration error:")
 }
 
 func TestRun_LoadsConfigFromFile(t *testing.T) {

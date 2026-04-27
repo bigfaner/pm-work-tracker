@@ -31,11 +31,11 @@ CREATE TABLE IF NOT EXISTS pmw_teams (
     team_name       VARCHAR(100)   NOT NULL,           -- 团队名称
     team_desc       VARCHAR(500),                      -- 团队描述
     pm_key          INTEGER        NOT NULL,           -- 团队负责人 biz_key
-    code            VARCHAR(6)     NOT NULL DEFAULT '', -- 团队邀请码
+    team_code       VARCHAR(6)     NOT NULL DEFAULT '', -- 团队邀请码
     item_seq        INTEGER        NOT NULL DEFAULT 0  -- 主事项序号计数器，用于生成事项编号
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uk_teams_biz_key ON pmw_teams(biz_key);
-CREATE UNIQUE INDEX IF NOT EXISTS uk_teams_code_deleted ON pmw_teams(code, deleted_flag, deleted_time);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_teams_code_deleted ON pmw_teams(team_code, deleted_flag, deleted_time);
 CREATE INDEX IF NOT EXISTS idx_teams_pm_key ON pmw_teams(pm_key);
 CREATE INDEX IF NOT EXISTS idx_teams_deleted_flag ON pmw_teams(deleted_flag);
 
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS pmw_main_items (
     deleted_flag      INTEGER       NOT NULL DEFAULT 0,  -- 软删标志：0=正常，1=已删除
     deleted_time      DATETIME      NOT NULL DEFAULT '1970-01-01 08:00:00', -- 软删时间，未删除时为固定占位值
     team_key          INTEGER       NOT NULL,            -- 所属团队 biz_key
-    code              VARCHAR(12)   NOT NULL,            -- 事项编号，团队内唯一
+    item_code         VARCHAR(12)   NOT NULL,            -- 事项编号，团队内唯一
     title             VARCHAR(100)  NOT NULL,            -- 事项标题
     item_desc         VARCHAR(2000) NOT NULL DEFAULT '', -- 事项描述
     priority          VARCHAR(5)    NOT NULL,            -- 优先级：P0/P1/P2/P3
@@ -75,14 +75,14 @@ CREATE TABLE IF NOT EXISTS pmw_main_items (
     expected_end_date DATETIME,                          -- 预计结束日期
     actual_end_date   DATETIME,                          -- 实际结束日期
     item_status       VARCHAR(20)   NOT NULL DEFAULT '待开始', -- 事项状态：待开始/进行中/已完成/已暂停
-    completion        REAL          NOT NULL DEFAULT 0.00, -- 完成度百分比，0.00~100.00
+    completion_pct    REAL          NOT NULL DEFAULT 0.00, -- 完成度百分比，0.00~100.00
     is_key_item       INTEGER       NOT NULL DEFAULT 0,  -- 是否关键事项：0=否，1=是
     delay_count       INTEGER       NOT NULL DEFAULT 0,  -- 延期次数
     archived_at       DATETIME,                          -- 归档时间，NULL 表示未归档
     sub_item_seq      INTEGER       NOT NULL DEFAULT 0   -- 子事项序号计数器，用于生成子事项编号
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uk_main_items_biz_key ON pmw_main_items(biz_key);
-CREATE UNIQUE INDEX IF NOT EXISTS uk_main_items_team_code_deleted ON pmw_main_items(team_key, code, deleted_flag, deleted_time);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_main_items_team_code_deleted ON pmw_main_items(team_key, item_code, deleted_flag, deleted_time);
 CREATE INDEX IF NOT EXISTS idx_main_items_team_key ON pmw_main_items(team_key);
 CREATE INDEX IF NOT EXISTS idx_main_items_assignee_key ON pmw_main_items(assignee_key);
 CREATE INDEX IF NOT EXISTS idx_main_items_expected_end_date ON pmw_main_items(expected_end_date);
@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS pmw_sub_items (
     deleted_time      DATETIME      NOT NULL DEFAULT '1970-01-01 08:00:00', -- 软删时间，未删除时为固定占位值
     team_key          INTEGER       NOT NULL,            -- 所属团队 biz_key
     main_item_key     INTEGER       NOT NULL,            -- 所属主事项 biz_key
-    code              VARCHAR(15)   NOT NULL DEFAULT '', -- 子事项编号，主事项内唯一
+    item_code         VARCHAR(15)   NOT NULL DEFAULT '', -- 子事项编号，主事项内唯一
     title             VARCHAR(100)  NOT NULL,            -- 子事项标题
     item_desc         VARCHAR(2000),                     -- 子事项描述
     priority          VARCHAR(5)    NOT NULL,            -- 优先级：P0/P1/P2/P3
@@ -109,13 +109,13 @@ CREATE TABLE IF NOT EXISTS pmw_sub_items (
     expected_end_date DATETIME,                          -- 预计结束日期
     actual_end_date   DATETIME,                          -- 实际结束日期
     item_status       VARCHAR(20)   NOT NULL DEFAULT '待开始', -- 事项状态：待开始/进行中/已完成/已暂停
-    completion        REAL          NOT NULL DEFAULT 0.00, -- 完成度百分比，0.00~100.00
+    completion_pct    REAL          NOT NULL DEFAULT 0.00, -- 完成度百分比，0.00~100.00
     is_key_item       INTEGER       NOT NULL DEFAULT 0,  -- 是否关键子事项：0=否，1=是
     delay_count       INTEGER       NOT NULL DEFAULT 0,  -- 延期次数
     weight            REAL          NOT NULL DEFAULT 1.00 -- 权重，用于计算父事项完成度
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uk_sub_items_biz_key ON pmw_sub_items(biz_key);
-CREATE UNIQUE INDEX IF NOT EXISTS uk_sub_items_main_code ON pmw_sub_items(main_item_key, code);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_sub_items_main_code ON pmw_sub_items(main_item_key, item_code);
 CREATE INDEX IF NOT EXISTS idx_sub_items_main_item_key ON pmw_sub_items(main_item_key);
 CREATE INDEX IF NOT EXISTS idx_sub_items_team_key ON pmw_sub_items(team_key);
 CREATE INDEX IF NOT EXISTS idx_sub_items_assignee_key ON pmw_sub_items(assignee_key);
@@ -158,7 +158,7 @@ CREATE TABLE IF NOT EXISTS pmw_progress_records (
     sub_item_key    INTEGER       NOT NULL,            -- 所属子事项 biz_key
     team_key        INTEGER       NOT NULL,            -- 所属团队 biz_key
     author_key      INTEGER       NOT NULL,            -- 填写人 biz_key
-    completion      REAL          NOT NULL,            -- 本次填写的完成度百分比
+    completion_pct  REAL          NOT NULL,            -- 本次填写的完成度百分比
     achievement     VARCHAR(1000),                     -- 本周成果
     blocker         VARCHAR(1000),                     -- 阻塞问题
     lesson          VARCHAR(1000),                     -- 经验教训
@@ -179,11 +179,11 @@ CREATE TABLE IF NOT EXISTS pmw_roles (
     db_update_time  DATETIME      NOT NULL DEFAULT (datetime('now')), -- 数据库更新时间
     deleted_flag    INTEGER       NOT NULL DEFAULT 0,  -- 软删标志：0=正常，1=已删除
     deleted_time    DATETIME      NOT NULL DEFAULT '1970-01-01 08:00:00', -- 软删时间，未删除时为固定占位值
-    name            VARCHAR(50)   NOT NULL,            -- 角色名称
-    description     VARCHAR(200)  NOT NULL DEFAULT '', -- 角色描述
+    role_name       VARCHAR(50)   NOT NULL,            -- 角色名称
+    role_desc       VARCHAR(200)  NOT NULL DEFAULT '', -- 角色描述
     is_preset       INTEGER       NOT NULL DEFAULT 0   -- 是否预置角色：0=自定义，1=系统预置
 );
-CREATE UNIQUE INDEX IF NOT EXISTS uk_roles_name ON pmw_roles(name);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_roles_name ON pmw_roles(role_name);
 
 -- pmw_role_permissions (RBAC)
 CREATE TABLE IF NOT EXISTS pmw_role_permissions (

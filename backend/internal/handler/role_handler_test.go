@@ -296,7 +296,7 @@ func TestUpdateRole_Success(t *testing.T) {
 	// Create a custom role
 	require.NoError(t, db.Create(&model.Role{BaseModel: model.BaseModel{BizKey: 100}, Name: "custom1", Description: "custom role", IsPreset: false}).Error)
 	var customRole model.Role
-	require.NoError(t, db.Where("name = ?", "custom1").First(&customRole).Error)
+	require.NoError(t, db.Where("role_name = ?", "custom1").First(&customRole).Error)
 
 	token := rbacSignSuperToken(t)
 	body := `{"description":"updated desc","permissionCodes":["team:read"]}`
@@ -367,7 +367,7 @@ func TestDeleteRole_Success(t *testing.T) {
 
 	require.NoError(t, db.Create(&model.Role{BaseModel: model.BaseModel{BizKey: 101}, Name: "deleteme", Description: "will be deleted", IsPreset: false}).Error)
 	var customRole model.Role
-	require.NoError(t, db.Where("name = ?", "deleteme").First(&customRole).Error)
+	require.NoError(t, db.Where("role_name = ?", "deleteme").First(&customRole).Error)
 
 	token := rbacSignSuperToken(t)
 	w := httptest.NewRecorder()

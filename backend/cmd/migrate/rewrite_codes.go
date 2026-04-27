@@ -42,7 +42,7 @@ func run(configPath string, dryRun bool) error {
 func migrate(ctx context.Context, db *gorm.DB, dryRun bool) error {
 	// Pre-condition: every team must have a non-empty code.
 	var teamsWithoutCode []model.Team
-	if err := db.WithContext(ctx).Where("code = '' OR code IS NULL").Find(&teamsWithoutCode).Error; err != nil {
+	if err := db.WithContext(ctx).Where("team_code = '' OR team_code IS NULL").Find(&teamsWithoutCode).Error; err != nil {
 		return fmt.Errorf("check teams: %w", err)
 	}
 	if len(teamsWithoutCode) > 0 {
@@ -85,7 +85,7 @@ func migrate(ctx context.Context, db *gorm.DB, dryRun bool) error {
 					log.Printf("[dry-run] main_item id=%d: %q -> %q", item.ID, item.Code, newCode)
 					continue
 				}
-				if err := tx.Model(&model.MainItem{}).Where("id = ?", item.ID).Update("code", newCode).Error; err != nil {
+				if err := tx.Model(&model.MainItem{}).Where("id = ?", item.ID).Update("item_code", newCode).Error; err != nil {
 					return fmt.Errorf("update main_item id=%d: %w", item.ID, err)
 				}
 			}
@@ -114,7 +114,7 @@ func migrate(ctx context.Context, db *gorm.DB, dryRun bool) error {
 					log.Printf("[dry-run] sub_item id=%d: %q -> %q", sub.ID, sub.Code, newCode)
 					continue
 				}
-				if err := tx.Model(&model.SubItem{}).Where("id = ?", sub.ID).Update("code", newCode).Error; err != nil {
+				if err := tx.Model(&model.SubItem{}).Where("id = ?", sub.ID).Update("item_code", newCode).Error; err != nil {
 					return fmt.Errorf("update sub_item id=%d: %w", sub.ID, err)
 				}
 			}
@@ -126,7 +126,7 @@ func migrate(ctx context.Context, db *gorm.DB, dryRun bool) error {
 
 		// Post-migration validation.
 		var oldFormatCount int64
-		if err := tx.Model(&model.MainItem{}).Where("code LIKE 'MI-%'").Count(&oldFormatCount).Error; err != nil {
+		if err := tx.Model(&model.MainItem{}).Where("item_code LIKE 'MI-%'").Count(&oldFormatCount).Error; err != nil {
 			return fmt.Errorf("validation (main_items old format): %w", err)
 		}
 		if oldFormatCount > 0 {
@@ -134,7 +134,7 @@ func migrate(ctx context.Context, db *gorm.DB, dryRun bool) error {
 		}
 
 		var emptySubCodeCount int64
-		if err := tx.Model(&model.SubItem{}).Where("code IS NULL OR code = ''").Count(&emptySubCodeCount).Error; err != nil {
+		if err := tx.Model(&model.SubItem{}).Where("item_code IS NULL OR item_code = ''").Count(&emptySubCodeCount).Error; err != nil {
 			return fmt.Errorf("validation (sub_items empty code): %w", err)
 		}
 		if emptySubCodeCount > 0 {

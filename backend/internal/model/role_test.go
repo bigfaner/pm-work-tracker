@@ -41,7 +41,7 @@ func TestRole_HasSoftDelete(t *testing.T) {
 
 	// Should NOT be found after hard delete
 	var found model.Role
-	err = db.First(&found, "name = ?", "to-delete").Error
+	err = db.First(&found, "role_name = ?", "to-delete").Error
 	assert.Error(t, err, "deleted role should not be found")
 }
 
@@ -54,7 +54,7 @@ func TestRole_Defaults(t *testing.T) {
 	require.NoError(t, db.Create(&r).Error)
 
 	var fetched model.Role
-	db.First(&fetched, "name = ?", "custom")
+	db.First(&fetched, "role_name = ?", "custom")
 	assert.Equal(t, "custom", fetched.Name)
 	assert.Equal(t, "A custom role", fetched.Description)
 	assert.False(t, fetched.IsPreset, "IsPreset should default to false")

@@ -101,7 +101,7 @@ func TestMigrateToRBAC_PresetRolesSeeded(t *testing.T) {
 
 	// Check superadmin role
 	var superadmin model.Role
-	require.NoError(t, db.Where("name = ?", "superadmin").First(&superadmin).Error)
+	require.NoError(t, db.Where("role_name = ?", "superadmin").First(&superadmin).Error)
 	assert.True(t, superadmin.IsPreset)
 	assert.Equal(t, uint(1), superadmin.ID)
 
@@ -112,7 +112,7 @@ func TestMigrateToRBAC_PresetRolesSeeded(t *testing.T) {
 
 	// Check pm role
 	var pm model.Role
-	require.NoError(t, db.Where("name = ?", "pm").First(&pm).Error)
+	require.NoError(t, db.Where("role_name = ?", "pm").First(&pm).Error)
 	assert.True(t, pm.IsPreset)
 	assert.Equal(t, uint(2), pm.ID)
 
@@ -123,7 +123,7 @@ func TestMigrateToRBAC_PresetRolesSeeded(t *testing.T) {
 
 	// Check member role
 	var member model.Role
-	require.NoError(t, db.Where("name = ?", "member").First(&member).Error)
+	require.NoError(t, db.Where("role_name = ?", "member").First(&member).Error)
 	assert.True(t, member.IsPreset)
 	assert.Equal(t, uint(3), member.ID)
 
@@ -488,7 +488,7 @@ func TestSeedRole_SkipsExisting(t *testing.T) {
 
 	// Should still be the original role
 	var role model.Role
-	require.NoError(t, db.Where("name = ?", "pm").First(&role).Error)
+	require.NoError(t, db.Where("role_name = ?", "pm").First(&role).Error)
 	assert.Equal(t, "existing", role.Description, "existing role should not be modified")
 
 	// No permission codes should have been added

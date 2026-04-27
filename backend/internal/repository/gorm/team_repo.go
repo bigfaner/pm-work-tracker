@@ -53,7 +53,7 @@ func (r *teamRepo) List(ctx context.Context) ([]*model.Team, error) {
 func (r *teamRepo) ListFiltered(ctx context.Context, search string, offset, limit int) ([]*model.Team, int64, error) {
 	q := r.db.WithContext(ctx).Model(&model.Team{})
 	if search != "" {
-		q = q.Where("team_name LIKE ? OR code LIKE ?", "%"+search+"%", "%"+search+"%")
+		q = q.Where("team_name LIKE ? OR team_code LIKE ?", "%"+search+"%", "%"+search+"%")
 	}
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
@@ -136,7 +136,7 @@ func (r *teamRepo) ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMem
 	err := r.db.WithContext(ctx).
 		Table("pmw_team_members").
 		Select("pmw_team_members.biz_key, pmw_teams.biz_key as team_key, pmw_users.biz_key as user_key, "+
-			"CASE WHEN pmw_roles.name IS NOT NULL THEN pmw_roles.name "+
+			"CASE WHEN pmw_roles.role_name IS NOT NULL THEN pmw_roles.role_name "+
 			"     WHEN pmw_team_members.user_key = pmw_teams.pm_key THEN 'pm' "+
 			"     ELSE 'member' END as role, "+
 			"pmw_team_members.joined_at, pmw_users.display_name, pmw_users.username").
@@ -192,7 +192,7 @@ func (r *teamRepo) FindPMMembers(ctx context.Context, teamIDs []uint) (map[uint]
 		Select("pmw_team_members.team_key, pmw_users.display_name").
 		Joins("JOIN pmw_users ON pmw_users.id = pmw_team_members.user_key").
 		Joins("JOIN pmw_roles ON pmw_roles.id = pmw_team_members.role_key").
-		Where("pmw_team_members.team_key IN ? AND pmw_roles.name = ?", teamIDs, "pm").
+		Where("pmw_team_members.team_key IN ? AND pmw_roles.role_name = ?", teamIDs, "pm").
 		Scan(&rows).Error
 	if err != nil {
 		return nil, err
@@ -266,7 +266,7 @@ func (r *teamRepo) FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[
 	var rows []row
 	err := r.db.WithContext(ctx).
 		Table("pmw_team_members").
-		Select("pmw_team_members.user_key as user_id, pmw_team_members.team_key as team_id, pmw_teams.biz_key, pmw_teams.team_name as name, pmw_roles.name as role").
+		Select("pmw_team_members.user_key as user_id, pmw_team_members.team_key as team_id, pmw_teams.biz_key, pmw_teams.team_name as name, pmw_roles.role_name as role").
 		Joins("JOIN pmw_teams ON pmw_teams.id = pmw_team_members.team_key").
 		Joins("JOIN pmw_roles ON pmw_roles.id = pmw_team_members.role_key").
 		Where("pmw_team_members.user_key IN ?", userIDs).

@@ -67,7 +67,7 @@ func (m *mockMainItemRepo) Update(_ context.Context, item *model.MainItem, field
 	if s, ok := fields["item_status"]; ok {
 		item.ItemStatus = s.(string)
 	}
-	if c, ok := fields["completion"]; ok {
+	if c, ok := fields["completion_pct"]; ok {
 		item.Completion = c.(float64)
 	}
 	return m.updateErr
@@ -429,7 +429,7 @@ func TestRecalcCompletion_ZeroSubItems(t *testing.T) {
 
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
-	assert.InDelta(t, float64(0), mainRepo.updatedFields["completion"], 0.001)
+	assert.InDelta(t, float64(0), mainRepo.updatedFields["completion_pct"], 0.001)
 }
 
 func TestRecalcCompletion_OneSubItem(t *testing.T) {
@@ -448,7 +448,7 @@ func TestRecalcCompletion_OneSubItem(t *testing.T) {
 
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
-	assert.InDelta(t, float64(60), mainRepo.updatedFields["completion"], 0.001)
+	assert.InDelta(t, float64(60), mainRepo.updatedFields["completion_pct"], 0.001)
 }
 
 func TestRecalcCompletion_MultipleSubItems_EqualWeights(t *testing.T) {
@@ -470,7 +470,7 @@ func TestRecalcCompletion_MultipleSubItems_EqualWeights(t *testing.T) {
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
 	// Simple average with equal weights: (30+60+90)/3 = 60
-	assert.InDelta(t, float64(60), mainRepo.updatedFields["completion"], 0.001)
+	assert.InDelta(t, float64(60), mainRepo.updatedFields["completion_pct"], 0.001)
 }
 
 func TestRecalcCompletion_AllZeroWeights_FallbackSimpleAvg(t *testing.T) {
@@ -491,7 +491,7 @@ func TestRecalcCompletion_AllZeroWeights_FallbackSimpleAvg(t *testing.T) {
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
 	// Simple average: (50+80)/2 = 65
-	assert.InDelta(t, float64(65), mainRepo.updatedFields["completion"], 0.001)
+	assert.InDelta(t, float64(65), mainRepo.updatedFields["completion_pct"], 0.001)
 }
 
 func TestRecalcCompletion_VaryingWeights(t *testing.T) {
@@ -512,7 +512,7 @@ func TestRecalcCompletion_VaryingWeights(t *testing.T) {
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
 	// Weighted: (100*3 + 50*1) / (3+1) = 350/4 = 87.5
-	assert.InDelta(t, 87.5, mainRepo.updatedFields["completion"], 0.001)
+	assert.InDelta(t, 87.5, mainRepo.updatedFields["completion_pct"], 0.001)
 }
 
 func TestRecalcCompletion_ItemNotFound(t *testing.T) {
@@ -689,7 +689,7 @@ func TestChangeStatus_TerminalSideEffects(t *testing.T) {
 			_, err := svc.ChangeStatus(context.Background(), 1, 10, 1, tt.newStatus)
 			require.NoError(t, err)
 
-			assert.Equal(t, float64(100), mainRepo.updatedFields["completion"])
+			assert.Equal(t, float64(100), mainRepo.updatedFields["completion_pct"])
 			assert.NotNil(t, mainRepo.updatedFields["actual_end_date"])
 		})
 	}
@@ -710,7 +710,7 @@ func TestChangeStatus_NonTerminal_NoSideEffects(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "progressing", mainRepo.updatedFields["item_status"])
-	_, hasCompletion := mainRepo.updatedFields["completion"]
+	_, hasCompletion := mainRepo.updatedFields["completion_pct"]
 	assert.False(t, hasCompletion, "non-terminal transition should not set completion")
 	_, hasEndDate := mainRepo.updatedFields["actual_end_date"]
 	assert.False(t, hasEndDate, "non-terminal transition should not set actual_end_date")
@@ -948,7 +948,7 @@ func TestEvaluateLinkage_Priority2_AllClosed(t *testing.T) {
 	assert.True(t, result.Success)
 	assert.Equal(t, "closed", result.TargetStatus)
 	// Terminal side effects
-	assert.Equal(t, float64(100), mainRepo.updatedFields["completion"])
+	assert.Equal(t, float64(100), mainRepo.updatedFields["completion_pct"])
 	assert.NotNil(t, mainRepo.updatedFields["actual_end_date"])
 }
 
@@ -1194,7 +1194,7 @@ func TestEvaluateLinkage_TerminalSideEffects(t *testing.T) {
 	require.NotNil(t, result)
 	assert.True(t, result.Success)
 	assert.Equal(t, "closed", result.TargetStatus)
-	assert.Equal(t, float64(100), mainRepo.updatedFields["completion"])
+	assert.Equal(t, float64(100), mainRepo.updatedFields["completion_pct"])
 	assert.NotNil(t, mainRepo.updatedFields["actual_end_date"])
 }
 

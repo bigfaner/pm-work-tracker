@@ -40,7 +40,7 @@ func TestDialectSelectClause_SQLite(t *testing.T) {
 
 	startPos := len("FEAT") + 1 // = 5
 	expr := "MAX(" + d.CastInt(dbutil.NewColumnExpr(d.Substr(dbutil.ColCode, startPos))) + ")"
-	assert.Equal(t, "MAX(CAST(SUBSTR(code, 5) AS INTEGER))", expr)
+	assert.Equal(t, "MAX(CAST(SUBSTR(item_code, 5) AS INTEGER))", expr)
 }
 
 func TestDialectSelectClause_MySQL(t *testing.T) {
@@ -49,5 +49,5 @@ func TestDialectSelectClause_MySQL(t *testing.T) {
 
 	startPos := len("FEAT") + 1 // = 5
 	expr := "MAX(" + d.CastInt(dbutil.NewColumnExpr(d.Substr(dbutil.ColCode, startPos))) + ")"
-	assert.Equal(t, "MAX(CAST(SUBSTRING(code, 5) AS SIGNED))", expr)
+	assert.Equal(t, "MAX(CAST(SUBSTRING(item_code, 5) AS SIGNED))", expr)
 }

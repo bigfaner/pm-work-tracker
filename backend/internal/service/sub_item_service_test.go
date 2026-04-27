@@ -380,7 +380,7 @@ func testValidTransitionTM(t *testing.T, from, to string) {
 			return false
 		}
 		if to == "completed" || to == "closed" {
-			return fields["completion"] == float64(100) && fields["actual_end_date"] != nil
+			return fields["completion_pct"] == float64(100) && fields["actual_end_date"] != nil
 		}
 		return true
 	})).Return(nil)
@@ -526,7 +526,7 @@ func TestChangeStatus_Completed_SetsCompletionAndActualEndDate(t *testing.T) {
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil).Once()
 	repo.On("Update", mock.Anything, existing, mock.MatchedBy(func(fields map[string]interface{}) bool {
 		return fields["item_status"] == "completed" &&
-			fields["completion"] == float64(100) &&
+			fields["completion_pct"] == float64(100) &&
 			fields["actual_end_date"] != nil
 	})).Return(nil)
 	repo.On("FindByID", mock.Anything, uint(1)).Return(updated, nil).Once()
@@ -566,7 +566,7 @@ func TestChangeStatus_Closed_SetsCompletionAndActualEndDate(t *testing.T) {
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil).Once()
 	repo.On("Update", mock.Anything, existing, mock.MatchedBy(func(fields map[string]interface{}) bool {
 		return fields["item_status"] == "closed" &&
-			fields["completion"] == float64(100) &&
+			fields["completion_pct"] == float64(100) &&
 			fields["actual_end_date"] != nil
 	})).Return(nil)
 	repo.On("FindByID", mock.Anything, uint(1)).Return(updated, nil).Once()

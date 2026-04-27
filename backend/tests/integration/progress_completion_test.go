@@ -303,7 +303,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart ti
 	require.NoError(t, db.Create(record).Error)
 
 	// Update MainItem completion to match
-	require.NoError(t, db.Model(mainItem).Update("completion", 50).Error)
+	require.NoError(t, db.Model(mainItem).Update("completion_pct", 50).Error)
 
 	return mainItem.Title
 }
