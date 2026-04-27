@@ -85,7 +85,7 @@ func TestMigrateToRBAC_FirstRunSuccess(t *testing.T) {
 	require.NoError(t, err)
 	defer sqlDB.Close()
 
-	err = MigrateToRBAC(db)
+	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 }
 
@@ -96,7 +96,7 @@ func TestMigrateToRBAC_PresetRolesSeeded(t *testing.T) {
 	require.NoError(t, err)
 	defer sqlDB.Close()
 
-	err = MigrateToRBAC(db)
+	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	// Check superadmin role
@@ -140,7 +140,7 @@ func TestMigrateToRBAC_TeamMemberRoleMigrated(t *testing.T) {
 	require.NoError(t, err)
 	defer sqlDB.Close()
 
-	err = MigrateToRBAC(db)
+	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	// Check pm user has role_key = 2
@@ -163,7 +163,7 @@ func TestMigrateToRBAC_TeamMembersRoleColumnRemoved(t *testing.T) {
 	require.NoError(t, err)
 	defer sqlDB.Close()
 
-	err = MigrateToRBAC(db)
+	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	// team_members table should no longer have role string column
@@ -182,7 +182,7 @@ func TestMigrateToRBAC_UsersDataPreserved(t *testing.T) {
 	require.NoError(t, err)
 	defer sqlDB.Close()
 
-	err = MigrateToRBAC(db)
+	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	// Verify user data survived the table rebuild
@@ -208,7 +208,7 @@ func TestMigrateToRBAC_TrackedInSchemaMigrations(t *testing.T) {
 	require.NoError(t, err)
 	defer sqlDB.Close()
 
-	err = MigrateToRBAC(db)
+	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	var count int64
@@ -226,7 +226,7 @@ func TestMigrateToRBAC_IdempotentReRun(t *testing.T) {
 	defer sqlDB.Close()
 
 	// First run
-	err = MigrateToRBAC(db)
+	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	// Count roles after first run
@@ -234,7 +234,7 @@ func TestMigrateToRBAC_IdempotentReRun(t *testing.T) {
 	db.Model(&model.Role{}).Count(&roleCount)
 
 	// Second run — should be a no-op
-	err = MigrateToRBAC(db)
+	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	// Role count should be unchanged
@@ -254,11 +254,11 @@ func TestMigrateToRBAC_IdempotentReRunPreservesData(t *testing.T) {
 	require.NoError(t, err)
 	defer sqlDB.Close()
 
-	err = MigrateToRBAC(db)
+	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	// Re-run
-	err = MigrateToRBAC(db)
+	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	// Data still intact
@@ -278,7 +278,7 @@ func TestMigrateToRBAC_RollbackOnClosedDB(t *testing.T) {
 	require.NoError(t, err)
 	sqlDB.Close()
 
-	err = MigrateToRBAC(db)
+	err = MigrateToRBAC(db, true)
 	assert.Error(t, err, "migration should fail on closed DB")
 }
 
@@ -291,7 +291,7 @@ func TestMigrateToRBAC_EmptyDBSucceeds(t *testing.T) {
 	require.NoError(t, err)
 	defer sqlDB.Close()
 
-	err = MigrateToRBAC(db)
+	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	// Verify roles were seeded
@@ -319,7 +319,7 @@ func TestMigrateToRBAC_TransactionRollback(t *testing.T) {
 	require.NoError(t, db.Create(&u).Error)
 
 	// Run migration — should succeed since no team_members to migrate
-	err = MigrateToRBAC(db)
+	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	// Verify schema_migrations has the entry
@@ -342,7 +342,7 @@ func TestMigrateToRBAC_PMPresetHasAllExpectedCodes(t *testing.T) {
 	require.NoError(t, err)
 	defer sqlDB.Close()
 
-	err = MigrateToRBAC(db)
+	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	err = VerifyPresetRoleCodes(db)
@@ -355,7 +355,7 @@ func TestMigrateToRBAC_SuperadminNoPermissionCodes(t *testing.T) {
 	require.NoError(t, err)
 	defer sqlDB.Close()
 
-	err = MigrateToRBAC(db)
+	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	count, err := CountPermissionsForRole(db, 1)
@@ -369,7 +369,7 @@ func TestMigrateToRBAC_MemberHasExactCodes(t *testing.T) {
 	require.NoError(t, err)
 	defer sqlDB.Close()
 
-	err = MigrateToRBAC(db)
+	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	expectedCodes := map[string]bool{
@@ -436,7 +436,7 @@ func TestMigrateToRBAC_UsersTableAlreadyMigrated(t *testing.T) {
 	defer sqlDB.Close()
 
 	// Run migration once
-	require.NoError(t, MigrateToRBAC(db))
+	require.NoError(t, MigrateToRBAC(db, true))
 
 
 	// Verify users are still there
@@ -460,7 +460,7 @@ func TestMigrateToRBAC_UnknownRoleDefaultsToMember(t *testing.T) {
 	// Create team member with an unknown role string via raw SQL (role column is gorm:"-")
 	require.NoError(t, db.Exec(`INSERT INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, 'custom_unknown_role', datetime('now'))`, team.ID, u.ID).Error)
 
-	err = MigrateToRBAC(db)
+	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
 	// The member with unknown role should default to member role_id=3
@@ -569,4 +569,81 @@ func TestTableExists(t *testing.T) {
 
 	require.NoError(t, db.Exec("CREATE TABLE pmw_users (id INTEGER PRIMARY KEY)").Error)
 	assert.True(t, tableExists(db, "pmw_users"))
+}
+
+// === autoSchema=false tests ===
+
+// setupAutoSchemaFalseDB simulates a DBA-managed environment: pmw_roles and
+// pmw_role_permissions tables are pre-created, but schema_migrations is not.
+func setupAutoSchemaFalseDB(t *testing.T) *gorm.DB {
+	t.Helper()
+	_ = snowflake.Init(1)
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+
+	require.NoError(t, db.Exec(`
+		CREATE TABLE pmw_roles (
+			id             INTEGER PRIMARY KEY AUTOINCREMENT,
+			biz_key        INTEGER NOT NULL DEFAULT 0,
+			create_time    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			db_update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			deleted_flag   INTEGER NOT NULL DEFAULT 0,
+			deleted_time   DATETIME NOT NULL DEFAULT '1970-01-01 08:00:00',
+			role_name      TEXT NOT NULL UNIQUE,
+			role_desc      TEXT NOT NULL DEFAULT '',
+			is_preset      INTEGER NOT NULL DEFAULT 0
+		)
+	`).Error)
+
+	require.NoError(t, db.Exec(`
+		CREATE TABLE pmw_role_permissions (
+			id              INTEGER PRIMARY KEY AUTOINCREMENT,
+			role_id         INTEGER NOT NULL,
+			permission_code TEXT NOT NULL,
+			UNIQUE(role_id, permission_code)
+		)
+	`).Error)
+
+	return db
+}
+
+func TestMigrateToRBAC_AutoSchemaFalse_NoSchemaMigrationsTable(t *testing.T) {
+	db := setupAutoSchemaFalseDB(t)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	defer sqlDB.Close()
+
+	err = MigrateToRBAC(db, false)
+	require.NoError(t, err)
+
+	assert.False(t, tableExists(db, "schema_migrations"),
+		"schema_migrations should not be created when autoSchema=false")
+}
+
+func TestMigrateToRBAC_AutoSchemaFalse_SeedsPresetRoles(t *testing.T) {
+	db := setupAutoSchemaFalseDB(t)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	defer sqlDB.Close()
+
+	err = MigrateToRBAC(db, false)
+	require.NoError(t, err)
+
+	var count int64
+	require.NoError(t, db.Model(&model.Role{}).Count(&count).Error)
+	assert.Equal(t, int64(3), count, "superadmin, pm, member should be seeded")
+}
+
+func TestMigrateToRBAC_AutoSchemaFalse_IdempotentReRun(t *testing.T) {
+	db := setupAutoSchemaFalseDB(t)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	defer sqlDB.Close()
+
+	require.NoError(t, MigrateToRBAC(db, false))
+	require.NoError(t, MigrateToRBAC(db, false))
+
+	var count int64
+	require.NoError(t, db.Model(&model.Role{}).Count(&count).Error)
+	assert.Equal(t, int64(3), count, "roles should not be duplicated on re-run")
 }
