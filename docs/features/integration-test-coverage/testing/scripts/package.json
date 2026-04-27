@@ -1,0 +1,16 @@
+{
+  "name": "e2e-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:api": "tsx api.spec.ts",
+    "test:all": "tsx api.spec.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "playwright": "^1.44.0",
+    "tsx": "^4.19.0",
+    "typescript": "^6.0.3",
+    "yaml": "^2.7.0"
+  }
+}
