@@ -20,6 +20,10 @@ func setupTeamTestDB(t *testing.T) *gormlib.DB {
 	db, err := gormlib.Open(sqlite.Open(":memory:"), &gormlib.Config{})
 	require.NoError(t, err)
 	require.NoError(t, db.AutoMigrate(&model.User{}, &model.Team{}, &model.Role{}, &model.TeamMember{}))
+	// Create the composite unique index that matches the real schema DDL.
+	// GORM AutoMigrate can't express a unique index spanning BaseModel fields + model fields,
+	// so we create it manually here to match the production migration.
+	require.NoError(t, db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS uk_team_user_deleted ON pmw_team_members(team_key, user_key, deleted_flag, deleted_time)").Error)
 	return db
 }
 
@@ -394,4 +398,76 @@ func TestTeamRepo_UpdateMember(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(team.ID), found.TeamKey)
 	assert.Equal(t, member.ID, uint(found.UserKey))
+}
+
+// --- RemoveMember soft-delete tests ---
+
+func TestTeamRepo_RemoveMember_SoftDeletes(t *testing.T) {
+	db := setupTeamTestDB(t)
+	repo := gormrepo.NewGormTeamRepo(db)
+	ctx := context.Background()
+
+	pm := seedUser(t, db, "pm_sd_rm")
+	member := seedUser(t, db, "member_sd_rm")
+	team := model.Team{TeamName: "Team SD RM", PmKey: int64(pm.ID), Code: "SDRM"}
+	require.NoError(t, repo.Create(ctx, &team))
+
+	tm := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(member.ID), JoinedAt: time.Now()}
+	require.NoError(t, repo.AddMember(ctx, &tm))
+
+	require.NoError(t, repo.RemoveMember(ctx, team.ID, member.ID))
+
+	// Record still exists in DB with deleted_flag=1
+	var count int64
+	db.Unscoped().Model(&model.TeamMember{}).Where("id = ?", tm.ID).Count(&count)
+	assert.Equal(t, int64(1), count, "team member should still exist as soft-deleted")
+
+	var found model.TeamMember
+	require.NoError(t, db.Unscoped().First(&found, tm.ID).Error)
+	assert.Equal(t, 1, found.DeletedFlag, "deleted_flag should be 1 after RemoveMember")
+
+	// FindMember should not find the removed member
+	_, err := repo.FindMember(ctx, team.ID, member.ID)
+	assert.ErrorIs(t, err, pkgerrors.ErrNotFound)
+}
+
+func TestTeamRepo_RemoveMember_NotFound(t *testing.T) {
+	db := setupTeamTestDB(t)
+	repo := gormrepo.NewGormTeamRepo(db)
+	ctx := context.Background()
+
+	pm := seedUser(t, db, "pm_sd_nf")
+	team := model.Team{TeamName: "Team SD NF", PmKey: int64(pm.ID), Code: "SDNF"}
+	require.NoError(t, repo.Create(ctx, &team))
+
+	err := repo.RemoveMember(ctx, team.ID, 9999)
+	assert.ErrorIs(t, err, pkgerrors.ErrNotFound)
+}
+
+func TestTeamRepo_RemoveMember_ReaddAfterRemove(t *testing.T) {
+	db := setupTeamTestDB(t)
+	repo := gormrepo.NewGormTeamRepo(db)
+	ctx := context.Background()
+
+	pm := seedUser(t, db, "pm_sd_ra")
+	member := seedUser(t, db, "member_sd_ra")
+	team := model.Team{TeamName: "Team SD RA", PmKey: int64(pm.ID), Code: "SDRA"}
+	require.NoError(t, repo.Create(ctx, &team))
+
+	tm := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(member.ID), JoinedAt: time.Now()}
+	require.NoError(t, repo.AddMember(ctx, &tm))
+
+	// Soft-delete the member
+	require.NoError(t, repo.RemoveMember(ctx, team.ID, member.ID))
+
+	// Re-add the same member (should create a new row, not error)
+	newTm := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(member.ID), JoinedAt: time.Now()}
+	require.NoError(t, repo.AddMember(ctx, &newTm))
+	assert.NotZero(t, newTm.ID)
+	assert.NotEqual(t, tm.ID, newTm.ID, "re-added member should have a new ID")
+
+	// FindMember should find the new record
+	found, err := repo.FindMember(ctx, team.ID, member.ID)
+	require.NoError(t, err)
+	assert.Equal(t, newTm.ID, found.ID)
 }

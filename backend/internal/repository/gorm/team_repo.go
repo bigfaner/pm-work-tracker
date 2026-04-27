@@ -97,8 +97,9 @@ func (r *teamRepo) AddMember(ctx context.Context, member *model.TeamMember) erro
 
 func (r *teamRepo) RemoveMember(ctx context.Context, teamID, userID uint) error {
 	result := r.db.WithContext(ctx).
-		Where("team_key = ? AND user_key = ?", teamID, userID).
-		Delete(&model.TeamMember{})
+		Model(&model.TeamMember{}).
+		Where("team_key = ? AND user_key = ? AND deleted_flag = 0", teamID, userID).
+		Updates(map[string]any{"deleted_flag": 1, "deleted_time": time.Now()})
 	if result.Error != nil {
 		return result.Error
 	}

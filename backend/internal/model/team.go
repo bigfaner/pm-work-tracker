@@ -17,8 +17,8 @@ func (Team) TableName() string {
 
 type TeamMember struct {
 	BaseModel
-	TeamKey  int64     `gorm:"not null;uniqueIndex:idx_team_member" json:"teamKey"`
-	UserKey  int64     `gorm:"not null;uniqueIndex:idx_team_member" json:"userKey"`
+	TeamKey  int64     `gorm:"not null" json:"teamKey"`
+	UserKey  int64     `gorm:"not null" json:"userKey"`
 	RoleKey  *int64    `json:"roleKey"`
 	JoinedAt time.Time `gorm:"not null" json:"joinedAt"`
 }

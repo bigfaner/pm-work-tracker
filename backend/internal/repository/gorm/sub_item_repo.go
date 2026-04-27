@@ -3,6 +3,7 @@ package gorm
 import (
 	"context"
 	"fmt"
+	"time"
 
 	gormlib "gorm.io/gorm"
 
@@ -36,7 +37,9 @@ func (r *subItemRepo) Update(ctx context.Context, item *model.SubItem, fields ma
 }
 
 func (r *subItemRepo) SoftDelete(ctx context.Context, id uint) error {
-	return r.db.WithContext(ctx).Delete(&model.SubItem{}, id).Error
+	return r.db.WithContext(ctx).Model(&model.SubItem{}).
+		Where("id = ?", id).
+		Updates(map[string]any{"deleted_flag": 1, "deleted_time": time.Now()}).Error
 }
 
 func (r *subItemRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.SubItem, error) {
