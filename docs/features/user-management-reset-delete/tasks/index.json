@@ -163,6 +163,14 @@
       "file": "3.3-delete-dialog-actions-copy.md",
       "record": "records/3.3-delete-dialog-actions-copy.md"
     },
+    "fix-e2e-1-1": {
+      "id": "fix-e2e-1-1",
+      "title": "修复 e2e 测试失败: unknown",
+      "priority": "P0",
+      "status": "in_progress",
+      "file": "fix-e2e-1-1.md",
+      "record": "records/fix-e2e-1-1.md"
+    },
     "gen-test-cases": {
       "id": "T-test-1",
       "title": "Generate e2e Test Cases",
@@ -199,5 +207,6 @@
     "P0",
     "P1",
     "P2"
-  ]
+  ],
+  "e2eRound": 1
 }
