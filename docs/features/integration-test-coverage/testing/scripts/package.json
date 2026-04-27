@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "node --import tsx --test api.spec.ts",
     "test:api": "node --import tsx --test api.spec.ts",
     "test:all": "node --import tsx --test api.spec.ts"
   },
