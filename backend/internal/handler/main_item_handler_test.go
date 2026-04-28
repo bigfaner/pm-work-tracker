@@ -133,7 +133,7 @@ func (m *mockMainItemService) GetByBizKey(_ context.Context, bizKey int64) (*mod
 	return m.getResult.item, m.getResult.err
 }
 
-func (m *mockMainItemService) RecalcCompletion(_ context.Context, _ uint) error {
+func (m *mockMainItemService) RecalcCompletion(_ context.Context, _ int64) error {
 	return nil
 }
 
@@ -153,7 +153,7 @@ func (m *mockMainItemService) AvailableTransitions(_ context.Context, _ int64, c
 	return m.availableTransitionsResult.transitions, m.availableTransitionsResult.err
 }
 
-func (m *mockMainItemService) EvaluateLinkage(_ context.Context, _ uint, _ uint) (*service.LinkageResult, error) {
+func (m *mockMainItemService) EvaluateLinkage(_ context.Context, _ int64, _ uint) (*service.LinkageResult, error) {
 	return nil, nil
 }
 
@@ -175,10 +175,10 @@ func (m *mockSubItemRepoForHandler) FindByID(_ context.Context, _ uint) (*model.
 func (m *mockSubItemRepoForHandler) Update(_ context.Context, _ *model.SubItem, _ map[string]interface{}) error {
 	return nil
 }
-func (m *mockSubItemRepoForHandler) List(_ context.Context, _ int64, _ uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockSubItemRepoForHandler) List(_ context.Context, _ int64, _ int64, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
-func (m *mockSubItemRepoForHandler) ListByMainItem(_ context.Context, _ uint) ([]*model.SubItem, error) {
+func (m *mockSubItemRepoForHandler) ListByMainItem(_ context.Context, _ int64) ([]*model.SubItem, error) {
 	return m.items, m.err
 }
 func (m *mockSubItemRepoForHandler) ListByTeam(_ context.Context, _ int64) ([]model.SubItem, error) {
@@ -190,7 +190,7 @@ func (m *mockSubItemRepoForHandler) SoftDelete(_ context.Context, _ uint) error 
 func (m *mockSubItemRepoForHandler) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
 	return nil, nil
 }
-func (m *mockSubItemRepoForHandler) NextSubCode(_ context.Context, _ uint) (string, error) {
+func (m *mockSubItemRepoForHandler) NextSubCode(_ context.Context, _ int64) (string, error) {
 	return "", nil
 }
 // Helpers

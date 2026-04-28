@@ -127,11 +127,11 @@ func (m *mockSubItemRepo) Update(_ context.Context, item *model.SubItem, fields 
 	return nil
 }
 
-func (m *mockSubItemRepo) List(_ context.Context, teamBizKey int64, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockSubItemRepo) List(_ context.Context, teamBizKey int64, mainItemBizKey int64, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
 
-func (m *mockSubItemRepo) ListByMainItem(_ context.Context, mainItemID uint) ([]*model.SubItem, error) {
+func (m *mockSubItemRepo) ListByMainItem(_ context.Context, mainItemBizKey int64) ([]*model.SubItem, error) {
 	if m.findErr != nil {
 		return nil, m.findErr
 	}
@@ -148,7 +148,7 @@ func (m *mockSubItemRepo) SoftDelete(_ context.Context, _ uint) error {
 func (m *mockSubItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
 	return nil, nil
 }
-func (m *mockSubItemRepo) NextSubCode(_ context.Context, _ uint) (string, error) {
+func (m *mockSubItemRepo) NextSubCode(_ context.Context, _ int64) (string, error) {
 	return "", nil
 }
 type mockStatusHistorySvc struct {
@@ -423,7 +423,7 @@ func TestRecalcCompletion_ZeroSubItems(t *testing.T) {
 		TeamKey: 1,
 		Completion: 50,
 	}
-	mainRepo := &mockMainItemRepo{item: existing}
+	mainRepo := &mockMainItemRepo{bizKeyItem: existing}
 	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{}}
 	svc := NewMainItemService(mainRepo, subRepo, nil)
 
@@ -438,7 +438,7 @@ func TestRecalcCompletion_OneSubItem(t *testing.T) {
 		TeamKey: 1,
 		Completion: 0,
 	}
-	mainRepo := &mockMainItemRepo{item: existing}
+	mainRepo := &mockMainItemRepo{bizKeyItem: existing}
 	subRepo := &mockSubItemRepo{
 		subItems: []*model.SubItem{
 			{Completion: 60, Weight: 1.0},
@@ -457,7 +457,7 @@ func TestRecalcCompletion_MultipleSubItems_EqualWeights(t *testing.T) {
 		TeamKey: 1,
 		Completion: 0,
 	}
-	mainRepo := &mockMainItemRepo{item: existing}
+	mainRepo := &mockMainItemRepo{bizKeyItem: existing}
 	subRepo := &mockSubItemRepo{
 		subItems: []*model.SubItem{
 			{Completion: 30, Weight: 1.0},
@@ -479,7 +479,7 @@ func TestRecalcCompletion_AllZeroWeights_FallbackSimpleAvg(t *testing.T) {
 		TeamKey: 1,
 		Completion: 0,
 	}
-	mainRepo := &mockMainItemRepo{item: existing}
+	mainRepo := &mockMainItemRepo{bizKeyItem: existing}
 	subRepo := &mockSubItemRepo{
 		subItems: []*model.SubItem{
 			{Completion: 50, Weight: 0},
@@ -500,7 +500,7 @@ func TestRecalcCompletion_VaryingWeights(t *testing.T) {
 		TeamKey: 1,
 		Completion: 0,
 	}
-	mainRepo := &mockMainItemRepo{item: existing}
+	mainRepo := &mockMainItemRepo{bizKeyItem: existing}
 	subRepo := &mockSubItemRepo{
 		subItems: []*model.SubItem{
 			{Completion: 100, Weight: 3.0},
@@ -516,7 +516,7 @@ func TestRecalcCompletion_VaryingWeights(t *testing.T) {
 }
 
 func TestRecalcCompletion_ItemNotFound(t *testing.T) {
-	mainRepo := &mockMainItemRepo{findErr: gorm.ErrRecordNotFound}
+	mainRepo := &mockMainItemRepo{bizKeyErr: gorm.ErrRecordNotFound}
 	subRepo := &mockSubItemRepo{}
 	svc := NewMainItemService(mainRepo, subRepo, nil)
 
@@ -848,7 +848,7 @@ func TestEvaluateLinkage_NoSubItems_NoLinkageTriggered(t *testing.T) {
 		TeamKey: 1,
 		ItemStatus: "pending",
 	}
-	mainRepo := &mockMainItemRepo{item: mainItem}
+	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{}}
 	svc := NewMainItemService(mainRepo, subRepo, nil)
 
@@ -858,7 +858,7 @@ func TestEvaluateLinkage_NoSubItems_NoLinkageTriggered(t *testing.T) {
 }
 
 func TestEvaluateLinkage_MainItemNotFound(t *testing.T) {
-	mainRepo := &mockMainItemRepo{findErr: gorm.ErrRecordNotFound}
+	mainRepo := &mockMainItemRepo{bizKeyErr: gorm.ErrRecordNotFound}
 	subRepo := &mockSubItemRepo{}
 	svc := NewMainItemService(mainRepo, subRepo, nil)
 
@@ -871,7 +871,7 @@ func TestEvaluateLinkage_SubItemRepoError(t *testing.T) {
 		BaseModel: model.BaseModel{ID: 1},
 		ItemStatus: "pending",
 	}
-	mainRepo := &mockMainItemRepo{item: mainItem}
+	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 	subRepo := &mockSubItemRepo{findErr: errors.New("db error")}
 	svc := NewMainItemService(mainRepo, subRepo, nil)
 
@@ -908,7 +908,7 @@ func TestEvaluateLinkage_Priority1_AllCompletedOrClosed(t *testing.T) {
 				BaseModel: model.BaseModel{ID: 1},
 				ItemStatus: "progressing",
 			}
-			mainRepo := &mockMainItemRepo{item: mainItem}
+			mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 			subRepo := &mockSubItemRepo{subItems: tt.items}
 			historySvc := &mockStatusHistorySvc{}
 			svc := NewMainItemService(mainRepo, subRepo, historySvc)
@@ -935,7 +935,7 @@ func TestEvaluateLinkage_Priority2_AllClosed(t *testing.T) {
 		BaseModel: model.BaseModel{ID: 1},
 		ItemStatus: "pending",
 	}
-	mainRepo := &mockMainItemRepo{item: mainItem}
+	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{
 		{ItemStatus: "closed"},
 		{ItemStatus: "closed"},
@@ -981,7 +981,7 @@ func TestEvaluateLinkage_Priority3_AllPausing(t *testing.T) {
 				BaseModel: model.BaseModel{ID: 1},
 				ItemStatus: "progressing",
 			}
-			mainRepo := &mockMainItemRepo{item: mainItem}
+			mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 			subRepo := &mockSubItemRepo{subItems: tt.items}
 			svc := NewMainItemService(mainRepo, subRepo, nil)
 
@@ -1033,7 +1033,7 @@ func TestEvaluateLinkage_Priority4_AnyBlocking(t *testing.T) {
 				BaseModel: model.BaseModel{ID: 1},
 				ItemStatus: tt.mainStatus,
 			}
-			mainRepo := &mockMainItemRepo{item: mainItem}
+			mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 			subRepo := &mockSubItemRepo{subItems: tt.items}
 			svc := NewMainItemService(mainRepo, subRepo, nil)
 
@@ -1081,7 +1081,7 @@ func TestEvaluateLinkage_Priority5_AnyProgressing(t *testing.T) {
 				BaseModel: model.BaseModel{ID: 1},
 				ItemStatus: tt.mainStatus,
 			}
-			mainRepo := &mockMainItemRepo{item: mainItem}
+			mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 			subRepo := &mockSubItemRepo{subItems: tt.items}
 			svc := NewMainItemService(mainRepo, subRepo, nil)
 
@@ -1105,7 +1105,7 @@ func TestEvaluateLinkage_ReviewingAndNewPending(t *testing.T) {
 		BaseModel: model.BaseModel{ID: 1},
 		ItemStatus: "reviewing",
 	}
-	mainRepo := &mockMainItemRepo{item: mainItem}
+	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{
 		{ItemStatus: "completed"},
 		{ItemStatus: "pending"},
@@ -1130,7 +1130,7 @@ func TestEvaluateLinkage_Failure_TransitionNotAllowed(t *testing.T) {
 		BaseModel: model.BaseModel{ID: 1},
 		ItemStatus: "blocking", // blocking -> reviewing is not valid
 	}
-	mainRepo := &mockMainItemRepo{item: mainItem}
+	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{
 		{ItemStatus: "completed"},
 		{ItemStatus: "completed"},
@@ -1162,7 +1162,7 @@ func TestEvaluateLinkage_SameStatus_NoTransition(t *testing.T) {
 		BaseModel: model.BaseModel{ID: 1},
 		ItemStatus: "reviewing", // All completed would target reviewing -> same status
 	}
-	mainRepo := &mockMainItemRepo{item: mainItem}
+	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{
 		{ItemStatus: "completed"},
 		{ItemStatus: "completed"},
@@ -1182,7 +1182,7 @@ func TestEvaluateLinkage_TerminalSideEffects(t *testing.T) {
 		ItemStatus: "pending",
 		Completion: 30,
 	}
-	mainRepo := &mockMainItemRepo{item: mainItem}
+	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{
 		{ItemStatus: "closed"},
 		{ItemStatus: "closed"},
@@ -1205,7 +1205,7 @@ func TestEvaluateLinkage_StatusHistoryIsAuto(t *testing.T) {
 		BaseModel: model.BaseModel{ID: 1},
 		ItemStatus: "progressing",
 	}
-	mainRepo := &mockMainItemRepo{item: mainItem}
+	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{
 		{ItemStatus: "completed"},
 	}}
@@ -1264,7 +1264,7 @@ func TestGetLinkageMutex_LRUEviction(t *testing.T) {
 
 	// Fill up to capacity
 	for i := 0; i < maxLinkageMuMapSize; i++ {
-		getLinkageMutex(uint(i))
+		getLinkageMutex(int64(i))
 	}
 	assert.Len(t, linkageMuMap, maxLinkageMuMapSize)
 
@@ -1272,7 +1272,7 @@ func TestGetLinkageMutex_LRUEviction(t *testing.T) {
 	getLinkageMutex(0)
 
 	// Adding one more should evict the LRU entry (ID 1, since ID 0 was just accessed)
-	getLinkageMutex(uint(maxLinkageMuMapSize))
+	getLinkageMutex(int64(maxLinkageMuMapSize))
 	assert.Len(t, linkageMuMap, maxLinkageMuMapSize)
 
 	// ID 0 should still exist (was accessed recently)
@@ -1290,7 +1290,7 @@ func TestGetLinkageMutex_CapacityBounded(t *testing.T) {
 
 	// Add far more than capacity
 	for i := 0; i < maxLinkageMuMapSize+100; i++ {
-		getLinkageMutex(uint(i))
+		getLinkageMutex(int64(i))
 	}
 	assert.Len(t, linkageMuMap, maxLinkageMuMapSize)
 }

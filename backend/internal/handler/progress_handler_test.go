@@ -164,7 +164,7 @@ func (m *mockSubItemSvcForProgress) Get(_ context.Context, _ int64, _ uint) (*mo
 func (m *mockSubItemSvcForProgress) GetByBizKey(_ context.Context, bizKey int64) (*model.SubItem, error) {
 	return &model.SubItem{BaseModel: model.BaseModel{ID: uint(bizKey)}}, nil
 }
-func (m *mockSubItemSvcForProgress) List(_ context.Context, _ int64, _ *uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockSubItemSvcForProgress) List(_ context.Context, _ int64, _ *int64, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
 func (m *mockSubItemSvcForProgress) Assign(_ context.Context, _ int64, _, _, _ uint) error { return nil }

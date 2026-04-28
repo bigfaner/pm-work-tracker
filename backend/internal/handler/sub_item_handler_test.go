@@ -62,7 +62,7 @@ type mockSubItemService struct {
 	lastItemID  uint
 
 	listCalled    bool
-	lastMainID    *uint
+	lastMainID    *int64
 	lastFilter    dto.SubItemFilter
 	lastPage      dto.Pagination
 
@@ -112,7 +112,7 @@ func (m *mockSubItemService) Get(_ context.Context, teamBizKey int64, itemID uin
 	return m.getResult.item, m.getResult.err
 }
 
-func (m *mockSubItemService) List(_ context.Context, teamBizKey int64, mainItemID *uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockSubItemService) List(_ context.Context, teamBizKey int64, mainItemID *int64, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	m.listCalled = true
 	m.lastTeamID = uint(teamBizKey)
 	m.lastMainID = mainItemID
@@ -158,14 +158,14 @@ func (m *mockMainItemSvcForSubItem) Get(_ context.Context, _ uint) (*model.MainI
 func (m *mockMainItemSvcForSubItem) GetByBizKey(_ context.Context, bizKey int64) (*model.MainItem, error) {
 	return &model.MainItem{BaseModel: model.BaseModel{ID: uint(bizKey)}}, nil
 }
-func (m *mockMainItemSvcForSubItem) RecalcCompletion(_ context.Context, _ uint) error { return nil }
+func (m *mockMainItemSvcForSubItem) RecalcCompletion(_ context.Context, _ int64) error { return nil }
 func (m *mockMainItemSvcForSubItem) ChangeStatus(_ context.Context, _ int64, _, _ uint, _ string) (*model.MainItem, error) {
 	return nil, nil
 }
 func (m *mockMainItemSvcForSubItem) AvailableTransitions(_ context.Context, _ int64, _, _ uint) ([]string, error) {
 	return nil, nil
 }
-func (m *mockMainItemSvcForSubItem) EvaluateLinkage(_ context.Context, _ uint, _ uint) (*service.LinkageResult, error) {
+func (m *mockMainItemSvcForSubItem) EvaluateLinkage(_ context.Context, _ int64, _ uint) (*service.LinkageResult, error) {
 	return nil, nil
 }
 

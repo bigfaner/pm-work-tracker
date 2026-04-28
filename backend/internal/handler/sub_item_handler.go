@@ -84,7 +84,7 @@ func (h *SubItemHandler) List(c *gin.Context) {
 		apperrors.RespondError(c, err)
 		return
 	}
-	mainID := mainItem.ID
+	mainItemBizKey := mainItem.BizKey
 
 	var filter dto.SubItemFilter
 	if err := c.ShouldBindQuery(&filter); err != nil {
@@ -99,7 +99,7 @@ func (h *SubItemHandler) List(c *gin.Context) {
 	}
 	_, page.Page, page.PageSize = dto.ApplyPaginationDefaults(page.Page, page.PageSize)
 
-	result, err := h.svc.List(c.Request.Context(), teamBizKey, &mainID, filter, page)
+	result, err := h.svc.List(c.Request.Context(), teamBizKey, &mainItemBizKey, filter, page)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

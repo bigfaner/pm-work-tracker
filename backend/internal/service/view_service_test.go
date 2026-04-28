@@ -102,10 +102,10 @@ func (m *mockViewSubItemRepo) FindByID(_ context.Context, _ uint) (*model.SubIte
 func (m *mockViewSubItemRepo) Update(_ context.Context, _ *model.SubItem, _ map[string]interface{}) error {
 	return nil
 }
-func (m *mockViewSubItemRepo) List(_ context.Context, _ int64, _ uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockViewSubItemRepo) List(_ context.Context, _ int64, _ int64, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
-func (m *mockViewSubItemRepo) ListByMainItem(_ context.Context, _ uint) ([]*model.SubItem, error) {
+func (m *mockViewSubItemRepo) ListByMainItem(_ context.Context, _ int64) ([]*model.SubItem, error) {
 	return nil, nil
 }
 func (m *mockViewSubItemRepo) ListByTeam(_ context.Context, _ int64) ([]model.SubItem, error) {
@@ -120,7 +120,7 @@ func (m *mockViewSubItemRepo) SoftDelete(_ context.Context, _ uint) error {
 func (m *mockViewSubItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
 	return nil, nil
 }
-func (m *mockViewSubItemRepo) NextSubCode(_ context.Context, _ uint) (string, error) {
+func (m *mockViewSubItemRepo) NextSubCode(_ context.Context, _ int64) (string, error) {
 	return "", nil
 }
 
@@ -2285,7 +2285,7 @@ func TestBuildWeeklyGroups_Stats(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			subsByMain := map[uint][]model.SubItem{1: tt.subs}
+			subsByMain := map[int64][]model.SubItem{1: tt.subs}
 			_, stats := buildWeeklyGroups(
 				[]model.MainItem{mainItem},
 				subsByMain,

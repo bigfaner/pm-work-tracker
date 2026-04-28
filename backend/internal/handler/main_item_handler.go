@@ -106,7 +106,7 @@ func (h *MainItemHandler) Get(c *gin.Context) {
 	itemVO := vo.NewMainItemVO(item)
 
 	// Fetch subItems summary
-	subItems, _ := h.subItemRepo.ListByMainItem(c.Request.Context(), item.ID)
+	subItems, _ := h.subItemRepo.ListByMainItem(c.Request.Context(), item.BizKey)
 
 	apperrors.RespondOK(c, gin.H{
 		"bizKey":          itemVO.BizKey,

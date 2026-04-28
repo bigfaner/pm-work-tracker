@@ -80,6 +80,8 @@ func TestConcurrentNextSubCode(t *testing.T) {
 	require.NoError(t, db.Create(&team).Error)
 	mi := model.MainItem{TeamKey: int64(team.ID), Code: "CSUB-00001", Title: "Main", Priority: "P1", ProposerKey: int64(u.ID), ItemStatus: "pending"}
 	require.NoError(t, db.Create(&mi).Error)
+	mi.BizKey = int64(mi.ID)
+	require.NoError(t, db.Save(&mi).Error)
 
 	results := make(chan string, 2)
 	var wg sync.WaitGroup
@@ -88,7 +90,7 @@ func TestConcurrentNextSubCode(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		go func() {
 			defer wg.Done()
-			code, err := subRepo.NextSubCode(ctx, mi.ID)
+			code, err := subRepo.NextSubCode(ctx, int64(mi.ID))
 			if err == nil {
 				results <- code
 			}

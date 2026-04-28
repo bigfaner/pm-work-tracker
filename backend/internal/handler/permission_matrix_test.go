@@ -54,14 +54,14 @@ func (m *mockMainItemSvc) Get(_ context.Context, _ uint) (*model.MainItem, error
 func (m *mockMainItemSvc) GetByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
 	return nil, nil
 }
-func (m *mockMainItemSvc) RecalcCompletion(_ context.Context, _ uint) error { return nil }
+func (m *mockMainItemSvc) RecalcCompletion(_ context.Context, _ int64) error { return nil }
 func (m *mockMainItemSvc) ChangeStatus(_ context.Context, _ int64, _, _ uint, _ string) (*model.MainItem, error) {
 	return nil, nil
 }
 func (m *mockMainItemSvc) AvailableTransitions(_ context.Context, _ int64, _, _ uint) ([]string, error) {
 	return nil, nil
 }
-func (m *mockMainItemSvc) EvaluateLinkage(_ context.Context, _, _ uint) (*service.LinkageResult, error) {
+func (m *mockMainItemSvc) EvaluateLinkage(_ context.Context, _ int64, _ uint) (*service.LinkageResult, error) {
 	return nil, nil
 }
 

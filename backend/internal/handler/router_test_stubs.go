@@ -76,7 +76,7 @@ func (s *StubMainItemSvc) Get(_ context.Context, _ uint) (*model.MainItem, error
 func (s *StubMainItemSvc) GetByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubMainItemSvc) RecalcCompletion(_ context.Context, _ uint) error {
+func (s *StubMainItemSvc) RecalcCompletion(_ context.Context, _ int64) error {
 	return fmt.Errorf("stub: not implemented")
 }
 
@@ -88,7 +88,7 @@ func (s *StubMainItemSvc) AvailableTransitions(_ context.Context, _ int64, _, _ 
 	return nil, fmt.Errorf("stub: not implemented")
 }
 
-func (s *StubMainItemSvc) EvaluateLinkage(_ context.Context, _ uint, _ uint) (*service.LinkageResult, error) {
+func (s *StubMainItemSvc) EvaluateLinkage(_ context.Context, _ int64, _ uint) (*service.LinkageResult, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 
@@ -108,7 +108,7 @@ func (s *StubSubItemSvc) ChangeStatus(_ context.Context, _ int64, _, _ uint, _ s
 func (s *StubSubItemSvc) Get(_ context.Context, _ int64, _ uint) (*model.SubItem, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubSubItemSvc) List(_ context.Context, _ int64, _ *uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (s *StubSubItemSvc) List(_ context.Context, _ int64, _ *int64, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubSubItemSvc) Assign(_ context.Context, _ int64, _, _, _ uint) error {
@@ -248,10 +248,10 @@ func (s *StubRouterRepoSubItem) FindByID(_ context.Context, _ uint) (*model.SubI
 func (s *StubRouterRepoSubItem) Update(_ context.Context, _ *model.SubItem, _ map[string]interface{}) error {
 	return nil
 }
-func (s *StubRouterRepoSubItem) List(_ context.Context, _ int64, _ uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (s *StubRouterRepoSubItem) List(_ context.Context, _ int64, _ int64, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
-func (s *StubRouterRepoSubItem) ListByMainItem(_ context.Context, _ uint) ([]*model.SubItem, error) {
+func (s *StubRouterRepoSubItem) ListByMainItem(_ context.Context, _ int64) ([]*model.SubItem, error) {
 	return nil, nil
 }
 func (s *StubRouterRepoSubItem) ListByTeam(_ context.Context, _ int64) ([]model.SubItem, error) {
@@ -261,7 +261,7 @@ func (s *StubRouterRepoSubItem) SoftDelete(_ context.Context, _ uint) error { re
 func (s *StubRouterRepoSubItem) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
 	return nil, nil
 }
-func (s *StubRouterRepoSubItem) NextSubCode(_ context.Context, _ uint) (string, error) {
+func (s *StubRouterRepoSubItem) NextSubCode(_ context.Context, _ int64) (string, error) {
 	return "", nil
 }
 

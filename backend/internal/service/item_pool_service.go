@@ -90,7 +90,7 @@ func (s *itemPoolService) Assign(ctx context.Context, teamBizKey int64, pmID, po
 		subItem := &model.SubItem{
 			BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
 			TeamKey:     teamBizKey,
-			MainItemKey: int64(mainItem.ID),
+			MainItemKey: mainItem.BizKey,
 			Title:       poolItem.Title,
 			ItemDesc:    poolItem.Background,
 			Priority:    defaultPriority(req.Priority),

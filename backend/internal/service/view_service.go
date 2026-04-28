@@ -217,11 +217,11 @@ func resolveSubItemAssigneeNames(ctx context.Context, subItems []model.SubItem, 
 	return names
 }
 
-// indexSubItemsByMain groups sub-items by their main item ID.
-func indexSubItemsByMain(subItems []model.SubItem) map[uint][]model.SubItem {
-	result := make(map[uint][]model.SubItem)
+// indexSubItemsByMain groups sub-items by their main item BizKey.
+func indexSubItemsByMain(subItems []model.SubItem) map[int64][]model.SubItem {
+	result := make(map[int64][]model.SubItem)
 	for _, si := range subItems {
-		result[uint(si.MainItemKey)] = append(result[uint(si.MainItemKey)], si)
+		result[si.MainItemKey] = append(result[si.MainItemKey], si)
 	}
 	return result
 }
@@ -274,7 +274,7 @@ func buildSubItemSnapshot(si model.SubItem, assigneeName, progressDesc string, t
 // buildWeeklyGroups assembles the comparison groups and computes aggregate stats.
 func buildWeeklyGroups(
 	mainItems []model.MainItem,
-	subItemsByMain map[uint][]model.SubItem,
+	subItemsByMain map[int64][]model.SubItem,
 	lastWeekActive, thisWeekActive map[int64]struct{},
 	lastWeekProgress, thisWeekProgress map[int64][]model.ProgressRecord,
 	lastWeekCompletion map[int64]float64,
@@ -286,7 +286,7 @@ func buildWeeklyGroups(
 	var stats dto.WeeklyStats
 
 	for _, mi := range mainItems {
-		subs, ok := subItemsByMain[mi.ID]
+		subs, ok := subItemsByMain[mi.BizKey]
 		if !ok || len(subs) == 0 {
 			continue
 		}
@@ -480,10 +480,10 @@ func (s *viewService) GanttView(ctx context.Context, teamBizKey int64, filter dt
 		return nil, err
 	}
 
-	// Index sub-items by main item ID
-	subItemsByMain := make(map[uint][]model.SubItem)
+	// Index sub-items by main item BizKey
+	subItemsByMain := make(map[int64][]model.SubItem)
 	for _, si := range subItems {
-		subItemsByMain[uint(si.MainItemKey)] = append(subItemsByMain[uint(si.MainItemKey)], si)
+		subItemsByMain[si.MainItemKey] = append(subItemsByMain[si.MainItemKey], si)
 	}
 
 	now := time.Now()
@@ -491,7 +491,7 @@ func (s *viewService) GanttView(ctx context.Context, teamBizKey int64, filter dt
 
 	items := make([]dto.GanttMainItemDTO, 0, len(mainItems))
 	for _, mi := range mainItems {
-		subs := subItemsByMain[mi.ID]
+		subs := subItemsByMain[mi.BizKey]
 		subDTOs := make([]dto.GanttSubItemDTO, 0, len(subs))
 		for _, si := range subs {
 			subDTOs = append(subDTOs, dto.GanttSubItemDTO{

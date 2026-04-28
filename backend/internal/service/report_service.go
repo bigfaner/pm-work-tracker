@@ -56,10 +56,10 @@ func (s *reportService) Preview(ctx context.Context, teamBizKey int64, weekStart
 		return nil, err
 	}
 
-	// Index sub-items by main item ID
-	subItemsByMain := make(map[uint][]model.SubItem)
+	// Index sub-items by main item BizKey
+	subItemsByMain := make(map[int64][]model.SubItem)
 	for _, si := range subItems {
-		subItemsByMain[uint(si.MainItemKey)] = append(subItemsByMain[uint(si.MainItemKey)], si)
+		subItemsByMain[si.MainItemKey] = append(subItemsByMain[si.MainItemKey], si)
 	}
 
 	// Index progress records by sub item biz_key
@@ -71,7 +71,7 @@ func (s *reportService) Preview(ctx context.Context, teamBizKey int64, weekStart
 	// Build sections
 	var sections []dto.ReportSectionDTO
 	for _, mi := range mainItems {
-		subs, ok := subItemsByMain[mi.ID]
+		subs, ok := subItemsByMain[mi.BizKey]
 		if !ok {
 			continue
 		}

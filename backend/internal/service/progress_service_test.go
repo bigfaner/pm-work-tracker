@@ -111,11 +111,11 @@ func (m *mockSubItemRepoForProgress) Update(_ context.Context, item *model.SubIt
 	return m.updateErr
 }
 
-func (m *mockSubItemRepoForProgress) List(_ context.Context, teamBizKey int64, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockSubItemRepoForProgress) List(_ context.Context, teamBizKey int64, mainItemBizKey int64, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
 
-func (m *mockSubItemRepoForProgress) ListByMainItem(_ context.Context, mainItemID uint) ([]*model.SubItem, error) {
+func (m *mockSubItemRepoForProgress) ListByMainItem(_ context.Context, mainItemBizKey int64) ([]*model.SubItem, error) {
 	return nil, nil
 }
 
@@ -132,7 +132,7 @@ func (m *mockSubItemRepoForProgress) FindByBizKey(_ context.Context, _ int64) (*
 	}
 	return m.item, nil
 }
-func (m *mockSubItemRepoForProgress) NextSubCode(_ context.Context, _ uint) (string, error) {
+func (m *mockSubItemRepoForProgress) NextSubCode(_ context.Context, _ int64) (string, error) {
 	return "", nil
 }
 
@@ -165,9 +165,9 @@ func (m *mockMainItemSvcForProgress) Get(_ context.Context, itemID uint) (*model
 	return nil, nil
 }
 
-func (m *mockMainItemSvcForProgress) RecalcCompletion(_ context.Context, mainItemID uint) error {
+func (m *mockMainItemSvcForProgress) RecalcCompletion(_ context.Context, mainItemBizKey int64) error {
 	m.recalcCalled = true
-	m.recalcID = mainItemID
+	m.recalcID = uint(mainItemBizKey)
 	return m.recalcErr
 }
 
@@ -179,7 +179,7 @@ func (m *mockMainItemSvcForProgress) AvailableTransitions(_ context.Context, _ i
 	return nil, nil
 }
 
-func (m *mockMainItemSvcForProgress) EvaluateLinkage(_ context.Context, _ uint, _ uint) (*LinkageResult, error) {
+func (m *mockMainItemSvcForProgress) EvaluateLinkage(_ context.Context, _ int64, _ uint) (*LinkageResult, error) {
 	return nil, nil
 }
 

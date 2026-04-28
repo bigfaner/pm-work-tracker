@@ -107,7 +107,7 @@ func (s *progressService) Append(ctx context.Context, teamBizKey int64, authorID
 	}
 
 	// Trigger MainItem completion rollup
-	if err := s.mainItemSvc.RecalcCompletion(ctx, uint(subItem.MainItemKey)); err != nil {
+	if err := s.mainItemSvc.RecalcCompletion(ctx, subItem.MainItemKey); err != nil {
 		return nil, err
 	}
 
@@ -160,7 +160,7 @@ func (s *progressService) CorrectCompletion(ctx context.Context, teamBizKey int6
 	}
 
 	// Trigger MainItem completion rollup
-	return s.mainItemSvc.RecalcCompletion(ctx, uint(subItem.MainItemKey))
+	return s.mainItemSvc.RecalcCompletion(ctx, subItem.MainItemKey)
 }
 
 func (s *progressService) List(ctx context.Context, teamBizKey int64, subItemID uint) ([]model.ProgressRecord, error) {

@@ -97,10 +97,10 @@ func (m *mockSubItemRepoForPool) FindByID(_ context.Context, id uint) (*model.Su
 func (m *mockSubItemRepoForPool) Update(_ context.Context, item *model.SubItem, fields map[string]interface{}) error {
 	return nil
 }
-func (m *mockSubItemRepoForPool) List(_ context.Context, teamBizKey int64, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockSubItemRepoForPool) List(_ context.Context, teamBizKey int64, mainItemBizKey int64, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
-func (m *mockSubItemRepoForPool) ListByMainItem(_ context.Context, mainItemID uint) ([]*model.SubItem, error) {
+func (m *mockSubItemRepoForPool) ListByMainItem(_ context.Context, mainItemBizKey int64) ([]*model.SubItem, error) {
 	return nil, nil
 }
 func (m *mockSubItemRepoForPool) ListByTeam(_ context.Context, _ int64) ([]model.SubItem, error) {
@@ -112,7 +112,7 @@ func (m *mockSubItemRepoForPool) SoftDelete(_ context.Context, _ uint) error {
 func (m *mockSubItemRepoForPool) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
 	return nil, nil
 }
-func (m *mockSubItemRepoForPool) NextSubCode(_ context.Context, _ uint) (string, error) {
+func (m *mockSubItemRepoForPool) NextSubCode(_ context.Context, _ int64) (string, error) {
 	return "", nil
 }
 
@@ -254,7 +254,7 @@ func TestItemPoolAssign_Success(t *testing.T) {
 
 	// Verify SubItem was created
 	assert.Equal(t, int64(1), subRepo.createdItem.TeamKey)
-	assert.Equal(t, uint(20), uint(subRepo.createdItem.MainItemKey))
+	assert.Equal(t, int64(200), subRepo.createdItem.MainItemKey)
 	assert.Equal(t, "Pool item", subRepo.createdItem.Title)
 	assert.Equal(t, "pending", subRepo.createdItem.ItemStatus)
 	assert.Equal(t, int64(30), *subRepo.createdItem.AssigneeKey)
