@@ -1,0 +1,151 @@
+{
+  "feature": "bizkey-unification",
+  "prd": "prd/prd-spec.md",
+  "design": "design/tech-design.md",
+  "created": "2026-04-28",
+  "status": "planning",
+  "statusEnum": ["pending", "in_progress", "completed", "blocked", "skipped"],
+  "priorityEnum": ["P0", "P1", "P2"],
+  "e2eRound": 0,
+  "tasks": {
+    "1.1-middleware-get-team-biz-key": {
+      "id": "1.1",
+      "title": "Middleware: GetTeamBizKey + TeamScopeMiddleware inject int64",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [],
+      "status": "pending",
+      "breaking": true,
+      "file": "1.1-middleware-get-team-biz-key.md",
+      "record": "records/1.1-middleware-get-team-biz-key.md"
+    },
+    "1.2-progress-service-team-biz-key": {
+      "id": "1.2",
+      "title": "ProgressService: teamID uint → teamBizKey int64 + fix TeamKey bug",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "dependencies": [],
+      "status": "pending",
+      "breaking": true,
+      "file": "1.2-progress-service-team-biz-key.md",
+      "record": "records/1.2-progress-service-team-biz-key.md"
+    },
+    "1.3-team-service-role-biz-key": {
+      "id": "1.3",
+      "title": "TeamService: isPMRole int64 + UpdateMemberRole roleBizKey + InviteMember cast fix",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "dependencies": [],
+      "status": "pending",
+      "breaking": true,
+      "file": "1.3-team-service-role-biz-key.md",
+      "record": "records/1.3-team-service-role-biz-key.md"
+    },
+    "1.4-view-report-service-team-biz-key": {
+      "id": "1.4",
+      "title": "ViewService + ReportService: teamID uint → teamBizKey int64",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "dependencies": [],
+      "status": "pending",
+      "breaking": true,
+      "file": "1.4-view-report-service-team-biz-key.md",
+      "record": "records/1.4-view-report-service-team-biz-key.md"
+    },
+    "1.5-main-sub-pool-service-team-biz-key": {
+      "id": "1.5",
+      "title": "MainItemService + SubItemService + ItemPoolService: teamID uint → teamBizKey int64",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [],
+      "status": "pending",
+      "breaking": true,
+      "file": "1.5-main-sub-pool-service-team-biz-key.md",
+      "record": "records/1.5-main-sub-pool-service-team-biz-key.md"
+    },
+    "1-summary": {
+      "id": "1.summary",
+      "title": "Phase 1 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": ["1.x"],
+      "status": "pending",
+      "file": "1-summary.md",
+      "record": "records/1-summary.md"
+    },
+    "1-gate": {
+      "id": "1.gate",
+      "title": "Phase 1 Exit Gate: Service Interfaces Compile Clean",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": ["1.summary"],
+      "status": "pending",
+      "breaking": true,
+      "file": "1-gate.md",
+      "record": "records/1-gate.md"
+    },
+    "2.1-handler-updates": {
+      "id": "2.1",
+      "title": "Handler updates: GetTeamID → GetTeamBizKey (all 7 handlers)",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": ["1.gate"],
+      "status": "pending",
+      "breaking": false,
+      "file": "2.1-handler-updates.md",
+      "record": "records/2.1-handler-updates.md"
+    },
+    "2.2-test-updates": {
+      "id": "2.2",
+      "title": "Test updates: handler tests + service tests + integration tests",
+      "priority": "P0",
+      "estimatedTime": "2.5h",
+      "dependencies": ["1.gate"],
+      "status": "pending",
+      "breaking": false,
+      "file": "2.2-test-updates.md",
+      "record": "records/2.2-test-updates.md"
+    },
+    "2-summary": {
+      "id": "2.summary",
+      "title": "Phase 2 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": ["2.x"],
+      "status": "pending",
+      "file": "2-summary.md",
+      "record": "records/2-summary.md"
+    },
+    "2-gate": {
+      "id": "2.gate",
+      "title": "Phase 2 Exit Gate: Full Build + Test Pass + Zero Casts",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": ["2.summary"],
+      "status": "pending",
+      "breaking": true,
+      "file": "2-gate.md",
+      "record": "records/2-gate.md"
+    },
+    "gen-test-cases": {
+      "id": "T-test-1",
+      "title": "Generate e2e Test Cases",
+      "priority": "P1",
+      "estimatedTime": "1-2h",
+      "dependencies": ["2.gate"],
+      "status": "pending",
+      "file": "gen-test-cases.md",
+      "record": "records/gen-test-cases.md"
+    },
+    "gen-test-scripts": {
+      "id": "T-test-2",
+      "title": "Generate e2e Test Scripts",
+      "priority": "P1",
+      "estimatedTime": "1-2h",
+      "dependencies": ["T-test-1"],
+      "status": "pending",
+      "file": "gen-test-scripts.md",
+      "record": "records/gen-test-scripts.md"
+    }
+  }
+}

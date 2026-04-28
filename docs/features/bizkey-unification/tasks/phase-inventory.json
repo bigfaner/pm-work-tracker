@@ -1,0 +1,20 @@
+[
+  {
+    "phase": 1,
+    "name": "Service Interface Changes",
+    "source": "design",
+    "description": "Middleware context accessor rename + all 8 service interface teamID→int64 changes. Breaking changes that handler and test layers depend on.",
+    "gates": [
+      {"afterPhase": 1, "description": "go build ./... passes; all service interfaces use int64 for external-origin IDs"}
+    ]
+  },
+  {
+    "phase": 2,
+    "name": "Handler Updates & Test Fixes",
+    "source": "design",
+    "description": "Mechanical handler call-site updates (GetTeamID→GetTeamBizKey) and test mock/assertion updates to match new signatures.",
+    "gates": [
+      {"afterPhase": 2, "description": "go test -race ./internal/... passes; zero uint(bizKey) casts remain; coverage ≥ 75%"}
+    ]
+  }
+]
