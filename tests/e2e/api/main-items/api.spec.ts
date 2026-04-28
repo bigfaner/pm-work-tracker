@@ -159,4 +159,47 @@ describe('API E2E Tests', () => {
 
     assert.match(code, /^[A-Z]+-\d{5}$/, `Code "${code}" matches expected format`);
   });
+
+  // Traceability: TC-005 → sub-item edit refresh
+  test('TC-005: Update sub-item priority is reflected in list', async () => {
+    // Setup: create a main item and a sub-item under it
+    const poolId = await submitPool('E2E TC-005 sub-item edit test');
+    const mainItemBizKey = await convertToMain(poolId);
+
+    const createRes = await authCurl('POST', `/v1/teams/${teamId}/main-items/${mainItemBizKey}/sub-items`, {
+      body: JSON.stringify({
+        mainItemKey: mainItemBizKey,
+        title: 'TC-005 sub item',
+        priority: 'P1',
+        assigneeKey: '0',
+        startDate: '2026-04-28',
+        expectedEndDate: '2026-05-28',
+      }),
+    });
+    assert.ok(createRes.status === 200 || createRes.status === 201, `Create sub item failed: ${createRes.status} ${createRes.body}`);
+    const subItem = JSON.parse(createRes.body).data ?? JSON.parse(createRes.body);
+    const subBizKey = String(subItem.bizKey);
+
+    // Verify initial priority in list
+    const listBefore = await authCurl('GET', `/v1/teams/${teamId}/main-items/${mainItemBizKey}/sub-items`);
+    assert.equal(listBefore.status, 200, `List sub items failed: ${listBefore.status} ${listBefore.body}`);
+    const itemsBefore: any[] = (JSON.parse(listBefore.body).data ?? JSON.parse(listBefore.body)).items;
+    const before = itemsBefore.find((i: any) => String(i.bizKey) === subBizKey);
+    assert.ok(before, 'Sub item found in list before update');
+    assert.equal(before.priority, 'P1', `Priority before update should be P1, got ${before.priority}`);
+
+    // Update priority to P2
+    const updateRes = await authCurl('PUT', `/v1/teams/${teamId}/sub-items/${subBizKey}`, {
+      body: JSON.stringify({ priority: 'P2' }),
+    });
+    assert.equal(updateRes.status, 200, `Update sub item failed: ${updateRes.status} ${updateRes.body}`);
+
+    // Verify updated priority is reflected in list
+    const listAfter = await authCurl('GET', `/v1/teams/${teamId}/main-items/${mainItemBizKey}/sub-items`);
+    assert.equal(listAfter.status, 200, `List sub items after update failed: ${listAfter.status} ${listAfter.body}`);
+    const itemsAfter: any[] = (JSON.parse(listAfter.body).data ?? JSON.parse(listAfter.body)).items;
+    const after = itemsAfter.find((i: any) => String(i.bizKey) === subBizKey);
+    assert.ok(after, 'Sub item found in list after update');
+    assert.equal(after.priority, 'P2', `Priority after update should be P2, got ${after.priority}`);
+  });
 });
