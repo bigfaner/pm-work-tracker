@@ -96,7 +96,7 @@
       "dependencies": [
         "1.gate"
       ],
-      "status": "completed",
+      "status": "pending",
       "file": "2.2-custom-role-tests.md",
       "record": "records/2.2-custom-role-tests.md"
     },
@@ -108,7 +108,7 @@
       "dependencies": [
         "1.gate"
       ],
-      "status": "completed",
+      "status": "pending",
       "file": "2.3-boundary-tests.md",
       "record": "records/2.3-boundary-tests.md"
     },
