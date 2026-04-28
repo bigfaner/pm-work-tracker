@@ -234,7 +234,7 @@ func TestCreateTeam_Success(t *testing.T) {
 	repo := &mockTeamRepo{}
 	userRepo := &mockTeamUserRepo{}
 	pmRole := &model.Role{Name: "pm"}
-	pmRole.ID = 2
+	pmRole.BizKey = 2
 	roleRepo := &mockRoleRepo{roleByName: pmRole}
 	svc := NewTeamService(repo, userRepo, &mockMainItemRepo{}, roleRepo, &mockDB{})
 
@@ -460,9 +460,9 @@ func TestTransferPM_Success(t *testing.T) {
 		},
 	}
 	pmRole := &model.Role{Name: "pm"}
-	pmRole.ID = 2
+	pmRole.BizKey = 2
 	memberRole := &model.Role{Name: "member"}
-	memberRole.ID = 3
+	memberRole.BizKey = 3
 	roleRepo := &mockRoleRepo{roles: []model.Role{*pmRole, *memberRole}}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, roleRepo, db)
 

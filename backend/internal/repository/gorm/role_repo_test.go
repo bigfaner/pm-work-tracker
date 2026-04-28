@@ -12,6 +12,7 @@ import (
 
 	"pm-work-tracker/backend/internal/model"
 	pkgerrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 )
 
@@ -38,6 +39,8 @@ func seedRole(t *testing.T, db *gormlib.DB, name, desc string, isPreset bool) *m
 	t.Helper()
 	r := model.Role{Name: name, Description: desc, IsPreset: isPreset}
 	require.NoError(t, db.Create(&r).Error)
+	r.BizKey = snowflake.Generate()
+	require.NoError(t, db.Save(&r).Error)
 	return &r
 }
 
@@ -293,9 +296,9 @@ func TestRoleRepo_CountMembersByRoleID(t *testing.T) {
 	rOther := seedRole(t, db, "other", "Other role", false)
 
 	// One member with this role
-	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u1.ID), RoleKey: func() *int64 { v := int64(r.ID); return &v }(), JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u1.ID), RoleKey: &r.BizKey, JoinedAt: timeNow()}).Error)
 	// One member with different role
-	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u2.ID), RoleKey: func() *int64 { v := int64(rOther.ID); return &v }(), JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u2.ID), RoleKey: &rOther.BizKey, JoinedAt: timeNow()}).Error)
 
 	count, err := repo.CountMembersByRoleID(ctx, r.ID)
 	require.NoError(t, err)
@@ -325,7 +328,7 @@ func TestRoleRepo_HasPermission_True(t *testing.T) {
 	r := seedRole(t, db, "pm", "PM role", true)
 
 	require.NoError(t, db.Create(&model.RolePermission{RoleID: r.ID, PermissionCode: "team:create"}).Error)
-	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r.ID); return &v }(), JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID), RoleKey: &r.BizKey, JoinedAt: timeNow()}).Error)
 
 	has, err := repo.HasPermission(ctx, u.ID, "team:create")
 	require.NoError(t, err)
@@ -343,7 +346,7 @@ func TestRoleRepo_HasPermission_False(t *testing.T) {
 	r := seedRole(t, db, "member", "Member role", true)
 
 	require.NoError(t, db.Create(&model.RolePermission{RoleID: r.ID, PermissionCode: "team:read"}).Error)
-	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r.ID); return &v }(), JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID), RoleKey: &r.BizKey, JoinedAt: timeNow()}).Error)
 
 	has, err := repo.HasPermission(ctx, u.ID, "team:delete")
 	require.NoError(t, err)
@@ -379,8 +382,8 @@ func TestRoleRepo_HasPermission_ChecksAcrossTeams(t *testing.T) {
 	require.NoError(t, db.Create(&model.RolePermission{RoleID: r1.ID, PermissionCode: "team:read"}).Error)
 	require.NoError(t, db.Create(&model.RolePermission{RoleID: r2.ID, PermissionCode: "team:delete"}).Error)
 
-	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team1.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r1.ID); return &v }(), JoinedAt: timeNow()}).Error)
-	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team2.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r2.ID); return &v }(), JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team1.ID), UserKey: int64(u.ID), RoleKey: &r1.BizKey, JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team2.ID), UserKey: int64(u.ID), RoleKey: &r2.BizKey, JoinedAt: timeNow()}).Error)
 
 	// User has team:delete via role2 in team2
 	has, err := repo.HasPermission(ctx, u.ID, "team:delete")
@@ -408,8 +411,8 @@ func TestRoleRepo_GetUserTeamPermissions(t *testing.T) {
 	require.NoError(t, db.Create(&model.RolePermission{RoleID: r1.ID, PermissionCode: "team:read"}).Error)
 	require.NoError(t, db.Create(&model.RolePermission{RoleID: r2.ID, PermissionCode: "team:read"}).Error)
 
-	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team1.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r1.ID); return &v }(), JoinedAt: timeNow()}).Error)
-	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team2.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r2.ID); return &v }(), JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team1.ID), UserKey: int64(u.ID), RoleKey: &r1.BizKey, JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team2.ID), UserKey: int64(u.ID), RoleKey: &r2.BizKey, JoinedAt: timeNow()}).Error)
 
 	result, err := repo.GetUserTeamPermissions(ctx, u.ID)
 	require.NoError(t, err)
@@ -461,7 +464,7 @@ func TestRoleRepo_HasPermission_DeletedMember(t *testing.T) {
 	r := seedRole(t, db, "pm", "PM role", true)
 
 	require.NoError(t, db.Create(&model.RolePermission{RoleID: r.ID, PermissionCode: "team:create"}).Error)
-	member := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r.ID); return &v }(), JoinedAt: timeNow()}
+	member := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID), RoleKey: &r.BizKey, JoinedAt: timeNow()}
 	require.NoError(t, db.Create(&member).Error)
 
 	// Soft-delete the member
@@ -490,9 +493,9 @@ func TestRoleRepo_GetUserTeamPermissions_DeletedMember(t *testing.T) {
 	require.NoError(t, db.Create(&model.RolePermission{RoleID: r1.ID, PermissionCode: "team:read"}).Error)
 	require.NoError(t, db.Create(&model.RolePermission{RoleID: r2.ID, PermissionCode: "team:read"}).Error)
 
-	member1 := model.TeamMember{TeamKey: int64(team1.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r1.ID); return &v }(), JoinedAt: timeNow()}
+	member1 := model.TeamMember{TeamKey: int64(team1.ID), UserKey: int64(u.ID), RoleKey: &r1.BizKey, JoinedAt: timeNow()}
 	require.NoError(t, db.Create(&member1).Error)
-	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team2.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r2.ID); return &v }(), JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team2.ID), UserKey: int64(u.ID), RoleKey: &r2.BizKey, JoinedAt: timeNow()}).Error)
 
 	// Soft-delete member in team1
 	require.NoError(t, db.Model(&member1).Updates(map[string]any{"deleted_flag": 1, "deleted_time": time.Now()}).Error)
@@ -518,10 +521,10 @@ func TestRoleRepo_CountMembersByRoleID_DeletedMember(t *testing.T) {
 
 	r := seedRole(t, db, "member", "Member role", true)
 
-	member1 := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u1.ID), RoleKey: func() *int64 { v := int64(r.ID); return &v }(), JoinedAt: timeNow()}
+	member1 := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u1.ID), RoleKey: &r.BizKey, JoinedAt: timeNow()}
 	require.NoError(t, db.Create(&member1).Error)
-	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u2.ID), RoleKey: func() *int64 { v := int64(r.ID); return &v }(), JoinedAt: timeNow()}).Error)
-	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u3.ID), RoleKey: func() *int64 { v := int64(r.ID); return &v }(), JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u2.ID), RoleKey: &r.BizKey, JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u3.ID), RoleKey: &r.BizKey, JoinedAt: timeNow()}).Error)
 
 	// Soft-delete member1
 	require.NoError(t, db.Model(&member1).Updates(map[string]any{"deleted_flag": 1, "deleted_time": time.Now()}).Error)

@@ -109,8 +109,9 @@ func (r *roleRepo) CountMembersByRoleID(ctx context.Context, roleID uint) (int64
 	var count int64
 	err := r.db.WithContext(ctx).
 		Model(&model.TeamMember{}).
-		Scopes(NotDeleted).
-		Where("role_key = ?", roleID).
+		Scopes(NotDeletedTable("pmw_team_members")).
+		Joins("JOIN pmw_roles ON pmw_roles.biz_key = pmw_team_members.role_key AND pmw_roles.deleted_flag = 0").
+		Where("pmw_roles.id = ?", roleID).
 		Count(&count).Error
 	return count, err
 }

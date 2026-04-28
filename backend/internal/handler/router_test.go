@@ -43,10 +43,12 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 	require.NoError(t, err)
 
 	// Seed a PM role (ID=1) with a broad set of permissions for testing.
-	// Most handler tests use mockTeamRepo which returns RoleID=&1,
-	// and RequirePermission will look up permissions from this role.
+	// Most handler tests use mockTeamRepo which returns RoleKey=&1 (biz_key),
+	// and TeamScopeMiddleware will call FindByBizKey(1) to resolve permissions.
 	pmRole := model.Role{Name: "pm", Description: "Project Manager", IsPreset: true}
 	require.NoError(t, db.Create(&pmRole).Error)
+	pmRole.BizKey = int64(pmRole.ID)
+	require.NoError(t, db.Save(&pmRole).Error)
 	allPermCodes := []string{
 		"team:create", "team:read", "team:update", "team:delete", "team:invite",
 		"team:remove", "team:transfer", "main_item:create", "main_item:read",
@@ -65,6 +67,8 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 	// Seed a member role with standard member permissions.
 	memberRole := model.Role{Name: "member", Description: "Team Member", IsPreset: true}
 	require.NoError(t, db.Create(&memberRole).Error)
+	memberRole.BizKey = int64(memberRole.ID)
+	require.NoError(t, db.Save(&memberRole).Error)
 	memberPermCodes := []string{
 		"main_item:read", "sub_item:create", "sub_item:read", "sub_item:update",
 		"sub_item:change_status", "progress:create", "progress:read",

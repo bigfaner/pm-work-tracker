@@ -334,6 +334,25 @@ func TestTeamScopeMiddleware_MemberNoRoleID_SetsEmptyPermCodes(t *testing.T) {
 	assert.Nil(t, cc.permCodes)
 }
 
+func TestTeamScopeMiddleware_RoleBizKeyNotFound_Returns500(t *testing.T) {
+	teamRepo := new(mockTeamRepo)
+	roleRepo := new(mockRoleRepo)
+	teamRepo.On("FindByBizKey", mock.Anything, int64(4)).Return(&model.Team{BaseModel: model.BaseModel{ID: 4}}, nil)
+	teamRepo.On("FindMember", mock.Anything, uint(4), uint(8)).Return(&model.TeamMember{
+		TeamKey: int64(4),
+		UserKey: 8,
+		RoleKey: func() *int64 { v := int64(99); return &v }(),
+	}, nil)
+	roleRepo.On("FindByBizKey", mock.Anything, int64(99)).Return(nil, fmt.Errorf("not found"))
+	r, _ := setupTeamScopeRouter(teamRepo, roleRepo)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/4/items?userID=8", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
 func TestGetTeamID_NoValue(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)

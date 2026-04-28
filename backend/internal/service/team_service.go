@@ -62,7 +62,7 @@ func (s *teamService) CreateTeam(ctx context.Context, creatorID uint, req dto.Cr
 	}
 	if s.roleRepo != nil {
 		if pmRole, err := s.roleRepo.FindByName(ctx, "pm"); err == nil {
-			roleKey := int64(pmRole.ID)
+			roleKey := pmRole.BizKey
 			member.RoleKey = &roleKey
 		}
 	}
@@ -240,7 +240,7 @@ func (s *teamService) TransferPM(ctx context.Context, currentPMID, teamID, newPM
 		// New PM gets "pm" role
 		if s.roleRepo != nil {
 			if pmRole, err := s.roleRepo.FindByName(ctx, "pm"); err == nil {
-				roleKey := int64(pmRole.ID)
+				roleKey := pmRole.BizKey
 				newPMMember.RoleKey = &roleKey
 			}
 		}
@@ -255,7 +255,7 @@ func (s *teamService) TransferPM(ctx context.Context, currentPMID, teamID, newPM
 		}
 		if s.roleRepo != nil {
 			if memberRole, err := s.roleRepo.FindByName(ctx, "member"); err == nil {
-				roleKey := int64(memberRole.ID)
+				roleKey := memberRole.BizKey
 				oldPMMember.RoleKey = &roleKey
 			}
 		}
@@ -301,12 +301,12 @@ func (s *teamService) UpdateMemberRole(ctx context.Context, pmID, teamID, target
 	return s.teamRepo.UpdateMember(ctx, member)
 }
 
-// isPMRole returns true if the given roleID corresponds to the "pm" preset role.
-func (s *teamService) isPMRole(ctx context.Context, roleID uint) bool {
+// isPMRole returns true if the given bizKey corresponds to the "pm" preset role.
+func (s *teamService) isPMRole(ctx context.Context, bizKey uint) bool {
 	if s.roleRepo == nil {
 		return false
 	}
-	role, err := s.roleRepo.FindByID(ctx, roleID)
+	role, err := s.roleRepo.FindByBizKey(ctx, int64(bizKey))
 	if err != nil {
 		return false
 	}

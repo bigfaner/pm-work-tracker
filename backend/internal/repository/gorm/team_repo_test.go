@@ -12,6 +12,7 @@ import (
 
 	"pm-work-tracker/backend/internal/model"
 	pkgerrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 )
 
@@ -227,6 +228,10 @@ func TestTeamRepo_ListMembers(t *testing.T) {
 	memberRole := model.Role{Name: "member", Description: "Member"}
 	require.NoError(t, db.Create(&pmRole).Error)
 	require.NoError(t, db.Create(&memberRole).Error)
+	pmRole.BizKey = snowflake.Generate()
+	memberRole.BizKey = snowflake.Generate()
+	require.NoError(t, db.Save(&pmRole).Error)
+	require.NoError(t, db.Save(&memberRole).Error)
 
 	pm := seedUser(t, db, "pm9")
 	m1 := seedUser(t, db, "m1")
@@ -235,10 +240,10 @@ func TestTeamRepo_ListMembers(t *testing.T) {
 	require.NoError(t, repo.Create(ctx, &team))
 
 	require.NoError(t, repo.AddMember(ctx, &model.TeamMember{
-		TeamKey: int64(team.ID), UserKey: int64(m1.ID), RoleKey: func() *int64 { v := int64(pmRole.ID); return &v }(), JoinedAt: time.Now(),
+		TeamKey: int64(team.ID), UserKey: int64(m1.ID), RoleKey: &pmRole.BizKey, JoinedAt: time.Now(),
 	}))
 	require.NoError(t, repo.AddMember(ctx, &model.TeamMember{
-		TeamKey: int64(team.ID), UserKey: int64(m2.ID), RoleKey: func() *int64 { v := int64(memberRole.ID); return &v }(), JoinedAt: time.Now(),
+		TeamKey: int64(team.ID), UserKey: int64(m2.ID), RoleKey: &memberRole.BizKey, JoinedAt: time.Now(),
 	}))
 
 	results, err := repo.ListMembers(ctx, team.ID)

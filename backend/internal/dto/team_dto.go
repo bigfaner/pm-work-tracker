@@ -4,8 +4,10 @@ package dto
 type TeamMemberDTO struct {
 	BizKey      string `json:"bizKey"`
 	TeamKey     string `json:"teamKey"`
-	UserKey  string `json:"userKey"`
+	UserKey     string `json:"userKey"`
 	Role        string `json:"role"`
+	RoleId      string `json:"roleId"`
+	RoleName    string `json:"roleName"`
 	JoinedAt    string `json:"joinedAt"`
 	DisplayName string `json:"displayName"`
 	Username    string `json:"username"`
