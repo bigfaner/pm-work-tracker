@@ -166,7 +166,6 @@ export function useItemViewPage(teamId: string | null) {
       queryKey: ['subItems', teamId, itemId],
       queryFn: () => listSubItemsApi(teamId!, itemId),
       enabled: !!teamId && subItemIds.has(itemId),
-      staleTime: 30_000,
     })),
   })
 
@@ -213,9 +212,10 @@ export function useItemViewPage(teamId: string | null) {
   const updateSubMutation = useMutation({
     mutationFn: (req: { subId: string; mainItemKey: string; data: { title: string; priority: string; assigneeKey?: string; expectedEndDate?: string; description?: string } }) =>
       updateSubItemApi(teamId!, req.subId, req.data),
-    onSuccess: (_, req) => {
+    onSuccess: async (_, req) => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
-      qc.invalidateQueries({ queryKey: ['subItems', teamId, req.mainItemKey] })
+      const fresh = await listSubItemsApi(teamId!, req.mainItemKey)
+      qc.setQueryData(['subItems', teamId, req.mainItemKey], fresh)
       setEditSubOpen(false)
     },
   })
