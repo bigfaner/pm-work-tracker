@@ -40,7 +40,7 @@ type mockViewService struct {
 	}
 
 	// capture calls
-	lastTeamID    uint
+	lastTeamID    int64
 	lastWeekStart time.Time
 
 	comparisonCalled bool
@@ -56,21 +56,21 @@ type mockViewService struct {
 	lastCSV   dto.TableFilter
 }
 
-func (m *mockViewService) WeeklyComparison(_ context.Context, teamID uint, weekStart time.Time) (*dto.WeeklyViewResponse, error) {
+func (m *mockViewService) WeeklyComparison(_ context.Context, teamID int64, weekStart time.Time) (*dto.WeeklyViewResponse, error) {
 	m.comparisonCalled = true
 	m.lastTeamID = teamID
 	m.lastWeekStart = weekStart
 	return m.comparisonResult.result, m.comparisonResult.err
 }
 
-func (m *mockViewService) GanttView(_ context.Context, teamID uint, filter dto.GanttFilter) (*dto.GanttResult, error) {
+func (m *mockViewService) GanttView(_ context.Context, teamID int64, filter dto.GanttFilter) (*dto.GanttResult, error) {
 	m.ganttCalled = true
 	m.lastTeamID = teamID
 	m.lastFilter = filter
 	return m.ganttResult.result, m.ganttResult.err
 }
 
-func (m *mockViewService) TableView(_ context.Context, teamID uint, filter dto.TableFilter, page dto.Pagination) (*dto.PageResult[dto.TableRow], error) {
+func (m *mockViewService) TableView(_ context.Context, teamID int64, filter dto.TableFilter, page dto.Pagination) (*dto.PageResult[dto.TableRow], error) {
 	m.tableCalled = true
 	m.lastTeamID = teamID
 	m.lastTable = filter
@@ -78,7 +78,7 @@ func (m *mockViewService) TableView(_ context.Context, teamID uint, filter dto.T
 	return m.tableResult.result, m.tableResult.err
 }
 
-func (m *mockViewService) TableExportCSV(_ context.Context, teamID uint, filter dto.TableFilter) ([]byte, error) {
+func (m *mockViewService) TableExportCSV(_ context.Context, teamID int64, filter dto.TableFilter) ([]byte, error) {
 	m.csvCalled = true
 	m.lastTeamID = teamID
 	m.lastCSV = filter
@@ -139,7 +139,7 @@ func TestWeeklyView_Success(t *testing.T) {
 	assert.Equal(t, "2026-04-19", data["weekEnd"])
 
 	assert.True(t, svc.comparisonCalled)
-	assert.Equal(t, uint(10), svc.lastTeamID)
+	assert.Equal(t, int64(10), svc.lastTeamID)
 }
 
 func TestWeeklyView_MissingWeekStart(t *testing.T) {
@@ -256,7 +256,7 @@ func TestGanttView_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, float64(0), resp["code"])
 	assert.True(t, svc.ganttCalled)
-	assert.Equal(t, uint(10), svc.lastTeamID)
+	assert.Equal(t, int64(10), svc.lastTeamID)
 }
 
 func TestGanttView_WithStatusFilter(t *testing.T) {
@@ -322,7 +322,7 @@ func TestTableView_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, float64(0), resp["code"])
 	assert.True(t, svc.tableCalled)
-	assert.Equal(t, uint(10), svc.lastTeamID)
+	assert.Equal(t, int64(10), svc.lastTeamID)
 	// Default page size is 50
 	assert.Equal(t, 50, svc.lastPage.PageSize)
 	assert.Equal(t, 1, svc.lastPage.Page)
@@ -420,7 +420,7 @@ func TestExportTable_Success(t *testing.T) {
 	assert.Equal(t, "text/csv; charset=utf-8", w.Header().Get("Content-Type"))
 	assert.Equal(t, `attachment; filename="items-export.csv"`, w.Header().Get("Content-Disposition"))
 	assert.True(t, svc.csvCalled)
-	assert.Equal(t, uint(10), svc.lastTeamID)
+	assert.Equal(t, int64(10), svc.lastTeamID)
 }
 
 func TestExportTable_WithFilters(t *testing.T) {
