@@ -117,14 +117,14 @@ func TestTeamMember_HasRoleID(t *testing.T) {
 	r := model.Role{Name: "member-role", Description: "member role"}
 	require.NoError(t, db.Create(&r).Error)
 
-	// Create TeamMember with RoleID
-	tm := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r.ID); return &v }()}
+	// Create TeamMember with RoleKey (stores BizKey, not auto-increment ID)
+	tm := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r.BizKey); return &v }()}
 	require.NoError(t, db.Create(&tm).Error)
 
 	var fetched model.TeamMember
 	db.First(&fetched, "team_key = ? AND user_key = ?", team.ID, u.ID)
-	assert.NotNil(t, fetched.RoleKey, "RoleID should be set")
-	assert.Equal(t, int64(r.ID), *fetched.RoleKey, "RoleID should match role ID")
+	assert.NotNil(t, fetched.RoleKey, "RoleKey should be set")
+	assert.Equal(t, int64(r.BizKey), *fetched.RoleKey, "RoleKey should match role BizKey")
 }
 
 func TestTeamMember_RoleIDNullable(t *testing.T) {
