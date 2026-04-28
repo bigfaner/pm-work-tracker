@@ -138,7 +138,7 @@ export default function ItemDetailView({
                       <TableCell className="text-xs whitespace-nowrap">{formatDate(sub.actualEndDate)}</TableCell>
                       <TableCell>
                         <div className="flex gap-0.5 whitespace-nowrap">
-                          <PermissionGuard code="main_item:update">
+                          <PermissionGuard code="sub_item:update">
                             <Button variant="ghost" size="sm" className="text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.itemStatus as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onEditSubItem(sub)}><Pencil size={14} />编辑</Button>
                           </PermissionGuard>
                           <PermissionGuard code="progress:update">

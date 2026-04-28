@@ -231,7 +231,7 @@ export default function SubItemDetailPage() {
               onBeforeTerminalStatus={handleBeforeTerminalStatus}
             />
             <div className="flex-1" />
-            <PermissionGuard code="main_item:update">
+            <PermissionGuard code="sub_item:update">
               <Button variant="secondary" disabled={isTerminalStatus} onClick={() => {
                 setEditForm({
                   title: subItem.title,

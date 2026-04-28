@@ -166,12 +166,14 @@ export default function ItemSummaryView({
                     <div onClick={(e) => e.stopPropagation()}>
                       <StatusTransitionDropdown currentStatus={sub.itemStatus} itemType="sub" teamId={teamId} itemId={sub.bizKey} parentItemId={item.bizKey} onStatusChanged={onRefresh} />
                     </div>
-                    <PermissionGuard code="main_item:update">
-                      <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5 text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.itemStatus as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onEditSubItem(sub)}><Pencil size={12} />编辑</Button>
-                    </PermissionGuard>
-                    <PermissionGuard code="progress:update">
-                      <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5 text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.itemStatus as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onAppendProgress(sub.bizKey, sub.title, sub.completion)}><Plus size={12} />追加进度</Button>
-                    </PermissionGuard>
+                    <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
+                      <PermissionGuard code="sub_item:update">
+                        <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5 text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.itemStatus as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onEditSubItem(sub)}><Pencil size={12} />编辑</Button>
+                      </PermissionGuard>
+                      <PermissionGuard code="progress:update">
+                        <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5 text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.itemStatus as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onAppendProgress(sub.bizKey, sub.title, sub.completion)}><Plus size={12} />追加进度</Button>
+                      </PermissionGuard>
+                    </div>
                   </div>
                 ))}
               </div>

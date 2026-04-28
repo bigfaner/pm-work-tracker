@@ -214,6 +214,7 @@ export function useItemViewPage(teamId: string | null) {
     mutationFn: (req: { subId: string; mainItemKey: string; data: { title: string; priority: string; assigneeKey?: string; expectedEndDate?: string; description?: string } }) =>
       updateSubItemApi(teamId!, req.subId, req.data),
     onSuccess: (_, req) => {
+      qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
       qc.invalidateQueries({ queryKey: ['subItems', teamId, req.mainItemKey] })
       setEditSubOpen(false)
     },
