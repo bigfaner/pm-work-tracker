@@ -28,9 +28,9 @@ const dialogContentVariants = cva(
   {
     variants: {
       size: {
-        sm: 'max-w-[400px]',
-        md: 'max-w-[480px]',
-        lg: 'max-w-[560px]',
+        sm: 'max-w-[480px]',
+        md: 'max-w-[560px]',
+        lg: 'max-w-[680px]',
       },
     },
     defaultVariants: {
