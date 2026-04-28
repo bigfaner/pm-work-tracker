@@ -26,7 +26,7 @@
       "dependencies": [
         "1.x"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "1-summary.md",
       "record": "records/1-summary.md"
     },
@@ -75,7 +75,7 @@
       "title": "MainItemService + SubItemService + ItemPoolService: teamID uint → teamBizKey int64",
       "priority": "P0",
       "estimatedTime": "2h",
-      "status": "pending",
+      "status": "completed",
       "file": "1.5-main-sub-pool-service-team-biz-key.md",
       "record": "records/1.5-main-sub-pool-service-team-biz-key.md",
       "breaking": true
