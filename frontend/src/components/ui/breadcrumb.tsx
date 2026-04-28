@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
 interface BreadcrumbProps extends React.HTMLAttributes<HTMLElement> {}
@@ -22,9 +23,9 @@ function BreadcrumbItem({ href, isCurrent, className, children, ...props }: Brea
   return (
     <li className={cn('inline-flex items-center gap-1.5', className)} {...props}>
       {href && !isCurrent ? (
-        <a href={href} className="text-tertiary hover:text-primary-600 transition-colors">
+        <Link to={href} className="text-tertiary hover:text-primary-600 transition-colors">
           {children}
-        </a>
+        </Link>
       ) : (
         <span className={isCurrent ? 'text-primary font-medium' : undefined}>
           {children}

@@ -61,9 +61,9 @@ export const useAuthStore = create<AuthState>()(
         if (!permissions) return false
         if (permissions.isSuperAdmin) return true
         if (teamId !== undefined) {
-          return permissions.teamPermissions[teamId]?.includes(code) ?? false
+          return permissions.teamPermissions?.[teamId]?.includes(code) ?? false
         }
-        return Object.values(permissions.teamPermissions).some((codes) =>
+        return Object.values(permissions.teamPermissions ?? {}).some((codes) =>
           codes.includes(code),
         )
       },
