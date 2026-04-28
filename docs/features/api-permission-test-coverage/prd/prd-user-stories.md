@@ -29,11 +29,11 @@ feature: "API Permission Test Coverage"
 
 **Acceptance Criteria:**
 - Given 三个用户分别绑定 superadmin / pm / member 角色，团队已创建，目标资源已存在
-- When 各用户调用 `POST /archive`（需要 `main_item:archive`，member 无此权限）
+- When 各用户调用 `POST /teams/:teamId/main-items/:id/archive`（需要 `main_item:archive`，member 无此权限）
 - Then superadmin 和 pm 返回 200，member 返回 403
 
 - Given 同上设置
-- When 各用户调用 `POST /members`（需要 `team:invite`，member 无此权限）
+- When 各用户调用 `POST /teams/:teamId/members`（需要 `team:invite`，member 无此权限）
 - Then superadmin 和 pm 返回 200，member 返回 403
 
 ---
@@ -54,8 +54,8 @@ feature: "API Permission Test Coverage"
 - Then 返回 403
 
 - Given 管理员为该角色新增 `main_item:create` 权限
-- When 用户立即调用 `POST /main-items`（无需重新登录）
-- Then 返回 200（权限变更即时生效）
+- When 用户使用同一 token 立即调用 `POST /main-items`（不重新登录，不重新获取 token）
+- Then 返回 200（权限从 DB 实时读取，无缓存层介入）
 
 ---
 
@@ -87,7 +87,7 @@ feature: "API Permission Test Coverage"
 **So that** 新增权限码时若遗漏测试，CI 立即失败，不需要人工检查
 
 **Acceptance Criteria:**
-- Given `codes.go` 中定义了权限码 `foo:bar`，但测试文件中未出现该字符串
+- Given `codes.go` 中定义了权限码 `foo:bar`，但该字符串未作为 `permCodes` 参数或测试矩阵值出现在测试文件中（注释或日志中的出现不计）
 - When CI 运行权限码覆盖率断言步骤
 - Then 构建失败，输出 `missing test coverage for: foo:bar`
 

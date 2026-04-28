@@ -28,14 +28,14 @@ RBAC 权限体系已完整实现（中间件、路由绑定、预设角色），
 
 ### 用户是谁（人员）
 
-- **开发者**：编写和运行测试，在 CI 中获得权限回归保护
-- **代码审查者**：通过 PR 审查权限测试覆盖是否完整
+- **开发者**：后端工程师，负责 RBAC 相关功能迭代；当前依赖人工检查权限码覆盖，commit `3200bdc` 已证明该方式不可靠
+- **代码审查者**：PR 审查者，当前无工具辅助验证权限测试完整性，依赖作者自述；commit `3200bdc` 的漏测正是在无工具支撑的审查中被遗漏
 
 ## 需求目标
 
 | 目标 | 量化指标 | 说明 |
 |------|----------|------|
-| 路由层权限绑定覆盖 | 12 个代表性端点 100% 有单元测试 | 覆盖 pm/member 权限差异最大的端点 |
+| 路由层权限绑定覆盖 | 12 个代表性端点 100% 有单元测试 | 覆盖 pm/member 权限差异最大的端点；其余 41 个端点权限差异较小（pm/member 均有或均无），由 I-A 集成矩阵间接覆盖，不单独补充单元测试 |
 | 预设角色矩阵验证 | superadmin/pm/member × 5 个代表性端点（覆盖 main_item/team/progress/item_pool/report 各一个）全覆盖 | 集成测试断言响应码符合权限矩阵 |
 | 自定义角色验证 | 至少 1 个完整流程（创建→分配→验证→修改→再验证） | 验证权限变更即时生效 |
 | 边界场景覆盖 | 空权限/superadmin 绕过/401 vs 403 各有测试 | 区分认证失败与授权失败 |
@@ -45,7 +45,7 @@ RBAC 权限体系已完整实现（中间件、路由绑定、预设角色），
 ### In Scope
 
 - [x] **U1: Handler 单元测试** — 12 个端点各补充 2 个权限 case（有权限/无权限），共 24 个 case
-- [x] **I-A: 预设角色矩阵集成测试** — superadmin/pm/member × 代表性端点
+- [x] **I-A: 预设角色矩阵集成测试** — superadmin/pm/member × 5 个代表性端点（main_item/team/progress/item_pool/report 各一个）
 - [x] **I-B: 自定义角色集成测试** — 部分权限组合 + 权限变更即时生效
 - [x] **I-C: 权限边界集成测试** — 空权限角色、superadmin 绕过、401 vs 403
 - [x] **I-D: 权限码覆盖率 CI 断言** — 验证 `codes.go` 中每个权限码在测试矩阵中均有覆盖
@@ -172,8 +172,8 @@ flowchart TD
 在 CI 流水线中新增一个断言步骤，读取 `backend/internal/rbac/codes.go` 中所有已定义的权限码，与 `middleware/permission_test.go` 和 `tests/integration/rbac_test.go` 中的测试矩阵做交叉比对，若存在未覆盖的权限码则 CI 失败并输出缺失列表。
 
 断言逻辑：
-1. 从 `codes.go` 提取所有 `const` 权限码（如 `main_item:archive`）
-2. 从测试文件中提取所有出现的权限码字符串
+1. 从 `codes.go` 提取所有权限码字符串值（包括 `const` 和 `var` 声明）；注：codes.go 中所有权限码应以 `const` 定义，使用 `var` 或字符串字面量定义的权限码同样会被提取，但视为规范违反
+2. 从测试文件中提取所有作为权限码参数传入的字符串（即出现在 `permCodes` 注入或集成测试矩阵中的权限码值，不包括注释或日志中的字符串）
 3. 若 `codes.go` 中存在测试文件中未出现的权限码，断言失败，输出：`missing test coverage for: [权限码列表]`
 
 ### 关联性需求改动
@@ -182,7 +182,7 @@ flowchart TD
 |------|----------|----------|------------|----------------|
 | 1 | backend | middleware/permission_test.go | 新增权限 case | 在现有文件中追加表驱动测试 |
 | 2 | backend | tests/integration/rbac_test.go | 新增集成测试组 | 在现有文件中追加 TestRBACPermission* 测试函数 |
-| 3 | CI | .github/workflows 或 Makefile | 新增权限码覆盖率断言步骤 | 解析 codes.go 与测试文件，缺失覆盖则 CI 失败 |
+| 3 | CI | .github/workflows/test.yml | 在 go test 步骤后新增 permission-coverage 步骤 | 解析 codes.go 与测试文件，缺失覆盖则 CI 失败 |
 
 ## 其他说明
 
