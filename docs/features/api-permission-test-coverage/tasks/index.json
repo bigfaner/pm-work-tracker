@@ -124,6 +124,14 @@
       "file": "2.4-coverage-gate-test.md",
       "record": "records/2.4-coverage-gate-test.md"
     },
+    "fix-e2e-1-1": {
+      "id": "fix-e2e-1-1",
+      "title": "修复 e2e 测试失败: unknown",
+      "priority": "P0",
+      "status": "completed",
+      "file": "fix-e2e-1-1.md",
+      "record": "records/fix-e2e-1-1.md"
+    },
     "gen-test-cases": {
       "id": "T-test-1",
       "title": "Generate e2e Test Cases",
@@ -160,5 +168,6 @@
     "P0",
     "P1",
     "P2"
-  ]
+  ],
+  "e2eRound": 1
 }
