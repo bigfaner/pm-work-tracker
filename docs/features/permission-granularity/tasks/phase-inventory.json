@@ -1,0 +1,18 @@
+[
+  {
+    "phase": 1,
+    "name": "后端权限码变更",
+    "source": "design",
+    "gates": [
+      {"afterPhase": 1, "description": "后端所有变更编译通过，新增测试全部通过，无旧码残留"}
+    ]
+  },
+  {
+    "phase": 2,
+    "name": "前端权限守卫更新",
+    "source": "design",
+    "gates": [
+      {"afterPhase": 2, "description": "前端所有权限码引用替换完成，现有测试通过，新增守卫测试通过"}
+    ]
+  }
+]
