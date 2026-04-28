@@ -53,8 +53,14 @@ func MigrateToRBAC(db *gorm.DB, autoSchema bool) error {
 	return tx.Commit().Error
 }
 
+// SyncPresetRoles ensures preset role permission codes are up to date.
+// Unlike MigrateToRBAC, this runs on every startup to pick up any new codes
+// added to the seed list after the initial migration.
+func SyncPresetRoles(db *gorm.DB) error {
+	return seedPresetRoles(db)
+}
+
 func runRBACMigration(tx *gorm.DB, autoSchema bool) error {
-	// 1. Create new tables (roles, role_permissions)
 	if err := createRBACTables(tx, autoSchema); err != nil {
 		return fmt.Errorf("create rbac tables: %w", err)
 	}
@@ -168,7 +174,7 @@ func seedPresetRoles(tx *gorm.DB) error {
 		return err
 	}
 
-	// Seed member (id=3, 12 codes)
+	// Seed member (id=3, 14 codes)
 	memberCodes := []string{
 		"team:read",
 		"main_item:create", "main_item:read", "main_item:update",

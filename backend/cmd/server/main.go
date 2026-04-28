@@ -75,6 +75,11 @@ func run(configPath string, devMode bool) error {
 		return fmt.Errorf("rbac migration error: %w", err)
 	}
 
+	// 3d. Sync preset role permissions — runs every startup to pick up new codes
+	if err := migration.SyncPresetRoles(db); err != nil {
+		return fmt.Errorf("sync preset roles error: %w", err)
+	}
+
 	// 4. Seed admin user
 	if err := config.SeedAdmin(db, &cfg.Auth); err != nil {
 		log.Printf("warning: seed admin: %v", err)
