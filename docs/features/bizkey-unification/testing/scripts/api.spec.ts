@@ -2,6 +2,30 @@ import { describe, test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { curl, apiBaseUrl, getApiToken, createAuthCurl } from './helpers.js';
 
+// Helpers to create test fixtures dynamically
+async function createTeam(authCurl: ReturnType<typeof createAuthCurl>): Promise<string> {
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const code = Array.from({ length: 5 }, () => letters[Math.floor(Math.random() * 26)]).join('');
+  const res = await authCurl('POST', '/v1/teams', {
+    body: JSON.stringify({ name: `e2e-${code}`, code }),
+  });
+  assert.ok(res.status === 200 || res.status === 201, `createTeam failed: ${res.status} ${res.body}`);
+  const data = JSON.parse(res.body);
+  const bizKey = data.data?.bizKey ?? data.data?.id;
+  assert.ok(bizKey, `No bizKey in createTeam response: ${res.body}`);
+  return String(bizKey);
+}
+
+async function getPMRoleBizKey(authCurl: ReturnType<typeof createAuthCurl>): Promise<string> {
+  const res = await authCurl('GET', '/v1/admin/roles');
+  assert.equal(res.status, 200, `listRoles failed: ${res.status} ${res.body}`);
+  const data = JSON.parse(res.body);
+  const roles: any[] = data.data?.items ?? data.data ?? [];
+  const pm = roles.find((r: any) => r.roleName === 'pm' || r.name === 'pm');
+  assert.ok(pm, `PM role not found in roles list`);
+  return String(pm.bizKey ?? pm.id);
+}
+
 describe('API E2E Tests', () => {
   let authCurl: ReturnType<typeof createAuthCurl>;
 
@@ -11,37 +35,46 @@ describe('API E2E Tests', () => {
   });
 
   // Traceability: TC-001 → Story 1 / AC-1
-  test('TC-001: Progress record stores correct snowflake team_key', async () => {
-    // Pre-condition: team with bizKey 123456789012345678 must exist and user must be a member
-    const teamBizKey = '123456789012345678';
-    const res = await authCurl('POST', `/v1/teams/${teamBizKey}/progress`, {
+  test('TC-001: Main item response contains snowflake teamKey, not small uint', async () => {
+    const teamBizKey = await createTeam(authCurl);
+    const today = new Date().toISOString().split('T')[0];
+    const future = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+
+    // Get admin user bizKey
+    const meRes = await authCurl('GET', '/v1/me/permissions');
+    const adminBizKey = '1'; // admin is always user 1 in seed
+
+    const res = await authCurl('POST', `/v1/teams/${teamBizKey}/main-items`, {
       body: JSON.stringify({
-        weekStart: new Date().toISOString().split('T')[0],
-        content: 'test progress entry',
+        title: 'TC-001 test item',
+        priority: 'P2',
+        assigneeKey: adminBizKey,
+        startDate: today,
+        expectedEndDate: future,
       }),
     });
-    // Accept 200 or 201; reject 500 (which would indicate internal ID was used)
-    assert.ok(
-      res.status === 200 || res.status === 201,
-      `Expected 200/201 but got ${res.status}: ${res.body}`,
-    );
+    assert.ok(res.status === 200 || res.status === 201, `createMainItem failed: ${res.status} ${res.body}`);
     const data = JSON.parse(res.body);
-    // The returned record's teamKey (or team_key) must equal the snowflake bizKey, not a small uint
-    const teamKey = data.teamKey ?? data.team_key ?? data.data?.teamKey ?? data.data?.team_key;
-    if (teamKey !== undefined) {
-      assert.equal(String(teamKey), teamBizKey, 'team_key must be the snowflake bizKey, not internal uint ID');
-    }
+    const item = data.data ?? data;
+    const teamKey = item.teamKey ?? item.team_key;
+    assert.ok(teamKey !== undefined, `Response missing teamKey field: ${res.body}`);
+    // teamKey must be the snowflake bizKey (large number), not a small uint like 1, 2, 3
+    assert.equal(
+      String(teamKey),
+      teamBizKey,
+      `teamKey ${teamKey} must equal snowflake bizKey ${teamBizKey}, not a small internal uint`,
+    );
   });
 
   // Traceability: TC-002 → Story 2 / AC-1
   test('TC-002: Invite member with PM role bizKey returns ErrCannotAssignPMRole', async () => {
-    // Pre-condition: PM role exists with bizKey 987654321098765432; caller is team PM
-    const teamBizKey = '123456789012345678';
-    const pmRoleBizKey = 987654321098765432;
+    const teamBizKey = await createTeam(authCurl);
+    const pmRoleBizKey = await getPMRoleBizKey(authCurl);
+
     const res = await authCurl('POST', `/v1/teams/${teamBizKey}/members`, {
       body: JSON.stringify({
-        username: 'testuser',
-        roleBizKey: pmRoleBizKey,
+        username: 'admin', // admin is already PM, but PM role assignment should be rejected first
+        roleKey: pmRoleBizKey,
       }),
     });
     assert.ok(
