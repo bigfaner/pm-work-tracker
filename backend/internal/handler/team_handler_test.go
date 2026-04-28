@@ -207,6 +207,16 @@ func (m *mockUserRepoForHandler) FindByIDs(_ context.Context, ids []uint) (map[u
 func (m *mockUserRepoForHandler) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
 	return m.user, m.err
 }
+func (m *mockUserRepoForHandler) FindByBizKeys(_ context.Context, bizKeys []int64) (map[int64]*model.User, error) {
+	if m.user == nil {
+		return nil, m.err
+	}
+	result := make(map[int64]*model.User, len(bizKeys))
+	for _, k := range bizKeys {
+		result[k] = m.user
+	}
+	return result, nil
+}
 func (m *mockUserRepoForHandler) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil
 }

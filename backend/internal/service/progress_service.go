@@ -97,7 +97,7 @@ func (s *progressService) Append(ctx context.Context, teamBizKey int64, authorBi
 		}
 
 		// Record auto-transition to status history
-		if err := RecordStatusChange(s.statusHistorySvc, ctx, "sub_item", int64(subItemID), currentStatus, targetStatus, authorBizKey, 1, ""); err != nil {
+		if err := RecordStatusChange(s.statusHistorySvc, ctx, "sub_item", subItem.BizKey, currentStatus, targetStatus, authorBizKey, 1, ""); err != nil {
 			return nil, err
 		}
 	}

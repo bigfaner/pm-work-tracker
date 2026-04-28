@@ -172,7 +172,7 @@ func (s *subItemService) ChangeStatus(ctx context.Context, teamBizKey int64, cal
 	}
 
 	// Record to status history
-	if err := RecordStatusChange(s.statusHistorySvc, ctx, "sub_item", int64(itemID), oldStatus, newStatus, callerBizKey, 0, ""); err != nil {
+	if err := RecordStatusChange(s.statusHistorySvc, ctx, "sub_item", item.BizKey, oldStatus, newStatus, callerBizKey, 0, ""); err != nil {
 		return nil, err
 	}
 

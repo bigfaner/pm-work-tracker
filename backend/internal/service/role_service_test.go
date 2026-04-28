@@ -189,6 +189,9 @@ func (m *mockRoleUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*mod
 func (m *mockRoleUserRepo) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
 	return nil, nil
 }
+func (m *mockRoleUserRepo) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.User, error) {
+	return nil, nil
+}
 func (m *mockRoleUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil
 }

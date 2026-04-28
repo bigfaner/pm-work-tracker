@@ -229,6 +229,9 @@ func (s *StubRouterRepoUser) FindByIDs(_ context.Context, _ []uint) (map[uint]*m
 func (s *StubRouterRepoUser) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
 	return nil, nil
 }
+func (s *StubRouterRepoUser) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.User, error) {
+	return nil, nil
+}
 func (s *StubRouterRepoUser) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil
 }

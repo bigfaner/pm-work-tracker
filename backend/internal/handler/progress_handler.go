@@ -165,20 +165,20 @@ func buildProgressRecordVOs(records []model.ProgressRecord, userRepo repository.
 
 	ctx := c.Request.Context()
 
-	// Collect unique author IDs
-	authorIDs := make(map[uint]struct{})
+	// Collect unique author BizKeys
+	authorBizKeys := make(map[int64]struct{})
 	for i := range records {
-		authorIDs[uint(records[i].AuthorKey)] = struct{}{}
+		authorBizKeys[records[i].AuthorKey] = struct{}{}
 	}
 
 	// Batch lookup
-	userMap := make(map[uint]*model.User)
-	if len(authorIDs) > 0 {
-		ids := make([]uint, 0, len(authorIDs))
-		for id := range authorIDs {
-			ids = append(ids, id)
+	userMap := make(map[int64]*model.User)
+	if len(authorBizKeys) > 0 {
+		bizKeys := make([]int64, 0, len(authorBizKeys))
+		for k := range authorBizKeys {
+			bizKeys = append(bizKeys, k)
 		}
-		if m, err := userRepo.FindByIDs(ctx, ids); err == nil {
+		if m, err := userRepo.FindByBizKeys(ctx, bizKeys); err == nil {
 			userMap = m
 		}
 	}
@@ -187,7 +187,7 @@ func buildProgressRecordVOs(records []model.ProgressRecord, userRepo repository.
 	result := make([]vo.ProgressRecordVO, 0, len(records))
 	for i := range records {
 		authorName := ""
-		if u, ok := userMap[uint(records[i].AuthorKey)]; ok {
+		if u, ok := userMap[records[i].AuthorKey]; ok {
 			authorName = u.DisplayName
 		}
 		result = append(result, vo.NewProgressRecordVO(&records[i], authorName))

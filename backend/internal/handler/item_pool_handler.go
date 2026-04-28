@@ -259,12 +259,12 @@ func buildItemPoolVOs(items []model.ItemPool, userRepo repository.UserRepo, main
 
 	ctx := c.Request.Context()
 
-	// Collect unique IDs
-	submitterIDs := make(map[uint]struct{})
+	// Collect unique BizKeys
+	submitterBizKeys := make(map[int64]struct{})
 	mainItemBizKeys := make(map[int64]struct{})
 	for i := range items {
 		if items[i].SubmitterKey > 0 {
-			submitterIDs[uint(items[i].SubmitterKey)] = struct{}{}
+			submitterBizKeys[items[i].SubmitterKey] = struct{}{}
 		}
 		if items[i].AssignedMainKey != nil {
 			mainItemBizKeys[*items[i].AssignedMainKey] = struct{}{}
@@ -272,10 +272,10 @@ func buildItemPoolVOs(items []model.ItemPool, userRepo repository.UserRepo, main
 	}
 
 	// Batch lookups
-	userMap := make(map[uint]*model.User)
-	if len(submitterIDs) > 0 {
-		ids := mapKeysToSlice(submitterIDs)
-		if m, err := userRepo.FindByIDs(ctx, ids); err == nil {
+	userMap := make(map[int64]*model.User)
+	if len(submitterBizKeys) > 0 {
+		keys := int64MapKeysToSlice(submitterBizKeys)
+		if m, err := userRepo.FindByBizKeys(ctx, keys); err == nil {
 			userMap = m
 		}
 	}
@@ -292,7 +292,7 @@ func buildItemPoolVOs(items []model.ItemPool, userRepo repository.UserRepo, main
 	result := make([]vo.ItemPoolVO, 0, len(items))
 	for i := range items {
 		submitterName := ""
-		if u, ok := userMap[uint(items[i].SubmitterKey)]; ok {
+		if u, ok := userMap[items[i].SubmitterKey]; ok {
 			submitterName = u.DisplayName
 		}
 		v := vo.NewItemPoolVO(&items[i], submitterName)
@@ -305,15 +305,6 @@ func buildItemPoolVOs(items []model.ItemPool, userRepo repository.UserRepo, main
 		result = append(result, v)
 	}
 	return result
-}
-
-// mapKeysToSlice extracts map keys to a slice for batch lookups.
-func mapKeysToSlice(m map[uint]struct{}) []uint {
-	ids := make([]uint, 0, len(m))
-	for id := range m {
-		ids = append(ids, id)
-	}
-	return ids
 }
 
 // int64MapKeysToSlice extracts int64 map keys to a slice for batch lookups.

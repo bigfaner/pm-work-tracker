@@ -989,7 +989,7 @@ func TestListItemPool_UsesBatchLookup(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, 1, trackingUser.findByIDsCallCount, "FindByIDs should be called once for users")
+	assert.Equal(t, 1, trackingUser.findByBizKeysCallCount, "FindByBizKeys should be called once for users")
 	assert.Equal(t, 0, trackingUser.findByIDCallCount, "FindByID should not be called in batch path")
 	assert.Equal(t, 1, trackingMainItem.findByBizKeysCallCount, "FindByBizKeys should be called once for main items")
 	assert.Equal(t, 0, trackingMainItem.findByBizKeyCallCount, "FindByBizKey should not be called in batch path")

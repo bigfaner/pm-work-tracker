@@ -11,6 +11,15 @@
       "status": "completed",
       "file": "D-migrate-user-ref-fkeys.md",
       "record": "records/D-migrate-user-ref-fkeys.md"
+    },
+    "E-F": {
+      "id": "E-F",
+      "title": "AssigneeKey read-side BizKey unification + StatusHistory.ItemKey BizKey migration",
+      "priority": "P0",
+      "status": "completed",
+      "file": "E-F.md",
+      "record": "records/E-F.md",
+      "breaking": true
     }
   },
   "statusEnum": [

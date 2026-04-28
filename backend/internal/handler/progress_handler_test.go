@@ -224,9 +224,10 @@ func testProgressRecord(id uint, subItemID uint, authorID uint) *model.ProgressR
 
 // trackingUserRepo tracks call counts to verify batch vs individual lookups.
 type trackingUserRepo struct {
-	users              map[uint]*model.User
-	findByIDsCallCount int
-	findByIDCallCount  int
+	users                   map[uint]*model.User
+	findByIDsCallCount      int
+	findByIDCallCount       int
+	findByBizKeysCallCount  int
 }
 
 func (t *trackingUserRepo) FindByID(_ context.Context, id uint) (*model.User, error) {
@@ -239,6 +240,16 @@ func (t *trackingUserRepo) FindByIDs(_ context.Context, ids []uint) (map[uint]*m
 	for _, id := range ids {
 		if u, ok := t.users[id]; ok {
 			result[id] = u
+		}
+	}
+	return result, nil
+}
+func (t *trackingUserRepo) FindByBizKeys(_ context.Context, bizKeys []int64) (map[int64]*model.User, error) {
+	t.findByBizKeysCallCount++
+	result := make(map[int64]*model.User, len(bizKeys))
+	for _, k := range bizKeys {
+		if u, ok := t.users[uint(k)]; ok {
+			result[k] = u
 		}
 	}
 	return result, nil
@@ -655,7 +666,7 @@ func TestListProgress_UsesBatchLookup(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, 1, trackingRepo.findByIDsCallCount, "FindByIDs should be called exactly once")
+	assert.Equal(t, 1, trackingRepo.findByBizKeysCallCount, "FindByBizKeys should be called exactly once")
 	assert.Equal(t, 0, trackingRepo.findByIDCallCount, "FindByID should not be called in batch path")
 
 	var resp map[string]interface{}

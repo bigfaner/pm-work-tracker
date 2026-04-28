@@ -740,7 +740,7 @@ func TestMainItemChangeStatus_TeamMismatch(t *testing.T) {
 
 func TestChangeStatus_StatusHistoryRecorded(t *testing.T) {
 	item := &model.MainItem{
-		BaseModel:   model.BaseModel{ID: 1},
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 100},
 		TeamKey: 1,
 		ItemStatus: "pending",
 		ProposerKey: int64(10),
@@ -754,7 +754,7 @@ func TestChangeStatus_StatusHistoryRecorded(t *testing.T) {
 
 	require.NotNil(t, historySvc.recorded)
 	assert.Equal(t, "main_item", historySvc.recorded.ItemType)
-	assert.Equal(t, uint(1), uint(historySvc.recorded.ItemKey))
+	assert.Equal(t, int64(100), historySvc.recorded.ItemKey)
 	assert.Equal(t, "pending", historySvc.recorded.FromStatus)
 	assert.Equal(t, "progressing", historySvc.recorded.ToStatus)
 	assert.Equal(t, int64(10), historySvc.recorded.ChangedBy)

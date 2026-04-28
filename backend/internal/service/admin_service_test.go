@@ -90,6 +90,9 @@ func (m *mockAdminUserRepo) FindByBizKey(_ context.Context, _ int64) (*model.Use
 	}
 	return m.user, m.err
 }
+func (m *mockAdminUserRepo) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.User, error) {
+	return nil, nil
+}
 func (m *mockAdminUserRepo) ListFiltered(ctx context.Context, search string, offset, limit int) ([]*model.User, int64, error) {
 	m.listFilteredCalled = true
 	m.listFilteredSearch = search

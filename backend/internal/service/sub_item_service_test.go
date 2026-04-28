@@ -362,13 +362,13 @@ func TestChangeStatus_PausingToClosed(t *testing.T) {
 func testValidTransitionTM(t *testing.T, from, to string) {
 	t.Helper()
 	existing := &model.SubItem{
-		BaseModel:      model.BaseModel{ID: 1},
+		BaseModel:      model.BaseModel{ID: 1, BizKey: 200},
 		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: from,
 	}
 	updated := &model.SubItem{
-		BaseModel:      model.BaseModel{ID: 1},
+		BaseModel:      model.BaseModel{ID: 1, BizKey: 200},
 		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: to,
@@ -397,7 +397,7 @@ func testValidTransitionTM(t *testing.T, from, to string) {
 
 	// Status history is always recorded
 	historySvc.On("Record", mock.Anything, mock.MatchedBy(func(record *model.StatusHistory) bool {
-		return uint(record.ItemKey) == 1 && record.FromStatus == from && record.ToStatus == to && record.IsAuto == 0
+		return record.ItemKey == int64(200) && record.FromStatus == from && record.ToStatus == to && record.IsAuto == 0
 	})).Return(nil)
 
 	// EvaluateLinkage is always called after status change
@@ -651,13 +651,13 @@ func TestChangeStatus_Completed_RecalcError(t *testing.T) {
 
 func TestChangeStatus_RecordsHistory(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:      model.BaseModel{ID: 7},
+		BaseModel:      model.BaseModel{ID: 7, BizKey: 300},
 		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: "pending",
 	}
 	updated := &model.SubItem{
-		BaseModel:      model.BaseModel{ID: 7},
+		BaseModel:      model.BaseModel{ID: 7, BizKey: 300},
 		TeamKey: 1,
 		MainItemKey: int64(5),
 		ItemStatus: "progressing",
@@ -672,7 +672,7 @@ func TestChangeStatus_RecordsHistory(t *testing.T) {
 	repo.On("FindByID", mock.Anything, uint(7)).Return(updated, nil).Once()
 	historySvc.On("Record", mock.Anything, mock.MatchedBy(func(record *model.StatusHistory) bool {
 		return record.ItemType == "sub_item" &&
-			uint(record.ItemKey) == 7 &&
+			record.ItemKey == int64(300) &&
 			record.FromStatus == "pending" &&
 			record.ToStatus == "progressing" &&
 			record.ChangedBy == 10 &&

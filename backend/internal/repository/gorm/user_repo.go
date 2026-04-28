@@ -68,6 +68,18 @@ func (r *userRepo) FindByIDs(ctx context.Context, ids []uint) (map[uint]*model.U
 	return repo.FindByIDs[model.User](r.db, ctx, ids)
 }
 
+func (r *userRepo) FindByBizKeys(ctx context.Context, bizKeys []int64) (map[int64]*model.User, error) {
+	var users []*model.User
+	if err := r.db.WithContext(ctx).Where("biz_key IN ?", bizKeys).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	result := make(map[int64]*model.User, len(users))
+	for _, u := range users {
+		result[u.BizKey] = u
+	}
+	return result, nil
+}
+
 func (r *userRepo) SoftDelete(ctx context.Context, user *model.User) error {
 	now := time.Now()
 	return r.db.WithContext(ctx).Model(user).Updates(map[string]interface{}{
