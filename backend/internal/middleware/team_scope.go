@@ -60,7 +60,7 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleR
 				apperrors.RespondError(c, apperrors.ErrInternal)
 				return
 			}
-			codes, err := roleRepo.ListPermissions(c.Request.Context(), role.ID)
+			codes, err := roleRepo.ListPermissions(c.Request.Context(), role.BizKey)
 			if err != nil {
 				c.Abort()
 				apperrors.RespondError(c, apperrors.ErrInternal)

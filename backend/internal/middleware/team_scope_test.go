@@ -176,21 +176,21 @@ func (m *mockRoleRepo) Delete(ctx context.Context, id uint) error {
 	return args.Error(0)
 }
 
-func (m *mockRoleRepo) ListPermissions(ctx context.Context, roleID uint) ([]string, error) {
-	args := m.Called(ctx, roleID)
+func (m *mockRoleRepo) ListPermissions(ctx context.Context, roleKey int64) ([]string, error) {
+	args := m.Called(ctx, roleKey)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]string), args.Error(1)
 }
 
-func (m *mockRoleRepo) SetPermissions(ctx context.Context, roleID uint, codes []string) error {
-	args := m.Called(ctx, roleID, codes)
+func (m *mockRoleRepo) SetPermissions(ctx context.Context, roleKey int64, codes []string) error {
+	args := m.Called(ctx, roleKey, codes)
 	return args.Error(0)
 }
 
-func (m *mockRoleRepo) CountMembersByRoleID(ctx context.Context, roleID uint) (int64, error) {
-	args := m.Called(ctx, roleID)
+func (m *mockRoleRepo) CountMembersByRoleKey(ctx context.Context, roleKey int64) (int64, error) {
+	args := m.Called(ctx, roleKey)
 	return args.Get(0).(int64), args.Error(1)
 }
 
@@ -276,17 +276,17 @@ func TestTeamScopeMiddleware_NonMember_Returns403(t *testing.T) {
 }
 
 func TestTeamScopeMiddleware_Member_SetsContext(t *testing.T) {
-	roleID := uint(3)
+	roleBizKey := int64(3003)
 	teamRepo := new(mockTeamRepo)
 	roleRepo := new(mockRoleRepo)
 	teamRepo.On("FindByBizKey", mock.Anything, int64(5)).Return(&model.Team{BaseModel: model.BaseModel{ID: 5}}, nil)
 	teamRepo.On("FindMember", mock.Anything, uint(5), uint(10)).Return(&model.TeamMember{
 		TeamKey: int64(5),
 		UserKey: 10,
-		RoleKey: func() *int64 { v := int64(roleID); return &v }(),
+		RoleKey: &roleBizKey,
 	}, nil)
-	roleRepo.On("FindByBizKey", mock.Anything, int64(3)).Return(&model.Role{BaseModel: model.BaseModel{ID: 3}}, nil)
-	roleRepo.On("ListPermissions", mock.Anything, uint(3)).Return([]string{"team:update", "team:invite"}, nil)
+	roleRepo.On("FindByBizKey", mock.Anything, roleBizKey).Return(&model.Role{BaseModel: model.BaseModel{ID: 3, BizKey: roleBizKey}}, nil)
+	roleRepo.On("ListPermissions", mock.Anything, roleBizKey).Return([]string{"team:update", "team:invite"}, nil)
 	r, cc := setupTeamScopeRouter(teamRepo, roleRepo)
 
 	w := httptest.NewRecorder()

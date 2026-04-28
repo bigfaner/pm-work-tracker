@@ -106,7 +106,7 @@ func TestMigrateToRBAC_PresetRolesSeeded(t *testing.T) {
 	assert.Equal(t, uint(1), superadmin.ID)
 
 	// superadmin should have NO permission codes
-	count, err := CountPermissionsForRole(db, superadmin.ID)
+	count, err := CountPermissionsForRole(db, superadmin.BizKey)
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), count, "superadmin should have no permission codes")
 
@@ -117,7 +117,7 @@ func TestMigrateToRBAC_PresetRolesSeeded(t *testing.T) {
 	assert.Equal(t, uint(2), pm.ID)
 
 	// pm should have 26 codes
-	count, err = CountPermissionsForRole(db, pm.ID)
+	count, err = CountPermissionsForRole(db, pm.BizKey)
 	require.NoError(t, err)
 	assert.Equal(t, int64(26), count, "pm should have 26 permission codes")
 
@@ -128,7 +128,7 @@ func TestMigrateToRBAC_PresetRolesSeeded(t *testing.T) {
 	assert.Equal(t, uint(3), member.ID)
 
 	// member should have 14 codes
-	count, err = CountPermissionsForRole(db, member.ID)
+	count, err = CountPermissionsForRole(db, member.BizKey)
 	require.NoError(t, err)
 	assert.Equal(t, int64(14), count, "member should have 14 permission codes")
 }
@@ -248,7 +248,9 @@ func TestMigrateToRBAC_IdempotentReRun(t *testing.T) {
 	assert.Equal(t, roleCount, roleCountAfter, "roles should not be re-seeded on re-run")
 
 	// Permission count should be unchanged
-	pmPerms, _ := CountPermissionsForRole(db, 2)
+	var pmRole model.Role
+	require.NoError(t, db.Where("role_name = ?", "pm").First(&pmRole).Error)
+	pmPerms, _ := CountPermissionsForRole(db, pmRole.BizKey)
 	assert.Equal(t, int64(26), pmPerms, "pm permissions should not be duplicated")
 }
 
@@ -363,7 +365,9 @@ func TestMigrateToRBAC_SuperadminNoPermissionCodes(t *testing.T) {
 	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
-	count, err := CountPermissionsForRole(db, 1)
+	var superadminRole model.Role
+	require.NoError(t, db.Where("role_name = ?", "superadmin").First(&superadminRole).Error)
+	count, err := CountPermissionsForRole(db, superadminRole.BizKey)
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), count, "superadmin should have zero permission codes in role_permissions")
 }
@@ -387,8 +391,11 @@ func TestMigrateToRBAC_MemberHasExactCodes(t *testing.T) {
 		"report:export": true,
 	}
 
+	var memberRole model.Role
+	require.NoError(t, db.Where("role_name = ?", "member").First(&memberRole).Error)
+
 	var perms []model.RolePermission
-	require.NoError(t, db.Where("role_id = ?", 3).Find(&perms).Error)
+	require.NoError(t, db.Where("role_key = ?", memberRole.BizKey).Find(&perms).Error)
 	assert.Len(t, perms, len(expectedCodes), "member should have exactly %d codes", len(expectedCodes))
 
 	for _, p := range perms {
@@ -422,7 +429,7 @@ func TestVerifyPresetRoleCodes_FailsOnMissingCode(t *testing.T) {
 	// Create pm role with only one permission (missing many)
 	pm := model.Role{Name: "pm", Description: "pm", IsPreset: true}
 	require.NoError(t, db.Create(&pm).Error)
-	rp := model.RolePermission{RoleID: pm.ID, PermissionCode: "team:create"}
+	rp := model.RolePermission{RoleKey: pm.BizKey, PermissionCode: "team:create"}
 	require.NoError(t, db.Create(&rp).Error)
 
 	// Create member role with correct count
@@ -501,7 +508,7 @@ func TestSeedRole_SkipsExisting(t *testing.T) {
 	assert.Equal(t, "existing", role.Description, "existing role description should not be modified")
 
 	// Missing permission code should have been added
-	count, _ := CountPermissionsForRole(db, role.ID)
+	count, _ := CountPermissionsForRole(db, role.BizKey)
 	assert.Equal(t, int64(1), count)
 }
 
@@ -609,9 +616,9 @@ func setupAutoSchemaFalseDB(t *testing.T) *gorm.DB {
 			id              INTEGER PRIMARY KEY AUTOINCREMENT,
 			deleted_flag    INTEGER NOT NULL DEFAULT 0,
 			deleted_time    DATETIME NOT NULL DEFAULT '1970-01-01 08:00:00',
-			role_id         INTEGER NOT NULL,
+			role_key        INTEGER NOT NULL,
 			permission_code TEXT NOT NULL,
-			UNIQUE(role_id, permission_code, deleted_flag, deleted_time)
+			UNIQUE(role_key, permission_code, deleted_flag, deleted_time)
 		)
 	`).Error)
 

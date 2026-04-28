@@ -178,7 +178,7 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		"view:weekly", "view:gantt", "view:table", "report:export",
 	}
 	for _, code := range pmPermCodes {
-		require.NoError(t, db.Create(&model.RolePermission{RoleID: pmRole.ID, PermissionCode: code}).Error)
+		require.NoError(t, db.Create(&model.RolePermission{RoleKey: pmRole.BizKey, PermissionCode: code}).Error)
 	}
 	// Member gets limited permissions
 	memberPermCodes := []string{
@@ -187,7 +187,7 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		"item_pool:submit", "view:weekly", "view:table", "report:export",
 	}
 	for _, code := range memberPermCodes {
-		require.NoError(t, db.Create(&model.RolePermission{RoleID: memberRole.ID, PermissionCode: code}).Error)
+		require.NoError(t, db.Create(&model.RolePermission{RoleKey: memberRole.BizKey, PermissionCode: code}).Error)
 	}
 
 	// Seed teams (with BizKey so middleware can resolve bizKey to internal ID)
@@ -305,11 +305,9 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 
 	pmRole := model.Role{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Name: "pm", Description: "Project Manager", IsPreset: true}
 	require.NoError(t, db.Create(&pmRole).Error)
-	pmRoleID := pmRole.ID
 
 	memberRole := model.Role{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Name: "member", Description: "Team Member", IsPreset: true}
 	require.NoError(t, db.Create(&memberRole).Error)
-	memberRoleID := memberRole.ID
 
 	// PM permissions (matching migration)
 	pmPermCodes := []string{
@@ -324,7 +322,7 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		"user:read",
 	}
 	for _, code := range pmPermCodes {
-		require.NoError(t, db.Create(&model.RolePermission{RoleID: pmRoleID, PermissionCode: code}).Error)
+		require.NoError(t, db.Create(&model.RolePermission{RoleKey: pmRole.BizKey, PermissionCode: code}).Error)
 	}
 
 	// Member permissions (matching migration)
@@ -337,7 +335,7 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		"report:export",
 	}
 	for _, code := range memberPermCodes {
-		require.NoError(t, db.Create(&model.RolePermission{RoleID: memberRoleID, PermissionCode: code}).Error)
+		require.NoError(t, db.Create(&model.RolePermission{RoleKey: memberRole.BizKey, PermissionCode: code}).Error)
 	}
 
 	// Superadmin has no permission codes (bypasses all checks)
@@ -592,13 +590,12 @@ func getSubItem(t *testing.T, db *gorm.DB, id uint) *model.SubItem {
 
 // ========== Role Lookup Helpers ==========
 
-// findRoleKeyByName looks up a role BizKey by name from the database.
-// Returns BizKey (snowflake ID) as uint, not the auto-increment ID.
-func findRoleKeyByName(t *testing.T, db *gorm.DB, name string) uint {
+// findRoleByName looks up a role by name from the database.
+func findRoleByName(t *testing.T, db *gorm.DB, name string) *model.Role {
 	t.Helper()
 	var role model.Role
 	require.NoError(t, db.Where("role_name = ?", name).First(&role).Error)
-	return uint(role.BizKey)
+	return &role
 }
 
 // findRoleBizKeyByName looks up a role's BizKey as string by name from the database.
@@ -638,9 +635,9 @@ func setupLifecycleTest(t *testing.T) (*gin.Engine, *seedData, *gorm.DB) {
 	db, data := setupRBACTestDB(t)
 
 	// Add main_item:change_status permission for PM role (required by router but missing from seed)
-	pmRoleID := findRoleKeyByName(t, db, "pm")
+	pmRole := findRoleByName(t, db, "pm")
 	require.NoError(t, db.Create(&model.RolePermission{
-		RoleID:         pmRoleID,
+		RoleKey:        pmRole.BizKey,
 		PermissionCode: "main_item:change_status",
 	}).Error)
 

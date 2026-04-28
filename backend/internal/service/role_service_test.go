@@ -28,7 +28,7 @@ type mockRoleRepo struct {
 	created     *model.Role
 	updated     *model.Role
 	deletedID   *uint
-	setPermID   *uint
+	setPermKey  *int64
 	setPermCodes []string
 
 	// For GetUserPermissions
@@ -124,20 +124,20 @@ func (m *mockRoleRepo) Delete(_ context.Context, id uint) error {
 	return nil
 }
 
-func (m *mockRoleRepo) ListPermissions(_ context.Context, roleID uint) ([]string, error) {
+func (m *mockRoleRepo) ListPermissions(_ context.Context, roleKey int64) ([]string, error) {
 	return m.perms, m.listPermErr
 }
 
-func (m *mockRoleRepo) SetPermissions(_ context.Context, roleID uint, codes []string) error {
+func (m *mockRoleRepo) SetPermissions(_ context.Context, roleKey int64, codes []string) error {
 	if m.setPermErr != nil {
 		return m.setPermErr
 	}
-	m.setPermID = &roleID
+	m.setPermKey = &roleKey
 	m.setPermCodes = codes
 	return nil
 }
 
-func (m *mockRoleRepo) CountMembersByRoleID(_ context.Context, roleID uint) (int64, error) {
+func (m *mockRoleRepo) CountMembersByRoleKey(_ context.Context, roleKey int64) (int64, error) {
 	return m.memberCount, m.countErr
 }
 
@@ -281,7 +281,7 @@ func TestRoleService_CreateRole_Success(t *testing.T) {
 	assert.Equal(t, "read only", result.Description)
 	assert.False(t, result.IsPreset)
 	// Verify SetPermissions was called
-	assert.NotNil(t, repo.setPermID)
+	assert.NotNil(t, repo.setPermKey)
 	assert.Equal(t, []string{"team:read", "main_item:read"}, repo.setPermCodes)
 }
 

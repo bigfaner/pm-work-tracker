@@ -30,7 +30,7 @@ func seedPermMatrixFixtures(t *testing.T, db *gorm.DB, data *seedData) permMatri
 	// Main item for archive — must be in completed status
 	archiveItem := &model.MainItem{
 		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:     int64(data.teamAID),
+		TeamKey:     data.teamABizKey,
 		Code:        "TAMA-PM001",
 		Title:       "Perm Matrix Archive Item",
 		Priority:    "P1",
@@ -42,7 +42,7 @@ func seedPermMatrixFixtures(t *testing.T, db *gorm.DB, data *seedData) permMatri
 	// Sub item + progress record for progress:update
 	subItem := &model.SubItem{
 		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:     int64(data.teamAID),
+		TeamKey:     data.teamABizKey,
 		MainItemKey: int64(archiveItem.ID),
 		Title:       "Perm Matrix Sub Item",
 		Priority:    "P2",
@@ -54,7 +54,7 @@ func seedPermMatrixFixtures(t *testing.T, db *gorm.DB, data *seedData) permMatri
 	progressRecord := &model.ProgressRecord{
 		BizKey:      snowflake.Generate(),
 		SubItemKey:  subItem.BizKey,
-		TeamKey:     int64(data.teamAID),
+		TeamKey:     data.teamABizKey,
 		AuthorKey:   int64(data.userAID),
 		Completion:  50,
 		Achievement: "Initial progress",
@@ -65,7 +65,7 @@ func seedPermMatrixFixtures(t *testing.T, db *gorm.DB, data *seedData) permMatri
 	// Pool item for item_pool:review
 	poolItem := &model.ItemPool{
 		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      int64(data.teamAID),
+		TeamKey:      data.teamABizKey,
 		Title:        "Perm Matrix Pool Item",
 		Background:   "Background info",
 		SubmitterKey: int64(data.userAID),
@@ -76,7 +76,7 @@ func seedPermMatrixFixtures(t *testing.T, db *gorm.DB, data *seedData) permMatri
 	// Separate main item for pool assign (so archive item stays sub-item-free)
 	assignItem := &model.MainItem{
 		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:     int64(data.teamAID),
+		TeamKey:     data.teamABizKey,
 		Code:        "TAMA-PM002",
 		Title:       "Perm Matrix Assign Target",
 		Priority:    "P1",
@@ -93,7 +93,7 @@ func seedPermMatrixFixtures(t *testing.T, db *gorm.DB, data *seedData) permMatri
 	}
 	lastMonday := now.AddDate(0, 0, -(weekday-1)-7)
 	lastMonday = time.Date(lastMonday.Year(), lastMonday.Month(), lastMonday.Day(), 0, 0, 0, 0, time.UTC)
-	seedReportData(t, db, data.teamAID, data.userAID, lastMonday)
+	seedReportData(t, db, data.teamABizKey, data.userAID, lastMonday)
 
 	return permMatrixFixtures{
 		mainItemBizKey:       archiveItem.BizKey,
@@ -180,7 +180,7 @@ func TestCustomRole_PartialPermissions(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&customRole).Error)
 	for _, code := range []string{"main_item:read", "progress:read"} {
-		require.NoError(t, db.Create(&model.RolePermission{RoleID: customRole.ID, PermissionCode: code}).Error)
+		require.NoError(t, db.Create(&model.RolePermission{RoleKey: customRole.BizKey, PermissionCode: code}).Error)
 	}
 
 	// Step 2: Create user and assign custom role to teamA
@@ -215,7 +215,7 @@ func TestCustomRole_PartialPermissions(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, w.Code, "archive should be denied")
 
 	// Step 4: Add main_item:create to the custom role via direct DB insert
-	require.NoError(t, db.Create(&model.RolePermission{RoleID: customRole.ID, PermissionCode: "main_item:create"}).Error)
+	require.NoError(t, db.Create(&model.RolePermission{RoleKey: customRole.BizKey, PermissionCode: "main_item:create"}).Error)
 
 	// Step 5: Verify POST /main-items → 200 with same token (no re-login)
 	_ = adminToken // not needed for permission update (used direct DB)

@@ -190,9 +190,9 @@ CREATE TABLE IF NOT EXISTS pmw_role_permissions (
     id               INTEGER PRIMARY KEY AUTOINCREMENT, -- 自增主键
     deleted_flag     INTEGER      NOT NULL DEFAULT 0,   -- 软删标志：0=正常，1=已删除
     deleted_time     DATETIME     NOT NULL DEFAULT '1970-01-01 08:00:00', -- 软删时间，未删除时为固定占位值
-    role_id          INTEGER      NOT NULL,             -- 角色 id（关联 pmw_roles.id）
+    role_key         INTEGER      NOT NULL,             -- 角色 biz_key（关联 pmw_roles.biz_key）
     permission_code  VARCHAR(50)  NOT NULL,             -- 权限码，如 item:create、item:delete
-    UNIQUE(role_id, permission_code, deleted_flag, deleted_time)
+    UNIQUE(role_key, permission_code, deleted_flag, deleted_time)
 );
 
 -- pmw_status_histories (append-only: no soft-delete, no biz_key)

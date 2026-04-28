@@ -90,12 +90,12 @@ func (s *roleService) ListRoles(ctx context.Context) ([]RoleListItem, error) {
 			permCount = permissions.TotalCodeCount()
 		} else {
 			var err error
-			permCount, err = s.permCount(ctx, r.ID)
+			permCount, err = s.permCount(ctx, r.BizKey)
 			if err != nil {
 				return nil, err
 			}
 		}
-		memberCount, err := s.roleRepo.CountMembersByRoleID(ctx, r.ID)
+		memberCount, err := s.roleRepo.CountMembersByRoleKey(ctx, r.BizKey)
 		if err != nil {
 			return nil, err
 		}
@@ -123,13 +123,13 @@ func (s *roleService) GetRole(ctx context.Context, roleBizKey int64) (*RoleDetai
 		codes = allCodes()
 	} else {
 		var err error
-		codes, err = s.roleRepo.ListPermissions(ctx, role.ID)
+		codes, err = s.roleRepo.ListPermissions(ctx, role.BizKey)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	memberCount, err := s.roleRepo.CountMembersByRoleID(ctx, role.ID)
+	memberCount, err := s.roleRepo.CountMembersByRoleKey(ctx, role.BizKey)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func (s *roleService) CreateRole(ctx context.Context, req dto.CreateRoleReq) (*R
 		return nil, err
 	}
 
-	if err := s.roleRepo.SetPermissions(ctx, role.ID, req.PermissionCodes); err != nil {
+	if err := s.roleRepo.SetPermissions(ctx, role.BizKey, req.PermissionCodes); err != nil {
 		return nil, err
 	}
 
@@ -239,17 +239,17 @@ func (s *roleService) UpdateRole(ctx context.Context, roleBizKey int64, req dto.
 
 	// Update permissions if provided
 	if req.PermissionCodes != nil {
-		if err := s.roleRepo.SetPermissions(ctx, role.ID, req.PermissionCodes); err != nil {
+		if err := s.roleRepo.SetPermissions(ctx, role.BizKey, req.PermissionCodes); err != nil {
 			return nil, err
 		}
 	}
 
 	// Reload permissions for response
-	codes, err := s.roleRepo.ListPermissions(ctx, role.ID)
+	codes, err := s.roleRepo.ListPermissions(ctx, role.BizKey)
 	if err != nil {
 		return nil, err
 	}
-	memberCount, err := s.roleRepo.CountMembersByRoleID(ctx, role.ID)
+	memberCount, err := s.roleRepo.CountMembersByRoleKey(ctx, role.BizKey)
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +275,7 @@ func (s *roleService) DeleteRole(ctx context.Context, roleBizKey int64) error {
 		return ErrPresetRoleImmutable
 	}
 
-	count, err := s.roleRepo.CountMembersByRoleID(ctx, role.ID)
+	count, err := s.roleRepo.CountMembersByRoleKey(ctx, role.BizKey)
 	if err != nil {
 		return err
 	}
@@ -313,8 +313,8 @@ func (s *roleService) GetUserPermissions(ctx context.Context, userID uint) (*Use
 
 // --- internal helpers ---
 
-func (s *roleService) permCount(ctx context.Context, roleID uint) (int, error) {
-	codes, err := s.roleRepo.ListPermissions(ctx, roleID)
+func (s *roleService) permCount(ctx context.Context, roleKey int64) (int, error) {
+	codes, err := s.roleRepo.ListPermissions(ctx, roleKey)
 	if err != nil {
 		return 0, err
 	}

@@ -61,7 +61,7 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 		"report:export", "user:read", "user:update", "user:manage_role",
 	}
 	for _, code := range allPermCodes {
-		require.NoError(t, db.Create(&model.RolePermission{RoleID: pmRole.ID, PermissionCode: code}).Error)
+		require.NoError(t, db.Create(&model.RolePermission{RoleKey: pmRole.BizKey, PermissionCode: code}).Error)
 	}
 
 	// Seed a member role with standard member permissions.
@@ -75,7 +75,7 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 		"item_pool:submit", "view:weekly", "view:table", "report:export",
 	}
 	for _, code := range memberPermCodes {
-		require.NoError(t, db.Create(&model.RolePermission{RoleID: memberRole.ID, PermissionCode: code}).Error)
+		require.NoError(t, db.Create(&model.RolePermission{RoleKey: memberRole.BizKey, PermissionCode: code}).Error)
 	}
 
 	// Seed test users so AuthMiddleware can load them.

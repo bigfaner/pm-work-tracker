@@ -75,13 +75,13 @@ func TestRolePermission_UniqueConstraint(t *testing.T) {
 	require.NoError(t, db.Create(&r).Error)
 
 	// First permission OK
-	rp1 := model.RolePermission{RoleID: r.ID, PermissionCode: "team:create"}
+	rp1 := model.RolePermission{RoleKey: r.BizKey, PermissionCode: "team:create"}
 	require.NoError(t, db.Create(&rp1).Error)
 
-	// Duplicate (role_id, permission_code) should fail
-	rp2 := model.RolePermission{RoleID: r.ID, PermissionCode: "team:create"}
+	// Duplicate (role_key, permission_code) should fail
+	rp2 := model.RolePermission{RoleKey: r.BizKey, PermissionCode: "team:create"}
 	err = db.Create(&rp2).Error
-	assert.Error(t, err, "duplicate (role_id, permission_code) should be rejected")
+	assert.Error(t, err, "duplicate (role_key, permission_code) should be rejected")
 }
 
 func TestRolePermission_HasSoftDelete(t *testing.T) {
@@ -92,14 +92,14 @@ func TestRolePermission_HasSoftDelete(t *testing.T) {
 	r := model.Role{Name: "soft-del-role", Description: "test"}
 	require.NoError(t, db.Create(&r).Error)
 
-	rp := model.RolePermission{RoleID: r.ID, PermissionCode: "team:create"}
+	rp := model.RolePermission{RoleKey: r.BizKey, PermissionCode: "team:create"}
 	require.NoError(t, db.Create(&rp).Error)
 
 	// Soft-delete
 	require.NoError(t, db.Model(&rp).Updates(map[string]any{"deleted_flag": 1, "deleted_time": time.Now()}).Error)
 
-	// Same (role_id, permission_code) can be re-created after soft-delete
-	rp2 := model.RolePermission{RoleID: r.ID, PermissionCode: "team:create"}
+	// Same (role_key, permission_code) can be re-created after soft-delete
+	rp2 := model.RolePermission{RoleKey: r.BizKey, PermissionCode: "team:create"}
 	require.NoError(t, db.Create(&rp2).Error, "should allow re-creating after soft-delete")
 }
 
