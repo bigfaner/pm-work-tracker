@@ -81,11 +81,11 @@ func (h *ProgressHandler) Append(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	callerID := middleware.GetUserID(c)
 	pmFlag := isPMOrSuperAdmin(c)
 
-	record, err := h.svc.Append(c.Request.Context(), teamID, callerID, subID, completion, req.Achievement, req.Blocker, req.Lesson, pmFlag)
+	record, err := h.svc.Append(c.Request.Context(), teamBizKey, callerID, subID, completion, req.Achievement, req.Blocker, req.Lesson, pmFlag)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -107,9 +107,9 @@ func (h *ProgressHandler) List(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
-	records, err := h.svc.List(c.Request.Context(), teamID, subID)
+	records, err := h.svc.List(c.Request.Context(), teamBizKey, subID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -145,9 +145,9 @@ func (h *ProgressHandler) CorrectCompletion(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
-	err = h.svc.CorrectCompletion(c.Request.Context(), teamID, record.ID, completion)
+	err = h.svc.CorrectCompletion(c.Request.Context(), teamBizKey, record.ID, completion)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

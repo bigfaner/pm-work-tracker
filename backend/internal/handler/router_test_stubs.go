@@ -334,13 +334,13 @@ var _ service.ViewService = (*StubViewSvc)(nil)
 // StubProgressSvc is a stub ProgressService for test wiring.
 type StubProgressSvc struct{}
 
-func (s *StubProgressSvc) Append(_ context.Context, _, _, _ uint, _ float64, _, _, _ string, _ bool) (*model.ProgressRecord, error) {
+func (s *StubProgressSvc) Append(_ context.Context, _ int64, _, _ uint, _ float64, _, _, _ string, _ bool) (*model.ProgressRecord, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubProgressSvc) CorrectCompletion(_ context.Context, _, _ uint, _ float64) error {
+func (s *StubProgressSvc) CorrectCompletion(_ context.Context, _ int64, _ uint, _ float64) error {
 	return fmt.Errorf("stub: not implemented")
 }
-func (s *StubProgressSvc) List(_ context.Context, _, _ uint) ([]model.ProgressRecord, error) {
+func (s *StubProgressSvc) List(_ context.Context, _ int64, _ uint) ([]model.ProgressRecord, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubProgressSvc) GetByBizKey(_ context.Context, _ int64) (*model.ProgressRecord, error) {

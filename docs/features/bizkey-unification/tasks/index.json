@@ -45,7 +45,7 @@
       "title": "ProgressService: teamID uint → teamBizKey int64 + fix TeamKey bug",
       "priority": "P0",
       "estimatedTime": "1.5h",
-      "status": "pending",
+      "status": "completed",
       "file": "1.2-progress-service-team-biz-key.md",
       "record": "records/1.2-progress-service-team-biz-key.md",
       "breaking": true

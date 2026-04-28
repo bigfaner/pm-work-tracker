@@ -97,7 +97,7 @@ type mockProgressService struct {
 
 	// capture calls
 	appendCalled    bool
-	lastTeamID      uint
+	lastTeamBizKey  int64
 	lastAuthorID    uint
 	lastSubItemID   uint
 	lastCompletion  float64
@@ -114,9 +114,9 @@ type mockProgressService struct {
 	correctValue  float64
 }
 
-func (m *mockProgressService) Append(_ context.Context, teamID, authorID, subItemID uint, completion float64, achievement, blocker, lesson string, isPM bool) (*model.ProgressRecord, error) {
+func (m *mockProgressService) Append(_ context.Context, teamBizKey int64, authorID, subItemID uint, completion float64, achievement, blocker, lesson string, isPM bool) (*model.ProgressRecord, error) {
 	m.appendCalled = true
-	m.lastTeamID = teamID
+	m.lastTeamBizKey = teamBizKey
 	m.lastAuthorID = authorID
 	m.lastSubItemID = subItemID
 	m.lastCompletion = completion
@@ -127,9 +127,9 @@ func (m *mockProgressService) Append(_ context.Context, teamID, authorID, subIte
 	return m.appendResult.record, m.appendResult.err
 }
 
-func (m *mockProgressService) CorrectCompletion(_ context.Context, teamID, recordID uint, completion float64) error {
+func (m *mockProgressService) CorrectCompletion(_ context.Context, teamBizKey int64, recordID uint, completion float64) error {
 	m.correctCalled = true
-	m.lastTeamID = teamID
+	m.lastTeamBizKey = teamBizKey
 	m.correctID = recordID
 	m.correctValue = completion
 	return m.correctResult.err
@@ -139,9 +139,9 @@ func (m *mockProgressService) GetByBizKey(_ context.Context, bizKey int64) (*mod
 	return &model.ProgressRecord{ID: uint(bizKey)}, nil
 }
 
-func (m *mockProgressService) List(_ context.Context, teamID, subItemID uint) ([]model.ProgressRecord, error) {
+func (m *mockProgressService) List(_ context.Context, teamBizKey int64, subItemID uint) ([]model.ProgressRecord, error) {
 	m.listCalled = true
-	m.lastTeamID = teamID
+	m.lastTeamBizKey = teamBizKey
 	m.listSubItemID = subItemID
 	return m.listResult.records, m.listResult.err
 }
@@ -292,7 +292,7 @@ func TestAppendProgress_Success(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, float64(60), data["completion"])
 	assert.True(t, svc.appendCalled)
-	assert.Equal(t, uint(10), svc.lastTeamID)
+	assert.Equal(t, int64(10), svc.lastTeamBizKey)
 	assert.Equal(t, uint(3), svc.lastAuthorID)
 	assert.Equal(t, uint(5), svc.lastSubItemID)
 }

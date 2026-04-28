@@ -219,12 +219,15 @@ func TestProgressAppend_FirstRecord_NoRegression(t *testing.T) {
 
 	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
 
-	record, err := svc.Append(context.Background(), 1, 2, 5, 30.0, "achievement", "blocker", "lesson", false)
+	const teamBizKey int64 = 123456789012345678
+	record, err := svc.Append(context.Background(), teamBizKey, 2, 5, 30.0, "achievement", "blocker", "lesson", false)
 	require.NoError(t, err)
 	assert.Equal(t, int64(5), record.SubItemKey)
 	assert.Equal(t, float64(30.0), record.Completion)
 	assert.Equal(t, int64(2), record.AuthorKey)
 	assert.Equal(t, 0, record.IsPmCorrect)
+	// TeamKey must store the snowflake bizKey, not the internal auto-increment ID
+	assert.Equal(t, teamBizKey, record.TeamKey)
 }
 
 func TestProgressAppend_RegressionDetected(t *testing.T) {
