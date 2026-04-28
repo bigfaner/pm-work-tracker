@@ -196,3 +196,40 @@ func TestItemPoolRepo_List(t *testing.T) {
 		assert.Equal(t, "Other Team", result.Items[0].Title)
 	})
 }
+
+// --- SoftDelete NotDeleted filtering ---
+
+func TestItemPoolRepo_SoftDelete(t *testing.T) {
+	db := setupItemPoolTestDB(t)
+	repo := gormrepo.NewGormItemPoolRepo(db)
+	ctx := context.Background()
+
+	u, team := seedItemPoolData(t, db)
+
+	t.Run("FindByBizKey_excludes_soft_deleted", func(t *testing.T) {
+		item := createItemPool(t, db, team.ID, u.ID, "Deleted Pool", "pending")
+		require.NoError(t, db.Model(item).Update("deleted_flag", 1).Error)
+
+		_, err := repo.FindByBizKey(ctx, item.BizKey)
+		assert.ErrorIs(t, err, gormlib.ErrRecordNotFound)
+	})
+
+	t.Run("List_excludes_soft_deleted", func(t *testing.T) {
+		active := createItemPool(t, db, team.ID, u.ID, "List Active", "pending")
+		deleted := createItemPool(t, db, team.ID, u.ID, "List Deleted", "pending")
+		require.NoError(t, db.Model(deleted).Update("deleted_flag", 1).Error)
+
+		result, err := repo.List(ctx, team.ID, dto.ItemPoolFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+		require.NoError(t, err)
+		for _, item := range result.Items {
+			assert.NotEqual(t, "List Deleted", item.Title, "soft-deleted item should not appear in List")
+		}
+		found := false
+		for _, item := range result.Items {
+			if item.ID == active.ID {
+				found = true
+			}
+		}
+		assert.True(t, found, "active item should be present in List results")
+	})
+}

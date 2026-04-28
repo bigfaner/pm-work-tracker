@@ -447,3 +447,86 @@ func TestRoleRepo_GetUserTeamPermissions_NoRoleID(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, result, "members without RoleID should produce no permission entries")
 }
+
+// --- Soft-delete tests for join queries ---
+
+func TestRoleRepo_HasPermission_DeletedMember(t *testing.T) {
+	db := setupRoleTestDB(t)
+	repo := gormrepo.NewGormRoleRepo(db)
+	ctx := context.Background()
+
+	u := seedRoleUser(t, db, "user1")
+	team := model.Team{TeamName: "Team", PmKey: int64(u.ID), Code: "TM01"}
+	require.NoError(t, db.Create(&team).Error)
+	r := seedRole(t, db, "pm", "PM role", true)
+
+	require.NoError(t, db.Create(&model.RolePermission{RoleID: r.ID, PermissionCode: "team:create"}).Error)
+	member := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r.ID); return &v }(), JoinedAt: timeNow()}
+	require.NoError(t, db.Create(&member).Error)
+
+	// Soft-delete the member
+	require.NoError(t, db.Model(&member).Updates(map[string]any{"deleted_flag": 1, "deleted_time": time.Now()}).Error)
+
+	has, err := repo.HasPermission(ctx, u.ID, "team:create")
+	require.NoError(t, err)
+	assert.False(t, has, "deleted member should have no permissions")
+}
+
+func TestRoleRepo_GetUserTeamPermissions_DeletedMember(t *testing.T) {
+	db := setupRoleTestDB(t)
+	repo := gormrepo.NewGormRoleRepo(db)
+	ctx := context.Background()
+
+	u := seedRoleUser(t, db, "user1")
+	team1 := model.Team{TeamName: "Team1", PmKey: int64(u.ID), Code: "TM01"}
+	require.NoError(t, db.Create(&team1).Error)
+	team2 := model.Team{TeamName: "Team2", PmKey: int64(u.ID), Code: "TM02"}
+	require.NoError(t, db.Create(&team2).Error)
+
+	r1 := seedRole(t, db, "pm-role", "PM Role", true)
+	r2 := seedRole(t, db, "member-role", "Member Role", true)
+
+	require.NoError(t, db.Create(&model.RolePermission{RoleID: r1.ID, PermissionCode: "team:create"}).Error)
+	require.NoError(t, db.Create(&model.RolePermission{RoleID: r1.ID, PermissionCode: "team:read"}).Error)
+	require.NoError(t, db.Create(&model.RolePermission{RoleID: r2.ID, PermissionCode: "team:read"}).Error)
+
+	member1 := model.TeamMember{TeamKey: int64(team1.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r1.ID); return &v }(), JoinedAt: timeNow()}
+	require.NoError(t, db.Create(&member1).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team2.ID), UserKey: int64(u.ID), RoleKey: func() *int64 { v := int64(r2.ID); return &v }(), JoinedAt: timeNow()}).Error)
+
+	// Soft-delete member in team1
+	require.NoError(t, db.Model(&member1).Updates(map[string]any{"deleted_flag": 1, "deleted_time": time.Now()}).Error)
+
+	result, err := repo.GetUserTeamPermissions(ctx, u.ID)
+	require.NoError(t, err)
+	assert.Equal(t, map[uint][]string{
+		team2.ID: {"team:read"},
+	}, result, "deleted member's permissions should be excluded")
+}
+
+func TestRoleRepo_CountMembersByRoleID_DeletedMember(t *testing.T) {
+	db := setupRoleTestDB(t)
+	repo := gormrepo.NewGormRoleRepo(db)
+	ctx := context.Background()
+
+	u1 := seedRoleUser(t, db, "user1")
+	u2 := seedRoleUser(t, db, "user2")
+	u3 := seedRoleUser(t, db, "user3")
+
+	team := model.Team{TeamName: "Team", PmKey: int64(u1.ID), Code: "TM01"}
+	require.NoError(t, db.Create(&team).Error)
+
+	r := seedRole(t, db, "member", "Member role", true)
+
+	member1 := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u1.ID), RoleKey: func() *int64 { v := int64(r.ID); return &v }(), JoinedAt: timeNow()}
+	require.NoError(t, db.Create(&member1).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u2.ID), RoleKey: func() *int64 { v := int64(r.ID); return &v }(), JoinedAt: timeNow()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u3.ID), RoleKey: func() *int64 { v := int64(r.ID); return &v }(), JoinedAt: timeNow()}).Error)
+
+	// Soft-delete member1
+	require.NoError(t, db.Model(&member1).Updates(map[string]any{"deleted_flag": 1, "deleted_time": time.Now()}).Error)
+
+	count, err := repo.CountMembersByRoleID(ctx, r.ID)
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), count, "deleted members should not be counted")
+}

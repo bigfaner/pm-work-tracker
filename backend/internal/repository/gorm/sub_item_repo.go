@@ -3,6 +3,7 @@ package gorm
 import (
 	"context"
 	"fmt"
+	"time"
 
 	gormlib "gorm.io/gorm"
 
@@ -36,12 +37,14 @@ func (r *subItemRepo) Update(ctx context.Context, item *model.SubItem, fields ma
 }
 
 func (r *subItemRepo) SoftDelete(ctx context.Context, id uint) error {
-	return r.db.WithContext(ctx).Delete(&model.SubItem{}, id).Error
+	return r.db.WithContext(ctx).Model(&model.SubItem{}).
+		Where("id = ?", id).
+		Updates(map[string]any{"deleted_flag": 1, "deleted_time": time.Now()}).Error
 }
 
 func (r *subItemRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.SubItem, error) {
 	var item model.SubItem
-	err := r.db.WithContext(ctx).Where("biz_key = ?", bizKey).First(&item).Error
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).Where("biz_key = ?", bizKey).First(&item).Error
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +52,7 @@ func (r *subItemRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.Su
 }
 
 func (r *subItemRepo) List(ctx context.Context, teamID uint, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
-	query := r.db.WithContext(ctx).Where("team_key = ?", teamID)
+	query := r.db.WithContext(ctx).Scopes(NotDeleted).Where("team_key = ?", teamID)
 
 	if mainItemID > 0 {
 		query = query.Where("main_item_key = ?", mainItemID)
@@ -81,7 +84,7 @@ func (r *subItemRepo) List(ctx context.Context, teamID uint, mainItemID uint, fi
 
 func (r *subItemRepo) ListByMainItem(ctx context.Context, mainItemID uint) ([]*model.SubItem, error) {
 	var items []*model.SubItem
-	err := r.db.WithContext(ctx).
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).
 		Where("main_item_key = ?", mainItemID).
 		Find(&items).Error
 	return items, err
@@ -89,7 +92,7 @@ func (r *subItemRepo) ListByMainItem(ctx context.Context, mainItemID uint) ([]*m
 
 func (r *subItemRepo) ListByTeam(ctx context.Context, teamID uint) ([]model.SubItem, error) {
 	var items []model.SubItem
-	err := r.db.WithContext(ctx).
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).
 		Where("team_key = ?", teamID).
 		Find(&items).Error
 	return items, err

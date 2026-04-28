@@ -25,11 +25,27 @@ type identifiable interface {
 		model.ProgressRecord | model.StatusHistory | model.ItemPool | model.TeamMember
 }
 
+// isSoftDeletable returns true for model types that embed BaseModel (have deleted_flag).
+// Uses a negative list: only ProgressRecord and StatusHistory return false.
+func isSoftDeletable[T any]() bool {
+	switch any(new(T)).(type) {
+	case *model.ProgressRecord, *model.StatusHistory:
+		return false
+	default:
+		return true
+	}
+}
+
 // FindByID retrieves a single record by primary key.
 // Returns apperrors.ErrNotFound if the record does not exist.
+// For soft-deletable types, automatically filters out soft-deleted records.
 func FindByID[T any](db *gormlib.DB, ctx context.Context, id uint) (*T, error) {
 	var item T
-	err := db.WithContext(ctx).First(&item, id).Error
+	query := db.WithContext(ctx)
+	if isSoftDeletable[T]() {
+		query = query.Where("deleted_flag = 0")
+	}
+	err := query.First(&item, id).Error
 	if err != nil {
 		if errors.Is(err, gormlib.ErrRecordNotFound) {
 			return nil, apperrors.ErrNotFound
@@ -42,13 +58,18 @@ func FindByID[T any](db *gormlib.DB, ctx context.Context, id uint) (*T, error) {
 // FindByIDs retrieves multiple records by their primary keys.
 // Returns a map keyed by ID. Missing IDs are absent from the map (no error).
 // Empty input returns an empty map with no query.
+// For soft-deletable types, automatically filters out soft-deleted records.
 func FindByIDs[T identifiable](db *gormlib.DB, ctx context.Context, ids []uint) (map[uint]*T, error) {
 	result := make(map[uint]*T)
 	if len(ids) == 0 {
 		return result, nil
 	}
+	query := db.WithContext(ctx)
+	if isSoftDeletable[T]() {
+		query = query.Where("deleted_flag = 0")
+	}
 	var items []*T
-	if err := db.WithContext(ctx).Where("id IN ?", ids).Find(&items).Error; err != nil {
+	if err := query.Where("id IN ?", ids).Find(&items).Error; err != nil {
 		return nil, err
 	}
 	for _, item := range items {

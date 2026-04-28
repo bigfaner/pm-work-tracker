@@ -81,15 +81,17 @@ func (r *roleRepo) ListPermissions(ctx context.Context, roleID uint) ([]string, 
 	var codes []string
 	err := r.db.WithContext(ctx).
 		Model(&model.RolePermission{}).
-		Where("role_id = ?", roleID).
+		Where("role_id = ? AND deleted_flag = 0", roleID).
 		Pluck("permission_code", &codes).Error
 	return codes, err
 }
 
 func (r *roleRepo) SetPermissions(ctx context.Context, roleID uint, codes []string) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gormlib.DB) error {
-		// Delete all existing permissions for this role
-		if err := tx.Where("role_id = ?", roleID).Delete(&model.RolePermission{}).Error; err != nil {
+		// Soft-delete all existing active permissions for this role
+		if err := tx.Model(&model.RolePermission{}).
+			Where("role_id = ? AND deleted_flag = 0", roleID).
+			Updates(map[string]any{"deleted_flag": 1, "deleted_time": time.Now()}).Error; err != nil {
 			return err
 		}
 		// Insert new permissions
@@ -107,6 +109,7 @@ func (r *roleRepo) CountMembersByRoleID(ctx context.Context, roleID uint) (int64
 	var count int64
 	err := r.db.WithContext(ctx).
 		Model(&model.TeamMember{}).
+		Scopes(NotDeleted).
 		Where("role_key = ?", roleID).
 		Count(&count).Error
 	return count, err
@@ -116,7 +119,8 @@ func (r *roleRepo) HasPermission(ctx context.Context, userID uint, code string) 
 	var count int64
 	err := r.db.WithContext(ctx).
 		Table("pmw_team_members").
-		Joins("JOIN pmw_role_permissions ON pmw_role_permissions.role_id = pmw_team_members.role_key").
+		Scopes(NotDeletedTable("pmw_team_members")).
+		Joins("JOIN pmw_role_permissions ON pmw_role_permissions.role_id = pmw_team_members.role_key AND pmw_role_permissions.deleted_flag = 0").
 		Where("pmw_team_members.user_key = ? AND pmw_role_permissions.permission_code = ?", userID, code).
 		Count(&count).Error
 	if err != nil {
@@ -135,8 +139,9 @@ func (r *roleRepo) GetUserTeamPermissions(ctx context.Context, userID uint) (map
 	var rows []teamPermRow
 	err := r.db.WithContext(ctx).
 		Table("pmw_team_members").
+		Scopes(NotDeletedTable("pmw_team_members")).
 		Select("pmw_team_members.team_key, pmw_role_permissions.permission_code").
-		Joins("JOIN pmw_role_permissions ON pmw_role_permissions.role_id = pmw_team_members.role_key").
+		Joins("JOIN pmw_role_permissions ON pmw_role_permissions.role_id = pmw_team_members.role_key AND pmw_role_permissions.deleted_flag = 0").
 		Where("pmw_team_members.user_key = ?", userID).
 		Find(&rows).Error
 	if err != nil {

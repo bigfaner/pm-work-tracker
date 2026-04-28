@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS pmw_sub_items (
     weight            REAL          NOT NULL DEFAULT 1.00 -- 权重，用于计算父事项完成度
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uk_sub_items_biz_key ON pmw_sub_items(biz_key);
-CREATE UNIQUE INDEX IF NOT EXISTS uk_sub_items_main_code ON pmw_sub_items(main_item_key, item_code);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_sub_items_main_code ON pmw_sub_items(main_item_key, item_code, deleted_flag, deleted_time);
 CREATE INDEX IF NOT EXISTS idx_sub_items_main_item_key ON pmw_sub_items(main_item_key);
 CREATE INDEX IF NOT EXISTS idx_sub_items_team_key ON pmw_sub_items(team_key);
 CREATE INDEX IF NOT EXISTS idx_sub_items_assignee_key ON pmw_sub_items(assignee_key);
@@ -188,9 +188,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS uk_roles_name ON pmw_roles(role_name, deleted_
 -- pmw_role_permissions (RBAC)
 CREATE TABLE IF NOT EXISTS pmw_role_permissions (
     id               INTEGER PRIMARY KEY AUTOINCREMENT, -- 自增主键
+    deleted_flag     INTEGER      NOT NULL DEFAULT 0,   -- 软删标志：0=正常，1=已删除
+    deleted_time     DATETIME     NOT NULL DEFAULT '1970-01-01 08:00:00', -- 软删时间，未删除时为固定占位值
     role_id          INTEGER      NOT NULL,             -- 角色 id（关联 pmw_roles.id）
     permission_code  VARCHAR(50)  NOT NULL,             -- 权限码，如 item:create、item:delete
-    UNIQUE(role_id, permission_code)
+    UNIQUE(role_id, permission_code, deleted_flag, deleted_time)
 );
 
 -- pmw_status_histories (append-only: no soft-delete, no biz_key)

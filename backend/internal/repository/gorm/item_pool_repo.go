@@ -30,7 +30,7 @@ func (r *itemPoolRepo) FindByID(ctx context.Context, id uint) (*model.ItemPool, 
 
 func (r *itemPoolRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.ItemPool, error) {
 	var item model.ItemPool
-	err := r.db.WithContext(ctx).Where("biz_key = ?", bizKey).First(&item).Error
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).Where("biz_key = ?", bizKey).First(&item).Error
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (r *itemPoolRepo) Update(ctx context.Context, item *model.ItemPool, fields 
 }
 
 func (r *itemPoolRepo) List(ctx context.Context, teamID uint, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error) {
-	query := r.db.WithContext(ctx).Where("team_key = ?", teamID)
+	query := r.db.WithContext(ctx).Scopes(NotDeleted).Where("team_key = ?", teamID)
 
 	if filter.Status != "" {
 		query = query.Where("pool_status = ?", filter.Status)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
@@ -317,4 +318,150 @@ func TestNextSubCode(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "MI-SI02-01", code)
 	})
+}
+
+// --- SoftDelete NotDeleted filtering ---
+
+func TestSubItemRepo_SoftDelete(t *testing.T) {
+	db := setupSubItemTestDB(t)
+	repo := gormrepo.NewGormSubItemRepo(db, dbutil.NewDialect(db))
+	ctx := context.Background()
+
+	_, team, mi := seedSubItemData(t, db)
+
+	t.Run("FindByBizKey_excludes_soft_deleted", func(t *testing.T) {
+		item := createSubItem(t, db, team.ID, mi.ID, "Deleted Sub", "P1", "pending")
+		require.NoError(t, db.Model(item).Update("deleted_flag", 1).Error)
+
+		_, err := repo.FindByBizKey(ctx, item.BizKey)
+		assert.ErrorIs(t, err, gormlib.ErrRecordNotFound)
+	})
+
+	t.Run("List_excludes_soft_deleted", func(t *testing.T) {
+		active := createSubItem(t, db, team.ID, mi.ID, "List Active", "P1", "pending")
+		deleted := createSubItem(t, db, team.ID, mi.ID, "List Deleted", "P2", "pending")
+		require.NoError(t, db.Model(deleted).Update("deleted_flag", 1).Error)
+
+		result, err := repo.List(ctx, team.ID, mi.ID, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+		require.NoError(t, err)
+		for _, item := range result.Items {
+			assert.NotEqual(t, "List Deleted", item.Title, "soft-deleted item should not appear in List")
+		}
+		found := false
+		for _, item := range result.Items {
+			if item.ID == active.ID {
+				found = true
+			}
+		}
+		assert.True(t, found, "active item should be present in List results")
+	})
+
+	t.Run("ListByMainItem_excludes_soft_deleted", func(t *testing.T) {
+		active := createSubItem(t, db, team.ID, mi.ID, "LMI Active", "P1", "pending")
+		deleted := createSubItem(t, db, team.ID, mi.ID, "LMI Deleted", "P2", "pending")
+		require.NoError(t, db.Model(deleted).Update("deleted_flag", 1).Error)
+
+		items, err := repo.ListByMainItem(ctx, mi.ID)
+		require.NoError(t, err)
+		for _, item := range items {
+			assert.NotEqual(t, "LMI Deleted", item.Title, "soft-deleted item should not appear in ListByMainItem")
+		}
+		found := false
+		for _, item := range items {
+			if item.ID == active.ID {
+				found = true
+			}
+		}
+		assert.True(t, found, "active item should be present in ListByMainItem results")
+	})
+
+	t.Run("ListByTeam_excludes_soft_deleted", func(t *testing.T) {
+		active := createSubItem(t, db, team.ID, mi.ID, "LT Active", "P1", "pending")
+		deleted := createSubItem(t, db, team.ID, mi.ID, "LT Deleted", "P2", "pending")
+		require.NoError(t, db.Model(deleted).Update("deleted_flag", 1).Error)
+
+		items, err := repo.ListByTeam(ctx, team.ID)
+		require.NoError(t, err)
+		for _, item := range items {
+			assert.NotEqual(t, "LT Deleted", item.Title, "soft-deleted item should not appear in ListByTeam")
+		}
+		found := false
+		for _, item := range items {
+			if item.ID == active.ID {
+				found = true
+			}
+		}
+		assert.True(t, found, "active item should be present in ListByTeam results")
+	})
+}
+
+// --- SoftDelete method tests ---
+
+func TestSubItemRepo_SoftDelete_SetsDeletedFlagAndTime(t *testing.T) {
+	db := setupSubItemTestDB(t)
+	repo := gormrepo.NewGormSubItemRepo(db, dbutil.NewDialect(db))
+	ctx := context.Background()
+
+	_, team, mi := seedSubItemData(t, db)
+	item := createSubItem(t, db, team.ID, mi.ID, "To Soft Delete", "P1", "pending")
+
+	before := time.Now()
+	require.NoError(t, repo.SoftDelete(ctx, item.ID))
+
+	// Verify the record still exists with deleted_flag=1
+	var found model.SubItem
+	require.NoError(t, db.Unscoped().First(&found, item.ID).Error)
+	assert.Equal(t, 1, found.DeletedFlag, "deleted_flag should be 1 after SoftDelete")
+	assert.True(t, found.DeletedTime.After(before) || found.DeletedTime.Equal(before),
+		"deleted_time should be set to approximately now")
+
+	// Verify FindByID no longer returns the item
+	_, err := repo.FindByID(ctx, item.ID)
+	assert.ErrorIs(t, err, pkgerrors.ErrNotFound)
+}
+
+func TestSubItemRepo_SoftDelete_Idempotent(t *testing.T) {
+	db := setupSubItemTestDB(t)
+	repo := gormrepo.NewGormSubItemRepo(db, dbutil.NewDialect(db))
+	ctx := context.Background()
+
+	_, team, mi := seedSubItemData(t, db)
+	item := createSubItem(t, db, team.ID, mi.ID, "Idempotent Delete", "P1", "pending")
+
+	require.NoError(t, repo.SoftDelete(ctx, item.ID))
+	// Second call on already-deleted item should not error (RowsAffected==0 silently ignored)
+	require.NoError(t, repo.SoftDelete(ctx, item.ID))
+}
+
+func TestSubItemRepo_SoftDelete_RecreateWithSameCode(t *testing.T) {
+	db := setupSubItemTestDB(t)
+	repo := gormrepo.NewGormSubItemRepo(db, dbutil.NewDialect(db))
+	ctx := context.Background()
+
+	_, team, mi := seedSubItemData(t, db)
+	item := &model.SubItem{
+		TeamKey:     int64(team.ID),
+		MainItemKey: int64(mi.ID),
+		Title:       "Original",
+		Priority:    "P1",
+		ItemStatus:  "pending",
+		Code:        "MI-SI01-01",
+	}
+	require.NoError(t, db.Create(item).Error)
+
+	// Soft delete
+	require.NoError(t, repo.SoftDelete(ctx, item.ID))
+
+	// Re-create with same code should succeed (soft-deleted record is excluded by unique scope)
+	newItem := &model.SubItem{
+		TeamKey:     int64(team.ID),
+		MainItemKey: int64(mi.ID),
+		Title:       "Recreated",
+		Priority:    "P2",
+		ItemStatus:  "pending",
+		Code:        "MI-SI01-01",
+	}
+	require.NoError(t, db.Create(newItem).Error)
+	assert.NotZero(t, newItem.ID)
+	assert.NotEqual(t, item.ID, newItem.ID, "new item should have a different ID")
 }

@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 // Role represents a named set of permissions that can be assigned to team members.
 type Role struct {
 	BaseModel
@@ -14,9 +16,11 @@ func (Role) TableName() string {
 
 // RolePermission binds a permission code to a role.
 type RolePermission struct {
-	ID             uint   `gorm:"primarykey" json:"id"`
-	RoleID         uint   `gorm:"not null;uniqueIndex:idx_role_permission" json:"roleId"`
-	PermissionCode string `gorm:"type:varchar(50);not null;uniqueIndex:idx_role_permission" json:"permissionCode"`
+	ID             uint      `gorm:"primarykey" json:"id"`
+	DeletedFlag    int       `gorm:"not null;default:0;uniqueIndex:uk_role_permission" json:"-"`
+	DeletedTime    time.Time `gorm:"not null;default:'1970-01-01 08:00:00';uniqueIndex:uk_role_permission" json:"-"`
+	RoleID         uint      `gorm:"not null;uniqueIndex:uk_role_permission" json:"roleId"`
+	PermissionCode string    `gorm:"type:varchar(50);not null;uniqueIndex:uk_role_permission" json:"permissionCode"`
 }
 
 func (RolePermission) TableName() string {

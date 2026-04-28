@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS pmw_sub_items (
     weight            DECIMAL(5,2)    NOT NULL DEFAULT 1.00         COMMENT '权重，用于计算父事项完成度',
     PRIMARY KEY (id),
     UNIQUE KEY uk_biz_key (biz_key),
-    UNIQUE KEY uk_sub_items_main_code (main_item_key, item_code),
+    UNIQUE KEY uk_sub_items_main_code (main_item_key, item_code, deleted_flag, deleted_time),
     KEY idx_sub_items_main_item_key (main_item_key),
     KEY idx_sub_items_team_key (team_key),
     KEY idx_sub_items_assignee_key (assignee_key),
@@ -211,8 +211,10 @@ CREATE TABLE IF NOT EXISTS pmw_roles (
 -- pmw_role_permissions (RBAC)
 CREATE TABLE IF NOT EXISTS pmw_role_permissions (
     id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT       COMMENT '自增主键',
+    deleted_flag     TINYINT(1)      NOT NULL DEFAULT 0            COMMENT '软删标志：0=正常，1=已删除',
+    deleted_time     DATETIME        NOT NULL DEFAULT '1970-01-01 08:00:00' COMMENT '软删时间，未删除时为固定占位值',
     role_id          BIGINT UNSIGNED NOT NULL                      COMMENT '角色 id（关联 pmw_roles.id）',
     permission_code  VARCHAR(50)     NOT NULL                      COMMENT '权限码，如 item:create、item:delete',
     PRIMARY KEY (id),
-    UNIQUE KEY uk_role_permission (role_id, permission_code)
+    UNIQUE KEY uk_role_permission (role_id, permission_code, deleted_flag, deleted_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色权限表';

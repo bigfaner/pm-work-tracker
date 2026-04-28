@@ -254,11 +254,10 @@ func TestUserRepo_SoftDelete(t *testing.T) {
 		assert.False(t, found.DeletedTime.IsZero())
 	})
 
-	t.Run("FindByID_still_finds_soft_deleted_row", func(t *testing.T) {
-		// FindByID uses generic repo helper which does not apply NotDeleted scope
-		found, err := repo.FindByID(ctx, u.ID)
-		require.NoError(t, err)
-		assert.Equal(t, "deleteme", found.Username)
+	t.Run("FindByID_excludes_soft_deleted", func(t *testing.T) {
+		// FindByID now auto-filters soft-deleted records via isSoftDeletable[T]()
+		_, err := repo.FindByID(ctx, u.ID)
+		assert.ErrorIs(t, err, pkgerrors.ErrNotFound)
 	})
 
 	t.Run("FindByBizKey_excludes_soft_deleted", func(t *testing.T) {
@@ -275,5 +274,34 @@ func TestUserRepo_SoftDelete(t *testing.T) {
 		assert.Equal(t, int64(1), total)
 		assert.Len(t, users, 1)
 		assert.Equal(t, "active", users[0].Username)
+	})
+
+	t.Run("FindByUsername_excludes_soft_deleted", func(t *testing.T) {
+		_, err := repo.FindByUsername(ctx, "deleteme")
+		assert.ErrorIs(t, err, pkgerrors.ErrNotFound)
+	})
+
+	t.Run("List_excludes_soft_deleted", func(t *testing.T) {
+		// Create another active user
+		require.NoError(t, db.Create(&model.User{Username: "active2", DisplayName: "Active2", PasswordHash: "h"}).Error)
+
+		users, err := repo.List(ctx)
+		require.NoError(t, err)
+		// Should only find active users, not the soft-deleted one
+		for _, u := range users {
+			assert.NotEqual(t, "deleteme", u.Username, "soft-deleted user should not appear in List")
+		}
+	})
+
+	t.Run("SearchAvailable_excludes_soft_deleted", func(t *testing.T) {
+		require.NoError(t, db.AutoMigrate(&model.Team{}, &model.TeamMember{}))
+		team := model.Team{TeamName: "TestTeam", Code: "TTSD"}
+		require.NoError(t, db.Create(&team).Error)
+
+		users, err := repo.SearchAvailable(ctx, team.ID, "", 10)
+		require.NoError(t, err)
+		for _, u := range users {
+			assert.NotEqual(t, "deleteme", u.Username, "soft-deleted user should not appear in SearchAvailable")
+		}
 	})
 }
