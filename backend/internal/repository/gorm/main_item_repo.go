@@ -77,15 +77,15 @@ func (r *mainItemRepo) List(ctx context.Context, teamID uint, filter dto.MainIte
 	}, nil
 }
 
-func (r *mainItemRepo) NextCode(ctx context.Context, teamID uint) (string, error) {
+func (r *mainItemRepo) NextCode(ctx context.Context, teamBizKey int64) (string, error) {
 	var code string
 	err := r.db.WithContext(ctx).Transaction(func(tx *gormlib.DB) error {
 		// Increment counter first — real write acquires SQLite write lock, serializing concurrent calls.
-		if err := tx.Exec("UPDATE pmw_teams SET item_seq = item_seq + 1 WHERE id = ?", teamID).Error; err != nil {
+		if err := tx.Exec("UPDATE pmw_teams SET item_seq = item_seq + 1 WHERE biz_key = ?", teamBizKey).Error; err != nil {
 			return err
 		}
 		var team model.Team
-		if err := tx.First(&team, teamID).Error; err != nil {
+		if err := tx.Where("biz_key = ?", teamBizKey).First(&team).Error; err != nil {
 			return err
 		}
 		seq := team.ItemSeq
@@ -95,14 +95,14 @@ func (r *mainItemRepo) NextCode(ctx context.Context, teamID uint) (string, error
 		subExpr := r.dialect.Substr(dbutil.ColCode, len(team.Code)+2)
 		castExpr := r.dialect.CastInt(dbutil.NewColumnExpr(subExpr))
 		if err := tx.Model(&model.MainItem{}).
-			Where("team_key = ?", teamID).
+			Where("team_key = ?", teamBizKey).
 			Select("MAX(" + castExpr + ")").
 			Scan(&maxSeq).Error; err != nil {
 			return err
 		}
 		if maxSeq != nil && uint(*maxSeq) >= seq {
 			seq = uint(*maxSeq) + 1
-			if err := tx.Exec("UPDATE pmw_teams SET item_seq = ? WHERE id = ?", seq, teamID).Error; err != nil {
+			if err := tx.Exec("UPDATE pmw_teams SET item_seq = ? WHERE biz_key = ?", seq, teamBizKey).Error; err != nil {
 				return err
 			}
 		}

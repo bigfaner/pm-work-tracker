@@ -140,7 +140,7 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamBizKey int64, p
 	err = s.db.Transaction(func(tx *gorm.DB) error {
 		now := time.Now()
 
-		code, err := s.mainRepo.NextCode(ctx, uint(teamBizKey))
+		code, err := s.mainRepo.NextCode(ctx, teamBizKey)
 		if err != nil {
 			return err
 		}

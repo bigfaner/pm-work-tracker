@@ -823,7 +823,7 @@ func TestItemLifecycle_AppendProgress_CompletionRollsUpToMainItem(t *testing.T) 
 	pmToken := loginAs(t, r, "userA", "passwordA")
 
 	// Use seedProgressData for precise control
-	mainID, sub1ID, _, _, _ := seedProgressData(t, db, data.teamAID, data.userAID)
+	mainID, sub1ID, _, _, _ := seedProgressData(t, db, data.teamABizKey, data.userAID)
 
 	// SubItem IDs are internal; we need bizKeys for the API
 	// seedProgressData creates SubItems with snowflake bizKeys
@@ -900,7 +900,7 @@ func TestItemLifecycle_CorrectCompletion_Returns200(t *testing.T) {
 	pmToken := loginAs(t, r, "userA", "passwordA")
 
 	// Use seedProgressData for controlled scenario
-	_, _, _, sub1BizKey, _ := seedProgressData(t, db, data.teamAID, data.userAID)
+	_, _, _, sub1BizKey, _ := seedProgressData(t, db, data.teamABizKey, data.userAID)
 
 	router := setupRouterFromDB(t, db, data)
 

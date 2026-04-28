@@ -143,7 +143,7 @@ func (m *mockMainItemRepoForPool) Update(_ context.Context, item *model.MainItem
 func (m *mockMainItemRepoForPool) List(_ context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
 	return nil, nil
 }
-func (m *mockMainItemRepoForPool) NextCode(_ context.Context, teamID uint) (string, error) {
+func (m *mockMainItemRepoForPool) NextCode(_ context.Context, teamBizKey int64) (string, error) {
 	return m.nextCodeVal, m.nextCodeErr
 }
 

@@ -95,15 +95,15 @@ func (m *mockTeamService) CreateTeam(_ context.Context, creatorID uint, req dto.
 	return m.createTeamResult.team, m.createTeamResult.err
 }
 
-func (m *mockTeamService) GetTeam(_ context.Context, teamID uint) (*model.Team, error) {
+func (m *mockTeamService) GetTeam(_ context.Context, teamBizKey int64) (*model.Team, error) {
 	m.getCalled = true
-	m.lastTeamID = teamID
+	m.lastTeamID = uint(teamBizKey)
 	return m.getTeamResult.team, m.getTeamResult.err
 }
 
-func (m *mockTeamService) GetTeamDetail(_ context.Context, teamID uint) (*dto.TeamDetailResp, error) {
+func (m *mockTeamService) GetTeamDetail(_ context.Context, teamBizKey int64) (*dto.TeamDetailResp, error) {
 	m.getDetailCalled = true
-	m.lastTeamID = teamID
+	m.lastTeamID = uint(teamBizKey)
 	return m.getTeamDetailResult.detail, m.getTeamDetailResult.err
 }
 
@@ -112,57 +112,57 @@ func (m *mockTeamService) ListTeams(_ context.Context, callerID uint, isSuperAdm
 	return m.listTeamsResult.teams, int64(len(m.listTeamsResult.teams)), m.listTeamsResult.err
 }
 
-func (m *mockTeamService) UpdateTeam(_ context.Context, pmID, teamID uint, req dto.UpdateTeamReq) (*model.Team, error) {
+func (m *mockTeamService) UpdateTeam(_ context.Context, pmID uint, teamBizKey int64, req dto.UpdateTeamReq) (*model.Team, error) {
 	m.updateCalled = true
 	m.lastPmID = pmID
-	m.lastTeamID = teamID
+	m.lastTeamID = uint(teamBizKey)
 	m.lastUpdateReq = req
 	return m.updateTeamResult.team, m.updateTeamResult.err
 }
 
-func (m *mockTeamService) InviteMember(_ context.Context, pmID, teamID uint, req dto.InviteMemberReq) error {
+func (m *mockTeamService) InviteMember(_ context.Context, pmID uint, teamBizKey int64, req dto.InviteMemberReq) error {
 	m.inviteCalled = true
 	m.lastPmID = pmID
-	m.inviteTeamID = teamID
+	m.inviteTeamID = uint(teamBizKey)
 	m.lastInviteReq = req
 	return m.inviteMemberErr
 }
 
-func (m *mockTeamService) RemoveMember(_ context.Context, pmID, teamID, targetUserID uint) error {
+func (m *mockTeamService) RemoveMember(_ context.Context, pmID uint, teamBizKey int64, targetUserID uint) error {
 	m.removeCalled = true
 	m.lastPmID = pmID
-	m.removeTeamID = teamID
+	m.removeTeamID = uint(teamBizKey)
 	m.removeTargetID = targetUserID
 	return m.removeMemberErr
 }
 
-func (m *mockTeamService) TransferPM(_ context.Context, currentPMID, teamID, newPMID uint) error {
+func (m *mockTeamService) TransferPM(_ context.Context, currentPMID uint, teamBizKey int64, newPMID uint) error {
 	m.transferCalled = true
 	m.lastPmID = currentPMID
-	m.transferTeamID = teamID
+	m.transferTeamID = uint(teamBizKey)
 	m.newPmID = newPMID
 	return m.transferPMErr
 }
 
-func (m *mockTeamService) DisbandTeam(_ context.Context, callerID uint, teamID uint, confirmName string) error {
+func (m *mockTeamService) DisbandTeam(_ context.Context, callerID uint, teamBizKey int64, confirmName string) error {
 	m.disbandCalled = true
 	m.lastPmID = callerID
-	m.disbandTeamID = teamID
+	m.disbandTeamID = uint(teamBizKey)
 	m.lastConfirmName = confirmName
 	return m.disbandTeamErr
 }
 
-func (m *mockTeamService) UpdateMemberRole(_ context.Context, pmID, teamID, targetUserID uint, roleID int64) error {
+func (m *mockTeamService) UpdateMemberRole(_ context.Context, pmID, targetUserID uint, teamBizKey int64, roleID int64) error {
 	return m.updateMemberRoleErr
 }
 
-func (m *mockTeamService) ListMembers(_ context.Context, teamID uint) ([]*dto.TeamMemberDTO, error) {
+func (m *mockTeamService) ListMembers(_ context.Context, teamBizKey int64) ([]*dto.TeamMemberDTO, error) {
 	m.listMembersCalled = true
-	m.listMembersTeamID = teamID
+	m.listMembersTeamID = uint(teamBizKey)
 	return m.listMembersResult.members, m.listMembersResult.err
 }
 
-func (m *mockTeamService) SearchAvailableUsers(_ context.Context, teamID uint, search string) ([]*dto.UserSearchDTO, error) {
+func (m *mockTeamService) SearchAvailableUsers(_ context.Context, teamBizKey int64, search string) ([]*dto.UserSearchDTO, error) {
 	return nil, nil
 }
 

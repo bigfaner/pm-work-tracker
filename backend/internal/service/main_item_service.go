@@ -113,7 +113,7 @@ func NewMainItemService(mainItemRepo repository.MainItemRepo, subItemRepo reposi
 }
 
 func (s *mainItemService) Create(ctx context.Context, teamBizKey int64, pmID uint, req dto.MainItemCreateReq) (*model.MainItem, error) {
-	code, err := s.mainItemRepo.NextCode(ctx, uint(teamBizKey))
+	code, err := s.mainItemRepo.NextCode(ctx, teamBizKey)
 	if err != nil {
 		return nil, err
 	}

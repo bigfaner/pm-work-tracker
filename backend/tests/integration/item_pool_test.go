@@ -66,7 +66,7 @@ func TestItemPool_List_WithStatusFilter_Returns200(t *testing.T) {
 	// Seed a pending pool item
 	poolItem := &model.ItemPool{
 		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      int64(data.teamAID),
+		TeamKey:      data.teamABizKey,
 		Title:        "Pending Item",
 		SubmitterKey: int64(data.userAID),
 		PoolStatus:   "pending",
@@ -76,7 +76,7 @@ func TestItemPool_List_WithStatusFilter_Returns200(t *testing.T) {
 	// Seed a rejected pool item
 	rejectedItem := &model.ItemPool{
 		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      int64(data.teamAID),
+		TeamKey:      data.teamABizKey,
 		Title:        "Rejected Item",
 		SubmitterKey: int64(data.userAID),
 		PoolStatus:   "rejected",
@@ -107,7 +107,7 @@ func TestItemPool_Detail_Returns200(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	token := loginAs(t, r, "userA", "passwordA")
 
-	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamAID, data.userAID)
+	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamABizKey, data.userAID)
 
 	path := fmt.Sprintf("/api/v1/teams/%d/item-pool/%d", data.teamABizKey, poolBizKey)
 	w := makeRequest(t, r, http.MethodGet, path, "", token)
@@ -138,7 +138,7 @@ func TestItemPool_Assign_CreatesSubItemAndUpdatesPoolStatus(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	token := loginAs(t, r, "userA", "passwordA")
 
-	_, _, poolBizKey, mainItemBizKey := seedPoolData(t, db, data.teamAID, data.userAID)
+	_, _, poolBizKey, mainItemBizKey := seedPoolData(t, db, data.teamABizKey, data.userAID)
 
 	body := fmt.Sprintf(`{
 		"mainItemKey": "%d",
@@ -175,7 +175,7 @@ func TestItemPool_Assign_InvalidMainItem_RollsBack(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	token := loginAs(t, r, "userA", "passwordA")
 
-	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamAID, data.userAID)
+	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamABizKey, data.userAID)
 
 	// Use a non-existent main item BizKey
 	body := fmt.Sprintf(`{
@@ -206,7 +206,7 @@ func TestItemPool_Assign_AlreadyProcessed_Returns422(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	token := loginAs(t, r, "userA", "passwordA")
 
-	_, _, poolBizKey, mainItemBizKey := seedPoolData(t, db, data.teamAID, data.userAID)
+	_, _, poolBizKey, mainItemBizKey := seedPoolData(t, db, data.teamABizKey, data.userAID)
 
 	// First assign succeeds
 	body := fmt.Sprintf(`{
@@ -234,7 +234,7 @@ func TestItemPool_Assign_MemberDenied_Returns403(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	memberToken := loginAs(t, r, "memberA", "passwordMemberA")
 
-	_, _, poolBizKey, mainItemBizKey := seedPoolData(t, db, data.teamAID, data.userAID)
+	_, _, poolBizKey, mainItemBizKey := seedPoolData(t, db, data.teamABizKey, data.userAID)
 
 	body := fmt.Sprintf(`{
 		"mainItemKey": "%d",
@@ -256,7 +256,7 @@ func TestItemPool_ConvertToMain_Returns200(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	token := loginAs(t, r, "userA", "passwordA")
 
-	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamAID, data.userAID)
+	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamABizKey, data.userAID)
 
 	body := fmt.Sprintf(`{
 		"priority": "P1",
@@ -285,7 +285,7 @@ func TestItemPool_ConvertToMain_MemberDenied_Returns403(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	memberToken := loginAs(t, r, "memberA", "passwordMemberA")
 
-	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamAID, data.userAID)
+	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamABizKey, data.userAID)
 
 	body := fmt.Sprintf(`{
 		"priority": "P1",
@@ -304,7 +304,7 @@ func TestItemPool_ConvertToMain_AlreadyProcessed_Returns422(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	token := loginAs(t, r, "userA", "passwordA")
 
-	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamAID, data.userAID)
+	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamABizKey, data.userAID)
 
 	// First convert succeeds
 	body := fmt.Sprintf(`{
@@ -333,7 +333,7 @@ func TestItemPool_Reject_WithReason_Returns200(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	token := loginAs(t, r, "userA", "passwordA")
 
-	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamAID, data.userAID)
+	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamABizKey, data.userAID)
 
 	body := `{"reason":"Not aligned with current roadmap"}`
 	path := fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/reject", data.teamABizKey, poolBizKey)
@@ -352,7 +352,7 @@ func TestItemPool_Reject_MissingReason_Returns400(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	token := loginAs(t, r, "userA", "passwordA")
 
-	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamAID, data.userAID)
+	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamABizKey, data.userAID)
 
 	body := `{}`
 	path := fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/reject", data.teamABizKey, poolBizKey)
@@ -366,7 +366,7 @@ func TestItemPool_Reject_MemberDenied_Returns403(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	memberToken := loginAs(t, r, "memberA", "passwordMemberA")
 
-	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamAID, data.userAID)
+	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamABizKey, data.userAID)
 
 	body := `{"reason":"bad"}`
 	path := fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/reject", data.teamABizKey, poolBizKey)
@@ -380,7 +380,7 @@ func TestItemPool_Reject_AlreadyProcessed_Returns422(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	token := loginAs(t, r, "userA", "passwordA")
 
-	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamAID, data.userAID)
+	_, _, poolBizKey, _ := seedPoolData(t, db, data.teamABizKey, data.userAID)
 
 	// First reject succeeds
 	body := `{"reason":"not needed anymore"}`

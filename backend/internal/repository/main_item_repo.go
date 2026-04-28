@@ -17,7 +17,7 @@ type MainItemRepo interface {
 	Update(ctx context.Context, item *model.MainItem, fields map[string]interface{}) error
 	List(ctx context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error)
 	ListByTeamAndStatus(ctx context.Context, teamID uint, status string) ([]model.MainItem, error)
-	NextCode(ctx context.Context, teamID uint) (string, error)
+	NextCode(ctx context.Context, teamBizKey int64) (string, error)
 	CountByTeam(ctx context.Context, teamID uint) (int64, error)
 	ListNonArchivedByTeam(ctx context.Context, teamID uint) ([]model.MainItem, error)
 }

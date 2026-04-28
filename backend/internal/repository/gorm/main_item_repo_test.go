@@ -138,7 +138,7 @@ func TestMainItemRepo_NextCode(t *testing.T) {
 	u, team := seedMainItemTeam(t, db) // team.Code = "FEAT"
 
 	t.Run("first_code", func(t *testing.T) {
-		code, err := repo.NextCode(ctx, team.ID)
+		code, err := repo.NextCode(ctx, team.BizKey)
 		require.NoError(t, err)
 		assert.Equal(t, "FEAT-00001", code)
 	})
@@ -146,7 +146,7 @@ func TestMainItemRepo_NextCode(t *testing.T) {
 	t.Run("sequential", func(t *testing.T) {
 		createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "First", "P1", "pending")
 
-		code, err := repo.NextCode(ctx, team.ID)
+		code, err := repo.NextCode(ctx, team.BizKey)
 		require.NoError(t, err)
 		assert.Equal(t, "FEAT-00002", code)
 	})
@@ -154,7 +154,7 @@ func TestMainItemRepo_NextCode(t *testing.T) {
 	t.Run("skips_gaps", func(t *testing.T) {
 		createMainItem(t, db, team.ID, u.ID, "FEAT-00005", "Fifth", "P1", "pending")
 
-		code, err := repo.NextCode(ctx, team.ID)
+		code, err := repo.NextCode(ctx, team.BizKey)
 		require.NoError(t, err)
 		assert.Equal(t, "FEAT-00006", code)
 	})
@@ -166,7 +166,7 @@ func TestMainItemRepo_NextCode(t *testing.T) {
 		team2 := model.Team{TeamName: "Other Team", PmKey: int64(u2.ID), Code: "OTHR"}
 		require.NoError(t, db.Create(&team2).Error)
 
-		code, err := repo.NextCode(ctx, team2.ID)
+		code, err := repo.NextCode(ctx, team2.BizKey)
 		require.NoError(t, err)
 		assert.Equal(t, "OTHR-00001", code, "new team should get OTHR-00001")
 	})

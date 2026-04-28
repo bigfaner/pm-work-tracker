@@ -48,7 +48,7 @@ func TestConcurrentNextCode(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		go func() {
 			defer wg.Done()
-			code, err := repo.NextCode(ctx, team.ID)
+			code, err := repo.NextCode(ctx, team.BizKey)
 			if err == nil {
 				results <- code
 			}

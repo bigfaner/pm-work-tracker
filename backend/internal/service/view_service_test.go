@@ -53,7 +53,7 @@ func (m *mockViewMainItemRepo) Update(_ context.Context, _ *model.MainItem, _ ma
 func (m *mockViewMainItemRepo) List(_ context.Context, _ uint, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
 	return nil, nil
 }
-func (m *mockViewMainItemRepo) NextCode(_ context.Context, _ uint) (string, error) {
+func (m *mockViewMainItemRepo) NextCode(_ context.Context, _ int64) (string, error) {
 	return "", nil
 }
 func (m *mockViewMainItemRepo) CountByTeam(_ context.Context, _ uint) (int64, error) {

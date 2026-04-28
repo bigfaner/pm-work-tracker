@@ -113,7 +113,7 @@
       "dependencies": [
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.1-handler-updates.md",
       "record": "records/2.1-handler-updates.md"
     },
@@ -125,7 +125,7 @@
       "dependencies": [
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.2-test-updates.md",
       "record": "records/2.2-test-updates.md"
     },

@@ -83,7 +83,7 @@ func (m *mockMainItemRepo) List(_ context.Context, teamID uint, filter dto.MainI
 	return &dto.PageResult[model.MainItem]{Items: m.items, Total: int64(len(m.items))}, nil
 }
 
-func (m *mockMainItemRepo) NextCode(_ context.Context, teamID uint) (string, error) {
+func (m *mockMainItemRepo) NextCode(_ context.Context, teamBizKey int64) (string, error) {
 	return m.nextCodeVal, m.nextErr
 }
 

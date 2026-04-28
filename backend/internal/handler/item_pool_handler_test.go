@@ -1046,7 +1046,7 @@ func (t *trackingMainItemRepo) Update(_ context.Context, _ *model.MainItem, _ ma
 func (t *trackingMainItemRepo) List(_ context.Context, _ uint, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
 	return nil, nil
 }
-func (t *trackingMainItemRepo) NextCode(_ context.Context, _ uint) (string, error)        { return "", nil }
+func (t *trackingMainItemRepo) NextCode(_ context.Context, _ int64) (string, error)        { return "", nil }
 func (t *trackingMainItemRepo) CountByTeam(_ context.Context, _ uint) (int64, error)       { return 0, nil }
 func (t *trackingMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
 	return nil, nil
@@ -1071,7 +1071,7 @@ func (m *mockMainItemRepoForPool) Update(_ context.Context, _ *model.MainItem, _
 func (m *mockMainItemRepoForPool) List(_ context.Context, _ uint, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
 	return nil, nil
 }
-func (m *mockMainItemRepoForPool) NextCode(_ context.Context, _ uint) (string, error) {
+func (m *mockMainItemRepoForPool) NextCode(_ context.Context, _ int64) (string, error) {
 	return "", nil
 }
 func (m *mockMainItemRepoForPool) CountByTeam(_ context.Context, _ uint) (int64, error) {

@@ -186,7 +186,7 @@ func TestTeamManagement_Disband_Returns200AndCascadeDeletes(t *testing.T) {
 	token := loginAs(t, r, "userA", "passwordA")
 
 	// Create a main item in teamA for cascade deletion verification
-	_, _, _, _, _ = seedProgressData(t, db, data.teamAID, data.userAID)
+	_, _, _, _, _ = seedProgressData(t, db, data.teamABizKey, data.userAID)
 
 	path := fmt.Sprintf("/api/v1/teams/%d", data.teamABizKey)
 	body := `{"confirmName":"Team A"}`
