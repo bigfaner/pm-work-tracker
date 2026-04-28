@@ -39,7 +39,7 @@ func NewItemPoolHandler(svc service.ItemPoolService, userRepo repository.UserRep
 
 // Submit handles POST /api/v1/teams/:teamId/item-pool
 func (h *ItemPoolHandler) Submit(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	userID := middleware.GetUserID(c)
 
 	var req dto.SubmitItemPoolReq
@@ -48,7 +48,7 @@ func (h *ItemPoolHandler) Submit(c *gin.Context) {
 		return
 	}
 
-	item, err := h.svc.Submit(c.Request.Context(), teamID, userID, req)
+	item, err := h.svc.Submit(c.Request.Context(), teamBizKey, userID, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -59,7 +59,7 @@ func (h *ItemPoolHandler) Submit(c *gin.Context) {
 
 // List handles GET /api/v1/teams/:teamId/item-pool
 func (h *ItemPoolHandler) List(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
 	var filter dto.ItemPoolFilter
 	if err := c.ShouldBindQuery(&filter); err != nil {
@@ -74,7 +74,7 @@ func (h *ItemPoolHandler) List(c *gin.Context) {
 	}
 	_, page.Page, page.PageSize = dto.ApplyPaginationDefaults(page.Page, page.PageSize)
 
-	result, err := h.svc.List(c.Request.Context(), teamID, filter, page)
+	result, err := h.svc.List(c.Request.Context(), teamBizKey, filter, page)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -102,9 +102,9 @@ func (h *ItemPoolHandler) Get(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
-	item, err := h.svc.Get(c.Request.Context(), teamID, poolID)
+	item, err := h.svc.Get(c.Request.Context(), teamBizKey, poolID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -126,7 +126,7 @@ func (h *ItemPoolHandler) Assign(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	pmID := middleware.GetUserID(c)
 
 	var req dto.AssignItemPoolReq
@@ -135,14 +135,14 @@ func (h *ItemPoolHandler) Assign(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.Assign(c.Request.Context(), teamID, pmID, poolID, req)
+	err := h.svc.Assign(c.Request.Context(), teamBizKey, pmID, poolID, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
 	}
 
 	// Fetch the updated item to get the assignedSubId
-	updated, err := h.svc.Get(c.Request.Context(), teamID, poolID)
+	updated, err := h.svc.Get(c.Request.Context(), teamBizKey, poolID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -164,7 +164,7 @@ func (h *ItemPoolHandler) ConvertToMain(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	pmID := middleware.GetUserID(c)
 
 	var req dto.ConvertToMainItemReq
@@ -173,7 +173,7 @@ func (h *ItemPoolHandler) ConvertToMain(c *gin.Context) {
 		return
 	}
 
-	mainItem, err := h.svc.ConvertToMain(c.Request.Context(), teamID, pmID, poolID, req)
+	mainItem, err := h.svc.ConvertToMain(c.Request.Context(), teamBizKey, pmID, poolID, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -195,7 +195,7 @@ func (h *ItemPoolHandler) Reject(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	pmID := middleware.GetUserID(c)
 
 	var req dto.RejectItemPoolReq
@@ -204,14 +204,14 @@ func (h *ItemPoolHandler) Reject(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.Reject(c.Request.Context(), teamID, pmID, poolID, req.Reason)
+	err := h.svc.Reject(c.Request.Context(), teamBizKey, pmID, poolID, req.Reason)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
 	}
 
 	// Fetch the updated item for response
-	updated, err := h.svc.Get(c.Request.Context(), teamID, poolID)
+	updated, err := h.svc.Get(c.Request.Context(), teamBizKey, poolID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

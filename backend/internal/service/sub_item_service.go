@@ -22,15 +22,15 @@ type SubItemChangeResult struct {
 
 // SubItemService defines business operations for SubItem.
 type SubItemService interface {
-	Create(ctx context.Context, teamID, callerID uint, req dto.SubItemCreateReq) (*model.SubItem, error)
-	Update(ctx context.Context, teamID, itemID uint, req dto.SubItemUpdateReq) error
-	ChangeStatus(ctx context.Context, teamID, callerID, itemID uint, newStatus string) (*SubItemChangeResult, error)
-	Delete(ctx context.Context, teamID, callerID, itemID uint) error
-	Get(ctx context.Context, teamID, itemID uint) (*model.SubItem, error)
+	Create(ctx context.Context, teamBizKey int64, callerID uint, req dto.SubItemCreateReq) (*model.SubItem, error)
+	Update(ctx context.Context, teamBizKey int64, itemID uint, req dto.SubItemUpdateReq) error
+	ChangeStatus(ctx context.Context, teamBizKey int64, callerID, itemID uint, newStatus string) (*SubItemChangeResult, error)
+	Delete(ctx context.Context, teamBizKey int64, callerID, itemID uint) error
+	Get(ctx context.Context, teamBizKey int64, itemID uint) (*model.SubItem, error)
 	GetByBizKey(ctx context.Context, bizKey int64) (*model.SubItem, error)
-	List(ctx context.Context, teamID uint, mainItemID *uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error)
-	Assign(ctx context.Context, teamID, pmID, itemID, assigneeID uint) error
-	AvailableTransitions(ctx context.Context, teamID, subID uint) ([]string, error)
+	List(ctx context.Context, teamBizKey int64, mainItemID *uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error)
+	Assign(ctx context.Context, teamBizKey int64, pmID, itemID, assigneeID uint) error
+	AvailableTransitions(ctx context.Context, teamBizKey int64, subID uint) ([]string, error)
 }
 
 type subItemService struct {
@@ -44,7 +44,7 @@ func NewSubItemService(subItemRepo repository.SubItemRepo, mainItemSvc MainItemS
 	return &subItemService{subItemRepo: subItemRepo, mainItemSvc: mainItemSvc, statusHistorySvc: statusHistorySvc}
 }
 
-func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req dto.SubItemCreateReq) (*model.SubItem, error) {
+func (s *subItemService) Create(ctx context.Context, teamBizKey int64, callerID uint, req dto.SubItemCreateReq) (*model.SubItem, error) {
 	mainBizKey, _ := pkg.ParseID(req.MainItemKey)
 	mainItem, err := s.mainItemSvc.GetByBizKey(ctx, mainBizKey)
 	if err != nil {
@@ -61,7 +61,7 @@ func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req 
 
 	item := &model.SubItem{
 		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:     int64(teamID),
+		TeamKey:     teamBizKey,
 		MainItemKey: int64(mainItem.ID),
 		Code:        code,
 		Title:       req.Title,
@@ -93,12 +93,12 @@ func (s *subItemService) Create(ctx context.Context, teamID, callerID uint, req 
 	return item, nil
 }
 
-func (s *subItemService) Update(ctx context.Context, teamID, itemID uint, req dto.SubItemUpdateReq) error {
+func (s *subItemService) Update(ctx context.Context, teamBizKey int64, itemID uint, req dto.SubItemUpdateReq) error {
 	item, err := s.subItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if item.TeamKey != int64(teamID) {
+	if item.TeamKey != teamBizKey {
 		return apperrors.ErrForbidden
 	}
 
@@ -133,12 +133,12 @@ func (s *subItemService) Update(ctx context.Context, teamID, itemID uint, req dt
 	return s.subItemRepo.Update(ctx, item, fields)
 }
 
-func (s *subItemService) ChangeStatus(ctx context.Context, teamID, callerID, itemID uint, newStatus string) (*SubItemChangeResult, error) {
+func (s *subItemService) ChangeStatus(ctx context.Context, teamBizKey int64, callerID, itemID uint, newStatus string) (*SubItemChangeResult, error) {
 	item, err := s.subItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if item.TeamKey != int64(teamID) {
+	if item.TeamKey != teamBizKey {
 		return nil, apperrors.ErrForbidden
 	}
 
@@ -188,12 +188,12 @@ func (s *subItemService) ChangeStatus(ctx context.Context, teamID, callerID, ite
 	return &SubItemChangeResult{SubItem: updated, LinkageResult: linkageResult}, nil
 }
 
-func (s *subItemService) Delete(ctx context.Context, teamID, callerID, itemID uint) error {
+func (s *subItemService) Delete(ctx context.Context, teamBizKey int64, callerID, itemID uint) error {
 	item, err := s.subItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if item.TeamKey != int64(teamID) {
+	if item.TeamKey != teamBizKey {
 		return apperrors.ErrForbidden
 	}
 
@@ -207,18 +207,18 @@ func (s *subItemService) Delete(ctx context.Context, teamID, callerID, itemID ui
 	return nil
 }
 
-func (s *subItemService) AvailableTransitions(ctx context.Context, teamID, subID uint) ([]string, error) {
+func (s *subItemService) AvailableTransitions(ctx context.Context, teamBizKey int64, subID uint) ([]string, error) {
 	item, err := s.subItemRepo.FindByID(ctx, subID)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if item.TeamKey != int64(teamID) {
+	if item.TeamKey != teamBizKey {
 		return nil, apperrors.ErrForbidden
 	}
 	return status.GetAvailableTransitions(status.SubItemTransitions, item.ItemStatus), nil
 }
 
-func (s *subItemService) Get(ctx context.Context, teamID, itemID uint) (*model.SubItem, error) {
+func (s *subItemService) Get(ctx context.Context, teamBizKey int64, itemID uint) (*model.SubItem, error) {
 	item, err := s.subItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
@@ -234,20 +234,20 @@ func (s *subItemService) GetByBizKey(ctx context.Context, bizKey int64) (*model.
 	return item, nil
 }
 
-func (s *subItemService) List(ctx context.Context, teamID uint, mainItemID *uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (s *subItemService) List(ctx context.Context, teamBizKey int64, mainItemID *uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	mid := uint(0)
 	if mainItemID != nil {
 		mid = *mainItemID
 	}
-	return s.subItemRepo.List(ctx, teamID, mid, filter, page)
+	return s.subItemRepo.List(ctx, uint(teamBizKey), mid, filter, page)
 }
 
-func (s *subItemService) Assign(ctx context.Context, teamID, pmID, itemID, assigneeID uint) error {
+func (s *subItemService) Assign(ctx context.Context, teamBizKey int64, pmID, itemID, assigneeID uint) error {
 	item, err := s.subItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if item.TeamKey != int64(teamID) {
+	if item.TeamKey != teamBizKey {
 		return apperrors.ErrForbidden
 	}
 

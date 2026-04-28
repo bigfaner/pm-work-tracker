@@ -92,26 +92,26 @@ type mockMainItemSvcTM struct {
 	mock.Mock
 }
 
-func (m *mockMainItemSvcTM) Create(ctx context.Context, teamID, pmID uint, req dto.MainItemCreateReq) (*model.MainItem, error) {
-	args := m.Called(ctx, teamID, pmID, req)
+func (m *mockMainItemSvcTM) Create(ctx context.Context, teamBizKey int64, pmID uint, req dto.MainItemCreateReq) (*model.MainItem, error) {
+	args := m.Called(ctx, teamBizKey, pmID, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*model.MainItem), args.Error(1)
 }
 
-func (m *mockMainItemSvcTM) Update(ctx context.Context, teamID, itemID uint, req dto.MainItemUpdateReq) error {
-	args := m.Called(ctx, teamID, itemID, req)
+func (m *mockMainItemSvcTM) Update(ctx context.Context, teamBizKey int64, itemID uint, req dto.MainItemUpdateReq) error {
+	args := m.Called(ctx, teamBizKey, itemID, req)
 	return args.Error(0)
 }
 
-func (m *mockMainItemSvcTM) Archive(ctx context.Context, teamID, itemID uint) error {
-	args := m.Called(ctx, teamID, itemID)
+func (m *mockMainItemSvcTM) Archive(ctx context.Context, teamBizKey int64, itemID uint) error {
+	args := m.Called(ctx, teamBizKey, itemID)
 	return args.Error(0)
 }
 
-func (m *mockMainItemSvcTM) List(ctx context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
-	args := m.Called(ctx, teamID, filter, page)
+func (m *mockMainItemSvcTM) List(ctx context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+	args := m.Called(ctx, teamBizKey, filter, page)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -131,16 +131,16 @@ func (m *mockMainItemSvcTM) RecalcCompletion(ctx context.Context, mainItemID uin
 	return args.Error(0)
 }
 
-func (m *mockMainItemSvcTM) ChangeStatus(ctx context.Context, teamID, callerID, itemID uint, newStatus string) (*model.MainItem, error) {
-	args := m.Called(ctx, teamID, callerID, itemID, newStatus)
+func (m *mockMainItemSvcTM) ChangeStatus(ctx context.Context, teamBizKey int64, callerID, itemID uint, newStatus string) (*model.MainItem, error) {
+	args := m.Called(ctx, teamBizKey, callerID, itemID, newStatus)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*model.MainItem), args.Error(1)
 }
 
-func (m *mockMainItemSvcTM) AvailableTransitions(ctx context.Context, teamID, callerID, itemID uint) ([]string, error) {
-	args := m.Called(ctx, teamID, callerID, itemID)
+func (m *mockMainItemSvcTM) AvailableTransitions(ctx context.Context, teamBizKey int64, callerID, itemID uint) ([]string, error) {
+	args := m.Called(ctx, teamBizKey, callerID, itemID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -198,7 +198,7 @@ func TestSubItemCreate_Success(t *testing.T) {
 	mainSvc.On("GetByBizKey", mock.Anything, int64(5)).Return(&model.MainItem{BaseModel: model.BaseModel{ID: 5}, ItemStatus: "pending"}, nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
-	item, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
+	item, err := svc.Create(context.Background(), int64(1), 10, dto.SubItemCreateReq{
 		AssigneeKey: "42",
 		MainItemKey: "5",
 		Title:      "Sub task A",
@@ -226,7 +226,7 @@ func TestSubItemCreate_RepoError(t *testing.T) {
 	repo.On("NextSubCode", mock.Anything, uint(5)).Return("FEAT-00001-01", nil)
 	mainSvc.On("GetByBizKey", mock.Anything, int64(5)).Return(&model.MainItem{BaseModel: model.BaseModel{ID: 5}, ItemStatus: "pending"}, nil)
 
-	_, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
+	_, err := svc.Create(context.Background(), int64(1), 10, dto.SubItemCreateReq{
 		MainItemKey: "5",
 		Title:      "Sub task",
 		Priority:   "P2",
@@ -256,7 +256,7 @@ func TestSubItemUpdate_Success(t *testing.T) {
 		return fields["title"] == "New Title"
 	})).Return(nil)
 
-	err := svc.Update(context.Background(), 1, 1, dto.SubItemUpdateReq{
+	err := svc.Update(context.Background(), int64(1), 1, dto.SubItemUpdateReq{
 		Title: ptrStr("New Title"),
 	})
 	require.NoError(t, err)
@@ -276,7 +276,7 @@ func TestSubItemUpdate_TeamMismatch(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 
-	err := svc.Update(context.Background(), 1, 1, dto.SubItemUpdateReq{
+	err := svc.Update(context.Background(), int64(1), 1, dto.SubItemUpdateReq{
 		Title: ptrStr("New Title"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrForbidden)
@@ -292,7 +292,7 @@ func TestSubItemUpdate_NotFound(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(99)).Return(nil, gorm.ErrRecordNotFound)
 
-	err := svc.Update(context.Background(), 1, 99, dto.SubItemUpdateReq{
+	err := svc.Update(context.Background(), int64(1), 99, dto.SubItemUpdateReq{
 		Title: ptrStr("New Title"),
 	})
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
@@ -313,7 +313,7 @@ func TestSubItemUpdate_NoFields_Noop(t *testing.T) {
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 	// Update should NOT be called when no fields are provided.
 
-	err := svc.Update(context.Background(), 1, 1, dto.SubItemUpdateReq{})
+	err := svc.Update(context.Background(), int64(1), 1, dto.SubItemUpdateReq{})
 	require.NoError(t, err)
 
 	repo.AssertExpectations(t)
@@ -403,7 +403,7 @@ func testValidTransitionTM(t *testing.T, from, to string) {
 	// EvaluateLinkage is always called after status change
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
-	result, err := svc.ChangeStatus(context.Background(), 1, 10, 1, to)
+	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, to)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.SubItem)
@@ -434,7 +434,7 @@ func TestChangeStatus_Invalid_CompletedToAnything(t *testing.T) {
 
 			repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 
-			result, err := svc.ChangeStatus(context.Background(), 1, 10, 1, target)
+			result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, target)
 			assert.ErrorIs(t, err, apperrors.ErrInvalidStatus, "from completed to %s should be invalid", target)
 			assert.Nil(t, result)
 
@@ -458,7 +458,7 @@ func TestChangeStatus_Invalid_ClosedToAnything(t *testing.T) {
 
 			repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 
-			result, err := svc.ChangeStatus(context.Background(), 1, 10, 1, target)
+			result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, target)
 			assert.ErrorIs(t, err, apperrors.ErrInvalidStatus, "from closed to %s should be invalid", target)
 			assert.Nil(t, result)
 
@@ -497,7 +497,7 @@ func testInvalidTransitionTM(t *testing.T, from, to string) {
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 
-	result, err := svc.ChangeStatus(context.Background(), 1, 10, 1, to)
+	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, to)
 	assert.ErrorIs(t, err, apperrors.ErrInvalidStatus, "from %s to %s should be invalid", from, to)
 	assert.Nil(t, result)
 
@@ -538,7 +538,7 @@ func TestChangeStatus_Completed_SetsCompletionAndActualEndDate(t *testing.T) {
 	historySvc.On("Record", mock.Anything, mock.Anything).Return(nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
-	result, err := svc.ChangeStatus(context.Background(), 1, 10, 1, "completed")
+	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, "completed")
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, "completed", result.SubItem.ItemStatus)
@@ -578,7 +578,7 @@ func TestChangeStatus_Closed_SetsCompletionAndActualEndDate(t *testing.T) {
 	historySvc.On("Record", mock.Anything, mock.Anything).Return(nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
-	result, err := svc.ChangeStatus(context.Background(), 1, 10, 1, "closed")
+	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, "closed")
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, "closed", result.SubItem.ItemStatus)
@@ -613,7 +613,7 @@ func TestChangeStatus_Completed_RecalcCompletion_CalledWithCorrectMainItemID(t *
 	historySvc.On("Record", mock.Anything, mock.Anything).Return(nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(42), uint(10)).Return(nil, nil)
 
-	result, err := svc.ChangeStatus(context.Background(), 1, 10, 1, "completed")
+	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, "completed")
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
@@ -637,7 +637,7 @@ func TestChangeStatus_Completed_RecalcError(t *testing.T) {
 	repo.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	mainSvc.On("RecalcCompletion", mock.Anything, uint(5)).Return(errors.New("recalc failed"))
 
-	result, err := svc.ChangeStatus(context.Background(), 1, 10, 1, "completed")
+	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, "completed")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 
@@ -680,7 +680,7 @@ func TestChangeStatus_RecordsHistory(t *testing.T) {
 	})).Return(nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
-	result, err := svc.ChangeStatus(context.Background(), 1, 10, 7, "progressing")
+	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 7, "progressing")
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
@@ -700,7 +700,7 @@ func TestChangeStatus_NotFound(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(99)).Return(nil, gorm.ErrRecordNotFound)
 
-	result, err := svc.ChangeStatus(context.Background(), 1, 10, 99, "progressing")
+	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 99, "progressing")
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
 	assert.Nil(t, result)
 
@@ -720,7 +720,7 @@ func TestChangeStatus_TeamMismatch(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 
-	result, err := svc.ChangeStatus(context.Background(), 1, 10, 1, "progressing")
+	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, "progressing")
 	assert.ErrorIs(t, err, apperrors.ErrForbidden)
 	assert.Nil(t, result)
 
@@ -744,7 +744,7 @@ func TestSubItemAvailableTransitions_Pending(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 
-	transitions, err := svc.AvailableTransitions(context.Background(), 1, 1)
+	transitions, err := svc.AvailableTransitions(context.Background(), int64(1), 1)
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"progressing", "closed"}, transitions)
 
@@ -764,7 +764,7 @@ func TestSubItemAvailableTransitions_Progressing(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 
-	transitions, err := svc.AvailableTransitions(context.Background(), 1, 1)
+	transitions, err := svc.AvailableTransitions(context.Background(), int64(1), 1)
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"blocking", "pausing", "completed", "closed"}, transitions)
 
@@ -784,7 +784,7 @@ func TestSubItemAvailableTransitions_TerminalStatus(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 
-	transitions, err := svc.AvailableTransitions(context.Background(), 1, 1)
+	transitions, err := svc.AvailableTransitions(context.Background(), int64(1), 1)
 	require.NoError(t, err)
 	assert.Empty(t, transitions)
 
@@ -799,7 +799,7 @@ func TestSubItemAvailableTransitions_NotFound(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(99)).Return(nil, gorm.ErrRecordNotFound)
 
-	_, err := svc.AvailableTransitions(context.Background(), 1, 99)
+	_, err := svc.AvailableTransitions(context.Background(), int64(1), 99)
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
 
 	repo.AssertExpectations(t)
@@ -818,7 +818,7 @@ func TestSubItemAvailableTransitions_TeamMismatch(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 
-	_, err := svc.AvailableTransitions(context.Background(), 1, 1)
+	_, err := svc.AvailableTransitions(context.Background(), int64(1), 1)
 	assert.ErrorIs(t, err, apperrors.ErrForbidden)
 
 	repo.AssertExpectations(t)
@@ -845,7 +845,7 @@ func TestSubItemAssign_Success(t *testing.T) {
 		return fields["assignee_key"] == assigneeID && !hasWrong
 	})).Return(nil)
 
-	err := svc.Assign(context.Background(), 1, 10, 1, assigneeID)
+	err := svc.Assign(context.Background(), int64(1), 10, 1, assigneeID)
 	require.NoError(t, err)
 
 	repo.AssertExpectations(t)
@@ -859,7 +859,7 @@ func TestSubItemAssign_NotFound(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(99)).Return(nil, gorm.ErrRecordNotFound)
 
-	err := svc.Assign(context.Background(), 1, 10, 99, 42)
+	err := svc.Assign(context.Background(), int64(1), 10, 99, 42)
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
 
 	repo.AssertExpectations(t)
@@ -877,7 +877,7 @@ func TestSubItemAssign_TeamMismatch(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 
-	err := svc.Assign(context.Background(), 1, 10, 1, 42)
+	err := svc.Assign(context.Background(), int64(1), 10, 1, 42)
 	assert.ErrorIs(t, err, apperrors.ErrForbidden)
 
 	repo.AssertExpectations(t)
@@ -900,7 +900,7 @@ func TestSubItemGet_Success(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 
-	item, err := svc.Get(context.Background(), 1, 1)
+	item, err := svc.Get(context.Background(), int64(1), 1)
 	require.NoError(t, err)
 	assert.Equal(t, "Sub 1", item.Title)
 
@@ -915,7 +915,7 @@ func TestSubItemGet_NotFound(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(99)).Return(nil, gorm.ErrRecordNotFound)
 
-	_, err := svc.Get(context.Background(), 1, 99)
+	_, err := svc.Get(context.Background(), int64(1), 99)
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
 
 	repo.AssertExpectations(t)
@@ -938,7 +938,7 @@ func TestSubItemList_Success(t *testing.T) {
 	repo.On("List", mock.Anything, uint(1), uint(0), mock.Anything, mock.Anything).
 		Return(&dto.PageResult[model.SubItem]{Items: items, Total: 2}, nil)
 
-	result, err := svc.List(context.Background(), 1, nil, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 20})
+	result, err := svc.List(context.Background(), int64(1), nil, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 20})
 	require.NoError(t, err)
 	assert.Len(t, result.Items, 2)
 	assert.Equal(t, int64(2), result.Total)
@@ -959,7 +959,7 @@ func TestSubItemList_WithMainItemFilter(t *testing.T) {
 	repo.On("List", mock.Anything, uint(1), uint(5), mock.Anything, mock.Anything).
 		Return(&dto.PageResult[model.SubItem]{Items: items, Total: 1}, nil)
 
-	result, err := svc.List(context.Background(), 1, &mainID, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 20})
+	result, err := svc.List(context.Background(), int64(1), &mainID, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 20})
 	require.NoError(t, err)
 	assert.Len(t, result.Items, 1)
 
@@ -975,7 +975,7 @@ func TestSubItemList_RepoError(t *testing.T) {
 	repo.On("List", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, errors.New("db error"))
 
-	_, err := svc.List(context.Background(), 1, nil, dto.SubItemFilter{}, dto.Pagination{})
+	_, err := svc.List(context.Background(), int64(1), nil, dto.SubItemFilter{}, dto.Pagination{})
 	assert.Error(t, err)
 
 	repo.AssertExpectations(t)
@@ -996,7 +996,7 @@ func TestSubItemCreate_TriggersLinkage(t *testing.T) {
 	mainSvc.On("GetByBizKey", mock.Anything, int64(5)).Return(&model.MainItem{BaseModel: model.BaseModel{ID: 5}, ItemStatus: "pending"}, nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
-	_, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
+	_, err := svc.Create(context.Background(), int64(1), 10, dto.SubItemCreateReq{
 		MainItemKey: "5",
 		Title:      "Sub task",
 		Priority:   "P2",
@@ -1028,7 +1028,7 @@ func TestSubItemDelete_TriggersLinkage(t *testing.T) {
 	repo.On("SoftDelete", mock.Anything, uint(1)).Return(nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(nil, nil)
 
-	err := svc.Delete(context.Background(), 1, 10, 1)
+	err := svc.Delete(context.Background(), int64(1), 10, 1)
 	require.NoError(t, err)
 
 	mainSvc.AssertCalled(t, "EvaluateLinkage", mock.Anything, uint(5), uint(10))
@@ -1044,7 +1044,7 @@ func TestSubItemDelete_NotFound(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(99)).Return(nil, gorm.ErrRecordNotFound)
 
-	err := svc.Delete(context.Background(), 1, 10, 99)
+	err := svc.Delete(context.Background(), int64(1), 10, 99)
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
 
 	repo.AssertExpectations(t)
@@ -1063,7 +1063,7 @@ func TestSubItemDelete_TeamMismatch(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 
-	err := svc.Delete(context.Background(), 1, 10, 1)
+	err := svc.Delete(context.Background(), int64(1), 10, 1)
 	assert.ErrorIs(t, err, apperrors.ErrForbidden)
 
 	repo.AssertExpectations(t)
@@ -1084,7 +1084,7 @@ func TestSubItemDelete_RepoError(t *testing.T) {
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 	repo.On("SoftDelete", mock.Anything, uint(1)).Return(errors.New("db error"))
 
-	err := svc.Delete(context.Background(), 1, 10, 1)
+	err := svc.Delete(context.Background(), int64(1), 10, 1)
 	assert.Error(t, err)
 
 	repo.AssertExpectations(t)
@@ -1125,7 +1125,7 @@ func TestChangeStatus_ReturnsLinkageResult(t *testing.T) {
 	}
 	mainSvc.On("EvaluateLinkage", mock.Anything, uint(5), uint(10)).Return(linkageResult, nil)
 
-	result, err := svc.ChangeStatus(context.Background(), 1, 10, 1, "progressing")
+	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, "progressing")
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, "progressing", result.SubItem.ItemStatus)
@@ -1174,7 +1174,7 @@ func TestSubItemCreate_NextSubCodeError_ReturnsError(t *testing.T) {
 	repo.On("NextSubCode", mock.Anything, uint(5)).Return("", errors.New("code gen failed"))
 	mainSvc.On("GetByBizKey", mock.Anything, int64(5)).Return(&model.MainItem{BaseModel: model.BaseModel{ID: 5}, ItemStatus: "pending"}, nil)
 
-	_, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
+	_, err := svc.Create(context.Background(), int64(1), 10, dto.SubItemCreateReq{
 		MainItemKey: "5",
 		Title:      "Sub task",
 		Priority:   "P2",
@@ -1219,7 +1219,7 @@ func TestChangeStatus_RecalcCompletionBeforeLinkage(t *testing.T) {
 		callOrder = append(callOrder, "linkage")
 	}).Return(nil, nil)
 
-	result, err := svc.ChangeStatus(context.Background(), 1, 10, 1, "completed")
+	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, "completed")
 	require.NoError(t, err)
 	require.NotNil(t, result)
 

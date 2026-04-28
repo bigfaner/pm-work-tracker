@@ -145,19 +145,19 @@ type mockMainItemSvcForProgress struct {
 	recalcErr    error
 }
 
-func (m *mockMainItemSvcForProgress) Create(_ context.Context, teamID, pmID uint, req dto.MainItemCreateReq) (*model.MainItem, error) {
+func (m *mockMainItemSvcForProgress) Create(_ context.Context, _ int64, _ uint, _ dto.MainItemCreateReq) (*model.MainItem, error) {
 	return nil, nil
 }
 
-func (m *mockMainItemSvcForProgress) Update(_ context.Context, teamID, itemID uint, req dto.MainItemUpdateReq) error {
+func (m *mockMainItemSvcForProgress) Update(_ context.Context, _ int64, _ uint, _ dto.MainItemUpdateReq) error {
 	return nil
 }
 
-func (m *mockMainItemSvcForProgress) Archive(_ context.Context, teamID, itemID uint) error {
+func (m *mockMainItemSvcForProgress) Archive(_ context.Context, _ int64, _ uint) error {
 	return nil
 }
 
-func (m *mockMainItemSvcForProgress) List(_ context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+func (m *mockMainItemSvcForProgress) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
 	return nil, nil
 }
 
@@ -171,11 +171,11 @@ func (m *mockMainItemSvcForProgress) RecalcCompletion(_ context.Context, mainIte
 	return m.recalcErr
 }
 
-func (m *mockMainItemSvcForProgress) ChangeStatus(_ context.Context, _, _, _ uint, _ string) (*model.MainItem, error) {
+func (m *mockMainItemSvcForProgress) ChangeStatus(_ context.Context, _ int64, _, _ uint, _ string) (*model.MainItem, error) {
 	return nil, nil
 }
 
-func (m *mockMainItemSvcForProgress) AvailableTransitions(_ context.Context, _, _, _ uint) ([]string, error) {
+func (m *mockMainItemSvcForProgress) AvailableTransitions(_ context.Context, _ int64, _, _ uint) ([]string, error) {
 	return nil, nil
 }
 

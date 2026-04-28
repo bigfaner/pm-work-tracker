@@ -18,12 +18,12 @@ import (
 
 // ItemPoolService defines business operations for ItemPool.
 type ItemPoolService interface {
-	Submit(ctx context.Context, teamID, submitterID uint, req dto.SubmitItemPoolReq) (*model.ItemPool, error)
-	Assign(ctx context.Context, teamID, pmID, poolItemID uint, req dto.AssignItemPoolReq) error
-	ConvertToMain(ctx context.Context, teamID, pmID, poolItemID uint, req dto.ConvertToMainItemReq) (*model.MainItem, error)
-	Reject(ctx context.Context, teamID, pmID, poolItemID uint, reason string) error
-	List(ctx context.Context, teamID uint, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error)
-	Get(ctx context.Context, teamID, poolItemID uint) (*model.ItemPool, error)
+	Submit(ctx context.Context, teamBizKey int64, submitterID uint, req dto.SubmitItemPoolReq) (*model.ItemPool, error)
+	Assign(ctx context.Context, teamBizKey int64, pmID, poolItemID uint, req dto.AssignItemPoolReq) error
+	ConvertToMain(ctx context.Context, teamBizKey int64, pmID, poolItemID uint, req dto.ConvertToMainItemReq) (*model.MainItem, error)
+	Reject(ctx context.Context, teamBizKey int64, pmID, poolItemID uint, reason string) error
+	List(ctx context.Context, teamBizKey int64, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error)
+	Get(ctx context.Context, teamBizKey int64, poolItemID uint) (*model.ItemPool, error)
 	GetByBizKey(ctx context.Context, bizKey int64) (*model.ItemPool, error)
 }
 
@@ -44,10 +44,10 @@ func NewItemPoolService(poolRepo repository.ItemPoolRepo, subRepo repository.Sub
 	}
 }
 
-func (s *itemPoolService) Submit(ctx context.Context, teamID, submitterID uint, req dto.SubmitItemPoolReq) (*model.ItemPool, error) {
+func (s *itemPoolService) Submit(ctx context.Context, teamBizKey int64, submitterID uint, req dto.SubmitItemPoolReq) (*model.ItemPool, error) {
 	item := &model.ItemPool{
 		BaseModel:      model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:        int64(teamID),
+		TeamKey:        teamBizKey,
 		Title:          req.Title,
 		Background:     req.Background,
 		ExpectedOutput: req.ExpectedOutput,
@@ -60,12 +60,12 @@ func (s *itemPoolService) Submit(ctx context.Context, teamID, submitterID uint, 
 	return item, nil
 }
 
-func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID uint, req dto.AssignItemPoolReq) error {
+func (s *itemPoolService) Assign(ctx context.Context, teamBizKey int64, pmID, poolItemID uint, req dto.AssignItemPoolReq) error {
 	poolItem, err := s.poolRepo.FindByID(ctx, poolItemID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if poolItem.TeamKey != int64(teamID) {
+	if poolItem.TeamKey != teamBizKey {
 		return apperrors.ErrForbidden
 	}
 	if poolItem.PoolStatus != "pending" {
@@ -78,7 +78,7 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if mainItem.TeamKey != int64(teamID) {
+	if mainItem.TeamKey != teamBizKey {
 		return apperrors.ErrItemNotFound
 	}
 
@@ -88,7 +88,7 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 		// Create SubItem under the MainItem
 		subItem := &model.SubItem{
 			BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
-			TeamKey:     int64(teamID),
+			TeamKey:     teamBizKey,
 			MainItemKey: int64(mainItem.ID),
 			Title:       poolItem.Title,
 			ItemDesc:    poolItem.Background,
@@ -124,12 +124,12 @@ func (s *itemPoolService) Assign(ctx context.Context, teamID, pmID, poolItemID u
 	})
 }
 
-func (s *itemPoolService) ConvertToMain(ctx context.Context, teamID, pmID, poolItemID uint, req dto.ConvertToMainItemReq) (*model.MainItem, error) {
+func (s *itemPoolService) ConvertToMain(ctx context.Context, teamBizKey int64, pmID, poolItemID uint, req dto.ConvertToMainItemReq) (*model.MainItem, error) {
 	poolItem, err := s.poolRepo.FindByID(ctx, poolItemID)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if poolItem.TeamKey != int64(teamID) {
+	if poolItem.TeamKey != teamBizKey {
 		return nil, apperrors.ErrForbidden
 	}
 	if poolItem.PoolStatus != "pending" {
@@ -140,14 +140,14 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamID, pmID, poolI
 	err = s.db.Transaction(func(tx *gorm.DB) error {
 		now := time.Now()
 
-		code, err := s.mainRepo.NextCode(ctx, teamID)
+		code, err := s.mainRepo.NextCode(ctx, uint(teamBizKey))
 		if err != nil {
 			return err
 		}
 
 		mainItem := &model.MainItem{
 			BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
-			TeamKey:     int64(teamID),
+			TeamKey:     teamBizKey,
 			Code:        code,
 			Title:       poolItem.Title,
 			Priority:    req.Priority,
@@ -189,12 +189,12 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamID, pmID, poolI
 	return created, err
 }
 
-func (s *itemPoolService) Reject(ctx context.Context, teamID, pmID, poolItemID uint, reason string) error {
+func (s *itemPoolService) Reject(ctx context.Context, teamBizKey int64, pmID, poolItemID uint, reason string) error {
 	poolItem, err := s.poolRepo.FindByID(ctx, poolItemID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if poolItem.TeamKey != int64(teamID) {
+	if poolItem.TeamKey != teamBizKey {
 		return apperrors.ErrForbidden
 	}
 	if poolItem.PoolStatus != "pending" {
@@ -211,16 +211,16 @@ func (s *itemPoolService) Reject(ctx context.Context, teamID, pmID, poolItemID u
 	return s.poolRepo.Update(ctx, poolItem, fields)
 }
 
-func (s *itemPoolService) List(ctx context.Context, teamID uint, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error) {
-	return s.poolRepo.List(ctx, teamID, filter, page)
+func (s *itemPoolService) List(ctx context.Context, teamBizKey int64, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error) {
+	return s.poolRepo.List(ctx, uint(teamBizKey), filter, page)
 }
 
-func (s *itemPoolService) Get(ctx context.Context, teamID, poolItemID uint) (*model.ItemPool, error) {
+func (s *itemPoolService) Get(ctx context.Context, teamBizKey int64, poolItemID uint) (*model.ItemPool, error) {
 	item, err := s.poolRepo.FindByID(ctx, poolItemID)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if item.TeamKey != int64(teamID) {
+	if item.TeamKey != teamBizKey {
 		return nil, apperrors.ErrForbidden
 	}
 	return item, nil

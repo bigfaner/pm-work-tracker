@@ -37,7 +37,7 @@ func NewMainItemHandler(svc service.MainItemService, userRepo repository.UserRep
 
 // Create handles POST /api/v1/teams/:teamId/main-items
 func (h *MainItemHandler) Create(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	pmID := middleware.GetUserID(c)
 
 	var req dto.MainItemCreateReq
@@ -46,7 +46,7 @@ func (h *MainItemHandler) Create(c *gin.Context) {
 		return
 	}
 
-	item, err := h.svc.Create(c.Request.Context(), teamID, pmID, req)
+	item, err := h.svc.Create(c.Request.Context(), teamBizKey, pmID, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -57,7 +57,7 @@ func (h *MainItemHandler) Create(c *gin.Context) {
 
 // List handles GET /api/v1/teams/:teamId/main-items
 func (h *MainItemHandler) List(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
 	var filter dto.MainItemFilter
 	if err := c.ShouldBindQuery(&filter); err != nil {
@@ -72,7 +72,7 @@ func (h *MainItemHandler) List(c *gin.Context) {
 	}
 	_, page.Page, page.PageSize = dto.ApplyPaginationDefaults(page.Page, page.PageSize)
 
-	result, err := h.svc.List(c.Request.Context(), teamID, filter, page)
+	result, err := h.svc.List(c.Request.Context(), teamBizKey, filter, page)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -138,7 +138,7 @@ func (h *MainItemHandler) Update(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
 	var req dto.MainItemUpdateReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -152,7 +152,7 @@ func (h *MainItemHandler) Update(c *gin.Context) {
 		return
 	}
 
-	err = h.svc.Update(c.Request.Context(), teamID, item.ID, req)
+	err = h.svc.Update(c.Request.Context(), teamBizKey, item.ID, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -175,7 +175,7 @@ func (h *MainItemHandler) Archive(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
 	item, err := h.svc.GetByBizKey(c.Request.Context(), bizKey)
 	if err != nil {
@@ -183,7 +183,7 @@ func (h *MainItemHandler) Archive(c *gin.Context) {
 		return
 	}
 
-	err = h.svc.Archive(c.Request.Context(), teamID, item.ID)
+	err = h.svc.Archive(c.Request.Context(), teamBizKey, item.ID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -199,7 +199,7 @@ func (h *MainItemHandler) ChangeStatus(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	callerID := middleware.GetUserID(c)
 
 	var req dto.ChangeStatusReq
@@ -214,7 +214,7 @@ func (h *MainItemHandler) ChangeStatus(c *gin.Context) {
 		return
 	}
 
-	item, err := h.svc.ChangeStatus(c.Request.Context(), teamID, callerID, record.ID, req.Status)
+	item, err := h.svc.ChangeStatus(c.Request.Context(), teamBizKey, callerID, record.ID, req.Status)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -230,7 +230,7 @@ func (h *MainItemHandler) AvailableTransitions(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	callerID := middleware.GetUserID(c)
 
 	record, err := h.svc.GetByBizKey(c.Request.Context(), bizKey)
@@ -239,7 +239,7 @@ func (h *MainItemHandler) AvailableTransitions(c *gin.Context) {
 		return
 	}
 
-	transitions, err := h.svc.AvailableTransitions(c.Request.Context(), teamID, callerID, record.ID)
+	transitions, err := h.svc.AvailableTransitions(c.Request.Context(), teamBizKey, callerID, record.ID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
