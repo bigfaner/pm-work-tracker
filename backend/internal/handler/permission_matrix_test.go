@@ -171,6 +171,27 @@ var _ service.ReportService = (*mockReportSvc)(nil)
 // Tests for buildPermTestRouter infrastructure
 // ---------------------------------------------------------------------------
 
+// buildPermTestRouterFull creates a minimal router for any HTTP method/path.
+// The terminal handler always returns 200 — only the permission gate is under test.
+func buildPermTestRouterFull(method, path, code string, permCodes []string) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Handle(method, path,
+		func(c *gin.Context) {
+			c.Set("teamID", uint(1))
+			c.Set("permCodes", permCodes)
+			c.Next()
+		},
+		middleware.RequirePermission(code, nil),
+		func(c *gin.Context) { c.Status(http.StatusOK) },
+	)
+	return r
+}
+
+// ---------------------------------------------------------------------------
+// Infrastructure smoke tests
+// ---------------------------------------------------------------------------
+
 func TestBuildPermTestRouter_HasPermission(t *testing.T) {
 	r := buildPermTestRouter("main_item:create", []string{"main_item:create"}, func(c *gin.Context) {
 		c.Status(http.StatusOK)
@@ -189,4 +210,77 @@ func TestBuildPermTestRouter_NoPermission(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPost, "/test", nil)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+// ---------------------------------------------------------------------------
+// Permission matrix tests — 12 endpoints × 2 cases each
+// ---------------------------------------------------------------------------
+
+func runPermCases(t *testing.T, method, path, code string) {
+	t.Helper()
+	cases := []struct {
+		name      string
+		permCodes []string
+		wantCode  int
+	}{
+		{"has_permission", []string{code}, http.StatusOK},
+		{"no_permission", []string{}, http.StatusForbidden},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := buildPermTestRouterFull(method, path, code, tc.permCodes)
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(method, path, nil)
+			r.ServeHTTP(w, req)
+			assert.Equal(t, tc.wantCode, w.Code)
+		})
+	}
+}
+
+func TestPermMatrix_MainItemCreate(t *testing.T) {
+	runPermCases(t, http.MethodPost, "/test", "main_item:create")
+}
+
+func TestPermMatrix_MainItemArchive(t *testing.T) {
+	runPermCases(t, http.MethodPost, "/test/1/archive", "main_item:archive")
+}
+
+func TestPermMatrix_MainItemChangeStatus(t *testing.T) {
+	runPermCases(t, http.MethodPut, "/test/1/status", "main_item:change_status")
+}
+
+func TestPermMatrix_TeamInvite(t *testing.T) {
+	runPermCases(t, http.MethodPost, "/test", "team:invite")
+}
+
+func TestPermMatrix_TeamRemove(t *testing.T) {
+	runPermCases(t, http.MethodDelete, "/test/1", "team:remove")
+}
+
+func TestPermMatrix_TeamTransfer(t *testing.T) {
+	runPermCases(t, http.MethodPut, "/test", "team:transfer")
+}
+
+func TestPermMatrix_ProgressCreate(t *testing.T) {
+	runPermCases(t, http.MethodPost, "/test", "progress:create")
+}
+
+func TestPermMatrix_ProgressUpdate(t *testing.T) {
+	runPermCases(t, http.MethodPatch, "/test/1/completion", "progress:update")
+}
+
+func TestPermMatrix_ItemPoolSubmit(t *testing.T) {
+	runPermCases(t, http.MethodPost, "/test", "item_pool:submit")
+}
+
+func TestPermMatrix_ItemPoolReview(t *testing.T) {
+	runPermCases(t, http.MethodPost, "/test/1/assign", "item_pool:review")
+}
+
+func TestPermMatrix_WeeklyView(t *testing.T) {
+	runPermCases(t, http.MethodGet, "/test", "view:weekly")
+}
+
+func TestPermMatrix_ReportExport(t *testing.T) {
+	runPermCases(t, http.MethodGet, "/test", "report:export")
 }

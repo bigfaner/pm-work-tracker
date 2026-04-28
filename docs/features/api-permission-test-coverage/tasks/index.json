@@ -4,18 +4,38 @@
   "design": "design/tech-design.md",
   "created": "2026-04-28",
   "status": "planning",
-  "statusEnum": ["pending", "in_progress", "completed", "blocked", "skipped"],
-  "priorityEnum": ["P0", "P1", "P2"],
-  "e2eRound": 0,
   "tasks": {
+    "1-gate": {
+      "id": "1.gate",
+      "title": "Phase 1 Exit Gate",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "1.summary"
+      ],
+      "status": "pending",
+      "file": "1-gate.md",
+      "record": "records/1-gate.md",
+      "breaking": true
+    },
+    "1-summary": {
+      "id": "1.summary",
+      "title": "Phase 1 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "1.x"
+      ],
+      "status": "pending",
+      "file": "1-summary.md",
+      "record": "records/1-summary.md"
+    },
     "1.1-build-perm-test-router": {
       "id": "1.1",
       "title": "buildPermTestRouter helper + mock service stubs",
       "priority": "P0",
       "estimatedTime": "1.5h",
-      "dependencies": [],
-      "status": "pending",
-      "breaking": false,
+      "status": "completed",
       "file": "1.1-build-perm-test-router.md",
       "record": "records/1.1-build-perm-test-router.md"
     },
@@ -24,41 +44,47 @@
       "title": "12 TestPermMatrix_* unit test functions",
       "priority": "P0",
       "estimatedTime": "2h",
-      "dependencies": ["1.1"],
-      "status": "pending",
-      "breaking": false,
+      "dependencies": [
+        "1.1"
+      ],
+      "status": "completed",
       "file": "1.2-perm-matrix-unit-tests.md",
       "record": "records/1.2-perm-matrix-unit-tests.md"
     },
-    "1-summary": {
-      "id": "1.summary",
-      "title": "Phase 1 Summary",
-      "priority": "P0",
-      "estimatedTime": "15min",
-      "dependencies": ["1.x"],
-      "status": "pending",
-      "file": "1-summary.md",
-      "record": "records/1-summary.md"
-    },
-    "1-gate": {
-      "id": "1.gate",
-      "title": "Phase 1 Exit Gate",
+    "2-gate": {
+      "id": "2.gate",
+      "title": "Phase 2 Exit Gate",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["1.summary"],
+      "dependencies": [
+        "2.summary"
+      ],
       "status": "pending",
-      "breaking": true,
-      "file": "1-gate.md",
-      "record": "records/1-gate.md"
+      "file": "2-gate.md",
+      "record": "records/2-gate.md",
+      "breaking": true
+    },
+    "2-summary": {
+      "id": "2.summary",
+      "title": "Phase 2 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "2.x"
+      ],
+      "status": "pending",
+      "file": "2-summary.md",
+      "record": "records/2-summary.md"
     },
     "2.1-preset-role-matrix-tests": {
       "id": "2.1",
       "title": "seedPermMatrixFixtures helper + I-A preset role matrix tests",
       "priority": "P0",
       "estimatedTime": "2h",
-      "dependencies": ["1.gate"],
+      "dependencies": [
+        "1.gate"
+      ],
       "status": "pending",
-      "breaking": false,
       "file": "2.1-preset-role-matrix-tests.md",
       "record": "records/2.1-preset-role-matrix-tests.md"
     },
@@ -67,9 +93,10 @@
       "title": "I-B: Custom role partial permissions + immediate effect test",
       "priority": "P0",
       "estimatedTime": "1.5h",
-      "dependencies": ["1.gate"],
+      "dependencies": [
+        "1.gate"
+      ],
       "status": "pending",
-      "breaking": false,
       "file": "2.2-custom-role-tests.md",
       "record": "records/2.2-custom-role-tests.md"
     },
@@ -78,9 +105,10 @@
       "title": "I-C: Permission boundary tests (empty role, superadmin bypass, 401 vs 403)",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["1.gate"],
+      "dependencies": [
+        "1.gate"
+      ],
       "status": "pending",
-      "breaking": false,
       "file": "2.3-boundary-tests.md",
       "record": "records/2.3-boundary-tests.md"
     },
@@ -89,39 +117,21 @@
       "title": "I-D: Permission code coverage gate test",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["1.gate"],
+      "dependencies": [
+        "1.gate"
+      ],
       "status": "pending",
-      "breaking": false,
       "file": "2.4-coverage-gate-test.md",
       "record": "records/2.4-coverage-gate-test.md"
-    },
-    "2-summary": {
-      "id": "2.summary",
-      "title": "Phase 2 Summary",
-      "priority": "P0",
-      "estimatedTime": "15min",
-      "dependencies": ["2.x"],
-      "status": "pending",
-      "file": "2-summary.md",
-      "record": "records/2-summary.md"
-    },
-    "2-gate": {
-      "id": "2.gate",
-      "title": "Phase 2 Exit Gate",
-      "priority": "P0",
-      "estimatedTime": "1h",
-      "dependencies": ["2.summary"],
-      "status": "pending",
-      "breaking": true,
-      "file": "2-gate.md",
-      "record": "records/2-gate.md"
     },
     "gen-test-cases": {
       "id": "T-test-1",
       "title": "Generate e2e Test Cases",
       "priority": "P1",
       "estimatedTime": "1-2h",
-      "dependencies": ["2.gate"],
+      "dependencies": [
+        "2.gate"
+      ],
       "status": "pending",
       "file": "gen-test-cases.md",
       "record": "records/gen-test-cases.md"
@@ -131,10 +141,24 @@
       "title": "Generate e2e Test Scripts",
       "priority": "P1",
       "estimatedTime": "1-2h",
-      "dependencies": ["T-test-1"],
+      "dependencies": [
+        "T-test-1"
+      ],
       "status": "pending",
       "file": "gen-test-scripts.md",
       "record": "records/gen-test-scripts.md"
     }
-  }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
 }
