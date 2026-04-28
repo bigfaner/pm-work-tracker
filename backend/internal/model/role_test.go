@@ -2,6 +2,7 @@ package model_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -67,18 +68,7 @@ func TestRolePermission_TableName(t *testing.T) {
 
 func TestRolePermission_UniqueConstraint(t *testing.T) {
 	db := setupTestDB(t)
-	err := db.AutoMigrate(&model.Role{})
-	require.NoError(t, err)
-
-	// Use raw SQL to create pmw_role_permissions with unique constraint
-	err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS pmw_role_permissions (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			role_id INTEGER NOT NULL REFERENCES pmw_roles(id),
-			permission_code TEXT NOT NULL,
-			UNIQUE(role_id, permission_code)
-		)
-	`).Error
+	err := db.AutoMigrate(&model.Role{}, &model.RolePermission{})
 	require.NoError(t, err)
 
 	r := model.Role{Name: "test-role", Description: "test"}
@@ -94,10 +84,23 @@ func TestRolePermission_UniqueConstraint(t *testing.T) {
 	assert.Error(t, err, "duplicate (role_id, permission_code) should be rejected")
 }
 
-func TestRolePermission_NoSoftDelete(t *testing.T) {
-	rp := model.RolePermission{}
-	// RolePermission should NOT have DeletedAt field
-	assert.Zero(t, rp.ID, "RolePermission should have plain ID")
+func TestRolePermission_HasSoftDelete(t *testing.T) {
+	db := setupTestDB(t)
+	err := db.AutoMigrate(&model.Role{}, &model.RolePermission{})
+	require.NoError(t, err)
+
+	r := model.Role{Name: "soft-del-role", Description: "test"}
+	require.NoError(t, db.Create(&r).Error)
+
+	rp := model.RolePermission{RoleID: r.ID, PermissionCode: "team:create"}
+	require.NoError(t, db.Create(&rp).Error)
+
+	// Soft-delete
+	require.NoError(t, db.Model(&rp).Updates(map[string]any{"deleted_flag": 1, "deleted_time": time.Now()}).Error)
+
+	// Same (role_id, permission_code) can be re-created after soft-delete
+	rp2 := model.RolePermission{RoleID: r.ID, PermissionCode: "team:create"}
+	require.NoError(t, db.Create(&rp2).Error, "should allow re-creating after soft-delete")
 }
 
 func TestTeamMember_HasRoleID(t *testing.T) {

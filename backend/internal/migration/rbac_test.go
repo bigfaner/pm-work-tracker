@@ -598,9 +598,11 @@ func setupAutoSchemaFalseDB(t *testing.T) *gorm.DB {
 	require.NoError(t, db.Exec(`
 		CREATE TABLE pmw_role_permissions (
 			id              INTEGER PRIMARY KEY AUTOINCREMENT,
+			deleted_flag    INTEGER NOT NULL DEFAULT 0,
+			deleted_time    DATETIME NOT NULL DEFAULT '1970-01-01 08:00:00',
 			role_id         INTEGER NOT NULL,
 			permission_code TEXT NOT NULL,
-			UNIQUE(role_id, permission_code)
+			UNIQUE(role_id, permission_code, deleted_flag, deleted_time)
 		)
 	`).Error)
 

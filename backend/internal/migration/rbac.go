@@ -109,14 +109,16 @@ func rbacTableDDL(tx *gorm.DB) []string {
     role_desc       VARCHAR(200)    NOT NULL DEFAULT '',
     is_preset       TINYINT(1)      NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
-    UNIQUE KEY uk_roles_name (role_name)
+    UNIQUE KEY uk_roles_name (role_name, deleted_flag, deleted_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 			`CREATE TABLE IF NOT EXISTS pmw_role_permissions (
     id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    deleted_flag     TINYINT(1)      NOT NULL DEFAULT 0,
+    deleted_time     DATETIME        NOT NULL DEFAULT '1970-01-01 08:00:00',
     role_id          BIGINT UNSIGNED NOT NULL,
     permission_code  VARCHAR(50)     NOT NULL,
     PRIMARY KEY (id),
-    UNIQUE KEY uk_role_permission (role_id, permission_code)
+    UNIQUE KEY uk_role_permission (role_id, permission_code, deleted_flag, deleted_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 		}
 	}
@@ -132,12 +134,14 @@ func rbacTableDDL(tx *gorm.DB) []string {
     role_desc       VARCHAR(200)  NOT NULL DEFAULT '',
     is_preset       INTEGER       NOT NULL DEFAULT 0
 )`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS uk_roles_name ON pmw_roles(role_name)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS uk_roles_name ON pmw_roles(role_name, deleted_flag, deleted_time)`,
 		`CREATE TABLE IF NOT EXISTS pmw_role_permissions (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    deleted_flag     INTEGER      NOT NULL DEFAULT 0,
+    deleted_time     DATETIME     NOT NULL DEFAULT '1970-01-01 08:00:00',
     role_id          INTEGER      NOT NULL,
     permission_code  VARCHAR(50)  NOT NULL,
-    UNIQUE(role_id, permission_code)
+    UNIQUE(role_id, permission_code, deleted_flag, deleted_time)
 )`,
 	}
 }

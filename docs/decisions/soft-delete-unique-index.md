@@ -30,8 +30,8 @@
 | pmw_sub_items | `uk_sub_items_main_code(main_item_key, item_code, deleted_flag, deleted_time)` | ✅ |
 | pmw_roles | `uk_roles_name(role_name, deleted_flag, deleted_time)` | ✅ |
 | pmw_item_pools | 仅有 `uk_biz_key`，无业务唯一约束 | N/A |
+| pmw_role_permissions | `uk_role_permission(role_id, permission_code, deleted_flag, deleted_time)` | ✅ |
 
 **不适用此规则的表：**
 - `pmw_progress_records` — append-only，无软删除
 - `pmw_status_histories` — append-only，无软删除
-- `pmw_role_permissions` — 无软删除列，角色删除时权限级联清理
