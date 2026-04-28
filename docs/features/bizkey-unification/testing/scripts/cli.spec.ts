@@ -6,7 +6,7 @@ import { dirname } from 'node:path';
 import { runCli } from './helpers.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const BACKEND_DIR = resolve(__dirname, '../../../../../../backend');
+const BACKEND_DIR = resolve(__dirname, '../../../../../backend');
 
 describe('CLI E2E Tests', () => {
   // Traceability: TC-006 → Story 3 / AC-1
@@ -25,7 +25,7 @@ describe('CLI E2E Tests', () => {
   // Traceability: TC-007 → Spec 需求目标 — 消除 uint/int64 混用导致的数据错误
   test('TC-007: No uint(bizKey) or int64(teamID) casts exist in service and handler layers', () => {
     const result = runCli(
-      'grep -rn "uint(bizKey)\\|uint(teamBizKey)\\|int64(teamID)" backend/internal/service/ backend/internal/handler/',
+      'grep -rn --include="*.go" --exclude="*_test.go" "uint(bizKey)\\|uint(teamBizKey)\\|int64(teamID)" internal/service/ internal/handler/',
       BACKEND_DIR,
     );
     // grep exits 1 when no matches found — that is the expected (passing) outcome

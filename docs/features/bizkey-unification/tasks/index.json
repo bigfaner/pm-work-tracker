@@ -149,7 +149,7 @@
       "dependencies": [
         "T-test-1"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "gen-test-scripts.md",
       "record": "records/gen-test-scripts.md"
     }
@@ -165,5 +165,6 @@
     "P0",
     "P1",
     "P2"
-  ]
+  ],
+  "e2eRound": 1
 }

@@ -608,6 +608,14 @@ func findRoleBizKeyByName(t *testing.T, db *gorm.DB, name string) string {
 	return fmt.Sprintf("%d", role.BizKey)
 }
 
+// findRoleBizKeyInt64ByName looks up a role's BizKey as int64 by name.
+func findRoleBizKeyInt64ByName(t *testing.T, db *gorm.DB, name string) int64 {
+	t.Helper()
+	var role model.Role
+	require.NoError(t, db.Where("role_name = ?", name).First(&role).Error)
+	return role.BizKey
+}
+
 // findRoleIDByBizKey looks up a role's numeric ID by its BizKey string.
 func findRoleIDByBizKey(t *testing.T, db *gorm.DB, bizKey string) uint {
 	t.Helper()
@@ -714,16 +722,16 @@ func createTeamWithMembers(t *testing.T, db *gorm.DB, pmID uint, memberCount int
 	require.NoError(t, db.Create(team).Error)
 
 	// Add PM as team member with PM role
-	pmRoleID := findRoleIDByName(t, db, "pm")
+	pmRoleBizKey := findRoleBizKeyInt64ByName(t, db, "pm")
 	require.NoError(t, db.Create(&model.TeamMember{
 		TeamKey:  int64(team.ID),
 		UserKey:  int64(pmID),
-		RoleKey:  func() *int64 { v := int64(pmRoleID); return &v }(),
+		RoleKey:  &pmRoleBizKey,
 		JoinedAt: time.Now(),
 	}).Error)
 
 	// Create additional member users if needed
-	memberRoleID := findRoleIDByName(t, db, "member")
+	memberRoleBizKey := findRoleBizKeyInt64ByName(t, db, "member")
 	for i := 0; i < memberCount; i++ {
 		hash, err := bcrypt.GenerateFromPassword([]byte(fmt.Sprintf("member%dpass", i)), 4)
 		require.NoError(t, err)
@@ -736,7 +744,7 @@ func createTeamWithMembers(t *testing.T, db *gorm.DB, pmID uint, memberCount int
 		require.NoError(t, db.Create(&model.TeamMember{
 			TeamKey:  int64(team.ID),
 			UserKey:  int64(member.ID),
-			RoleKey:  func() *int64 { v := int64(memberRoleID); return &v }(),
+			RoleKey:  &memberRoleBizKey,
 			JoinedAt: time.Now(),
 		}).Error)
 	}

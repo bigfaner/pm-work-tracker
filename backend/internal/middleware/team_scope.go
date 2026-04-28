@@ -19,7 +19,7 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleR
 		// 1. Parse teamId from URL param as bizKey (snowflake int64)
 		teamIDStr := c.Param("teamId")
 		teamBizKey, err := strconv.ParseInt(teamIDStr, 10, 64)
-		if err != nil {
+		if err != nil || teamBizKey <= 0 {
 			c.Abort()
 			apperrors.RespondError(c, apperrors.ErrValidation)
 			return
