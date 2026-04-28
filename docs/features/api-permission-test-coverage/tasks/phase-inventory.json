@@ -1,0 +1,20 @@
+[
+  {
+    "phase": 1,
+    "name": "Handler Unit Tests (U1)",
+    "source": "PRD-explicit",
+    "description": "路径 A — buildPermTestRouter helper + mock services + 12 TestPermMatrix_* functions in package handler",
+    "gates": [
+      {"afterPhase": 1, "description": "All 24 unit test cases pass, no DB dependency, go test ./internal/handler/ green"}
+    ]
+  },
+  {
+    "phase": 2,
+    "name": "Integration Tests (I-A/I-B/I-C/I-D)",
+    "source": "PRD-explicit",
+    "description": "路径 B — preset role matrix, custom role lifecycle, boundary scenarios, coverage gate in package integration",
+    "gates": [
+      {"afterPhase": 2, "description": "All integration tests pass, TestPermissionCodeCoverage green, go test ./tests/integration/ green"}
+    ]
+  }
+]
