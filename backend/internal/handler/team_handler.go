@@ -98,6 +98,15 @@ func (h *TeamHandler) Update(c *gin.Context) {
 		return
 	}
 
+	if middleware.IsSuperAdmin(c) {
+		team, err := h.teamSvc.GetTeam(c.Request.Context(), teamID)
+		if err != nil {
+			apperrors.RespondError(c, err)
+			return
+		}
+		pmID = uint(team.PmKey)
+	}
+
 	team, err := h.teamSvc.UpdateTeam(c.Request.Context(), pmID, teamID, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
@@ -116,6 +125,15 @@ func (h *TeamHandler) Disband(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
+	}
+
+	if middleware.IsSuperAdmin(c) {
+		team, err := h.teamSvc.GetTeam(c.Request.Context(), teamID)
+		if err != nil {
+			apperrors.RespondError(c, err)
+			return
+		}
+		callerID = uint(team.PmKey)
 	}
 
 	err := h.teamSvc.DisbandTeam(c.Request.Context(), callerID, teamID, req.ConfirmName)
@@ -176,6 +194,15 @@ func (h *TeamHandler) RemoveMember(c *gin.Context) {
 		return
 	}
 
+	if middleware.IsSuperAdmin(c) {
+		team, err := h.teamSvc.GetTeam(c.Request.Context(), teamID)
+		if err != nil {
+			apperrors.RespondError(c, err)
+			return
+		}
+		pmID = uint(team.PmKey)
+	}
+
 	err := h.teamSvc.RemoveMember(c.Request.Context(), pmID, teamID, targetUserID)
 	if err != nil {
 		apperrors.RespondError(c, err)
@@ -205,6 +232,15 @@ func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
+	}
+
+	if middleware.IsSuperAdmin(c) {
+		team, err := h.teamSvc.GetTeam(c.Request.Context(), teamID)
+		if err != nil {
+			apperrors.RespondError(c, err)
+			return
+		}
+		pmID = uint(team.PmKey)
 	}
 
 	roleKey, _ := pkg.ParseID(req.RoleKey)

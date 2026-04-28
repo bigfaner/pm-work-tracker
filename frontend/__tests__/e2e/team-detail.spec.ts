@@ -109,7 +109,7 @@ test.describe('Team Detail - Member List', () => {
     test.skip(!teamId, 'No team available');
     await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
-    const pmRow = page.locator('tbody tr').filter({ has: page.locator('text=PM') }).first();
+    const pmRow = page.locator('tbody tr').filter({ has: page.getByText('PM', { exact: true }) }).first();
     await expect(pmRow).toBeVisible({ timeout: 5000 });
     await expect(pmRow.locator('[data-testid="change-role-btn"]')).not.toBeVisible();
   });

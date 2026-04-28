@@ -444,6 +444,7 @@ func TestUpdateTeam_Success(t *testing.T) {
 	svc := &mockTeamService{}
 	svc.updateTeamResult.team = &model.Team{TeamName: "Updated", TeamDesc: "new desc", PmKey: 1}
 	svc.updateTeamResult.team.ID = 1
+	svc.getTeamResult.team = &model.Team{PmKey: 1}
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
@@ -489,6 +490,7 @@ func TestUpdateTeam_NotPM(t *testing.T) {
 
 func TestDisbandTeam_Success(t *testing.T) {
 	svc := &mockTeamService{}
+	svc.getTeamResult.team = &model.Team{PmKey: 1}
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
@@ -510,6 +512,7 @@ func TestDisbandTeam_Success(t *testing.T) {
 func TestDisbandTeam_ConfirmNameMismatch(t *testing.T) {
 	svc := &mockTeamService{}
 	svc.disbandTeamErr = apperrors.ErrValidation
+	svc.getTeamResult.team = &model.Team{PmKey: 1}
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
@@ -675,6 +678,7 @@ func TestRemoveMember_Success(t *testing.T) {
 func TestRemoveMember_CannotRemoveSelf(t *testing.T) {
 	svc := &mockTeamService{}
 	svc.removeMemberErr = apperrors.ErrCannotRemoveSelf
+	svc.getTeamResult.team = &model.Team{PmKey: 1}
 	userRepo := &mockUserRepoForHandler{user: &model.User{}}
 	userRepo.user.ID = 1
 
@@ -785,6 +789,7 @@ func TestUpdateMemberRole_NotMember(t *testing.T) {
 func TestUpdateMemberRole_CannotAssignPMRole(t *testing.T) {
 	svc := &mockTeamService{}
 	svc.updateMemberRoleErr = apperrors.ErrCannotAssignPMRole
+	svc.getTeamResult.team = &model.Team{PmKey: 1}
 	userRepo := &mockUserRepoForHandler{user: &model.User{}}
 	userRepo.user.ID = 5
 
