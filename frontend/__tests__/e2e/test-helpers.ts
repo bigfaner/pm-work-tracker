@@ -62,8 +62,8 @@ export async function getRoleKey(token: string, roleName: string): Promise<strin
   const json = await res.json();
   const data = parseApiData(json);
   const list = Array.isArray(data) ? data : (data?.items ?? []);
-  const role = list.find((r: any) => r.name === roleName);
-  return role ? String(role.id) : null;
+  const role = list.find((r: any) => r.roleName === roleName);
+  return role ? String(role.bizKey) : null;
 }
 
 /** Clear cached token so next getAuthToken() fetches a fresh one. */

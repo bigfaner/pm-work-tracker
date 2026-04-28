@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { BASE, API, login, getAuthToken, getFirstTeamId } from './test-helpers';
+import { BASE, API, login, getAuthToken, getFirstTeamId, loginAs, getTokenForUser, createUser, deleteUser, addUserToTeam, removeUserFromTeam, getRoleKey } from './test-helpers';
 
 async function createTestMember(token: string, tid: string, label: string) {
   const username = `e2e_${label}_${Date.now()}`;
@@ -494,5 +494,98 @@ test.describe('Team Detail - Disband Team', () => {
     await expect(confirmBtn).toBeEnabled({ timeout: 3000 });
 
     await page.locator('button', { hasText: '取消' }).click();
+  });
+});
+
+// ── Section 8: Member Perspective (Non-PM) ─────────────────────────────────────
+
+test.describe('Team Detail - Member Perspective', () => {
+  let adminToken: string;
+  let teamId: string | null;
+  let memberUser: { userId: string; username: string; initialPassword?: string } | null = null;
+
+  test.beforeAll(async () => {
+    adminToken = await getAuthToken();
+    teamId = await getFirstTeamId(adminToken);
+    if (teamId) {
+      // Create a new user and add to team as member
+      const username = `member_${Date.now()}`;
+      memberUser = await createUser(adminToken, username, '普通成员测试');
+      const memberRoleKey = await getRoleKey(adminToken, 'member') ?? '3';
+      await addUserToTeam(adminToken, teamId, username, memberRoleKey);
+    }
+  });
+
+  test.afterAll(async () => {
+    if (adminToken && memberUser) {
+      if (teamId) await removeUserFromTeam(adminToken, teamId, memberUser.userId);
+      await deleteUser(adminToken, memberUser.userId);
+    }
+  });
+
+  test('member can view team detail page', async ({ page }) => {
+    test.skip(!teamId || !memberUser, 'No team or member available');
+
+    // Login as the member
+    const memberToken = await getTokenForUser(memberUser!.username, memberUser!.initialPassword || 'defaultPassword');
+    await loginAs(page, memberToken, { isSuperAdmin: false });
+
+    // Navigate to team detail
+    await page.goto(`${BASE}/teams/${teamId}`);
+    await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=团队名称')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('member cannot see PM-only action buttons', async ({ page }) => {
+    test.skip(!teamId || !memberUser, 'No team or member available');
+
+    const memberToken = await getTokenForUser(memberUser!.username, memberUser!.initialPassword || 'defaultPassword');
+    await loginAs(page, memberToken, { isSuperAdmin: false });
+
+    await page.goto(`${BASE}/teams/${teamId}`);
+    await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
+
+    // Member should NOT see these PM-only buttons
+    await expect(page.locator('button', { hasText: '解散团队' })).not.toBeVisible({ timeout: 3000 });
+    await expect(page.locator('button', { hasText: '添加成员' })).not.toBeVisible({ timeout: 3000 });
+  });
+
+  test('member cannot see change role button for other members', async ({ page }) => {
+    test.skip(!teamId || !memberUser, 'No team or member available');
+
+    const memberToken = await getTokenForUser(memberUser!.username, memberUser!.initialPassword || 'defaultPassword');
+    await loginAs(page, memberToken, { isSuperAdmin: false });
+
+    await page.goto(`${BASE}/teams/${teamId}`);
+    await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
+
+    // Member should NOT see change role buttons
+    await expect(page.locator('[data-testid="change-role-btn"]')).not.toBeVisible({ timeout: 3000 });
+  });
+
+  test('member cannot see remove member button', async ({ page }) => {
+    test.skip(!teamId || !memberUser, 'No team or member available');
+
+    const memberToken = await getTokenForUser(memberUser!.username, memberUser!.initialPassword || 'defaultPassword');
+    await loginAs(page, memberToken, { isSuperAdmin: false });
+
+    await page.goto(`${BASE}/teams/${teamId}`);
+    await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
+
+    // Member should NOT see remove buttons
+    await expect(page.locator('button', { hasText: '移除' })).not.toBeVisible({ timeout: 3000 });
+  });
+
+  test('member cannot see transfer PM button', async ({ page }) => {
+    test.skip(!teamId || !memberUser, 'No team or member available');
+
+    const memberToken = await getTokenForUser(memberUser!.username, memberUser!.initialPassword || 'defaultPassword');
+    await loginAs(page, memberToken, { isSuperAdmin: false });
+
+    await page.goto(`${BASE}/teams/${teamId}`);
+    await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
+
+    // Member should NOT see "设为PM" buttons
+    await expect(page.locator('button', { hasText: '设为PM' })).not.toBeVisible({ timeout: 3000 });
   });
 });
