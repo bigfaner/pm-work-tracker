@@ -145,7 +145,7 @@ type mockMainItemSvcForProgress struct {
 	recalcErr    error
 }
 
-func (m *mockMainItemSvcForProgress) Create(_ context.Context, _ int64, _ uint, _ dto.MainItemCreateReq) (*model.MainItem, error) {
+func (m *mockMainItemSvcForProgress) Create(_ context.Context, _ int64, _ int64, _ dto.MainItemCreateReq) (*model.MainItem, error) {
 	return nil, nil
 }
 
@@ -171,15 +171,15 @@ func (m *mockMainItemSvcForProgress) RecalcCompletion(_ context.Context, mainIte
 	return m.recalcErr
 }
 
-func (m *mockMainItemSvcForProgress) ChangeStatus(_ context.Context, _ int64, _, _ uint, _ string) (*model.MainItem, error) {
+func (m *mockMainItemSvcForProgress) ChangeStatus(_ context.Context, _ int64, _ int64, _ uint, _ string) (*model.MainItem, error) {
 	return nil, nil
 }
 
-func (m *mockMainItemSvcForProgress) AvailableTransitions(_ context.Context, _ int64, _, _ uint) ([]string, error) {
+func (m *mockMainItemSvcForProgress) AvailableTransitions(_ context.Context, _ int64, _ int64, _ uint) ([]string, error) {
 	return nil, nil
 }
 
-func (m *mockMainItemSvcForProgress) EvaluateLinkage(_ context.Context, _ int64, _ uint) (*LinkageResult, error) {
+func (m *mockMainItemSvcForProgress) EvaluateLinkage(_ context.Context, _ int64, _ int64) (*LinkageResult, error) {
 	return nil, nil
 }
 

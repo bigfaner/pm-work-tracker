@@ -43,7 +43,7 @@ func seedPermMatrixFixtures(t *testing.T, db *gorm.DB, data *seedData) permMatri
 	subItem := &model.SubItem{
 		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:     data.teamABizKey,
-		MainItemKey: int64(archiveItem.ID),
+		MainItemKey: archiveItem.BizKey,
 		Title:       "Perm Matrix Sub Item",
 		Priority:    "P2",
 		ItemStatus:  "pending",

@@ -40,7 +40,7 @@ func buildPermTestRouter(code string, permCodes []string, handlerFn gin.HandlerF
 
 type mockMainItemSvc struct{}
 
-func (m *mockMainItemSvc) Create(_ context.Context, _ int64, _ uint, _ dto.MainItemCreateReq) (*model.MainItem, error) {
+func (m *mockMainItemSvc) Create(_ context.Context, _ int64, _ int64, _ dto.MainItemCreateReq) (*model.MainItem, error) {
 	return nil, nil
 }
 func (m *mockMainItemSvc) Update(_ context.Context, _ int64, _ uint, _ dto.MainItemUpdateReq) error {
@@ -55,13 +55,13 @@ func (m *mockMainItemSvc) GetByBizKey(_ context.Context, _ int64) (*model.MainIt
 	return nil, nil
 }
 func (m *mockMainItemSvc) RecalcCompletion(_ context.Context, _ int64) error { return nil }
-func (m *mockMainItemSvc) ChangeStatus(_ context.Context, _ int64, _, _ uint, _ string) (*model.MainItem, error) {
+func (m *mockMainItemSvc) ChangeStatus(_ context.Context, _ int64, _ int64, _ uint, _ string) (*model.MainItem, error) {
 	return nil, nil
 }
-func (m *mockMainItemSvc) AvailableTransitions(_ context.Context, _ int64, _, _ uint) ([]string, error) {
+func (m *mockMainItemSvc) AvailableTransitions(_ context.Context, _ int64, _ int64, _ uint) ([]string, error) {
 	return nil, nil
 }
-func (m *mockMainItemSvc) EvaluateLinkage(_ context.Context, _ int64, _ uint) (*service.LinkageResult, error) {
+func (m *mockMainItemSvc) EvaluateLinkage(_ context.Context, _ int64, _ int64) (*service.LinkageResult, error) {
 	return nil, nil
 }
 
@@ -100,7 +100,7 @@ var _ service.TeamService = (*mockTeamSvc)(nil)
 
 type mockProgressSvc struct{}
 
-func (m *mockProgressSvc) Append(_ context.Context, _ int64, _, _ uint, _ float64, _, _, _ string, _ bool) (*model.ProgressRecord, error) {
+func (m *mockProgressSvc) Append(_ context.Context, _ int64, _ int64, _ uint, _ float64, _, _, _ string, _ bool) (*model.ProgressRecord, error) {
 	return nil, nil
 }
 func (m *mockProgressSvc) CorrectCompletion(_ context.Context, _ int64, _ uint, _ float64) error {
@@ -117,16 +117,16 @@ var _ service.ProgressService = (*mockProgressSvc)(nil)
 
 type mockItemPoolSvc struct{}
 
-func (m *mockItemPoolSvc) Submit(_ context.Context, _ int64, _ uint, _ dto.SubmitItemPoolReq) (*model.ItemPool, error) {
+func (m *mockItemPoolSvc) Submit(_ context.Context, _ int64, _ int64, _ dto.SubmitItemPoolReq) (*model.ItemPool, error) {
 	return nil, nil
 }
-func (m *mockItemPoolSvc) Assign(_ context.Context, _ int64, _, _ uint, _ dto.AssignItemPoolReq) error {
+func (m *mockItemPoolSvc) Assign(_ context.Context, _ int64, _ int64, _ uint, _ dto.AssignItemPoolReq) error {
 	return nil
 }
-func (m *mockItemPoolSvc) ConvertToMain(_ context.Context, _ int64, _, _ uint, _ dto.ConvertToMainItemReq) (*model.MainItem, error) {
+func (m *mockItemPoolSvc) ConvertToMain(_ context.Context, _ int64, _ int64, _ uint, _ dto.ConvertToMainItemReq) (*model.MainItem, error) {
 	return nil, nil
 }
-func (m *mockItemPoolSvc) Reject(_ context.Context, _ int64, _, _ uint, _ string) error { return nil }
+func (m *mockItemPoolSvc) Reject(_ context.Context, _ int64, _ int64, _ uint, _ string) error { return nil }
 func (m *mockItemPoolSvc) List(_ context.Context, _ int64, _ dto.ItemPoolFilter, _ dto.Pagination) (*dto.PageResult[model.ItemPool], error) {
 	return nil, nil
 }

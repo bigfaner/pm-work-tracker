@@ -249,7 +249,7 @@ func TestItemPoolAssign_Success(t *testing.T) {
 	assert.Equal(t, int64(200), poolRepo.updatedFields["assigned_main_key"])
 	assert.Equal(t, int64(100), poolRepo.updatedFields["assigned_sub_key"]) // SubItem.BizKey set to 100 by mock
 	assert.Equal(t, func() *int64 { v := int64(30); return &v }(), poolRepo.updatedFields["assignee_key"])
-	assert.Equal(t, uint(100), poolRepo.updatedFields["reviewer_key"])
+	assert.Equal(t, int64(100), poolRepo.updatedFields["reviewer_key"])
 	assert.NotNil(t, poolRepo.updatedFields["reviewed_at"])
 
 	// Verify SubItem was created
@@ -426,7 +426,7 @@ func TestItemPoolReject_Success(t *testing.T) {
 
 	assert.Equal(t, "rejected", poolRepo.updatedFields["pool_status"])
 	assert.Equal(t, "Not enough priority", poolRepo.updatedFields["reject_reason"])
-	assert.Equal(t, uint(100), poolRepo.updatedFields["reviewer_key"])
+	assert.Equal(t, int64(100), poolRepo.updatedFields["reviewer_key"])
 	assert.NotNil(t, poolRepo.updatedFields["reviewed_at"])
 }
 

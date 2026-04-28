@@ -114,10 +114,10 @@ type mockProgressService struct {
 	correctValue  float64
 }
 
-func (m *mockProgressService) Append(_ context.Context, teamBizKey int64, authorID, subItemID uint, completion float64, achievement, blocker, lesson string, isPM bool) (*model.ProgressRecord, error) {
+func (m *mockProgressService) Append(_ context.Context, teamBizKey int64, authorBizKey int64, subItemID uint, completion float64, achievement, blocker, lesson string, isPM bool) (*model.ProgressRecord, error) {
 	m.appendCalled = true
 	m.lastTeamBizKey = teamBizKey
-	m.lastAuthorID = authorID
+	m.lastAuthorID = uint(authorBizKey)
 	m.lastSubItemID = subItemID
 	m.lastCompletion = completion
 	m.lastAchievement = achievement
@@ -152,14 +152,14 @@ func (m *mockProgressService) List(_ context.Context, teamBizKey int64, subItemI
 
 type mockSubItemSvcForProgress struct{}
 
-func (m *mockSubItemSvcForProgress) Create(_ context.Context, _ int64, _ uint, _ dto.SubItemCreateReq) (*model.SubItem, error) {
+func (m *mockSubItemSvcForProgress) Create(_ context.Context, _ int64, _ int64, _ dto.SubItemCreateReq) (*model.SubItem, error) {
 	return nil, nil
 }
 func (m *mockSubItemSvcForProgress) Update(_ context.Context, _ int64, _ uint, _ dto.SubItemUpdateReq) error { return nil }
-func (m *mockSubItemSvcForProgress) ChangeStatus(_ context.Context, _ int64, _, _ uint, _ string) (*service.SubItemChangeResult, error) {
+func (m *mockSubItemSvcForProgress) ChangeStatus(_ context.Context, _ int64, _ int64, _ uint, _ string) (*service.SubItemChangeResult, error) {
 	return nil, nil
 }
-func (m *mockSubItemSvcForProgress) Delete(_ context.Context, _ int64, _, _ uint) error { return nil }
+func (m *mockSubItemSvcForProgress) Delete(_ context.Context, _ int64, _ int64, _ uint) error { return nil }
 func (m *mockSubItemSvcForProgress) Get(_ context.Context, _ int64, _ uint) (*model.SubItem, error) { return nil, nil }
 func (m *mockSubItemSvcForProgress) GetByBizKey(_ context.Context, bizKey int64) (*model.SubItem, error) {
 	return &model.SubItem{BaseModel: model.BaseModel{ID: uint(bizKey)}}, nil
@@ -167,7 +167,7 @@ func (m *mockSubItemSvcForProgress) GetByBizKey(_ context.Context, bizKey int64)
 func (m *mockSubItemSvcForProgress) List(_ context.Context, _ int64, _ *int64, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
-func (m *mockSubItemSvcForProgress) Assign(_ context.Context, _ int64, _, _, _ uint) error { return nil }
+func (m *mockSubItemSvcForProgress) Assign(_ context.Context, _ int64, _ int64, _ uint, _ int64) error { return nil }
 func (m *mockSubItemSvcForProgress) AvailableTransitions(_ context.Context, _ int64, _ uint) ([]string, error) {
 	return nil, nil
 }

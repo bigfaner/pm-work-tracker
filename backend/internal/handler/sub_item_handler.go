@@ -54,7 +54,7 @@ func isPMOrSuperAdmin(c *gin.Context) bool {
 // Create handles POST /api/v1/teams/:teamId/main-items/:itemId/sub-items
 func (h *SubItemHandler) Create(c *gin.Context) {
 	teamBizKey := middleware.GetTeamBizKey(c)
-	callerID := middleware.GetUserID(c)
+	callerBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.SubItemCreateReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -62,7 +62,7 @@ func (h *SubItemHandler) Create(c *gin.Context) {
 		return
 	}
 
-	item, err := h.svc.Create(c.Request.Context(), teamBizKey, callerID, req)
+	item, err := h.svc.Create(c.Request.Context(), teamBizKey, callerBizKey, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -225,7 +225,7 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 	}
 
 	teamBizKey := middleware.GetTeamBizKey(c)
-	callerID := middleware.GetUserID(c)
+	callerBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.ChangeStatusReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -233,7 +233,7 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 		return
 	}
 
-	result, err := h.svc.ChangeStatus(c.Request.Context(), teamBizKey, callerID, subID, req.Status)
+	result, err := h.svc.ChangeStatus(c.Request.Context(), teamBizKey, callerBizKey, subID, req.Status)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -284,7 +284,7 @@ func (h *SubItemHandler) Assign(c *gin.Context) {
 	}
 
 	teamBizKey := middleware.GetTeamBizKey(c)
-	pmID := middleware.GetUserID(c)
+	pmBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.AssignSubItemReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -292,7 +292,7 @@ func (h *SubItemHandler) Assign(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.Assign(c.Request.Context(), teamBizKey, pmID, subID, func() uint { v, _ := pkg.ParseID(req.AssigneeKey); return uint(v) }())
+	err := h.svc.Assign(c.Request.Context(), teamBizKey, pmBizKey, subID, func() int64 { v, _ := pkg.ParseID(req.AssigneeKey); return v }())
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

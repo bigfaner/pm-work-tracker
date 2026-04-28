@@ -94,12 +94,6 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 		DisplayName:  "Test User 1",
 		IsSuperAdmin: false,
 	}).Error)
-	require.NoError(t, db.Create(&model.User{
-		Username:     "testmember5",
-		BaseModel:    model.BaseModel{BizKey: 5},
-		DisplayName:  "Test Member 5",
-		IsSuperAdmin: false,
-	}).Error)
 	// Ensure we have user ID=5 by creating users until we reach it
 	for i := 3; i <= 5; i++ {
 		var count int64
@@ -108,6 +102,7 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 			break
 		}
 		db.Create(&model.User{
+			BaseModel:    model.BaseModel{BizKey: int64(i)},
 			Username:     fmt.Sprintf("testuser%d", i),
 			DisplayName:  fmt.Sprintf("Test User %d", i),
 			IsSuperAdmin: false,

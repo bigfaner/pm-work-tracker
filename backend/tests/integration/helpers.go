@@ -460,7 +460,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) 
 	sub1 := &model.SubItem{
 		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:       teamBizKey,
-		MainItemKey:   int64(mainItem.ID),
+		MainItemKey:   mainItem.BizKey,
 		Title:         "Sub Item 1",
 		Priority:      "P2",
 		ItemStatus:    "pending",
@@ -471,7 +471,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) 
 	sub2 := &model.SubItem{
 		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:       teamBizKey,
-		MainItemKey:   int64(mainItem.ID),
+		MainItemKey:   mainItem.BizKey,
 		Title:         "Sub Item 2",
 		Priority:      "P2",
 		ItemStatus:    "pending",
@@ -543,7 +543,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, we
 	subItem := &model.SubItem{
 		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:       teamBizKey,
-		MainItemKey:   int64(mainItem.ID),
+		MainItemKey:   mainItem.BizKey,
 		Title:         "Report Test Sub Item",
 		Priority:      "P2",
 		ItemStatus:    "progressing",

@@ -769,8 +769,8 @@ func TestAvailableTransitions_Success(t *testing.T) {
 	tests := []struct {
 		name       string
 		status     string
-		callerID   uint
-		proposerID uint
+		callerID   int64
+		proposerID int64
 		expected   []string
 	}{
 		{"pending returns progressing,closed", "pending", 10, 10, []string{"progressing", "closed"}},

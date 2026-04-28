@@ -40,7 +40,7 @@ func NewItemPoolHandler(svc service.ItemPoolService, userRepo repository.UserRep
 // Submit handles POST /api/v1/teams/:teamId/item-pool
 func (h *ItemPoolHandler) Submit(c *gin.Context) {
 	teamBizKey := middleware.GetTeamBizKey(c)
-	userID := middleware.GetUserID(c)
+	userBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.SubmitItemPoolReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -48,7 +48,7 @@ func (h *ItemPoolHandler) Submit(c *gin.Context) {
 		return
 	}
 
-	item, err := h.svc.Submit(c.Request.Context(), teamBizKey, userID, req)
+	item, err := h.svc.Submit(c.Request.Context(), teamBizKey, userBizKey, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -127,7 +127,7 @@ func (h *ItemPoolHandler) Assign(c *gin.Context) {
 	}
 
 	teamBizKey := middleware.GetTeamBizKey(c)
-	pmID := middleware.GetUserID(c)
+	pmBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.AssignItemPoolReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -135,7 +135,7 @@ func (h *ItemPoolHandler) Assign(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.Assign(c.Request.Context(), teamBizKey, pmID, poolID, req)
+	err := h.svc.Assign(c.Request.Context(), teamBizKey, pmBizKey, poolID, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -165,7 +165,7 @@ func (h *ItemPoolHandler) ConvertToMain(c *gin.Context) {
 	}
 
 	teamBizKey := middleware.GetTeamBizKey(c)
-	pmID := middleware.GetUserID(c)
+	pmBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.ConvertToMainItemReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -173,7 +173,7 @@ func (h *ItemPoolHandler) ConvertToMain(c *gin.Context) {
 		return
 	}
 
-	mainItem, err := h.svc.ConvertToMain(c.Request.Context(), teamBizKey, pmID, poolID, req)
+	mainItem, err := h.svc.ConvertToMain(c.Request.Context(), teamBizKey, pmBizKey, poolID, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -226,7 +226,7 @@ func (h *ItemPoolHandler) Reject(c *gin.Context) {
 	}
 
 	teamBizKey := middleware.GetTeamBizKey(c)
-	pmID := middleware.GetUserID(c)
+	pmBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.RejectItemPoolReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -234,7 +234,7 @@ func (h *ItemPoolHandler) Reject(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.Reject(c.Request.Context(), teamBizKey, pmID, poolID, req.Reason)
+	err := h.svc.Reject(c.Request.Context(), teamBizKey, pmBizKey, poolID, req.Reason)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

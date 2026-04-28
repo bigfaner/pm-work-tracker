@@ -82,10 +82,10 @@ func (h *ProgressHandler) Append(c *gin.Context) {
 	}
 
 	teamBizKey := middleware.GetTeamBizKey(c)
-	callerID := middleware.GetUserID(c)
+	callerBizKey := middleware.GetUserBizKey(c)
 	pmFlag := isPMOrSuperAdmin(c)
 
-	record, err := h.svc.Append(c.Request.Context(), teamBizKey, callerID, subID, completion, req.Achievement, req.Blocker, req.Lesson, pmFlag)
+	record, err := h.svc.Append(c.Request.Context(), teamBizKey, callerBizKey, subID, completion, req.Achievement, req.Blocker, req.Lesson, pmFlag)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

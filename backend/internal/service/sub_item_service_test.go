@@ -92,8 +92,8 @@ type mockMainItemSvcTM struct {
 	mock.Mock
 }
 
-func (m *mockMainItemSvcTM) Create(ctx context.Context, teamBizKey int64, pmID uint, req dto.MainItemCreateReq) (*model.MainItem, error) {
-	args := m.Called(ctx, teamBizKey, pmID, req)
+func (m *mockMainItemSvcTM) Create(ctx context.Context, teamBizKey int64, pmBizKey int64, req dto.MainItemCreateReq) (*model.MainItem, error) {
+	args := m.Called(ctx, teamBizKey, pmBizKey, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -131,24 +131,24 @@ func (m *mockMainItemSvcTM) RecalcCompletion(ctx context.Context, mainItemBizKey
 	return args.Error(0)
 }
 
-func (m *mockMainItemSvcTM) ChangeStatus(ctx context.Context, teamBizKey int64, callerID, itemID uint, newStatus string) (*model.MainItem, error) {
-	args := m.Called(ctx, teamBizKey, callerID, itemID, newStatus)
+func (m *mockMainItemSvcTM) ChangeStatus(ctx context.Context, teamBizKey int64, callerBizKey int64, itemID uint, newStatus string) (*model.MainItem, error) {
+	args := m.Called(ctx, teamBizKey, callerBizKey, itemID, newStatus)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*model.MainItem), args.Error(1)
 }
 
-func (m *mockMainItemSvcTM) AvailableTransitions(ctx context.Context, teamBizKey int64, callerID, itemID uint) ([]string, error) {
-	args := m.Called(ctx, teamBizKey, callerID, itemID)
+func (m *mockMainItemSvcTM) AvailableTransitions(ctx context.Context, teamBizKey int64, callerBizKey int64, itemID uint) ([]string, error) {
+	args := m.Called(ctx, teamBizKey, callerBizKey, itemID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]string), args.Error(1)
 }
 
-func (m *mockMainItemSvcTM) EvaluateLinkage(ctx context.Context, mainItemBizKey int64, changedBy uint) (*LinkageResult, error) {
-	args := m.Called(ctx, mainItemBizKey, changedBy)
+func (m *mockMainItemSvcTM) EvaluateLinkage(ctx context.Context, mainItemBizKey int64, changedByBizKey int64) (*LinkageResult, error) {
+	args := m.Called(ctx, mainItemBizKey, changedByBizKey)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -196,7 +196,7 @@ func TestSubItemCreate_Success(t *testing.T) {
 	})).Return(nil)
 	repo.On("NextSubCode", mock.Anything, int64(5)).Return("FEAT-00001-01", nil)
 	mainSvc.On("GetByBizKey", mock.Anything, int64(5)).Return(&model.MainItem{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, ItemStatus: "pending"}, nil)
-	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), uint(10)).Return(nil, nil)
+	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), int64(10)).Return(nil, nil)
 
 	item, err := svc.Create(context.Background(), int64(1), 10, dto.SubItemCreateReq{
 		AssigneeKey: "42",
@@ -401,7 +401,7 @@ func testValidTransitionTM(t *testing.T, from, to string) {
 	})).Return(nil)
 
 	// EvaluateLinkage is always called after status change
-	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), uint(10)).Return(nil, nil)
+	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), int64(10)).Return(nil, nil)
 
 	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, to)
 	require.NoError(t, err)
@@ -536,7 +536,7 @@ func TestChangeStatus_Completed_SetsCompletionAndActualEndDate(t *testing.T) {
 	repo.On("FindByID", mock.Anything, uint(1)).Return(updated, nil).Once()
 	mainSvc.On("RecalcCompletion", mock.Anything, int64(5)).Return(nil)
 	historySvc.On("Record", mock.Anything, mock.Anything).Return(nil)
-	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), uint(10)).Return(nil, nil)
+	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), int64(10)).Return(nil, nil)
 
 	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, "completed")
 	require.NoError(t, err)
@@ -576,7 +576,7 @@ func TestChangeStatus_Closed_SetsCompletionAndActualEndDate(t *testing.T) {
 	repo.On("FindByID", mock.Anything, uint(1)).Return(updated, nil).Once()
 	mainSvc.On("RecalcCompletion", mock.Anything, int64(5)).Return(nil)
 	historySvc.On("Record", mock.Anything, mock.Anything).Return(nil)
-	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), uint(10)).Return(nil, nil)
+	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), int64(10)).Return(nil, nil)
 
 	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, "closed")
 	require.NoError(t, err)
@@ -611,7 +611,7 @@ func TestChangeStatus_Completed_RecalcCompletion_CalledWithCorrectMainItemID(t *
 	repo.On("FindByID", mock.Anything, uint(1)).Return(updated, nil).Once()
 	mainSvc.On("RecalcCompletion", mock.Anything, int64(42)).Return(nil)
 	historySvc.On("Record", mock.Anything, mock.Anything).Return(nil)
-	mainSvc.On("EvaluateLinkage", mock.Anything, int64(42), uint(10)).Return(nil, nil)
+	mainSvc.On("EvaluateLinkage", mock.Anything, int64(42), int64(10)).Return(nil, nil)
 
 	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, "completed")
 	require.NoError(t, err)
@@ -678,7 +678,7 @@ func TestChangeStatus_RecordsHistory(t *testing.T) {
 			record.ChangedBy == 10 &&
 			record.IsAuto == 0
 	})).Return(nil)
-	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), uint(10)).Return(nil, nil)
+	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), int64(10)).Return(nil, nil)
 
 	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 7, "progressing")
 	require.NoError(t, err)
@@ -838,7 +838,7 @@ func TestSubItemAssign_Success(t *testing.T) {
 	historySvc := new(mockStatusHistorySvcTM)
 	svc := NewSubItemService(repo, mainSvc, historySvc)
 
-	var assigneeID uint = 42
+	var assigneeID int64 = 42
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 	repo.On("Update", mock.Anything, existing, mock.MatchedBy(func(fields map[string]interface{}) bool {
 		_, hasWrong := fields["assignee_id"]
@@ -994,7 +994,7 @@ func TestSubItemCreate_TriggersLinkage(t *testing.T) {
 	repo.On("NextSubCode", mock.Anything, int64(5)).Return("FEAT-00001-01", nil)
 	repo.On("Create", mock.Anything, mock.Anything).Return(nil)
 	mainSvc.On("GetByBizKey", mock.Anything, int64(5)).Return(&model.MainItem{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, ItemStatus: "pending"}, nil)
-	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), uint(10)).Return(nil, nil)
+	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), int64(10)).Return(nil, nil)
 
 	_, err := svc.Create(context.Background(), int64(1), 10, dto.SubItemCreateReq{
 		MainItemKey: "5",
@@ -1003,7 +1003,7 @@ func TestSubItemCreate_TriggersLinkage(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	mainSvc.AssertCalled(t, "EvaluateLinkage", mock.Anything, int64(5), uint(10))
+	mainSvc.AssertCalled(t, "EvaluateLinkage", mock.Anything, int64(5), int64(10))
 	repo.AssertExpectations(t)
 	mainSvc.AssertExpectations(t)
 }
@@ -1026,12 +1026,12 @@ func TestSubItemDelete_TriggersLinkage(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 	repo.On("SoftDelete", mock.Anything, uint(1)).Return(nil)
-	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), uint(10)).Return(nil, nil)
+	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), int64(10)).Return(nil, nil)
 
 	err := svc.Delete(context.Background(), int64(1), 10, 1)
 	require.NoError(t, err)
 
-	mainSvc.AssertCalled(t, "EvaluateLinkage", mock.Anything, int64(5), uint(10))
+	mainSvc.AssertCalled(t, "EvaluateLinkage", mock.Anything, int64(5), int64(10))
 	repo.AssertExpectations(t)
 	mainSvc.AssertExpectations(t)
 }
@@ -1123,7 +1123,7 @@ func TestChangeStatus_ReturnsLinkageResult(t *testing.T) {
 		TargetStatus: "reviewing",
 		Remark:       "blocking→reviewing 不允许",
 	}
-	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), uint(10)).Return(linkageResult, nil)
+	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), int64(10)).Return(linkageResult, nil)
 
 	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, "progressing")
 	require.NoError(t, err)
@@ -1152,7 +1152,7 @@ func TestSubItemCreate_AssignsCode(t *testing.T) {
 		return item.Code == "FEAT-00001-01"
 	})).Return(nil)
 	mainSvc.On("GetByBizKey", mock.Anything, int64(5)).Return(&model.MainItem{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, ItemStatus: "pending"}, nil)
-	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), uint(10)).Return(nil, nil)
+	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), int64(10)).Return(nil, nil)
 
 	item, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
 		MainItemKey: "5",
@@ -1215,7 +1215,7 @@ func TestChangeStatus_RecalcCompletionBeforeLinkage(t *testing.T) {
 	mainSvc.On("RecalcCompletion", mock.Anything, int64(5)).Run(func(args mock.Arguments) {
 		callOrder = append(callOrder, "recalc")
 	}).Return(nil)
-	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), uint(10)).Run(func(args mock.Arguments) {
+	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), int64(10)).Run(func(args mock.Arguments) {
 		callOrder = append(callOrder, "linkage")
 	}).Return(nil, nil)
 

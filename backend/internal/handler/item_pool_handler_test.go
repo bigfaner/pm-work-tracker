@@ -152,10 +152,10 @@ type mockItemPoolService struct {
 	lastReason   string
 }
 
-func (m *mockItemPoolService) Submit(_ context.Context, teamBizKey int64, submitterID uint, req dto.SubmitItemPoolReq) (*model.ItemPool, error) {
+func (m *mockItemPoolService) Submit(_ context.Context, teamBizKey int64, submitterBizKey int64, req dto.SubmitItemPoolReq) (*model.ItemPool, error) {
 	m.submitCalled = true
 	m.lastTeamID = uint(teamBizKey)
-	m.lastSubmitterID = submitterID
+	m.lastSubmitterID = uint(submitterBizKey)
 	m.lastSubmitReq = req
 	return m.submitResult.item, m.submitResult.err
 }
@@ -175,7 +175,7 @@ func (m *mockItemPoolService) Get(_ context.Context, teamBizKey int64, poolID ui
 	return m.getResult.item, m.getResult.err
 }
 
-func (m *mockItemPoolService) Assign(_ context.Context, teamBizKey int64, pmID, poolID uint, req dto.AssignItemPoolReq) error {
+func (m *mockItemPoolService) Assign(_ context.Context, teamBizKey int64, pmBizKey int64, poolID uint, req dto.AssignItemPoolReq) error {
 	m.assignCalled = true
 	m.lastTeamID = uint(teamBizKey)
 	m.lastPoolID = poolID
@@ -183,11 +183,11 @@ func (m *mockItemPoolService) Assign(_ context.Context, teamBizKey int64, pmID, 
 	return m.assignResult.err
 }
 
-func (m *mockItemPoolService) ConvertToMain(_ context.Context, _ int64, pmID, poolItemID uint, req dto.ConvertToMainItemReq) (*model.MainItem, error) {
+func (m *mockItemPoolService) ConvertToMain(_ context.Context, _ int64, _ int64, _ uint, _ dto.ConvertToMainItemReq) (*model.MainItem, error) {
 	return nil, nil
 }
 
-func (m *mockItemPoolService) Reject(_ context.Context, teamBizKey int64, pmID, poolID uint, reason string) error {
+func (m *mockItemPoolService) Reject(_ context.Context, teamBizKey int64, _ int64, poolID uint, reason string) error {
 	m.rejectCalled = true
 	m.lastTeamID = uint(teamBizKey)
 	m.lastPoolID = poolID

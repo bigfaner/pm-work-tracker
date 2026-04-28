@@ -1,0 +1,28 @@
+{
+  "feature": "fix-id-bizKey-mismatch",
+  "created": "2026-04-29",
+  "status": "in_progress",
+  "tasks": {
+    "D": {
+      "id": "D",
+      "title": "Migrate all user-reference foreign keys to store BizKey",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "status": "completed",
+      "file": "D-migrate-user-ref-fkeys.md",
+      "record": "records/D-migrate-user-ref-fkeys.md"
+    }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
+}

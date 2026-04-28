@@ -19,7 +19,7 @@ func RecordStatusChange(
 	itemType string,
 	itemKey int64,
 	fromStatus, toStatus string,
-	changedBy uint,
+	changedByBizKey int64,
 	isAuto int,
 	remark string,
 ) error {
@@ -31,7 +31,7 @@ func RecordStatusChange(
 		ItemKey:    itemKey,
 		FromStatus: fromStatus,
 		ToStatus:   toStatus,
-		ChangedBy:  int64(changedBy),
+		ChangedBy:  changedByBizKey,
 		IsAuto:     isAuto,
 		Remark:     remark,
 	})
