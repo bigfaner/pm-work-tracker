@@ -304,10 +304,10 @@ var _ repository.MainItemRepo = (*StubRouterRepoMainItem)(nil)
 // StubReportSvc is a stub ReportService for test wiring.
 type StubReportSvc struct{}
 
-func (s *StubReportSvc) Preview(_ context.Context, _ uint, _ time.Time) (*dto.ReportPreview, error) {
+func (s *StubReportSvc) Preview(_ context.Context, _ int64, _ time.Time) (*dto.ReportPreview, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubReportSvc) ExportMarkdown(_ context.Context, _ uint, _ time.Time) ([]byte, error) {
+func (s *StubReportSvc) ExportMarkdown(_ context.Context, _ int64, _ time.Time) ([]byte, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 
@@ -316,16 +316,16 @@ var _ service.ReportService = (*StubReportSvc)(nil)
 // StubViewSvc is a stub ViewService for test wiring.
 type StubViewSvc struct{}
 
-func (s *StubViewSvc) WeeklyComparison(_ context.Context, _ uint, _ time.Time) (*dto.WeeklyViewResponse, error) {
+func (s *StubViewSvc) WeeklyComparison(_ context.Context, _ int64, _ time.Time) (*dto.WeeklyViewResponse, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubViewSvc) GanttView(_ context.Context, _ uint, _ dto.GanttFilter) (*dto.GanttResult, error) {
+func (s *StubViewSvc) GanttView(_ context.Context, _ int64, _ dto.GanttFilter) (*dto.GanttResult, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubViewSvc) TableView(_ context.Context, _ uint, _ dto.TableFilter, _ dto.Pagination) (*dto.PageResult[dto.TableRow], error) {
+func (s *StubViewSvc) TableView(_ context.Context, _ int64, _ dto.TableFilter, _ dto.Pagination) (*dto.PageResult[dto.TableRow], error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubViewSvc) TableExportCSV(_ context.Context, _ uint, _ dto.TableFilter) ([]byte, error) {
+func (s *StubViewSvc) TableExportCSV(_ context.Context, _ int64, _ dto.TableFilter) ([]byte, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 

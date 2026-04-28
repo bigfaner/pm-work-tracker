@@ -36,7 +36,7 @@ func (h *ReportHandler) WeeklyPreview(c *gin.Context) {
 
 	teamID := middleware.GetTeamID(c)
 
-	result, err := h.svc.Preview(c.Request.Context(), teamID, weekStart)
+	result, err := h.svc.Preview(c.Request.Context(), int64(teamID), weekStart)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -57,7 +57,7 @@ func (h *ReportHandler) WeeklyExport(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
-	mdBytes, err := h.svc.ExportMarkdown(ctx, teamID, weekStart)
+	mdBytes, err := h.svc.ExportMarkdown(ctx, int64(teamID), weekStart)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

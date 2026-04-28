@@ -18,10 +18,10 @@ import (
 
 // ViewService defines read-only view operations.
 type ViewService interface {
-	WeeklyComparison(ctx context.Context, teamID uint, weekStart time.Time) (*dto.WeeklyViewResponse, error)
-	GanttView(ctx context.Context, teamID uint, filter dto.GanttFilter) (*dto.GanttResult, error)
-	TableView(ctx context.Context, teamID uint, filter dto.TableFilter, page dto.Pagination) (*dto.PageResult[dto.TableRow], error)
-	TableExportCSV(ctx context.Context, teamID uint, filter dto.TableFilter) ([]byte, error)
+	WeeklyComparison(ctx context.Context, teamBizKey int64, weekStart time.Time) (*dto.WeeklyViewResponse, error)
+	GanttView(ctx context.Context, teamBizKey int64, filter dto.GanttFilter) (*dto.GanttResult, error)
+	TableView(ctx context.Context, teamBizKey int64, filter dto.TableFilter, page dto.Pagination) (*dto.PageResult[dto.TableRow], error)
+	TableExportCSV(ctx context.Context, teamBizKey int64, filter dto.TableFilter) ([]byte, error)
 }
 
 type viewService struct {
@@ -46,7 +46,7 @@ func NewViewService(mainItemRepo repository.MainItemRepo, subItemRepo repository
 	}
 }
 
-func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekStart time.Time) (*dto.WeeklyViewResponse, error) {
+func (s *viewService) WeeklyComparison(ctx context.Context, teamBizKey int64, weekStart time.Time) (*dto.WeeklyViewResponse, error) {
 	if err := validateWeekStart(weekStart); err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamID uint, weekSta
 	weekEnd := weekStart.AddDate(0, 0, 6)
 	lastWeekStart := weekStart.AddDate(0, 0, -7)
 
-	mainItems, subItems, allProgress, err := s.fetchWeeklyData(ctx, teamID, lastWeekStart, weekEnd)
+	mainItems, subItems, allProgress, err := s.fetchWeeklyData(ctx, uint(teamBizKey), lastWeekStart, weekEnd)
 	if err != nil {
 		return nil, err
 	}
@@ -445,14 +445,14 @@ func isActiveInWeek(si model.SubItem, weekStart, weekEnd time.Time) bool {
 	return true
 }
 
-func (s *viewService) GanttView(ctx context.Context, teamID uint, filter dto.GanttFilter) (*dto.GanttResult, error) {
+func (s *viewService) GanttView(ctx context.Context, teamBizKey int64, filter dto.GanttFilter) (*dto.GanttResult, error) {
 	// Fetch main items: use SQL pushdown for status filter, otherwise fetch all non-archived
 	var mainItems []model.MainItem
 	var err error
 	if filter.Status != "" {
-		mainItems, err = s.mainItemRepo.ListByTeamAndStatus(ctx, teamID, filter.Status)
+		mainItems, err = s.mainItemRepo.ListByTeamAndStatus(ctx, uint(teamBizKey), filter.Status)
 	} else {
-		mainItems, err = s.mainItemRepo.ListNonArchivedByTeam(ctx, teamID)
+		mainItems, err = s.mainItemRepo.ListNonArchivedByTeam(ctx, uint(teamBizKey))
 	}
 	if err != nil {
 		return nil, err
@@ -475,7 +475,7 @@ func (s *viewService) GanttView(ctx context.Context, teamID uint, filter dto.Gan
 	})
 
 	// Fetch all sub-items for the team (single query, avoid N+1)
-	subItems, err := s.subItemRepo.ListByTeam(ctx, teamID)
+	subItems, err := s.subItemRepo.ListByTeam(ctx, uint(teamBizKey))
 	if err != nil {
 		return nil, err
 	}
@@ -539,12 +539,12 @@ func computeIsOverdue(expectedEndDate *time.Time, status string, today time.Time
 	return expectedEndDate.Before(today)
 }
 
-func (s *viewService) TableView(ctx context.Context, teamID uint, filter dto.TableFilter, page dto.Pagination) (*dto.PageResult[dto.TableRow], error) {
+func (s *viewService) TableView(ctx context.Context, teamBizKey int64, filter dto.TableFilter, page dto.Pagination) (*dto.PageResult[dto.TableRow], error) {
 	var rows []dto.TableRow
 
 	// Fetch main items (non-archived only)
 	if filter.Type == "" || filter.Type == "main" {
-		mainItems, err := s.mainItemRepo.ListNonArchivedByTeam(ctx, teamID)
+		mainItems, err := s.mainItemRepo.ListNonArchivedByTeam(ctx, uint(teamBizKey))
 		if err != nil {
 			return nil, err
 		}
@@ -558,7 +558,7 @@ func (s *viewService) TableView(ctx context.Context, teamID uint, filter dto.Tab
 
 	// Fetch sub-items
 	if filter.Type == "" || filter.Type == "sub" {
-		subItems, err := s.subItemRepo.ListByTeam(ctx, teamID)
+		subItems, err := s.subItemRepo.ListByTeam(ctx, uint(teamBizKey))
 		if err != nil {
 			return nil, err
 		}
@@ -600,12 +600,12 @@ func (s *viewService) TableView(ctx context.Context, teamID uint, filter dto.Tab
 	}, nil
 }
 
-func (s *viewService) TableExportCSV(ctx context.Context, teamID uint, filter dto.TableFilter) ([]byte, error) {
+func (s *viewService) TableExportCSV(ctx context.Context, teamBizKey int64, filter dto.TableFilter) ([]byte, error) {
 	// Fetch all matching rows (no pagination)
 	var rows []dto.TableRow
 
 	if filter.Type == "" || filter.Type == "main" {
-		mainItems, err := s.mainItemRepo.ListNonArchivedByTeam(ctx, teamID)
+		mainItems, err := s.mainItemRepo.ListNonArchivedByTeam(ctx, uint(teamBizKey))
 		if err != nil {
 			return nil, err
 		}
@@ -618,7 +618,7 @@ func (s *viewService) TableExportCSV(ctx context.Context, teamID uint, filter dt
 	}
 
 	if filter.Type == "" || filter.Type == "sub" {
-		subItems, err := s.subItemRepo.ListByTeam(ctx, teamID)
+		subItems, err := s.subItemRepo.ListByTeam(ctx, uint(teamBizKey))
 		if err != nil {
 			return nil, err
 		}

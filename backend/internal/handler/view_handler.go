@@ -58,7 +58,7 @@ func (h *ViewHandler) Weekly(c *gin.Context) {
 
 	teamID := middleware.GetTeamID(c)
 
-	result, err := h.viewSvc.WeeklyComparison(c.Request.Context(), teamID, weekStart)
+	result, err := h.viewSvc.WeeklyComparison(c.Request.Context(), int64(teamID), weekStart)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -77,7 +77,7 @@ func (h *ViewHandler) Gantt(c *gin.Context) {
 
 	teamID := middleware.GetTeamID(c)
 
-	result, err := h.viewSvc.GanttView(c.Request.Context(), teamID, filter)
+	result, err := h.viewSvc.GanttView(c.Request.Context(), int64(teamID), filter)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -100,7 +100,7 @@ func (h *ViewHandler) Table(c *gin.Context) {
 
 	teamID := middleware.GetTeamID(c)
 
-	result, err := h.viewSvc.TableView(c.Request.Context(), teamID, filter, page)
+	result, err := h.viewSvc.TableView(c.Request.Context(), int64(teamID), filter, page)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -119,7 +119,7 @@ func (h *ViewHandler) ExportTable(c *gin.Context) {
 
 	teamID := middleware.GetTeamID(c)
 
-	csvBytes, err := h.viewSvc.TableExportCSV(c.Request.Context(), teamID, filter)
+	csvBytes, err := h.viewSvc.TableExportCSV(c.Request.Context(), int64(teamID), filter)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
