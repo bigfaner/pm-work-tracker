@@ -22,6 +22,7 @@ type ItemPoolService interface {
 	Assign(ctx context.Context, teamID, pmID, poolItemID uint, req dto.AssignItemPoolReq) error
 	ConvertToMain(ctx context.Context, teamID, pmID, poolItemID uint, req dto.ConvertToMainItemReq) (*model.MainItem, error)
 	Reject(ctx context.Context, teamID, pmID, poolItemID uint, reason string) error
+	Update(ctx context.Context, teamID, poolItemID uint, req dto.UpdateItemPoolReq) (*model.ItemPool, error)
 	List(ctx context.Context, teamID uint, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error)
 	Get(ctx context.Context, teamID, poolItemID uint) (*model.ItemPool, error)
 	GetByBizKey(ctx context.Context, bizKey int64) (*model.ItemPool, error)
@@ -209,6 +210,37 @@ func (s *itemPoolService) Reject(ctx context.Context, teamID, pmID, poolItemID u
 		"reviewed_at":   now,
 	}
 	return s.poolRepo.Update(ctx, poolItem, fields)
+}
+
+func (s *itemPoolService) Update(ctx context.Context, teamID, poolItemID uint, req dto.UpdateItemPoolReq) (*model.ItemPool, error) {
+	item, err := s.poolRepo.FindByID(ctx, poolItemID)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
+	}
+	if item.TeamKey != int64(teamID) {
+		return nil, apperrors.ErrForbidden
+	}
+	if item.PoolStatus != "pending" {
+		return nil, apperrors.ErrItemAlreadyProcessed
+	}
+
+	fields := map[string]interface{}{}
+	if req.Title != nil {
+		fields["title"] = *req.Title
+	}
+	if req.Background != nil {
+		fields["background"] = *req.Background
+	}
+	if req.ExpectedOutput != nil {
+		fields["expected_output"] = *req.ExpectedOutput
+	}
+	if len(fields) == 0 {
+		return item, nil
+	}
+	if err := s.poolRepo.Update(ctx, item, fields); err != nil {
+		return nil, err
+	}
+	return s.poolRepo.FindByID(ctx, poolItemID)
 }
 
 func (s *itemPoolService) List(ctx context.Context, teamID uint, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error) {

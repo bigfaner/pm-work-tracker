@@ -1,6 +1,7 @@
 import client from './client'
 import type {
   SubmitItemPoolReq,
+  UpdateItemPoolReq,
   AssignItemPoolReq,
   ConvertToMainItemReq,
   RejectItemPoolReq,
@@ -12,6 +13,10 @@ import type {
 
 export function submitItemPoolApi(teamBizKey: string, req: SubmitItemPoolReq): Promise<ItemPool> {
   return client.post<never, ItemPool>(`/teams/${teamBizKey}/item-pool`, req)
+}
+
+export function updateItemPoolApi(teamBizKey: string, poolBizKey: string, req: UpdateItemPoolReq): Promise<ItemPool> {
+  return client.put<never, ItemPool>(`/teams/${teamBizKey}/item-pool/${poolBizKey}`, req)
 }
 
 export function listItemPoolApi(teamBizKey: string, filter?: ItemPoolFilter): Promise<PageResult<ItemPool>> {

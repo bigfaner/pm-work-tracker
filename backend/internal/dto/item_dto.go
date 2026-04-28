@@ -73,6 +73,13 @@ type RejectItemPoolReq struct {
 	Reason string `json:"reason" binding:"required,max=200"`
 }
 
+// UpdateItemPoolReq is the request DTO for editing a pending pool item.
+type UpdateItemPoolReq struct {
+	Title          *string `json:"title"`
+	Background     *string `json:"background"`
+	ExpectedOutput *string `json:"expectedOutput"`
+}
+
 // MainItemCreateReq is the request DTO for creating a main item.
 type MainItemCreateReq struct {
 	Title           string  `json:"title" binding:"required,max=100"`

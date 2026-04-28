@@ -295,6 +295,12 @@ export interface AppendProgressReq {
 }
 
 // ItemPool
+export interface UpdateItemPoolReq {
+  title?: string
+  background?: string
+  expectedOutput?: string
+}
+
 export interface SubmitItemPoolReq {
   title: string
   background?: string
