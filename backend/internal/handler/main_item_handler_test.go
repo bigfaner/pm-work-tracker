@@ -87,32 +87,31 @@ type mockMainItemService struct {
 	availableTransitionsCalled bool
 }
 
-func (m *mockMainItemService) Create(_ context.Context, teamID, pmID uint, req dto.MainItemCreateReq) (*model.MainItem, error) {
+func (m *mockMainItemService) Create(_ context.Context, teamBizKey int64, pmID uint, req dto.MainItemCreateReq) (*model.MainItem, error) {
 	m.createCalled = true
-	m.lastTeamID = teamID
+	m.lastTeamID = uint(teamBizKey)
 	m.lastPmID = pmID
 	m.lastCreateReq = req
 	return m.createResult.item, m.createResult.err
 }
 
-func (m *mockMainItemService) Update(_ context.Context, teamID, itemID uint, req dto.MainItemUpdateReq) error {
+func (m *mockMainItemService) Update(_ context.Context, teamBizKey int64, itemID uint, req dto.MainItemUpdateReq) error {
 	m.updateCalled = true
-	m.lastTeamID = teamID
+	m.lastTeamID = uint(teamBizKey)
 	m.lastUpdateID = itemID
 	m.lastUpdateReq = req
 	return m.updateResult.err
 }
 
-func (m *mockMainItemService) Archive(_ context.Context, teamID, itemID uint) error {
+func (m *mockMainItemService) Archive(_ context.Context, _ int64, itemID uint) error {
 	m.archiveCalled = true
-	m.lastTeamID = teamID
 	m.archiveItemID = itemID
 	return m.archiveResult.err
 }
 
-func (m *mockMainItemService) List(_ context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+func (m *mockMainItemService) List(_ context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
 	m.listCalled = true
-	m.lastTeamID = teamID
+	m.lastTeamID = uint(teamBizKey)
 	m.lastFilter = filter
 	m.lastPage = page
 	return m.listResult.page, m.listResult.err
@@ -138,18 +137,17 @@ func (m *mockMainItemService) RecalcCompletion(_ context.Context, _ uint) error 
 	return nil
 }
 
-func (m *mockMainItemService) ChangeStatus(_ context.Context, teamID, callerID, itemID uint, newStatus string) (*model.MainItem, error) {
+func (m *mockMainItemService) ChangeStatus(_ context.Context, teamBizKey int64, callerID, itemID uint, newStatus string) (*model.MainItem, error) {
 	m.changeStatusCalled = true
-	m.lastTeamID = teamID
+	m.lastTeamID = uint(teamBizKey)
 	m.lastCallerID = callerID
 	m.lastItemID = itemID
 	m.lastNewStatus = newStatus
 	return m.changeStatusResult.item, m.changeStatusResult.err
 }
 
-func (m *mockMainItemService) AvailableTransitions(_ context.Context, teamID, callerID, itemID uint) ([]string, error) {
+func (m *mockMainItemService) AvailableTransitions(_ context.Context, _ int64, callerID, itemID uint) ([]string, error) {
 	m.availableTransitionsCalled = true
-	m.lastTeamID = teamID
 	m.lastCallerID = callerID
 	m.lastItemID = itemID
 	return m.availableTransitionsResult.transitions, m.availableTransitionsResult.err

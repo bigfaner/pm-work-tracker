@@ -152,23 +152,23 @@ func (m *mockProgressService) List(_ context.Context, teamBizKey int64, subItemI
 
 type mockSubItemSvcForProgress struct{}
 
-func (m *mockSubItemSvcForProgress) Create(_ context.Context, _, _ uint, _ dto.SubItemCreateReq) (*model.SubItem, error) {
+func (m *mockSubItemSvcForProgress) Create(_ context.Context, _ int64, _ uint, _ dto.SubItemCreateReq) (*model.SubItem, error) {
 	return nil, nil
 }
-func (m *mockSubItemSvcForProgress) Update(_ context.Context, _ uint, _ uint, _ dto.SubItemUpdateReq) error { return nil }
-func (m *mockSubItemSvcForProgress) ChangeStatus(_ context.Context, _, _, _ uint, _ string) (*service.SubItemChangeResult, error) {
+func (m *mockSubItemSvcForProgress) Update(_ context.Context, _ int64, _ uint, _ dto.SubItemUpdateReq) error { return nil }
+func (m *mockSubItemSvcForProgress) ChangeStatus(_ context.Context, _ int64, _, _ uint, _ string) (*service.SubItemChangeResult, error) {
 	return nil, nil
 }
-func (m *mockSubItemSvcForProgress) Delete(_ context.Context, _, _, _ uint) error { return nil }
-func (m *mockSubItemSvcForProgress) Get(_ context.Context, _, _ uint) (*model.SubItem, error) { return nil, nil }
+func (m *mockSubItemSvcForProgress) Delete(_ context.Context, _ int64, _, _ uint) error { return nil }
+func (m *mockSubItemSvcForProgress) Get(_ context.Context, _ int64, _ uint) (*model.SubItem, error) { return nil, nil }
 func (m *mockSubItemSvcForProgress) GetByBizKey(_ context.Context, bizKey int64) (*model.SubItem, error) {
 	return &model.SubItem{BaseModel: model.BaseModel{ID: uint(bizKey)}}, nil
 }
-func (m *mockSubItemSvcForProgress) List(_ context.Context, _ uint, _ *uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockSubItemSvcForProgress) List(_ context.Context, _ int64, _ *uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
-func (m *mockSubItemSvcForProgress) Assign(_ context.Context, _, _, _, _ uint) error { return nil }
-func (m *mockSubItemSvcForProgress) AvailableTransitions(_ context.Context, _, _ uint) ([]string, error) {
+func (m *mockSubItemSvcForProgress) Assign(_ context.Context, _ int64, _, _, _ uint) error { return nil }
+func (m *mockSubItemSvcForProgress) AvailableTransitions(_ context.Context, _ int64, _ uint) ([]string, error) {
 	return nil, nil
 }
 
