@@ -113,66 +113,66 @@ func (s *viewService) fetchWeeklyData(ctx context.Context, teamID uint, lastWeek
 	return mainItems, subItems, allProgress, nil
 }
 
-// splitProgressByWeek partitions progress records into last-week and this-week buckets by sub-item ID.
+// splitProgressByWeek partitions progress records into last-week and this-week buckets by sub-item biz_key.
 func splitProgressByWeek(allProgress []model.ProgressRecord, lastWeekStart, thisWeekStart, weekEnd time.Time) (
-	map[uint][]model.ProgressRecord, map[uint][]model.ProgressRecord,
+	map[int64][]model.ProgressRecord, map[int64][]model.ProgressRecord,
 ) {
 	lastWeekEnd := lastWeekStart.AddDate(0, 0, 7) // exclusive upper bound
 	thisWeekEnd := thisWeekStart.AddDate(0, 0, 7) // exclusive upper bound
 
-	lastWeek := make(map[uint][]model.ProgressRecord)
-	thisWeek := make(map[uint][]model.ProgressRecord)
+	lastWeek := make(map[int64][]model.ProgressRecord)
+	thisWeek := make(map[int64][]model.ProgressRecord)
 	for _, pr := range allProgress {
 		if !pr.CreateTime.Before(lastWeekStart) && pr.CreateTime.Before(lastWeekEnd) {
-			lastWeek[uint(pr.SubItemKey)] = append(lastWeek[uint(pr.SubItemKey)], pr)
+			lastWeek[pr.SubItemKey] = append(lastWeek[pr.SubItemKey], pr)
 		}
 		if !pr.CreateTime.Before(thisWeekStart) && pr.CreateTime.Before(thisWeekEnd) {
-			thisWeek[uint(pr.SubItemKey)] = append(thisWeek[uint(pr.SubItemKey)], pr)
+			thisWeek[pr.SubItemKey] = append(thisWeek[pr.SubItemKey], pr)
 		}
 	}
 	return lastWeek, thisWeek
 }
 
 // computeActiveSubItems determines which sub-items were active in each week.
-func computeActiveSubItems(subItems []model.SubItem, lastWeekProgress, thisWeekProgress map[uint][]model.ProgressRecord, lastWeekStart, weekStart, weekEnd time.Time) (
-	map[uint]struct{}, map[uint]struct{},
+func computeActiveSubItems(subItems []model.SubItem, lastWeekProgress, thisWeekProgress map[int64][]model.ProgressRecord, lastWeekStart, weekStart, weekEnd time.Time) (
+	map[int64]struct{}, map[int64]struct{},
 ) {
 	lastWeekEnd := lastWeekStart.AddDate(0, 0, 6)
-	lastWeekActive := make(map[uint]struct{})
-	thisWeekActive := make(map[uint]struct{})
+	lastWeekActive := make(map[int64]struct{})
+	thisWeekActive := make(map[int64]struct{})
 
 	for _, si := range subItems {
-		if _, ok := lastWeekProgress[si.ID]; ok {
-			lastWeekActive[si.ID] = struct{}{}
+		if _, ok := lastWeekProgress[si.BizKey]; ok {
+			lastWeekActive[si.BizKey] = struct{}{}
 		}
-		if _, ok := thisWeekProgress[si.ID]; ok {
-			thisWeekActive[si.ID] = struct{}{}
+		if _, ok := thisWeekProgress[si.BizKey]; ok {
+			thisWeekActive[si.BizKey] = struct{}{}
 		}
 		if isActiveInWeek(si, lastWeekStart, lastWeekEnd) {
-			lastWeekActive[si.ID] = struct{}{}
+			lastWeekActive[si.BizKey] = struct{}{}
 		}
 		if isActiveInWeek(si, weekStart, weekEnd) {
-			thisWeekActive[si.ID] = struct{}{}
+			thisWeekActive[si.BizKey] = struct{}{}
 		}
 	}
 	return lastWeekActive, thisWeekActive
 }
 
 // computeLastWeekCompletion extracts the latest completion value per sub-item from last week's progress.
-func computeLastWeekCompletion(lastWeekProgress map[uint][]model.ProgressRecord) map[uint]float64 {
-	result := make(map[uint]float64)
-	for subID, records := range lastWeekProgress {
+func computeLastWeekCompletion(lastWeekProgress map[int64][]model.ProgressRecord) map[int64]float64 {
+	result := make(map[int64]float64)
+	for subBizKey, records := range lastWeekProgress {
 		if len(records) > 0 {
-			result[subID] = records[len(records)-1].Completion
+			result[subBizKey] = records[len(records)-1].Completion
 		}
 	}
 	return result
 }
 
 // computeLatestProgressDesc builds the progress description from the latest this-week record per sub-item.
-func computeLatestProgressDesc(thisWeekProgress map[uint][]model.ProgressRecord) map[uint]string {
-	result := make(map[uint]string)
-	for subID, records := range thisWeekProgress {
+func computeLatestProgressDesc(thisWeekProgress map[int64][]model.ProgressRecord) map[int64]string {
+	result := make(map[int64]string)
+	for subBizKey, records := range thisWeekProgress {
 		if len(records) > 0 {
 			latest := records[len(records)-1]
 			desc := latest.Achievement
@@ -182,7 +182,7 @@ func computeLatestProgressDesc(thisWeekProgress map[uint][]model.ProgressRecord)
 				}
 				desc += latest.Blocker
 			}
-			result[subID] = desc
+			result[subBizKey] = desc
 		}
 	}
 	return result
@@ -227,7 +227,7 @@ func indexSubItemsByMain(subItems []model.SubItem) map[uint][]model.SubItem {
 }
 
 // buildSubItemSnapshot creates a SubItemSnapshot for a sub-item with optional progress and delta info.
-func buildSubItemSnapshot(si model.SubItem, assigneeName, progressDesc string, thisWeekProgress map[uint][]model.ProgressRecord, lastWeekCompletion map[uint]float64, weekStart, weekEnd time.Time) dto.SubItemSnapshot {
+func buildSubItemSnapshot(si model.SubItem, assigneeName, progressDesc string, thisWeekProgress map[int64][]model.ProgressRecord, lastWeekCompletion map[int64]float64, weekStart, weekEnd time.Time) dto.SubItemSnapshot {
 	snapshot := dto.SubItemSnapshot{
 		BizKey:              pkg.FormatID(si.BizKey),
 		Code:                si.Code,
@@ -243,7 +243,7 @@ func buildSubItemSnapshot(si model.SubItem, assigneeName, progressDesc string, t
 	}
 
 	// Populate individual progress records for this week
-	if records, ok := thisWeekProgress[si.ID]; ok && len(records) > 0 {
+	if records, ok := thisWeekProgress[si.BizKey]; ok && len(records) > 0 {
 		snapshot.ProgressRecords = make([]dto.ProgressRecordDTO, 0, len(records))
 		for _, pr := range records {
 			snapshot.ProgressRecords = append(snapshot.ProgressRecords, dto.ProgressRecordDTO{
@@ -261,7 +261,7 @@ func buildSubItemSnapshot(si model.SubItem, assigneeName, progressDesc string, t
 	}
 
 	// Compute delta
-	if lastComp, existed := lastWeekCompletion[si.ID]; existed {
+	if lastComp, existed := lastWeekCompletion[si.BizKey]; existed {
 		snapshot.Delta = si.Completion - lastComp
 	} else {
 		snapshot.IsNew = true
@@ -275,10 +275,11 @@ func buildSubItemSnapshot(si model.SubItem, assigneeName, progressDesc string, t
 func buildWeeklyGroups(
 	mainItems []model.MainItem,
 	subItemsByMain map[uint][]model.SubItem,
-	lastWeekActive, thisWeekActive map[uint]struct{},
-	lastWeekProgress, thisWeekProgress map[uint][]model.ProgressRecord,
-	lastWeekCompletion map[uint]float64,
-	latestProgressDesc, assigneeNames map[uint]string,
+	lastWeekActive, thisWeekActive map[int64]struct{},
+	lastWeekProgress, thisWeekProgress map[int64][]model.ProgressRecord,
+	lastWeekCompletion map[int64]float64,
+	latestProgressDesc map[int64]string,
+	assigneeNames map[uint]string,
 	weekStart, weekEnd time.Time,
 ) ([]dto.WeeklyComparisonGroup, dto.WeeklyStats) {
 	var groups []dto.WeeklyComparisonGroup
@@ -311,13 +312,13 @@ func buildWeeklyGroups(
 				assigneeName = assigneeNames[uint(*si.AssigneeKey)]
 			}
 
-			inThisWeek := isInThisWeek(si.ID, thisWeekActive, thisWeekProgress)
+			inThisWeek := isInThisWeek(si.BizKey, thisWeekActive, thisWeekProgress)
 			justCompleted := isNewlyCompleted(si, weekStart, weekEnd)
 			if justCompleted {
 				stats.NewlyCompleted++
 			}
 
-			snapshot := buildSubItemSnapshot(si, assigneeName, latestProgressDesc[si.ID], thisWeekProgress, lastWeekCompletion, weekStart, weekEnd)
+			snapshot := buildSubItemSnapshot(si, assigneeName, latestProgressDesc[si.BizKey], thisWeekProgress, lastWeekCompletion, weekStart, weekEnd)
 
 			appendLastWeekSnapshot(&group, si, assigneeName, lastWeekActive, lastWeekProgress, lastWeekCompletion)
 
@@ -356,22 +357,22 @@ func buildWeeklyGroups(
 }
 
 // isInThisWeek returns true if the sub-item was active or had progress this week.
-func isInThisWeek(subID uint, thisWeekActive map[uint]struct{}, thisWeekProgress map[uint][]model.ProgressRecord) bool {
-	if _, ok := thisWeekActive[subID]; ok {
+func isInThisWeek(subBizKey int64, thisWeekActive map[int64]struct{}, thisWeekProgress map[int64][]model.ProgressRecord) bool {
+	if _, ok := thisWeekActive[subBizKey]; ok {
 		return true
 	}
-	if _, ok := thisWeekProgress[subID]; ok {
+	if _, ok := thisWeekProgress[subBizKey]; ok {
 		return true
 	}
 	return false
 }
 
 // appendLastWeekSnapshot adds a last-week snapshot to the group if the sub-item was active and had progress last week.
-func appendLastWeekSnapshot(group *dto.WeeklyComparisonGroup, si model.SubItem, assigneeName string, lastWeekActive map[uint]struct{}, lastWeekProgress map[uint][]model.ProgressRecord, lastWeekCompletion map[uint]float64) {
-	if _, wasActive := lastWeekActive[si.ID]; !wasActive {
+func appendLastWeekSnapshot(group *dto.WeeklyComparisonGroup, si model.SubItem, assigneeName string, lastWeekActive map[int64]struct{}, lastWeekProgress map[int64][]model.ProgressRecord, lastWeekCompletion map[int64]float64) {
+	if _, wasActive := lastWeekActive[si.BizKey]; !wasActive {
 		return
 	}
-	if _, hadProgress := lastWeekProgress[si.ID]; !hadProgress {
+	if _, hadProgress := lastWeekProgress[si.BizKey]; !hadProgress {
 		return
 	}
 	lastSnapshot := dto.SubItemSnapshot{
@@ -384,7 +385,7 @@ func appendLastWeekSnapshot(group *dto.WeeklyComparisonGroup, si model.SubItem, 
 		StartDate:       formatDate(si.PlanStartDate),
 		ExpectedEndDate: formatDate(si.ExpectedEndDate),
 		ActualEndDate:   dates.FormatTimePtr(si.ActualEndDate),
-		Completion:      lastWeekCompletion[si.ID],
+		Completion:      lastWeekCompletion[si.BizKey],
 	}
 	group.LastWeek = append(group.LastWeek, lastSnapshot)
 }

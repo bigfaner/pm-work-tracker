@@ -54,17 +54,19 @@ func TestProgressRecord_Defaults(t *testing.T) {
 	require.NoError(t, db.Create(&mi).Error)
 	si := model.SubItem{TeamKey: int64(team.ID), MainItemKey: int64(mi.ID), Title: "Sub", Priority: "P1"}
 	require.NoError(t, db.Create(&si).Error)
+	si.BizKey = 1001
+	require.NoError(t, db.Save(&si).Error)
 
 	pr := model.ProgressRecord{
-		SubItemKey: int64(si.ID),
-		TeamKey: int64(team.ID),
-		AuthorKey: int64(u.ID),
+		SubItemKey: si.BizKey,
+		TeamKey:    int64(team.ID),
+		AuthorKey:  int64(u.ID),
 		Completion: 50.0,
 	}
 	require.NoError(t, db.Create(&pr).Error)
 
 	var fetched model.ProgressRecord
-	db.First(&fetched, "sub_item_key = ?", si.ID)
+	db.First(&fetched, "sub_item_key = ?", si.BizKey)
 	assert.Equal(t, float64(50.0), fetched.Completion)
 	assert.Equal(t, 0, fetched.IsPmCorrect, "is_pm_correct should default to false")
 	assert.False(t, fetched.CreateTime.IsZero(), "created_at should be set")
@@ -83,18 +85,20 @@ func TestProgressRecord_InsertAndQuery(t *testing.T) {
 	require.NoError(t, db.Create(&mi).Error)
 	si := model.SubItem{TeamKey: int64(team.ID), MainItemKey: int64(mi.ID), Title: "Sub", Priority: "P1"}
 	require.NoError(t, db.Create(&si).Error)
+	si.BizKey = 1002
+	require.NoError(t, db.Save(&si).Error)
 
 	records := []model.ProgressRecord{
-		{SubItemKey: int64(si.ID), TeamKey: int64(team.ID), AuthorKey: int64(u.ID), Completion: 30.0, Achievement: "did stuff"},
-		{SubItemKey: int64(si.ID), TeamKey: int64(team.ID), AuthorKey: int64(u.ID), Completion: 60.0, Blocker: "blocked"},
-		{SubItemKey: int64(si.ID), TeamKey: int64(team.ID), AuthorKey: int64(u.ID), Completion: 90.0, Lesson: "learned"},
+		{SubItemKey: si.BizKey, TeamKey: int64(team.ID), AuthorKey: int64(u.ID), Completion: 30.0, Achievement: "did stuff"},
+		{SubItemKey: si.BizKey, TeamKey: int64(team.ID), AuthorKey: int64(u.ID), Completion: 60.0, Blocker: "blocked"},
+		{SubItemKey: si.BizKey, TeamKey: int64(team.ID), AuthorKey: int64(u.ID), Completion: 90.0, Lesson: "learned"},
 	}
 	for i := range records {
 		require.NoError(t, db.Create(&records[i]).Error)
 	}
 
 	var fetched []model.ProgressRecord
-	db.Where("sub_item_key = ? AND team_key = ?", si.ID, team.ID).Order("create_time").Find(&fetched)
+	db.Where("sub_item_key = ? AND team_key = ?", si.BizKey, team.ID).Order("create_time").Find(&fetched)
 	assert.Len(t, fetched, 3)
 	assert.Equal(t, float64(30.0), fetched[0].Completion)
 	assert.Equal(t, "did stuff", fetched[0].Achievement)

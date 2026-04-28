@@ -127,10 +127,10 @@ func TestMigrateToRBAC_PresetRolesSeeded(t *testing.T) {
 	assert.True(t, member.IsPreset)
 	assert.Equal(t, uint(3), member.ID)
 
-	// member should have 12 codes
+	// member should have 14 codes
 	count, err = CountPermissionsForRole(db, member.ID)
 	require.NoError(t, err)
-	assert.Equal(t, int64(12), count, "member should have 12 permission codes")
+	assert.Equal(t, int64(14), count, "member should have 14 permission codes")
 }
 
 func TestMigrateToRBAC_TeamMemberRoleMigrated(t *testing.T) {
@@ -379,7 +379,7 @@ func TestMigrateToRBAC_MemberHasExactCodes(t *testing.T) {
 
 	expectedCodes := map[string]bool{
 		"team:read":      true,
-		"main_item:read": true,
+		"main_item:create": true, "main_item:read": true, "main_item:update": true,
 		"sub_item:create": true, "sub_item:read": true, "sub_item:update": true, "sub_item:change_status": true,
 		"progress:create": true, "progress:read": true,
 		"item_pool:submit": true,

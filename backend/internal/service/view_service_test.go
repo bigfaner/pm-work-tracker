@@ -135,10 +135,10 @@ func (m *mockViewProgressRepo) Create(_ context.Context, _ *model.ProgressRecord
 func (m *mockViewProgressRepo) FindByID(_ context.Context, _ uint) (*model.ProgressRecord, error) {
 	return nil, nil
 }
-func (m *mockViewProgressRepo) ListBySubItem(_ context.Context, _ uint, _ uint) ([]model.ProgressRecord, error) {
+func (m *mockViewProgressRepo) ListBySubItem(_ context.Context, _ uint, _ int64) ([]model.ProgressRecord, error) {
 	return nil, nil
 }
-func (m *mockViewProgressRepo) LatestBySubItem(_ context.Context, _ uint) (*model.ProgressRecord, error) {
+func (m *mockViewProgressRepo) LatestBySubItem(_ context.Context, _ int64) (*model.ProgressRecord, error) {
 	return nil, nil
 }
 func (m *mockViewProgressRepo) UpdateCompletion(_ context.Context, _ uint, _ float64) error {
@@ -2160,26 +2160,26 @@ func TestBuildWeeklyGroups_Stats(t *testing.T) {
 
 	mainItem := model.MainItem{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "M", Priority: "P1"}
 
-	activeSet := func(ids ...uint) map[uint]struct{} {
-		m := make(map[uint]struct{})
-		for _, id := range ids {
-			m[id] = struct{}{}
+	activeSet := func(bizKeys ...int64) map[int64]struct{} {
+		m := make(map[int64]struct{})
+		for _, k := range bizKeys {
+			m[k] = struct{}{}
 		}
 		return m
 	}
-	progressFor := func(subID uint) map[uint][]model.ProgressRecord {
-		return map[uint][]model.ProgressRecord{
-			subID: {{ID: 1, SubItemKey: int64(subID), Completion: 50, CreateTime: weekStart.AddDate(0, 0, 1)}},
+	progressFor := func(subBizKey int64) map[int64][]model.ProgressRecord {
+		return map[int64][]model.ProgressRecord{
+			subBizKey: {{ID: 1, SubItemKey: subBizKey, Completion: 50, CreateTime: weekStart.AddDate(0, 0, 1)}},
 		}
 	}
-	emptyProgress := map[uint][]model.ProgressRecord{}
-	emptyActive := map[uint]struct{}{}
+	emptyProgress := map[int64][]model.ProgressRecord{}
+	emptyActive := map[int64]struct{}{}
 
 	tests := []struct {
 		name      string
 		subs      []model.SubItem
-		active    map[uint]struct{}
-		progress  map[uint][]model.ProgressRecord
+		active    map[int64]struct{}
+		progress  map[int64][]model.ProgressRecord
 		wantStats dto.WeeklyStats
 	}{
 		{
@@ -2293,9 +2293,9 @@ func TestBuildWeeklyGroups_Stats(t *testing.T) {
 				tt.active,          // thisWeekActive
 				emptyProgress,      // lastWeekProgress
 				tt.progress,        // thisWeekProgress
-				map[uint]float64{}, // lastWeekCompletion
-				map[uint]string{},  // latestProgressDesc
-				map[uint]string{},  // assigneeNames
+				map[int64]float64{}, // lastWeekCompletion
+				map[int64]string{},  // latestProgressDesc
+				map[uint]string{},   // assigneeNames
 				weekStart,
 				weekEnd,
 			)

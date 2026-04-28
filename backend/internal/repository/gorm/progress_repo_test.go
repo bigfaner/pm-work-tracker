@@ -12,6 +12,7 @@ import (
 
 	"pm-work-tracker/backend/internal/model"
 	pkgerrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 )
 
@@ -35,18 +36,20 @@ func seedProgressData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team, *
 	require.NoError(t, db.Create(&mi).Error)
 	si := model.SubItem{TeamKey: int64(team.ID), MainItemKey: int64(mi.ID), Title: "Sub", Priority: "P1", ItemStatus: "progressing"}
 	require.NoError(t, db.Create(&si).Error)
+	si.BizKey = snowflake.Generate()
+	require.NoError(t, db.Save(&si).Error)
 	return &u, &team, &mi, &si
 }
 
-func createProgressRecord(t *testing.T, db *gormlib.DB, subItemID, teamID, authorID uint, completion float64, achievement string, createdAt time.Time) *model.ProgressRecord {
+func createProgressRecord(t *testing.T, db *gormlib.DB, subItemBizKey int64, teamID, authorID uint, completion float64, achievement string, createdAt time.Time) *model.ProgressRecord {
 	t.Helper()
 	record := model.ProgressRecord{
-		SubItemKey: int64(subItemID),
-		TeamKey: int64(teamID),
-		AuthorKey: int64(authorID),
+		SubItemKey:  subItemBizKey,
+		TeamKey:     int64(teamID),
+		AuthorKey:   int64(authorID),
 		Completion:  completion,
 		Achievement: achievement,
-		CreateTime:   createdAt,
+		CreateTime:  createdAt,
 	}
 	require.NoError(t, db.Create(&record).Error)
 	return &record
@@ -61,12 +64,12 @@ func TestProgressRepo_Create(t *testing.T) {
 
 	u, team, _, si := seedProgressData(t, db)
 	record := &model.ProgressRecord{
-		SubItemKey: int64(si.ID),
-		TeamKey: int64(team.ID),
-		AuthorKey: int64(u.ID),
+		SubItemKey:  si.BizKey,
+		TeamKey:     int64(team.ID),
+		AuthorKey:   int64(u.ID),
 		Completion:  30.0,
 		Achievement: "Started work",
-		CreateTime:   time.Now(),
+		CreateTime:  time.Now(),
 	}
 	require.NoError(t, repo.Create(ctx, record))
 	assert.NotZero(t, record.ID)
@@ -80,7 +83,7 @@ func TestProgressRepo_FindByID(t *testing.T) {
 	ctx := context.Background()
 
 	u, team, _, si := seedProgressData(t, db)
-	record := createProgressRecord(t, db, si.ID, team.ID, u.ID, 50.0, "Half done", time.Now())
+	record := createProgressRecord(t, db, si.BizKey, team.ID, u.ID, 50.0, "Half done", time.Now())
 
 	t.Run("found", func(t *testing.T) {
 		found, err := repo.FindByID(ctx, record.ID)
@@ -106,12 +109,12 @@ func TestProgressRepo_ListBySubItem(t *testing.T) {
 	u, team, _, si := seedProgressData(t, db)
 
 	base := time.Now()
-	createProgressRecord(t, db, si.ID, team.ID, u.ID, 20.0, "First", base.Add(-2*time.Hour))
-	createProgressRecord(t, db, si.ID, team.ID, u.ID, 50.0, "Second", base.Add(-1*time.Hour))
-	createProgressRecord(t, db, si.ID, team.ID, u.ID, 80.0, "Third", base)
+	createProgressRecord(t, db, si.BizKey, team.ID, u.ID, 20.0, "First", base.Add(-2*time.Hour))
+	createProgressRecord(t, db, si.BizKey, team.ID, u.ID, 50.0, "Second", base.Add(-1*time.Hour))
+	createProgressRecord(t, db, si.BizKey, team.ID, u.ID, 80.0, "Third", base)
 
 	t.Run("returns_ordered_by_created_at_asc", func(t *testing.T) {
-		records, err := repo.ListBySubItem(ctx, team.ID, si.ID)
+		records, err := repo.ListBySubItem(ctx, team.ID, si.BizKey)
 		require.NoError(t, err)
 		assert.Len(t, records, 3)
 		assert.Equal(t, 20.0, records[0].Completion)
@@ -125,7 +128,7 @@ func TestProgressRepo_ListBySubItem(t *testing.T) {
 		require.NoError(t, db.Create(&u2).Error)
 		team2 := model.Team{TeamName: "PR Team2", PmKey: int64(u2.ID), Code: "PRT2"}
 		require.NoError(t, db.Create(&team2).Error)
-		records, err := repo.ListBySubItem(ctx, team2.ID, si.ID)
+		records, err := repo.ListBySubItem(ctx, team2.ID, si.BizKey)
 		require.NoError(t, err)
 		assert.Empty(t, records)
 	})
@@ -147,17 +150,17 @@ func TestProgressRepo_LatestBySubItem(t *testing.T) {
 	u, team, _, si := seedProgressData(t, db)
 
 	t.Run("nil_when_none", func(t *testing.T) {
-		found, err := repo.LatestBySubItem(ctx, si.ID)
+		found, err := repo.LatestBySubItem(ctx, si.BizKey)
 		require.NoError(t, err)
 		assert.Nil(t, found)
 	})
 
 	t.Run("returns_latest", func(t *testing.T) {
 		base := time.Now()
-		createProgressRecord(t, db, si.ID, team.ID, u.ID, 20.0, "First", base.Add(-2*time.Hour))
-		createProgressRecord(t, db, si.ID, team.ID, u.ID, 80.0, "Latest", base)
+		createProgressRecord(t, db, si.BizKey, team.ID, u.ID, 20.0, "First", base.Add(-2*time.Hour))
+		createProgressRecord(t, db, si.BizKey, team.ID, u.ID, 80.0, "Latest", base)
 
-		found, err := repo.LatestBySubItem(ctx, si.ID)
+		found, err := repo.LatestBySubItem(ctx, si.BizKey)
 		require.NoError(t, err)
 		require.NotNil(t, found)
 		assert.Equal(t, 80.0, found.Completion)
@@ -173,7 +176,7 @@ func TestProgressRepo_UpdateCompletion(t *testing.T) {
 	ctx := context.Background()
 
 	u, team, _, si := seedProgressData(t, db)
-	record := createProgressRecord(t, db, si.ID, team.ID, u.ID, 50.0, "Original", time.Now())
+	record := createProgressRecord(t, db, si.BizKey, team.ID, u.ID, 50.0, "Original", time.Now())
 
 	require.NoError(t, repo.UpdateCompletion(ctx, record.ID, 75.0))
 

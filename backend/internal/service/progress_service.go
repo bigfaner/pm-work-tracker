@@ -37,7 +37,7 @@ func (s *progressService) Append(ctx context.Context, teamID, authorID, subItemI
 		return nil, err
 	}
 
-	latest, err := s.progressRepo.LatestBySubItem(ctx, subItemID)
+	latest, err := s.progressRepo.LatestBySubItem(ctx, subItem.BizKey)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (s *progressService) Append(ctx context.Context, teamID, authorID, subItemI
 
 	record := &model.ProgressRecord{
 		BizKey:      snowflake.Generate(),
-		SubItemKey:  int64(subItemID),
+		SubItemKey:  subItem.BizKey,
 		TeamKey:     int64(teamID),
 		AuthorKey:   int64(authorID),
 		Completion:  completion,
@@ -133,12 +133,12 @@ func (s *progressService) CorrectCompletion(ctx context.Context, teamID, recordI
 	}
 
 	// Re-sync SubItem.Completion to the latest record's completion
-	latest, err := s.progressRepo.LatestBySubItem(ctx, uint(record.SubItemKey))
+	latest, err := s.progressRepo.LatestBySubItem(ctx, record.SubItemKey)
 	if err != nil {
 		return err
 	}
 
-	subItem, err := s.subItemRepo.FindByID(ctx, uint(record.SubItemKey))
+	subItem, err := s.subItemRepo.FindByBizKey(ctx, record.SubItemKey)
 	if err != nil {
 		return err
 	}
@@ -164,6 +164,10 @@ func (s *progressService) CorrectCompletion(ctx context.Context, teamID, recordI
 }
 
 func (s *progressService) List(ctx context.Context, teamID, subItemID uint) ([]model.ProgressRecord, error) {
-	return s.progressRepo.ListBySubItem(ctx, teamID, subItemID)
+	subItem, err := s.subItemRepo.FindByID(ctx, subItemID)
+	if err != nil {
+		return nil, err
+	}
+	return s.progressRepo.ListBySubItem(ctx, teamID, subItem.BizKey)
 }
 

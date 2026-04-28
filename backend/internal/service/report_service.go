@@ -62,10 +62,10 @@ func (s *reportService) Preview(ctx context.Context, teamID uint, weekStart time
 		subItemsByMain[uint(si.MainItemKey)] = append(subItemsByMain[uint(si.MainItemKey)], si)
 	}
 
-	// Index progress records by sub item ID
-	progressBySub := make(map[uint][]model.ProgressRecord)
+	// Index progress records by sub item biz_key
+	progressBySub := make(map[int64][]model.ProgressRecord)
 	for _, pr := range progressRecords {
-		progressBySub[uint(pr.SubItemKey)] = append(progressBySub[uint(pr.SubItemKey)], pr)
+		progressBySub[pr.SubItemKey] = append(progressBySub[pr.SubItemKey], pr)
 	}
 
 	// Build sections
@@ -78,7 +78,7 @@ func (s *reportService) Preview(ctx context.Context, teamID uint, weekStart time
 
 		var reportSubs []dto.ReportSubItemDTO
 		for _, si := range subs {
-			weekProgress := progressBySub[si.ID]
+			weekProgress := progressBySub[si.BizKey]
 			if len(weekProgress) == 0 {
 				continue // Skip sub-items with no progress this week
 			}
