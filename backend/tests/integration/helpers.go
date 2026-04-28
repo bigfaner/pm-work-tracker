@@ -163,9 +163,9 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	require.NoError(t, db.Create(superAdmin).Error)
 
 	// Seed roles and permissions for RBAC
-	pmRole := model.Role{Name: "pm", Description: "Project Manager", IsPreset: true}
+	pmRole := model.Role{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Name: "pm", Description: "Project Manager", IsPreset: true}
 	require.NoError(t, db.Create(&pmRole).Error)
-	memberRole := model.Role{Name: "member", Description: "Team Member", IsPreset: true}
+	memberRole := model.Role{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Name: "member", Description: "Team Member", IsPreset: true}
 	require.NoError(t, db.Create(&memberRole).Error)
 
 	// PM gets all team-scoped permissions
@@ -557,7 +557,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart ti
 	// Create a progress record within the week
 	record := &model.ProgressRecord{
 		BizKey:      snowflake.Generate(),
-		SubItemKey:  int64(subItem.ID),
+		SubItemKey:  subItem.BizKey,
 		TeamKey:     int64(teamID),
 		AuthorKey:   int64(userID),
 		Completion:  50,
