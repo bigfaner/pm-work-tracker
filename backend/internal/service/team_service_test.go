@@ -28,7 +28,7 @@ type mockTeamRepo struct {
 	members []*dto.TeamMemberDTO
 	member  *model.TeamMember
 	// findMembersByUserID maps userID -> TeamMember for multi-lookup scenarios
-	findMembersByUserID map[uint]*model.TeamMember
+	findMembersByUserBizKey map[int64]*model.TeamMember
 	// per-operation errors (nil = success)
 	findByIDErr   error
 	findMemberErr error
@@ -49,8 +49,8 @@ type mockTeamRepo struct {
 	updatedMembers []*model.TeamMember
 	deletedTeamID  uint
 	removedMember  struct {
-		teamID uint
-		userID uint
+		teamBizKey int64
+		userBizKey int64
 	}
 }
 
@@ -100,15 +100,15 @@ func (m *mockTeamRepo) AddMember(_ context.Context, member *model.TeamMember) er
 	return m.addMemberErr
 }
 
-func (m *mockTeamRepo) RemoveMember(_ context.Context, teamID, userID uint) error {
-	m.removedMember.teamID = teamID
-	m.removedMember.userID = userID
+func (m *mockTeamRepo) RemoveMember(_ context.Context, teamBizKey, userBizKey int64) error {
+	m.removedMember.teamBizKey = teamBizKey
+	m.removedMember.userBizKey = userBizKey
 	return nil
 }
 
-func (m *mockTeamRepo) FindMember(_ context.Context, teamID, userID uint) (*model.TeamMember, error) {
-	if m.findMembersByUserID != nil {
-		if member, ok := m.findMembersByUserID[userID]; ok {
+func (m *mockTeamRepo) FindMember(_ context.Context, teamBizKey, userBizKey int64) (*model.TeamMember, error) {
+	if m.findMembersByUserBizKey != nil {
+		if member, ok := m.findMembersByUserBizKey[userBizKey]; ok {
 			return member, nil
 		}
 		return nil, m.findMemberErr
@@ -119,18 +119,18 @@ func (m *mockTeamRepo) FindMember(_ context.Context, teamID, userID uint) (*mode
 	return nil, m.findMemberErr
 }
 
-func (m *mockTeamRepo) ListMembers(_ context.Context, teamID uint) ([]*dto.TeamMemberDTO, error) {
+func (m *mockTeamRepo) ListMembers(_ context.Context, teamBizKey int64) ([]*dto.TeamMemberDTO, error) {
 	m.listMembersCalled = true
 	var result []*dto.TeamMemberDTO
 	for _, mem := range m.members {
-		if mem.TeamKey == fmt.Sprintf("%d", teamID) {
+		if mem.TeamKey == fmt.Sprintf("%d", teamBizKey) {
 			result = append(result, mem)
 		}
 	}
 	return result, nil
 }
 
-func (m *mockTeamRepo) CountMembers(_ context.Context, _ uint) (int64, error) {
+func (m *mockTeamRepo) CountMembers(_ context.Context, _ int64) (int64, error) {
 	m.countMembersCalled = true
 	if m.countMembersErr != nil {
 		return 0, m.countMembersErr
@@ -151,12 +151,16 @@ func (m *mockTeamRepo) FindTeamsByUserIDs(_ context.Context, _ []uint) (map[uint
 	return map[uint][]dto.TeamSummary{}, nil
 }
 
-func (m *mockTeamRepo) FindPMMembers(_ context.Context, _ []uint) (map[uint]string, error) {
-	result := make(map[uint]string)
+func (m *mockTeamRepo) FindTeamsByUserBizKeys(_ context.Context, _ []int64) (map[int64][]dto.TeamSummary, error) {
+	return map[int64][]dto.TeamSummary{}, nil
+}
+
+func (m *mockTeamRepo) FindPMMembers(_ context.Context, _ []int64) (map[int64]string, error) {
+	result := make(map[int64]string)
 	for _, mem := range m.members {
 		if mem.Role == "pm" {
-			teamID, _ := strconv.ParseUint(mem.TeamKey, 10, 64)
-			result[uint(teamID)] = mem.DisplayName
+			teamKey, _ := strconv.ParseInt(mem.TeamKey, 10, 64)
+			result[teamKey] = mem.DisplayName
 		}
 	}
 	return result, nil
@@ -168,11 +172,11 @@ type mockTeamUserRepo struct {
 	err  error
 
 	// SearchAvailable captures calls and returns configurable results
-	searchAvailableFn     func(ctx context.Context, teamID uint, search string, limit int) ([]*model.User, error)
-	searchAvailableCalled bool
-	searchAvailableTeamID uint
-	searchAvailableSearch string
-	searchAvailableLimit  int
+	searchAvailableFn        func(ctx context.Context, teamBizKey int64, search string, limit int) ([]*model.User, error)
+	searchAvailableCalled    bool
+	searchAvailableTeamBizKey int64
+	searchAvailableSearch    string
+	searchAvailableLimit     int
 }
 
 func (m *mockTeamUserRepo) FindByID(_ context.Context, _ uint) (*model.User, error) {
@@ -198,18 +202,18 @@ func (m *mockTeamUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*mod
 	return nil, nil
 }
 func (m *mockTeamUserRepo) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
-	return nil, nil
+		return m.user, m.err
 }
 func (m *mockTeamUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil
 }
-func (m *mockTeamUserRepo) SearchAvailable(ctx context.Context, teamID uint, search string, limit int) ([]*model.User, error) {
+func (m *mockTeamUserRepo) SearchAvailable(ctx context.Context, teamBizKey int64, search string, limit int) ([]*model.User, error) {
 	m.searchAvailableCalled = true
-	m.searchAvailableTeamID = teamID
+	m.searchAvailableTeamBizKey = teamBizKey
 	m.searchAvailableSearch = search
 	m.searchAvailableLimit = limit
 	if m.searchAvailableFn != nil {
-		return m.searchAvailableFn(ctx, teamID, search, limit)
+		return m.searchAvailableFn(ctx, teamBizKey, search, limit)
 	}
 	return nil, nil
 }
@@ -286,7 +290,7 @@ func TestCreateTeam_RepoError(t *testing.T) {
 
 func TestGetTeam_Success(t *testing.T) {
 	repo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1}, TeamName: "Alpha", PmKey: 10},
+		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamName: "Alpha", PmKey: 10},
 	}
 	svc := NewTeamService(repo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
@@ -311,8 +315,8 @@ func TestGetTeam_NotFound(t *testing.T) {
 func TestListTeams_Success(t *testing.T) {
 	repo := &mockTeamRepo{
 		teams: []*model.Team{
-			{BaseModel: model.BaseModel{ID: 1}, TeamName: "Team A", PmKey: 10},
-			{BaseModel: model.BaseModel{ID: 2}, TeamName: "Team B", PmKey: 20},
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamName: "Team A", PmKey: 10},
+			{BaseModel: model.BaseModel{ID: 2, BizKey: 2}, TeamName: "Team B", PmKey: 20},
 		},
 		members: []*dto.TeamMemberDTO{
 			{TeamKey: "1", UserKey: "10", Role: "pm", DisplayName: "Alice"},
@@ -335,12 +339,12 @@ func TestListTeams_Success(t *testing.T) {
 
 func TestInviteMember_Success(t *testing.T) {
 	teamRepo := &mockTeamRepo{
-		team:          &model.Team{BaseModel: model.BaseModel{ID: 1}, TeamName: "Alpha", PmKey: 10},
+		team:          &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamName: "Alpha", PmKey: 10},
 		member:        nil, // invited user is not yet a member
 		findMemberErr: apperrors.ErrNotFound, // FindMember returns not found
 	}
 	userRepo := &mockTeamUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob"},
 	}
 	svc := NewTeamService(teamRepo, userRepo, &mockMainItemRepo{}, nil, &mockDB{})
 
@@ -349,8 +353,8 @@ func TestInviteMember_Success(t *testing.T) {
 
 	// Verify member was added
 	assert.NotNil(t, teamRepo.createdMember)
-	assert.Equal(t, uint(5), uint(teamRepo.createdMember.UserKey))
-	assert.Equal(t, uint(1), uint(teamRepo.createdMember.TeamKey))
+	assert.Equal(t, int64(5), teamRepo.createdMember.UserKey)
+	assert.Equal(t, int64(1), teamRepo.createdMember.TeamKey)
 }
 
 func TestInviteMember_TeamNotFound(t *testing.T) {
@@ -363,7 +367,7 @@ func TestInviteMember_TeamNotFound(t *testing.T) {
 
 func TestInviteMember_UserNotFound(t *testing.T) {
 	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10},
+		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
 	}
 	userRepo := &mockTeamUserRepo{err: gorm.ErrRecordNotFound}
 	svc := NewTeamService(teamRepo, userRepo, &mockMainItemRepo{}, nil, &mockDB{})
@@ -374,11 +378,11 @@ func TestInviteMember_UserNotFound(t *testing.T) {
 
 func TestInviteMember_AlreadyMember(t *testing.T) {
 	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10},
+		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
 		member: &model.TeamMember{TeamKey: int64(1), UserKey: int64(5)},
 	}
 	userRepo := &mockTeamUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob"},
 	}
 	svc := NewTeamService(teamRepo, userRepo, &mockMainItemRepo{}, nil, &mockDB{})
 
@@ -391,11 +395,11 @@ func TestInviteMember_CannotAssignPMRole(t *testing.T) {
 	pmRole.ID = 2
 	roleRepo := &mockRoleRepo{roleByID: pmRole}
 	teamRepo := &mockTeamRepo{
-		team:          &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10},
+		team:          &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
 		findMemberErr: apperrors.ErrNotFound,
 	}
 	userRepo := &mockTeamUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob"},
 	}
 	svc := NewTeamService(teamRepo, userRepo, &mockMainItemRepo{}, roleRepo, &mockDB{})
 
@@ -411,14 +415,14 @@ func TestInviteMember_CannotAssignPMRole(t *testing.T) {
 
 func TestRemoveMember_Success(t *testing.T) {
 	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10},
+		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
 	err := svc.RemoveMember(context.Background(), 10, int64(1), 5)
 	require.NoError(t, err)
-	assert.Equal(t, uint(1), teamRepo.removedMember.teamID)
-	assert.Equal(t, uint(5), teamRepo.removedMember.userID)
+	assert.Equal(t, int64(1), teamRepo.removedMember.teamBizKey)
+	assert.Equal(t, int64(5), teamRepo.removedMember.userBizKey)
 }
 
 func TestRemoveMember_TeamNotFound(t *testing.T) {
@@ -431,7 +435,7 @@ func TestRemoveMember_TeamNotFound(t *testing.T) {
 
 func TestRemoveMember_CannotRemoveSelf(t *testing.T) {
 	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10},
+		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
@@ -441,7 +445,7 @@ func TestRemoveMember_CannotRemoveSelf(t *testing.T) {
 
 func TestRemoveMember_CallerNotPM(t *testing.T) {
 	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10},
+		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
@@ -456,10 +460,10 @@ func TestRemoveMember_CallerNotPM(t *testing.T) {
 func TestTransferPM_Success(t *testing.T) {
 	db := &mockDB{}
 	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1}, TeamName: "Alpha", PmKey: 10},
-		findMembersByUserID: map[uint]*model.TeamMember{
-			20: {BaseModel: model.BaseModel{ID: 2}, TeamKey: int64(1), UserKey: int64(20)},
-			10: {BaseModel: model.BaseModel{ID: 1}, TeamKey: int64(1), UserKey: int64(10)},
+		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamName: "Alpha", PmKey: 10},
+		findMembersByUserBizKey: map[int64]*model.TeamMember{
+			20: {BaseModel: model.BaseModel{ID: 2, BizKey: 2}, TeamKey: int64(1), UserKey: int64(20)},
+			10: {BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: int64(1), UserKey: int64(10)},
 		},
 	}
 	pmRole := &model.Role{Name: "pm"}
@@ -497,7 +501,7 @@ func TestTransferPM_TeamNotFound(t *testing.T) {
 
 func TestTransferPM_CallerNotPM(t *testing.T) {
 	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10},
+		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
@@ -507,7 +511,7 @@ func TestTransferPM_CallerNotPM(t *testing.T) {
 
 func TestTransferPM_TargetNotMember(t *testing.T) {
 	teamRepo := &mockTeamRepo{
-		team:          &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10},
+		team:          &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
 		member:        nil,
 		findMemberErr: gorm.ErrRecordNotFound,
 	}
@@ -523,7 +527,7 @@ func TestTransferPM_TargetNotMember(t *testing.T) {
 
 func TestDisbandTeam_Success(t *testing.T) {
 	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1}, TeamName: "Alpha Team", PmKey: 10},
+		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamName: "Alpha Team", PmKey: 10},
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
@@ -542,7 +546,7 @@ func TestDisbandTeam_TeamNotFound(t *testing.T) {
 
 func TestDisbandTeam_CallerNotPM(t *testing.T) {
 	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1}, TeamName: "Alpha", PmKey: 10},
+		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamName: "Alpha", PmKey: 10},
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
@@ -552,7 +556,7 @@ func TestDisbandTeam_CallerNotPM(t *testing.T) {
 
 func TestDisbandTeam_ConfirmNameMismatch(t *testing.T) {
 	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1}, TeamName: "Alpha Team", PmKey: 10},
+		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamName: "Alpha Team", PmKey: 10},
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
@@ -567,7 +571,7 @@ func TestDisbandTeam_ConfirmNameMismatch(t *testing.T) {
 func TestListMembers_Success(t *testing.T) {
 	now := time.Now()
 	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1}},
+		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}},
 		members: []*dto.TeamMemberDTO{
 			{TeamKey: "1", UserKey: "10", DisplayName: "Alice", Username: "alice", Role: "pm", JoinedAt: now.Format(time.RFC3339)},
 			{TeamKey: "1", UserKey: "5", DisplayName: "Bob", Username: "bob", JoinedAt: now.Format(time.RFC3339)},
@@ -585,7 +589,7 @@ func TestListMembers_Success(t *testing.T) {
 
 func TestListMembers_Empty(t *testing.T) {
 	teamRepo := &mockTeamRepo{
-		team:    &model.Team{BaseModel: model.BaseModel{ID: 1}},
+		team:    &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}},
 		members: []*dto.TeamMemberDTO{},
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
@@ -601,8 +605,8 @@ func TestListMembers_Empty(t *testing.T) {
 
 func TestUpdateMemberRole_Success(t *testing.T) {
 	teamRepo := &mockTeamRepo{
-		team:   &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10},
-		member: &model.TeamMember{BaseModel: model.BaseModel{ID: 1}, TeamKey: int64(1), UserKey: int64(5)},
+		team:   &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
+		member: &model.TeamMember{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: int64(1), UserKey: int64(5)},
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
@@ -623,7 +627,7 @@ func TestUpdateMemberRole_TeamNotFound(t *testing.T) {
 
 func TestUpdateMemberRole_CallerNotPM(t *testing.T) {
 	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10},
+		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
@@ -633,7 +637,7 @@ func TestUpdateMemberRole_CallerNotPM(t *testing.T) {
 
 func TestUpdateMemberRole_TargetNotMember(t *testing.T) {
 	teamRepo := &mockTeamRepo{
-		team:          &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10},
+		team:          &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
 		member:        nil,
 		findMemberErr: gorm.ErrRecordNotFound,
 	}
@@ -648,8 +652,8 @@ func TestUpdateMemberRole_CannotAssignPMRole(t *testing.T) {
 	pmRole.ID = 2
 	roleRepo := &mockRoleRepo{roleByID: pmRole}
 	teamRepo := &mockTeamRepo{
-		team:   &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10},
-		member: &model.TeamMember{BaseModel: model.BaseModel{ID: 1}, TeamKey: int64(1), UserKey: int64(5)},
+		team:   &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
+		member: &model.TeamMember{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: int64(1), UserKey: int64(5)},
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, roleRepo, &mockDB{})
 
@@ -663,7 +667,7 @@ func TestUpdateMemberRole_CannotAssignPMRole(t *testing.T) {
 
 func TestSearchAvailableUsers_Success(t *testing.T) {
 	userRepo := &mockTeamUserRepo{
-		searchAvailableFn: func(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+		searchAvailableFn: func(_ context.Context, _ int64, _ string, _ int) ([]*model.User, error) {
 			return []*model.User{
 				{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, Username: "alice", DisplayName: "Alice"},
 				{BaseModel: model.BaseModel{ID: 20, BizKey: 20}, Username: "bob", DisplayName: "Bob"},
@@ -685,7 +689,7 @@ func TestSearchAvailableUsers_Success(t *testing.T) {
 
 func TestSearchAvailableUsers_Empty(t *testing.T) {
 	userRepo := &mockTeamUserRepo{
-		searchAvailableFn: func(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+		searchAvailableFn: func(_ context.Context, _ int64, _ string, _ int) ([]*model.User, error) {
 			return []*model.User{}, nil
 		},
 	}
@@ -699,7 +703,7 @@ func TestSearchAvailableUsers_Empty(t *testing.T) {
 
 func TestSearchAvailableUsers_RepoError(t *testing.T) {
 	userRepo := &mockTeamUserRepo{
-		searchAvailableFn: func(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+		searchAvailableFn: func(_ context.Context, _ int64, _ string, _ int) ([]*model.User, error) {
 			return nil, errors.New("db error")
 		},
 	}
@@ -712,7 +716,7 @@ func TestSearchAvailableUsers_RepoError(t *testing.T) {
 
 func TestSearchAvailableUsers_NilResult(t *testing.T) {
 	userRepo := &mockTeamUserRepo{
-		searchAvailableFn: func(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+		searchAvailableFn: func(_ context.Context, _ int64, _ string, _ int) ([]*model.User, error) {
 			return nil, nil
 		},
 	}
@@ -745,7 +749,7 @@ func TestGetTeamDetail_UsesCountMembers(t *testing.T) {
 		countMembersVal: 3,
 	}
 	userRepo := &mockTeamUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 10}, DisplayName: "Alice PM"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, DisplayName: "Alice PM"},
 	}
 	mainItemRepo := &mockMainItemRepo{}
 	svc := NewTeamService(teamRepo, userRepo, mainItemRepo, nil, &mockDB{})
@@ -760,7 +764,7 @@ func TestGetTeamDetail_UsesCountMembers(t *testing.T) {
 func TestGetTeamDetail_CountMembersFallback(t *testing.T) {
 	teamRepo := &mockTeamRepo{
 		team: &model.Team{
-			BaseModel: model.BaseModel{ID: 1},
+			BaseModel: model.BaseModel{ID: 1, BizKey: 1},
 			TeamName: "Alpha",
 			PmKey:      10,
 		},
@@ -770,7 +774,7 @@ func TestGetTeamDetail_CountMembersFallback(t *testing.T) {
 		},
 	}
 	userRepo := &mockTeamUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 10}, DisplayName: "Alice PM"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, DisplayName: "Alice PM"},
 	}
 	mainItemRepo := &mockMainItemRepo{}
 	svc := NewTeamService(teamRepo, userRepo, mainItemRepo, nil, &mockDB{})

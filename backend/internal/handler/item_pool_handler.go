@@ -195,7 +195,7 @@ func (h *ItemPoolHandler) Update(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
 	var req dto.UpdateItemPoolReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -203,7 +203,7 @@ func (h *ItemPoolHandler) Update(c *gin.Context) {
 		return
 	}
 
-	item, err := h.svc.Update(c.Request.Context(), teamID, poolID, req)
+	item, err := h.svc.Update(c.Request.Context(), teamBizKey, poolID, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

@@ -248,7 +248,7 @@ func (t *trackingUserRepo) List(_ context.Context) ([]*model.User, error)       
 func (t *trackingUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil
 }
-func (t *trackingUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+func (t *trackingUserRepo) SearchAvailable(_ context.Context, _ int64, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
 }
 func (t *trackingUserRepo) Create(_ context.Context, _ *model.User) error { return nil }

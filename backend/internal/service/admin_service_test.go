@@ -101,7 +101,7 @@ func (m *mockAdminUserRepo) ListFiltered(ctx context.Context, search string, off
 	return nil, 0, nil
 }
 
-func (m *mockAdminUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+func (m *mockAdminUserRepo) SearchAvailable(_ context.Context, _ int64, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
 }
 func (m *mockAdminUserRepo) SoftDelete(_ context.Context, _ *model.User) error {
@@ -119,7 +119,8 @@ type mockAdminTeamRepo struct {
 	removeMemberErr error
 	teamsByUserIDs  map[uint][]dto.TeamSummary
 	teamsByUIDErr   error
-	findTeamsByUserIDsFn func(ctx context.Context, ids []uint) (map[uint][]dto.TeamSummary, error)
+	teamsByUserBizKeys map[int64][]dto.TeamSummary
+	findTeamsByUserBizKeysFn func(ctx context.Context, ids []int64) (map[int64][]dto.TeamSummary, error)
 }
 
 func (m *mockAdminTeamRepo) Create(_ context.Context, _ *model.Team) error      { return nil }
@@ -138,16 +139,16 @@ func (m *mockAdminTeamRepo) FindByBizKey(_ context.Context, _ int64) (*model.Tea
 func (m *mockAdminTeamRepo) AddMember(_ context.Context, member *model.TeamMember) error {
 	return m.addMemberErr
 }
-func (m *mockAdminTeamRepo) RemoveMember(_ context.Context, _, _ uint) error {
+func (m *mockAdminTeamRepo) RemoveMember(_ context.Context, _, _ int64) error {
 	return m.removeMemberErr
 }
-func (m *mockAdminTeamRepo) FindMember(_ context.Context, _, _ uint) (*model.TeamMember, error) {
+func (m *mockAdminTeamRepo) FindMember(_ context.Context, _, _ int64) (*model.TeamMember, error) {
 	return nil, nil
 }
-func (m *mockAdminTeamRepo) ListMembers(_ context.Context, _ uint) ([]*dto.TeamMemberDTO, error) {
+func (m *mockAdminTeamRepo) ListMembers(_ context.Context, _ int64) ([]*dto.TeamMemberDTO, error) {
 	return nil, nil
 }
-func (m *mockAdminTeamRepo) CountMembers(_ context.Context, _ uint) (int64, error) {
+func (m *mockAdminTeamRepo) CountMembers(_ context.Context, _ int64) (int64, error) {
 	return 0, nil
 }
 func (m *mockAdminTeamRepo) UpdateMember(_ context.Context, _ *model.TeamMember) error {
@@ -156,21 +157,25 @@ func (m *mockAdminTeamRepo) UpdateMember(_ context.Context, _ *model.TeamMember)
 func (m *mockAdminTeamRepo) ListAllTeams(_ context.Context) ([]*dto.AdminTeamDTO, error) {
 	return m.teams, m.listAllErr
 }
-func (m *mockAdminTeamRepo) FindTeamsByUserIDs(ctx context.Context, ids []uint) (map[uint][]dto.TeamSummary, error) {
-	if m.findTeamsByUserIDsFn != nil {
-		return m.findTeamsByUserIDsFn(ctx, ids)
+func (m *mockAdminTeamRepo) FindTeamsByUserIDs(_ context.Context, _ []uint) (map[uint][]dto.TeamSummary, error) {
+	return map[uint][]dto.TeamSummary{}, nil
+}
+
+func (m *mockAdminTeamRepo) FindTeamsByUserBizKeys(ctx context.Context, ids []int64) (map[int64][]dto.TeamSummary, error) {
+	if m.findTeamsByUserBizKeysFn != nil {
+		return m.findTeamsByUserBizKeysFn(ctx, ids)
 	}
 	if m.teamsByUIDErr != nil {
 		return nil, m.teamsByUIDErr
 	}
-	if m.teamsByUserIDs != nil {
-		return m.teamsByUserIDs, nil
+	if m.teamsByUserBizKeys != nil {
+		return m.teamsByUserBizKeys, nil
 	}
-	return map[uint][]dto.TeamSummary{}, nil
+	return map[int64][]dto.TeamSummary{}, nil
 }
 
-func (m *mockAdminTeamRepo) FindPMMembers(_ context.Context, _ []uint) (map[uint]string, error) {
-	return map[uint]string{}, nil
+func (m *mockAdminTeamRepo) FindPMMembers(_ context.Context, _ []int64) (map[int64]string, error) {
+	return map[int64]string{}, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -181,7 +186,7 @@ func TestAdminListUsers_Success(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
 		listFilteredFn: func(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 			return []*model.User{
-				{BaseModel: model.BaseModel{ID: 1}, Username: "alice", DisplayName: "Alice"},
+				{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, Username: "alice", DisplayName: "Alice"},
 				{BaseModel: model.BaseModel{ID: 2}, Username: "bob", DisplayName: "Bob"},
 			}, 2, nil
 		},
@@ -283,12 +288,12 @@ func TestAdminListUsers_WithTeams(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
 		listFilteredFn: func(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 			return []*model.User{
-				{BaseModel: model.BaseModel{ID: 1}, Username: "alice", DisplayName: "Alice"},
+				{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, Username: "alice", DisplayName: "Alice"},
 			}, 1, nil
 		},
 	}
 	teamRepo := &mockAdminTeamRepo{
-		teamsByUserIDs: map[uint][]dto.TeamSummary{
+		teamsByUserBizKeys: map[int64][]dto.TeamSummary{
 			1: {{BizKey: "10", Name: "Team A", }},
 		},
 	}
@@ -324,10 +329,10 @@ func TestAdminListUsers_TeamsFetchError(t *testing.T) {
 
 func TestAdminGetUser_Success(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", DisplayName: "Bob", Email: "bob@test.com", UserStatus: "enabled"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob", DisplayName: "Bob", Email: "bob@test.com", UserStatus: "enabled"},
 	}
 	teamRepo := &mockAdminTeamRepo{
-		teamsByUserIDs: map[uint][]dto.TeamSummary{
+		teamsByUserBizKeys: map[int64][]dto.TeamSummary{
 			5: {{BizKey: "1", Name: "Team A", }},
 		},
 	}
@@ -335,7 +340,7 @@ func TestAdminGetUser_Success(t *testing.T) {
 
 	user, err := svc.GetUser(context.Background(), 5)
 	require.NoError(t, err)
-	assert.Equal(t, "0", user.BizKey)
+	assert.Equal(t, "5", user.BizKey)
 	assert.Equal(t, "bob", user.Username)
 	assert.Equal(t, "bob@test.com", user.Email)
 	require.Len(t, user.Teams, 1)
@@ -352,7 +357,7 @@ func TestAdminGetUser_NotFound(t *testing.T) {
 
 func TestAdminGetUser_TeamsFetchError(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob"},
 	}
 	teamRepo := &mockAdminTeamRepo{teamsByUIDErr: errors.New("db error")}
 	svc := NewAdminService(userRepo, teamRepo)
@@ -369,7 +374,7 @@ func TestAdminCreateUser_Success(t *testing.T) {
 	userRepo := &mockAdminUserRepo{}
 	teamRepo := &mockAdminTeamRepo{
 		teamByID: &model.Team{TeamName: "Team A"},
-		teamsByUserIDs: map[uint][]dto.TeamSummary{
+		teamsByUserBizKeys: map[int64][]dto.TeamSummary{
 			100: {{BizKey: "10", Name: "Team A", }},
 		},
 	}
@@ -471,7 +476,7 @@ func TestAdminCreateUser_WithTeamKey_TeamsEmpty(t *testing.T) {
 	userRepo := &mockAdminUserRepo{}
 	teamRepo := &mockAdminTeamRepo{
 		teamByID:       &model.Team{BaseModel: model.BaseModel{ID: 10}, TeamName: "Team A"},
-		teamsByUserIDs: map[uint][]dto.TeamSummary{}, // empty, no entry for user 100
+		teamsByUserBizKeys: map[int64][]dto.TeamSummary{}, // empty, no entry for user 100
 	}
 	svc := NewAdminService(userRepo, teamRepo)
 
@@ -545,10 +550,10 @@ func TestAdminCreateUser_AddMemberError(t *testing.T) {
 
 func TestAdminUpdateUser_Success(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", DisplayName: "Bob", Email: "bob@test.com"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob", DisplayName: "Bob", Email: "bob@test.com"},
 	}
 	teamRepo := &mockAdminTeamRepo{
-		teamsByUserIDs: map[uint][]dto.TeamSummary{
+		teamsByUserBizKeys: map[int64][]dto.TeamSummary{
 			5: {{BizKey: "2", Name: "Team B", }},
 		},
 	}
@@ -578,7 +583,7 @@ func TestAdminUpdateUser_NotFound(t *testing.T) {
 
 func TestAdminUpdateUser_RepoUpdateError(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user:      &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+		user:      &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob"},
 		updateErr: errors.New("db error"),
 	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
@@ -589,11 +594,11 @@ func TestAdminUpdateUser_RepoUpdateError(t *testing.T) {
 
 func TestAdminUpdateUser_WithTeamKey_Success(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob"},
 	}
 	teamRepo := &mockAdminTeamRepo{
 		teamByID: &model.Team{BaseModel: model.BaseModel{ID: 10}, TeamName: "Team A"},
-		teamsByUserIDs: map[uint][]dto.TeamSummary{
+		teamsByUserBizKeys: map[int64][]dto.TeamSummary{
 			5: {{BizKey: "10", Name: "Team A"}},
 		},
 	}
@@ -607,18 +612,18 @@ func TestAdminUpdateUser_WithTeamKey_Success(t *testing.T) {
 
 func TestAdminUpdateUser_WithTeamKey_EmptyRemovesTeam(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob"},
 	}
 	callCount := 0
 	teamRepo := &mockAdminTeamRepo{
-		findTeamsByUserIDsFn: func(_ context.Context, _ []uint) (map[uint][]dto.TeamSummary, error) {
+		findTeamsByUserBizKeysFn: func(_ context.Context, _ []int64) (map[int64][]dto.TeamSummary, error) {
 			callCount++
 			if callCount == 1 {
 				// first call: return existing team for removal
-				return map[uint][]dto.TeamSummary{5: {{BizKey: "10", Name: "Team A", TeamID: 10}}}, nil
+				return map[int64][]dto.TeamSummary{5: {{BizKey: "10", Name: "Team A", TeamID: 10}}}, nil
 			}
 			// second call (reload): empty after removal
-			return map[uint][]dto.TeamSummary{}, nil
+			return map[int64][]dto.TeamSummary{}, nil
 		},
 	}
 	svc := NewAdminService(userRepo, teamRepo)
@@ -630,7 +635,7 @@ func TestAdminUpdateUser_WithTeamKey_EmptyRemovesTeam(t *testing.T) {
 
 func TestAdminUpdateUser_WithTeamKey_InvalidFormat(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob"},
 	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
 
@@ -640,11 +645,11 @@ func TestAdminUpdateUser_WithTeamKey_InvalidFormat(t *testing.T) {
 
 func TestAdminUpdateUser_WithTeamKey_TeamNotFound(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob"},
 	}
 	teamRepo := &mockAdminTeamRepo{
 		teamByIDErr:    apperrors.ErrNotFound,
-		teamsByUserIDs: map[uint][]dto.TeamSummary{},
+		teamsByUserBizKeys: map[int64][]dto.TeamSummary{},
 	}
 	svc := NewAdminService(userRepo, teamRepo)
 
@@ -654,11 +659,11 @@ func TestAdminUpdateUser_WithTeamKey_TeamNotFound(t *testing.T) {
 
 func TestAdminUpdateUser_WithTeamKey_AddMemberError(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob"},
 	}
 	teamRepo := &mockAdminTeamRepo{
 		teamByID:       &model.Team{BaseModel: model.BaseModel{ID: 10}},
-		teamsByUserIDs: map[uint][]dto.TeamSummary{},
+		teamsByUserBizKeys: map[int64][]dto.TeamSummary{},
 		addMemberErr:   errors.New("db error"),
 	}
 	svc := NewAdminService(userRepo, teamRepo)
@@ -669,7 +674,7 @@ func TestAdminUpdateUser_WithTeamKey_AddMemberError(t *testing.T) {
 
 func TestAdminUpdateUser_FindTeamsByUserIDsError(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob"},
 	}
 	teamRepo := &mockAdminTeamRepo{
 		teamsByUIDErr: errors.New("db error"),
@@ -683,7 +688,7 @@ func TestAdminUpdateUser_FindTeamsByUserIDsError(t *testing.T) {
 
 func TestAdminUpdateUser_ReloadTeamsError(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob"},
 	}
 	teamRepo := &mockAdminTeamRepo{teamsByUIDErr: errors.New("db error")}
 	svc := NewAdminService(userRepo, teamRepo)
@@ -699,10 +704,10 @@ func TestAdminUpdateUser_ReloadTeamsError(t *testing.T) {
 
 func TestAdminToggleUserStatus_DisableSuccess(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", UserStatus: "enabled"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob", UserStatus: "enabled"},
 	}
 	teamRepo := &mockAdminTeamRepo{
-		teamsByUserIDs: map[uint][]dto.TeamSummary{},
+		teamsByUserBizKeys: map[int64][]dto.TeamSummary{},
 	}
 	svc := NewAdminService(userRepo, teamRepo)
 
@@ -714,10 +719,10 @@ func TestAdminToggleUserStatus_DisableSuccess(t *testing.T) {
 
 func TestAdminToggleUserStatus_EnableSuccess(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", UserStatus: "disabled"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob", UserStatus: "disabled"},
 	}
 	teamRepo := &mockAdminTeamRepo{
-		teamsByUserIDs: map[uint][]dto.TeamSummary{},
+		teamsByUserBizKeys: map[int64][]dto.TeamSummary{},
 	}
 	svc := NewAdminService(userRepo, teamRepo)
 
@@ -746,7 +751,7 @@ func TestAdminToggleUserStatus_UserNotFound(t *testing.T) {
 
 func TestAdminToggleUserStatus_TeamsFetchError(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user: &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", UserStatus: "enabled"},
+		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob", UserStatus: "enabled"},
 	}
 	teamRepo := &mockAdminTeamRepo{teamsByUIDErr: errors.New("db error")}
 	svc := NewAdminService(userRepo, teamRepo)
@@ -757,7 +762,7 @@ func TestAdminToggleUserStatus_TeamsFetchError(t *testing.T) {
 
 func TestAdminToggleUserStatus_RepoUpdateError(t *testing.T) {
 	userRepo := &mockAdminUserRepo{
-		user:      &model.User{BaseModel: model.BaseModel{ID: 5}, Username: "bob", UserStatus: "enabled"},
+		user:      &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob", UserStatus: "enabled"},
 		updateErr: errors.New("db error"),
 	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{})
@@ -976,7 +981,7 @@ func BenchmarkAdminListUsers_WithSearch(b *testing.B) {
 		},
 	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{
-		teamsByUserIDs: map[uint][]dto.TeamSummary{
+		teamsByUserBizKeys: map[int64][]dto.TeamSummary{
 			1: {{BizKey: "1", Name: "Team A", }},
 		},
 	})

@@ -32,7 +32,7 @@ func TestTransferPM_SuperAdminNotTeamMember_Succeeds(t *testing.T) {
 
 	var team model.Team
 	require.NoError(t, db.First(&team, data.teamAID).Error)
-	assert.Equal(t, int64(data.memberAID), team.PmKey)
+	assert.Equal(t, memberA.BizKey, team.PmKey)
 }
 
 func TestTransferPM_PMTransfersToMember(t *testing.T) {
@@ -53,7 +53,7 @@ func TestTransferPM_PMTransfersToMember(t *testing.T) {
 
 	var team model.Team
 	require.NoError(t, db.First(&team, data.teamAID).Error)
-	assert.Equal(t, int64(data.memberAID), team.PmKey)
+	assert.Equal(t, memberA.BizKey, team.PmKey)
 }
 
 func TestTransferPM_RegularMemberWithoutPermission_Returns403(t *testing.T) {

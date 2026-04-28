@@ -24,6 +24,7 @@ type ItemPoolService interface {
 	Reject(ctx context.Context, teamBizKey int64, pmID, poolItemID uint, reason string) error
 	List(ctx context.Context, teamBizKey int64, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error)
 	Get(ctx context.Context, teamBizKey int64, poolItemID uint) (*model.ItemPool, error)
+	Update(ctx context.Context, teamBizKey int64, poolItemID uint, req dto.UpdateItemPoolReq) (*model.ItemPool, error)
 	GetByBizKey(ctx context.Context, bizKey int64) (*model.ItemPool, error)
 }
 
@@ -215,12 +216,12 @@ func (s *itemPoolService) List(ctx context.Context, teamBizKey int64, filter dto
 	return s.poolRepo.List(ctx, teamBizKey, filter, page)
 }
 
-func (s *itemPoolService) Update(ctx context.Context, teamID, poolItemID uint, req dto.UpdateItemPoolReq) (*model.ItemPool, error) {
+func (s *itemPoolService) Update(ctx context.Context, teamBizKey int64, poolItemID uint, req dto.UpdateItemPoolReq) (*model.ItemPool, error) {
 	item, err := s.poolRepo.FindByID(ctx, poolItemID)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
-	if item.TeamKey != int64(teamID) {
+	if item.TeamKey != teamBizKey {
 		return nil, apperrors.ErrForbidden
 	}
 	if item.PoolStatus != "pending" {

@@ -12,6 +12,7 @@ import (
 	gormlib "gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 	pkgerrors "pm-work-tracker/backend/internal/pkg/errors"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 )
@@ -30,7 +31,7 @@ func TestUserRepo_FindByID(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("found", func(t *testing.T) {
-		u := model.User{Username: "alice", DisplayName: "Alice", PasswordHash: "h"}
+		u := model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "alice", DisplayName: "Alice", PasswordHash: "h"}
 		require.NoError(t, db.Create(&u).Error)
 
 		found, err := repo.FindByID(ctx, u.ID)
@@ -50,7 +51,7 @@ func TestUserRepo_FindByUsername(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("found", func(t *testing.T) {
-		u := model.User{Username: "bob", DisplayName: "Bob", PasswordHash: "h"}
+		u := model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "bob", DisplayName: "Bob", PasswordHash: "h"}
 		require.NoError(t, db.Create(&u).Error)
 
 		found, err := repo.FindByUsername(ctx, "bob")
@@ -75,8 +76,8 @@ func TestUserRepo_List(t *testing.T) {
 	repo := gormrepo.NewGormUserRepo(db)
 	ctx := context.Background()
 
-	require.NoError(t, db.Create(&model.User{Username: "u1", DisplayName: "U1", PasswordHash: "h"}).Error)
-	require.NoError(t, db.Create(&model.User{Username: "u2", DisplayName: "U2", PasswordHash: "h"}).Error)
+	require.NoError(t, db.Create(&model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "u1", DisplayName: "U1", PasswordHash: "h"}).Error)
+	require.NoError(t, db.Create(&model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "u2", DisplayName: "U2", PasswordHash: "h"}).Error)
 
 	users, err := repo.List(ctx)
 	require.NoError(t, err)
@@ -88,7 +89,7 @@ func TestUserRepo_Update(t *testing.T) {
 	repo := gormrepo.NewGormUserRepo(db)
 	ctx := context.Background()
 
-	u := model.User{Username: "charlie", DisplayName: "Charlie", PasswordHash: "h"}
+	u := model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "charlie", DisplayName: "Charlie", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
 
 	u.DisplayName = "Charles"
@@ -106,8 +107,8 @@ func TestUserRepo_FindByIDs(t *testing.T) {
 	repo := gormrepo.NewGormUserRepo(db)
 	ctx := context.Background()
 
-	u1 := model.User{Username: "a1", DisplayName: "Alice", PasswordHash: "h"}
-	u2 := model.User{Username: "b2", DisplayName: "Bob", PasswordHash: "h"}
+	u1 := model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "a1", DisplayName: "Alice", PasswordHash: "h"}
+	u2 := model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "b2", DisplayName: "Bob", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u1).Error)
 	require.NoError(t, db.Create(&u2).Error)
 
@@ -142,9 +143,9 @@ func TestUserRepo_ListFiltered(t *testing.T) {
 	repo := gormrepo.NewGormUserRepo(db)
 	ctx := context.Background()
 
-	require.NoError(t, db.Create(&model.User{Username: "alice", DisplayName: "Alice Wang", PasswordHash: "h"}).Error)
-	require.NoError(t, db.Create(&model.User{Username: "bob99", DisplayName: "Bob Li", PasswordHash: "h"}).Error)
-	require.NoError(t, db.Create(&model.User{Username: "charlie", DisplayName: "Charlie Zhang", PasswordHash: "h"}).Error)
+	require.NoError(t, db.Create(&model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "alice", DisplayName: "Alice Wang", PasswordHash: "h"}).Error)
+	require.NoError(t, db.Create(&model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "bob99", DisplayName: "Bob Li", PasswordHash: "h"}).Error)
+	require.NoError(t, db.Create(&model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "charlie", DisplayName: "Charlie Zhang", PasswordHash: "h"}).Error)
 
 	t.Run("search_by_username", func(t *testing.T) {
 		users, total, err := repo.ListFiltered(ctx, "alice", 0, 10)
@@ -196,20 +197,20 @@ func TestUserRepo_SearchAvailable(t *testing.T) {
 	repo := gormrepo.NewGormUserRepo(db)
 	ctx := context.Background()
 
-	u1 := model.User{Username: "alice", DisplayName: "Alice", PasswordHash: "h"}
-	u2 := model.User{Username: "bob", DisplayName: "Bob", PasswordHash: "h"}
-	u3 := model.User{Username: "charlie", DisplayName: "Charlie", PasswordHash: "h"}
+	u1 := model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "alice", DisplayName: "Alice", PasswordHash: "h"}
+	u2 := model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "bob", DisplayName: "Bob", PasswordHash: "h"}
+	u3 := model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "charlie", DisplayName: "Charlie", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u1).Error)
 	require.NoError(t, db.Create(&u2).Error)
 	require.NoError(t, db.Create(&u3).Error)
 
-	team := model.Team{TeamName: "Team1", PmKey: int64(u1.ID), Code: "T1"}
+	team := model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team1", PmKey: u1.BizKey, Code: "T1"}
 	require.NoError(t, db.Create(&team).Error)
 	// u2 is already a team member
-	require.NoError(t, db.Create(&model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u2.ID), JoinedAt: time.Now()}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamKey: team.BizKey, UserKey: u2.BizKey, JoinedAt: time.Now()}).Error)
 
 	t.Run("excludes_team_members", func(t *testing.T) {
-		users, err := repo.SearchAvailable(ctx, team.ID, "", 10)
+		users, err := repo.SearchAvailable(ctx, team.BizKey, "", 10)
 		require.NoError(t, err)
 		assert.Len(t, users, 2) // u1 and u3 (u2 is excluded)
 		usernames := map[string]bool{}
@@ -222,14 +223,14 @@ func TestUserRepo_SearchAvailable(t *testing.T) {
 	})
 
 	t.Run("search_filters_by_name", func(t *testing.T) {
-		users, err := repo.SearchAvailable(ctx, team.ID, "ali", 10)
+		users, err := repo.SearchAvailable(ctx, team.BizKey, "ali", 10)
 		require.NoError(t, err)
 		assert.Len(t, users, 1)
 		assert.Equal(t, "alice", users[0].Username)
 	})
 
 	t.Run("respects_limit", func(t *testing.T) {
-		users, err := repo.SearchAvailable(ctx, team.ID, "", 1)
+		users, err := repo.SearchAvailable(ctx, team.BizKey, "", 1)
 		require.NoError(t, err)
 		assert.Len(t, users, 1)
 	})
@@ -242,7 +243,7 @@ func TestUserRepo_SoftDelete(t *testing.T) {
 	repo := gormrepo.NewGormUserRepo(db)
 	ctx := context.Background()
 
-	u := model.User{Username: "deleteme", DisplayName: "Delete Me", PasswordHash: "h"}
+	u := model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "deleteme", DisplayName: "Delete Me", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
 
 	t.Run("sets_deleted_flag_and_deleted_time", func(t *testing.T) {
@@ -267,7 +268,7 @@ func TestUserRepo_SoftDelete(t *testing.T) {
 
 	t.Run("ListFiltered_excludes_soft_deleted", func(t *testing.T) {
 		// Create another active user
-		require.NoError(t, db.Create(&model.User{Username: "active", DisplayName: "Active", PasswordHash: "h"}).Error)
+		require.NoError(t, db.Create(&model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "active", DisplayName: "Active", PasswordHash: "h"}).Error)
 
 		users, total, err := repo.ListFiltered(ctx, "", 0, 10)
 		require.NoError(t, err)
@@ -283,7 +284,7 @@ func TestUserRepo_SoftDelete(t *testing.T) {
 
 	t.Run("List_excludes_soft_deleted", func(t *testing.T) {
 		// Create another active user
-		require.NoError(t, db.Create(&model.User{Username: "active2", DisplayName: "Active2", PasswordHash: "h"}).Error)
+		require.NoError(t, db.Create(&model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "active2", DisplayName: "Active2", PasswordHash: "h"}).Error)
 
 		users, err := repo.List(ctx)
 		require.NoError(t, err)
@@ -295,10 +296,10 @@ func TestUserRepo_SoftDelete(t *testing.T) {
 
 	t.Run("SearchAvailable_excludes_soft_deleted", func(t *testing.T) {
 		require.NoError(t, db.AutoMigrate(&model.Team{}, &model.TeamMember{}))
-		team := model.Team{TeamName: "TestTeam", Code: "TTSD"}
+		team := model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "TestTeam", Code: "TTSD"}
 		require.NoError(t, db.Create(&team).Error)
 
-		users, err := repo.SearchAvailable(ctx, team.ID, "", 10)
+		users, err := repo.SearchAvailable(ctx, team.BizKey, "", 10)
 		require.NoError(t, err)
 		for _, u := range users {
 			assert.NotEqual(t, "deleteme", u.Username, "soft-deleted user should not appear in SearchAvailable")

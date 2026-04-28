@@ -296,7 +296,7 @@ func (s *roleService) GetUserPermissions(ctx context.Context, userID uint) (*Use
 		return nil, err
 	}
 
-	teamPerms, err := s.roleRepo.GetUserTeamPermissions(ctx, userID)
+	teamPerms, err := s.roleRepo.GetUserTeamPermissions(ctx, user.BizKey)
 	if err != nil {
 		return nil, err
 	}

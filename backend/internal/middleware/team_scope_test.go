@@ -69,29 +69,29 @@ func (m *mockTeamRepo) AddMember(ctx context.Context, member *model.TeamMember) 
 	return args.Error(0)
 }
 
-func (m *mockTeamRepo) RemoveMember(ctx context.Context, teamID, userID uint) error {
-	args := m.Called(ctx, teamID, userID)
+func (m *mockTeamRepo) RemoveMember(ctx context.Context, teamBizKey, userBizKey int64) error {
+	args := m.Called(ctx, teamBizKey, userBizKey)
 	return args.Error(0)
 }
 
-func (m *mockTeamRepo) FindMember(ctx context.Context, teamID, userID uint) (*model.TeamMember, error) {
-	args := m.Called(ctx, teamID, userID)
+func (m *mockTeamRepo) FindMember(ctx context.Context, teamBizKey, userBizKey int64) (*model.TeamMember, error) {
+	args := m.Called(ctx, teamBizKey, userBizKey)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*model.TeamMember), args.Error(1)
 }
 
-func (m *mockTeamRepo) ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMemberDTO, error) {
-	args := m.Called(ctx, teamID)
+func (m *mockTeamRepo) ListMembers(ctx context.Context, teamBizKey int64) ([]*dto.TeamMemberDTO, error) {
+	args := m.Called(ctx, teamBizKey)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]*dto.TeamMemberDTO), args.Error(1)
 }
 
-func (m *mockTeamRepo) CountMembers(ctx context.Context, teamID uint) (int64, error) {
-	args := m.Called(ctx, teamID)
+func (m *mockTeamRepo) CountMembers(ctx context.Context, teamBizKey int64) (int64, error) {
+	args := m.Called(ctx, teamBizKey)
 	return args.Get(0).(int64), args.Error(1)
 }
 
@@ -109,8 +109,8 @@ func (m *mockTeamRepo) ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, e
 }
 
 
-func (m *mockTeamRepo) FindPMMembers(_ context.Context, _ []uint) (map[uint]string, error) {
-	return map[uint]string{}, nil
+func (m *mockTeamRepo) FindPMMembers(_ context.Context, _ []int64) (map[int64]string, error) {
+	return map[int64]string{}, nil
 }
 
 func (m *mockTeamRepo) FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[uint][]dto.TeamSummary, error) {
@@ -119,6 +119,14 @@ func (m *mockTeamRepo) FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(map[uint][]dto.TeamSummary), args.Error(1)
+}
+
+func (m *mockTeamRepo) FindTeamsByUserBizKeys(ctx context.Context, userBizKeys []int64) (map[int64][]dto.TeamSummary, error) {
+	args := m.Called(ctx, userBizKeys)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(map[int64][]dto.TeamSummary), args.Error(1)
 }
 
 // compile-time check that mockTeamRepo satisfies TeamRepo
@@ -194,13 +202,13 @@ func (m *mockRoleRepo) CountMembersByRoleKey(ctx context.Context, roleKey int64)
 	return args.Get(0).(int64), args.Error(1)
 }
 
-func (m *mockRoleRepo) HasPermission(ctx context.Context, userID uint, code string) (bool, error) {
-	args := m.Called(ctx, userID, code)
+func (m *mockRoleRepo) HasPermission(ctx context.Context, userBizKey int64, code string) (bool, error) {
+	args := m.Called(ctx, userBizKey, code)
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *mockRoleRepo) GetUserTeamPermissions(ctx context.Context, userID uint) (map[int64][]string, error) {
-	args := m.Called(ctx, userID)
+func (m *mockRoleRepo) GetUserTeamPermissions(ctx context.Context, userBizKey int64) (map[int64][]string, error) {
+	args := m.Called(ctx, userBizKey)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -229,6 +237,7 @@ func setupTeamScopeRouter(teamRepo repository.TeamRepo, roleRepo repository.Role
 			var id uint
 			fmt.Sscanf(uid, "%d", &id)
 			c.Set("userID", id)
+			c.Set("userBizKey", int64(id))
 		}
 		if isAdmin == "true" {
 			c.Set("isSuperAdmin", true)
@@ -263,8 +272,8 @@ func TestTeamScopeMiddleware_InvalidTeamID(t *testing.T) {
 func TestTeamScopeMiddleware_NonMember_Returns403(t *testing.T) {
 	teamRepo := new(mockTeamRepo)
 	roleRepo := new(mockRoleRepo)
-	teamRepo.On("FindByBizKey", mock.Anything, int64(1)).Return(&model.Team{BaseModel: model.BaseModel{ID: 1}}, nil)
-	teamRepo.On("FindMember", mock.Anything, uint(1), uint(2)).Return(nil, fmt.Errorf("not found"))
+	teamRepo.On("FindByBizKey", mock.Anything, int64(1)).Return(&model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}}, nil)
+	teamRepo.On("FindMember", mock.Anything, int64(1), int64(2)).Return(nil, fmt.Errorf("not found"))
 	r, _ := setupTeamScopeRouter(teamRepo, roleRepo)
 
 	w := httptest.NewRecorder()
@@ -279,8 +288,8 @@ func TestTeamScopeMiddleware_Member_SetsContext(t *testing.T) {
 	roleBizKey := int64(3003)
 	teamRepo := new(mockTeamRepo)
 	roleRepo := new(mockRoleRepo)
-	teamRepo.On("FindByBizKey", mock.Anything, int64(5)).Return(&model.Team{BaseModel: model.BaseModel{ID: 5}}, nil)
-	teamRepo.On("FindMember", mock.Anything, uint(5), uint(10)).Return(&model.TeamMember{
+	teamRepo.On("FindByBizKey", mock.Anything, int64(5)).Return(&model.Team{BaseModel: model.BaseModel{ID: 5, BizKey: 5}}, nil)
+	teamRepo.On("FindMember", mock.Anything, int64(5), int64(10)).Return(&model.TeamMember{
 		TeamKey: int64(5),
 		UserKey: 10,
 		RoleKey: &roleBizKey,
@@ -317,8 +326,8 @@ func TestTeamScopeMiddleware_SuperAdmin_BypassesMembership(t *testing.T) {
 func TestTeamScopeMiddleware_MemberNoRoleID_SetsEmptyPermCodes(t *testing.T) {
 	teamRepo := new(mockTeamRepo)
 	roleRepo := new(mockRoleRepo)
-	teamRepo.On("FindByBizKey", mock.Anything, int64(3)).Return(&model.Team{BaseModel: model.BaseModel{ID: 3}}, nil)
-	teamRepo.On("FindMember", mock.Anything, uint(3), uint(7)).Return(&model.TeamMember{
+	teamRepo.On("FindByBizKey", mock.Anything, int64(3)).Return(&model.Team{BaseModel: model.BaseModel{ID: 3, BizKey: 3}}, nil)
+	teamRepo.On("FindMember", mock.Anything, int64(3), int64(7)).Return(&model.TeamMember{
 		TeamKey: int64(3),
 		UserKey: 7,
 		RoleKey: nil,
@@ -337,8 +346,8 @@ func TestTeamScopeMiddleware_MemberNoRoleID_SetsEmptyPermCodes(t *testing.T) {
 func TestTeamScopeMiddleware_RoleBizKeyNotFound_Returns500(t *testing.T) {
 	teamRepo := new(mockTeamRepo)
 	roleRepo := new(mockRoleRepo)
-	teamRepo.On("FindByBizKey", mock.Anything, int64(4)).Return(&model.Team{BaseModel: model.BaseModel{ID: 4}}, nil)
-	teamRepo.On("FindMember", mock.Anything, uint(4), uint(8)).Return(&model.TeamMember{
+	teamRepo.On("FindByBizKey", mock.Anything, int64(4)).Return(&model.Team{BaseModel: model.BaseModel{ID: 4, BizKey: 4}}, nil)
+	teamRepo.On("FindMember", mock.Anything, int64(4), int64(8)).Return(&model.TeamMember{
 		TeamKey: int64(4),
 		UserKey: 8,
 		RoleKey: func() *int64 { v := int64(99); return &v }(),

@@ -149,10 +149,10 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	hashAdmin, err := bcrypt.GenerateFromPassword([]byte("adminPass"), 4)
 	require.NoError(t, err)
 
-	userA := &model.User{Username: "userA", DisplayName: "User A", PasswordHash: string(hashA)}
-	userB := &model.User{Username: "userB", DisplayName: "User B", PasswordHash: string(hashB)}
-	memberA := &model.User{Username: "memberA", DisplayName: "Member A", PasswordHash: string(hashMemberA)}
-	superAdmin := &model.User{
+	userA := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "userA", DisplayName: "User A", PasswordHash: string(hashA)}
+	userB := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "userB", DisplayName: "User B", PasswordHash: string(hashB)}
+	memberA := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "memberA", DisplayName: "Member A", PasswordHash: string(hashMemberA)}
+	superAdmin := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
 		Username: "superadmin", DisplayName: "Super Admin",
 		PasswordHash: string(hashAdmin), IsSuperAdmin: true,
 	}
@@ -191,21 +191,21 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	}
 
 	// Seed teams (with BizKey so middleware can resolve bizKey to internal ID)
-	teamA := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team A", PmKey: int64(userA.ID), Code: "TAMA"}
-	teamB := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team B", PmKey: int64(userB.ID), Code: "TAMB"}
+	teamA := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team A", PmKey: userA.BizKey, Code: "TAMA"}
+	teamB := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team B", PmKey: userB.BizKey, Code: "TAMB"}
 	require.NoError(t, db.Create(teamA).Error)
 	require.NoError(t, db.Create(teamB).Error)
 
 	// Seed team members (with RoleID pointing to seeded roles)
 	now := time.Now()
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamA.ID), UserKey: int64(userA.ID), RoleKey: &pmRole.BizKey, JoinedAt: now,
+		TeamKey: teamA.BizKey, UserKey: userA.BizKey, RoleKey: &pmRole.BizKey, JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamA.ID), UserKey: int64(memberA.ID), RoleKey: &memberRole.BizKey, JoinedAt: now,
+		TeamKey: teamA.BizKey, UserKey: memberA.BizKey, RoleKey: &memberRole.BizKey, JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamB.ID), UserKey: int64(userB.ID), RoleKey: &pmRole.BizKey, JoinedAt: now,
+		TeamKey: teamB.BizKey, UserKey: userB.BizKey, RoleKey: &pmRole.BizKey, JoinedAt: now,
 	}).Error)
 
 	return db, &seedData{
@@ -286,10 +286,10 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	hashAdmin, err := bcrypt.GenerateFromPassword([]byte("adminPass"), 4)
 	require.NoError(t, err)
 
-	userA := &model.User{Username: "userA", DisplayName: "User A", PasswordHash: string(hashA)}
-	userB := &model.User{Username: "userB", DisplayName: "User B", PasswordHash: string(hashB)}
-	memberA := &model.User{Username: "memberA", DisplayName: "Member A", PasswordHash: string(hashMemberA)}
-	superAdmin := &model.User{
+	userA := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "userA", DisplayName: "User A", PasswordHash: string(hashA)}
+	userB := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "userB", DisplayName: "User B", PasswordHash: string(hashB)}
+	memberA := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "memberA", DisplayName: "Member A", PasswordHash: string(hashMemberA)}
+	superAdmin := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
 		Username: "superadmin", DisplayName: "Super Admin",
 		PasswordHash: string(hashAdmin), IsSuperAdmin: true,
 	}
@@ -342,21 +342,21 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	_ = superadminRole
 
 	// Seed teams (with BizKey so middleware can resolve bizKey to internal ID)
-	teamA := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team A", PmKey: int64(userA.ID), Code: "TAMA"}
-	teamB := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team B", PmKey: int64(userB.ID), Code: "TAMB"}
+	teamA := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team A", PmKey: userA.BizKey, Code: "TAMA"}
+	teamB := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team B", PmKey: userB.BizKey, Code: "TAMB"}
 	require.NoError(t, db.Create(teamA).Error)
 	require.NoError(t, db.Create(teamB).Error)
 
 	// Seed team members
 	now := time.Now()
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamA.ID), UserKey: int64(userA.ID), RoleKey: &pmRole.BizKey, JoinedAt: now,
+		TeamKey: teamA.BizKey, UserKey: userA.BizKey, RoleKey: &pmRole.BizKey, JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamA.ID), UserKey: int64(memberA.ID), RoleKey: &memberRole.BizKey, JoinedAt: now,
+		TeamKey: teamA.BizKey, UserKey: memberA.BizKey, RoleKey: &memberRole.BizKey, JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamB.ID), UserKey: int64(userB.ID), RoleKey: &pmRole.BizKey, JoinedAt: now,
+		TeamKey: teamB.BizKey, UserKey: userB.BizKey, RoleKey: &pmRole.BizKey, JoinedAt: now,
 	}).Error)
 
 	return db, &seedData{

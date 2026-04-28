@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"context"
-
 	"github.com/gin-gonic/gin"
 
 	"pm-work-tracker/backend/internal/dto"
@@ -35,7 +33,7 @@ func NewTeamHandler(teamSvc service.TeamService, userRepo repository.UserRepo) *
 // Create handles POST /api/v1/teams
 // Permission check (team:create) is handled by RequirePermission middleware.
 func (h *TeamHandler) Create(c *gin.Context) {
-	userID := middleware.GetUserID(c)
+	userBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.CreateTeamReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -43,7 +41,7 @@ func (h *TeamHandler) Create(c *gin.Context) {
 		return
 	}
 
-	team, err := h.teamSvc.CreateTeam(c.Request.Context(), userID, req)
+	team, err := h.teamSvc.CreateTeam(c.Request.Context(), userBizKey, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -90,7 +88,7 @@ func (h *TeamHandler) Get(c *gin.Context) {
 // Update handles PUT /api/v1/teams/:teamId
 func (h *TeamHandler) Update(c *gin.Context) {
 	teamBizKey := middleware.GetTeamBizKey(c)
-	pmID := middleware.GetUserID(c)
+	pmBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.UpdateTeamReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -104,10 +102,10 @@ func (h *TeamHandler) Update(c *gin.Context) {
 			apperrors.RespondError(c, err)
 			return
 		}
-		pmID = uint(team.PmKey)
+		pmBizKey = team.PmKey
 	}
 
-	team, err := h.teamSvc.UpdateTeam(c.Request.Context(), pmID, teamBizKey, req)
+	team, err := h.teamSvc.UpdateTeam(c.Request.Context(), pmBizKey, teamBizKey, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -119,7 +117,7 @@ func (h *TeamHandler) Update(c *gin.Context) {
 // Disband handles DELETE /api/v1/teams/:teamId
 func (h *TeamHandler) Disband(c *gin.Context) {
 	teamBizKey := middleware.GetTeamBizKey(c)
-	callerID := middleware.GetUserID(c)
+	callerBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.DisbandTeamReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -133,10 +131,10 @@ func (h *TeamHandler) Disband(c *gin.Context) {
 			apperrors.RespondError(c, err)
 			return
 		}
-		callerID = uint(team.PmKey)
+		callerBizKey = team.PmKey
 	}
 
-	err := h.teamSvc.DisbandTeam(c.Request.Context(), callerID, teamBizKey, req.ConfirmName)
+	err := h.teamSvc.DisbandTeam(c.Request.Context(), callerBizKey, teamBizKey, req.ConfirmName)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -161,7 +159,7 @@ func (h *TeamHandler) ListMembers(c *gin.Context) {
 // InviteMember handles POST /api/v1/teams/:teamId/members
 func (h *TeamHandler) InviteMember(c *gin.Context) {
 	teamBizKey := middleware.GetTeamBizKey(c)
-	pmID := middleware.GetUserID(c)
+	pmBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.InviteMemberReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -169,7 +167,7 @@ func (h *TeamHandler) InviteMember(c *gin.Context) {
 		return
 	}
 
-	err := h.teamSvc.InviteMember(c.Request.Context(), pmID, teamBizKey, req)
+	err := h.teamSvc.InviteMember(c.Request.Context(), pmBizKey, teamBizKey, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -181,16 +179,15 @@ func (h *TeamHandler) InviteMember(c *gin.Context) {
 // RemoveMember handles DELETE /api/v1/teams/:teamId/members/:userId
 func (h *TeamHandler) RemoveMember(c *gin.Context) {
 	teamBizKey := middleware.GetTeamBizKey(c)
-	pmID := middleware.GetUserID(c)
+	pmBizKey := middleware.GetUserBizKey(c)
 
-	targetUserID, ok := pkgHandler.ResolveBizKey(c, "userId", func(ctx context.Context, bizKey int64) (uint, error) {
-		user, err := h.userRepo.FindByBizKey(ctx, bizKey)
-		if err != nil {
-			return 0, apperrors.ErrItemNotFound
-		}
-		return user.ID, nil
-	})
+	targetUserBizKey, ok := pkgHandler.ParseBizKeyParam(c, "userId")
 	if !ok {
+		return
+	}
+	targetUser, err := h.userRepo.FindByBizKey(c.Request.Context(), targetUserBizKey)
+	if err != nil {
+		apperrors.RespondError(c, apperrors.ErrItemNotFound)
 		return
 	}
 
@@ -200,10 +197,10 @@ func (h *TeamHandler) RemoveMember(c *gin.Context) {
 			apperrors.RespondError(c, err)
 			return
 		}
-		pmID = uint(team.PmKey)
+		pmBizKey = team.PmKey
 	}
 
-	err := h.teamSvc.RemoveMember(c.Request.Context(), pmID, teamBizKey, targetUserID)
+	err = h.teamSvc.RemoveMember(c.Request.Context(), pmBizKey, teamBizKey, targetUser.BizKey)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -215,16 +212,15 @@ func (h *TeamHandler) RemoveMember(c *gin.Context) {
 // UpdateMemberRole handles PUT /api/v1/teams/:teamId/members/:userId/role
 func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 	teamBizKey := middleware.GetTeamBizKey(c)
-	pmID := middleware.GetUserID(c)
+	pmBizKey := middleware.GetUserBizKey(c)
 
-	targetUserID, ok := pkgHandler.ResolveBizKey(c, "userId", func(ctx context.Context, bizKey int64) (uint, error) {
-		user, err := h.userRepo.FindByBizKey(ctx, bizKey)
-		if err != nil {
-			return 0, apperrors.ErrItemNotFound
-		}
-		return user.ID, nil
-	})
+	targetUserBizKey, ok := pkgHandler.ParseBizKeyParam(c, "userId")
 	if !ok {
+		return
+	}
+	targetUser, err := h.userRepo.FindByBizKey(c.Request.Context(), targetUserBizKey)
+	if err != nil {
+		apperrors.RespondError(c, apperrors.ErrItemNotFound)
 		return
 	}
 
@@ -240,11 +236,11 @@ func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 			apperrors.RespondError(c, err)
 			return
 		}
-		pmID = uint(team.PmKey)
+		pmBizKey = team.PmKey
 	}
 
 	roleKey, _ := pkg.ParseID(req.RoleKey)
-	if err := h.teamSvc.UpdateMemberRole(c.Request.Context(), pmID, targetUserID, teamBizKey, roleKey); err != nil {
+	if err := h.teamSvc.UpdateMemberRole(c.Request.Context(), pmBizKey, targetUser.BizKey, teamBizKey, roleKey); err != nil {
 		apperrors.RespondError(c, err)
 		return
 	}
@@ -255,7 +251,7 @@ func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 // TransferPM handles PUT /api/v1/teams/:teamId/pm
 func (h *TeamHandler) TransferPM(c *gin.Context) {
 	teamBizKey := middleware.GetTeamBizKey(c)
-	callerID := middleware.GetUserID(c)
+	callerBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.TransferPMReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -263,7 +259,7 @@ func (h *TeamHandler) TransferPM(c *gin.Context) {
 		return
 	}
 
-	// Resolve newPmUserKey (bizKey) to internal user ID
+	// Resolve newPmUserKey (bizKey) to user BizKey
 	newPmBizKey, err := pkg.ParseID(req.NewPmUserKey)
 	if err != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
@@ -275,18 +271,18 @@ func (h *TeamHandler) TransferPM(c *gin.Context) {
 		return
 	}
 
-	// SuperAdmin is not the team PM, so fetch the actual PM ID to pass the ownership check.
-	pmID := callerID
+	// SuperAdmin is not the team PM, so fetch the actual PM BizKey to pass the ownership check.
+	pmBizKey := callerBizKey
 	if middleware.IsSuperAdmin(c) {
 		team, err := h.teamSvc.GetTeam(c.Request.Context(), teamBizKey)
 		if err != nil {
 			apperrors.RespondError(c, err)
 			return
 		}
-		pmID = uint(team.PmKey)
+		pmBizKey = team.PmKey
 	}
 
-	err = h.teamSvc.TransferPM(c.Request.Context(), pmID, teamBizKey, newPmUser.ID)
+	err = h.teamSvc.TransferPM(c.Request.Context(), pmBizKey, teamBizKey, newPmUser.BizKey)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

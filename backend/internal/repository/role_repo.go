@@ -24,8 +24,8 @@ type RoleRepo interface {
 	CountMembersByRoleKey(ctx context.Context, roleKey int64) (int64, error)
 
 	// Non-team-context: check if any of user's roles has the given permission code
-	HasPermission(ctx context.Context, userID uint, code string) (bool, error)
+	HasPermission(ctx context.Context, userBizKey int64, code string) (bool, error)
 
 	// GetUserTeamPermissions returns teamBizKey -> permission codes for all teams the user belongs to.
-	GetUserTeamPermissions(ctx context.Context, userID uint) (map[int64][]string, error)
+	GetUserTeamPermissions(ctx context.Context, userBizKey int64) (map[int64][]string, error)
 }

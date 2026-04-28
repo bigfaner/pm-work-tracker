@@ -88,9 +88,9 @@ type mockTeamService struct {
 	listMembersTeamID uint
 }
 
-func (m *mockTeamService) CreateTeam(_ context.Context, creatorID uint, req dto.CreateTeamReq) (*model.Team, error) {
+func (m *mockTeamService) CreateTeam(_ context.Context, creatorBizKey int64, req dto.CreateTeamReq) (*model.Team, error) {
 	m.createCalled = true
-	m.lastCreatorID = creatorID
+	m.lastCreatorID = uint(creatorBizKey)
 	m.lastCreateReq = req
 	return m.createTeamResult.team, m.createTeamResult.err
 }
@@ -112,47 +112,47 @@ func (m *mockTeamService) ListTeams(_ context.Context, callerID uint, isSuperAdm
 	return m.listTeamsResult.teams, int64(len(m.listTeamsResult.teams)), m.listTeamsResult.err
 }
 
-func (m *mockTeamService) UpdateTeam(_ context.Context, pmID uint, teamBizKey int64, req dto.UpdateTeamReq) (*model.Team, error) {
+func (m *mockTeamService) UpdateTeam(_ context.Context, pmBizKey int64, teamBizKey int64, req dto.UpdateTeamReq) (*model.Team, error) {
 	m.updateCalled = true
-	m.lastPmID = pmID
+	m.lastPmID = uint(pmBizKey)
 	m.lastTeamID = uint(teamBizKey)
 	m.lastUpdateReq = req
 	return m.updateTeamResult.team, m.updateTeamResult.err
 }
 
-func (m *mockTeamService) InviteMember(_ context.Context, pmID uint, teamBizKey int64, req dto.InviteMemberReq) error {
+func (m *mockTeamService) InviteMember(_ context.Context, pmBizKey int64, teamBizKey int64, req dto.InviteMemberReq) error {
 	m.inviteCalled = true
-	m.lastPmID = pmID
+	m.lastPmID = uint(pmBizKey)
 	m.inviteTeamID = uint(teamBizKey)
 	m.lastInviteReq = req
 	return m.inviteMemberErr
 }
 
-func (m *mockTeamService) RemoveMember(_ context.Context, pmID uint, teamBizKey int64, targetUserID uint) error {
+func (m *mockTeamService) RemoveMember(_ context.Context, pmBizKey int64, teamBizKey int64, targetUserBizKey int64) error {
 	m.removeCalled = true
-	m.lastPmID = pmID
+	m.lastPmID = uint(pmBizKey)
 	m.removeTeamID = uint(teamBizKey)
-	m.removeTargetID = targetUserID
+	m.removeTargetID = uint(targetUserBizKey)
 	return m.removeMemberErr
 }
 
-func (m *mockTeamService) TransferPM(_ context.Context, currentPMID uint, teamBizKey int64, newPMID uint) error {
+func (m *mockTeamService) TransferPM(_ context.Context, currentPMBizKey int64, teamBizKey int64, newPMBizKey int64) error {
 	m.transferCalled = true
-	m.lastPmID = currentPMID
+	m.lastPmID = uint(currentPMBizKey)
 	m.transferTeamID = uint(teamBizKey)
-	m.newPmID = newPMID
+	m.newPmID = uint(newPMBizKey)
 	return m.transferPMErr
 }
 
-func (m *mockTeamService) DisbandTeam(_ context.Context, callerID uint, teamBizKey int64, confirmName string) error {
+func (m *mockTeamService) DisbandTeam(_ context.Context, callerBizKey int64, teamBizKey int64, confirmName string) error {
 	m.disbandCalled = true
-	m.lastPmID = callerID
+	m.lastPmID = uint(callerBizKey)
 	m.disbandTeamID = uint(teamBizKey)
 	m.lastConfirmName = confirmName
 	return m.disbandTeamErr
 }
 
-func (m *mockTeamService) UpdateMemberRole(_ context.Context, pmID, targetUserID uint, teamBizKey int64, roleID int64) error {
+func (m *mockTeamService) UpdateMemberRole(_ context.Context, pmBizKey, targetUserBizKey int64, teamBizKey int64, roleID int64) error {
 	return m.updateMemberRoleErr
 }
 
@@ -210,7 +210,7 @@ func (m *mockUserRepoForHandler) FindByBizKey(_ context.Context, _ int64) (*mode
 func (m *mockUserRepoForHandler) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil
 }
-func (m *mockUserRepoForHandler) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+func (m *mockUserRepoForHandler) SearchAvailable(_ context.Context, _ int64, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
 }
 func (m *mockUserRepoForHandler) SoftDelete(_ context.Context, _ *model.User) error { return nil }
@@ -224,7 +224,7 @@ type notMemberTeamRepo struct {
 	mockTeamRepo
 }
 
-func (m *notMemberTeamRepo) FindMember(_ context.Context, _, _ uint) (*model.TeamMember, error) {
+func (m *notMemberTeamRepo) FindMember(_ context.Context, _, _ int64) (*model.TeamMember, error) {
 	return nil, errors.New("not a member")
 }
 
@@ -250,6 +250,7 @@ func TestCreateTeam_Success(t *testing.T) {
 		user: &model.User{},
 	}
 	userRepo.user.ID = 1
+		userRepo.user.BizKey = 1
 
 	deps := depsWithTeamSvc(t, svc, userRepo)
 	r := SetupRouter(deps, nil)
@@ -660,6 +661,7 @@ func TestRemoveMember_Success(t *testing.T) {
 	svc.getTeamResult.team = &model.Team{PmKey: 1}
 	userRepo := &mockUserRepoForHandler{user: &model.User{}}
 	userRepo.user.ID = 5
+		userRepo.user.BizKey = 5
 
 	deps := depsWithTeamSvc(t, svc, userRepo)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
@@ -822,7 +824,7 @@ func TestTransferPM_Success(t *testing.T) {
 	svc := &mockTeamService{}
 	svc.getTeamResult.team = &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10}
 
-	userRepo := &mockUserRepoForHandler{user: &model.User{BaseModel: model.BaseModel{ID: 5}}}
+	userRepo := &mockUserRepoForHandler{user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}}}
 	deps := depsWithTeamSvc(t, svc, userRepo)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
@@ -911,7 +913,7 @@ func TestTransferPM_SuperAdminNotTeamMember_Succeeds(t *testing.T) {
 	svc := &mockTeamService{}
 	svc.getTeamResult.team = &model.Team{BaseModel: model.BaseModel{ID: 1}, PmKey: 10}
 
-	userRepo := &mockUserRepoForHandler{user: &model.User{BaseModel: model.BaseModel{ID: 5}}}
+	userRepo := &mockUserRepoForHandler{user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}}}
 	deps := depsWithTeamSvc(t, svc, userRepo)
 	// mockTeamRepo returns a member for FindMember, but the superadmin bypass
 	// in TeamScopeMiddleware should skip the FindMember call entirely.

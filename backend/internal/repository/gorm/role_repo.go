@@ -116,14 +116,14 @@ func (r *roleRepo) CountMembersByRoleKey(ctx context.Context, roleKey int64) (in
 	return count, err
 }
 
-func (r *roleRepo) HasPermission(ctx context.Context, userID uint, code string) (bool, error) {
+func (r *roleRepo) HasPermission(ctx context.Context, userBizKey int64, code string) (bool, error) {
 	var count int64
 	err := r.db.WithContext(ctx).
 		Table("pmw_team_members").
 		Scopes(NotDeletedTable("pmw_team_members")).
 		Joins("JOIN pmw_roles ON pmw_roles.biz_key = pmw_team_members.role_key AND pmw_roles.deleted_flag = 0").
 		Joins("JOIN pmw_role_permissions ON pmw_role_permissions.role_key = pmw_roles.biz_key AND pmw_role_permissions.deleted_flag = 0").
-		Where("pmw_team_members.user_key = ? AND pmw_role_permissions.permission_code = ?", userID, code).
+		Where("pmw_team_members.user_key = ? AND pmw_role_permissions.permission_code = ?", userBizKey, code).
 		Count(&count).Error
 	if err != nil {
 		return false, err
@@ -137,7 +137,7 @@ type teamPermRow struct {
 	PermissionCode string
 }
 
-func (r *roleRepo) GetUserTeamPermissions(ctx context.Context, userID uint) (map[int64][]string, error) {
+func (r *roleRepo) GetUserTeamPermissions(ctx context.Context, userBizKey int64) (map[int64][]string, error) {
 	var rows []teamPermRow
 	err := r.db.WithContext(ctx).
 		Table("pmw_team_members").
@@ -145,8 +145,8 @@ func (r *roleRepo) GetUserTeamPermissions(ctx context.Context, userID uint) (map
 		Select("pmw_teams.biz_key as team_biz_key, pmw_role_permissions.permission_code").
 		Joins("JOIN pmw_roles ON pmw_roles.biz_key = pmw_team_members.role_key AND pmw_roles.deleted_flag = 0").
 		Joins("JOIN pmw_role_permissions ON pmw_role_permissions.role_key = pmw_roles.biz_key AND pmw_role_permissions.deleted_flag = 0").
-		Joins("JOIN pmw_teams ON pmw_teams.id = pmw_team_members.team_key AND pmw_teams.deleted_flag = 0").
-		Where("pmw_team_members.user_key = ?", userID).
+		Joins("JOIN pmw_teams ON pmw_teams.biz_key = pmw_team_members.team_key AND pmw_teams.deleted_flag = 0").
+		Where("pmw_team_members.user_key = ?", userBizKey).
 		Find(&rows).Error
 	if err != nil {
 		return nil, err

@@ -186,11 +186,11 @@ func TestCustomRole_PartialPermissions(t *testing.T) {
 	// Step 2: Create user and assign custom role to teamA
 	hash, err := bcrypt.GenerateFromPassword([]byte("customPass"), 4)
 	require.NoError(t, err)
-	customUser := &model.User{Username: "customuser", DisplayName: "Custom User", PasswordHash: string(hash)}
+	customUser := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "customuser", DisplayName: "Custom User", PasswordHash: string(hash)}
 	require.NoError(t, db.Create(customUser).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey:  int64(data.teamAID),
-		UserKey:  int64(customUser.ID),
+		TeamKey:  data.teamABizKey,
+		UserKey:  customUser.BizKey,
 		RoleKey:  &customRole.BizKey,
 		JoinedAt: time.Now(),
 	}).Error)
@@ -244,7 +244,7 @@ func TestPermBoundary_EmptyRole(t *testing.T) {
 	emptyUser := &model.User{Username: "emptyuser", DisplayName: "Empty User", PasswordHash: string(hash)}
 	require.NoError(t, db.Create(emptyUser).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey:  int64(data.teamAID),
+		TeamKey:  data.teamABizKey,
 		UserKey:  int64(emptyUser.ID),
 		RoleKey:  &emptyRole.BizKey,
 		JoinedAt: time.Now(),

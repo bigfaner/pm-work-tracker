@@ -61,20 +61,20 @@ func (s *adminService) ListUsers(ctx context.Context, search string, page, pageS
 		return nil, 0, err
 	}
 
-	// Collect user IDs for team lookup
-	userIDs := make([]uint, len(users))
+	// Collect user BizKeys for team lookup
+	userBizKeys := make([]int64, len(users))
 	for i, u := range users {
-		userIDs[i] = u.ID
+		userBizKeys[i] = u.BizKey
 	}
 
-	teamsMap, err := s.teamRepo.FindTeamsByUserIDs(ctx, userIDs)
+	teamsMap, err := s.teamRepo.FindTeamsByUserBizKeys(ctx, userBizKeys)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	items := make([]*dto.AdminUserDTO, len(users))
 	for i, u := range users {
-		items[i] = modelToAdminUserDTO(u, teamsMap[u.ID])
+		items[i] = modelToAdminUserDTO(u, teamsMap[u.BizKey])
 	}
 
 	return items, int(total), nil
@@ -86,12 +86,12 @@ func (s *adminService) GetUser(ctx context.Context, userBizKey int64) (*dto.Admi
 		return nil, err
 	}
 
-	teamsMap, err := s.teamRepo.FindTeamsByUserIDs(ctx, []uint{user.ID})
+	teamsMap, err := s.teamRepo.FindTeamsByUserBizKeys(ctx, []int64{user.BizKey})
 	if err != nil {
 		return nil, err
 	}
 
-	return modelToAdminUserDTO(user, teamsMap[user.ID]), nil
+	return modelToAdminUserDTO(user, teamsMap[user.BizKey]), nil
 }
 
 func (s *adminService) CreateUser(ctx context.Context, req *dto.CreateUserReq) (*dto.AdminUserDTO, error) {
@@ -142,18 +142,18 @@ func (s *adminService) CreateUser(ctx context.Context, req *dto.CreateUserReq) (
 		}
 		member := &model.TeamMember{
 			BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
-			TeamKey:   int64(team.ID),
-			UserKey:   int64(user.ID),
+			TeamKey:   team.BizKey,
+			UserKey:   user.BizKey,
 			JoinedAt:  time.Now(),
 		}
 		if err := s.teamRepo.AddMember(ctx, member); err != nil {
 			return nil, err
 		}
-		teams = []dto.TeamSummary{{BizKey: pkg.FormatID(int64(team.ID)), TeamID: team.ID, Name: "", Role: "member"}}
+		teams = []dto.TeamSummary{{BizKey: pkg.FormatID(team.BizKey), Name: "", Role: "member"}}
 		// Fetch team name
-		teamsMap, err := s.teamRepo.FindTeamsByUserIDs(ctx, []uint{user.ID})
-		if err == nil && len(teamsMap[user.ID]) > 0 {
-			teams = teamsMap[user.ID]
+		teamsMap, err := s.teamRepo.FindTeamsByUserBizKeys(ctx, []int64{user.BizKey})
+		if err == nil && len(teamsMap[user.BizKey]) > 0 {
+			teams = teamsMap[user.BizKey]
 		}
 	}
 
@@ -188,12 +188,13 @@ func (s *adminService) UpdateUser(ctx context.Context, userBizKey int64, req *dt
 	// Handle team assignment
 	if req.TeamKey != nil {
 		// Remove from all current teams, add to new one
-		teamsMap, err := s.teamRepo.FindTeamsByUserIDs(ctx, []uint{user.ID})
+		teamsMap, err := s.teamRepo.FindTeamsByUserBizKeys(ctx, []int64{user.BizKey})
 		if err != nil {
 			return nil, err
 		}
-		for _, t := range teamsMap[user.ID] {
-			_ = s.teamRepo.RemoveMember(ctx, t.TeamID, user.ID)
+		for _, t := range teamsMap[user.BizKey] {
+			teamBizKey, _ := pkg.ParseID(t.BizKey)
+			_ = s.teamRepo.RemoveMember(ctx, teamBizKey, user.BizKey)
 		}
 		if *req.TeamKey != "" {
 			teamBizKey, err := pkg.ParseID(*req.TeamKey)
@@ -206,8 +207,8 @@ func (s *adminService) UpdateUser(ctx context.Context, userBizKey int64, req *dt
 			}
 			member := &model.TeamMember{
 				BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
-				TeamKey:   int64(team.ID),
-				UserKey:   int64(user.ID),
+				TeamKey:   team.BizKey,
+				UserKey:   user.BizKey,
 				JoinedAt:  time.Now(),
 			}
 			if err := s.teamRepo.AddMember(ctx, member); err != nil {
@@ -217,12 +218,12 @@ func (s *adminService) UpdateUser(ctx context.Context, userBizKey int64, req *dt
 	}
 
 	// Reload teams
-	teamsMap, err := s.teamRepo.FindTeamsByUserIDs(ctx, []uint{user.ID})
+	teamsMap, err := s.teamRepo.FindTeamsByUserBizKeys(ctx, []int64{user.BizKey})
 	if err != nil {
 		return nil, err
 	}
 
-	return modelToAdminUserDTO(user, teamsMap[user.ID]), nil
+	return modelToAdminUserDTO(user, teamsMap[user.BizKey]), nil
 }
 
 func (s *adminService) ToggleUserStatus(ctx context.Context, callerID uint, targetBizKey int64, status string) (*dto.AdminUserDTO, error) {
@@ -240,12 +241,12 @@ func (s *adminService) ToggleUserStatus(ctx context.Context, callerID uint, targ
 		return nil, err
 	}
 
-	teamsMap, err := s.teamRepo.FindTeamsByUserIDs(ctx, []uint{user.ID})
+	teamsMap, err := s.teamRepo.FindTeamsByUserBizKeys(ctx, []int64{user.BizKey})
 	if err != nil {
 		return nil, err
 	}
 
-	return modelToAdminUserDTO(user, teamsMap[user.ID]), nil
+	return modelToAdminUserDTO(user, teamsMap[user.BizKey]), nil
 }
 
 func (s *adminService) ResetPassword(ctx context.Context, targetBizKey int64, newPassword string) (*dto.ResetPasswordResp, error) {
@@ -303,5 +304,3 @@ func modelToAdminUserDTO(u *model.User, teams []dto.TeamSummary) *dto.AdminUserD
 		Teams:        teams,
 	}
 }
-
-

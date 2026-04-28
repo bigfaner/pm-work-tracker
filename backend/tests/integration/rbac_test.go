@@ -14,6 +14,7 @@ import (
 
 	"pm-work-tracker/backend/internal/migration"
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/snowflake"
 )
 
 // ========== RBAC Migration Tests ==========
@@ -306,7 +307,7 @@ func TestRoleEdit_ImmediateEffectOnNextRequest(t *testing.T) {
 
 	// Update memberA's role in teamA to the new custom role
 	var member model.TeamMember
-	require.NoError(t, db.Where("team_key = ? AND user_key = ?", data.teamAID, data.memberAID).First(&member).Error)
+	require.NoError(t, db.Where("team_key = ? AND user_key = ?", data.teamABizKey, getUserBizKey(t, db, data.memberAID)).First(&member).Error)
 	customRoleBizKeyInt, _ := strconv.ParseInt(customRoleBizKey, 10, 64)
 	member.RoleKey = &customRoleBizKeyInt
 	require.NoError(t, db.Save(&member).Error)
@@ -341,7 +342,7 @@ func TestDeleteRole_WithUsers_Rejected(t *testing.T) {
 
 	// Assign custom role to memberA in teamA
 	var member model.TeamMember
-	require.NoError(t, db.Where("team_key = ? AND user_key = ?", data.teamAID, data.memberAID).First(&member).Error)
+	require.NoError(t, db.Where("team_key = ? AND user_key = ?", data.teamABizKey, getUserBizKey(t, db, data.memberAID)).First(&member).Error)
 	customRoleBizKeyInt, _ := strconv.ParseInt(customRoleBizKey, 10, 64)
 	member.RoleKey = &customRoleBizKeyInt
 	require.NoError(t, db.Save(&member).Error)
@@ -388,13 +389,13 @@ func TestInviteMember_WithRoleID_MemberHasCorrectPermissions(t *testing.T) {
 	// Create a new user and add them to teamA with member role
 	hash, err := bcrypt.GenerateFromPassword([]byte("newUserPass"), 4)
 	require.NoError(t, err)
-	newUser := &model.User{Username: "newuser", DisplayName: "New User", PasswordHash: string(hash)}
+	newUser := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "newuser", DisplayName: "New User", PasswordHash: string(hash)}
 	require.NoError(t, db.Create(newUser).Error)
 
 	memberRoleBizKey := findRoleBizKeyByName(t, db, "member")
 	memberRoleBizKeyInt, _ := strconv.ParseInt(memberRoleBizKey, 10, 64)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(data.teamAID), UserKey: int64(newUser.ID),
+		TeamKey: data.teamABizKey, UserKey: newUser.BizKey,
 		RoleKey: &memberRoleBizKeyInt, JoinedAt: time.Now(),
 	}).Error)
 
