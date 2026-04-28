@@ -58,6 +58,10 @@ export default function TeamDetailPage() {
   const { addToast } = useToast()
   const numericTeamId = teamId!
 
+  // Current user info
+  const currentUser = useAuthStore((s) => s.user)
+  const hasPermission = useAuthStore((s) => s.hasPermission)
+
   // --- Data fetching ---
 
   const { data: team, isLoading: teamLoading } = useQuery({
@@ -72,11 +76,13 @@ export default function TeamDetailPage() {
     enabled: !!numericTeamId,
   })
 
-  // Roles list (exclude superadmin)
+  // Roles list (exclude superadmin) — only fetch if user can invite/change roles
+  const canManageMembers = hasPermission('team:invite', numericTeamId)
   const { data: rolesData } = useQuery({
     queryKey: ['roles'],
     queryFn: () => listRolesApi({ pageSize: 100 }),
     staleTime: 5 * 60 * 1000,
+    enabled: canManageMembers,
   })
 
   const roles = useMemo(() => {
@@ -87,9 +93,6 @@ export default function TeamDetailPage() {
   const defaultRoleId = roles.find((r) => r.roleName === 'member')?.bizKey ?? roles[0]?.bizKey
 
   const isLoading = teamLoading || membersLoading
-
-  // Current user info for PM self-check
-  const currentUser = useAuthStore((s) => s.user)
 
   // --- Filter state ---
 
@@ -349,7 +352,7 @@ export default function TeamDetailPage() {
                           variant="ghost"
                           size="sm"
                           className="text-primary-600"
-                          onClick={() => { setRoleEditTarget(member); setRoleEditRoleId(String(member.roleId)) }}
+                          onClick={() => { setRoleEditTarget(member); setRoleEditRoleId(member.roleId) }}
                           data-testid="change-role-btn"
                         >
                           <Edit className="w-3.5 h-3.5" />
@@ -433,7 +436,7 @@ export default function TeamDetailPage() {
             <Button variant="secondary" onClick={() => setRoleEditTarget(null)}>取消</Button>
             <Button
               onClick={() => changeRoleMutation.mutate({ memberId: roleEditTarget!.userKey, roleKey: roleEditRoleId! })}
-              disabled={roleEditRoleId == null || roleEditRoleId === String(roleEditTarget?.roleId) || changeRoleMutation.isPending}
+              disabled={roleEditRoleId == null || roleEditRoleId === roleEditTarget?.roleId || changeRoleMutation.isPending}
             >
               确认修改
             </Button>

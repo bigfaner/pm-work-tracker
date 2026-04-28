@@ -5,6 +5,7 @@ import { UserPlus, RefreshCw } from 'lucide-react'
 import { listTeamsApi, createTeamApi, inviteMemberApi, searchAvailableUsersApi, type UserSearchResult } from '@/api/teams'
 import { listRolesApi } from '@/api/roles'
 import type { Team } from '@/types'
+import { useAuthStore } from '@/store/auth'
 import { PermissionGuard } from '@/components/PermissionGuard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -70,11 +71,13 @@ export default function TeamManagementPage() {
   const total = data?.total ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
-  // Roles for invite dialog
+  // Roles for invite dialog — only fetch if user can invite members
+  const hasPermission = useAuthStore((s) => s.hasPermission)
   const { data: rolesData } = useQuery({
     queryKey: ['roles'],
     queryFn: () => listRolesApi({ pageSize: 100 }),
     staleTime: 5 * 60 * 1000,
+    enabled: hasPermission('team:invite'),
   })
 
   const roles = useMemo(() => {

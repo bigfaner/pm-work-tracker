@@ -20,7 +20,7 @@ export const seedUser: User = {
 }
 
 export const seedMembers: TeamMemberResp[] = [
-  { id: 1, bizKey: '1', teamKey: '1', userKey: 'U001', displayName: 'Test User', username: 'testuser', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
+  { bizKey: '1', teamKey: '1', userKey: 'U001', displayName: 'Test User', username: 'testuser', role: 'pm', roleId: '0', roleName: 'pm', joinedAt: '2024-01-01' },
 ]
 
 export function makeMainItem(overrides: Partial<MainItem> = {}): MainItem {

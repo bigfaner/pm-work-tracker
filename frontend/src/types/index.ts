@@ -217,12 +217,11 @@ export interface TeamDetailResp {
 }
 
 export interface TeamMemberResp {
-  id: number
   bizKey: string
   teamKey: string
   userKey: string
   role: string
-  roleId: number
+  roleId: string
   roleName: string
   joinedAt: string
   displayName: string
