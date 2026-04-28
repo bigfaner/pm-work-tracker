@@ -66,7 +66,7 @@ func (m *mockItemPoolRepo) Update(_ context.Context, item *model.ItemPool, field
 	return m.updateErr
 }
 
-func (m *mockItemPoolRepo) List(_ context.Context, teamID uint, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error) {
+func (m *mockItemPoolRepo) List(_ context.Context, teamBizKey int64, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error) {
 	if m.listErr != nil {
 		return nil, m.listErr
 	}
@@ -97,13 +97,13 @@ func (m *mockSubItemRepoForPool) FindByID(_ context.Context, id uint) (*model.Su
 func (m *mockSubItemRepoForPool) Update(_ context.Context, item *model.SubItem, fields map[string]interface{}) error {
 	return nil
 }
-func (m *mockSubItemRepoForPool) List(_ context.Context, teamID uint, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockSubItemRepoForPool) List(_ context.Context, teamBizKey int64, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
 func (m *mockSubItemRepoForPool) ListByMainItem(_ context.Context, mainItemID uint) ([]*model.SubItem, error) {
 	return nil, nil
 }
-func (m *mockSubItemRepoForPool) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
+func (m *mockSubItemRepoForPool) ListByTeam(_ context.Context, _ int64) ([]model.SubItem, error) {
 	return nil, nil
 }
 func (m *mockSubItemRepoForPool) SoftDelete(_ context.Context, _ uint) error {
@@ -140,18 +140,18 @@ func (m *mockMainItemRepoForPool) FindByID(_ context.Context, id uint) (*model.M
 func (m *mockMainItemRepoForPool) Update(_ context.Context, item *model.MainItem, fields map[string]interface{}) error {
 	return nil
 }
-func (m *mockMainItemRepoForPool) List(_ context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+func (m *mockMainItemRepoForPool) List(_ context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
 	return nil, nil
 }
 func (m *mockMainItemRepoForPool) NextCode(_ context.Context, teamBizKey int64) (string, error) {
 	return m.nextCodeVal, m.nextCodeErr
 }
 
-func (m *mockMainItemRepoForPool) CountByTeam(_ context.Context, _ uint) (int64, error) {
+func (m *mockMainItemRepoForPool) CountByTeam(_ context.Context, _ int64) (int64, error) {
 	return 0, nil
 }
 
-func (m *mockMainItemRepoForPool) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
+func (m *mockMainItemRepoForPool) ListNonArchivedByTeam(_ context.Context, _ int64) ([]model.MainItem, error) {
 	return nil, nil
 }
 func (m *mockMainItemRepoForPool) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
@@ -166,7 +166,7 @@ func (m *mockMainItemRepoForPool) FindByBizKey(_ context.Context, _ int64) (*mod
 	}
 	return nil, m.findErr
 }
-func (m *mockMainItemRepoForPool) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
+func (m *mockMainItemRepoForPool) ListByTeamAndStatus(_ context.Context, _ int64, _ string) ([]model.MainItem, error) {
 	return nil, nil
 }
 

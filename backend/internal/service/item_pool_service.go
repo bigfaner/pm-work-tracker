@@ -212,7 +212,7 @@ func (s *itemPoolService) Reject(ctx context.Context, teamBizKey int64, pmID, po
 }
 
 func (s *itemPoolService) List(ctx context.Context, teamBizKey int64, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error) {
-	return s.poolRepo.List(ctx, uint(teamBizKey), filter, page)
+	return s.poolRepo.List(ctx, teamBizKey, filter, page)
 }
 
 func (s *itemPoolService) Get(ctx context.Context, teamBizKey int64, poolItemID uint) (*model.ItemPool, error) {

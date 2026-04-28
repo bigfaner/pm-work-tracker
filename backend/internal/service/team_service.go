@@ -134,7 +134,7 @@ func (s *teamService) GetTeamDetail(ctx context.Context, teamBizKey int64) (*dto
 
 	var mainItemCount int64
 	if s.mainItemRepo != nil {
-		mainItemCount, _ = s.mainItemRepo.CountByTeam(ctx, team.ID)
+		mainItemCount, _ = s.mainItemRepo.CountByTeam(ctx, team.BizKey)
 	}
 
 	return &dto.TeamDetailResp{

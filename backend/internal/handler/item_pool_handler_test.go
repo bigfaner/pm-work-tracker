@@ -1043,15 +1043,15 @@ func (t *trackingMainItemRepo) FindByBizKey(_ context.Context, key int64) (*mode
 func (t *trackingMainItemRepo) Update(_ context.Context, _ *model.MainItem, _ map[string]interface{}) error {
 	return nil
 }
-func (t *trackingMainItemRepo) List(_ context.Context, _ uint, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+func (t *trackingMainItemRepo) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
 	return nil, nil
 }
 func (t *trackingMainItemRepo) NextCode(_ context.Context, _ int64) (string, error)        { return "", nil }
-func (t *trackingMainItemRepo) CountByTeam(_ context.Context, _ uint) (int64, error)       { return 0, nil }
-func (t *trackingMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
+func (t *trackingMainItemRepo) CountByTeam(_ context.Context, _ int64) (int64, error)       { return 0, nil }
+func (t *trackingMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ int64) ([]model.MainItem, error) {
 	return nil, nil
 }
-func (t *trackingMainItemRepo) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
+func (t *trackingMainItemRepo) ListByTeamAndStatus(_ context.Context, _ int64, _ string) ([]model.MainItem, error) {
 	return nil, nil
 }
 
@@ -1068,16 +1068,16 @@ func (m *mockMainItemRepoForPool) FindByID(_ context.Context, _ uint) (*model.Ma
 func (m *mockMainItemRepoForPool) Update(_ context.Context, _ *model.MainItem, _ map[string]interface{}) error {
 	return nil
 }
-func (m *mockMainItemRepoForPool) List(_ context.Context, _ uint, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+func (m *mockMainItemRepoForPool) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
 	return nil, nil
 }
 func (m *mockMainItemRepoForPool) NextCode(_ context.Context, _ int64) (string, error) {
 	return "", nil
 }
-func (m *mockMainItemRepoForPool) CountByTeam(_ context.Context, _ uint) (int64, error) {
+func (m *mockMainItemRepoForPool) CountByTeam(_ context.Context, _ int64) (int64, error) {
 	return 0, nil
 }
-func (m *mockMainItemRepoForPool) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
+func (m *mockMainItemRepoForPool) ListNonArchivedByTeam(_ context.Context, _ int64) ([]model.MainItem, error) {
 	return nil, nil
 }
 func (m *mockMainItemRepoForPool) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
@@ -1086,7 +1086,7 @@ func (m *mockMainItemRepoForPool) FindByIDs(_ context.Context, _ []uint) (map[ui
 func (m *mockMainItemRepoForPool) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.MainItem, error) {
 	return nil, nil
 }
-func (m *mockMainItemRepoForPool) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
+func (m *mockMainItemRepoForPool) ListByTeamAndStatus(_ context.Context, _ int64, _ string) ([]model.MainItem, error) {
 	return nil, nil
 }
 func (m *mockMainItemRepoForPool) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {

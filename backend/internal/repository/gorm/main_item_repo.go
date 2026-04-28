@@ -44,8 +44,8 @@ func (r *mainItemRepo) Update(ctx context.Context, item *model.MainItem, fields 
 	return repo.UpdateFields[model.MainItem](r.db, ctx, item, item.TeamKey, fields)
 }
 
-func (r *mainItemRepo) List(ctx context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
-	query := r.db.WithContext(ctx).Scopes(NotDeleted).Where("team_key = ?", teamID)
+func (r *mainItemRepo) List(ctx context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+	query := r.db.WithContext(ctx).Scopes(NotDeleted).Where("team_key = ?", teamBizKey)
 
 	// Filter out archived by default; include when filter.Archived is true
 	if !filter.Archived {
@@ -113,16 +113,16 @@ func (r *mainItemRepo) NextCode(ctx context.Context, teamBizKey int64) (string, 
 	return code, err
 }
 
-func (r *mainItemRepo) CountByTeam(ctx context.Context, teamID uint) (int64, error) {
+func (r *mainItemRepo) CountByTeam(ctx context.Context, teamBizKey int64) (int64, error) {
 	var count int64
-	err := r.db.WithContext(ctx).Scopes(NotDeleted).Model(&model.MainItem{}).Where("team_key = ?", teamID).Count(&count).Error
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).Model(&model.MainItem{}).Where("team_key = ?", teamBizKey).Count(&count).Error
 	return count, err
 }
 
-func (r *mainItemRepo) ListNonArchivedByTeam(ctx context.Context, teamID uint) ([]model.MainItem, error) {
+func (r *mainItemRepo) ListNonArchivedByTeam(ctx context.Context, teamBizKey int64) ([]model.MainItem, error) {
 	var items []model.MainItem
 	err := r.db.WithContext(ctx).Scopes(NotDeleted).
-		Where("team_key = ? AND archived_at IS NULL", teamID).
+		Where("team_key = ? AND archived_at IS NULL", teamBizKey).
 		Find(&items).Error
 	return items, err
 }
@@ -146,10 +146,10 @@ func (r *mainItemRepo) FindByBizKeys(ctx context.Context, bizKeys []int64) (map[
 	return result, nil
 }
 
-func (r *mainItemRepo) ListByTeamAndStatus(ctx context.Context, teamID uint, status string) ([]model.MainItem, error) {
+func (r *mainItemRepo) ListByTeamAndStatus(ctx context.Context, teamBizKey int64, status string) ([]model.MainItem, error) {
 	var items []model.MainItem
 	err := r.db.WithContext(ctx).Scopes(NotDeleted).
-		Where("team_key = ? AND item_status = ?", teamID, status).
+		Where("team_key = ? AND item_status = ?", teamBizKey, status).
 		Find(&items).Error
 	return items, err
 }

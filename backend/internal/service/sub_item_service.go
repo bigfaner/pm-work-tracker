@@ -239,7 +239,7 @@ func (s *subItemService) List(ctx context.Context, teamBizKey int64, mainItemID 
 	if mainItemID != nil {
 		mid = *mainItemID
 	}
-	return s.subItemRepo.List(ctx, uint(teamBizKey), mid, filter, page)
+	return s.subItemRepo.List(ctx, teamBizKey, mid, filter, page)
 }
 
 func (s *subItemService) Assign(ctx context.Context, teamBizKey int64, pmID, itemID, assigneeID uint) error {

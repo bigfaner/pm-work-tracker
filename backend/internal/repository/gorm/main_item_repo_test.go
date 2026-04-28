@@ -32,18 +32,20 @@ func seedMainItemTeam(t *testing.T, db *gormlib.DB) (*model.User, *model.Team) {
 	require.NoError(t, db.Create(&u).Error)
 	team := model.Team{TeamName: "MI Team", PmKey: int64(u.ID), Code: "FEAT"}
 	require.NoError(t, db.Create(&team).Error)
+	team.BizKey = int64(team.ID)
+	require.NoError(t, db.Save(&team).Error)
 	return &u, &team
 }
 
-func createMainItem(t *testing.T, db *gormlib.DB, teamID, proposerID uint, code, title, priority, status string) *model.MainItem {
+func createMainItem(t *testing.T, db *gormlib.DB, teamBizKey int64, proposerID uint, code, title, priority, status string) *model.MainItem {
 	t.Helper()
 	item := model.MainItem{
-		TeamKey: int64(teamID),
-		Code:       code,
-		Title:      title,
-		Priority:   priority,
+		TeamKey:     teamBizKey,
+		Code:        code,
+		Title:       title,
+		Priority:    priority,
 		ProposerKey: int64(proposerID),
-		ItemStatus: status,
+		ItemStatus:  status,
 	}
 	require.NoError(t, db.Create(&item).Error)
 	return &item
@@ -77,7 +79,7 @@ func TestMainItemRepo_FindByID(t *testing.T) {
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)
-	item := createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Find Me", "P1", "pending")
+	item := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00001", "Find Me", "P1", "pending")
 
 	t.Run("found", func(t *testing.T) {
 		found, err := repo.FindByID(ctx, item.ID)
@@ -100,7 +102,7 @@ func TestMainItemRepo_Update(t *testing.T) {
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)
-	item := createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Update Me", "P1", "pending")
+	item := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00001", "Update Me", "P1", "pending")
 
 	fields := map[string]interface{}{
 		"title":       "Updated Title",
@@ -144,7 +146,7 @@ func TestMainItemRepo_NextCode(t *testing.T) {
 	})
 
 	t.Run("sequential", func(t *testing.T) {
-		createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "First", "P1", "pending")
+		createMainItem(t, db, team.BizKey, u.ID, "FEAT-00001", "First", "P1", "pending")
 
 		code, err := repo.NextCode(ctx, team.BizKey)
 		require.NoError(t, err)
@@ -152,7 +154,7 @@ func TestMainItemRepo_NextCode(t *testing.T) {
 	})
 
 	t.Run("skips_gaps", func(t *testing.T) {
-		createMainItem(t, db, team.ID, u.ID, "FEAT-00005", "Fifth", "P1", "pending")
+		createMainItem(t, db, team.BizKey, u.ID, "FEAT-00005", "Fifth", "P1", "pending")
 
 		code, err := repo.NextCode(ctx, team.BizKey)
 		require.NoError(t, err)
@@ -165,6 +167,8 @@ func TestMainItemRepo_NextCode(t *testing.T) {
 		require.NoError(t, db.Create(&u2).Error)
 		team2 := model.Team{TeamName: "Other Team", PmKey: int64(u2.ID), Code: "OTHR"}
 		require.NoError(t, db.Create(&team2).Error)
+		team2.BizKey = int64(team2.ID)
+		require.NoError(t, db.Save(&team2).Error)
 
 		code, err := repo.NextCode(ctx, team2.BizKey)
 		require.NoError(t, err)
@@ -182,45 +186,47 @@ func TestMainItemRepo_List(t *testing.T) {
 	u, team := seedMainItemTeam(t, db)
 
 	// Create several items
-	createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Item A", "P1", "pending")
-	createMainItem(t, db, team.ID, u.ID, "FEAT-00002", "Item B", "P2", "progressing")
-	createMainItem(t, db, team.ID, u.ID, "FEAT-00003", "Item C", "P1", "completed")
+	createMainItem(t, db, team.BizKey, u.ID, "FEAT-00001", "Item A", "P1", "pending")
+	createMainItem(t, db, team.BizKey, u.ID, "FEAT-00002", "Item B", "P2", "progressing")
+	createMainItem(t, db, team.BizKey, u.ID, "FEAT-00003", "Item C", "P1", "completed")
 	// Create one in another team — should not appear
 	u2 := model.User{Username: "pm_other2", DisplayName: "P2", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u2).Error)
 	team2 := model.Team{TeamName: "Team2", PmKey: int64(u2.ID)}
 	require.NoError(t, db.Create(&team2).Error)
-	createMainItem(t, db, team2.ID, u2.ID, "FEAT-00004", "Other Team Item", "P1", "pending")
+		team2.BizKey = int64(team2.ID)
+		require.NoError(t, db.Save(&team2).Error)
+	createMainItem(t, db, team2.BizKey, u2.ID, "FEAT-00004", "Other Team Item", "P1", "pending")
 
 	t.Run("all_items_for_team", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.MainItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), result.Total)
 		assert.Len(t, result.Items, 3)
 	})
 
 	t.Run("filter_by_status", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.MainItemFilter{Status: "progressing"}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{Status: "progressing"}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), result.Total)
 		assert.Equal(t, "Item B", result.Items[0].Title)
 	})
 
 	t.Run("filter_by_priority", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.MainItemFilter{Priority: "P1"}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{Priority: "P1"}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(2), result.Total)
 	})
 
 	t.Run("filter_by_status_and_priority", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.MainItemFilter{Status: "pending", Priority: "P1"}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{Status: "pending", Priority: "P1"}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), result.Total)
 		assert.Equal(t, "Item A", result.Items[0].Title)
 	})
 
 	t.Run("pagination_page1", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.MainItemFilter{}, dto.Pagination{Page: 1, PageSize: 2})
+		result, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{}, dto.Pagination{Page: 1, PageSize: 2})
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), result.Total)
 		assert.Len(t, result.Items, 2)
@@ -229,14 +235,14 @@ func TestMainItemRepo_List(t *testing.T) {
 	})
 
 	t.Run("pagination_page2", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.MainItemFilter{}, dto.Pagination{Page: 2, PageSize: 2})
+		result, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{}, dto.Pagination{Page: 2, PageSize: 2})
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), result.Total)
 		assert.Len(t, result.Items, 1)
 	})
 
 	t.Run("default_pagination", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.MainItemFilter{}, dto.Pagination{})
+		result, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{}, dto.Pagination{})
 		require.NoError(t, err)
 		assert.Equal(t, 1, result.Page)
 		assert.Equal(t, 20, result.Size)
@@ -251,22 +257,22 @@ func TestMainItemRepo_List_ArchiveFilter(t *testing.T) {
 	u, team := seedMainItemTeam(t, db)
 
 	// Active item
-	createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Active", "P1", "pending")
+	createMainItem(t, db, team.BizKey, u.ID, "FEAT-00001", "Active", "P1", "pending")
 
 	// Archived item
-	archived := createMainItem(t, db, team.ID, u.ID, "FEAT-00002", "Archived", "P1", "completed")
+	archived := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00002", "Archived", "P1", "completed")
 	now := time.Now()
 	require.NoError(t, db.Model(archived).Update("archived_at", &now).Error)
 
 	t.Run("excludes_archived_by_default", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.MainItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), result.Total)
 		assert.Equal(t, "Active", result.Items[0].Title)
 	})
 
 	t.Run("includes_archived_when_filter_set", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.MainItemFilter{Archived: true}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{Archived: true}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(2), result.Total)
 	})
@@ -279,13 +285,13 @@ func TestMainItemRepo_List_FilterByKeyItem(t *testing.T) {
 
 	u, team := seedMainItemTeam(t, db)
 
-	item := createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Key Item", "P1", "pending")
+	item := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00001", "Key Item", "P1", "pending")
 	require.NoError(t, db.Model(item).Update("is_key_item", true).Error)
 
-	createMainItem(t, db, team.ID, u.ID, "FEAT-00002", "Normal Item", "P2", "pending")
+	createMainItem(t, db, team.BizKey, u.ID, "FEAT-00002", "Normal Item", "P2", "pending")
 
 	isKey := true
-	result, err := repo.List(ctx, team.ID, dto.MainItemFilter{IsKeyItem: &isKey}, dto.Pagination{Page: 1, PageSize: 10})
+	result, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{IsKeyItem: &isKey}, dto.Pagination{Page: 1, PageSize: 10})
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), result.Total)
 	assert.Equal(t, "Key Item", result.Items[0].Title)
@@ -298,13 +304,13 @@ func TestMainItemRepo_List_FilterByAssignee(t *testing.T) {
 
 	u, team := seedMainItemTeam(t, db)
 
-	item := createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Assigned", "P1", "pending")
+	item := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00001", "Assigned", "P1", "pending")
 	require.NoError(t, db.Model(item).Update("assignee_key", u.ID).Error)
 
-	createMainItem(t, db, team.ID, u.ID, "FEAT-00002", "Unassigned", "P2", "pending")
+	createMainItem(t, db, team.BizKey, u.ID, "FEAT-00002", "Unassigned", "P2", "pending")
 
 	assigneeKey := fmt.Sprintf("%d", u.ID)
-	result, err := repo.List(ctx, team.ID, dto.MainItemFilter{AssigneeKey: &assigneeKey}, dto.Pagination{Page: 1, PageSize: 10})
+	result, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{AssigneeKey: &assigneeKey}, dto.Pagination{Page: 1, PageSize: 10})
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), result.Total)
 	assert.Equal(t, "Assigned", result.Items[0].Title)
@@ -318,15 +324,15 @@ func TestMainItemRepo_List_FilterByAssignee_InvalidString(t *testing.T) {
 	u, team := seedMainItemTeam(t, db)
 
 	// Create an item assigned to user u
-	item := createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Assigned", "P1", "pending")
+	item := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00001", "Assigned", "P1", "pending")
 	require.NoError(t, db.Model(item).Update("assignee_key", u.ID).Error)
 
 	// Create another unassigned item
-	createMainItem(t, db, team.ID, u.ID, "FEAT-00002", "Unassigned", "P2", "pending")
+	createMainItem(t, db, team.BizKey, u.ID, "FEAT-00002", "Unassigned", "P2", "pending")
 
 	// Invalid assigneeKey (non-numeric) should return zero results, not all items
 	invalidKey := "not-a-number"
-	result, err := repo.List(ctx, team.ID, dto.MainItemFilter{AssigneeKey: &invalidKey}, dto.Pagination{Page: 1, PageSize: 10})
+	result, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{AssigneeKey: &invalidKey}, dto.Pagination{Page: 1, PageSize: 10})
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), result.Total, "invalid assigneeKey should return zero results (fail-closed)")
 }
@@ -339,8 +345,8 @@ func TestMainItemRepo_FindByIDs(t *testing.T) {
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)
-	item1 := createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Item 1", "P1", "pending")
-	item2 := createMainItem(t, db, team.ID, u.ID, "FEAT-00002", "Item 2", "P2", "progressing")
+	item1 := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00001", "Item 1", "P1", "pending")
+	item2 := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00002", "Item 2", "P2", "progressing")
 
 	t.Run("returns_map_for_existing_ids", func(t *testing.T) {
 		result, err := repo.FindByIDs(ctx, []uint{item1.ID, item2.ID})
@@ -378,7 +384,7 @@ func TestMainItemRepo_SoftDelete(t *testing.T) {
 	u, team := seedMainItemTeam(t, db)
 
 	t.Run("FindByBizKey_excludes_soft_deleted", func(t *testing.T) {
-		item := createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Deleted", "P1", "pending")
+		item := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00001", "Deleted", "P1", "pending")
 		// Soft-delete the item
 		require.NoError(t, db.Model(item).Update("deleted_flag", 1).Error)
 
@@ -388,11 +394,11 @@ func TestMainItemRepo_SoftDelete(t *testing.T) {
 
 	t.Run("List_excludes_soft_deleted", func(t *testing.T) {
 		// Create one active and one soft-deleted item
-		createMainItem(t, db, team.ID, u.ID, "FEAT-00010", "Active Item", "P1", "pending")
-		deleted := createMainItem(t, db, team.ID, u.ID, "FEAT-00011", "Deleted Item", "P2", "pending")
+		createMainItem(t, db, team.BizKey, u.ID, "FEAT-00010", "Active Item", "P1", "pending")
+		deleted := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00011", "Deleted Item", "P2", "pending")
 		require.NoError(t, db.Model(deleted).Update("deleted_flag", 1).Error)
 
-		result, err := repo.List(ctx, team.ID, dto.MainItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), result.Total)
 		assert.Equal(t, "Active Item", result.Items[0].Title)
@@ -404,22 +410,24 @@ func TestMainItemRepo_SoftDelete(t *testing.T) {
 		require.NoError(t, db.Create(&u2).Error)
 		team2 := model.Team{TeamName: "Count Team", PmKey: int64(u2.ID), Code: "CNT"}
 		require.NoError(t, db.Create(&team2).Error)
+		team2.BizKey = int64(team2.ID)
+		require.NoError(t, db.Save(&team2).Error)
 
-		createMainItem(t, db, team2.ID, u2.ID, "CNT-00001", "Count Active", "P1", "pending")
-		softDel := createMainItem(t, db, team2.ID, u2.ID, "CNT-00002", "Count Deleted", "P2", "pending")
+		createMainItem(t, db, team2.BizKey, u2.ID, "CNT-00001", "Count Active", "P1", "pending")
+		softDel := createMainItem(t, db, team2.BizKey, u2.ID, "CNT-00002", "Count Deleted", "P2", "pending")
 		require.NoError(t, db.Model(softDel).Update("deleted_flag", 1).Error)
 
-		count, err := repo.CountByTeam(ctx, team2.ID)
+		count, err := repo.CountByTeam(ctx, team2.BizKey)
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), count)
 	})
 
 	t.Run("ListNonArchivedByTeam_excludes_soft_deleted", func(t *testing.T) {
-		createMainItem(t, db, team.ID, u.ID, "FEAT-00030", "NonArch Active", "P1", "pending")
-		softDel := createMainItem(t, db, team.ID, u.ID, "FEAT-00031", "NonArch Deleted", "P2", "pending")
+		createMainItem(t, db, team.BizKey, u.ID, "FEAT-00030", "NonArch Active", "P1", "pending")
+		softDel := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00031", "NonArch Deleted", "P2", "pending")
 		require.NoError(t, db.Model(softDel).Update("deleted_flag", 1).Error)
 
-		items, err := repo.ListNonArchivedByTeam(ctx, team.ID)
+		items, err := repo.ListNonArchivedByTeam(ctx, team.BizKey)
 		require.NoError(t, err)
 		for _, item := range items {
 			assert.NotEqual(t, "NonArch Deleted", item.Title, "soft-deleted item should not appear in ListNonArchivedByTeam")
@@ -427,8 +435,8 @@ func TestMainItemRepo_SoftDelete(t *testing.T) {
 	})
 
 	t.Run("FindByBizKeys_excludes_soft_deleted", func(t *testing.T) {
-		active := createMainItem(t, db, team.ID, u.ID, "FEAT-00040", "BizKey Active", "P1", "pending")
-		softDel := createMainItem(t, db, team.ID, u.ID, "FEAT-00041", "BizKey Deleted", "P2", "pending")
+		active := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00040", "BizKey Active", "P1", "pending")
+		softDel := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00041", "BizKey Deleted", "P2", "pending")
 		require.NoError(t, db.Model(softDel).Update("deleted_flag", 1).Error)
 
 		result, err := repo.FindByBizKeys(ctx, []int64{active.BizKey, softDel.BizKey})
@@ -438,11 +446,11 @@ func TestMainItemRepo_SoftDelete(t *testing.T) {
 	})
 
 	t.Run("ListByTeamAndStatus_excludes_soft_deleted", func(t *testing.T) {
-		createMainItem(t, db, team.ID, u.ID, "FEAT-00050", "Status Active", "P1", "pending")
-		softDel := createMainItem(t, db, team.ID, u.ID, "FEAT-00051", "Status Deleted", "P2", "pending")
+		createMainItem(t, db, team.BizKey, u.ID, "FEAT-00050", "Status Active", "P1", "pending")
+		softDel := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00051", "Status Deleted", "P2", "pending")
 		require.NoError(t, db.Model(softDel).Update("deleted_flag", 1).Error)
 
-		items, err := repo.ListByTeamAndStatus(ctx, team.ID, "pending")
+		items, err := repo.ListByTeamAndStatus(ctx, team.BizKey, "pending")
 		require.NoError(t, err)
 		for _, item := range items {
 			assert.NotEqual(t, "Status Deleted", item.Title, "soft-deleted item should not appear in ListByTeamAndStatus")
@@ -456,18 +464,18 @@ func TestMainItemRepo_ListByTeamAndStatus(t *testing.T) {
 	ctx := context.Background()
 
 	u, team := seedMainItemTeam(t, db)
-	createMainItem(t, db, team.ID, u.ID, "FEAT-00001", "Pending 1", "P1", "pending")
-	createMainItem(t, db, team.ID, u.ID, "FEAT-00002", "Progressing 1", "P2", "progressing")
-	createMainItem(t, db, team.ID, u.ID, "FEAT-00003", "Pending 2", "P1", "pending")
+	createMainItem(t, db, team.BizKey, u.ID, "FEAT-00001", "Pending 1", "P1", "pending")
+	createMainItem(t, db, team.BizKey, u.ID, "FEAT-00002", "Progressing 1", "P2", "progressing")
+	createMainItem(t, db, team.BizKey, u.ID, "FEAT-00003", "Pending 2", "P1", "pending")
 
 	t.Run("returns_items_matching_status", func(t *testing.T) {
-		items, err := repo.ListByTeamAndStatus(ctx, team.ID, "pending")
+		items, err := repo.ListByTeamAndStatus(ctx, team.BizKey, "pending")
 		require.NoError(t, err)
 		assert.Len(t, items, 2)
 	})
 
 	t.Run("no_match_returns_empty", func(t *testing.T) {
-		items, err := repo.ListByTeamAndStatus(ctx, team.ID, "completed")
+		items, err := repo.ListByTeamAndStatus(ctx, team.BizKey, "completed")
 		require.NoError(t, err)
 		assert.Empty(t, items)
 	})
@@ -477,9 +485,11 @@ func TestMainItemRepo_ListByTeamAndStatus(t *testing.T) {
 		require.NoError(t, db.Create(&u2).Error)
 		team2 := model.Team{TeamName: "Team2", PmKey: int64(u2.ID), Code: "T2"}
 		require.NoError(t, db.Create(&team2).Error)
-		createMainItem(t, db, team2.ID, u2.ID, "T2-00001", "Other Pending", "P1", "pending")
+		team2.BizKey = int64(team2.ID)
+		require.NoError(t, db.Save(&team2).Error)
+		createMainItem(t, db, team2.BizKey, u2.ID, "T2-00001", "Other Pending", "P1", "pending")
 
-		items, err := repo.ListByTeamAndStatus(ctx, team.ID, "pending")
+		items, err := repo.ListByTeamAndStatus(ctx, team.BizKey, "pending")
 		require.NoError(t, err)
 		assert.Len(t, items, 2, "should not include items from other teams")
 	})

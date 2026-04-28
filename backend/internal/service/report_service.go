@@ -37,13 +37,13 @@ func (s *reportService) Preview(ctx context.Context, teamBizKey int64, weekStart
 	weekEnd := weekStart.AddDate(0, 0, 6)
 
 	// Fetch all non-archived main items
-	mainItems, err := s.mainItemRepo.ListNonArchivedByTeam(ctx, uint(teamBizKey))
+	mainItems, err := s.mainItemRepo.ListNonArchivedByTeam(ctx, teamBizKey)
 	if err != nil {
 		return nil, err
 	}
 
 	// Fetch all sub-items for the team
-	subItems, err := s.subItemRepo.ListByTeam(ctx, uint(teamBizKey))
+	subItems, err := s.subItemRepo.ListByTeam(ctx, teamBizKey)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (s *reportService) Preview(ctx context.Context, teamBizKey int64, weekStart
 	// Fetch progress records for the week range
 	rangeStart := time.Date(weekStart.Year(), weekStart.Month(), weekStart.Day(), 0, 0, 0, 0, weekStart.Location())
 	rangeEnd := time.Date(weekEnd.Year(), weekEnd.Month(), weekEnd.Day(), 0, 0, 0, 0, weekEnd.Location()).AddDate(0, 0, 1)
-	progressRecords, err := s.progressRepo.ListByTeamInRange(ctx, uint(teamBizKey), rangeStart, rangeEnd)
+	progressRecords, err := s.progressRepo.ListByTeamInRange(ctx, teamBizKey, rangeStart, rangeEnd)
 	if err != nil {
 		return nil, err
 	}

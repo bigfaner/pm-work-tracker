@@ -51,8 +51,8 @@ func (r *subItemRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.Su
 	return &item, nil
 }
 
-func (r *subItemRepo) List(ctx context.Context, teamID uint, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
-	query := r.db.WithContext(ctx).Scopes(NotDeleted).Where("team_key = ?", teamID)
+func (r *subItemRepo) List(ctx context.Context, teamBizKey int64, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+	query := r.db.WithContext(ctx).Scopes(NotDeleted).Where("team_key = ?", teamBizKey)
 
 	if mainItemID > 0 {
 		query = query.Where("main_item_key = ?", mainItemID)
@@ -90,10 +90,10 @@ func (r *subItemRepo) ListByMainItem(ctx context.Context, mainItemID uint) ([]*m
 	return items, err
 }
 
-func (r *subItemRepo) ListByTeam(ctx context.Context, teamID uint) ([]model.SubItem, error) {
+func (r *subItemRepo) ListByTeam(ctx context.Context, teamBizKey int64) ([]model.SubItem, error) {
 	var items []model.SubItem
 	err := r.db.WithContext(ctx).Scopes(NotDeleted).
-		Where("team_key = ?", teamID).
+		Where("team_key = ?", teamBizKey).
 		Find(&items).Error
 	return items, err
 }

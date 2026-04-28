@@ -217,7 +217,7 @@ func (s *mainItemService) Archive(ctx context.Context, teamBizKey int64, itemID 
 }
 
 func (s *mainItemService) List(ctx context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
-	return s.mainItemRepo.List(ctx, uint(teamBizKey), filter, page)
+	return s.mainItemRepo.List(ctx, teamBizKey, filter, page)
 }
 
 func (s *mainItemService) Get(ctx context.Context, itemID uint) (*model.MainItem, error) {

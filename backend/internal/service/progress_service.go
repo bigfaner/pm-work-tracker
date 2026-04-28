@@ -168,6 +168,6 @@ func (s *progressService) List(ctx context.Context, teamBizKey int64, subItemID 
 	if err != nil {
 		return nil, err
 	}
-	return s.progressRepo.ListBySubItem(ctx, uint(teamBizKey), subItem.BizKey)
+	return s.progressRepo.ListBySubItem(ctx, teamBizKey, subItem.BizKey)
 }
 

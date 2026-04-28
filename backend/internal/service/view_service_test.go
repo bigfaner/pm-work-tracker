@@ -29,7 +29,7 @@ type mockViewMainItemRepo struct {
 
 	// ListByTeamAndStatus tracking
 	listByTeamAndStatusCalled bool
-	listByTeamAndStatusTeamID uint
+	listByTeamAndStatusTeamID int64
 	listByTeamAndStatusStatus string
 	listByTeamAndStatusResult []model.MainItem
 	listByTeamAndStatusErr    error
@@ -50,16 +50,16 @@ func (m *mockViewMainItemRepo) FindByID(_ context.Context, _ uint) (*model.MainI
 func (m *mockViewMainItemRepo) Update(_ context.Context, _ *model.MainItem, _ map[string]interface{}) error {
 	return nil
 }
-func (m *mockViewMainItemRepo) List(_ context.Context, _ uint, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+func (m *mockViewMainItemRepo) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
 	return nil, nil
 }
 func (m *mockViewMainItemRepo) NextCode(_ context.Context, _ int64) (string, error) {
 	return "", nil
 }
-func (m *mockViewMainItemRepo) CountByTeam(_ context.Context, _ uint) (int64, error) {
+func (m *mockViewMainItemRepo) CountByTeam(_ context.Context, _ int64) (int64, error) {
 	return 0, nil
 }
-func (m *mockViewMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
+func (m *mockViewMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ int64) ([]model.MainItem, error) {
 	m.listNonArchivedCalled = true
 	if m.listErr != nil {
 		return nil, m.listErr
@@ -75,9 +75,9 @@ func (m *mockViewMainItemRepo) FindByBizKeys(_ context.Context, _ []int64) (map[
 func (m *mockViewMainItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
 	return nil, nil
 }
-func (m *mockViewMainItemRepo) ListByTeamAndStatus(_ context.Context, teamID uint, status string) ([]model.MainItem, error) {
+func (m *mockViewMainItemRepo) ListByTeamAndStatus(_ context.Context, teamBizKey int64, status string) ([]model.MainItem, error) {
 	m.listByTeamAndStatusCalled = true
-	m.listByTeamAndStatusTeamID = teamID
+	m.listByTeamAndStatusTeamID = teamBizKey
 	m.listByTeamAndStatusStatus = status
 	if m.listByTeamAndStatusErr != nil {
 		return nil, m.listByTeamAndStatusErr
@@ -102,13 +102,13 @@ func (m *mockViewSubItemRepo) FindByID(_ context.Context, _ uint) (*model.SubIte
 func (m *mockViewSubItemRepo) Update(_ context.Context, _ *model.SubItem, _ map[string]interface{}) error {
 	return nil
 }
-func (m *mockViewSubItemRepo) List(_ context.Context, _ uint, _ uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockViewSubItemRepo) List(_ context.Context, _ int64, _ uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
 func (m *mockViewSubItemRepo) ListByMainItem(_ context.Context, _ uint) ([]*model.SubItem, error) {
 	return nil, nil
 }
-func (m *mockViewSubItemRepo) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
+func (m *mockViewSubItemRepo) ListByTeam(_ context.Context, _ int64) ([]model.SubItem, error) {
 	if m.listErr != nil {
 		return nil, m.listErr
 	}
@@ -135,7 +135,7 @@ func (m *mockViewProgressRepo) Create(_ context.Context, _ *model.ProgressRecord
 func (m *mockViewProgressRepo) FindByID(_ context.Context, _ uint) (*model.ProgressRecord, error) {
 	return nil, nil
 }
-func (m *mockViewProgressRepo) ListBySubItem(_ context.Context, _ uint, _ int64) ([]model.ProgressRecord, error) {
+func (m *mockViewProgressRepo) ListBySubItem(_ context.Context, _ int64, _ int64) ([]model.ProgressRecord, error) {
 	return nil, nil
 }
 func (m *mockViewProgressRepo) LatestBySubItem(_ context.Context, _ int64) (*model.ProgressRecord, error) {
@@ -144,7 +144,7 @@ func (m *mockViewProgressRepo) LatestBySubItem(_ context.Context, _ int64) (*mod
 func (m *mockViewProgressRepo) UpdateCompletion(_ context.Context, _ uint, _ float64) error {
 	return nil
 }
-func (m *mockViewProgressRepo) ListByTeamInRange(_ context.Context, _ uint, _, _ time.Time) ([]model.ProgressRecord, error) {
+func (m *mockViewProgressRepo) ListByTeamInRange(_ context.Context, _ int64, _, _ time.Time) ([]model.ProgressRecord, error) {
 	if m.listErr != nil {
 		return nil, m.listErr
 	}
@@ -1025,7 +1025,7 @@ func TestGanttView_StatusFilter_UsesSQLPushdown(t *testing.T) {
 
 	// Should call ListByTeamAndStatus (SQL pushdown)
 	assert.True(t, mainRepo.listByTeamAndStatusCalled, "should call ListByTeamAndStatus when status filter is set")
-	assert.Equal(t, uint(1), mainRepo.listByTeamAndStatusTeamID)
+	assert.Equal(t, int64(1), mainRepo.listByTeamAndStatusTeamID)
 	assert.Equal(t, "progressing", mainRepo.listByTeamAndStatusStatus)
 	// Should NOT call ListNonArchivedByTeam
 	assert.False(t, mainRepo.listNonArchivedCalled, "should not call ListNonArchivedByTeam when status filter is set")

@@ -245,13 +245,13 @@ func (s *StubRouterRepoSubItem) FindByID(_ context.Context, _ uint) (*model.SubI
 func (s *StubRouterRepoSubItem) Update(_ context.Context, _ *model.SubItem, _ map[string]interface{}) error {
 	return nil
 }
-func (s *StubRouterRepoSubItem) List(_ context.Context, _, _ uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (s *StubRouterRepoSubItem) List(_ context.Context, _ int64, _ uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
 func (s *StubRouterRepoSubItem) ListByMainItem(_ context.Context, _ uint) ([]*model.SubItem, error) {
 	return nil, nil
 }
-func (s *StubRouterRepoSubItem) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
+func (s *StubRouterRepoSubItem) ListByTeam(_ context.Context, _ int64) ([]model.SubItem, error) {
 	return nil, nil
 }
 func (s *StubRouterRepoSubItem) SoftDelete(_ context.Context, _ uint) error { return nil }
@@ -280,22 +280,22 @@ func (s *StubRouterRepoMainItem) FindByBizKeys(_ context.Context, _ []int64) (ma
 func (s *StubRouterRepoMainItem) Update(_ context.Context, _ *model.MainItem, _ map[string]interface{}) error {
 	return nil
 }
-func (s *StubRouterRepoMainItem) List(_ context.Context, _ uint, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+func (s *StubRouterRepoMainItem) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
 	return nil, nil
 }
 func (s *StubRouterRepoMainItem) NextCode(_ context.Context, _ int64) (string, error) {
 	return "", nil
 }
-func (s *StubRouterRepoMainItem) CountByTeam(_ context.Context, _ uint) (int64, error) {
+func (s *StubRouterRepoMainItem) CountByTeam(_ context.Context, _ int64) (int64, error) {
 	return 0, nil
 }
-func (s *StubRouterRepoMainItem) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
+func (s *StubRouterRepoMainItem) ListNonArchivedByTeam(_ context.Context, _ int64) ([]model.MainItem, error) {
 	return nil, nil
 }
 func (s *StubRouterRepoMainItem) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
 	return nil, nil
 }
-func (s *StubRouterRepoMainItem) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
+func (s *StubRouterRepoMainItem) ListByTeamAndStatus(_ context.Context, _ int64, _ string) ([]model.MainItem, error) {
 	return nil, nil
 }
 

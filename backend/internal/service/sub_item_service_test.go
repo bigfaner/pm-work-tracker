@@ -42,8 +42,8 @@ func (m *mockSubItemRepoTM) Update(ctx context.Context, item *model.SubItem, fie
 	return args.Error(0)
 }
 
-func (m *mockSubItemRepoTM) List(ctx context.Context, teamID uint, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
-	args := m.Called(ctx, teamID, mainItemID, filter, page)
+func (m *mockSubItemRepoTM) List(ctx context.Context, teamBizKey int64, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+	args := m.Called(ctx, teamBizKey, mainItemID, filter, page)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -58,8 +58,8 @@ func (m *mockSubItemRepoTM) ListByMainItem(ctx context.Context, mainItemID uint)
 	return args.Get(0).([]*model.SubItem), args.Error(1)
 }
 
-func (m *mockSubItemRepoTM) ListByTeam(ctx context.Context, teamID uint) ([]model.SubItem, error) {
-	args := m.Called(ctx, teamID)
+func (m *mockSubItemRepoTM) ListByTeam(ctx context.Context, teamBizKey int64) ([]model.SubItem, error) {
+	args := m.Called(ctx, teamBizKey)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -935,7 +935,7 @@ func TestSubItemList_Success(t *testing.T) {
 	historySvc := new(mockStatusHistorySvcTM)
 	svc := NewSubItemService(repo, mainSvc, historySvc)
 
-	repo.On("List", mock.Anything, uint(1), uint(0), mock.Anything, mock.Anything).
+	repo.On("List", mock.Anything, int64(1), uint(0), mock.Anything, mock.Anything).
 		Return(&dto.PageResult[model.SubItem]{Items: items, Total: 2}, nil)
 
 	result, err := svc.List(context.Background(), int64(1), nil, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 20})
@@ -956,7 +956,7 @@ func TestSubItemList_WithMainItemFilter(t *testing.T) {
 	svc := NewSubItemService(repo, mainSvc, historySvc)
 
 	mainID := uint(5)
-	repo.On("List", mock.Anything, uint(1), uint(5), mock.Anything, mock.Anything).
+	repo.On("List", mock.Anything, int64(1), uint(5), mock.Anything, mock.Anything).
 		Return(&dto.PageResult[model.SubItem]{Items: items, Total: 1}, nil)
 
 	result, err := svc.List(context.Background(), int64(1), &mainID, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 20})

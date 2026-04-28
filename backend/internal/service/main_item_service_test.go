@@ -73,7 +73,7 @@ func (m *mockMainItemRepo) Update(_ context.Context, item *model.MainItem, field
 	return m.updateErr
 }
 
-func (m *mockMainItemRepo) List(_ context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+func (m *mockMainItemRepo) List(_ context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
 	if m.listErr != nil {
 		return nil, m.listErr
 	}
@@ -87,11 +87,11 @@ func (m *mockMainItemRepo) NextCode(_ context.Context, teamBizKey int64) (string
 	return m.nextCodeVal, m.nextErr
 }
 
-func (m *mockMainItemRepo) CountByTeam(_ context.Context, _ uint) (int64, error) {
+func (m *mockMainItemRepo) CountByTeam(_ context.Context, _ int64) (int64, error) {
 	return 0, nil
 }
 
-func (m *mockMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
+func (m *mockMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ int64) ([]model.MainItem, error) {
 	return nil, nil
 }
 func (m *mockMainItemRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
@@ -106,7 +106,7 @@ func (m *mockMainItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.Main
 	}
 	return nil, m.bizKeyErr
 }
-func (m *mockMainItemRepo) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
+func (m *mockMainItemRepo) ListByTeamAndStatus(_ context.Context, _ int64, _ string) ([]model.MainItem, error) {
 	return nil, nil
 }
 
@@ -127,7 +127,7 @@ func (m *mockSubItemRepo) Update(_ context.Context, item *model.SubItem, fields 
 	return nil
 }
 
-func (m *mockSubItemRepo) List(_ context.Context, teamID uint, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockSubItemRepo) List(_ context.Context, teamBizKey int64, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
 
@@ -138,7 +138,7 @@ func (m *mockSubItemRepo) ListByMainItem(_ context.Context, mainItemID uint) ([]
 	return m.subItems, nil
 }
 
-func (m *mockSubItemRepo) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
+func (m *mockSubItemRepo) ListByTeam(_ context.Context, _ int64) ([]model.SubItem, error) {
 	return nil, nil
 }
 

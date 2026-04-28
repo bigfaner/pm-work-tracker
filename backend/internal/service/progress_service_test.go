@@ -49,7 +49,7 @@ func (m *mockProgressRepo) FindByID(_ context.Context, id uint) (*model.Progress
 	return nil, apperrors.ErrNotFound
 }
 
-func (m *mockProgressRepo) ListBySubItem(_ context.Context, teamID uint, subItemBizKey int64) ([]model.ProgressRecord, error) {
+func (m *mockProgressRepo) ListBySubItem(_ context.Context, teamBizKey int64, subItemBizKey int64) ([]model.ProgressRecord, error) {
 	if m.listErr != nil {
 		return nil, m.listErr
 	}
@@ -69,7 +69,7 @@ func (m *mockProgressRepo) UpdateCompletion(_ context.Context, recordID uint, co
 	return m.updateErr
 }
 
-func (m *mockProgressRepo) ListByTeamInRange(_ context.Context, _ uint, _, _ time.Time) ([]model.ProgressRecord, error) {
+func (m *mockProgressRepo) ListByTeamInRange(_ context.Context, _ int64, _, _ time.Time) ([]model.ProgressRecord, error) {
 	return nil, nil
 }
 
@@ -111,7 +111,7 @@ func (m *mockSubItemRepoForProgress) Update(_ context.Context, item *model.SubIt
 	return m.updateErr
 }
 
-func (m *mockSubItemRepoForProgress) List(_ context.Context, teamID uint, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockSubItemRepoForProgress) List(_ context.Context, teamBizKey int64, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
 
@@ -119,7 +119,7 @@ func (m *mockSubItemRepoForProgress) ListByMainItem(_ context.Context, mainItemI
 	return nil, nil
 }
 
-func (m *mockSubItemRepoForProgress) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
+func (m *mockSubItemRepoForProgress) ListByTeam(_ context.Context, _ int64) ([]model.SubItem, error) {
 	return nil, nil
 }
 

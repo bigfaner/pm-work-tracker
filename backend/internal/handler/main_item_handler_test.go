@@ -175,13 +175,13 @@ func (m *mockSubItemRepoForHandler) FindByID(_ context.Context, _ uint) (*model.
 func (m *mockSubItemRepoForHandler) Update(_ context.Context, _ *model.SubItem, _ map[string]interface{}) error {
 	return nil
 }
-func (m *mockSubItemRepoForHandler) List(_ context.Context, _ uint, _ uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockSubItemRepoForHandler) List(_ context.Context, _ int64, _ uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
 func (m *mockSubItemRepoForHandler) ListByMainItem(_ context.Context, _ uint) ([]*model.SubItem, error) {
 	return m.items, m.err
 }
-func (m *mockSubItemRepoForHandler) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
+func (m *mockSubItemRepoForHandler) ListByTeam(_ context.Context, _ int64) ([]model.SubItem, error) {
 	return nil, nil
 }
 func (m *mockSubItemRepoForHandler) SoftDelete(_ context.Context, _ uint) error {
