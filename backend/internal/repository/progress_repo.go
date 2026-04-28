@@ -13,8 +13,8 @@ type ProgressRepo interface {
 	Create(ctx context.Context, record *model.ProgressRecord) error
 	FindByID(ctx context.Context, id uint) (*model.ProgressRecord, error)
 	FindByBizKey(ctx context.Context, bizKey int64) (*model.ProgressRecord, error)
-	ListBySubItem(ctx context.Context, teamID uint, subItemBizKey int64) ([]model.ProgressRecord, error)
+	ListBySubItem(ctx context.Context, teamBizKey int64, subItemBizKey int64) ([]model.ProgressRecord, error)
 	LatestBySubItem(ctx context.Context, subItemBizKey int64) (*model.ProgressRecord, error)
 	UpdateCompletion(ctx context.Context, recordID uint, completion float64) error
-	ListByTeamInRange(ctx context.Context, teamID uint, start, end time.Time) ([]model.ProgressRecord, error)
+	ListByTeamInRange(ctx context.Context, teamBizKey int64, start, end time.Time) ([]model.ProgressRecord, error)
 }

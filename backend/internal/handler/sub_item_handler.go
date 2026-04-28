@@ -53,7 +53,7 @@ func isPMOrSuperAdmin(c *gin.Context) bool {
 
 // Create handles POST /api/v1/teams/:teamId/main-items/:itemId/sub-items
 func (h *SubItemHandler) Create(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	callerID := middleware.GetUserID(c)
 
 	var req dto.SubItemCreateReq
@@ -62,7 +62,7 @@ func (h *SubItemHandler) Create(c *gin.Context) {
 		return
 	}
 
-	item, err := h.svc.Create(c.Request.Context(), teamID, callerID, req)
+	item, err := h.svc.Create(c.Request.Context(), teamBizKey, callerID, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -73,7 +73,7 @@ func (h *SubItemHandler) Create(c *gin.Context) {
 
 // List handles GET /api/v1/teams/:teamId/main-items/:itemId/sub-items
 func (h *SubItemHandler) List(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
 	mainBizKey, ok := pkgHandler.ParseBizKeyParam(c, "itemId")
 	if !ok {
@@ -99,7 +99,7 @@ func (h *SubItemHandler) List(c *gin.Context) {
 	}
 	_, page.Page, page.PageSize = dto.ApplyPaginationDefaults(page.Page, page.PageSize)
 
-	result, err := h.svc.List(c.Request.Context(), teamID, &mainID, filter, page)
+	result, err := h.svc.List(c.Request.Context(), teamBizKey, &mainID, filter, page)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -130,9 +130,9 @@ func (h *SubItemHandler) Get(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
-	item, err := h.svc.Get(c.Request.Context(), teamID, subID)
+	item, err := h.svc.Get(c.Request.Context(), teamBizKey, subID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -158,8 +158,8 @@ func (h *SubItemHandler) Update(c *gin.Context) {
 	// Permission check (sub_item:update) is done by RequirePermission middleware.
 	if !isPMOrSuperAdmin(c) {
 		// Check if caller is the assignee
-		teamID := middleware.GetTeamID(c)
-		item, err := h.svc.Get(c.Request.Context(), teamID, subID)
+		teamBizKey := middleware.GetTeamBizKey(c)
+		item, err := h.svc.Get(c.Request.Context(), teamBizKey, subID)
 		if err != nil {
 			apperrors.RespondError(c, err)
 			return
@@ -171,7 +171,7 @@ func (h *SubItemHandler) Update(c *gin.Context) {
 		}
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
 	var req dto.SubItemUpdateReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -179,14 +179,14 @@ func (h *SubItemHandler) Update(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.Update(c.Request.Context(), teamID, subID, req)
+	err := h.svc.Update(c.Request.Context(), teamBizKey, subID, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
 	}
 
 	// Fetch updated item for response
-	updated, err := h.svc.Get(c.Request.Context(), teamID, subID)
+	updated, err := h.svc.Get(c.Request.Context(), teamBizKey, subID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -211,8 +211,8 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 	// Assignee pattern: PM/SuperAdmin can change status for all, other members only their assigned items.
 	// Permission check (sub_item:change_status) is done by RequirePermission middleware.
 	if !isPMOrSuperAdmin(c) {
-		teamID := middleware.GetTeamID(c)
-		item, err := h.svc.Get(c.Request.Context(), teamID, subID)
+		teamBizKey := middleware.GetTeamBizKey(c)
+		item, err := h.svc.Get(c.Request.Context(), teamBizKey, subID)
 		if err != nil {
 			apperrors.RespondError(c, err)
 			return
@@ -224,7 +224,7 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 		}
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	callerID := middleware.GetUserID(c)
 
 	var req dto.ChangeStatusReq
@@ -233,7 +233,7 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 		return
 	}
 
-	result, err := h.svc.ChangeStatus(c.Request.Context(), teamID, callerID, subID, req.Status)
+	result, err := h.svc.ChangeStatus(c.Request.Context(), teamBizKey, callerID, subID, req.Status)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -259,9 +259,9 @@ func (h *SubItemHandler) AvailableTransitions(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
-	transitions, err := h.svc.AvailableTransitions(c.Request.Context(), teamID, subID)
+	transitions, err := h.svc.AvailableTransitions(c.Request.Context(), teamBizKey, subID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -283,7 +283,7 @@ func (h *SubItemHandler) Assign(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	pmID := middleware.GetUserID(c)
 
 	var req dto.AssignSubItemReq
@@ -292,7 +292,7 @@ func (h *SubItemHandler) Assign(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.Assign(c.Request.Context(), teamID, pmID, subID, func() uint { v, _ := pkg.ParseID(req.AssigneeKey); return uint(v) }())
+	err := h.svc.Assign(c.Request.Context(), teamBizKey, pmID, subID, func() uint { v, _ := pkg.ParseID(req.AssigneeKey); return uint(v) }())
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

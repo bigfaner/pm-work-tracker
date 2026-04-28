@@ -15,9 +15,9 @@ type MainItemRepo interface {
 	FindByBizKey(ctx context.Context, bizKey int64) (*model.MainItem, error)
 	FindByBizKeys(ctx context.Context, bizKeys []int64) (map[int64]*model.MainItem, error)
 	Update(ctx context.Context, item *model.MainItem, fields map[string]interface{}) error
-	List(ctx context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error)
-	ListByTeamAndStatus(ctx context.Context, teamID uint, status string) ([]model.MainItem, error)
-	NextCode(ctx context.Context, teamID uint) (string, error)
-	CountByTeam(ctx context.Context, teamID uint) (int64, error)
-	ListNonArchivedByTeam(ctx context.Context, teamID uint) ([]model.MainItem, error)
+	List(ctx context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error)
+	ListByTeamAndStatus(ctx context.Context, teamBizKey int64, status string) ([]model.MainItem, error)
+	NextCode(ctx context.Context, teamBizKey int64) (string, error)
+	CountByTeam(ctx context.Context, teamBizKey int64) (int64, error)
+	ListNonArchivedByTeam(ctx context.Context, teamBizKey int64) ([]model.MainItem, error)
 }

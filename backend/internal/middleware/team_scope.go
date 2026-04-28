@@ -19,7 +19,7 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleR
 		// 1. Parse teamId from URL param as bizKey (snowflake int64)
 		teamIDStr := c.Param("teamId")
 		teamBizKey, err := strconv.ParseInt(teamIDStr, 10, 64)
-		if err != nil {
+		if err != nil || teamBizKey <= 0 {
 			c.Abort()
 			apperrors.RespondError(c, apperrors.ErrValidation)
 			return
@@ -32,11 +32,9 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleR
 			apperrors.RespondError(c, apperrors.ErrTeamNotFound)
 			return
 		}
-		teamIDUint := team.ID
-
 		// 2. SuperAdmin bypasses membership check
 		if IsSuperAdmin(c) {
-			c.Set("teamID", teamIDUint)
+			c.Set("teamBizKey", teamBizKey)
 			c.Set("callerTeamRole", "superadmin")
 			c.Set("permCodes", []string{})
 			c.Next()
@@ -45,7 +43,7 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleR
 
 		// 3. Look up TeamMember record
 		userID := GetUserID(c)
-		member, err := teamRepo.FindMember(c.Request.Context(), teamIDUint, userID)
+		member, err := teamRepo.FindMember(c.Request.Context(), team.ID, userID)
 		if err != nil {
 			c.Abort()
 			apperrors.RespondError(c, apperrors.ErrNotTeamMember)
@@ -71,20 +69,28 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleR
 			permCodes = codes
 		}
 
-		// 5. Inject teamID, callerTeamRole, and permCodes into context
-		c.Set("teamID", teamIDUint)
+		// 5. Inject teamBizKey, callerTeamRole, and permCodes into context
+		c.Set("teamBizKey", teamBizKey)
 		c.Set("callerTeamRole", "member")
 		c.Set("permCodes", permCodes)
 		c.Next()
 	}
 }
 
-// GetTeamID extracts the scoped team ID from the Gin context.
-func GetTeamID(c *gin.Context) uint {
-	if v, ok := c.Get("teamID"); ok {
-		if id, ok := v.(uint); ok {
+// GetTeamBizKey extracts the scoped team biz key from the Gin context.
+func GetTeamBizKey(c *gin.Context) int64 {
+	if v, ok := c.Get("teamBizKey"); ok {
+		if id, ok := v.(int64); ok {
 			return id
 		}
 	}
 	return 0
+}
+
+// GetTeamID returns the team biz key cast to uint, for handlers that pass teamID
+// to services whose interfaces still use uint. The cast is lossless for positive
+// snowflake IDs, and service-layer comparisons of the form int64(teamID) == item.TeamKey
+// remain correct because item.TeamKey stores the biz key.
+func GetTeamID(c *gin.Context) uint {
+	return uint(GetTeamBizKey(c))
 }

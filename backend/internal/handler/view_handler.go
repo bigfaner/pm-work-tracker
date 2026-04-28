@@ -56,9 +56,9 @@ func (h *ViewHandler) Weekly(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
-	result, err := h.viewSvc.WeeklyComparison(c.Request.Context(), teamID, weekStart)
+	result, err := h.viewSvc.WeeklyComparison(c.Request.Context(), teamBizKey, weekStart)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -75,9 +75,9 @@ func (h *ViewHandler) Gantt(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
-	result, err := h.viewSvc.GanttView(c.Request.Context(), teamID, filter)
+	result, err := h.viewSvc.GanttView(c.Request.Context(), teamBizKey, filter)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -98,9 +98,9 @@ func (h *ViewHandler) Table(c *gin.Context) {
 	_ = c.ShouldBindQuery(&page)
 	_, page.Page, page.PageSize = dto.ApplyPaginationWithDefault(page.Page, page.PageSize, 50)
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
-	result, err := h.viewSvc.TableView(c.Request.Context(), teamID, filter, page)
+	result, err := h.viewSvc.TableView(c.Request.Context(), teamBizKey, filter, page)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -117,9 +117,9 @@ func (h *ViewHandler) ExportTable(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
-	csvBytes, err := h.viewSvc.TableExportCSV(c.Request.Context(), teamID, filter)
+	csvBytes, err := h.viewSvc.TableExportCSV(c.Request.Context(), teamBizKey, filter)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

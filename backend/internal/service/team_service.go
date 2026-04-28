@@ -17,17 +17,17 @@ import (
 
 type TeamService interface {
 	CreateTeam(ctx context.Context, creatorID uint, req dto.CreateTeamReq) (*model.Team, error)
-	GetTeam(ctx context.Context, teamID uint) (*model.Team, error)
-	GetTeamDetail(ctx context.Context, teamID uint) (*dto.TeamDetailResp, error)
+	GetTeam(ctx context.Context, teamBizKey int64) (*model.Team, error)
+	GetTeamDetail(ctx context.Context, teamBizKey int64) (*dto.TeamDetailResp, error)
 	ListTeams(ctx context.Context, callerID uint, isSuperAdmin bool, search string, page, pageSize int) ([]*dto.TeamListResp, int64, error)
-	UpdateTeam(ctx context.Context, pmID, teamID uint, req dto.UpdateTeamReq) (*model.Team, error)
-	InviteMember(ctx context.Context, pmID, teamID uint, req dto.InviteMemberReq) error
-	RemoveMember(ctx context.Context, pmID, teamID, targetUserID uint) error
-	TransferPM(ctx context.Context, currentPMID, teamID, newPMID uint) error
-	DisbandTeam(ctx context.Context, callerID uint, teamID uint, confirmName string) error
-	UpdateMemberRole(ctx context.Context, pmID, teamID, targetUserID, roleID uint) error
-	ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMemberDTO, error)
-	SearchAvailableUsers(ctx context.Context, teamID uint, search string) ([]*dto.UserSearchDTO, error)
+	UpdateTeam(ctx context.Context, pmID uint, teamBizKey int64, req dto.UpdateTeamReq) (*model.Team, error)
+	InviteMember(ctx context.Context, pmID uint, teamBizKey int64, req dto.InviteMemberReq) error
+	RemoveMember(ctx context.Context, pmID uint, teamBizKey int64, targetUserID uint) error
+	TransferPM(ctx context.Context, currentPMID uint, teamBizKey int64, newPMID uint) error
+	DisbandTeam(ctx context.Context, callerID uint, teamBizKey int64, confirmName string) error
+	UpdateMemberRole(ctx context.Context, pmID, targetUserID uint, teamBizKey int64, roleBizKey int64) error
+	ListMembers(ctx context.Context, teamBizKey int64) ([]*dto.TeamMemberDTO, error)
+	SearchAvailableUsers(ctx context.Context, teamBizKey int64, search string) ([]*dto.UserSearchDTO, error)
 }
 
 type teamService struct {
@@ -73,8 +73,8 @@ func (s *teamService) CreateTeam(ctx context.Context, creatorID uint, req dto.Cr
 	return team, nil
 }
 
-func (s *teamService) GetTeam(ctx context.Context, teamID uint) (*model.Team, error) {
-	team, err := s.teamRepo.FindByID(ctx, teamID)
+func (s *teamService) GetTeam(ctx context.Context, teamBizKey int64) (*model.Team, error) {
+	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
@@ -110,8 +110,8 @@ func (s *teamService) ListTeams(ctx context.Context, _ uint, _ bool, search stri
 	return result, total, nil
 }
 
-func (s *teamService) GetTeamDetail(ctx context.Context, teamID uint) (*dto.TeamDetailResp, error) {
-	team, err := s.teamRepo.FindByID(ctx, teamID)
+func (s *teamService) GetTeamDetail(ctx context.Context, teamBizKey int64) (*dto.TeamDetailResp, error) {
+	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
@@ -122,10 +122,10 @@ func (s *teamService) GetTeamDetail(ctx context.Context, teamID uint) (*dto.Team
 	}
 
 	// Use COUNT(*) for member count instead of loading all members
-	memberCount, err := s.teamRepo.CountMembers(ctx, teamID)
+	memberCount, err := s.teamRepo.CountMembers(ctx, team.ID)
 	if err != nil {
 		// Fallback: load all members and count
-		members, listErr := s.teamRepo.ListMembers(ctx, teamID)
+		members, listErr := s.teamRepo.ListMembers(ctx, team.ID)
 		if listErr != nil {
 			return nil, listErr
 		}
@@ -134,7 +134,7 @@ func (s *teamService) GetTeamDetail(ctx context.Context, teamID uint) (*dto.Team
 
 	var mainItemCount int64
 	if s.mainItemRepo != nil {
-		mainItemCount, _ = s.mainItemRepo.CountByTeam(ctx, teamID)
+		mainItemCount, _ = s.mainItemRepo.CountByTeam(ctx, team.BizKey)
 	}
 
 	return &dto.TeamDetailResp{
@@ -151,8 +151,8 @@ func (s *teamService) GetTeamDetail(ctx context.Context, teamID uint) (*dto.Team
 	}, nil
 }
 
-func (s *teamService) UpdateTeam(ctx context.Context, pmID, teamID uint, req dto.UpdateTeamReq) (*model.Team, error) {
-	team, err := s.teamRepo.FindByID(ctx, teamID)
+func (s *teamService) UpdateTeam(ctx context.Context, pmID uint, teamBizKey int64, req dto.UpdateTeamReq) (*model.Team, error) {
+	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
@@ -168,11 +168,12 @@ func (s *teamService) UpdateTeam(ctx context.Context, pmID, teamID uint, req dto
 	return team, nil
 }
 
-func (s *teamService) InviteMember(ctx context.Context, pmID, teamID uint, req dto.InviteMemberReq) error {
-	if _, err := s.teamRepo.FindByID(ctx, teamID); err != nil {
+func (s *teamService) InviteMember(ctx context.Context, pmID uint, teamBizKey int64, req dto.InviteMemberReq) error {
+	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
+	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
-	if roleID, err := pkg.ParseID(req.RoleKey); err == nil && s.isPMRole(ctx, uint(roleID)) {
+	if roleID, err := pkg.ParseID(req.RoleKey); err == nil && s.isPMRole(ctx, roleID) {
 		return apperrors.ErrCannotAssignPMRole
 	}
 
@@ -181,7 +182,7 @@ func (s *teamService) InviteMember(ctx context.Context, pmID, teamID uint, req d
 		return apperrors.MapNotFound(err, apperrors.ErrNotFound)
 	}
 
-	existing, err := s.teamRepo.FindMember(ctx, teamID, user.ID)
+	existing, err := s.teamRepo.FindMember(ctx, team.ID, user.ID)
 	if err != nil && err != apperrors.ErrNotFound {
 		return err
 	}
@@ -191,7 +192,7 @@ func (s *teamService) InviteMember(ctx context.Context, pmID, teamID uint, req d
 
 	member := &model.TeamMember{
 		BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:   int64(teamID),
+		TeamKey:   int64(team.ID),
 		UserKey:   int64(user.ID),
 		RoleKey:   func() *int64 { v, _ := pkg.ParseID(req.RoleKey); return &v }(),
 		JoinedAt:  time.Now(),
@@ -199,8 +200,8 @@ func (s *teamService) InviteMember(ctx context.Context, pmID, teamID uint, req d
 	return s.teamRepo.AddMember(ctx, member)
 }
 
-func (s *teamService) RemoveMember(ctx context.Context, pmID, teamID, targetUserID uint) error {
-	team, err := s.teamRepo.FindByID(ctx, teamID)
+func (s *teamService) RemoveMember(ctx context.Context, pmID uint, teamBizKey int64, targetUserID uint) error {
+	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
@@ -211,11 +212,11 @@ func (s *teamService) RemoveMember(ctx context.Context, pmID, teamID, targetUser
 		return apperrors.ErrCannotRemoveSelf
 	}
 
-	return s.teamRepo.RemoveMember(ctx, teamID, targetUserID)
+	return s.teamRepo.RemoveMember(ctx, team.ID, targetUserID)
 }
 
-func (s *teamService) TransferPM(ctx context.Context, currentPMID, teamID, newPMID uint) error {
-	team, err := s.teamRepo.FindByID(ctx, teamID)
+func (s *teamService) TransferPM(ctx context.Context, currentPMID uint, teamBizKey int64, newPMID uint) error {
+	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
@@ -224,7 +225,7 @@ func (s *teamService) TransferPM(ctx context.Context, currentPMID, teamID, newPM
 	}
 
 	// Verify new PM is a team member
-	newPMMember, err := s.teamRepo.FindMember(ctx, teamID, newPMID)
+	newPMMember, err := s.teamRepo.FindMember(ctx, team.ID, newPMID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrNotTeamMember)
 	}
@@ -249,7 +250,7 @@ func (s *teamService) TransferPM(ctx context.Context, currentPMID, teamID, newPM
 		}
 
 		// Old PM gets "member" role
-		oldPMMember, err := s.teamRepo.FindMember(ctx, teamID, currentPMID)
+		oldPMMember, err := s.teamRepo.FindMember(ctx, team.ID, currentPMID)
 		if err != nil {
 			return err
 		}
@@ -263,8 +264,8 @@ func (s *teamService) TransferPM(ctx context.Context, currentPMID, teamID, newPM
 	})
 }
 
-func (s *teamService) DisbandTeam(ctx context.Context, callerID uint, teamID uint, confirmName string) error {
-	team, err := s.teamRepo.FindByID(ctx, teamID)
+func (s *teamService) DisbandTeam(ctx context.Context, callerID uint, teamBizKey int64, confirmName string) error {
+	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
@@ -275,11 +276,11 @@ func (s *teamService) DisbandTeam(ctx context.Context, callerID uint, teamID uin
 		return apperrors.ErrValidation
 	}
 
-	return s.teamRepo.SoftDelete(ctx, teamID)
+	return s.teamRepo.SoftDelete(ctx, team.ID)
 }
 
-func (s *teamService) UpdateMemberRole(ctx context.Context, pmID, teamID, targetUserID, roleID uint) error {
-	team, err := s.teamRepo.FindByID(ctx, teamID)
+func (s *teamService) UpdateMemberRole(ctx context.Context, pmID, targetUserID uint, teamBizKey int64, roleBizKey int64) error {
+	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
@@ -287,38 +288,45 @@ func (s *teamService) UpdateMemberRole(ctx context.Context, pmID, teamID, target
 		return apperrors.ErrForbidden
 	}
 
-	if s.isPMRole(ctx, roleID) {
+	if s.isPMRole(ctx, roleBizKey) {
 		return apperrors.ErrCannotAssignPMRole
 	}
 
-	member, err := s.teamRepo.FindMember(ctx, teamID, targetUserID)
+	member, err := s.teamRepo.FindMember(ctx, team.ID, targetUserID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrNotTeamMember)
 	}
 
-	roleKey := int64(roleID)
-	member.RoleKey = &roleKey
+	member.RoleKey = &roleBizKey
 	return s.teamRepo.UpdateMember(ctx, member)
 }
 
 // isPMRole returns true if the given bizKey corresponds to the "pm" preset role.
-func (s *teamService) isPMRole(ctx context.Context, bizKey uint) bool {
+func (s *teamService) isPMRole(ctx context.Context, bizKey int64) bool {
 	if s.roleRepo == nil {
 		return false
 	}
-	role, err := s.roleRepo.FindByBizKey(ctx, int64(bizKey))
+	role, err := s.roleRepo.FindByBizKey(ctx, bizKey)
 	if err != nil {
 		return false
 	}
 	return role.Name == "pm"
 }
 
-func (s *teamService) ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMemberDTO, error) {
-	return s.teamRepo.ListMembers(ctx, teamID)
+func (s *teamService) ListMembers(ctx context.Context, teamBizKey int64) ([]*dto.TeamMemberDTO, error) {
+	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
+	}
+	return s.teamRepo.ListMembers(ctx, team.ID)
 }
 
-func (s *teamService) SearchAvailableUsers(ctx context.Context, teamID uint, search string) ([]*dto.UserSearchDTO, error) {
-	users, err := s.userRepo.SearchAvailable(ctx, teamID, search, 20)
+func (s *teamService) SearchAvailableUsers(ctx context.Context, teamBizKey int64, search string) ([]*dto.UserSearchDTO, error) {
+	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
+	}
+	users, err := s.userRepo.SearchAvailable(ctx, team.ID, search, 20)
 	if err != nil {
 		return nil, err
 	}

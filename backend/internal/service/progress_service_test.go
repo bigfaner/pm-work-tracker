@@ -49,7 +49,7 @@ func (m *mockProgressRepo) FindByID(_ context.Context, id uint) (*model.Progress
 	return nil, apperrors.ErrNotFound
 }
 
-func (m *mockProgressRepo) ListBySubItem(_ context.Context, teamID uint, subItemBizKey int64) ([]model.ProgressRecord, error) {
+func (m *mockProgressRepo) ListBySubItem(_ context.Context, teamBizKey int64, subItemBizKey int64) ([]model.ProgressRecord, error) {
 	if m.listErr != nil {
 		return nil, m.listErr
 	}
@@ -69,7 +69,7 @@ func (m *mockProgressRepo) UpdateCompletion(_ context.Context, recordID uint, co
 	return m.updateErr
 }
 
-func (m *mockProgressRepo) ListByTeamInRange(_ context.Context, _ uint, _, _ time.Time) ([]model.ProgressRecord, error) {
+func (m *mockProgressRepo) ListByTeamInRange(_ context.Context, _ int64, _, _ time.Time) ([]model.ProgressRecord, error) {
 	return nil, nil
 }
 
@@ -111,7 +111,7 @@ func (m *mockSubItemRepoForProgress) Update(_ context.Context, item *model.SubIt
 	return m.updateErr
 }
 
-func (m *mockSubItemRepoForProgress) List(_ context.Context, teamID uint, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockSubItemRepoForProgress) List(_ context.Context, teamBizKey int64, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
 
@@ -119,7 +119,7 @@ func (m *mockSubItemRepoForProgress) ListByMainItem(_ context.Context, mainItemI
 	return nil, nil
 }
 
-func (m *mockSubItemRepoForProgress) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
+func (m *mockSubItemRepoForProgress) ListByTeam(_ context.Context, _ int64) ([]model.SubItem, error) {
 	return nil, nil
 }
 
@@ -145,19 +145,19 @@ type mockMainItemSvcForProgress struct {
 	recalcErr    error
 }
 
-func (m *mockMainItemSvcForProgress) Create(_ context.Context, teamID, pmID uint, req dto.MainItemCreateReq) (*model.MainItem, error) {
+func (m *mockMainItemSvcForProgress) Create(_ context.Context, _ int64, _ uint, _ dto.MainItemCreateReq) (*model.MainItem, error) {
 	return nil, nil
 }
 
-func (m *mockMainItemSvcForProgress) Update(_ context.Context, teamID, itemID uint, req dto.MainItemUpdateReq) error {
+func (m *mockMainItemSvcForProgress) Update(_ context.Context, _ int64, _ uint, _ dto.MainItemUpdateReq) error {
 	return nil
 }
 
-func (m *mockMainItemSvcForProgress) Archive(_ context.Context, teamID, itemID uint) error {
+func (m *mockMainItemSvcForProgress) Archive(_ context.Context, _ int64, _ uint) error {
 	return nil
 }
 
-func (m *mockMainItemSvcForProgress) List(_ context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+func (m *mockMainItemSvcForProgress) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
 	return nil, nil
 }
 
@@ -171,11 +171,11 @@ func (m *mockMainItemSvcForProgress) RecalcCompletion(_ context.Context, mainIte
 	return m.recalcErr
 }
 
-func (m *mockMainItemSvcForProgress) ChangeStatus(_ context.Context, _, _, _ uint, _ string) (*model.MainItem, error) {
+func (m *mockMainItemSvcForProgress) ChangeStatus(_ context.Context, _ int64, _, _ uint, _ string) (*model.MainItem, error) {
 	return nil, nil
 }
 
-func (m *mockMainItemSvcForProgress) AvailableTransitions(_ context.Context, _, _, _ uint) ([]string, error) {
+func (m *mockMainItemSvcForProgress) AvailableTransitions(_ context.Context, _ int64, _, _ uint) ([]string, error) {
 	return nil, nil
 }
 
@@ -219,12 +219,15 @@ func TestProgressAppend_FirstRecord_NoRegression(t *testing.T) {
 
 	svc := NewProgressService(progressRepo, subItemRepo, mainItemSvc, &mockStatusHistorySvcForProgress{})
 
-	record, err := svc.Append(context.Background(), 1, 2, 5, 30.0, "achievement", "blocker", "lesson", false)
+	const teamBizKey int64 = 123456789012345678
+	record, err := svc.Append(context.Background(), teamBizKey, 2, 5, 30.0, "achievement", "blocker", "lesson", false)
 	require.NoError(t, err)
 	assert.Equal(t, int64(5), record.SubItemKey)
 	assert.Equal(t, float64(30.0), record.Completion)
 	assert.Equal(t, int64(2), record.AuthorKey)
 	assert.Equal(t, 0, record.IsPmCorrect)
+	// TeamKey must store the snowflake bizKey, not the internal auto-increment ID
+	assert.Equal(t, teamBizKey, record.TeamKey)
 }
 
 func TestProgressAppend_RegressionDetected(t *testing.T) {

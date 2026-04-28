@@ -42,10 +42,10 @@ func (r *progressRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.P
 	return &record, nil
 }
 
-func (r *progressRepo) ListBySubItem(ctx context.Context, teamID uint, subItemBizKey int64) ([]model.ProgressRecord, error) {
+func (r *progressRepo) ListBySubItem(ctx context.Context, teamBizKey int64, subItemBizKey int64) ([]model.ProgressRecord, error) {
 	var records []model.ProgressRecord
 	err := r.db.WithContext(ctx).
-		Where("team_key = ? AND sub_item_key = ?", teamID, subItemBizKey).
+		Where("team_key = ? AND sub_item_key = ?", teamBizKey, subItemBizKey).
 		Order("create_time ASC").
 		Find(&records).Error
 	return records, err
@@ -83,10 +83,10 @@ func (r *progressRepo) UpdateCompletion(ctx context.Context, recordID uint, comp
 	return nil
 }
 
-func (r *progressRepo) ListByTeamInRange(ctx context.Context, teamID uint, start, end time.Time) ([]model.ProgressRecord, error) {
+func (r *progressRepo) ListByTeamInRange(ctx context.Context, teamBizKey int64, start, end time.Time) ([]model.ProgressRecord, error) {
 	var records []model.ProgressRecord
 	err := r.db.WithContext(ctx).
-		Where("team_key = ? AND create_time >= ? AND create_time < ?", teamID, start, end).
+		Where("team_key = ? AND create_time >= ? AND create_time < ?", teamBizKey, start, end).
 		Order("create_time ASC").
 		Find(&records).Error
 	return records, err

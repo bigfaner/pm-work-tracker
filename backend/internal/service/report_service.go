@@ -14,8 +14,8 @@ import (
 
 // ReportService defines report operations.
 type ReportService interface {
-	Preview(ctx context.Context, teamID uint, weekStart time.Time) (*dto.ReportPreview, error)
-	ExportMarkdown(ctx context.Context, teamID uint, weekStart time.Time) ([]byte, error)
+	Preview(ctx context.Context, teamBizKey int64, weekStart time.Time) (*dto.ReportPreview, error)
+	ExportMarkdown(ctx context.Context, teamBizKey int64, weekStart time.Time) ([]byte, error)
 }
 
 type reportService struct {
@@ -33,17 +33,17 @@ func NewReportService(mainItemRepo repository.MainItemRepo, subItemRepo reposito
 	}
 }
 
-func (s *reportService) Preview(ctx context.Context, teamID uint, weekStart time.Time) (*dto.ReportPreview, error) {
+func (s *reportService) Preview(ctx context.Context, teamBizKey int64, weekStart time.Time) (*dto.ReportPreview, error) {
 	weekEnd := weekStart.AddDate(0, 0, 6)
 
 	// Fetch all non-archived main items
-	mainItems, err := s.mainItemRepo.ListNonArchivedByTeam(ctx, teamID)
+	mainItems, err := s.mainItemRepo.ListNonArchivedByTeam(ctx, teamBizKey)
 	if err != nil {
 		return nil, err
 	}
 
 	// Fetch all sub-items for the team
-	subItems, err := s.subItemRepo.ListByTeam(ctx, teamID)
+	subItems, err := s.subItemRepo.ListByTeam(ctx, teamBizKey)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (s *reportService) Preview(ctx context.Context, teamID uint, weekStart time
 	// Fetch progress records for the week range
 	rangeStart := time.Date(weekStart.Year(), weekStart.Month(), weekStart.Day(), 0, 0, 0, 0, weekStart.Location())
 	rangeEnd := time.Date(weekEnd.Year(), weekEnd.Month(), weekEnd.Day(), 0, 0, 0, 0, weekEnd.Location()).AddDate(0, 0, 1)
-	progressRecords, err := s.progressRepo.ListByTeamInRange(ctx, teamID, rangeStart, rangeEnd)
+	progressRecords, err := s.progressRepo.ListByTeamInRange(ctx, teamBizKey, rangeStart, rangeEnd)
 	if err != nil {
 		return nil, err
 	}
@@ -126,8 +126,8 @@ func (s *reportService) Preview(ctx context.Context, teamID uint, weekStart time
 	}, nil
 }
 
-func (s *reportService) ExportMarkdown(ctx context.Context, teamID uint, weekStart time.Time) ([]byte, error) {
-	preview, err := s.Preview(ctx, teamID, weekStart)
+func (s *reportService) ExportMarkdown(ctx context.Context, teamBizKey int64, weekStart time.Time) ([]byte, error) {
+	preview, err := s.Preview(ctx, teamBizKey, weekStart)
 	if err != nil {
 		return nil, err
 	}

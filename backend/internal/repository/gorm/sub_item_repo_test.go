@@ -32,19 +32,21 @@ func seedSubItemData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team, *m
 	require.NoError(t, db.Create(&u).Error)
 	team := model.Team{TeamName: "SI Team", PmKey: int64(u.ID), Code: "SITE"}
 	require.NoError(t, db.Create(&team).Error)
-	mi := model.MainItem{TeamKey: int64(team.ID), Code: "MI-SI01", ItemStatus: "pending", Priority: "P1", Title: "SI01"}
+	team.BizKey = int64(team.ID)
+	require.NoError(t, db.Save(&team).Error)
+	mi := model.MainItem{TeamKey: team.BizKey, Code: "MI-SI01", ItemStatus: "pending", Priority: "P1", Title: "SI01"}
 	require.NoError(t, db.Create(&mi).Error)
 	return &u, &team, &mi
 }
 
-func createSubItem(t *testing.T, db *gormlib.DB, teamID, mainItemID uint, title, priority, status string) *model.SubItem {
+func createSubItem(t *testing.T, db *gormlib.DB, teamBizKey int64, mainItemID uint, title, priority, status string) *model.SubItem {
 	t.Helper()
 	item := model.SubItem{
-		TeamKey: int64(teamID),
+		TeamKey:     teamBizKey,
 		MainItemKey: int64(mainItemID),
-		Title:      title,
-		Priority:   priority,
-		ItemStatus: status,
+		Title:       title,
+		Priority:    priority,
+		ItemStatus:  status,
 	}
 	require.NoError(t, db.Create(&item).Error)
 	return &item
@@ -59,7 +61,7 @@ func TestSubItemRepo_Create(t *testing.T) {
 
 	_, team, mi := seedSubItemData(t, db)
 	item := &model.SubItem{
-		TeamKey: int64(team.ID),
+		TeamKey: team.BizKey,
 		MainItemKey: int64(mi.ID),
 		Title:      "Sub 1",
 		Priority:   "P1",
@@ -77,7 +79,7 @@ func TestSubItemRepo_FindByID(t *testing.T) {
 	ctx := context.Background()
 
 	_, team, mi := seedSubItemData(t, db)
-	item := createSubItem(t, db, team.ID, mi.ID, "Find Me", "P1", "pending")
+	item := createSubItem(t, db, team.BizKey, mi.ID, "Find Me", "P1", "pending")
 
 	t.Run("found", func(t *testing.T) {
 		found, err := repo.FindByID(ctx, item.ID)
@@ -101,7 +103,7 @@ func TestSubItemRepo_Update(t *testing.T) {
 	ctx := context.Background()
 
 	_, team, mi := seedSubItemData(t, db)
-	item := createSubItem(t, db, team.ID, mi.ID, "Update Me", "P1", "pending")
+	item := createSubItem(t, db, team.BizKey, mi.ID, "Update Me", "P1", "pending")
 
 	fields := map[string]interface{}{
 		"title":       "Updated Sub",
@@ -138,43 +140,43 @@ func TestSubItemRepo_List(t *testing.T) {
 
 	_, team, mi := seedSubItemData(t, db)
 
-	createSubItem(t, db, team.ID, mi.ID, "Sub A", "P1", "pending")
-	createSubItem(t, db, team.ID, mi.ID, "Sub B", "P2", "progressing")
-	createSubItem(t, db, team.ID, mi.ID, "Sub C", "P1", "completed")
+	createSubItem(t, db, team.BizKey, mi.ID, "Sub A", "P1", "pending")
+	createSubItem(t, db, team.BizKey, mi.ID, "Sub B", "P2", "progressing")
+	createSubItem(t, db, team.BizKey, mi.ID, "Sub C", "P1", "completed")
 
 	// Create another main item with sub in same team
 	mi2 := model.MainItem{ItemStatus: "pending", Code: "MI2"}
 	require.NoError(t, db.Create(&mi2).Error)
-	createSubItem(t, db, team.ID, mi2.ID, "Sub Other", "P1", "pending")
+	createSubItem(t, db, team.BizKey, mi2.ID, "Sub Other", "P1", "pending")
 
 	t.Run("all_for_main_item", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, mi.ID, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, mi.ID, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), result.Total)
 	})
 
 	t.Run("filter_by_status", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, mi.ID, dto.SubItemFilter{Status: "progressing"}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, mi.ID, dto.SubItemFilter{Status: "progressing"}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), result.Total)
 		assert.Equal(t, "Sub B", result.Items[0].Title)
 	})
 
 	t.Run("filter_by_priority", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, mi.ID, dto.SubItemFilter{Priority: "P1"}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, mi.ID, dto.SubItemFilter{Priority: "P1"}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(2), result.Total)
 	})
 
 	t.Run("filter_by_status_and_priority", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, mi.ID, dto.SubItemFilter{Status: "pending", Priority: "P1"}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, mi.ID, dto.SubItemFilter{Status: "pending", Priority: "P1"}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), result.Total)
 		assert.Equal(t, "Sub A", result.Items[0].Title)
 	})
 
 	t.Run("pagination", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, mi.ID, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 2})
+		result, err := repo.List(ctx, team.BizKey, mi.ID, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 2})
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), result.Total)
 		assert.Len(t, result.Items, 2)
@@ -182,7 +184,7 @@ func TestSubItemRepo_List(t *testing.T) {
 
 	t.Run("without_main_item_filter", func(t *testing.T) {
 		// mainItemID=0 means no main_item_id filter
-		result, err := repo.List(ctx, team.ID, 0, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, 0, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(4), result.Total, "should return all sub items for the team")
 	})
@@ -192,11 +194,13 @@ func TestSubItemRepo_List(t *testing.T) {
 		require.NoError(t, db.Create(&u2).Error)
 		team2 := model.Team{TeamName: "Other SI Team", PmKey: int64(u2.ID), Code: "OSIT"}
 		require.NoError(t, db.Create(&team2).Error)
+		team2.BizKey = int64(team2.ID)
+		require.NoError(t, db.Save(&team2).Error)
 		mi3 := model.MainItem{ItemStatus: "pending", Code: "MI3"}
 		require.NoError(t, db.Create(&mi3).Error)
-		createSubItem(t, db, team2.ID, mi3.ID, "Other Sub", "P1", "pending")
+		createSubItem(t, db, team2.BizKey, mi3.ID, "Other Sub", "P1", "pending")
 
-		result, err := repo.List(ctx, team2.ID, mi3.ID, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team2.BizKey, mi3.ID, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), result.Total)
 		assert.Equal(t, "Other Sub", result.Items[0].Title)
@@ -210,13 +214,13 @@ func TestSubItemRepo_List_FilterByAssignee(t *testing.T) {
 
 	u, team, mi := seedSubItemData(t, db)
 
-	item := createSubItem(t, db, team.ID, mi.ID, "Assigned Sub", "P1", "pending")
+	item := createSubItem(t, db, team.BizKey, mi.ID, "Assigned Sub", "P1", "pending")
 	require.NoError(t, db.Model(item).Update("assignee_key", u.ID).Error)
 
-	createSubItem(t, db, team.ID, mi.ID, "Unassigned Sub", "P2", "pending")
+	createSubItem(t, db, team.BizKey, mi.ID, "Unassigned Sub", "P2", "pending")
 
 	assigneeKey := fmt.Sprintf("%d", u.ID)
-	result, err := repo.List(ctx, team.ID, mi.ID, dto.SubItemFilter{AssigneeKey: &assigneeKey}, dto.Pagination{Page: 1, PageSize: 10})
+	result, err := repo.List(ctx, team.BizKey, mi.ID, dto.SubItemFilter{AssigneeKey: &assigneeKey}, dto.Pagination{Page: 1, PageSize: 10})
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), result.Total)
 	assert.Equal(t, "Assigned Sub", result.Items[0].Title)
@@ -229,13 +233,13 @@ func TestSubItemRepo_List_FilterByKeyItem(t *testing.T) {
 
 	_, team, mi := seedSubItemData(t, db)
 
-	item := createSubItem(t, db, team.ID, mi.ID, "Key Sub", "P1", "pending")
+	item := createSubItem(t, db, team.BizKey, mi.ID, "Key Sub", "P1", "pending")
 	require.NoError(t, db.Model(item).Update("is_key_item", true).Error)
 
-	createSubItem(t, db, team.ID, mi.ID, "Normal Sub", "P2", "pending")
+	createSubItem(t, db, team.BizKey, mi.ID, "Normal Sub", "P2", "pending")
 
 	isKey := true
-	result, err := repo.List(ctx, team.ID, mi.ID, dto.SubItemFilter{IsKeyItem: &isKey}, dto.Pagination{Page: 1, PageSize: 10})
+	result, err := repo.List(ctx, team.BizKey, mi.ID, dto.SubItemFilter{IsKeyItem: &isKey}, dto.Pagination{Page: 1, PageSize: 10})
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), result.Total)
 	assert.Equal(t, "Key Sub", result.Items[0].Title)
@@ -250,9 +254,9 @@ func TestSubItemRepo_ListByMainItem(t *testing.T) {
 
 	_, team, mi := seedSubItemData(t, db)
 
-	createSubItem(t, db, team.ID, mi.ID, "Sub 1", "P1", "pending")
-	createSubItem(t, db, team.ID, mi.ID, "Sub 2", "P2", "progressing")
-	createSubItem(t, db, team.ID, mi.ID, "Sub 3", "P1", "completed")
+	createSubItem(t, db, team.BizKey, mi.ID, "Sub 1", "P1", "pending")
+	createSubItem(t, db, team.BizKey, mi.ID, "Sub 2", "P2", "progressing")
+	createSubItem(t, db, team.BizKey, mi.ID, "Sub 3", "P1", "completed")
 
 	items, err := repo.ListByMainItem(ctx, mi.ID)
 	require.NoError(t, err)
@@ -293,7 +297,7 @@ func TestNextSubCode(t *testing.T) {
 	})
 
 	t.Run("sequential", func(t *testing.T) {
-		sub := model.SubItem{TeamKey: int64(team.ID), MainItemKey: int64(mi.ID), Title: "S1", Priority: "P1", ItemStatus: "pending", Code: "MI-SI01-01"}
+		sub := model.SubItem{TeamKey: team.BizKey, MainItemKey: int64(mi.ID), Title: "S1", Priority: "P1", ItemStatus: "pending", Code: "MI-SI01-01"}
 		require.NoError(t, db.Create(&sub).Error)
 
 		code, err := repo.NextSubCode(ctx, mi.ID)
@@ -302,7 +306,7 @@ func TestNextSubCode(t *testing.T) {
 	})
 
 	t.Run("skips_gaps", func(t *testing.T) {
-		sub := model.SubItem{TeamKey: int64(team.ID), MainItemKey: int64(mi.ID), Title: "S5", Priority: "P1", ItemStatus: "pending", Code: "MI-SI01-05"}
+		sub := model.SubItem{TeamKey: team.BizKey, MainItemKey: int64(mi.ID), Title: "S5", Priority: "P1", ItemStatus: "pending", Code: "MI-SI01-05"}
 		require.NoError(t, db.Create(&sub).Error)
 
 		code, err := repo.NextSubCode(ctx, mi.ID)
@@ -311,7 +315,7 @@ func TestNextSubCode(t *testing.T) {
 	})
 
 	t.Run("main_item_isolation", func(t *testing.T) {
-		mi2 := model.MainItem{TeamKey: int64(team.ID), Code: "MI-SI02", ItemStatus: "pending", Priority: "P1", Title: "SI02"}
+		mi2 := model.MainItem{TeamKey: team.BizKey, Code: "MI-SI02", ItemStatus: "pending", Priority: "P1", Title: "SI02"}
 		require.NoError(t, db.Create(&mi2).Error)
 
 		code, err := repo.NextSubCode(ctx, mi2.ID)
@@ -330,7 +334,7 @@ func TestSubItemRepo_SoftDelete(t *testing.T) {
 	_, team, mi := seedSubItemData(t, db)
 
 	t.Run("FindByBizKey_excludes_soft_deleted", func(t *testing.T) {
-		item := createSubItem(t, db, team.ID, mi.ID, "Deleted Sub", "P1", "pending")
+		item := createSubItem(t, db, team.BizKey, mi.ID, "Deleted Sub", "P1", "pending")
 		require.NoError(t, db.Model(item).Update("deleted_flag", 1).Error)
 
 		_, err := repo.FindByBizKey(ctx, item.BizKey)
@@ -338,11 +342,11 @@ func TestSubItemRepo_SoftDelete(t *testing.T) {
 	})
 
 	t.Run("List_excludes_soft_deleted", func(t *testing.T) {
-		active := createSubItem(t, db, team.ID, mi.ID, "List Active", "P1", "pending")
-		deleted := createSubItem(t, db, team.ID, mi.ID, "List Deleted", "P2", "pending")
+		active := createSubItem(t, db, team.BizKey, mi.ID, "List Active", "P1", "pending")
+		deleted := createSubItem(t, db, team.BizKey, mi.ID, "List Deleted", "P2", "pending")
 		require.NoError(t, db.Model(deleted).Update("deleted_flag", 1).Error)
 
-		result, err := repo.List(ctx, team.ID, mi.ID, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, mi.ID, dto.SubItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		for _, item := range result.Items {
 			assert.NotEqual(t, "List Deleted", item.Title, "soft-deleted item should not appear in List")
@@ -357,8 +361,8 @@ func TestSubItemRepo_SoftDelete(t *testing.T) {
 	})
 
 	t.Run("ListByMainItem_excludes_soft_deleted", func(t *testing.T) {
-		active := createSubItem(t, db, team.ID, mi.ID, "LMI Active", "P1", "pending")
-		deleted := createSubItem(t, db, team.ID, mi.ID, "LMI Deleted", "P2", "pending")
+		active := createSubItem(t, db, team.BizKey, mi.ID, "LMI Active", "P1", "pending")
+		deleted := createSubItem(t, db, team.BizKey, mi.ID, "LMI Deleted", "P2", "pending")
 		require.NoError(t, db.Model(deleted).Update("deleted_flag", 1).Error)
 
 		items, err := repo.ListByMainItem(ctx, mi.ID)
@@ -376,11 +380,11 @@ func TestSubItemRepo_SoftDelete(t *testing.T) {
 	})
 
 	t.Run("ListByTeam_excludes_soft_deleted", func(t *testing.T) {
-		active := createSubItem(t, db, team.ID, mi.ID, "LT Active", "P1", "pending")
-		deleted := createSubItem(t, db, team.ID, mi.ID, "LT Deleted", "P2", "pending")
+		active := createSubItem(t, db, team.BizKey, mi.ID, "LT Active", "P1", "pending")
+		deleted := createSubItem(t, db, team.BizKey, mi.ID, "LT Deleted", "P2", "pending")
 		require.NoError(t, db.Model(deleted).Update("deleted_flag", 1).Error)
 
-		items, err := repo.ListByTeam(ctx, team.ID)
+		items, err := repo.ListByTeam(ctx, team.BizKey)
 		require.NoError(t, err)
 		for _, item := range items {
 			assert.NotEqual(t, "LT Deleted", item.Title, "soft-deleted item should not appear in ListByTeam")
@@ -403,7 +407,7 @@ func TestSubItemRepo_SoftDelete_SetsDeletedFlagAndTime(t *testing.T) {
 	ctx := context.Background()
 
 	_, team, mi := seedSubItemData(t, db)
-	item := createSubItem(t, db, team.ID, mi.ID, "To Soft Delete", "P1", "pending")
+	item := createSubItem(t, db, team.BizKey, mi.ID, "To Soft Delete", "P1", "pending")
 
 	before := time.Now()
 	require.NoError(t, repo.SoftDelete(ctx, item.ID))
@@ -426,7 +430,7 @@ func TestSubItemRepo_SoftDelete_Idempotent(t *testing.T) {
 	ctx := context.Background()
 
 	_, team, mi := seedSubItemData(t, db)
-	item := createSubItem(t, db, team.ID, mi.ID, "Idempotent Delete", "P1", "pending")
+	item := createSubItem(t, db, team.BizKey, mi.ID, "Idempotent Delete", "P1", "pending")
 
 	require.NoError(t, repo.SoftDelete(ctx, item.ID))
 	// Second call on already-deleted item should not error (RowsAffected==0 silently ignored)

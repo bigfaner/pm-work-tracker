@@ -41,8 +41,8 @@ func (r *itemPoolRepo) Update(ctx context.Context, item *model.ItemPool, fields 
 	return repo.UpdateFields[model.ItemPool](r.db, ctx, item, item.TeamKey, fields)
 }
 
-func (r *itemPoolRepo) List(ctx context.Context, teamID uint, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error) {
-	query := r.db.WithContext(ctx).Scopes(NotDeleted).Where("team_key = ?", teamID)
+func (r *itemPoolRepo) List(ctx context.Context, teamBizKey int64, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error) {
+	query := r.db.WithContext(ctx).Scopes(NotDeleted).Where("team_key = ?", teamBizKey)
 
 	if filter.Status != "" {
 		query = query.Where("pool_status = ?", filter.Status)

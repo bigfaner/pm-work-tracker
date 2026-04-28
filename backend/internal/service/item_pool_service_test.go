@@ -66,7 +66,7 @@ func (m *mockItemPoolRepo) Update(_ context.Context, item *model.ItemPool, field
 	return m.updateErr
 }
 
-func (m *mockItemPoolRepo) List(_ context.Context, teamID uint, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error) {
+func (m *mockItemPoolRepo) List(_ context.Context, teamBizKey int64, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error) {
 	if m.listErr != nil {
 		return nil, m.listErr
 	}
@@ -97,13 +97,13 @@ func (m *mockSubItemRepoForPool) FindByID(_ context.Context, id uint) (*model.Su
 func (m *mockSubItemRepoForPool) Update(_ context.Context, item *model.SubItem, fields map[string]interface{}) error {
 	return nil
 }
-func (m *mockSubItemRepoForPool) List(_ context.Context, teamID uint, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockSubItemRepoForPool) List(_ context.Context, teamBizKey int64, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
 func (m *mockSubItemRepoForPool) ListByMainItem(_ context.Context, mainItemID uint) ([]*model.SubItem, error) {
 	return nil, nil
 }
-func (m *mockSubItemRepoForPool) ListByTeam(_ context.Context, _ uint) ([]model.SubItem, error) {
+func (m *mockSubItemRepoForPool) ListByTeam(_ context.Context, _ int64) ([]model.SubItem, error) {
 	return nil, nil
 }
 func (m *mockSubItemRepoForPool) SoftDelete(_ context.Context, _ uint) error {
@@ -140,18 +140,18 @@ func (m *mockMainItemRepoForPool) FindByID(_ context.Context, id uint) (*model.M
 func (m *mockMainItemRepoForPool) Update(_ context.Context, item *model.MainItem, fields map[string]interface{}) error {
 	return nil
 }
-func (m *mockMainItemRepoForPool) List(_ context.Context, teamID uint, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+func (m *mockMainItemRepoForPool) List(_ context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
 	return nil, nil
 }
-func (m *mockMainItemRepoForPool) NextCode(_ context.Context, teamID uint) (string, error) {
+func (m *mockMainItemRepoForPool) NextCode(_ context.Context, teamBizKey int64) (string, error) {
 	return m.nextCodeVal, m.nextCodeErr
 }
 
-func (m *mockMainItemRepoForPool) CountByTeam(_ context.Context, _ uint) (int64, error) {
+func (m *mockMainItemRepoForPool) CountByTeam(_ context.Context, _ int64) (int64, error) {
 	return 0, nil
 }
 
-func (m *mockMainItemRepoForPool) ListNonArchivedByTeam(_ context.Context, _ uint) ([]model.MainItem, error) {
+func (m *mockMainItemRepoForPool) ListNonArchivedByTeam(_ context.Context, _ int64) ([]model.MainItem, error) {
 	return nil, nil
 }
 func (m *mockMainItemRepoForPool) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
@@ -166,7 +166,7 @@ func (m *mockMainItemRepoForPool) FindByBizKey(_ context.Context, _ int64) (*mod
 	}
 	return nil, m.findErr
 }
-func (m *mockMainItemRepoForPool) ListByTeamAndStatus(_ context.Context, _ uint, _ string) ([]model.MainItem, error) {
+func (m *mockMainItemRepoForPool) ListByTeamAndStatus(_ context.Context, _ int64, _ string) ([]model.MainItem, error) {
 	return nil, nil
 }
 
@@ -187,7 +187,7 @@ func TestItemPoolSubmit_Success(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	item, err := svc.Submit(context.Background(), 1, 10, dto.SubmitItemPoolReq{
+	item, err := svc.Submit(context.Background(), int64(1), 10, dto.SubmitItemPoolReq{
 		Title:          "Optimize homepage",
 		Background:     "Users complain about slow load",
 		ExpectedOutput: "LCP < 1.5s",
@@ -206,7 +206,7 @@ func TestItemPoolSubmit_RepoError(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{createErr: errors.New("db error")}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	_, err := svc.Submit(context.Background(), 1, 10, dto.SubmitItemPoolReq{
+	_, err := svc.Submit(context.Background(), int64(1), 10, dto.SubmitItemPoolReq{
 		Title: "Test",
 	})
 	assert.Error(t, err)
@@ -235,7 +235,7 @@ func TestItemPoolAssign_Success(t *testing.T) {
 	}}
 	svc := NewItemPoolService(poolRepo, subRepo, mainRepo, dbtx)
 
-	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+	err := svc.Assign(context.Background(), int64(1), 100, 5, dto.AssignItemPoolReq{
 		MainItemKey: "20",
 		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
@@ -274,7 +274,7 @@ func TestItemPoolAssign_SubItemInheritsBackgroundAsDescription(t *testing.T) {
 	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error { return fc(nil) }}
 	svc := NewItemPoolService(poolRepo, subRepo, mainRepo, dbtx)
 
-	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+	err := svc.Assign(context.Background(), int64(1), 100, 5, dto.AssignItemPoolReq{
 		MainItemKey: "20",
 		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
@@ -292,7 +292,7 @@ func TestItemPoolAssign_PoolItemNotFound(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{findErr: gorm.ErrRecordNotFound}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	err := svc.Assign(context.Background(), 1, 100, 99, dto.AssignItemPoolReq{
+	err := svc.Assign(context.Background(), int64(1), 100, 99, dto.AssignItemPoolReq{
 		MainItemKey: "20",
 		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
@@ -310,7 +310,7 @@ func TestItemPoolAssign_AlreadyProcessed_AlreadyAssigned(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+	err := svc.Assign(context.Background(), int64(1), 100, 5, dto.AssignItemPoolReq{
 		MainItemKey: "20",
 		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
@@ -328,7 +328,7 @@ func TestItemPoolAssign_AlreadyProcessed_Rejected(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+	err := svc.Assign(context.Background(), int64(1), 100, 5, dto.AssignItemPoolReq{
 		MainItemKey: "20",
 		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
@@ -348,7 +348,7 @@ func TestItemPoolAssign_MainItemNotFound(t *testing.T) {
 	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error { return fc(nil) }}
 	svc := NewItemPoolService(poolRepo, nil, mainRepo, dbtx)
 
-	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+	err := svc.Assign(context.Background(), int64(1), 100, 5, dto.AssignItemPoolReq{
 		MainItemKey: "99",
 		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
@@ -366,7 +366,7 @@ func TestItemPoolAssign_TeamMismatch(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+	err := svc.Assign(context.Background(), int64(1), 100, 5, dto.AssignItemPoolReq{
 		MainItemKey: "20",
 		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
@@ -397,7 +397,7 @@ func TestItemPoolAssign_RollbackOnSubItemCreateError(t *testing.T) {
 	}}
 	svc := NewItemPoolService(poolRepo, subRepo, mainRepo, dbtx)
 
-	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+	err := svc.Assign(context.Background(), int64(1), 100, 5, dto.AssignItemPoolReq{
 		MainItemKey: "20",
 		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
@@ -421,7 +421,7 @@ func TestItemPoolReject_Success(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	err := svc.Reject(context.Background(), 1, 100, 5, "Not enough priority")
+	err := svc.Reject(context.Background(), int64(1), 100, 5, "Not enough priority")
 	require.NoError(t, err)
 
 	assert.Equal(t, "rejected", poolRepo.updatedFields["pool_status"])
@@ -439,7 +439,7 @@ func TestItemPoolReject_AlreadyProcessed(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	err := svc.Reject(context.Background(), 1, 100, 5, "reason")
+	err := svc.Reject(context.Background(), int64(1), 100, 5, "reason")
 	assert.ErrorIs(t, err, apperrors.ErrItemAlreadyProcessed)
 }
 
@@ -447,7 +447,7 @@ func TestItemPoolReject_NotFound(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{findErr: gorm.ErrRecordNotFound}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	err := svc.Reject(context.Background(), 1, 100, 99, "reason")
+	err := svc.Reject(context.Background(), int64(1), 100, 99, "reason")
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
 }
 
@@ -460,7 +460,7 @@ func TestItemPoolReject_TeamMismatch(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	err := svc.Reject(context.Background(), 1, 100, 5, "reason")
+	err := svc.Reject(context.Background(), int64(1), 100, 5, "reason")
 	assert.ErrorIs(t, err, apperrors.ErrForbidden)
 }
 
@@ -477,7 +477,7 @@ func TestItemPoolGet_Success(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	item, err := svc.Get(context.Background(), 1, 5)
+	item, err := svc.Get(context.Background(), int64(1), 5)
 	require.NoError(t, err)
 	assert.Equal(t, "My Pool Item", item.Title)
 }
@@ -486,7 +486,7 @@ func TestItemPoolGet_NotFound(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{findErr: gorm.ErrRecordNotFound}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	_, err := svc.Get(context.Background(), 1, 99)
+	_, err := svc.Get(context.Background(), int64(1), 99)
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
 }
 
@@ -498,7 +498,7 @@ func TestItemPoolGet_TeamMismatch(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	_, err := svc.Get(context.Background(), 1, 5)
+	_, err := svc.Get(context.Background(), int64(1), 5)
 	assert.ErrorIs(t, err, apperrors.ErrForbidden)
 }
 
@@ -514,7 +514,7 @@ func TestItemPoolList_Success(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{items: items}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	result, err := svc.List(context.Background(), 1, dto.ItemPoolFilter{}, dto.Pagination{Page: 1, PageSize: 20})
+	result, err := svc.List(context.Background(), int64(1), dto.ItemPoolFilter{}, dto.Pagination{Page: 1, PageSize: 20})
 	require.NoError(t, err)
 	assert.Len(t, result.Items, 2)
 	assert.Equal(t, int64(2), result.Total)
@@ -527,7 +527,7 @@ func TestItemPoolList_WithStatusFilter(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{items: items}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	result, err := svc.List(context.Background(), 1, dto.ItemPoolFilter{Status: "pending"}, dto.Pagination{Page: 1, PageSize: 20})
+	result, err := svc.List(context.Background(), int64(1), dto.ItemPoolFilter{Status: "pending"}, dto.Pagination{Page: 1, PageSize: 20})
 	require.NoError(t, err)
 	assert.Len(t, result.Items, 1)
 }
@@ -536,7 +536,7 @@ func TestItemPoolList_RepoError(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{listErr: errors.New("db error")}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	_, err := svc.List(context.Background(), 1, dto.ItemPoolFilter{}, dto.Pagination{})
+	_, err := svc.List(context.Background(), int64(1), dto.ItemPoolFilter{}, dto.Pagination{})
 	assert.Error(t, err)
 }
 
@@ -558,7 +558,7 @@ func TestItemPoolAssign_ReviewedAtIsSet(t *testing.T) {
 	svc := NewItemPoolService(poolRepo, subRepo, mainRepo, dbtx)
 
 	before := time.Now()
-	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+	err := svc.Assign(context.Background(), int64(1), 100, 5, dto.AssignItemPoolReq{
 		MainItemKey: "20",
 		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
@@ -585,7 +585,7 @@ func TestItemPoolReject_ReviewedAtIsSet(t *testing.T) {
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
 	before := time.Now()
-	err := svc.Reject(context.Background(), 1, 100, 5, "reason")
+	err := svc.Reject(context.Background(), int64(1), 100, 5, "reason")
 	require.NoError(t, err)
 
 	reviewedAt, ok := poolRepo.updatedFields["reviewed_at"].(time.Time)
@@ -608,7 +608,7 @@ func TestItemPoolAssign_MainItemTeamMismatch(t *testing.T) {
 	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error { return fc(nil) }}
 	svc := NewItemPoolService(poolRepo, nil, mainRepo, dbtx)
 
-	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+	err := svc.Assign(context.Background(), int64(1), 100, 5, dto.AssignItemPoolReq{
 		MainItemKey: "20",
 		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
@@ -625,7 +625,7 @@ func TestItemPoolAssign_PoolItemGenericError(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{findErr: errors.New("generic db error")}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+	err := svc.Assign(context.Background(), int64(1), 100, 5, dto.AssignItemPoolReq{
 		MainItemKey: "20",
 		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
@@ -645,7 +645,7 @@ func TestItemPoolAssign_MainItemGenericError(t *testing.T) {
 	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error { return fc(nil) }}
 	svc := NewItemPoolService(poolRepo, nil, mainRepo, dbtx)
 
-	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+	err := svc.Assign(context.Background(), int64(1), 100, 5, dto.AssignItemPoolReq{
 		MainItemKey: "20",
 		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
@@ -678,7 +678,7 @@ func TestItemPoolAssign_PoolItemErrNotFound(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{findErr: apperrors.ErrNotFound}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+	err := svc.Assign(context.Background(), int64(1), 100, 5, dto.AssignItemPoolReq{
 		MainItemKey: "20",
 		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
@@ -698,7 +698,7 @@ func TestItemPoolAssign_MainItemErrNotFound(t *testing.T) {
 	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error { return fc(nil) }}
 	svc := NewItemPoolService(poolRepo, nil, mainRepo, dbtx)
 
-	err := svc.Assign(context.Background(), 1, 100, 5, dto.AssignItemPoolReq{
+	err := svc.Assign(context.Background(), int64(1), 100, 5, dto.AssignItemPoolReq{
 		MainItemKey: "20",
 		AssigneeKey: strPtr("30"),
 			StartDate: strPtr("2024-01-01"),
@@ -745,7 +745,7 @@ func TestItemPoolConvertToMain_Success(t *testing.T) {
 	}}
 	svc := NewItemPoolService(poolRepo, nil, mainRepo, dbtx)
 
-	result, err := svc.ConvertToMain(context.Background(), 1, 100, 5, dto.ConvertToMainItemReq{
+	result, err := svc.ConvertToMain(context.Background(), int64(1), 100, 5, dto.ConvertToMainItemReq{
 		Priority: "P1",
 	})
 	require.NoError(t, err)
@@ -768,7 +768,7 @@ func TestItemPoolConvertToMain_PoolItemNotFound(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{findErr: gorm.ErrRecordNotFound}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	_, err := svc.ConvertToMain(context.Background(), 1, 100, 99, dto.ConvertToMainItemReq{
+	_, err := svc.ConvertToMain(context.Background(), int64(1), 100, 99, dto.ConvertToMainItemReq{
 		Priority: "P1",
 	})
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
@@ -783,7 +783,7 @@ func TestItemPoolConvertToMain_TeamMismatch(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	_, err := svc.ConvertToMain(context.Background(), 1, 100, 5, dto.ConvertToMainItemReq{
+	_, err := svc.ConvertToMain(context.Background(), int64(1), 100, 5, dto.ConvertToMainItemReq{
 		Priority: "P1",
 	})
 	assert.ErrorIs(t, err, apperrors.ErrForbidden)
@@ -798,7 +798,7 @@ func TestItemPoolConvertToMain_AlreadyProcessed(t *testing.T) {
 	poolRepo := &mockItemPoolRepo{item: poolItem}
 	svc := NewItemPoolService(poolRepo, nil, nil, nil)
 
-	_, err := svc.ConvertToMain(context.Background(), 1, 100, 5, dto.ConvertToMainItemReq{
+	_, err := svc.ConvertToMain(context.Background(), int64(1), 100, 5, dto.ConvertToMainItemReq{
 		Priority: "P1",
 	})
 	assert.ErrorIs(t, err, apperrors.ErrItemAlreadyProcessed)

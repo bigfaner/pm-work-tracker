@@ -29,7 +29,7 @@ func thisWeekMonday() time.Time {
 
 // seedViewItemData creates MainItems and SubItems with specified statuses directly in the DB.
 // Returns the created sub-item IDs.
-func seedViewItemData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart time.Time) {
+func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, weekStart time.Time) {
 	t.Helper()
 
 	now := time.Now()
@@ -38,7 +38,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart 
 	// Item 1: completed sub-item (completed this week)
 	mi1 := &model.MainItem{
 		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      int64(teamID),
+		TeamKey:      teamBizKey,
 		Code:         "TAMA-W001",
 		Title:        "Weekly Completed Item",
 		Priority:     "P1",
@@ -51,7 +51,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart 
 	endDate := weekStart.AddDate(0, 0, 2) // Wednesday of this week
 	sub1 := &model.SubItem{
 		BaseModel:      model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:        int64(teamID),
+		TeamKey:        teamBizKey,
 		MainItemKey:    int64(mi1.ID),
 		Title:          "Completed Sub",
 		Priority:       "P2",
@@ -67,7 +67,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart 
 	// Item 2: progressing sub-item
 	mi2 := &model.MainItem{
 		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      int64(teamID),
+		TeamKey:      teamBizKey,
 		Code:         "TAMA-W002",
 		Title:        "Weekly Progressing Item 1",
 		Priority:     "P2",
@@ -80,7 +80,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart 
 	require.NoError(t, db.Create(mi2).Error)
 	sub2 := &model.SubItem{
 		BaseModel:      model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:        int64(teamID),
+		TeamKey:        teamBizKey,
 		MainItemKey:    int64(mi2.ID),
 		Title:          "Progressing Sub 1",
 		Priority:       "P2",
@@ -95,7 +95,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart 
 	// Item 3: another progressing sub-item
 	mi3 := &model.MainItem{
 		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      int64(teamID),
+		TeamKey:      teamBizKey,
 		Code:         "TAMA-W003",
 		Title:        "Weekly Progressing Item 2",
 		Priority:     "P3",
@@ -108,7 +108,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart 
 	require.NoError(t, db.Create(mi3).Error)
 	sub3 := &model.SubItem{
 		BaseModel:      model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:        int64(teamID),
+		TeamKey:        teamBizKey,
 		MainItemKey:    int64(mi3.ID),
 		Title:          "Progressing Sub 2",
 		Priority:       "P3",
@@ -123,8 +123,8 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart 
 	// Add progress records for this week to make sub-items appear as "active"
 	pr1 := &model.ProgressRecord{
 		BizKey:      snowflake.Generate(),
-		SubItemKey:  int64(sub1.ID),
-		TeamKey:     int64(teamID),
+		SubItemKey:  sub1.BizKey,
+		TeamKey:     teamBizKey,
 		AuthorKey:   int64(userID),
 		Completion:  100,
 		Achievement: "Finished the task",
@@ -134,8 +134,8 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart 
 
 	pr2 := &model.ProgressRecord{
 		BizKey:      snowflake.Generate(),
-		SubItemKey:  int64(sub2.ID),
-		TeamKey:     int64(teamID),
+		SubItemKey:  sub2.BizKey,
+		TeamKey:     teamBizKey,
 		AuthorKey:   int64(userID),
 		Completion:  30,
 		Achievement: "Working on it",
@@ -145,8 +145,8 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart 
 
 	pr3 := &model.ProgressRecord{
 		BizKey:      snowflake.Generate(),
-		SubItemKey:  int64(sub3.ID),
-		TeamKey:     int64(teamID),
+		SubItemKey:  sub3.BizKey,
+		TeamKey:     teamBizKey,
 		AuthorKey:   int64(userID),
 		Completion:  50,
 		Achievement: "Halfway done",
@@ -167,7 +167,7 @@ func TestViews_Weekly_ThreeItems_ReturnsCorrectStats(t *testing.T) {
 	pmToken := loginAs(t, r, "userA", "passwordA")
 	weekStart := thisWeekMonday()
 
-	seedViewItemData(t, db, data.teamAID, data.userAID, weekStart)
+	seedViewItemData(t, db, data.teamABizKey, data.userAID, weekStart)
 
 	w := makeRequest(t, r, http.MethodGet,
 		fmt.Sprintf("/api/v1/teams/%d/views/weekly?weekStart=%s", data.teamABizKey, weekStart.Format("2006-01-02")),
@@ -242,7 +242,7 @@ func TestViews_Gantt_ItemsHaveDatesAndSubItems(t *testing.T) {
 	pmToken := loginAs(t, r, "userA", "passwordA")
 	weekStart := thisWeekMonday()
 
-	seedViewItemData(t, db, data.teamAID, data.userAID, weekStart)
+	seedViewItemData(t, db, data.teamABizKey, data.userAID, weekStart)
 
 	w := makeRequest(t, r, http.MethodGet,
 		fmt.Sprintf("/api/v1/teams/%d/views/gantt", data.teamABizKey), "", pmToken)
@@ -308,7 +308,7 @@ func TestViews_Table_StatusFilter_ReturnsFilteredItems(t *testing.T) {
 	pmToken := loginAs(t, r, "userA", "passwordA")
 	weekStart := thisWeekMonday()
 
-	seedViewItemData(t, db, data.teamAID, data.userAID, weekStart)
+	seedViewItemData(t, db, data.teamABizKey, data.userAID, weekStart)
 
 	// Filter for completed status
 	w := makeRequest(t, r, http.MethodGet,
@@ -451,7 +451,7 @@ func TestReports_WeeklyPreview_ContainsSections(t *testing.T) {
 	weekStart := thisWeekMonday()
 
 	// Seed report data for this week using the shared helper
-	seedReportData(t, db, data.teamAID, data.userAID, weekStart)
+	seedReportData(t, db, data.teamABizKey, data.userAID, weekStart)
 
 	w := makeRequest(t, r, http.MethodGet,
 		fmt.Sprintf("/api/v1/teams/%d/reports/weekly/preview?weekStart=%s", data.teamABizKey, weekStart.Format("2006-01-02")),
@@ -501,7 +501,7 @@ func TestReports_WeeklyExport_MarkdownContent(t *testing.T) {
 	pmToken := loginAs(t, r, "userA", "passwordA")
 	weekStart := thisWeekMonday()
 
-	seedReportData(t, db, data.teamAID, data.userAID, weekStart)
+	seedReportData(t, db, data.teamABizKey, data.userAID, weekStart)
 
 	w := makeRequest(t, r, http.MethodGet,
 		fmt.Sprintf("/api/v1/teams/%d/reports/weekly/export?weekStart=%s", data.teamABizKey, weekStart.Format("2006-01-02")),
@@ -578,7 +578,7 @@ func TestReports_WeeklyPreview_MemberWithPermission_Returns200(t *testing.T) {
 	memberToken := loginAs(t, r, "memberA", "passwordMemberA")
 	weekStart := thisWeekMonday()
 
-	seedReportData(t, db, data.teamAID, data.userAID, weekStart)
+	seedReportData(t, db, data.teamABizKey, data.userAID, weekStart)
 
 	w := makeRequest(t, r, http.MethodGet,
 		fmt.Sprintf("/api/v1/teams/%d/reports/weekly/preview?weekStart=%s", data.teamABizKey, weekStart.Format("2006-01-02")),

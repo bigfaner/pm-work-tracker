@@ -76,9 +76,9 @@ func (h *TeamHandler) List(c *gin.Context) {
 
 // Get handles GET /api/v1/teams/:teamId
 func (h *TeamHandler) Get(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
-	detail, err := h.teamSvc.GetTeamDetail(c.Request.Context(), teamID)
+	detail, err := h.teamSvc.GetTeamDetail(c.Request.Context(), teamBizKey)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -89,7 +89,7 @@ func (h *TeamHandler) Get(c *gin.Context) {
 
 // Update handles PUT /api/v1/teams/:teamId
 func (h *TeamHandler) Update(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	pmID := middleware.GetUserID(c)
 
 	var req dto.UpdateTeamReq
@@ -99,7 +99,7 @@ func (h *TeamHandler) Update(c *gin.Context) {
 	}
 
 	if middleware.IsSuperAdmin(c) {
-		team, err := h.teamSvc.GetTeam(c.Request.Context(), teamID)
+		team, err := h.teamSvc.GetTeam(c.Request.Context(), teamBizKey)
 		if err != nil {
 			apperrors.RespondError(c, err)
 			return
@@ -107,7 +107,7 @@ func (h *TeamHandler) Update(c *gin.Context) {
 		pmID = uint(team.PmKey)
 	}
 
-	team, err := h.teamSvc.UpdateTeam(c.Request.Context(), pmID, teamID, req)
+	team, err := h.teamSvc.UpdateTeam(c.Request.Context(), pmID, teamBizKey, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -118,7 +118,7 @@ func (h *TeamHandler) Update(c *gin.Context) {
 
 // Disband handles DELETE /api/v1/teams/:teamId
 func (h *TeamHandler) Disband(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	callerID := middleware.GetUserID(c)
 
 	var req dto.DisbandTeamReq
@@ -128,7 +128,7 @@ func (h *TeamHandler) Disband(c *gin.Context) {
 	}
 
 	if middleware.IsSuperAdmin(c) {
-		team, err := h.teamSvc.GetTeam(c.Request.Context(), teamID)
+		team, err := h.teamSvc.GetTeam(c.Request.Context(), teamBizKey)
 		if err != nil {
 			apperrors.RespondError(c, err)
 			return
@@ -136,7 +136,7 @@ func (h *TeamHandler) Disband(c *gin.Context) {
 		callerID = uint(team.PmKey)
 	}
 
-	err := h.teamSvc.DisbandTeam(c.Request.Context(), callerID, teamID, req.ConfirmName)
+	err := h.teamSvc.DisbandTeam(c.Request.Context(), callerID, teamBizKey, req.ConfirmName)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -147,9 +147,9 @@ func (h *TeamHandler) Disband(c *gin.Context) {
 
 // ListMembers handles GET /api/v1/teams/:teamId/members
 func (h *TeamHandler) ListMembers(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
-	members, err := h.teamSvc.ListMembers(c.Request.Context(), teamID)
+	members, err := h.teamSvc.ListMembers(c.Request.Context(), teamBizKey)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -160,7 +160,7 @@ func (h *TeamHandler) ListMembers(c *gin.Context) {
 
 // InviteMember handles POST /api/v1/teams/:teamId/members
 func (h *TeamHandler) InviteMember(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	pmID := middleware.GetUserID(c)
 
 	var req dto.InviteMemberReq
@@ -169,7 +169,7 @@ func (h *TeamHandler) InviteMember(c *gin.Context) {
 		return
 	}
 
-	err := h.teamSvc.InviteMember(c.Request.Context(), pmID, teamID, req)
+	err := h.teamSvc.InviteMember(c.Request.Context(), pmID, teamBizKey, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -180,7 +180,7 @@ func (h *TeamHandler) InviteMember(c *gin.Context) {
 
 // RemoveMember handles DELETE /api/v1/teams/:teamId/members/:userId
 func (h *TeamHandler) RemoveMember(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	pmID := middleware.GetUserID(c)
 
 	targetUserID, ok := pkgHandler.ResolveBizKey(c, "userId", func(ctx context.Context, bizKey int64) (uint, error) {
@@ -195,7 +195,7 @@ func (h *TeamHandler) RemoveMember(c *gin.Context) {
 	}
 
 	if middleware.IsSuperAdmin(c) {
-		team, err := h.teamSvc.GetTeam(c.Request.Context(), teamID)
+		team, err := h.teamSvc.GetTeam(c.Request.Context(), teamBizKey)
 		if err != nil {
 			apperrors.RespondError(c, err)
 			return
@@ -203,7 +203,7 @@ func (h *TeamHandler) RemoveMember(c *gin.Context) {
 		pmID = uint(team.PmKey)
 	}
 
-	err := h.teamSvc.RemoveMember(c.Request.Context(), pmID, teamID, targetUserID)
+	err := h.teamSvc.RemoveMember(c.Request.Context(), pmID, teamBizKey, targetUserID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -214,7 +214,7 @@ func (h *TeamHandler) RemoveMember(c *gin.Context) {
 
 // UpdateMemberRole handles PUT /api/v1/teams/:teamId/members/:userId/role
 func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	pmID := middleware.GetUserID(c)
 
 	targetUserID, ok := pkgHandler.ResolveBizKey(c, "userId", func(ctx context.Context, bizKey int64) (uint, error) {
@@ -235,7 +235,7 @@ func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 	}
 
 	if middleware.IsSuperAdmin(c) {
-		team, err := h.teamSvc.GetTeam(c.Request.Context(), teamID)
+		team, err := h.teamSvc.GetTeam(c.Request.Context(), teamBizKey)
 		if err != nil {
 			apperrors.RespondError(c, err)
 			return
@@ -244,7 +244,7 @@ func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 	}
 
 	roleKey, _ := pkg.ParseID(req.RoleKey)
-	if err := h.teamSvc.UpdateMemberRole(c.Request.Context(), pmID, teamID, targetUserID, uint(roleKey)); err != nil {
+	if err := h.teamSvc.UpdateMemberRole(c.Request.Context(), pmID, targetUserID, teamBizKey, roleKey); err != nil {
 		apperrors.RespondError(c, err)
 		return
 	}
@@ -254,7 +254,7 @@ func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 
 // TransferPM handles PUT /api/v1/teams/:teamId/pm
 func (h *TeamHandler) TransferPM(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	callerID := middleware.GetUserID(c)
 
 	var req dto.TransferPMReq
@@ -278,7 +278,7 @@ func (h *TeamHandler) TransferPM(c *gin.Context) {
 	// SuperAdmin is not the team PM, so fetch the actual PM ID to pass the ownership check.
 	pmID := callerID
 	if middleware.IsSuperAdmin(c) {
-		team, err := h.teamSvc.GetTeam(c.Request.Context(), teamID)
+		team, err := h.teamSvc.GetTeam(c.Request.Context(), teamBizKey)
 		if err != nil {
 			apperrors.RespondError(c, err)
 			return
@@ -286,7 +286,7 @@ func (h *TeamHandler) TransferPM(c *gin.Context) {
 		pmID = uint(team.PmKey)
 	}
 
-	err = h.teamSvc.TransferPM(c.Request.Context(), pmID, teamID, newPmUser.ID)
+	err = h.teamSvc.TransferPM(c.Request.Context(), pmID, teamBizKey, newPmUser.ID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -297,10 +297,10 @@ func (h *TeamHandler) TransferPM(c *gin.Context) {
 
 // SearchUsers handles GET /api/v1/teams/:teamId/search-users
 func (h *TeamHandler) SearchUsers(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 	search := c.Query("search")
 
-	users, err := h.teamSvc.SearchAvailableUsers(c.Request.Context(), teamID, search)
+	users, err := h.teamSvc.SearchAvailableUsers(c.Request.Context(), teamBizKey, search)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
