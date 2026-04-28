@@ -21,6 +21,7 @@ status: Draft
 
 - **后端开发者**：修改后的接口签名由编译器强制约束，消除一整类因类型混用导致的 Bug
 - **系统用户（间接）**：进度记录的 `team_key` 字段将存储正确的雪花 ID，查询结果不再静默错误
+- **团队 PM**：角色权限判断依赖 bizKey 正确性，修复后 `isPMRole` 判断不再因 ID 类型混用而误判，邀请成员时 PM 角色限制得到正确执行
 
 ## 需求目标
 
@@ -39,7 +40,7 @@ status: Draft
 - [ ] `team_service.go`：修复 `isPMRole` 签名（`uint` → `int64`）、`UpdateMemberRole` roleID 类型、`InviteMember` roleID 强制转换
 - [ ] `progress_service.go`：修复 `TeamKey: int64(teamID)` 数据污染 Bug
 - [ ] Handler 调用点（7 个文件）：`item_pool_handler.go`、`main_item_handler.go`、`progress_handler.go`、`report_handler.go`、`sub_item_handler.go`、`team_handler.go`、`view_handler.go` — 从 context/请求中传递 bizKey，而非解析后的 uint ID
-- [ ] 单元测试和集成测试（约 20 个文件：10 个 handler 测试、7 个 service 测试、`team_scope_test.go`、`views_reports_test.go`、`helpers.go`）
+- [ ] 单元测试和集成测试（20 个文件：10 个 handler 测试、7 个 service 测试、`team_scope_test.go`、`views_reports_test.go`、`helpers.go`）
 
 ### Out of Scope
 
@@ -73,8 +74,20 @@ flowchart TD
     G --> H[Handler 取出 teamBizKey]
     H --> I[调用 Service 方法，传入 int64 bizKey]
     I --> J[Service 内部调用 FindByBizKey]
-    J --> K[Repository 内部使用 uint ID 做 FK 关联]
+    J -->|记录不存在| M[返回 500 ErrTeamNotFound]
+    J -->|记录存在| K[Repository 内部使用 uint ID 做 FK 关联]
     K --> L([返回结果])
+```
+
+```mermaid
+flowchart TD
+    A2([InviteMember 调用]) --> B2[取出 roleBizKey int64]
+    B2 --> C2[isPMRole 查询角色]
+    C2 -->|FindByBizKey 失败| D2[返回 ErrRoleNotFound]
+    C2 -->|角色存在| E2{role.IsPM?}
+    E2 -->|是| F2[返回 ErrCannotAssignPMRole]
+    E2 -->|否| G2[继续执行 InviteMember]
+    G2 --> H2([成员邀请成功])
 ```
 
 ## 功能描述
@@ -91,6 +104,31 @@ flowchart TD
 | 6 | backend | service/progress_service | `Append(..., teamID uint, ...)` → `(..., teamBizKey int64, ...)` | 参数类型与语义对齐 |
 | 7 | backend | service/progress_service | `CorrectCompletion(..., teamID uint, ...)` → `(..., teamBizKey int64, ...)` | 同上 |
 | 8 | backend | service/progress_service | `List(..., teamID uint, ...)` → `(..., teamBizKey int64, ...)` | 同上 |
+| 9 | backend | service/item_pool_service | `Submit/Assign/ConvertToMain/Reject/List/Get(..., teamID uint, ...)` → `(..., teamBizKey int64, ...)` | 6 个方法的 teamID 参数均来自外部请求，统一替换为 int64 |
+| 10 | backend | service/main_item_service | `Create/Update/Archive/List/ChangeStatus/AvailableTransitions(..., teamID uint, ...)` → `(..., teamBizKey int64, ...)` | 6 个方法的 teamID 参数均来自外部请求，统一替换为 int64 |
+| 11 | backend | service/report_service | `Preview/ExportMarkdown(ctx, teamID uint, ...)` → `(ctx, teamBizKey int64, ...)` | 2 个方法的 teamID 参数来自外部请求 |
+| 12 | backend | service/role_service | `GetRole/UpdateRole/DeleteRole` 已使用 `roleBizKey int64`；无 teamID 参数 | 无需变更；已符合 bizKey 规范 |
+| 13 | backend | service/sub_item_service | `Create/Update/ChangeStatus/Delete/AvailableTransitions/Get/List/Assign(..., teamID uint, ...)` → `(..., teamBizKey int64, ...)` | 8 个方法的 teamID 参数均来自外部请求，统一替换为 int64 |
+| 14 | backend | service/view_service | `WeeklyComparison/GanttView/TableView/TableExportCSV(ctx, teamID uint, ...)` → `(ctx, teamBizKey int64, ...)` | 4 个方法的 teamID 参数来自外部请求 |
+| 15 | backend | handler/item_pool_handler | `GetTeamID()` → `GetTeamBizKey()`，传入 service 的 teamID 参数替换为 teamBizKey | 机械性调用点更新，无业务逻辑变更 |
+| 16 | backend | handler/main_item_handler | 同上 | 机械性调用点更新，无业务逻辑变更 |
+| 17 | backend | handler/progress_handler | 同上 | 机械性调用点更新，无业务逻辑变更 |
+| 18 | backend | handler/report_handler | 同上 | 机械性调用点更新，无业务逻辑变更 |
+| 19 | backend | handler/sub_item_handler | 同上 | 机械性调用点更新，无业务逻辑变更 |
+| 20 | backend | handler/team_handler | 同上；另：`InviteMember`/`UpdateMemberRole` 请求体中 roleID 字段直接作为 int64 传入 service | 机械性调用点更新，无业务逻辑变更 |
+| 21 | backend | handler/view_handler | 同上 | 机械性调用点更新，无业务逻辑变更 |
+
+### 5.5 bizKey 校验规则
+
+bizKey 校验发生在 `TeamScopeMiddleware` 的解析阶段（流程图节点 C）。
+
+| 校验规则 | 失败条件 | HTTP 状态码 | 错误说明 |
+|----------|----------|-------------|----------|
+| 必须为十进制整数字符串 | URL 路径参数包含非数字字符（如 `abc`、`12.3`） | 400 | `strconv.ParseInt` 返回错误 |
+| 必须为正整数 | 解析结果 ≤ 0 | 400 | bizKey 为 0 或负数，不可能是有效雪花 ID |
+| 必须匹配已存在的团队 | `FindByBizKey` 返回 `ErrRecordNotFound` | 404 | 团队不存在或已软删除 |
+
+bizKey 不做雪花 ID 位数校验（不限制为 18 位），只要求正 int64 且数据库中存在对应记录。
 
 ## 其他说明
 
