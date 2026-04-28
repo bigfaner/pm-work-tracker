@@ -468,7 +468,7 @@ function GanttTimelineRow({
           style={{ left: barStyle.left, width: barStyle.width }}
         >
           <div className="gantt-bar-fill" style={{ width: `${completion}%` }} />
-          <span className="gantt-bar-percent">{completion}%</span>
+          <span className="gantt-bar-percent">{Math.round(completion)}%</span>
         </div>
       ) : (
         <div

@@ -79,7 +79,7 @@ export default function SubItemsTable({
                 </TableCell>
                 <TableCell>{memberName(sub.assigneeKey)}</TableCell>
                 <TableCell>
-                  <span>{sub.completion}%</span>
+                  <span>{Math.round(sub.completion)}%</span>
                 </TableCell>
                 <TableCell>
                   <StatusTransitionDropdown

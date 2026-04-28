@@ -289,7 +289,7 @@ export default function SubItemDetailPage() {
               <div>
                 <span className="text-[13px] text-secondary">总进度</span>
                 <Progress value={subItem.completion} className="mt-2" />
-                <span className="text-[13px] font-semibold mt-1 block text-center">{subItem.completion}%</span>
+                <span className="text-[13px] font-semibold mt-1 block text-center">{Math.round(subItem.completion)}%</span>
               </div>
             </CardContent>
           </Card>
@@ -316,7 +316,7 @@ export default function SubItemDetailPage() {
                         <div className="absolute -left-6.25 top-1 w-2.5 h-2.5 rounded-full bg-primary-500 border-2 border-white" />
                         <div className="mb-1">
                           <span className="text-xs text-tertiary">{dateStr}</span>
-                          <span className="text-xs text-tertiary ml-2">{record.completion}%</span>
+                          <span className="text-xs text-tertiary ml-2">{Math.round(record.completion)}%</span>
                         </div>
                         <div className="text-[13px] text-secondary">
                           {record.achievement && (

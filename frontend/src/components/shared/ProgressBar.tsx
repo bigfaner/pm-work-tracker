@@ -22,7 +22,7 @@ export default function ProgressBar({ value, size = 'default', showPercentage = 
     <div className={cn('flex flex-col gap-1', className)}>
       <Progress value={clampedValue} size={size} indicatorClassName={indicatorColor} />
       {showPercentage && (
-        <span className="text-xs text-tertiary block text-center">{clampedValue}%</span>
+        <span className="text-xs text-tertiary block text-center">{Math.round(clampedValue)}%</span>
       )}
     </div>
   )
