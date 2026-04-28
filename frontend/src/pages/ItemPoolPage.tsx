@@ -459,6 +459,7 @@ export default function ItemPoolPage() {
                 <PoolItemCard
                   key={item.bizKey}
                   item={item}
+                  onEdit={openEdit}
                   onConvertToMain={openConvertToMain}
                   onConvertToSub={openConvertToSub}
                   onReject={openReject}
@@ -516,6 +517,51 @@ export default function ItemPoolPage() {
                 <Button variant="secondary" onClick={() => setSubmitOpen(false)}>取消</Button>
                 <Button onClick={handleSubmit} disabled={!submitForm.title.trim() || submitMutation.isPending}>
                   提交
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Edit Dialog */}
+          <Dialog open={editOpen} onOpenChange={setEditOpen}>
+            <DialogContent size="md">
+              <DialogHeader>
+                <DialogTitle>编辑待办事项</DialogTitle>
+              </DialogHeader>
+              <DialogBody>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-primary mb-1">
+                    标题 <span className="text-error">*</span>
+                  </label>
+                  <Input
+                    placeholder="请输入事项标题"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-primary mb-1">背景</label>
+                  <Textarea
+                    rows={3}
+                    placeholder="描述提交该事项的背景和原因"
+                    value={editForm.background}
+                    onChange={(e) => setEditForm((f) => ({ ...f, background: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-1">预期产出</label>
+                  <Textarea
+                    rows={3}
+                    placeholder="描述希望达成的产出或目标"
+                    value={editForm.expectedOutput}
+                    onChange={(e) => setEditForm((f) => ({ ...f, expectedOutput: e.target.value }))}
+                  />
+                </div>
+              </DialogBody>
+              <DialogFooter>
+                <Button variant="secondary" onClick={() => setEditOpen(false)}>取消</Button>
+                <Button onClick={handleEdit} disabled={!editForm.title.trim() || updateMutation.isPending}>
+                  保存
                 </Button>
               </DialogFooter>
             </DialogContent>
