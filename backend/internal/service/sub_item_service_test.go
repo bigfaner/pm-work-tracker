@@ -76,8 +76,12 @@ func (m *mockSubItemRepoTM) SoftDelete(ctx context.Context, id uint) error {
 	return args.Error(0)
 }
 
-func (m *mockSubItemRepoTM) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
-	return nil, nil
+func (m *mockSubItemRepoTM) FindByBizKey(ctx context.Context, bizKey int64) (*model.SubItem, error) {
+	args := m.Called(ctx, bizKey)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.SubItem), args.Error(1)
 }
 
 func (m *mockSubItemRepoTM) NextSubCode(ctx context.Context, mainItemID uint) (string, error) {
@@ -1225,4 +1229,41 @@ func TestChangeStatus_RecalcCompletionBeforeLinkage(t *testing.T) {
 	repo.AssertExpectations(t)
 	mainSvc.AssertExpectations(t)
 	historySvc.AssertExpectations(t)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: GetByBizKey
+// ---------------------------------------------------------------------------
+
+func TestSubItemGetByBizKey_Found(t *testing.T) {
+	existing := &model.SubItem{
+		BaseModel: model.BaseModel{BizKey: 123456},
+		Title:     "Sub Item A",
+	}
+	repo := new(mockSubItemRepoTM)
+	mainSvc := new(mockMainItemSvcTM)
+	historySvc := new(mockStatusHistorySvcTM)
+	svc := NewSubItemService(repo, mainSvc, historySvc)
+
+	repo.On("FindByBizKey", mock.Anything, int64(123456)).Return(existing, nil)
+
+	item, err := svc.GetByBizKey(context.Background(), 123456)
+	require.NoError(t, err)
+	assert.Equal(t, "Sub Item A", item.Title)
+
+	repo.AssertExpectations(t)
+}
+
+func TestSubItemGetByBizKey_NotFound(t *testing.T) {
+	repo := new(mockSubItemRepoTM)
+	mainSvc := new(mockMainItemSvcTM)
+	historySvc := new(mockStatusHistorySvcTM)
+	svc := NewSubItemService(repo, mainSvc, historySvc)
+
+	repo.On("FindByBizKey", mock.Anything, int64(999)).Return(nil, gorm.ErrRecordNotFound)
+
+	_, err := svc.GetByBizKey(context.Background(), 999)
+	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
+
+	repo.AssertExpectations(t)
 }

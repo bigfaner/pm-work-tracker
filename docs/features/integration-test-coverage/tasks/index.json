@@ -4,18 +4,38 @@
   "design": "design/tech-design.md",
   "created": "2026-04-28",
   "status": "planning",
-  "statusEnum": ["pending", "in_progress", "completed", "blocked", "skipped"],
-  "priorityEnum": ["P0", "P1", "P2"],
-  "e2eRound": 0,
-  "testCommand": "cd backend && go test ./tests/integration/ ./internal/handler/ ./internal/service/",
   "tasks": {
+    "1-gate": {
+      "id": "1.gate",
+      "title": "Phase 1 Exit Gate",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "1.summary"
+      ],
+      "status": "completed",
+      "file": "1-gate.md",
+      "record": "records/1-gate.md",
+      "breaking": true
+    },
+    "1-summary": {
+      "id": "1.summary",
+      "title": "Phase 1 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "1.x"
+      ],
+      "status": "completed",
+      "file": "1-summary.md",
+      "record": "records/1-summary.md"
+    },
     "1.1-mainitem-crud-status-archive": {
       "id": "1.1",
       "title": "MainItem CRUD + Status + Archive Integration Tests",
       "priority": "P0",
       "estimatedTime": "3-4h",
-      "dependencies": [],
-      "status": "pending",
+      "status": "completed",
       "file": "1.1-mainitem-crud-status-archive.md",
       "record": "records/1.1-mainitem-crud-status-archive.md"
     },
@@ -24,71 +44,85 @@
       "title": "SubItem CRUD + Progress + Assignee Integration Tests",
       "priority": "P0",
       "estimatedTime": "3-4h",
-      "dependencies": ["1.1"],
-      "status": "pending",
+      "dependencies": [
+        "1.1"
+      ],
+      "status": "completed",
       "file": "1.2-subitem-crud-progress-assignee.md",
       "record": "records/1.2-subitem-crud-progress-assignee.md"
-    },
-    "1-summary": {
-      "id": "1.summary",
-      "title": "Phase 1 Summary",
-      "priority": "P0",
-      "estimatedTime": "15min",
-      "dependencies": ["1.x"],
-      "status": "pending",
-      "file": "1-summary.md",
-      "record": "records/1-summary.md"
-    },
-    "1-gate": {
-      "id": "1.gate",
-      "title": "Phase 1 Exit Gate",
-      "priority": "P0",
-      "estimatedTime": "1h",
-      "dependencies": ["1.summary"],
-      "status": "pending",
-      "breaking": true,
-      "file": "1-gate.md",
-      "record": "records/1-gate.md"
-    },
-    "2.1-shared-helpers-extraction": {
-      "id": "2.1",
-      "title": "Extract Shared Helpers to helpers.go",
-      "priority": "P0",
-      "estimatedTime": "2-3h",
-      "dependencies": ["1.gate"],
-      "status": "pending",
-      "breaking": true,
-      "file": "2.1-shared-helpers-extraction.md",
-      "record": "records/2.1-shared-helpers-extraction.md"
-    },
-    "2-summary": {
-      "id": "2.summary",
-      "title": "Phase 2 Summary",
-      "priority": "P0",
-      "estimatedTime": "15min",
-      "dependencies": ["2.x"],
-      "status": "pending",
-      "file": "2-summary.md",
-      "record": "records/2-summary.md"
     },
     "2-gate": {
       "id": "2.gate",
       "title": "Phase 2 Exit Gate",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["2.summary"],
-      "status": "pending",
-      "breaking": true,
+      "dependencies": [
+        "2.summary"
+      ],
+      "status": "completed",
       "file": "2-gate.md",
-      "record": "records/2-gate.md"
+      "record": "records/2-gate.md",
+      "breaking": true
+    },
+    "2-summary": {
+      "id": "2.summary",
+      "title": "Phase 2 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "2.x"
+      ],
+      "status": "completed",
+      "file": "2-summary.md",
+      "record": "records/2-summary.md"
+    },
+    "2.1-shared-helpers-extraction": {
+      "id": "2.1",
+      "title": "Extract Shared Helpers to helpers.go",
+      "priority": "P0",
+      "estimatedTime": "2-3h",
+      "dependencies": [
+        "1.gate"
+      ],
+      "status": "completed",
+      "file": "2.1-shared-helpers-extraction.md",
+      "record": "records/2.1-shared-helpers-extraction.md",
+      "breaking": true
+    },
+    "3-gate": {
+      "id": "3.gate",
+      "title": "Phase 3 Exit Gate",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "3.summary"
+      ],
+      "status": "completed",
+      "file": "3-gate.md",
+      "record": "records/3-gate.md",
+      "breaking": true
+    },
+    "3-summary": {
+      "id": "3.summary",
+      "title": "Phase 3 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "3.x"
+      ],
+      "status": "completed",
+      "file": "3-summary.md",
+      "record": "records/3-summary.md"
     },
     "3.1-item-pool-tests": {
       "id": "3.1",
       "title": "Item Pool Integration Tests (F2)",
       "priority": "P0",
       "estimatedTime": "3h",
-      "dependencies": ["2.gate"],
-      "status": "pending",
+      "dependencies": [
+        "2.gate"
+      ],
+      "status": "completed",
       "file": "3.1-item-pool-tests.md",
       "record": "records/3.1-item-pool-tests.md"
     },
@@ -97,8 +131,10 @@
       "title": "Team Management Integration Tests (F3)",
       "priority": "P0",
       "estimatedTime": "3-4h",
-      "dependencies": ["2.gate"],
-      "status": "pending",
+      "dependencies": [
+        "2.gate"
+      ],
+      "status": "completed",
       "file": "3.2-team-management-tests.md",
       "record": "records/3.2-team-management-tests.md"
     },
@@ -107,70 +143,84 @@
       "title": "Admin User Integration Tests (F4)",
       "priority": "P0",
       "estimatedTime": "3h",
-      "dependencies": ["2.gate"],
-      "status": "pending",
+      "dependencies": [
+        "2.gate"
+      ],
+      "status": "completed",
       "file": "3.3-admin-user-tests.md",
       "record": "records/3.3-admin-user-tests.md"
-    },
-    "3-summary": {
-      "id": "3.summary",
-      "title": "Phase 3 Summary",
-      "priority": "P0",
-      "estimatedTime": "15min",
-      "dependencies": ["3.x"],
-      "status": "pending",
-      "file": "3-summary.md",
-      "record": "records/3-summary.md"
-    },
-    "3-gate": {
-      "id": "3.gate",
-      "title": "Phase 3 Exit Gate",
-      "priority": "P0",
-      "estimatedTime": "1h",
-      "dependencies": ["3.summary"],
-      "status": "pending",
-      "breaking": true,
-      "file": "3-gate.md",
-      "record": "records/3-gate.md"
-    },
-    "4.1-views-reports-tests": {
-      "id": "4.1",
-      "title": "Views & Reports Integration Tests (F5)",
-      "priority": "P0",
-      "estimatedTime": "3-4h",
-      "dependencies": ["3.gate"],
-      "status": "pending",
-      "file": "4.1-views-reports-tests.md",
-      "record": "records/4.1-views-reports-tests.md"
-    },
-    "4-summary": {
-      "id": "4.summary",
-      "title": "Phase 4 Summary",
-      "priority": "P0",
-      "estimatedTime": "15min",
-      "dependencies": ["4.x"],
-      "status": "pending",
-      "file": "4-summary.md",
-      "record": "records/4-summary.md"
     },
     "4-gate": {
       "id": "4.gate",
       "title": "Phase 4 Exit Gate",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["4.summary"],
-      "status": "pending",
-      "breaking": true,
+      "dependencies": [
+        "4.summary"
+      ],
+      "status": "completed",
       "file": "4-gate.md",
-      "record": "records/4-gate.md"
+      "record": "records/4-gate.md",
+      "breaking": true
+    },
+    "4-summary": {
+      "id": "4.summary",
+      "title": "Phase 4 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "4.x"
+      ],
+      "status": "completed",
+      "file": "4-summary.md",
+      "record": "records/4-summary.md"
+    },
+    "4.1-views-reports-tests": {
+      "id": "4.1",
+      "title": "Views \u0026 Reports Integration Tests (F5)",
+      "priority": "P0",
+      "estimatedTime": "3-4h",
+      "dependencies": [
+        "3.gate"
+      ],
+      "status": "completed",
+      "file": "4.1-views-reports-tests.md",
+      "record": "records/4.1-views-reports-tests.md"
+    },
+    "5-gate": {
+      "id": "5.gate",
+      "title": "Phase 5 Exit Gate",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "5.summary"
+      ],
+      "status": "completed",
+      "file": "5-gate.md",
+      "record": "records/5-gate.md",
+      "breaking": true
+    },
+    "5-summary": {
+      "id": "5.summary",
+      "title": "Phase 5 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "5.x"
+      ],
+      "status": "completed",
+      "file": "5-summary.md",
+      "record": "records/5-summary.md"
     },
     "5.1-permission-handler-tests": {
       "id": "5.1",
       "title": "Permission Handler Unit Tests",
       "priority": "P1",
       "estimatedTime": "1-2h",
-      "dependencies": ["4.gate"],
-      "status": "pending",
+      "dependencies": [
+        "4.gate"
+      ],
+      "status": "completed",
       "file": "5.1-permission-handler-tests.md",
       "record": "records/5.1-permission-handler-tests.md"
     },
@@ -179,39 +229,46 @@
       "title": "Service Method Unit Test Gaps",
       "priority": "P1",
       "estimatedTime": "2-3h",
-      "dependencies": ["4.gate"],
-      "status": "pending",
+      "dependencies": [
+        "4.gate"
+      ],
+      "status": "completed",
       "file": "5.2-service-unit-gaps.md",
       "record": "records/5.2-service-unit-gaps.md"
     },
-    "5-summary": {
-      "id": "5.summary",
-      "title": "Phase 5 Summary",
+    "fix-e2e-1-1": {
+      "id": "fix-e2e-1-1",
+      "title": "修复 e2e 测试失败: unknown",
       "priority": "P0",
-      "estimatedTime": "15min",
-      "dependencies": ["5.x"],
-      "status": "pending",
-      "file": "5-summary.md",
-      "record": "records/5-summary.md"
+      "status": "completed",
+      "file": "fix-e2e-1-1.md",
+      "record": "records/fix-e2e-1-1.md"
     },
-    "5-gate": {
-      "id": "5.gate",
-      "title": "Phase 5 Exit Gate",
+    "fix-e2e-2-1": {
+      "id": "fix-e2e-2-1",
+      "title": "修复 e2e 测试失败: unknown",
       "priority": "P0",
-      "estimatedTime": "1h",
-      "dependencies": ["5.summary"],
-      "status": "pending",
-      "breaking": true,
-      "file": "5-gate.md",
-      "record": "records/5-gate.md"
+      "status": "completed",
+      "file": "fix-e2e-2-1.md",
+      "record": "records/fix-e2e-2-1.md"
+    },
+    "fix-e2e-3-1": {
+      "id": "fix-e2e-3-1",
+      "title": "修复 e2e 测试失败: unknown",
+      "priority": "P0",
+      "status": "completed",
+      "file": "fix-e2e-3-1.md",
+      "record": "records/fix-e2e-3-1.md"
     },
     "gen-test-cases": {
       "id": "T-test-1",
       "title": "Generate e2e Test Cases",
       "priority": "P1",
       "estimatedTime": "1-2h",
-      "dependencies": ["5.gate"],
-      "status": "pending",
+      "dependencies": [
+        "5.gate"
+      ],
+      "status": "completed",
       "file": "gen-test-cases.md",
       "record": "records/gen-test-cases.md"
     },
@@ -220,10 +277,26 @@
       "title": "Generate e2e Test Scripts",
       "priority": "P1",
       "estimatedTime": "1-2h",
-      "dependencies": ["T-test-1"],
-      "status": "pending",
+      "dependencies": [
+        "T-test-1"
+      ],
+      "status": "completed",
       "file": "gen-test-scripts.md",
       "record": "records/gen-test-scripts.md"
     }
-  }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ],
+  "testCommand": "cd backend \u0026\u0026 go test ./tests/integration/ ./internal/handler/ ./internal/service/",
+  "e2eRound": 3
 }

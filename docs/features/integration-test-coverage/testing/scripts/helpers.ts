@@ -10,8 +10,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // ── Config ─────────────────────────────────────────────────────────
 const _configPath = findConfigPath();
 
-function findConfigPath(): string {
-  // Allow explicit override via environment variable
+function findConfigPath(): string | null {
   const envPath = process.env.E2E_CONFIG_PATH;
   if (envPath && existsSync(envPath)) return resolve(envPath);
 
@@ -23,7 +22,7 @@ function findConfigPath(): string {
     if (parent === dir) break;
     dir = parent;
   }
-  throw new Error(`tests/e2e/config.yaml not found. Searched upward from ${__dirname}. Set E2E_CONFIG_PATH or run /gen-sitemap first.`);
+  return null;
 }
 
 // Screenshots go to <helpers-dir>/../results/screenshots
@@ -39,7 +38,12 @@ interface E2EConfig {
 }
 
 function readConfig(): E2EConfig {
-  return parseYaml(readFileSync(findConfigPath(), 'utf-8'));
+  const path = findConfigPath();
+  if (!path) {
+    console.warn('[e2e] config.yaml not found — using defaults');
+    return {};
+  }
+  return parseYaml(readFileSync(path, 'utf-8'));
 }
 
 const _config = readConfig();
@@ -53,8 +57,8 @@ function toNumber(val: unknown, fallback: number): number {
   return fallback;
 }
 
-export const baseUrl = _config.baseUrl ?? 'http://localhost:5174';
-export const apiBaseUrl = _config.apiBaseUrl ?? 'http://localhost:8083';
+export const baseUrl = _config.baseUrl ?? 'http://localhost:3456';
+export const apiBaseUrl = _config.apiBaseUrl ?? 'http://localhost:8080';
 const DEFAULT_TIMEOUT = toNumber(_config.timeout, 30000);
 
 // ── Browser lifecycle ──────────────────────────────────────────────
@@ -158,14 +162,14 @@ export async function loginViaUI(page: Page, creds: UICredentials = defaultCreds
   await page.waitForURL((url) => !url.pathname.includes('login'), { timeout: DEFAULT_TIMEOUT });
 }
 
+// PM Work Tracker login: POST /api/v1/auth/login → { token, user }
 export async function getApiToken(apiBaseUrl: string, creds: UICredentials = defaultCreds): Promise<string> {
-  // Auth endpoint: POST /v1/auth/login (matches backend router)
-  const res = await curl('POST', `${apiBaseUrl}/v1/auth/login`, {
+  const res = await curl('POST', `${apiBaseUrl}/api/v1/auth/login`, {
     body: JSON.stringify({ username: creds.username, password: creds.password }),
   });
   if (res.status !== 200) throw new Error(`Auth failed: ${res.status} ${res.body}`);
   const data = JSON.parse(res.body);
-  const token = data.token ?? data.access_token ?? data.data?.token;
+  const token = data.data?.token ?? data.token;
   if (!token) throw new Error(`No token in auth response. Keys: ${Object.keys(data).join(', ')}`);
   return token;
 }
@@ -188,11 +192,11 @@ export interface CliResult {
   exitCode: number;
 }
 
-export function runCli(cmd: string, cwd?: string, timeout?: number): CliResult {
+export function runCli(cmd: string, cwd?: string): CliResult {
   try {
     const stdout = execSync(cmd, {
       encoding: 'utf-8',
-      timeout: timeout ?? DEFAULT_TIMEOUT,
+      timeout: DEFAULT_TIMEOUT,
       cwd: cwd ?? process.cwd(),
     });
     return { stdout, stderr: '', exitCode: 0 };

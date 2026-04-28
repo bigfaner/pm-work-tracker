@@ -9,93 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 
-	"pm-work-tracker/backend/config"
-	"pm-work-tracker/backend/internal/handler"
 	"pm-work-tracker/backend/internal/model"
-	"pm-work-tracker/backend/internal/pkg/dbutil"
-	"pm-work-tracker/backend/internal/pkg/snowflake"
-	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
-	"pm-work-tracker/backend/internal/service"
 )
 
 // ========== Progress Append → MainItem Completion Tests ==========
-
-// seedProgressData creates a MainItem with two SubItems (weight=1 each) for progress tests.
-// Returns the main item ID, the two sub item IDs, and their bizKey values.
-func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemID, subItem1ID, subItem2ID uint, subItem1BizKey, subItem2BizKey int64) {
-	t.Helper()
-
-	mainItem := &model.MainItem{
-		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      int64(teamID),
-		Code:        "TAMA-00001",
-		Title:       "Test Main Item",
-		Priority:    "P1",
-		ProposerKey: int64(userID),
-		ItemStatus: "pending",
-	}
-	require.NoError(t, db.Create(mainItem).Error)
-
-	sub1 := &model.SubItem{
-		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      int64(teamID),
-		MainItemKey: int64(mainItem.ID),
-		Title:       "Sub Item 1",
-		Priority:    "P2",
-		ItemStatus: "pending",
-		Weight:      1.0,
-	}
-	require.NoError(t, db.Create(sub1).Error)
-
-	sub2 := &model.SubItem{
-		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      int64(teamID),
-		MainItemKey: int64(mainItem.ID),
-		Title:       "Sub Item 2",
-		Priority:    "P2",
-		ItemStatus: "pending",
-		Weight:      1.0,
-	}
-	require.NoError(t, db.Create(sub2).Error)
-
-	return mainItem.ID, sub1.ID, sub2.ID, sub1.BizKey, sub2.BizKey
-}
-
-// appendProgress sends a progress append request via the router.
-func appendProgress(t *testing.T, r *gin.Engine, token string, teamBizKey, subBizKey int64, completion float64) *httptest.ResponseRecorder {
-	t.Helper()
-
-	body := fmt.Sprintf(`{"completion":%.0f,"achievement":"some progress"}`, completion)
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/sub-items/%d/progress", teamBizKey, subBizKey),
-		strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	r.ServeHTTP(w, req)
-	return w
-}
-
-// getMainItem fetches a MainItem directly from the DB to verify completion.
-func getMainItem(t *testing.T, db *gorm.DB, id uint) *model.MainItem {
-	t.Helper()
-	var item model.MainItem
-	require.NoError(t, db.First(&item, id).Error)
-	return &item
-}
-
-// getSubItem fetches a SubItem directly from the DB to verify completion.
-func getSubItem(t *testing.T, db *gorm.DB, id uint) *model.SubItem {
-	t.Helper()
-	var item model.SubItem
-	require.NoError(t, db.First(&item, id).Error)
-	return &item
-}
 
 func TestProgress_AppendToSubItem1_UpdatesMainItemCompletion(t *testing.T) {
 	db, data := setupTestDB(t)
@@ -168,34 +88,6 @@ func TestProgress_RegressionBlocked_Returns422(t *testing.T) {
 
 // ========== ItemPool Assign Transaction Tests ==========
 
-// seedPoolData creates a pool item and a main item for assign tests.
-func seedPoolData(t *testing.T, db *gorm.DB, teamID, userID uint) (poolID, mainItemID uint, poolBizKey, mainItemBizKey int64) {
-	t.Helper()
-
-	poolItem := &model.ItemPool{
-		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:       int64(teamID),
-		Title:        "Pool Item Title",
-		Background:   "Some background",
-		SubmitterKey: int64(userID),
-		PoolStatus: "pending",
-	}
-	require.NoError(t, db.Create(poolItem).Error)
-
-	mainItem := &model.MainItem{
-		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      int64(teamID),
-		Code:        "TAMA-00002",
-		Title:       "Main Item for Pool",
-		Priority:    "P1",
-		ProposerKey: int64(userID),
-		ItemStatus: "pending",
-	}
-	require.NoError(t, db.Create(mainItem).Error)
-
-	return poolItem.ID, mainItem.ID, poolItem.BizKey, mainItem.BizKey
-}
-
 func TestItemPool_Assign_Success(t *testing.T) {
 	db, data := setupTestDB(t)
 	r, _ := setupTestRouterWithDB(t, db, data)
@@ -263,51 +155,6 @@ func TestItemPool_Assign_Rollback_OnInvalidMainItem(t *testing.T) {
 
 // ========== Weekly Report Integration Tests ==========
 
-// seedReportData creates a MainItem with a SubItem that has progress during the given week.
-func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart time.Time) (mainItemTitle string) {
-	t.Helper()
-
-	mainItem := &model.MainItem{
-		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      int64(teamID),
-		Code:        "TAMA-00003",
-		Title:       "Report Test Main Item",
-		Priority:    "P1",
-		ProposerKey: int64(userID),
-		ItemStatus: "progressing",
-	}
-	require.NoError(t, db.Create(mainItem).Error)
-
-	subItem := &model.SubItem{
-		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      int64(teamID),
-		MainItemKey: int64(mainItem.ID),
-		Title:       "Report Test Sub Item",
-		Priority:    "P2",
-		ItemStatus: "progressing",
-		Completion:  50,
-		Weight:      1.0,
-	}
-	require.NoError(t, db.Create(subItem).Error)
-
-	// Create a progress record within the week
-	record := &model.ProgressRecord{
-		BizKey:      snowflake.Generate(),
-		SubItemKey:  int64(subItem.ID),
-		TeamKey:     int64(teamID),
-		AuthorKey:   int64(userID),
-		Completion:  50,
-		Achievement: "Completed half the work",
-		CreateTime:  weekStart.Add(24 * time.Hour), // Tuesday of the week
-	}
-	require.NoError(t, db.Create(record).Error)
-
-	// Update MainItem completion to match
-	require.NoError(t, db.Model(mainItem).Update("completion_pct", 50).Error)
-
-	return mainItem.Title
-}
-
 func TestWeeklyExport_ReturnsMarkdownWithMainItemTitle(t *testing.T) {
 	db, data := setupTestDB(t)
 	r, _ := setupTestRouterWithDB(t, db, data)
@@ -321,7 +168,7 @@ func TestWeeklyExport_ReturnsMarkdownWithMainItemTitle(t *testing.T) {
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet,
 		fmt.Sprintf("/api/v1/teams/%d/reports/weekly/export?weekStart=%s",
-				data.teamABizKey, weekStart.Format("2006-01-02")), nil)
+			data.teamABizKey, weekStart.Format("2006-01-02")), nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
@@ -331,65 +178,4 @@ func TestWeeklyExport_ReturnsMarkdownWithMainItemTitle(t *testing.T) {
 	body := w.Body.String()
 	assert.Contains(t, body, mainItemTitle)
 	assert.Contains(t, body, "Completed half the work")
-}
-
-// ========== Helper: setupTestRouterWithDB ==========
-// This is needed because the existing setupTestRouter creates its own DB internally,
-// but we need to share the DB instance so we can seed data and then verify via the same DB.
-
-func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engine, *seedData) {
-	t.Helper()
-
-	userRepo := gormrepo.NewGormUserRepo(db)
-	teamRepo := gormrepo.NewGormTeamRepo(db)
-	dialect := dbutil.NewDialect(db)
-	mainItemRepo := gormrepo.NewGormMainItemRepo(db, dialect)
-	subItemRepo := gormrepo.NewGormSubItemRepo(db, dialect)
-	progressRepo := gormrepo.NewGormProgressRepo(db)
-	itemPoolRepo := gormrepo.NewGormItemPoolRepo(db)
-
-	authSvc := service.NewAuthService(userRepo, testJWTSecret)
-	statusHistoryRepo := gormrepo.NewGormStatusHistoryRepo(db)
-	statusHistorySvc := service.NewStatusHistoryService(statusHistoryRepo)
-	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo, statusHistorySvc)
-	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc, statusHistorySvc)
-	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc, statusHistorySvc)
-	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, transactor{db: db})
-	roleRepo := gormrepo.NewGormRoleRepo(db)
-	teamSvc := service.NewTeamService(teamRepo, userRepo, mainItemRepo, roleRepo, transactor{db: db})
-	adminSvc := service.NewAdminService(userRepo, teamRepo)
-	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)
-	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
-
-	cfg := &config.Config{
-		Auth: config.AuthConfig{
-			JWTSecret: testJWTSecret,
-		},
-		CORS: config.CORSConfig{
-			Origins: []string{"http://localhost:3000"},
-		},
-		Server: config.ServerConfig{
-			GinMode:  "test",
-			BasePath: "/api",
-		},
-	}
-
-	deps := &handler.Dependencies{
-		Config:   cfg,
-		TeamRepo: teamRepo,
-		UserRepo: userRepo,
-		RoleRepo: gormrepo.NewGormRoleRepo(db),
-		Auth:     handler.NewAuthHandler(authSvc),
-		Team:     handler.NewTeamHandler(teamSvc, userRepo),
-		MainItem: handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
-		SubItem:  handler.NewSubItemHandler(subItemSvc, mainItemSvc),
-		Progress: handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
-		ItemPool: handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
-		View:     handler.NewViewHandler(viewSvc),
-		Report:   handler.NewReportHandler(reportSvc),
-		Admin:    handler.NewAdminHandler(adminSvc),
-	}
-
-	r := handler.SetupRouter(deps, nil)
-	return r, data
 }

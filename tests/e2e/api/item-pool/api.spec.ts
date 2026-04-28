@@ -27,8 +27,16 @@ describe('API E2E Tests', () => {
       assert.equal(listRes.status, 200, `List teams failed: ${listRes.status} ${listRes.body}`);
       const listData = JSON.parse(listRes.body);
       const teams = listData.data?.items ?? listData;
-      assert.ok(teams.length > 0, 'At least one team must exist for e2e tests');
-      teamId = String(teams[0].bizKey);
+      if (teams.length > 0) {
+        teamId = String(teams[0].bizKey);
+      } else {
+        const createRes = await authCurl('POST', '/v1/teams', {
+          body: JSON.stringify({ name: 'E2E Test Team', code: 'ETEST', description: 'Auto-created for e2e tests' }),
+        });
+        assert.equal(createRes.status, 201, `Create team failed: ${createRes.status} ${createRes.body}`);
+        const created = JSON.parse(createRes.body);
+        teamId = String((created.data ?? created).bizKey);
+      }
     }
   });
 

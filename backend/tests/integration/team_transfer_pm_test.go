@@ -10,21 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"pm-work-tracker/backend/internal/model"
-	"pm-work-tracker/backend/internal/pkg/snowflake"
-
-	"gorm.io/gorm"
 )
-
-// backfillUserBizKeys sets unique bizKeys on seeded users that have biz_key = 0.
-func backfillUserBizKeys(t *testing.T, db *gorm.DB) {
-	t.Helper()
-	snowflake.Init(1)
-	var users []model.User
-	require.NoError(t, db.Where("biz_key = 0").Find(&users).Error)
-	for _, u := range users {
-		require.NoError(t, db.Model(&model.User{}).Where("id = ?", u.ID).Update("biz_key", snowflake.Generate()).Error)
-	}
-}
 
 // ---------- Tests ----------
 
