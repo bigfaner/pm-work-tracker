@@ -127,3 +127,108 @@ export async function navTo(page: Page, path: string) {
   await link.click();
   await page.waitForTimeout(1500);
 }
+
+/**
+ * Login as a specific user by setting localStorage directly.
+ * @param page Playwright page
+ * @param token JWT token for the user
+ * @param user User object with isSuperAdmin flag
+ */
+export async function loginAs(page: Page, token: string, user: { isSuperAdmin: boolean }): Promise<void> {
+  await page.goto(`${BASE}/login`);
+  await page.evaluate((t) => {
+    localStorage.setItem('auth-storage', JSON.stringify({
+      state: {
+        token: t,
+        user: { isSuperAdmin: false },
+        isAuthenticated: true,
+        isSuperAdmin: false,
+        permissions: null,
+        permissionsLoadedAt: null,
+        _hasHydrated: true,
+      },
+      version: 0,
+    }));
+  }, token);
+
+  await page.goto(`${BASE}/items`);
+  await page.waitForURL(/\/items/, { timeout: 10000 });
+
+  // Wait for permissions to load
+  await page.waitForFunction(() => {
+    try {
+      const raw = localStorage.getItem('auth-storage');
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      return parsed?.state?.permissions !== null && parsed?.state?.permissions !== undefined;
+    } catch { return false; }
+  }, { timeout: 10000 });
+}
+
+/**
+ * Get auth token for a specific user.
+ */
+export async function getTokenForUser(username: string, password: string): Promise<string> {
+  const res = await fetch(`${API}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+  const json = await res.json();
+  const token = json.data?.token || json.token;
+  if (!token) throw new Error(`Login failed for ${username}: ${JSON.stringify(json)}`);
+  return token;
+}
+
+/**
+ * Create a new user via admin API and return user info.
+ */
+export async function createUser(token: string, username: string, displayName: string): Promise<{ userId: string; username: string; initialPassword?: string }> {
+  const res = await fetch(`${API}/admin/users`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, displayName }),
+  });
+  const json = await res.json();
+  if (json.code !== 0) throw new Error(`Failed to create user: ${JSON.stringify(json)}`);
+  return {
+    userId: String(json.data?.bizKey),
+    username,
+    initialPassword: json.data?.initialPassword,
+  };
+}
+
+/**
+ * Delete a user via admin API.
+ */
+export async function deleteUser(token: string, userId: string): Promise<void> {
+  await fetch(`${API}/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+/**
+ * Add a user to a team.
+ */
+export async function addUserToTeam(token: string, teamId: string, username: string, roleKey: string): Promise<void> {
+  const res = await fetch(`${API}/teams/${teamId}/members`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, roleKey }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to add user to team: ${text}`);
+  }
+}
+
+/**
+ * Remove a user from a team.
+ */
+export async function removeUserFromTeam(token: string, teamId: string, userId: string): Promise<void> {
+  await fetch(`${API}/teams/${teamId}/members/${userId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
