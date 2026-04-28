@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>添加/编辑决策 — 决策日志</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-wrapper">
+    <nav class="sidebar">
+      <div class="sidebar-brand">PM Work Tracker</div>
+      <div class="sidebar-nav">
+        <a href="index.html">Prototype Index</a>
+        <a href="timeline.html">决策 Timeline</a>
+        <a href="form-dialog.html" class="active">添加/编辑决策</a>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar">张</div>
+        <span>张三</span>
+      </div>
+    </nav>
+
+    <main class="main-content">
+      <h1 class="page-title">添加/编辑决策表单</h1>
+
+      <div class="state-bar">
+        <span>Mode:</span>
+        <button class="active" onclick="openDemo('new', this)">New (空白)</button>
+        <button onclick="openDemo('edit', this)">Edit (预填)</button>
+        <button onclick="openDemo('loading-draft', this)">Loading Draft</button>
+        <button onclick="openDemo('validation', this)">Validation Error</button>
+        <button onclick="openDemo('submitting', this)">Submitting</button>
+      </div>
+
+      <div class="card" style="max-width: 520px;">
+        <div class="card-header">
+          <h3>表单交互演示</h3>
+        </div>
+        <div class="card-body">
+          <p style="color: var(--text-tertiary); font-size: 13px;">点击上方按钮查看不同状态的 Dialog 表单。</p>
+          <div style="margin-top: 16px; display: flex; gap: 8px;">
+            <button class="btn btn-primary btn-default" onclick="openDialog('demo-new')">添加决策 (空白表单)</button>
+            <button class="btn btn-secondary btn-default" onclick="openDialog('demo-edit')">编辑草稿 (预填)</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- New mode -->
+  <div class="dialog-overlay" id="demo-new" role="dialog" aria-modal="true" aria-labelledby="demo-new-title">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 id="demo-new-title">添加决策</h3>
+        <button class="btn btn-icon" onclick="closeDialog('demo-new')">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <div class="form-group">
+          <label class="form-label">分类 <span class="required">*</span></label>
+          <select class="form-select">
+            <option value="">请选择分类</option>
+            <option value="technical">技术</option>
+            <option value="resource">资源</option>
+            <option value="requirement">需求</option>
+            <option value="schedule">进度</option>
+            <option value="risk">风险</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">标签</label>
+          <div class="tag-input-wrapper">
+            <input type="text" placeholder="输入标签，回车添加">
+            <div class="recent-tags-dropdown">
+              <div class="tag-option">性能优化</div>
+              <div class="tag-option">缓存策略</div>
+              <div class="tag-option">里程碑</div>
+              <div class="tag-option">合规</div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">决策内容 <span class="required">*</span></label>
+          <textarea class="form-textarea" placeholder="请输入决策内容" oninput="updateCounter(this, 'new-counter')"></textarea>
+          <div class="form-footer">
+            <span></span>
+            <span class="char-counter" id="new-counter" data-max="2000">0/2000</span>
+          </div>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button class="btn btn-secondary btn-default" onclick="closeDialog('demo-new')">取消</button>
+        <button class="btn btn-secondary btn-default" onclick="showToast('草稿已保存', 'success'); closeDialog('demo-new');">保存草稿</button>
+        <button class="btn btn-primary btn-default" onclick="showToast('决策已发布', 'success'); closeDialog('demo-new');">发布</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit mode -->
+  <div class="dialog-overlay" id="demo-edit" role="dialog" aria-modal="true" aria-labelledby="demo-edit-title">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 id="demo-edit-title">编辑决策</h3>
+        <button class="btn btn-icon" onclick="closeDialog('demo-edit')">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <div class="form-group">
+          <label class="form-label">分类 <span class="required">*</span></label>
+          <select class="form-select">
+            <option value="">请选择分类</option>
+            <option value="technical">技术</option>
+            <option value="resource">资源</option>
+            <option value="requirement">需求</option>
+            <option value="schedule" selected>进度</option>
+            <option value="risk">风险</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">标签</label>
+          <div class="tag-input-wrapper">
+            <span class="tag-pill"><span class="tag-text">里程碑</span><span class="remove-tag">&times;</span></span>
+            <input type="text" placeholder="输入标签，回车添加">
+            <div class="recent-tags-dropdown">
+              <div class="tag-option">延期</div>
+              <div class="tag-option">进度调整</div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">决策内容 <span class="required">*</span></label>
+          <textarea class="form-textarea" oninput="updateCounter(this, 'edit-counter')">预计延期一周，原因是第三方地图服务接口变更，需要额外时间适配新接口。已与产品经理沟通，调整里程碑交付时间。</textarea>
+          <div class="form-footer">
+            <span></span>
+            <span class="char-counter" id="edit-counter" data-max="2000">45/2000</span>
+          </div>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button class="btn btn-secondary btn-default" onclick="closeDialog('demo-edit')">取消</button>
+        <button class="btn btn-secondary btn-default" onclick="showToast('草稿已保存', 'success'); closeDialog('demo-edit');">保存草稿</button>
+        <button class="btn btn-primary btn-default" onclick="showToast('决策已发布', 'success'); closeDialog('demo-edit');">发布</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading draft state -->
+  <div class="dialog-overlay" id="demo-loading-draft" role="dialog" aria-modal="true" aria-labelledby="demo-loading-title">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 id="demo-loading-title">编辑决策</h3>
+        <button class="btn btn-icon" onclick="closeDialog('demo-loading-draft')">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <div class="loading-draft">
+          <div class="spinner"></div>
+          <span>加载草稿数据...</span>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button class="btn btn-secondary btn-default" onclick="closeDialog('demo-loading-draft')">取消</button>
+        <button class="btn btn-secondary btn-default" disabled>保存草稿</button>
+        <button class="btn btn-primary btn-default" disabled>发布</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Validation error state -->
+  <div class="dialog-overlay" id="demo-validation" role="dialog" aria-modal="true" aria-labelledby="demo-val-title">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 id="demo-val-title">添加决策</h3>
+        <button class="btn btn-icon" onclick="closeDialog('demo-validation')">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <div class="form-group">
+          <label class="form-label">分类 <span class="required">*</span></label>
+          <select class="form-select" style="border-color: var(--error);">
+            <option value="">请选择分类</option>
+            <option value="technical">技术</option>
+            <option value="resource">资源</option>
+            <option value="requirement">需求</option>
+            <option value="schedule">进度</option>
+            <option value="risk">风险</option>
+            <option value="other">其他</option>
+          </select>
+          <div class="form-error" role="alert">请选择分类</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">标签</label>
+          <div class="tag-input-wrapper">
+            <span class="tag-pill"><span class="tag-text">超长的标签名称用于测试限制</span><span class="remove-tag">&times;</span></span>
+            <input type="text" placeholder="输入标签，回车添加">
+          </div>
+          <div class="form-error" role="alert">标签不能超过 20 字符</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">决策内容 <span class="required">*</span></label>
+          <textarea class="form-textarea" style="border-color: var(--error);"></textarea>
+          <div class="form-footer">
+            <div class="form-error" role="alert">请输入决策内容</div>
+            <span class="char-counter" data-max="2000">0/2000</span>
+          </div>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button class="btn btn-secondary btn-default" onclick="closeDialog('demo-validation')">取消</button>
+        <button class="btn btn-secondary btn-default">保存草稿</button>
+        <button class="btn btn-primary btn-default">发布</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submitting state -->
+  <div class="dialog-overlay" id="demo-submitting" role="dialog" aria-modal="true" aria-labelledby="demo-sub-title">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 id="demo-sub-title">添加决策</h3>
+        <button class="btn btn-icon" onclick="closeDialog('demo-submitting')">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <div class="form-group">
+          <label class="form-label">分类 <span class="required">*</span></label>
+          <select class="form-select">
+            <option value="technical" selected>技术</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">标签</label>
+          <div class="tag-input-wrapper">
+            <span class="tag-pill"><span class="tag-text">缓存策略</span><span class="remove-tag">&times;</span></span>
+            <span class="tag-pill"><span class="tag-text">性能优化</span><span class="remove-tag">&times;</span></span>
+            <input type="text" placeholder="输入标签，回车添加">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">决策内容 <span class="required">*</span></label>
+          <textarea class="form-textarea">决定采用 Redis 缓存热点数据，缓存策略采用 LRU + TTL 混合模式。</textarea>
+          <div class="form-footer">
+            <span></span>
+            <span class="char-counter" data-max="2000">35/2000</span>
+          </div>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button class="btn btn-secondary btn-default" disabled>取消</button>
+        <button class="btn btn-secondary btn-default" disabled>
+          <span class="spinner spinner-sm spinner-btn"></span>保存草稿
+        </button>
+        <button class="btn btn-primary btn-default" disabled>
+          <span class="spinner spinner-sm spinner-btn" style="border-color: #fff; border-top-color: transparent;"></span>发布
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    function updateCounter(textarea, counterId) {
+      const counter = document.getElementById(counterId);
+      const max = parseInt(counter.dataset.max) || 2000;
+      const len = textarea.value.length;
+      counter.textContent = len + '/' + max;
+      counter.className = 'char-counter';
+      if (len > max) counter.classList.add('error');
+      else if (len > max * 0.9) counter.classList.add('warning');
+    }
+
+    function openDemo(mode, btn) {
+      document.querySelectorAll('.state-bar button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      openDialog('demo-' + mode);
+    }
+  </script>
+</body>
+</html>
