@@ -657,6 +657,7 @@ func TestInviteMember_CannotAssignPMRole(t *testing.T) {
 
 func TestRemoveMember_Success(t *testing.T) {
 	svc := &mockTeamService{}
+	svc.getTeamResult.team = &model.Team{PmKey: 1}
 	userRepo := &mockUserRepoForHandler{user: &model.User{}}
 	userRepo.user.ID = 5
 
@@ -706,6 +707,7 @@ func TestRemoveMember_CannotRemoveSelf(t *testing.T) {
 
 func TestUpdateMemberRole_Success(t *testing.T) {
 	svc := &mockTeamService{}
+	svc.getTeamResult.team = &model.Team{PmKey: 1}
 	userRepo := &mockUserRepoForHandler{user: &model.User{}}
 	userRepo.user.ID = 5
 
@@ -765,6 +767,7 @@ func TestUpdateMemberRole_InvalidUserID(t *testing.T) {
 func TestUpdateMemberRole_NotMember(t *testing.T) {
 	svc := &mockTeamService{}
 	svc.updateMemberRoleErr = apperrors.ErrNotTeamMember
+	svc.getTeamResult.team = &model.Team{PmKey: 1}
 	userRepo := &mockUserRepoForHandler{user: &model.User{}}
 	userRepo.user.ID = 99
 

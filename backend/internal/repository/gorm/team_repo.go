@@ -145,7 +145,7 @@ func (r *teamRepo) ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMem
 		Joins("LEFT JOIN pmw_users ON pmw_users.id = pmw_team_members.user_key").
 		Joins("LEFT JOIN pmw_roles ON pmw_roles.id = pmw_team_members.role_key").
 		Joins("LEFT JOIN pmw_teams ON pmw_teams.id = pmw_team_members.team_key").
-		Scopes(NotDeletedTable("pmw_users")).
+		Scopes(NotDeletedTable("pmw_users"), NotDeletedTable("pmw_team_members")).
 		Where("pmw_team_members.team_key = ?", teamID).
 		Scan(&rows).Error
 	if err != nil {

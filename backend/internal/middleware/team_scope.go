@@ -53,9 +53,16 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleR
 		}
 
 		// 4. Load permission codes from role
+		// member.RoleKey is the role's biz_key; resolve to auto-increment id first.
 		var permCodes []string
 		if member.RoleKey != nil {
-			codes, err := roleRepo.ListPermissions(c.Request.Context(), uint(*member.RoleKey))
+			role, err := roleRepo.FindByBizKey(c.Request.Context(), *member.RoleKey)
+			if err != nil {
+				c.Abort()
+				apperrors.RespondError(c, apperrors.ErrInternal)
+				return
+			}
+			codes, err := roleRepo.ListPermissions(c.Request.Context(), role.ID)
 			if err != nil {
 				c.Abort()
 				apperrors.RespondError(c, apperrors.ErrInternal)

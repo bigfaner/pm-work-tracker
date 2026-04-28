@@ -285,6 +285,7 @@ func TestTeamScopeMiddleware_Member_SetsContext(t *testing.T) {
 		UserKey: 10,
 		RoleKey: func() *int64 { v := int64(roleID); return &v }(),
 	}, nil)
+	roleRepo.On("FindByBizKey", mock.Anything, int64(3)).Return(&model.Role{BaseModel: model.BaseModel{ID: 3}}, nil)
 	roleRepo.On("ListPermissions", mock.Anything, uint(3)).Return([]string{"team:update", "team:invite"}, nil)
 	r, cc := setupTeamScopeRouter(teamRepo, roleRepo)
 
