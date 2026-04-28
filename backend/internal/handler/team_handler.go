@@ -76,7 +76,8 @@ func (h *TeamHandler) List(c *gin.Context) {
 
 // Get handles GET /api/v1/teams/:teamId
 func (h *TeamHandler) Get(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
+	teamID := uint(teamBizKey)
 
 	detail, err := h.teamSvc.GetTeamDetail(c.Request.Context(), teamID)
 	if err != nil {
@@ -89,7 +90,8 @@ func (h *TeamHandler) Get(c *gin.Context) {
 
 // Update handles PUT /api/v1/teams/:teamId
 func (h *TeamHandler) Update(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
+	teamID := uint(teamBizKey)
 	pmID := middleware.GetUserID(c)
 
 	var req dto.UpdateTeamReq
@@ -118,7 +120,8 @@ func (h *TeamHandler) Update(c *gin.Context) {
 
 // Disband handles DELETE /api/v1/teams/:teamId
 func (h *TeamHandler) Disband(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
+	teamID := uint(teamBizKey)
 	callerID := middleware.GetUserID(c)
 
 	var req dto.DisbandTeamReq
@@ -147,7 +150,8 @@ func (h *TeamHandler) Disband(c *gin.Context) {
 
 // ListMembers handles GET /api/v1/teams/:teamId/members
 func (h *TeamHandler) ListMembers(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
+	teamID := uint(teamBizKey)
 
 	members, err := h.teamSvc.ListMembers(c.Request.Context(), teamID)
 	if err != nil {
@@ -160,7 +164,8 @@ func (h *TeamHandler) ListMembers(c *gin.Context) {
 
 // InviteMember handles POST /api/v1/teams/:teamId/members
 func (h *TeamHandler) InviteMember(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
+	teamID := uint(teamBizKey)
 	pmID := middleware.GetUserID(c)
 
 	var req dto.InviteMemberReq
@@ -180,7 +185,8 @@ func (h *TeamHandler) InviteMember(c *gin.Context) {
 
 // RemoveMember handles DELETE /api/v1/teams/:teamId/members/:userId
 func (h *TeamHandler) RemoveMember(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
+	teamID := uint(teamBizKey)
 	pmID := middleware.GetUserID(c)
 
 	targetUserID, ok := pkgHandler.ResolveBizKey(c, "userId", func(ctx context.Context, bizKey int64) (uint, error) {
@@ -214,7 +220,8 @@ func (h *TeamHandler) RemoveMember(c *gin.Context) {
 
 // UpdateMemberRole handles PUT /api/v1/teams/:teamId/members/:userId/role
 func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
+	teamID := uint(teamBizKey)
 	pmID := middleware.GetUserID(c)
 
 	targetUserID, ok := pkgHandler.ResolveBizKey(c, "userId", func(ctx context.Context, bizKey int64) (uint, error) {
@@ -254,7 +261,8 @@ func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 
 // TransferPM handles PUT /api/v1/teams/:teamId/pm
 func (h *TeamHandler) TransferPM(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
+	teamID := uint(teamBizKey)
 	callerID := middleware.GetUserID(c)
 
 	var req dto.TransferPMReq
@@ -297,7 +305,8 @@ func (h *TeamHandler) TransferPM(c *gin.Context) {
 
 // SearchUsers handles GET /api/v1/teams/:teamId/search-users
 func (h *TeamHandler) SearchUsers(c *gin.Context) {
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
+	teamID := uint(teamBizKey)
 	search := c.Query("search")
 
 	users, err := h.teamSvc.SearchAvailableUsers(c.Request.Context(), teamID, search)
