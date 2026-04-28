@@ -143,17 +143,22 @@ func TestMigrateToRBAC_TeamMemberRoleMigrated(t *testing.T) {
 	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
-	// Check pm user has role_key = 2
+	// After migration, role_key stores biz_key (snowflake). Look up the actual biz_keys.
+	var pmRole, memberRole model.Role
+	require.NoError(t, db.Where("role_name = ?", "pm").First(&pmRole).Error)
+	require.NoError(t, db.Where("role_name = ?", "member").First(&memberRole).Error)
+
+	// Check pm user has role_key = pm biz_key
 	var pmMember model.TeamMember
 	require.NoError(t, db.Where("user_key = ? AND team_key = ?", 2, 1).First(&pmMember).Error)
 	require.NotNil(t, pmMember.RoleKey)
-	assert.Equal(t, int64(2), *pmMember.RoleKey, "pm user should have role_id=2")
+	assert.Equal(t, pmRole.BizKey, *pmMember.RoleKey, "pm user should have pm role biz_key")
 
-	// Check member users have role_key = 3
+	// Check member users have role_key = member biz_key
 	var memberUser model.TeamMember
 	require.NoError(t, db.Where("user_key = ? AND team_key = ?", 3, 1).First(&memberUser).Error)
 	require.NotNil(t, memberUser.RoleKey)
-	assert.Equal(t, int64(3), *memberUser.RoleKey, "member user should have role_id=3")
+	assert.Equal(t, memberRole.BizKey, *memberUser.RoleKey, "member user should have member role biz_key")
 }
 
 func TestMigrateToRBAC_TeamMembersRoleColumnRemoved(t *testing.T) {
@@ -463,11 +468,14 @@ func TestMigrateToRBAC_UnknownRoleDefaultsToMember(t *testing.T) {
 	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
 
-	// The member with unknown role should default to member role_id=3
+	// The member with unknown role should default to member biz_key
+	var memberRole model.Role
+	require.NoError(t, db.Where("role_name = ?", "member").First(&memberRole).Error)
+
 	var fetched model.TeamMember
 	require.NoError(t, db.Where("user_key = ? AND team_key = ?", u.ID, team.ID).First(&fetched).Error)
 	require.NotNil(t, fetched.RoleKey)
-	assert.Equal(t, int64(3), *fetched.RoleKey, "unknown role should default to member (role_id=3)")
+	assert.Equal(t, memberRole.BizKey, *fetched.RoleKey, "unknown role should default to member biz_key")
 }
 
 func TestSeedRole_SkipsExisting(t *testing.T) {

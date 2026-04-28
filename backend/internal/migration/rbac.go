@@ -222,19 +222,19 @@ func seedRole(tx *gorm.DB, name, description string, isPreset bool, codes []stri
 	return nil
 }
 
-func getRoleIDMap(tx *gorm.DB) (map[string]uint, error) {
+func getRoleIDMap(tx *gorm.DB) (map[string]int64, error) {
 	var roles []model.Role
 	if err := tx.Find(&roles).Error; err != nil {
 		return nil, fmt.Errorf("fetch roles: %w", err)
 	}
-	m := make(map[string]uint, len(roles))
+	m := make(map[string]int64, len(roles))
 	for _, r := range roles {
-		m[r.Name] = r.ID
+		m[r.Name] = r.BizKey
 	}
 	return m, nil
 }
 
-func rebuildTeamMembersTable(tx *gorm.DB, roleMap map[string]uint) error {
+func rebuildTeamMembersTable(tx *gorm.DB, roleMap map[string]int64) error {
 	// Check if legacy team_members table exists (pre-rename schema)
 	legacyExists := tableExists(tx, "team_members")
 	newExists := tableExists(tx, "pmw_team_members")

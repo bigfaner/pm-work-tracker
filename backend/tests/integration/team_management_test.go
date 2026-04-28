@@ -407,9 +407,9 @@ func TestTeamManagement_UpdateMemberRole_Returns200(t *testing.T) {
 	var memberAUser model.User
 	require.NoError(t, db.Where("id = ?", data.memberAID).First(&memberAUser).Error)
 
-	// Change memberA's role: use the existing "member" role's internal ID
-	memberRoleID := findRoleIDByName(t, db, "member")
-	body := fmt.Sprintf(`{"roleKey":"%d"}`, memberRoleID)
+	// Change memberA's role: use the existing "member" role's BizKey
+	memberRoleBizKey := findRoleBizKeyByName(t, db, "member")
+	body := fmt.Sprintf(`{"roleKey":"%s"}`, memberRoleBizKey)
 	path := fmt.Sprintf("/api/v1/teams/%d/members/%d/role", data.teamABizKey, memberAUser.BizKey)
 	w := makeRequest(t, r, http.MethodPut, path, body, token)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -424,8 +424,8 @@ func TestTeamManagement_UpdateMemberRole_PMRoleChangeReturns422(t *testing.T) {
 	var memberAUser model.User
 	require.NoError(t, db.Where("id = ?", data.memberAID).First(&memberAUser).Error)
 
-	pmRoleID := findRoleIDByName(t, db, "pm")
-	body := fmt.Sprintf(`{"roleKey":"%d"}`, pmRoleID)
+	pmRoleBizKey := findRoleBizKeyByName(t, db, "pm")
+	body := fmt.Sprintf(`{"roleKey":"%s"}`, pmRoleBizKey)
 	path := fmt.Sprintf("/api/v1/teams/%d/members/%d/role", data.teamABizKey, memberAUser.BizKey)
 	w := makeRequest(t, r, http.MethodPut, path, body, token)
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
@@ -488,10 +488,9 @@ func TestTeamManagement_UpdateMemberRole_ImmediateEffect(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &roleResp))
 	roleData := roleResp["data"].(map[string]interface{})
 	customRoleBizKey := roleData["bizKey"].(string)
-	customRoleID := findRoleIDByBizKey(t, db, customRoleBizKey)
 
 	// PM changes memberA's role to the custom role with team:invite
-	body := fmt.Sprintf(`{"roleKey":"%d"}`, customRoleID)
+	body := fmt.Sprintf(`{"roleKey":"%s"}`, customRoleBizKey)
 	path := fmt.Sprintf("/api/v1/teams/%d/members/%d/role", data.teamABizKey, memberAUser.BizKey)
 	w = makeRequest(t, r, http.MethodPut, path, body, pmToken)
 	require.Equal(t, http.StatusOK, w.Code)

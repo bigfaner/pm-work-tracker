@@ -352,13 +352,13 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	// Seed team members
 	now := time.Now()
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamA.ID), UserKey: int64(userA.ID), RoleKey: func() *int64 { v := int64(pmRoleID); return &v }(), JoinedAt: now,
+		TeamKey: int64(teamA.ID), UserKey: int64(userA.ID), RoleKey: &pmRole.BizKey, JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamA.ID), UserKey: int64(memberA.ID), RoleKey: func() *int64 { v := int64(memberRoleID); return &v }(), JoinedAt: now,
+		TeamKey: int64(teamA.ID), UserKey: int64(memberA.ID), RoleKey: &memberRole.BizKey, JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamB.ID), UserKey: int64(userB.ID), RoleKey: func() *int64 { v := int64(pmRoleID); return &v }(), JoinedAt: now,
+		TeamKey: int64(teamB.ID), UserKey: int64(userB.ID), RoleKey: &pmRole.BizKey, JoinedAt: now,
 	}).Error)
 
 	return db, &seedData{
