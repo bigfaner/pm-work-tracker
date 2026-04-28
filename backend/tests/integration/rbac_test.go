@@ -304,9 +304,6 @@ func TestRoleEdit_ImmediateEffectOnNextRequest(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &createResp))
 	customRoleBizKey := createResp["data"].(map[string]interface{})["bizKey"].(string)
 
-	// Look up the internal numeric ID for the DB update
-	customRoleID := findRoleIDByBizKey(t, db, customRoleBizKey)
-
 	// Update memberA's role in teamA to the new custom role
 	var member model.TeamMember
 	require.NoError(t, db.Where("team_key = ? AND user_key = ?", data.teamAID, data.memberAID).First(&member).Error)
@@ -341,7 +338,6 @@ func TestDeleteRole_WithUsers_Rejected(t *testing.T) {
 	var createResp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &createResp))
 	customRoleBizKey := createResp["data"].(map[string]interface{})["bizKey"].(string)
-	customRoleID := findRoleIDByBizKey(t, db, customRoleBizKey)
 
 	// Assign custom role to memberA in teamA
 	var member model.TeamMember

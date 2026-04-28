@@ -491,18 +491,18 @@ func TestSeedRole_SkipsExisting(t *testing.T) {
 	existing := model.Role{Name: "pm", Description: "existing", IsPreset: false}
 	require.NoError(t, db.Create(&existing).Error)
 
-	// seedRole should skip without error
+	// seedRole should not error and should add missing permissions
 	err = seedRole(db, "pm", "new description", true, []string{"team:create"})
 	require.NoError(t, err)
 
-	// Should still be the original role
+	// Description should not be modified
 	var role model.Role
 	require.NoError(t, db.Where("role_name = ?", "pm").First(&role).Error)
-	assert.Equal(t, "existing", role.Description, "existing role should not be modified")
+	assert.Equal(t, "existing", role.Description, "existing role description should not be modified")
 
-	// No permission codes should have been added
+	// Missing permission code should have been added
 	count, _ := CountPermissionsForRole(db, role.ID)
-	assert.Equal(t, int64(0), count)
+	assert.Equal(t, int64(1), count)
 }
 
 func TestHasColumn_TableNotExists(t *testing.T) {

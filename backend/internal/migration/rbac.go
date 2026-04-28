@@ -196,7 +196,24 @@ func seedRole(tx *gorm.DB, name, description string, isPreset bool, codes []stri
 				return fmt.Errorf("backfill biz_key for role %s: %w", name, err)
 			}
 		}
-		return nil // already seeded
+		// Sync permissions: add any missing codes
+		var existingPerms []model.RolePermission
+		if err := tx.Where("role_id = ? AND deleted_flag = 0", existing.ID).Find(&existingPerms).Error; err != nil {
+			return fmt.Errorf("fetch permissions for role %s: %w", name, err)
+		}
+		existingSet := make(map[string]bool, len(existingPerms))
+		for _, p := range existingPerms {
+			existingSet[p.PermissionCode] = true
+		}
+		for _, code := range codes {
+			if !existingSet[code] {
+				rp := model.RolePermission{RoleID: existing.ID, PermissionCode: code}
+				if err := tx.Create(&rp).Error; err != nil {
+					return fmt.Errorf("add permission %s to role %s: %w", code, name, err)
+				}
+			}
+		}
+		return nil
 	}
 
 	role := model.Role{
