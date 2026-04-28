@@ -12,7 +12,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           'placeholder:text-tertiary',
           'focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200',
           'disabled:cursor-not-allowed disabled:opacity-50',
-          'min-h-[72px] resize-y',
+          'min-h-[120px] resize-y',
           className
         )}
         ref={ref}
