@@ -592,12 +592,13 @@ func getSubItem(t *testing.T, db *gorm.DB, id uint) *model.SubItem {
 
 // ========== Role Lookup Helpers ==========
 
-// findRoleIDByName looks up a role ID by name from the database.
-func findRoleIDByName(t *testing.T, db *gorm.DB, name string) uint {
+// findRoleKeyByName looks up a role BizKey by name from the database.
+// Returns BizKey (snowflake ID) as uint, not the auto-increment ID.
+func findRoleKeyByName(t *testing.T, db *gorm.DB, name string) uint {
 	t.Helper()
 	var role model.Role
 	require.NoError(t, db.Where("role_name = ?", name).First(&role).Error)
-	return role.ID
+	return uint(role.BizKey)
 }
 
 // findRoleBizKeyByName looks up a role's BizKey as string by name from the database.
@@ -637,7 +638,7 @@ func setupLifecycleTest(t *testing.T) (*gin.Engine, *seedData, *gorm.DB) {
 	db, data := setupRBACTestDB(t)
 
 	// Add main_item:change_status permission for PM role (required by router but missing from seed)
-	pmRoleID := findRoleIDByName(t, db, "pm")
+	pmRoleID := findRoleKeyByName(t, db, "pm")
 	require.NoError(t, db.Create(&model.RolePermission{
 		RoleID:         pmRoleID,
 		PermissionCode: "main_item:change_status",

@@ -129,6 +129,7 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 		teamsGroup.POST("/item-pool", deps.perm("item_pool:submit"), deps.ItemPool.Submit)
 		teamsGroup.GET("/item-pool", deps.perm("sub_item:read"), deps.ItemPool.List)
 		teamsGroup.GET("/item-pool/:poolId", deps.perm("sub_item:read"), deps.ItemPool.Get)
+		teamsGroup.PUT("/item-pool/:poolId", deps.perm("item_pool:submit"), deps.ItemPool.Update)
 		teamsGroup.POST("/item-pool/:poolId/assign", deps.perm("item_pool:review"), deps.ItemPool.Assign)
 		teamsGroup.POST("/item-pool/:poolId/convert-to-main", deps.perm("item_pool:review"), deps.ItemPool.ConvertToMain)
 		teamsGroup.POST("/item-pool/:poolId/reject", deps.perm("item_pool:review"), deps.ItemPool.Reject)

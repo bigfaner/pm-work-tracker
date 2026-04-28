@@ -199,6 +199,10 @@ func (m *mockItemPoolService) GetByBizKey(_ context.Context, _ int64) (*model.It
 	return m.getResult.item, m.getResult.err
 }
 
+func (m *mockItemPoolService) Update(_ context.Context, _, _ uint, _ dto.UpdateItemPoolReq) (*model.ItemPool, error) {
+	return m.getResult.item, m.getResult.err
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------

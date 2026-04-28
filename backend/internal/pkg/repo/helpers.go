@@ -16,7 +16,7 @@ var acceptedFields = map[string]map[string]bool{
 	model.MainItem{}.TableName(): {"title": true, "priority": true, "item_status": true, "assignee_key": true, "completion_pct": true, "actual_end_date": true, "archived_at": true, "item_desc": true, "is_key_item": true, "plan_start_date": true, "expected_end_date": true},
 	model.SubItem{}.TableName():  {"title": true, "item_status": true, "priority": true, "assignee_key": true, "completion_pct": true, "actual_end_date": true, "item_desc": true, "plan_start_date": true, "expected_end_date": true},
 	model.User{}.TableName():     {"display_name": true},
-	model.ItemPool{}.TableName(): {"pool_status": true, "assigned_main_key": true, "assigned_sub_key": true, "assignee_key": true, "reject_reason": true, "reviewed_at": true, "reviewer_key": true},
+	model.ItemPool{}.TableName(): {"pool_status": true, "assigned_main_key": true, "assigned_sub_key": true, "assignee_key": true, "reject_reason": true, "reviewed_at": true, "reviewer_key": true, "title": true, "background": true, "expected_output": true},
 }
 
 // identifiable constrains T to model types that have an ID field.

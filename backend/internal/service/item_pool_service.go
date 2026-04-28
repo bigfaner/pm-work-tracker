@@ -215,6 +215,37 @@ func (s *itemPoolService) List(ctx context.Context, teamBizKey int64, filter dto
 	return s.poolRepo.List(ctx, teamBizKey, filter, page)
 }
 
+func (s *itemPoolService) Update(ctx context.Context, teamID, poolItemID uint, req dto.UpdateItemPoolReq) (*model.ItemPool, error) {
+	item, err := s.poolRepo.FindByID(ctx, poolItemID)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
+	}
+	if item.TeamKey != int64(teamID) {
+		return nil, apperrors.ErrForbidden
+	}
+	if item.PoolStatus != "pending" {
+		return nil, apperrors.ErrItemAlreadyProcessed
+	}
+
+	fields := map[string]interface{}{}
+	if req.Title != nil {
+		fields["title"] = *req.Title
+	}
+	if req.Background != nil {
+		fields["background"] = *req.Background
+	}
+	if req.ExpectedOutput != nil {
+		fields["expected_output"] = *req.ExpectedOutput
+	}
+	if len(fields) == 0 {
+		return item, nil
+	}
+	if err := s.poolRepo.Update(ctx, item, fields); err != nil {
+		return nil, err
+	}
+	return s.poolRepo.FindByID(ctx, poolItemID)
+}
+
 func (s *itemPoolService) Get(ctx context.Context, teamBizKey int64, poolItemID uint) (*model.ItemPool, error) {
 	item, err := s.poolRepo.FindByID(ctx, poolItemID)
 	if err != nil {

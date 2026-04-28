@@ -42,7 +42,7 @@ export default function ProgressSummaryCard({
               textAnchor="middle" dominantBaseline="central"
               fontSize="18" fontWeight="600" fill="var(--color-primary, #1e293b)"
             >
-              {completion}%
+              {Math.round(completion)}%
             </text>
           </svg>
           <div>

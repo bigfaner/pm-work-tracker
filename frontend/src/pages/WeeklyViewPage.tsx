@@ -380,7 +380,7 @@ function SubItemRow({ item, mainItemId, showDelta, referenceDate }: SubItemRowPr
           </Tooltip>
         </TooltipProvider>
         <span className={`text-[11px] font-semibold ${item.completion === 100 ? 'text-success-text' : 'text-secondary'}`}>
-          {item.completion}%
+          {Math.round(item.completion)}%
         </span>
         <span className="text-[11px] text-tertiary whitespace-nowrap">
           {item.assigneeName}
@@ -416,7 +416,7 @@ function SubItemRow({ item, mainItemId, showDelta, referenceDate }: SubItemRowPr
         </div>
       ) : item.progressDescription ? (
         <div className="pl-14 text-xs text-tertiary mt-1 py-1">
-          {item.completion}% · {item.progressDescription}
+          {Math.round(item.completion)}% · {item.progressDescription}
         </div>
       ) : null}
     </div>

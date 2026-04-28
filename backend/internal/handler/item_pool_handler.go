@@ -182,6 +182,36 @@ func (h *ItemPoolHandler) ConvertToMain(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 0, "data": gin.H{"mainItemBizKey": mainItem.BizKey}})
 }
 
+// Update handles PUT /api/v1/teams/:teamId/item-pool/:poolId
+func (h *ItemPoolHandler) Update(c *gin.Context) {
+	poolID, ok := pkgHandler.ResolveBizKey(c, "poolId", func(ctx context.Context, bizKey int64) (uint, error) {
+		item, err := h.svc.GetByBizKey(ctx, bizKey)
+		if err != nil {
+			return 0, err
+		}
+		return item.ID, nil
+	})
+	if !ok {
+		return
+	}
+
+	teamID := middleware.GetTeamID(c)
+
+	var req dto.UpdateItemPoolReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	item, err := h.svc.Update(c.Request.Context(), teamID, poolID, req)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, buildItemPoolVOs([]model.ItemPool{*item}, h.userRepo, h.mainItemRepo, c)[0])
+}
+
 // Reject handles POST /api/v1/teams/:teamId/item-pool/:poolId/reject
 func (h *ItemPoolHandler) Reject(c *gin.Context) {
 	poolID, ok := pkgHandler.ResolveBizKey(c, "poolId", func(ctx context.Context, bizKey int64) (uint, error) {

@@ -93,7 +93,7 @@ export default function ItemDetailView({
                     </TableCell>
                     <TableCell className="whitespace-nowrap">{memberName(item.assigneeKey)}</TableCell>
                     <TableCell className="whitespace-nowrap">
-                      <span className="text-xs">{item.completion}%</span>
+                      <span className="text-xs">{Math.round(item.completion)}%</span>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       <StatusTransitionDropdown currentStatus={item.itemStatus} itemType="main" teamId={teamId} itemId={item.bizKey} onStatusChanged={onRefresh} />
@@ -128,7 +128,7 @@ export default function ItemDetailView({
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{memberName(sub.assigneeKey)}</TableCell>
                       <TableCell className="whitespace-nowrap">
-                        <span className="text-xs">{sub.completion}%</span>
+                        <span className="text-xs">{Math.round(sub.completion)}%</span>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         <StatusTransitionDropdown currentStatus={sub.itemStatus} itemType="sub" teamId={teamId} itemId={sub.bizKey} parentItemId={item.bizKey} onStatusChanged={onRefresh} />
@@ -138,7 +138,7 @@ export default function ItemDetailView({
                       <TableCell className="text-xs whitespace-nowrap">{formatDate(sub.actualEndDate)}</TableCell>
                       <TableCell>
                         <div className="flex gap-0.5 whitespace-nowrap">
-                          <PermissionGuard code="main_item:update">
+                          <PermissionGuard code="sub_item:update">
                             <Button variant="ghost" size="sm" className="text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.itemStatus as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onEditSubItem(sub)}><Pencil size={14} />编辑</Button>
                           </PermissionGuard>
                           <PermissionGuard code="progress:update">

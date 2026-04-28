@@ -149,6 +149,9 @@ func (s *StubItemPoolSvc) Get(_ context.Context, _ int64, _ uint) (*model.ItemPo
 func (s *StubItemPoolSvc) GetByBizKey(_ context.Context, _ int64) (*model.ItemPool, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
+func (s *StubItemPoolSvc) Update(_ context.Context, _, _ uint, _ dto.UpdateItemPoolReq) (*model.ItemPool, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
 
 var _ service.ItemPoolService = (*StubItemPoolSvc)(nil)
 

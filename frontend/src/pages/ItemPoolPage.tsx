@@ -1,12 +1,12 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { ArrowUpCircle, ArrowDownCircle, XCircle, RefreshCw } from 'lucide-react'
+import { ArrowUpCircle, ArrowDownCircle, XCircle, Pencil, RefreshCw } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
-import { listItemPoolApi, submitItemPoolApi, assignItemPoolApi, convertToMainApi, rejectItemPoolApi } from '@/api/itemPool'
+import { listItemPoolApi, submitItemPoolApi, updateItemPoolApi, assignItemPoolApi, convertToMainApi, rejectItemPoolApi } from '@/api/itemPool'
 import { listMainItemsApi } from '@/api/mainItems'
 import { listMembersApi } from '@/api/teams'
-import type { ItemPool, AssignItemPoolReq, ConvertToMainItemReq } from '@/types'
+import type { ItemPool, AssignItemPoolReq, ConvertToMainItemReq, UpdateItemPoolReq } from '@/types'
 import { PermissionGuard } from '@/components/PermissionGuard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -62,12 +62,13 @@ const STATUS_LABEL: Record<string, string> = {
 
 interface PoolItemCardProps {
   item: ItemPool
+  onEdit: (item: ItemPool) => void
   onConvertToMain: (item: ItemPool) => void
   onConvertToSub: (item: ItemPool) => void
   onReject: (item: ItemPool) => void
 }
 
-function PoolItemCard({ item, onConvertToMain, onConvertToSub, onReject }: PoolItemCardProps) {
+function PoolItemCard({ item, onEdit, onConvertToMain, onConvertToSub, onReject }: PoolItemCardProps) {
   const isPending = item.poolStatus === 'pending'
 
   return (
@@ -119,6 +120,16 @@ function PoolItemCard({ item, onConvertToMain, onConvertToSub, onReject }: PoolI
 
       {/* Actions (only for pending items) */}
       {isPending && (
+        <PermissionGuard code="item_pool:submit">
+          <div className="flex justify-end gap-2 px-5 py-2 border-t border-border/50">
+            <Button variant="ghost" size="sm" className="text-secondary" data-testid={`edit-${item.bizKey}`} onClick={() => onEdit(item)}>
+              <Pencil className="w-3.5 h-3.5" />
+              编辑
+            </Button>
+          </div>
+        </PermissionGuard>
+      )}
+      {isPending && (
         <PermissionGuard code="item_pool:review">
           <div className="flex justify-end gap-2 px-5 py-2 border-t border-border/50">
             <Button variant="ghost" size="sm" className="text-primary-600" data-testid={`to-main-${item.bizKey}`} onClick={() => onConvertToMain(item)}>
@@ -156,6 +167,7 @@ export default function ItemPoolPage() {
 
   // Dialogs
   const [submitOpen, setSubmitOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const [toMainOpen, setToMainOpen] = useState(false)
   const [toSubOpen, setToSubOpen] = useState(false)
   const [rejectOpen, setRejectOpen] = useState(false)
@@ -163,6 +175,7 @@ export default function ItemPoolPage() {
 
   // Form states
   const [submitForm, setSubmitForm] = useState({ title: '', background: '', expectedOutput: '' })
+  const [editForm, setEditForm] = useState({ title: '', background: '', expectedOutput: '' })
   const [toMainForm, setToMainForm] = useState({ priority: 'P2', assigneeKey: '', startDate: '', expectedEndDate: '' })
   const [toSubForm, setToSubForm] = useState({ parentItemId: '', priority: 'P2', assigneeKey: '', startDate: '', expectedEndDate: '' })
   const [rejectForm, setRejectForm] = useState({ reason: '' })
@@ -257,6 +270,16 @@ export default function ItemPoolPage() {
     },
   })
 
+  const updateMutation = useMutation({
+    mutationFn: ({ poolId, req }: { poolId: string; req: UpdateItemPoolReq }) =>
+      updateItemPoolApi(teamId!, poolId, req),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
+      setEditOpen(false)
+      setSelectedItem(null)
+    },
+  })
+
   const assignMutation = useMutation({
     mutationFn: ({ poolId, req }: { poolId: string; req: AssignItemPoolReq }) =>
       assignItemPoolApi(teamId!, poolId, req),
@@ -298,6 +321,12 @@ export default function ItemPoolPage() {
     setToMainOpen(true)
   }, [])
 
+  const openEdit = useCallback((item: ItemPool) => {
+    setSelectedItem(item)
+    setEditForm({ title: item.title, background: item.background, expectedOutput: item.expectedOutput })
+    setEditOpen(true)
+  }, [])
+
   const openConvertToSub = useCallback((item: ItemPool) => {
     setSelectedItem(item)
     setToSubForm({ parentItemId: '', priority: 'P2', assigneeKey: '', startDate: '', expectedEndDate: '' })
@@ -323,6 +352,15 @@ export default function ItemPoolPage() {
       ...(submitForm.expectedOutput && { expectedOutput: submitForm.expectedOutput }),
     })
   }, [submitForm, submitMutation])
+
+  const handleEdit = useCallback(() => {
+    if (!selectedItem || !editForm.title.trim()) return
+    const req: UpdateItemPoolReq = {}
+    if (editForm.title.trim() !== selectedItem.title) req.title = editForm.title.trim()
+    if (editForm.background !== selectedItem.background) req.background = editForm.background
+    if (editForm.expectedOutput !== selectedItem.expectedOutput) req.expectedOutput = editForm.expectedOutput
+    updateMutation.mutate({ poolId: selectedItem.bizKey, req })
+  }, [selectedItem, editForm, updateMutation])
 
   const handleToMain = useCallback(() => {
     if (!selectedItem) return
@@ -421,6 +459,7 @@ export default function ItemPoolPage() {
                 <PoolItemCard
                   key={item.bizKey}
                   item={item}
+                  onEdit={openEdit}
                   onConvertToMain={openConvertToMain}
                   onConvertToSub={openConvertToSub}
                   onReject={openReject}
@@ -478,6 +517,51 @@ export default function ItemPoolPage() {
                 <Button variant="secondary" onClick={() => setSubmitOpen(false)}>取消</Button>
                 <Button onClick={handleSubmit} disabled={!submitForm.title.trim() || submitMutation.isPending}>
                   提交
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Edit Dialog */}
+          <Dialog open={editOpen} onOpenChange={setEditOpen}>
+            <DialogContent size="md">
+              <DialogHeader>
+                <DialogTitle>编辑待办事项</DialogTitle>
+              </DialogHeader>
+              <DialogBody>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-primary mb-1">
+                    标题 <span className="text-error">*</span>
+                  </label>
+                  <Input
+                    placeholder="请输入事项标题"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-primary mb-1">背景</label>
+                  <Textarea
+                    rows={3}
+                    placeholder="描述提交该事项的背景和原因"
+                    value={editForm.background}
+                    onChange={(e) => setEditForm((f) => ({ ...f, background: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-1">预期产出</label>
+                  <Textarea
+                    rows={3}
+                    placeholder="描述希望达成的产出或目标"
+                    value={editForm.expectedOutput}
+                    onChange={(e) => setEditForm((f) => ({ ...f, expectedOutput: e.target.value }))}
+                  />
+                </div>
+              </DialogBody>
+              <DialogFooter>
+                <Button variant="secondary" onClick={() => setEditOpen(false)}>取消</Button>
+                <Button onClick={handleEdit} disabled={!editForm.title.trim() || updateMutation.isPending}>
+                  保存
                 </Button>
               </DialogFooter>
             </DialogContent>

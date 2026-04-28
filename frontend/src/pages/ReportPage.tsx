@@ -29,9 +29,9 @@ function renderMarkdown(preview: ReportPreviewResp, filterUserKey?: string): str
     if (subs.length === 0) continue
 
     md += `### ${section.mainItem.title}\n`
-    md += `进度：${section.mainItem.completion}%\n\n`
+    md += `进度：${Math.round(section.mainItem.completion)}%\n\n`
     for (const sub of subs) {
-      const status = sub.completion === 100 ? '已完成' : `进行中 (${sub.completion}%)`
+      const status = sub.completion === 100 ? '已完成' : `进行中 (${Math.round(sub.completion)}%)`
       md += `  - **${sub.title}** -- ${status}\n`
       for (const a of sub.achievements ?? []) {
         md += `    成果：${a}\n`
