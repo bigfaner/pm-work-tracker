@@ -209,10 +209,10 @@ func (m *mockRoleRepo) GetUserTeamPermissions(ctx context.Context, userID uint) 
 
 var _ repository.RoleRepo = (*mockRoleRepo)(nil)
 
-// capturedTeamContext captures teamID and permCodes from the Gin context.
+// capturedTeamContext captures teamBizKey and permCodes from the Gin context.
 type capturedTeamContext struct {
-	teamID    uint
-	permCodes []string
+	teamBizKey int64
+	permCodes  []string
 }
 
 // setupTeamScopeRouter creates a test router with a simulated AuthMiddleware + TeamScopeMiddleware
@@ -239,7 +239,7 @@ func setupTeamScopeRouter(teamRepo repository.TeamRepo, roleRepo repository.Role
 	r.Use(TeamScopeMiddleware(teamRepo, roleRepo))
 
 	r.GET("/api/v1/teams/:teamId/items", func(c *gin.Context) {
-		cc.teamID = GetTeamID(c)
+		cc.teamBizKey = GetTeamBizKey(c)
 		cc.permCodes = GetPermCodes(c)
 		c.Status(http.StatusOK)
 	})
@@ -294,7 +294,7 @@ func TestTeamScopeMiddleware_Member_SetsContext(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, uint(5), cc.teamID)
+	assert.Equal(t, int64(5), cc.teamBizKey)
 	assert.Equal(t, []string{"team:update", "team:invite"}, cc.permCodes)
 }
 
@@ -309,7 +309,7 @@ func TestTeamScopeMiddleware_SuperAdmin_BypassesMembership(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, uint(99), cc.teamID)
+	assert.Equal(t, int64(99), cc.teamBizKey)
 	assert.Equal(t, []string{}, cc.permCodes)
 	teamRepo.AssertNotCalled(t, "FindMember", mock.Anything, mock.Anything, mock.Anything)
 }
@@ -330,7 +330,7 @@ func TestTeamScopeMiddleware_MemberNoRoleID_SetsEmptyPermCodes(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, uint(3), cc.teamID)
+	assert.Equal(t, int64(3), cc.teamBizKey)
 	assert.Nil(t, cc.permCodes)
 }
 
@@ -353,8 +353,8 @@ func TestTeamScopeMiddleware_RoleBizKeyNotFound_Returns500(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
 
-func TestGetTeamID_NoValue(t *testing.T) {
+func TestGetTeamBizKey_NoValue(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	assert.Equal(t, uint(0), GetTeamID(c))
+	assert.Equal(t, int64(0), GetTeamBizKey(c))
 }

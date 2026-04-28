@@ -32,11 +32,9 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleR
 			apperrors.RespondError(c, apperrors.ErrTeamNotFound)
 			return
 		}
-		teamIDUint := team.ID
-
 		// 2. SuperAdmin bypasses membership check
 		if IsSuperAdmin(c) {
-			c.Set("teamID", teamIDUint)
+			c.Set("teamBizKey", teamBizKey)
 			c.Set("callerTeamRole", "superadmin")
 			c.Set("permCodes", []string{})
 			c.Next()
@@ -45,7 +43,7 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleR
 
 		// 3. Look up TeamMember record
 		userID := GetUserID(c)
-		member, err := teamRepo.FindMember(c.Request.Context(), teamIDUint, userID)
+		member, err := teamRepo.FindMember(c.Request.Context(), team.ID, userID)
 		if err != nil {
 			c.Abort()
 			apperrors.RespondError(c, apperrors.ErrNotTeamMember)
@@ -71,18 +69,18 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleR
 			permCodes = codes
 		}
 
-		// 5. Inject teamID, callerTeamRole, and permCodes into context
-		c.Set("teamID", teamIDUint)
+		// 5. Inject teamBizKey, callerTeamRole, and permCodes into context
+		c.Set("teamBizKey", teamBizKey)
 		c.Set("callerTeamRole", "member")
 		c.Set("permCodes", permCodes)
 		c.Next()
 	}
 }
 
-// GetTeamID extracts the scoped team ID from the Gin context.
-func GetTeamID(c *gin.Context) uint {
-	if v, ok := c.Get("teamID"); ok {
-		if id, ok := v.(uint); ok {
+// GetTeamBizKey extracts the scoped team biz key from the Gin context.
+func GetTeamBizKey(c *gin.Context) int64 {
+	if v, ok := c.Get("teamBizKey"); ok {
+		if id, ok := v.(int64); ok {
 			return id
 		}
 	}
