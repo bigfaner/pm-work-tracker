@@ -155,9 +155,9 @@ CREATE INDEX IF NOT EXISTS idx_item_pools_deleted_flag ON pmw_item_pools(deleted
 CREATE TABLE IF NOT EXISTS pmw_progress_records (
     id              INTEGER PRIMARY KEY AUTOINCREMENT, -- 自增主键
     biz_key         INTEGER       NOT NULL,            -- 业务唯一键
-    sub_item_key    INTEGER       NOT NULL,            -- 所属子事项 id
-    team_key        INTEGER       NOT NULL,            -- 所属团队 id
-    author_key      INTEGER       NOT NULL,            -- 填写人 id
+    sub_item_key    INTEGER       NOT NULL,            -- 所属子事项 biz_key
+    team_key        INTEGER       NOT NULL,            -- 所属团队 biz_key
+    author_key      INTEGER       NOT NULL,            -- 填写人 biz_key
     completion_pct  REAL          NOT NULL,            -- 本次填写的完成度百分比
     achievement     VARCHAR(1000),                     -- 本周成果
     blocker         VARCHAR(1000),                     -- 阻塞问题

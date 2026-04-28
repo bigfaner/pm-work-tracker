@@ -52,8 +52,8 @@ type PermissionItem struct {
 
 // UserPermissions is the response shape for a user's permission map.
 type UserPermissions struct {
-	IsSuperAdmin    bool              `json:"isSuperAdmin"`
-	TeamPermissions map[uint][]string `json:"teamPermissions"`
+	IsSuperAdmin    bool                `json:"isSuperAdmin"`
+	TeamPermissions map[int64][]string  `json:"teamPermissions"`
 }
 
 // RoleService defines business logic for role management.
@@ -302,7 +302,7 @@ func (s *roleService) GetUserPermissions(ctx context.Context, userID uint) (*Use
 	}
 
 	if teamPerms == nil {
-		teamPerms = map[uint][]string{}
+		teamPerms = map[int64][]string{}
 	}
 
 	return &UserPermissions{

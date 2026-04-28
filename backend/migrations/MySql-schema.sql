@@ -161,9 +161,9 @@ CREATE TABLE IF NOT EXISTS pmw_item_pools (
 CREATE TABLE IF NOT EXISTS pmw_progress_records (
     id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT       COMMENT '自增主键',
     biz_key         BIGINT          NOT NULL                      COMMENT '业务唯一键',
-    sub_item_key    BIGINT          NOT NULL                      COMMENT '所属子事项 id',
-    team_key        BIGINT          NOT NULL                      COMMENT '所属团队 id',
-    author_key      BIGINT          NOT NULL                      COMMENT '填写人 id',
+    sub_item_key    BIGINT          NOT NULL                      COMMENT '所属子事项 biz_key',
+    team_key        BIGINT          NOT NULL                      COMMENT '所属团队 biz_key',
+    author_key      BIGINT          NOT NULL                      COMMENT '填写人 biz_key',
     completion_pct  DECIMAL(5,2)    NOT NULL                      COMMENT '本次填写的完成度百分比',
     achievement     VARCHAR(1000)                                 COMMENT '本周成果',
     blocker         VARCHAR(1000)                                 COMMENT '阻塞问题',

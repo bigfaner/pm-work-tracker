@@ -149,7 +149,7 @@ func TestPermissionHandler_GetUserPermissions_Success(t *testing.T) {
 		getUserPermissionsFn: func(_ context.Context, userID uint) (*service.UserPermissions, error) {
 			return &service.UserPermissions{
 				IsSuperAdmin:    false,
-				TeamPermissions: map[uint][]string{10: {"main_item:create", "main_item:read"}},
+				TeamPermissions: map[int64][]string{10: {"main_item:create", "main_item:read"}},
 			}, nil
 		},
 	}
@@ -186,7 +186,7 @@ func TestPermissionHandler_GetUserPermissions_SuperAdmin(t *testing.T) {
 		getUserPermissionsFn: func(_ context.Context, userID uint) (*service.UserPermissions, error) {
 			return &service.UserPermissions{
 				IsSuperAdmin:    true,
-				TeamPermissions: map[uint][]string{},
+				TeamPermissions: map[int64][]string{},
 			}, nil
 		},
 	}

@@ -199,12 +199,12 @@ func (m *mockRoleRepo) HasPermission(ctx context.Context, userID uint, code stri
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *mockRoleRepo) GetUserTeamPermissions(ctx context.Context, userID uint) (map[uint][]string, error) {
+func (m *mockRoleRepo) GetUserTeamPermissions(ctx context.Context, userID uint) (map[int64][]string, error) {
 	args := m.Called(ctx, userID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(map[uint][]string), args.Error(1)
+	return args.Get(0).(map[int64][]string), args.Error(1)
 }
 
 var _ repository.RoleRepo = (*mockRoleRepo)(nil)

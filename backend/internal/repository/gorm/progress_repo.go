@@ -42,19 +42,19 @@ func (r *progressRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.P
 	return &record, nil
 }
 
-func (r *progressRepo) ListBySubItem(ctx context.Context, teamID uint, subItemID uint) ([]model.ProgressRecord, error) {
+func (r *progressRepo) ListBySubItem(ctx context.Context, teamID uint, subItemBizKey int64) ([]model.ProgressRecord, error) {
 	var records []model.ProgressRecord
 	err := r.db.WithContext(ctx).
-		Where("team_key = ? AND sub_item_key = ?", teamID, subItemID).
+		Where("team_key = ? AND sub_item_key = ?", teamID, subItemBizKey).
 		Order("create_time ASC").
 		Find(&records).Error
 	return records, err
 }
 
-func (r *progressRepo) LatestBySubItem(ctx context.Context, subItemID uint) (*model.ProgressRecord, error) {
+func (r *progressRepo) LatestBySubItem(ctx context.Context, subItemBizKey int64) (*model.ProgressRecord, error) {
 	var record model.ProgressRecord
 	err := r.db.WithContext(ctx).
-		Where("sub_item_key = ?", subItemID).
+		Where("sub_item_key = ?", subItemBizKey).
 		Order("create_time DESC").
 		First(&record).Error
 	if err != nil {

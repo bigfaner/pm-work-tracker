@@ -309,7 +309,8 @@ func TestRoleEdit_ImmediateEffectOnNextRequest(t *testing.T) {
 	// Update memberA's role in teamA to the new custom role
 	var member model.TeamMember
 	require.NoError(t, db.Where("team_key = ? AND user_key = ?", data.teamAID, data.memberAID).First(&member).Error)
-	roleKey := int64(customRoleID); member.RoleKey = &roleKey
+	customRoleBizKeyInt, _ := strconv.ParseInt(customRoleBizKey, 10, 64)
+	member.RoleKey = &customRoleBizKeyInt
 	require.NoError(t, db.Save(&member).Error)
 
 	// Now member should NOT be able to read main items (no main_item:read permission)
@@ -344,7 +345,8 @@ func TestDeleteRole_WithUsers_Rejected(t *testing.T) {
 	// Assign custom role to memberA in teamA
 	var member model.TeamMember
 	require.NoError(t, db.Where("team_key = ? AND user_key = ?", data.teamAID, data.memberAID).First(&member).Error)
-	roleKey := int64(customRoleID); member.RoleKey = &roleKey
+	customRoleBizKeyInt, _ := strconv.ParseInt(customRoleBizKey, 10, 64)
+	member.RoleKey = &customRoleBizKeyInt
 	require.NoError(t, db.Save(&member).Error)
 
 	// Try to delete the role — should be rejected because it's in use
@@ -392,10 +394,11 @@ func TestInviteMember_WithRoleID_MemberHasCorrectPermissions(t *testing.T) {
 	newUser := &model.User{Username: "newuser", DisplayName: "New User", PasswordHash: string(hash)}
 	require.NoError(t, db.Create(newUser).Error)
 
-	memberRoleID := findRoleIDByName(t, db, "member")
+	memberRoleBizKey := findRoleBizKeyByName(t, db, "member")
+	memberRoleBizKeyInt, _ := strconv.ParseInt(memberRoleBizKey, 10, 64)
 	require.NoError(t, db.Create(&model.TeamMember{
 		TeamKey: int64(data.teamAID), UserKey: int64(newUser.ID),
-		RoleKey: func() *int64 { v := int64(memberRoleID); return &v }(), JoinedAt: time.Now(),
+		RoleKey: &memberRoleBizKeyInt, JoinedAt: time.Now(),
 	}).Error)
 
 	// Login as newuser and verify member-level permissions

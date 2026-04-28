@@ -133,27 +133,28 @@ func (r *roleRepo) HasPermission(ctx context.Context, userID uint, code string) 
 
 // teamPermRow is a helper struct for scanning the GetUserTeamPermissions join query.
 type teamPermRow struct {
-	TeamKey        uint
+	TeamBizKey     int64
 	PermissionCode string
 }
 
-func (r *roleRepo) GetUserTeamPermissions(ctx context.Context, userID uint) (map[uint][]string, error) {
+func (r *roleRepo) GetUserTeamPermissions(ctx context.Context, userID uint) (map[int64][]string, error) {
 	var rows []teamPermRow
 	err := r.db.WithContext(ctx).
 		Table("pmw_team_members").
 		Scopes(NotDeletedTable("pmw_team_members")).
-		Select("pmw_team_members.team_key, pmw_role_permissions.permission_code").
+		Select("pmw_teams.biz_key as team_biz_key, pmw_role_permissions.permission_code").
 		Joins("JOIN pmw_roles ON pmw_roles.biz_key = pmw_team_members.role_key AND pmw_roles.deleted_flag = 0").
 		Joins("JOIN pmw_role_permissions ON pmw_role_permissions.role_id = pmw_roles.id AND pmw_role_permissions.deleted_flag = 0").
+		Joins("JOIN pmw_teams ON pmw_teams.id = pmw_team_members.team_key AND pmw_teams.deleted_flag = 0").
 		Where("pmw_team_members.user_key = ?", userID).
 		Find(&rows).Error
 	if err != nil {
 		return nil, err
 	}
 
-	result := make(map[uint][]string)
+	result := make(map[int64][]string)
 	for _, row := range rows {
-		result[row.TeamKey] = append(result[row.TeamKey], row.PermissionCode)
+		result[row.TeamBizKey] = append(result[row.TeamBizKey], row.PermissionCode)
 	}
 	return result, nil
 }

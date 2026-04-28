@@ -168,8 +168,9 @@ func seedPresetRoles(tx *gorm.DB) error {
 		return err
 	}
 
-	// Seed member (id=3, 11 codes)
+	// Seed member (id=3, 12 codes)
 	memberCodes := []string{
+		"team:read",
 		"main_item:read",
 		"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:change_status",
 		"progress:create", "progress:read",
@@ -414,6 +415,7 @@ func VerifyPresetRoleCodes(db *gorm.DB) error {
 			"user:read",
 		},
 		"member": {
+			"team:read",
 			"main_item:read",
 			"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:change_status",
 			"progress:create", "progress:read",

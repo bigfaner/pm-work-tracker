@@ -200,11 +200,12 @@ func TestViews_Weekly_EmptyTeam_ReturnsZeroStats(t *testing.T) {
 	}
 	require.NoError(t, db.Create(teamC).Error)
 
-	pmRoleID := findRoleIDByName(t, db, "pm")
+	pmRoleBizKey := findRoleBizKeyByName(t, db, "pm")
+	pmRoleBizKeyInt, _ := strconv.ParseInt(pmRoleBizKey, 10, 64)
 	require.NoError(t, db.Create(&model.TeamMember{
 		TeamKey:  int64(teamC.ID),
 		UserKey:  int64(data.userAID),
-		RoleKey:  func() *int64 { v := int64(pmRoleID); return &v }(),
+		RoleKey:  &pmRoleBizKeyInt,
 		JoinedAt: time.Now(),
 	}).Error)
 
@@ -279,11 +280,12 @@ func TestViews_Gantt_EmptyTeam_ReturnsEmptyArray(t *testing.T) {
 		Code:      "TGEM",
 	}
 	require.NoError(t, db.Create(teamC).Error)
-	pmRoleID := findRoleIDByName(t, db, "pm")
+	pmRoleBizKey := findRoleBizKeyByName(t, db, "pm")
+	pmRoleBizKeyInt, _ := strconv.ParseInt(pmRoleBizKey, 10, 64)
 	require.NoError(t, db.Create(&model.TeamMember{
 		TeamKey:  int64(teamC.ID),
 		UserKey:  int64(data.userAID),
-		RoleKey:  func() *int64 { v := int64(pmRoleID); return &v }(),
+		RoleKey:  &pmRoleBizKeyInt,
 		JoinedAt: time.Now(),
 	}).Error)
 
@@ -365,11 +367,12 @@ func TestViews_Table_EmptyTeam_ReturnsEmptyItems(t *testing.T) {
 		Code:      "TTEM",
 	}
 	require.NoError(t, db.Create(teamC).Error)
-	pmRoleID := findRoleIDByName(t, db, "pm")
+	pmRoleBizKey := findRoleBizKeyByName(t, db, "pm")
+	pmRoleBizKeyInt, _ := strconv.ParseInt(pmRoleBizKey, 10, 64)
 	require.NoError(t, db.Create(&model.TeamMember{
 		TeamKey:  int64(teamC.ID),
 		UserKey:  int64(data.userAID),
-		RoleKey:  func() *int64 { v := int64(pmRoleID); return &v }(),
+		RoleKey:  &pmRoleBizKeyInt,
 		JoinedAt: time.Now(),
 	}).Error)
 
@@ -425,11 +428,12 @@ func TestViews_TableExport_EmptyTeam_Returns422(t *testing.T) {
 		Code:      "TEXM",
 	}
 	require.NoError(t, db.Create(teamC).Error)
-	pmRoleID := findRoleIDByName(t, db, "pm")
+	pmRoleBizKey := findRoleBizKeyByName(t, db, "pm")
+	pmRoleBizKeyInt, _ := strconv.ParseInt(pmRoleBizKey, 10, 64)
 	require.NoError(t, db.Create(&model.TeamMember{
 		TeamKey:  int64(teamC.ID),
 		UserKey:  int64(data.userAID),
-		RoleKey:  func() *int64 { v := int64(pmRoleID); return &v }(),
+		RoleKey:  &pmRoleBizKeyInt,
 		JoinedAt: time.Now(),
 	}).Error)
 

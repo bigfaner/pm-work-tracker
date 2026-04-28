@@ -26,6 +26,6 @@ type RoleRepo interface {
 	// Non-team-context: check if any of user's roles has the given permission code
 	HasPermission(ctx context.Context, userID uint, code string) (bool, error)
 
-	// GetUserTeamPermissions returns teamID -> permission codes for all teams the user belongs to.
-	GetUserTeamPermissions(ctx context.Context, userID uint) (map[uint][]string, error)
+	// GetUserTeamPermissions returns teamBizKey -> permission codes for all teams the user belongs to.
+	GetUserTeamPermissions(ctx context.Context, userID uint) (map[int64][]string, error)
 }

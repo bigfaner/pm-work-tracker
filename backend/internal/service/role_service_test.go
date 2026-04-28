@@ -32,7 +32,7 @@ type mockRoleRepo struct {
 	setPermCodes []string
 
 	// For GetUserPermissions
-	userTeamPerms map[uint][]string
+	userTeamPerms map[int64][]string
 
 	// Error controls
 	listErr         error
@@ -145,14 +145,14 @@ func (m *mockRoleRepo) HasPermission(_ context.Context, userID uint, code string
 	return m.hasPerm, m.hasPermErr
 }
 
-func (m *mockRoleRepo) GetUserTeamPermissions(_ context.Context, userID uint) (map[uint][]string, error) {
+func (m *mockRoleRepo) GetUserTeamPermissions(_ context.Context, userID uint) (map[int64][]string, error) {
 	if m.userTeamPermErr != nil {
 		return nil, m.userTeamPermErr
 	}
 	if m.userTeamPerms != nil {
 		return m.userTeamPerms, nil
 	}
-	return map[uint][]string{}, nil
+	return map[int64][]string{}, nil
 }
 
 // mockRoleUserRepo implements repository.UserRepo for role service tests.
@@ -535,19 +535,19 @@ func TestRoleService_ListPermissionCodes(t *testing.T) {
 
 func TestRoleService_GetUserPermissions_SuperAdmin(t *testing.T) {
 	user := &model.User{BaseModel: model.BaseModel{ID: 1}, Username: "admin", IsSuperAdmin: true}
-	repo := &mockRoleRepo{userTeamPerms: map[uint][]string{1: {"team:read"}}}
+	repo := &mockRoleRepo{userTeamPerms: map[int64][]string{1: {"team:read"}}}
 	userRepo := &mockRoleUserRepo{user: user}
 	svc := newTestRoleService(repo, userRepo)
 
 	result, err := svc.GetUserPermissions(context.Background(), 1)
 	require.NoError(t, err)
 	assert.True(t, result.IsSuperAdmin)
-	assert.Equal(t, map[uint][]string{1: {"team:read"}}, result.TeamPermissions)
+	assert.Equal(t, map[int64][]string{1: {"team:read"}}, result.TeamPermissions)
 }
 
 func TestRoleService_GetUserPermissions_NormalUser(t *testing.T) {
 	user := &model.User{BaseModel: model.BaseModel{ID: 2}, Username: "user1", IsSuperAdmin: false}
-	teamPerms := map[uint][]string{
+	teamPerms := map[int64][]string{
 		10: {"team:read", "team:update"},
 		20: {"team:read", "main_item:create"},
 	}

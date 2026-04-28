@@ -399,9 +399,9 @@ func TestRoleRepo_GetUserTeamPermissions(t *testing.T) {
 	ctx := context.Background()
 
 	u := seedRoleUser(t, db, "user1")
-	team1 := model.Team{TeamName: "Team1", PmKey: int64(u.ID), Code: "TM01"}
+	team1 := model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team1", PmKey: int64(u.ID), Code: "TM01"}
 	require.NoError(t, db.Create(&team1).Error)
-	team2 := model.Team{TeamName: "Team2", PmKey: int64(u.ID), Code: "TM02"}
+	team2 := model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team2", PmKey: int64(u.ID), Code: "TM02"}
 	require.NoError(t, db.Create(&team2).Error)
 
 	r1 := seedRole(t, db, "pm-role", "PM Role", true)
@@ -416,9 +416,9 @@ func TestRoleRepo_GetUserTeamPermissions(t *testing.T) {
 
 	result, err := repo.GetUserTeamPermissions(ctx, u.ID)
 	require.NoError(t, err)
-	assert.Equal(t, map[uint][]string{
-		team1.ID: {"team:create", "team:read"},
-		team2.ID: {"team:read"},
+	assert.Equal(t, map[int64][]string{
+		team1.BizKey: {"team:create", "team:read"},
+		team2.BizKey: {"team:read"},
 	}, result)
 }
 
@@ -481,9 +481,9 @@ func TestRoleRepo_GetUserTeamPermissions_DeletedMember(t *testing.T) {
 	ctx := context.Background()
 
 	u := seedRoleUser(t, db, "user1")
-	team1 := model.Team{TeamName: "Team1", PmKey: int64(u.ID), Code: "TM01"}
+	team1 := model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team1", PmKey: int64(u.ID), Code: "TM01"}
 	require.NoError(t, db.Create(&team1).Error)
-	team2 := model.Team{TeamName: "Team2", PmKey: int64(u.ID), Code: "TM02"}
+	team2 := model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team2", PmKey: int64(u.ID), Code: "TM02"}
 	require.NoError(t, db.Create(&team2).Error)
 
 	r1 := seedRole(t, db, "pm-role", "PM Role", true)
@@ -502,8 +502,8 @@ func TestRoleRepo_GetUserTeamPermissions_DeletedMember(t *testing.T) {
 
 	result, err := repo.GetUserTeamPermissions(ctx, u.ID)
 	require.NoError(t, err)
-	assert.Equal(t, map[uint][]string{
-		team2.ID: {"team:read"},
+	assert.Equal(t, map[int64][]string{
+		team2.BizKey: {"team:read"},
 	}, result, "deleted member's permissions should be excluded")
 }
 
