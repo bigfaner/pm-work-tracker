@@ -25,7 +25,7 @@ type TeamService interface {
 	RemoveMember(ctx context.Context, pmID, teamID, targetUserID uint) error
 	TransferPM(ctx context.Context, currentPMID, teamID, newPMID uint) error
 	DisbandTeam(ctx context.Context, callerID uint, teamID uint, confirmName string) error
-	UpdateMemberRole(ctx context.Context, pmID, teamID, targetUserID, roleID uint) error
+	UpdateMemberRole(ctx context.Context, pmID, teamID, targetUserID uint, roleBizKey int64) error
 	ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMemberDTO, error)
 	SearchAvailableUsers(ctx context.Context, teamID uint, search string) ([]*dto.UserSearchDTO, error)
 }
@@ -172,7 +172,7 @@ func (s *teamService) InviteMember(ctx context.Context, pmID, teamID uint, req d
 	if _, err := s.teamRepo.FindByID(ctx, teamID); err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
-	if roleID, err := pkg.ParseID(req.RoleKey); err == nil && s.isPMRole(ctx, uint(roleID)) {
+	if roleID, err := pkg.ParseID(req.RoleKey); err == nil && s.isPMRole(ctx, roleID) {
 		return apperrors.ErrCannotAssignPMRole
 	}
 
@@ -278,7 +278,7 @@ func (s *teamService) DisbandTeam(ctx context.Context, callerID uint, teamID uin
 	return s.teamRepo.SoftDelete(ctx, teamID)
 }
 
-func (s *teamService) UpdateMemberRole(ctx context.Context, pmID, teamID, targetUserID, roleID uint) error {
+func (s *teamService) UpdateMemberRole(ctx context.Context, pmID, teamID, targetUserID uint, roleBizKey int64) error {
 	team, err := s.teamRepo.FindByID(ctx, teamID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
@@ -287,7 +287,7 @@ func (s *teamService) UpdateMemberRole(ctx context.Context, pmID, teamID, target
 		return apperrors.ErrForbidden
 	}
 
-	if s.isPMRole(ctx, roleID) {
+	if s.isPMRole(ctx, roleBizKey) {
 		return apperrors.ErrCannotAssignPMRole
 	}
 
@@ -296,17 +296,16 @@ func (s *teamService) UpdateMemberRole(ctx context.Context, pmID, teamID, target
 		return apperrors.MapNotFound(err, apperrors.ErrNotTeamMember)
 	}
 
-	roleKey := int64(roleID)
-	member.RoleKey = &roleKey
+	member.RoleKey = &roleBizKey
 	return s.teamRepo.UpdateMember(ctx, member)
 }
 
 // isPMRole returns true if the given bizKey corresponds to the "pm" preset role.
-func (s *teamService) isPMRole(ctx context.Context, bizKey uint) bool {
+func (s *teamService) isPMRole(ctx context.Context, bizKey int64) bool {
 	if s.roleRepo == nil {
 		return false
 	}
-	role, err := s.roleRepo.FindByBizKey(ctx, int64(bizKey))
+	role, err := s.roleRepo.FindByBizKey(ctx, bizKey)
 	if err != nil {
 		return false
 	}

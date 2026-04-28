@@ -599,7 +599,7 @@ func TestUpdateMemberRole_Success(t *testing.T) {
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
-	err := svc.UpdateMemberRole(context.Background(), 10, 1, 5, 3)
+	err := svc.UpdateMemberRole(context.Background(), 10, 1, 5, int64(3))
 	require.NoError(t, err)
 	require.Len(t, teamRepo.updatedMembers, 1)
 	require.NotNil(t, teamRepo.updatedMembers[0].RoleKey)

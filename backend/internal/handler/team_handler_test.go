@@ -152,7 +152,7 @@ func (m *mockTeamService) DisbandTeam(_ context.Context, callerID uint, teamID u
 	return m.disbandTeamErr
 }
 
-func (m *mockTeamService) UpdateMemberRole(_ context.Context, pmID, teamID, targetUserID, roleID uint) error {
+func (m *mockTeamService) UpdateMemberRole(_ context.Context, pmID, teamID, targetUserID uint, roleID int64) error {
 	return m.updateMemberRoleErr
 }
 

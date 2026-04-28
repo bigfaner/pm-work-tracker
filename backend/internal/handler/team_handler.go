@@ -244,7 +244,7 @@ func (h *TeamHandler) UpdateMemberRole(c *gin.Context) {
 	}
 
 	roleKey, _ := pkg.ParseID(req.RoleKey)
-	if err := h.teamSvc.UpdateMemberRole(c.Request.Context(), pmID, teamID, targetUserID, uint(roleKey)); err != nil {
+	if err := h.teamSvc.UpdateMemberRole(c.Request.Context(), pmID, teamID, targetUserID, roleKey); err != nil {
 		apperrors.RespondError(c, err)
 		return
 	}

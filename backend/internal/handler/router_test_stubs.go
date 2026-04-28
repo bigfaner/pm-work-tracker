@@ -44,7 +44,7 @@ func (s *StubTeamSvc) TransferPM(_ context.Context, _, _, _ uint) error {
 func (s *StubTeamSvc) DisbandTeam(_ context.Context, _ uint, _ uint, _ string) error {
 	return fmt.Errorf("stub: not implemented")
 }
-func (s *StubTeamSvc) UpdateMemberRole(_ context.Context, _, _, _, _ uint) error {
+func (s *StubTeamSvc) UpdateMemberRole(_ context.Context, _, _, _ uint, _ int64) error {
 	return fmt.Errorf("stub: not implemented")
 }
 func (s *StubTeamSvc) ListMembers(_ context.Context, _ uint) ([]*dto.TeamMemberDTO, error) {
