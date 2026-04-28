@@ -281,7 +281,7 @@ export default function TeamDetailPage() {
       {/* Member List Section */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[15px] font-semibold text-primary">成员列表</h3>
-        <PermissionGuard code="team:invite">
+        <PermissionGuard code="team:invite" teamId={numericTeamId}>
           <Button size="sm" onClick={() => { setInviteOpen(true); setInviteRoleId(defaultRoleId); setUserSearch(''); setSelectedUser(null) }}>添加成员</Button>
         </PermissionGuard>
       </div>
@@ -347,7 +347,7 @@ export default function TeamDetailPage() {
                     <span className="text-tertiary">&mdash;</span>
                   ) : (
                     <div className="flex gap-1">
-                      <PermissionGuard code="team:invite">
+                      <PermissionGuard code="team:invite" teamId={numericTeamId}>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -359,7 +359,7 @@ export default function TeamDetailPage() {
                           修改角色
                         </Button>
                       </PermissionGuard>
-                      <PermissionGuard code="team:transfer">
+                      <PermissionGuard code="team:transfer" teamId={numericTeamId}>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -370,7 +370,7 @@ export default function TeamDetailPage() {
                           设为PM
                         </Button>
                       </PermissionGuard>
-                      <PermissionGuard code="team:remove">
+                      <PermissionGuard code="team:remove" teamId={numericTeamId}>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -400,7 +400,7 @@ export default function TeamDetailPage() {
             <div className="font-medium text-primary">解散团队</div>
             <div className="text-[13px] text-secondary">解散后所有数据将无法恢复，所有成员将被移除。</div>
           </div>
-          <PermissionGuard code="team:delete">
+          <PermissionGuard code="team:delete" teamId={numericTeamId}>
             <Button variant="danger" onClick={() => setDisbandOpen(true)}>解散团队</Button>
           </PermissionGuard>
         </div>
