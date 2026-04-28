@@ -86,3 +86,11 @@ func GetTeamBizKey(c *gin.Context) int64 {
 	}
 	return 0
 }
+
+// GetTeamID returns the team biz key cast to uint, for handlers that pass teamID
+// to services whose interfaces still use uint. The cast is lossless for positive
+// snowflake IDs, and service-layer comparisons of the form int64(teamID) == item.TeamKey
+// remain correct because item.TeamKey stores the biz key.
+func GetTeamID(c *gin.Context) uint {
+	return uint(GetTeamBizKey(c))
+}
