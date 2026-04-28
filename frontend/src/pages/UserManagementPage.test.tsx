@@ -481,7 +481,7 @@ describe('UserManagementPage', () => {
       expect(screen.queryByText('重置密码')).not.toBeInTheDocument()
     })
 
-    it('opens reset password dialog with user displayName in title', async () => {
+    it('opens reset password dialog with user info', async () => {
       const user = userEvent.setup()
       renderPage()
       await waitFor(() => {
@@ -493,7 +493,7 @@ describe('UserManagementPage', () => {
       await user.click(resetButtons[1])
 
       await waitFor(() => {
-        expect(screen.getByText(/重置密码 — 李华/)).toBeInTheDocument()
+        expect(screen.getByText('为下面的用户设置新密码')).toBeInTheDocument()
       })
     })
 
@@ -508,7 +508,7 @@ describe('UserManagementPage', () => {
       await user.click(resetButtons[1])
 
       await waitFor(() => {
-        expect(screen.getByText(/重置密码 — 李华/)).toBeInTheDocument()
+        expect(screen.getByText('为下面的用户设置新密码')).toBeInTheDocument()
       })
 
       // Click confirm without filling fields
@@ -534,7 +534,7 @@ describe('UserManagementPage', () => {
       await user.click(resetButtons[1])
 
       await waitFor(() => {
-        expect(screen.getByText(/重置密码 — 李华/)).toBeInTheDocument()
+        expect(screen.getByText('为下面的用户设置新密码')).toBeInTheDocument()
       })
 
       // Type a short password
@@ -560,7 +560,7 @@ describe('UserManagementPage', () => {
       await user.click(resetButtons[1])
 
       await waitFor(() => {
-        expect(screen.getByText(/重置密码 — 李华/)).toBeInTheDocument()
+        expect(screen.getByText('为下面的用户设置新密码')).toBeInTheDocument()
       })
 
       const passwordInputs = screen.getAllByPlaceholderText('请输入新密码')
@@ -587,7 +587,7 @@ describe('UserManagementPage', () => {
       await user.click(resetButtons[1])
 
       await waitFor(() => {
-        expect(screen.getByText(/重置密码 — 李华/)).toBeInTheDocument()
+        expect(screen.getByText('为下面的用户设置新密码')).toBeInTheDocument()
       })
 
       // Fill valid password
@@ -635,7 +635,7 @@ describe('UserManagementPage', () => {
       await user.click(resetButtons[1]) // 李华 (bizKey 2)
 
       await waitFor(() => {
-        expect(screen.getByText(/重置密码 — 李华/)).toBeInTheDocument()
+        expect(screen.getByText('为下面的用户设置新密码')).toBeInTheDocument()
       })
 
       // Fill valid password
@@ -653,7 +653,7 @@ describe('UserManagementPage', () => {
 
       await waitFor(() => {
         // Dialog should still be open
-        expect(screen.getByText(/重置密码 — 李华/)).toBeInTheDocument()
+        expect(screen.getByText('为下面的用户设置新密码')).toBeInTheDocument()
       })
     })
 
@@ -668,7 +668,7 @@ describe('UserManagementPage', () => {
       await user.click(resetButtons[1])
 
       await waitFor(() => {
-        expect(screen.getByText(/重置密码 — 李华/)).toBeInTheDocument()
+        expect(screen.getByText('为下面的用户设置新密码')).toBeInTheDocument()
       })
 
       // Find the password input — initially type="password"

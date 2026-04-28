@@ -377,6 +377,7 @@ export default function UserManagementPage() {
           value={searchText}
           onChange={(e) => handleSearchChange(e.target.value)}
           className="w-[240px]"
+          autoComplete="off"
         />
         <Button variant="secondary" size="sm" onClick={async () => { await refetch(); addToast('数据已刷新', 'success') }} disabled={isFetching} data-testid="refresh-btn">
           <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
@@ -701,11 +702,16 @@ export default function UserManagementPage() {
       <Dialog open={resetOpen} onOpenChange={(open) => { setResetOpen(open); if (!open) { setResetError(''); setResetErrors({}) } }}>
         <DialogContent size="md">
           <DialogHeader>
-            <DialogTitle>重置密码 — {resetUser?.displayName}</DialogTitle>
-            <DialogDescription>为该用户设置新密码</DialogDescription>
+            <DialogTitle>重置密码</DialogTitle>
+            <DialogDescription className="mt-3">为下面的用户设置新密码</DialogDescription>
           </DialogHeader>
           <DialogBody>
             <div className="flex flex-col gap-4">
+              <div className="rounded-lg bg-bg-alt px-3 py-2 text-sm text-secondary">
+                账号：<span className="font-mono text-primary">{resetUser?.username}</span>
+                <span className="mx-2 text-border-dark">|</span>
+                姓名：<span className="text-primary">{resetUser?.displayName}</span>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-primary mb-1">
                   新密码 <span className="text-error">*</span>
@@ -715,6 +721,7 @@ export default function UserManagementPage() {
                     type={showPassword ? 'text' : 'password'}
                     placeholder="请输入新密码"
                     value={resetForm.newPassword}
+                    autoComplete="new-password"
                     onChange={(e) => {
                       const val = e.target.value
                       setResetForm((f) => ({ ...f, newPassword: val }))
@@ -749,6 +756,7 @@ export default function UserManagementPage() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="请再次输入新密码"
                   value={resetForm.confirmPassword}
+                  autoComplete="new-password"
                   onChange={(e) => {
                     const val = e.target.value
                     setResetForm((f) => ({ ...f, confirmPassword: val }))
