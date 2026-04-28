@@ -29,6 +29,7 @@ status: Draft
 | `frontend/src/App.tsx` | 路由级权限守卫 |
 | `frontend/src/components/layout/Sidebar.tsx` | 导航菜单权限控制 |
 | `frontend/src/pages/TeamManagementPage.tsx` | 角色下拉选择器权限控制 |
+| `frontend/src/pages/RoleManagementPage.tsx` | 创建角色按钮添加 `role:create` 权限守卫 |
 
 ### Component Diagram
 
@@ -44,8 +45,21 @@ permissions/codes.go  ←── 单一真实来源
         └── frontend/src/lib/permissions.ts
                 ├── App.tsx (PermissionRoute)
                 ├── Sidebar.tsx (菜单项 permission 字段)
-                └── TeamManagementPage.tsx (角色下拉 role:read 检查)
+                ├── TeamManagementPage.tsx (角色下拉 role:read 检查)
+                └── RoleManagementPage.tsx (创建角色按钮 role:create 守卫)
 ```
+
+### Request Execution Flow
+
+以 `GET /admin/roles` 为例，运行时请求路径（按中间件执行顺序）：
+
+1. **Gin Router 匹配路由** — `adminGroup.GET("/roles", ...)` 命中，提取路径参数
+2. **`AuthMiddleware`**（adminGroup 级别）— 验证 JWT，将 `userID` 写入 Gin context；无效 token → 401 终止
+3. **`TeamScopeMiddleware`**（adminGroup 级别）— 从 URL 路径或 header 提取 `teamID`，写入 context；无 teamID → 400 终止
+4. **`RequirePermission("role:read")`**（路由级别，`deps.perm("role:read")`）— 从 context 读取 `userID` + `teamID`，查询 `pmw_role_permissions` 判断该用户在该团队是否持有 `role:read`；无权限 → 403 `ERR_FORBIDDEN` 终止
+5. **`RoleHandler.ListRoles`** — 执行业务逻辑，返回角色列表
+
+`RequirePermission` 依赖 `TeamScopeMiddleware` 已将 `teamID` 写入 context，因此 `TeamScopeMiddleware` 必须在 `RequirePermission` 之前注册。`adminGroup` 级别中间件（步骤 2–3）先于路由级别中间件（步骤 4）执行，顺序由 Gin 框架保证。
 
 ### Dependencies
 
@@ -230,6 +244,26 @@ const { data: rolesData } = useQuery({
 
 下拉选择器在 `canReadRoles === false` 时显示禁用状态（见 prd-ui-functions.md UI Function 1）。
 
+### 9. 角色管理页创建按钮守卫（`frontend/src/pages/RoleManagementPage.tsx`）
+
+`RoleManagementPage.tsx` 已存在。本次变更仅在"创建角色"按钮处添加 `role:create` 权限守卫：
+
+```tsx
+const { hasPermission } = useAuthStore()
+const canCreate = hasPermission('role:create')
+
+// 创建角色按钮
+<Button
+  onClick={handleCreate}
+  disabled={!canCreate}
+  style={{ display: canCreate ? 'inline-flex' : 'none' }}
+>
+  创建角色
+</Button>
+```
+
+无 `role:create` 时按钮不渲染（`display: none`）。后端 `POST /admin/roles` 仍独立校验，前端隐藏仅为 UX 优化。
+
 ## Data Models
 
 无新增数据库表或字段。`pmw_role_permissions.permission_code` 列的值集合发生变化，由迁移脚本处理。
@@ -240,25 +274,36 @@ const { data: rolesData } = useQuery({
 
 | Error Code | Name | Description | HTTP Status |
 |------------|------|-------------|-------------|
-| ERR_FORBIDDEN | AppError | 缺少对应权限码时，`RequirePermission` 中间件返 | 403 |
+| ERR_FORBIDDEN | AppError | 缺少对应权限码时，`RequirePermission` 中间件终止请求并返回 403 JSON `{code: "ERR_FORBIDDEN", message: "权限不足：缺少 X 权限"}` | 403 |
+| ERR_ROLE_NAME_EXISTS | AppError | 创建或重命名角色时名称已存在 | 409 |
+| ERR_ROLE_IN_USE | AppError | 删除角色时该角色下仍有成员绑定 | 422 |
+| ERR_PRESET_ROLE_IMMUTABLE | AppError | 尝试编辑或删除预置角色 | 403 |
 
-无新增错误类型。现有 `RequirePermission` 中间件已处理所有权限不足场景。
+后三个错误码在现有角色管理逻辑中已存在；本次变更将其路由守卫从 `user:manage_role` 迁移至对应的细粒度码（`role:create` / `role:update` / `role:delete`），错误码本身不变。
 
 ### Propagation Strategy
 
 不变：`RequirePermission` → `apperrors.RespondError` → JSON `{code: "ERR_FORBIDDEN", message: "权限不足：缺少 X 权限"}`。
 
-## Cross-Layer Data Map
+### Migration Caller Contract
 
-| Field Name | Storage Layer | Backend Model | API/DTO | Frontend Type | Validation Rule |
-|------------|---------------|---------------|---------|---------------|-----------------|
-| `permission_code` (user:list) | `pmw_role_permissions.permission_code VARCHAR(50)` | `model.RolePermission.PermissionCode string` | `json:"code"` | `string` in `PermissionData.teamPermissions` | 必须在 `permissions.Registry` 中注册 |
-| `permission_code` (user:read 新) | 同上 | 同上 | 同上 | 同上 | 同上 |
-| `permission_code` (user:assign_role) | 同上 | 同上 | 同上 | 同上 | 同上 |
-| `permission_code` (role:read) | 同上 | 同上 | 同上 | 同上 | 同上 |
-| `permission_code` (role:create) | 同上 | 同上 | 同上 | 同上 | 同上 |
-| `permission_code` (role:update) | 同上 | 同上 | 同上 | 同上 | 同上 |
-| `permission_code` (role:delete) | 同上 | 同上 | 同上 | 同上 | 同上 |
+调用方（`main.go` 启动流程）若收到 `MigratePermissionGranularity` 返回的非 nil error，必须终止启动并记录错误日志，不允许静默忽略。
+
+## Permission Code Change Classification
+
+本次变更涉及三类不同性质的权限码变更，对迁移和测试的影响各不相同：
+
+| 权限码 | 变更类型 | 旧码 | 迁移操作 | 路由绑定变化 | 前端引用变化 |
+|--------|----------|------|----------|-------------|-------------|
+| `user:list` | 新增（从旧 `user:read` 拆分） | `user:read`（旧语义：列出用户） | 对所有持有旧 `user:read` 的角色 INSERT `user:list` | `GET /admin/users`、`GET /admin/teams` 改绑此码 | `App.tsx`、`Sidebar.tsx` 替换旧 `user:read` |
+| `user:read` | 语义变更（码字符串不变） | `user:read`（旧语义：列出用户） | 旧行保留，语义随路由绑定更新；无需 INSERT/DELETE | `GET /admin/users/:userId` 保持此码，但含义变为"查看详情" | `permissions.ts` label 更新为"查看用户详情" |
+| `user:assign_role` | 重命名（替换 `user:manage_role`） | `user:manage_role` | DELETE 旧码行，INSERT 新码行 | `POST /admin/users` 改绑此码 | `permissions.ts` 替换旧码 |
+| `role:read` | 全新（无对应旧码） | — | 无（`seedPresetRoles` 直接写入） | `GET /admin/roles`、`GET /admin/roles/:id`、`GET /admin/permissions` 新绑此码 | `App.tsx`、`Sidebar.tsx`、`TeamManagementPage.tsx` 新增引用 |
+| `role:create` | 全新（从 `user:manage_role` 拆分） | `user:manage_role` | 对所有持有旧 `user:manage_role` 的角色 INSERT 此码 | `POST /admin/roles` 新绑此码 | `RoleManagementPage.tsx` 新增按钮守卫 |
+| `role:update` | 全新（从 `user:manage_role` 拆分） | `user:manage_role` | 同上 | `PUT /admin/roles/:id` 新绑此码 | — |
+| `role:delete` | 全新（从 `user:manage_role` 拆分） | `user:manage_role` | 同上；旧码行在三码全部插入后 DELETE | `DELETE /admin/roles/:id` 新绑此码 | — |
+
+所有码均存储于 `pmw_role_permissions.permission_code VARCHAR(50)`，后端模型为 `model.RolePermission.PermissionCode string`，校验规则统一为：必须在 `permissions.Registry` 中注册。
 
 ## Testing Strategy
 
@@ -266,20 +311,29 @@ const { data: rolesData } = useQuery({
 
 | Layer | Test Type | Tool | What to Test | Coverage Target |
 |-------|-----------|------|--------------|-----------------|
-| 路由中间件 | 单元测试 | Go `httptest` + Gin | 4 个新权限码（role:read/create/update/delete）各自在无权限时返回 403 | 4 个新测试用例 |
+| 路由中间件 | 单元测试 | Go `httptest` + Gin | 4 个新 role:* 码 + 3 个变更 user:* 绑定，各自在无权限时返回 403 | 7 个新测试用例 |
 | 迁移函数 | 单元测试 | Go + SQLite in-memory | `MigratePermissionGranularity` 幂等性、旧码转换正确性、事务回滚 | 3 个测试用例 |
 | 预置角色 | 单元测试 | Go + SQLite in-memory | `VerifyPresetRoleCodes` 更新后通过 | 更新现有测试 |
-| 前端权限守卫 | 单元测试 | vitest + testing-library | `user:list` 控制用户管理页入口，`role:read` 控制角色管理页入口 | 更新现有 2 个测试 |
+| 前端权限守卫 | 单元测试 | vitest + testing-library | `user:list` 控制用户管理页入口，`role:read` 控制角色管理页入口；`canReadRoles` 为 false 时 `TeamManagementPage` 不发 roles 请求 | 更新现有 2 个 + 新增 1 个测试 |
 
 ### Key Test Scenarios
 
-**后端（新增 4 个路由中间件测试）：**
+**后端路由中间件（新增 7 个）：**
 
 ```go
+// role:* 新绑定（4 个）
 // 1. GET /admin/roles — 无 role:read → 403
 // 2. POST /admin/roles — 无 role:create → 403
 // 3. PUT /admin/roles/:id — 无 role:update → 403
 // 4. DELETE /admin/roles/:id — 无 role:delete → 403
+
+// user:* 变更绑定（3 个，回归防护）
+// 5. GET /admin/users — 无 user:list → 403
+//    （原绑定 user:read，现改为 user:list；持有旧 user:read 但无 user:list 的角色应被拒绝）
+// 6. GET /admin/users/:userId — 无 user:read → 403
+//    （语义变更：user:read 现要求"查看详情"权限，验证新语义下中间件仍正确拦截）
+// 7. POST /admin/users — 无 user:assign_role → 403
+//    （原绑定 user:manage_role，现改为 user:assign_role；持有旧码的角色应被拒绝）
 ```
 
 **迁移测试（新增 3 个）：**
@@ -290,14 +344,18 @@ const { data: rolesData } = useQuery({
 // 3. 幂等：重复执行 MigratePermissionGranularity 无副作用
 ```
 
-**前端（更新现有测试）：**
+**前端（更新现有 + 新增 1 个）：**
 
 ```ts
-// permission-driven-ui.test.tsx
+// permission-driven-ui.test.tsx（更新现有 2 个）
 // 原: user:read → 用户管理页可见
 // 改: user:list → 用户管理页可见
 // 原: user:manage_role → 角色管理页可见
 // 改: role:read → 角色管理页可见
+
+// TeamManagementPage.test.tsx（新增 1 个）
+// 无 role:read 时，canReadRoles === false，useQuery enabled=false，
+// 验证 listRolesApi 未被调用（mockFn call count === 0）
 ```
 
 **`router_test.go` 种子数据更新：**
@@ -310,7 +368,7 @@ const { data: rolesData } = useQuery({
 
 ### Overall Coverage Target
 
-本次变更无新增业务逻辑，测试目标为：所有受影响的现有测试通过 + 新增 7 个测试用例（4 路由 + 3 迁移）。
+本次变更无新增业务逻辑，测试目标为：所有受影响的现有测试通过 + 新增 11 个测试用例（7 路由中间件 + 3 迁移 + 1 前端守卫）。
 
 ## Security Considerations
 
@@ -318,6 +376,14 @@ const { data: rolesData } = useQuery({
 
 1. **权限码语义碰撞**：旧 `user:read`（列出用户）和新 `user:read`（查看详情）同名不同义，迁移期间可能出现短暂的权限混乱
 2. **迁移脚本部分执行**：若迁移中途失败，可能出现旧码已删除但新码未插入的状态
+3. **`user:read` 语义变更导致的权限扩张**：迁移后，所有原持有 `user:read`（列出用户）的角色将同时持有新语义的 `user:read`（查看用户详情，含 email、phone 等敏感字段）。这是一次静默的权限扩张。
+
+   **决策**：接受此扩张，理由如下：
+   - 本系统中，能列出用户的角色（如 pm）在业务上也应能查看用户详情；"只能列表不能查详情"在当前权限模型中没有实际业务场景。
+   - 迁移同时为这些角色插入 `user:list`，权限集合从 `{user:read(旧)}` 变为 `{user:list, user:read(新)}`，是扩张而非收缩，不会造成功能回退。
+   - 若未来需要区分"只读列表"和"读详情"的角色，可通过管理员手动回收 `user:read` 实现，无需再次迁移。
+
+   **缓解措施**：上线前由管理员审查持有 `user:read` 的角色列表，确认扩张范围可接受。
 
 ### Mitigations
 
@@ -325,6 +391,8 @@ const { data: rolesData } = useQuery({
 2. 步骤 3 中旧 `user:read` 行不删除（语义随路由绑定更新而更新），避免空窗期
 3. CI grep 断言：`user:manage_role` 引用数为零才允许合并
 4. 后端是安全防线，前端权限隐藏仅为 UX 优化
+5. **启动顺序**：`main.go` 必须先调用 `MigratePermissionGranularity`，再调用 `SyncPresetRoles`；反序会导致预置角色写入旧码，迁移无法正确识别转换目标。
+6. **锁定风险**：若迁移 bug 错误删除所有 `role:*` 权限行，所有用户将失去角色管理能力；快照（缓解措施 1）是唯一恢复路径，上线前须确认快照可用。
 
 ## PRD Coverage Map
 

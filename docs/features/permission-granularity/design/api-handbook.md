@@ -257,6 +257,23 @@ related: design/tech-design.md
 ## Data Contracts
 
 ```ts
+interface User {
+  bizKey: string
+  username: string
+  displayName: string
+  email: string        // 敏感字段，需 user:read
+  phone: string        // 敏感字段，需 user:read
+  isSuperAdmin: boolean
+  status: string       // e.g. "active" | "disabled"
+}
+
+interface Team {
+  bizKey: string
+  teamName: string
+  memberCount: number
+  createTime: string   // ISO 8601
+}
+
 interface RoleListItem {
   bizKey: string
   roleName: string
