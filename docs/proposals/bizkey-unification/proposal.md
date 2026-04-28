@@ -32,7 +32,7 @@ Concrete bugs found in the current codebase:
 
 ## Proposed Solution
 
-Make `int64` bizKey the **only** identifier that crosses layer boundaries above the repository. Specifically:
+Make `int64` bizKey the **only** identifier that crosses layer boundaries above the repository. After this change, progress records will contain correct snowflake `team_key` values and role permission checks will resolve against the correct bizKey — eliminating the silent data corruption currently affecting every progress write. Specifically:
 
 1. **Middleware** injects `teamBizKey int64` into context instead of `teamID uint`. `GetTeamID` is replaced by `GetTeamBizKey`.
 2. **Service interfaces** replace all `teamID uint`, `userID uint`, `roleID uint` parameters with `int64` bizKey equivalents where those values originate from external input (URL params, request bodies).
@@ -54,11 +54,11 @@ Make `int64` bizKey the **only** identifier that crosses layer boundaries above 
 ### In Scope
 
 - `middleware/team_scope.go`: inject `teamBizKey int64` instead of `teamID uint`; update `GetTeamID` → `GetTeamBizKey`
-- All service interfaces: replace `uint` ID params with `int64` bizKey where the value originates from external input
+- Service interfaces (8 files: `item_pool_service.go`, `main_item_service.go`, `progress_service.go`, `report_service.go`, `role_service.go`, `sub_item_service.go`, `team_service.go`, `view_service.go`): replace `uint` ID params with `int64` bizKey where the value originates from external input
 - `team_service.go`: fix `isPMRole` signature, fix `UpdateMemberRole` roleID type, fix `InviteMember` roleID cast
 - `progress_service.go`: fix `TeamKey` assignment bug
-- All handler call sites: pass bizKey from context/request instead of resolved uint IDs
-- All unit and integration tests that mock or assert on these signatures
+- Handler call sites (7 files: `item_pool_handler.go`, `main_item_handler.go`, `progress_handler.go`, `report_handler.go`, `sub_item_handler.go`, `team_handler.go`, `view_handler.go`): pass bizKey from context/request instead of resolved uint IDs
+- Unit and integration tests that mock or assert on these signatures (20 files: 10 handler tests, 7 service tests, `team_scope_test.go`, `views_reports_test.go`, `helpers.go`)
 - `middleware/team_scope_test.go`: update `capturedTeamContext` and assertions
 
 ### Out of Scope
@@ -84,6 +84,8 @@ Make `int64` bizKey the **only** identifier that crosses layer boundaries above 
 - [ ] Zero occurrences of `uint(.*bizKey)`, `int(.*bizKey)`, or `int64(teamID)` patterns in `internal/service/` and `internal/handler/` (verified by grep)
 - [ ] `progress_service.go` `TeamKey` field is assigned from a snowflake `int64` source, not from a `uint` internal ID
 - [ ] `isPMRole` (or its replacement) accepts `int64`, not `uint`
+- [ ] `UpdateMemberRole` and `InviteMember` signatures use `int64` for all ID/key params that originate from external input (verified by grep on `team_service.go` interface definition)
+- [ ] Zero occurrences of `uint` typed parameters named `*ID` or `*Key` in service interface definitions where the value originates from external input — confirmed by `grep -n "uint" internal/service/*.go` returning no service method signatures
 - [ ] `GetTeamID` is removed; `GetTeamBizKey() int64` is the only team context accessor
 
 ## Next Steps
