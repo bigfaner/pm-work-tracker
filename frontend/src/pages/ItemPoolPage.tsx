@@ -353,6 +353,15 @@ export default function ItemPoolPage() {
     })
   }, [submitForm, submitMutation])
 
+  const handleEdit = useCallback(() => {
+    if (!selectedItem || !editForm.title.trim()) return
+    const req: UpdateItemPoolReq = {}
+    if (editForm.title.trim() !== selectedItem.title) req.title = editForm.title.trim()
+    if (editForm.background !== selectedItem.background) req.background = editForm.background
+    if (editForm.expectedOutput !== selectedItem.expectedOutput) req.expectedOutput = editForm.expectedOutput
+    updateMutation.mutate({ poolId: selectedItem.bizKey, req })
+  }, [selectedItem, editForm, updateMutation])
+
   const handleToMain = useCallback(() => {
     if (!selectedItem) return
     convertToMainMutation.mutate({
