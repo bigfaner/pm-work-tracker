@@ -246,7 +246,7 @@ describe('RoleManagementPage', () => {
 
   it('renders create and permission browse buttons', async () => {
     renderPage()
-    expect(screen.getByText('创建角色')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /创建角色/ })).toBeInTheDocument()
     expect(screen.getByText('权限列表')).toBeInTheDocument()
   })
 
@@ -381,10 +381,10 @@ describe('RoleManagementPage', () => {
       expect(screen.getByText('superadmin')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByText('创建角色'))
+    await user.click(screen.getByRole('button', { name: /创建角色/ }))
 
     await waitFor(() => {
-      expect(screen.getByText('创建角色', { selector: '[data-state] *' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: '创建角色' })).toBeInTheDocument()
     })
   })
 

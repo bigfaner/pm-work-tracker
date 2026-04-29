@@ -120,7 +120,7 @@ describe('RoleEditDialog', () => {
 
   it('shows create mode title', () => {
     renderDialog({ open: true, onOpenChange: vi.fn() })
-    expect(screen.getByText('创建角色')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '创建角色' })).toBeInTheDocument()
   })
 
   it('shows edit mode title with role name', async () => {
