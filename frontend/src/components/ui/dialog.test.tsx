@@ -50,14 +50,14 @@ describe('Dialog', () => {
     render(<DialogWrapper size="sm" />)
     await userEvent.click(screen.getByRole('button'))
     const content = screen.getByText('Dialog Title').closest('[role="dialog"]') || screen.getByText('Dialog Title').parentElement?.parentElement
-    expect(content?.className).toContain('max-w-[400px]')
+    expect(content?.className).toContain('max-w-[480px]')
   })
 
   it('renders lg size', async () => {
     render(<DialogWrapper size="lg" />)
     await userEvent.click(screen.getByRole('button'))
     const content = screen.getByText('Dialog Title').closest('[role="dialog"]') || screen.getByText('Dialog Title').parentElement?.parentElement
-    expect(content?.className).toContain('max-w-[560px]')
+    expect(content?.className).toContain('max-w-[680px]')
   })
 
   it('has close button', async () => {

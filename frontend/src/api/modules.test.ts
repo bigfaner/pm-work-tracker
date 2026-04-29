@@ -139,7 +139,7 @@ describe('API modules', () => {
     it('createSubItemApi should POST to correct URL', async () => {
       mockClient.post.mockResolvedValue({})
       await subItemsApi.createSubItemApi('team-bk', 'main-bk', { title: 'Sub', priority: 'P1', assigneeKey: 'user-3', startDate: '', expectedEndDate: '' })
-      expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/main-items/main-bk/sub-items', { mainItemBizKey: 'main-bk', title: 'Sub', priority: 'P1', assigneeKey: 'user-3', startDate: '', expectedEndDate: '' })
+      expect(mockClient.post).toHaveBeenCalledWith('/teams/team-bk/main-items/main-bk/sub-items', { mainItemKey: 'main-bk', title: 'Sub', priority: 'P1', assigneeKey: 'user-3', startDate: '', expectedEndDate: '' })
     })
 
     it('listSubItemsApi should GET with params', async () => {

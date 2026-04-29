@@ -33,7 +33,7 @@ describe('Textarea', () => {
   it('includes min-h and resize-y base classes', () => {
     render(<Textarea placeholder="Test" />)
     const textarea = screen.getByPlaceholderText('Test')
-    expect(textarea.className).toContain('min-h-[72px]')
+    expect(textarea.className).toContain('min-h-[120px]')
     expect(textarea.className).toContain('resize-y')
   })
 
