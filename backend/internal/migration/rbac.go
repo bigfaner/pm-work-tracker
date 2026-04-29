@@ -11,6 +11,7 @@ import (
 )
 
 const rbacMigrationVersion = "rbac_001"
+const permissionGranularityVersion = "permission_granularity_001"
 
 // MigrateToRBAC runs the RBAC data migration in a single database transaction.
 // It creates new tables, seeds preset roles, migrates team_members.role strings
@@ -105,49 +106,49 @@ func rbacTableDDL(tx *gorm.DB) []string {
 	if isMySQL(tx) {
 		return []string{
 			`CREATE TABLE IF NOT EXISTS pmw_roles (
-    id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    biz_key         BIGINT          NOT NULL,
-    create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    db_update_time  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_flag    TINYINT(1)      NOT NULL DEFAULT 0,
-    deleted_time    DATETIME        NOT NULL DEFAULT '1970-01-01 08:00:00',
-    role_name       VARCHAR(50)     NOT NULL,
-    role_desc       VARCHAR(200)    NOT NULL DEFAULT '',
-    is_preset       TINYINT(1)      NOT NULL DEFAULT 0,
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_roles_name (role_name, deleted_flag, deleted_time)
+	    id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+	    biz_key         BIGINT          NOT NULL,
+	    create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	    db_update_time  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	    deleted_flag    TINYINT(1)      NOT NULL DEFAULT 0,
+	    deleted_time    DATETIME        NOT NULL DEFAULT '1970-01-01 08:00:00',
+	    role_name       VARCHAR(50)     NOT NULL,
+	    role_desc       VARCHAR(200)    NOT NULL DEFAULT '',
+	    is_preset       TINYINT(1)      NOT NULL DEFAULT 0,
+	    PRIMARY KEY (id),
+	    UNIQUE KEY uk_roles_name (role_name, deleted_flag, deleted_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 			`CREATE TABLE IF NOT EXISTS pmw_role_permissions (
-    id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    deleted_flag     TINYINT(1)      NOT NULL DEFAULT 0,
-    deleted_time     DATETIME        NOT NULL DEFAULT '1970-01-01 08:00:00',
-    role_key         BIGINT          NOT NULL,
-    permission_code  VARCHAR(50)     NOT NULL,
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_role_permission (role_key, permission_code, deleted_flag, deleted_time)
+	    id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+	    deleted_flag     TINYINT(1)      NOT NULL DEFAULT 0,
+	    deleted_time     DATETIME        NOT NULL DEFAULT '1970-01-01 08:00:00',
+	    role_key         BIGINT          NOT NULL,
+	    permission_code  VARCHAR(50)     NOT NULL,
+	    PRIMARY KEY (id),
+	    UNIQUE KEY uk_role_permission (role_key, permission_code, deleted_flag, deleted_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 		}
 	}
 	return []string{
 		`CREATE TABLE IF NOT EXISTS pmw_roles (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    biz_key         INTEGER       NOT NULL,
-    create_time     DATETIME      NOT NULL DEFAULT (datetime('now')),
-    db_update_time  DATETIME      NOT NULL DEFAULT (datetime('now')),
-    deleted_flag    INTEGER       NOT NULL DEFAULT 0,
-    deleted_time    DATETIME      NOT NULL DEFAULT '1970-01-01 08:00:00',
-    role_name       VARCHAR(50)   NOT NULL,
-    role_desc       VARCHAR(200)  NOT NULL DEFAULT '',
-    is_preset       INTEGER       NOT NULL DEFAULT 0
+	    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+	    biz_key         INTEGER       NOT NULL,
+	    create_time     DATETIME      NOT NULL DEFAULT (datetime('now')),
+	    db_update_time  DATETIME      NOT NULL DEFAULT (datetime('now')),
+	    deleted_flag    INTEGER       NOT NULL DEFAULT 0,
+	    deleted_time    DATETIME      NOT NULL DEFAULT '1970-01-01 08:00:00',
+	    role_name       VARCHAR(50)   NOT NULL,
+	    role_desc       VARCHAR(200)  NOT NULL DEFAULT '',
+	    is_preset       INTEGER       NOT NULL DEFAULT 0
 )`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS uk_roles_name ON pmw_roles(role_name, deleted_flag, deleted_time)`,
 		`CREATE TABLE IF NOT EXISTS pmw_role_permissions (
-    id               INTEGER PRIMARY KEY AUTOINCREMENT,
-    deleted_flag     INTEGER      NOT NULL DEFAULT 0,
-    deleted_time     DATETIME     NOT NULL DEFAULT '1970-01-01 08:00:00',
-    role_key         INTEGER      NOT NULL,
-    permission_code  VARCHAR(50)  NOT NULL,
-    UNIQUE(role_key, permission_code, deleted_flag, deleted_time)
+	    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+	    deleted_flag     INTEGER      NOT NULL DEFAULT 0,
+	    deleted_time     DATETIME     NOT NULL DEFAULT '1970-01-01 08:00:00',
+	    role_key         INTEGER      NOT NULL,
+	    permission_code  VARCHAR(50)  NOT NULL,
+	    UNIQUE(role_key, permission_code, deleted_flag, deleted_time)
 )`,
 	}
 }
@@ -158,7 +159,7 @@ func seedPresetRoles(tx *gorm.DB) error {
 		return err
 	}
 
-	// Seed pm (id=2, 22 codes)
+	// Seed pm (id=2, 32 codes)
 	pmCodes := []string{
 		"team:create", "team:read", "team:update", "team:delete",
 		"team:invite", "team:remove", "team:transfer",
@@ -168,7 +169,8 @@ func seedPresetRoles(tx *gorm.DB) error {
 		"item_pool:submit", "item_pool:review",
 		"view:weekly", "view:gantt", "view:table",
 		"report:export",
-		"user:read",
+		"user:list", "user:read", "user:assign_role",
+		"role:read", "role:create", "role:update", "role:delete",
 	}
 	if err := seedRole(tx, "pm", "项目经理，团队管理权限", true, pmCodes); err != nil {
 		return err
@@ -435,7 +437,8 @@ func VerifyPresetRoleCodes(db *gorm.DB) error {
 			"item_pool:submit", "item_pool:review",
 			"view:weekly", "view:gantt", "view:table",
 			"report:export",
-			"user:read",
+			"user:list", "user:read", "user:assign_role",
+			"role:read", "role:create", "role:update", "role:delete",
 		},
 		"member": {
 			"team:read",
@@ -477,6 +480,102 @@ func VerifyPresetRoleCodes(db *gorm.DB) error {
 
 		if len(actual) != len(codes) {
 			return fmt.Errorf("role %s has %d permissions, expected %d", roleName, len(actual), len(codes))
+		}
+	}
+
+	return nil
+}
+
+// MigratePermissionGranularity migrates old permission codes to the new
+// granular permission model. It is idempotent: re-running produces no side
+// effects (tracked via schema_migrations).
+//
+// Migration logic:
+//  1. user:manage_role → role:create + role:update + role:delete (old code deleted)
+//  2. Roles with old user:read → add user:list (old user:read preserved)
+//  3. Mark schema_migrations version = permission_granularity_001
+func MigratePermissionGranularity(db *gorm.DB) error {
+	if err := ensureSchemaMigrationsTable(db); err != nil {
+		return fmt.Errorf("ensure schema_migrations: %w", err)
+	}
+
+	var count int64
+	if err := db.Raw("SELECT count(*) FROM schema_migrations WHERE version = ?", permissionGranularityVersion).Scan(&count).Error; err != nil {
+		return fmt.Errorf("check permission granularity migration status: %w", err)
+	}
+	if count > 0 {
+		return nil // already applied
+	}
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	if err := runPermissionGranularityMigration(tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Exec("INSERT INTO schema_migrations (version) VALUES (?)", permissionGranularityVersion).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("mark permission granularity migration: %w", err)
+	}
+
+	return tx.Commit().Error
+}
+
+func runPermissionGranularityMigration(tx *gorm.DB) error {
+	// 1. Find all role_keys that have user:manage_role
+	var manageRoleKeys []int64
+	if err := tx.Model(&model.RolePermission{}).
+		Where("permission_code = ?", "user:manage_role").
+		Pluck("role_key", &manageRoleKeys).Error; err != nil {
+		return fmt.Errorf("find roles with user:manage_role: %w", err)
+	}
+
+	// 2. For each role with user:manage_role, insert role:create, role:update, role:delete
+	//    and delete user:manage_role
+	newCodes := []string{"role:create", "role:update", "role:delete"}
+	for _, rk := range manageRoleKeys {
+		for _, code := range newCodes {
+			// INSERT IGNORE pattern: check if already exists
+			var exists int64
+			tx.Model(&model.RolePermission{}).
+				Where("role_key = ? AND permission_code = ?", rk, code).
+				Count(&exists)
+			if exists == 0 {
+				rp := model.RolePermission{RoleKey: rk, PermissionCode: code}
+				if err := tx.Create(&rp).Error; err != nil {
+					return fmt.Errorf("insert %s for role_key %d: %w", code, rk, err)
+				}
+			}
+		}
+		// Delete the old user:manage_role code
+		if err := tx.Where("role_key = ? AND permission_code = ?", rk, "user:manage_role").
+			Delete(&model.RolePermission{}).Error; err != nil {
+			return fmt.Errorf("delete user:manage_role for role_key %d: %w", rk, err)
+		}
+	}
+
+	// 3. Find all role_keys that have user:read and add user:list
+	var userReadKeys []int64
+	if err := tx.Model(&model.RolePermission{}).
+		Where("permission_code = ?", "user:read").
+		Pluck("role_key", &userReadKeys).Error; err != nil {
+		return fmt.Errorf("find roles with user:read: %w", err)
+	}
+
+	for _, rk := range userReadKeys {
+		var exists int64
+		tx.Model(&model.RolePermission{}).
+			Where("role_key = ? AND permission_code = ?", rk, "user:list").
+			Count(&exists)
+		if exists == 0 {
+			rp := model.RolePermission{RoleKey: rk, PermissionCode: "user:list"}
+			if err := tx.Create(&rp).Error; err != nil {
+				return fmt.Errorf("insert user:list for role_key %d: %w", rk, err)
+			}
 		}
 	}
 

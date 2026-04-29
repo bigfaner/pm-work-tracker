@@ -116,10 +116,10 @@ func TestMigrateToRBAC_PresetRolesSeeded(t *testing.T) {
 	assert.True(t, pm.IsPreset)
 	assert.Equal(t, uint(2), pm.ID)
 
-	// pm should have 26 codes
+	// pm should have 32 codes
 	count, err = CountPermissionsForRole(db, pm.BizKey)
 	require.NoError(t, err)
-	assert.Equal(t, int64(26), count, "pm should have 26 permission codes")
+	assert.Equal(t, int64(32), count, "pm should have 32 permission codes")
 
 	// Check member role
 	var member model.Role
@@ -251,7 +251,7 @@ func TestMigrateToRBAC_IdempotentReRun(t *testing.T) {
 	var pmRole model.Role
 	require.NoError(t, db.Where("role_name = ?", "pm").First(&pmRole).Error)
 	pmPerms, _ := CountPermissionsForRole(db, pmRole.BizKey)
-	assert.Equal(t, int64(26), pmPerms, "pm permissions should not be duplicated")
+	assert.Equal(t, int64(32), pmPerms, "pm permissions should not be duplicated")
 }
 
 func TestMigrateToRBAC_IdempotentReRunPreservesData(t *testing.T) {
