@@ -53,12 +53,13 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 		"team:create", "team:read", "team:update", "team:delete", "team:invite",
 		"team:remove", "team:transfer", "main_item:create", "main_item:read",
 		"main_item:update", "main_item:archive", "main_item:change_status",
-		"sub_item:create", "sub_item:read",
-		"sub_item:update", "sub_item:change_status", "sub_item:assign",
+		"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:assign", "sub_item:change_status",
 		"progress:create", "progress:read", "progress:update",
 		"item_pool:submit", "item_pool:review",
 		"view:weekly", "view:gantt", "view:table",
-		"report:export", "user:read", "user:update", "user:manage_role",
+		"report:export",
+		"user:list", "user:read", "user:assign_role",
+		"role:read", "role:create", "role:update", "role:delete",
 	}
 	for _, code := range allPermCodes {
 		require.NoError(t, db.Create(&model.RolePermission{RoleKey: pmRole.BizKey, PermissionCode: code}).Error)
