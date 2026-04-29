@@ -62,10 +62,13 @@ func (m *mockUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.U
 func (m *mockUserRepo) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
 	return nil, nil
 }
+func (m *mockUserRepo) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.User, error) {
+	return nil, nil
+}
 func (m *mockUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil
 }
-func (m *mockUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+func (m *mockUserRepo) SearchAvailable(_ context.Context, _ int64, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
 }
 func (m *mockUserRepo) SoftDelete(_ context.Context, _ *model.User) error { return nil }

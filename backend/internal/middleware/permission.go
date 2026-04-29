@@ -41,14 +41,14 @@ func RequirePermission(code string, roleRepo repository.RoleRepo) gin.HandlerFun
 		}
 
 		// 3. Non-team context: query DB
-		userID := GetUserID(c)
-		if userID == 0 {
+		userBizKey := GetUserBizKey(c)
+		if userBizKey == 0 {
 			c.Abort()
 			apperrors.RespondError(c, apperrors.ErrForbidden)
 			return
 		}
 
-		ok, err := roleRepo.HasPermission(c.Request.Context(), userID, code)
+		ok, err := roleRepo.HasPermission(c.Request.Context(), userBizKey, code)
 		if err != nil {
 			c.Abort()
 			apperrors.RespondError(c, apperrors.ErrInternal)

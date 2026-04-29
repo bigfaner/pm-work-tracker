@@ -25,6 +25,7 @@ func setupPermissionRouter(code string, roleRepo *mockRoleRepo) (*gin.Engine, *c
 			var id uint
 			fmt.Sscanf(v, "%d", &id)
 			c.Set("userID", id)
+			c.Set("userBizKey", int64(id))
 		}
 		if v := c.Query("permCodes"); v != "" {
 			// Don't set permCodes - nil means non-team context
@@ -73,6 +74,7 @@ func setupTeamPermRouter(code string) (*gin.Engine, *capturedPermContext) {
 			var id uint
 			fmt.Sscanf(v, "%d", &id)
 			c.Set("userID", id)
+			c.Set("userBizKey", int64(id))
 		}
 		c.Next()
 	})
@@ -158,7 +160,7 @@ func TestRequirePermission_TeamContext_EmptyPermCodes_Returns403(t *testing.T) {
 
 func TestRequirePermission_NonTeamContext_HasPermission_Passes(t *testing.T) {
 	roleRepo := new(mockRoleRepo)
-	roleRepo.On("HasPermission", mock.Anything, uint(5), "team:create").Return(true, nil)
+	roleRepo.On("HasPermission", mock.Anything, int64(5), "team:create").Return(true, nil)
 
 	r, cc := setupPermissionRouter("team:create", roleRepo)
 
@@ -172,7 +174,7 @@ func TestRequirePermission_NonTeamContext_HasPermission_Passes(t *testing.T) {
 
 func TestRequirePermission_NonTeamContext_NoPermission_Returns403(t *testing.T) {
 	roleRepo := new(mockRoleRepo)
-	roleRepo.On("HasPermission", mock.Anything, uint(5), "team:create").Return(false, nil)
+	roleRepo.On("HasPermission", mock.Anything, int64(5), "team:create").Return(false, nil)
 
 	r, cc := setupPermissionRouter("team:create", roleRepo)
 
@@ -188,7 +190,7 @@ func TestRequirePermission_NonTeamContext_NoPermission_Returns403(t *testing.T) 
 
 func TestRequirePermission_NonTeamContext_DBError_Returns500(t *testing.T) {
 	roleRepo := new(mockRoleRepo)
-	roleRepo.On("HasPermission", mock.Anything, uint(5), "team:create").Return(false, fmt.Errorf("db error"))
+	roleRepo.On("HasPermission", mock.Anything, int64(5), "team:create").Return(false, fmt.Errorf("db error"))
 
 	r, cc := setupPermissionRouter("team:create", roleRepo)
 

@@ -54,6 +54,7 @@ func AuthMiddleware(jwtSecret string, userRepo repository.UserRepo) gin.HandlerF
 		}
 
 		c.Set("isSuperAdmin", user.IsSuperAdmin)
+		c.Set("userBizKey", user.BizKey)
 
 		c.Next()
 	}
@@ -63,6 +64,16 @@ func AuthMiddleware(jwtSecret string, userRepo repository.UserRepo) gin.HandlerF
 func GetUserID(c *gin.Context) uint {
 	if v, ok := c.Get("userID"); ok {
 		if id, ok := v.(uint); ok {
+			return id
+		}
+	}
+	return 0
+}
+
+// GetUserBizKey extracts the authenticated user's biz key from the Gin context.
+func GetUserBizKey(c *gin.Context) int64 {
+	if v, ok := c.Get("userBizKey"); ok {
+		if id, ok := v.(int64); ok {
 			return id
 		}
 	}

@@ -42,7 +42,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, 
 		Code:         "TAMA-W001",
 		Title:        "Weekly Completed Item",
 		Priority:     "P1",
-		ProposerKey:  int64(userID),
+		ProposerKey:  getUserBizKey(t, db, userID),
 		ItemStatus:   "progressing",
 		PlanStartDate:   ptrTime(time.Date(2026, 1, 1, 0, 0, 0, 0, loc)),
 		ExpectedEndDate: ptrTime(time.Date(2026, 6, 30, 0, 0, 0, 0, loc)),
@@ -52,7 +52,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, 
 	sub1 := &model.SubItem{
 		BaseModel:      model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:        teamBizKey,
-		MainItemKey:    int64(mi1.ID),
+		MainItemKey:    mi1.BizKey,
 		Title:          "Completed Sub",
 		Priority:       "P2",
 		ItemStatus:     "completed",
@@ -71,7 +71,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, 
 		Code:         "TAMA-W002",
 		Title:        "Weekly Progressing Item 1",
 		Priority:     "P2",
-		ProposerKey:  int64(userID),
+		ProposerKey:  getUserBizKey(t, db, userID),
 		ItemStatus:   "progressing",
 		Completion:   30,
 		PlanStartDate:   ptrTime(time.Date(2026, 1, 1, 0, 0, 0, 0, loc)),
@@ -81,7 +81,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, 
 	sub2 := &model.SubItem{
 		BaseModel:      model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:        teamBizKey,
-		MainItemKey:    int64(mi2.ID),
+		MainItemKey:    mi2.BizKey,
 		Title:          "Progressing Sub 1",
 		Priority:       "P2",
 		ItemStatus:     "progressing",
@@ -99,7 +99,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, 
 		Code:         "TAMA-W003",
 		Title:        "Weekly Progressing Item 2",
 		Priority:     "P3",
-		ProposerKey:  int64(userID),
+		ProposerKey:  getUserBizKey(t, db, userID),
 		ItemStatus:   "progressing",
 		Completion:   50,
 		PlanStartDate:   ptrTime(time.Date(2026, 1, 1, 0, 0, 0, 0, loc)),
@@ -109,7 +109,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, 
 	sub3 := &model.SubItem{
 		BaseModel:      model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:        teamBizKey,
-		MainItemKey:    int64(mi3.ID),
+		MainItemKey:    mi3.BizKey,
 		Title:          "Progressing Sub 2",
 		Priority:       "P3",
 		ItemStatus:     "progressing",
@@ -125,7 +125,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, 
 		BizKey:      snowflake.Generate(),
 		SubItemKey:  sub1.BizKey,
 		TeamKey:     teamBizKey,
-		AuthorKey:   int64(userID),
+		AuthorKey:   getUserBizKey(t, db, userID),
 		Completion:  100,
 		Achievement: "Finished the task",
 		CreateTime:  weekStart.Add(24 * time.Hour),
@@ -136,7 +136,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, 
 		BizKey:      snowflake.Generate(),
 		SubItemKey:  sub2.BizKey,
 		TeamKey:     teamBizKey,
-		AuthorKey:   int64(userID),
+		AuthorKey:   getUserBizKey(t, db, userID),
 		Completion:  30,
 		Achievement: "Working on it",
 		CreateTime:  weekStart.Add(48 * time.Hour),
@@ -147,7 +147,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, 
 		BizKey:      snowflake.Generate(),
 		SubItemKey:  sub3.BizKey,
 		TeamKey:     teamBizKey,
-		AuthorKey:   int64(userID),
+		AuthorKey:   getUserBizKey(t, db, userID),
 		Completion:  50,
 		Achievement: "Halfway done",
 		CreateTime:  weekStart.Add(48 * time.Hour),
@@ -195,7 +195,7 @@ func TestViews_Weekly_EmptyTeam_ReturnsZeroStats(t *testing.T) {
 	teamC := &model.Team{
 		BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
 		TeamName:  "Team C Empty",
-		PmKey:     int64(data.userAID),
+		PmKey:     getUserBizKey(t, db, data.userAID),
 		Code:      "TCEM",
 	}
 	require.NoError(t, db.Create(teamC).Error)
@@ -203,8 +203,8 @@ func TestViews_Weekly_EmptyTeam_ReturnsZeroStats(t *testing.T) {
 	pmRoleBizKey := findRoleBizKeyByName(t, db, "pm")
 	pmRoleBizKeyInt, _ := strconv.ParseInt(pmRoleBizKey, 10, 64)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey:  int64(teamC.ID),
-		UserKey:  int64(data.userAID),
+		TeamKey:  teamC.BizKey,
+		UserKey:  getUserBizKey(t, db, data.userAID),
 		RoleKey:  &pmRoleBizKeyInt,
 		JoinedAt: time.Now(),
 	}).Error)
@@ -276,15 +276,15 @@ func TestViews_Gantt_EmptyTeam_ReturnsEmptyArray(t *testing.T) {
 	teamC := &model.Team{
 		BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
 		TeamName:  "Team Gantt Empty",
-		PmKey:     int64(data.userAID),
+		PmKey:     getUserBizKey(t, db, data.userAID),
 		Code:      "TGEM",
 	}
 	require.NoError(t, db.Create(teamC).Error)
 	pmRoleBizKey := findRoleBizKeyByName(t, db, "pm")
 	pmRoleBizKeyInt, _ := strconv.ParseInt(pmRoleBizKey, 10, 64)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey:  int64(teamC.ID),
-		UserKey:  int64(data.userAID),
+		TeamKey:  teamC.BizKey,
+		UserKey:  getUserBizKey(t, db, data.userAID),
 		RoleKey:  &pmRoleBizKeyInt,
 		JoinedAt: time.Now(),
 	}).Error)
@@ -363,15 +363,15 @@ func TestViews_Table_EmptyTeam_ReturnsEmptyItems(t *testing.T) {
 	teamC := &model.Team{
 		BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
 		TeamName:  "Team Table Empty",
-		PmKey:     int64(data.userAID),
+		PmKey:     getUserBizKey(t, db, data.userAID),
 		Code:      "TTEM",
 	}
 	require.NoError(t, db.Create(teamC).Error)
 	pmRoleBizKey := findRoleBizKeyByName(t, db, "pm")
 	pmRoleBizKeyInt, _ := strconv.ParseInt(pmRoleBizKey, 10, 64)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey:  int64(teamC.ID),
-		UserKey:  int64(data.userAID),
+		TeamKey:  teamC.BizKey,
+		UserKey:  getUserBizKey(t, db, data.userAID),
 		RoleKey:  &pmRoleBizKeyInt,
 		JoinedAt: time.Now(),
 	}).Error)
@@ -424,15 +424,15 @@ func TestViews_TableExport_EmptyTeam_Returns422(t *testing.T) {
 	teamC := &model.Team{
 		BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
 		TeamName:  "Team Export Empty",
-		PmKey:     int64(data.userAID),
+		PmKey:     getUserBizKey(t, db, data.userAID),
 		Code:      "TEXM",
 	}
 	require.NoError(t, db.Create(teamC).Error)
 	pmRoleBizKey := findRoleBizKeyByName(t, db, "pm")
 	pmRoleBizKeyInt, _ := strconv.ParseInt(pmRoleBizKey, 10, 64)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey:  int64(teamC.ID),
-		UserKey:  int64(data.userAID),
+		TeamKey:  teamC.BizKey,
+		UserKey:  getUserBizKey(t, db, data.userAID),
 		RoleKey:  &pmRoleBizKeyInt,
 		JoinedAt: time.Now(),
 	}).Error)

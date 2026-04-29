@@ -28,7 +28,7 @@ type mockRoleRepo struct {
 	created     *model.Role
 	updated     *model.Role
 	deletedID   *uint
-	setPermID   *uint
+	setPermKey  *int64
 	setPermCodes []string
 
 	// For GetUserPermissions
@@ -124,28 +124,28 @@ func (m *mockRoleRepo) Delete(_ context.Context, id uint) error {
 	return nil
 }
 
-func (m *mockRoleRepo) ListPermissions(_ context.Context, roleID uint) ([]string, error) {
+func (m *mockRoleRepo) ListPermissions(_ context.Context, roleKey int64) ([]string, error) {
 	return m.perms, m.listPermErr
 }
 
-func (m *mockRoleRepo) SetPermissions(_ context.Context, roleID uint, codes []string) error {
+func (m *mockRoleRepo) SetPermissions(_ context.Context, roleKey int64, codes []string) error {
 	if m.setPermErr != nil {
 		return m.setPermErr
 	}
-	m.setPermID = &roleID
+	m.setPermKey = &roleKey
 	m.setPermCodes = codes
 	return nil
 }
 
-func (m *mockRoleRepo) CountMembersByRoleID(_ context.Context, roleID uint) (int64, error) {
+func (m *mockRoleRepo) CountMembersByRoleKey(_ context.Context, roleKey int64) (int64, error) {
 	return m.memberCount, m.countErr
 }
 
-func (m *mockRoleRepo) HasPermission(_ context.Context, userID uint, code string) (bool, error) {
+func (m *mockRoleRepo) HasPermission(_ context.Context, userBizKey int64, code string) (bool, error) {
 	return m.hasPerm, m.hasPermErr
 }
 
-func (m *mockRoleRepo) GetUserTeamPermissions(_ context.Context, userID uint) (map[int64][]string, error) {
+func (m *mockRoleRepo) GetUserTeamPermissions(_ context.Context, userBizKey int64) (map[int64][]string, error) {
 	if m.userTeamPermErr != nil {
 		return nil, m.userTeamPermErr
 	}
@@ -189,10 +189,13 @@ func (m *mockRoleUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*mod
 func (m *mockRoleUserRepo) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
 	return nil, nil
 }
+func (m *mockRoleUserRepo) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.User, error) {
+	return nil, nil
+}
 func (m *mockRoleUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil
 }
-func (m *mockRoleUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+func (m *mockRoleUserRepo) SearchAvailable(_ context.Context, _ int64, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
 }
 func (m *mockRoleUserRepo) SoftDelete(_ context.Context, _ *model.User) error { return nil }
@@ -281,7 +284,7 @@ func TestRoleService_CreateRole_Success(t *testing.T) {
 	assert.Equal(t, "read only", result.Description)
 	assert.False(t, result.IsPreset)
 	// Verify SetPermissions was called
-	assert.NotNil(t, repo.setPermID)
+	assert.NotNil(t, repo.setPermKey)
 	assert.Equal(t, []string{"team:read", "main_item:read"}, repo.setPermCodes)
 }
 

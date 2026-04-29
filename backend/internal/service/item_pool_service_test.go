@@ -97,10 +97,10 @@ func (m *mockSubItemRepoForPool) FindByID(_ context.Context, id uint) (*model.Su
 func (m *mockSubItemRepoForPool) Update(_ context.Context, item *model.SubItem, fields map[string]interface{}) error {
 	return nil
 }
-func (m *mockSubItemRepoForPool) List(_ context.Context, teamBizKey int64, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockSubItemRepoForPool) List(_ context.Context, teamBizKey int64, mainItemBizKey int64, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
-func (m *mockSubItemRepoForPool) ListByMainItem(_ context.Context, mainItemID uint) ([]*model.SubItem, error) {
+func (m *mockSubItemRepoForPool) ListByMainItem(_ context.Context, mainItemBizKey int64) ([]*model.SubItem, error) {
 	return nil, nil
 }
 func (m *mockSubItemRepoForPool) ListByTeam(_ context.Context, _ int64) ([]model.SubItem, error) {
@@ -112,7 +112,7 @@ func (m *mockSubItemRepoForPool) SoftDelete(_ context.Context, _ uint) error {
 func (m *mockSubItemRepoForPool) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
 	return nil, nil
 }
-func (m *mockSubItemRepoForPool) NextSubCode(_ context.Context, _ uint) (string, error) {
+func (m *mockSubItemRepoForPool) NextSubCode(_ context.Context, _ int64) (string, error) {
 	return "", nil
 }
 
@@ -249,12 +249,12 @@ func TestItemPoolAssign_Success(t *testing.T) {
 	assert.Equal(t, int64(200), poolRepo.updatedFields["assigned_main_key"])
 	assert.Equal(t, int64(100), poolRepo.updatedFields["assigned_sub_key"]) // SubItem.BizKey set to 100 by mock
 	assert.Equal(t, func() *int64 { v := int64(30); return &v }(), poolRepo.updatedFields["assignee_key"])
-	assert.Equal(t, uint(100), poolRepo.updatedFields["reviewer_key"])
+	assert.Equal(t, int64(100), poolRepo.updatedFields["reviewer_key"])
 	assert.NotNil(t, poolRepo.updatedFields["reviewed_at"])
 
 	// Verify SubItem was created
 	assert.Equal(t, int64(1), subRepo.createdItem.TeamKey)
-	assert.Equal(t, uint(20), uint(subRepo.createdItem.MainItemKey))
+	assert.Equal(t, int64(200), subRepo.createdItem.MainItemKey)
 	assert.Equal(t, "Pool item", subRepo.createdItem.Title)
 	assert.Equal(t, "pending", subRepo.createdItem.ItemStatus)
 	assert.Equal(t, int64(30), *subRepo.createdItem.AssigneeKey)
@@ -426,7 +426,7 @@ func TestItemPoolReject_Success(t *testing.T) {
 
 	assert.Equal(t, "rejected", poolRepo.updatedFields["pool_status"])
 	assert.Equal(t, "Not enough priority", poolRepo.updatedFields["reject_reason"])
-	assert.Equal(t, uint(100), poolRepo.updatedFields["reviewer_key"])
+	assert.Equal(t, int64(100), poolRepo.updatedFields["reviewer_key"])
 	assert.NotNil(t, poolRepo.updatedFields["reviewed_at"])
 }
 

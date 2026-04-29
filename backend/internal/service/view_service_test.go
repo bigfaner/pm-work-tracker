@@ -102,10 +102,10 @@ func (m *mockViewSubItemRepo) FindByID(_ context.Context, _ uint) (*model.SubIte
 func (m *mockViewSubItemRepo) Update(_ context.Context, _ *model.SubItem, _ map[string]interface{}) error {
 	return nil
 }
-func (m *mockViewSubItemRepo) List(_ context.Context, _ int64, _ uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockViewSubItemRepo) List(_ context.Context, _ int64, _ int64, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
-func (m *mockViewSubItemRepo) ListByMainItem(_ context.Context, _ uint) ([]*model.SubItem, error) {
+func (m *mockViewSubItemRepo) ListByMainItem(_ context.Context, _ int64) ([]*model.SubItem, error) {
 	return nil, nil
 }
 func (m *mockViewSubItemRepo) ListByTeam(_ context.Context, _ int64) ([]model.SubItem, error) {
@@ -120,7 +120,7 @@ func (m *mockViewSubItemRepo) SoftDelete(_ context.Context, _ uint) error {
 func (m *mockViewSubItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
 	return nil, nil
 }
-func (m *mockViewSubItemRepo) NextSubCode(_ context.Context, _ uint) (string, error) {
+func (m *mockViewSubItemRepo) NextSubCode(_ context.Context, _ int64) (string, error) {
 	return "", nil
 }
 
@@ -1337,10 +1337,12 @@ func TestGanttView_Overdue_NilExpectedEndDate(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 type mockViewUserRepo struct {
-	users         map[uint]*model.User
-	findByIDCalls uint
-	findByIDsCalls uint
-	findByIDsArg  []uint
+	users              map[uint]*model.User
+	findByIDCalls      uint
+	findByIDsCalls     uint
+	findByIDsArg       []uint
+	findByBizKeysCalls uint
+	findByBizKeysArg   []int64
 }
 
 func (m *mockViewUserRepo) FindByID(_ context.Context, id uint) (*model.User, error) {
@@ -1377,10 +1379,21 @@ func (m *mockViewUserRepo) FindByIDs(_ context.Context, ids []uint) (map[uint]*m
 func (m *mockViewUserRepo) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
 	return nil, nil
 }
+func (m *mockViewUserRepo) FindByBizKeys(_ context.Context, bizKeys []int64) (map[int64]*model.User, error) {
+	m.findByBizKeysCalls++
+	m.findByBizKeysArg = bizKeys
+	result := make(map[int64]*model.User)
+	for _, k := range bizKeys {
+		if u, ok := m.users[uint(k)]; ok {
+			result[k] = u
+		}
+	}
+	return result, nil
+}
 func (m *mockViewUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil
 }
-func (m *mockViewUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+func (m *mockViewUserRepo) SearchAvailable(_ context.Context, _ int64, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
 }
 func (m *mockViewUserRepo) SoftDelete(_ context.Context, _ *model.User) error { return nil }
@@ -1967,7 +1980,7 @@ func TestTableExportCSV_UTF8BOM(t *testing.T) {
 // Tests: Batch resolution (N+1 fix verification)
 // ---------------------------------------------------------------------------
 
-func TestResolveAssigneeNames_UsesBatchFindByIDs(t *testing.T) {
+func TestResolveAssigneeNames_UsesBatchFindByBizKeys(t *testing.T) {
 	assignee1 := uint(100)
 	assignee2 := uint(200)
 
@@ -1986,8 +1999,8 @@ func TestResolveAssigneeNames_UsesBatchFindByIDs(t *testing.T) {
 
 	resolveAssigneeNames(context.Background(), rows, userRepo)
 
-	// Should call FindByIDs exactly once
-	assert.Equal(t, uint(1), userRepo.findByIDsCalls, "resolveAssigneeNames should use a single FindByIDs call")
+	// Should call FindByBizKeys exactly once
+	assert.Equal(t, uint(1), userRepo.findByBizKeysCalls, "resolveAssigneeNames should use a single FindByBizKeys call")
 	// Should NOT call FindByID at all
 	assert.Equal(t, uint(0), userRepo.findByIDCalls, "resolveAssigneeNames should not call FindByID")
 	// Names resolved correctly
@@ -1996,7 +2009,7 @@ func TestResolveAssigneeNames_UsesBatchFindByIDs(t *testing.T) {
 	assert.Equal(t, "Alice", rows[2].AssigneeName)
 }
 
-func TestResolveAssigneeNames_DeduplicatesIDs(t *testing.T) {
+func TestResolveAssigneeNames_DeduplicatesBizKeys(t *testing.T) {
 	id1 := uint(10)
 	id2 := uint(20)
 	rows := []dto.TableRow{
@@ -2014,10 +2027,10 @@ func TestResolveAssigneeNames_DeduplicatesIDs(t *testing.T) {
 
 	resolveAssigneeNames(context.Background(), rows, userRepo)
 
-	// FindByIDs should be called with deduplicated IDs
-	require.Len(t, userRepo.findByIDsArg, 2)
-	assert.Contains(t, userRepo.findByIDsArg, uint(10))
-	assert.Contains(t, userRepo.findByIDsArg, uint(20))
+	// FindByBizKeys should be called with deduplicated BizKeys
+	require.Len(t, userRepo.findByBizKeysArg, 2)
+	assert.Contains(t, userRepo.findByBizKeysArg, int64(10))
+	assert.Contains(t, userRepo.findByBizKeysArg, int64(20))
 }
 
 func TestResolveAssigneeNames_NilUserRepo_NoPanic(t *testing.T) {
@@ -2027,7 +2040,7 @@ func TestResolveAssigneeNames_NilUserRepo_NoPanic(t *testing.T) {
 	})
 }
 
-func TestWeeklyComparison_UsesBatchFindByIDs(t *testing.T) {
+func TestWeeklyComparison_UsesBatchFindByBizKeys(t *testing.T) {
 	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
 	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	assignee1 := uint(100)
@@ -2061,8 +2074,8 @@ func TestWeeklyComparison_UsesBatchFindByIDs(t *testing.T) {
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 
-	// Should call FindByIDs exactly once, never FindByID
-	assert.Equal(t, uint(1), userRepo.findByIDsCalls, "WeeklyComparison should use a single FindByIDs call")
+	// Should call FindByBizKeys exactly once, never FindByID
+	assert.Equal(t, uint(1), userRepo.findByBizKeysCalls, "WeeklyComparison should use a single FindByBizKeys call")
 	assert.Equal(t, uint(0), userRepo.findByIDCalls, "WeeklyComparison should not call FindByID")
 
 	// Verify names resolved correctly in output
@@ -2079,7 +2092,7 @@ func TestWeeklyComparison_UsesBatchFindByIDs(t *testing.T) {
 	}
 }
 
-func TestTableView_UsesBatchFindByIDs(t *testing.T) {
+func TestTableView_UsesBatchFindByBizKeys(t *testing.T) {
 	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	assignee1 := uint(100)
 	assignee2 := uint(200)
@@ -2105,8 +2118,8 @@ func TestTableView_UsesBatchFindByIDs(t *testing.T) {
 	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 10})
 	require.NoError(t, err)
 
-	// Should call FindByIDs exactly once
-	assert.Equal(t, uint(1), userRepo.findByIDsCalls, "TableView should use a single FindByIDs call")
+	// Should call FindByBizKeys exactly once
+	assert.Equal(t, uint(1), userRepo.findByBizKeysCalls, "TableView should use a single FindByBizKeys call")
 	assert.Equal(t, uint(0), userRepo.findByIDCalls, "TableView should not call FindByID")
 
 	// Names resolved correctly
@@ -2115,7 +2128,7 @@ func TestTableView_UsesBatchFindByIDs(t *testing.T) {
 	assert.Equal(t, "Bob", result.Items[1].AssigneeName)
 }
 
-func TestTableExportCSV_UsesBatchFindByIDs(t *testing.T) {
+func TestTableExportCSV_UsesBatchFindByBizKeys(t *testing.T) {
 	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	assignee1 := uint(100)
 	assignee2 := uint(200)
@@ -2141,8 +2154,8 @@ func TestTableExportCSV_UsesBatchFindByIDs(t *testing.T) {
 	_, err := svc.TableExportCSV(context.Background(), 1, dto.TableFilter{})
 	require.NoError(t, err)
 
-	// Should call FindByIDs exactly once
-	assert.Equal(t, uint(1), userRepo.findByIDsCalls, "TableExportCSV should use a single FindByIDs call")
+	// Should call FindByBizKeys exactly once
+	assert.Equal(t, uint(1), userRepo.findByBizKeysCalls, "TableExportCSV should use a single FindByBizKeys call")
 	assert.Equal(t, uint(0), userRepo.findByIDCalls, "TableExportCSV should not call FindByID")
 }
 
@@ -2285,7 +2298,7 @@ func TestBuildWeeklyGroups_Stats(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			subsByMain := map[uint][]model.SubItem{1: tt.subs}
+			subsByMain := map[int64][]model.SubItem{1: tt.subs}
 			_, stats := buildWeeklyGroups(
 				[]model.MainItem{mainItem},
 				subsByMain,
@@ -2295,7 +2308,7 @@ func TestBuildWeeklyGroups_Stats(t *testing.T) {
 				tt.progress,        // thisWeekProgress
 				map[int64]float64{}, // lastWeekCompletion
 				map[int64]string{},  // latestProgressDesc
-				map[uint]string{},   // assigneeNames
+				map[int64]string{},   // assigneeNames
 				weekStart,
 				weekEnd,
 			)

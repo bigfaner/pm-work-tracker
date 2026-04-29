@@ -87,10 +87,10 @@ type mockMainItemService struct {
 	availableTransitionsCalled bool
 }
 
-func (m *mockMainItemService) Create(_ context.Context, teamBizKey int64, pmID uint, req dto.MainItemCreateReq) (*model.MainItem, error) {
+func (m *mockMainItemService) Create(_ context.Context, teamBizKey int64, pmBizKey int64, req dto.MainItemCreateReq) (*model.MainItem, error) {
 	m.createCalled = true
 	m.lastTeamID = uint(teamBizKey)
-	m.lastPmID = pmID
+	m.lastPmID = uint(pmBizKey)
 	m.lastCreateReq = req
 	return m.createResult.item, m.createResult.err
 }
@@ -133,27 +133,27 @@ func (m *mockMainItemService) GetByBizKey(_ context.Context, bizKey int64) (*mod
 	return m.getResult.item, m.getResult.err
 }
 
-func (m *mockMainItemService) RecalcCompletion(_ context.Context, _ uint) error {
+func (m *mockMainItemService) RecalcCompletion(_ context.Context, _ int64) error {
 	return nil
 }
 
-func (m *mockMainItemService) ChangeStatus(_ context.Context, teamBizKey int64, callerID, itemID uint, newStatus string) (*model.MainItem, error) {
+func (m *mockMainItemService) ChangeStatus(_ context.Context, teamBizKey int64, callerBizKey int64, itemID uint, newStatus string) (*model.MainItem, error) {
 	m.changeStatusCalled = true
 	m.lastTeamID = uint(teamBizKey)
-	m.lastCallerID = callerID
+	m.lastCallerID = uint(callerBizKey)
 	m.lastItemID = itemID
 	m.lastNewStatus = newStatus
 	return m.changeStatusResult.item, m.changeStatusResult.err
 }
 
-func (m *mockMainItemService) AvailableTransitions(_ context.Context, _ int64, callerID, itemID uint) ([]string, error) {
+func (m *mockMainItemService) AvailableTransitions(_ context.Context, _ int64, callerBizKey int64, itemID uint) ([]string, error) {
 	m.availableTransitionsCalled = true
-	m.lastCallerID = callerID
+	m.lastCallerID = uint(callerBizKey)
 	m.lastItemID = itemID
 	return m.availableTransitionsResult.transitions, m.availableTransitionsResult.err
 }
 
-func (m *mockMainItemService) EvaluateLinkage(_ context.Context, _ uint, _ uint) (*service.LinkageResult, error) {
+func (m *mockMainItemService) EvaluateLinkage(_ context.Context, _ int64, _ int64) (*service.LinkageResult, error) {
 	return nil, nil
 }
 
@@ -175,10 +175,10 @@ func (m *mockSubItemRepoForHandler) FindByID(_ context.Context, _ uint) (*model.
 func (m *mockSubItemRepoForHandler) Update(_ context.Context, _ *model.SubItem, _ map[string]interface{}) error {
 	return nil
 }
-func (m *mockSubItemRepoForHandler) List(_ context.Context, _ int64, _ uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockSubItemRepoForHandler) List(_ context.Context, _ int64, _ int64, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
-func (m *mockSubItemRepoForHandler) ListByMainItem(_ context.Context, _ uint) ([]*model.SubItem, error) {
+func (m *mockSubItemRepoForHandler) ListByMainItem(_ context.Context, _ int64) ([]*model.SubItem, error) {
 	return m.items, m.err
 }
 func (m *mockSubItemRepoForHandler) ListByTeam(_ context.Context, _ int64) ([]model.SubItem, error) {
@@ -190,7 +190,7 @@ func (m *mockSubItemRepoForHandler) SoftDelete(_ context.Context, _ uint) error 
 func (m *mockSubItemRepoForHandler) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
 	return nil, nil
 }
-func (m *mockSubItemRepoForHandler) NextSubCode(_ context.Context, _ uint) (string, error) {
+func (m *mockSubItemRepoForHandler) NextSubCode(_ context.Context, _ int64) (string, error) {
 	return "", nil
 }
 // Helpers

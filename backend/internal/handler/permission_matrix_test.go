@@ -40,28 +40,28 @@ func buildPermTestRouter(code string, permCodes []string, handlerFn gin.HandlerF
 
 type mockMainItemSvc struct{}
 
-func (m *mockMainItemSvc) Create(_ context.Context, _, _ uint, _ dto.MainItemCreateReq) (*model.MainItem, error) {
+func (m *mockMainItemSvc) Create(_ context.Context, _ int64, _ int64, _ dto.MainItemCreateReq) (*model.MainItem, error) {
 	return nil, nil
 }
-func (m *mockMainItemSvc) Update(_ context.Context, _, _ uint, _ dto.MainItemUpdateReq) error {
+func (m *mockMainItemSvc) Update(_ context.Context, _ int64, _ uint, _ dto.MainItemUpdateReq) error {
 	return nil
 }
-func (m *mockMainItemSvc) Archive(_ context.Context, _, _ uint) error { return nil }
-func (m *mockMainItemSvc) List(_ context.Context, _ uint, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+func (m *mockMainItemSvc) Archive(_ context.Context, _ int64, _ uint) error { return nil }
+func (m *mockMainItemSvc) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
 	return nil, nil
 }
 func (m *mockMainItemSvc) Get(_ context.Context, _ uint) (*model.MainItem, error) { return nil, nil }
 func (m *mockMainItemSvc) GetByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
 	return nil, nil
 }
-func (m *mockMainItemSvc) RecalcCompletion(_ context.Context, _ uint) error { return nil }
-func (m *mockMainItemSvc) ChangeStatus(_ context.Context, _, _, _ uint, _ string) (*model.MainItem, error) {
+func (m *mockMainItemSvc) RecalcCompletion(_ context.Context, _ int64) error { return nil }
+func (m *mockMainItemSvc) ChangeStatus(_ context.Context, _ int64, _ int64, _ uint, _ string) (*model.MainItem, error) {
 	return nil, nil
 }
-func (m *mockMainItemSvc) AvailableTransitions(_ context.Context, _, _, _ uint) ([]string, error) {
+func (m *mockMainItemSvc) AvailableTransitions(_ context.Context, _ int64, _ int64, _ uint) ([]string, error) {
 	return nil, nil
 }
-func (m *mockMainItemSvc) EvaluateLinkage(_ context.Context, _, _ uint) (*service.LinkageResult, error) {
+func (m *mockMainItemSvc) EvaluateLinkage(_ context.Context, _ int64, _ int64) (*service.LinkageResult, error) {
 	return nil, nil
 }
 
@@ -69,30 +69,30 @@ var _ service.MainItemService = (*mockMainItemSvc)(nil)
 
 type mockTeamSvc struct{}
 
-func (m *mockTeamSvc) CreateTeam(_ context.Context, _ uint, _ dto.CreateTeamReq) (*model.Team, error) {
+func (m *mockTeamSvc) CreateTeam(_ context.Context, _ int64, _ dto.CreateTeamReq) (*model.Team, error) {
 	return nil, nil
 }
-func (m *mockTeamSvc) GetTeam(_ context.Context, _ uint) (*model.Team, error) { return nil, nil }
-func (m *mockTeamSvc) GetTeamDetail(_ context.Context, _ uint) (*dto.TeamDetailResp, error) {
+func (m *mockTeamSvc) GetTeam(_ context.Context, _ int64) (*model.Team, error) { return nil, nil }
+func (m *mockTeamSvc) GetTeamDetail(_ context.Context, _ int64) (*dto.TeamDetailResp, error) {
 	return nil, nil
 }
 func (m *mockTeamSvc) ListTeams(_ context.Context, _ uint, _ bool, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
 	return nil, 0, nil
 }
-func (m *mockTeamSvc) UpdateTeam(_ context.Context, _, _ uint, _ dto.UpdateTeamReq) (*model.Team, error) {
+func (m *mockTeamSvc) UpdateTeam(_ context.Context, _ int64, _ int64, _ dto.UpdateTeamReq) (*model.Team, error) {
 	return nil, nil
 }
-func (m *mockTeamSvc) InviteMember(_ context.Context, _, _ uint, _ dto.InviteMemberReq) error {
+func (m *mockTeamSvc) InviteMember(_ context.Context, _ int64, _ int64, _ dto.InviteMemberReq) error {
 	return nil
 }
-func (m *mockTeamSvc) RemoveMember(_ context.Context, _, _, _ uint) error    { return nil }
-func (m *mockTeamSvc) TransferPM(_ context.Context, _, _, _ uint) error      { return nil }
-func (m *mockTeamSvc) DisbandTeam(_ context.Context, _, _ uint, _ string) error { return nil }
-func (m *mockTeamSvc) UpdateMemberRole(_ context.Context, _, _, _, _ uint) error { return nil }
-func (m *mockTeamSvc) ListMembers(_ context.Context, _ uint) ([]*dto.TeamMemberDTO, error) {
+func (m *mockTeamSvc) RemoveMember(_ context.Context, _ int64, _ int64, _ int64) error      { return nil }
+func (m *mockTeamSvc) TransferPM(_ context.Context, _ int64, _ int64, _ int64) error        { return nil }
+func (m *mockTeamSvc) DisbandTeam(_ context.Context, _ int64, _ int64, _ string) error     { return nil }
+func (m *mockTeamSvc) UpdateMemberRole(_ context.Context, _, _ int64, _, _ int64) error    { return nil }
+func (m *mockTeamSvc) ListMembers(_ context.Context, _ int64) ([]*dto.TeamMemberDTO, error) {
 	return nil, nil
 }
-func (m *mockTeamSvc) SearchAvailableUsers(_ context.Context, _ uint, _ string) ([]*dto.UserSearchDTO, error) {
+func (m *mockTeamSvc) SearchAvailableUsers(_ context.Context, _ int64, _ string) ([]*dto.UserSearchDTO, error) {
 	return nil, nil
 }
 
@@ -100,13 +100,13 @@ var _ service.TeamService = (*mockTeamSvc)(nil)
 
 type mockProgressSvc struct{}
 
-func (m *mockProgressSvc) Append(_ context.Context, _, _, _ uint, _ float64, _, _, _ string, _ bool) (*model.ProgressRecord, error) {
+func (m *mockProgressSvc) Append(_ context.Context, _ int64, _ int64, _ uint, _ float64, _, _, _ string, _ bool) (*model.ProgressRecord, error) {
 	return nil, nil
 }
-func (m *mockProgressSvc) CorrectCompletion(_ context.Context, _, _ uint, _ float64) error {
+func (m *mockProgressSvc) CorrectCompletion(_ context.Context, _ int64, _ uint, _ float64) error {
 	return nil
 }
-func (m *mockProgressSvc) List(_ context.Context, _, _ uint) ([]model.ProgressRecord, error) {
+func (m *mockProgressSvc) List(_ context.Context, _ int64, _ uint) ([]model.ProgressRecord, error) {
 	return nil, nil
 }
 func (m *mockProgressSvc) GetByBizKey(_ context.Context, _ int64) (*model.ProgressRecord, error) {
@@ -117,20 +117,23 @@ var _ service.ProgressService = (*mockProgressSvc)(nil)
 
 type mockItemPoolSvc struct{}
 
-func (m *mockItemPoolSvc) Submit(_ context.Context, _, _ uint, _ dto.SubmitItemPoolReq) (*model.ItemPool, error) {
+func (m *mockItemPoolSvc) Submit(_ context.Context, _ int64, _ int64, _ dto.SubmitItemPoolReq) (*model.ItemPool, error) {
 	return nil, nil
 }
-func (m *mockItemPoolSvc) Assign(_ context.Context, _, _, _ uint, _ dto.AssignItemPoolReq) error {
+func (m *mockItemPoolSvc) Assign(_ context.Context, _ int64, _ int64, _ uint, _ dto.AssignItemPoolReq) error {
 	return nil
 }
-func (m *mockItemPoolSvc) ConvertToMain(_ context.Context, _, _, _ uint, _ dto.ConvertToMainItemReq) (*model.MainItem, error) {
+func (m *mockItemPoolSvc) ConvertToMain(_ context.Context, _ int64, _ int64, _ uint, _ dto.ConvertToMainItemReq) (*model.MainItem, error) {
 	return nil, nil
 }
-func (m *mockItemPoolSvc) Reject(_ context.Context, _, _, _ uint, _ string) error { return nil }
-func (m *mockItemPoolSvc) List(_ context.Context, _ uint, _ dto.ItemPoolFilter, _ dto.Pagination) (*dto.PageResult[model.ItemPool], error) {
+func (m *mockItemPoolSvc) Reject(_ context.Context, _ int64, _ int64, _ uint, _ string) error { return nil }
+func (m *mockItemPoolSvc) List(_ context.Context, _ int64, _ dto.ItemPoolFilter, _ dto.Pagination) (*dto.PageResult[model.ItemPool], error) {
 	return nil, nil
 }
-func (m *mockItemPoolSvc) Get(_ context.Context, _, _ uint) (*model.ItemPool, error) {
+func (m *mockItemPoolSvc) Get(_ context.Context, _ int64, _ uint) (*model.ItemPool, error) {
+	return nil, nil
+}
+func (m *mockItemPoolSvc) Update(_ context.Context, _ int64, _ uint, _ dto.UpdateItemPoolReq) (*model.ItemPool, error) {
 	return nil, nil
 }
 func (m *mockItemPoolSvc) GetByBizKey(_ context.Context, _ int64) (*model.ItemPool, error) {
@@ -141,16 +144,16 @@ var _ service.ItemPoolService = (*mockItemPoolSvc)(nil)
 
 type mockViewSvc struct{}
 
-func (m *mockViewSvc) WeeklyComparison(_ context.Context, _ uint, _ time.Time) (*dto.WeeklyViewResponse, error) {
+func (m *mockViewSvc) WeeklyComparison(_ context.Context, _ int64, _ time.Time) (*dto.WeeklyViewResponse, error) {
 	return nil, nil
 }
-func (m *mockViewSvc) GanttView(_ context.Context, _ uint, _ dto.GanttFilter) (*dto.GanttResult, error) {
+func (m *mockViewSvc) GanttView(_ context.Context, _ int64, _ dto.GanttFilter) (*dto.GanttResult, error) {
 	return nil, nil
 }
-func (m *mockViewSvc) TableView(_ context.Context, _ uint, _ dto.TableFilter, _ dto.Pagination) (*dto.PageResult[dto.TableRow], error) {
+func (m *mockViewSvc) TableView(_ context.Context, _ int64, _ dto.TableFilter, _ dto.Pagination) (*dto.PageResult[dto.TableRow], error) {
 	return nil, nil
 }
-func (m *mockViewSvc) TableExportCSV(_ context.Context, _ uint, _ dto.TableFilter) ([]byte, error) {
+func (m *mockViewSvc) TableExportCSV(_ context.Context, _ int64, _ dto.TableFilter) ([]byte, error) {
 	return nil, nil
 }
 
@@ -158,10 +161,10 @@ var _ service.ViewService = (*mockViewSvc)(nil)
 
 type mockReportSvc struct{}
 
-func (m *mockReportSvc) Preview(_ context.Context, _ uint, _ time.Time) (*dto.ReportPreview, error) {
+func (m *mockReportSvc) Preview(_ context.Context, _ int64, _ time.Time) (*dto.ReportPreview, error) {
 	return nil, nil
 }
-func (m *mockReportSvc) ExportMarkdown(_ context.Context, _ uint, _ time.Time) ([]byte, error) {
+func (m *mockReportSvc) ExportMarkdown(_ context.Context, _ int64, _ time.Time) ([]byte, error) {
 	return nil, nil
 }
 

@@ -40,7 +40,7 @@ func NewItemPoolHandler(svc service.ItemPoolService, userRepo repository.UserRep
 // Submit handles POST /api/v1/teams/:teamId/item-pool
 func (h *ItemPoolHandler) Submit(c *gin.Context) {
 	teamBizKey := middleware.GetTeamBizKey(c)
-	userID := middleware.GetUserID(c)
+	userBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.SubmitItemPoolReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -48,7 +48,7 @@ func (h *ItemPoolHandler) Submit(c *gin.Context) {
 		return
 	}
 
-	item, err := h.svc.Submit(c.Request.Context(), teamBizKey, userID, req)
+	item, err := h.svc.Submit(c.Request.Context(), teamBizKey, userBizKey, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -127,7 +127,7 @@ func (h *ItemPoolHandler) Assign(c *gin.Context) {
 	}
 
 	teamBizKey := middleware.GetTeamBizKey(c)
-	pmID := middleware.GetUserID(c)
+	pmBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.AssignItemPoolReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -135,7 +135,7 @@ func (h *ItemPoolHandler) Assign(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.Assign(c.Request.Context(), teamBizKey, pmID, poolID, req)
+	err := h.svc.Assign(c.Request.Context(), teamBizKey, pmBizKey, poolID, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -165,7 +165,7 @@ func (h *ItemPoolHandler) ConvertToMain(c *gin.Context) {
 	}
 
 	teamBizKey := middleware.GetTeamBizKey(c)
-	pmID := middleware.GetUserID(c)
+	pmBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.ConvertToMainItemReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -173,7 +173,7 @@ func (h *ItemPoolHandler) ConvertToMain(c *gin.Context) {
 		return
 	}
 
-	mainItem, err := h.svc.ConvertToMain(c.Request.Context(), teamBizKey, pmID, poolID, req)
+	mainItem, err := h.svc.ConvertToMain(c.Request.Context(), teamBizKey, pmBizKey, poolID, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -195,7 +195,7 @@ func (h *ItemPoolHandler) Update(c *gin.Context) {
 		return
 	}
 
-	teamID := middleware.GetTeamID(c)
+	teamBizKey := middleware.GetTeamBizKey(c)
 
 	var req dto.UpdateItemPoolReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -203,7 +203,7 @@ func (h *ItemPoolHandler) Update(c *gin.Context) {
 		return
 	}
 
-	item, err := h.svc.Update(c.Request.Context(), teamID, poolID, req)
+	item, err := h.svc.Update(c.Request.Context(), teamBizKey, poolID, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -226,7 +226,7 @@ func (h *ItemPoolHandler) Reject(c *gin.Context) {
 	}
 
 	teamBizKey := middleware.GetTeamBizKey(c)
-	pmID := middleware.GetUserID(c)
+	pmBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.RejectItemPoolReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -234,7 +234,7 @@ func (h *ItemPoolHandler) Reject(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.Reject(c.Request.Context(), teamBizKey, pmID, poolID, req.Reason)
+	err := h.svc.Reject(c.Request.Context(), teamBizKey, pmBizKey, poolID, req.Reason)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -259,12 +259,12 @@ func buildItemPoolVOs(items []model.ItemPool, userRepo repository.UserRepo, main
 
 	ctx := c.Request.Context()
 
-	// Collect unique IDs
-	submitterIDs := make(map[uint]struct{})
+	// Collect unique BizKeys
+	submitterBizKeys := make(map[int64]struct{})
 	mainItemBizKeys := make(map[int64]struct{})
 	for i := range items {
 		if items[i].SubmitterKey > 0 {
-			submitterIDs[uint(items[i].SubmitterKey)] = struct{}{}
+			submitterBizKeys[items[i].SubmitterKey] = struct{}{}
 		}
 		if items[i].AssignedMainKey != nil {
 			mainItemBizKeys[*items[i].AssignedMainKey] = struct{}{}
@@ -272,10 +272,10 @@ func buildItemPoolVOs(items []model.ItemPool, userRepo repository.UserRepo, main
 	}
 
 	// Batch lookups
-	userMap := make(map[uint]*model.User)
-	if len(submitterIDs) > 0 {
-		ids := mapKeysToSlice(submitterIDs)
-		if m, err := userRepo.FindByIDs(ctx, ids); err == nil {
+	userMap := make(map[int64]*model.User)
+	if len(submitterBizKeys) > 0 {
+		keys := int64MapKeysToSlice(submitterBizKeys)
+		if m, err := userRepo.FindByBizKeys(ctx, keys); err == nil {
 			userMap = m
 		}
 	}
@@ -292,7 +292,7 @@ func buildItemPoolVOs(items []model.ItemPool, userRepo repository.UserRepo, main
 	result := make([]vo.ItemPoolVO, 0, len(items))
 	for i := range items {
 		submitterName := ""
-		if u, ok := userMap[uint(items[i].SubmitterKey)]; ok {
+		if u, ok := userMap[items[i].SubmitterKey]; ok {
 			submitterName = u.DisplayName
 		}
 		v := vo.NewItemPoolVO(&items[i], submitterName)
@@ -305,15 +305,6 @@ func buildItemPoolVOs(items []model.ItemPool, userRepo repository.UserRepo, main
 		result = append(result, v)
 	}
 	return result
-}
-
-// mapKeysToSlice extracts map keys to a slice for batch lookups.
-func mapKeysToSlice(m map[uint]struct{}) []uint {
-	ids := make([]uint, 0, len(m))
-	for id := range m {
-		ids = append(ids, id)
-	}
-	return ids
 }
 
 // int64MapKeysToSlice extracts int64 map keys to a slice for batch lookups.

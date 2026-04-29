@@ -54,7 +54,7 @@ func isPMOrSuperAdmin(c *gin.Context) bool {
 // Create handles POST /api/v1/teams/:teamId/main-items/:itemId/sub-items
 func (h *SubItemHandler) Create(c *gin.Context) {
 	teamBizKey := middleware.GetTeamBizKey(c)
-	callerID := middleware.GetUserID(c)
+	callerBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.SubItemCreateReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -62,7 +62,7 @@ func (h *SubItemHandler) Create(c *gin.Context) {
 		return
 	}
 
-	item, err := h.svc.Create(c.Request.Context(), teamBizKey, callerID, req)
+	item, err := h.svc.Create(c.Request.Context(), teamBizKey, callerBizKey, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -84,7 +84,7 @@ func (h *SubItemHandler) List(c *gin.Context) {
 		apperrors.RespondError(c, err)
 		return
 	}
-	mainID := mainItem.ID
+	mainItemBizKey := mainItem.BizKey
 
 	var filter dto.SubItemFilter
 	if err := c.ShouldBindQuery(&filter); err != nil {
@@ -99,7 +99,7 @@ func (h *SubItemHandler) List(c *gin.Context) {
 	}
 	_, page.Page, page.PageSize = dto.ApplyPaginationDefaults(page.Page, page.PageSize)
 
-	result, err := h.svc.List(c.Request.Context(), teamBizKey, &mainID, filter, page)
+	result, err := h.svc.List(c.Request.Context(), teamBizKey, &mainItemBizKey, filter, page)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -164,8 +164,8 @@ func (h *SubItemHandler) Update(c *gin.Context) {
 			apperrors.RespondError(c, err)
 			return
 		}
-		callerID := middleware.GetUserID(c)
-		if item.AssigneeKey == nil || uint(*item.AssigneeKey) != callerID {
+		callerBizKey := middleware.GetUserBizKey(c)
+		if item.AssigneeKey == nil || *item.AssigneeKey != callerBizKey {
 			apperrors.RespondError(c, apperrors.ErrForbidden)
 			return
 		}
@@ -217,15 +217,15 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 			apperrors.RespondError(c, err)
 			return
 		}
-		callerID := middleware.GetUserID(c)
-		if item.AssigneeKey == nil || uint(*item.AssigneeKey) != callerID {
+		callerBizKey := middleware.GetUserBizKey(c)
+		if item.AssigneeKey == nil || *item.AssigneeKey != callerBizKey {
 			apperrors.RespondError(c, apperrors.ErrForbidden)
 			return
 		}
 	}
 
 	teamBizKey := middleware.GetTeamBizKey(c)
-	callerID := middleware.GetUserID(c)
+	callerBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.ChangeStatusReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -233,7 +233,7 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 		return
 	}
 
-	result, err := h.svc.ChangeStatus(c.Request.Context(), teamBizKey, callerID, subID, req.Status)
+	result, err := h.svc.ChangeStatus(c.Request.Context(), teamBizKey, callerBizKey, subID, req.Status)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -284,7 +284,7 @@ func (h *SubItemHandler) Assign(c *gin.Context) {
 	}
 
 	teamBizKey := middleware.GetTeamBizKey(c)
-	pmID := middleware.GetUserID(c)
+	pmBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.AssignSubItemReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -292,7 +292,7 @@ func (h *SubItemHandler) Assign(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.Assign(c.Request.Context(), teamBizKey, pmID, subID, func() uint { v, _ := pkg.ParseID(req.AssigneeKey); return uint(v) }())
+	err := h.svc.Assign(c.Request.Context(), teamBizKey, pmBizKey, subID, func() int64 { v, _ := pkg.ParseID(req.AssigneeKey); return v }())
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

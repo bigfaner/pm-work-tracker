@@ -17,7 +17,7 @@ import (
 
 type StubTeamSvc struct{}
 
-func (s *StubTeamSvc) CreateTeam(_ context.Context, _ uint, _ dto.CreateTeamReq) (*model.Team, error) {
+func (s *StubTeamSvc) CreateTeam(_ context.Context, _ int64, _ dto.CreateTeamReq) (*model.Team, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubTeamSvc) GetTeam(_ context.Context, _ int64) (*model.Team, error) {
@@ -29,22 +29,22 @@ func (s *StubTeamSvc) GetTeamDetail(_ context.Context, _ int64) (*dto.TeamDetail
 func (s *StubTeamSvc) ListTeams(_ context.Context, _ uint, _ bool, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
 	return nil, 0, fmt.Errorf("stub: not implemented")
 }
-func (s *StubTeamSvc) UpdateTeam(_ context.Context, _ uint, _ int64, _ dto.UpdateTeamReq) (*model.Team, error) {
+func (s *StubTeamSvc) UpdateTeam(_ context.Context, _ int64, _ int64, _ dto.UpdateTeamReq) (*model.Team, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubTeamSvc) InviteMember(_ context.Context, _ uint, _ int64, _ dto.InviteMemberReq) error {
+func (s *StubTeamSvc) InviteMember(_ context.Context, _ int64, _ int64, _ dto.InviteMemberReq) error {
 	return fmt.Errorf("stub: not implemented")
 }
-func (s *StubTeamSvc) RemoveMember(_ context.Context, _ uint, _ int64, _ uint) error {
+func (s *StubTeamSvc) RemoveMember(_ context.Context, _ int64, _ int64, _ int64) error {
 	return fmt.Errorf("stub: not implemented")
 }
-func (s *StubTeamSvc) TransferPM(_ context.Context, _ uint, _ int64, _ uint) error {
+func (s *StubTeamSvc) TransferPM(_ context.Context, _ int64, _ int64, _ int64) error {
 	return fmt.Errorf("stub: not implemented")
 }
-func (s *StubTeamSvc) DisbandTeam(_ context.Context, _ uint, _ int64, _ string) error {
+func (s *StubTeamSvc) DisbandTeam(_ context.Context, _ int64, _ int64, _ string) error {
 	return fmt.Errorf("stub: not implemented")
 }
-func (s *StubTeamSvc) UpdateMemberRole(_ context.Context, _, _ uint, _ int64, _ int64) error {
+func (s *StubTeamSvc) UpdateMemberRole(_ context.Context, _ int64, _ int64, _ int64, _ int64) error {
 	return fmt.Errorf("stub: not implemented")
 }
 func (s *StubTeamSvc) ListMembers(_ context.Context, _ int64) ([]*dto.TeamMemberDTO, error) {
@@ -58,7 +58,7 @@ var _ service.TeamService = (*StubTeamSvc)(nil)
 
 type StubMainItemSvc struct{}
 
-func (s *StubMainItemSvc) Create(_ context.Context, _ int64, _ uint, _ dto.MainItemCreateReq) (*model.MainItem, error) {
+func (s *StubMainItemSvc) Create(_ context.Context, _ int64, _ int64, _ dto.MainItemCreateReq) (*model.MainItem, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubMainItemSvc) Update(_ context.Context, _ int64, _ uint, _ dto.MainItemUpdateReq) error {
@@ -76,19 +76,19 @@ func (s *StubMainItemSvc) Get(_ context.Context, _ uint) (*model.MainItem, error
 func (s *StubMainItemSvc) GetByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubMainItemSvc) RecalcCompletion(_ context.Context, _ uint) error {
+func (s *StubMainItemSvc) RecalcCompletion(_ context.Context, _ int64) error {
 	return fmt.Errorf("stub: not implemented")
 }
 
-func (s *StubMainItemSvc) ChangeStatus(_ context.Context, _ int64, _, _ uint, _ string) (*model.MainItem, error) {
+func (s *StubMainItemSvc) ChangeStatus(_ context.Context, _ int64, _ int64, _ uint, _ string) (*model.MainItem, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 
-func (s *StubMainItemSvc) AvailableTransitions(_ context.Context, _ int64, _, _ uint) ([]string, error) {
+func (s *StubMainItemSvc) AvailableTransitions(_ context.Context, _ int64, _ int64, _ uint) ([]string, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 
-func (s *StubMainItemSvc) EvaluateLinkage(_ context.Context, _ uint, _ uint) (*service.LinkageResult, error) {
+func (s *StubMainItemSvc) EvaluateLinkage(_ context.Context, _ int64, _ int64) (*service.LinkageResult, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 
@@ -96,28 +96,28 @@ var _ service.MainItemService = (*StubMainItemSvc)(nil)
 
 type StubSubItemSvc struct{}
 
-func (s *StubSubItemSvc) Create(_ context.Context, _ int64, _ uint, _ dto.SubItemCreateReq) (*model.SubItem, error) {
+func (s *StubSubItemSvc) Create(_ context.Context, _ int64, _ int64, _ dto.SubItemCreateReq) (*model.SubItem, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubSubItemSvc) Update(_ context.Context, _ int64, _ uint, _ dto.SubItemUpdateReq) error {
 	return fmt.Errorf("stub: not implemented")
 }
-func (s *StubSubItemSvc) ChangeStatus(_ context.Context, _ int64, _, _ uint, _ string) (*service.SubItemChangeResult, error) {
+func (s *StubSubItemSvc) ChangeStatus(_ context.Context, _ int64, _ int64, _ uint, _ string) (*service.SubItemChangeResult, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubSubItemSvc) Get(_ context.Context, _ int64, _ uint) (*model.SubItem, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubSubItemSvc) List(_ context.Context, _ int64, _ *uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (s *StubSubItemSvc) List(_ context.Context, _ int64, _ *int64, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubSubItemSvc) Assign(_ context.Context, _ int64, _, _, _ uint) error {
+func (s *StubSubItemSvc) Assign(_ context.Context, _ int64, _ int64, _ uint, _ int64) error {
 	return fmt.Errorf("stub: not implemented")
 }
 func (s *StubSubItemSvc) AvailableTransitions(_ context.Context, _ int64, _ uint) ([]string, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubSubItemSvc) Delete(_ context.Context, _ int64, _, _ uint) error {
+func (s *StubSubItemSvc) Delete(_ context.Context, _ int64, _ int64, _ uint) error {
 	return fmt.Errorf("stub: not implemented")
 }
 func (s *StubSubItemSvc) GetByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
@@ -128,16 +128,16 @@ var _ service.SubItemService = (*StubSubItemSvc)(nil)
 
 type StubItemPoolSvc struct{}
 
-func (s *StubItemPoolSvc) Submit(_ context.Context, _ int64, _ uint, _ dto.SubmitItemPoolReq) (*model.ItemPool, error) {
+func (s *StubItemPoolSvc) Submit(_ context.Context, _ int64, _ int64, _ dto.SubmitItemPoolReq) (*model.ItemPool, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubItemPoolSvc) Assign(_ context.Context, _ int64, _, _ uint, _ dto.AssignItemPoolReq) error {
+func (s *StubItemPoolSvc) Assign(_ context.Context, _ int64, _ int64, _ uint, _ dto.AssignItemPoolReq) error {
 	return fmt.Errorf("stub: not implemented")
 }
-func (s *StubItemPoolSvc) ConvertToMain(_ context.Context, _ int64, _, _ uint, _ dto.ConvertToMainItemReq) (*model.MainItem, error) {
+func (s *StubItemPoolSvc) ConvertToMain(_ context.Context, _ int64, _ int64, _ uint, _ dto.ConvertToMainItemReq) (*model.MainItem, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubItemPoolSvc) Reject(_ context.Context, _ int64, _, _ uint, _ string) error {
+func (s *StubItemPoolSvc) Reject(_ context.Context, _ int64, _ int64, _ uint, _ string) error {
 	return fmt.Errorf("stub: not implemented")
 }
 func (s *StubItemPoolSvc) List(_ context.Context, _ int64, _ dto.ItemPoolFilter, _ dto.Pagination) (*dto.PageResult[model.ItemPool], error) {
@@ -149,7 +149,7 @@ func (s *StubItemPoolSvc) Get(_ context.Context, _ int64, _ uint) (*model.ItemPo
 func (s *StubItemPoolSvc) GetByBizKey(_ context.Context, _ int64) (*model.ItemPool, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubItemPoolSvc) Update(_ context.Context, _, _ uint, _ dto.UpdateItemPoolReq) (*model.ItemPool, error) {
+func (s *StubItemPoolSvc) Update(_ context.Context, _ int64, _ uint, _ dto.UpdateItemPoolReq) (*model.ItemPool, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 
@@ -229,10 +229,13 @@ func (s *StubRouterRepoUser) FindByIDs(_ context.Context, _ []uint) (map[uint]*m
 func (s *StubRouterRepoUser) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
 	return nil, nil
 }
+func (s *StubRouterRepoUser) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.User, error) {
+	return nil, nil
+}
 func (s *StubRouterRepoUser) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil
 }
-func (s *StubRouterRepoUser) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+func (s *StubRouterRepoUser) SearchAvailable(_ context.Context, _ int64, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
 }
 func (s *StubRouterRepoUser) SoftDelete(_ context.Context, _ *model.User) error { return nil }
@@ -248,10 +251,10 @@ func (s *StubRouterRepoSubItem) FindByID(_ context.Context, _ uint) (*model.SubI
 func (s *StubRouterRepoSubItem) Update(_ context.Context, _ *model.SubItem, _ map[string]interface{}) error {
 	return nil
 }
-func (s *StubRouterRepoSubItem) List(_ context.Context, _ int64, _ uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (s *StubRouterRepoSubItem) List(_ context.Context, _ int64, _ int64, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
-func (s *StubRouterRepoSubItem) ListByMainItem(_ context.Context, _ uint) ([]*model.SubItem, error) {
+func (s *StubRouterRepoSubItem) ListByMainItem(_ context.Context, _ int64) ([]*model.SubItem, error) {
 	return nil, nil
 }
 func (s *StubRouterRepoSubItem) ListByTeam(_ context.Context, _ int64) ([]model.SubItem, error) {
@@ -261,7 +264,7 @@ func (s *StubRouterRepoSubItem) SoftDelete(_ context.Context, _ uint) error { re
 func (s *StubRouterRepoSubItem) FindByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
 	return nil, nil
 }
-func (s *StubRouterRepoSubItem) NextSubCode(_ context.Context, _ uint) (string, error) {
+func (s *StubRouterRepoSubItem) NextSubCode(_ context.Context, _ int64) (string, error) {
 	return "", nil
 }
 
@@ -337,7 +340,7 @@ var _ service.ViewService = (*StubViewSvc)(nil)
 // StubProgressSvc is a stub ProgressService for test wiring.
 type StubProgressSvc struct{}
 
-func (s *StubProgressSvc) Append(_ context.Context, _ int64, _, _ uint, _ float64, _, _, _ string, _ bool) (*model.ProgressRecord, error) {
+func (s *StubProgressSvc) Append(_ context.Context, _ int64, _ int64, _ uint, _ float64, _, _, _ string, _ bool) (*model.ProgressRecord, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubProgressSvc) CorrectCompletion(_ context.Context, _ int64, _ uint, _ float64) error {

@@ -37,44 +37,44 @@ func (r *LinkageResult) Warning() string {
 const maxLinkageMuMapSize = 1000
 
 var (
-	linkageMuMap    = make(map[uint]*sync.Mutex)
-	linkageAccess   = make(map[uint]uint64) // mainItemID -> access sequence number
-	linkageSeq      uint64                  // monotonically increasing access counter
-	linkageMapMu    sync.Mutex              // protects linkageMuMap, linkageAccess, and linkageSeq
+	linkageMuMap    = make(map[int64]*sync.Mutex)
+	linkageAccess   = make(map[int64]uint64) // mainItemBizKey -> access sequence number
+	linkageSeq      uint64                   // monotonically increasing access counter
+	linkageMapMu    sync.Mutex               // protects linkageMuMap, linkageAccess, and linkageSeq
 )
 
 // getLinkageMutex returns (or creates) a mutex for the given MainItem.
 // When the map exceeds maxLinkageMuMapSize entries, the least recently used entry is evicted.
-func getLinkageMutex(mainItemID uint) *sync.Mutex {
+func getLinkageMutex(mainItemBizKey int64) *sync.Mutex {
 	linkageMapMu.Lock()
 	defer linkageMapMu.Unlock()
 
-	if mu, ok := linkageMuMap[mainItemID]; ok {
+	if mu, ok := linkageMuMap[mainItemBizKey]; ok {
 		linkageSeq++
-		linkageAccess[mainItemID] = linkageSeq
+		linkageAccess[mainItemBizKey] = linkageSeq
 		return mu
 	}
 
 	// Evict LRU entry if at capacity
 	if len(linkageMuMap) >= maxLinkageMuMapSize {
-		var oldestID uint
+		var oldestKey int64
 		var oldestSeq uint64
 		first := true
-		for id, seq := range linkageAccess {
+		for key, seq := range linkageAccess {
 			if first || seq < oldestSeq {
-				oldestID = id
+				oldestKey = key
 				oldestSeq = seq
 				first = false
 			}
 		}
-		delete(linkageMuMap, oldestID)
-		delete(linkageAccess, oldestID)
+		delete(linkageMuMap, oldestKey)
+		delete(linkageAccess, oldestKey)
 	}
 
 	mu := &sync.Mutex{}
 	linkageSeq++
-	linkageMuMap[mainItemID] = mu
-	linkageAccess[mainItemID] = linkageSeq
+	linkageMuMap[mainItemBizKey] = mu
+	linkageAccess[mainItemBizKey] = linkageSeq
 	return mu
 }
 
@@ -82,23 +82,23 @@ func getLinkageMutex(mainItemID uint) *sync.Mutex {
 func resetLinkageMuMap() {
 	linkageMapMu.Lock()
 	defer linkageMapMu.Unlock()
-	linkageMuMap = make(map[uint]*sync.Mutex)
-	linkageAccess = make(map[uint]uint64)
+	linkageMuMap = make(map[int64]*sync.Mutex)
+	linkageAccess = make(map[int64]uint64)
 	linkageSeq = 0
 }
 
 // MainItemService defines business operations for MainItem.
 type MainItemService interface {
-	Create(ctx context.Context, teamBizKey int64, pmID uint, req dto.MainItemCreateReq) (*model.MainItem, error)
+	Create(ctx context.Context, teamBizKey int64, pmBizKey int64, req dto.MainItemCreateReq) (*model.MainItem, error)
 	Update(ctx context.Context, teamBizKey int64, itemID uint, req dto.MainItemUpdateReq) error
 	Archive(ctx context.Context, teamBizKey int64, itemID uint) error
 	List(ctx context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error)
 	Get(ctx context.Context, itemID uint) (*model.MainItem, error)
 	GetByBizKey(ctx context.Context, bizKey int64) (*model.MainItem, error)
-	RecalcCompletion(ctx context.Context, mainItemID uint) error
-	ChangeStatus(ctx context.Context, teamBizKey int64, callerID, itemID uint, newStatus string) (*model.MainItem, error)
-	AvailableTransitions(ctx context.Context, teamBizKey int64, callerID, itemID uint) ([]string, error)
-	EvaluateLinkage(ctx context.Context, mainItemID uint, changedBy uint) (*LinkageResult, error)
+	RecalcCompletion(ctx context.Context, mainItemBizKey int64) error
+	ChangeStatus(ctx context.Context, teamBizKey int64, callerBizKey int64, itemID uint, newStatus string) (*model.MainItem, error)
+	AvailableTransitions(ctx context.Context, teamBizKey int64, callerBizKey int64, itemID uint) ([]string, error)
+	EvaluateLinkage(ctx context.Context, mainItemBizKey int64, changedByBizKey int64) (*LinkageResult, error)
 }
 
 type mainItemService struct {
@@ -112,7 +112,7 @@ func NewMainItemService(mainItemRepo repository.MainItemRepo, subItemRepo reposi
 	return &mainItemService{mainItemRepo: mainItemRepo, subItemRepo: subItemRepo, statusHistorySvc: statusHistorySvc}
 }
 
-func (s *mainItemService) Create(ctx context.Context, teamBizKey int64, pmID uint, req dto.MainItemCreateReq) (*model.MainItem, error) {
+func (s *mainItemService) Create(ctx context.Context, teamBizKey int64, pmBizKey int64, req dto.MainItemCreateReq) (*model.MainItem, error) {
 	code, err := s.mainItemRepo.NextCode(ctx, teamBizKey)
 	if err != nil {
 		return nil, err
@@ -125,7 +125,7 @@ func (s *mainItemService) Create(ctx context.Context, teamBizKey int64, pmID uin
 		Title:       req.Title,
 		ItemDesc:    req.Description,
 		Priority:    req.Priority,
-		ProposerKey: int64(pmID),
+		ProposerKey: pmBizKey,
 		AssigneeKey: func() *int64 { if req.AssigneeKey != "" { v, _ := pkg.ParseID(req.AssigneeKey); return &v }; return nil }(),
 		IsKeyItem:   req.IsKeyItem,
 		ItemStatus:  "pending",
@@ -236,13 +236,13 @@ func (s *mainItemService) GetByBizKey(ctx context.Context, bizKey int64) (*model
 	return item, nil
 }
 
-func (s *mainItemService) RecalcCompletion(ctx context.Context, mainItemID uint) error {
-	item, err := s.mainItemRepo.FindByID(ctx, mainItemID)
+func (s *mainItemService) RecalcCompletion(ctx context.Context, mainItemBizKey int64) error {
+	item, err := s.mainItemRepo.FindByBizKey(ctx, mainItemBizKey)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 
-	subItems, err := s.subItemRepo.ListByMainItem(ctx, mainItemID)
+	subItems, err := s.subItemRepo.ListByMainItem(ctx, mainItemBizKey)
 	if err != nil {
 		return err
 	}
@@ -253,7 +253,7 @@ func (s *mainItemService) RecalcCompletion(ctx context.Context, mainItemID uint)
 	})
 }
 
-func (s *mainItemService) ChangeStatus(ctx context.Context, teamBizKey int64, callerID, itemID uint, newStatus string) (*model.MainItem, error) {
+func (s *mainItemService) ChangeStatus(ctx context.Context, teamBizKey int64, callerBizKey int64, itemID uint, newStatus string) (*model.MainItem, error) {
 	item, err := s.mainItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
@@ -274,14 +274,14 @@ func (s *mainItemService) ChangeStatus(ctx context.Context, teamBizKey int64, ca
 
 	// PM-only check: reviewing -> completed/progressing requires caller == proposer
 	if item.ItemStatus == "reviewing" && (newStatus == "completed" || newStatus == "progressing") {
-		if callerID != uint(item.ProposerKey) {
+		if callerBizKey != item.ProposerKey {
 			return nil, apperrors.ErrForbidden
 		}
 	}
 
 	// Guard: cannot transition to terminal if any sub-item is non-terminal
 	if status.IsMainTerminal(newStatus) {
-		subs, err := s.subItemRepo.ListByMainItem(ctx, itemID)
+		subs, err := s.subItemRepo.ListByMainItem(ctx, item.BizKey)
 		if err != nil {
 			return nil, err
 		}
@@ -311,7 +311,7 @@ func (s *mainItemService) ChangeStatus(ctx context.Context, teamBizKey int64, ca
 	}
 
 	// Record to status history
-	if err := RecordStatusChange(s.statusHistorySvc, ctx, "main_item", int64(itemID), oldStatus, newStatus, callerID, 0, ""); err != nil {
+	if err := RecordStatusChange(s.statusHistorySvc, ctx, "main_item", item.BizKey, oldStatus, newStatus, callerBizKey, 0, ""); err != nil {
 		return nil, err
 	}
 
@@ -323,7 +323,7 @@ func (s *mainItemService) ChangeStatus(ctx context.Context, teamBizKey int64, ca
 	return updated, nil
 }
 
-func (s *mainItemService) AvailableTransitions(ctx context.Context, teamBizKey int64, callerID, itemID uint) ([]string, error) {
+func (s *mainItemService) AvailableTransitions(ctx context.Context, teamBizKey int64, callerBizKey int64, itemID uint) ([]string, error) {
 	item, err := s.mainItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
@@ -335,7 +335,7 @@ func (s *mainItemService) AvailableTransitions(ctx context.Context, teamBizKey i
 	transitions := status.GetAvailableTransitions(status.MainItemTransitions, item.ItemStatus)
 
 	// PM-only filter: non-PM callers don't see completed/progressing when reviewing
-	if item.ItemStatus == "reviewing" && callerID != uint(item.ProposerKey) {
+	if item.ItemStatus == "reviewing" && callerBizKey != item.ProposerKey {
 		filtered := make([]string, 0, len(transitions))
 		for _, t := range transitions {
 			if t != "completed" && t != "progressing" {
@@ -350,17 +350,17 @@ func (s *mainItemService) AvailableTransitions(ctx context.Context, teamBizKey i
 
 // EvaluateLinkage evaluates the main-sub item linkage rules and updates MainItem status.
 // It acquires a per-MainItem mutex to prevent race conditions.
-func (s *mainItemService) EvaluateLinkage(ctx context.Context, mainItemID uint, changedBy uint) (*LinkageResult, error) {
-	mu := getLinkageMutex(mainItemID)
+func (s *mainItemService) EvaluateLinkage(ctx context.Context, mainItemBizKey int64, changedByBizKey int64) (*LinkageResult, error) {
+	mu := getLinkageMutex(mainItemBizKey)
 	mu.Lock()
 	defer mu.Unlock()
 
-	mainItem, err := s.mainItemRepo.FindByID(ctx, mainItemID)
+	mainItem, err := s.mainItemRepo.FindByBizKey(ctx, mainItemBizKey)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 
-	subItems, err := s.subItemRepo.ListByMainItem(ctx, mainItemID)
+	subItems, err := s.subItemRepo.ListByMainItem(ctx, mainItemBizKey)
 	if err != nil {
 		return nil, err
 	}
@@ -380,7 +380,7 @@ func (s *mainItemService) EvaluateLinkage(ctx context.Context, mainItemID uint, 
 	if !status.IsValidTransition(status.MainItemTransitions, mainItem.ItemStatus, targetStatus) {
 		// Linkage failed: record intent in status history
 		remark := fmt.Sprintf("%s→%s 不允许", mainItem.ItemStatus, targetStatus)
-		_ = RecordStatusChange(s.statusHistorySvc, ctx, "main_item", int64(mainItemID), mainItem.ItemStatus, targetStatus, changedBy, 1, remark)
+	_ = RecordStatusChange(s.statusHistorySvc, ctx, "main_item", mainItemBizKey, mainItem.ItemStatus, targetStatus, changedByBizKey, 1, remark)
 		return &LinkageResult{
 			Triggered:    true,
 			Success:      false,
@@ -408,7 +408,7 @@ func (s *mainItemService) EvaluateLinkage(ctx context.Context, mainItemID uint, 
 	}
 
 	// Record to status history (is_auto=true)
-	_ = RecordStatusChange(s.statusHistorySvc, ctx, "main_item", int64(mainItemID), oldStatus, targetStatus, changedBy, 1, "")
+	_ = RecordStatusChange(s.statusHistorySvc, ctx, "main_item", mainItemBizKey, oldStatus, targetStatus, changedByBizKey, 1, "")
 
 	return &LinkageResult{
 		Triggered:    true,

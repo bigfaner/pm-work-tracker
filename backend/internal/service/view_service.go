@@ -189,39 +189,39 @@ func computeLatestProgressDesc(thisWeekProgress map[int64][]model.ProgressRecord
 }
 
 // resolveSubItemAssigneeNames batch-resolves assignee display names for sub-items.
-func resolveSubItemAssigneeNames(ctx context.Context, subItems []model.SubItem, userRepo repository.UserRepo) map[uint]string {
-	names := make(map[uint]string)
+func resolveSubItemAssigneeNames(ctx context.Context, subItems []model.SubItem, userRepo repository.UserRepo) map[int64]string {
+	names := make(map[int64]string)
 	if userRepo == nil {
 		return names
 	}
-	seen := make(map[uint]struct{})
-	var ids []uint
+	seen := make(map[int64]struct{})
+	var bizKeys []int64
 	for _, si := range subItems {
 		if si.AssigneeKey != nil {
-			if _, ok := seen[uint(*si.AssigneeKey)]; !ok {
-				seen[uint(*si.AssigneeKey)] = struct{}{}
-				ids = append(ids, uint(*si.AssigneeKey))
+			if _, ok := seen[*si.AssigneeKey]; !ok {
+				seen[*si.AssigneeKey] = struct{}{}
+				bizKeys = append(bizKeys, *si.AssigneeKey)
 			}
 		}
 	}
-	if len(ids) == 0 {
+	if len(bizKeys) == 0 {
 		return names
 	}
-	users, err := userRepo.FindByIDs(ctx, ids)
+	users, err := userRepo.FindByBizKeys(ctx, bizKeys)
 	if err != nil {
 		return names
 	}
-	for id, u := range users {
-		names[id] = u.DisplayName
+	for bizKey, u := range users {
+		names[bizKey] = u.DisplayName
 	}
 	return names
 }
 
-// indexSubItemsByMain groups sub-items by their main item ID.
-func indexSubItemsByMain(subItems []model.SubItem) map[uint][]model.SubItem {
-	result := make(map[uint][]model.SubItem)
+// indexSubItemsByMain groups sub-items by their main item BizKey.
+func indexSubItemsByMain(subItems []model.SubItem) map[int64][]model.SubItem {
+	result := make(map[int64][]model.SubItem)
 	for _, si := range subItems {
-		result[uint(si.MainItemKey)] = append(result[uint(si.MainItemKey)], si)
+		result[si.MainItemKey] = append(result[si.MainItemKey], si)
 	}
 	return result
 }
@@ -274,19 +274,19 @@ func buildSubItemSnapshot(si model.SubItem, assigneeName, progressDesc string, t
 // buildWeeklyGroups assembles the comparison groups and computes aggregate stats.
 func buildWeeklyGroups(
 	mainItems []model.MainItem,
-	subItemsByMain map[uint][]model.SubItem,
+	subItemsByMain map[int64][]model.SubItem,
 	lastWeekActive, thisWeekActive map[int64]struct{},
 	lastWeekProgress, thisWeekProgress map[int64][]model.ProgressRecord,
 	lastWeekCompletion map[int64]float64,
 	latestProgressDesc map[int64]string,
-	assigneeNames map[uint]string,
+	assigneeNames map[int64]string,
 	weekStart, weekEnd time.Time,
 ) ([]dto.WeeklyComparisonGroup, dto.WeeklyStats) {
 	var groups []dto.WeeklyComparisonGroup
 	var stats dto.WeeklyStats
 
 	for _, mi := range mainItems {
-		subs, ok := subItemsByMain[mi.ID]
+		subs, ok := subItemsByMain[mi.BizKey]
 		if !ok || len(subs) == 0 {
 			continue
 		}
@@ -309,7 +309,7 @@ func buildWeeklyGroups(
 		for _, si := range subs {
 			assigneeName := ""
 			if si.AssigneeKey != nil {
-				assigneeName = assigneeNames[uint(*si.AssigneeKey)]
+				assigneeName = assigneeNames[*si.AssigneeKey]
 			}
 
 			inThisWeek := isInThisWeek(si.BizKey, thisWeekActive, thisWeekProgress)
@@ -480,10 +480,10 @@ func (s *viewService) GanttView(ctx context.Context, teamBizKey int64, filter dt
 		return nil, err
 	}
 
-	// Index sub-items by main item ID
-	subItemsByMain := make(map[uint][]model.SubItem)
+	// Index sub-items by main item BizKey
+	subItemsByMain := make(map[int64][]model.SubItem)
 	for _, si := range subItems {
-		subItemsByMain[uint(si.MainItemKey)] = append(subItemsByMain[uint(si.MainItemKey)], si)
+		subItemsByMain[si.MainItemKey] = append(subItemsByMain[si.MainItemKey], si)
 	}
 
 	now := time.Now()
@@ -491,7 +491,7 @@ func (s *viewService) GanttView(ctx context.Context, teamBizKey int64, filter dt
 
 	items := make([]dto.GanttMainItemDTO, 0, len(mainItems))
 	for _, mi := range mainItems {
-		subs := subItemsByMain[mi.ID]
+		subs := subItemsByMain[mi.BizKey]
 		subDTOs := make([]dto.GanttSubItemDTO, 0, len(subs))
 		for _, si := range subs {
 			subDTOs = append(subDTOs, dto.GanttSubItemDTO{
@@ -833,38 +833,38 @@ func resolveAssigneeNames(ctx context.Context, rows []dto.TableRow, userRepo rep
 	if userRepo == nil {
 		return
 	}
-	// Collect unique assignee IDs
-	assigneeIDs := make(map[uint]struct{})
+	// Collect unique assignee BizKeys
+	assigneeBizKeys := make(map[int64]struct{})
 	for _, row := range rows {
 		if row.AssigneeID != nil {
 			if id, err := pkg.ParseID(*row.AssigneeID); err == nil {
-				assigneeIDs[uint(id)] = struct{}{}
+				assigneeBizKeys[id] = struct{}{}
 			}
 		}
 	}
-	if len(assigneeIDs) == 0 {
+	if len(assigneeBizKeys) == 0 {
 		return
 	}
 
-	// Batch resolve names with a single FindByIDs call
-	ids := make([]uint, 0, len(assigneeIDs))
-	for id := range assigneeIDs {
-		ids = append(ids, id)
+	// Batch resolve names with a single FindByBizKeys call
+	bizKeys := make([]int64, 0, len(assigneeBizKeys))
+	for k := range assigneeBizKeys {
+		bizKeys = append(bizKeys, k)
 	}
-	users, err := userRepo.FindByIDs(ctx, ids)
+	users, err := userRepo.FindByBizKeys(ctx, bizKeys)
 	if err != nil {
 		return
 	}
-	names := make(map[uint]string, len(users))
-	for id, u := range users {
-		names[id] = u.DisplayName
+	names := make(map[int64]string, len(users))
+	for bizKey, u := range users {
+		names[bizKey] = u.DisplayName
 	}
 
 	// Fill names into rows
 	for i := range rows {
 		if rows[i].AssigneeID != nil {
 			if id, err := pkg.ParseID(*rows[i].AssigneeID); err == nil {
-				rows[i].AssigneeName = names[uint(id)]
+				rows[i].AssigneeName = names[id]
 			}
 		}
 	}

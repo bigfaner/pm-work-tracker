@@ -14,7 +14,7 @@ const rbacMigrationVersion = "rbac_001"
 
 // MigrateToRBAC runs the RBAC data migration in a single database transaction.
 // It creates new tables, seeds preset roles, migrates team_members.role strings
-// to role_id,.
+// to role_key,.
 // It is idempotent: re-running produces no side effects (tracked via schema_migrations).
 // When autoSchema is false, DDL and schema_migrations tracking are skipped.
 // The underlying DML steps (seed roles, rebuild team_members) are idempotent on their own.
@@ -70,8 +70,8 @@ func runRBACMigration(tx *gorm.DB, autoSchema bool) error {
 		return fmt.Errorf("seed preset roles: %w", err)
 	}
 
-	// 3. Rebuild team_members table: migrate role string -> role_id and drop role column
-	// Must be done in one step (SQLite rebuild) because the existing unique index on role_id
+	// 3. Rebuild team_members table: migrate role string -> role_key and drop role column
+	// Must be done in one step (SQLite rebuild) because the existing unique index on role_key
 	// would prevent updating multiple members to the same role.
 	roleMap, err := getRoleIDMap(tx)
 	if err != nil {
@@ -121,10 +121,10 @@ func rbacTableDDL(tx *gorm.DB) []string {
     id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     deleted_flag     TINYINT(1)      NOT NULL DEFAULT 0,
     deleted_time     DATETIME        NOT NULL DEFAULT '1970-01-01 08:00:00',
-    role_id          BIGINT UNSIGNED NOT NULL,
+    role_key         BIGINT          NOT NULL,
     permission_code  VARCHAR(50)     NOT NULL,
     PRIMARY KEY (id),
-    UNIQUE KEY uk_role_permission (role_id, permission_code, deleted_flag, deleted_time)
+    UNIQUE KEY uk_role_permission (role_key, permission_code, deleted_flag, deleted_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 		}
 	}
@@ -145,9 +145,9 @@ func rbacTableDDL(tx *gorm.DB) []string {
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     deleted_flag     INTEGER      NOT NULL DEFAULT 0,
     deleted_time     DATETIME     NOT NULL DEFAULT '1970-01-01 08:00:00',
-    role_id          INTEGER      NOT NULL,
+    role_key         INTEGER      NOT NULL,
     permission_code  VARCHAR(50)  NOT NULL,
-    UNIQUE(role_id, permission_code, deleted_flag, deleted_time)
+    UNIQUE(role_key, permission_code, deleted_flag, deleted_time)
 )`,
 	}
 }
@@ -204,7 +204,7 @@ func seedRole(tx *gorm.DB, name, description string, isPreset bool, codes []stri
 		}
 		// Sync permissions: add any missing codes
 		var existingPerms []model.RolePermission
-		if err := tx.Where("role_id = ? AND deleted_flag = 0", existing.ID).Find(&existingPerms).Error; err != nil {
+		if err := tx.Where("role_key = ? AND deleted_flag = 0", existing.BizKey).Find(&existingPerms).Error; err != nil {
 			return fmt.Errorf("fetch permissions for role %s: %w", name, err)
 		}
 		existingSet := make(map[string]bool, len(existingPerms))
@@ -213,7 +213,7 @@ func seedRole(tx *gorm.DB, name, description string, isPreset bool, codes []stri
 		}
 		for _, code := range codes {
 			if !existingSet[code] {
-				rp := model.RolePermission{RoleID: existing.ID, PermissionCode: code}
+				rp := model.RolePermission{RoleKey: existing.BizKey, PermissionCode: code}
 				if err := tx.Create(&rp).Error; err != nil {
 					return fmt.Errorf("add permission %s to role %s: %w", code, name, err)
 				}
@@ -235,7 +235,7 @@ func seedRole(tx *gorm.DB, name, description string, isPreset bool, codes []stri
 	// Insert permission codes
 	for _, code := range codes {
 		rp := model.RolePermission{
-			RoleID:         role.ID,
+			RoleKey:        role.BizKey,
 			PermissionCode: code,
 		}
 		if err := tx.Create(&rp).Error; err != nil {
@@ -365,9 +365,9 @@ func teamMembersDDLMySQL() []string {
 
 // CountPermissionsForRole returns the number of permission codes bound to a role.
 // Exported for testing convenience.
-func CountPermissionsForRole(db *gorm.DB, roleID uint) (int64, error) {
+func CountPermissionsForRole(db *gorm.DB, roleKey int64) (int64, error) {
 	var count int64
-	err := db.Model(&model.RolePermission{}).Where("role_id = ?", roleID).Count(&count).Error
+	err := db.Model(&model.RolePermission{}).Where("role_key = ?", roleKey).Count(&count).Error
 	return count, err
 }
 
@@ -457,7 +457,7 @@ func VerifyPresetRoleCodes(db *gorm.DB) error {
 		}
 
 		var rolePerms []model.RolePermission
-		if err := db.Where("role_id = ?", role.ID).Find(&rolePerms).Error; err != nil {
+		if err := db.Where("role_key = ?", role.BizKey).Find(&rolePerms).Error; err != nil {
 			return fmt.Errorf("find permissions for role %s: %w", roleName, err)
 		}
 

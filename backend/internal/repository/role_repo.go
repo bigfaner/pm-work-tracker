@@ -17,15 +17,15 @@ type RoleRepo interface {
 	Delete(ctx context.Context, id uint) error
 
 	// Permission bindings
-	ListPermissions(ctx context.Context, roleID uint) ([]string, error)
-	SetPermissions(ctx context.Context, roleID uint, codes []string) error
+	ListPermissions(ctx context.Context, roleKey int64) ([]string, error)
+	SetPermissions(ctx context.Context, roleKey int64, codes []string) error
 
 	// Usage count
-	CountMembersByRoleID(ctx context.Context, roleID uint) (int64, error)
+	CountMembersByRoleKey(ctx context.Context, roleKey int64) (int64, error)
 
 	// Non-team-context: check if any of user's roles has the given permission code
-	HasPermission(ctx context.Context, userID uint, code string) (bool, error)
+	HasPermission(ctx context.Context, userBizKey int64, code string) (bool, error)
 
 	// GetUserTeamPermissions returns teamBizKey -> permission codes for all teams the user belongs to.
-	GetUserTeamPermissions(ctx context.Context, userID uint) (map[int64][]string, error)
+	GetUserTeamPermissions(ctx context.Context, userBizKey int64) (map[int64][]string, error)
 }

@@ -213,8 +213,8 @@ CREATE TABLE IF NOT EXISTS pmw_role_permissions (
     id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT       COMMENT '自增主键',
     deleted_flag     TINYINT(1)      NOT NULL DEFAULT 0            COMMENT '软删标志：0=正常，1=已删除',
     deleted_time     DATETIME        NOT NULL DEFAULT '1970-01-01 08:00:00' COMMENT '软删时间，未删除时为固定占位值',
-    role_id          BIGINT UNSIGNED NOT NULL                      COMMENT '角色 id（关联 pmw_roles.id）',
+    role_key         BIGINT          NOT NULL                      COMMENT '角色 biz_key（关联 pmw_roles.biz_key）',
     permission_code  VARCHAR(50)     NOT NULL                      COMMENT '权限码，如 item:create、item:delete',
     PRIMARY KEY (id),
-    UNIQUE KEY uk_role_permission (role_id, permission_code, deleted_flag, deleted_time)
+    UNIQUE KEY uk_role_permission (role_key, permission_code, deleted_flag, deleted_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色权限表';

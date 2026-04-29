@@ -68,6 +68,18 @@ func (r *userRepo) FindByIDs(ctx context.Context, ids []uint) (map[uint]*model.U
 	return repo.FindByIDs[model.User](r.db, ctx, ids)
 }
 
+func (r *userRepo) FindByBizKeys(ctx context.Context, bizKeys []int64) (map[int64]*model.User, error) {
+	var users []*model.User
+	if err := r.db.WithContext(ctx).Where("biz_key IN ?", bizKeys).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	result := make(map[int64]*model.User, len(users))
+	for _, u := range users {
+		result[u.BizKey] = u
+	}
+	return result, nil
+}
+
 func (r *userRepo) SoftDelete(ctx context.Context, user *model.User) error {
 	now := time.Now()
 	return r.db.WithContext(ctx).Model(user).Updates(map[string]interface{}{
@@ -93,9 +105,9 @@ func (r *userRepo) ListFiltered(ctx context.Context, search string, offset, limi
 	return users, total, nil
 }
 
-func (r *userRepo) SearchAvailable(ctx context.Context, teamID uint, search string, limit int) ([]*model.User, error) {
+func (r *userRepo) SearchAvailable(ctx context.Context, teamBizKey int64, search string, limit int) ([]*model.User, error) {
 	query := r.db.WithContext(ctx).Model(&model.User{}).Scopes(NotDeleted).
-		Where("id NOT IN (?)", r.db.Table("pmw_team_members").Select("user_key").Where("team_key = ?", teamID))
+		Where("biz_key NOT IN (?)", r.db.Table("pmw_team_members").Select("user_key").Where("team_key = ?", teamBizKey))
 	if search != "" {
 		pattern := "%" + search + "%"
 		query = query.Where("username LIKE ? OR display_name LIKE ?", pattern, pattern)

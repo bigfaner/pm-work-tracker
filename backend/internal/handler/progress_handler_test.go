@@ -114,10 +114,10 @@ type mockProgressService struct {
 	correctValue  float64
 }
 
-func (m *mockProgressService) Append(_ context.Context, teamBizKey int64, authorID, subItemID uint, completion float64, achievement, blocker, lesson string, isPM bool) (*model.ProgressRecord, error) {
+func (m *mockProgressService) Append(_ context.Context, teamBizKey int64, authorBizKey int64, subItemID uint, completion float64, achievement, blocker, lesson string, isPM bool) (*model.ProgressRecord, error) {
 	m.appendCalled = true
 	m.lastTeamBizKey = teamBizKey
-	m.lastAuthorID = authorID
+	m.lastAuthorID = uint(authorBizKey)
 	m.lastSubItemID = subItemID
 	m.lastCompletion = completion
 	m.lastAchievement = achievement
@@ -152,22 +152,22 @@ func (m *mockProgressService) List(_ context.Context, teamBizKey int64, subItemI
 
 type mockSubItemSvcForProgress struct{}
 
-func (m *mockSubItemSvcForProgress) Create(_ context.Context, _ int64, _ uint, _ dto.SubItemCreateReq) (*model.SubItem, error) {
+func (m *mockSubItemSvcForProgress) Create(_ context.Context, _ int64, _ int64, _ dto.SubItemCreateReq) (*model.SubItem, error) {
 	return nil, nil
 }
 func (m *mockSubItemSvcForProgress) Update(_ context.Context, _ int64, _ uint, _ dto.SubItemUpdateReq) error { return nil }
-func (m *mockSubItemSvcForProgress) ChangeStatus(_ context.Context, _ int64, _, _ uint, _ string) (*service.SubItemChangeResult, error) {
+func (m *mockSubItemSvcForProgress) ChangeStatus(_ context.Context, _ int64, _ int64, _ uint, _ string) (*service.SubItemChangeResult, error) {
 	return nil, nil
 }
-func (m *mockSubItemSvcForProgress) Delete(_ context.Context, _ int64, _, _ uint) error { return nil }
+func (m *mockSubItemSvcForProgress) Delete(_ context.Context, _ int64, _ int64, _ uint) error { return nil }
 func (m *mockSubItemSvcForProgress) Get(_ context.Context, _ int64, _ uint) (*model.SubItem, error) { return nil, nil }
 func (m *mockSubItemSvcForProgress) GetByBizKey(_ context.Context, bizKey int64) (*model.SubItem, error) {
 	return &model.SubItem{BaseModel: model.BaseModel{ID: uint(bizKey)}}, nil
 }
-func (m *mockSubItemSvcForProgress) List(_ context.Context, _ int64, _ *uint, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockSubItemSvcForProgress) List(_ context.Context, _ int64, _ *int64, _ dto.SubItemFilter, _ dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	return nil, nil
 }
-func (m *mockSubItemSvcForProgress) Assign(_ context.Context, _ int64, _, _, _ uint) error { return nil }
+func (m *mockSubItemSvcForProgress) Assign(_ context.Context, _ int64, _ int64, _ uint, _ int64) error { return nil }
 func (m *mockSubItemSvcForProgress) AvailableTransitions(_ context.Context, _ int64, _ uint) ([]string, error) {
 	return nil, nil
 }
@@ -224,9 +224,10 @@ func testProgressRecord(id uint, subItemID uint, authorID uint) *model.ProgressR
 
 // trackingUserRepo tracks call counts to verify batch vs individual lookups.
 type trackingUserRepo struct {
-	users              map[uint]*model.User
-	findByIDsCallCount int
-	findByIDCallCount  int
+	users                   map[uint]*model.User
+	findByIDsCallCount      int
+	findByIDCallCount       int
+	findByBizKeysCallCount  int
 }
 
 func (t *trackingUserRepo) FindByID(_ context.Context, id uint) (*model.User, error) {
@@ -243,12 +244,22 @@ func (t *trackingUserRepo) FindByIDs(_ context.Context, ids []uint) (map[uint]*m
 	}
 	return result, nil
 }
+func (t *trackingUserRepo) FindByBizKeys(_ context.Context, bizKeys []int64) (map[int64]*model.User, error) {
+	t.findByBizKeysCallCount++
+	result := make(map[int64]*model.User, len(bizKeys))
+	for _, k := range bizKeys {
+		if u, ok := t.users[uint(k)]; ok {
+			result[k] = u
+		}
+	}
+	return result, nil
+}
 func (t *trackingUserRepo) FindByUsername(_ context.Context, _ string) (*model.User, error)    { return nil, nil }
 func (t *trackingUserRepo) List(_ context.Context) ([]*model.User, error)                       { return nil, nil }
 func (t *trackingUserRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.User, int64, error) {
 	return nil, 0, nil
 }
-func (t *trackingUserRepo) SearchAvailable(_ context.Context, _ uint, _ string, _ int) ([]*model.User, error) {
+func (t *trackingUserRepo) SearchAvailable(_ context.Context, _ int64, _ string, _ int) ([]*model.User, error) {
 	return nil, nil
 }
 func (t *trackingUserRepo) Create(_ context.Context, _ *model.User) error { return nil }
@@ -655,7 +666,7 @@ func TestListProgress_UsesBatchLookup(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, 1, trackingRepo.findByIDsCallCount, "FindByIDs should be called exactly once")
+	assert.Equal(t, 1, trackingRepo.findByBizKeysCallCount, "FindByBizKeys should be called exactly once")
 	assert.Equal(t, 0, trackingRepo.findByIDCallCount, "FindByID should not be called in batch path")
 
 	var resp map[string]interface{}

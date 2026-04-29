@@ -95,10 +95,10 @@ func (r *teamRepo) AddMember(ctx context.Context, member *model.TeamMember) erro
 	return nil
 }
 
-func (r *teamRepo) RemoveMember(ctx context.Context, teamID, userID uint) error {
+func (r *teamRepo) RemoveMember(ctx context.Context, teamBizKey, userBizKey int64) error {
 	result := r.db.WithContext(ctx).
 		Model(&model.TeamMember{}).
-		Where("team_key = ? AND user_key = ? AND deleted_flag = 0", teamID, userID).
+		Where("team_key = ? AND user_key = ? AND deleted_flag = 0", teamBizKey, userBizKey).
 		Updates(map[string]any{"deleted_flag": 1, "deleted_time": time.Now()})
 	if result.Error != nil {
 		return result.Error
@@ -109,11 +109,11 @@ func (r *teamRepo) RemoveMember(ctx context.Context, teamID, userID uint) error 
 	return nil
 }
 
-func (r *teamRepo) FindMember(ctx context.Context, teamID, userID uint) (*model.TeamMember, error) {
+func (r *teamRepo) FindMember(ctx context.Context, teamBizKey, userBizKey int64) (*model.TeamMember, error) {
 	var member model.TeamMember
 	err := r.db.WithContext(ctx).
 		Scopes(NotDeleted).
-		Where("team_key = ? AND user_key = ?", teamID, userID).
+		Where("team_key = ? AND user_key = ?", teamBizKey, userBizKey).
 		First(&member).Error
 	if err != nil {
 		if stderrors.Is(err, gormlib.ErrRecordNotFound) {
@@ -124,7 +124,7 @@ func (r *teamRepo) FindMember(ctx context.Context, teamID, userID uint) (*model.
 	return &member, nil
 }
 
-func (r *teamRepo) ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMemberDTO, error) {
+func (r *teamRepo) ListMembers(ctx context.Context, teamBizKey int64) ([]*dto.TeamMemberDTO, error) {
 	type scanRow struct {
 		BizKey      int64
 		TeamKey     int64
@@ -146,11 +146,11 @@ func (r *teamRepo) ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMem
 			"COALESCE(pmw_roles.biz_key, 0) as role_id, "+
 			"COALESCE(pmw_roles.role_name, '') as role_name, "+
 			"pmw_team_members.joined_at, pmw_users.display_name, pmw_users.username").
-		Joins("LEFT JOIN pmw_users ON pmw_users.id = pmw_team_members.user_key").
+		Joins("LEFT JOIN pmw_users ON pmw_users.biz_key = pmw_team_members.user_key").
 		Joins("LEFT JOIN pmw_roles ON pmw_roles.biz_key = pmw_team_members.role_key AND pmw_roles.deleted_flag = 0").
-		Joins("LEFT JOIN pmw_teams ON pmw_teams.id = pmw_team_members.team_key").
+		Joins("LEFT JOIN pmw_teams ON pmw_teams.biz_key = pmw_team_members.team_key").
 		Scopes(NotDeletedTable("pmw_users"), NotDeletedTable("pmw_team_members")).
-		Where("pmw_team_members.team_key = ?", teamID).
+		Where("pmw_team_members.team_key = ?", teamBizKey).
 		Scan(&rows).Error
 	if err != nil {
 		return nil, err
@@ -172,12 +172,12 @@ func (r *teamRepo) ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMem
 	return results, nil
 }
 
-func (r *teamRepo) CountMembers(ctx context.Context, teamID uint) (int64, error) {
+func (r *teamRepo) CountMembers(ctx context.Context, teamBizKey int64) (int64, error) {
 	var count int64
 	err := r.db.WithContext(ctx).
 		Table("pmw_team_members").
 		Scopes(NotDeleted).
-		Where("team_key = ?", teamID).
+		Where("team_key = ?", teamBizKey).
 		Count(&count).Error
 	return count, err
 }
@@ -186,13 +186,13 @@ func (r *teamRepo) UpdateMember(ctx context.Context, member *model.TeamMember) e
 	return r.db.WithContext(ctx).Save(member).Error
 }
 
-func (r *teamRepo) FindPMMembers(ctx context.Context, teamIDs []uint) (map[uint]string, error) {
-	if len(teamIDs) == 0 {
-		return map[uint]string{}, nil
+func (r *teamRepo) FindPMMembers(ctx context.Context, teamBizKeys []int64) (map[int64]string, error) {
+	if len(teamBizKeys) == 0 {
+		return map[int64]string{}, nil
 	}
 
 	type row struct {
-		TeamKey     uint
+		TeamKey     int64
 		DisplayName string
 	}
 
@@ -200,16 +200,16 @@ func (r *teamRepo) FindPMMembers(ctx context.Context, teamIDs []uint) (map[uint]
 	err := r.db.WithContext(ctx).
 		Table("pmw_team_members").
 		Select("pmw_team_members.team_key, pmw_users.display_name").
-		Joins("JOIN pmw_users ON pmw_users.id = pmw_team_members.user_key").
+		Joins("JOIN pmw_users ON pmw_users.biz_key = pmw_team_members.user_key").
 		Joins("JOIN pmw_roles ON pmw_roles.biz_key = pmw_team_members.role_key AND pmw_roles.deleted_flag = 0").
 		Scopes(NotDeletedTable("pmw_users")).
-		Where("pmw_team_members.team_key IN ? AND pmw_roles.role_name = ?", teamIDs, "pm").
+		Where("pmw_team_members.team_key IN ? AND pmw_roles.role_name = ?", teamBizKeys, "pm").
 		Scan(&rows).Error
 	if err != nil {
 		return nil, err
 	}
 
-	result := make(map[uint]string, len(rows))
+	result := make(map[int64]string, len(rows))
 	for _, r := range rows {
 		result[r.TeamKey] = r.DisplayName
 	}
@@ -229,10 +229,10 @@ func (r *teamRepo) ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error
 	err := r.db.WithContext(ctx).
 		Table("pmw_teams").
 		Select("pmw_teams.biz_key, pmw_teams.team_name as name, pmw_users.display_name as pm_display_name, "+
-			"(SELECT COUNT(*) FROM pmw_team_members WHERE pmw_team_members.team_key = pmw_teams.id) as member_count, "+
-			"(SELECT COUNT(*) FROM pmw_main_items WHERE pmw_main_items.team_key = pmw_teams.id AND pmw_main_items.deleted_flag = 0) as main_item_count, "+
+			"(SELECT COUNT(*) FROM pmw_team_members WHERE pmw_team_members.team_key = pmw_teams.biz_key AND pmw_team_members.deleted_flag = 0) as member_count, "+
+			"(SELECT COUNT(*) FROM pmw_main_items WHERE pmw_main_items.team_key = pmw_teams.biz_key AND pmw_main_items.deleted_flag = 0) as main_item_count, "+
 			"pmw_teams.create_time as created_at").
-		Joins("LEFT JOIN pmw_users ON pmw_users.id = pmw_teams.pm_key").
+		Joins("LEFT JOIN pmw_users ON pmw_users.biz_key = pmw_teams.pm_key").
 		Scopes(NotDeletedTable("pmw_teams")).
 		Scan(&rows).Error
 	if err != nil {
@@ -295,6 +295,45 @@ func (r *teamRepo) FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[
 		result[r.UserID] = append(result[r.UserID], dto.TeamSummary{
 			BizKey: pkg.FormatID(r.BizKey),
 			TeamID: r.TeamID,
+			Name:   r.Name,
+			Role:   r.Role,
+		})
+	}
+	return result, nil
+}
+
+func (r *teamRepo) FindTeamsByUserBizKeys(ctx context.Context, userBizKeys []int64) (map[int64][]dto.TeamSummary, error) {
+	if len(userBizKeys) == 0 {
+		return map[int64][]dto.TeamSummary{}, nil
+	}
+
+	type row struct {
+		UserBizKey int64
+		TeamBizKey int64
+		Name       string
+		Role       string
+	}
+
+	var rows []row
+	err := r.db.WithContext(ctx).
+		Table("pmw_team_members").
+		Select("pmw_team_members.user_key as user_biz_key, pmw_teams.biz_key as team_biz_key, pmw_teams.team_name as name, "+
+			"CASE WHEN pmw_roles.role_name IS NOT NULL THEN pmw_roles.role_name "+
+			"     WHEN pmw_team_members.user_key = pmw_teams.pm_key THEN 'pm' "+
+			"     ELSE 'member' END as role").
+		Joins("JOIN pmw_teams ON pmw_teams.biz_key = pmw_team_members.team_key").
+		Joins("LEFT JOIN pmw_roles ON pmw_roles.biz_key = pmw_team_members.role_key AND pmw_roles.deleted_flag = 0").
+		Scopes(NotDeletedTable("pmw_teams"), NotDeletedTable("pmw_team_members")).
+		Where("pmw_team_members.user_key IN ?", userBizKeys).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[int64][]dto.TeamSummary)
+	for _, r := range rows {
+		result[r.UserBizKey] = append(result[r.UserBizKey], dto.TeamSummary{
+			BizKey: pkg.FormatID(r.TeamBizKey),
 			Name:   r.Name,
 			Role:   r.Role,
 		})

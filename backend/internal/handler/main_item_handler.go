@@ -38,7 +38,7 @@ func NewMainItemHandler(svc service.MainItemService, userRepo repository.UserRep
 // Create handles POST /api/v1/teams/:teamId/main-items
 func (h *MainItemHandler) Create(c *gin.Context) {
 	teamBizKey := middleware.GetTeamBizKey(c)
-	pmID := middleware.GetUserID(c)
+	pmBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.MainItemCreateReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -46,7 +46,7 @@ func (h *MainItemHandler) Create(c *gin.Context) {
 		return
 	}
 
-	item, err := h.svc.Create(c.Request.Context(), teamBizKey, pmID, req)
+	item, err := h.svc.Create(c.Request.Context(), teamBizKey, pmBizKey, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -106,7 +106,7 @@ func (h *MainItemHandler) Get(c *gin.Context) {
 	itemVO := vo.NewMainItemVO(item)
 
 	// Fetch subItems summary
-	subItems, _ := h.subItemRepo.ListByMainItem(c.Request.Context(), item.ID)
+	subItems, _ := h.subItemRepo.ListByMainItem(c.Request.Context(), item.BizKey)
 
 	apperrors.RespondOK(c, gin.H{
 		"bizKey":          itemVO.BizKey,
@@ -200,7 +200,7 @@ func (h *MainItemHandler) ChangeStatus(c *gin.Context) {
 	}
 
 	teamBizKey := middleware.GetTeamBizKey(c)
-	callerID := middleware.GetUserID(c)
+	callerBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.ChangeStatusReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -214,7 +214,7 @@ func (h *MainItemHandler) ChangeStatus(c *gin.Context) {
 		return
 	}
 
-	item, err := h.svc.ChangeStatus(c.Request.Context(), teamBizKey, callerID, record.ID, req.Status)
+	item, err := h.svc.ChangeStatus(c.Request.Context(), teamBizKey, callerBizKey, record.ID, req.Status)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -231,7 +231,7 @@ func (h *MainItemHandler) AvailableTransitions(c *gin.Context) {
 	}
 
 	teamBizKey := middleware.GetTeamBizKey(c)
-	callerID := middleware.GetUserID(c)
+	callerBizKey := middleware.GetUserBizKey(c)
 
 	record, err := h.svc.GetByBizKey(c.Request.Context(), bizKey)
 	if err != nil {
@@ -239,7 +239,7 @@ func (h *MainItemHandler) AvailableTransitions(c *gin.Context) {
 		return
 	}
 
-	transitions, err := h.svc.AvailableTransitions(c.Request.Context(), teamBizKey, callerID, record.ID)
+	transitions, err := h.svc.AvailableTransitions(c.Request.Context(), teamBizKey, callerBizKey, record.ID)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

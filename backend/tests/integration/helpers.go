@@ -149,10 +149,10 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	hashAdmin, err := bcrypt.GenerateFromPassword([]byte("adminPass"), 4)
 	require.NoError(t, err)
 
-	userA := &model.User{Username: "userA", DisplayName: "User A", PasswordHash: string(hashA)}
-	userB := &model.User{Username: "userB", DisplayName: "User B", PasswordHash: string(hashB)}
-	memberA := &model.User{Username: "memberA", DisplayName: "Member A", PasswordHash: string(hashMemberA)}
-	superAdmin := &model.User{
+	userA := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "userA", DisplayName: "User A", PasswordHash: string(hashA)}
+	userB := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "userB", DisplayName: "User B", PasswordHash: string(hashB)}
+	memberA := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "memberA", DisplayName: "Member A", PasswordHash: string(hashMemberA)}
+	superAdmin := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
 		Username: "superadmin", DisplayName: "Super Admin",
 		PasswordHash: string(hashAdmin), IsSuperAdmin: true,
 	}
@@ -178,7 +178,7 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		"view:weekly", "view:gantt", "view:table", "report:export",
 	}
 	for _, code := range pmPermCodes {
-		require.NoError(t, db.Create(&model.RolePermission{RoleID: pmRole.ID, PermissionCode: code}).Error)
+		require.NoError(t, db.Create(&model.RolePermission{RoleKey: pmRole.BizKey, PermissionCode: code}).Error)
 	}
 	// Member gets limited permissions
 	memberPermCodes := []string{
@@ -187,25 +187,25 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		"item_pool:submit", "view:weekly", "view:table", "report:export",
 	}
 	for _, code := range memberPermCodes {
-		require.NoError(t, db.Create(&model.RolePermission{RoleID: memberRole.ID, PermissionCode: code}).Error)
+		require.NoError(t, db.Create(&model.RolePermission{RoleKey: memberRole.BizKey, PermissionCode: code}).Error)
 	}
 
 	// Seed teams (with BizKey so middleware can resolve bizKey to internal ID)
-	teamA := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team A", PmKey: int64(userA.ID), Code: "TAMA"}
-	teamB := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team B", PmKey: int64(userB.ID), Code: "TAMB"}
+	teamA := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team A", PmKey: userA.BizKey, Code: "TAMA"}
+	teamB := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team B", PmKey: userB.BizKey, Code: "TAMB"}
 	require.NoError(t, db.Create(teamA).Error)
 	require.NoError(t, db.Create(teamB).Error)
 
 	// Seed team members (with RoleID pointing to seeded roles)
 	now := time.Now()
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamA.ID), UserKey: int64(userA.ID), RoleKey: &pmRole.BizKey, JoinedAt: now,
+		TeamKey: teamA.BizKey, UserKey: userA.BizKey, RoleKey: &pmRole.BizKey, JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamA.ID), UserKey: int64(memberA.ID), RoleKey: &memberRole.BizKey, JoinedAt: now,
+		TeamKey: teamA.BizKey, UserKey: memberA.BizKey, RoleKey: &memberRole.BizKey, JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamB.ID), UserKey: int64(userB.ID), RoleKey: &pmRole.BizKey, JoinedAt: now,
+		TeamKey: teamB.BizKey, UserKey: userB.BizKey, RoleKey: &pmRole.BizKey, JoinedAt: now,
 	}).Error)
 
 	return db, &seedData{
@@ -286,10 +286,10 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	hashAdmin, err := bcrypt.GenerateFromPassword([]byte("adminPass"), 4)
 	require.NoError(t, err)
 
-	userA := &model.User{Username: "userA", DisplayName: "User A", PasswordHash: string(hashA)}
-	userB := &model.User{Username: "userB", DisplayName: "User B", PasswordHash: string(hashB)}
-	memberA := &model.User{Username: "memberA", DisplayName: "Member A", PasswordHash: string(hashMemberA)}
-	superAdmin := &model.User{
+	userA := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "userA", DisplayName: "User A", PasswordHash: string(hashA)}
+	userB := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "userB", DisplayName: "User B", PasswordHash: string(hashB)}
+	memberA := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "memberA", DisplayName: "Member A", PasswordHash: string(hashMemberA)}
+	superAdmin := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
 		Username: "superadmin", DisplayName: "Super Admin",
 		PasswordHash: string(hashAdmin), IsSuperAdmin: true,
 	}
@@ -305,11 +305,9 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 
 	pmRole := model.Role{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Name: "pm", Description: "Project Manager", IsPreset: true}
 	require.NoError(t, db.Create(&pmRole).Error)
-	pmRoleID := pmRole.ID
 
 	memberRole := model.Role{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Name: "member", Description: "Team Member", IsPreset: true}
 	require.NoError(t, db.Create(&memberRole).Error)
-	memberRoleID := memberRole.ID
 
 	// PM permissions (matching migration)
 	pmPermCodes := []string{
@@ -324,7 +322,7 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		"user:read",
 	}
 	for _, code := range pmPermCodes {
-		require.NoError(t, db.Create(&model.RolePermission{RoleID: pmRoleID, PermissionCode: code}).Error)
+		require.NoError(t, db.Create(&model.RolePermission{RoleKey: pmRole.BizKey, PermissionCode: code}).Error)
 	}
 
 	// Member permissions (matching migration)
@@ -337,28 +335,28 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		"report:export",
 	}
 	for _, code := range memberPermCodes {
-		require.NoError(t, db.Create(&model.RolePermission{RoleID: memberRoleID, PermissionCode: code}).Error)
+		require.NoError(t, db.Create(&model.RolePermission{RoleKey: memberRole.BizKey, PermissionCode: code}).Error)
 	}
 
 	// Superadmin has no permission codes (bypasses all checks)
 	_ = superadminRole
 
 	// Seed teams (with BizKey so middleware can resolve bizKey to internal ID)
-	teamA := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team A", PmKey: int64(userA.ID), Code: "TAMA"}
-	teamB := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team B", PmKey: int64(userB.ID), Code: "TAMB"}
+	teamA := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team A", PmKey: userA.BizKey, Code: "TAMA"}
+	teamB := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team B", PmKey: userB.BizKey, Code: "TAMB"}
 	require.NoError(t, db.Create(teamA).Error)
 	require.NoError(t, db.Create(teamB).Error)
 
 	// Seed team members
 	now := time.Now()
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamA.ID), UserKey: int64(userA.ID), RoleKey: &pmRole.BizKey, JoinedAt: now,
+		TeamKey: teamA.BizKey, UserKey: userA.BizKey, RoleKey: &pmRole.BizKey, JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamA.ID), UserKey: int64(memberA.ID), RoleKey: &memberRole.BizKey, JoinedAt: now,
+		TeamKey: teamA.BizKey, UserKey: memberA.BizKey, RoleKey: &memberRole.BizKey, JoinedAt: now,
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey: int64(teamB.ID), UserKey: int64(userB.ID), RoleKey: &pmRole.BizKey, JoinedAt: now,
+		TeamKey: teamB.BizKey, UserKey: userB.BizKey, RoleKey: &pmRole.BizKey, JoinedAt: now,
 	}).Error)
 
 	return db, &seedData{
@@ -454,7 +452,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) 
 		Code:         "TAMA-00001",
 		Title:        "Test Main Item",
 		Priority:     "P1",
-		ProposerKey:  int64(userID),
+		ProposerKey:  getUserBizKey(t, db, userID),
 		ItemStatus:   "pending",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
@@ -462,7 +460,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) 
 	sub1 := &model.SubItem{
 		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:       teamBizKey,
-		MainItemKey:   int64(mainItem.ID),
+		MainItemKey:   mainItem.BizKey,
 		Title:         "Sub Item 1",
 		Priority:      "P2",
 		ItemStatus:    "pending",
@@ -473,7 +471,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) 
 	sub2 := &model.SubItem{
 		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:       teamBizKey,
-		MainItemKey:   int64(mainItem.ID),
+		MainItemKey:   mainItem.BizKey,
 		Title:         "Sub Item 2",
 		Priority:      "P2",
 		ItemStatus:    "pending",
@@ -508,7 +506,7 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) (poo
 		TeamKey:       teamBizKey,
 		Title:         "Pool Item Title",
 		Background:    "Some background",
-		SubmitterKey:  int64(userID),
+		SubmitterKey:  getUserBizKey(t, db, userID),
 		PoolStatus:    "pending",
 	}
 	require.NoError(t, db.Create(poolItem).Error)
@@ -519,7 +517,7 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) (poo
 		Code:         "TAMA-00002",
 		Title:        "Main Item for Pool",
 		Priority:     "P1",
-		ProposerKey:  int64(userID),
+		ProposerKey:  getUserBizKey(t, db, userID),
 		ItemStatus:   "pending",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
@@ -537,7 +535,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, we
 		Code:         "TAMA-00003",
 		Title:        "Report Test Main Item",
 		Priority:     "P1",
-		ProposerKey:  int64(userID),
+		ProposerKey:  getUserBizKey(t, db, userID),
 		ItemStatus:   "progressing",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
@@ -545,7 +543,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, we
 	subItem := &model.SubItem{
 		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:       teamBizKey,
-		MainItemKey:   int64(mainItem.ID),
+		MainItemKey:   mainItem.BizKey,
 		Title:         "Report Test Sub Item",
 		Priority:      "P2",
 		ItemStatus:    "progressing",
@@ -559,7 +557,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, we
 		BizKey:      snowflake.Generate(),
 		SubItemKey:  subItem.BizKey,
 		TeamKey:     teamBizKey,
-		AuthorKey:   int64(userID),
+		AuthorKey:   getUserBizKey(t, db, userID),
 		Completion:  50,
 		Achievement: "Completed half the work",
 		CreateTime:  weekStart.Add(24 * time.Hour), // Tuesday of the week
@@ -592,13 +590,12 @@ func getSubItem(t *testing.T, db *gorm.DB, id uint) *model.SubItem {
 
 // ========== Role Lookup Helpers ==========
 
-// findRoleKeyByName looks up a role BizKey by name from the database.
-// Returns BizKey (snowflake ID) as uint, not the auto-increment ID.
-func findRoleKeyByName(t *testing.T, db *gorm.DB, name string) uint {
+// findRoleByName looks up a role by name from the database.
+func findRoleByName(t *testing.T, db *gorm.DB, name string) *model.Role {
 	t.Helper()
 	var role model.Role
 	require.NoError(t, db.Where("role_name = ?", name).First(&role).Error)
-	return uint(role.BizKey)
+	return &role
 }
 
 // findRoleBizKeyByName looks up a role's BizKey as string by name from the database.
@@ -638,9 +635,9 @@ func setupLifecycleTest(t *testing.T) (*gin.Engine, *seedData, *gorm.DB) {
 	db, data := setupRBACTestDB(t)
 
 	// Add main_item:change_status permission for PM role (required by router but missing from seed)
-	pmRoleID := findRoleKeyByName(t, db, "pm")
+	pmRole := findRoleByName(t, db, "pm")
 	require.NoError(t, db.Create(&model.RolePermission{
-		RoleID:         pmRoleID,
+		RoleKey:        pmRole.BizKey,
 		PermissionCode: "main_item:change_status",
 	}).Error)
 
@@ -717,7 +714,7 @@ func createTeamWithMembers(t *testing.T, db *gorm.DB, pmID uint, memberCount int
 	team := &model.Team{
 		BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
 		TeamName:  fmt.Sprintf("Team-PM%d-M%d", pmID, memberCount),
-		PmKey:     int64(pmID),
+		PmKey:     getUserBizKey(t, db, pmID),
 		Code:      fmt.Sprintf("TPM%d", pmID),
 	}
 	require.NoError(t, db.Create(team).Error)
@@ -725,8 +722,8 @@ func createTeamWithMembers(t *testing.T, db *gorm.DB, pmID uint, memberCount int
 	// Add PM as team member with PM role
 	pmRoleBizKey := findRoleBizKeyInt64ByName(t, db, "pm")
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey:  int64(team.ID),
-		UserKey:  int64(pmID),
+		TeamKey:  team.BizKey,
+		UserKey:  getUserBizKey(t, db, pmID),
 		RoleKey:  &pmRoleBizKey,
 		JoinedAt: time.Now(),
 	}).Error)
@@ -743,8 +740,8 @@ func createTeamWithMembers(t *testing.T, db *gorm.DB, pmID uint, memberCount int
 		}
 		require.NoError(t, db.Create(member).Error)
 		require.NoError(t, db.Create(&model.TeamMember{
-			TeamKey:  int64(team.ID),
-			UserKey:  int64(member.ID),
+			TeamKey:  team.BizKey,
+			UserKey:  member.BizKey,
 			RoleKey:  &memberRoleBizKey,
 			JoinedAt: time.Now(),
 		}).Error)
@@ -786,6 +783,14 @@ func createMainItem(t *testing.T, r *gin.Engine, token string, teamBizKey int64,
 }
 
 // ========== User Data Helpers ==========
+
+// getUserBizKey resolves a user's auto-increment ID to their BizKey.
+func getUserBizKey(t *testing.T, db *gorm.DB, userID uint) int64 {
+	t.Helper()
+	var u model.User
+	require.NoError(t, db.First(&u, userID).Error)
+	return u.BizKey
+}
 
 // backfillUserBizKeys sets unique bizKeys on seeded users that have biz_key = 0.
 func backfillUserBizKeys(t *testing.T, db *gorm.DB) {

@@ -42,8 +42,8 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleR
 		}
 
 		// 3. Look up TeamMember record
-		userID := GetUserID(c)
-		member, err := teamRepo.FindMember(c.Request.Context(), team.ID, userID)
+		userBizKey := GetUserBizKey(c)
+		member, err := teamRepo.FindMember(c.Request.Context(), team.BizKey, userBizKey)
 		if err != nil {
 			c.Abort()
 			apperrors.RespondError(c, apperrors.ErrNotTeamMember)
@@ -60,7 +60,7 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleR
 				apperrors.RespondError(c, apperrors.ErrInternal)
 				return
 			}
-			codes, err := roleRepo.ListPermissions(c.Request.Context(), role.ID)
+			codes, err := roleRepo.ListPermissions(c.Request.Context(), role.BizKey)
 			if err != nil {
 				c.Abort()
 				apperrors.RespondError(c, apperrors.ErrInternal)

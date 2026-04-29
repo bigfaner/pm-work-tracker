@@ -62,7 +62,7 @@ type mockSubItemService struct {
 	lastItemID  uint
 
 	listCalled    bool
-	lastMainID    *uint
+	lastMainID    *int64
 	lastFilter    dto.SubItemFilter
 	lastPage      dto.Pagination
 
@@ -80,10 +80,10 @@ type mockSubItemService struct {
 	availableTransitionsCalled bool
 }
 
-func (m *mockSubItemService) Create(_ context.Context, teamBizKey int64, callerID uint, req dto.SubItemCreateReq) (*model.SubItem, error) {
+func (m *mockSubItemService) Create(_ context.Context, teamBizKey int64, callerBizKey int64, req dto.SubItemCreateReq) (*model.SubItem, error) {
 	m.createCalled = true
 	m.lastTeamID = uint(teamBizKey)
-	m.lastCallerID = callerID
+	m.lastCallerID = uint(callerBizKey)
 	m.lastCreateReq = req
 	return m.createResult.item, m.createResult.err
 }
@@ -96,10 +96,10 @@ func (m *mockSubItemService) Update(_ context.Context, teamBizKey int64, itemID 
 	return m.updateResult.err
 }
 
-func (m *mockSubItemService) ChangeStatus(_ context.Context, teamBizKey int64, callerID, itemID uint, newStatus string) (*service.SubItemChangeResult, error) {
+func (m *mockSubItemService) ChangeStatus(_ context.Context, teamBizKey int64, callerBizKey int64, itemID uint, newStatus string) (*service.SubItemChangeResult, error) {
 	m.changeStatusCalled = true
 	m.lastTeamID = uint(teamBizKey)
-	m.lastCallerID = callerID
+	m.lastCallerID = uint(callerBizKey)
 	m.lastItemID = itemID
 	m.lastNewStatus = newStatus
 	return m.changeStatusResult.result, m.changeStatusResult.err
@@ -112,7 +112,7 @@ func (m *mockSubItemService) Get(_ context.Context, teamBizKey int64, itemID uin
 	return m.getResult.item, m.getResult.err
 }
 
-func (m *mockSubItemService) List(_ context.Context, teamBizKey int64, mainItemID *uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (m *mockSubItemService) List(_ context.Context, teamBizKey int64, mainItemID *int64, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	m.listCalled = true
 	m.lastTeamID = uint(teamBizKey)
 	m.lastMainID = mainItemID
@@ -121,12 +121,12 @@ func (m *mockSubItemService) List(_ context.Context, teamBizKey int64, mainItemI
 	return m.listResult.page, m.listResult.err
 }
 
-func (m *mockSubItemService) Assign(_ context.Context, teamBizKey int64, pmID, itemID, assigneeID uint) error {
+func (m *mockSubItemService) Assign(_ context.Context, teamBizKey int64, pmBizKey int64, itemID uint, assigneeBizKey int64) error {
 	m.assignCalled = true
 	m.lastTeamID = uint(teamBizKey)
-	m.lastPmID = pmID
+	m.lastPmID = uint(pmBizKey)
 	m.lastItemID = itemID
-	m.lastAssigneeID = assigneeID
+	m.lastAssigneeID = uint(assigneeBizKey)
 	return m.assignResult.err
 }
 
@@ -136,7 +136,7 @@ func (m *mockSubItemService) AvailableTransitions(_ context.Context, teamBizKey 
 	m.lastItemID = subID
 	return m.availableTransitionsResult.transitions, m.availableTransitionsResult.err
 }
-func (m *mockSubItemService) Delete(_ context.Context, _ int64, _, _ uint) error {
+func (m *mockSubItemService) Delete(_ context.Context, _ int64, _ int64, _ uint) error {
 	return nil
 }
 func (m *mockSubItemService) GetByBizKey(_ context.Context, bizKey int64) (*model.SubItem, error) {
@@ -146,7 +146,7 @@ func (m *mockSubItemService) GetByBizKey(_ context.Context, bizKey int64) (*mode
 // mockMainItemSvcForSubItem resolves bizKey for SubItemHandler List tests.
 type mockMainItemSvcForSubItem struct{}
 
-func (m *mockMainItemSvcForSubItem) Create(_ context.Context, _ int64, _ uint, _ dto.MainItemCreateReq) (*model.MainItem, error) {
+func (m *mockMainItemSvcForSubItem) Create(_ context.Context, _ int64, _ int64, _ dto.MainItemCreateReq) (*model.MainItem, error) {
 	return nil, nil
 }
 func (m *mockMainItemSvcForSubItem) Update(_ context.Context, _ int64, _ uint, _ dto.MainItemUpdateReq) error { return nil }
@@ -158,14 +158,14 @@ func (m *mockMainItemSvcForSubItem) Get(_ context.Context, _ uint) (*model.MainI
 func (m *mockMainItemSvcForSubItem) GetByBizKey(_ context.Context, bizKey int64) (*model.MainItem, error) {
 	return &model.MainItem{BaseModel: model.BaseModel{ID: uint(bizKey)}}, nil
 }
-func (m *mockMainItemSvcForSubItem) RecalcCompletion(_ context.Context, _ uint) error { return nil }
-func (m *mockMainItemSvcForSubItem) ChangeStatus(_ context.Context, _ int64, _, _ uint, _ string) (*model.MainItem, error) {
+func (m *mockMainItemSvcForSubItem) RecalcCompletion(_ context.Context, _ int64) error { return nil }
+func (m *mockMainItemSvcForSubItem) ChangeStatus(_ context.Context, _ int64, _ int64, _ uint, _ string) (*model.MainItem, error) {
 	return nil, nil
 }
-func (m *mockMainItemSvcForSubItem) AvailableTransitions(_ context.Context, _ int64, _, _ uint) ([]string, error) {
+func (m *mockMainItemSvcForSubItem) AvailableTransitions(_ context.Context, _ int64, _ int64, _ uint) ([]string, error) {
 	return nil, nil
 }
-func (m *mockMainItemSvcForSubItem) EvaluateLinkage(_ context.Context, _ uint, _ uint) (*service.LinkageResult, error) {
+func (m *mockMainItemSvcForSubItem) EvaluateLinkage(_ context.Context, _ int64, _ int64) (*service.LinkageResult, error) {
 	return nil, nil
 }
 

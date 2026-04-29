@@ -61,7 +61,7 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 		"report:export", "user:read", "user:update", "user:manage_role",
 	}
 	for _, code := range allPermCodes {
-		require.NoError(t, db.Create(&model.RolePermission{RoleID: pmRole.ID, PermissionCode: code}).Error)
+		require.NoError(t, db.Create(&model.RolePermission{RoleKey: pmRole.BizKey, PermissionCode: code}).Error)
 	}
 
 	// Seed a member role with standard member permissions.
@@ -75,7 +75,7 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 		"item_pool:submit", "view:weekly", "view:table", "report:export",
 	}
 	for _, code := range memberPermCodes {
-		require.NoError(t, db.Create(&model.RolePermission{RoleID: memberRole.ID, PermissionCode: code}).Error)
+		require.NoError(t, db.Create(&model.RolePermission{RoleKey: memberRole.BizKey, PermissionCode: code}).Error)
 	}
 
 	// Seed test users so AuthMiddleware can load them.
@@ -83,18 +83,15 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 	// ID=2: regular member (used by most handler tests)
 	// ID=5: regular member (used by item pool and other handler tests)
 	require.NoError(t, db.Create(&model.User{
+		BaseModel:    model.BaseModel{BizKey: 1},
 		Username:     "admin",
 		DisplayName:  "Admin User",
 		IsSuperAdmin: true,
 	}).Error)
 	require.NoError(t, db.Create(&model.User{
 		Username:     "testuser1",
+		BaseModel:    model.BaseModel{BizKey: 2},
 		DisplayName:  "Test User 1",
-		IsSuperAdmin: false,
-	}).Error)
-	require.NoError(t, db.Create(&model.User{
-		Username:     "testmember5",
-		DisplayName:  "Test Member 5",
 		IsSuperAdmin: false,
 	}).Error)
 	// Ensure we have user ID=5 by creating users until we reach it
@@ -105,6 +102,7 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 			break
 		}
 		db.Create(&model.User{
+			BaseModel:    model.BaseModel{BizKey: int64(i)},
 			Username:     fmt.Sprintf("testuser%d", i),
 			DisplayName:  fmt.Sprintf("Test User %d", i),
 			IsSuperAdmin: false,
@@ -507,8 +505,8 @@ func (m *mockTeamRepo) FindByBizKey(_ context.Context, bizKey int64) (*model.Tea
 func (m *mockTeamRepo) AddMember(_ context.Context, _ *model.TeamMember) error {
 	return nil
 }
-func (m *mockTeamRepo) RemoveMember(_ context.Context, _, _ uint) error { return nil }
-func (m *mockTeamRepo) FindMember(_ context.Context, _, _ uint) (*model.TeamMember, error) {
+func (m *mockTeamRepo) RemoveMember(_ context.Context, _, _ int64) error { return nil }
+func (m *mockTeamRepo) FindMember(_ context.Context, _, _ int64) (*model.TeamMember, error) {
 	if m.member != nil {
 		return m.member, nil
 	}
@@ -516,10 +514,10 @@ func (m *mockTeamRepo) FindMember(_ context.Context, _, _ uint) (*model.TeamMemb
 	pmRoleID := uint(1)
 	return &model.TeamMember{ RoleKey: func() *int64 { v := int64(pmRoleID); return &v }()}, nil
 }
-func (m *mockTeamRepo) ListMembers(_ context.Context, _ uint) ([]*dto.TeamMemberDTO, error) {
+func (m *mockTeamRepo) ListMembers(_ context.Context, _ int64) ([]*dto.TeamMemberDTO, error) {
 	return nil, nil
 }
-func (m *mockTeamRepo) CountMembers(_ context.Context, _ uint) (int64, error) {
+func (m *mockTeamRepo) CountMembers(_ context.Context, _ int64) (int64, error) {
 	return 0, nil
 }
 func (m *mockTeamRepo) UpdateMember(_ context.Context, _ *model.TeamMember) error {
@@ -529,12 +527,16 @@ func (m *mockTeamRepo) ListAllTeams(_ context.Context) ([]*dto.AdminTeamDTO, err
 	return nil, nil
 }
 
-func (m *mockTeamRepo) FindPMMembers(_ context.Context, _ []uint) (map[uint]string, error) {
-	return map[uint]string{}, nil
+func (m *mockTeamRepo) FindPMMembers(_ context.Context, _ []int64) (map[int64]string, error) {
+	return map[int64]string{}, nil
 }
 
 func (m *mockTeamRepo) FindTeamsByUserIDs(_ context.Context, _ []uint) (map[uint][]dto.TeamSummary, error) {
 	return map[uint][]dto.TeamSummary{}, nil
+}
+
+func (m *mockTeamRepo) FindTeamsByUserBizKeys(_ context.Context, _ []int64) (map[int64][]dto.TeamSummary, error) {
+	return map[int64][]dto.TeamSummary{}, nil
 }
 
 // stubAuthService is a minimal stub for service.AuthService used by testDeps.

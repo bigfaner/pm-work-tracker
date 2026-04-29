@@ -14,8 +14,8 @@ type SubItemRepo interface {
 	FindByBizKey(ctx context.Context, bizKey int64) (*model.SubItem, error)
 	Update(ctx context.Context, item *model.SubItem, fields map[string]interface{}) error
 	SoftDelete(ctx context.Context, id uint) error
-	List(ctx context.Context, teamBizKey int64, mainItemID uint, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error)
-	ListByMainItem(ctx context.Context, mainItemID uint) ([]*model.SubItem, error)
+	List(ctx context.Context, teamBizKey int64, mainItemBizKey int64, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error)
+	ListByMainItem(ctx context.Context, mainItemBizKey int64) ([]*model.SubItem, error)
 	ListByTeam(ctx context.Context, teamBizKey int64) ([]model.SubItem, error)
-	NextSubCode(ctx context.Context, mainItemID uint) (string, error)
+	NextSubCode(ctx context.Context, mainItemBizKey int64) (string, error)
 }

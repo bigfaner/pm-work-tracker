@@ -18,12 +18,12 @@ type TeamRepo interface {
 
 	// TeamMember operations
 	AddMember(ctx context.Context, member *model.TeamMember) error
-	RemoveMember(ctx context.Context, teamID, userID uint) error
-	FindMember(ctx context.Context, teamID, userID uint) (*model.TeamMember, error)
-	ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMemberDTO, error)
-	CountMembers(ctx context.Context, teamID uint) (int64, error)
+	RemoveMember(ctx context.Context, teamBizKey, userBizKey int64) error
+	FindMember(ctx context.Context, teamBizKey, userBizKey int64) (*model.TeamMember, error)
+	ListMembers(ctx context.Context, teamBizKey int64) ([]*dto.TeamMemberDTO, error)
+	CountMembers(ctx context.Context, teamBizKey int64) (int64, error)
 	UpdateMember(ctx context.Context, member *model.TeamMember) error
-	FindPMMembers(ctx context.Context, teamIDs []uint) (map[uint]string, error)
+	FindPMMembers(ctx context.Context, teamBizKeys []int64) (map[int64]string, error)
 
 	// Paginated list with optional search
 	ListFiltered(ctx context.Context, search string, offset, limit int) ([]*model.Team, int64, error)
@@ -31,16 +31,17 @@ type TeamRepo interface {
 	// Admin operations
 	ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error)
 	FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[uint][]dto.TeamSummary, error)
+	FindTeamsByUserBizKeys(ctx context.Context, userBizKeys []int64) (map[int64][]dto.TeamSummary, error)
 }
 
 // TeamMemberRepo defines persistence operations for TeamMember entities.
 type TeamMemberRepo interface {
 	AddMember(ctx context.Context, member *model.TeamMember) error
-	RemoveMember(ctx context.Context, teamID, userID uint) error
-	FindMember(ctx context.Context, teamID, userID uint) (*model.TeamMember, error)
-	ListMembers(ctx context.Context, teamID uint) ([]*dto.TeamMemberDTO, error)
-	CountMembers(ctx context.Context, teamID uint) (int64, error)
+	RemoveMember(ctx context.Context, teamBizKey, userBizKey int64) error
+	FindMember(ctx context.Context, teamBizKey, userBizKey int64) (*model.TeamMember, error)
+	ListMembers(ctx context.Context, teamBizKey int64) ([]*dto.TeamMemberDTO, error)
+	CountMembers(ctx context.Context, teamBizKey int64) (int64, error)
 	UpdateMember(ctx context.Context, member *model.TeamMember) error
-	FindPMMembers(ctx context.Context, teamIDs []uint) (map[uint]string, error)
+	FindPMMembers(ctx context.Context, teamBizKeys []int64) (map[int64]string, error)
 	SoftDelete(ctx context.Context, id uint) error
 }
