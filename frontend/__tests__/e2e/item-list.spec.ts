@@ -200,40 +200,39 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
   });
 
   // ====== STEP 6: SUMMARY VIEW - EXPAND SUB-ITEMS ======
-  // NOTE: list API不返回subItems，展开功能暂时无法测试
-  test.skip('6.1 展开主事项查看子事项', async ({ page }) => {
+  test('6.1 展开主事项查看子事项', async ({ page }) => {
     await login(page);
     await page.waitForTimeout(2000);
     const itemTitle = page.locator('text=E2E测试-主事项-详情页').first();
     await expect(itemTitle).toBeVisible({ timeout: 10000 });
-    await clickCardToExpand(page, 'E2E测试-主事项-详情页');
-    await page.waitForTimeout(1000);
-    await expect(page.locator('text=E2E测试-子事项-详情页')).toBeVisible({ timeout: 5000 });
+    await page.locator(`[data-testid="expand-card-${testMainItemId}"]`).dispatchEvent('click');
+    await page.waitForTimeout(1500);
+    await expect(page.locator('text=E2E测试-子事项-详情页')).toBeVisible({ timeout: 8000 });
   });
 
-  test.skip('6.2 再次点击折叠子事项', async ({ page }) => {
+  test('6.2 再次点击折叠子事项', async ({ page }) => {
     await login(page);
     await page.waitForTimeout(2000);
     const itemTitle = page.locator('text=E2E测试-主事项-详情页').first();
     await expect(itemTitle).toBeVisible({ timeout: 10000 });
-    await clickCardToExpand(page, 'E2E测试-主事项-详情页');
-    await page.waitForTimeout(1000);
-    await expect(page.locator('text=E2E测试-子事项-详情页')).toBeVisible();
-    await clickCardToExpand(page, 'E2E测试-主事项-详情页');
+    await page.locator(`[data-testid="expand-card-${testMainItemId}"]`).dispatchEvent('click');
+    await page.waitForTimeout(1500);
+    await expect(page.locator('text=E2E测试-子事项-详情页')).toBeVisible({ timeout: 8000 });
+    await page.locator(`[data-testid="expand-card-${testMainItemId}"]`).dispatchEvent('click');
     await page.waitForTimeout(1000);
     const subVisible = await page.locator('text=E2E测试-子事项-详情页').isVisible().catch(() => false);
     expect(subVisible).toBe(false);
   });
 
-  test.skip('6.3 子事项链接跳转到子事项详情页', async ({ page }) => {
+  test('6.3 子事项链接跳转到子事项详情页', async ({ page }) => {
     await login(page);
     await page.waitForTimeout(2000);
     const itemTitle = page.locator('text=E2E测试-主事项-详情页').first();
     await expect(itemTitle).toBeVisible({ timeout: 10000 });
-    await clickCardToExpand(page, 'E2E测试-主事项-详情页');
-    await page.waitForTimeout(1000);
+    await page.locator(`[data-testid="expand-card-${testMainItemId}"]`).dispatchEvent('click');
+    await page.waitForTimeout(1500);
     const subLink = page.locator('a:has-text("E2E测试-子事项-详情页")');
-    await expect(subLink).toBeVisible({ timeout: 5000 });
+    await expect(subLink).toBeVisible({ timeout: 8000 });
     await subLink.click();
     await page.waitForTimeout(2000);
     expect(page.url()).toMatch(/\/items\/\d+\/sub\/\d+/);
