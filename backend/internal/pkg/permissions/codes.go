@@ -81,9 +81,19 @@ var Registry = []ResourcePermissions{
 	{
 		Resource: "user",
 		Permissions: []Permission{
-			{Code: "user:read", Description: "查看用户信息"},
+			{Code: "user:list", Description: "列出用户（成员选择器、用户列表页）"},
+			{Code: "user:read", Description: "查看用户详情（含敏感字段，用户管理页）"},
 			{Code: "user:update", Description: "编辑用户信息"},
-			{Code: "user:manage_role", Description: "管理角色定义"},
+			{Code: "user:assign_role", Description: "给用户分配角色"},
+		},
+	},
+	{
+		Resource: "role",
+		Permissions: []Permission{
+			{Code: "role:read", Description: "查看角色列表和详情"},
+			{Code: "role:create", Description: "创建新角色"},
+			{Code: "role:update", Description: "编辑角色名称、描述、权限码"},
+			{Code: "role:delete", Description: "删除自定义角色"},
 		},
 	},
 }

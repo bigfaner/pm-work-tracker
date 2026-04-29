@@ -4,28 +4,51 @@
   "design": "design/tech-design.md",
   "created": "2026-04-28",
   "status": "planning",
-  "statusEnum": ["pending", "in_progress", "completed", "blocked", "skipped"],
-  "priorityEnum": ["P0", "P1", "P2"],
-  "e2eRound": 0,
   "tasks": {
+    "1-gate": {
+      "id": "1.gate",
+      "title": "Phase 1 Exit Gate",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "1.summary"
+      ],
+      "status": "pending",
+      "file": "1-gate.md",
+      "record": "records/1-gate.md",
+      "breaking": true
+    },
+    "1-summary": {
+      "id": "1.summary",
+      "title": "Phase 1 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "1.x"
+      ],
+      "status": "pending",
+      "file": "1-summary.md",
+      "record": "records/1-summary.md"
+    },
     "1.1-update-permissions-codes": {
       "id": "1.1",
       "title": "更新权限码注册表（permissions/codes.go）",
       "priority": "P0",
       "estimatedTime": "1h",
-      "status": "pending",
-      "breaking": true,
+      "status": "completed",
       "file": "1.1-update-permissions-codes.md",
-      "record": "records/1.1-update-permissions-codes.md"
+      "record": "records/1.1-update-permissions-codes.md",
+      "breaking": true
     },
     "1.2-migrate-permission-granularity": {
       "id": "1.2",
       "title": "新增 MigratePermissionGranularity 迁移函数",
       "priority": "P0",
       "estimatedTime": "2h",
-      "dependencies": ["1.1"],
+      "dependencies": [
+        "1.1"
+      ],
       "status": "pending",
-      "breaking": false,
       "file": "1.2-migrate-permission-granularity.md",
       "record": "records/1.2-migrate-permission-granularity.md"
     },
@@ -34,20 +57,24 @@
       "title": "更新路由中间件权限码绑定（router.go）",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["1.1"],
+      "dependencies": [
+        "1.1"
+      ],
       "status": "pending",
-      "breaking": true,
       "file": "1.3-update-router-bindings.md",
-      "record": "records/1.3-update-router-bindings.md"
+      "record": "records/1.3-update-router-bindings.md",
+      "breaking": true
     },
     "1.4-update-backend-test-seeds": {
       "id": "1.4",
       "title": "更新后端测试种子数据（router_test.go + VerifyPresetRoleCodes）",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["1.1", "1.3"],
+      "dependencies": [
+        "1.1",
+        "1.3"
+      ],
       "status": "pending",
-      "breaking": false,
       "file": "1.4-update-backend-test-seeds.md",
       "record": "records/1.4-update-backend-test-seeds.md"
     },
@@ -56,52 +83,62 @@
       "title": "新增路由中间件权限码测试（7 个用例）",
       "priority": "P0",
       "estimatedTime": "2h",
-      "dependencies": ["1.3", "1.4"],
+      "dependencies": [
+        "1.3",
+        "1.4"
+      ],
       "status": "pending",
-      "breaking": false,
       "file": "1.5-add-router-permission-tests.md",
       "record": "records/1.5-add-router-permission-tests.md"
     },
-    "1-summary": {
-      "id": "1.summary",
-      "title": "Phase 1 Summary",
-      "priority": "P0",
-      "estimatedTime": "15min",
-      "dependencies": ["1.x"],
-      "status": "pending",
-      "file": "1-summary.md",
-      "record": "records/1-summary.md"
-    },
-    "1-gate": {
-      "id": "1.gate",
-      "title": "Phase 1 Exit Gate",
+    "2-gate": {
+      "id": "2.gate",
+      "title": "Phase 2 Exit Gate",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["1.summary"],
+      "dependencies": [
+        "2.summary"
+      ],
       "status": "pending",
-      "breaking": true,
-      "file": "1-gate.md",
-      "record": "records/1-gate.md"
+      "file": "2-gate.md",
+      "record": "records/2-gate.md",
+      "breaking": true
+    },
+    "2-summary": {
+      "id": "2.summary",
+      "title": "Phase 2 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "2.x"
+      ],
+      "status": "pending",
+      "file": "2-summary.md",
+      "record": "records/2-summary.md"
     },
     "2.1-update-frontend-permissions-ts": {
       "id": "2.1",
       "title": "更新前端权限码常量（lib/permissions.ts）",
       "priority": "P0",
       "estimatedTime": "30min",
-      "dependencies": ["1.gate"],
+      "dependencies": [
+        "1.gate"
+      ],
       "status": "pending",
-      "breaking": true,
       "file": "2.1-update-frontend-permissions-ts.md",
-      "record": "records/2.1-update-frontend-permissions-ts.md"
+      "record": "records/2.1-update-frontend-permissions-ts.md",
+      "breaking": true
     },
     "2.2-update-route-guards-sidebar": {
       "id": "2.2",
       "title": "更新路由守卫和导航菜单权限码（App.tsx + Sidebar.tsx）",
       "priority": "P0",
       "estimatedTime": "30min",
-      "dependencies": ["1.gate", "2.1"],
+      "dependencies": [
+        "1.gate",
+        "2.1"
+      ],
       "status": "pending",
-      "breaking": false,
       "file": "2.2-update-route-guards-sidebar.md",
       "record": "records/2.2-update-route-guards-sidebar.md"
     },
@@ -110,9 +147,11 @@
       "title": "更新 TeamManagementPage 角色下拉权限守卫",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["1.gate", "2.1"],
+      "dependencies": [
+        "1.gate",
+        "2.1"
+      ],
       "status": "pending",
-      "breaking": false,
       "file": "2.3-update-team-management-role-guard.md",
       "record": "records/2.3-update-team-management-role-guard.md"
     },
@@ -121,9 +160,11 @@
       "title": "更新 RoleManagementPage 操作按钮权限守卫",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["1.gate", "2.1"],
+      "dependencies": [
+        "1.gate",
+        "2.1"
+      ],
       "status": "pending",
-      "breaking": false,
       "file": "2.4-update-role-management-guards.md",
       "record": "records/2.4-update-role-management-guards.md"
     },
@@ -132,39 +173,24 @@
       "title": "更新前端权限测试（permission-driven-ui.test.tsx）",
       "priority": "P0",
       "estimatedTime": "1h",
-      "dependencies": ["1.gate", "2.2", "2.3", "2.4"],
+      "dependencies": [
+        "1.gate",
+        "2.2",
+        "2.3",
+        "2.4"
+      ],
       "status": "pending",
-      "breaking": false,
       "file": "2.5-update-frontend-tests.md",
       "record": "records/2.5-update-frontend-tests.md"
-    },
-    "2-summary": {
-      "id": "2.summary",
-      "title": "Phase 2 Summary",
-      "priority": "P0",
-      "estimatedTime": "15min",
-      "dependencies": ["2.x"],
-      "status": "pending",
-      "file": "2-summary.md",
-      "record": "records/2-summary.md"
-    },
-    "2-gate": {
-      "id": "2.gate",
-      "title": "Phase 2 Exit Gate",
-      "priority": "P0",
-      "estimatedTime": "1h",
-      "dependencies": ["2.summary"],
-      "status": "pending",
-      "breaking": true,
-      "file": "2-gate.md",
-      "record": "records/2-gate.md"
     },
     "gen-test-cases": {
       "id": "T-test-1",
       "title": "Generate e2e Test Cases",
       "priority": "P1",
       "estimatedTime": "1-2h",
-      "dependencies": ["2.gate"],
+      "dependencies": [
+        "2.gate"
+      ],
       "status": "pending",
       "file": "gen-test-cases.md",
       "record": "records/gen-test-cases.md"
@@ -174,10 +200,24 @@
       "title": "Generate e2e Test Scripts",
       "priority": "P1",
       "estimatedTime": "1-2h",
-      "dependencies": ["T-test-1"],
+      "dependencies": [
+        "T-test-1"
+      ],
       "status": "pending",
       "file": "gen-test-scripts.md",
       "record": "records/gen-test-scripts.md"
     }
-  }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
 }

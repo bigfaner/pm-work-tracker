@@ -7,7 +7,7 @@ import (
 func TestRegistryContainsAllResources(t *testing.T) {
 	wantResources := []string{
 		"team", "main_item", "sub_item", "progress",
-		"item_pool", "view", "report", "user",
+		"item_pool", "view", "report", "user", "role",
 	}
 	if len(Registry) != len(wantResources) {
 		t.Fatalf("Registry has %d resources, want %d", len(Registry), len(wantResources))
@@ -28,7 +28,8 @@ func TestRegistryResourceCodeCounts(t *testing.T) {
 		"item_pool": 2,
 		"view":      3,
 		"report":    1,
-		"user":      3,
+		"user":      4,
+		"role":      4,
 	}
 	for _, rp := range Registry {
 		want, ok := wantCounts[rp.Resource]
@@ -44,7 +45,7 @@ func TestRegistryResourceCodeCounts(t *testing.T) {
 
 func TestAllCodesReturnsExpectedCount(t *testing.T) {
 	codes := AllCodes()
-	wantCount := 29 // 7+5+5+3+2+3+1+3
+	wantCount := 34 // 7+5+5+3+2+3+1+4+4
 	if len(codes) != wantCount {
 		t.Fatalf("AllCodes() returned %d codes, want %d", len(codes), wantCount)
 	}
@@ -60,7 +61,8 @@ func TestAllCodesContainsSpecificCodes(t *testing.T) {
 		"item_pool:submit", "item_pool:review",
 		"view:weekly", "view:gantt", "view:table",
 		"report:export",
-		"user:read", "user:update", "user:manage_role",
+		"user:list", "user:read", "user:update", "user:assign_role",
+		"role:read", "role:create", "role:update", "role:delete",
 	}
 	for _, code := range mustHave {
 		if !codes[code] {
@@ -82,7 +84,9 @@ func TestValidateCodeValidCodes(t *testing.T) {
 	validCodes := []string{
 		"team:create", "team:read", "team:update", "team:delete",
 		"main_item:archive", "sub_item:assign", "progress:update",
-		"item_pool:review", "view:gantt", "report:export", "user:manage_role",
+		"item_pool:review", "view:gantt", "report:export",
+		"user:list", "user:read", "user:assign_role",
+		"role:read", "role:create", "role:update", "role:delete",
 	}
 	for _, code := range validCodes {
 		if !ValidateCode(code) {
@@ -103,6 +107,7 @@ func TestValidateCodeInvalidCodes(t *testing.T) {
 		" team:create",
 		"nonexistent:code",
 		"main_item:create_extra",
+		"user:manage_role",
 	}
 	for _, code := range invalidCodes {
 		if ValidateCode(code) {
