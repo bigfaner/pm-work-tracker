@@ -35,7 +35,7 @@ interface DetailViewProps {
   onAddSubItem: (mainItemId: string, mainItemTitle: string) => void
   onEditMainItem: (item: MainItem) => void
   onAppendProgress: (subItemId: string, subItemTitle: string, subItemCompletion: number) => void
-  onEditSubItem: (sub: SubItem) => void
+  onEditSubItem: (sub: SubItem, mainItemBizKey: string) => void
 }
 
 export default function ItemDetailView({
@@ -139,7 +139,7 @@ export default function ItemDetailView({
                       <TableCell>
                         <div className="flex gap-0.5 whitespace-nowrap">
                           <PermissionGuard code="sub_item:update">
-                            <Button variant="ghost" size="sm" className="text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.itemStatus as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onEditSubItem(sub)}><Pencil size={14} />编辑</Button>
+                            <Button variant="ghost" size="sm" className="text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.itemStatus as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onEditSubItem(sub, item.bizKey)}><Pencil size={14} />编辑</Button>
                           </PermissionGuard>
                           <PermissionGuard code="progress:update">
                             <Button variant="ghost" size="sm" className="text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.itemStatus as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onAppendProgress(sub.bizKey, sub.title, sub.completion)}><Plus size={14} />追加进度</Button>

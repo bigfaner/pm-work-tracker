@@ -24,7 +24,7 @@ interface SummaryViewProps {
   onAddSubItem: (mainItemId: string, mainItemTitle: string) => void
   onEditMainItem: (item: MainItem) => void
   onAppendProgress: (subItemId: string, subItemTitle: string, subItemCompletion: number) => void
-  onEditSubItem: (sub: SubItem) => void
+  onEditSubItem: (sub: SubItem, mainItemBizKey: string) => void
 }
 
 export default function ItemSummaryView({
@@ -168,7 +168,7 @@ export default function ItemSummaryView({
                     </div>
                     <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
                       <PermissionGuard code="sub_item:update">
-                        <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5 text-primary-600" data-testid={`edit-sub-${sub.bizKey}`} disabled={!!SUB_ITEM_STATUSES[sub.itemStatus as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onEditSubItem(sub)}><Pencil size={12} />编辑</Button>
+                        <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5 text-primary-600" data-testid={`edit-sub-${sub.bizKey}`} disabled={!!SUB_ITEM_STATUSES[sub.itemStatus as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onEditSubItem(sub, item.bizKey)}><Pencil size={12} />编辑</Button>
                       </PermissionGuard>
                       <PermissionGuard code="progress:update">
                         <Button variant="ghost" size="sm" className="text-[11px] h-6 px-1.5 text-primary-600" disabled={!!SUB_ITEM_STATUSES[sub.itemStatus as keyof typeof SUB_ITEM_STATUSES]?.terminal} onClick={() => onAppendProgress(sub.bizKey, sub.title, sub.completion)}><Plus size={12} />追加进度</Button>

@@ -61,6 +61,7 @@ export function useItemViewPage(teamId: string | null) {
 
   const [editSubOpen, setEditSubOpen] = useState(false)
   const [editSubTarget, setEditSubTarget] = useState<SubItem | null>(null)
+  const [editSubMainItemKey, setEditSubMainItemKey] = useState<string>('')
   const [editSubForm, setEditSubForm] = useState<EditSubItemFormState>({ title: '', priority: '', assigneeKey: '', expectedEndDate: '', description: '' })
 
   // Expanded cards
@@ -317,8 +318,9 @@ export function useItemViewPage(teamId: string | null) {
     setAppendOpen(true)
   }, [])
 
-  const openEditSubDialog = useCallback((sub: SubItem) => {
+  const openEditSubDialog = useCallback((sub: SubItem, mainItemBizKey: string) => {
     setEditSubTarget(sub)
+    setEditSubMainItemKey(mainItemBizKey)
     setEditSubForm({
       title: sub.title,
       priority: sub.priority,
@@ -333,7 +335,7 @@ export function useItemViewPage(teamId: string | null) {
     if (!editSubTarget || !editSubForm.title.trim()) return
     updateSubMutation.mutate({
       subId: editSubTarget.bizKey,
-      mainItemKey: editSubTarget.mainItemKey,
+      mainItemKey: editSubMainItemKey,
       data: {
         title: editSubForm.title.trim(),
         priority: editSubForm.priority,
@@ -342,7 +344,7 @@ export function useItemViewPage(teamId: string | null) {
         description: editSubForm.description,
       },
     })
-  }, [editSubTarget, editSubForm, updateSubMutation])
+  }, [editSubTarget, editSubMainItemKey, editSubForm, updateSubMutation])
 
   const handleAppend = useCallback(() => {
     const val = Number(appendForm.completion)
