@@ -78,9 +78,20 @@ export const PERMISSION_GROUPS: PermissionGroupDef[] = [
     key: 'user',
     label: '用户管理',
     permissions: [
-      { value: 'user:read', label: '查看用户' },
+      { value: 'user:list', label: '列出用户' },
+      { value: 'user:read', label: '查看用户详情' },
       { value: 'user:update', label: '编辑用户' },
-      { value: 'user:manage_role', label: '管理角色' },
+      { value: 'user:assign_role', label: '分配角色' },
+    ],
+  },
+  {
+    key: 'role',
+    label: '角色管理',
+    permissions: [
+      { value: 'role:read', label: '查看角色' },
+      { value: 'role:create', label: '创建角色' },
+      { value: 'role:update', label: '编辑角色' },
+      { value: 'role:delete', label: '删除角色' },
     ],
   },
 ]

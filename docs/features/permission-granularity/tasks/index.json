@@ -124,7 +124,7 @@
       "dependencies": [
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.1-update-frontend-permissions-ts.md",
       "record": "records/2.1-update-frontend-permissions-ts.md",
       "breaking": true
