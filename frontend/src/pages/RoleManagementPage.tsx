@@ -3,6 +3,7 @@ import { Pencil, Trash2, RefreshCw } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listRolesApi, deleteRoleApi } from '@/api/roles'
 import { formatDateOnly } from '@/lib/format'
+import { useAuthStore } from '@/store/auth'
 import type { Role } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -45,6 +46,11 @@ const PAGE_SIZE = 20
 export default function RoleManagementPage() {
   const qc = useQueryClient()
   const { addToast } = useToast()
+
+  // Permission guards
+  const canCreate = useAuthStore((s) => s.hasPermission('role:create'))
+  const canUpdate = useAuthStore((s) => s.hasPermission('role:update'))
+  const canDelete = useAuthStore((s) => s.hasPermission('role:delete'))
 
   // Filters
   const [searchText, setSearchText] = useState('')
@@ -153,7 +159,7 @@ export default function RoleManagementPage() {
             <Button variant="secondary" size="sm" onClick={() => setBrowseOpen(true)}>
               权限列表
             </Button>
-            <Button size="sm" onClick={openCreate}>
+            <Button size="sm" onClick={openCreate} style={{ display: canCreate ? 'inline-flex' : 'none' }}>
               <svg
                 width="16"
                 height="16"
@@ -213,7 +219,7 @@ export default function RoleManagementPage() {
                 ? '没有匹配的角色'
                 : '暂无自定义角色'}
             </p>
-            {!searchText && presetFilter === 'all' && (
+            {!searchText && presetFilter === 'all' && canCreate && (
               <Button className="mt-3" size="sm" onClick={openCreate}>
                 创建角色
               </Button>
@@ -267,6 +273,7 @@ export default function RoleManagementPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
+                        {canUpdate && (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span>
@@ -289,6 +296,8 @@ export default function RoleManagementPage() {
                             </TooltipContent>
                           )}
                         </Tooltip>
+                        )}
+                        {canDelete && (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span>
@@ -308,10 +317,11 @@ export default function RoleManagementPage() {
                             <TooltipContent>
                               {role.isPreset
                                 ? '预置角色不可删除'
-                                : `该角色正在被 ${role.memberCount} 个用户使用`}
+                                : '该角色下有成员，无法删除'}
                             </TooltipContent>
                           )}
                         </Tooltip>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

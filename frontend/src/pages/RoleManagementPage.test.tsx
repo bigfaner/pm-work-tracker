@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { server } from '@/mocks/server'
 import { http, HttpResponse } from 'msw'
 import { ToastProvider } from '@/components/ui/toast'
+import { useAuthStore } from '@/store/auth'
 import RoleManagementPage from './RoleManagementPage'
 
 // MSW lifecycle
@@ -21,7 +22,28 @@ function createQueryClient() {
   })
 }
 
-function renderPage() {
+type PermissionFlags = {
+  roleCreate?: boolean
+  roleUpdate?: boolean
+  roleDelete?: boolean
+}
+
+function setPermissions(flags: PermissionFlags) {
+  const codes: string[] = []
+  if (flags.roleCreate) codes.push('role:create')
+  if (flags.roleUpdate) codes.push('role:update')
+  if (flags.roleDelete) codes.push('role:delete')
+  useAuthStore.setState({
+    permissions: {
+      isSuperAdmin: false,
+      teamPermissions: { '1': codes },
+    },
+    _hasHydrated: true,
+  })
+}
+
+function renderPage(flags: PermissionFlags = { roleCreate: true, roleUpdate: true, roleDelete: true }) {
+  setPermissions(flags)
   const qc = createQueryClient()
   return render(
     <QueryClientProvider client={qc}>
@@ -463,6 +485,86 @@ describe('RoleManagementPage', () => {
     renderPage()
     await waitFor(() => {
       expect(screen.getByText(/共 4 条/)).toBeInTheDocument()
+    })
+  })
+
+  // --- Permission guards ---
+
+  describe('permission guards', () => {
+    it('hides create button when role:create is missing', async () => {
+      renderPage({ roleCreate: false, roleUpdate: true, roleDelete: true })
+      await waitFor(() => {
+        expect(screen.getByText('superadmin')).toBeInTheDocument()
+      })
+      expect(screen.queryByRole('button', { name: /创建角色/ })).not.toBeInTheDocument()
+    })
+
+    it('shows create button when role:create is held', async () => {
+      renderPage({ roleCreate: true, roleUpdate: true, roleDelete: true })
+      await waitFor(() => {
+        expect(screen.getByText('superadmin')).toBeInTheDocument()
+      })
+      expect(screen.getByRole('button', { name: /创建角色/ })).toBeInTheDocument()
+    })
+
+    it('hides edit buttons when role:update is missing', async () => {
+      renderPage({ roleCreate: true, roleUpdate: false, roleDelete: true })
+      await waitFor(() => {
+        expect(screen.getByText('superadmin')).toBeInTheDocument()
+      })
+      expect(screen.queryByText('编辑')).not.toBeInTheDocument()
+    })
+
+    it('shows edit buttons when role:update is held', async () => {
+      renderPage({ roleCreate: true, roleUpdate: true, roleDelete: true })
+      await waitFor(() => {
+        expect(screen.getByText('superadmin')).toBeInTheDocument()
+      })
+      const editButtons = screen.getAllByText('编辑')
+      expect(editButtons.length).toBe(4)
+    })
+
+    it('hides delete buttons when role:delete is missing', async () => {
+      renderPage({ roleCreate: true, roleUpdate: true, roleDelete: false })
+      await waitFor(() => {
+        expect(screen.getByText('superadmin')).toBeInTheDocument()
+      })
+      expect(screen.queryByText('删除')).not.toBeInTheDocument()
+    })
+
+    it('shows delete buttons when role:delete is held', async () => {
+      renderPage({ roleCreate: true, roleUpdate: true, roleDelete: true })
+      await waitFor(() => {
+        expect(screen.getByText('superadmin')).toBeInTheDocument()
+      })
+      const deleteButtons = screen.getAllByText('删除')
+      expect(deleteButtons.length).toBe(4)
+    })
+
+    it('keeps preset role delete button disabled regardless of role:delete', async () => {
+      renderPage({ roleCreate: true, roleUpdate: true, roleDelete: true })
+      await waitFor(() => {
+        expect(screen.getByText('superadmin')).toBeInTheDocument()
+      })
+      const deleteButtons = screen.getAllByText('删除')
+      // Preset roles always disabled
+      expect(deleteButtons[0]).toBeDisabled()
+      expect(deleteButtons[1]).toBeDisabled()
+      expect(deleteButtons[2]).toBeDisabled()
+    })
+
+    it('shows tooltip for roles with members', async () => {
+      const user = userEvent.setup()
+      renderPage({ roleCreate: true, roleUpdate: true, roleDelete: true })
+      await waitFor(() => {
+        expect(screen.getByText('superadmin')).toBeInTheDocument()
+      })
+      // Hover over a delete button for a preset role with members
+      const deleteButtons = screen.getAllByText('删除')
+      await user.hover(deleteButtons[0])
+      await waitFor(() => {
+        expect(screen.getAllByText('预置角色不可删除').length).toBeGreaterThanOrEqual(1)
+      })
     })
   })
 })
