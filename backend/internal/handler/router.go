@@ -154,24 +154,24 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 	adminGroup := v1.Group("/admin")
 	adminGroup.Use(authMW)
 	{
-		adminGroup.GET("/users", deps.perm("user:read"), deps.Admin.ListUsers)
-		adminGroup.POST("/users", deps.perm("user:manage_role"), deps.Admin.CreateUser)
+		adminGroup.GET("/users", deps.perm("user:list"), deps.Admin.ListUsers)
+		adminGroup.POST("/users", deps.perm("user:assign_role"), deps.Admin.CreateUser)
 		adminGroup.GET("/users/:userId", deps.perm("user:read"), deps.Admin.GetUser)
 		adminGroup.PUT("/users/:userId", deps.perm("user:update"), deps.Admin.UpdateUser)
 		adminGroup.PUT("/users/:userId/status", deps.perm("user:update"), deps.Admin.ToggleUserStatus)
 		adminGroup.PUT("/users/:userId/password", deps.perm("user:update"), deps.Admin.ResetPassword)
 		adminGroup.DELETE("/users/:userId", deps.perm("user:update"), deps.Admin.DeleteUser)
-		adminGroup.GET("/teams", deps.perm("user:read"), deps.Admin.ListTeams)
+		adminGroup.GET("/teams", deps.perm("user:list"), deps.Admin.ListTeams)
 
 		// Role management
-		adminGroup.GET("/roles", deps.perm("user:manage_role"), deps.Role.ListRoles)
-		adminGroup.POST("/roles", deps.perm("user:manage_role"), deps.Role.CreateRole)
-		adminGroup.GET("/roles/:id", deps.perm("user:manage_role"), deps.Role.GetRole)
-		adminGroup.PUT("/roles/:id", deps.perm("user:manage_role"), deps.Role.UpdateRole)
-		adminGroup.DELETE("/roles/:id", deps.perm("user:manage_role"), deps.Role.DeleteRole)
+		adminGroup.GET("/roles", deps.perm("role:read"), deps.Role.ListRoles)
+		adminGroup.POST("/roles", deps.perm("role:create"), deps.Role.CreateRole)
+		adminGroup.GET("/roles/:id", deps.perm("role:read"), deps.Role.GetRole)
+		adminGroup.PUT("/roles/:id", deps.perm("role:update"), deps.Role.UpdateRole)
+		adminGroup.DELETE("/roles/:id", deps.perm("role:delete"), deps.Role.DeleteRole)
 
 		// Permission code registry
-		adminGroup.GET("/permissions", deps.perm("user:manage_role"), deps.Permission.ListPermissionCodes)
+		adminGroup.GET("/permissions", deps.perm("role:read"), deps.Permission.ListPermissionCodes)
 	}
 
 	// User-facing: current user's permissions (auth only, no permission code required)
