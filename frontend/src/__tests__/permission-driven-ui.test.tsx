@@ -97,6 +97,71 @@ describe('Permission-driven UI', () => {
     })
   })
 
+  describe('TeamManagementPage - canReadRoles guard', () => {
+    it('issues GET /admin/roles when user has role:read permission', async () => {
+      let rolesCalled = false
+      server.use(
+        http.get('/v1/teams', () => HttpResponse.json({ code: 0, data: [] })),
+        http.get('/v1/admin/roles', () => {
+          rolesCalled = true
+          return HttpResponse.json({ code: 0, data: { items: [], total: 0, page: 1, pageSize: 100 } })
+        }),
+      )
+      useAuthStore.getState().setPermissions({
+        isSuperAdmin: false,
+        teamPermissions: { 1: ['role:read'] },
+      })
+
+      const { default: TeamManagementPage } = await import('@/pages/TeamManagementPage')
+      render(
+        <QueryClientProvider client={createQueryClient()}>
+          <ToastProvider>
+            <MemoryRouter>
+              <TeamManagementPage />
+            </MemoryRouter>
+          </ToastProvider>
+        </QueryClientProvider>,
+      )
+
+      await waitFor(() => {
+        expect(rolesCalled).toBe(true)
+      })
+    })
+
+    it('does NOT issue GET /admin/roles when user lacks role:read permission', async () => {
+      let rolesCalled = false
+      server.use(
+        http.get('/v1/teams', () => HttpResponse.json({ code: 0, data: [] })),
+        http.get('/v1/admin/roles', () => {
+          rolesCalled = true
+          return HttpResponse.json({ code: 0, data: { items: [], total: 0, page: 1, pageSize: 100 } })
+        }),
+      )
+      useAuthStore.getState().setPermissions({
+        isSuperAdmin: false,
+        teamPermissions: { 1: [] },
+      })
+
+      const { default: TeamManagementPage } = await import('@/pages/TeamManagementPage')
+      render(
+        <QueryClientProvider client={createQueryClient()}>
+          <ToastProvider>
+            <MemoryRouter>
+              <TeamManagementPage />
+            </MemoryRouter>
+          </ToastProvider>
+        </QueryClientProvider>,
+      )
+
+      // Wait for the page to render
+      await waitFor(() => {
+        expect(screen.getByTestId('team-management-page')).toBeInTheDocument()
+      })
+
+      expect(rolesCalled).toBe(false)
+    })
+  })
+
   describe('TeamManagementPage - team:create permission', () => {
     it('hides create team button without team:create permission', async () => {
       useAuthStore.getState().setPermissions({ isSuperAdmin: false, teamPermissions: {} })
