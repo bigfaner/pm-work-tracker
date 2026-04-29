@@ -27,13 +27,6 @@ func thisWeekMonday() time.Time {
 	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, 1-weekday)
 }
 
-func getUserBizKey(t *testing.T, db *gorm.DB, userID uint) int64 {
-	t.Helper()
-	var u model.User
-	require.NoError(t, db.First(&u, userID).Error)
-	return u.BizKey
-}
-
 // seedViewItemData creates MainItems and SubItems with specified statuses directly in the DB.
 // Returns the created sub-item IDs.
 func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, weekStart time.Time) {
@@ -49,7 +42,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, 
 		Code:         "TAMA-W001",
 		Title:        "Weekly Completed Item",
 		Priority:     "P1",
-		ProposerKey:  int64(userID),
+		ProposerKey:  getUserBizKey(t, db, userID),
 		ItemStatus:   "progressing",
 		PlanStartDate:   ptrTime(time.Date(2026, 1, 1, 0, 0, 0, 0, loc)),
 		ExpectedEndDate: ptrTime(time.Date(2026, 6, 30, 0, 0, 0, 0, loc)),
@@ -78,7 +71,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, 
 		Code:         "TAMA-W002",
 		Title:        "Weekly Progressing Item 1",
 		Priority:     "P2",
-		ProposerKey:  int64(userID),
+		ProposerKey:  getUserBizKey(t, db, userID),
 		ItemStatus:   "progressing",
 		Completion:   30,
 		PlanStartDate:   ptrTime(time.Date(2026, 1, 1, 0, 0, 0, 0, loc)),
@@ -106,7 +99,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, 
 		Code:         "TAMA-W003",
 		Title:        "Weekly Progressing Item 2",
 		Priority:     "P3",
-		ProposerKey:  int64(userID),
+		ProposerKey:  getUserBizKey(t, db, userID),
 		ItemStatus:   "progressing",
 		Completion:   50,
 		PlanStartDate:   ptrTime(time.Date(2026, 1, 1, 0, 0, 0, 0, loc)),
@@ -132,7 +125,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, 
 		BizKey:      snowflake.Generate(),
 		SubItemKey:  sub1.BizKey,
 		TeamKey:     teamBizKey,
-		AuthorKey:   int64(userID),
+		AuthorKey:   getUserBizKey(t, db, userID),
 		Completion:  100,
 		Achievement: "Finished the task",
 		CreateTime:  weekStart.Add(24 * time.Hour),
@@ -143,7 +136,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, 
 		BizKey:      snowflake.Generate(),
 		SubItemKey:  sub2.BizKey,
 		TeamKey:     teamBizKey,
-		AuthorKey:   int64(userID),
+		AuthorKey:   getUserBizKey(t, db, userID),
 		Completion:  30,
 		Achievement: "Working on it",
 		CreateTime:  weekStart.Add(48 * time.Hour),
@@ -154,7 +147,7 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, 
 		BizKey:      snowflake.Generate(),
 		SubItemKey:  sub3.BizKey,
 		TeamKey:     teamBizKey,
-		AuthorKey:   int64(userID),
+		AuthorKey:   getUserBizKey(t, db, userID),
 		Completion:  50,
 		Achievement: "Halfway done",
 		CreateTime:  weekStart.Add(48 * time.Hour),

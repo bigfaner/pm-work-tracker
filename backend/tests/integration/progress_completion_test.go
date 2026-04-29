@@ -94,7 +94,8 @@ func TestItemPool_Assign_Success(t *testing.T) {
 	token := loginAs(t, r, "userA", "passwordA")
 
 	poolID, _, poolBizKey, mainItemBizKey := seedPoolData(t, db, data.teamABizKey, data.userAID)
-	body := fmt.Sprintf(`{"mainItemKey":"%d","assigneeKey":"%d","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, mainItemBizKey, data.userAID)
+	userABizKey := getUserBizKey(t, db, data.userAID)
+	body := fmt.Sprintf(`{"mainItemKey":"%d","assigneeKey":"%d","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, mainItemBizKey, userABizKey)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost,
 		fmt.Sprintf("/api/v1/teams/%d/item-pool/%d/assign", data.teamABizKey, poolBizKey),
@@ -116,7 +117,7 @@ func TestItemPool_Assign_Success(t *testing.T) {
 	require.NoError(t, db.Where("main_item_key = ?", mainItemBizKey).Find(&subItems).Error)
 	require.Len(t, subItems, 1)
 	assert.Equal(t, "Pool Item Title", subItems[0].Title)
-	assert.Equal(t, int64(data.userAID), *subItems[0].AssigneeKey)
+	assert.Equal(t, getUserBizKey(t, db, data.userAID), *subItems[0].AssigneeKey)
 }
 
 func TestItemPool_Assign_Rollback_OnInvalidMainItem(t *testing.T) {

@@ -452,7 +452,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) 
 		Code:         "TAMA-00001",
 		Title:        "Test Main Item",
 		Priority:     "P1",
-		ProposerKey:  int64(userID),
+		ProposerKey:  getUserBizKey(t, db, userID),
 		ItemStatus:   "pending",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
@@ -506,7 +506,7 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) (poo
 		TeamKey:       teamBizKey,
 		Title:         "Pool Item Title",
 		Background:    "Some background",
-		SubmitterKey:  int64(userID),
+		SubmitterKey:  getUserBizKey(t, db, userID),
 		PoolStatus:    "pending",
 	}
 	require.NoError(t, db.Create(poolItem).Error)
@@ -517,7 +517,7 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) (poo
 		Code:         "TAMA-00002",
 		Title:        "Main Item for Pool",
 		Priority:     "P1",
-		ProposerKey:  int64(userID),
+		ProposerKey:  getUserBizKey(t, db, userID),
 		ItemStatus:   "pending",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
@@ -535,7 +535,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, we
 		Code:         "TAMA-00003",
 		Title:        "Report Test Main Item",
 		Priority:     "P1",
-		ProposerKey:  int64(userID),
+		ProposerKey:  getUserBizKey(t, db, userID),
 		ItemStatus:   "progressing",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
@@ -557,7 +557,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, we
 		BizKey:      snowflake.Generate(),
 		SubItemKey:  subItem.BizKey,
 		TeamKey:     teamBizKey,
-		AuthorKey:   int64(userID),
+		AuthorKey:   getUserBizKey(t, db, userID),
 		Completion:  50,
 		Achievement: "Completed half the work",
 		CreateTime:  weekStart.Add(24 * time.Hour), // Tuesday of the week
@@ -714,7 +714,7 @@ func createTeamWithMembers(t *testing.T, db *gorm.DB, pmID uint, memberCount int
 	team := &model.Team{
 		BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
 		TeamName:  fmt.Sprintf("Team-PM%d-M%d", pmID, memberCount),
-		PmKey:     int64(pmID),
+		PmKey:     getUserBizKey(t, db, pmID),
 		Code:      fmt.Sprintf("TPM%d", pmID),
 	}
 	require.NoError(t, db.Create(team).Error)
@@ -722,8 +722,8 @@ func createTeamWithMembers(t *testing.T, db *gorm.DB, pmID uint, memberCount int
 	// Add PM as team member with PM role
 	pmRoleBizKey := findRoleBizKeyInt64ByName(t, db, "pm")
 	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey:  int64(team.ID),
-		UserKey:  int64(pmID),
+		TeamKey:  team.BizKey,
+		UserKey:  getUserBizKey(t, db, pmID),
 		RoleKey:  &pmRoleBizKey,
 		JoinedAt: time.Now(),
 	}).Error)
@@ -740,8 +740,8 @@ func createTeamWithMembers(t *testing.T, db *gorm.DB, pmID uint, memberCount int
 		}
 		require.NoError(t, db.Create(member).Error)
 		require.NoError(t, db.Create(&model.TeamMember{
-			TeamKey:  int64(team.ID),
-			UserKey:  int64(member.ID),
+			TeamKey:  team.BizKey,
+			UserKey:  member.BizKey,
 			RoleKey:  &memberRoleBizKey,
 			JoinedAt: time.Now(),
 		}).Error)
@@ -783,6 +783,14 @@ func createMainItem(t *testing.T, r *gin.Engine, token string, teamBizKey int64,
 }
 
 // ========== User Data Helpers ==========
+
+// getUserBizKey resolves a user's auto-increment ID to their BizKey.
+func getUserBizKey(t *testing.T, db *gorm.DB, userID uint) int64 {
+	t.Helper()
+	var u model.User
+	require.NoError(t, db.First(&u, userID).Error)
+	return u.BizKey
+}
 
 // backfillUserBizKeys sets unique bizKeys on seeded users that have biz_key = 0.
 func backfillUserBizKeys(t *testing.T, db *gorm.DB) {

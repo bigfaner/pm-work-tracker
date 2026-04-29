@@ -68,7 +68,7 @@ func TestItemPool_List_WithStatusFilter_Returns200(t *testing.T) {
 		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:      data.teamABizKey,
 		Title:        "Pending Item",
-		SubmitterKey: int64(data.userAID),
+		SubmitterKey: getUserBizKey(t, db, data.userAID),
 		PoolStatus:   "pending",
 	}
 	require.NoError(t, db.Create(poolItem).Error)
@@ -78,7 +78,7 @@ func TestItemPool_List_WithStatusFilter_Returns200(t *testing.T) {
 		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:      data.teamABizKey,
 		Title:        "Rejected Item",
-		SubmitterKey: int64(data.userAID),
+		SubmitterKey: getUserBizKey(t, db, data.userAID),
 		PoolStatus:   "rejected",
 	}
 	require.NoError(t, db.Create(rejectedItem).Error)

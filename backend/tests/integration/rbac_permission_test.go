@@ -34,7 +34,7 @@ func seedPermMatrixFixtures(t *testing.T, db *gorm.DB, data *seedData) permMatri
 		Code:        "TAMA-PM001",
 		Title:       "Perm Matrix Archive Item",
 		Priority:    "P1",
-		ProposerKey: int64(data.userAID),
+		ProposerKey: getUserBizKey(t, db, data.userAID),
 		ItemStatus:  "completed",
 	}
 	require.NoError(t, db.Create(archiveItem).Error)
@@ -55,7 +55,7 @@ func seedPermMatrixFixtures(t *testing.T, db *gorm.DB, data *seedData) permMatri
 		BizKey:      snowflake.Generate(),
 		SubItemKey:  subItem.BizKey,
 		TeamKey:     data.teamABizKey,
-		AuthorKey:   int64(data.userAID),
+		AuthorKey:   getUserBizKey(t, db, data.userAID),
 		Completion:  50,
 		Achievement: "Initial progress",
 		CreateTime:  time.Now(),
@@ -68,7 +68,7 @@ func seedPermMatrixFixtures(t *testing.T, db *gorm.DB, data *seedData) permMatri
 		TeamKey:      data.teamABizKey,
 		Title:        "Perm Matrix Pool Item",
 		Background:   "Background info",
-		SubmitterKey: int64(data.userAID),
+		SubmitterKey: getUserBizKey(t, db, data.userAID),
 		PoolStatus:   "pending",
 	}
 	require.NoError(t, db.Create(poolItem).Error)
@@ -80,7 +80,7 @@ func seedPermMatrixFixtures(t *testing.T, db *gorm.DB, data *seedData) permMatri
 		Code:        "TAMA-PM002",
 		Title:       "Perm Matrix Assign Target",
 		Priority:    "P1",
-		ProposerKey: int64(data.userAID),
+		ProposerKey: getUserBizKey(t, db, data.userAID),
 		ItemStatus:  "pending",
 	}
 	require.NoError(t, db.Create(assignItem).Error)
@@ -241,11 +241,11 @@ func TestPermBoundary_EmptyRole(t *testing.T) {
 
 	hash, err := bcrypt.GenerateFromPassword([]byte("emptyPass"), 4)
 	require.NoError(t, err)
-	emptyUser := &model.User{Username: "emptyuser", DisplayName: "Empty User", PasswordHash: string(hash)}
+	emptyUser := &model.User{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Username: "emptyuser", DisplayName: "Empty User", PasswordHash: string(hash)}
 	require.NoError(t, db.Create(emptyUser).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
 		TeamKey:  data.teamABizKey,
-		UserKey:  int64(emptyUser.ID),
+		UserKey:  emptyUser.BizKey,
 		RoleKey:  &emptyRole.BizKey,
 		JoinedAt: time.Now(),
 	}).Error)
