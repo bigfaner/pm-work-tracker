@@ -1,23 +1,32 @@
-# Standard Task IDs Collide Across Features
+# Task Executor "Already Completed" Detection Ignores Feature Scope
 
 ## Problem
 
-T-test-2 (gen-test-scripts) in `permission-granularity` feature generated scripts under `docs/features/integration-test-coverage/testing/scripts/` instead of `docs/features/permission-granularity/testing/scripts/`.
+`permission-granularity` feature's T-test-2 (gen-test-scripts) never generated e2e test scripts. The task executor detected commit `51a3be7` from the `integration-test-coverage` feature (April 28) and incorrectly declared "task already completed", skipping execution entirely.
+
+Consequence: `docs/features/permission-granularity/testing/scripts/` does not exist. Only `test-cases.md` was generated (by T-test-1). The feature has no executable e2e test scripts.
 
 ## Root Cause
 
-The standard test task chain uses fixed IDs: `T-test-1` (gen-test-cases) and `T-test-2` (gen-test-scripts). The `integration-test-coverage` feature (PR #18, merged April 28) previously executed T-test-2 and committed results to its own directory.
+**Causal chain (4 levels):**
 
-When `permission-granularity` feature's T-test-2 ran, the task executor detected the existing commit (`51a3be7`) and concluded "task already completed on 2026-04-28", skipping regeneration and referencing the wrong feature's output.
+1. **Symptom:** No scripts generated under `permission-granularity/testing/scripts/`
+2. **Direct cause:** Task executor found commit `51a3be7` (from `integration-test-coverage`) via git log search for "T-test-2" and skipped execution
+3. **Root cause:** Task executor's "already completed" detection searches git history globally by task ID, without verifying the matched commit belongs to the CURRENT feature
+4. **Trigger condition:** Multiple features share standard task IDs (T-test-1, T-test-2) from `/breakdown-tasks`; once any feature's T-test-2 commit is merged to main, all subsequent features with the same task ID will be falsely detected as "already completed"
 
-**Causal chain:** identical task ID → agent finds prior commit → skips execution → files land in wrong feature directory.
+**Dispatcher also failed:** Record verification (Step 3) should have caught this — the "already completed on 2026-04-28" claim was from before the current session started, yet no new code was generated. The dispatcher did not question this inconsistency.
 
 ## Solution
 
-No code fix needed for this specific case. For future features, either:
-1. Use feature-scoped task IDs (e.g., `pg-T-test-1` instead of `T-test-1`) to prevent collision, or
-2. Task executor should always verify output path matches current feature slug before declaring "already completed"
+For the task-executor agent template:
+- When detecting "already completed", verify the matched commit's file paths contain the current feature slug
+- Or: require feature-scoped task IDs (e.g., `pg-T-test-2` instead of `T-test-2`)
+
+For the dispatcher:
+- When an agent reports "already completed" with a commit dated before the session started, verify that the commit actually modified files under the current feature's directory
+- If no files match the current feature, re-dispatch with explicit instruction to regenerate
 
 ## Key Takeaway
 
-When `/breakdown-tasks` generates standard test tasks (T-test-1, T-test-2), these IDs are not namespaced to the feature. If a previous feature ran the same IDs and was merged, the task executor will find the old commit and skip execution, writing output to the wrong feature directory. Verify the output path after any "already completed" detection.
+Standard task IDs (T-test-1, T-test-2) from `/breakdown-tasks` are not namespaced per feature. The task executor searches git history by task ID globally and will match commits from ANY feature. Always verify that "already completed" detection is scoped to the current feature — both in the task executor and in the dispatcher's record verification step.
