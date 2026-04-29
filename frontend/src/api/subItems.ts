@@ -11,7 +11,7 @@ import type {
 export function createSubItemApi(teamBizKey: string, mainBizKey: string, req: CreateSubItemReq): Promise<SubItem> {
   return client.post<never, SubItem>(`/teams/${teamBizKey}/main-items/${mainBizKey}/sub-items`, {
     ...req,
-    mainItemBizKey: mainBizKey,
+    mainItemKey: mainBizKey,
   })
 }
 
