@@ -35,12 +35,12 @@ export default function App() {
           <Route path="/teams" element={<TeamManagementPage />} />
         </Route>
       </Route>
-      <Route element={<PermissionRoute code="user:read" />}>
+      <Route element={<PermissionRoute code="user:list" />}>
         <Route element={<AppLayout />}>
           <Route path="/users" element={<UserManagementPage />} />
         </Route>
       </Route>
-      <Route element={<PermissionRoute code="user:manage_role" />}>
+      <Route element={<PermissionRoute code="role:read" />}>
         <Route element={<AppLayout />}>
           <Route path="/roles" element={<RoleManagementPage />} />
         </Route>

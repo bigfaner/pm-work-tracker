@@ -31,8 +31,8 @@ const businessItems = [
 
 const adminItems = [
   { key: '/teams', label: '团队管理', icon: Users },
-  { key: '/users', label: '用户管理', icon: UserCog, permission: 'user:read' },
-  { key: '/roles', label: '角色管理', icon: Shield, permission: 'user:manage_role' },
+  { key: '/users', label: '用户管理', icon: UserCog, permission: 'user:list' },
+  { key: '/roles', label: '角色管理', icon: Shield, permission: 'role:read' },
 ]
 
 export default function Sidebar() {

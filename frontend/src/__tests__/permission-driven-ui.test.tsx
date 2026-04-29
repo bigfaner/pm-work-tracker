@@ -64,10 +64,10 @@ describe('Permission-driven UI', () => {
   })
 
   describe('Sidebar - admin items use permission codes', () => {
-    it('shows user management when user has user:read permission', async () => {
+    it('shows user management when user has user:list permission', async () => {
       useAuthStore.getState().setPermissions({
         isSuperAdmin: false,
-        teamPermissions: { 1: ['user:read'] },
+        teamPermissions: { 1: ['user:list'] },
       })
       const { default: Sidebar } = await import('@/components/layout/Sidebar')
       render(
@@ -80,10 +80,10 @@ describe('Permission-driven UI', () => {
       expect(screen.getByText('用户管理')).toBeInTheDocument()
     })
 
-    it('shows role management when user has user:manage_role permission', async () => {
+    it('shows role management when user has role:read permission', async () => {
       useAuthStore.getState().setPermissions({
         isSuperAdmin: false,
-        teamPermissions: { 1: ['user:manage_role'] },
+        teamPermissions: { 1: ['role:read'] },
       })
       const { default: Sidebar } = await import('@/components/layout/Sidebar')
       render(
