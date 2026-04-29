@@ -29,7 +29,9 @@ var testedCodes = map[string]bool{
 	// report
 	"report:export": true,
 	// user
-	"user:read": true, "user:update": true, "user:manage_role": true,
+	"user:list": true, "user:read": true, "user:update": true, "user:assign_role": true,
+	// role
+	"role:read": true, "role:create": true, "role:update": true, "role:delete": true,
 }
 
 func TestPermissionCodeCoverage(t *testing.T) {
