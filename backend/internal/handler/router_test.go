@@ -482,6 +482,125 @@ func TestAdminRoutes_AllRegistered(t *testing.T) {
 	}
 }
 
+// TestRequirePermission_AdminRoutes verifies that admin routes gated by new
+// permission codes return 403 when the authenticated user lacks the required
+// permission. Uses a regular member user (ID=2) which has no admin-level
+// permissions in the seed data.
+
+func TestRequirePermission_RoleRead(t *testing.T) {
+	deps, _ := testDeps(t)
+	r := SetupRouter(deps, nil)
+	token := signTestToken(t, 2, "testuser1")
+
+	routes := []struct {
+		method string
+		path   string
+	}{
+		{"GET", "/api/v1/admin/roles"},
+		{"GET", "/api/v1/admin/roles/1"},
+		{"GET", "/api/v1/admin/permissions"},
+	}
+
+	for _, route := range routes {
+		t.Run(route.method+" "+route.path, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest(route.method, route.path, nil)
+			req.Header.Set("Authorization", "Bearer "+token)
+			r.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusForbidden, w.Code, "%s %s", route.method, route.path)
+			assert.Contains(t, w.Body.String(), "ERR_FORBIDDEN", "%s %s", route.method, route.path)
+		})
+	}
+}
+
+func TestRequirePermission_RoleCreate(t *testing.T) {
+	deps, _ := testDeps(t)
+	r := SetupRouter(deps, nil)
+	token := signTestToken(t, 2, "testuser1")
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/roles", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Contains(t, w.Body.String(), "ERR_FORBIDDEN")
+}
+
+func TestRequirePermission_RoleUpdate(t *testing.T) {
+	deps, _ := testDeps(t)
+	r := SetupRouter(deps, nil)
+	token := signTestToken(t, 2, "testuser1")
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/roles/1", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Contains(t, w.Body.String(), "ERR_FORBIDDEN")
+}
+
+func TestRequirePermission_RoleDelete(t *testing.T) {
+	deps, _ := testDeps(t)
+	r := SetupRouter(deps, nil)
+	token := signTestToken(t, 2, "testuser1")
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/admin/roles/1", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Contains(t, w.Body.String(), "ERR_FORBIDDEN")
+}
+
+func TestRequirePermission_UserList(t *testing.T) {
+	deps, _ := testDeps(t)
+	r := SetupRouter(deps, nil)
+	token := signTestToken(t, 2, "testuser1")
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Contains(t, w.Body.String(), "ERR_FORBIDDEN")
+}
+
+func TestRequirePermission_UserRead(t *testing.T) {
+	deps, _ := testDeps(t)
+	r := SetupRouter(deps, nil)
+	token := signTestToken(t, 2, "testuser1")
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users/2", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Contains(t, w.Body.String(), "ERR_FORBIDDEN")
+}
+
+func TestRequirePermission_UserAssignRole(t *testing.T) {
+	deps, _ := testDeps(t)
+	r := SetupRouter(deps, nil)
+	token := signTestToken(t, 2, "testuser1")
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/users", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Contains(t, w.Body.String(), "ERR_FORBIDDEN")
+}
+
 // mockTeamRepo is a test double that satisfies repository.TeamRepo.
 type mockTeamRepo struct {
 	member *model.TeamMember
