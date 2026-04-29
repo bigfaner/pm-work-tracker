@@ -491,4 +491,132 @@ describe('TeamManagementPage', () => {
       expect(screen.queryByText('基础架构团队')).not.toBeInTheDocument()
     })
   })
+
+  // --- Role permission guard ---
+
+  describe('role:read permission guard', () => {
+    const seedRoles = [
+      { bizKey: 'R1', roleName: 'member', description: '普通成员' },
+      { bizKey: 'R2', roleName: 'viewer', description: '查看者' },
+    ]
+
+    function setupRolesHandlers() {
+      server.use(
+        http.get('/v1/admin/roles', () => {
+          return HttpResponse.json({
+            code: 0,
+            data: { items: seedRoles, total: seedRoles.length, page: 1, pageSize: 100 },
+          })
+        }),
+      )
+    }
+
+    it('fetches roles when user has role:read permission', async () => {
+      setupRolesHandlers()
+      useAuthStore.getState().setPermissions({
+        isSuperAdmin: false,
+        teamPermissions: { 1: ['team:invite', 'role:read'] },
+      })
+
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('产品研发团队')).toBeInTheDocument()
+      })
+
+      // Open add-member dialog
+      await user.click(screen.getByTestId('add-member-btn-1'))
+
+      // Role select should show role options
+      await waitFor(() => {
+        expect(screen.getByTestId('add-member-role-select')).toBeInTheDocument()
+      })
+    })
+
+    it('disables role selector when user lacks role:read permission', async () => {
+      setupRolesHandlers()
+      // team:invite but NOT role:read
+      useAuthStore.getState().setPermissions({
+        isSuperAdmin: false,
+        teamPermissions: { 1: ['team:invite'] },
+      })
+
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('产品研发团队')).toBeInTheDocument()
+      })
+
+      // Open add-member dialog
+      await user.click(screen.getByTestId('add-member-btn-1'))
+
+      await waitFor(() => {
+        // Should show disabled role selector
+        const roleSelect = screen.getByTestId('add-member-role-select')
+        expect(roleSelect).toHaveAttribute('data-disabled')
+      })
+
+      // Should show no-permission hint
+      expect(screen.getByText('无权限查看角色列表')).toBeInTheDocument()
+    })
+
+    it('does not call GET /admin/roles when user lacks role:read', async () => {
+      let rolesCalled = false
+      server.use(
+        http.get('/admin/roles', () => {
+          rolesCalled = true
+          return HttpResponse.json({
+            code: 0,
+            data: { items: [], total: 0, page: 1, pageSize: 100 },
+          })
+        }),
+      )
+
+      // team:invite but NOT role:read
+      useAuthStore.getState().setPermissions({
+        isSuperAdmin: false,
+        teamPermissions: { 1: ['team:invite'] },
+      })
+
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('产品研发团队')).toBeInTheDocument()
+      })
+
+      // Open add-member dialog
+      await user.click(screen.getByTestId('add-member-btn-1'))
+
+      await waitFor(() => {
+        expect(screen.getByText('无权限查看角色列表')).toBeInTheDocument()
+      })
+
+      expect(rolesCalled).toBe(false)
+    })
+
+    it('shows no-role hint when role list is empty', async () => {
+      server.use(
+        http.get('/v1/admin/roles', () => {
+          return HttpResponse.json({
+            code: 0,
+            data: { items: [], total: 0, page: 1, pageSize: 100 },
+          })
+        }),
+      )
+      useAuthStore.getState().setPermissions({
+        isSuperAdmin: false,
+        teamPermissions: { 1: ['team:invite', 'role:read'] },
+      })
+
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('产品研发团队')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('add-member-btn-1'))
+
+      expect(await screen.findByText('暂无可用角色', {}, { timeout: 3000 })).toBeInTheDocument()
+    })
+  })
 })

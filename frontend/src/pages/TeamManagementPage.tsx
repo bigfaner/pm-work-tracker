@@ -71,13 +71,14 @@ export default function TeamManagementPage() {
   const total = data?.total ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
-  // Roles for invite dialog — only fetch if user can invite members
+  // Roles for invite dialog — only fetch if user can read roles
   const hasPermission = useAuthStore((s) => s.hasPermission)
+  const canReadRoles = hasPermission('role:read')
   const { data: rolesData } = useQuery({
     queryKey: ['roles'],
     queryFn: () => listRolesApi({ pageSize: 100 }),
     staleTime: 5 * 60 * 1000,
-    enabled: hasPermission('team:invite'),
+    enabled: canReadRoles,
   })
 
   const roles = useMemo(() => {
@@ -390,21 +391,41 @@ export default function TeamManagementPage() {
                 <label className="block text-sm font-medium text-primary mb-1">
                   角色 <span className="text-error">*</span>
                 </label>
-                <Select
-                  value={inviteRoleId ?? ''}
-                  onValueChange={(v) => setInviteRoleId(v)}
-                >
-                  <SelectTrigger data-testid="add-member-role-select">
-                    <SelectValue placeholder="选择角色" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map((role) => (
-                      <SelectItem key={role.bizKey} value={role.bizKey}>
-                        {role.roleName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {!canReadRoles ? (
+                  <>
+                    <Select disabled>
+                      <SelectTrigger data-testid="add-member-role-select" data-disabled>
+                        <SelectValue placeholder="—" />
+                      </SelectTrigger>
+                    </Select>
+                    <p className="mt-1 text-sm text-tertiary">无权限查看角色列表</p>
+                  </>
+                ) : roles.length === 0 && !!rolesData ? (
+                  <>
+                    <Select disabled>
+                      <SelectTrigger data-testid="add-member-role-select">
+                        <SelectValue placeholder="—" />
+                      </SelectTrigger>
+                    </Select>
+                    <p className="mt-1 text-sm text-tertiary">暂无可用角色</p>
+                  </>
+                ) : (
+                  <Select
+                    value={inviteRoleId ?? ''}
+                    onValueChange={(v) => setInviteRoleId(v)}
+                  >
+                    <SelectTrigger data-testid="add-member-role-select">
+                      <SelectValue placeholder="选择角色" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map((role) => (
+                        <SelectItem key={role.bizKey} value={role.bizKey}>
+                          {role.roleName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
           </DialogBody>
