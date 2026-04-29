@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, beforeAll, afterAll, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import * as toast from '@/lib/toast'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -307,6 +308,35 @@ describe('SubItemDetailPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/不能低于上一条记录的进度/)).toBeInTheDocument()
+    })
+  })
+
+  // --- Append progress validation ---
+
+  it('bug: shows error toast when submitting completion lower than last record', async () => {
+    const showToastSpy = vi.spyOn(toast, 'showToast')
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '追加进度' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: '追加进度' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: '追加进度', level: 2 })).toBeInTheDocument()
+    })
+
+    // lastCompletion is 80 (last record); enter 50 which is lower
+    const input = screen.getByPlaceholderText('请输入 0-100 的整数')
+    await user.clear(input)
+    await user.type(input, '50')
+
+    await user.click(screen.getByRole('button', { name: '提交' }))
+
+    await waitFor(() => {
+      expect(showToastSpy).toHaveBeenCalledWith(expect.any(String), 'error')
     })
   })
 

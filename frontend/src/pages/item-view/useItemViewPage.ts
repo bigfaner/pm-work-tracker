@@ -234,6 +234,10 @@ export function useItemViewPage(teamId: string | null) {
       setAppendOpen(false)
       setAppendForm({ completion: '', achievement: '', blocker: '' })
     },
+    onError: (error: unknown) => {
+      const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message
+      addToast(msg || '进度不能低于上一条记录', 'error')
+    },
   })
 
   // --- Handlers ---

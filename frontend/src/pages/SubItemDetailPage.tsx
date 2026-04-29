@@ -40,6 +40,7 @@ import { MemberSelect } from '@/components/shared/MemberSelect'
 import { SUB_ITEM_STATUSES, isOverdue } from '@/lib/status'
 import { useMemberName } from '@/hooks/useMemberName'
 import { formatDate } from '@/lib/format'
+import { showToast } from '@/lib/toast'
 
 // --- Main Component ---
 
@@ -175,7 +176,10 @@ export default function SubItemDetailPage() {
   const handleAppend = useCallback(() => {
     const val = Number(appendForm.completion)
     if (isNaN(val) || val < 0 || val > 100) return
-    if (val < lastCompletion) return
+    if (val < lastCompletion) {
+      showToast('进度不能低于上一条记录', 'error')
+      return
+    }
     appendMutation.mutate({
       completion: val,
       ...(appendForm.achievement && { achievement: appendForm.achievement }),
