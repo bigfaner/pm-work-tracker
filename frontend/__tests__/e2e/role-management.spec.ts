@@ -136,11 +136,11 @@ test.describe('Role Management - Edit Button State', () => {
     const createRes = await fetch(`${API}/admin/roles`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: uniqueName, description: 'E2E test', permissionCodes: ['items:view'] }),
+      body: JSON.stringify({ name: uniqueName, description: 'E2E test', permissionCodes: ['team:read'] }),
     });
     if (createRes.status !== 200 && createRes.status !== 201) { test.skip(); return; }
     const created = await createRes.json();
-    const roleId = created?.data?.id || created?.id;
+    const roleId = created?.data?.bizKey;
 
     await page.goto(`${BASE}/roles`);
     await expect(page.locator('[data-testid="role-management-page"]')).toBeVisible({ timeout: 10000 });
@@ -220,11 +220,11 @@ test.describe('Role Management - Delete Role', () => {
     const createRes = await fetch(`${API}/admin/roles`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: uniqueName, description: 'E2E delete test', permissionCodes: [] }),
+      body: JSON.stringify({ name: uniqueName, description: 'E2E delete test', permissionCodes: ['team:read'] }),
     });
     if (createRes.status !== 200 && createRes.status !== 201) { test.skip(); return; }
     const created = await createRes.json();
-    const roleId = created?.data?.id || created?.id;
+    const roleId = created?.data?.bizKey;
 
     await page.goto(`${BASE}/roles`);
     await expect(page.locator('[data-testid="role-management-page"]')).toBeVisible({ timeout: 10000 });
@@ -234,7 +234,7 @@ test.describe('Role Management - Delete Role', () => {
     const row = page.locator('tr').filter({ has: roleBtn });
     await row.locator('button', { hasText: '删除' }).click();
 
-    await expect(page.locator('text=删除角色')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('h2:has-text("删除角色")')).toBeVisible({ timeout: 5000 });
     await page.locator('button', { hasText: '确认删除' }).click();
 
     await expect(roleBtn).not.toBeVisible({ timeout: 5000 });

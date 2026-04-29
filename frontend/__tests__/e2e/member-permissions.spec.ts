@@ -6,19 +6,11 @@ const API = 'http://localhost:8080/v1';
 test.describe('团队成员权限测试', () => {
   let memberToken: string;
   let teamId: string;
+  let testUsername: string;
+  let testUserBizKey: string;
 
   test.beforeAll(async () => {
-    // 登录获取 token
-    const res = await fetch(`${API}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'test', password: 'abcd1234' }),
-    });
-    const json = await res.json();
-    memberToken = json.data.token;
-    const testUserBizKey = json.data.user.bizKey;
-
-    // 获取管理员 token，用于分配角色
+    // 获取管理员 token
     const adminRes = await fetch(`${API}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -26,9 +18,28 @@ test.describe('团队成员权限测试', () => {
     });
     const adminToken = (await adminRes.json()).data.token;
 
+    // 创建临时测试用户
+    testUsername = `test_member_${Date.now()}`;
+    const createRes = await fetch(`${API}/admin/users`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: testUsername, displayName: 'Test Member' }),
+    });
+    const createJson = await createRes.json();
+    testUserBizKey = String(createJson.data.bizKey);
+    const initialPassword = createJson.data.initialPassword;
+
+    // 用初始密码登录
+    const loginRes = await fetch(`${API}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: testUsername, password: initialPassword }),
+    });
+    memberToken = (await loginRes.json()).data.token;
+
     // 获取团队 ID
     const teamsRes = await fetch(`${API}/teams`, {
-      headers: { Authorization: `Bearer ${memberToken}` },
+      headers: { Authorization: `Bearer ${adminToken}` },
     });
     const teamsJson = await teamsRes.json();
     teamId = String(teamsJson.data.items[0].bizKey);
@@ -41,20 +52,26 @@ test.describe('团队成员权限测试', () => {
     const memberRole = rolesJson.data.items.find((r: any) => r.roleName === 'member');
     const memberRoleKey = String(memberRole.bizKey);
 
-    // 确保 test 用户在团队中拥有 member 角色（先加入，再更新角色）
-    const addRes = await fetch(`${API}/teams/${teamId}/members`, {
+    // 将测试用户加入团队
+    await fetch(`${API}/teams/${teamId}/members`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'test', roleKey: memberRoleKey }),
+      body: JSON.stringify({ username: testUsername, roleKey: memberRoleKey }),
     });
-    // If already a member (409 or similar), update role instead
-    if (!addRes.ok) {
-      await fetch(`${API}/teams/${teamId}/members/${testUserBizKey}/role`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roleKey: memberRoleKey }),
-      });
-    }
+  });
+
+  test.afterAll(async () => {
+    if (!testUserBizKey) return;
+    const adminRes = await fetch(`${API}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'admin', password: 'admin123' }),
+    });
+    const adminToken = (await adminRes.json()).data.token;
+    await fetch(`${API}/admin/users/${testUserBizKey}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
   });
 
   async function loginAsMember(page: any, token: string) {
@@ -76,7 +93,7 @@ test.describe('团队成员权限测试', () => {
 
     await page.goto(`${BASE}/items`);
     await page.waitForURL(/\/items/, { timeout: 10000 });
-    
+
     // 等待权限加载
     await page.waitForFunction(() => {
       try {
@@ -111,7 +128,7 @@ test.describe('团队成员权限测试', () => {
     await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('text=团队名称')).toBeVisible({ timeout: 5000 });
-    
+
     // 验证成员不能看到 PM 专属按钮
     await expect(page.locator('button', { hasText: '解散团队' })).not.toBeVisible({ timeout: 3000 });
     await expect(page.locator('button', { hasText: '添加成员' })).not.toBeVisible({ timeout: 3000 });
