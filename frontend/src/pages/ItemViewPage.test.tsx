@@ -324,6 +324,55 @@ describe('ItemViewPage', () => {
     })
   })
 
+  // --- Append progress validation ---
+
+  it('bug: shows error toast when submitting completion lower than current sub-item completion', async () => {
+    let progressApiCalled = false
+    server.use(
+      http.post('/v1/teams/:teamId/sub-items/:itemId/progress', async ({ request }) => {
+        progressApiCalled = true
+        const body = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ code: 0, data: { completion: body.completion, createTime: new Date().toISOString() } })
+      }),
+    )
+
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+    })
+
+    // Expand card to show sub-items
+    const expandBtn = screen.getByTestId('expand-card-1')
+    await user.click(expandBtn)
+
+    await waitFor(() => {
+      expect(screen.getByText('Sub Alpha 2')).toBeInTheDocument()
+    })
+
+    // Click "追加进度" on Sub Alpha 2 (completion=80)
+    const appendBtns = screen.getAllByRole('button', { name: /追加进度/ })
+    const enabledAppendBtns = appendBtns.filter(btn => !btn.hasAttribute('disabled'))
+    await user.click(enabledAppendBtns[0])
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /追加进度/ })).toBeInTheDocument()
+    })
+
+    // Enter a value lower than current completion (80)
+    const input = screen.getByPlaceholderText('请输入进度')
+    await user.clear(input)
+    await user.type(input, '50')
+
+    await user.click(screen.getByRole('button', { name: '确认' }))
+
+    // Should show error toast WITHOUT calling the API
+    await waitFor(() => {
+      expect(screen.getByText(/进度不能低于/)).toBeInTheDocument()
+    })
+    expect(progressApiCalled).toBe(false)
+  })
+
   // --- No antd imports ---
 
   it('does not import antd', async () => {

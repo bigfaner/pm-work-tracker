@@ -57,6 +57,7 @@ export function useItemViewPage(teamId: string | null) {
   const [appendOpen, setAppendOpen] = useState(false)
   const [appendTarget, setAppendTarget] = useState<string | null>(null)
   const [appendTargetName, setAppendTargetName] = useState('')
+  const [appendTargetCompletion, setAppendTargetCompletion] = useState(0)
   const [appendForm, setAppendForm] = useState<AppendProgressFormState>({ completion: '', achievement: '', blocker: '' })
 
   const [editSubOpen, setEditSubOpen] = useState(false)
@@ -318,6 +319,7 @@ export function useItemViewPage(teamId: string | null) {
   const openAppendDialog = useCallback((subItemId: string, subItemTitle: string, subItemCompletion: number) => {
     setAppendTarget(subItemId)
     setAppendTargetName(subItemTitle)
+    setAppendTargetCompletion(subItemCompletion)
     setAppendForm({ completion: String(subItemCompletion), achievement: '', blocker: '' })
     setAppendOpen(true)
   }, [])
@@ -353,6 +355,10 @@ export function useItemViewPage(teamId: string | null) {
   const handleAppend = useCallback(() => {
     const val = Number(appendForm.completion)
     if (isNaN(val) || val < 0 || val > 100 || !appendTarget) return
+    if (val < appendTargetCompletion) {
+      addToast('进度不能低于当前完成度', 'error')
+      return
+    }
     appendMutation.mutate({
       subItemId: appendTarget,
       data: {
@@ -361,7 +367,7 @@ export function useItemViewPage(teamId: string | null) {
         ...(appendForm.blocker && { blocker: appendForm.blocker }),
       },
     })
-  }, [appendForm, appendTarget, appendMutation])
+  }, [appendForm, appendTarget, appendTargetCompletion, appendMutation, addToast])
 
   const memberName = useMemberName(members)
 
