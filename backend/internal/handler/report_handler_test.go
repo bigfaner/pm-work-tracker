@@ -34,20 +34,20 @@ type mockReportService struct {
 
 	// capture calls
 	previewCalled bool
-	lastTeamID    uint
+	lastTeamID    int64
 	lastWeekStart time.Time
 
 	exportCalled bool
 }
 
-func (m *mockReportService) Preview(_ context.Context, teamID uint, weekStart time.Time) (*dto.ReportPreview, error) {
+func (m *mockReportService) Preview(_ context.Context, teamID int64, weekStart time.Time) (*dto.ReportPreview, error) {
 	m.previewCalled = true
 	m.lastTeamID = teamID
 	m.lastWeekStart = weekStart
 	return m.previewResult.result, m.previewResult.err
 }
 
-func (m *mockReportService) ExportMarkdown(_ context.Context, teamID uint, weekStart time.Time) ([]byte, error) {
+func (m *mockReportService) ExportMarkdown(_ context.Context, teamID int64, weekStart time.Time) ([]byte, error) {
 	m.exportCalled = true
 	m.lastTeamID = teamID
 	m.lastWeekStart = weekStart
@@ -108,7 +108,7 @@ func TestWeeklyPreview_Success(t *testing.T) {
 	assert.Equal(t, "2026-04-19", data["weekEnd"])
 
 	assert.True(t, svc.previewCalled)
-	assert.Equal(t, uint(10), svc.lastTeamID)
+	assert.Equal(t, int64(10), svc.lastTeamID)
 }
 
 func TestWeeklyPreview_MissingWeekStart(t *testing.T) {
@@ -258,7 +258,7 @@ func TestWeeklyExport_Success(t *testing.T) {
 	assert.Equal(t, expectedFilename, w.Header().Get("Content-Disposition"))
 
 	assert.True(t, svc.exportCalled)
-	assert.Equal(t, uint(10), svc.lastTeamID)
+	assert.Equal(t, int64(10), svc.lastTeamID)
 	assert.Contains(t, w.Body.String(), "# Weekly Report")
 }
 

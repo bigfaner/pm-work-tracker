@@ -13,9 +13,9 @@ import (
 
 // ProgressService defines business operations for progress records.
 type ProgressService interface {
-	Append(ctx context.Context, teamID, authorID, subItemID uint, completion float64, achievement, blocker, lesson string, isPM bool) (*model.ProgressRecord, error)
-	CorrectCompletion(ctx context.Context, teamID, recordID uint, completion float64) error
-	List(ctx context.Context, teamID, subItemID uint) ([]model.ProgressRecord, error)
+	Append(ctx context.Context, teamBizKey int64, authorID, subItemID uint, completion float64, achievement, blocker, lesson string, isPM bool) (*model.ProgressRecord, error)
+	CorrectCompletion(ctx context.Context, teamBizKey int64, recordID uint, completion float64) error
+	List(ctx context.Context, teamBizKey int64, subItemID uint) ([]model.ProgressRecord, error)
 	GetByBizKey(ctx context.Context, bizKey int64) (*model.ProgressRecord, error)
 }
 
@@ -31,7 +31,7 @@ func NewProgressService(progressRepo repository.ProgressRepo, subItemRepo reposi
 	return &progressService{progressRepo: progressRepo, subItemRepo: subItemRepo, mainItemSvc: mainItemSvc, statusHistorySvc: statusHistorySvc}
 }
 
-func (s *progressService) Append(ctx context.Context, teamID, authorID, subItemID uint, completion float64, achievement, blocker, lesson string, isPM bool) (*model.ProgressRecord, error) {
+func (s *progressService) Append(ctx context.Context, teamBizKey int64, authorID, subItemID uint, completion float64, achievement, blocker, lesson string, isPM bool) (*model.ProgressRecord, error) {
 	subItem, err := s.subItemRepo.FindByID(ctx, subItemID)
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func (s *progressService) Append(ctx context.Context, teamID, authorID, subItemI
 	record := &model.ProgressRecord{
 		BizKey:      snowflake.Generate(),
 		SubItemKey:  subItem.BizKey,
-		TeamKey:     int64(teamID),
+		TeamKey:     teamBizKey,
 		AuthorKey:   int64(authorID),
 		Completion:  completion,
 		Achievement: achievement,
@@ -122,7 +122,7 @@ func (s *progressService) GetByBizKey(ctx context.Context, bizKey int64) (*model
 	return record, nil
 }
 
-func (s *progressService) CorrectCompletion(ctx context.Context, teamID, recordID uint, completion float64) error {
+func (s *progressService) CorrectCompletion(ctx context.Context, teamBizKey int64, recordID uint, completion float64) error {
 	record, err := s.progressRepo.FindByID(ctx, recordID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
@@ -163,11 +163,11 @@ func (s *progressService) CorrectCompletion(ctx context.Context, teamID, recordI
 	return s.mainItemSvc.RecalcCompletion(ctx, uint(subItem.MainItemKey))
 }
 
-func (s *progressService) List(ctx context.Context, teamID, subItemID uint) ([]model.ProgressRecord, error) {
+func (s *progressService) List(ctx context.Context, teamBizKey int64, subItemID uint) ([]model.ProgressRecord, error) {
 	subItem, err := s.subItemRepo.FindByID(ctx, subItemID)
 	if err != nil {
 		return nil, err
 	}
-	return s.progressRepo.ListBySubItem(ctx, teamID, subItem.BizKey)
+	return s.progressRepo.ListBySubItem(ctx, teamBizKey, subItem.BizKey)
 }
 

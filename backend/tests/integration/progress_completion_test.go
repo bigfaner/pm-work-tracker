@@ -22,7 +22,7 @@ func TestProgress_AppendToSubItem1_UpdatesMainItemCompletion(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	token := loginAs(t, r, "userA", "passwordA")
 
-	mainID, sub1ID, _, sub1BizKey, _ := seedProgressData(t, db, data.teamAID, data.userAID)
+	mainID, sub1ID, _, sub1BizKey, _ := seedProgressData(t, db, data.teamABizKey, data.userAID)
 
 	// Append progress (completion=60) to SubItem1
 	w := appendProgress(t, r, token, data.teamABizKey, sub1BizKey, 60)
@@ -42,7 +42,7 @@ func TestProgress_AppendToSubItem2_UpdatesMainItemCompletion(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	token := loginAs(t, r, "userA", "passwordA")
 
-	mainID, _, _, sub1BizKey, sub2BizKey := seedProgressData(t, db, data.teamAID, data.userAID)
+	mainID, _, _, sub1BizKey, sub2BizKey := seedProgressData(t, db, data.teamABizKey, data.userAID)
 
 	// First append to SubItem1 (completion=60)
 	w := appendProgress(t, r, token, data.teamABizKey, sub1BizKey, 60)
@@ -63,7 +63,7 @@ func TestProgress_RegressionBlocked_Returns422(t *testing.T) {
 	// Use a regular member (not PM) so the regression check is enforced
 	token := loginAs(t, r, "memberA", "passwordMemberA")
 
-	mainID, _, _, sub1BizKey, _ := seedProgressData(t, db, data.teamAID, data.userAID)
+	mainID, _, _, sub1BizKey, _ := seedProgressData(t, db, data.teamABizKey, data.userAID)
 
 	// First append completion=60 to SubItem1
 	w := appendProgress(t, r, token, data.teamABizKey, sub1BizKey, 60)
@@ -93,7 +93,7 @@ func TestItemPool_Assign_Success(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	token := loginAs(t, r, "userA", "passwordA")
 
-	poolID, mainItemID, poolBizKey, mainItemBizKey := seedPoolData(t, db, data.teamAID, data.userAID)
+	poolID, mainItemID, poolBizKey, mainItemBizKey := seedPoolData(t, db, data.teamABizKey, data.userAID)
 
 	// Assign the pool item
 	body := fmt.Sprintf(`{"mainItemKey":"%d","assigneeKey":"%d","priority":"P2","startDate":"2024-01-01","expectedEndDate":"2024-03-01"}`, mainItemBizKey, data.userAID)
@@ -126,7 +126,7 @@ func TestItemPool_Assign_Rollback_OnInvalidMainItem(t *testing.T) {
 	r, _ := setupTestRouterWithDB(t, db, data)
 	token := loginAs(t, r, "userA", "passwordA")
 
-	poolID, _, poolBizKey, _ := seedPoolData(t, db, data.teamAID, data.userAID)
+	poolID, _, poolBizKey, _ := seedPoolData(t, db, data.teamABizKey, data.userAID)
 
 	// Assign with a non-existent mainItemID to trigger failure
 	invalidMainID := uint(99999)
@@ -162,7 +162,7 @@ func TestWeeklyExport_ReturnsMarkdownWithMainItemTitle(t *testing.T) {
 
 	// Use a known Monday
 	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC) // Monday
-	mainItemTitle := seedReportData(t, db, data.teamAID, data.userAID, weekStart)
+	mainItemTitle := seedReportData(t, db, data.teamABizKey, data.userAID, weekStart)
 
 	// GET /api/v1/teams/:teamId/reports/weekly/export?weekStart=2026-04-13
 	w := httptest.NewRecorder()

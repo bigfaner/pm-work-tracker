@@ -29,16 +29,18 @@ func seedItemPoolData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team) {
 	require.NoError(t, db.Create(&u).Error)
 	team := model.Team{TeamName: "IP Team", PmKey: int64(u.ID), Code: "IPTE"}
 	require.NoError(t, db.Create(&team).Error)
+	team.BizKey = int64(team.ID)
+	require.NoError(t, db.Save(&team).Error)
 	return &u, &team
 }
 
-func createItemPool(t *testing.T, db *gormlib.DB, teamID, submitterID uint, title, status string) *model.ItemPool {
+func createItemPool(t *testing.T, db *gormlib.DB, teamBizKey int64, submitterID uint, title, status string) *model.ItemPool {
 	t.Helper()
 	item := model.ItemPool{
-		TeamKey: int64(teamID),
-		Title:       title,
+		TeamKey:      teamBizKey,
+		Title:        title,
 		SubmitterKey: int64(submitterID),
-		PoolStatus: status,
+		PoolStatus:   status,
 	}
 	require.NoError(t, db.Create(&item).Error)
 	return &item
@@ -72,7 +74,7 @@ func TestItemPoolRepo_FindByID(t *testing.T) {
 	ctx := context.Background()
 
 	u, team := seedItemPoolData(t, db)
-	item := createItemPool(t, db, team.ID, u.ID, "Find Me", "pending")
+	item := createItemPool(t, db, team.BizKey, u.ID, "Find Me", "pending")
 
 	t.Run("found", func(t *testing.T) {
 		found, err := repo.FindByID(ctx, item.ID)
@@ -95,7 +97,7 @@ func TestItemPoolRepo_Update(t *testing.T) {
 	ctx := context.Background()
 
 	u, team := seedItemPoolData(t, db)
-	item := createItemPool(t, db, team.ID, u.ID, "Assign Me", "pending")
+	item := createItemPool(t, db, team.BizKey, u.ID, "Assign Me", "pending")
 
 	mainID := u.ID
 	subID := u.ID
@@ -135,39 +137,41 @@ func TestItemPoolRepo_List(t *testing.T) {
 
 	u, team := seedItemPoolData(t, db)
 
-	createItemPool(t, db, team.ID, u.ID, "Pool A", "pending")
-	createItemPool(t, db, team.ID, u.ID, "Pool B", "assigned")
-	createItemPool(t, db, team.ID, u.ID, "Pool C", "rejected")
+	createItemPool(t, db, team.BizKey, u.ID, "Pool A", "pending")
+	createItemPool(t, db, team.BizKey, u.ID, "Pool B", "assigned")
+	createItemPool(t, db, team.BizKey, u.ID, "Pool C", "rejected")
 
 	// Another team - should not appear
 	u2 := model.User{Username: "ip_other", DisplayName: "IP Other", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u2).Error)
 	team2 := model.Team{TeamName: "IP Team2", PmKey: int64(u2.ID), Code: "IPT2"}
 	require.NoError(t, db.Create(&team2).Error)
-	createItemPool(t, db, team2.ID, u2.ID, "Other Team", "pending")
+		team2.BizKey = int64(team2.ID)
+		require.NoError(t, db.Save(&team2).Error)
+	createItemPool(t, db, team2.BizKey, u2.ID, "Other Team", "pending")
 
 	t.Run("all_for_team", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.ItemPoolFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, dto.ItemPoolFilter{}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), result.Total)
 	})
 
 	t.Run("filter_by_status", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.ItemPoolFilter{Status: "assigned"}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, dto.ItemPoolFilter{Status: "assigned"}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), result.Total)
 		assert.Equal(t, "Pool B", result.Items[0].Title)
 	})
 
 	t.Run("filter_by_status_rejected", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.ItemPoolFilter{Status: "rejected"}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, dto.ItemPoolFilter{Status: "rejected"}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), result.Total)
 		assert.Equal(t, "Pool C", result.Items[0].Title)
 	})
 
 	t.Run("pagination", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.ItemPoolFilter{}, dto.Pagination{Page: 1, PageSize: 2})
+		result, err := repo.List(ctx, team.BizKey, dto.ItemPoolFilter{}, dto.Pagination{Page: 1, PageSize: 2})
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), result.Total)
 		assert.Len(t, result.Items, 2)
@@ -176,21 +180,21 @@ func TestItemPoolRepo_List(t *testing.T) {
 	})
 
 	t.Run("pagination_page2", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.ItemPoolFilter{}, dto.Pagination{Page: 2, PageSize: 2})
+		result, err := repo.List(ctx, team.BizKey, dto.ItemPoolFilter{}, dto.Pagination{Page: 2, PageSize: 2})
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), result.Total)
 		assert.Len(t, result.Items, 1)
 	})
 
 	t.Run("default_pagination", func(t *testing.T) {
-		result, err := repo.List(ctx, team.ID, dto.ItemPoolFilter{}, dto.Pagination{})
+		result, err := repo.List(ctx, team.BizKey, dto.ItemPoolFilter{}, dto.Pagination{})
 		require.NoError(t, err)
 		assert.Equal(t, 1, result.Page)
 		assert.Equal(t, 20, result.Size)
 	})
 
 	t.Run("team_isolation", func(t *testing.T) {
-		result, err := repo.List(ctx, team2.ID, dto.ItemPoolFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team2.BizKey, dto.ItemPoolFilter{}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), result.Total)
 		assert.Equal(t, "Other Team", result.Items[0].Title)
@@ -207,7 +211,7 @@ func TestItemPoolRepo_SoftDelete(t *testing.T) {
 	u, team := seedItemPoolData(t, db)
 
 	t.Run("FindByBizKey_excludes_soft_deleted", func(t *testing.T) {
-		item := createItemPool(t, db, team.ID, u.ID, "Deleted Pool", "pending")
+		item := createItemPool(t, db, team.BizKey, u.ID, "Deleted Pool", "pending")
 		require.NoError(t, db.Model(item).Update("deleted_flag", 1).Error)
 
 		_, err := repo.FindByBizKey(ctx, item.BizKey)
@@ -215,11 +219,11 @@ func TestItemPoolRepo_SoftDelete(t *testing.T) {
 	})
 
 	t.Run("List_excludes_soft_deleted", func(t *testing.T) {
-		active := createItemPool(t, db, team.ID, u.ID, "List Active", "pending")
-		deleted := createItemPool(t, db, team.ID, u.ID, "List Deleted", "pending")
+		active := createItemPool(t, db, team.BizKey, u.ID, "List Active", "pending")
+		deleted := createItemPool(t, db, team.BizKey, u.ID, "List Deleted", "pending")
 		require.NoError(t, db.Model(deleted).Update("deleted_flag", 1).Error)
 
-		result, err := repo.List(ctx, team.ID, dto.ItemPoolFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, dto.ItemPoolFilter{}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		for _, item := range result.Items {
 			assert.NotEqual(t, "List Deleted", item.Title, "soft-deleted item should not appear in List")

@@ -13,5 +13,5 @@ type ItemPoolRepo interface {
 	FindByID(ctx context.Context, id uint) (*model.ItemPool, error)
 	FindByBizKey(ctx context.Context, bizKey int64) (*model.ItemPool, error)
 	Update(ctx context.Context, item *model.ItemPool, fields map[string]interface{}) error
-	List(ctx context.Context, teamID uint, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error)
+	List(ctx context.Context, teamBizKey int64, filter dto.ItemPoolFilter, page dto.Pagination) (*dto.PageResult[model.ItemPool], error)
 }

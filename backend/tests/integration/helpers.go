@@ -445,12 +445,12 @@ func makeRequest(t *testing.T, r *gin.Engine, method, path, body, token string) 
 
 // seedProgressData creates a MainItem with two SubItems (weight=1 each) for progress tests.
 // Returns the main item ID, the two sub item IDs, and their bizKey values.
-func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemID, subItem1ID, subItem2ID uint, subItem1BizKey, subItem2BizKey int64) {
+func seedProgressData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) (mainItemID, subItem1ID, subItem2ID uint, subItem1BizKey, subItem2BizKey int64) {
 	t.Helper()
 
 	mainItem := &model.MainItem{
 		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      int64(teamID),
+		TeamKey:      teamBizKey,
 		Code:         "TAMA-00001",
 		Title:        "Test Main Item",
 		Priority:     "P1",
@@ -461,7 +461,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 
 	sub1 := &model.SubItem{
 		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:       int64(teamID),
+		TeamKey:       teamBizKey,
 		MainItemKey:   int64(mainItem.ID),
 		Title:         "Sub Item 1",
 		Priority:      "P2",
@@ -472,7 +472,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamID, userID uint) (mainItemI
 
 	sub2 := &model.SubItem{
 		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:       int64(teamID),
+		TeamKey:       teamBizKey,
 		MainItemKey:   int64(mainItem.ID),
 		Title:         "Sub Item 2",
 		Priority:      "P2",
@@ -500,12 +500,12 @@ func appendProgress(t *testing.T, r *gin.Engine, token string, teamBizKey, subBi
 }
 
 // seedPoolData creates a pool item and a main item for assign tests.
-func seedPoolData(t *testing.T, db *gorm.DB, teamID, userID uint) (poolID, mainItemID uint, poolBizKey, mainItemBizKey int64) {
+func seedPoolData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) (poolID, mainItemID uint, poolBizKey, mainItemBizKey int64) {
 	t.Helper()
 
 	poolItem := &model.ItemPool{
 		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:       int64(teamID),
+		TeamKey:       teamBizKey,
 		Title:         "Pool Item Title",
 		Background:    "Some background",
 		SubmitterKey:  int64(userID),
@@ -515,7 +515,7 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamID, userID uint) (poolID, mainI
 
 	mainItem := &model.MainItem{
 		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      int64(teamID),
+		TeamKey:      teamBizKey,
 		Code:         "TAMA-00002",
 		Title:        "Main Item for Pool",
 		Priority:     "P1",
@@ -528,12 +528,12 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamID, userID uint) (poolID, mainI
 }
 
 // seedReportData creates a MainItem with a SubItem that has progress during the given week.
-func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart time.Time) (mainItemTitle string) {
+func seedReportData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, weekStart time.Time) (mainItemTitle string) {
 	t.Helper()
 
 	mainItem := &model.MainItem{
 		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      int64(teamID),
+		TeamKey:      teamBizKey,
 		Code:         "TAMA-00003",
 		Title:        "Report Test Main Item",
 		Priority:     "P1",
@@ -544,7 +544,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart ti
 
 	subItem := &model.SubItem{
 		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:       int64(teamID),
+		TeamKey:       teamBizKey,
 		MainItemKey:   int64(mainItem.ID),
 		Title:         "Report Test Sub Item",
 		Priority:      "P2",
@@ -558,7 +558,7 @@ func seedReportData(t *testing.T, db *gorm.DB, teamID, userID uint, weekStart ti
 	record := &model.ProgressRecord{
 		BizKey:      snowflake.Generate(),
 		SubItemKey:  subItem.BizKey,
-		TeamKey:     int64(teamID),
+		TeamKey:     teamBizKey,
 		AuthorKey:   int64(userID),
 		Completion:  50,
 		Achievement: "Completed half the work",
@@ -607,6 +607,14 @@ func findRoleBizKeyByName(t *testing.T, db *gorm.DB, name string) string {
 	var role model.Role
 	require.NoError(t, db.Where("role_name = ?", name).First(&role).Error)
 	return fmt.Sprintf("%d", role.BizKey)
+}
+
+// findRoleBizKeyInt64ByName looks up a role's BizKey as int64 by name.
+func findRoleBizKeyInt64ByName(t *testing.T, db *gorm.DB, name string) int64 {
+	t.Helper()
+	var role model.Role
+	require.NoError(t, db.Where("role_name = ?", name).First(&role).Error)
+	return role.BizKey
 }
 
 // findRoleIDByBizKey looks up a role's numeric ID by its BizKey string.
@@ -715,16 +723,16 @@ func createTeamWithMembers(t *testing.T, db *gorm.DB, pmID uint, memberCount int
 	require.NoError(t, db.Create(team).Error)
 
 	// Add PM as team member with PM role
-	pmRoleID := findRoleKeyByName(t, db, "pm")
+	pmRoleBizKey := findRoleBizKeyInt64ByName(t, db, "pm")
 	require.NoError(t, db.Create(&model.TeamMember{
 		TeamKey:  int64(team.ID),
 		UserKey:  int64(pmID),
-		RoleKey:  func() *int64 { v := int64(pmRoleID); return &v }(),
+		RoleKey:  &pmRoleBizKey,
 		JoinedAt: time.Now(),
 	}).Error)
 
 	// Create additional member users if needed
-	memberRoleID := findRoleKeyByName(t, db, "member")
+	memberRoleBizKey := findRoleBizKeyInt64ByName(t, db, "member")
 	for i := 0; i < memberCount; i++ {
 		hash, err := bcrypt.GenerateFromPassword([]byte(fmt.Sprintf("member%dpass", i)), 4)
 		require.NoError(t, err)
@@ -737,7 +745,7 @@ func createTeamWithMembers(t *testing.T, db *gorm.DB, pmID uint, memberCount int
 		require.NoError(t, db.Create(&model.TeamMember{
 			TeamKey:  int64(team.ID),
 			UserKey:  int64(member.ID),
-			RoleKey:  func() *int64 { v := int64(memberRoleID); return &v }(),
+			RoleKey:  &memberRoleBizKey,
 			JoinedAt: time.Now(),
 		}).Error)
 	}
