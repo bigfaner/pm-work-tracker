@@ -207,6 +207,9 @@ export function useItemViewPage(teamId: string | null) {
       updateMainItemApi(teamId!, req.itemId, req.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
+      expandedCards.forEach((itemId) => {
+        qc.invalidateQueries({ queryKey: ['subItems', teamId, itemId] })
+      })
       setEditOpen(false)
     },
   })

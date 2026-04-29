@@ -202,4 +202,66 @@ describe('API E2E Tests', () => {
     assert.ok(after, 'Sub item found in list after update');
     assert.equal(after.priority, 'P2', `Priority after update should be P2, got ${after.priority}`);
   });
+
+  // Traceability: TC-006 → edit main item does not affect sub-item list
+  test('TC-006: Updating a main item does not corrupt its sub-item list', async () => {
+    // Setup: create a main item with two sub-items
+    const poolId = await submitPool('E2E TC-006 main item edit test');
+    const mainItemBizKey = await convertToMain(poolId);
+
+    const subTitles = ['TC-006 sub A', 'TC-006 sub B'];
+    const subBizKeys: string[] = [];
+    for (const title of subTitles) {
+      const res = await authCurl('POST', `/v1/teams/${teamId}/main-items/${mainItemBizKey}/sub-items`, {
+        body: JSON.stringify({
+          mainItemKey: mainItemBizKey,
+          title,
+          priority: 'P2',
+          assigneeKey: '0',
+          startDate: '2026-04-28',
+          expectedEndDate: '2026-05-28',
+        }),
+      });
+      assert.ok(res.status === 200 || res.status === 201, `Create sub item failed: ${res.status} ${res.body}`);
+      const sub = JSON.parse(res.body).data ?? JSON.parse(res.body);
+      subBizKeys.push(String(sub.bizKey));
+    }
+
+    // Verify sub-items exist before editing the main item
+    const listBefore = await authCurl('GET', `/v1/teams/${teamId}/main-items/${mainItemBizKey}/sub-items`);
+    assert.equal(listBefore.status, 200, `List sub items before edit failed: ${listBefore.status} ${listBefore.body}`);
+    const itemsBefore: any[] = (JSON.parse(listBefore.body).data ?? JSON.parse(listBefore.body)).items;
+    assert.equal(itemsBefore.length, 2, `Expected 2 sub items before edit, got ${itemsBefore.length}`);
+
+    // Edit the main item (change title and priority)
+    const editRes = await authCurl('PUT', `/v1/teams/${teamId}/main-items/${mainItemBizKey}`, {
+      body: JSON.stringify({
+        title: 'TC-006 updated title',
+        priority: 'P1',
+        assigneeKey: null,
+        expectedEndDate: null,
+        actualEndDate: null,
+        description: '',
+      }),
+    });
+    assert.equal(editRes.status, 200, `Update main item failed: ${editRes.status} ${editRes.body}`);
+
+    // Verify the main item title was updated
+    const getRes = await authCurl('GET', `/v1/teams/${teamId}/main-items/${mainItemBizKey}`);
+    assert.equal(getRes.status, 200, `Get main item failed: ${getRes.status} ${getRes.body}`);
+    const updated = JSON.parse(getRes.body).data ?? JSON.parse(getRes.body);
+    assert.equal(updated.title, 'TC-006 updated title', `Main item title should be updated`);
+
+    // Verify sub-items are still intact after editing the main item
+    const listAfter = await authCurl('GET', `/v1/teams/${teamId}/main-items/${mainItemBizKey}/sub-items`);
+    assert.equal(listAfter.status, 200, `List sub items after edit failed: ${listAfter.status} ${listAfter.body}`);
+    const itemsAfter: any[] = (JSON.parse(listAfter.body).data ?? JSON.parse(listAfter.body)).items;
+    assert.equal(itemsAfter.length, 2, `Expected 2 sub items after main item edit, got ${itemsAfter.length}`);
+
+    // Both sub-item bizKeys must still be present
+    for (const key of subBizKeys) {
+      const found = itemsAfter.find((i: any) => String(i.bizKey) === key);
+      assert.ok(found, `Sub item ${key} should still exist after main item edit`);
+    }
+  });
 });

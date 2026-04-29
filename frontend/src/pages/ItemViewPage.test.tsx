@@ -725,4 +725,50 @@ describe('ItemViewPage', () => {
       expect(screen.getByText('MI-0001-02')).toBeInTheDocument()
     })
   })
+
+  // --- Edit main item: refresh + preserve expanded state ---
+
+  it('bug: after editing a main item, sub-items for expanded cards are re-fetched and expanded state is preserved', async () => {
+    let subItemsFetchCount = 0
+    server.use(
+      http.get('/v1/teams/:teamId/main-items/:mainId/sub-items', () => {
+        subItemsFetchCount++
+        return HttpResponse.json({ code: 0, data: { items: seedMainItems[0].subItems, total: 2, page: 1, pageSize: 20 } })
+      }),
+    )
+
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+    })
+
+    // Expand card '1' to trigger sub-items fetch
+    await user.click(screen.getByTestId('expand-card-1'))
+    await waitFor(() => {
+      expect(screen.getByText('Sub Alpha 1')).toBeInTheDocument()
+      expect(subItemsFetchCount).toBeGreaterThanOrEqual(1)
+    })
+    const fetchCountAfterExpand = subItemsFetchCount
+
+    // Click the main item edit button (first "编辑" not belonging to a sub-item)
+    const editBtns = screen.getAllByRole('button', { name: /编辑/ })
+    const mainEditBtn = editBtns.find((btn) => !btn.getAttribute('data-testid')?.startsWith('edit-sub-'))
+    await user.click(mainEditBtn!)
+
+    await waitFor(() => {
+      expect(screen.getByText('编辑主事项')).toBeInTheDocument()
+    })
+
+    // Submit — title is already populated from openEditDialog
+    await user.click(screen.getByRole('button', { name: '确认' }))
+
+    // Sub-items for the expanded card must be re-fetched after edit
+    await waitFor(() => {
+      expect(subItemsFetchCount).toBeGreaterThan(fetchCountAfterExpand)
+    })
+
+    // Expanded state must be preserved — sub-items still visible
+    expect(screen.getByText('Sub Alpha 1')).toBeInTheDocument()
+  })
 })
