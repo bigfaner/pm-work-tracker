@@ -23,6 +23,7 @@ export interface EditMainItemFormState {
   title: string
   priority: string
   assigneeKey: string
+  startDate: string
   expectedEndDate: string
   description: string
 }
@@ -82,9 +83,15 @@ export default function EditMainItemDialog({
               />
             </div>
           </div>
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-primary mb-1">预期完成时间</label>
-            <DateInput value={form.expectedEndDate} onChange={(e) => onFormChange((f) => ({ ...f, expectedEndDate: e.target.value }))} />
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div>
+              <label className="block text-sm font-medium text-primary mb-1">开始时间</label>
+              <DateInput value={form.startDate} onChange={(e) => onFormChange((f) => ({ ...f, startDate: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-primary mb-1">预期完成时间</label>
+              <DateInput value={form.expectedEndDate} onChange={(e) => onFormChange((f) => ({ ...f, expectedEndDate: e.target.value }))} />
+            </div>
           </div>
           <div className="mt-4">
             <label className="block text-sm font-medium text-primary mb-1">描述</label>

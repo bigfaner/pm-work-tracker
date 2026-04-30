@@ -52,7 +52,7 @@ export function useItemViewPage(teamId: string | null) {
 
   const [editOpen, setEditOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState<EditMainItemFormState>({ title: '', priority: '', assigneeKey: '', expectedEndDate: '', description: '' })
+  const [editForm, setEditForm] = useState<EditMainItemFormState>({ title: '', priority: '', assigneeKey: '', startDate: '', expectedEndDate: '', description: '' })
 
   const [appendOpen, setAppendOpen] = useState(false)
   const [appendTarget, setAppendTarget] = useState<string | null>(null)
@@ -203,7 +203,7 @@ export function useItemViewPage(teamId: string | null) {
   })
 
   const updateMutation = useMutation({
-    mutationFn: (req: { itemId: string; data: { title: string; priority: string; assigneeKey: string | null; expectedEndDate: string | null; actualEndDate: string | null; description: string } }) =>
+    mutationFn: (req: { itemId: string; data: { title: string; priority: string; assigneeKey: string | null; startDate?: string | null; expectedEndDate: string | null; actualEndDate: string | null; description: string } }) =>
       updateMainItemApi(teamId!, req.itemId, req.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -298,6 +298,7 @@ export function useItemViewPage(teamId: string | null) {
       title: item.title,
       priority: item.priority,
       assigneeKey: item.assigneeKey || '',
+      startDate: item.planStartDate || '',
       expectedEndDate: item.expectedEndDate || '',
       description: item.itemDesc || '',
     })
@@ -312,6 +313,7 @@ export function useItemViewPage(teamId: string | null) {
         title: editForm.title.trim(),
         priority: editForm.priority,
         assigneeKey: editForm.assigneeKey || null,
+        startDate: editForm.startDate || null,
         expectedEndDate: editForm.expectedEndDate || null,
         actualEndDate: null,
         description: editForm.description,
