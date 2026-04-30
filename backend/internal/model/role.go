@@ -16,7 +16,7 @@ func (Role) TableName() string {
 
 // RolePermission binds a permission code to a role.
 type RolePermission struct {
-	ID             uint      `gorm:"primarykey" json:"id"`
+	ID             uint      `gorm:"primarykey" json:"-"`
 	DeletedFlag    int       `gorm:"not null;default:0;uniqueIndex:uk_role_permission" json:"-"`
 	DeletedTime    time.Time `gorm:"not null;default:'1970-01-01 08:00:00';uniqueIndex:uk_role_permission" json:"-"`
 	RoleKey        int64     `gorm:"not null;uniqueIndex:uk_role_permission" json:"roleKey"`

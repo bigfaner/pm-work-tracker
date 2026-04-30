@@ -194,7 +194,7 @@ test.describe.serial('事项清单 Bug修复验证', () => {
     await page.waitForTimeout(1000);
     await expect(page.locator('[data-testid="detail-table"]')).toBeVisible();
 
-    const tableRow = page.locator(`tr:has-text("E2E修复测试-带日期")`).first();
+    const tableRow = page.locator(`tr:has(a[href*="${itemA}"])`).first();
     await tableRow.locator('button:has-text("编辑")').click();
     await page.waitForTimeout(2000);
 

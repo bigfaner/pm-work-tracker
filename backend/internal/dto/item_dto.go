@@ -214,7 +214,7 @@ type MainItemSummaryDTO struct {
 
 // ProgressRecordDTO is a lightweight progress record for weekly view.
 type ProgressRecordDTO struct {
-	ID          uint    `json:"id"`
+	BizKey      string  `json:"bizKey"`
 	Completion  float64 `json:"completion"`
 	Achievement string  `json:"achievement"`
 	Blocker     string  `json:"blocker"`

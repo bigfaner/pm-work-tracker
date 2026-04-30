@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"sort"
+	"strconv"
 	"time"
 
 	"pm-work-tracker/backend/internal/dto"
@@ -247,7 +248,7 @@ func buildSubItemSnapshot(si model.SubItem, assigneeName, progressDesc string, t
 		snapshot.ProgressRecords = make([]dto.ProgressRecordDTO, 0, len(records))
 		for _, pr := range records {
 			snapshot.ProgressRecords = append(snapshot.ProgressRecords, dto.ProgressRecordDTO{
-				ID:          pr.ID,
+				BizKey:      strconv.FormatInt(pr.BizKey, 10),
 				Completion:  pr.Completion,
 				Achievement: pr.Achievement,
 				Blocker:     pr.Blocker,

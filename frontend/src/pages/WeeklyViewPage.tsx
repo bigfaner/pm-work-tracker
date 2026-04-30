@@ -404,7 +404,7 @@ function SubItemRow({ item, mainItemId, showDelta, referenceDate }: SubItemRowPr
       {item.progressRecords && item.progressRecords.length > 0 ? (
         <div className="pl-14 mt-1.5 flex flex-col gap-1">
           {item.progressRecords.map((record, idx) => (
-            <div key={`${record.createTime}-${idx}`} className="text-xs text-tertiary">
+            <div key={`${record.createdAt}-${idx}`} className="text-xs text-tertiary">
               {record.achievement && (
                 <span className="text-success-text">成果：{record.achievement}</span>
               )}

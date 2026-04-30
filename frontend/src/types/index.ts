@@ -136,6 +136,14 @@ export interface ProgressRecord {
   createTime: string
 }
 
+export interface WeeklyProgressRecord {
+  bizKey: string
+  completion: number
+  achievement: string
+  blocker: string
+  createdAt: string
+}
+
 export interface ItemPool {
   bizKey: string
   teamKey: string
@@ -221,7 +229,7 @@ export interface TeamMemberResp {
   teamKey: string
   userKey: string
   role: string
-  roleId: string
+  roleKey: string
   roleName: string
   joinedAt: string
   displayName: string
@@ -541,7 +549,7 @@ export interface SubItemSnapshot {
   actualEndDate?: string | null
   completion: number
   progressDescription: string
-  progressRecords: ProgressRecord[]
+  progressRecords: WeeklyProgressRecord[]
   delta?: number
   isNew?: boolean
   justCompleted?: boolean

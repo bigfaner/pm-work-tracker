@@ -108,8 +108,8 @@ const mockWeeklyResponse: WeeklyViewResponse = {
           completion: 70,
           progressDescription: 'Token 签发完成，黑名单联调中',
           progressRecords: [
-            { subItemKey: '10', teamKey: '1', authorKey: '2', completion: 60, achievement: 'Token 签发完成', blocker: '', lesson: '', isPMCorrect: false, createTime: '2026-04-15T10:00:00Z' },
-            { subItemKey: '10', teamKey: '1', authorKey: '2', completion: 70, achievement: '黑名单联调中', blocker: 'Redis 连接超时', lesson: '', isPMCorrect: false, createTime: '2026-04-17T14:00:00Z' },
+            { bizKey: '101', completion: 60, achievement: 'Token 签发完成', blocker: '', createdAt: '2026-04-15T10:00:00Z' },
+            { bizKey: '102', completion: 70, achievement: '黑名单联调中', blocker: 'Redis 连接超时', createdAt: '2026-04-17T14:00:00Z' },
           ],
           delta: 30,
           isNew: false,
@@ -127,7 +127,7 @@ const mockWeeklyResponse: WeeklyViewResponse = {
           completion: 45,
           progressDescription: '中间件完成，RBAC 冲突待讨论',
           progressRecords: [
-            { subItemKey: '11', teamKey: '1', authorKey: '3', completion: 45, achievement: '中间件完成', blocker: 'RBAC 冲突待讨论', lesson: '', isPMCorrect: false, createTime: '2026-04-16T09:00:00Z' },
+            { bizKey: '103', completion: 45, achievement: '中间件完成', blocker: 'RBAC 冲突待讨论', createdAt: '2026-04-16T09:00:00Z' },
           ],
           delta: 25,
           isNew: false,
@@ -207,7 +207,7 @@ const mockWeeklyResponse: WeeklyViewResponse = {
           completion: 100,
           progressDescription: '图表渲染性能达标',
           progressRecords: [
-            { subItemKey: '20', teamKey: '1', authorKey: '4', completion: 100, achievement: '图表渲染性能达标', blocker: '', lesson: '', isPMCorrect: false, createTime: '2026-04-14T11:00:00Z' },
+            { bizKey: '104', completion: 100, achievement: '图表渲染性能达标', blocker: '', createdAt: '2026-04-14T11:00:00Z' },
           ],
           delta: 45,
           isNew: false,
