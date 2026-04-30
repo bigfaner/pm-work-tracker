@@ -1,11 +1,13 @@
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { runCli } from '../helpers.js';
+import { join, resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { runCli } from '../../helpers.js';
 
-const ROOT = resolve(new URL('../..', import.meta.url).pathname);
-const E2E_DIR = join(ROOT, 'tests/e2e');
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const E2E_DIR = resolve(__dirname, '../..');
+const ROOT = resolve(E2E_DIR, '../..');
 const GRADUATED_DIR = join(E2E_DIR, '.graduated');
 const KNOWN_FAILURES = join(E2E_DIR, 'KNOWN_FAILURES.md');
 const VALIDATE_SPEC = join(ROOT, 'docs/features/e2e-test-scripts-rebuild/testing/scripts/validate-spec.ts');
