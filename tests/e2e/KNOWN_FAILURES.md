@@ -25,4 +25,38 @@ Format: feature slug | test ID | reason | owner
 
 ---
 
+---
+
+## bizkey-unification
+
+| Test ID | Reason | Owner |
+|---------|--------|-------|
+| TC-001 to TC-005 (api) | Backend server not running at graduation time (http://localhost:8080 unreachable). Tests require live backend with seeded admin credentials and at least one team. | fanhuifeng |
+
+**Notes**: TC-006 and TC-007 (cli) are pure build/grep checks and pass without a live server.
+
+---
+
+## config-yaml
+
+| Test ID | Reason | Owner |
+|---------|--------|-------|
+| TC-001 to TC-019 (cli) | Require a compiled server binary at `./server` in project root. Binary not present at graduation time. Tests also require the server to start and print startup logs to stdout/stderr. | fanhuifeng |
+| TC-020, TC-021 (api) | Backend server not running at graduation time (http://localhost:8080 unreachable). | fanhuifeng |
+
+**Notes**: TC-011 (db-dialect-compat cli) is guarded by `MYSQL_HOST` env var and skipped when MySQL is unavailable.
+
+---
+
+## db-dialect-compat (re-graduated)
+
+| Test ID | Reason | Owner |
+|---------|--------|-------|
+| TC-001 to TC-004 (api) | Backend server not running at graduation time (http://localhost:8080 unreachable). Tests require live backend with at least one team and item-pool entries. | fanhuifeng |
+| TC-011 (cli) | Requires MySQL 8.0 instance. Skipped unless `MYSQL_HOST` env var is set. | fanhuifeng |
+
+**Notes**: TC-006 to TC-010 (cli lint-staged tests) pass without a live server — they only require git and bash.
+
+---
+
 *Last updated: 2026-04-30*

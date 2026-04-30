@@ -7,7 +7,7 @@ import { runCli } from './helpers.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Path to project root (where scripts/lint-staged.sh lives)
-// lint-staged/ -> cli/ -> e2e/ -> tests/ -> pm-work-tracker/
+// db-dialect-compat/ -> cli/ -> e2e/ -> tests/ -> pm-work-tracker/
 const PROJECT_ROOT = resolve(__dirname, '..', '..', '..', '..');
 // Directory for temp test files (must match lint-staged.sh check_sqlite_keywords glob)
 const GORM_DIR = resolve(PROJECT_ROOT, 'backend', 'internal', 'repository', 'gorm');

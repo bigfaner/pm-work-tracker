@@ -119,7 +119,7 @@ describe('CLI E2E Tests', () => {
     // Requires environment variables:
     //   MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE
     //
-    // Set MYSQL_HOST to enable this test (e.g. MYSQL_HOST=127.0.0.1)
+    // Set MYSQL_HOST env var to enable TC-011 (e.g. MYSQL_HOST=127.0.0.1)
 
     const mysqlHost = process.env.MYSQL_HOST ?? '127.0.0.1';
     const mysqlPort = process.env.MYSQL_PORT ?? '3306';
