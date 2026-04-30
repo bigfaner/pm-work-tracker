@@ -53,8 +53,7 @@ test.describe('Role Management - Search and Filter', () => {
     await expect(page.locator('button[data-testid^="role-name-"]').filter({ hasText: 'superadmin' })).toBeVisible({ timeout: 5000 });
   });
 
-  test.skip('searching with no match shows empty state', async ({ page }) => {
-    // Backend ListRoles doesn't filter by search param yet
+  test('searching with no match shows empty state', async ({ page }) => {
     await page.goto(`${BASE}/roles`);
     await expect(page.locator('[data-testid="role-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('input[placeholder="搜索角色名称"]').fill('zzz_no_such_role_xyz');

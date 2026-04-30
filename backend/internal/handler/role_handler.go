@@ -26,7 +26,8 @@ func NewRoleHandler(roleSvc service.RoleService) *RoleHandler {
 
 // ListRoles handles GET /api/v1/admin/roles
 func (h *RoleHandler) ListRoles(c *gin.Context) {
-	items, err := h.roleSvc.ListRoles(c.Request.Context())
+	search := c.Query("search")
+	items, err := h.roleSvc.ListRoles(c.Request.Context(), search)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

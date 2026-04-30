@@ -21,9 +21,13 @@ func NewGormRoleRepo(db *gormlib.DB) repository.RoleRepo {
 	return &roleRepo{db: db}
 }
 
-func (r *roleRepo) List(ctx context.Context) ([]model.Role, error) {
+func (r *roleRepo) List(ctx context.Context, search string) ([]model.Role, error) {
 	var roles []model.Role
-	err := r.db.WithContext(ctx).Scopes(NotDeleted).Order("create_time ASC").Find(&roles).Error
+	q := r.db.WithContext(ctx).Scopes(NotDeleted).Order("create_time ASC")
+	if search != "" {
+		q = q.Where("role_name LIKE ?", "%"+search+"%")
+	}
+	err := q.Find(&roles).Error
 	return roles, err
 }
 

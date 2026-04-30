@@ -58,7 +58,7 @@ type UserPermissions struct {
 
 // RoleService defines business logic for role management.
 type RoleService interface {
-	ListRoles(ctx context.Context) ([]RoleListItem, error)
+	ListRoles(ctx context.Context, search string) ([]RoleListItem, error)
 	GetRole(ctx context.Context, roleBizKey int64) (*RoleDetail, error)
 	CreateRole(ctx context.Context, req dto.CreateRoleReq) (*RoleListItem, error)
 	UpdateRole(ctx context.Context, roleBizKey int64, req dto.UpdateRoleReq) (*RoleDetail, error)
@@ -77,8 +77,8 @@ func NewRoleService(roleRepo repository.RoleRepo, userRepo repository.UserRepo) 
 	return &roleService{roleRepo: roleRepo, userRepo: userRepo}
 }
 
-func (s *roleService) ListRoles(ctx context.Context) ([]RoleListItem, error) {
-	roles, err := s.roleRepo.List(ctx)
+func (s *roleService) ListRoles(ctx context.Context, search string) ([]RoleListItem, error) {
+	roles, err := s.roleRepo.List(ctx, search)
 	if err != nil {
 		return nil, err
 	}

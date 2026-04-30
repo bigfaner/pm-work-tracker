@@ -49,7 +49,7 @@ type mockRoleRepo struct {
 	userTeamPermErr error
 }
 
-func (m *mockRoleRepo) List(_ context.Context) ([]model.Role, error) {
+func (m *mockRoleRepo) List(_ context.Context, _ string) ([]model.Role, error) {
 	return m.roles, m.listErr
 }
 
@@ -218,7 +218,7 @@ func TestRoleService_ListRoles_ReturnsAll(t *testing.T) {
 	repo := &mockRoleRepo{roles: []model.Role{r1, r2}, perms: []string{"team:read"}, memberCount: 3}
 	svc := newTestRoleService(repo, nil)
 
-	result, err := svc.ListRoles(context.Background())
+	result, err := svc.ListRoles(context.Background(), "")
 	require.NoError(t, err)
 	assert.Len(t, result, 2)
 	assert.Equal(t, "superadmin", result[0].Name)
@@ -229,7 +229,7 @@ func TestRoleService_ListRoles_Empty(t *testing.T) {
 	repo := &mockRoleRepo{roles: []model.Role{}}
 	svc := newTestRoleService(repo, nil)
 
-	result, err := svc.ListRoles(context.Background())
+	result, err := svc.ListRoles(context.Background(), "")
 	require.NoError(t, err)
 	assert.Empty(t, result)
 }
@@ -238,7 +238,7 @@ func TestRoleService_ListRoles_RepoError(t *testing.T) {
 	repo := &mockRoleRepo{listErr: assert.AnError}
 	svc := newTestRoleService(repo, nil)
 
-	_, err := svc.ListRoles(context.Background())
+	_, err := svc.ListRoles(context.Background(), "")
 	assert.Error(t, err)
 }
 
@@ -587,7 +587,7 @@ func TestRoleService_ListRoles_WithCounts(t *testing.T) {
 	}
 	svc := newTestRoleService(repo, nil)
 
-	result, err := svc.ListRoles(context.Background())
+	result, err := svc.ListRoles(context.Background(), "")
 	require.NoError(t, err)
 	require.Len(t, result, 2)
 

@@ -186,7 +186,7 @@ var _ service.AdminService = (*StubAdminSvc)(nil)
 
 type StubRoleSvc struct{}
 
-func (s *StubRoleSvc) ListRoles(_ context.Context) ([]service.RoleListItem, error) {
+func (s *StubRoleSvc) ListRoles(_ context.Context, _ string) ([]service.RoleListItem, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubRoleSvc) GetRole(_ context.Context, _ int64) (*service.RoleDetail, error) {

@@ -8,7 +8,7 @@ import (
 
 // RoleRepo defines persistence operations for Role and RolePermission entities.
 type RoleRepo interface {
-	List(ctx context.Context) ([]model.Role, error)
+	List(ctx context.Context, search string) ([]model.Role, error)
 	FindByID(ctx context.Context, id uint) (*model.Role, error)
 	FindByBizKey(ctx context.Context, bizKey int64) (*model.Role, error)
 	FindByName(ctx context.Context, name string) (*model.Role, error)

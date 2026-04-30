@@ -30,7 +30,7 @@ type mockRoleServiceForPermission struct {
 	lastUserID                uint
 }
 
-func (m *mockRoleServiceForPermission) ListRoles(_ context.Context) ([]service.RoleListItem, error) {
+func (m *mockRoleServiceForPermission) ListRoles(_ context.Context, _ string) ([]service.RoleListItem, error) {
 	return nil, nil
 }
 func (m *mockRoleServiceForPermission) GetRole(_ context.Context, _ int64) (*service.RoleDetail, error) {

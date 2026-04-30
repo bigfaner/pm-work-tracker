@@ -38,8 +38,8 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
       expect(page.url()).toContain('/items');
     });
 
-    // NOTE: skipped - rate limiting from parallel test runs makes this unreliable
-    test.skip('1.4 login with wrong password shows error', async ({ page }) => {
+    // NOTE: rate limiting is 10 req/min per IP; workers:1 so this is safe
+    test('1.4 login with wrong password shows error', async ({ page }) => {
       await page.goto(`${BASE}/login`);
       await page.locator('[data-testid="login-username"]').fill('admin');
       await page.locator('[data-testid="login-password"]').fill('wrongpass');

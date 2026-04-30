@@ -77,8 +77,8 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
     await expect(page.locator('[data-testid="login-submit"]')).toBeDisabled();
   });
 
-  // NOTE: 错误密码测试跳过 - rate limiting导致不稳定
-  test.skip('1.2 错误密码显示错误提示', async ({ page }) => {
+  // NOTE: rate limiting is 10 req/min per IP; workers:1 so this is safe
+  test('1.2 错误密码显示错误提示', async ({ page }) => {
     await page.goto(`${BASE}/login`);
     await page.locator('[data-testid="login-username"]').fill('admin');
     await page.locator('[data-testid="login-password"]').fill('wrongpass');
