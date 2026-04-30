@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "test:cli": "node --import tsx/esm --test cli/startup/cli.spec.ts && node --import tsx/esm --test cli/lint-staged/cli.spec.ts",
-    "test:api": "node --import tsx/esm --test api/main-items/api.spec.ts && node --import tsx/esm --test api/item-pool/api.spec.ts && node --import tsx/esm --test api/regression/api.spec.ts",
+    "test:api": "node --import tsx/esm --test api/main-items/api.spec.ts && node --import tsx/esm --test api/item-pool/api.spec.ts && node --import tsx/esm --test api/regression/api.spec.ts && node --import tsx/esm --test api/improve-ui/api.spec.ts && node --import tsx/esm --test api/schema-alignment-cleanup/api.spec.ts && node --import tsx/esm --test api/status-flow-optimization/api.spec.ts && node --import tsx/esm --test api/user-management-reset-delete/api.spec.ts",
+    "test:ui": "node --import tsx/esm --test ui/improve-ui/ui.spec.ts && node --import tsx/esm --test ui/improve-ui/weekly-view.spec.ts && node --import tsx/esm --test ui/schema-alignment-cleanup/ui.spec.ts && node --import tsx/esm --test ui/status-flow-optimization/ui.spec.ts && node --import tsx/esm --test ui/user-management-reset-delete/ui.spec.ts",
     "test": "npm run test:cli && npm run test:api"
   },
   "devDependencies": {
