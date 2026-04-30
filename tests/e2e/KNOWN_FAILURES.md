@@ -96,4 +96,26 @@ Format: feature slug | test ID | reason | owner
 
 ---
 
+## jlc-schema-alignment
+
+| Test ID | Reason | Owner |
+|---------|--------|-------|
+| TC-002 to TC-007 (api) | Backend server not running at graduation time (http://localhost:8080 unreachable). Tests require live backend with admin credentials and at least one team with main items. | fanhuifeng |
+| TC-001 (ui) | Backend and frontend servers not running at graduation time. UI test requires live frontend on http://localhost:5173 and live backend on http://localhost:8080. | fanhuifeng |
+| TC-008 to TC-010 (cli) | Require MySQL 8.0 instance accessible as root. MySQL not available at graduation time. | fanhuifeng |
+| TC-011 (cli) | Backend Go test suite requires live backend environment. | fanhuifeng |
+| TC-012 (cli) | Frontend test suite requires npm dependencies installed in frontend/. | fanhuifeng |
+
+---
+
+## rbac-permissions
+
+| Test ID | Reason | Owner |
+|---------|--------|-------|
+| TC-034 to TC-055 (api) | Backend server not running at graduation time (http://localhost:8080 unreachable). Tests require live backend with seeded admin/pm/member roles and running Go server. | fanhuifeng |
+| TC-001 to TC-033 (ui) | Backend and frontend servers not running at graduation time. UI tests require agent-browser CLI and live frontend on http://localhost:3456. | fanhuifeng |
+| TC-056 to TC-062 (cli) | Backend server not running at graduation time. CLI migration tests verify RBAC data via live API endpoints. | fanhuifeng |
+
+---
+
 *Last updated: 2026-04-30*

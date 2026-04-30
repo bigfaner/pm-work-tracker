@@ -27,8 +27,8 @@ const BARE_IT_RE = /(?:^|[^a-zA-Z0-9_$])it\s*\(/;
 // Matches: from '...testing/scripts/...' or from "...testing/scripts/..."
 const STALE_IMPORT_RE = /from\s+['"][^'"]*testing\/scripts\//;
 
-// Matches a test( call at the start of a statement (not inside a string)
-const TEST_CALL_RE = /(?:^|[^a-zA-Z0-9_$])test\s*\(/;
+// Matches a test( call at the start of a statement (not inside a string, not a method call like .test()
+const TEST_CALL_RE = /(?:^|[^a-zA-Z0-9_$.])test\s*\(/;
 
 // Matches a traceability comment
 const TRACEABILITY_RE = /\/\/\s*Traceability:\s*TC-/;
