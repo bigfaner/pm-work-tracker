@@ -21,26 +21,25 @@ import { isOverdue } from '@/lib/status'
 import { showToast } from '@/lib/toast'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
-function copyLink(path: string) {
-  navigator.clipboard.writeText(`${window.location.origin}${path}`)
+function copyLink(path: string, title: string) {
+  navigator.clipboard.writeText(`${window.location.origin}${path} ${title}`)
   showToast('链接已复制', 'success')
 }
 
-function CodeBadge({ label, path, className }: { label: string; path: string; className?: string }) {
+function CodeBadge({ label, path, title, className }: { label: string; path: string; title: string; className?: string }) {
   return (
     <TooltipProvider delayDuration={300}>
       <Tooltip>
         <TooltipTrigger asChild>
           <span
             className={`font-mono cursor-pointer transition-colors ${className ?? ''}`}
-            onClick={(e) => { e.stopPropagation(); copyLink(path) }}
+            onClick={(e) => { e.stopPropagation(); copyLink(path, title) }}
           >
             {label}
           </span>
         </TooltipTrigger>
         <TooltipContent>
-          <p className="max-w-xs break-all">{window.location.origin}{path}</p>
-          <p className="text-white/70 mt-0.5">点击复制链接</p>
+          <p>点击复制链接</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -112,6 +111,7 @@ export default function ItemDetailView({
                       <CodeBadge
                         label={item.code}
                         path={`/items/${item.bizKey}`}
+                        title={item.title}
                         className="text-xs hover:bg-primary-100 hover:text-primary-600 px-0.5 rounded"
                       />
                     </TableCell>
@@ -151,6 +151,7 @@ export default function ItemDetailView({
                         <CodeBadge
                           label={sub.code.split('-').pop()!}
                           path={`/items/${item.bizKey}/sub/${sub.bizKey}`}
+                          title={sub.title}
                           className="text-[11px] text-tertiary ml-4 hover:bg-primary-100 hover:text-primary-600 px-0.5 rounded"
                         />
                       </TableCell>
