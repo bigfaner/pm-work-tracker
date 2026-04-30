@@ -18,6 +18,12 @@ import { Badge } from '@/components/ui/badge'
 import { PermissionGuard } from '@/components/PermissionGuard'
 import { MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES } from '@/lib/status'
 import { isOverdue } from '@/lib/status'
+import { showToast } from '@/lib/toast'
+
+function copyLink(path: string) {
+  navigator.clipboard.writeText(`${window.location.origin}${path}`)
+  showToast('链接已复制', 'success')
+}
 
 interface DetailViewProps {
   items: (MainItem & { subItems?: SubItem[] })[]
@@ -81,7 +87,11 @@ export default function ItemDetailView({
                 <Fragment key={item.bizKey}>
                   <TableRow className={subs?.length ? 'bg-blue-50/40' : ''}>
                     <TableCell className="whitespace-nowrap">
-                      <span className="font-mono text-xs">{item.code}</span>
+                      <span
+                        className="font-mono text-xs cursor-pointer hover:bg-primary-100 hover:text-primary-600 transition-colors px-0.5 rounded"
+                        title="点击复制链接"
+                        onClick={() => copyLink(`/items/${item.bizKey}`)}
+                      >{item.code}</span>
                     </TableCell>
                     <TableCell>
                       <PriorityBadge priority={item.priority} />
@@ -116,7 +126,11 @@ export default function ItemDetailView({
                   {subs?.map((sub) => (
                     <TableRow key={`sub-${sub.bizKey}`} className="bg-bg-alt/60">
                       <TableCell className="whitespace-nowrap">
-                        <span className="font-mono text-[11px] text-tertiary ml-4">{sub.code.split('-').pop()}</span>
+                        <span
+                          className="font-mono text-[11px] text-tertiary ml-4 cursor-pointer hover:bg-primary-100 hover:text-primary-600 transition-colors px-0.5 rounded"
+                          title="点击复制链接"
+                          onClick={() => copyLink(`/items/${item.bizKey}/sub/${sub.bizKey}`)}
+                        >{sub.code.split('-').pop()}</span>
                       </TableCell>
                       <TableCell>
                         <PriorityBadge priority={sub.priority} />

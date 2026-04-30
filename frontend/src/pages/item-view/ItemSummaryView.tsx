@@ -9,6 +9,12 @@ import { Badge } from '@/components/ui/badge'
 import { PermissionGuard } from '@/components/PermissionGuard'
 import { MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES } from '@/lib/status'
 import { isOverdue } from '@/lib/status'
+import { showToast } from '@/lib/toast'
+
+function copyLink(path: string) {
+  navigator.clipboard.writeText(`${window.location.origin}${path}`)
+  showToast('链接已复制', 'success')
+}
 
 interface SummaryViewProps {
   items: (MainItem & { subItems?: SubItem[] })[]
@@ -66,7 +72,11 @@ export default function ItemSummaryView({
               </svg>
 
               {/* Code */}
-              <span className="font-mono text-xs text-tertiary bg-bg-alt px-1.5 py-0.5 rounded">
+              <span
+                className="font-mono text-xs text-tertiary bg-bg-alt px-1.5 py-0.5 rounded cursor-pointer hover:bg-primary-100 hover:text-primary-600 transition-colors"
+                title="点击复制链接"
+                onClick={(e) => { e.stopPropagation(); copyLink(`/items/${item.bizKey}`) }}
+              >
                 {item.code}
               </span>
 
@@ -134,7 +144,11 @@ export default function ItemSummaryView({
                     key={sub.bizKey}
                     className="flex items-center gap-2 py-2 border-b border-border/50 last:border-b-0"
                   >
-                    <span className="font-mono text-[11px] text-tertiary bg-bg-alt px-1.5 py-0.5 rounded">
+                    <span
+                      className="font-mono text-[11px] text-tertiary bg-bg-alt px-1.5 py-0.5 rounded cursor-pointer hover:bg-primary-100 hover:text-primary-600 transition-colors"
+                      title="点击复制链接"
+                      onClick={(e) => { e.stopPropagation(); copyLink(`/items/${item.bizKey}/sub/${sub.bizKey}`) }}
+                    >
                       {sub.code.split('-').pop()}
                     </span>
                     <PriorityBadge priority={sub.priority} className="text-[10px]" />
