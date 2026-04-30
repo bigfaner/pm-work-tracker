@@ -1,6 +1,6 @@
 import { describe, test, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { curl } from './helpers.js';
+import { curl } from '../../helpers.js';
 
 const apiUrl = process.env.E2E_API_URL ?? 'http://localhost:8080';
 
