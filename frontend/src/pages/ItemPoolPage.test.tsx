@@ -304,6 +304,57 @@ describe('ItemPoolPage', () => {
     expect(screen.getByTestId('reject-1')).toBeInTheDocument()
   })
 
+  it('does not show edit button when user only has item_pool:review', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('移动端适配需求')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('edit-1')).not.toBeInTheDocument()
+  })
+
+  it('shows edit button when user has item_pool:submit permission', async () => {
+    useAuthStore.getState().setPermissions({
+      isSuperAdmin: false,
+      teamPermissions: { 1: ['item_pool:submit'] },
+    })
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('移动端适配需求')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('edit-1')).toBeInTheDocument()
+  })
+
+  it('shows edit button to the left of 转为主事项 when user has both permissions', async () => {
+    useAuthStore.getState().setPermissions({
+      isSuperAdmin: false,
+      teamPermissions: { 1: ['item_pool:submit', 'item_pool:review'] },
+    })
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('移动端适配需求')).toBeInTheDocument()
+    })
+    const editBtn = screen.getByTestId('edit-1')
+    const toMainBtn = screen.getByTestId('to-main-1')
+    expect(editBtn).toBeInTheDocument()
+    expect(toMainBtn).toBeInTheDocument()
+    // edit button should appear before to-main button in the DOM
+    expect(editBtn.compareDocumentPosition(toMainBtn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('edit and review buttons are in the same action row', async () => {
+    useAuthStore.getState().setPermissions({
+      isSuperAdmin: false,
+      teamPermissions: { 1: ['item_pool:submit', 'item_pool:review'] },
+    })
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('移动端适配需求')).toBeInTheDocument()
+    })
+    const editBtn = screen.getByTestId('edit-1')
+    const toMainBtn = screen.getByTestId('to-main-1')
+    expect(editBtn.parentElement).toBe(toMainBtn.parentElement)
+  })
+
   it('does not show action buttons for assigned/rejected items', async () => {
     renderPage()
     await waitFor(() => {

@@ -7,7 +7,7 @@ import { listItemPoolApi, submitItemPoolApi, updateItemPoolApi, assignItemPoolAp
 import { listMainItemsApi } from '@/api/mainItems'
 import { listMembersApi } from '@/api/teams'
 import type { ItemPool, AssignItemPoolReq, ConvertToMainItemReq, UpdateItemPoolReq } from '@/types'
-import { PermissionGuard } from '@/components/PermissionGuard'
+import { usePermission } from '@/hooks/usePermission'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DateInput } from '@/components/ui/date-input'
@@ -70,6 +70,8 @@ interface PoolItemCardProps {
 
 function PoolItemCard({ item, onEdit, onConvertToMain, onConvertToSub, onReject }: PoolItemCardProps) {
   const isPending = item.poolStatus === 'pending'
+  const canSubmit = usePermission('item_pool:submit')
+  const canReview = usePermission('item_pool:review')
 
   return (
     <div
@@ -119,33 +121,31 @@ function PoolItemCard({ item, onEdit, onConvertToMain, onConvertToSub, onReject 
       </div>
 
       {/* Actions (only for pending items) */}
-      {isPending && (
-        <PermissionGuard code="item_pool:submit">
-          <div className="flex justify-end gap-2 px-5 py-2 border-t border-border/50">
-            <Button variant="ghost" size="sm" className="text-secondary" data-testid={`edit-${item.bizKey}`} onClick={() => onEdit(item)}>
+      {isPending && (canSubmit || canReview) && (
+        <div className="flex justify-end gap-2 px-5 py-2 border-t border-border/50">
+          {canSubmit && (
+            <Button variant="ghost" size="sm" className="text-primary-600" data-testid={`edit-${item.bizKey}`} onClick={() => onEdit(item)}>
               <Pencil className="w-3.5 h-3.5" />
               编辑
             </Button>
-          </div>
-        </PermissionGuard>
-      )}
-      {isPending && (
-        <PermissionGuard code="item_pool:review">
-          <div className="flex justify-end gap-2 px-5 py-2 border-t border-border/50">
-            <Button variant="ghost" size="sm" className="text-primary-600" data-testid={`to-main-${item.bizKey}`} onClick={() => onConvertToMain(item)}>
-              <ArrowUpCircle className="w-3.5 h-3.5" />
-              转为主事项
-            </Button>
-            <Button variant="ghost" size="sm" className="text-primary-600" data-testid={`to-sub-${item.bizKey}`} onClick={() => onConvertToSub(item)}>
-              <ArrowDownCircle className="w-3.5 h-3.5" />
-              转为子事项
-            </Button>
-            <Button variant="ghost" size="sm" className="text-error" data-testid={`reject-${item.bizKey}`} onClick={() => onReject(item)}>
-              <XCircle className="w-3.5 h-3.5" />
-              拒绝
-            </Button>
-          </div>
-        </PermissionGuard>
+          )}
+          {canReview && (
+            <>
+              <Button variant="ghost" size="sm" className="text-primary-600" data-testid={`to-main-${item.bizKey}`} onClick={() => onConvertToMain(item)}>
+                <ArrowUpCircle className="w-3.5 h-3.5" />
+                转为主事项
+              </Button>
+              <Button variant="ghost" size="sm" className="text-primary-600" data-testid={`to-sub-${item.bizKey}`} onClick={() => onConvertToSub(item)}>
+                <ArrowDownCircle className="w-3.5 h-3.5" />
+                转为子事项
+              </Button>
+              <Button variant="ghost" size="sm" className="text-error" data-testid={`reject-${item.bizKey}`} onClick={() => onReject(item)}>
+                <XCircle className="w-3.5 h-3.5" />
+                拒绝
+              </Button>
+            </>
+          )}
+        </div>
       )}
     </div>
   )
