@@ -721,8 +721,8 @@ describe('ItemViewPage', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText('MI-0001-01')).toBeInTheDocument()
-      expect(screen.getByText('MI-0001-02')).toBeInTheDocument()
+      expect(screen.getByText('01')).toBeInTheDocument()
+      expect(screen.getByText('02')).toBeInTheDocument()
     })
   })
 

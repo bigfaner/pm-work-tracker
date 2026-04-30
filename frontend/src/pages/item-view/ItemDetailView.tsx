@@ -116,7 +116,7 @@ export default function ItemDetailView({
                   {subs?.map((sub) => (
                     <TableRow key={`sub-${sub.bizKey}`} className="bg-bg-alt/60">
                       <TableCell className="whitespace-nowrap">
-                        <span className="font-mono text-[11px] text-tertiary ml-4">{sub.code}</span>
+                        <span className="font-mono text-[11px] text-tertiary ml-4">{sub.code.split('-').pop()}</span>
                       </TableCell>
                       <TableCell>
                         <PriorityBadge priority={sub.priority} />

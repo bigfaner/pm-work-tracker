@@ -6,7 +6,7 @@ vi.mock('./client', () => ({
   default: { post: vi.fn(), get: vi.fn(), put: vi.fn() },
 }))
 
-const mockClient = client as { post: ReturnType<typeof vi.fn> }
+const mockClient = client as unknown as { post: ReturnType<typeof vi.fn> }
 
 beforeEach(() => {
   vi.clearAllMocks()

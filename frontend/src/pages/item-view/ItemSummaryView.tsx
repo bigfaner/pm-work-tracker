@@ -135,7 +135,7 @@ export default function ItemSummaryView({
                     className="flex items-center gap-2 py-2 border-b border-border/50 last:border-b-0"
                   >
                     <span className="font-mono text-[11px] text-tertiary bg-bg-alt px-1.5 py-0.5 rounded">
-                      {sub.code}
+                      {sub.code.split('-').pop()}
                     </span>
                     <PriorityBadge priority={sub.priority} className="text-[10px]" />
                     <Link
