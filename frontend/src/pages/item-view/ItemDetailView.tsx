@@ -19,10 +19,32 @@ import { PermissionGuard } from '@/components/PermissionGuard'
 import { MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES } from '@/lib/status'
 import { isOverdue } from '@/lib/status'
 import { showToast } from '@/lib/toast'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 function copyLink(path: string) {
   navigator.clipboard.writeText(`${window.location.origin}${path}`)
   showToast('链接已复制', 'success')
+}
+
+function CodeBadge({ label, path, className }: { label: string; path: string; className?: string }) {
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className={`font-mono cursor-pointer transition-colors ${className ?? ''}`}
+            onClick={(e) => { e.stopPropagation(); copyLink(path) }}
+          >
+            {label}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="max-w-xs break-all">{window.location.origin}{path}</p>
+          <p className="text-white/70 mt-0.5">点击复制链接</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
 }
 
 interface DetailViewProps {
@@ -87,11 +109,11 @@ export default function ItemDetailView({
                 <Fragment key={item.bizKey}>
                   <TableRow className={subs?.length ? 'bg-blue-50/40' : ''}>
                     <TableCell className="whitespace-nowrap">
-                      <span
-                        className="font-mono text-xs cursor-pointer hover:bg-primary-100 hover:text-primary-600 transition-colors px-0.5 rounded"
-                        title="点击复制链接"
-                        onClick={() => copyLink(`/items/${item.bizKey}`)}
-                      >{item.code}</span>
+                      <CodeBadge
+                        label={item.code}
+                        path={`/items/${item.bizKey}`}
+                        className="text-xs hover:bg-primary-100 hover:text-primary-600 px-0.5 rounded"
+                      />
                     </TableCell>
                     <TableCell>
                       <PriorityBadge priority={item.priority} />
@@ -126,11 +148,11 @@ export default function ItemDetailView({
                   {subs?.map((sub) => (
                     <TableRow key={`sub-${sub.bizKey}`} className="bg-bg-alt/60">
                       <TableCell className="whitespace-nowrap">
-                        <span
-                          className="font-mono text-[11px] text-tertiary ml-4 cursor-pointer hover:bg-primary-100 hover:text-primary-600 transition-colors px-0.5 rounded"
-                          title="点击复制链接"
-                          onClick={() => copyLink(`/items/${item.bizKey}/sub/${sub.bizKey}`)}
-                        >{sub.code.split('-').pop()}</span>
+                        <CodeBadge
+                          label={sub.code.split('-').pop()!}
+                          path={`/items/${item.bizKey}/sub/${sub.bizKey}`}
+                          className="text-[11px] text-tertiary ml-4 hover:bg-primary-100 hover:text-primary-600 px-0.5 rounded"
+                        />
                       </TableCell>
                       <TableCell>
                         <PriorityBadge priority={sub.priority} />
