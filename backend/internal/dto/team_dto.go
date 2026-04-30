@@ -6,7 +6,7 @@ type TeamMemberDTO struct {
 	TeamKey     string `json:"teamKey"`
 	UserKey     string `json:"userKey"`
 	Role        string `json:"role"`
-	RoleId      string `json:"roleId"`
+	RoleKey     string `json:"roleKey"`
 	RoleName    string `json:"roleName"`
 	JoinedAt    string `json:"joinedAt"`
 	DisplayName string `json:"displayName"`

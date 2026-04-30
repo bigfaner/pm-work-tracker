@@ -39,9 +39,9 @@ function renderPage(mainItemId = '1', subItemId = '12') {
 // --- Seed data ---
 
 const seedMembers = [
-  { id: 1, bizKey: '1', teamKey: '1', userKey: 'U001', displayName: 'Test User', username: 'testuser', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2024-01-01' },
-  { id: 2, bizKey: '2', teamKey: '1', userKey: 'U002', displayName: 'Alice', username: 'alice', role: 'member', roleId: 2, roleName: 'member', joinedAt: '2024-01-01' },
-  { id: 3, bizKey: '3', teamKey: '1', userKey: 'U003', displayName: 'Bob', username: 'bob', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2024-01-01' },
+  { id: 1, bizKey: '1', teamKey: '1', userKey: 'U001', displayName: 'Test User', username: 'testuser', role: 'pm', roleKey: 1, roleName: 'pm', joinedAt: '2024-01-01' },
+  { id: 2, bizKey: '2', teamKey: '1', userKey: 'U002', displayName: 'Alice', username: 'alice', role: 'member', roleKey: 2, roleName: 'member', joinedAt: '2024-01-01' },
+  { id: 3, bizKey: '3', teamKey: '1', userKey: 'U003', displayName: 'Bob', username: 'bob', role: 'member', roleKey: 3, roleName: 'member', joinedAt: '2024-01-01' },
 ]
 
 const seedMainItem = {

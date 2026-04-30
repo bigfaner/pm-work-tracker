@@ -130,7 +130,7 @@ func (r *teamRepo) ListMembers(ctx context.Context, teamBizKey int64) ([]*dto.Te
 		TeamKey     int64
 		UserKey     int64
 		Role        string
-		RoleId      int64
+		RoleKey     int64
 		RoleName    string
 		JoinedAt    string
 		DisplayName string
@@ -143,7 +143,7 @@ func (r *teamRepo) ListMembers(ctx context.Context, teamBizKey int64) ([]*dto.Te
 			"CASE WHEN pmw_roles.role_name IS NOT NULL THEN pmw_roles.role_name "+
 			"     WHEN pmw_team_members.user_key = pmw_teams.pm_key THEN 'pm' "+
 			"     ELSE 'member' END as role, "+
-			"COALESCE(pmw_roles.biz_key, 0) as role_id, "+
+			"COALESCE(pmw_roles.biz_key, 0) as role_key, "+
 			"COALESCE(pmw_roles.role_name, '') as role_name, "+
 			"pmw_team_members.joined_at, pmw_users.display_name, pmw_users.username").
 		Joins("LEFT JOIN pmw_users ON pmw_users.biz_key = pmw_team_members.user_key").
@@ -162,7 +162,7 @@ func (r *teamRepo) ListMembers(ctx context.Context, teamBizKey int64) ([]*dto.Te
 			TeamKey:     pkg.FormatID(row.TeamKey),
 			UserKey:     pkg.FormatID(row.UserKey),
 			Role:        row.Role,
-			RoleId:      pkg.FormatID(row.RoleId),
+			RoleKey:     pkg.FormatID(row.RoleKey),
 			RoleName:    row.RoleName,
 			JoinedAt:    row.JoinedAt,
 			DisplayName: row.DisplayName,
@@ -281,9 +281,9 @@ func (r *teamRepo) FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[
 			"CASE WHEN pmw_roles.role_name IS NOT NULL THEN pmw_roles.role_name "+
 			"     WHEN pmw_team_members.user_key = pmw_teams.pm_key THEN 'pm' "+
 			"     ELSE 'member' END as role").
-		Joins("JOIN pmw_teams ON pmw_teams.id = pmw_team_members.team_key").
+		Joins("JOIN pmw_teams ON pmw_teams.biz_key = pmw_team_members.team_key").
 		Joins("LEFT JOIN pmw_roles ON pmw_roles.biz_key = pmw_team_members.role_key AND pmw_roles.deleted_flag = 0").
-		Scopes(NotDeletedTable("pmw_teams")).
+		Scopes(NotDeletedTable("pmw_teams"), NotDeletedTable("pmw_team_members")).
 		Where("pmw_team_members.user_key IN ?", userIDs).
 		Scan(&rows).Error
 	if err != nil {

@@ -54,11 +54,11 @@ const seedTeamDetail = {
 }
 
 const seedMembers = [
-  { id: 1, bizKey: '1', teamKey: '1', userKey: 'U001', displayName: '张明', username: 'zhangming', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2026-03-01' },
-  { id: 2, bizKey: '2', teamKey: '1', userKey: 'U002', displayName: '李华', username: 'lihua', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-05' },
-  { id: 3, bizKey: '3', teamKey: '1', userKey: 'U003', displayName: '王芳', username: 'wangfang', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-10' },
-  { id: 4, bizKey: '4', teamKey: '1', userKey: 'U004', displayName: '赵强', username: 'zhaoqiang', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-12' },
-  { id: 5, bizKey: '5', teamKey: '1', userKey: 'U005', displayName: '陈静', username: 'chenjing', role: 'member', roleId: 3, roleName: 'member', joinedAt: '2026-03-15' },
+  { id: 1, bizKey: '1', teamKey: '1', userKey: 'U001', displayName: '张明', username: 'zhangming', role: 'pm', roleKey: 1, roleName: 'pm', joinedAt: '2026-03-01' },
+  { id: 2, bizKey: '2', teamKey: '1', userKey: 'U002', displayName: '李华', username: 'lihua', role: 'member', roleKey: 3, roleName: 'member', joinedAt: '2026-03-05' },
+  { id: 3, bizKey: '3', teamKey: '1', userKey: 'U003', displayName: '王芳', username: 'wangfang', role: 'member', roleKey: 3, roleName: 'member', joinedAt: '2026-03-10' },
+  { id: 4, bizKey: '4', teamKey: '1', userKey: 'U004', displayName: '赵强', username: 'zhaoqiang', role: 'member', roleKey: 3, roleName: 'member', joinedAt: '2026-03-12' },
+  { id: 5, bizKey: '5', teamKey: '1', userKey: 'U005', displayName: '陈静', username: 'chenjing', role: 'member', roleKey: 3, roleName: 'member', joinedAt: '2026-03-15' },
 ]
 
 const seedRoles = [

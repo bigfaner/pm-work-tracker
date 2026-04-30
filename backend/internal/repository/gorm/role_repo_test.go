@@ -54,7 +54,7 @@ func TestRoleRepo_List(t *testing.T) {
 	seedRole(t, db, "member", "Member role", true)
 	seedRole(t, db, "pm", "PM role", true)
 
-	roles, err := repo.List(ctx)
+	roles, err := repo.List(ctx, "")
 	require.NoError(t, err)
 	assert.Len(t, roles, 2)
 }
@@ -64,7 +64,7 @@ func TestRoleRepo_List_Empty(t *testing.T) {
 	repo := gormrepo.NewGormRoleRepo(db)
 	ctx := context.Background()
 
-	roles, err := repo.List(ctx)
+	roles, err := repo.List(ctx, "")
 	require.NoError(t, err)
 	assert.Empty(t, roles)
 }
@@ -77,7 +77,7 @@ func TestRoleRepo_List_OrderedByCreatedAt(t *testing.T) {
 	seedRole(t, db, "beta", "Beta", false)
 	seedRole(t, db, "alpha", "Alpha", false)
 
-	roles, err := repo.List(ctx)
+	roles, err := repo.List(ctx, "")
 	require.NoError(t, err)
 	require.Len(t, roles, 2)
 	assert.Equal(t, "beta", roles[0].Name, "should be ordered by created_at (insertion order)")
@@ -94,7 +94,7 @@ func TestRoleRepo_List_ExcludesSoftDeleted(t *testing.T) {
 
 	require.NoError(t, db.Delete(r1).Error)
 
-	roles, err := repo.List(ctx)
+	roles, err := repo.List(ctx, "")
 	require.NoError(t, err)
 	assert.Len(t, roles, 1)
 	assert.Equal(t, "deleted", roles[0].Name)

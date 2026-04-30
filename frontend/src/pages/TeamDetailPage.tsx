@@ -352,7 +352,7 @@ export default function TeamDetailPage() {
                           variant="ghost"
                           size="sm"
                           className="text-primary-600"
-                          onClick={() => { setRoleEditTarget(member); setRoleEditRoleId(member.roleId) }}
+                          onClick={() => { setRoleEditTarget(member); setRoleEditRoleId(member.roleKey) }}
                           data-testid="change-role-btn"
                         >
                           <Edit className="w-3.5 h-3.5" />
@@ -436,7 +436,7 @@ export default function TeamDetailPage() {
             <Button variant="secondary" onClick={() => setRoleEditTarget(null)}>取消</Button>
             <Button
               onClick={() => changeRoleMutation.mutate({ memberId: roleEditTarget!.userKey, roleKey: roleEditRoleId! })}
-              disabled={roleEditRoleId == null || roleEditRoleId === roleEditTarget?.roleId || changeRoleMutation.isPending}
+              disabled={roleEditRoleId == null || roleEditRoleId === roleEditTarget?.roleKey || changeRoleMutation.isPending}
             >
               确认修改
             </Button>

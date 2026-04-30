@@ -147,8 +147,8 @@ describe('Permission-driven UI', () => {
         http.get('/v1/teams/:teamId/members', () =>
           HttpResponse.json({
             code: 0, data: [
-              { id: 1, bizKey: '1', teamKey: '1', userKey: 'U001', displayName: 'PM', username: 'pm', role: 'pm', roleId: 1, roleName: 'pm', joinedAt: '2026-01-01' },
-              { id: 2, bizKey: '2', teamKey: '1', userKey: 'U002', displayName: 'Member', username: 'member', role: 'member', roleId: 2, roleName: 'member', joinedAt: '2026-01-01' },
+              { id: 1, bizKey: '1', teamKey: '1', userKey: 'U001', displayName: 'PM', username: 'pm', role: 'pm', roleKey: 1, roleName: 'pm', joinedAt: '2026-01-01' },
+              { id: 2, bizKey: '2', teamKey: '1', userKey: 'U002', displayName: 'Member', username: 'member', role: 'member', roleKey: 2, roleName: 'member', joinedAt: '2026-01-01' },
             ],
           })),
       )

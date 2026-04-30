@@ -137,8 +137,8 @@ type mockRoleRepo struct {
 	mock.Mock
 }
 
-func (m *mockRoleRepo) List(ctx context.Context) ([]model.Role, error) {
-	args := m.Called(ctx)
+func (m *mockRoleRepo) List(ctx context.Context, search string) ([]model.Role, error) {
+	args := m.Called(ctx, search)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
