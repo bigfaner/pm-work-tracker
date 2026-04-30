@@ -5,6 +5,30 @@ Format: feature slug | test ID | reason | owner
 
 ---
 
+## main-items (pre-existing)
+
+| Test ID | Reason | Owner |
+|---------|--------|-------|
+| TC-001 to TC-006 | Backend server not running (http://localhost:8080 unreachable). Tests require live backend with seeded admin credentials and at least one team. | fanhuifeng |
+
+---
+
+## item-pool (pre-existing)
+
+| Test ID | Reason | Owner |
+|---------|--------|-------|
+| all | Backend server not running (http://localhost:8080 unreachable). Tests require live backend with seeded admin credentials. | fanhuifeng |
+
+---
+
+## regression (pre-existing)
+
+| Test ID | Reason | Owner |
+|---------|--------|-------|
+| all | Backend server not running (http://localhost:8080 unreachable). Tests require live backend with seeded admin credentials. | fanhuifeng |
+
+---
+
 ## api-permission-test-coverage
 
 | Test ID | Reason | Owner |
