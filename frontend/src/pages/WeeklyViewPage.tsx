@@ -387,7 +387,7 @@ function SubItemRow({ item, mainItemId, showDelta, referenceDate }: SubItemRowPr
         </span>
         {showDelta && item.delta != null && item.delta > 0 && !item.justCompleted && (
           <span className="text-[11px] font-semibold text-success-text bg-success-bg px-1.5 py-px rounded">
-            +{item.delta}%
+            +{Math.round(item.delta)}%
           </span>
         )}
         {showDelta && item.justCompleted && (

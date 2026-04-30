@@ -420,7 +420,7 @@ export default function SubItemDetailPage() {
                     onChange={(e) => setAppendForm((f) => ({ ...f, completion: e.target.value }))}
                   />
                   <div className="text-xs text-tertiary mt-1">
-                    不能低于上一条记录的进度（当前：{lastCompletion}%）
+                    不能低于上一条记录的进度（当前：{Math.round(lastCompletion)}%）
                   </div>
                 </div>
                 <div className="mb-4">
