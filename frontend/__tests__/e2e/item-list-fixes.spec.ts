@@ -160,8 +160,10 @@ test.describe.serial('事项清单 Bug修复验证', () => {
     await login(page);
     await page.waitForTimeout(2000);
     await expect(page.locator('text=E2E修复测试-带日期').first()).toBeVisible({ timeout: 10000 });
-    const itemACard = page.locator(`:text("E2E修复测试-带日期")`).first().locator('..').locator('..');
-    await itemACard.click();
+    // Go 3 levels up to the card div (not 2), then click the chevron SVG to avoid
+    // the title Link's e.stopPropagation() blocking the expand handler.
+    const expandChevron = page.locator(`:text("E2E修复测试-带日期")`).first().locator('..').locator('..').locator('..').locator('svg').first();
+    await expandChevron.click();
     await page.waitForTimeout(3000);
     await expect(page.locator(`text=${subTitle}`).first()).toBeVisible({ timeout: 10000 });
   });
