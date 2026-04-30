@@ -268,6 +268,106 @@ func TestPermBoundary_SuperAdminBypass(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
+// TestPermBoundary_UserListWithoutUserRead verifies that a custom role with only
+// user:list can list users but cannot access user detail (user:read boundary).
+func TestPermBoundary_UserListWithoutUserRead(t *testing.T) {
+	db, data := setupRBACTestDB(t)
+	r := setupRBACTestRouter(t, db, data)
+
+	// Create custom role with only user:list
+	role := model.Role{
+		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
+		Name:        "user-list-only",
+		Description: "Can list users but not view details",
+		IsPreset:    false,
+	}
+	require.NoError(t, db.Create(&role).Error)
+	require.NoError(t, db.Create(&model.RolePermission{RoleKey: role.BizKey, PermissionCode: "user:list"}).Error)
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("ulistPass"), 4)
+	require.NoError(t, err)
+	u := &model.User{
+		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
+		Username:      "ulistuser",
+		DisplayName:   "UserList User",
+		PasswordHash:  string(hash),
+	}
+	require.NoError(t, db.Create(u).Error)
+	require.NoError(t, db.Create(&model.TeamMember{
+		TeamKey:  data.teamABizKey,
+		UserKey:  u.BizKey,
+		RoleKey:  &role.BizKey,
+		JoinedAt: time.Now(),
+	}).Error)
+
+	token := loginAs(t, r, "ulistuser", "ulistPass")
+
+	// GET /admin/users → 200 (has user:list)
+	w := makeRequest(t, r, http.MethodGet, "/api/v1/admin/users", "", token)
+	assert.Equal(t, http.StatusOK, w.Code, "list users should be allowed with user:list")
+
+	// GET /admin/users/:userId → 403 (lacks user:read)
+	w = makeRequest(t, r, http.MethodGet, fmt.Sprintf("/api/v1/admin/users/%d", data.userAID), "", token)
+	assert.Equal(t, http.StatusForbidden, w.Code, "get user detail should be denied without user:read")
+}
+
+// TestCustomRole_RoleReadOnly verifies that a custom role with only role:read
+// can list/get roles but cannot create, update, or delete them.
+func TestCustomRole_RoleReadOnly(t *testing.T) {
+	db, data := setupRBACTestDB(t)
+	r := setupRBACTestRouter(t, db, data)
+
+	// Create custom role with only role:read
+	role := model.Role{
+		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
+		Name:        "role-read-only",
+		Description: "Can read roles but not modify",
+		IsPreset:    false,
+	}
+	require.NoError(t, db.Create(&role).Error)
+	require.NoError(t, db.Create(&model.RolePermission{RoleKey: role.BizKey, PermissionCode: "role:read"}).Error)
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("rreadPass"), 4)
+	require.NoError(t, err)
+	u := &model.User{
+		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
+		Username:      "rolereaduser",
+		DisplayName:   "RoleRead User",
+		PasswordHash:  string(hash),
+	}
+	require.NoError(t, db.Create(u).Error)
+	require.NoError(t, db.Create(&model.TeamMember{
+		TeamKey:  data.teamABizKey,
+		UserKey:  u.BizKey,
+		RoleKey:  &role.BizKey,
+		JoinedAt: time.Now(),
+	}).Error)
+
+	token := loginAs(t, r, "rolereaduser", "rreadPass")
+
+	// GET /admin/roles → 200 (has role:read)
+	w := makeRequest(t, r, http.MethodGet, "/api/v1/admin/roles", "", token)
+	assert.Equal(t, http.StatusOK, w.Code, "list roles should be allowed with role:read")
+
+	// GET /admin/permissions → 200 (requires role:read)
+	w = makeRequest(t, r, http.MethodGet, "/api/v1/admin/permissions", "", token)
+	assert.Equal(t, http.StatusOK, w.Code, "list permission codes should be allowed with role:read")
+
+	// POST /admin/roles → 403 (lacks role:create)
+	w = makeRequest(t, r, http.MethodPost, "/api/v1/admin/roles",
+		`{"name":"should-fail","description":"nope","permissionCodes":["main_item:read"]}`, token)
+	assert.Equal(t, http.StatusForbidden, w.Code, "create role should be denied without role:create")
+
+	// PUT /admin/roles/:id → 403 (lacks role:update)
+	w = makeRequest(t, r, http.MethodPut, "/api/v1/admin/roles/99999999",
+		`{"description":"unauthorized"}`, token)
+	assert.Equal(t, http.StatusForbidden, w.Code, "update role should be denied without role:update")
+
+	// DELETE /admin/roles/:id → 403 (lacks role:delete)
+	w = makeRequest(t, r, http.MethodDelete, "/api/v1/admin/roles/99999999", "", token)
+	assert.Equal(t, http.StatusForbidden, w.Code, "delete role should be denied without role:delete")
+}
+
 // TestPermBoundary_InvalidToken401 verifies that an invalid JWT returns 401, not 403.
 func TestPermBoundary_InvalidToken401(t *testing.T) {
 	db, data := setupRBACTestDB(t)
