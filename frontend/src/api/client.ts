@@ -32,12 +32,14 @@ client.interceptors.response.use(
     const { status } = error.response
 
     switch (status) {
-      case 401:
+      case 401: {
+        const basePath = import.meta.env.VITE_BASE_PATH ?? ''
         useAuthStore.getState().clearAuth()
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login'
+        if (window.location.pathname !== `${basePath}/login`) {
+          window.location.href = `${basePath}/login`
         }
         break
+      }
       case 403:
         showToast('权限不足', 'error')
         useAuthStore.getState().fetchPermissions()
