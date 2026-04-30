@@ -88,8 +88,12 @@ describe('isOverdue', () => {
     expect(isOverdue('2020-01-01', 'closed', now)).toBe(false)
   })
 
-  it('returns true when date is past and status is non-terminal', () => {
-    expect(isOverdue('2020-01-01', 'progressing', now)).toBe(true)
+  it('returns false when date is today (not yet overdue)', () => {
+    expect(isOverdue('2026-04-23', 'progressing', now)).toBe(false)
+  })
+
+  it('returns true when date was yesterday', () => {
+    expect(isOverdue('2026-04-22', 'progressing', now)).toBe(true)
   })
 
   it('returns false when date is in the future and status is non-terminal', () => {

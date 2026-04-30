@@ -50,5 +50,10 @@ export function isOverdue(expectedEndDate: string | undefined, status: string | 
   const isTerminal = (MAIN_ITEM_STATUSES as Record<string, { terminal: boolean }>)[status]?.terminal
     || (SUB_ITEM_STATUSES as Record<string, { terminal: boolean }>)[status]?.terminal
   if (isTerminal) return false
-  return new Date(expectedEndDate) < referenceDate
+  // Compare date strings at day granularity to avoid time-of-day false positives
+  const endDateStr = expectedEndDate.slice(0, 10)
+  const y = referenceDate.getFullYear()
+  const m = String(referenceDate.getMonth() + 1).padStart(2, '0')
+  const d = String(referenceDate.getDate()).padStart(2, '0')
+  return endDateStr < `${y}-${m}-${d}`
 }
