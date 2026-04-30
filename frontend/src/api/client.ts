@@ -34,7 +34,9 @@ client.interceptors.response.use(
     switch (status) {
       case 401:
         useAuthStore.getState().clearAuth()
-        window.location.href = '/login'
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login'
+        }
         break
       case 403:
         showToast('权限不足', 'error')
