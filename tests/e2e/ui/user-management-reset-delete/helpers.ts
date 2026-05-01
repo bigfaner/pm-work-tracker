@@ -2,53 +2,28 @@ import { execSync } from 'node:child_process';
 import { mkdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Page, Locator } from '@playwright/test';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const DEFAULT_TIMEOUT = 30000;
 const SCREENSHOTS_DIR = join(__dirname, '..', 'results', 'screenshots');
 
 export const baseUrl = process.env.E2E_BASE_URL ?? 'http://localhost:5173';
 
-export function ab(cmd: string): string {
-  return execSync(`agent-browser ${cmd}`, {
-    encoding: 'utf-8',
-    timeout: DEFAULT_TIMEOUT,
-  });
+export async function snapshotContains(page: Page, text: string): Promise<boolean> {
+  return page.getByText(text).first().isVisible().catch(() => false);
 }
 
-export function abJson(cmd: string): any {
-  const raw = ab(`${cmd} --json`);
-  try {
-    return JSON.parse(raw);
-  } catch {
-    throw new Error(`Failed to parse agent-browser JSON output: ${raw.slice(0, 200)}`);
-  }
+export function findElement(page: Page, role: string, name?: string): Locator {
+  return page.getByRole(role as any, name ? { name: new RegExp(name, 'i') } : undefined);
 }
 
-export function snapshotContains(text: string): boolean {
-  const result = abJson('snapshot');
-  return result?.data?.snapshot?.includes(text) ?? false;
-}
-
-export function findElement(role: string, name?: string): string | null {
-  const cmd = name
-    ? `find role ${role} --name "${name}" --json`
-    : `find role ${role} --json`;
-  try {
-    const result = abJson(cmd);
-    return result?.data?.ref ?? result?.ref ?? null;
-  } catch {
-    return null;
-  }
-}
-
-export function screenshot(tcId: string): string {
+export async function screenshot(page: Page, tcId: string): Promise<string> {
   if (!existsSync(SCREENSHOTS_DIR)) {
     mkdirSync(SCREENSHOTS_DIR, { recursive: true });
   }
   const path = join(SCREENSHOTS_DIR, `${tcId}.png`);
-  ab(`screenshot "${path}"`);
+  await page.screenshot({ path, fullPage: true });
   return path;
 }
 
