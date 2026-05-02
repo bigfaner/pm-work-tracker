@@ -1,6 +1,5 @@
-import { describe, test, before } from 'node:test';
-import assert from 'node:assert/strict';
-import { apiBaseUrl, getApiToken, createAuthCurl } from './helpers.js';
+import { test, expect } from '@playwright/test';
+import { apiBaseUrl, getApiToken, createAuthCurl } from '../../helpers.js';
 
 /** Required request body for convert-to-main endpoint */
 const convertBody = {
@@ -10,12 +9,12 @@ const convertBody = {
   expectedEndDate: '2026-05-27',
 };
 
-describe('API E2E Tests', () => {
+test.describe('API E2E Tests', () => {
   let authCurl: ReturnType<typeof createAuthCurl>;
   let teamId: string;
   let mainItemId: string;
 
-  before(async () => {
+  test.beforeAll(async () => {
     const token = await getApiToken(apiBaseUrl);
     authCurl = createAuthCurl(apiBaseUrl, token);
 
@@ -24,7 +23,7 @@ describe('API E2E Tests', () => {
     if (!teamId) {
       // List teams and pick the first one
       const listRes = await authCurl('GET', '/v1/teams');
-      assert.equal(listRes.status, 200, `List teams failed: ${listRes.status} ${listRes.body}`);
+      expect(listRes.status).toBe(200);
       const listData = JSON.parse(listRes.body);
       const teams = listData.data?.items ?? listData;
       if (teams.length > 0) {
@@ -33,7 +32,7 @@ describe('API E2E Tests', () => {
         const createRes = await authCurl('POST', '/v1/teams', {
           body: JSON.stringify({ name: 'E2E Test Team', code: 'ETEST', description: 'Auto-created for e2e tests' }),
         });
-        assert.equal(createRes.status, 201, `Create team failed: ${createRes.status} ${createRes.body}`);
+        expect(createRes.status).toBe(201);
         const created = JSON.parse(createRes.body);
         teamId = String((created.data ?? created).bizKey);
       }
@@ -45,7 +44,7 @@ describe('API E2E Tests', () => {
     const res = await authCurl('POST', `/v1/teams/${teamId}/item-pool`, {
       body: JSON.stringify({ title, background: 'e2e test', expectedOutput: 'e2e test' }),
     });
-    assert.ok(res.status === 200 || res.status === 201, `Submit pool failed: ${res.status} ${res.body}`);
+    expect(res.status === 200 || res.status === 201).toBeTruthy();
     const data = JSON.parse(res.body);
     const entry = data.data ?? data;
     return String(entry.bizKey);
@@ -56,25 +55,23 @@ describe('API E2E Tests', () => {
     const res = await authCurl('POST', `/v1/teams/${teamId}/item-pool/${poolBizKey}/convert-to-main`, {
       body: JSON.stringify(convertBody),
     });
-    assert.equal(res.status, 200, `Convert failed: ${res.status} ${res.body}`);
+    expect(res.status).toBe(200);
     // mainItemBizKey is a JSON number that exceeds JS safe integer range.
     // Extract it as a string from the raw body to avoid precision loss.
     const match = res.body.match(/"mainItemBizKey"\s*:\s*(\d+)/);
-    assert.ok(match, `mainItemBizKey not found in response: ${res.body}`);
-    return match[1];
+    expect(match).toBeTruthy();
+    return match![1];
   }
 
   /** Fetch a main item and return its code */
   async function getMainItemCode(mainItemBizKey: string): Promise<string> {
     const res = await authCurl('GET', `/v1/teams/${teamId}/main-items/${mainItemBizKey}`);
-    assert.equal(res.status, 200, `Get main item failed: ${res.status} ${res.body}`);
+    expect(res.status).toBe(200);
     const data = JSON.parse(res.body);
     const item = data.data ?? data;
-    assert.ok(item.code, 'Main item has code');
+    expect(item.code).toBeTruthy();
     return String(item.code);
   }
-
-  // ── Authenticated Tests (use shared auth) ───────────────────────
 
   // Traceability: TC-001 → Story 1 / AC-1
   test('TC-001: Convert item-pool entry to main item returns 200 on MySQL', async () => {
@@ -83,7 +80,7 @@ describe('API E2E Tests', () => {
     const code = await getMainItemCode(mainItemBizKey);
 
     // Code format: {teamCode}-{seq:05d} e.g. TEAM-00042
-    assert.match(code, /^[A-Z]+-\d{5}$/, `Code "${code}" matches format {{teamCode}}-{{seq:05d}}`);
+    expect(code).toMatch(/^[A-Z]+-\d{5}$/);
 
     // Save main item ID for TC-003
     mainItemId = mainItemBizKey;
@@ -104,7 +101,7 @@ describe('API E2E Tests', () => {
     // Extract numeric sequences and verify strict increment
     const seqs = codes.map((c) => parseInt(c.split('-').pop() ?? '', 10));
     for (let i = 1; i < seqs.length; i++) {
-      assert.equal(seqs[i], seqs[i - 1] + 1, `Code ${codes[i]} should be sequential after ${codes[i - 1]}`);
+      expect(seqs[i]).toBe(seqs[i - 1] + 1);
     }
   });
 
@@ -130,7 +127,7 @@ describe('API E2E Tests', () => {
           expectedEndDate: '2026-05-27',
         }),
       });
-      assert.ok(res.status === 200 || res.status === 201, `Create sub item ${i + 1} failed: ${res.status} ${res.body}`);
+      expect(res.status === 200 || res.status === 201).toBeTruthy();
       const data = JSON.parse(res.body);
       const item = data.data ?? data;
       codes.push(item.code);
@@ -138,13 +135,13 @@ describe('API E2E Tests', () => {
 
     // Sub item code format: {mainCode}-{seq:02d} e.g. TEAM-00042-01
     for (const code of codes) {
-      assert.match(code, /^[A-Z]+-\d{5}-\d{2}$/, `Sub code "${code}" matches format {{mainCode}}-{{seq:02d}}`);
+      expect(code).toMatch(/^[A-Z]+-\d{5}-\d{2}$/);
     }
 
     // Extract numeric sequences and verify strict increment
     const seqs = codes.map((c) => parseInt(c.split('-').pop() ?? '', 10));
     for (let i = 1; i < seqs.length; i++) {
-      assert.equal(seqs[i], seqs[i - 1] + 1, `Sub code ${codes[i]} should be sequential after ${codes[i - 1]}`);
+      expect(seqs[i]).toBe(seqs[i - 1] + 1);
     }
   });
 
@@ -156,6 +153,6 @@ describe('API E2E Tests', () => {
     const mainItemBizKey = await convertToMain(poolId);
     const code = await getMainItemCode(mainItemBizKey);
 
-    assert.match(code, /^[A-Z]+-\d{5}$/, `Code "${code}" matches expected format`);
+    expect(code).toMatch(/^[A-Z]+-\d{5}$/);
   });
 });

@@ -1,6 +1,5 @@
-import { describe, test, before } from 'node:test';
-import assert from 'node:assert/strict';
-import { curl, apiBaseUrl, getApiToken, createAuthCurl } from './helpers.js';
+import { test, expect } from '@playwright/test';
+import { curl, apiBaseUrl, getApiToken, createAuthCurl } from '../../helpers.js';
 
 // Helpers to create test fixtures dynamically
 async function createTeam(authCurl: ReturnType<typeof createAuthCurl>): Promise<string> {
@@ -9,27 +8,27 @@ async function createTeam(authCurl: ReturnType<typeof createAuthCurl>): Promise<
   const res = await authCurl('POST', '/v1/teams', {
     body: JSON.stringify({ name: `e2e-${code}`, code }),
   });
-  assert.ok(res.status === 200 || res.status === 201, `createTeam failed: ${res.status} ${res.body}`);
+  expect(res.status === 200 || res.status === 201).toBeTruthy();
   const data = JSON.parse(res.body);
   const bizKey = data.data?.bizKey ?? data.data?.id;
-  assert.ok(bizKey, `No bizKey in createTeam response: ${res.body}`);
+  expect(bizKey).toBeTruthy();
   return String(bizKey);
 }
 
 async function getPMRoleBizKey(authCurl: ReturnType<typeof createAuthCurl>): Promise<string> {
   const res = await authCurl('GET', '/v1/admin/roles');
-  assert.equal(res.status, 200, `listRoles failed: ${res.status} ${res.body}`);
+  expect(res.status).toBe(200);
   const data = JSON.parse(res.body);
   const roles: any[] = data.data?.items ?? data.data ?? [];
   const pm = roles.find((r: any) => r.roleName === 'pm' || r.name === 'pm');
-  assert.ok(pm, `PM role not found in roles list`);
+  expect(pm).toBeTruthy();
   return String(pm.bizKey ?? pm.id);
 }
 
-describe('API E2E Tests', () => {
+test.describe('API E2E Tests', () => {
   let authCurl: ReturnType<typeof createAuthCurl>;
 
-  before(async () => {
+  test.beforeAll(async () => {
     const token = await getApiToken(apiBaseUrl);
     authCurl = createAuthCurl(apiBaseUrl, token);
   });
@@ -53,17 +52,15 @@ describe('API E2E Tests', () => {
         expectedEndDate: future,
       }),
     });
-    assert.ok(res.status === 200 || res.status === 201, `createMainItem failed: ${res.status} ${res.body}`);
+    expect(res.status === 200 || res.status === 201).toBeTruthy();
     const data = JSON.parse(res.body);
     const item = data.data ?? data;
     const teamKey = item.teamKey ?? item.team_key;
-    assert.ok(teamKey !== undefined, `Response missing teamKey field: ${res.body}`);
+    expect(teamKey).toBeTruthy();
     // teamKey must be the snowflake bizKey (large number), not a small uint like 1, 2, 3
-    assert.equal(
+    expect(
       String(teamKey),
-      teamBizKey,
-      `teamKey ${teamKey} must equal snowflake bizKey ${teamBizKey}, not a small internal uint`,
-    );
+    ).toBe(teamBizKey);
   });
 
   // Traceability: TC-002 → Story 2 / AC-1
@@ -77,35 +74,33 @@ describe('API E2E Tests', () => {
         roleKey: pmRoleBizKey,
       }),
     });
-    assert.ok(
+    expect(
       res.status === 400 || res.status === 422,
-      `Expected 400/422 for PM role assignment but got ${res.status}: ${res.body}`,
-    );
+    ).toBeTruthy();
     const body = res.body.toLowerCase();
-    assert.ok(
+    expect(
       body.includes('pm') || body.includes('cannot') || body.includes('role'),
-      `Response should indicate PM role assignment is forbidden: ${res.body}`,
-    );
+    ).toBeTruthy();
   });
 
   // Traceability: TC-003 → Spec Section 5.5 — bizKey 校验规则 (rule 1)
   test('TC-003: Non-numeric teamId in URL returns 400', async () => {
     const res = await authCurl('GET', '/v1/teams/abc/main-items');
-    assert.equal(res.status, 400, `Expected 400 for non-numeric teamId but got ${res.status}: ${res.body}`);
+    expect(res.status).toBe(400);
   });
 
   // Traceability: TC-004 → Spec Section 5.5 — bizKey 校验规则 (rule 2)
   test('TC-004: Non-positive teamId in URL returns 400', async () => {
     const resZero = await authCurl('GET', '/v1/teams/0/main-items');
-    assert.equal(resZero.status, 400, `Expected 400 for teamId=0 but got ${resZero.status}: ${resZero.body}`);
+    expect(resZero.status).toBe(400);
 
     const resNeg = await authCurl('GET', '/v1/teams/-1/main-items');
-    assert.equal(resNeg.status, 400, `Expected 400 for teamId=-1 but got ${resNeg.status}: ${resNeg.body}`);
+    expect(resNeg.status).toBe(400);
   });
 
   // Traceability: TC-005 → Spec Section 5.5 — bizKey 校验规则 (rule 3)
   test('TC-005: Non-existent teamId returns 404', async () => {
     const res = await authCurl('GET', '/v1/teams/999999999999999999/main-items');
-    assert.equal(res.status, 404, `Expected 404 for non-existent teamId but got ${res.status}: ${res.body}`);
+    expect(res.status).toBe(404);
   });
 });

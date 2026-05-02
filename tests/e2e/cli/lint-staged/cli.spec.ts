@@ -1,9 +1,8 @@
-import { describe, test } from 'node:test';
-import assert from 'node:assert/strict';
+import { test, expect } from '@playwright/test';
 import { writeFileSync, unlinkSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runCli } from './helpers.js';
+import { runCli } from '../../helpers.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Path to project root (where scripts/lint-staged.sh lives)
@@ -28,19 +27,15 @@ function testLintStagedKeyword(
     // Run only check_sqlite_keywords (extract function from lint-staged.sh) to avoid
     // slow golangci-lint and pre-existing lint issues unrelated to this feature.
     const result = runCli('bash -c \'eval "$(sed -n "/^check_sqlite_keywords/,/^}/p" scripts/lint-staged.sh)"; check_sqlite_keywords\'', PROJECT_ROOT, 15000);
-    assert.notEqual(result.exitCode, 0, `${tcId}: lint-staged should block`);
-    assert.match(
-      result.stdout + result.stderr,
-      expectedPattern,
-      `${tcId}: output mentions keyword or dialect: ${result.stdout} ${result.stderr}`,
-    );
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stdout + result.stderr).toMatch(expectedPattern);
   } finally {
     runCli(`git reset HEAD -- ${relFile}`, PROJECT_ROOT);
     if (existsSync(absFile)) unlinkSync(absFile);
   }
 }
 
-describe('CLI E2E Tests', () => {
+test.describe('CLI E2E Tests', () => {
   // ── Lint-staged keyword detection tests ──────────────────────────
   // These tests validate that lint-staged.sh blocks hardcoded SQLite keywords
   // in the repository layer. They create a temporary file with the offending keyword,
@@ -99,7 +94,7 @@ describe('CLI E2E Tests', () => {
       runCli(`git add ${relFile}`, PROJECT_ROOT);
       // Run only check_sqlite_keywords to avoid pre-existing golangci-lint issues
       const result = runCli('bash -c \'eval "$(sed -n "/^check_sqlite_keywords/,/^}/p" scripts/lint-staged.sh)"; check_sqlite_keywords\'', PROJECT_ROOT, 15000);
-      assert.equal(result.exitCode, 0, `check_sqlite_keywords should pass for clean code: ${result.stdout} ${result.stderr}`);
+      expect(result.exitCode).toBe(0);
     } finally {
       runCli(`git reset HEAD -- ${relFile}`, PROJECT_ROOT);
       if (existsSync(absFile)) unlinkSync(absFile);
@@ -107,7 +102,8 @@ describe('CLI E2E Tests', () => {
   });
 
   // Traceability: TC-011 → Story 2 / AC-1, Story 4 / AC-1
-  test('TC-011: Fresh MySQL startup initializes RBAC with preset roles', { skip: !process.env.MYSQL_HOST }, () => {
+  test('TC-011: Fresh MySQL startup initializes RBAC with preset roles', () => {
+    if (!process.env.MYSQL_HOST) { test.skip(); return; }
     // This test verifies that the application starts successfully against MySQL
     // and initializes RBAC correctly.
     //
@@ -131,32 +127,32 @@ describe('CLI E2E Tests', () => {
     const rolesResult = runCli(
       `mysql -h ${mysqlHost} -P ${mysqlPort} -u ${mysqlUser} ${mysqlPassword ? `-p${mysqlPassword}` : ''} ${mysqlDb} -N -e "SELECT COUNT(*) FROM pmw_roles"`,
     );
-    assert.equal(rolesResult.exitCode, 0, `MySQL query failed: ${rolesResult.stderr}`);
+    expect(rolesResult.exitCode).toBe(0);
     const roleCount = parseInt(rolesResult.stdout.trim(), 10);
-    assert.equal(roleCount, 3, `Expected 3 preset roles, got ${roleCount}`);
+    expect(roleCount).toBe(3);
 
     // Verify preset role names
     const namesResult = runCli(
       `mysql -h ${mysqlHost} -P ${mysqlPort} -u ${mysqlUser} ${mysqlPassword ? `-p${mysqlPassword}` : ''} ${mysqlDb} -N -e "SELECT name FROM pmw_roles ORDER BY name"`,
     );
-    assert.equal(namesResult.exitCode, 0, `MySQL query failed: ${namesResult.stderr}`);
+    expect(namesResult.exitCode).toBe(0);
     const roleNames = namesResult.stdout.trim().split('\n').map((s) => s.trim());
-    assert.ok(roleNames.includes('superadmin'), 'superadmin role exists');
-    assert.ok(roleNames.includes('pm'), 'pm role exists');
-    assert.ok(roleNames.includes('member'), 'member role exists');
+    expect(roleNames.includes('superadmin')).toBeTruthy();
+    expect(roleNames.includes('pm')).toBeTruthy();
+    expect(roleNames.includes('member')).toBeTruthy();
 
     // Verify HasColumn equivalent: check pmw_team_members has role_key column
     const colResult = runCli(
       `mysql -h ${mysqlHost} -P ${mysqlPort} -u ${mysqlUser} ${mysqlPassword ? `-p${mysqlPassword}` : ''} ${mysqlDb} -N -e "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='${mysqlDb}' AND table_name='pmw_team_members' AND column_name='role_key'"`,
     );
-    assert.equal(colResult.exitCode, 0, `information_schema query failed: ${colResult.stderr}`);
-    assert.equal(parseInt(colResult.stdout.trim(), 10), 1, 'pmw_team_members.role_key column exists');
+    expect(colResult.exitCode).toBe(0);
+    expect(parseInt(colResult.stdout.trim(), 10)).toBe(1);
 
     // Verify nonexistent column returns false
     const noColResult = runCli(
       `mysql -h ${mysqlHost} -P ${mysqlPort} -u ${mysqlUser} ${mysqlPassword ? `-p${mysqlPassword}` : ''} ${mysqlDb} -N -e "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='${mysqlDb}' AND table_name='pmw_team_members' AND column_name='nonexistent'"`,
     );
-    assert.equal(noColResult.exitCode, 0, `information_schema query failed: ${noColResult.stderr}`);
-    assert.equal(parseInt(noColResult.stdout.trim(), 10), 0, 'nonexistent column should not exist');
+    expect(noColResult.exitCode).toBe(0);
+    expect(parseInt(noColResult.stdout.trim(), 10)).toBe(0);
   });
 });

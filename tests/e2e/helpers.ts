@@ -3,7 +3,7 @@ import { readFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
-import { chromium, type Browser, type Page } from 'playwright';
+import type { Page, Locator } from '@playwright/test';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -55,29 +55,8 @@ function toNumber(val: unknown, fallback: number): number {
 
 export const baseUrl = _config.baseUrl ?? 'http://localhost:5174';
 export const apiBaseUrl = _config.apiBaseUrl ?? 'http://localhost:8083';
+export const apiUrl = apiBaseUrl;
 const DEFAULT_TIMEOUT = toNumber(_config.timeout, 30000);
-
-// ── Browser lifecycle ──────────────────────────────────────────────
-let _browser: Browser | null = null;
-let _page: Page | null = null;
-
-export async function setupBrowser(): Promise<Page> {
-  _browser = await chromium.launch();
-  _page = await _browser.newPage();
-  _page.setDefaultTimeout(DEFAULT_TIMEOUT);
-  return _page;
-}
-
-export async function teardownBrowser(): Promise<void> {
-  await _browser?.close();
-  _browser = null;
-  _page = null;
-}
-
-export function getPage(): Page {
-  if (!_page) throw new Error('Browser not initialized. Call setupBrowser() first.');
-  return _page;
-}
 
 // ── Evidence ───────────────────────────────────────────────────────
 export async function screenshot(page: Page, tcId: string): Promise<string> {
@@ -146,6 +125,77 @@ export const defaultCreds: UICredentials = {
 
 const _loginLocators = _config.loginLocators;
 
+// ── Token caching (one login per test run) ──────────────────────────
+let cachedToken: string | null = null;
+let cachedTokenExpiry = 0;
+
+export async function getAuthToken(creds: UICredentials = defaultCreds): Promise<string> {
+  if (cachedToken && Date.now() < cachedTokenExpiry) {
+    return cachedToken;
+  }
+  const api = _config.apiBaseUrl ?? 'http://localhost:8080';
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const res = await fetch(`${api}/v1/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: creds.username, password: creds.password }),
+    });
+    if (res.status === 429) {
+      await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+      continue;
+    }
+    if (res.status !== 200) throw new Error(`Auth failed: ${res.status}`);
+    const json = await res.json();
+    const token = json.data?.token ?? json.token;
+    if (!token) throw new Error(`No token in auth response`);
+    cachedToken = token;
+    cachedTokenExpiry = Date.now() + 23 * 60 * 60 * 1000;
+    return token;
+  }
+  throw new Error('Auth failed after retries: rate limited');
+}
+
+/** Inject cached token into localStorage and navigate to /items */
+export async function login(page: Page, creds: UICredentials = defaultCreds): Promise<void> {
+  const token = await getAuthToken(creds);
+  await page.goto(`${baseUrl}/login`);
+  await page.evaluate((t) => {
+    localStorage.setItem('auth-storage', JSON.stringify({
+      state: {
+        token: t,
+        user: { isSuperAdmin: true },
+        isAuthenticated: true,
+        isSuperAdmin: true,
+        permissions: null,
+        permissionsLoadedAt: null,
+        _hasHydrated: true,
+      },
+      version: 0,
+    }));
+  }, token);
+  await page.goto(`${baseUrl}/items`);
+  await page.waitForURL(/\/items/, { timeout: 10000 });
+  // Wait for permissions to load
+  await page.waitForFunction(() => {
+    try {
+      const raw = localStorage.getItem('auth-storage');
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      return parsed?.state?.permissions !== null && parsed?.state?.permissions !== undefined;
+    } catch { return false; }
+  }, { timeout: 10000 });
+  // Wait for team to be auto-selected
+  await page.waitForFunction(() => {
+    try {
+      const raw = localStorage.getItem('team-storage');
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      return parsed?.state?.currentTeamId != null;
+    } catch { return false; }
+  }, { timeout: 5000 }).catch(() => {});
+}
+
+/** Legacy UI login — kept for login-specific tests (TC-025, TC-026) */
 export async function loginViaUI(page: Page, creds: UICredentials = defaultCreds): Promise<void> {
   await page.goto(`${baseUrl}/login`);
   await page.waitForLoadState('networkidle');
@@ -160,14 +210,22 @@ export async function loginViaUI(page: Page, creds: UICredentials = defaultCreds
 
 export async function getApiToken(apiBaseUrl: string, creds: UICredentials = defaultCreds): Promise<string> {
   // Auth endpoint: POST /v1/auth/login (matches backend router)
-  const res = await curl('POST', `${apiBaseUrl}/v1/auth/login`, {
-    body: JSON.stringify({ username: creds.username, password: creds.password }),
-  });
-  if (res.status !== 200) throw new Error(`Auth failed: ${res.status} ${res.body}`);
-  const data = JSON.parse(res.body);
-  const token = data.token ?? data.access_token ?? data.data?.token;
-  if (!token) throw new Error(`No token in auth response. Keys: ${Object.keys(data).join(', ')}`);
-  return token;
+  // Retry on 429 (rate limit) with exponential backoff
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const res = await curl('POST', `${apiBaseUrl}/v1/auth/login`, {
+      body: JSON.stringify({ username: creds.username, password: creds.password }),
+    });
+    if (res.status === 429) {
+      await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+      continue;
+    }
+    if (res.status !== 200) throw new Error(`Auth failed: ${res.status} ${res.body}`);
+    const data = JSON.parse(res.body);
+    const token = data.token ?? data.access_token ?? data.data?.token;
+    if (!token) throw new Error(`No token in auth response. Keys: ${Object.keys(data).join(', ')}`);
+    return token;
+  }
+  throw new Error('Auth failed after retries: rate limited');
 }
 
 export function createAuthCurl(
@@ -203,4 +261,66 @@ export function runCli(cmd: string, cwd?: string, timeout?: number): CliResult {
       exitCode: e.status ?? 1,
     };
   }
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────
+
+/** Check if text is visible anywhere on the page */
+export async function snapshotContains(page: Page, text: string): Promise<boolean> {
+  return page.getByText(text).first().isVisible().catch(() => false);
+}
+
+/** Find a single element by ARIA role and optional accessible name */
+export function findElement(page: Page, role: string, name?: string): Locator {
+  if (name) {
+    return page.getByRole(role as any, { name: new RegExp(name, 'i') });
+  }
+  return page.getByRole(role as any);
+}
+
+/** Find all elements matching a role and optional name */
+export function findElements(page: Page, role: string, name?: string): Locator[] {
+  const loc = name
+    ? page.getByRole(role as any, { name: new RegExp(name, 'i') })
+    : page.getByRole(role as any);
+  return [loc];
+}
+
+/** Login via browser UI — kept for login-specific tests (TC-025, TC-026) */
+export async function browserLogin(page: Page, username: string, password: string): Promise<void> {
+  await page.goto(`${baseUrl}/login`);
+  await page.waitForLoadState('networkidle');
+  await page.locator('[data-testid="login-username"]').or(
+    page.getByRole('textbox', { name: /账号/i }),
+  ).fill(username);
+  await page.locator('[data-testid="login-password"]').or(
+    page.getByRole('textbox', { name: /密码/i }),
+  ).fill(password);
+  await page.locator('[data-testid="login-submit"]').or(
+    page.getByRole('button', { name: /登录/i }),
+  ).click();
+  await page.waitForURL((url) => !url.pathname.includes('login'), { timeout: DEFAULT_TIMEOUT });
+}
+
+/** Login via API and return {authHeader, token}. Retries on 429. */
+export async function loginAs(
+  username: string,
+  password: string,
+): Promise<{ authHeader: Record<string, string>; token: string }> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const res = await curl('POST', `${apiBaseUrl}/v1/auth/login`, {
+      body: JSON.stringify({ username, password }),
+    });
+    if (res.status === 429) {
+      await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+      continue;
+    }
+    if (res.status !== 200) {
+      throw new Error(`Login failed for ${username}: ${res.status} ${res.body}`);
+    }
+    const data = JSON.parse(res.body);
+    const token = data.data?.token ?? data.token;
+    return { authHeader: { Authorization: `Bearer ${token}` }, token };
+  }
+  throw new Error(`Login failed for ${username} after retries: rate limited`);
 }

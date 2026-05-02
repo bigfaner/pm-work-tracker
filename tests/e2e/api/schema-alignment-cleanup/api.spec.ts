@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { curl, apiBaseUrl, getApiToken, createAuthCurl, runCli } from './helpers.js';
+import { curl, apiBaseUrl, getApiToken, createAuthCurl, runCli } from '../../helpers.js';
 
 const PROJECT_ROOT = resolve(import.meta.dirname, '../../../..');
 

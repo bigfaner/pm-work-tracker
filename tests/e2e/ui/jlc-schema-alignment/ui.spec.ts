@@ -1,28 +1,18 @@
-import { describe, test, before, after } from 'node:test';
-import assert from 'node:assert/strict';
-import type { Page } from 'playwright';
+import { test, expect } from '@playwright/test';
 import {
-  setupBrowser,
-  teardownBrowser,
   screenshot,
   baseUrl,
-  loginViaUI,
-} from './helpers.js';
+  login,
+} from '../../helpers.js';
 
-describe('UI E2E Tests', () => {
-  let page: Page;
+test.describe('UI E2E Tests', () => {
 
-  before(async () => {
-    page = await setupBrowser();
-    await loginViaUI(page);
-  });
-
-  after(async () => {
-    await teardownBrowser();
+  test.beforeEach(async ({ page }) => {
+    await login(page);
   });
 
   // Traceability: TC-001 → Story 6 / AC-1
-  test('TC-001: 主事项详情页 URL 使用 bizKey 导航', async () => {
+  test('TC-001: 主事项详情页 URL 使用 bizKey 导航', async ({ page }) => {
     // Step 1: Navigate to items list page
     await page.goto(`${baseUrl}/items`);
     await page.waitForLoadState('networkidle');
@@ -63,12 +53,11 @@ describe('UI E2E Tests', () => {
     // Expected: URL should contain a bizKey (snowflake ID, ~16 digits, not short auto-increment)
     const currentUrl = page.url();
     const urlMatch = currentUrl.match(/\/items\/(\d+)/);
-    assert.ok(urlMatch, `URL should match /items/{bizKey} pattern, got: ${currentUrl}`);
+    expect(urlMatch).toBeTruthy();
     const bizKey = urlMatch![1];
-    assert.ok(
+    expect(
       bizKey.length >= 10,
-      `bizKey should be a long snowflake ID (>=10 digits), got: ${bizKey} (${bizKey.length} digits)`,
-    );
+    ).toBeTruthy();
 
     // Verify detail page breadcrumb (E-021) is visible
     await page.getByRole('navigation', { name: 'Breadcrumb' }).waitFor({ state: 'visible' });

@@ -8,13 +8,9 @@
  * 4. Change priority to P2, save
  * 5. Assert the sub-items list API is called again AND the badge shows P2
  */
-import { describe, test, before, after } from 'node:test';
-import assert from 'node:assert/strict';
+import { test, expect } from '@playwright/test';
 import {
-  setupBrowser,
-  teardownBrowser,
-  getPage,
-  loginViaUI,
+  login,
   getApiToken,
   createAuthCurl,
   apiBaseUrl,
@@ -22,64 +18,61 @@ import {
   screenshot,
 } from '../../helpers.js';
 
-describe('UI E2E: sub-item edit refreshes list', () => {
-  let subBizKey: string;
-  let mainBizKey: string;
-  let teamId: string;
+let subBizKey: string;
+let mainBizKey: string;
+let teamId: string;
 
-  before(async () => {
-    // --- API setup ---
-    const token = await getApiToken(apiBaseUrl);
-    const authCurl = createAuthCurl(apiBaseUrl, token);
+test.describe('UI E2E: sub-item edit refreshes list', () => {
 
-    // Pick first team
-    const teamsRes = await authCurl('GET', '/v1/teams');
-    assert.equal(teamsRes.status, 200, `List teams: ${teamsRes.body}`);
-    const teams = JSON.parse(teamsRes.body).data?.items ?? JSON.parse(teamsRes.body);
-    assert.ok(teams.length > 0, 'Need at least one team');
-    teamId = String(teams[0].bizKey);
+  test.beforeEach(async ({ page }) => {
+    // --- API setup (only on first test) ---
+    if (!teamId) {
+      const token = await getApiToken(apiBaseUrl);
+      const authCurl = createAuthCurl(apiBaseUrl, token);
 
-    // Create pool entry → main item
-    const poolRes = await authCurl('POST', `/v1/teams/${teamId}/item-pool`, {
-      body: JSON.stringify({ title: 'UI-TC-001 sub-item edit test', background: 'e2e', expectedOutput: 'e2e' }),
-    });
-    assert.ok(poolRes.status === 200 || poolRes.status === 201, `Create pool: ${poolRes.body}`);
-    const poolKey = String((JSON.parse(poolRes.body).data ?? JSON.parse(poolRes.body)).bizKey);
+      // Pick first team
+      const teamsRes = await authCurl('GET', '/v1/teams');
+      expect(teamsRes.status).toBe(200);
+      const teams = JSON.parse(teamsRes.body).data?.items ?? JSON.parse(teamsRes.body);
+      expect(teams.length > 0).toBeTruthy();
+      teamId = String(teams[0].bizKey);
 
-    const convertRes = await authCurl('POST', `/v1/teams/${teamId}/item-pool/${poolKey}/convert-to-main`, {
-      body: JSON.stringify({ priority: 'P2', assigneeKey: '0', startDate: '2026-04-28', expectedEndDate: '2026-05-28' }),
-    });
-    assert.equal(convertRes.status, 200, `Convert: ${convertRes.body}`);
-    const match = convertRes.body.match(/"mainItemBizKey"\s*:\s*(\d+)/);
-    assert.ok(match, 'mainItemBizKey not found');
-    mainBizKey = match[1];
+      // Create pool entry → main item
+      const poolRes = await authCurl('POST', `/v1/teams/${teamId}/item-pool`, {
+        body: JSON.stringify({ title: 'UI-TC-001 sub-item edit test', background: 'e2e', expectedOutput: 'e2e' }),
+      });
+      expect(poolRes.status === 200 || poolRes.status === 201).toBeTruthy();
+      const poolKey = String((JSON.parse(poolRes.body).data ?? JSON.parse(poolRes.body)).bizKey);
 
-    // Create sub-item with priority P1
-    const subRes = await authCurl('POST', `/v1/teams/${teamId}/main-items/${mainBizKey}/sub-items`, {
-      body: JSON.stringify({
-        mainItemKey: mainBizKey,
-        title: 'UI-TC-001 sub item',
-        priority: 'P1',
-        assigneeKey: '0',
-        startDate: '2026-04-28',
-        expectedEndDate: '2026-05-28',
-      }),
-    });
-    assert.ok(subRes.status === 200 || subRes.status === 201, `Create sub: ${subRes.body}`);
-    subBizKey = String((JSON.parse(subRes.body).data ?? JSON.parse(subRes.body)).bizKey);
+      const convertRes = await authCurl('POST', `/v1/teams/${teamId}/item-pool/${poolKey}/convert-to-main`, {
+        body: JSON.stringify({ priority: 'P2', assigneeKey: '0', startDate: '2026-04-28', expectedEndDate: '2026-05-28' }),
+      });
+      expect(convertRes.status).toBe(200);
+      const match = convertRes.body.match(/"mainItemBizKey"\s*:\s*(\d+)/);
+      expect(match).toBeTruthy();
+      mainBizKey = match![1];
+
+      // Create sub-item with priority P1
+      const subRes = await authCurl('POST', `/v1/teams/${teamId}/main-items/${mainBizKey}/sub-items`, {
+        body: JSON.stringify({
+          mainItemKey: mainBizKey,
+          title: 'UI-TC-001 sub item',
+          priority: 'P1',
+          assigneeKey: '0',
+          startDate: '2026-04-28',
+          expectedEndDate: '2026-05-28',
+        }),
+      });
+      expect(subRes.status === 200 || subRes.status === 201).toBeTruthy();
+      subBizKey = String((JSON.parse(subRes.body).data ?? JSON.parse(subRes.body)).bizKey);
+    }
 
     // --- Browser setup ---
-    const page = await setupBrowser();
-    await loginViaUI(page);
+    const page_ = page;
+    await login(page_);
   });
 
-  after(async () => {
-    await teardownBrowser();
-  });
-
-  test('UI-TC-001: editing sub-item priority triggers list refresh and shows updated value', async () => {
-    const page = getPage();
-
+  test('UI-TC-001: editing sub-item priority triggers list refresh and shows updated value', async ({ page }) => {
     // Navigate to items page
     await page.goto(`${baseUrl}/items`);
     await page.waitForLoadState('networkidle');
@@ -121,17 +114,17 @@ describe('UI E2E: sub-item edit refreshes list', () => {
 
     // The sub-item row should now show P2 — verify via API that backend has P2
     const verifyRes = await (await import('../../helpers.js')).createAuthCurl(apiBaseUrl, await (await import('../../helpers.js')).getApiToken(apiBaseUrl))('GET', `/v1/teams/${teamId}/main-items/${mainBizKey}/sub-items`);
-    assert.equal(verifyRes.status, 200, `Verify list: ${verifyRes.body}`);
+    expect(verifyRes.status).toBe(200);
     const items: any[] = (JSON.parse(verifyRes.body).data ?? JSON.parse(verifyRes.body)).items;
     const updated = items.find((i: any) => String(i.bizKey) === subBizKey);
-    assert.ok(updated, 'Sub item found after edit');
-    assert.equal(updated.priority, 'P2', `Priority should be P2, got ${updated.priority}`);
+    expect(updated).toBeTruthy();
+    expect(updated.priority).toBe('P2');
 
     await screenshot(page, 'UI-TC-001-verified');
   });
 });
 
-async function expect_text_visible(page: import('playwright').Page, text: string) {
+async function expect_text_visible(page: import('@playwright/test').Page, text: string) {
   const el = page.locator(`text=${text}`).first();
   await el.waitFor({ state: 'visible', timeout: 5000 });
 }

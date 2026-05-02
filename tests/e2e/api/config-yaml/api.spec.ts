@@ -1,8 +1,9 @@
-import { describe, test } from 'node:test';
-import assert from 'node:assert/strict';
-import { curl, apiUrl } from './helpers.js';
+import { test, expect } from '@playwright/test';
+import { curl, apiBaseUrl } from '../../helpers.js';
 
-describe('API E2E Tests — config-yaml', () => {
+const apiUrl = apiBaseUrl;
+
+test.describe('API E2E Tests — config-yaml', () => {
 
   // Traceability: TC-020 → Spec Server 域
   test('TC-020: Application starts and serves HTTP on configured port', async () => {
@@ -10,8 +11,8 @@ describe('API E2E Tests — config-yaml', () => {
       // Using GET on login endpoint — expect 405 or 400, not connection refused
       timeout: 5000,
     });
-    assert.ok(res.status !== 0, 'Server should be reachable');
-    assert.ok(res.status < 500, `Got ${res.status}, server should respond without 5xx`);
+    expect(res.status !== 0).toBeTruthy();
+    expect(res.status < 500).toBeTruthy();
   });
 
   // Traceability: TC-021 → Spec CORS 域
@@ -26,9 +27,9 @@ describe('API E2E Tests — config-yaml', () => {
     // If CORS is configured with http://localhost:3000, expect ACAO header
     const acao = res.headers['access-control-allow-origin'];
     if (acao) {
-      assert.equal(acao, 'http://localhost:3000');
+      expect(acao).toBe('http://localhost:3000');
     }
     // If no CORS configured, just verify server responded
-    assert.ok(res.status !== 0, 'Server should be reachable');
+    expect(res.status !== 0).toBeTruthy();
   });
 });
