@@ -52,9 +52,9 @@ run scope="":
     #!/usr/bin/env bash
     set -euo pipefail
     case "{{scope}}" in
-      frontend) cd "{{frontend_dir}}" && npm start ;;
-      backend)  cd "{{backend_dir}}" && go run . ;;
-      "")       (cd "{{frontend_dir}}" && npm start) && (cd "{{backend_dir}}" && go run .) ;;
+      frontend) cd "{{frontend_dir}}" && npm run preview ;;
+      backend)  cd "{{backend_dir}}" && go run cmd/server/main.go ;;
+      "")       cd "{{backend_dir}}" && go run cmd/server/main.go & backend_pid=$!; trap "kill $backend_pid 2>/dev/null" EXIT; cd "{{frontend_dir}}" && npm run preview ;;
       *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
     esac
 
@@ -63,8 +63,8 @@ dev scope="":
     set -euo pipefail
     case "{{scope}}" in
       frontend) cd "{{frontend_dir}}" && npm run dev ;;
-      backend)  cd "{{backend_dir}}" && go run . --dev ;;
-      "")       (cd "{{frontend_dir}}" && npm run dev) && (cd "{{backend_dir}}" && go run . --dev) ;;
+      backend)  cd "{{backend_dir}}" && go run cmd/server/main.go -dev ;;
+      "")       cd "{{backend_dir}}" && go run cmd/server/main.go -dev & backend_pid=$!; trap "kill $backend_pid 2>/dev/null" EXIT; cd "{{frontend_dir}}" && npm run dev ;;
       *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
     esac
 
@@ -83,19 +83,10 @@ test-e2e feature="":
     #!/usr/bin/env bash
     set -euo pipefail
     if [ "{{feature}}" != "" ]; then
-        scripts_dir="tests/e2e/{{feature}}"
-        fail=0
-        for spec in "$scripts_dir"/*.spec.ts; do
-            [ -f "$spec" ] && npx tsx "$spec" || fail=$((fail+1))
-        done
-        [ "$fail" -eq 0 ]
+        cd tests/e2e && npx playwright test {{feature}}/
     else
         [ ! -d tests/e2e/node_modules ] && npm install --prefix tests/e2e
-        fail=0
-        for spec in $(find tests/e2e -mindepth 2 -name '*.spec.ts'); do
-            npx tsx "$spec" || fail=$((fail+1))
-        done
-        [ "$fail" -eq 0 ]
+        cd tests/e2e && npx playwright test
     fi
 
 lint scope="":

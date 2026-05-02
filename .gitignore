@@ -58,3 +58,4 @@ backend/test-results/
 .DS_Store
 data/dev.db
 tests/results/screenshots/
+tests/e2e/test-results/
