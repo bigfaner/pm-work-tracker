@@ -1,5 +1,5 @@
 # E2E Test Configuration
-baseUrl: http://localhost:5174
+baseUrl: http://localhost:5173
 apiBaseUrl: http://localhost:8080
 
 # Test account credentials (leave empty if no auth required)

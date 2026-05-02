@@ -53,9 +53,11 @@ function toNumber(val: unknown, fallback: number): number {
   return fallback;
 }
 
-export const baseUrl = _config.baseUrl ?? 'http://localhost:5174';
-export const apiBaseUrl = _config.apiBaseUrl ?? 'http://localhost:8083';
+export const baseUrl = _config.baseUrl ?? 'http://localhost:5173';
+export const apiBaseUrl = _config.apiBaseUrl ?? 'http://localhost:8080';
 export const apiUrl = apiBaseUrl;
+export const BASE = baseUrl;
+export const API = apiBaseUrl + '/v1';
 const DEFAULT_TIMEOUT = toNumber(_config.timeout, 30000);
 
 // ── Evidence ───────────────────────────────────────────────────────
@@ -323,4 +325,152 @@ export async function loginAs(
     return { authHeader: { Authorization: `Bearer ${token}` }, token };
   }
   throw new Error(`Login failed for ${username} after retries: rate limited`);
+}
+
+// ── Frontend compatibility functions ────────────────────────────────
+
+let _cachedTeamId: string | null = null;
+
+export function invalidateAuthCache(): void {
+  cachedToken = null;
+  cachedTokenExpiry = 0;
+  _cachedTeamId = null;
+}
+
+export async function getFirstTeamId(token: string): Promise<string | null> {
+  if (_cachedTeamId != null) return _cachedTeamId;
+  const res = await fetch(`${API}/teams`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  const data = json.data ?? json;
+  const list = Array.isArray(data) ? data : (data?.items ?? []);
+  if (list.length > 0) {
+    _cachedTeamId = String(list[0].bizKey ?? list[0].id ?? list[0].ID);
+  }
+  return _cachedTeamId;
+}
+
+export function parseApiData(resp: any): any {
+  return resp.data !== undefined ? resp.data : resp;
+}
+
+export async function getFirstMemberKey(token: string, teamId: string): Promise<string | null> {
+  const res = await fetch(`${API}/teams/${teamId}/members`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  const data = parseApiData(json);
+  const list = Array.isArray(data) ? data : (data?.items ?? []);
+  if (list.length > 0) {
+    return String(list[0].userKey ?? list[0].userId ?? list[0].id);
+  }
+  return null;
+}
+
+export async function getRoleKey(token: string, roleName: string): Promise<string | null> {
+  const res = await fetch(`${API}/admin/roles`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  const data = parseApiData(json);
+  const list = Array.isArray(data) ? data : (data?.items ?? []);
+  const role = list.find((r: any) => r.roleName === roleName);
+  return role ? String(role.bizKey) : null;
+}
+
+export function extractBizKey(data: any): string | null {
+  if (!data) return null;
+  const val = data.bizKey ?? data.id ?? data.ID ?? data.data?.bizKey ?? data.data?.id;
+  return val != null ? String(val) : null;
+}
+
+export async function navTo(page: Page, path: string) {
+  const link = page.locator(`[data-testid="sidebar"] a[href="${path}"]`);
+  await link.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+  await link.click();
+  await page.waitForTimeout(1500);
+}
+
+export async function getTokenForUser(username: string, password: string): Promise<string> {
+  const res = await fetch(`${API}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+  const json = await res.json();
+  const token = json.data?.token || json.token;
+  if (!token) throw new Error(`Login failed for ${username}: ${JSON.stringify(json)}`);
+  return token;
+}
+
+export async function createUser(token: string, username: string, displayName: string): Promise<{ userId: string; username: string; initialPassword?: string }> {
+  const res = await fetch(`${API}/admin/users`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, displayName }),
+  });
+  const json = await res.json();
+  if (json.code !== 0) throw new Error(`Failed to create user: ${JSON.stringify(json)}`);
+  return {
+    userId: String(json.data?.bizKey),
+    username,
+    initialPassword: json.data?.initialPassword,
+  };
+}
+
+export async function deleteUser(token: string, userId: string): Promise<void> {
+  await fetch(`${API}/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function addUserToTeam(token: string, teamId: string, username: string, roleKey: string): Promise<void> {
+  const res = await fetch(`${API}/teams/${teamId}/members`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, roleKey }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to add user to team: ${text}`);
+  }
+}
+
+export async function removeUserFromTeam(token: string, teamId: string, userId: string): Promise<void> {
+  await fetch(`${API}/teams/${teamId}/members/${userId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+/** Login as a specific user via UI (sets localStorage). Different from loginAs (API-only). */
+export async function loginAsUser(page: Page, token: string, user: { isSuperAdmin: boolean }): Promise<void> {
+  await page.goto(`${baseUrl}/login`);
+  await page.evaluate((t) => {
+    localStorage.setItem('auth-storage', JSON.stringify({
+      state: {
+        token: t,
+        user: { isSuperAdmin: false },
+        isAuthenticated: true,
+        isSuperAdmin: false,
+        permissions: null,
+        permissionsLoadedAt: null,
+        _hasHydrated: true,
+      },
+      version: 0,
+    }));
+  }, token);
+
+  await page.goto(`${baseUrl}/items`);
+  await page.waitForURL(/\/items/, { timeout: 10000 });
+  await page.waitForFunction(() => {
+    try {
+      const raw = localStorage.getItem('auth-storage');
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      return parsed?.state?.permissions !== null && parsed?.state?.permissions !== undefined;
+    } catch { return false; }
+  }, { timeout: 10000 });
 }
