@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/model"
@@ -26,10 +26,10 @@ func TestUser_TableName(t *testing.T) {
 
 func TestUser_PasswordHashNotSerialized(t *testing.T) {
 	u := model.User{
-		Username:       "alice",
-		DisplayName:    "Alice",
-		PasswordHash:   "secret-hash",
-		IsSuperAdmin:   false,
+		Username:     "alice",
+		DisplayName:  "Alice",
+		PasswordHash: "secret-hash",
+		IsSuperAdmin: false,
 	}
 
 	data, err := json.Marshal(u)
@@ -59,7 +59,6 @@ func TestUser_AutoMigrateCreatesCorrectSchema(t *testing.T) {
 	err = db.Create(&u2).Error
 	assert.Error(t, err, "duplicate username should be rejected")
 }
-
 
 func TestTeam_TableName(t *testing.T) {
 	team := model.Team{}
@@ -113,13 +112,12 @@ func TestTeamMember_CompositeUniqueIndex(t *testing.T) {
 	require.NoError(t, db.Create(&team).Error)
 
 	// First membership OK
-	tm1 := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID), }
+	tm1 := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID)}
 	require.NoError(t, db.Create(&tm1).Error)
 
 	// Duplicate (team_id, user_id) should fail
-	tm2 := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID), }
+	tm2 := model.TeamMember{TeamKey: int64(team.ID), UserKey: int64(u.ID)}
 	err = db.Create(&tm2).Error
 	// TeamMember unique constraint is on biz_key, not team_key/user_key in new schema
 	_ = err
 }
-

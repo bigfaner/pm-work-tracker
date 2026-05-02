@@ -65,12 +65,12 @@ func TestMainItem_ArchivedAt(t *testing.T) {
 
 	now := time.Now()
 	m := model.MainItem{
-		TeamKey: int64(team.ID),
-		Code:       "T3CD-00003",
-		Title:      "Archived Item",
-		Priority:   "P3",
+		TeamKey:     int64(team.ID),
+		Code:        "T3CD-00003",
+		Title:       "Archived Item",
+		Priority:    "P3",
 		ProposerKey: int64(u.ID),
-		ArchivedAt: &now,
+		ArchivedAt:  &now,
 	}
 	require.NoError(t, db.Create(&m).Error)
 
@@ -98,10 +98,10 @@ func TestSubItem_DefaultStatus(t *testing.T) {
 	require.NoError(t, db.Create(&mi).Error)
 
 	s := model.SubItem{
-		TeamKey: int64(team.ID),
+		TeamKey:     int64(team.ID),
 		MainItemKey: int64(mi.ID),
-		Title:      "Sub 1",
-		Priority:   "P2",
+		Title:       "Sub 1",
+		Priority:    "P2",
 	}
 	require.NoError(t, db.Create(&s).Error)
 
@@ -127,11 +127,11 @@ func TestSubItem_WeightCanBeCustom(t *testing.T) {
 	require.NoError(t, db.Create(&mi).Error)
 
 	s := model.SubItem{
-		TeamKey: int64(team.ID),
+		TeamKey:     int64(team.ID),
 		MainItemKey: int64(mi.ID),
-		Title:      "Weighted Sub",
-		Priority:   "P1",
-		Weight:     2.5,
+		Title:       "Weighted Sub",
+		Priority:    "P1",
+		Weight:      2.5,
 	}
 	require.NoError(t, db.Create(&s).Error)
 
@@ -155,12 +155,12 @@ func TestMainItem_TeamStatusAndPriorityIndexes(t *testing.T) {
 		statuses := []string{"pending", "progressing", "completed"}
 		priorities := []string{"P1", "P2", "P3"}
 		m := model.MainItem{
-			TeamKey: int64(team.ID),
-			Code:       "IDXT-0000" + string(rune('1'+i)),
-			Title:      "Idx Item",
-			Priority:   priorities[i],
+			TeamKey:     int64(team.ID),
+			Code:        "IDXT-0000" + string(rune('1'+i)),
+			Title:       "Idx Item",
+			Priority:    priorities[i],
 			ProposerKey: int64(u.ID),
-			ItemStatus:     statuses[i],
+			ItemStatus:  statuses[i],
 		}
 		require.NoError(t, db.Create(&m).Error)
 	}
@@ -193,11 +193,11 @@ func TestSubItem_TeamStatusAndPriorityIndexes(t *testing.T) {
 		statuses := []string{"pending", "progressing", "completed"}
 		priorities := []string{"P1", "P2", "P3"}
 		s := model.SubItem{
-			TeamKey: int64(team.ID),
+			TeamKey:     int64(team.ID),
 			MainItemKey: int64(mi.ID),
-			Title:      "Idx Sub",
-			Priority:   priorities[i],
-			ItemStatus:     statuses[i],
+			Title:       "Idx Sub",
+			Priority:    priorities[i],
+			ItemStatus:  statuses[i],
 		}
 		require.NoError(t, db.Create(&s).Error)
 	}

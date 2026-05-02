@@ -57,7 +57,7 @@ type DatabaseConfig struct {
 	Driver          string   `yaml:"driver" env:"DATABASE_DRIVER"`
 	Path            string   `yaml:"path" env:"DATABASE_PATH"`
 	URL             string   `yaml:"url" env:"DATABASE_URL"`
-	AutoSchema     bool     `yaml:"auto_schema" env:"DATABASE_AUTO_SCHEMA"`
+	AutoSchema      bool     `yaml:"auto_schema" env:"DATABASE_AUTO_SCHEMA"`
 	MaxOpenConns    int      `yaml:"max_open_conns" env:"DATABASE_MAX_OPEN_CONNS"`
 	MaxIdleConns    int      `yaml:"max_idle_conns" env:"DATABASE_MAX_IDLE_CONNS"`
 	ConnMaxLifetime Duration `yaml:"conn_max_lifetime" env:"DATABASE_CONN_MAX_LIFETIME"`
@@ -99,7 +99,7 @@ func defaultConfig() *Config {
 		Database: DatabaseConfig{
 			Driver:          "sqlite",
 			Path:            "./data/dev.db",
-			AutoSchema:     true,
+			AutoSchema:      true,
 			MaxOpenConns:    10,
 			MaxIdleConns:    5,
 			ConnMaxLifetime: Duration(time.Hour),

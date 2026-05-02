@@ -172,11 +172,11 @@ type mockTeamUserRepo struct {
 	err  error
 
 	// SearchAvailable captures calls and returns configurable results
-	searchAvailableFn        func(ctx context.Context, teamBizKey int64, search string, limit int) ([]*model.User, error)
-	searchAvailableCalled    bool
+	searchAvailableFn         func(ctx context.Context, teamBizKey int64, search string, limit int) ([]*model.User, error)
+	searchAvailableCalled     bool
 	searchAvailableTeamBizKey int64
-	searchAvailableSearch    string
-	searchAvailableLimit     int
+	searchAvailableSearch     string
+	searchAvailableLimit      int
 }
 
 func (m *mockTeamUserRepo) FindByID(_ context.Context, _ uint) (*model.User, error) {
@@ -202,7 +202,7 @@ func (m *mockTeamUserRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*mod
 	return nil, nil
 }
 func (m *mockTeamUserRepo) FindByBizKey(_ context.Context, _ int64) (*model.User, error) {
-		return m.user, m.err
+	return m.user, m.err
 }
 func (m *mockTeamUserRepo) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.User, error) {
 	return nil, nil
@@ -249,7 +249,7 @@ func TestCreateTeam_Success(t *testing.T) {
 	svc := NewTeamService(repo, userRepo, &mockMainItemRepo{}, roleRepo, &mockDB{})
 
 	team, err := svc.CreateTeam(context.Background(), 1, dto.CreateTeamReq{
-		Name: "Alpha Team",
+		Name:        "Alpha Team",
 		Description: "A test team",
 		Code:        "ALPHA",
 	})
@@ -343,7 +343,7 @@ func TestListTeams_Success(t *testing.T) {
 func TestInviteMember_Success(t *testing.T) {
 	teamRepo := &mockTeamRepo{
 		team:          &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamName: "Alpha", PmKey: 10},
-		member:        nil, // invited user is not yet a member
+		member:        nil,                   // invited user is not yet a member
 		findMemberErr: apperrors.ErrNotFound, // FindMember returns not found
 	}
 	userRepo := &mockTeamUserRepo{
@@ -381,7 +381,7 @@ func TestInviteMember_UserNotFound(t *testing.T) {
 
 func TestInviteMember_AlreadyMember(t *testing.T) {
 	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
+		team:   &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
 		member: &model.TeamMember{TeamKey: int64(1), UserKey: int64(5)},
 	}
 	userRepo := &mockTeamUserRepo{
@@ -741,13 +741,13 @@ func TestGetTeamDetail_UsesCountMembers(t *testing.T) {
 	teamRepo := &mockTeamRepo{
 		team: &model.Team{
 			BaseModel: model.BaseModel{ID: 1},
-			TeamName: "Alpha",
-			PmKey:      10,
+			TeamName:  "Alpha",
+			PmKey:     10,
 		},
 		members: []*dto.TeamMemberDTO{
-			{TeamKey: "1", UserKey: "10", DisplayName: "Alice", },
-			{TeamKey: "1", UserKey: "20", DisplayName: "Bob", },
-			{TeamKey: "1", UserKey: "30", DisplayName: "Charlie", },
+			{TeamKey: "1", UserKey: "10", DisplayName: "Alice"},
+			{TeamKey: "1", UserKey: "20", DisplayName: "Bob"},
+			{TeamKey: "1", UserKey: "30", DisplayName: "Charlie"},
 		},
 		countMembersVal: 3,
 	}
@@ -768,12 +768,12 @@ func TestGetTeamDetail_CountMembersFallback(t *testing.T) {
 	teamRepo := &mockTeamRepo{
 		team: &model.Team{
 			BaseModel: model.BaseModel{ID: 1, BizKey: 1},
-			TeamName: "Alpha",
-			PmKey:      10,
+			TeamName:  "Alpha",
+			PmKey:     10,
 		},
 		countMembersErr: errors.New("not supported"),
 		members: []*dto.TeamMemberDTO{
-			{TeamKey: "1", UserKey: "10", DisplayName: "Alice", },
+			{TeamKey: "1", UserKey: "10", DisplayName: "Alice"},
 		},
 	}
 	userRepo := &mockTeamUserRepo{

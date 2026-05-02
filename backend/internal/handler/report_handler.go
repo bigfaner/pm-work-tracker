@@ -9,8 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"pm-work-tracker/backend/internal/middleware"
-	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg/dates"
+	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/service"
 )
 

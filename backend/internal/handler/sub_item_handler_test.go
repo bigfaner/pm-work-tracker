@@ -53,18 +53,18 @@ type mockSubItemService struct {
 	}
 
 	// capture calls
-	createCalled      bool
-	lastTeamID        uint
-	lastCallerID      uint
-	lastCreateReq     dto.SubItemCreateReq
+	createCalled  bool
+	lastTeamID    uint
+	lastCallerID  uint
+	lastCreateReq dto.SubItemCreateReq
 
-	getCalled   bool
-	lastItemID  uint
+	getCalled  bool
+	lastItemID uint
 
-	listCalled    bool
-	lastMainID    *int64
-	lastFilter    dto.SubItemFilter
-	lastPage      dto.Pagination
+	listCalled bool
+	lastMainID *int64
+	lastFilter dto.SubItemFilter
+	lastPage   dto.Pagination
 
 	updateCalled  bool
 	lastUpdateID  uint
@@ -73,8 +73,8 @@ type mockSubItemService struct {
 	changeStatusCalled bool
 	lastNewStatus      string
 
-	assignCalled  bool
-	lastPmID      uint
+	assignCalled   bool
+	lastPmID       uint
 	lastAssigneeID uint
 
 	availableTransitionsCalled bool
@@ -149,12 +149,16 @@ type mockMainItemSvcForSubItem struct{}
 func (m *mockMainItemSvcForSubItem) Create(_ context.Context, _ int64, _ int64, _ dto.MainItemCreateReq) (*model.MainItem, error) {
 	return nil, nil
 }
-func (m *mockMainItemSvcForSubItem) Update(_ context.Context, _ int64, _ uint, _ dto.MainItemUpdateReq) error { return nil }
-func (m *mockMainItemSvcForSubItem) Archive(_ context.Context, _ int64, _ uint) error                        { return nil }
+func (m *mockMainItemSvcForSubItem) Update(_ context.Context, _ int64, _ uint, _ dto.MainItemUpdateReq) error {
+	return nil
+}
+func (m *mockMainItemSvcForSubItem) Archive(_ context.Context, _ int64, _ uint) error { return nil }
 func (m *mockMainItemSvcForSubItem) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
 	return nil, nil
 }
-func (m *mockMainItemSvcForSubItem) Get(_ context.Context, _ uint) (*model.MainItem, error) { return nil, nil }
+func (m *mockMainItemSvcForSubItem) Get(_ context.Context, _ uint) (*model.MainItem, error) {
+	return nil, nil
+}
 func (m *mockMainItemSvcForSubItem) GetByBizKey(_ context.Context, bizKey int64) (*model.MainItem, error) {
 	return &model.MainItem{BaseModel: model.BaseModel{ID: uint(bizKey)}}, nil
 }
@@ -178,7 +182,7 @@ func (m *mockMainItemSvcForSubItem) EvaluateLinkage(_ context.Context, _ int64, 
 func depsWithSubItemSvc(t *testing.T, svc *mockSubItemService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.SubItem = NewSubItemHandler(svc, &mockMainItemSvcForSubItem{})
 	return deps
 }
@@ -188,7 +192,7 @@ func depsWithSubItemSvc(t *testing.T, svc *mockSubItemService) *Dependencies {
 func depsWithSubItemSvcMemberRole(t *testing.T, svc *mockSubItemService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(2); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(2); return &v }()}}
 	deps.SubItem = NewSubItemHandler(svc, &mockMainItemSvcForSubItem{})
 	return deps
 }
@@ -196,11 +200,11 @@ func depsWithSubItemSvcMemberRole(t *testing.T, svc *mockSubItemService) *Depend
 // testSubItem creates a SubItem model for tests.
 func testSubItem(id uint, teamID uint) *model.SubItem {
 	return &model.SubItem{
-		TeamKey: int64(teamID),
+		TeamKey:     int64(teamID),
 		MainItemKey: int64(1),
-		Title:      "Test SubItem",
-		Priority:   "P2",
-		ItemStatus: "pending",
+		Title:       "Test SubItem",
+		Priority:    "P2",
+		ItemStatus:  "pending",
 	}
 }
 
@@ -871,15 +875,15 @@ func TestGetSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	now := time.Now()
 	assigneeID := uint(3)
 	item := &model.SubItem{
-		TeamKey: 10,
-		MainItemKey: int64(1),
+		TeamKey:         10,
+		MainItemKey:     int64(1),
 		Title:           "实现支付接口",
-		ItemDesc: "对接微信支付",
+		ItemDesc:        "对接微信支付",
 		Priority:        "P2",
-		AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
-		PlanStartDate: &now,
+		AssigneeKey:     func() *int64 { v := int64(assigneeID); return &v }(),
+		PlanStartDate:   &now,
 		ExpectedEndDate: &now,
-		ItemStatus: "progressing",
+		ItemStatus:      "progressing",
 		Completion:      60.0,
 		IsKeyItem:       false,
 		Weight:          1.0,
@@ -920,13 +924,13 @@ func TestCreateSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	svc := &mockSubItemService{}
 	assigneeID := uint(3)
 	item := &model.SubItem{
-		TeamKey: 10,
+		TeamKey:     10,
 		MainItemKey: int64(1),
-		Title:      "New SubItem",
-		Priority:   "P2",
+		Title:       "New SubItem",
+		Priority:    "P2",
 		AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
-		ItemStatus: "pending",
-		Weight:     1.0,
+		ItemStatus:  "pending",
+		Weight:      1.0,
 	}
 	item.ID = 5
 	item.BizKey = 5

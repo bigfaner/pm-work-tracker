@@ -85,10 +85,10 @@ func (m *mockTeamSvc) UpdateTeam(_ context.Context, _ int64, _ int64, _ dto.Upda
 func (m *mockTeamSvc) InviteMember(_ context.Context, _ int64, _ int64, _ dto.InviteMemberReq) error {
 	return nil
 }
-func (m *mockTeamSvc) RemoveMember(_ context.Context, _ int64, _ int64, _ int64) error      { return nil }
-func (m *mockTeamSvc) TransferPM(_ context.Context, _ int64, _ int64, _ int64) error        { return nil }
-func (m *mockTeamSvc) DisbandTeam(_ context.Context, _ int64, _ int64, _ string) error     { return nil }
-func (m *mockTeamSvc) UpdateMemberRole(_ context.Context, _, _ int64, _, _ int64) error    { return nil }
+func (m *mockTeamSvc) RemoveMember(_ context.Context, _ int64, _ int64, _ int64) error  { return nil }
+func (m *mockTeamSvc) TransferPM(_ context.Context, _ int64, _ int64, _ int64) error    { return nil }
+func (m *mockTeamSvc) DisbandTeam(_ context.Context, _ int64, _ int64, _ string) error  { return nil }
+func (m *mockTeamSvc) UpdateMemberRole(_ context.Context, _, _ int64, _, _ int64) error { return nil }
 func (m *mockTeamSvc) ListMembers(_ context.Context, _ int64) ([]*dto.TeamMemberDTO, error) {
 	return nil, nil
 }
@@ -126,7 +126,9 @@ func (m *mockItemPoolSvc) Assign(_ context.Context, _ int64, _ int64, _ uint, _ 
 func (m *mockItemPoolSvc) ConvertToMain(_ context.Context, _ int64, _ int64, _ uint, _ dto.ConvertToMainItemReq) (*model.MainItem, error) {
 	return nil, nil
 }
-func (m *mockItemPoolSvc) Reject(_ context.Context, _ int64, _ int64, _ uint, _ string) error { return nil }
+func (m *mockItemPoolSvc) Reject(_ context.Context, _ int64, _ int64, _ uint, _ string) error {
+	return nil
+}
 func (m *mockItemPoolSvc) List(_ context.Context, _ int64, _ dto.ItemPoolFilter, _ dto.Pagination) (*dto.PageResult[model.ItemPool], error) {
 	return nil, nil
 }

@@ -89,11 +89,10 @@ func (m *mockViewService) TableExportCSV(_ context.Context, teamID int64, filter
 // Helpers
 // ---------------------------------------------------------------------------
 
-
 func depsWithViewSvc(t *testing.T, svc *mockViewService) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.View = NewViewHandler(svc)
 	return deps
 }

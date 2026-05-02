@@ -27,11 +27,11 @@ func TestAppError_ErrorMethod(t *testing.T) {
 
 func TestPredefinedErrors(t *testing.T) {
 	tests := []struct {
-		name     string
-		err      *AppError
-		code     string
-		status   int
-		message  string
+		name    string
+		err     *AppError
+		code    string
+		status  int
+		message string
 	}{
 		{"Unauthorized", ErrUnauthorized, "UNAUTHORIZED", 401, "authentication required"},
 		{"Forbidden", ErrForbidden, "FORBIDDEN", 403, "insufficient permissions"},

@@ -2,8 +2,8 @@ package dto
 
 // MainItemFilter holds filter parameters for listing MainItems.
 type MainItemFilter struct {
-	Status    string `form:"status"`
-	Priority  string `form:"priority"`
+	Status      string  `form:"status"`
+	Priority    string  `form:"priority"`
 	AssigneeKey *string `form:"assigneeKey" json:"assigneeKey"`
 	IsKeyItem   *bool   `form:"isKeyItem"`
 	Archived    bool    `form:"archived"`
@@ -11,8 +11,8 @@ type MainItemFilter struct {
 
 // SubItemFilter holds filter parameters for listing SubItems.
 type SubItemFilter struct {
-	Status    string `form:"status"`
-	Priority  string `form:"priority"`
+	Status      string  `form:"status"`
+	Priority    string  `form:"priority"`
 	AssigneeKey *string `form:"assigneeKey" json:"assigneeKey"`
 	IsKeyItem   *bool   `form:"isKeyItem"`
 }
@@ -146,9 +146,9 @@ type PageResult[T any] struct {
 
 // WeeklyViewResponse is the response DTO for the weekly comparison view.
 type WeeklyViewResponse struct {
-	WeekStart string                 `json:"weekStart"`
-	WeekEnd   string                 `json:"weekEnd"`
-	Stats     WeeklyStats            `json:"stats"`
+	WeekStart string                  `json:"weekStart"`
+	WeekEnd   string                  `json:"weekEnd"`
+	Stats     WeeklyStats             `json:"stats"`
 	Groups    []WeeklyComparisonGroup `json:"groups"`
 }
 
@@ -225,18 +225,18 @@ type ProgressRecordDTO struct {
 
 // TableFilter holds filter and sort parameters for the table view.
 type TableFilter struct {
-	Type       string   `form:"type" json:"type"`                     // "main"|"sub"|"" (empty = both)
-	Priority   []string `form:"priority" json:"priority"`             // ["P1","P2","P3"]
-	Status     []string `form:"status" json:"status"`
-	AssigneeKey *string `form:"assigneeKey" json:"assigneeKey"`
-	SortBy     string   `form:"sortBy" json:"sortBy"`                 // field name
-	SortOrder  string   `form:"sortOrder" json:"sortOrder"`           // "asc"|"desc"
+	Type        string   `form:"type" json:"type"`         // "main"|"sub"|"" (empty = both)
+	Priority    []string `form:"priority" json:"priority"` // ["P1","P2","P3"]
+	Status      []string `form:"status" json:"status"`
+	AssigneeKey *string  `form:"assigneeKey" json:"assigneeKey"`
+	SortBy      string   `form:"sortBy" json:"sortBy"`       // field name
+	SortOrder   string   `form:"sortOrder" json:"sortOrder"` // "asc"|"desc"
 }
 
 // TableRow represents a single row in the table view (main item or sub-item).
 type TableRow struct {
-	BizKey         string  `json:"bizKey"`
-	Type            string  `json:"type"`        // "main"|"sub"
+	BizKey          string  `json:"bizKey"`
+	Type            string  `json:"type"` // "main"|"sub"
 	Code            string  `json:"code"`
 	Title           string  `json:"title"`
 	Priority        string  `json:"priority"`
@@ -262,15 +262,15 @@ type GanttResult struct {
 
 // GanttMainItemDTO represents a main item in the gantt view.
 type GanttMainItemDTO struct {
-	BizKey         string            `json:"bizKey"`
-	Title          string            `json:"title"`
-	Priority       string            `json:"priority"`
-	StartDate      string            `json:"startDate"`
-	ExpectedEndDate string           `json:"expectedEndDate"`
-	Completion     float64           `json:"completion"`
-	Status         string            `json:"status"`
-	IsOverdue      bool              `json:"isOverdue"`
-	SubItems       []GanttSubItemDTO `json:"subItems"`
+	BizKey          string            `json:"bizKey"`
+	Title           string            `json:"title"`
+	Priority        string            `json:"priority"`
+	StartDate       string            `json:"startDate"`
+	ExpectedEndDate string            `json:"expectedEndDate"`
+	Completion      float64           `json:"completion"`
+	Status          string            `json:"status"`
+	IsOverdue       bool              `json:"isOverdue"`
+	SubItems        []GanttSubItemDTO `json:"subItems"`
 }
 
 // GanttSubItemDTO represents a sub-item summary in the gantt view.

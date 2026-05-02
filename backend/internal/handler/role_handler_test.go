@@ -17,8 +17,8 @@ import (
 	"pm-work-tracker/backend/internal/model"
 	appjwt "pm-work-tracker/backend/internal/pkg/jwt"
 	"pm-work-tracker/backend/internal/pkg/snowflake"
-	"pm-work-tracker/backend/internal/service"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
+	"pm-work-tracker/backend/internal/service"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"

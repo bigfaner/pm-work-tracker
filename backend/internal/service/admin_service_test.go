@@ -33,7 +33,7 @@ type mockAdminUserRepo struct {
 	softDeleteErr    error
 
 	// ListFiltered captures calls and returns configurable results
-	listFilteredFn func(ctx context.Context, search string, offset, limit int) ([]*model.User, int64, error)
+	listFilteredFn     func(ctx context.Context, search string, offset, limit int) ([]*model.User, int64, error)
 	listFilteredCalled bool
 	listFilteredSearch string
 	listFilteredOffset int
@@ -114,19 +114,19 @@ func (m *mockAdminUserRepo) SoftDelete(_ context.Context, _ *model.User) error {
 
 // mockAdminTeamRepo implements repository.TeamRepo for admin service tests.
 type mockAdminTeamRepo struct {
-	teams           []*dto.AdminTeamDTO
-	listAllErr      error
-	teamByID        *model.Team
-	teamByIDErr     error
-	addMemberErr    error
-	removeMemberErr error
-	teamsByUserIDs  map[uint][]dto.TeamSummary
-	teamsByUIDErr   error
-	teamsByUserBizKeys map[int64][]dto.TeamSummary
+	teams                    []*dto.AdminTeamDTO
+	listAllErr               error
+	teamByID                 *model.Team
+	teamByIDErr              error
+	addMemberErr             error
+	removeMemberErr          error
+	teamsByUserIDs           map[uint][]dto.TeamSummary
+	teamsByUIDErr            error
+	teamsByUserBizKeys       map[int64][]dto.TeamSummary
 	findTeamsByUserBizKeysFn func(ctx context.Context, ids []int64) (map[int64][]dto.TeamSummary, error)
 }
 
-func (m *mockAdminTeamRepo) Create(_ context.Context, _ *model.Team) error      { return nil }
+func (m *mockAdminTeamRepo) Create(_ context.Context, _ *model.Team) error { return nil }
 func (m *mockAdminTeamRepo) FindByID(_ context.Context, _ uint) (*model.Team, error) {
 	return m.teamByID, m.teamByIDErr
 }
@@ -135,7 +135,7 @@ func (m *mockAdminTeamRepo) ListFiltered(_ context.Context, _ string, _, _ int) 
 	return nil, 0, nil
 }
 func (m *mockAdminTeamRepo) Update(_ context.Context, _ *model.Team) error { return nil }
-func (m *mockAdminTeamRepo) SoftDelete(_ context.Context, _ uint) error              { return nil }
+func (m *mockAdminTeamRepo) SoftDelete(_ context.Context, _ uint) error    { return nil }
 func (m *mockAdminTeamRepo) FindByBizKey(_ context.Context, _ int64) (*model.Team, error) {
 	return m.teamByID, m.teamByIDErr
 }
@@ -297,7 +297,7 @@ func TestAdminListUsers_WithTeams(t *testing.T) {
 	}
 	teamRepo := &mockAdminTeamRepo{
 		teamsByUserBizKeys: map[int64][]dto.TeamSummary{
-			1: {{BizKey: "10", Name: "Team A", }},
+			1: {{BizKey: "10", Name: "Team A"}},
 		},
 	}
 	svc := NewAdminService(userRepo, teamRepo)
@@ -336,7 +336,7 @@ func TestAdminGetUser_Success(t *testing.T) {
 	}
 	teamRepo := &mockAdminTeamRepo{
 		teamsByUserBizKeys: map[int64][]dto.TeamSummary{
-			5: {{BizKey: "1", Name: "Team A", }},
+			5: {{BizKey: "1", Name: "Team A"}},
 		},
 	}
 	svc := NewAdminService(userRepo, teamRepo)
@@ -378,7 +378,7 @@ func TestAdminCreateUser_Success(t *testing.T) {
 	teamRepo := &mockAdminTeamRepo{
 		teamByID: &model.Team{TeamName: "Team A"},
 		teamsByUserBizKeys: map[int64][]dto.TeamSummary{
-			100: {{BizKey: "10", Name: "Team A", }},
+			100: {{BizKey: "10", Name: "Team A"}},
 		},
 	}
 	svc := NewAdminService(userRepo, teamRepo)
@@ -388,7 +388,7 @@ func TestAdminCreateUser_Success(t *testing.T) {
 		Username:    "newuser",
 		DisplayName: "New User",
 		Email:       "new@test.com",
-		TeamKey: strPtr(fmt.Sprintf("%d", teamID)),
+		TeamKey:     strPtr(fmt.Sprintf("%d", teamID)),
 	}
 
 	user, err := svc.CreateUser(context.Background(), req)
@@ -433,7 +433,7 @@ func TestAdminCreateUser_TeamNotFound(t *testing.T) {
 	req := &dto.CreateUserReq{
 		Username:    "newuser",
 		DisplayName: "New User",
-		TeamKey: strPtr(fmt.Sprintf("%d", teamID)),
+		TeamKey:     strPtr(fmt.Sprintf("%d", teamID)),
 	}
 
 	_, err := svc.CreateUser(context.Background(), req)
@@ -478,7 +478,7 @@ func TestAdminCreateUser_WithTeamKey_TeamsEmpty(t *testing.T) {
 	// AddMember succeeds but FindTeamsByUserIDs returns empty — falls back to partial data
 	userRepo := &mockAdminUserRepo{}
 	teamRepo := &mockAdminTeamRepo{
-		teamByID:       &model.Team{BaseModel: model.BaseModel{ID: 10}, TeamName: "Team A"},
+		teamByID:           &model.Team{BaseModel: model.BaseModel{ID: 10}, TeamName: "Team A"},
 		teamsByUserBizKeys: map[int64][]dto.TeamSummary{}, // empty, no entry for user 100
 	}
 	svc := NewAdminService(userRepo, teamRepo)
@@ -557,7 +557,7 @@ func TestAdminUpdateUser_Success(t *testing.T) {
 	}
 	teamRepo := &mockAdminTeamRepo{
 		teamsByUserBizKeys: map[int64][]dto.TeamSummary{
-			5: {{BizKey: "2", Name: "Team B", }},
+			5: {{BizKey: "2", Name: "Team B"}},
 		},
 	}
 	svc := NewAdminService(userRepo, teamRepo)
@@ -651,7 +651,7 @@ func TestAdminUpdateUser_WithTeamKey_TeamNotFound(t *testing.T) {
 		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob"},
 	}
 	teamRepo := &mockAdminTeamRepo{
-		teamByIDErr:    apperrors.ErrNotFound,
+		teamByIDErr:        apperrors.ErrNotFound,
 		teamsByUserBizKeys: map[int64][]dto.TeamSummary{},
 	}
 	svc := NewAdminService(userRepo, teamRepo)
@@ -665,9 +665,9 @@ func TestAdminUpdateUser_WithTeamKey_AddMemberError(t *testing.T) {
 		user: &model.User{BaseModel: model.BaseModel{ID: 5, BizKey: 5}, Username: "bob"},
 	}
 	teamRepo := &mockAdminTeamRepo{
-		teamByID:       &model.Team{BaseModel: model.BaseModel{ID: 10}},
+		teamByID:           &model.Team{BaseModel: model.BaseModel{ID: 10}},
 		teamsByUserBizKeys: map[int64][]dto.TeamSummary{},
-		addMemberErr:   errors.New("db error"),
+		addMemberErr:       errors.New("db error"),
 	}
 	svc := NewAdminService(userRepo, teamRepo)
 
@@ -926,7 +926,7 @@ func BenchmarkAdminListUsers(b *testing.B) {
 			Username:    fmt.Sprintf("user%d", i+1),
 			DisplayName: fmt.Sprintf("User %d", i+1),
 			Email:       fmt.Sprintf("user%d@test.com", i+1),
-			UserStatus: "enabled",
+			UserStatus:  "enabled",
 		}
 	}
 	userRepo := &mockAdminUserRepo{
@@ -985,7 +985,7 @@ func BenchmarkAdminListUsers_WithSearch(b *testing.B) {
 	}
 	svc := NewAdminService(userRepo, &mockAdminTeamRepo{
 		teamsByUserBizKeys: map[int64][]dto.TeamSummary{
-			1: {{BizKey: "1", Name: "Team A", }},
+			1: {{BizKey: "1", Name: "Team A"}},
 		},
 	})
 	ctx := context.Background()

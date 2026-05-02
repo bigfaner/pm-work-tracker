@@ -11,9 +11,9 @@ import (
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
-	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/pkg/dates"
+	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -377,7 +377,7 @@ func appendLastWeekSnapshot(group *dto.WeeklyComparisonGroup, si model.SubItem, 
 		return
 	}
 	lastSnapshot := dto.SubItemSnapshot{
-		BizKey:              pkg.FormatID(si.BizKey),
+		BizKey:          pkg.FormatID(si.BizKey),
 		Code:            si.Code,
 		Title:           si.Title,
 		Priority:        si.Priority,
@@ -496,7 +496,7 @@ func (s *viewService) GanttView(ctx context.Context, teamBizKey int64, filter dt
 		subDTOs := make([]dto.GanttSubItemDTO, 0, len(subs))
 		for _, si := range subs {
 			subDTOs = append(subDTOs, dto.GanttSubItemDTO{
-				BizKey:              pkg.FormatID(si.BizKey),
+				BizKey:          pkg.FormatID(si.BizKey),
 				Title:           si.Title,
 				StartDate:       formatDate(si.PlanStartDate),
 				ExpectedEndDate: formatDate(si.ExpectedEndDate),
@@ -699,7 +699,7 @@ func mainItemToRow(mi model.MainItem) dto.TableRow {
 
 func subItemToRow(si model.SubItem) dto.TableRow {
 	return dto.TableRow{
-		BizKey:              pkg.FormatID(si.BizKey),
+		BizKey:          pkg.FormatID(si.BizKey),
 		Type:            "sub",
 		Code:            si.Code,
 		Title:           si.Title,

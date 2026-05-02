@@ -112,4 +112,3 @@ func (h *RoleHandler) DeleteRole(c *gin.Context) {
 
 	apperrors.RespondOK(c, nil)
 }
-

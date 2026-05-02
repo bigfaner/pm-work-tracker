@@ -63,11 +63,11 @@ func TestSubItemRepo_Create(t *testing.T) {
 
 	_, team, mi := seedSubItemData(t, db)
 	item := &model.SubItem{
-		TeamKey: team.BizKey,
+		TeamKey:     team.BizKey,
 		MainItemKey: int64(mi.ID),
-		Title:      "Sub 1",
-		Priority:   "P1",
-		ItemStatus: "pending",
+		Title:       "Sub 1",
+		Priority:    "P1",
+		ItemStatus:  "pending",
 	}
 	require.NoError(t, repo.Create(ctx, item))
 	assert.NotZero(t, item.ID)

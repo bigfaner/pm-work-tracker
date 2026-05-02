@@ -108,7 +108,6 @@ func (m *mockTeamRepo) ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, e
 	return args.Get(0).([]*dto.AdminTeamDTO), args.Error(1)
 }
 
-
 func (m *mockTeamRepo) FindPMMembers(_ context.Context, _ []int64) (map[int64]string, error) {
 	return map[int64]string{}, nil
 }

@@ -20,10 +20,10 @@ type ProgressService interface {
 }
 
 type progressService struct {
-	progressRepo      repository.ProgressRepo
-	subItemRepo       repository.SubItemRepo
-	mainItemSvc       MainItemService
-	statusHistorySvc  StatusHistoryService
+	progressRepo     repository.ProgressRepo
+	subItemRepo      repository.SubItemRepo
+	mainItemSvc      MainItemService
+	statusHistorySvc StatusHistoryService
 }
 
 // NewProgressService creates a new ProgressService.
@@ -170,4 +170,3 @@ func (s *progressService) List(ctx context.Context, teamBizKey int64, subItemID 
 	}
 	return s.progressRepo.ListBySubItem(ctx, teamBizKey, subItem.BizKey)
 }
-

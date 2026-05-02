@@ -69,20 +69,20 @@ type mockMainItemService struct {
 	getByBizKeyCalled bool
 	lastBizKey        int64
 
-	listCalled   bool
-	lastFilter   dto.MainItemFilter
-	lastPage     dto.Pagination
+	listCalled bool
+	lastFilter dto.MainItemFilter
+	lastPage   dto.Pagination
 
-	updateCalled bool
-	lastUpdateID uint
+	updateCalled  bool
+	lastUpdateID  uint
 	lastUpdateReq dto.MainItemUpdateReq
 
 	archiveCalled bool
 	archiveItemID uint
 
 	changeStatusCalled bool
-	lastCallerID      uint
-	lastNewStatus     string
+	lastCallerID       uint
+	lastNewStatus      string
 
 	availableTransitionsCalled bool
 }
@@ -193,6 +193,7 @@ func (m *mockSubItemRepoForHandler) FindByBizKey(_ context.Context, _ int64) (*m
 func (m *mockSubItemRepoForHandler) NextSubCode(_ context.Context, _ int64) (string, error) {
 	return "", nil
 }
+
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -201,7 +202,7 @@ func (m *mockSubItemRepoForHandler) NextSubCode(_ context.Context, _ int64) (str
 func depsWithMainItemSvc(t *testing.T, svc *mockMainItemService, userRepo repository.UserRepo, subItemRepo *mockSubItemRepoForHandler) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	deps.MainItem = NewMainItemHandler(svc, userRepo, subItemRepo)
 	return deps
 }
@@ -210,7 +211,7 @@ func depsWithMainItemSvc(t *testing.T, svc *mockMainItemService, userRepo reposi
 func depsWithMemberRoleMainItem(t *testing.T, svc *mockMainItemService, userRepo repository.UserRepo, subItemRepo *mockSubItemRepoForHandler) *Dependencies {
 	t.Helper()
 	deps, _ := testDeps(t)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(2); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(2); return &v }()}}
 	deps.MainItem = NewMainItemHandler(svc, userRepo, subItemRepo)
 	return deps
 }
@@ -218,10 +219,10 @@ func depsWithMemberRoleMainItem(t *testing.T, svc *mockMainItemService, userRepo
 // helper to create a MainItem model for tests.
 func testMainItem(id uint, teamID uint) *model.MainItem {
 	return &model.MainItem{
-		TeamKey: int64(teamID),
-		Code:     fmt.Sprintf("TEST-%05d", id),
-		Title:    "Test Item",
-		Priority: "P1",
+		TeamKey:    int64(teamID),
+		Code:       fmt.Sprintf("TEST-%05d", id),
+		Title:      "Test Item",
+		Priority:   "P1",
 		ItemStatus: "pending",
 	}
 }
@@ -986,15 +987,15 @@ func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	now := time.Now()
 	assigneeID := uint(3)
 	item := &model.MainItem{
-		TeamKey: 10,
+		TeamKey:         10,
 		Code:            "TEST-00001",
 		Title:           "接入新支付渠道",
 		Priority:        "P1",
-		ProposerKey:      2,
-		AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
-		PlanStartDate: &now,
+		ProposerKey:     2,
+		AssigneeKey:     func() *int64 { v := int64(assigneeID); return &v }(),
+		PlanStartDate:   &now,
 		ExpectedEndDate: &now,
-		ItemStatus: "progressing",
+		ItemStatus:      "progressing",
 		Completion:      45.5,
 		IsKeyItem:       false,
 	}

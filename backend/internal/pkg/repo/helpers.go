@@ -7,8 +7,8 @@ import (
 
 	gormlib "gorm.io/gorm"
 
-	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/model"
+	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 )
 
 // acceptedFields maps model table names to their updatable field whitelist.

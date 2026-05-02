@@ -8,8 +8,8 @@ import (
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
-	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg"
+	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg/repo"
 	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/repository"
@@ -31,11 +31,11 @@ type TeamService interface {
 }
 
 type teamService struct {
-	teamRepo    repository.TeamRepo
-	userRepo    repository.UserRepo
+	teamRepo     repository.TeamRepo
+	userRepo     repository.UserRepo
 	mainItemRepo repository.MainItemRepo
-	roleRepo    repository.RoleRepo
-	db          repo.DBTransactor
+	roleRepo     repository.RoleRepo
+	db           repo.DBTransactor
 }
 
 func NewTeamService(teamRepo repository.TeamRepo, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, roleRepo repository.RoleRepo, db repo.DBTransactor) TeamService {

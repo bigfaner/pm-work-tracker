@@ -55,9 +55,9 @@ func TestStatusHistoryService_Record_Success(t *testing.T) {
 
 	record := &model.StatusHistory{
 		ItemType:   "sub_item",
-		ItemKey: int64(1),
+		ItemKey:    int64(1),
 		FromStatus: "pending",
-		ToStatus: "progressing",
+		ToStatus:   "progressing",
 		ChangedBy:  10,
 	}
 	repo.On("Create", mock.Anything, record).Return(nil)
@@ -74,9 +74,9 @@ func TestStatusHistoryService_Record_RepoError(t *testing.T) {
 
 	record := &model.StatusHistory{
 		ItemType:   "sub_item",
-		ItemKey: int64(1),
+		ItemKey:    int64(1),
 		FromStatus: "pending",
-		ToStatus: "progressing",
+		ToStatus:   "progressing",
 		ChangedBy:  10,
 	}
 	repo.On("Create", mock.Anything, mock.Anything).Return(errors.New("db error"))

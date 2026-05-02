@@ -42,20 +42,20 @@ type mockTeamService struct {
 		team *model.Team
 		err  error
 	}
-	inviteMemberErr    error
-	removeMemberErr    error
+	inviteMemberErr     error
+	removeMemberErr     error
 	updateMemberRoleErr error
-	transferPMErr      error
-	disbandTeamErr  error
-	listMembersResult struct {
+	transferPMErr       error
+	disbandTeamErr      error
+	listMembersResult   struct {
 		members []*dto.TeamMemberDTO
 		err     error
 	}
 
 	// capture calls
-	createCalled   bool
-	lastCreateReq  dto.CreateTeamReq
-	lastCreatorID  uint
+	createCalled  bool
+	lastCreateReq dto.CreateTeamReq
+	lastCreatorID uint
 
 	listCalled bool
 
@@ -68,9 +68,9 @@ type mockTeamService struct {
 	lastUpdateReq dto.UpdateTeamReq
 	lastPmID      uint
 
-	inviteCalled   bool
-	lastInviteReq  dto.InviteMemberReq
-	inviteTeamID   uint
+	inviteCalled  bool
+	lastInviteReq dto.InviteMemberReq
+	inviteTeamID  uint
 
 	removeCalled   bool
 	removeTeamID   uint
@@ -80,8 +80,8 @@ type mockTeamService struct {
 	transferTeamID uint
 	newPmID        uint
 
-	disbandCalled  bool
-	disbandTeamID  uint
+	disbandCalled   bool
+	disbandTeamID   uint
 	lastConfirmName string
 
 	listMembersCalled bool
@@ -260,7 +260,7 @@ func TestCreateTeam_Success(t *testing.T) {
 		user: &model.User{},
 	}
 	userRepo.user.ID = 1
-		userRepo.user.BizKey = 1
+	userRepo.user.BizKey = 1
 
 	deps := depsWithTeamSvc(t, svc, userRepo)
 	r := SetupRouter(deps, nil)
@@ -399,7 +399,7 @@ func TestListTeams_Success(t *testing.T) {
 func TestGetTeam_Success(t *testing.T) {
 	svc := &mockTeamService{}
 	svc.getTeamDetailResult.detail = &dto.TeamDetailResp{
-		BizKey: "1",
+		BizKey:        "1",
 		Name:          "Alpha",
 		PmDisplayName: "Alice",
 		MemberCount:   3,
@@ -458,7 +458,7 @@ func TestUpdateTeam_Success(t *testing.T) {
 	svc.getTeamResult.team = &model.Team{PmKey: 1}
 
 	deps := depsWithTeamSvc(t, svc, nil)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
@@ -479,7 +479,7 @@ func TestUpdateTeam_NotPM(t *testing.T) {
 
 	deps := depsWithTeamSvc(t, svc, nil)
 	// mockTeamRepo returns a member with role "member" (not pm)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(2); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(2); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 2, "testuser")
@@ -504,7 +504,7 @@ func TestDisbandTeam_Success(t *testing.T) {
 	svc.getTeamResult.team = &model.Team{PmKey: 1}
 
 	deps := depsWithTeamSvc(t, svc, nil)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
@@ -526,7 +526,7 @@ func TestDisbandTeam_ConfirmNameMismatch(t *testing.T) {
 	svc.getTeamResult.team = &model.Team{PmKey: 1}
 
 	deps := depsWithTeamSvc(t, svc, nil)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
@@ -547,8 +547,8 @@ func TestDisbandTeam_ConfirmNameMismatch(t *testing.T) {
 func TestListMembers_Success(t *testing.T) {
 	svc := &mockTeamService{}
 	svc.listMembersResult.members = []*dto.TeamMemberDTO{
-		{UserKey: "1", DisplayName: "Alice", },
-		{UserKey: "2", DisplayName: "Bob", },
+		{UserKey: "1", DisplayName: "Alice"},
+		{UserKey: "2", DisplayName: "Bob"},
 	}
 
 	deps := depsWithTeamSvc(t, svc, nil)
@@ -581,7 +581,7 @@ func TestInviteMember_Success(t *testing.T) {
 	svc := &mockTeamService{}
 
 	deps := depsWithTeamSvc(t, svc, nil)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
@@ -602,7 +602,7 @@ func TestInviteMember_AlreadyMember(t *testing.T) {
 	svc.inviteMemberErr = apperrors.ErrAlreadyMember
 
 	deps := depsWithTeamSvc(t, svc, nil)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
@@ -626,7 +626,7 @@ func TestInviteMember_UserNotFound(t *testing.T) {
 	svc.inviteMemberErr = apperrors.ErrNotFound
 
 	deps := depsWithTeamSvc(t, svc, nil)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
@@ -645,7 +645,7 @@ func TestInviteMember_CannotAssignPMRole(t *testing.T) {
 	svc.inviteMemberErr = apperrors.ErrCannotAssignPMRole
 
 	deps := depsWithTeamSvc(t, svc, nil)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
@@ -671,10 +671,10 @@ func TestRemoveMember_Success(t *testing.T) {
 	svc.getTeamResult.team = &model.Team{PmKey: 1}
 	userRepo := &mockUserRepoForHandler{user: &model.User{}}
 	userRepo.user.ID = 5
-		userRepo.user.BizKey = 5
+	userRepo.user.BizKey = 5
 
 	deps := depsWithTeamSvc(t, svc, userRepo)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
@@ -696,7 +696,7 @@ func TestRemoveMember_CannotRemoveSelf(t *testing.T) {
 	userRepo.user.ID = 1
 
 	deps := depsWithTeamSvc(t, svc, userRepo)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
@@ -724,7 +724,7 @@ func TestUpdateMemberRole_Success(t *testing.T) {
 	userRepo.user.ID = 5
 
 	deps := depsWithTeamSvc(t, svc, userRepo)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
@@ -744,7 +744,7 @@ func TestUpdateMemberRole_InvalidBody(t *testing.T) {
 	userRepo.user.ID = 5
 
 	deps := depsWithTeamSvc(t, svc, userRepo)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
@@ -762,7 +762,7 @@ func TestUpdateMemberRole_InvalidUserID(t *testing.T) {
 	svc := &mockTeamService{}
 
 	deps := depsWithTeamSvc(t, svc, nil)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
@@ -784,7 +784,7 @@ func TestUpdateMemberRole_NotMember(t *testing.T) {
 	userRepo.user.ID = 99
 
 	deps := depsWithTeamSvc(t, svc, userRepo)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")
@@ -809,7 +809,7 @@ func TestUpdateMemberRole_CannotAssignPMRole(t *testing.T) {
 	userRepo.user.ID = 5
 
 	deps := depsWithTeamSvc(t, svc, userRepo)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{ RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "testuser")

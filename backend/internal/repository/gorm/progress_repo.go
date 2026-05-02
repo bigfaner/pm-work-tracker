@@ -72,7 +72,7 @@ func (r *progressRepo) UpdateCompletion(ctx context.Context, recordID uint, comp
 		Where("id = ?", recordID).
 		Updates(map[string]interface{}{
 			"completion_pct": completion,
-			"is_pm_correct": 1,
+			"is_pm_correct":  1,
 		})
 	if result.Error != nil {
 		return result.Error

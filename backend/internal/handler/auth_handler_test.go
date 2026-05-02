@@ -19,7 +19,7 @@ import (
 
 // mockAuthService implements service.AuthService for testing.
 type mockAuthService struct {
-	loginResult    struct {
+	loginResult struct {
 		token string
 		user  *model.User
 		err   error
@@ -46,9 +46,9 @@ func TestLogin_Success(t *testing.T) {
 	authSvc := &mockAuthService{}
 	authSvc.loginResult.token = "jwt-token-123"
 	authSvc.loginResult.user = &model.User{
-		Username:      "alice",
-		DisplayName:   "Alice",
-		IsSuperAdmin:  true,
+		Username:     "alice",
+		DisplayName:  "Alice",
+		IsSuperAdmin: true,
 	}
 	// GORM Model has ID field
 	authSvc.loginResult.user.ID = 1
