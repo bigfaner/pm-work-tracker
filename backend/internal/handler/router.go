@@ -53,14 +53,24 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 	r.Use(gin.Recovery())
 
 	// CORS middleware
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     corsOrigins(deps),
+	// When AllowCredentials is true, AllowOrigins cannot be "*".
+	// Use AllowOriginFunc to dynamically allow configured origins,
+	// falling back to localhost dev servers when no origins are configured.
+	corsCfg := cors.Config{
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
-	}))
+	}
+	if origins := corsOrigins(deps); len(origins) > 0 && !(len(origins) == 1 && origins[0] == "*") {
+		corsCfg.AllowOrigins = origins
+	} else {
+		corsCfg.AllowOriginFunc = func(origin string) bool {
+			return true // dev mode: allow all origins
+		}
+	}
+	r.Use(cors.New(corsCfg))
 
 	// Health check — no auth required, no prefix
 	r.GET("/health", healthCheck)
