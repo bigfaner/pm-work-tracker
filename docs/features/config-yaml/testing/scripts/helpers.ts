@@ -9,7 +9,7 @@ const DEFAULT_TIMEOUT = 15000;
 const PROJECT_ROOT = join(__dirname, '..', '..', '..', '..', '..');
 export const serverBin = process.env.E2E_SERVER_BIN ?? join(PROJECT_ROOT, 'server');
 export const apiUrl = process.env.E2E_API_URL ?? 'http://localhost:8080';
-const CONFIG_PATH = join(PROJECT_ROOT, 'config.yaml');
+const CONFIG_PATH = join(PROJECT_ROOT, 'config.test.yaml');
 
 export interface CliResult {
   stdout: string;
@@ -55,7 +55,7 @@ export function removeConfig(): void {
 
 /** Run the server binary (expecting it to exit with error for validation tests). */
 export function runServer(env?: Record<string, string>): CliResult {
-  return runCli(`${serverBin} 2>&1`, env);
+  return runCli(`${serverBin} --config config.test.yaml 2>&1`, env);
 }
 
 export async function curl(

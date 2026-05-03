@@ -29,6 +29,7 @@ go.work.sum
 
 # config files (keep only .example)
 backend/config.yaml
+backend/config.test.yaml
 
 # build artifacts
 bin/

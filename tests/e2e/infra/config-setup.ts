@@ -7,7 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_TIMEOUT = 15000;
 const PROJECT_ROOT = join(__dirname, '..', '..', '..');
 const BACKEND_DIR = join(PROJECT_ROOT, 'backend');
-const CONFIG_PATH = join(BACKEND_DIR, 'config.yaml');
+const CONFIG_PATH = join(BACKEND_DIR, 'config.test.yaml');
 
 export const serverBin = process.env.E2E_SERVER_BIN ?? join(PROJECT_ROOT, 'bin', 'windows-amd64', 'pm-work-tracker.exe');
 
@@ -23,7 +23,7 @@ export function removeConfig(): void {
 
 export function runServer(env?: Record<string, string>) {
   try {
-    const stdout = execSync(`"${serverBin}" --dev 2>&1`, {
+    const stdout = execSync(`"${serverBin}" --dev --config config.test.yaml 2>&1`, {
       encoding: 'utf-8',
       timeout: DEFAULT_TIMEOUT,
       cwd: BACKEND_DIR,
