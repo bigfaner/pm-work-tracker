@@ -1,30 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { curl, apiBaseUrl } from '../helpers.js';
+import { curl, apiBaseUrl, loginAs } from '../helpers.js';
 
 const apiUrl = apiBaseUrl;
-
-/** Login via API and return the Authorization header and token. */
-async function loginAs(
-  username: string,
-  password: string,
-): Promise<{ authHeader: Record<string, string>; token: string }> {
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const res = await curl('POST', `${apiUrl}/v1/auth/login`, {
-      body: JSON.stringify({ username, password }),
-    });
-    if (res.status === 429) {
-      await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
-      continue;
-    }
-    if (res.status !== 200) {
-      throw new Error(`Login failed for ${username}: ${res.status} ${res.body}`);
-    }
-    const data = JSON.parse(res.body);
-    const token = data.data?.token ?? data.token;
-    return { authHeader: { Authorization: `Bearer ${token}` }, token };
-  }
-  throw new Error(`Login failed for ${username} after retries: rate limited`);
-}
 
 test.describe('API E2E Tests — Teams', () => {
   let adminAuth: { authHeader: Record<string, string>; token: string };

@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { BASE, API, login, getAuthToken, parseApiData, navTo, extractBizKey } from '../helpers.js';
+import { BASE, API, login, getAuthToken, parseApiData, navTo, extractBizKey, screenshot } from '../helpers.js';
 
 const TIMEOUT = 60000;
 
@@ -384,6 +384,371 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
     // Both should be visible simultaneously
     await expect(title).toBeVisible();
     await expect(progressLine).toBeVisible();
+  });
+
+  // ====================================================================
+  // MERGED FROM weekly-ui.spec.ts — unique tests not covered above
+  // ====================================================================
+
+  // ====== 12. Stats Accuracy (W09) ======
+  test('12.1 统计数值与API一致', async ({ page }) => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(now);
+    monday.setDate(diff);
+    const weekStart = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+
+    const apiResp = await fetch(`${API}/teams/${teamId}/views/weekly?weekStart=${weekStart}`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const apiData = await apiResp.json();
+    const stats = parseApiData(apiData)?.stats;
+
+    await screenshot(page, 'stats-values-api-check');
+
+    if (stats) {
+      const text = await page.textContent('body') ?? '';
+      const activeStr = String(stats.activeSubItems);
+      if (stats.activeSubItems > 0) {
+        expect(text.includes(activeStr)).toBeTruthy();
+      }
+    }
+  });
+
+  // ====== 13. This-Week Sub-Item Details (W14) ======
+  test('13.1 本周列显示子事项详情', async ({ page }) => {
+    const card = page.locator(`[data-testid="group-card-${testMainItemId}"]`);
+    await expect(card).toBeVisible({ timeout: 5000 });
+
+    await screenshot(page, 'this-week-sub-items');
+
+    // Our test sub-items should appear in the thisWeek column
+    const text = await card.textContent() ?? '';
+    expect(
+      text.includes('E2E子事项') || text.includes('进度测试'),
+    ).toBeTruthy();
+  });
+
+  // ====== 14. +N% Delta Badge (W16) ======
+  test('14.1 有进度增量子事项显示+N%标记', async ({ page }) => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(now);
+    monday.setDate(diff);
+    const weekStart = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+
+    const apiResp = await fetch(`${API}/teams/${teamId}/views/weekly?weekStart=${weekStart}`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const apiData = await apiResp.json();
+    const groups = parseApiData(apiData)?.groups ?? [];
+
+    await screenshot(page, 'delta-badges');
+
+    let hasDeltaItems = false;
+    for (const group of groups) {
+      for (const sub of (group.thisWeek ?? [])) {
+        if (sub.delta > 0) {
+          hasDeltaItems = true;
+          break;
+        }
+      }
+    }
+
+    if (hasDeltaItems) {
+      const text = await page.textContent('body') ?? '';
+      expect(/\+\d+%/.test(text)).toBeTruthy();
+    }
+  });
+
+  // ====== 15. Completed Sub-Item Marker (W17) ======
+  test('15.1 本周完成子事项显示完成标记', async ({ page }) => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(now);
+    monday.setDate(diff);
+    const weekStart = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+
+    const apiResp = await fetch(`${API}/teams/${teamId}/views/weekly?weekStart=${weekStart}`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const apiData = await apiResp.json();
+    const groups = parseApiData(apiData)?.groups ?? [];
+
+    await screenshot(page, 'completed-badges');
+
+    let hasJustCompleted = false;
+    for (const group of groups) {
+      for (const sub of (group.thisWeek ?? [])) {
+        if (sub.justCompleted) {
+          hasJustCompleted = true;
+          break;
+        }
+      }
+    }
+
+    if (hasJustCompleted) {
+      const text = await page.textContent('body') ?? '';
+      expect(
+        text.includes('完成') || text.includes('✓'),
+      ).toBeTruthy();
+    }
+  });
+
+  // ====== 16. Progress Description Display (W18) ======
+  test('16.1 进度描述显示在子事项行', async ({ page }) => {
+    const card = page.locator(`[data-testid="group-card-${testMainItemId}"]`);
+    await expect(card).toBeVisible({ timeout: 5000 });
+
+    await screenshot(page, 'progress-desc');
+
+    // Our test data has achievement text that should display
+    const text = await card.textContent() ?? '';
+    expect(
+      text.includes('成果') || text.includes('成就') || text.includes('完成'),
+    ).toBeTruthy();
+  });
+
+  // ====== 17. Completed No-Change Collapsed (W19) ======
+  test('17.1 已完成无变化子事项默认折叠', async ({ page }) => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(now);
+    monday.setDate(diff);
+    const weekStart = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+
+    const apiResp = await fetch(`${API}/teams/${teamId}/views/weekly?weekStart=${weekStart}`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const apiData = await apiResp.json();
+    const groups = parseApiData(apiData)?.groups ?? [];
+
+    let hasCompletedNoChange = false;
+    for (const group of groups) {
+      if (group.completedNoChange && group.completedNoChange.length > 0) {
+        hasCompletedNoChange = true;
+        break;
+      }
+    }
+
+    await screenshot(page, 'collapsed-state');
+
+    if (hasCompletedNoChange) {
+      const text = await page.textContent('body') ?? '';
+      expect(
+        text.includes('已完成无变化') || text.includes('展开') || text.includes('折叠'),
+      ).toBeTruthy();
+    }
+  });
+
+  // ====== 18. Expand Completed No-Change (W20) ======
+  test('18.1 点击展开按钮显示已完成无变化子事项', async ({ page }) => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(now);
+    monday.setDate(diff);
+    const weekStart = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+
+    const apiResp = await fetch(`${API}/teams/${teamId}/views/weekly?weekStart=${weekStart}`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const apiData = await apiResp.json();
+    const groups = parseApiData(apiData)?.groups ?? [];
+
+    let hasCompletedNoChange = false;
+    for (const group of groups) {
+      if (group.completedNoChange && group.completedNoChange.length > 0) {
+        hasCompletedNoChange = true;
+        break;
+      }
+    }
+
+    if (hasCompletedNoChange) {
+      const expandBtn = page.getByRole('button', { name: /展开|已完成/ }).first();
+      if (await expandBtn.isVisible().catch(() => false)) {
+        await expandBtn.click();
+        await page.waitForLoadState('networkidle');
+      }
+      await screenshot(page, 'expanded-state');
+    }
+  });
+
+  // ====== 19. Main Item Title Navigation (W21) ======
+  test('19.1 主事项标题可点击跳转详情页', async ({ page }) => {
+    await screenshot(page, 'before-nav');
+
+    const firstLink = page.getByRole('link').first();
+    if (await firstLink.isVisible().catch(() => false)) {
+      await firstLink.click();
+      await page.waitForLoadState('networkidle');
+      await screenshot(page, 'after-nav');
+
+      const afterText = await page.textContent('body') ?? '';
+      expect(
+        afterText.includes('详情') || afterText.includes('事项') || afterText.includes('子事项'),
+      ).toBeTruthy();
+    }
+  });
+
+  // ====== 20. Sidebar Highlight (W22) ======
+  test('20.1 侧边栏导航保持高亮', async ({ page }) => {
+    await page.goto(`${BASE}/weekly`);
+    await page.waitForLoadState('networkidle');
+    await screenshot(page, 'sidebar-highlight');
+
+    const text = await page.textContent('body') ?? '';
+    expect(
+      text.includes('每周进展') || text.includes('周进展'),
+    ).toBeTruthy();
+  });
+
+  // ====== 21. Legend Area (W23) ======
+  test('21.1 图例区域显示', async ({ page }) => {
+    await page.mouse.wheel(0, 300);
+    await page.waitForTimeout(500);
+    await screenshot(page, 'legend');
+
+    const text = await page.textContent('body') ?? '';
+    expect(
+      text.includes('图例') || text.includes('P1') || text.includes('P2') || text.includes('P3'),
+    ).toBeTruthy();
+  });
+
+  // ====== 22. Empty State for No-Data Week (W24) ======
+  test('22.1 选择无数据的周显示空状态', async ({ page }) => {
+    await page.goto(`${BASE}/weekly`);
+    await page.waitForLoadState('networkidle');
+
+    // Navigate to a week far in the past with no data using prev week button
+    const prevBtn = page.locator('[data-testid="week-selector"] button[aria-label="prev week"]');
+    // Click prev several times to reach a week with no data
+    for (let i = 0; i < 10; i++) {
+      if (await prevBtn.isVisible().catch(() => false)) {
+        await prevBtn.click();
+        await page.waitForTimeout(500);
+      }
+    }
+    await screenshot(page, 'empty-state');
+
+    // Should show empty state message or low count
+    const text = await page.textContent('body') ?? '';
+    expect(
+      text.includes('暂无') || text.includes('无') || text.includes('0') || text.includes('没有'),
+    ).toBeTruthy();
+  });
+
+  // ====== 23. API Stats Non-Negative (W26) ======
+  test('23.1 API统计数值非负', async () => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(now);
+    monday.setDate(diff);
+    const weekStart = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+
+    const resp = await fetch(`${API}/teams/${teamId}/views/weekly?weekStart=${weekStart}`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const data = await resp.json();
+    const stats = parseApiData(data)?.stats;
+    expect(stats).toBeTruthy();
+    expect(stats.activeSubItems >= 0).toBeTruthy();
+    expect(stats.newlyCompleted >= 0).toBeTruthy();
+    expect(stats.inProgress >= 0).toBeTruthy();
+    expect(stats.blocked >= 0).toBeTruthy();
+  });
+
+  // ====== 24. Future Week Request Rejected (W27) ======
+  test('24.1 未来周请求被拒绝', async () => {
+    const resp = await fetch(`${API}/teams/${teamId}/views/weekly?weekStart=2028-01-03`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    expect(resp.status >= 400).toBeTruthy();
+  });
+
+  // ====== 25. Invalid Parameter Returns Error (W28) ======
+  test('25.1 无效weekStart参数返回错误', async () => {
+    const resp = await fetch(`${API}/teams/${teamId}/views/weekly`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    expect(resp.status >= 400).toBeTruthy();
+  });
+
+  // ====== 26. Comparison Group Structure Complete (W29) ======
+  test('26.1 每个对比组的结构完整', async () => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(now);
+    monday.setDate(diff);
+    const weekStart = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+
+    const resp = await fetch(`${API}/teams/${teamId}/views/weekly?weekStart=${weekStart}`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const data = await resp.json();
+    const result = parseApiData(data);
+    const groups = result?.groups ?? [];
+
+    for (const group of groups) {
+      expect(group.mainItem).toBeTruthy();
+      expect(group.mainItem.id || group.mainItem.bizKey).toBeTruthy();
+      expect(group.mainItem.title).toBeTruthy();
+      expect(group.mainItem.priority).toBeTruthy();
+      expect(typeof group.mainItem.completion === 'number').toBeTruthy();
+      expect(typeof group.mainItem.subItemCount === 'number').toBeTruthy();
+
+      // thisWeek items should have required fields
+      for (const sub of (group.thisWeek ?? [])) {
+        expect(sub.id || sub.bizKey).toBeTruthy();
+        expect(sub.title).toBeTruthy();
+        expect(sub.status).toBeTruthy();
+        expect(typeof sub.completion === 'number').toBeTruthy();
+        expect(sub.priority).toBeTruthy();
+      }
+    }
+  });
+
+  // ====== 27. Full Business Flow (W30) ======
+  test('27.1 完整业务流程：导航→查看→切周→返回', async ({ page }) => {
+    // Step 1: Navigate to weekly view (already done in beforeEach)
+    await screenshot(page, 'full-flow-step1-weekly');
+
+    expect(
+      await page.locator('h1:text("每周进展")').isVisible().catch(() => false)
+      || await page.locator('text=每周').first().isVisible().catch(() => false)
+      || await page.locator('text=进展').first().isVisible().catch(() => false),
+    ).toBeTruthy();
+
+    // Step 2: Verify data is displayed
+    const text1 = await page.textContent('body') ?? '';
+    const hasData = text1.includes('事项') || text1.includes('子事项') || text1.includes('P1');
+    expect(hasData).toBeTruthy();
+
+    // Step 3: Scroll down to see more content
+    await page.mouse.wheel(0, 300);
+    await page.waitForTimeout(500);
+    await screenshot(page, 'full-flow-step3-scrolled');
+
+    // Step 4: Scroll back up
+    await page.mouse.wheel(0, -300);
+    await page.waitForTimeout(500);
+
+    // Step 5: Navigate to items page and back
+    await page.goto(`${BASE}/items`);
+    await page.waitForLoadState('networkidle');
+    await screenshot(page, 'full-flow-step5-items');
+
+    await page.goto(`${BASE}/weekly`);
+    await page.waitForLoadState('networkidle');
+    await screenshot(page, 'full-flow-step6-back-to-weekly');
+
+    await expect(page.locator('h1:text("每周进展")')).toBeVisible({ timeout: 5000 });
   });
 
   // ====== CLEANUP ======

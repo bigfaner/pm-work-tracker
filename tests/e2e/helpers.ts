@@ -211,6 +211,10 @@ export async function loginViaUI(page: Page, creds: UICredentials = defaultCreds
 }
 
 export async function getApiToken(apiBaseUrl: string, creds: UICredentials = defaultCreds): Promise<string> {
+  // Use cached token for default credentials to avoid 429 rate limiting
+  if (creds.username === defaultCreds.username && creds.password === defaultCreds.password) {
+    return getAuthToken(creds);
+  }
   // Auth endpoint: POST /v1/auth/login (matches backend router)
   // Retry on 429 (rate limit) with exponential backoff
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -446,6 +450,165 @@ export async function removeUserFromTeam(token: string, teamId: string, userId: 
 }
 
 /** Login as a specific user via UI (sets localStorage). Different from loginAs (API-only). */
+// ── Shared RBAC helpers ────────────────────────────────────────────
+
+export function randomCode(length = 5): string {
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  return Array.from({ length }, () => letters[Math.floor(Math.random() * 26)]).join('');
+}
+
+export function authHeader(token: string): Record<string, string> {
+  return { Authorization: `Bearer ${token}` };
+}
+
+/** Parse a curl response body string: check code === 0, return data. */
+export function parseApiBody(body: string): any {
+  const resp = JSON.parse(body);
+  if (resp.code !== 0) throw new Error(`API error: ${resp.message ?? resp.code}`);
+  return resp.data;
+}
+
+// ── RBAC fixture setup ─────────────────────────────────────────────
+
+export interface RbacFixtures {
+  superadminToken: string;
+  pmToken: string;
+  memberToken: string;
+  pmUserBizKey: string;
+  memberUserBizKey: string;
+  teamBizKey: string;
+  memberRoleKey: string;
+}
+
+/**
+ * Shared beforeAll fixture for RBAC tests.
+ * Creates team + PM/member users with tokens. Returns all IDs.
+ */
+export async function setupRbacFixtures(extra?: { noPerms?: boolean }): Promise<RbacFixtures & { noPermsToken?: string; noPermsUserBizKey?: string }> {
+  const superadminToken = await getApiToken(apiBaseUrl, { username: 'admin', password: 'admin123' });
+  const runId = Date.now();
+
+  // Fetch preset role bizKeys
+  const rolesRes = await curl('GET', `${apiUrl}/v1/admin/roles`, { headers: authHeader(superadminToken) });
+  const rolesData = parseApiBody(rolesRes.body);
+  const roles: Array<{ bizKey: string; roleName: string }> = rolesData.items ?? rolesData;
+  const memberRole = roles.find((r) => r.roleName === 'member');
+  if (!memberRole) throw new Error('member role not found');
+  const memberRoleKey = memberRole.bizKey;
+
+  // Create test team
+  const teamRes = await curl('POST', `${apiUrl}/v1/teams`, {
+    headers: authHeader(superadminToken),
+    body: JSON.stringify({ name: `e2e-rbac-${runId}`, code: randomCode() }),
+  });
+  const teamBizKey = extractBizKey(parseApiBody(teamRes.body))!;
+
+  // Create users helper
+  async function makeUser(username: string, displayName: string) {
+    const res = await curl('POST', `${apiUrl}/v1/admin/users`, {
+      headers: authHeader(superadminToken),
+      body: JSON.stringify({ username, displayName }),
+    });
+    const data = parseApiBody(res.body);
+    const bizKey = extractBizKey(data)!;
+    const token = await getApiToken(apiBaseUrl, { username, password: data.initialPassword });
+    return { bizKey, token };
+  }
+
+  const pm = await makeUser(`e2e-pm-${runId}`, 'E2E PM');
+  const member = await makeUser(`e2e-member-${runId}`, 'E2E Member');
+
+  // Add users to team
+  await curl('POST', `${apiUrl}/v1/teams/${teamBizKey}/members`, {
+    headers: authHeader(superadminToken),
+    body: JSON.stringify({ username: `e2e-pm-${runId}`, roleKey: memberRoleKey }),
+  });
+  await curl('POST', `${apiUrl}/v1/teams/${teamBizKey}/members`, {
+    headers: authHeader(superadminToken),
+    body: JSON.stringify({ username: `e2e-member-${runId}`, roleKey: memberRoleKey }),
+  });
+
+  // Transfer PM role
+  await curl('PUT', `${apiUrl}/v1/teams/${teamBizKey}/pm`, {
+    headers: authHeader(superadminToken),
+    body: JSON.stringify({ newPmUserKey: pm.bizKey }),
+  });
+
+  const base: RbacFixtures = {
+    superadminToken,
+    pmToken: pm.token,
+    memberToken: member.token,
+    pmUserBizKey: pm.bizKey,
+    memberUserBizKey: member.bizKey,
+    teamBizKey,
+    memberRoleKey,
+  };
+
+  if (extra?.noPerms) {
+    const noPerms = await makeUser(`e2e-noperms-${runId}`, 'E2E NoPerms');
+    return { ...base, noPermsToken: noPerms.token, noPermsUserBizKey: noPerms.bizKey };
+  }
+
+  return base;
+}
+
+// ── Soft-delete test helpers ───────────────────────────────────────
+
+export async function createTestTeam(token: string, name: string): Promise<string> {
+  const res = await curl('POST', `${apiUrl}/v1/teams`, {
+    headers: authHeader(token),
+    body: JSON.stringify({ name, code: randomCode() }),
+  });
+  const data = parseApiBody(res.body);
+  return String(data.bizKey ?? data.teamKey ?? data.id);
+}
+
+export async function createTestMainItem(token: string, teamBizKey: string, title: string, priority: string): Promise<string> {
+  const res = await curl('POST', `${apiUrl}/v1/teams/${teamBizKey}/main-items`, {
+    headers: authHeader(token),
+    body: JSON.stringify({ title, priority, assigneeKey: '1', startDate: '2026-01-01', expectedEndDate: '2026-12-31' }),
+  });
+  const data = parseApiBody(res.body);
+  return String(data.bizKey ?? data.id);
+}
+
+export async function createTestSubItem(token: string, teamBizKey: string, mainItemBizKey: string, title: string): Promise<string> {
+  const res = await curl('POST', `${apiUrl}/v1/teams/${teamBizKey}/main-items/${mainItemBizKey}/sub-items`, {
+    headers: authHeader(token),
+    body: JSON.stringify({ mainItemKey: mainItemBizKey, title, priority: 'P2', assigneeKey: '1', startDate: '2026-01-01', expectedEndDate: '2026-12-31' }),
+  });
+  const data = parseApiBody(res.body);
+  return String(data.bizKey ?? data.id);
+}
+
+export async function createTestRole(token: string, name: string, permissionCodes: string[]): Promise<string> {
+  const res = await curl('POST', `${apiUrl}/v1/admin/roles`, {
+    headers: authHeader(token),
+    body: JSON.stringify({ name, permissionCodes }),
+  });
+  const data = parseApiBody(res.body);
+  return String(data.bizKey ?? data.id);
+}
+
+export async function softDeleteRole(token: string, roleId: string): Promise<void> {
+  const res = await curl('DELETE', `${apiUrl}/v1/admin/roles/${roleId}`, { headers: authHeader(token) });
+  if (res.status !== 200) throw new Error(`softDeleteRole failed: ${res.status}`);
+}
+
+export async function createTestUser(token: string, username: string, displayName: string): Promise<string> {
+  const res = await curl('POST', `${apiUrl}/v1/admin/users`, {
+    headers: authHeader(token),
+    body: JSON.stringify({ username, displayName }),
+  });
+  const data = parseApiBody(res.body);
+  return String(data.bizKey ?? data.id);
+}
+
+export async function softDeleteUser(token: string, userBizKey: string): Promise<void> {
+  const res = await curl('DELETE', `${apiUrl}/v1/admin/users/${userBizKey}`, { headers: authHeader(token) });
+  if (res.status !== 200) throw new Error(`softDeleteUser failed: ${res.status}`);
+}
+
 export async function loginAsUser(page: Page, token: string, user: { isSuperAdmin: boolean }): Promise<void> {
   await page.goto(`${baseUrl}/login`);
   await page.evaluate((t) => {

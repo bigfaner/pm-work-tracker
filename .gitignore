@@ -59,3 +59,4 @@ backend/test-results/
 data/*.db
 tests/results/screenshots/
 tests/e2e/test-results/
+test-results/

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { curl } from '../helpers.js';
+import { curl, authHeader, extractBizKey, getApiToken, apiBaseUrl } from '../helpers.js';
 
-const apiUrl = process.env.E2E_API_URL ?? 'http://localhost:8080';
+const apiUrl = apiBaseUrl;
 
 let superadminToken: string;
 let pmToken: string;
@@ -9,56 +9,27 @@ let targetUserBizKey: string;
 let ownUserBizKey: string;
 const runId = Date.now();
 
-function authHeader(token: string): Record<string, string> {
-  return { Authorization: `Bearer ${token}` };
-}
-
-function parseResponse(body: string): { code: number; data: any; message?: string } {
-  return JSON.parse(body);
-}
-
-function extractBizKey(data: any): string {
-  return String(data.bizKey ?? data.id);
-}
-
-async function login(username: string, password: string): Promise<string> {
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const res = await curl('POST', `${apiUrl}/v1/auth/login`, {
-      body: JSON.stringify({ username, password }),
-    });
-    if (res.status === 429) {
-      await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
-      continue;
-    }
-    expect(res.status).toBe(200);
-    const data = parseResponse(res.body);
-    expect(data.code).toBe(0);
-    return data.data.token;
-  }
-  throw new Error('Login failed after retries: rate limited');
-}
-
 async function createTestUser(token: string, username: string, displayName: string): Promise<{ bizKey: string; initialPassword: string }> {
   const res = await curl('POST', `${apiUrl}/v1/admin/users`, {
     headers: authHeader(token),
     body: JSON.stringify({ username, displayName }),
   });
   expect(res.status === 200 || res.status === 201).toBeTruthy();
-  const data = parseResponse(res.body);
-  return { bizKey: extractBizKey(data.data), initialPassword: data.data.initialPassword ?? '' };
+  const data = JSON.parse(res.body);
+  return { bizKey: extractBizKey(data.data)!, initialPassword: data.data.initialPassword ?? '' };
 }
 
 test.describe('API E2E Tests — User Management Reset Password & Delete', () => {
   test.beforeAll(async () => {
     // 1. Login as seeded super admin
-    superadminToken = await login('admin', 'admin123');
+    superadminToken = await getApiToken(apiBaseUrl, { username: 'admin', password: 'admin123' });
 
     // 2. Get own user bizKey (admin user) via admin user list
     const usersRes = await curl('GET', `${apiUrl}/v1/admin/users`, {
       headers: authHeader(superadminToken),
     });
     expect(usersRes.status).toBe(200);
-    const usersBody = parseResponse(usersRes.body);
+    const usersBody = JSON.parse(usersRes.body);
     const usersList: any[] = usersBody.data?.items ?? usersBody.data ?? (Array.isArray(usersBody) ? usersBody : []);
     const admin = usersList.find((u: any) => u.isSuperAdmin);
     expect(admin).toBeTruthy();
@@ -80,7 +51,7 @@ test.describe('API E2E Tests — User Management Reset Password & Delete', () =>
     );
     if (pm2.initialPassword) {
       try {
-        pmToken = await login(`e2e-pm2-${runId}`, pm2.initialPassword);
+        pmToken = await getApiToken(apiBaseUrl, { username: `e2e-pm2-${runId}`, password: pm2.initialPassword });
       } catch {
         pmToken = 'invalid-token';
       }
@@ -105,7 +76,7 @@ test.describe('API E2E Tests — User Management Reset Password & Delete', () =>
     });
 
     expect(res.status).toBe(200);
-    const data = parseResponse(res.body);
+    const data = JSON.parse(res.body);
     expect(data.code).toBe(0);
     expect(data.data).toBeTruthy();
     expect(data.data.bizKey !== undefined || data.data.username !== undefined).toBeTruthy();
@@ -138,7 +109,7 @@ test.describe('API E2E Tests — User Management Reset Password & Delete', () =>
     });
 
     expect(res.status).toBe(400);
-    const data = parseResponse(res.body);
+    const data = JSON.parse(res.body);
     expect(data.code !== 0).toBeTruthy();
   });
 
@@ -167,7 +138,7 @@ test.describe('API E2E Tests — User Management Reset Password & Delete', () =>
     });
 
     expect(res.status).toBe(200);
-    const data = parseResponse(res.body);
+    const data = JSON.parse(res.body);
     expect(data.code).toBe(0);
   });
 
@@ -194,7 +165,7 @@ test.describe('API E2E Tests — User Management Reset Password & Delete', () =>
     });
 
     expect(res.status).toBe(422);
-    const data = parseResponse(res.body);
+    const data = JSON.parse(res.body);
     expect(data.code !== 0).toBeTruthy();
   });
 

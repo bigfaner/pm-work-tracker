@@ -1,10 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { curl, apiBaseUrl, getApiToken, createAuthCurl } from '../helpers.js';
+import { curl, apiBaseUrl, getApiToken, createAuthCurl, randomCode } from '../helpers.js';
 
 // Helpers to create test fixtures dynamically
 async function createTeam(authCurl: ReturnType<typeof createAuthCurl>): Promise<string> {
-  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const code = Array.from({ length: 5 }, () => letters[Math.floor(Math.random() * 26)]).join('');
+  const code = randomCode();
   const res = await authCurl('POST', '/v1/teams', {
     body: JSON.stringify({ name: `e2e-${code}`, code }),
   });

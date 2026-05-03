@@ -1,19 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { curl } from '../helpers.js';
+import { curl, authHeader, parseApiBody } from '../helpers.js';
 
 const apiUrl = process.env.E2E_API_URL ?? 'http://localhost:8080';
+const parseData = parseApiBody;
 
 let superadminToken: string;
-
-function authHeader(token: string): Record<string, string> {
-  return { Authorization: `Bearer ${token}` };
-}
-
-function parseData(body: string): any {
-  const resp = JSON.parse(body);
-  if (resp.code !== 0) throw new Error(`API error: ${resp.message ?? resp.code}`);
-  return resp.data;
-}
 
 test.describe('CLI E2E Tests — RBAC Data Migration', () => {
   test.beforeAll(async () => {
