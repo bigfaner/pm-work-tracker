@@ -55,7 +55,7 @@ func TestReportService_Preview_WithProgressRecords(t *testing.T) {
 			{
 				ID:          100,
 				SubItemKey:  10,
-				TeamKey: 1,
+				TeamKey:     1,
 				Completion:  60,
 				Achievement: "完成了前端开发",
 				Blocker:     "",
@@ -104,7 +104,7 @@ func TestReportService_Preview_AchievementsAndBlockers(t *testing.T) {
 			{
 				ID:          100,
 				SubItemKey:  10,
-				TeamKey: 1,
+				TeamKey:     1,
 				Completion:  20,
 				Achievement: "完成了设计",
 				Blocker:     "接口未就绪",
@@ -113,7 +113,7 @@ func TestReportService_Preview_AchievementsAndBlockers(t *testing.T) {
 			{
 				ID:          101,
 				SubItemKey:  10,
-				TeamKey: 1,
+				TeamKey:     1,
 				Completion:  40,
 				Achievement: "完成了前端页面",
 				Blocker:     "",
@@ -275,7 +275,7 @@ func TestReportService_ExportMarkdown_Format(t *testing.T) {
 			{
 				ID:          100,
 				SubItemKey:  10,
-				TeamKey: 1,
+				TeamKey:     1,
 				Completion:  60,
 				Achievement: "完成了前端页面",
 				Blocker:     "接口未就绪",

@@ -228,9 +228,9 @@ func (r *teamRepo) ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error
 	var rows []scanRow
 	err := r.db.WithContext(ctx).
 		Table("pmw_teams").
-		Select("pmw_teams.biz_key, pmw_teams.team_name as name, pmw_users.display_name as pm_display_name, "+
-			"(SELECT COUNT(*) FROM pmw_team_members WHERE pmw_team_members.team_key = pmw_teams.biz_key AND pmw_team_members.deleted_flag = 0) as member_count, "+
-			"(SELECT COUNT(*) FROM pmw_main_items WHERE pmw_main_items.team_key = pmw_teams.biz_key AND pmw_main_items.deleted_flag = 0) as main_item_count, "+
+		Select("pmw_teams.biz_key, pmw_teams.team_name as name, pmw_users.display_name as pm_display_name, " +
+			"(SELECT COUNT(*) FROM pmw_team_members WHERE pmw_team_members.team_key = pmw_teams.biz_key AND pmw_team_members.deleted_flag = 0) as member_count, " +
+			"(SELECT COUNT(*) FROM pmw_main_items WHERE pmw_main_items.team_key = pmw_teams.biz_key AND pmw_main_items.deleted_flag = 0) as main_item_count, " +
 			"pmw_teams.create_time as created_at").
 		Joins("LEFT JOIN pmw_users ON pmw_users.biz_key = pmw_teams.pm_key").
 		Scopes(NotDeletedTable("pmw_teams")).

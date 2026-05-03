@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 	gormlib "gorm.io/gorm"
 
-	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/model"
+	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 )
 
 // setupTestDB creates an in-memory SQLite database and auto-migrates the schema.

@@ -27,10 +27,10 @@ func createTestStatusHistory(t *testing.T, db *gormlib.DB, itemType string, item
 	t.Helper()
 	record := &model.StatusHistory{
 		ItemType:   itemType,
-		ItemKey: int64(itemID),
+		ItemKey:    int64(itemID),
 		FromStatus: from,
 		ToStatus:   to,
-		ChangedBy: int64(changedBy),
+		ChangedBy:  int64(changedBy),
 	}
 	require.NoError(t, db.Create(record).Error)
 	return record
@@ -53,9 +53,9 @@ func TestStatusHistoryRepo_Create(t *testing.T) {
 
 	record := &model.StatusHistory{
 		ItemType:   "sub_item",
-		ItemKey: int64(1),
+		ItemKey:    int64(1),
 		FromStatus: "pending",
-		ToStatus: "progressing",
+		ToStatus:   "progressing",
 		ChangedBy:  10,
 	}
 	require.NoError(t, repo.Create(ctx, record))

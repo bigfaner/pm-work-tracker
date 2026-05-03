@@ -35,13 +35,13 @@ type RoleListItem struct {
 
 // RoleDetail is the response shape for a single role with full permission list.
 type RoleDetail struct {
-	BizKey      string             `json:"bizKey"`
-	Name        string             `json:"roleName"`
-	Description string             `json:"roleDesc"`
-	IsPreset    bool               `json:"isPreset"`
-	Permissions []PermissionItem   `json:"permissions"`
-	MemberCount int64              `json:"memberCount"`
-	CreatedAt   string             `json:"createTime"`
+	BizKey      string           `json:"bizKey"`
+	Name        string           `json:"roleName"`
+	Description string           `json:"roleDesc"`
+	IsPreset    bool             `json:"isPreset"`
+	Permissions []PermissionItem `json:"permissions"`
+	MemberCount int64            `json:"memberCount"`
+	CreatedAt   string           `json:"createTime"`
 }
 
 // PermissionItem describes a single permission code in a role.
@@ -52,8 +52,8 @@ type PermissionItem struct {
 
 // UserPermissions is the response shape for a user's permission map.
 type UserPermissions struct {
-	IsSuperAdmin    bool                `json:"isSuperAdmin"`
-	TeamPermissions map[int64][]string  `json:"teamPermissions"`
+	IsSuperAdmin    bool               `json:"isSuperAdmin"`
+	TeamPermissions map[int64][]string `json:"teamPermissions"`
 }
 
 // RoleService defines business logic for role management.
@@ -369,4 +369,3 @@ func buildCodeDescMap() map[string]string {
 	}
 	return m
 }
-

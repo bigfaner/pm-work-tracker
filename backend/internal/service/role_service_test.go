@@ -19,16 +19,16 @@ import (
 // ---------------------------------------------------------------------------
 
 type mockRoleRepo struct {
-	roles       []model.Role
-	roleByID    *model.Role
-	roleByName  *model.Role
-	perms       []string
-	memberCount int64
-	hasPerm     bool
-	created     *model.Role
-	updated     *model.Role
-	deletedID   *uint
-	setPermKey  *int64
+	roles        []model.Role
+	roleByID     *model.Role
+	roleByName   *model.Role
+	perms        []string
+	memberCount  int64
+	hasPerm      bool
+	created      *model.Role
+	updated      *model.Role
+	deletedID    *uint
+	setPermKey   *int64
 	setPermCodes []string
 
 	// For GetUserPermissions
@@ -39,13 +39,13 @@ type mockRoleRepo struct {
 	findByIDErr     error
 	findByBizKeyErr error
 	findByNameErr   error
-	createErr    error
-	updateErr    error
-	deleteErr    error
-	listPermErr  error
-	setPermErr   error
-	countErr     error
-	hasPermErr   error
+	createErr       error
+	updateErr       error
+	deleteErr       error
+	listPermErr     error
+	setPermErr      error
+	countErr        error
+	hasPermErr      error
 	userTeamPermErr error
 }
 
@@ -276,7 +276,7 @@ func TestRoleService_CreateRole_Success(t *testing.T) {
 
 	result, err := svc.CreateRole(context.Background(), dto.CreateRoleReq{
 		Name:            "viewer",
-		Description: "read only",
+		Description:     "read only",
 		PermissionCodes: []string{"team:read", "main_item:read"},
 	})
 	require.NoError(t, err)

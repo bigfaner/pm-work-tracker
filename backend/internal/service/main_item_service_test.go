@@ -39,8 +39,8 @@ type mockMainItemRepo struct {
 	listErr   error
 	nextErr   error
 	// capture calls
-	createdItem *model.MainItem
-	updatedID   uint
+	createdItem   *model.MainItem
+	updatedID     uint
 	updatedFields map[string]interface{}
 }
 
@@ -151,6 +151,7 @@ func (m *mockSubItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.SubIt
 func (m *mockSubItemRepo) NextSubCode(_ context.Context, _ int64) (string, error) {
 	return "", nil
 }
+
 type mockStatusHistorySvc struct {
 	recorded *model.StatusHistory
 	recordFn func(ctx context.Context, record *model.StatusHistory) error
@@ -214,9 +215,9 @@ func TestMainItemCreate_RepoCreateError(t *testing.T) {
 
 func TestMainItemUpdate_Success(t *testing.T) {
 	existing := &model.MainItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
-		Title:  "Old Title",
+		BaseModel: model.BaseModel{ID: 1},
+		TeamKey:   1,
+		Title:     "Old Title",
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
@@ -234,8 +235,8 @@ func TestMainItemUpdate_Success(t *testing.T) {
 
 func TestMainItemUpdate_TeamMismatch(t *testing.T) {
 	existing := &model.MainItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 2, // different team
+		BaseModel: model.BaseModel{ID: 1},
+		TeamKey:   2, // different team
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
@@ -265,7 +266,7 @@ func TestMainItemUpdate_NotFound(t *testing.T) {
 func TestMainItemArchive_Success(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
+		TeamKey:    1,
 		ItemStatus: "completed",
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
@@ -280,7 +281,7 @@ func TestMainItemArchive_Success(t *testing.T) {
 func TestMainItemArchive_ClosedStatus(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
+		TeamKey:    1,
 		ItemStatus: "closed",
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
@@ -294,7 +295,7 @@ func TestMainItemArchive_ClosedStatus(t *testing.T) {
 func TestMainItemArchive_NotAllowed_InProgress(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
+		TeamKey:    1,
 		ItemStatus: "in_progress",
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
@@ -308,7 +309,7 @@ func TestMainItemArchive_NotAllowed_InProgress(t *testing.T) {
 func TestMainItemArchive_NotAllowed_Pending(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
+		TeamKey:    1,
 		ItemStatus: "pending",
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
@@ -362,9 +363,9 @@ func TestMainItemList_RepoError(t *testing.T) {
 
 func TestMainItemGet_Success(t *testing.T) {
 	existing := &model.MainItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
-		Title:  "Item 1",
+		BaseModel: model.BaseModel{ID: 1},
+		TeamKey:   1,
+		Title:     "Item 1",
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
@@ -391,7 +392,7 @@ func TestMainItemGet_NotFound(t *testing.T) {
 func TestMainItemGetByBizKey_Success(t *testing.T) {
 	existing := &model.MainItem{
 		BaseModel: model.BaseModel{ID: 1, BizKey: 123456},
-		TeamKey:    1,
+		TeamKey:   1,
 		Title:     "Item 1",
 	}
 	mainRepo := &mockMainItemRepo{}
@@ -419,8 +420,8 @@ func TestMainItemGetByBizKey_NotFound(t *testing.T) {
 
 func TestRecalcCompletion_ZeroSubItems(t *testing.T) {
 	existing := &model.MainItem{
-		BaseModel:      model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamKey:    1,
 		Completion: 50,
 	}
 	mainRepo := &mockMainItemRepo{bizKeyItem: existing}
@@ -434,8 +435,8 @@ func TestRecalcCompletion_ZeroSubItems(t *testing.T) {
 
 func TestRecalcCompletion_OneSubItem(t *testing.T) {
 	existing := &model.MainItem{
-		BaseModel:      model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamKey:    1,
 		Completion: 0,
 	}
 	mainRepo := &mockMainItemRepo{bizKeyItem: existing}
@@ -453,8 +454,8 @@ func TestRecalcCompletion_OneSubItem(t *testing.T) {
 
 func TestRecalcCompletion_MultipleSubItems_EqualWeights(t *testing.T) {
 	existing := &model.MainItem{
-		BaseModel:      model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamKey:    1,
 		Completion: 0,
 	}
 	mainRepo := &mockMainItemRepo{bizKeyItem: existing}
@@ -475,8 +476,8 @@ func TestRecalcCompletion_MultipleSubItems_EqualWeights(t *testing.T) {
 
 func TestRecalcCompletion_AllZeroWeights_FallbackSimpleAvg(t *testing.T) {
 	existing := &model.MainItem{
-		BaseModel:      model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamKey:    1,
 		Completion: 0,
 	}
 	mainRepo := &mockMainItemRepo{bizKeyItem: existing}
@@ -496,8 +497,8 @@ func TestRecalcCompletion_AllZeroWeights_FallbackSimpleAvg(t *testing.T) {
 
 func TestRecalcCompletion_VaryingWeights(t *testing.T) {
 	existing := &model.MainItem{
-		BaseModel:      model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamKey:    1,
 		Completion: 0,
 	}
 	mainRepo := &mockMainItemRepo{bizKeyItem: existing}
@@ -558,8 +559,8 @@ func TestChangeStatus_AllValidTransitions(t *testing.T) {
 		t.Run(tt.from+"->"+tt.to, func(t *testing.T) {
 			item := &model.MainItem{
 				BaseModel:   model.BaseModel{ID: 1},
-				TeamKey: 1,
-				ItemStatus: tt.from,
+				TeamKey:     1,
+				ItemStatus:  tt.from,
 				ProposerKey: int64(10), // PM
 			}
 			mainRepo := &mockMainItemRepo{item: item}
@@ -584,9 +585,9 @@ func TestChangeStatus_AllValidTransitions(t *testing.T) {
 
 func TestChangeStatus_SelfTransition(t *testing.T) {
 	item := &model.MainItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
-		ItemStatus: "pending",
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamKey:     1,
+		ItemStatus:  "pending",
 		ProposerKey: int64(10),
 	}
 	mainRepo := &mockMainItemRepo{item: item}
@@ -617,8 +618,8 @@ func TestChangeStatus_InvalidTransitions(t *testing.T) {
 		t.Run(tt.from+"->"+tt.to, func(t *testing.T) {
 			item := &model.MainItem{
 				BaseModel:   model.BaseModel{ID: 1},
-				TeamKey: 1,
-				ItemStatus: tt.from,
+				TeamKey:     1,
+				ItemStatus:  tt.from,
 				ProposerKey: int64(10),
 			}
 			mainRepo := &mockMainItemRepo{item: item}
@@ -633,8 +634,8 @@ func TestChangeStatus_InvalidTransitions(t *testing.T) {
 func TestChangeStatus_PMOnly_ReviewingToCompleted(t *testing.T) {
 	item := &model.MainItem{
 		BaseModel:   model.BaseModel{ID: 1},
-		TeamKey: 1,
-		ItemStatus: "reviewing",
+		TeamKey:     1,
+		ItemStatus:  "reviewing",
 		ProposerKey: int64(10), // PM is user 10
 	}
 	mainRepo := &mockMainItemRepo{item: item}
@@ -648,8 +649,8 @@ func TestChangeStatus_PMOnly_ReviewingToCompleted(t *testing.T) {
 func TestChangeStatus_PMOnly_ReviewingToProgressing(t *testing.T) {
 	item := &model.MainItem{
 		BaseModel:   model.BaseModel{ID: 1},
-		TeamKey: 1,
-		ItemStatus: "reviewing",
+		TeamKey:     1,
+		ItemStatus:  "reviewing",
 		ProposerKey: int64(10),
 	}
 	mainRepo := &mockMainItemRepo{item: item}
@@ -678,8 +679,8 @@ func TestChangeStatus_TerminalSideEffects(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			item := &model.MainItem{
 				BaseModel:   model.BaseModel{ID: 1},
-				TeamKey: 1,
-				ItemStatus: tt.fromStatus,
+				TeamKey:     1,
+				ItemStatus:  tt.fromStatus,
 				ProposerKey: int64(10),
 				Completion:  50,
 			}
@@ -698,8 +699,8 @@ func TestChangeStatus_TerminalSideEffects(t *testing.T) {
 func TestChangeStatus_NonTerminal_NoSideEffects(t *testing.T) {
 	item := &model.MainItem{
 		BaseModel:   model.BaseModel{ID: 1},
-		TeamKey: 1,
-		ItemStatus: "pending",
+		TeamKey:     1,
+		ItemStatus:  "pending",
 		ProposerKey: int64(10),
 		Completion:  30,
 	}
@@ -726,9 +727,9 @@ func TestChangeStatus_ItemNotFound(t *testing.T) {
 
 func TestMainItemChangeStatus_TeamMismatch(t *testing.T) {
 	item := &model.MainItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 2,
-		ItemStatus: "pending",
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamKey:     2,
+		ItemStatus:  "pending",
 		ProposerKey: int64(10),
 	}
 	mainRepo := &mockMainItemRepo{item: item}
@@ -741,8 +742,8 @@ func TestMainItemChangeStatus_TeamMismatch(t *testing.T) {
 func TestChangeStatus_StatusHistoryRecorded(t *testing.T) {
 	item := &model.MainItem{
 		BaseModel:   model.BaseModel{ID: 1, BizKey: 100},
-		TeamKey: 1,
-		ItemStatus: "pending",
+		TeamKey:     1,
+		ItemStatus:  "pending",
 		ProposerKey: int64(10),
 	}
 	mainRepo := &mockMainItemRepo{item: item}
@@ -786,8 +787,8 @@ func TestAvailableTransitions_Success(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			item := &model.MainItem{
 				BaseModel:   model.BaseModel{ID: 1},
-				TeamKey: 1,
-				ItemStatus: tt.status,
+				TeamKey:     1,
+				ItemStatus:  tt.status,
 				ProposerKey: int64(tt.proposerID),
 			}
 			mainRepo := &mockMainItemRepo{item: item}
@@ -803,8 +804,8 @@ func TestAvailableTransitions_Success(t *testing.T) {
 func TestAvailableTransitions_NonPMReviewing_FiltersCompletedProgressing(t *testing.T) {
 	item := &model.MainItem{
 		BaseModel:   model.BaseModel{ID: 1},
-		TeamKey: 1,
-		ItemStatus: "reviewing",
+		TeamKey:     1,
+		ItemStatus:  "reviewing",
 		ProposerKey: int64(10), // PM is user 10
 	}
 	mainRepo := &mockMainItemRepo{item: item}
@@ -827,8 +828,8 @@ func TestAvailableTransitions_ItemNotFound(t *testing.T) {
 func TestAvailableTransitions_TeamMismatch(t *testing.T) {
 	item := &model.MainItem{
 		BaseModel:   model.BaseModel{ID: 1},
-		TeamKey: 2,
-		ItemStatus: "pending",
+		TeamKey:     2,
+		ItemStatus:  "pending",
 		ProposerKey: int64(10),
 	}
 	mainRepo := &mockMainItemRepo{item: item}
@@ -844,8 +845,8 @@ func TestAvailableTransitions_TeamMismatch(t *testing.T) {
 
 func TestEvaluateLinkage_NoSubItems_NoLinkageTriggered(t *testing.T) {
 	mainItem := &model.MainItem{
-		BaseModel: model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamKey:    1,
 		ItemStatus: "pending",
 	}
 	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
@@ -868,7 +869,7 @@ func TestEvaluateLinkage_MainItemNotFound(t *testing.T) {
 
 func TestEvaluateLinkage_SubItemRepoError(t *testing.T) {
 	mainItem := &model.MainItem{
-		BaseModel: model.BaseModel{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		ItemStatus: "pending",
 	}
 	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
@@ -883,8 +884,8 @@ func TestEvaluateLinkage_SubItemRepoError(t *testing.T) {
 // all completed/closed + at least one completed -> reviewing
 func TestEvaluateLinkage_Priority1_AllCompletedOrClosed(t *testing.T) {
 	tests := []struct {
-		name   string
-		items  []*model.SubItem
+		name  string
+		items []*model.SubItem
 	}{
 		{
 			"all completed -> reviewing",
@@ -905,7 +906,7 @@ func TestEvaluateLinkage_Priority1_AllCompletedOrClosed(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mainItem := &model.MainItem{
-				BaseModel: model.BaseModel{ID: 1},
+				BaseModel:  model.BaseModel{ID: 1},
 				ItemStatus: "progressing",
 			}
 			mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
@@ -932,7 +933,7 @@ func TestEvaluateLinkage_Priority1_AllCompletedOrClosed(t *testing.T) {
 // all closed -> closed
 func TestEvaluateLinkage_Priority2_AllClosed(t *testing.T) {
 	mainItem := &model.MainItem{
-		BaseModel: model.BaseModel{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		ItemStatus: "pending",
 	}
 	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
@@ -978,7 +979,7 @@ func TestEvaluateLinkage_Priority3_AllPausing(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mainItem := &model.MainItem{
-				BaseModel: model.BaseModel{ID: 1},
+				BaseModel:  model.BaseModel{ID: 1},
 				ItemStatus: "progressing",
 			}
 			mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
@@ -998,11 +999,11 @@ func TestEvaluateLinkage_Priority3_AllPausing(t *testing.T) {
 // any blocking (not all terminal) -> blocking (only from progressing, since pending->blocking is not a valid transition)
 func TestEvaluateLinkage_Priority4_AnyBlocking(t *testing.T) {
 	tests := []struct {
-		name         string
-		mainStatus   string
-		items        []*model.SubItem
-		wantTarget   string // expected target status, empty means no linkage
-		wantSuccess  bool   // whether linkage should succeed
+		name        string
+		mainStatus  string
+		items       []*model.SubItem
+		wantTarget  string // expected target status, empty means no linkage
+		wantSuccess bool   // whether linkage should succeed
 	}{
 		{
 			"progressing + blocking sub -> blocking (success)",
@@ -1030,7 +1031,7 @@ func TestEvaluateLinkage_Priority4_AnyBlocking(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mainItem := &model.MainItem{
-				BaseModel: model.BaseModel{ID: 1},
+				BaseModel:  model.BaseModel{ID: 1},
 				ItemStatus: tt.mainStatus,
 			}
 			mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
@@ -1050,10 +1051,10 @@ func TestEvaluateLinkage_Priority4_AnyBlocking(t *testing.T) {
 // any progressing -> progressing (only from pending)
 func TestEvaluateLinkage_Priority5_AnyProgressing(t *testing.T) {
 	tests := []struct {
-		name             string
-		mainStatus       string
-		items            []*model.SubItem
-		wantProgressing  bool
+		name            string
+		mainStatus      string
+		items           []*model.SubItem
+		wantProgressing bool
 	}{
 		{
 			"pending + progressing sub -> progressing",
@@ -1078,7 +1079,7 @@ func TestEvaluateLinkage_Priority5_AnyProgressing(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mainItem := &model.MainItem{
-				BaseModel: model.BaseModel{ID: 1},
+				BaseModel:  model.BaseModel{ID: 1},
 				ItemStatus: tt.mainStatus,
 			}
 			mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
@@ -1102,7 +1103,7 @@ func TestEvaluateLinkage_Priority5_AnyProgressing(t *testing.T) {
 // reviewing + new pending subitem -> MainItem reverts to progressing
 func TestEvaluateLinkage_ReviewingAndNewPending(t *testing.T) {
 	mainItem := &model.MainItem{
-		BaseModel: model.BaseModel{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		ItemStatus: "reviewing",
 	}
 	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
@@ -1127,7 +1128,7 @@ func TestEvaluateLinkage_Failure_TransitionNotAllowed(t *testing.T) {
 	// But if main is in a state that can't transition to "reviewing",
 	// linkage should fail and record intent in status history.
 	mainItem := &model.MainItem{
-		BaseModel: model.BaseModel{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		ItemStatus: "blocking", // blocking -> reviewing is not valid
 	}
 	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
@@ -1159,7 +1160,7 @@ func TestEvaluateLinkage_Failure_TransitionNotAllowed(t *testing.T) {
 // when the target status matches current status.
 func TestEvaluateLinkage_SameStatus_NoTransition(t *testing.T) {
 	mainItem := &model.MainItem{
-		BaseModel: model.BaseModel{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		ItemStatus: "reviewing", // All completed would target reviewing -> same status
 	}
 	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
@@ -1178,7 +1179,7 @@ func TestEvaluateLinkage_SameStatus_NoTransition(t *testing.T) {
 // are applied when linkage transitions to a terminal status.
 func TestEvaluateLinkage_TerminalSideEffects(t *testing.T) {
 	mainItem := &model.MainItem{
-		BaseModel: model.BaseModel{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		ItemStatus: "pending",
 		Completion: 30,
 	}
@@ -1202,7 +1203,7 @@ func TestEvaluateLinkage_TerminalSideEffects(t *testing.T) {
 // is_auto=true for linkage transitions.
 func TestEvaluateLinkage_StatusHistoryIsAuto(t *testing.T) {
 	mainItem := &model.MainItem{
-		BaseModel: model.BaseModel{ID: 1},
+		BaseModel:  model.BaseModel{ID: 1},
 		ItemStatus: "progressing",
 	}
 	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
@@ -1227,9 +1228,9 @@ func TestEvaluateLinkage_StatusHistoryIsAuto(t *testing.T) {
 // TestLinkageResult_Warning tests the Warning() method.
 func TestLinkageResult_Warning(t *testing.T) {
 	tests := []struct {
-		name    string
-		result  *LinkageResult
-		want    string
+		name   string
+		result *LinkageResult
+		want   string
 	}{
 		{"nil result", nil, ""},
 		{"not triggered", &LinkageResult{Triggered: false}, ""},

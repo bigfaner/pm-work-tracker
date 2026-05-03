@@ -88,6 +88,7 @@ func (m *mockSubItemRepoTM) NextSubCode(ctx context.Context, mainItemBizKey int6
 	args := m.Called(ctx, mainItemBizKey)
 	return args.String(0), args.Error(1)
 }
+
 type mockMainItemSvcTM struct {
 	mock.Mock
 }
@@ -201,8 +202,8 @@ func TestSubItemCreate_Success(t *testing.T) {
 	item, err := svc.Create(context.Background(), int64(1), 10, dto.SubItemCreateReq{
 		AssigneeKey: "42",
 		MainItemKey: "5",
-		Title:      "Sub task A",
-		Priority:   "P2",
+		Title:       "Sub task A",
+		Priority:    "P2",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), item.TeamKey)
@@ -228,8 +229,8 @@ func TestSubItemCreate_RepoError(t *testing.T) {
 
 	_, err := svc.Create(context.Background(), int64(1), 10, dto.SubItemCreateReq{
 		MainItemKey: "5",
-		Title:      "Sub task",
-		Priority:   "P2",
+		Title:       "Sub task",
+		Priority:    "P2",
 	})
 	assert.Error(t, err)
 
@@ -242,9 +243,9 @@ func TestSubItemCreate_RepoError(t *testing.T) {
 
 func TestSubItemUpdate_Success(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
-		Title:  "Old Title",
+		BaseModel: model.BaseModel{ID: 1},
+		TeamKey:   1,
+		Title:     "Old Title",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -266,8 +267,8 @@ func TestSubItemUpdate_Success(t *testing.T) {
 
 func TestSubItemUpdate_TeamMismatch(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 2,
+		BaseModel: model.BaseModel{ID: 1},
+		TeamKey:   2,
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -302,8 +303,8 @@ func TestSubItemUpdate_NotFound(t *testing.T) {
 
 func TestSubItemUpdate_NoFields_Noop(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel: model.BaseModel{ID: 1},
+		TeamKey:   1,
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -362,16 +363,16 @@ func TestChangeStatus_PausingToClosed(t *testing.T) {
 func testValidTransitionTM(t *testing.T, from, to string) {
 	t.Helper()
 	existing := &model.SubItem{
-		BaseModel:      model.BaseModel{ID: 1, BizKey: 200},
-		TeamKey: 1,
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 200},
+		TeamKey:     1,
 		MainItemKey: int64(5),
-		ItemStatus: from,
+		ItemStatus:  from,
 	}
 	updated := &model.SubItem{
-		BaseModel:      model.BaseModel{ID: 1, BizKey: 200},
-		TeamKey: 1,
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 200},
+		TeamKey:     1,
 		MainItemKey: int64(5),
-		ItemStatus: to,
+		ItemStatus:  to,
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -424,7 +425,7 @@ func TestChangeStatus_Invalid_CompletedToAnything(t *testing.T) {
 		t.Run("completed->"+target, func(t *testing.T) {
 			existing := &model.SubItem{
 				BaseModel:  model.BaseModel{ID: 1},
-				TeamKey: 1,
+				TeamKey:    1,
 				ItemStatus: "completed",
 			}
 			repo := new(mockSubItemRepoTM)
@@ -448,7 +449,7 @@ func TestChangeStatus_Invalid_ClosedToAnything(t *testing.T) {
 		t.Run("closed->"+target, func(t *testing.T) {
 			existing := &model.SubItem{
 				BaseModel:  model.BaseModel{ID: 1},
-				TeamKey: 1,
+				TeamKey:    1,
 				ItemStatus: "closed",
 			}
 			repo := new(mockSubItemRepoTM)
@@ -487,7 +488,7 @@ func testInvalidTransitionTM(t *testing.T, from, to string) {
 	t.Helper()
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
+		TeamKey:    1,
 		ItemStatus: from,
 	}
 	repo := new(mockSubItemRepoTM)
@@ -510,17 +511,17 @@ func testInvalidTransitionTM(t *testing.T, from, to string) {
 
 func TestChangeStatus_Completed_SetsCompletionAndActualEndDate(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:      model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamKey:     1,
 		MainItemKey: int64(5),
-		ItemStatus: "progressing",
+		ItemStatus:  "progressing",
 	}
 	updated := &model.SubItem{
-		BaseModel:      model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamKey:     1,
 		MainItemKey: int64(5),
-		ItemStatus: "completed",
-		Completion: 100,
+		ItemStatus:  "completed",
+		Completion:  100,
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -550,17 +551,17 @@ func TestChangeStatus_Completed_SetsCompletionAndActualEndDate(t *testing.T) {
 
 func TestChangeStatus_Closed_SetsCompletionAndActualEndDate(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamKey:     1,
 		MainItemKey: int64(5),
-		ItemStatus: "progressing",
+		ItemStatus:  "progressing",
 	}
 	updated := &model.SubItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamKey:     1,
 		MainItemKey: int64(5),
-		ItemStatus: "closed",
-		Completion: 100,
+		ItemStatus:  "closed",
+		Completion:  100,
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -590,16 +591,16 @@ func TestChangeStatus_Closed_SetsCompletionAndActualEndDate(t *testing.T) {
 
 func TestChangeStatus_Completed_RecalcCompletion_CalledWithCorrectMainItemID(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:      model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamKey:     1,
 		MainItemKey: int64(42),
-		ItemStatus: "progressing",
+		ItemStatus:  "progressing",
 	}
 	updated := &model.SubItem{
-		BaseModel:      model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamKey:     1,
 		MainItemKey: int64(42),
-		ItemStatus: "completed",
+		ItemStatus:  "completed",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -623,10 +624,10 @@ func TestChangeStatus_Completed_RecalcCompletion_CalledWithCorrectMainItemID(t *
 
 func TestChangeStatus_Completed_RecalcError(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:      model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamKey:     1,
 		MainItemKey: int64(5),
-		ItemStatus: "progressing",
+		ItemStatus:  "progressing",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -651,16 +652,16 @@ func TestChangeStatus_Completed_RecalcError(t *testing.T) {
 
 func TestChangeStatus_RecordsHistory(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:      model.BaseModel{ID: 7, BizKey: 300},
-		TeamKey: 1,
+		BaseModel:   model.BaseModel{ID: 7, BizKey: 300},
+		TeamKey:     1,
 		MainItemKey: int64(5),
-		ItemStatus: "pending",
+		ItemStatus:  "pending",
 	}
 	updated := &model.SubItem{
-		BaseModel:      model.BaseModel{ID: 7, BizKey: 300},
-		TeamKey: 1,
+		BaseModel:   model.BaseModel{ID: 7, BizKey: 300},
+		TeamKey:     1,
 		MainItemKey: int64(5),
-		ItemStatus: "progressing",
+		ItemStatus:  "progressing",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -710,7 +711,7 @@ func TestChangeStatus_NotFound(t *testing.T) {
 func TestChangeStatus_TeamMismatch(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 2,
+		TeamKey:    2,
 		ItemStatus: "pending",
 	}
 	repo := new(mockSubItemRepoTM)
@@ -733,8 +734,8 @@ func TestChangeStatus_TeamMismatch(t *testing.T) {
 
 func TestSubItemAvailableTransitions_Pending(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel: model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamKey:    1,
 		ItemStatus: "pending",
 	}
 	repo := new(mockSubItemRepoTM)
@@ -753,8 +754,8 @@ func TestSubItemAvailableTransitions_Pending(t *testing.T) {
 
 func TestSubItemAvailableTransitions_Progressing(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel: model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamKey:    1,
 		ItemStatus: "progressing",
 	}
 	repo := new(mockSubItemRepoTM)
@@ -773,8 +774,8 @@ func TestSubItemAvailableTransitions_Progressing(t *testing.T) {
 
 func TestSubItemAvailableTransitions_TerminalStatus(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel: model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamKey:    1,
 		ItemStatus: "completed",
 	}
 	repo := new(mockSubItemRepoTM)
@@ -807,8 +808,8 @@ func TestSubItemAvailableTransitions_NotFound(t *testing.T) {
 
 func TestSubItemAvailableTransitions_TeamMismatch(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel: model.BaseModel{ID: 1},
-		TeamKey: 2,
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamKey:    2,
 		ItemStatus: "pending",
 	}
 	repo := new(mockSubItemRepoTM)
@@ -830,8 +831,8 @@ func TestSubItemAvailableTransitions_TeamMismatch(t *testing.T) {
 
 func TestSubItemAssign_Success(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel: model.BaseModel{ID: 1},
+		TeamKey:   1,
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -867,8 +868,8 @@ func TestSubItemAssign_NotFound(t *testing.T) {
 
 func TestSubItemAssign_TeamMismatch(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 2,
+		BaseModel: model.BaseModel{ID: 1},
+		TeamKey:   2,
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -889,9 +890,9 @@ func TestSubItemAssign_TeamMismatch(t *testing.T) {
 
 func TestSubItemGet_Success(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
-		Title:  "Sub 1",
+		BaseModel: model.BaseModel{ID: 1},
+		TeamKey:   1,
+		Title:     "Sub 1",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -998,8 +999,8 @@ func TestSubItemCreate_TriggersLinkage(t *testing.T) {
 
 	_, err := svc.Create(context.Background(), int64(1), 10, dto.SubItemCreateReq{
 		MainItemKey: "5",
-		Title:      "Sub task",
-		Priority:   "P2",
+		Title:       "Sub task",
+		Priority:    "P2",
 	})
 	require.NoError(t, err)
 
@@ -1014,10 +1015,10 @@ func TestSubItemCreate_TriggersLinkage(t *testing.T) {
 
 func TestSubItemDelete_TriggersLinkage(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamKey:     1,
 		MainItemKey: int64(5),
-		ItemStatus: "pending",
+		ItemStatus:  "pending",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -1053,7 +1054,7 @@ func TestSubItemDelete_NotFound(t *testing.T) {
 func TestSubItemDelete_TeamMismatch(t *testing.T) {
 	existing := &model.SubItem{
 		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 2,
+		TeamKey:    2,
 		ItemStatus: "pending",
 	}
 	repo := new(mockSubItemRepoTM)
@@ -1071,10 +1072,10 @@ func TestSubItemDelete_TeamMismatch(t *testing.T) {
 
 func TestSubItemDelete_RepoError(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamKey:     1,
 		MainItemKey: int64(5),
-		ItemStatus: "pending",
+		ItemStatus:  "pending",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -1096,16 +1097,16 @@ func TestSubItemDelete_RepoError(t *testing.T) {
 
 func TestChangeStatus_ReturnsLinkageResult(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamKey:     1,
 		MainItemKey: int64(5),
-		ItemStatus: "pending",
+		ItemStatus:  "pending",
 	}
 	updated := &model.SubItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamKey:     1,
 		MainItemKey: int64(5),
-		ItemStatus: "progressing",
+		ItemStatus:  "progressing",
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)
@@ -1156,8 +1157,8 @@ func TestSubItemCreate_AssignsCode(t *testing.T) {
 
 	item, err := svc.Create(context.Background(), 1, 10, dto.SubItemCreateReq{
 		MainItemKey: "5",
-		Title:      "Sub task",
-		Priority:   "P2",
+		Title:       "Sub task",
+		Priority:    "P2",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "FEAT-00001-01", item.Code)
@@ -1176,8 +1177,8 @@ func TestSubItemCreate_NextSubCodeError_ReturnsError(t *testing.T) {
 
 	_, err := svc.Create(context.Background(), int64(1), 10, dto.SubItemCreateReq{
 		MainItemKey: "5",
-		Title:      "Sub task",
-		Priority:   "P2",
+		Title:       "Sub task",
+		Priority:    "P2",
 	})
 	assert.Error(t, err)
 	repo.AssertExpectations(t)
@@ -1189,17 +1190,17 @@ func TestSubItemCreate_NextSubCodeError_ReturnsError(t *testing.T) {
 // RecalcCompletion runs before EvaluateLinkage on SubItem completed.
 func TestChangeStatus_RecalcCompletionBeforeLinkage(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamKey:     1,
 		MainItemKey: int64(5),
-		ItemStatus: "progressing",
+		ItemStatus:  "progressing",
 	}
 	updated := &model.SubItem{
-		BaseModel:  model.BaseModel{ID: 1},
-		TeamKey: 1,
+		BaseModel:   model.BaseModel{ID: 1},
+		TeamKey:     1,
 		MainItemKey: int64(5),
-		ItemStatus: "completed",
-		Completion: 100,
+		ItemStatus:  "completed",
+		Completion:  100,
 	}
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)

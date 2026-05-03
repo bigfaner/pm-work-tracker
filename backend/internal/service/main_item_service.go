@@ -8,9 +8,9 @@ import (
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
-	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/pkg/dates"
+	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/pkg/status"
 	"pm-work-tracker/backend/internal/repository"
@@ -37,10 +37,10 @@ func (r *LinkageResult) Warning() string {
 const maxLinkageMuMapSize = 1000
 
 var (
-	linkageMuMap    = make(map[int64]*sync.Mutex)
-	linkageAccess   = make(map[int64]uint64) // mainItemBizKey -> access sequence number
-	linkageSeq      uint64                   // monotonically increasing access counter
-	linkageMapMu    sync.Mutex               // protects linkageMuMap, linkageAccess, and linkageSeq
+	linkageMuMap  = make(map[int64]*sync.Mutex)
+	linkageAccess = make(map[int64]uint64) // mainItemBizKey -> access sequence number
+	linkageSeq    uint64                   // monotonically increasing access counter
+	linkageMapMu  sync.Mutex               // protects linkageMuMap, linkageAccess, and linkageSeq
 )
 
 // getLinkageMutex returns (or creates) a mutex for the given MainItem.
@@ -126,9 +126,15 @@ func (s *mainItemService) Create(ctx context.Context, teamBizKey int64, pmBizKey
 		ItemDesc:    req.Description,
 		Priority:    req.Priority,
 		ProposerKey: pmBizKey,
-		AssigneeKey: func() *int64 { if req.AssigneeKey != "" { v, _ := pkg.ParseID(req.AssigneeKey); return &v }; return nil }(),
-		IsKeyItem:   req.IsKeyItem,
-		ItemStatus:  "pending",
+		AssigneeKey: func() *int64 {
+			if req.AssigneeKey != "" {
+				v, _ := pkg.ParseID(req.AssigneeKey)
+				return &v
+			}
+			return nil
+		}(),
+		IsKeyItem:  req.IsKeyItem,
+		ItemStatus: "pending",
 	}
 
 	if req.StartDate != nil {
@@ -380,7 +386,7 @@ func (s *mainItemService) EvaluateLinkage(ctx context.Context, mainItemBizKey in
 	if !status.IsValidTransition(status.MainItemTransitions, mainItem.ItemStatus, targetStatus) {
 		// Linkage failed: record intent in status history
 		remark := fmt.Sprintf("%s→%s 不允许", mainItem.ItemStatus, targetStatus)
-	_ = RecordStatusChange(s.statusHistorySvc, ctx, "main_item", mainItemBizKey, mainItem.ItemStatus, targetStatus, changedByBizKey, 1, remark)
+		_ = RecordStatusChange(s.statusHistorySvc, ctx, "main_item", mainItemBizKey, mainItem.ItemStatus, targetStatus, changedByBizKey, 1, remark)
 		return &LinkageResult{
 			Triggered:    true,
 			Success:      false,
@@ -420,8 +426,8 @@ func (s *mainItemService) EvaluateLinkage(ctx context.Context, mainItemBizKey in
 // evaluateLinkageTarget determines the target status based on 5-level priority rules.
 // Returns empty string if no linkage rule matches.
 func evaluateLinkageTarget(subItems []*model.SubItem, currentMainStatus string) string {
-	allTerminal := true     // completed or closed
-	allClosed := true       // closed only
+	allTerminal := true // completed or closed
+	allClosed := true   // closed only
 	allPausingOrClosed := true
 	hasCompleted := false
 	hasBlocking := false

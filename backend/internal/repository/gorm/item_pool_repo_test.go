@@ -55,12 +55,12 @@ func TestItemPoolRepo_Create(t *testing.T) {
 
 	u, team := seedItemPoolData(t, db)
 	item := &model.ItemPool{
-		TeamKey: int64(team.ID),
+		TeamKey:        int64(team.ID),
 		Title:          "New Suggestion",
 		Background:     "Some context",
 		ExpectedOutput: "Expected result",
-		SubmitterKey: int64(u.ID),
-		PoolStatus: "pending",
+		SubmitterKey:   int64(u.ID),
+		PoolStatus:     "pending",
 	}
 	require.NoError(t, repo.Create(ctx, item))
 	assert.NotZero(t, item.ID)
@@ -146,8 +146,8 @@ func TestItemPoolRepo_List(t *testing.T) {
 	require.NoError(t, db.Create(&u2).Error)
 	team2 := model.Team{TeamName: "IP Team2", PmKey: int64(u2.ID), Code: "IPT2"}
 	require.NoError(t, db.Create(&team2).Error)
-		team2.BizKey = int64(team2.ID)
-		require.NoError(t, db.Save(&team2).Error)
+	team2.BizKey = int64(team2.ID)
+	require.NoError(t, db.Save(&team2).Error)
 	createItemPool(t, db, team2.BizKey, u2.ID, "Other Team", "pending")
 
 	t.Run("all_for_team", func(t *testing.T) {

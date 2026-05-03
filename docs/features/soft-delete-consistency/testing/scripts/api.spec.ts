@@ -233,10 +233,10 @@ describe('API E2E Tests - Soft-Delete Consistency', () => {
 
   // ── TC-006: FindByID returns record for non-soft-deletable ProgressRecord ──
 
-  // Traceability: TC-006 -> Story 3 / AC-2
   // Note: ProgressRecord has no deleted_flag column. This is a unit-level test that
   // verifies the generic helper isSoftDeletable[T]() returns false for ProgressRecord.
   // At e2e level, we verify that progress records can still be fetched normally.
+  // Traceability: TC-006 -> Story 3 / AC-2
   test('TC-006: Progress records are accessible (non-soft-deletable entity)', async () => {
     // Create a team, main item, sub-item, then add progress and verify it's readable
     const { teamId } = await createTestTeam(superadminToken, `e2e-team-tc006-${runId}`);

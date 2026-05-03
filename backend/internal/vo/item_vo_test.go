@@ -14,12 +14,12 @@ func TestNewSubItemVO_PopulatesStatusName(t *testing.T) {
 	now := time.Now()
 	subItem := &model.SubItem{
 		BaseModel:   model.BaseModel{ID: 1, CreateTime: now, DbUpdateTime: now},
-		TeamKey: 1,
+		TeamKey:     1,
 		MainItemKey: int64(10),
 		Title:       "Test SubItem",
 		ItemDesc:    "desc",
 		Priority:    "P0",
-		ItemStatus: "progressing",
+		ItemStatus:  "progressing",
 		Completion:  50.0,
 		IsKeyItem:   false,
 		Weight:      1.0,
@@ -50,7 +50,7 @@ func TestNewSubItemVO_CodePropagated(t *testing.T) {
 		BaseModel:   model.BaseModel{ID: 3, CreateTime: now, DbUpdateTime: now},
 		Code:        "ALPHA-00001-02",
 		MainItemKey: int64(1),
-		ItemStatus: "pending",
+		ItemStatus:  "pending",
 	}
 
 	result := NewSubItemVO(subItem)

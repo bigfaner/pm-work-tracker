@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/glebarez/sqlite"
 	"github.com/gin-gonic/gin"
+	"github.com/glebarez/sqlite"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
@@ -21,9 +21,9 @@ import (
 	"pm-work-tracker/backend/config"
 	"pm-work-tracker/backend/internal/handler"
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/dbutil"
 	appjwt "pm-work-tracker/backend/internal/pkg/jwt"
 	"pm-work-tracker/backend/internal/pkg/snowflake"
-	"pm-work-tracker/backend/internal/pkg/dbutil"
 	gormrepo "pm-work-tracker/backend/internal/repository/gorm"
 	"pm-work-tracker/backend/internal/service"
 )
@@ -447,35 +447,35 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) 
 	t.Helper()
 
 	mainItem := &model.MainItem{
-		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      teamBizKey,
-		Code:         "TAMA-00001",
-		Title:        "Test Main Item",
-		Priority:     "P1",
-		ProposerKey:  getUserBizKey(t, db, userID),
-		ItemStatus:   "pending",
+		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
+		TeamKey:     teamBizKey,
+		Code:        "TAMA-00001",
+		Title:       "Test Main Item",
+		Priority:    "P1",
+		ProposerKey: getUserBizKey(t, db, userID),
+		ItemStatus:  "pending",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
 	sub1 := &model.SubItem{
-		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:       teamBizKey,
-		MainItemKey:   mainItem.BizKey,
-		Title:         "Sub Item 1",
-		Priority:      "P2",
-		ItemStatus:    "pending",
-		Weight:        1.0,
+		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
+		TeamKey:     teamBizKey,
+		MainItemKey: mainItem.BizKey,
+		Title:       "Sub Item 1",
+		Priority:    "P2",
+		ItemStatus:  "pending",
+		Weight:      1.0,
 	}
 	require.NoError(t, db.Create(sub1).Error)
 
 	sub2 := &model.SubItem{
-		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:       teamBizKey,
-		MainItemKey:   mainItem.BizKey,
-		Title:         "Sub Item 2",
-		Priority:      "P2",
-		ItemStatus:    "pending",
-		Weight:        1.0,
+		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
+		TeamKey:     teamBizKey,
+		MainItemKey: mainItem.BizKey,
+		Title:       "Sub Item 2",
+		Priority:    "P2",
+		ItemStatus:  "pending",
+		Weight:      1.0,
 	}
 	require.NoError(t, db.Create(sub2).Error)
 
@@ -502,23 +502,23 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) (poo
 	t.Helper()
 
 	poolItem := &model.ItemPool{
-		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:       teamBizKey,
-		Title:         "Pool Item Title",
-		Background:    "Some background",
-		SubmitterKey:  getUserBizKey(t, db, userID),
-		PoolStatus:    "pending",
+		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
+		TeamKey:      teamBizKey,
+		Title:        "Pool Item Title",
+		Background:   "Some background",
+		SubmitterKey: getUserBizKey(t, db, userID),
+		PoolStatus:   "pending",
 	}
 	require.NoError(t, db.Create(poolItem).Error)
 
 	mainItem := &model.MainItem{
-		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      teamBizKey,
-		Code:         "TAMA-00002",
-		Title:        "Main Item for Pool",
-		Priority:     "P1",
-		ProposerKey:  getUserBizKey(t, db, userID),
-		ItemStatus:   "pending",
+		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
+		TeamKey:     teamBizKey,
+		Code:        "TAMA-00002",
+		Title:       "Main Item for Pool",
+		Priority:    "P1",
+		ProposerKey: getUserBizKey(t, db, userID),
+		ItemStatus:  "pending",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
@@ -530,25 +530,25 @@ func seedReportData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, we
 	t.Helper()
 
 	mainItem := &model.MainItem{
-		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      teamBizKey,
-		Code:         "TAMA-00003",
-		Title:        "Report Test Main Item",
-		Priority:     "P1",
-		ProposerKey:  getUserBizKey(t, db, userID),
-		ItemStatus:   "progressing",
+		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
+		TeamKey:     teamBizKey,
+		Code:        "TAMA-00003",
+		Title:       "Report Test Main Item",
+		Priority:    "P1",
+		ProposerKey: getUserBizKey(t, db, userID),
+		ItemStatus:  "progressing",
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
 	subItem := &model.SubItem{
-		BaseModel:     model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:       teamBizKey,
-		MainItemKey:   mainItem.BizKey,
-		Title:         "Report Test Sub Item",
-		Priority:      "P2",
-		ItemStatus:    "progressing",
-		Completion:    50,
-		Weight:        1.0,
+		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
+		TeamKey:     teamBizKey,
+		MainItemKey: mainItem.BizKey,
+		Title:       "Report Test Sub Item",
+		Priority:    "P2",
+		ItemStatus:  "progressing",
+		Completion:  50,
+		Weight:      1.0,
 	}
 	require.NoError(t, db.Create(subItem).Error)
 

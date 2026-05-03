@@ -17,14 +17,14 @@ type mockDialector struct {
 	name string
 }
 
-func (d mockDialector) Name() string                         { return d.name }
-func (d mockDialector) Initialize(_ *gorm.DB) error          { return nil }
-func (d mockDialector) Migrator(_ *gorm.DB) gorm.Migrator    { return nil }
-func (d mockDialector) DataTypeOf(_ *schema.Field) string    { return "" }
-func (d mockDialector) DefaultValueOf(_ *schema.Field) clause.Expression { return nil }
+func (d mockDialector) Name() string                                          { return d.name }
+func (d mockDialector) Initialize(_ *gorm.DB) error                           { return nil }
+func (d mockDialector) Migrator(_ *gorm.DB) gorm.Migrator                     { return nil }
+func (d mockDialector) DataTypeOf(_ *schema.Field) string                     { return "" }
+func (d mockDialector) DefaultValueOf(_ *schema.Field) clause.Expression      { return nil }
 func (d mockDialector) BindVarTo(clause.Writer, *gorm.Statement, interface{}) {}
-func (d mockDialector) QuoteTo(clause.Writer, string)        {}
-func (d mockDialector) Explain(sql string, vars ...interface{}) string { return sql }
+func (d mockDialector) QuoteTo(clause.Writer, string)                         {}
+func (d mockDialector) Explain(sql string, vars ...interface{}) string        { return sql }
 
 func openDBWithDialector(name string) *gorm.DB {
 	db, err := gorm.Open(mockDialector{name: name}, &gorm.Config{})

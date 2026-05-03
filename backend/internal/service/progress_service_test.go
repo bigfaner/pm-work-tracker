@@ -191,7 +191,7 @@ var _ MainItemService = (*mockMainItemSvcForProgress)(nil)
 
 // mockStatusHistorySvcForProgress captures Record calls.
 type mockStatusHistorySvcForProgress struct {
-	recorded []*model.StatusHistory
+	recorded  []*model.StatusHistory
 	recordErr error
 }
 
@@ -367,11 +367,11 @@ func TestProgressAppend_CreateError(t *testing.T) {
 func TestProgressCorrectCompletion_Success(t *testing.T) {
 	record := &model.ProgressRecord{
 		ID:         100,
-		SubItemKey:  5,
-		TeamKey: 1,
-		AuthorKey:   2,
+		SubItemKey: 5,
+		TeamKey:    1,
+		AuthorKey:  2,
 		Completion: 50.0,
-		CreateTime:  time.Now(),
+		CreateTime: time.Now(),
 	}
 	progressRepo := &mockProgressRepo{
 		records: []model.ProgressRecord{*record},
@@ -392,10 +392,10 @@ func TestProgressCorrectCompletion_Success(t *testing.T) {
 func TestProgressCorrectCompletion_IsLatest_SyncsSubItem(t *testing.T) {
 	record := &model.ProgressRecord{
 		ID:         100,
-		SubItemKey:  5,
-		TeamKey: 1,
+		SubItemKey: 5,
+		TeamKey:    1,
 		Completion: 50.0,
-		CreateTime:  time.Now(),
+		CreateTime: time.Now(),
 	}
 	progressRepo := &mockProgressRepo{
 		records: []model.ProgressRecord{*record},
@@ -417,16 +417,16 @@ func TestProgressCorrectCompletion_IsLatest_SyncsSubItem(t *testing.T) {
 func TestProgressCorrectCompletion_NotLatest_SyncsToLatest(t *testing.T) {
 	record := &model.ProgressRecord{
 		ID:         100,
-		SubItemKey:  5,
-		TeamKey: 1,
+		SubItemKey: 5,
+		TeamKey:    1,
 		Completion: 50.0,
-		CreateTime:  time.Now().Add(-2 * time.Hour),
+		CreateTime: time.Now().Add(-2 * time.Hour),
 	}
 	latestRecord := &model.ProgressRecord{
 		ID:         200,
-		SubItemKey:  5,
+		SubItemKey: 5,
 		Completion: 90.0,
-		CreateTime:  time.Now(),
+		CreateTime: time.Now(),
 	}
 	progressRepo := &mockProgressRepo{
 		records: []model.ProgressRecord{*record, *latestRecord},
@@ -449,10 +449,10 @@ func TestProgressCorrectCompletion_NotLatest_SyncsToLatest(t *testing.T) {
 func TestProgressCorrectCompletion_TriggersRecalc(t *testing.T) {
 	record := &model.ProgressRecord{
 		ID:         100,
-		SubItemKey:  5,
-		TeamKey: 1,
+		SubItemKey: 5,
+		TeamKey:    1,
 		Completion: 50.0,
-		CreateTime:  time.Now(),
+		CreateTime: time.Now(),
 	}
 	progressRepo := &mockProgressRepo{
 		records: []model.ProgressRecord{*record},
@@ -484,9 +484,9 @@ func TestProgressCorrectCompletion_RecordNotFound(t *testing.T) {
 
 func TestProgressCorrectCompletion_UpdateError(t *testing.T) {
 	record := &model.ProgressRecord{
-		ID:        100,
+		ID:         100,
 		SubItemKey: 5,
-		TeamKey: 1,
+		TeamKey:    1,
 		CreateTime: time.Now(),
 	}
 	progressRepo := &mockProgressRepo{

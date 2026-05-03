@@ -147,8 +147,8 @@ func TestTeamRepo_AddMember(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		tm := model.TeamMember{
-			TeamKey: team.BizKey,
-			UserKey: member.BizKey,
+			TeamKey:  team.BizKey,
+			UserKey:  member.BizKey,
 			JoinedAt: time.Now(),
 		}
 		require.NoError(t, repo.AddMember(ctx, &tm))
@@ -157,8 +157,8 @@ func TestTeamRepo_AddMember(t *testing.T) {
 
 	t.Run("duplicate_returns_ErrAlreadyExists", func(t *testing.T) {
 		tm := model.TeamMember{
-			TeamKey: team.BizKey,
-			UserKey: member.BizKey,
+			TeamKey:  team.BizKey,
+			UserKey:  member.BizKey,
 			JoinedAt: time.Now(),
 		}
 		err := repo.AddMember(ctx, &tm)
@@ -176,7 +176,7 @@ func TestTeamRepo_RemoveMember(t *testing.T) {
 	team := model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team R", PmKey: pm.BizKey, Code: "TAMR"}
 	require.NoError(t, repo.Create(ctx, &team))
 
-	tm := model.TeamMember{TeamKey: team.BizKey, UserKey: member.BizKey,  JoinedAt: time.Now()}
+	tm := model.TeamMember{TeamKey: team.BizKey, UserKey: member.BizKey, JoinedAt: time.Now()}
 	require.NoError(t, repo.AddMember(ctx, &tm))
 
 	t.Run("success", func(t *testing.T) {
@@ -202,7 +202,7 @@ func TestTeamRepo_FindMember(t *testing.T) {
 	team := model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team F", PmKey: pm.BizKey, Code: "TAMF"}
 	require.NoError(t, repo.Create(ctx, &team))
 
-	tm := model.TeamMember{TeamKey: team.BizKey, UserKey: member.BizKey,  JoinedAt: time.Now()}
+	tm := model.TeamMember{TeamKey: team.BizKey, UserKey: member.BizKey, JoinedAt: time.Now()}
 	require.NoError(t, repo.AddMember(ctx, &tm))
 
 	t.Run("found", func(t *testing.T) {
@@ -296,7 +296,8 @@ func TestTeamRepo_ListMembers_NullRoleID(t *testing.T) {
 	assert.Equal(t, "member", roleByUsername["member_null"], "non-PM should fall back to 'member'")
 }
 
-func TestTeamRepo_ListMembers_EmptyTeam(t *testing.T) {	db := setupTeamTestDB(t)
+func TestTeamRepo_ListMembers_EmptyTeam(t *testing.T) {
+	db := setupTeamTestDB(t)
 	repo := gormrepo.NewGormTeamRepo(db)
 	ctx := context.Background()
 
@@ -394,7 +395,7 @@ func TestTeamRepo_UpdateMember(t *testing.T) {
 	team := model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team UM", PmKey: pm.BizKey, Code: "TAUM"}
 	require.NoError(t, repo.Create(ctx, &team))
 
-	tm := model.TeamMember{TeamKey: team.BizKey, UserKey: member.BizKey,  JoinedAt: time.Now()}
+	tm := model.TeamMember{TeamKey: team.BizKey, UserKey: member.BizKey, JoinedAt: time.Now()}
 	require.NoError(t, repo.AddMember(ctx, &tm))
 
 	require.NoError(t, repo.UpdateMember(ctx, &tm))

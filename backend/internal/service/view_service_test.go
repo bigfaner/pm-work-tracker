@@ -242,9 +242,9 @@ func TestWeeklyComparison_StatsCounts(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, 3, result.Stats.ActiveSubItems) // 2 non-completed + 1 just-completed
-	assert.Equal(t, 1, result.Stats.NewlyCompleted)  // sub 12
-	assert.Equal(t, 1, result.Stats.InProgress)      // sub 10
-	assert.Equal(t, 1, result.Stats.Blocked)         // sub 11
+	assert.Equal(t, 1, result.Stats.NewlyCompleted) // sub 12
+	assert.Equal(t, 1, result.Stats.InProgress)     // sub 10
+	assert.Equal(t, 1, result.Stats.Blocked)        // sub 11
 }
 
 func TestWeeklyComparison_DeltaComputation(t *testing.T) {
@@ -333,11 +333,11 @@ func TestWeeklyComparison_JustCompleted(t *testing.T) {
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				BaseModel:         model.BaseModel{ID: 10, BizKey: 10},
-				TeamKey: 1,
-				MainItemKey: int64(1),
+				BaseModel:     model.BaseModel{ID: 10, BizKey: 10},
+				TeamKey:       1,
+				MainItemKey:   int64(1),
 				Title:         "Just Done",
-				ItemStatus: "completed",
+				ItemStatus:    "completed",
 				Completion:    100,
 				ActualEndDate: &completedDate,
 			},
@@ -373,11 +373,11 @@ func TestWeeklyComparison_CompletedNoChange(t *testing.T) {
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				BaseModel:         model.BaseModel{ID: 10, BizKey: 10},
-				TeamKey: 1,
-				MainItemKey: int64(1),
+				BaseModel:     model.BaseModel{ID: 10, BizKey: 10},
+				TeamKey:       1,
+				MainItemKey:   int64(1),
 				Title:         "Old Completed",
-				ItemStatus: "completed",
+				ItemStatus:    "completed",
 				Completion:    100,
 				ActualEndDate: &oldEndDate,
 			},
@@ -434,11 +434,11 @@ func TestWeeklyComparison_MainItemSummary(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				BaseModel:           model.BaseModel{ID: 1, BizKey: 1},
-				TeamKey: 1,
+				BaseModel:       model.BaseModel{ID: 1, BizKey: 1},
+				TeamKey:         1,
 				Title:           "Main 1",
 				Priority:        "P1",
-				PlanStartDate: &startDate,
+				PlanStartDate:   &startDate,
 				ExpectedEndDate: &endDate,
 				Completion:      58,
 			},
@@ -500,13 +500,13 @@ func TestWeeklyComparison_ProgressDescriptionFromLatestRecord(t *testing.T) {
 	progressRepo := &mockViewProgressRepo{
 		records: []model.ProgressRecord{
 			{
-				ID:         100,
+				ID:          100,
 				SubItemKey:  10,
-				TeamKey: 1,
-				Completion: 60,
+				TeamKey:     1,
+				Completion:  60,
 				Achievement: "Token sign done",
 				Blocker:     "Blacklist WIP",
-				CreateTime:   weekStart.AddDate(0, 0, 1),
+				CreateTime:  weekStart.AddDate(0, 0, 1),
 			},
 		},
 	}
@@ -592,12 +592,12 @@ func TestWeeklyComparison_SubItemCreatedAfterWeek_NotActive(t *testing.T) {
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				BaseModel:  model.BaseModel{ID: 10, BizKey: 10, CreateTime: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
-				TeamKey: 1,
+				BaseModel:   model.BaseModel{ID: 10, BizKey: 10, CreateTime: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
+				TeamKey:     1,
 				MainItemKey: int64(1),
-				Title:      "Future Sub",
-				ItemStatus: "progressing",
-				Completion: 60,
+				Title:       "Future Sub",
+				ItemStatus:  "progressing",
+				Completion:  60,
 			},
 		},
 	}
@@ -624,13 +624,13 @@ func TestWeeklyComparison_SubItemCompletedBeforeWeek_NotActive(t *testing.T) {
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				BaseModel:      model.BaseModel{ID: 10, BizKey: 10, CreateTime: time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)},
-				TeamKey: 1,
-				MainItemKey: int64(1),
-				Title:          "Old Completed Sub",
-				ItemStatus: "completed",
-				Completion:     100,
-				ActualEndDate:  &actualEnd,
+				BaseModel:     model.BaseModel{ID: 10, BizKey: 10, CreateTime: time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)},
+				TeamKey:       1,
+				MainItemKey:   int64(1),
+				Title:         "Old Completed Sub",
+				ItemStatus:    "completed",
+				Completion:    100,
+				ActualEndDate: &actualEnd,
 			},
 		},
 	}
@@ -663,10 +663,10 @@ func TestWeeklyComparison_SubItemCreatedAfterWeek_Completed_NotShown(t *testing.
 		items: []model.SubItem{
 			{
 				BaseModel:     model.BaseModel{ID: 10, BizKey: 10, CreateTime: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
-				TeamKey: 1,
-				MainItemKey: int64(1),
+				TeamKey:       1,
+				MainItemKey:   int64(1),
 				Title:         "Future Completed Sub",
-				ItemStatus: "completed",
+				ItemStatus:    "completed",
 				Completion:    100,
 				ActualEndDate: &actualEnd,
 			},
@@ -696,10 +696,10 @@ func TestWeeklyComparison_SubItemCompletedAfterWeek_NotShown(t *testing.T) {
 		items: []model.SubItem{
 			{
 				BaseModel:     model.BaseModel{ID: 10, BizKey: 10, CreateTime: time.Date(2026, 4, 21, 0, 0, 0, 0, time.UTC)},
-				TeamKey: 1,
-				MainItemKey: int64(1),
+				TeamKey:       1,
+				MainItemKey:   int64(1),
 				Title:         "Future Sub",
-				ItemStatus: "completed",
+				ItemStatus:    "completed",
 				Completion:    100,
 				ActualEndDate: &actualEnd,
 			},
@@ -900,14 +900,14 @@ func TestGanttView_BasicStructure(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				BaseModel:           model.BaseModel{ID: 1, BizKey: 1},
-				TeamKey: 1,
+				BaseModel:       model.BaseModel{ID: 1, BizKey: 1},
+				TeamKey:         1,
 				Title:           "Main 1",
 				Priority:        "P1",
-				PlanStartDate: &startDate,
+				PlanStartDate:   &startDate,
 				ExpectedEndDate: &endDate,
 				Completion:      45.5,
-				ItemStatus: "progressing",
+				ItemStatus:      "progressing",
 			},
 		},
 	}
@@ -937,13 +937,13 @@ func TestGanttView_OverdueItem(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				BaseModel:           model.BaseModel{ID: 1, BizKey: 1},
-				TeamKey: 1,
+				BaseModel:       model.BaseModel{ID: 1, BizKey: 1},
+				TeamKey:         1,
 				Title:           "Overdue Main",
 				Priority:        "P1",
-				PlanStartDate: &startDate,
+				PlanStartDate:   &startDate,
 				ExpectedEndDate: &pastDate,
-				ItemStatus: "progressing",
+				ItemStatus:      "progressing",
 			},
 		},
 	}
@@ -966,13 +966,13 @@ func TestGanttView_Overdue_ExemptWhenCompleted(t *testing.T) {
 			mainRepo := &mockViewMainItemRepo{
 				items: []model.MainItem{
 					{
-						BaseModel:           model.BaseModel{ID: 1, BizKey: 1},
-						TeamKey: 1,
+						BaseModel:       model.BaseModel{ID: 1, BizKey: 1},
+						TeamKey:         1,
 						Title:           "Completed",
 						Priority:        "P1",
-						PlanStartDate: &startDate,
+						PlanStartDate:   &startDate,
 						ExpectedEndDate: &pastDate,
-						ItemStatus: status,
+						ItemStatus:      status,
 					},
 				},
 			}
@@ -1086,27 +1086,27 @@ func TestGanttView_SubItemsNested(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				BaseModel:           model.BaseModel{ID: 1, BizKey: 1},
-				TeamKey: 1,
+				BaseModel:       model.BaseModel{ID: 1, BizKey: 1},
+				TeamKey:         1,
 				Title:           "Main 1",
 				Priority:        "P1",
-				PlanStartDate: &startDate,
+				PlanStartDate:   &startDate,
 				ExpectedEndDate: &endDate,
-				ItemStatus: "progressing",
+				ItemStatus:      "progressing",
 			},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				BaseModel:           model.BaseModel{ID: 10, BizKey: 10},
-				TeamKey: 1,
-				MainItemKey: int64(1),
+				BaseModel:       model.BaseModel{ID: 10, BizKey: 10},
+				TeamKey:         1,
+				MainItemKey:     int64(1),
 				Title:           "Sub A",
-				PlanStartDate: &startDate,
+				PlanStartDate:   &startDate,
 				ExpectedEndDate: &endDate,
 				Completion:      80,
-				ItemStatus: "reviewing",
+				ItemStatus:      "reviewing",
 			},
 		},
 	}
@@ -1163,12 +1163,12 @@ func TestGanttView_ArchivedItemsExcluded(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				BaseModel:           model.BaseModel{ID: 1, BizKey: 1},
-				TeamKey: 1,
+				BaseModel:       model.BaseModel{ID: 1, BizKey: 1},
+				TeamKey:         1,
 				Title:           "Active",
-				PlanStartDate: &startDate,
+				PlanStartDate:   &startDate,
 				ExpectedEndDate: &endDate,
-				ItemStatus: "progressing",
+				ItemStatus:      "progressing",
 			},
 		},
 	}
@@ -1189,25 +1189,25 @@ func TestGanttView_DatesFormattedAsISO8601(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				BaseModel:           model.BaseModel{ID: 1, BizKey: 1},
-				TeamKey: 1,
+				BaseModel:       model.BaseModel{ID: 1, BizKey: 1},
+				TeamKey:         1,
 				Title:           "Main 1",
-				PlanStartDate: &startDate,
+				PlanStartDate:   &startDate,
 				ExpectedEndDate: &endDate,
-				ItemStatus: "progressing",
+				ItemStatus:      "progressing",
 			},
 		},
 	}
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				BaseModel:           model.BaseModel{ID: 10, BizKey: 10},
-				TeamKey: 1,
-				MainItemKey: int64(1),
+				BaseModel:       model.BaseModel{ID: 10, BizKey: 10},
+				TeamKey:         1,
+				MainItemKey:     int64(1),
 				Title:           "Sub 1",
-				PlanStartDate: &startDate,
+				PlanStartDate:   &startDate,
 				ExpectedEndDate: &endDate,
-				ItemStatus: "progressing",
+				ItemStatus:      "progressing",
 			},
 		},
 	}
@@ -1228,8 +1228,8 @@ func TestGanttView_NilDates_FormatAsEmptyString(t *testing.T) {
 		items: []model.MainItem{
 			{
 				BaseModel:  model.BaseModel{ID: 1, BizKey: 1},
-				TeamKey: 1,
-				Title:  "No dates",
+				TeamKey:    1,
+				Title:      "No dates",
 				ItemStatus: "pending",
 			},
 		},
@@ -1277,17 +1277,17 @@ func TestGanttView_SubItemSummaryFieldsOnly(t *testing.T) {
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				BaseModel:           model.BaseModel{ID: 10, BizKey: 10},
-				TeamKey: 1,
-				MainItemKey: int64(1),
+				BaseModel:       model.BaseModel{ID: 10, BizKey: 10},
+				TeamKey:         1,
+				MainItemKey:     int64(1),
 				Title:           "Sub A",
-				ItemDesc: "Should not appear in gantt sub-item DTO",
+				ItemDesc:        "Should not appear in gantt sub-item DTO",
 				Priority:        "P2",
-				AssigneeKey: nil,
-				PlanStartDate: &startDate,
+				AssigneeKey:     nil,
+				PlanStartDate:   &startDate,
 				ExpectedEndDate: &endDate,
 				ActualEndDate:   nil,
-				ItemStatus: "progressing",
+				ItemStatus:      "progressing",
 				Completion:      60,
 			},
 		},
@@ -1317,8 +1317,8 @@ func TestGanttView_Overdue_NilExpectedEndDate(t *testing.T) {
 		items: []model.MainItem{
 			{
 				BaseModel:  model.BaseModel{ID: 1, BizKey: 1},
-				TeamKey: 1,
-				Title:  "No end date",
+				TeamKey:    1,
+				Title:      "No end date",
 				ItemStatus: "progressing",
 			},
 		},
@@ -1429,13 +1429,13 @@ func TestTableView_CombinesMainAndSubItems(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				BaseModel:           model.BaseModel{ID: 1, BizKey: 1},
-				TeamKey: 1,
+				BaseModel:       model.BaseModel{ID: 1, BizKey: 1},
+				TeamKey:         1,
 				Code:            "TEST-00001",
 				Title:           "Main Item",
 				Priority:        "P1",
-				AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
-				ItemStatus: "progressing",
+				AssigneeKey:     func() *int64 { v := int64(assigneeID); return &v }(),
+				ItemStatus:      "progressing",
 				Completion:      50,
 				ExpectedEndDate: &endDate,
 			},
@@ -1444,13 +1444,13 @@ func TestTableView_CombinesMainAndSubItems(t *testing.T) {
 	subRepo := &mockViewSubItemRepo{
 		items: []model.SubItem{
 			{
-				BaseModel:           model.BaseModel{ID: 10, BizKey: 10},
-				TeamKey: 1,
-				MainItemKey: int64(1),
+				BaseModel:       model.BaseModel{ID: 10, BizKey: 10},
+				TeamKey:         1,
+				MainItemKey:     int64(1),
 				Title:           "Sub Item",
 				Priority:        "P2",
-				AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
-				ItemStatus: "pending",
+				AssigneeKey:     func() *int64 { v := int64(assigneeID); return &v }(),
+				ItemStatus:      "pending",
 				Completion:      0,
 				ExpectedEndDate: &endDate,
 			},
@@ -1837,13 +1837,13 @@ func TestTableExportCSV_ReturnsValidCSV(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{
-				BaseModel:           model.BaseModel{ID: 1, BizKey: 1},
-				TeamKey: 1,
+				BaseModel:       model.BaseModel{ID: 1, BizKey: 1},
+				TeamKey:         1,
 				Code:            "TEST-00001",
 				Title:           "Main Item",
 				Priority:        "P1",
-				AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
-				ItemStatus: "completed",
+				AssigneeKey:     func() *int64 { v := int64(assigneeID); return &v }(),
+				ItemStatus:      "completed",
 				Completion:      100,
 				ExpectedEndDate: &endDate,
 				ActualEndDate:   &actualEnd,
@@ -2167,9 +2167,9 @@ func TestBuildWeeklyGroups_Stats(t *testing.T) {
 	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
 	weekEnd := weekStart.AddDate(0, 0, 6)
 
-	overdueDate := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)       // before weekEnd
-	completedInWeek := time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)   // within week
-	beforeWeekStart := time.Date(2026, 4, 5, 0, 0, 0, 0, time.UTC)    // before weekStart
+	overdueDate := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)     // before weekEnd
+	completedInWeek := time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC) // within week
+	beforeWeekStart := time.Date(2026, 4, 5, 0, 0, 0, 0, time.UTC)  // before weekStart
 
 	mainItem := model.MainItem{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "M", Priority: "P1"}
 
@@ -2302,13 +2302,13 @@ func TestBuildWeeklyGroups_Stats(t *testing.T) {
 			_, stats := buildWeeklyGroups(
 				[]model.MainItem{mainItem},
 				subsByMain,
-				emptyActive,        // lastWeekActive
-				tt.active,          // thisWeekActive
-				emptyProgress,      // lastWeekProgress
-				tt.progress,        // thisWeekProgress
+				emptyActive,         // lastWeekActive
+				tt.active,           // thisWeekActive
+				emptyProgress,       // lastWeekProgress
+				tt.progress,         // thisWeekProgress
 				map[int64]float64{}, // lastWeekCompletion
 				map[int64]string{},  // latestProgressDesc
-				map[int64]string{},   // assigneeNames
+				map[int64]string{},  // assigneeNames
 				weekStart,
 				weekEnd,
 			)
@@ -2331,16 +2331,16 @@ func seedBenchmarkData(n int) (*mockViewMainItemRepo, *mockViewSubItemRepo, *moc
 		id := uint(i + 1)
 		assigneeID := uint((i % 50) + 1) // 50 unique assignees
 		mainItems[i] = model.MainItem{
-			BaseModel:      model.BaseModel{ID: id, BizKey: int64(id)},
-			TeamKey: 1,
-			Code:           fmt.Sprintf("BENCH-%05d", id),
-			Title:          fmt.Sprintf("Main Item %d", id),
-			Priority:       []string{"P1", "P2", "P3"}[i%3],
-			ItemStatus: "progressing",
-			Completion:     float64(i % 100),
-			PlanStartDate: &startDate,
+			BaseModel:       model.BaseModel{ID: id, BizKey: int64(id)},
+			TeamKey:         1,
+			Code:            fmt.Sprintf("BENCH-%05d", id),
+			Title:           fmt.Sprintf("Main Item %d", id),
+			Priority:        []string{"P1", "P2", "P3"}[i%3],
+			ItemStatus:      "progressing",
+			Completion:      float64(i % 100),
+			PlanStartDate:   &startDate,
 			ExpectedEndDate: &endDate,
-			AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
+			AssigneeKey:     func() *int64 { v := int64(assigneeID); return &v }(),
 		}
 	}
 
@@ -2350,15 +2350,15 @@ func seedBenchmarkData(n int) (*mockViewMainItemRepo, *mockViewSubItemRepo, *moc
 		mainID := uint(i/2 + 1)
 		subItems[i] = model.SubItem{
 			BaseModel:       model.BaseModel{ID: uint(i + 1), BizKey: int64(i + 1)},
-			TeamKey: 1,
-			MainItemKey: int64(mainID),
+			TeamKey:         1,
+			MainItemKey:     int64(mainID),
 			Title:           fmt.Sprintf("Sub Item %d", i+1),
 			Priority:        []string{"P1", "P2", "P3"}[(i/2)%3],
-			ItemStatus: "progressing",
+			ItemStatus:      "progressing",
 			Completion:      float64(i % 100),
-			PlanStartDate: &startDate,
+			PlanStartDate:   &startDate,
 			ExpectedEndDate: &endDate,
-			AssigneeKey: mainItems[i/2].AssigneeKey,
+			AssigneeKey:     mainItems[i/2].AssigneeKey,
 		}
 	}
 
@@ -2368,11 +2368,11 @@ func seedBenchmarkData(n int) (*mockViewMainItemRepo, *mockViewSubItemRepo, *moc
 	for i := range records {
 		records[i] = model.ProgressRecord{
 			ID:          uint(i + 1),
-			SubItemKey: int64(i + 1),
-			TeamKey: 1,
+			SubItemKey:  int64(i + 1),
+			TeamKey:     1,
 			Completion:  float64(i % 100),
 			Achievement: fmt.Sprintf("Achievement %d", i),
-			CreateTime:   weekStart.AddDate(0, 0, i%7),
+			CreateTime:  weekStart.AddDate(0, 0, i%7),
 		}
 	}
 

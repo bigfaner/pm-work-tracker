@@ -27,11 +27,11 @@ func TestStatusHistory_DoesNotEmbedBaseModel(t *testing.T) {
 func TestStatusHistory_Fields(t *testing.T) {
 	s := model.StatusHistory{
 		ItemType:   "main_item",
-		ItemKey: int64(1),
+		ItemKey:    int64(1),
 		FromStatus: "pending",
 		ToStatus:   "in_progress",
 		ChangedBy:  42,
-		IsAuto: 0,
+		IsAuto:     0,
 		Remark:     "manual change",
 	}
 	assert.Equal(t, "main_item", s.ItemType)

@@ -142,10 +142,10 @@ func NewSubItemVO(m *model.SubItem) SubItemVO {
 // NewProgressRecordVO converts a model.ProgressRecord to a ProgressRecordVO.
 func NewProgressRecordVO(m *model.ProgressRecord, authorName string) ProgressRecordVO {
 	return ProgressRecordVO{
-		BizKey:     pkg.FormatID(m.BizKey),
-		SubItemKey: pkg.FormatID(m.SubItemKey),
-		TeamKey:    pkg.FormatID(m.TeamKey),
-		AuthorKey:  pkg.FormatID(m.AuthorKey),
+		BizKey:      pkg.FormatID(m.BizKey),
+		SubItemKey:  pkg.FormatID(m.SubItemKey),
+		TeamKey:     pkg.FormatID(m.TeamKey),
+		AuthorKey:   pkg.FormatID(m.AuthorKey),
 		AuthorName:  authorName,
 		Completion:  m.Completion,
 		Achievement: m.Achievement,

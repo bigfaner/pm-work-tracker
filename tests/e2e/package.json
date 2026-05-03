@@ -2,14 +2,8 @@
   "name": "e2e-tests",
   "private": true,
   "type": "module",
-  "scripts": {
-    "test:cli": "node --import tsx/esm --test cli/startup/cli.spec.ts && node --import tsx/esm --test cli/lint-staged/cli.spec.ts",
-    "test:api": "node --import tsx/esm --test api/main-items/api.spec.ts && node --import tsx/esm --test api/item-pool/api.spec.ts && node --import tsx/esm --test api/regression/api.spec.ts",
-    "test": "npm run test:cli && npm run test:api"
-  },
   "devDependencies": {
-    "tsx": "^4.19.0",
-    "playwright": "^1.44.0",
+    "@playwright/test": "^1.59.0",
     "yaml": "^2.7.0"
   }
 }

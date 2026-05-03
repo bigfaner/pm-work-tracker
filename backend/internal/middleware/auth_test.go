@@ -223,8 +223,8 @@ func TestIsSuperAdmin_NoValue(t *testing.T) {
 func TestAuthMiddleware_DeletedUser_Returns401(t *testing.T) {
 	repo := new(mockUserRepo)
 	repo.On("FindByID", mock.Anything, uint(5)).Return(&model.User{
-		BaseModel:   model.BaseModel{ID: 5, DeletedFlag: 1},
-		Username:    "deleted",
+		BaseModel: model.BaseModel{ID: 5, DeletedFlag: 1},
+		Username:  "deleted",
 	}, nil)
 
 	r, _ := setupAuthRouter(testSecret, repo)

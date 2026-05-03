@@ -37,85 +37,85 @@ func seedViewItemData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint, 
 
 	// Item 1: completed sub-item (completed this week)
 	mi1 := &model.MainItem{
-		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      teamBizKey,
-		Code:         "TAMA-W001",
-		Title:        "Weekly Completed Item",
-		Priority:     "P1",
-		ProposerKey:  getUserBizKey(t, db, userID),
-		ItemStatus:   "progressing",
+		BaseModel:       model.BaseModel{BizKey: snowflake.Generate()},
+		TeamKey:         teamBizKey,
+		Code:            "TAMA-W001",
+		Title:           "Weekly Completed Item",
+		Priority:        "P1",
+		ProposerKey:     getUserBizKey(t, db, userID),
+		ItemStatus:      "progressing",
 		PlanStartDate:   ptrTime(time.Date(2026, 1, 1, 0, 0, 0, 0, loc)),
 		ExpectedEndDate: ptrTime(time.Date(2026, 6, 30, 0, 0, 0, 0, loc)),
 	}
 	require.NoError(t, db.Create(mi1).Error)
 	endDate := weekStart.AddDate(0, 0, 2) // Wednesday of this week
 	sub1 := &model.SubItem{
-		BaseModel:      model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:        teamBizKey,
-		MainItemKey:    mi1.BizKey,
-		Title:          "Completed Sub",
-		Priority:       "P2",
-		ItemStatus:     "completed",
-		Completion:     100,
-		Weight:         1.0,
-		PlanStartDate:  ptrTime(time.Date(2026, 1, 1, 0, 0, 0, 0, loc)),
+		BaseModel:       model.BaseModel{BizKey: snowflake.Generate()},
+		TeamKey:         teamBizKey,
+		MainItemKey:     mi1.BizKey,
+		Title:           "Completed Sub",
+		Priority:        "P2",
+		ItemStatus:      "completed",
+		Completion:      100,
+		Weight:          1.0,
+		PlanStartDate:   ptrTime(time.Date(2026, 1, 1, 0, 0, 0, 0, loc)),
 		ExpectedEndDate: ptrTime(time.Date(2026, 6, 30, 0, 0, 0, 0, loc)),
-		ActualEndDate:  &endDate,
+		ActualEndDate:   &endDate,
 	}
 	require.NoError(t, db.Create(sub1).Error)
 
 	// Item 2: progressing sub-item
 	mi2 := &model.MainItem{
-		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      teamBizKey,
-		Code:         "TAMA-W002",
-		Title:        "Weekly Progressing Item 1",
-		Priority:     "P2",
-		ProposerKey:  getUserBizKey(t, db, userID),
-		ItemStatus:   "progressing",
-		Completion:   30,
+		BaseModel:       model.BaseModel{BizKey: snowflake.Generate()},
+		TeamKey:         teamBizKey,
+		Code:            "TAMA-W002",
+		Title:           "Weekly Progressing Item 1",
+		Priority:        "P2",
+		ProposerKey:     getUserBizKey(t, db, userID),
+		ItemStatus:      "progressing",
+		Completion:      30,
 		PlanStartDate:   ptrTime(time.Date(2026, 1, 1, 0, 0, 0, 0, loc)),
 		ExpectedEndDate: ptrTime(time.Date(2026, 6, 30, 0, 0, 0, 0, loc)),
 	}
 	require.NoError(t, db.Create(mi2).Error)
 	sub2 := &model.SubItem{
-		BaseModel:      model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:        teamBizKey,
-		MainItemKey:    mi2.BizKey,
-		Title:          "Progressing Sub 1",
-		Priority:       "P2",
-		ItemStatus:     "progressing",
-		Completion:     30,
-		Weight:         1.0,
-		PlanStartDate:  ptrTime(time.Date(2026, 1, 1, 0, 0, 0, 0, loc)),
+		BaseModel:       model.BaseModel{BizKey: snowflake.Generate()},
+		TeamKey:         teamBizKey,
+		MainItemKey:     mi2.BizKey,
+		Title:           "Progressing Sub 1",
+		Priority:        "P2",
+		ItemStatus:      "progressing",
+		Completion:      30,
+		Weight:          1.0,
+		PlanStartDate:   ptrTime(time.Date(2026, 1, 1, 0, 0, 0, 0, loc)),
 		ExpectedEndDate: ptrTime(time.Date(2026, 6, 30, 0, 0, 0, 0, loc)),
 	}
 	require.NoError(t, db.Create(sub2).Error)
 
 	// Item 3: another progressing sub-item
 	mi3 := &model.MainItem{
-		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:      teamBizKey,
-		Code:         "TAMA-W003",
-		Title:        "Weekly Progressing Item 2",
-		Priority:     "P3",
-		ProposerKey:  getUserBizKey(t, db, userID),
-		ItemStatus:   "progressing",
-		Completion:   50,
+		BaseModel:       model.BaseModel{BizKey: snowflake.Generate()},
+		TeamKey:         teamBizKey,
+		Code:            "TAMA-W003",
+		Title:           "Weekly Progressing Item 2",
+		Priority:        "P3",
+		ProposerKey:     getUserBizKey(t, db, userID),
+		ItemStatus:      "progressing",
+		Completion:      50,
 		PlanStartDate:   ptrTime(time.Date(2026, 1, 1, 0, 0, 0, 0, loc)),
 		ExpectedEndDate: ptrTime(time.Date(2026, 6, 30, 0, 0, 0, 0, loc)),
 	}
 	require.NoError(t, db.Create(mi3).Error)
 	sub3 := &model.SubItem{
-		BaseModel:      model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:        teamBizKey,
-		MainItemKey:    mi3.BizKey,
-		Title:          "Progressing Sub 2",
-		Priority:       "P3",
-		ItemStatus:     "progressing",
-		Completion:     50,
-		Weight:         1.0,
-		PlanStartDate:  ptrTime(time.Date(2026, 1, 1, 0, 0, 0, 0, loc)),
+		BaseModel:       model.BaseModel{BizKey: snowflake.Generate()},
+		TeamKey:         teamBizKey,
+		MainItemKey:     mi3.BizKey,
+		Title:           "Progressing Sub 2",
+		Priority:        "P3",
+		ItemStatus:      "progressing",
+		Completion:      50,
+		Weight:          1.0,
+		PlanStartDate:   ptrTime(time.Date(2026, 1, 1, 0, 0, 0, 0, loc)),
 		ExpectedEndDate: ptrTime(time.Date(2026, 6, 30, 0, 0, 0, 0, loc)),
 	}
 	require.NoError(t, db.Create(sub3).Error)
@@ -350,7 +350,7 @@ func TestViews_Table_Pagination_ReturnsCorrectTotal(t *testing.T) {
 	items := respData["items"].([]interface{})
 	total := respData["total"].(float64)
 
-	assert.Len(t, items, 2)      // page size 2
+	assert.Len(t, items, 2)            // page size 2
 	assert.Equal(t, float64(3), total) // total 3 items
 	assert.Equal(t, float64(1), respData["page"])
 	assert.Equal(t, float64(2), respData["size"])

@@ -8,9 +8,9 @@ import (
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
-	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/pkg/dates"
+	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg/repo"
 	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/repository"
@@ -29,10 +29,10 @@ type ItemPoolService interface {
 }
 
 type itemPoolService struct {
-	poolRepo   repository.ItemPoolRepo
-	subRepo    repository.SubItemRepo
-	mainRepo   repository.MainItemRepo
-	db         repo.DBTransactor
+	poolRepo repository.ItemPoolRepo
+	subRepo  repository.SubItemRepo
+	mainRepo repository.MainItemRepo
+	db       repo.DBTransactor
 }
 
 // NewItemPoolService creates a new ItemPoolService.
@@ -94,9 +94,15 @@ func (s *itemPoolService) Assign(ctx context.Context, teamBizKey int64, pmBizKey
 			Title:       poolItem.Title,
 			ItemDesc:    poolItem.Background,
 			Priority:    defaultPriority(req.Priority),
-			AssigneeKey: func() *int64 { if req.AssigneeKey != nil { v, _ := pkg.ParseID(*req.AssigneeKey); return &v }; return nil }(),
-			ItemStatus:  "pending",
-			Weight:      1.0,
+			AssigneeKey: func() *int64 {
+				if req.AssigneeKey != nil {
+					v, _ := pkg.ParseID(*req.AssigneeKey)
+					return &v
+				}
+				return nil
+			}(),
+			ItemStatus: "pending",
+			Weight:     1.0,
 		}
 		if req.StartDate != nil {
 			if t, e := dates.ParseDate(*req.StartDate); e == nil {
@@ -114,12 +120,18 @@ func (s *itemPoolService) Assign(ctx context.Context, teamBizKey int64, pmBizKey
 
 		// Update pool item
 		fields := map[string]interface{}{
-			"pool_status":      "assigned",
+			"pool_status":       "assigned",
 			"assigned_main_key": mainItem.BizKey,
 			"assigned_sub_key":  subItem.BizKey,
-			"assignee_key":      func() *int64 { if req.AssigneeKey != nil { v, _ := pkg.ParseID(*req.AssigneeKey); return &v }; return nil }(),
-			"reviewer_key":      pmBizKey,
-			"reviewed_at":       now,
+			"assignee_key": func() *int64 {
+				if req.AssigneeKey != nil {
+					v, _ := pkg.ParseID(*req.AssigneeKey)
+					return &v
+				}
+				return nil
+			}(),
+			"reviewer_key": pmBizKey,
+			"reviewed_at":  now,
 		}
 		return s.poolRepo.Update(ctx, poolItem, fields)
 	})
@@ -153,9 +165,15 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamBizKey int64, p
 			Title:       poolItem.Title,
 			Priority:    req.Priority,
 			ProposerKey: pmBizKey,
-			AssigneeKey: func() *int64 { if req.AssigneeKey != nil { v, _ := pkg.ParseID(*req.AssigneeKey); return &v }; return nil }(),
-			IsKeyItem:   false,
-			ItemStatus:  "pending",
+			AssigneeKey: func() *int64 {
+				if req.AssigneeKey != nil {
+					v, _ := pkg.ParseID(*req.AssigneeKey)
+					return &v
+				}
+				return nil
+			}(),
+			IsKeyItem:  false,
+			ItemStatus: "pending",
 		}
 
 		if req.StartDate != nil {
@@ -176,9 +194,15 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamBizKey int64, p
 		fields := map[string]interface{}{
 			"pool_status":       "assigned",
 			"assigned_main_key": mainItem.BizKey,
-			"assignee_key":      func() *int64 { if req.AssigneeKey != nil { v, _ := pkg.ParseID(*req.AssigneeKey); return &v }; return nil }(),
-			"reviewer_key":      pmBizKey,
-			"reviewed_at":       now,
+			"assignee_key": func() *int64 {
+				if req.AssigneeKey != nil {
+					v, _ := pkg.ParseID(*req.AssigneeKey)
+					return &v
+				}
+				return nil
+			}(),
+			"reviewer_key": pmBizKey,
+			"reviewed_at":  now,
 		}
 		if err := s.poolRepo.Update(ctx, poolItem, fields); err != nil {
 			return err
@@ -272,4 +296,3 @@ func defaultPriority(p string) string {
 	}
 	return p
 }
-

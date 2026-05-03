@@ -130,8 +130,8 @@ func TestItemPool_DefaultStatus(t *testing.T) {
 	require.NoError(t, db.Create(&team).Error)
 
 	ip := model.ItemPool{
-		TeamKey: int64(team.ID),
-		Title:       "Proposed Item",
+		TeamKey:      int64(team.ID),
+		Title:        "Proposed Item",
 		SubmitterKey: int64(u.ID),
 	}
 	require.NoError(t, db.Create(&ip).Error)
@@ -162,18 +162,18 @@ func TestItemPool_AllFields(t *testing.T) {
 	assigneeID := u.ID
 
 	ip := model.ItemPool{
-		TeamKey: int64(team.ID),
-		Title:          "Full Item",
-		Background:     "some background",
-		ExpectedOutput: "some output",
-		SubmitterKey: int64(u.ID),
-		PoolStatus: "assigned",
+		TeamKey:         int64(team.ID),
+		Title:           "Full Item",
+		Background:      "some background",
+		ExpectedOutput:  "some output",
+		SubmitterKey:    int64(u.ID),
+		PoolStatus:      "assigned",
 		AssignedMainKey: func() *int64 { v := int64(mainID); return &v }(),
-		AssignedSubKey: func() *int64 { v := int64(subID); return &v }(),
-		AssigneeKey: func() *int64 { v := int64(assigneeID); return &v }(),
-		RejectReason:   "",
-		ReviewedAt:     &now,
-		ReviewerKey: func() *int64 { v := int64(reviewerID); return &v }(),
+		AssignedSubKey:  func() *int64 { v := int64(subID); return &v }(),
+		AssigneeKey:     func() *int64 { v := int64(assigneeID); return &v }(),
+		RejectReason:    "",
+		ReviewedAt:      &now,
+		ReviewerKey:     func() *int64 { v := int64(reviewerID); return &v }(),
 	}
 	require.NoError(t, db.Create(&ip).Error)
 
@@ -203,10 +203,10 @@ func TestItemPool_StatusValues(t *testing.T) {
 	statuses := []string{"pending", "assigned", "rejected"}
 	for i, s := range statuses {
 		ip := model.ItemPool{
-			TeamKey: int64(team.ID),
-			Title:       "Item " + string(rune('A'+i)),
+			TeamKey:      int64(team.ID),
+			Title:        "Item " + string(rune('A'+i)),
 			SubmitterKey: int64(u.ID),
-			PoolStatus:      s,
+			PoolStatus:   s,
 		}
 		require.NoError(t, db.Create(&ip).Error)
 	}
@@ -231,10 +231,10 @@ func TestItemPool_TeamStatusCompositeIndex(t *testing.T) {
 
 	for _, s := range []string{"pending", "assigned", "rejected"} {
 		ip := model.ItemPool{
-			TeamKey: int64(team.ID),
-			Title:       "Pool " + s,
+			TeamKey:      int64(team.ID),
+			Title:        "Pool " + s,
 			SubmitterKey: int64(u.ID),
-			PoolStatus:      s,
+			PoolStatus:   s,
 		}
 		require.NoError(t, db.Create(&ip).Error)
 	}

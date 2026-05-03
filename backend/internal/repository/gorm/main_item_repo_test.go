@@ -60,12 +60,12 @@ func TestMainItemRepo_Create(t *testing.T) {
 
 	u, team := seedMainItemTeam(t, db)
 	item := &model.MainItem{
-		TeamKey: int64(team.ID),
-		Code:       "FEAT-00001",
-		Title:      "Test Item",
-		Priority:   "P1",
+		TeamKey:     int64(team.ID),
+		Code:        "FEAT-00001",
+		Title:       "Test Item",
+		Priority:    "P1",
 		ProposerKey: int64(u.ID),
-		ItemStatus: "pending",
+		ItemStatus:  "pending",
 	}
 	require.NoError(t, repo.Create(ctx, item))
 	assert.NotZero(t, item.ID)
@@ -194,8 +194,8 @@ func TestMainItemRepo_List(t *testing.T) {
 	require.NoError(t, db.Create(&u2).Error)
 	team2 := model.Team{TeamName: "Team2", PmKey: int64(u2.ID)}
 	require.NoError(t, db.Create(&team2).Error)
-		team2.BizKey = int64(team2.ID)
-		require.NoError(t, db.Save(&team2).Error)
+	team2.BizKey = int64(team2.ID)
+	require.NoError(t, db.Save(&team2).Error)
 	createMainItem(t, db, team2.BizKey, u2.ID, "FEAT-00004", "Other Team Item", "P1", "pending")
 
 	t.Run("all_items_for_team", func(t *testing.T) {

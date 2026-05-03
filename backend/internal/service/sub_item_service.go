@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"pm-work-tracker/backend/internal/dto"
-	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/model"
-	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/pkg/dates"
+	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg/snowflake"
 	"pm-work-tracker/backend/internal/pkg/status"
 	"pm-work-tracker/backend/internal/repository"
@@ -67,9 +67,15 @@ func (s *subItemService) Create(ctx context.Context, teamBizKey int64, callerBiz
 		Title:       req.Title,
 		ItemDesc:    req.Description,
 		Priority:    req.Priority,
-		AssigneeKey: func() *int64 { if req.AssigneeKey != "" { v, _ := pkg.ParseID(req.AssigneeKey); return &v }; return nil }(),
-		ItemStatus:  "pending",
-		Weight:      1.0,
+		AssigneeKey: func() *int64 {
+			if req.AssigneeKey != "" {
+				v, _ := pkg.ParseID(req.AssigneeKey)
+				return &v
+			}
+			return nil
+		}(),
+		ItemStatus: "pending",
+		Weight:     1.0,
 	}
 
 	if req.StartDate != nil {

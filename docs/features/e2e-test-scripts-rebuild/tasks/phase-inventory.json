@@ -1,0 +1,29 @@
+[
+  {
+    "phase": 1,
+    "name": "Tooling Infrastructure",
+    "source": "design",
+    "description": "Build the three helper scripts: spec validator, package.json updater, and per-feature orchestrator",
+    "gates": [
+      {"afterPhase": 1, "description": "All three scripts compile and unit-test pass"}
+    ]
+  },
+  {
+    "phase": 2,
+    "name": "Per-Feature Pipeline Execution",
+    "source": "PRD-explicit",
+    "description": "Run gen-test-scripts → run-e2e-tests → graduate-tests for all 11 features, batched by spec type",
+    "gates": [
+      {"afterPhase": 2, "description": "All 11 features have graduation markers; KNOWN_FAILURES.md documents any blocked features"}
+    ]
+  },
+  {
+    "phase": 3,
+    "name": "Finalization",
+    "source": "design",
+    "description": "Update tests/e2e/package.json with all graduated specs and verify full regression suite",
+    "gates": [
+      {"afterPhase": 3, "description": "npm test exits 0; all graduated specs included in test scripts"}
+    ]
+  }
+]

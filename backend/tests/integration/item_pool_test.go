@@ -396,4 +396,3 @@ func TestItemPool_Reject_AlreadyProcessed_Returns422(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.Equal(t, "ITEM_ALREADY_PROCESSED", resp["code"])
 }
-

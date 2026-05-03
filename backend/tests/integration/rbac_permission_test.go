@@ -115,7 +115,7 @@ func TestRBACPermMatrix_PresetRoles(t *testing.T) {
 
 	roles := []roleCase{
 		{"superadmin", "adminPass", http.StatusOK},
-		{"userA", "passwordA", http.StatusOK},              // pm role
+		{"userA", "passwordA", http.StatusOK}, // pm role
 		{"memberA", "passwordMemberA", http.StatusForbidden},
 	}
 

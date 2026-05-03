@@ -21,21 +21,21 @@ func (e *AppError) Error() string {
 }
 
 var (
-	ErrUnauthorized       = &AppError{Code: "UNAUTHORIZED", Status: 401, Message: "authentication required"}
-	ErrForbidden          = &AppError{Code: "FORBIDDEN", Status: 403, Message: "insufficient permissions"}
-	ErrTeamNotFound       = &AppError{Code: "TEAM_NOT_FOUND", Status: 404, Message: "team not found"}
-	ErrItemNotFound       = &AppError{Code: "ITEM_NOT_FOUND", Status: 404, Message: "item not found"}
-	ErrNotTeamMember      = &AppError{Code: "NOT_TEAM_MEMBER", Status: 403, Message: "not a member of this team"}
-	ErrInvalidStatus      = &AppError{Code: "INVALID_STATUS", Status: 422, Message: "invalid status transition"}
-	ErrArchiveNotAllowed  = &AppError{Code: "ARCHIVE_NOT_ALLOWED", Status: 422, Message: "only completed or closed items can be archived"}
-	ErrProgressRegression = &AppError{Code: "PROGRESS_REGRESSION", Status: 422, Message: "completion cannot be lower than previous record"}
-	ErrValidation         = &AppError{Code: "VALIDATION_ERROR", Status: 400, Message: "request validation failed"}
-	ErrInternal           = &AppError{Code: "INTERNAL_ERROR", Status: 500, Message: "internal server error"}
-	ErrNotFound           = &AppError{Code: "NOT_FOUND", Status: 404, Message: "resource not found"}
-	ErrAlreadyExists      = &AppError{Code: "ALREADY_EXISTS", Status: 409, Message: "resource already exists"}
-	ErrAlreadyMember      = &AppError{Code: "ALREADY_MEMBER", Status: 422, Message: "user is already a team member"}
-	ErrCannotRemoveSelf  = &AppError{Code: "CANNOT_REMOVE_SELF", Status: 422, Message: "PM cannot remove themselves"}
-	ErrCannotModifySelf  = &AppError{Code: "CANNOT_MODIFY_SELF", Status: 422, Message: "cannot modify your own permissions"}
+	ErrUnauthorized         = &AppError{Code: "UNAUTHORIZED", Status: 401, Message: "authentication required"}
+	ErrForbidden            = &AppError{Code: "FORBIDDEN", Status: 403, Message: "insufficient permissions"}
+	ErrTeamNotFound         = &AppError{Code: "TEAM_NOT_FOUND", Status: 404, Message: "team not found"}
+	ErrItemNotFound         = &AppError{Code: "ITEM_NOT_FOUND", Status: 404, Message: "item not found"}
+	ErrNotTeamMember        = &AppError{Code: "NOT_TEAM_MEMBER", Status: 403, Message: "not a member of this team"}
+	ErrInvalidStatus        = &AppError{Code: "INVALID_STATUS", Status: 422, Message: "invalid status transition"}
+	ErrArchiveNotAllowed    = &AppError{Code: "ARCHIVE_NOT_ALLOWED", Status: 422, Message: "only completed or closed items can be archived"}
+	ErrProgressRegression   = &AppError{Code: "PROGRESS_REGRESSION", Status: 422, Message: "completion cannot be lower than previous record"}
+	ErrValidation           = &AppError{Code: "VALIDATION_ERROR", Status: 400, Message: "request validation failed"}
+	ErrInternal             = &AppError{Code: "INTERNAL_ERROR", Status: 500, Message: "internal server error"}
+	ErrNotFound             = &AppError{Code: "NOT_FOUND", Status: 404, Message: "resource not found"}
+	ErrAlreadyExists        = &AppError{Code: "ALREADY_EXISTS", Status: 409, Message: "resource already exists"}
+	ErrAlreadyMember        = &AppError{Code: "ALREADY_MEMBER", Status: 422, Message: "user is already a team member"}
+	ErrCannotRemoveSelf     = &AppError{Code: "CANNOT_REMOVE_SELF", Status: 422, Message: "PM cannot remove themselves"}
+	ErrCannotModifySelf     = &AppError{Code: "CANNOT_MODIFY_SELF", Status: 422, Message: "cannot modify your own permissions"}
 	ErrItemAlreadyProcessed = &AppError{Code: "ITEM_ALREADY_PROCESSED", Status: 422, Message: "item already processed"}
 	ErrNoData               = &AppError{Code: "NO_DATA", Status: 422, Message: "no data to export"}
 	ErrUserExists           = &AppError{Code: "USER_EXISTS", Status: 422, Message: "username already exists"}

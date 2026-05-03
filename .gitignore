@@ -56,5 +56,7 @@ backend/test-results/
 
 # macOS
 .DS_Store
-data/dev.db
+data/*.db
 tests/results/screenshots/
+tests/e2e/test-results/
+test-results/

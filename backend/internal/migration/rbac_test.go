@@ -3,9 +3,9 @@ package migration
 import (
 	"testing"
 
+	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/model"
@@ -382,12 +382,12 @@ func TestMigrateToRBAC_MemberHasExactCodes(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedCodes := map[string]bool{
-		"team:read":      true,
+		"team:read":        true,
 		"main_item:create": true, "main_item:read": true, "main_item:update": true,
 		"sub_item:create": true, "sub_item:read": true, "sub_item:update": true, "sub_item:change_status": true,
 		"progress:create": true, "progress:read": true,
 		"item_pool:submit": true,
-		"view:weekly": true, "view:table": true,
+		"view:weekly":      true, "view:table": true,
 		"report:export": true,
 	}
 
@@ -450,7 +450,6 @@ func TestMigrateToRBAC_UsersTableAlreadyMigrated(t *testing.T) {
 
 	// Run migration once
 	require.NoError(t, MigrateToRBAC(db, true))
-
 
 	// Verify users are still there
 	var users []model.User

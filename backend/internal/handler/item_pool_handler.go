@@ -18,8 +18,8 @@ import (
 
 // ItemPoolHandler handles item pool endpoints.
 type ItemPoolHandler struct {
-	svc         service.ItemPoolService
-	userRepo    repository.UserRepo
+	svc          service.ItemPoolService
+	userRepo     repository.UserRepo
 	mainItemRepo repository.MainItemRepo
 }
 
