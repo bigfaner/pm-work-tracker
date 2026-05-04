@@ -185,7 +185,7 @@
       "dependencies": [
         "T-test-4"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "consolidate-specs.md",
       "record": "records/consolidate-specs.md",
       "scope": "all"
