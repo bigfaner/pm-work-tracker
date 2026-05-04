@@ -78,7 +78,7 @@
       "dependencies": [
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.1-repository.md",
       "record": "records/2.1-repository.md",
       "scope": "backend"
