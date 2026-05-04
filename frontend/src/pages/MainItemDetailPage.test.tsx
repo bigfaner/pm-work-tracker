@@ -752,31 +752,39 @@ describe("MainItemDetailPage", () => {
 
   // --- DecisionTimeline integration ---
 
-  it("renders DecisionTimeline section between progress summary and sub-items table", async () => {
+  it("renders DecisionTimeline section above progress summary (collapsible, default collapsed)", async () => {
     renderPage();
     await waitFor(() => {
       expect(screen.getByText("决策记录")).toBeInTheDocument();
     });
-    // Verify all three sections exist
-    expect(screen.getByText("进度与汇总")).toBeInTheDocument();
+    // Collapsible header shows chevron icon when collapsed
     expect(screen.getByText("决策记录")).toBeInTheDocument();
+    // Verify all three sections exist
+    expect(screen.getByText("决策记录")).toBeInTheDocument();
+    expect(screen.getByText("进度与汇总")).toBeInTheDocument();
     expect(screen.getByText("子事项列表")).toBeInTheDocument();
 
-    // Verify DOM ordering using compareDocumentPosition
-    const progressEl = screen.getByText("进度与汇总");
+    // Verify DOM ordering: decision header → progress → sub-items
     const decisionEl = screen.getByText("决策记录");
+    const progressEl = screen.getByText("进度与汇总");
     const subEl = screen.getByText("子事项列表");
     // Node.DOCUMENT_POSITION_FOLLOWING = 4
     expect(
-      progressEl.compareDocumentPosition(decisionEl) & Node.DOCUMENT_POSITION_FOLLOWING,
+      decisionEl.compareDocumentPosition(progressEl) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      decisionEl.compareDocumentPosition(subEl) & Node.DOCUMENT_POSITION_FOLLOWING,
+      progressEl.compareDocumentPosition(subEl) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
-  it("renders decision log entries from API", async () => {
+  it("renders decision log entries from API after expanding", async () => {
+    const user = userEvent.setup();
     renderPage();
+    await waitFor(() => {
+      expect(screen.getByText("决策记录")).toBeInTheDocument();
+    });
+    // Expand the decision timeline section by clicking its header
+    await user.click(screen.getByText("决策记录"));
     await waitFor(() => {
       expect(screen.getByText("采用微服务架构方案")).toBeInTheDocument();
     });
@@ -784,13 +792,17 @@ describe("MainItemDetailPage", () => {
     expect(screen.getByText("风险")).toBeInTheDocument();
   });
 
-  it("renders add decision button for non-terminal items", async () => {
+  it("renders add decision button for non-terminal items after expanding", async () => {
+    const user = userEvent.setup();
     renderPage();
     await waitFor(() => {
       expect(screen.getByText("决策记录")).toBeInTheDocument();
     });
-    const addButtons = screen.getAllByRole("button", { name: /添加决策/ });
-    expect(addButtons.length).toBeGreaterThanOrEqual(1);
+    await user.click(screen.getByText("决策记录"));
+    await waitFor(() => {
+      const addButtons = screen.getAllByRole("button", { name: /添加决策/ });
+      expect(addButtons.length).toBeGreaterThanOrEqual(1);
+    });
   });
 
   it("opens DecisionFormDialog in new mode when add button is clicked", async () => {
@@ -799,7 +811,13 @@ describe("MainItemDetailPage", () => {
     await waitFor(() => {
       expect(screen.getByText("决策记录")).toBeInTheDocument();
     });
+    // Expand first by clicking the header
+    await user.click(screen.getByText("决策记录"));
 
+    await waitFor(() => {
+      const addButtons = screen.getAllByRole("button", { name: /添加决策/ });
+      expect(addButtons.length).toBeGreaterThanOrEqual(1);
+    });
     const addButtons = screen.getAllByRole("button", { name: /添加决策/ });
     await user.click(addButtons[0]);
 
@@ -816,6 +834,8 @@ describe("MainItemDetailPage", () => {
     await waitFor(() => {
       expect(screen.getByText("决策记录")).toBeInTheDocument();
     });
+    // Expand first by clicking the header
+    await user.click(screen.getByText("决策记录"));
 
     // The draft entry should have an "编辑" button (visible to the creator with update permission)
     await waitFor(() => {
