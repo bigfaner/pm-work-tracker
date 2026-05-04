@@ -93,6 +93,7 @@ func run(configPath string, devMode bool) error {
 	subItemRepo := gormrepo.NewGormSubItemRepo(db, dialect)
 	progressRepo := gormrepo.NewGormProgressRepo(db)
 	itemPoolRepo := gormrepo.NewGormItemPoolRepo(db)
+	decisionLogRepo := gormrepo.NewGormDecisionLogRepo(db)
 
 	// 5. Init services
 	authSvc := service.NewAuthService(userRepo, cfg.Auth.JWTSecret)
@@ -104,6 +105,7 @@ func run(configPath string, devMode bool) error {
 	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc, statusHistorySvc)
 	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc, statusHistorySvc)
 	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, db)
+	decisionLogSvc := service.NewDecisionLogService(decisionLogRepo, mainItemRepo)
 	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)
 	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
 	adminSvc := service.NewAdminService(userRepo, teamRepo)
@@ -126,6 +128,7 @@ func run(configPath string, devMode bool) error {
 		Admin:      handler.NewAdminHandler(adminSvc),
 		Role:       handler.NewRoleHandler(roleSvc),
 		Permission: handler.NewPermissionHandler(roleSvc),
+		DecisionLog: handler.NewDecisionLogHandler(decisionLogSvc, userRepo, mainItemRepo),
 	}
 
 	// 7. Setup router
