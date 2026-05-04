@@ -4,7 +4,7 @@ title: "Graduate Test Scripts"
 priority: "P1"
 estimated_time: "30min"
 dependencies: ["T-test-3"]
-status: pending
+status: blocked
 ---
 
 # Graduate Test Scripts
