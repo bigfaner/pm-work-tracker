@@ -718,7 +718,7 @@ describe("TeamDetailPage", () => {
 
     await waitFor(() => {
       expect(capturedBody).not.toBeNull();
-      expect(capturedBody.roleKey).toBe("4"); // viewer role key (string)
+      expect(capturedBody!.roleKey).toBe("4"); // viewer role key (string)
       expect(capturedMemberId).toBe("U002"); // 李华's userKey
     });
   });

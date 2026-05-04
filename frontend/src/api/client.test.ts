@@ -55,7 +55,7 @@ describe("API Client", () => {
       const handlers = (client.interceptors.request as unknown as { handlers: Array<{ fulfilled: (config: unknown) => unknown }> }).handlers;
       const fulfilled = handlers[handlers.length - 1].fulfilled;
       const config = { headers: {} as Record<string, string> };
-      const result = fulfilled(config);
+      const result = fulfilled(config) as { headers: Record<string, string> };
       expect(result.headers.Authorization).toBeUndefined();
     });
   });

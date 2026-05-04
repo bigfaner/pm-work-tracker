@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import StatusTransitionDropdown from "./StatusTransitionDropdown";
+import type { MainItem } from "@/types";
 
 // Mock API functions
 vi.mock("@/api/mainItems", () => ({
@@ -113,7 +114,7 @@ describe("StatusTransitionDropdown", () => {
 
   it("calls change API and onStatusChanged for non-terminal status", async () => {
     vi.mocked(getMainItemTransitionsApi).mockResolvedValue(["progressing"]);
-    vi.mocked(changeMainItemStatusApi).mockResolvedValue({} as Record<string, never>);
+    vi.mocked(changeMainItemStatusApi).mockResolvedValue({} as MainItem);
     const onStatusChanged = vi.fn();
     const user = userEvent.setup();
     renderWithQueryClient(
@@ -159,7 +160,7 @@ describe("StatusTransitionDropdown", () => {
 
   it("calls change API on confirm in confirmation dialog", async () => {
     vi.mocked(getMainItemTransitionsApi).mockResolvedValue(["completed"]);
-    vi.mocked(changeMainItemStatusApi).mockResolvedValue({} as Record<string, never>);
+    vi.mocked(changeMainItemStatusApi).mockResolvedValue({} as MainItem);
     const onStatusChanged = vi.fn();
     const user = userEvent.setup();
     renderWithQueryClient(
