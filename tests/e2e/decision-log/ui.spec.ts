@@ -28,7 +28,9 @@ test.describe('Decision Log UI E2E Tests', () => {
 
     // Create a test team and main item
     teamId = await createTestTeam(token, `e2e-dl-ui-${Date.now()}`);
+    if (!teamId) throw new Error('beforeAll: createTestTeam returned undefined');
     mainItemId = await createTestMainItem(token, teamId, 'UI Test Decision Item', 'P1');
+    if (!mainItemId) throw new Error('beforeAll: createTestMainItem returned undefined');
   });
 
   /** Navigate to the main item detail page */
@@ -312,7 +314,7 @@ test.describe('Decision Log UI E2E Tests', () => {
       body: JSON.stringify({
         name: `e2e-no-dl-btn-${runId}`,
         description: 'No permission role',
-        permissionCodes: [],
+        permissionCodes: ['team:read'],
       }),
     });
     const noPermRoleData = parseApiBody(noPermRoleRes.body);

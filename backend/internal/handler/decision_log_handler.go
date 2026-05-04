@@ -41,7 +41,7 @@ func (h *DecisionLogHandler) Create(c *gin.Context) {
 		return
 	}
 
-	userID := middleware.GetUserID(c)
+	userBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.DecisionLogCreateReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -49,7 +49,7 @@ func (h *DecisionLogHandler) Create(c *gin.Context) {
 		return
 	}
 
-	log, err := h.svc.Create(c.Request.Context(), mainItemKey, userID, req)
+	log, err := h.svc.Create(c.Request.Context(), mainItemKey, userBizKey, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -65,7 +65,7 @@ func (h *DecisionLogHandler) Update(c *gin.Context) {
 		return
 	}
 
-	userID := middleware.GetUserID(c)
+	userBizKey := middleware.GetUserBizKey(c)
 
 	var req dto.DecisionLogUpdateReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -73,7 +73,7 @@ func (h *DecisionLogHandler) Update(c *gin.Context) {
 		return
 	}
 
-	log, err := h.svc.Update(c.Request.Context(), logBizKey, userID, req)
+	log, err := h.svc.Update(c.Request.Context(), logBizKey, userBizKey, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -89,9 +89,9 @@ func (h *DecisionLogHandler) Publish(c *gin.Context) {
 		return
 	}
 
-	userID := middleware.GetUserID(c)
+	userBizKey := middleware.GetUserBizKey(c)
 
-	log, err := h.svc.Publish(c.Request.Context(), logBizKey, userID)
+	log, err := h.svc.Publish(c.Request.Context(), logBizKey, userBizKey)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -107,7 +107,7 @@ func (h *DecisionLogHandler) List(c *gin.Context) {
 		return
 	}
 
-	userID := middleware.GetUserID(c)
+	userBizKey := middleware.GetUserBizKey(c)
 
 	var page dto.Pagination
 	if err := c.ShouldBindQuery(&page); err != nil {
@@ -115,7 +115,7 @@ func (h *DecisionLogHandler) List(c *gin.Context) {
 		return
 	}
 
-	result, err := h.svc.List(c.Request.Context(), mainItemKey, userID, page)
+	result, err := h.svc.List(c.Request.Context(), mainItemKey, userBizKey, page)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

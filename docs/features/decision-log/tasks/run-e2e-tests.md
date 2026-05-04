@@ -37,7 +37,7 @@ No direct user story mapping. This is a standard test execution task.
 
 1. Run `/run-e2e-tests` skill
 2. Read `tests/e2e/features/decision-log/results/latest.md` to determine outcome
-3. Run: `just test-e2e --feature decision-log`
+3. Run: `just test-e2e decision-log`
 
 **If tests pass**: mark task completed. T-test-4 will proceed to graduation.
 

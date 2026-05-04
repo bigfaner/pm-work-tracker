@@ -41,9 +41,9 @@ func (r *decisionLogRepo) FindByBizKey(ctx context.Context, bizKey int64) (*mode
 	return &log, nil
 }
 
-func (r *decisionLogRepo) ListByItem(ctx context.Context, mainItemKey int64, userID uint, offset, limit int) ([]model.DecisionLog, int64, error) {
+func (r *decisionLogRepo) ListByItem(ctx context.Context, mainItemKey int64, userBizKey int64, offset, limit int) ([]model.DecisionLog, int64, error) {
 	query := r.db.WithContext(ctx).
-		Where("main_item_key = ? AND (log_status = 'published' OR created_by = ?)", mainItemKey, userID)
+		Where("main_item_key = ? AND (log_status = 'published' OR created_by = ?)", mainItemKey, userBizKey)
 
 	var total int64
 	if err := query.Model(&model.DecisionLog{}).Count(&total).Error; err != nil {

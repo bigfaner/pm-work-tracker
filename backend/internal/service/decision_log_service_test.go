@@ -20,7 +20,7 @@ import (
 type mockDecisionLogRepo struct {
 	createFn       func(ctx context.Context, log *model.DecisionLog) error
 	findByBizKeyFn func(ctx context.Context, bizKey int64) (*model.DecisionLog, error)
-	listByItemFn   func(ctx context.Context, mainItemKey int64, userID uint, offset, limit int) ([]model.DecisionLog, int64, error)
+	listByItemFn   func(ctx context.Context, mainItemKey int64, userBizKey int64, offset, limit int) ([]model.DecisionLog, int64, error)
 	updateFn       func(ctx context.Context, log *model.DecisionLog) error
 }
 
@@ -36,8 +36,8 @@ func (m *mockDecisionLogRepo) FindByBizKey(ctx context.Context, bizKey int64) (*
 	return m.findByBizKeyFn(ctx, bizKey)
 }
 
-func (m *mockDecisionLogRepo) ListByItem(ctx context.Context, mainItemKey int64, userID uint, offset, limit int) ([]model.DecisionLog, int64, error) {
-	return m.listByItemFn(ctx, mainItemKey, userID, offset, limit)
+func (m *mockDecisionLogRepo) ListByItem(ctx context.Context, mainItemKey int64, userBizKey int64, offset, limit int) ([]model.DecisionLog, int64, error) {
+	return m.listByItemFn(ctx, mainItemKey, userBizKey, offset, limit)
 }
 
 func (m *mockDecisionLogRepo) Update(ctx context.Context, log *model.DecisionLog) error {
@@ -414,9 +414,9 @@ func TestDecisionLogService_List(t *testing.T) {
 			{ID: 2, BizKey: 101, Content: "second"},
 		}
 		dlRepo := &mockDecisionLogRepo{
-			listByItemFn: func(ctx context.Context, mainItemKey int64, userID uint, offset, limit int) ([]model.DecisionLog, int64, error) {
+			listByItemFn: func(ctx context.Context, mainItemKey int64, userBizKey int64, offset, limit int) ([]model.DecisionLog, int64, error) {
 				assert.Equal(t, int64(100), mainItemKey)
-				assert.Equal(t, uint(10), userID)
+				assert.Equal(t, int64(10), userBizKey)
 				assert.Equal(t, 0, offset)
 				assert.Equal(t, 20, limit)
 				return logs, int64(2), nil
@@ -435,7 +435,7 @@ func TestDecisionLogService_List(t *testing.T) {
 
 	t.Run("applies_default_pagination", func(t *testing.T) {
 		dlRepo := &mockDecisionLogRepo{
-			listByItemFn: func(ctx context.Context, mainItemKey int64, userID uint, offset, limit int) ([]model.DecisionLog, int64, error) {
+			listByItemFn: func(ctx context.Context, mainItemKey int64, userBizKey int64, offset, limit int) ([]model.DecisionLog, int64, error) {
 				assert.Equal(t, 0, offset) // default page=1 → offset=0
 				assert.Equal(t, 20, limit) // default pageSize=20
 				return []model.DecisionLog{}, int64(0), nil
@@ -452,7 +452,7 @@ func TestDecisionLogService_List(t *testing.T) {
 
 	t.Run("page2_with_custom_page_size", func(t *testing.T) {
 		dlRepo := &mockDecisionLogRepo{
-			listByItemFn: func(ctx context.Context, mainItemKey int64, userID uint, offset, limit int) ([]model.DecisionLog, int64, error) {
+			listByItemFn: func(ctx context.Context, mainItemKey int64, userBizKey int64, offset, limit int) ([]model.DecisionLog, int64, error) {
 				assert.Equal(t, 5, offset) // (2-1)*5=5
 				assert.Equal(t, 5, limit)
 				return []model.DecisionLog{}, int64(10), nil

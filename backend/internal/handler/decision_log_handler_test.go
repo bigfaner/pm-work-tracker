@@ -43,10 +43,10 @@ type mockDecisionLogService struct {
 	}
 
 	// capture calls
-	createCalled   bool
+	createCalled    bool
 	lastMainItemKey int64
-	lastUserID     uint
-	lastCreateReq  dto.DecisionLogCreateReq
+	lastUserBizKey      int64
+	lastCreateReq   dto.DecisionLogCreateReq
 
 	updateCalled  bool
 	lastLogBizKey int64
@@ -58,30 +58,30 @@ type mockDecisionLogService struct {
 	lastPage   dto.Pagination
 }
 
-func (m *mockDecisionLogService) Create(_ context.Context, mainItemKey int64, userID uint, req dto.DecisionLogCreateReq) (*model.DecisionLog, error) {
+func (m *mockDecisionLogService) Create(_ context.Context, mainItemKey int64, userBizKey int64, req dto.DecisionLogCreateReq) (*model.DecisionLog, error) {
 	m.createCalled = true
 	m.lastMainItemKey = mainItemKey
-	m.lastUserID = userID
+	m.lastUserBizKey = userBizKey
 	m.lastCreateReq = req
 	return m.createResult.log, m.createResult.err
 }
-func (m *mockDecisionLogService) Update(_ context.Context, bizKey int64, userID uint, req dto.DecisionLogUpdateReq) (*model.DecisionLog, error) {
+func (m *mockDecisionLogService) Update(_ context.Context, bizKey int64, userBizKey int64, req dto.DecisionLogUpdateReq) (*model.DecisionLog, error) {
 	m.updateCalled = true
 	m.lastLogBizKey = bizKey
-	m.lastUserID = userID
+	m.lastUserBizKey = userBizKey
 	m.lastUpdateReq = req
 	return m.updateResult.log, m.updateResult.err
 }
-func (m *mockDecisionLogService) Publish(_ context.Context, bizKey int64, userID uint) (*model.DecisionLog, error) {
+func (m *mockDecisionLogService) Publish(_ context.Context, bizKey int64, userBizKey int64) (*model.DecisionLog, error) {
 	m.publishCalled = true
 	m.lastLogBizKey = bizKey
-	m.lastUserID = userID
+	m.lastUserBizKey = userBizKey
 	return m.publishResult.log, m.publishResult.err
 }
-func (m *mockDecisionLogService) List(_ context.Context, mainItemKey int64, userID uint, page dto.Pagination) (*dto.PageResult[model.DecisionLog], error) {
+func (m *mockDecisionLogService) List(_ context.Context, mainItemKey int64, userBizKey int64, page dto.Pagination) (*dto.PageResult[model.DecisionLog], error) {
 	m.listCalled = true
 	m.lastMainItemKey = mainItemKey
-	m.lastUserID = userID
+	m.lastUserBizKey = userBizKey
 	m.lastPage = page
 	return m.listResult.page, m.listResult.err
 }
@@ -241,7 +241,7 @@ func TestDecisionLogCreate_Success(t *testing.T) {
 	assert.Equal(t, "draft", data["logStatus"])
 	assert.True(t, svc.createCalled)
 	assert.Equal(t, int64(100), svc.lastMainItemKey)
-	assert.Equal(t, uint(5), svc.lastUserID)
+	assert.Equal(t, int64(5), svc.lastUserBizKey)
 }
 
 func TestDecisionLogCreate_RequiresPermission(t *testing.T) {
@@ -508,7 +508,7 @@ func TestDecisionLogPublish_Success(t *testing.T) {
 
 	assert.True(t, svc.publishCalled)
 	assert.Equal(t, int64(101), svc.lastLogBizKey)
-	assert.Equal(t, uint(5), svc.lastUserID)
+	assert.Equal(t, int64(5), svc.lastUserBizKey)
 }
 
 func TestDecisionLogPublish_RequiresPermission(t *testing.T) {
