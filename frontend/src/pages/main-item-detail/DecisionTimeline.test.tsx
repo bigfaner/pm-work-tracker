@@ -351,4 +351,41 @@ describe("DecisionTimeline", () => {
       });
     });
   });
+
+  describe("refreshKey prop", () => {
+    it("re-fetches data when refreshKey changes", async () => {
+      const { rerender } = render(
+        <DecisionTimeline {...defaultProps} refreshKey={0} />,
+      );
+      await waitFor(() => {
+        expect(mockListDecisionLogsApi).toHaveBeenCalledTimes(1);
+      });
+
+      // Simulate a new decision being added — parent increments refreshKey
+      const newLog = {
+        bizKey: "log-3",
+        mainItemKey: "main-bk",
+        category: "resource" as const,
+        tags: [],
+        content: "New decision after refresh",
+        logStatus: "published" as const,
+        createdBy: "user-c",
+        creatorName: "王五",
+        createTime: "2026-04-29T10:00:00Z",
+        updateTime: "2026-04-29T10:00:00Z",
+      };
+      mockListDecisionLogsApi.mockResolvedValue(
+        makePage([...sampleLogs, newLog]),
+      );
+
+      rerender(<DecisionTimeline {...defaultProps} refreshKey={1} />);
+
+      await waitFor(() => {
+        expect(mockListDecisionLogsApi).toHaveBeenCalledTimes(2);
+      });
+      await waitFor(() => {
+        expect(screen.getByText("New decision after refresh")).toBeInTheDocument();
+      });
+    });
+  });
 });

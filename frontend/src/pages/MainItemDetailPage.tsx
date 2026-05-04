@@ -91,6 +91,9 @@ export default function MainItemDetailPage() {
     "new",
   );
   const [decisionEditBizKey, setDecisionEditBizKey] = useState("");
+  const [decisionRefreshKey, setDecisionRefreshKey] = useState(0);
+  const [decisionTimelineExpanded, setDecisionTimelineExpanded] =
+    useState(false);
 
   // --- Data fetching ---
 
@@ -361,21 +364,14 @@ export default function MainItemDetailPage() {
             status={item.itemStatus}
             description={item.itemDesc}
           />
-          {/* Progress & Summary Card */}
-          <ProgressSummaryCard
-            completion={completion}
-            completedCount={completedCount}
-            totalSubItems={subItems.length}
-            expanded={expanded}
-            onToggleExpanded={() => setExpanded(!expanded)}
-            achievements={item?.achievements}
-            blockers={item?.blockers}
-          />
-          {/* Decision Timeline */}
+          {/* Decision Timeline (collapsible, default collapsed) */}
           <DecisionTimeline
             teamId={String(teamId)}
             mainItemId={itemId}
             mainStatus={item.itemStatus}
+            refreshKey={decisionRefreshKey}
+            collapsed={!decisionTimelineExpanded}
+            onToggleCollapse={() => setDecisionTimelineExpanded(!decisionTimelineExpanded)}
             onAdd={() => {
               setDecisionFormMode("new");
               setDecisionEditBizKey("");
@@ -386,6 +382,16 @@ export default function MainItemDetailPage() {
               setDecisionEditBizKey(bizKey);
               setDecisionFormOpen(true);
             }}
+          />
+          {/* Progress & Summary Card */}
+          <ProgressSummaryCard
+            completion={completion}
+            completedCount={completedCount}
+            totalSubItems={subItems.length}
+            expanded={expanded}
+            onToggleExpanded={() => setExpanded(!expanded)}
+            achievements={item?.achievements}
+            blockers={item?.blockers}
           />
           {/* Sub-items Table */}
           <SubItemsTable
@@ -445,6 +451,7 @@ export default function MainItemDetailPage() {
             mainBizKey={item.bizKey}
             onSuccess={() => {
               qc.invalidateQueries({ queryKey: ["mainItem", teamId, itemId] });
+              setDecisionRefreshKey((k) => k + 1);
               setDecisionFormOpen(false);
             }}
           />
