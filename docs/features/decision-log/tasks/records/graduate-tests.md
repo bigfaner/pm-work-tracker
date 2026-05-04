@@ -1,5 +1,5 @@
 ---
-status: "blocked"
+status: "pending"
 started: "2026-05-04 15:13"
 completed: "N/A"
 time_spent: ""

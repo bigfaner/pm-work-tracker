@@ -233,7 +233,7 @@
       "dependencies": [
         "T-test-3"
       ],
-      "status": "blocked",
+      "status": "pending",
       "file": "graduate-tests.md",
       "record": "records/graduate-tests.md",
       "scope": "all"
