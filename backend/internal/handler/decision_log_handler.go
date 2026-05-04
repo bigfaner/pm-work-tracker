@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"context"
-
 	"github.com/gin-gonic/gin"
 
 	"pm-work-tracker/backend/internal/dto"
@@ -38,13 +36,7 @@ func NewDecisionLogHandler(svc service.DecisionLogService, userRepo repository.U
 
 // Create handles POST /api/v1/teams/:teamId/main-items/:itemId/decision-logs
 func (h *DecisionLogHandler) Create(c *gin.Context) {
-	mainItemID, ok := pkgHandler.ResolveBizKey(c, "itemId", func(ctx context.Context, bizKey int64) (uint, error) {
-		item, err := h.mainItemRepo.FindByBizKey(ctx, bizKey)
-		if err != nil {
-			return 0, err
-		}
-		return item.ID, nil
-	})
+	mainItemKey, ok := pkgHandler.ParseBizKeyParam(c, "itemId")
 	if !ok {
 		return
 	}
@@ -57,7 +49,7 @@ func (h *DecisionLogHandler) Create(c *gin.Context) {
 		return
 	}
 
-	log, err := h.svc.Create(c.Request.Context(), mainItemID, userID, req)
+	log, err := h.svc.Create(c.Request.Context(), mainItemKey, userID, req)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -110,13 +102,7 @@ func (h *DecisionLogHandler) Publish(c *gin.Context) {
 
 // List handles GET /api/v1/teams/:teamId/main-items/:itemId/decision-logs
 func (h *DecisionLogHandler) List(c *gin.Context) {
-	mainItemID, ok := pkgHandler.ResolveBizKey(c, "itemId", func(ctx context.Context, bizKey int64) (uint, error) {
-		item, err := h.mainItemRepo.FindByBizKey(ctx, bizKey)
-		if err != nil {
-			return 0, err
-		}
-		return item.ID, nil
-	})
+	mainItemKey, ok := pkgHandler.ParseBizKeyParam(c, "itemId")
 	if !ok {
 		return
 	}
@@ -129,7 +115,7 @@ func (h *DecisionLogHandler) List(c *gin.Context) {
 		return
 	}
 
-	result, err := h.svc.List(c.Request.Context(), mainItemID, userID, page)
+	result, err := h.svc.List(c.Request.Context(), mainItemKey, userID, page)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

@@ -131,7 +131,7 @@ func TestDecisionLogRepo_ListByItem(t *testing.T) {
 	_ = draft2
 
 	t.Run("user_a_sees_own_drafts_and_all_published", func(t *testing.T) {
-		logs, total, err := repo.ListByItem(ctx, uint(mainItemKey), uint(userA), 0, 10)
+		logs, total, err := repo.ListByItem(ctx, mainItemKey, uint(userA), 0, 10)
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), total) // pub1 + draft1 + pub2 (not draft2)
 		assert.Len(t, logs, 3)
@@ -142,14 +142,14 @@ func TestDecisionLogRepo_ListByItem(t *testing.T) {
 	})
 
 	t.Run("user_b_sees_own_drafts_and_all_published", func(t *testing.T) {
-		logs, total, err := repo.ListByItem(ctx, uint(mainItemKey), uint(userB), 0, 10)
+		logs, total, err := repo.ListByItem(ctx, mainItemKey, uint(userB), 0, 10)
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), total) // pub1 + pub2 + draft2 (not draft1)
 		assert.Len(t, logs, 3)
 	})
 
 	t.Run("third_user_sees_only_published", func(t *testing.T) {
-		logs, total, err := repo.ListByItem(ctx, uint(mainItemKey), 999, 0, 10)
+		logs, total, err := repo.ListByItem(ctx, mainItemKey, 999, 0, 10)
 		require.NoError(t, err)
 		assert.Equal(t, int64(2), total) // pub1 + pub2
 		assert.Len(t, logs, 2)
@@ -159,20 +159,20 @@ func TestDecisionLogRepo_ListByItem(t *testing.T) {
 	})
 
 	t.Run("pagination_offset_and_limit", func(t *testing.T) {
-		logs, total, err := repo.ListByItem(ctx, uint(mainItemKey), uint(userA), 0, 2)
+		logs, total, err := repo.ListByItem(ctx, mainItemKey, uint(userA), 0, 2)
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), total) // total reflects all matching records
 		assert.Len(t, logs, 2)           // but only 2 returned
 
 		// Second page
-		logs2, total2, err := repo.ListByItem(ctx, uint(mainItemKey), uint(userA), 2, 10)
+		logs2, total2, err := repo.ListByItem(ctx, mainItemKey, uint(userA), 2, 10)
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), total2)
 		assert.Len(t, logs2, 1)
 	})
 
 	t.Run("empty_when_no_match", func(t *testing.T) {
-		logs, total, err := repo.ListByItem(ctx, 9999, uint(userA), 0, 10)
+		logs, total, err := repo.ListByItem(ctx, int64(9999), uint(userA), 0, 10)
 		require.NoError(t, err)
 		assert.Equal(t, int64(0), total)
 		assert.Empty(t, logs)

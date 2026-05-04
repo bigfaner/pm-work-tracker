@@ -358,7 +358,7 @@ var _ service.ProgressService = (*StubProgressSvc)(nil)
 // StubDecisionLogSvc is a stub DecisionLogService for test wiring.
 type StubDecisionLogSvc struct{}
 
-func (s *StubDecisionLogSvc) Create(_ context.Context, _ uint, _ uint, _ dto.DecisionLogCreateReq) (*model.DecisionLog, error) {
+func (s *StubDecisionLogSvc) Create(_ context.Context, _ int64, _ uint, _ dto.DecisionLogCreateReq) (*model.DecisionLog, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubDecisionLogSvc) Update(_ context.Context, _ int64, _ uint, _ dto.DecisionLogUpdateReq) (*model.DecisionLog, error) {
@@ -367,7 +367,7 @@ func (s *StubDecisionLogSvc) Update(_ context.Context, _ int64, _ uint, _ dto.De
 func (s *StubDecisionLogSvc) Publish(_ context.Context, _ int64, _ uint) (*model.DecisionLog, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubDecisionLogSvc) List(_ context.Context, _ uint, _ uint, _ dto.Pagination) (*dto.PageResult[model.DecisionLog], error) {
+func (s *StubDecisionLogSvc) List(_ context.Context, _ int64, _ uint, _ dto.Pagination) (*dto.PageResult[model.DecisionLog], error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 

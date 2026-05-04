@@ -44,7 +44,7 @@ type mockDecisionLogService struct {
 
 	// capture calls
 	createCalled   bool
-	lastMainItemID uint
+	lastMainItemKey int64
 	lastUserID     uint
 	lastCreateReq  dto.DecisionLogCreateReq
 
@@ -58,9 +58,9 @@ type mockDecisionLogService struct {
 	lastPage   dto.Pagination
 }
 
-func (m *mockDecisionLogService) Create(_ context.Context, mainItemID uint, userID uint, req dto.DecisionLogCreateReq) (*model.DecisionLog, error) {
+func (m *mockDecisionLogService) Create(_ context.Context, mainItemKey int64, userID uint, req dto.DecisionLogCreateReq) (*model.DecisionLog, error) {
 	m.createCalled = true
-	m.lastMainItemID = mainItemID
+	m.lastMainItemKey = mainItemKey
 	m.lastUserID = userID
 	m.lastCreateReq = req
 	return m.createResult.log, m.createResult.err
@@ -78,9 +78,9 @@ func (m *mockDecisionLogService) Publish(_ context.Context, bizKey int64, userID
 	m.lastUserID = userID
 	return m.publishResult.log, m.publishResult.err
 }
-func (m *mockDecisionLogService) List(_ context.Context, mainItemID uint, userID uint, page dto.Pagination) (*dto.PageResult[model.DecisionLog], error) {
+func (m *mockDecisionLogService) List(_ context.Context, mainItemKey int64, userID uint, page dto.Pagination) (*dto.PageResult[model.DecisionLog], error) {
 	m.listCalled = true
-	m.lastMainItemID = mainItemID
+	m.lastMainItemKey = mainItemKey
 	m.lastUserID = userID
 	m.lastPage = page
 	return m.listResult.page, m.listResult.err
@@ -240,7 +240,7 @@ func TestDecisionLogCreate_Success(t *testing.T) {
 	assert.Equal(t, "technical", data["category"])
 	assert.Equal(t, "draft", data["logStatus"])
 	assert.True(t, svc.createCalled)
-	assert.Equal(t, uint(1), svc.lastMainItemID)
+	assert.Equal(t, int64(100), svc.lastMainItemKey)
 	assert.Equal(t, uint(5), svc.lastUserID)
 }
 
@@ -291,10 +291,9 @@ func TestDecisionLogCreate_InvalidBody(t *testing.T) {
 
 func TestDecisionLogCreate_MainItemNotFound(t *testing.T) {
 	svc := &mockDecisionLogService{}
+	svc.createResult.err = apperrors.ErrItemNotFound
 
-	mainItemRepo := &mockMainItemRepoForDecisionLog{
-		err: apperrors.ErrItemNotFound,
-	}
+	mainItemRepo := &mockMainItemRepoForDecisionLog{}
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithDecisionLogSvc(t, svc, userRepo, mainItemRepo)
@@ -309,7 +308,7 @@ func TestDecisionLogCreate_MainItemNotFound(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.False(t, svc.createCalled)
+	assert.True(t, svc.createCalled)
 }
 
 func TestDecisionLogCreate_ServiceError(t *testing.T) {
@@ -628,7 +627,7 @@ func TestDecisionLogList_Success(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, float64(2), data["total"])
 	assert.True(t, svc.listCalled)
-	assert.Equal(t, uint(1), svc.lastMainItemID)
+	assert.Equal(t, int64(100), svc.lastMainItemKey)
 }
 
 func TestDecisionLogList_RequiresTeamMembership(t *testing.T) {
@@ -682,10 +681,9 @@ func TestDecisionLogList_PaginationDefaults(t *testing.T) {
 
 func TestDecisionLogList_MainItemNotFound(t *testing.T) {
 	svc := &mockDecisionLogService{}
+	svc.listResult.err = apperrors.ErrItemNotFound
 
-	mainItemRepo := &mockMainItemRepoForDecisionLog{
-		err: apperrors.ErrItemNotFound,
-	}
+	mainItemRepo := &mockMainItemRepoForDecisionLog{}
 	userRepo := &mockUserRepoForHandler{}
 
 	deps := depsWithDecisionLogSvc(t, svc, userRepo, mainItemRepo)
@@ -698,7 +696,7 @@ func TestDecisionLogList_MainItemNotFound(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.False(t, svc.listCalled)
+	assert.True(t, svc.listCalled)
 }
 
 func TestDecisionLogList_ServiceError(t *testing.T) {

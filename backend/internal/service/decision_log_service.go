@@ -13,10 +13,10 @@ import (
 
 // DecisionLogService defines business operations for decision logs.
 type DecisionLogService interface {
-	Create(ctx context.Context, mainItemID uint, userID uint, req dto.DecisionLogCreateReq) (*model.DecisionLog, error)
+	Create(ctx context.Context, mainItemKey int64, userID uint, req dto.DecisionLogCreateReq) (*model.DecisionLog, error)
 	Update(ctx context.Context, bizKey int64, userID uint, req dto.DecisionLogUpdateReq) (*model.DecisionLog, error)
 	Publish(ctx context.Context, bizKey int64, userID uint) (*model.DecisionLog, error)
-	List(ctx context.Context, mainItemID uint, userID uint, page dto.Pagination) (*dto.PageResult[model.DecisionLog], error)
+	List(ctx context.Context, mainItemKey int64, userID uint, page dto.Pagination) (*dto.PageResult[model.DecisionLog], error)
 }
 
 type decisionLogService struct {
@@ -29,9 +29,8 @@ func NewDecisionLogService(repo repository.DecisionLogRepo, mainItemRepo reposit
 	return &decisionLogService{repo: repo, mainItemRepo: mainItemRepo}
 }
 
-func (s *decisionLogService) Create(ctx context.Context, mainItemID uint, userID uint, req dto.DecisionLogCreateReq) (*model.DecisionLog, error) {
+func (s *decisionLogService) Create(ctx context.Context, mainItemKey int64, userID uint, req dto.DecisionLogCreateReq) (*model.DecisionLog, error) {
 	// Validate main item exists and get TeamKey
-	mainItemKey := int64(mainItemID)
 	mainItem, err := s.mainItemRepo.FindByBizKey(ctx, mainItemKey)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
@@ -116,10 +115,10 @@ func (s *decisionLogService) Publish(ctx context.Context, bizKey int64, userID u
 	return log, nil
 }
 
-func (s *decisionLogService) List(ctx context.Context, mainItemID uint, userID uint, page dto.Pagination) (*dto.PageResult[model.DecisionLog], error) {
+func (s *decisionLogService) List(ctx context.Context, mainItemKey int64, userID uint, page dto.Pagination) (*dto.PageResult[model.DecisionLog], error) {
 	offset, pageNum, pageSize := dto.ApplyPaginationDefaults(page.Page, page.PageSize)
 
-	logs, total, err := s.repo.ListByItem(ctx, mainItemID, userID, offset, pageSize)
+	logs, total, err := s.repo.ListByItem(ctx, mainItemKey, userID, offset, pageSize)
 	if err != nil {
 		return nil, err
 	}
