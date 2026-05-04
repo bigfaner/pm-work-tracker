@@ -1,14 +1,14 @@
-import { Input } from '@/components/ui/input'
-import { DateInput } from '@/components/ui/date-input'
-import { Textarea } from '@/components/ui/textarea'
+import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { PrioritySelectItems } from '@/components/shared/PrioritySelect'
-import { MemberSelect } from '@/components/shared/MemberSelect'
+} from "@/components/ui/select";
+import { PrioritySelectItems } from "@/components/shared/PrioritySelect";
+import { MemberSelect } from "@/components/shared/MemberSelect";
 import {
   Dialog,
   DialogContent,
@@ -16,26 +16,28 @@ import {
   DialogTitle,
   DialogBody,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export interface CreateSubItemFormState {
-  title: string
-  priority: string
-  assigneeKey: string
-  startDate: string
-  expectedEndDate: string
-  description: string
+  title: string;
+  priority: string;
+  assigneeKey: string;
+  startDate: string;
+  expectedEndDate: string;
+  description: string;
 }
 
 interface CreateSubItemDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  form: CreateSubItemFormState
-  onFormChange: (updater: (prev: CreateSubItemFormState) => CreateSubItemFormState) => void
-  members: { userKey: string; displayName: string }[]
-  onSubmit: () => void
-  isPending: boolean
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  form: CreateSubItemFormState;
+  onFormChange: (
+    updater: (prev: CreateSubItemFormState) => CreateSubItemFormState,
+  ) => void;
+  members: { userKey: string; displayName: string }[];
+  onSubmit: () => void;
+  isPending: boolean;
 }
 
 export default function CreateSubItemDialog({
@@ -61,7 +63,9 @@ export default function CreateSubItemDialog({
             <Input
               placeholder="请输入子事项标题"
               value={form.title}
-              onChange={(e) => onFormChange((f) => ({ ...f, title: e.target.value }))}
+              onChange={(e) =>
+                onFormChange((f) => ({ ...f, title: e.target.value }))
+              }
             />
           </div>
           <div className="grid grid-cols-2 gap-3 mb-4">
@@ -69,8 +73,15 @@ export default function CreateSubItemDialog({
               <label className="block text-sm font-medium text-primary mb-1">
                 优先级 <span className="text-error">*</span>
               </label>
-              <Select value={form.priority} onValueChange={(v) => onFormChange((f) => ({ ...f, priority: v }))}>
-                <SelectTrigger><SelectValue placeholder="请选择优先级" /></SelectTrigger>
+              <Select
+                value={form.priority}
+                onValueChange={(v) =>
+                  onFormChange((f) => ({ ...f, priority: v }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择优先级" />
+                </SelectTrigger>
                 <SelectContent>
                   <PrioritySelectItems />
                 </SelectContent>
@@ -83,7 +94,9 @@ export default function CreateSubItemDialog({
               <MemberSelect
                 members={members}
                 selectedId={form.assigneeKey}
-                onSelect={(v) => onFormChange((f) => ({ ...f, assigneeKey: v }))}
+                onSelect={(v) =>
+                  onFormChange((f) => ({ ...f, assigneeKey: v }))
+                }
               />
             </div>
           </div>
@@ -94,7 +107,9 @@ export default function CreateSubItemDialog({
               </label>
               <DateInput
                 value={form.startDate}
-                onChange={(e) => onFormChange((f) => ({ ...f, startDate: e.target.value }))}
+                onChange={(e) =>
+                  onFormChange((f) => ({ ...f, startDate: e.target.value }))
+                }
               />
             </div>
             <div>
@@ -103,25 +118,48 @@ export default function CreateSubItemDialog({
               </label>
               <DateInput
                 value={form.expectedEndDate}
-                onChange={(e) => onFormChange((f) => ({ ...f, expectedEndDate: e.target.value }))}
+                onChange={(e) =>
+                  onFormChange((f) => ({
+                    ...f,
+                    expectedEndDate: e.target.value,
+                  }))
+                }
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-primary mb-1">描述</label>
+            <label className="block text-sm font-medium text-primary mb-1">
+              描述
+            </label>
             <Textarea
               rows={3}
               placeholder="请输入子事项描述（可选）"
               value={form.description}
-              onChange={(e) => onFormChange((f) => ({ ...f, description: e.target.value }))}
+              onChange={(e) =>
+                onFormChange((f) => ({ ...f, description: e.target.value }))
+              }
             />
           </div>
         </DialogBody>
         <DialogFooter>
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>取消</Button>
-          <Button onClick={onSubmit} disabled={!form.title.trim() || !form.priority || !form.assigneeKey || !form.startDate || !form.expectedEndDate || isPending}>确认</Button>
+          <Button variant="secondary" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button
+            onClick={onSubmit}
+            disabled={
+              !form.title.trim() ||
+              !form.priority ||
+              !form.assigneeKey ||
+              !form.startDate ||
+              !form.expectedEndDate ||
+              isPending
+            }
+          >
+            确认
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

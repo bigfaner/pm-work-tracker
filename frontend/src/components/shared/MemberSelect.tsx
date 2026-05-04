@@ -4,34 +4,34 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from "@/components/ui/select";
 
 interface Member {
-  userKey: string
-  displayName: string
+  userKey: string;
+  displayName: string;
 }
 
 interface MemberSelectProps {
-  members: Member[]
-  selectedId: string
-  onSelect: (id: string) => void
-  placeholder?: string
-  allowEmpty?: boolean
+  members: Member[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+  placeholder?: string;
+  allowEmpty?: boolean;
 }
 
 export function MemberSelect({
   members,
   selectedId,
   onSelect,
-  placeholder = '选择负责人',
+  placeholder = "选择负责人",
   allowEmpty = true,
 }: MemberSelectProps) {
-  const value = selectedId || (allowEmpty ? '_none' : undefined)
+  const value = selectedId || (allowEmpty ? "_none" : undefined);
 
   return (
     <Select
       value={value}
-      onValueChange={(v) => onSelect(v === '_none' ? '' : v)}
+      onValueChange={(v) => onSelect(v === "_none" ? "" : v)}
     >
       <SelectTrigger>
         <SelectValue placeholder={placeholder} />
@@ -45,5 +45,5 @@ export function MemberSelect({
         ))}
       </SelectContent>
     </Select>
-  )
+  );
 }

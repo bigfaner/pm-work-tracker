@@ -1,4 +1,4 @@
-import { SelectItem } from '@/components/ui/select'
+import { SelectItem } from "@/components/ui/select";
 
 export function PrioritySelectItems() {
   return (
@@ -7,5 +7,5 @@ export function PrioritySelectItems() {
       <SelectItem value="P2">P2</SelectItem>
       <SelectItem value="P3">P3</SelectItem>
     </>
-  )
+  );
 }

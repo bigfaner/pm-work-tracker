@@ -5,9 +5,9 @@ import {
   DialogTitle,
   DialogBody,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { CollapsibleSection } from '@/components/ui/collapsible-section'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import {
   Table,
   TableHeader,
@@ -15,12 +15,12 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from '@/components/ui/table'
-import { PERMISSION_GROUPS } from '@/lib/permissions'
+} from "@/components/ui/table";
+import { PERMISSION_GROUPS } from "@/lib/permissions";
 
 interface PermissionBrowseDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 export default function PermissionBrowseDialog({
@@ -36,7 +36,11 @@ export default function PermissionBrowseDialog({
         <DialogBody>
           <div className="space-y-2 max-h-[60vh] overflow-y-auto">
             {PERMISSION_GROUPS.map((group) => (
-              <CollapsibleSection key={group.key} title={group.label} defaultOpen>
+              <CollapsibleSection
+                key={group.key}
+                title={group.label}
+                defaultOpen
+              >
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -66,5 +70,5 @@ export default function PermissionBrowseDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

@@ -1,13 +1,13 @@
-import { Pagination, PaginationPageSize } from '@/components/ui/pagination'
+import { Pagination, PaginationPageSize } from "@/components/ui/pagination";
 
 interface PaginationBarProps {
-  currentPage: number
-  totalPages: number
-  total: number
-  onPageChange: (page: number) => void
-  pageSize?: number
-  onPageSizeChange?: (size: number) => void
-  pageSizeOptions?: number[]
+  currentPage: number;
+  totalPages: number;
+  total: number;
+  onPageChange: (page: number) => void;
+  pageSize?: number;
+  onPageSizeChange?: (size: number) => void;
+  pageSizeOptions?: number[];
 }
 
 export default function PaginationBar({
@@ -35,5 +35,5 @@ export default function PaginationBar({
       )}
       <span className="text-[13px] text-tertiary">共 {total} 条</span>
     </div>
-  )
+  );
 }

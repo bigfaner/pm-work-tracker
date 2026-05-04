@@ -1,32 +1,33 @@
-import { useEffect } from 'react'
-import { Outlet } from 'react-router-dom'
-import { useTeamStore } from '@/store/team'
-import { useAuthStore } from '@/store/auth'
-import { listTeamsApi } from '@/api/teams'
-import Sidebar from './Sidebar'
+import { useEffect } from "react";
+import { Outlet } from "react-router-dom";
+import { useTeamStore } from "@/store/team";
+import { useAuthStore } from "@/store/auth";
+import { listTeamsApi } from "@/api/teams";
+import Sidebar from "./Sidebar";
 
 export default function AppLayout() {
-  const { teams, currentTeamId, setCurrentTeam, setTeams } = useTeamStore()
-  const fetchPermissions = useAuthStore((s) => s.fetchPermissions)
+  const { currentTeamId, setCurrentTeam, setTeams } = useTeamStore();
+  const fetchPermissions = useAuthStore((s) => s.fetchPermissions);
 
   useEffect(() => {
     listTeamsApi()
       .then((data) => {
-        const teams = Array.isArray(data) ? data : (data.items ?? [])
-        setTeams(teams)
+        const teams = Array.isArray(data) ? data : (data.items ?? []);
+        setTeams(teams);
         if (teams.length > 0) {
-          const valid = currentTeamId && teams.some((t) => t.bizKey === currentTeamId)
+          const valid =
+            currentTeamId && teams.some((t) => t.bizKey === currentTeamId);
           if (!valid) {
-            setCurrentTeam(teams[0].bizKey)
+            setCurrentTeam(teams[0].bizKey);
           }
         }
       })
-      .catch(() => {})
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
-    fetchPermissions()
-  }, [fetchPermissions])
+    fetchPermissions();
+  }, [fetchPermissions]);
 
   return (
     <div data-testid="app-layout" className="flex min-h-screen">
@@ -38,5 +39,5 @@ export default function AppLayout() {
         <Outlet />
       </main>
     </div>
-  )
+  );
 }

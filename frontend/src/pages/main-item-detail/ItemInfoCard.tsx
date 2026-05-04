@@ -1,15 +1,15 @@
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { isOverdue } from '@/lib/status'
-import { formatDate } from '@/lib/format'
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { isOverdue } from "@/lib/status";
+import { formatDate } from "@/lib/format";
 
 interface ItemInfoCardProps {
-  assigneeName: string
-  startDate: string | null
-  expectedEndDate: string | null
-  actualEndDate: string | null
-  status: string
-  description?: string
+  assigneeName: string;
+  startDate: string | null;
+  expectedEndDate: string | null;
+  actualEndDate: string | null;
+  status: string;
+  description?: string;
 }
 
 export default function ItemInfoCard({
@@ -30,12 +30,16 @@ export default function ItemInfoCard({
           </div>
           <div>
             <div className="text-xs text-tertiary mb-1">开始时间</div>
-            <span className="text-[13px] font-medium">{formatDate(startDate)}</span>
+            <span className="text-[13px] font-medium">
+              {formatDate(startDate)}
+            </span>
           </div>
           <div>
             <div className="text-xs text-tertiary mb-1">预期完成时间</div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[13px] font-medium">{formatDate(expectedEndDate)}</span>
+              <span className="text-[13px] font-medium">
+                {formatDate(expectedEndDate)}
+              </span>
               {isOverdue(expectedEndDate ?? undefined, status, new Date()) && (
                 <Badge variant="error">延期</Badge>
               )}
@@ -43,14 +47,18 @@ export default function ItemInfoCard({
           </div>
           <div>
             <div className="text-xs text-tertiary mb-1">结束时间</div>
-            <span className="text-[13px] font-medium">{formatDate(actualEndDate)}</span>
+            <span className="text-[13px] font-medium">
+              {formatDate(actualEndDate)}
+            </span>
           </div>
         </div>
         <div>
           <div className="text-xs text-tertiary mb-1">描述</div>
-          <span className="text-[13px] text-secondary leading-relaxed">{description || '暂无描述'}</span>
+          <span className="text-[13px] text-secondary leading-relaxed">
+            {description || "暂无描述"}
+          </span>
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

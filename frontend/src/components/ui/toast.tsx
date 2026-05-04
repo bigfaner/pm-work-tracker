@@ -1,72 +1,72 @@
-import * as React from 'react'
-import { cn } from '@/lib/utils'
-import { init as initToastShim } from '@/lib/toast'
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import { init as initToastShim } from "@/lib/toast";
 
 interface ToastProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'success' | 'error' | 'warning'
+  variant?: "default" | "success" | "error" | "warning";
 }
 
 const toastVariants = {
-  default: 'bg-white border-border text-primary',
-  success: 'bg-success-bg border-success-text/20 text-success-text',
-  error: 'bg-error-bg border-error-text/20 text-error-text',
-  warning: 'bg-warning-bg border-warning-text/20 text-warning-text',
-}
+  default: "bg-white border-border text-primary",
+  success: "bg-success-bg border-success-text/20 text-success-text",
+  error: "bg-error-bg border-error-text/20 text-error-text",
+  warning: "bg-warning-bg border-warning-text/20 text-warning-text",
+};
 
-function Toast({ variant = 'default', className, ...props }: ToastProps) {
+function Toast({ variant = "default", className, ...props }: ToastProps) {
   return (
     <div
       role="alert"
       className={cn(
-        'flex items-center gap-2 rounded-lg px-4 py-3 text-[13px] font-medium border shadow-md',
+        "flex items-center gap-2 rounded-lg px-4 py-3 text-[13px] font-medium border shadow-md",
         toastVariants[variant],
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 interface ToastProviderProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 interface ToastItem {
-  id: string
-  message: string
-  variant: 'default' | 'success' | 'error' | 'warning'
+  id: string;
+  message: string;
+  variant: "default" | "success" | "error" | "warning";
 }
 
 interface ToastContextValue {
-  toasts: ToastItem[]
-  addToast: (message: string, variant?: ToastItem['variant']) => void
-  removeToast: (id: string) => void
+  toasts: ToastItem[];
+  addToast: (message: string, variant?: ToastItem["variant"]) => void;
+  removeToast: (id: string) => void;
 }
 
-const ToastContext = React.createContext<ToastContextValue | null>(null)
+const ToastContext = React.createContext<ToastContextValue | null>(null);
 
 function ToastProvider({ children }: ToastProviderProps) {
-  const [toasts, setToasts] = React.useState<ToastItem[]>([])
+  const [toasts, setToasts] = React.useState<ToastItem[]>([]);
 
   const addToast = React.useCallback(
-    (message: string, variant: ToastItem['variant'] = 'default') => {
-      const id = Math.random().toString(36).slice(2, 9)
-      setToasts((prev) => [...prev, { id, message, variant }])
+    (message: string, variant: ToastItem["variant"] = "default") => {
+      const id = Math.random().toString(36).slice(2, 9);
+      setToasts((prev) => [...prev, { id, message, variant }]);
       setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id))
-      }, 1000)
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, 1000);
     },
     [],
-  )
+  );
 
   // Wire standalone shim so non-React modules (e.g., Axios interceptor) can show toasts
   React.useEffect(() => {
-    initToastShim(addToast)
-  }, [addToast])
+    initToastShim(addToast);
+  }, [addToast]);
 
   const removeToast = React.useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id))
-  }, [])
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
   return (
     <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
@@ -84,16 +84,16 @@ function ToastProvider({ children }: ToastProviderProps) {
         ))}
       </div>
     </ToastContext.Provider>
-  )
+  );
 }
 
 function useToast() {
-  const context = React.useContext(ToastContext)
+  const context = React.useContext(ToastContext);
   if (!context) {
-    throw new Error('useToast must be used within a ToastProvider')
+    throw new Error("useToast must be used within a ToastProvider");
   }
-  return context
+  return context;
 }
 
-export { Toast, ToastProvider, useToast }
-export type { ToastItem }
+export { Toast, ToastProvider, useToast };
+export type { ToastItem };

@@ -3,8 +3,8 @@
  * Returns "-" for null, undefined, or empty strings.
  */
 export function formatDate(date: string | null | undefined): string {
-  if (!date) return '-'
-  return date.replace(/-/g, '/')
+  if (!date) return "-";
+  return date.replace(/-/g, "/");
 }
 
 /**
@@ -13,6 +13,6 @@ export function formatDate(date: string | null | undefined): string {
  * Returns "-" for null, undefined, or empty strings.
  */
 export function formatDateOnly(dateStr?: string | null): string {
-  if (!dateStr) return '-'
-  return formatDate(dateStr.slice(0, 10))
+  if (!dateStr) return "-";
+  return formatDate(dateStr.slice(0, 10));
 }

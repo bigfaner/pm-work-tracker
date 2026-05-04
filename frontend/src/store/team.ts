@@ -1,12 +1,12 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import type { Team } from '@/types'
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { Team } from "@/types";
 
 interface TeamState {
-  currentTeamId: string | null
-  teams: Team[]
-  setCurrentTeam: (teamId: string | null) => void
-  setTeams: (teams: Team[]) => void
+  currentTeamId: string | null;
+  teams: Team[];
+  setCurrentTeam: (teamId: string | null) => void;
+  setTeams: (teams: Team[]) => void;
 }
 
 export const useTeamStore = create<TeamState>()(
@@ -17,6 +17,6 @@ export const useTeamStore = create<TeamState>()(
       setCurrentTeam: (teamId) => set({ currentTeamId: teamId }),
       setTeams: (teams) => set({ teams }),
     }),
-    { name: 'team-storage' },
+    { name: "team-storage" },
   ),
-)
+);

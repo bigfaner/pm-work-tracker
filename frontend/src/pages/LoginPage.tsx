@@ -1,54 +1,56 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams, Navigate } from 'react-router-dom'
-import { loginApi } from '@/api/auth'
-import { useAuthStore } from '@/store/auth'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { useState } from "react";
+import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
+import { loginApi } from "@/api/auth";
+import { useAuthStore } from "@/store/auth";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const setAuth = useAuthStore((s) => s.setAuth)
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const setAuth = useAuthStore((s) => s.setAuth);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
   if (isAuthenticated) {
-    return <Navigate replace to="/items" />
+    return <Navigate replace to="/items" />;
   }
 
-  const canSubmit = username.trim() !== '' && password.trim() !== '' && !loading
+  const canSubmit =
+    username.trim() !== "" && password.trim() !== "" && !loading;
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!canSubmit) return
-    setLoading(true)
-    setError(null)
+    e.preventDefault();
+    if (!canSubmit) return;
+    setLoading(true);
+    setError(null);
     try {
-      const resp = await loginApi({ username, password })
-      setAuth(resp.token, resp.user)
-      const redirect = searchParams.get('redirect') || '/items'
-      navigate(redirect)
-    } catch (err: any) {
-      const status = err?.response?.status
-      const code = err?.response?.data?.code
+      const resp = await loginApi({ username, password });
+      setAuth(resp.token, resp.user);
+      const redirect = searchParams.get("redirect") || "/items";
+      navigate(redirect);
+    } catch (err: unknown) {
+      const resp = (err as { response?: { status?: number; data?: { code?: string } } }).response;
+      const status = resp?.status;
+      const code = resp?.data?.code;
       if (status === 401) {
-        setError('账号或密码错误')
-        setPassword('')
-      } else if (status === 403 && code === 'USER_DISABLED') {
-        setError('账号已被禁用，请联系管理员')
+        setError("账号或密码错误");
+        setPassword("");
+      } else if (status === 403 && code === "USER_DISABLED") {
+        setError("账号已被禁用，请联系管理员");
       } else if (status === 400) {
-        setError('请求参数校验失败')
+        setError("请求参数校验失败");
       } else {
-        setError('登录失败，请稍后重试')
+        setError("登录失败，请稍后重试");
       }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div
@@ -126,7 +128,7 @@ export default function LoginPage() {
               data-testid="login-submit"
               className="w-full h-11 text-base"
             >
-              {loading ? '登录中...' : '登录'}
+              {loading ? "登录中..." : "登录"}
             </Button>
           </form>
 
@@ -134,5 +136,5 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
