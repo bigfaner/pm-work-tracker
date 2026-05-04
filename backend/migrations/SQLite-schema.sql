@@ -208,3 +208,23 @@ CREATE TABLE IF NOT EXISTS pmw_status_histories (
     create_time  DATETIME     NOT NULL DEFAULT (datetime('now')) -- 记录创建时间
 );
 CREATE INDEX IF NOT EXISTS idx_status_histories_item ON pmw_status_histories(item_type, item_key);
+
+-- pmw_decision_logs (append-only after publishing: no soft-delete)
+CREATE TABLE IF NOT EXISTS pmw_decision_logs (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT, -- 自增主键
+    biz_key         INTEGER       NOT NULL,            -- 业务唯一键
+    main_item_key   INTEGER       NOT NULL,            -- 所属主事项 biz_key
+    team_key        INTEGER       NOT NULL,            -- 所属团队 biz_key
+    category        VARCHAR(20)   NOT NULL,            -- 分类：technical/resource/requirement/schedule/risk/other
+    tags            TEXT          NOT NULL DEFAULT '',  -- 标签 JSON 数组字符串
+    content         TEXT          NOT NULL,             -- 决策内容
+    log_status      VARCHAR(10)   NOT NULL DEFAULT 'draft', -- 状态：draft=草稿，published=已发布
+    created_by      INTEGER       NOT NULL,             -- 创建人 biz_key
+    create_time     DATETIME      NOT NULL DEFAULT (datetime('now')), -- 创建时间
+    update_time     DATETIME      NOT NULL DEFAULT (datetime('now'))  -- 更新时间
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_decision_logs_biz_key ON pmw_decision_logs(biz_key);
+CREATE INDEX IF NOT EXISTS idx_decision_logs_main_item_key ON pmw_decision_logs(main_item_key);
+CREATE INDEX IF NOT EXISTS idx_decision_logs_team_key ON pmw_decision_logs(team_key);
+CREATE INDEX IF NOT EXISTS idx_decision_logs_main_status ON pmw_decision_logs(main_item_key, log_status);
+CREATE INDEX IF NOT EXISTS idx_decision_logs_create_time ON pmw_decision_logs(create_time);
