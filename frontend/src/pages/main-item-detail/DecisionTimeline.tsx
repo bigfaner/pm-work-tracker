@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MAIN_ITEM_STATUSES } from "@/lib/status";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Pencil, Plus, RefreshCw } from "lucide-react";
 
 // Category label map
 const CATEGORY_LABELS: Record<string, string> = {
@@ -170,7 +170,7 @@ export function DecisionTimeline({
       className={onToggleCollapse ? "cursor-pointer select-none" : ""}
       onClick={onToggleCollapse}
     >
-      <span className="text-sm font-medium text-primary">决策记录</span>
+      <h3 className="text-sm font-semibold text-primary m-0">决策记录</h3>
       <div className="flex items-center gap-2">
         {headerRight}
         {onToggleCollapse && (
@@ -192,6 +192,7 @@ export function DecisionTimeline({
             <div className="flex items-center justify-between rounded-lg bg-error-bg px-4 py-3 text-error-text text-[13px]">
               <span>加载失败</span>
               <Button variant="ghost" size="sm" onClick={() => fetchLogs(1)}>
+                <RefreshCw size={12} />
                 重试
               </Button>
             </div>
@@ -234,6 +235,7 @@ export function DecisionTimeline({
               size="sm"
               onClick={(e) => { e.stopPropagation(); onAdd(); }}
             >
+              <Plus size={14} />
               添加决策
             </Button>
           ) : undefined,
@@ -249,6 +251,7 @@ export function DecisionTimeline({
                   className="mt-3"
                   onClick={onAdd}
                 >
+                  <Plus size={14} />
                   添加决策
                 </Button>
               )}
@@ -365,12 +368,13 @@ export function DecisionTimeline({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="ml-auto"
+                            className="ml-auto text-primary-600"
                             onClick={(e) => {
                               e.stopPropagation();
                               onEdit(log.bizKey);
                             }}
                           >
+                            <Pencil size={12} />
                             编辑
                           </Button>
                         )}
@@ -400,6 +404,7 @@ export function DecisionTimeline({
                   size="sm"
                   onClick={() => fetchLogs(page + 1)}
                 >
+                  <RefreshCw size={12} />
                   重试
                 </Button>
               </div>
