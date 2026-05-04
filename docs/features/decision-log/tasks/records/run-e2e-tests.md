@@ -1,14 +1,14 @@
 ---
 status: "completed"
-started: "2026-05-04 15:42"
-completed: "2026-05-04 15:53"
-time_spent: "~11m"
+started: "2026-05-04 19:07"
+completed: "2026-05-04 19:12"
+time_spent: "~5m"
 ---
 
 # Task Record: T-test-3 Run e2e Tests
 
 ## Summary
-Executed e2e tests for decision-log feature. 28 tests run: 3 passed, 19 failed, 6 skipped. Failures caused by Windows Playwright beforeAll fixture instability (libuv handle-closing error), not by API implementation bugs. Decision-log API endpoints verified functional via manual testing. Report written to tests/e2e/decision-log/results/latest.md.
+Executed e2e test suite for decision-log feature. 28 tests run: 3 passed, 19 failed, 6 skipped. Primary failure is Windows Playwright beforeAll fixture (libuv handle-closing error) causing undefined teamId/mainItemId. Secondary issue: role creation with empty permissionCodes rejected by backend. Report written to tests/e2e/decision-log/results/latest.md.
 
 ## Changes
 
@@ -19,9 +19,8 @@ Executed e2e tests for decision-log feature. 28 tests run: 3 passed, 19 failed, 
 - tests/e2e/decision-log/results/latest.md
 
 ### Key Decisions
-- Tests failed due to Windows-specific Playwright/libuv issue, not API bugs
-- Decision-log API endpoints confirmed functional via manual verification
-- Report identifies 3 root cause categories: P0 fixture stability, P1 role creation validation, P2 missing UI
+- Did NOT attempt to fix test failures inline -- per task instructions, fix tasks should be created for distinct root causes
+- Three root causes identified: P0 Windows Playwright beforeAll fixture, P1 role creation validation, P2 UI not yet implemented
 
 ## Test Results
 - **Passed**: 3
@@ -33,4 +32,4 @@ Executed e2e tests for decision-log feature. 28 tests run: 3 passed, 19 failed, 
 - [ ] All tests pass (status = PASS in latest.md)
 
 ## Notes
-19 failures traced to Windows Playwright beforeAll libuv handle-closing error causing teamId/mainItemId to be undefined. 6 skips due to unimplemented decision timeline UI. Per task instructions, fix tasks should be created for P0 root causes.
+Tests failed. Per task instructions, the run-and-report work is done. Fix tasks should be created for: (1) P0 Windows Playwright beforeAll fixture stability, (2) P1 role creation with empty permissionCodes, (3) P2 decision timeline UI implementation. The task file states: 'If tests fail... mark this task completed (the run-and-report work is done)'
