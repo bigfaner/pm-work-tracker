@@ -1,0 +1,35 @@
+[
+  {
+    "phase": 1,
+    "name": "Foundation",
+    "source": "fallback",
+    "gates": [
+      {
+        "afterPhase": 1,
+        "description": "Verify interfaces, models, and migration are consistent with design spec"
+      }
+    ]
+  },
+  {
+    "phase": 2,
+    "name": "Backend Implementation",
+    "source": "fallback",
+    "gates": [
+      {
+        "afterPhase": 2,
+        "description": "Verify backend CRUD operations, permission checks, and draft visibility filter"
+      }
+    ]
+  },
+  {
+    "phase": 3,
+    "name": "Frontend Implementation",
+    "source": "fallback",
+    "gates": [
+      {
+        "afterPhase": 3,
+        "description": "Verify frontend components render correctly, form interactions work, and API integration is correct"
+      }
+    ]
+  }
+]
