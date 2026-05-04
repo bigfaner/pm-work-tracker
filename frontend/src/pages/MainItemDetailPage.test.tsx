@@ -164,6 +164,33 @@ const seedMainItem = {
   blockers: ["OAuth2.0 第三方回调地址需运维配合配置"],
 };
 
+const seedDecisionLogs = [
+  {
+    bizKey: "dl-1",
+    mainItemKey: "1",
+    category: "technical",
+    tags: ["架构"],
+    content: "采用微服务架构方案",
+    logStatus: "published",
+    createdBy: "1",
+    creatorName: "Test User",
+    createTime: "2026-04-01T10:00:00Z",
+    updateTime: "2026-04-01T10:00:00Z",
+  },
+  {
+    bizKey: "dl-2",
+    mainItemKey: "1",
+    category: "risk",
+    tags: ["延期风险"],
+    content: "第三方API依赖可能导致延期",
+    logStatus: "draft",
+    createdBy: "1",
+    creatorName: "Test User",
+    createTime: "2026-04-05T14:00:00Z",
+    updateTime: "2026-04-05T14:00:00Z",
+  },
+];
+
 function setupHandlers() {
   server.use(
     // Get main item with sub items
@@ -233,6 +260,64 @@ function setupHandlers() {
       ];
       return HttpResponse.json({ code: 0, data: { transitions: allStatuses } });
     }),
+
+    // Decision logs: list
+    http.get(
+      "/v1/teams/:teamId/main-items/:mainBizKey/decision-logs",
+      () => {
+        return HttpResponse.json({
+          code: 0,
+          data: { items: seedDecisionLogs, total: seedDecisionLogs.length, page: 1, size: 20 },
+        });
+      },
+    ),
+
+    // Decision logs: create
+    http.post(
+      "/v1/teams/:teamId/main-items/:mainBizKey/decision-logs",
+      async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          code: 0,
+          data: {
+            bizKey: "dl-new",
+            mainItemKey: "1",
+            ...body,
+            creatorName: "Test User",
+            createdBy: "1",
+            createTime: new Date().toISOString(),
+            updateTime: new Date().toISOString(),
+          },
+        });
+      },
+    ),
+
+    // Decision logs: update
+    http.put(
+      "/v1/teams/:teamId/main-items/:mainBizKey/decision-logs/:bizKey",
+      async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          code: 0,
+          data: {
+            ...seedDecisionLogs[1],
+            ...body,
+            updateTime: new Date().toISOString(),
+          },
+        });
+      },
+    ),
+
+    // Decision logs: publish
+    http.patch(
+      "/v1/teams/:teamId/main-items/:mainBizKey/decision-logs/:bizKey/publish",
+      () => {
+        return HttpResponse.json({
+          code: 0,
+          data: { ...seedDecisionLogs[1], logStatus: "published" },
+        });
+      },
+    ),
   );
 }
 
@@ -251,6 +336,13 @@ describe("MainItemDetailPage", () => {
           updatedAt: "",
         },
       ],
+    });
+    useAuthStore.getState().setAuth("test-token", {
+      bizKey: "1",
+      username: "testuser",
+      displayName: "Test User",
+      isSuperAdmin: false,
+      createTime: "",
     });
     useAuthStore.getState().setPermissions({
       isSuperAdmin: false,
@@ -570,9 +662,14 @@ describe("MainItemDetailPage", () => {
     await waitFor(() => {
       expect(screen.getByText("Sub Alpha 1")).toBeInTheDocument();
     });
-    const editBtns = screen.getAllByRole("button", { name: /编辑/ });
+    // Scope to sub-item table to avoid matching DecisionTimeline's edit button
+    const subTable = screen.getByText("子事项列表").closest("div")!;
+    const editBtns = subTable.querySelectorAll('button');
+    const subEditBtns = Array.from(editBtns).filter(
+      (btn) => btn.textContent?.trim() === "编辑",
+    );
     const appendBtns = screen.getAllByRole("button", { name: /追加进度/ });
-    editBtns.forEach((btn) => expect(btn).toBeDisabled());
+    subEditBtns.forEach((btn) => expect(btn).toBeDisabled());
     appendBtns.forEach((btn) => expect(btn).toBeDisabled());
   });
 
@@ -650,6 +747,97 @@ describe("MainItemDetailPage", () => {
       // Edit form should be populated with the item's data (not empty)
       const titleInput = screen.getByDisplayValue("Alpha Task");
       expect(titleInput).toBeInTheDocument();
+    });
+  });
+
+  // --- DecisionTimeline integration ---
+
+  it("renders DecisionTimeline section between progress summary and sub-items table", async () => {
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByText("决策记录")).toBeInTheDocument();
+    });
+    // Verify all three sections exist
+    expect(screen.getByText("进度与汇总")).toBeInTheDocument();
+    expect(screen.getByText("决策记录")).toBeInTheDocument();
+    expect(screen.getByText("子事项列表")).toBeInTheDocument();
+
+    // Verify DOM ordering using compareDocumentPosition
+    const progressEl = screen.getByText("进度与汇总");
+    const decisionEl = screen.getByText("决策记录");
+    const subEl = screen.getByText("子事项列表");
+    // Node.DOCUMENT_POSITION_FOLLOWING = 4
+    expect(
+      progressEl.compareDocumentPosition(decisionEl) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      decisionEl.compareDocumentPosition(subEl) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("renders decision log entries from API", async () => {
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByText("采用微服务架构方案")).toBeInTheDocument();
+    });
+    expect(screen.getByText("技术")).toBeInTheDocument();
+    expect(screen.getByText("风险")).toBeInTheDocument();
+  });
+
+  it("renders add decision button for non-terminal items", async () => {
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByText("决策记录")).toBeInTheDocument();
+    });
+    const addButtons = screen.getAllByRole("button", { name: /添加决策/ });
+    expect(addButtons.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("opens DecisionFormDialog in new mode when add button is clicked", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByText("决策记录")).toBeInTheDocument();
+    });
+
+    const addButtons = screen.getAllByRole("button", { name: /添加决策/ });
+    await user.click(addButtons[0]);
+
+    await waitFor(() => {
+      // DecisionFormDialog opens with title "添加决策"
+      const dialogTitles = screen.getAllByText("添加决策");
+      expect(dialogTitles.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  it("opens DecisionFormDialog in edit mode when draft edit button is clicked", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByText("决策记录")).toBeInTheDocument();
+    });
+
+    // The draft entry should have an "编辑" button (visible to the creator with update permission)
+    await waitFor(() => {
+      const editButtons = screen.getAllByRole("button", { name: "编辑" });
+      // There should be at least one "编辑" button (main item edit + draft decision edit)
+      expect(editButtons.length).toBeGreaterThanOrEqual(1);
+    });
+
+    // Find the edit button within the decision timeline (role=feed)
+    const feed = screen.getByRole("feed", { name: "决策记录" });
+    // The edit button is a ghost button inside the feed article
+    const editButtonsInFeed = feed.querySelectorAll("button");
+    // The draft entry has a ghost "编辑" button
+    const draftEditBtn = Array.from(editButtonsInFeed).find(
+      (btn) => btn.textContent?.trim() === "编辑",
+    );
+    expect(draftEditBtn).toBeTruthy();
+    await user.click(draftEditBtn!);
+
+    await waitFor(() => {
+      // DecisionFormDialog opens in edit mode with title "编辑决策"
+      expect(screen.getByText("编辑决策")).toBeInTheDocument();
     });
   });
 });

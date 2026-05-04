@@ -34,6 +34,8 @@ import AppendProgressDialog, {
 import SubItemsTable from "./main-item-detail/SubItemsTable";
 import ProgressSummaryCard from "./main-item-detail/ProgressSummaryCard";
 import ItemInfoCard from "./main-item-detail/ItemInfoCard";
+import { DecisionTimeline } from "./main-item-detail/DecisionTimeline";
+import { DecisionFormDialog } from "@/components/decision-log/DecisionFormDialog";
 
 // --- Main Component ---
 
@@ -82,6 +84,13 @@ export default function MainItemDetailPage() {
       achievement: "",
       blocker: "",
     });
+
+  // Decision form dialog state
+  const [decisionFormOpen, setDecisionFormOpen] = useState(false);
+  const [decisionFormMode, setDecisionFormMode] = useState<"new" | "edit">(
+    "new",
+  );
+  const [decisionEditBizKey, setDecisionEditBizKey] = useState("");
 
   // --- Data fetching ---
 
@@ -362,6 +371,22 @@ export default function MainItemDetailPage() {
             achievements={item?.achievements}
             blockers={item?.blockers}
           />
+          {/* Decision Timeline */}
+          <DecisionTimeline
+            teamId={String(teamId)}
+            mainItemId={itemId}
+            mainStatus={item.itemStatus}
+            onAdd={() => {
+              setDecisionFormMode("new");
+              setDecisionEditBizKey("");
+              setDecisionFormOpen(true);
+            }}
+            onEdit={(bizKey: string) => {
+              setDecisionFormMode("edit");
+              setDecisionEditBizKey(bizKey);
+              setDecisionFormOpen(true);
+            }}
+          />
           {/* Sub-items Table */}
           <SubItemsTable
             subItems={subItems}
@@ -410,6 +435,18 @@ export default function MainItemDetailPage() {
             onFormChange={setAppendProgressForm}
             onSubmit={handleAppendProgress}
             isPending={appendProgressMutation.isPending}
+          />
+          <DecisionFormDialog
+            key={decisionEditBizKey}
+            open={decisionFormOpen}
+            onOpenChange={setDecisionFormOpen}
+            mode={decisionFormMode}
+            teamBizKey={String(teamId)}
+            mainBizKey={item.bizKey}
+            onSuccess={() => {
+              qc.invalidateQueries({ queryKey: ["mainItem", teamId, itemId] });
+              setDecisionFormOpen(false);
+            }}
           />
         </>
       )}

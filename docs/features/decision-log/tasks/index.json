@@ -177,6 +177,34 @@
       "record": "records/3.3-decision-form-dialog.md",
       "scope": "frontend"
     },
+    "4.1-integrate-ui": {
+      "id": "4.1",
+      "title": "Integrate DecisionTimeline and DecisionFormDialog into MainItemDetailPage",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "dependencies": [
+        "3.2",
+        "3.3"
+      ],
+      "status": "completed",
+      "file": "4.1-integrate-ui.md",
+      "record": "records/4.1-integrate-ui.md",
+      "scope": "frontend"
+    },
+    "4.2-verify-e2e": {
+      "id": "4.2",
+      "title": "Re-run e2e tests to verify DecisionTimeline UI integration",
+      "priority": "P0",
+      "estimatedTime": "30min",
+      "dependencies": [
+        "4.1"
+      ],
+      "status": "pending",
+      "file": "4.2-verify-e2e.md",
+      "record": "records/4.2-verify-e2e.md",
+      "breaking": true,
+      "scope": "all"
+    },
     "consolidate-specs": {
       "id": "T-test-5",
       "title": "Consolidate Specs",
