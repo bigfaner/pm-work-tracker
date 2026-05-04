@@ -45,7 +45,7 @@ type mockDecisionLogService struct {
 	// capture calls
 	createCalled    bool
 	lastMainItemKey int64
-	lastUserBizKey      int64
+	lastUserBizKey  int64
 	lastCreateReq   dto.DecisionLogCreateReq
 
 	updateCalled  bool
