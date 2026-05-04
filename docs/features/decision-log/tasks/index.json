@@ -199,6 +199,15 @@
       "record": "records/disc-1.md",
       "breaking": true
     },
+    "disc-2": {
+      "id": "disc-2",
+      "title": "Fix: DecisionLog handler double-resolution bug",
+      "priority": "P0",
+      "status": "completed",
+      "file": "disc-2.md",
+      "record": "records/disc-2.md",
+      "breaking": true
+    },
     "gen-test-cases": {
       "id": "T-test-1",
       "title": "Generate e2e Test Cases",
