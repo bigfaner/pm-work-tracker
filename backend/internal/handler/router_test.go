@@ -123,21 +123,22 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 	}
 
 	return &Dependencies{
-		Config:     cfg,
-		TeamRepo:   teamRepo,
-		UserRepo:   userRepo,
-		RoleRepo:   roleRepo,
-		Auth:       NewAuthHandler(&stubAuthService{}),
-		Team:       NewTeamHandler(&StubTeamSvc{}, &StubRouterRepoUser{}),
-		MainItem:   NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, &StubRouterRepoSubItem{}),
-		SubItem:    NewSubItemHandler(&StubSubItemSvc{}, &StubMainItemSvc{}),
-		Progress:   NewProgressHandler(&StubProgressSvc{}, &StubRouterRepoUser{}, &StubSubItemSvc{}),
-		ItemPool:   NewItemPoolHandler(&StubItemPoolSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMainItem{}),
-		View:       NewViewHandler(&StubViewSvc{}),
-		Report:     NewReportHandler(&StubReportSvc{}),
-		Admin:      NewAdminHandler(&StubAdminSvc{}),
-		Role:       NewRoleHandler(&StubRoleSvc{}),
-		Permission: NewPermissionHandler(&StubRoleSvc{}),
+		Config:      cfg,
+		TeamRepo:    teamRepo,
+		UserRepo:    userRepo,
+		RoleRepo:    roleRepo,
+		Auth:        NewAuthHandler(&stubAuthService{}),
+		Team:        NewTeamHandler(&StubTeamSvc{}, &StubRouterRepoUser{}),
+		MainItem:    NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, &StubRouterRepoSubItem{}),
+		SubItem:     NewSubItemHandler(&StubSubItemSvc{}, &StubMainItemSvc{}),
+		Progress:    NewProgressHandler(&StubProgressSvc{}, &StubRouterRepoUser{}, &StubSubItemSvc{}),
+		ItemPool:    NewItemPoolHandler(&StubItemPoolSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMainItem{}),
+		View:        NewViewHandler(&StubViewSvc{}),
+		Report:      NewReportHandler(&StubReportSvc{}),
+		Admin:       NewAdminHandler(&StubAdminSvc{}),
+		Role:        NewRoleHandler(&StubRoleSvc{}),
+		Permission:  NewPermissionHandler(&StubRoleSvc{}),
+		DecisionLog: NewDecisionLogHandler(&StubDecisionLogSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMainItem{}),
 	}, db
 }
 
