@@ -4,7 +4,7 @@ title: "Graduate Test Scripts"
 priority: "P1"
 estimated_time: "30min"
 dependencies: ["T-test-3"]
-status: blocked
+status: completed
 ---
 
 # Graduate Test Scripts
@@ -23,9 +23,9 @@ This task is a gate: it only proceeds if e2e tests are passing.
 
 ## Acceptance Criteria
 
-- [ ] `tests/e2e/features/decision-log/results/latest.md` shows status = PASS
-- [ ] `tests/e2e/.graduated/decision-log` marker exists
-- [ ] Spec files present in `tests/e2e/<module>/`
+- [x] `tests/e2e/decision-log/results/latest.md` shows status = PASS
+- [x] `tests/e2e/.graduated/decision-log` marker exists
+- [x] Spec files present in `tests/e2e/decision-log/`
 
 ## User Stories
 
