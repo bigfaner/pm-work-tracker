@@ -3,6 +3,12 @@ created: "2026-05-04"
 tags: [testing, local-dev-deployment]
 ---
 
+## Status: FIXED
+
+Fix applied on 2026-05-05. Decision-log e2e tests were moved from `tests/e2e/decision-log/` to `tests/e2e/items/` with renamed spec files (`decision-log-api.spec.ts`, `decision-log-ui.spec.ts`).
+
+---
+
 # E2E beforeAll Failure Cascades and Misdiagnosis
 
 ## Problem
@@ -46,7 +52,7 @@ Passing tests use one of two patterns:
 - `beforeAll` with `createAuthCurl` but **reuse existing team** (item-pool/pool-api.spec.ts)
 
 Failing test pattern:
-- `beforeAll` with `createAuthCurl` + **creates new team + main item** (decision-log/api.spec.ts)
+- `beforeAll` with `createAuthCurl` + **creates new team + main item** (items/decision-log-api.spec.ts)
 
 The extra create operations introduce more failure modes.
 
@@ -93,7 +99,7 @@ After code changes (disc-1, disc-2 fixes), the backend binary must be rebuilt AN
 just test-e2e decision-log
 
 # Debug a specific failing test
-cd tests/e2e && npx playwright test decision-log/api.spec.ts --debug
+cd tests/e2e && npx playwright test items/decision-log-api.spec.ts --debug
 
 # Check if backend is running and responsive
 curl http://localhost:8080/health
@@ -101,8 +107,8 @@ curl http://localhost:8080/health
 
 ## Related Files
 
-- `tests/e2e/decision-log/api.spec.ts` — failing test (beforeAll pattern)
-- `tests/e2e/decision-log/ui.spec.ts` — failing test (beforeAll pattern)
+- `tests/e2e/items/decision-log-api.spec.ts` — failing test (beforeAll pattern)
+- `tests/e2e/items/decision-log-ui.spec.ts` — failing test (beforeAll pattern)
 - `tests/e2e/item-pool/pool-api.spec.ts` — passing test (similar pattern, reuses team)
 - `tests/e2e/items/item-list.spec.ts` — passing test (serial + request context)
 - `tests/e2e/helpers.ts` — shared helpers (curl, createTestTeam, createTestMainItem)
