@@ -16,7 +16,7 @@ Executed e2e test suite for decision-log feature. 28 tests run: 3 passed, 19 fai
 无
 
 ### Files Modified
-- tests/e2e/decision-log/results/latest.md
+- tests/e2e/items/results/latest.md (originally tests/e2e/decision-log/results/latest.md, since removed)
 
 ### Key Decisions
 - Did NOT attempt to fix test failures inline -- per task instructions, fix tasks should be created for distinct root causes
@@ -28,7 +28,7 @@ Executed e2e test suite for decision-log feature. 28 tests run: 3 passed, 19 fai
 - **Coverage**: N/A (task has no tests)
 
 ## Acceptance Criteria
-- [x] tests/e2e/decision-log/results/latest.md exists
+- [x] tests/e2e/decision-log/results/latest.md exists (since removed; tests now at tests/e2e/items/)
 - [ ] All tests pass (status = PASS in latest.md)
 
 ## Notes

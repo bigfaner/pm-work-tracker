@@ -13,14 +13,14 @@ Generated 28 e2e test scripts (15 UI + 13 API) from test cases for the decision-
 ## Changes
 
 ### Files Created
-- tests/e2e/decision-log/api.spec.ts
-- tests/e2e/decision-log/ui.spec.ts
+- tests/e2e/items/decision-log-api.spec.ts
+- tests/e2e/items/decision-log-ui.spec.ts
 
 ### Files Modified
 无
 
 ### Key Decisions
-- Placed specs in tests/e2e/decision-log/ (flat structure) instead of tests/e2e/features/decision-log/ to match existing project convention and just e2e-verify compatibility
+- Specs later moved to tests/e2e/items/ (decision-log-api.spec.ts, decision-log-ui.spec.ts) to match functional module organization; originally placed in tests/e2e/decision-log/
 - UI tests use graceful skip pattern when decision timeline UI is not yet rendered, allowing tests to coexist with incremental frontend development
 - API tests create isolated test data (team + main item) in beforeAll to avoid polluting shared state
 - TC-024 creates a dedicated no-permission user/role for permission testing rather than relying on existing roles
@@ -31,7 +31,7 @@ Generated 28 e2e test scripts (15 UI + 13 API) from test cases for the decision-
 - **Coverage**: N/A (task has no tests)
 
 ## Acceptance Criteria
-- [x] tests/e2e/decision-log/ contains at least one spec file (ui.spec.ts / api.spec.ts)
+- [x] tests/e2e/items/ contains at least one spec file (decision-log-ui.spec.ts / decision-log-api.spec.ts)
 - [x] tests/e2e/helpers.ts exists (shared infrastructure)
 - [x] Each test() includes traceability comment // Traceability: TC-NNN → {PRD Source}
 

@@ -218,12 +218,14 @@ test.describe('Decision Log UI E2E Tests', () => {
     await navigateToItemPage(page);
 
     // Scroll to decision timeline section
-    const timelineHeading = page.getByRole('heading', { name: /决策|decision/i });
+    const timelineHeading = page.getByRole('heading', { name: '决策记录' });
     await timelineHeading.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
     if (!(await timelineHeading.isVisible())) {
       test.skip();
       return;
     }
+    // Expand the collapsed timeline
+    await timelineHeading.click();
 
     // Verify both decisions are visible
     await expect(page.getByText('First published decision')).toBeVisible({ timeout: 5000 });
@@ -391,8 +393,8 @@ test.describe('Decision Log UI E2E Tests', () => {
     const submitBtn = page.getByRole('button', { name: /发布|保存草稿/i }).first();
     await submitBtn.click();
 
-    // Should show validation error for category
-    await expect(page.getByText(/请选择分类/i)).toBeVisible({ timeout: 5000 });
+    // Should show validation error for category (role=alert div below select)
+    await expect(page.locator('[role="alert"]').filter({ hasText: /请选择分类/ })).toBeVisible({ timeout: 5000 });
   });
 
   // ── TC-011: Form validation — empty content ────────────────────────

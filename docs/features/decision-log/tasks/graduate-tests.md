@@ -18,14 +18,14 @@ This task is a gate: it only proceeds if e2e tests are passing.
 ## Reference Files
 
 - `tests/e2e/features/decision-log/results/latest.md` — Must show status = PASS before graduating
-- `tests/e2e/features/decision-log/` — Source scripts to migrate
+- `tests/e2e/items/` — Source scripts (decision-log-api.spec.ts, decision-log-ui.spec.ts)
 - `tests/e2e/` — Destination regression suite
 
 ## Acceptance Criteria
 
-- [x] `tests/e2e/decision-log/results/latest.md` shows status = PASS
+- [x] `tests/e2e/decision-log/results/latest.md` shows status = PASS (since removed; tests now at `tests/e2e/items/`)
 - [x] `tests/e2e/.graduated/decision-log` marker exists
-- [x] Spec files present in `tests/e2e/decision-log/`
+- [x] Spec files present in `tests/e2e/items/` (`decision-log-api.spec.ts`, `decision-log-ui.spec.ts`)
 
 ## User Stories
 
