@@ -1,0 +1,12 @@
+---
+integrated_at: 2026-05-04
+target_files:
+  - docs/conventions/api-boundary.md
+extracted_rules:
+  - AB-001 (service boundary uses int64 bizKey)
+  - AB-002 (repository boundary uses uint ID)
+  - AB-003 (middleware injects teamBizKey int64 directly)
+  - AB-004 (handler parses bizKey from URL params)
+---
+
+Rules from bizkey-unification PRD and tech design have been extracted into project-level convention files. No feature-specific rules remain that are not represented in the conventions.

@@ -1,0 +1,20 @@
+---
+integrated: 2026-05-04
+source_prd: docs/features/pm-work-tracker/prd/prd-spec.md
+source_design: docs/features/pm-work-tracker/design/tech-design.md
+---
+
+# Integration Summary
+
+## Convention Files Written
+
+| File | Type | Rules Extracted |
+|------|------|-----------------|
+| docs/conventions/status-machine.md | NEW | SubItem 8-state flow, transition matrix, auto-P1 rule (DelayCount >= 2), ItemPool 3-state flow |
+| docs/conventions/data-model.md | APPEND (DM-007..DM-011) | Entity hierarchy, completion weighted average, ProgressRecord append-only, BizKey pattern, team isolation |
+| docs/conventions/performance-targets.md | NEW | Report export <5s, weekly view <2s, JWT 24h expiry, login rate limiting, concurrent access |
+
+## Counts
+
+- biz_count: 4 (8-state machine, auto-P1 rule, completion calculation, append-only constraint)
+- tech_count: 5 (entity hierarchy, BizKey snowflake, BaseModel fields, team isolation enforcement, performance targets)

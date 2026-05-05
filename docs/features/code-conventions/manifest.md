@@ -16,6 +16,15 @@ status: tasks
 | Tech Design | design/tech-design.md | 3-phase plan: docs/lint → backend cleanup → frontend cleanup |
 | API Handbook | design/api-handbook.md | Internal interfaces: MapNotFound, ApplyPaginationDefaults, ParseDate, Textarea, PrioritySelect |
 
+## Consolidated Specs
+
+| Spec File | Items | Target |
+|-----------|-------|--------|
+| specs/biz-specs.md | BIZ-001–003 (3 rules) | docs/conventions/ |
+| specs/tech-specs.md | TECH-001–008 (8 specs) | docs/conventions/ |
+
+Integrated: 2026-05-04
+
 ## Traceability
 
 | PRD Section | Design Section | Tasks |

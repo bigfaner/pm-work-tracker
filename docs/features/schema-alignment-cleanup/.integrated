@@ -1,0 +1,18 @@
+---
+integrated_at: 2026-05-04
+target_files:
+  - docs/conventions/data-model.md
+  - docs/conventions/soft-delete.md
+  - docs/conventions/api-boundary.md
+  - docs/conventions/repo-helpers.md
+extracted_rules:
+  - DM-001 (table naming pmw_ prefix for roles/role_permissions)
+  - DM-003 (FK naming *_key suffix)
+  - DM-004 (status field entity prefix)
+  - SD-002 (NotDeleted scope replaces inline WHERE)
+  - AB-004 (ParseBizKeyParam and ResolveBizKey helpers)
+  - RH-003 (UpdateFields column name correctness)
+  - RH-004 (DBTransactor interface consolidation)
+---
+
+Rules from schema-alignment-cleanup PRD and tech design have been extracted into project-level convention files. No feature-specific rules remain that are not represented in the conventions.

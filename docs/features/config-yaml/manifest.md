@@ -15,6 +15,15 @@ status: tasks
 | User Stories | prd/prd-user-stories.md | 5 个用户故事：YAML 配置管理、环境变量覆盖、启动验证、初始管理员创建、连接池调优 |
 | Tech Design | design/tech-design.md | 嵌套结构体 + yaml.v3 + 反射 env 覆盖，-config flag 指定路径，InitDB/SeedAdmin 重构 |
 
+## Consolidated Specs
+
+| Spec File | Items | Target |
+|-----------|-------|--------|
+| specs/biz-specs.md | BIZ-001–005 (5 rules) | docs/business-rules/config-management.md |
+| specs/tech-specs.md | TECH-001–005 (5 specs) | docs/conventions/config-struct.md |
+
+Integrated: 2026-05-04
+
 ## Traceability
 
 | PRD Section | Design Section | Tasks |
