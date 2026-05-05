@@ -1,8 +1,8 @@
-import { Pencil, Plus } from 'lucide-react'
-import type { SubItem } from '@/types'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Link } from 'react-router-dom'
+import { Pencil, Plus } from "lucide-react";
+import type { SubItem } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
 import {
   Table,
   TableHeader,
@@ -10,22 +10,22 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from '@/components/ui/table'
-import { Card, CardHeader } from '@/components/ui/card'
-import StatusTransitionDropdown from '@/components/shared/StatusTransitionDropdown'
-import { MAIN_ITEM_STATUSES } from '@/lib/status'
-import { formatDate } from '@/lib/format'
+} from "@/components/ui/table";
+import { Card, CardHeader } from "@/components/ui/card";
+import StatusTransitionDropdown from "@/components/shared/StatusTransitionDropdown";
+import { MAIN_ITEM_STATUSES } from "@/lib/status";
+import { formatDate } from "@/lib/format";
 
 interface SubItemsTableProps {
-  subItems: SubItem[]
-  mainItemId: string
-  mainStatus: string
-  teamId: string
-  memberName: (assigneeKey: string | null) => string
-  onStatusChanged: () => void
-  onEditSub: (sub: SubItem) => void
-  onAppendProgress: (sub: SubItem) => void
-  onCreateSub: () => void
+  subItems: SubItem[];
+  mainItemId: string;
+  mainStatus: string;
+  teamId: string;
+  memberName: (assigneeKey: string | null) => string;
+  onStatusChanged: () => void;
+  onEditSub: (sub: SubItem) => void;
+  onAppendProgress: (sub: SubItem) => void;
+  onCreateSub: () => void;
 }
 
 export default function SubItemsTable({
@@ -39,13 +39,23 @@ export default function SubItemsTable({
   onAppendProgress,
   onCreateSub,
 }: SubItemsTableProps) {
-  const mainTerminal = (MAIN_ITEM_STATUSES as Record<string, { terminal: boolean }>)[mainStatus]?.terminal ?? false
+  const mainTerminal =
+    (MAIN_ITEM_STATUSES as Record<string, { terminal: boolean }>)[mainStatus]
+      ?.terminal ?? false;
 
   return (
     <Card>
       <CardHeader>
         <h3 className="text-sm font-semibold text-primary m-0">子事项列表</h3>
-        <Button variant="ghost" size="sm" className="text-primary-600" disabled={mainTerminal} onClick={onCreateSub}>+ 新增子事项</Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-primary-600"
+          disabled={mainTerminal}
+          onClick={onCreateSub}
+        >
+          + 新增子事项
+        </Button>
       </CardHeader>
       {subItems.length > 0 && (
         <Table>
@@ -66,7 +76,9 @@ export default function SubItemsTable({
             {subItems.map((sub) => (
               <TableRow key={sub.bizKey}>
                 <TableCell>
-                  <Badge variant="default" className="font-mono text-[11px]">{sub.code}</Badge>
+                  <Badge variant="default" className="font-mono text-[11px]">
+                    {sub.code}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <Link
@@ -91,13 +103,37 @@ export default function SubItemsTable({
                     onStatusChanged={onStatusChanged}
                   />
                 </TableCell>
-                <TableCell className="text-xs">{formatDate(sub.planStartDate)}</TableCell>
-                <TableCell className="text-xs">{formatDate(sub.expectedEndDate)}</TableCell>
-                <TableCell className="text-xs">{formatDate(sub.actualEndDate)}</TableCell>
+                <TableCell className="text-xs">
+                  {formatDate(sub.planStartDate)}
+                </TableCell>
+                <TableCell className="text-xs">
+                  {formatDate(sub.expectedEndDate)}
+                </TableCell>
+                <TableCell className="text-xs">
+                  {formatDate(sub.actualEndDate)}
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-0.5">
-                    <Button variant="ghost" size="sm" className="text-primary-600" disabled={mainTerminal} onClick={() => onEditSub(sub)}><Pencil size={12} />编辑</Button>
-                    <Button variant="ghost" size="sm" className="text-primary-600" disabled={mainTerminal} onClick={() => onAppendProgress(sub)}><Plus size={12} />追加进度</Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-primary-600"
+                      disabled={mainTerminal}
+                      onClick={() => onEditSub(sub)}
+                    >
+                      <Pencil size={12} />
+                      编辑
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-primary-600"
+                      disabled={mainTerminal}
+                      onClick={() => onAppendProgress(sub)}
+                    >
+                      <Plus size={12} />
+                      追加进度
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -106,5 +142,5 @@ export default function SubItemsTable({
         </Table>
       )}
     </Card>
-  )
+  );
 }

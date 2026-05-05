@@ -1,8 +1,8 @@
-import * as React from 'react'
-import * as TabsPrimitive from '@radix-ui/react-tabs'
-import { cn } from '@/lib/utils'
+import * as React from "react";
+import * as TabsPrimitive from "@radix-ui/react-tabs";
+import { cn } from "@/lib/utils";
 
-const Tabs = TabsPrimitive.Root
+const Tabs = TabsPrimitive.Root;
 
 const TabsList = React.forwardRef<
   React.ComponentRef<typeof TabsPrimitive.List>,
@@ -11,13 +11,13 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      'inline-flex items-center gap-1 border-b border-border',
-      className
+      "inline-flex items-center gap-1 border-b border-border",
+      className,
     )}
     {...props}
   />
-))
-TabsList.displayName = TabsPrimitive.List.displayName
+));
+TabsList.displayName = TabsPrimitive.List.displayName;
 
 const TabsTrigger = React.forwardRef<
   React.ComponentRef<typeof TabsPrimitive.Trigger>,
@@ -26,16 +26,16 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'inline-flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-medium text-tertiary border-b-2 border-transparent transition-colors',
-      'hover:text-secondary',
-      'data-[state=active]:text-primary-700 data-[state=active]:border-primary-600',
-      'focus-visible:outline-none',
-      className
+      "inline-flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-medium text-tertiary border-b-2 border-transparent transition-colors",
+      "hover:text-secondary",
+      "data-[state=active]:text-primary-700 data-[state=active]:border-primary-600",
+      "focus-visible:outline-none",
+      className,
     )}
     {...props}
   />
-))
-TabsTrigger.displayName = TabsPrimitive.Trigger.displayName
+));
+TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
 
 const TabsContent = React.forwardRef<
   React.ComponentRef<typeof TabsPrimitive.Content>,
@@ -43,10 +43,10 @@ const TabsContent = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <TabsPrimitive.Content
     ref={ref}
-    className={cn('mt-5 focus-visible:outline-none', className)}
+    className={cn("mt-5 focus-visible:outline-none", className)}
     {...props}
   />
-))
-TabsContent.displayName = TabsPrimitive.Content.displayName
+));
+TabsContent.displayName = TabsPrimitive.Content.displayName;
 
-export { Tabs, TabsList, TabsTrigger, TabsContent }
+export { Tabs, TabsList, TabsTrigger, TabsContent };

@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs'
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs";
 
-describe('Tabs', () => {
-  it('renders tabs with default content', () => {
+describe("Tabs", () => {
+  it("renders tabs with default content", () => {
     render(
       <Tabs defaultValue="tab1">
         <TabsList>
@@ -13,13 +13,13 @@ describe('Tabs', () => {
         </TabsList>
         <TabsContent value="tab1">Content 1</TabsContent>
         <TabsContent value="tab2">Content 2</TabsContent>
-      </Tabs>
-    )
-    expect(screen.getByText('Content 1')).toBeInTheDocument()
-    expect(screen.getByText('Tab 1')).toBeInTheDocument()
-  })
+      </Tabs>,
+    );
+    expect(screen.getByText("Content 1")).toBeInTheDocument();
+    expect(screen.getByText("Tab 1")).toBeInTheDocument();
+  });
 
-  it('switches content on tab click', async () => {
+  it("switches content on tab click", async () => {
     render(
       <Tabs defaultValue="tab1">
         <TabsList>
@@ -28,21 +28,21 @@ describe('Tabs', () => {
         </TabsList>
         <TabsContent value="tab1">Content 1</TabsContent>
         <TabsContent value="tab2">Content 2</TabsContent>
-      </Tabs>
-    )
-    await userEvent.click(screen.getByText('Tab 2'))
-    expect(screen.getByText('Content 2')).toBeInTheDocument()
-  })
+      </Tabs>,
+    );
+    await userEvent.click(screen.getByText("Tab 2"));
+    expect(screen.getByText("Content 2")).toBeInTheDocument();
+  });
 
-  it('active tab has active styling', () => {
+  it("active tab has active styling", () => {
     render(
       <Tabs defaultValue="tab1">
         <TabsList>
           <TabsTrigger value="tab1">Tab 1</TabsTrigger>
         </TabsList>
-      </Tabs>
-    )
-    const trigger = screen.getByText('Tab 1')
-    expect(trigger.getAttribute('data-state')).toBe('active')
-  })
-})
+      </Tabs>,
+    );
+    const trigger = screen.getByText("Tab 1");
+    expect(trigger.getAttribute("data-state")).toBe("active");
+  });
+});

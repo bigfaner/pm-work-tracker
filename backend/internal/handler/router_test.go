@@ -123,21 +123,22 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 	}
 
 	return &Dependencies{
-		Config:     cfg,
-		TeamRepo:   teamRepo,
-		UserRepo:   userRepo,
-		RoleRepo:   roleRepo,
-		Auth:       NewAuthHandler(&stubAuthService{}),
-		Team:       NewTeamHandler(&StubTeamSvc{}, &StubRouterRepoUser{}),
-		MainItem:   NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, &StubRouterRepoSubItem{}),
-		SubItem:    NewSubItemHandler(&StubSubItemSvc{}, &StubMainItemSvc{}),
-		Progress:   NewProgressHandler(&StubProgressSvc{}, &StubRouterRepoUser{}, &StubSubItemSvc{}),
-		ItemPool:   NewItemPoolHandler(&StubItemPoolSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMainItem{}),
-		View:       NewViewHandler(&StubViewSvc{}),
-		Report:     NewReportHandler(&StubReportSvc{}),
-		Admin:      NewAdminHandler(&StubAdminSvc{}),
-		Role:       NewRoleHandler(&StubRoleSvc{}),
-		Permission: NewPermissionHandler(&StubRoleSvc{}),
+		Config:      cfg,
+		TeamRepo:    teamRepo,
+		UserRepo:    userRepo,
+		RoleRepo:    roleRepo,
+		Auth:        NewAuthHandler(&stubAuthService{}),
+		Team:        NewTeamHandler(&StubTeamSvc{}, &StubRouterRepoUser{}),
+		MainItem:    NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, &StubRouterRepoSubItem{}),
+		SubItem:     NewSubItemHandler(&StubSubItemSvc{}, &StubMainItemSvc{}),
+		Progress:    NewProgressHandler(&StubProgressSvc{}, &StubRouterRepoUser{}, &StubSubItemSvc{}),
+		ItemPool:    NewItemPoolHandler(&StubItemPoolSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMainItem{}),
+		View:        NewViewHandler(&StubViewSvc{}),
+		Report:      NewReportHandler(&StubReportSvc{}),
+		Admin:       NewAdminHandler(&StubAdminSvc{}),
+		Role:        NewRoleHandler(&StubRoleSvc{}),
+		Permission:  NewPermissionHandler(&StubRoleSvc{}),
+		DecisionLog: NewDecisionLogHandler(&StubDecisionLogSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMainItem{}),
 	}, db
 }
 
@@ -343,7 +344,9 @@ func TestCORS_WildcardWhenNoOriginsConfigured(t *testing.T) {
 	req.Header.Set("Access-Control-Request-Method", "GET")
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, "*", w.Header().Get("Access-Control-Allow-Origin"))
+	// With AllowCredentials=true, the middleware echoes the request Origin
+	// back instead of "*" (browsers reject "*" when credentials are enabled)
+	assert.Equal(t, "http://any-origin.com", w.Header().Get("Access-Control-Allow-Origin"))
 }
 
 func TestRateLimit_Login(t *testing.T) {

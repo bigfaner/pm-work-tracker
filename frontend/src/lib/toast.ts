@@ -5,16 +5,19 @@
  * implementation. Until then, calls are silently ignored.
  */
 
-type ToastVariant = 'default' | 'success' | 'error' | 'warning'
+type ToastVariant = "default" | "success" | "error" | "warning";
 
-type ShowToastFn = (message: string, variant: ToastVariant) => void
+type ShowToastFn = (message: string, variant: ToastVariant) => void;
 
-let showToastFn: ShowToastFn | null = null
+let showToastFn: ShowToastFn | null = null;
 
 export function init(fn: ShowToastFn): void {
-  showToastFn = fn
+  showToastFn = fn;
 }
 
-export function showToast(message: string, variant: ToastVariant = 'default'): void {
-  showToastFn?.(message, variant)
+export function showToast(
+  message: string,
+  variant: ToastVariant = "default",
+): void {
+  showToastFn?.(message, variant);
 }

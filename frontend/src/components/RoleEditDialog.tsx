@@ -1,7 +1,6 @@
-import { useState, useCallback, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { createRoleApi, updateRoleApi, getRoleApi } from '@/api/roles'
-import type { RoleDetail } from '@/types'
+import { useState, useCallback, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createRoleApi, updateRoleApi, getRoleApi } from "@/api/roles";
 import {
   Dialog,
   DialogContent,
@@ -9,19 +8,19 @@ import {
   DialogTitle,
   DialogBody,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { CheckboxGroup } from '@/components/ui/checkbox-group'
-import { CollapsibleSection } from '@/components/ui/collapsible-section'
-import { PERMISSION_GROUPS } from '@/lib/permissions'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { CheckboxGroup } from "@/components/ui/checkbox-group";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { PERMISSION_GROUPS } from "@/lib/permissions";
 
 interface RoleEditDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  roleId?: string | null // null/undefined = create mode
-  onSuccess?: () => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  roleId?: string | null; // null/undefined = create mode
+  onSuccess?: () => void;
 }
 
 export default function RoleEditDialog({
@@ -30,99 +29,101 @@ export default function RoleEditDialog({
   roleId,
   onSuccess,
 }: RoleEditDialogProps) {
-  const qc = useQueryClient()
-  const isEdit = roleId != null
+  const qc = useQueryClient();
+  const isEdit = roleId != null;
 
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [selectedCodes, setSelectedCodes] = useState<string[]>([])
-  const [error, setError] = useState('')
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
+  const [error, setError] = useState("");
 
   // Fetch role detail in edit mode
   const { data: roleDetail } = useQuery({
-    queryKey: ['roleDetail', roleId],
+    queryKey: ["roleDetail", roleId],
     queryFn: () => getRoleApi(roleId!),
     enabled: isEdit && open,
-  })
+  });
 
   // Populate form when role detail loads
   useEffect(() => {
     if (roleDetail) {
-      setName(roleDetail.roleName)
-      setDescription(roleDetail.roleDesc || '')
-      setSelectedCodes(roleDetail.permissions.map((p) => p.code))
-      setError('')
+      setName(roleDetail.roleName);
+      setDescription(roleDetail.roleDesc || "");
+      setSelectedCodes(roleDetail.permissions.map((p) => p.code));
+      setError("");
     }
-  }, [roleDetail])
+  }, [roleDetail]);
 
   // Reset form when dialog opens in create mode
   useEffect(() => {
     if (open && !isEdit) {
-      setName('')
-      setDescription('')
-      setSelectedCodes([])
-      setError('')
+      setName("");
+      setDescription("");
+      setSelectedCodes([]);
+      setError("");
     }
-  }, [open, isEdit])
+  }, [open, isEdit]);
 
   const createMutation = useMutation({
     mutationFn: createRoleApi,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['roles'] })
-      onOpenChange(false)
-      onSuccess?.()
+      qc.invalidateQueries({ queryKey: ["roles"] });
+      onOpenChange(false);
+      onSuccess?.();
     },
-    onError: (err: any) => {
-      const code = err?.response?.data?.code
-      if (code === 'ERR_ROLE_NAME_EXISTS') {
-        setError('角色名称已存在')
-      } else if (code === 'ERR_VALIDATION') {
-        setError('请检查输入信息')
-      } else if (code === 'ERR_INVALID_PERMISSION_CODE') {
-        setError('包含无效的权限码')
+    onError: (err: unknown) => {
+      const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      if (code === "ERR_ROLE_NAME_EXISTS") {
+        setError("角色名称已存在");
+      } else if (code === "ERR_VALIDATION") {
+        setError("请检查输入信息");
+      } else if (code === "ERR_INVALID_PERMISSION_CODE") {
+        setError("包含无效的权限码");
       } else {
-        setError('操作失败，请稍后重试')
+        setError("操作失败，请稍后重试");
       }
     },
-  })
+  });
 
   const updateMutation = useMutation({
-    mutationFn: (req: { id: string; data: Parameters<typeof updateRoleApi>[1] }) =>
-      updateRoleApi(req.id, req.data),
+    mutationFn: (req: {
+      id: string;
+      data: Parameters<typeof updateRoleApi>[1];
+    }) => updateRoleApi(req.id, req.data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['roles'] })
-      qc.invalidateQueries({ queryKey: ['roleDetail', roleId] })
-      onOpenChange(false)
-      onSuccess?.()
+      qc.invalidateQueries({ queryKey: ["roles"] });
+      qc.invalidateQueries({ queryKey: ["roleDetail", roleId] });
+      onOpenChange(false);
+      onSuccess?.();
     },
-    onError: (err: any) => {
-      const code = err?.response?.data?.code
-      if (code === 'ERR_ROLE_NAME_EXISTS') {
-        setError('角色名称已存在')
-      } else if (code === 'ERR_PRESET_ROLE_IMMUTABLE') {
-        setError('预置角色不可编辑')
-      } else if (code === 'ERR_INVALID_PERMISSION_CODE') {
-        setError('包含无效的权限码')
+    onError: (err: unknown) => {
+      const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      if (code === "ERR_ROLE_NAME_EXISTS") {
+        setError("角色名称已存在");
+      } else if (code === "ERR_PRESET_ROLE_IMMUTABLE") {
+        setError("预置角色不可编辑");
+      } else if (code === "ERR_INVALID_PERMISSION_CODE") {
+        setError("包含无效的权限码");
       } else {
-        setError('操作失败，请稍后重试')
+        setError("操作失败，请稍后重试");
       }
     },
-  })
+  });
 
-  const isPending = createMutation.isPending || updateMutation.isPending
-  const isPreset = roleDetail?.isPreset ?? false
+  const isPending = createMutation.isPending || updateMutation.isPending;
+  const isPreset = roleDetail?.isPreset ?? false;
 
   const handleSave = useCallback(() => {
-    setError('')
+    setError("");
 
-    const trimmedName = name.trim()
+    const trimmedName = name.trim();
     if (trimmedName.length < 2 || trimmedName.length > 50) {
-      setError('角色名称需要 2-50 个字符')
-      return
+      setError("角色名称需要 2-50 个字符");
+      return;
     }
     if (selectedCodes.length === 0) {
-      setError('请至少选择 1 个权限')
-      return
+      setError("请至少选择 1 个权限");
+      return;
     }
 
     if (isEdit && roleId) {
@@ -133,22 +134,37 @@ export default function RoleEditDialog({
           description: description.trim(),
           permissionCodes: selectedCodes,
         },
-      })
+      });
     } else {
       createMutation.mutate({
         name: trimmedName,
         description: description.trim() || undefined,
         permissionCodes: selectedCodes,
-      })
+      });
     }
-  }, [name, description, selectedCodes, isEdit, roleId, isPreset, createMutation, updateMutation])
+  }, [
+    name,
+    description,
+    selectedCodes,
+    isEdit,
+    roleId,
+    isPreset,
+    createMutation,
+    updateMutation,
+  ]);
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) setError(''); onOpenChange(v) }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) setError("");
+        onOpenChange(v);
+      }}
+    >
       <DialogContent size="lg">
         <DialogHeader>
           <DialogTitle>
-            {isEdit ? `编辑角色: ${roleDetail?.roleName ?? ''}` : '创建角色'}
+            {isEdit ? `编辑角色: ${roleDetail?.roleName ?? ""}` : "创建角色"}
           </DialogTitle>
         </DialogHeader>
         <DialogBody>
@@ -169,7 +185,9 @@ export default function RoleEditDialog({
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-primary mb-1">描述</label>
+              <label className="block text-sm font-medium text-primary mb-1">
+                描述
+              </label>
               <Textarea
                 className="min-h-[80px]"
                 placeholder="请输入角色描述（最多 200 字符）"
@@ -183,11 +201,17 @@ export default function RoleEditDialog({
             <div>
               <label className="block text-sm font-medium text-primary mb-1">
                 权限配置 <span className="text-error">*</span>
-                <span className="text-xs text-tertiary font-normal ml-2">至少选择 1 个权限</span>
+                <span className="text-xs text-tertiary font-normal ml-2">
+                  至少选择 1 个权限
+                </span>
               </label>
               <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
                 {PERMISSION_GROUPS.map((group) => (
-                  <CollapsibleSection key={group.key} title={group.label} defaultOpen>
+                  <CollapsibleSection
+                    key={group.key}
+                    title={group.label}
+                    defaultOpen
+                  >
                     <CheckboxGroup
                       options={group.permissions}
                       selected={selectedCodes}
@@ -203,14 +227,20 @@ export default function RoleEditDialog({
           {error && <p className="mt-3 text-sm text-error">{error}</p>}
         </DialogBody>
         <DialogFooter>
-          <Button variant="secondary" onClick={() => { onOpenChange(false); setError('') }}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              onOpenChange(false);
+              setError("");
+            }}
+          >
             取消
           </Button>
           <Button onClick={handleSave} disabled={isPending}>
-            {isPending ? '保存中...' : '保存'}
+            {isPending ? "保存中..." : "保存"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

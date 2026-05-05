@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useEffect, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from '@/components/ui/dropdown-menu'
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -13,30 +13,34 @@ import {
   DialogTitle,
   DialogBody,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import StatusBadge from '@/components/shared/StatusBadge'
-import { getStatusName, MAIN_TERMINAL_STATUSES, SUB_TERMINAL_STATUSES } from '@/lib/status'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import StatusBadge from "@/components/shared/StatusBadge";
+import {
+  getStatusName,
+  MAIN_TERMINAL_STATUSES,
+  SUB_TERMINAL_STATUSES,
+} from "@/lib/status";
 import {
   getMainItemTransitionsApi,
   changeMainItemStatusApi,
-} from '@/api/mainItems'
+} from "@/api/mainItems";
 import {
   getSubItemTransitionsApi,
   changeSubItemStatusApi,
-} from '@/api/subItems'
+} from "@/api/subItems";
 
 export interface StatusTransitionDropdownProps {
-  currentStatus: string
-  itemType: 'main' | 'sub'
-  teamId: string
-  itemId: string
-  onStatusChanged: () => void
+  currentStatus: string;
+  itemType: "main" | "sub";
+  teamId: string;
+  itemId: string;
+  onStatusChanged: () => void;
   /** For sub-items: the parent main item's bizKey, needed to invalidate the correct query */
-  parentItemId?: string
+  parentItemId?: string;
   /** Called before terminal status transition. Return true to proceed, false to cancel. */
-  onBeforeTerminalStatus?: (status: string) => Promise<boolean>
-  disabled?: boolean
+  onBeforeTerminalStatus?: (status: string) => Promise<boolean>;
+  disabled?: boolean;
 }
 
 export default function StatusTransitionDropdown({
@@ -49,85 +53,98 @@ export default function StatusTransitionDropdown({
   disabled,
   parentItemId,
 }: StatusTransitionDropdownProps) {
-  const qc = useQueryClient()
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const [pendingStatus, setPendingStatus] = useState<string | null>(null)
-  const [open, setOpen] = useState(false)
-  const [showTip, setShowTip] = useState(false)
+  const qc = useQueryClient();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [showTip, setShowTip] = useState(false);
 
-  const terminalStatuses = itemType === 'main' ? MAIN_TERMINAL_STATUSES : SUB_TERMINAL_STATUSES
+  const terminalStatuses =
+    itemType === "main" ? MAIN_TERMINAL_STATUSES : SUB_TERMINAL_STATUSES;
 
-  const queryKey = itemType === 'main'
-    ? ['mainItemTransitions', teamId, itemId]
-    : ['subItemTransitions', teamId, itemId]
+  const queryKey =
+    itemType === "main"
+      ? ["mainItemTransitions", teamId, itemId]
+      : ["subItemTransitions", teamId, itemId];
 
-  const fetchTransitions = itemType === 'main'
-    ? () => getMainItemTransitionsApi(teamId, itemId)
-    : () => getSubItemTransitionsApi(teamId, itemId)
+  const fetchTransitions =
+    itemType === "main"
+      ? () => getMainItemTransitionsApi(teamId, itemId)
+      : () => getSubItemTransitionsApi(teamId, itemId);
 
-  const { data: transitions = [], isFetched, isFetching } = useQuery({
+  const {
+    data: transitions = [],
+    isFetched,
+    isFetching,
+  } = useQuery({
     queryKey,
     queryFn: fetchTransitions,
     enabled: !!teamId && open,
-  })
+  });
 
   useEffect(() => {
     if (open && isFetched && !isFetching && transitions.length === 0) {
-      setOpen(false)
-      setShowTip(true)
-      setTimeout(() => setShowTip(false), 2000)
+      setOpen(false);
+      setShowTip(true);
+      setTimeout(() => setShowTip(false), 2000);
     }
-  }, [open, isFetched, isFetching, transitions.length])
+  }, [open, isFetched, isFetching, transitions.length]);
 
   const changeStatus = async (status: string): Promise<void> => {
-    if (itemType === 'main') {
-      await changeMainItemStatusApi(teamId, itemId, { status })
+    if (itemType === "main") {
+      await changeMainItemStatusApi(teamId, itemId, { status });
     } else {
-      await changeSubItemStatusApi(teamId, itemId, { status })
+      await changeSubItemStatusApi(teamId, itemId, { status });
     }
-  }
+  };
 
   const statusChangeMutation = useMutation({
-    mutationFn: ({ newStatus }: { newStatus: string }) => changeStatus(newStatus),
+    mutationFn: ({ newStatus }: { newStatus: string }) =>
+      changeStatus(newStatus),
     onSuccess: () => {
-      if (itemType === 'main') {
-        qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
-        qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
+      if (itemType === "main") {
+        qc.invalidateQueries({ queryKey: ["mainItems", teamId] });
+        qc.invalidateQueries({ queryKey: ["mainItem", teamId, itemId] });
       } else {
-        qc.invalidateQueries({ queryKey: ['subItems', teamId, parentItemId || itemId] })
+        qc.invalidateQueries({
+          queryKey: ["subItems", teamId, parentItemId || itemId],
+        });
       }
-      qc.invalidateQueries({ queryKey })
-      setOpen(false)
-      setConfirmOpen(false)
-      setPendingStatus(null)
-      onStatusChanged()
+      qc.invalidateQueries({ queryKey });
+      setOpen(false);
+      setConfirmOpen(false);
+      setPendingStatus(null);
+      onStatusChanged();
     },
-  })
+  });
 
-  const handleSelect = useCallback(async (status: string) => {
-    if (!terminalStatuses.includes(status)) {
-      statusChangeMutation.mutate({ newStatus: status })
-      return
-    }
-    setPendingStatus(status)
-    if (onBeforeTerminalStatus) {
-      const proceed = await onBeforeTerminalStatus(status)
-      if (!proceed) {
-        setPendingStatus(null)
-        return
+  const handleSelect = useCallback(
+    async (status: string) => {
+      if (!terminalStatuses.includes(status)) {
+        statusChangeMutation.mutate({ newStatus: status });
+        return;
       }
-    }
-    setConfirmOpen(true)
-  }, [statusChangeMutation, terminalStatuses, onBeforeTerminalStatus])
+      setPendingStatus(status);
+      if (onBeforeTerminalStatus) {
+        const proceed = await onBeforeTerminalStatus(status);
+        if (!proceed) {
+          setPendingStatus(null);
+          return;
+        }
+      }
+      setConfirmOpen(true);
+    },
+    [statusChangeMutation, terminalStatuses, onBeforeTerminalStatus],
+  );
 
   const handleConfirm = useCallback(() => {
     if (pendingStatus) {
-      statusChangeMutation.mutate({ newStatus: pendingStatus })
+      statusChangeMutation.mutate({ newStatus: pendingStatus });
     }
-  }, [pendingStatus, statusChangeMutation])
+  }, [pendingStatus, statusChangeMutation]);
 
   if (disabled) {
-    return <StatusBadge status={currentStatus} />
+    return <StatusBadge status={currentStatus} />;
   }
 
   return (
@@ -150,8 +167,8 @@ export default function StatusTransitionDropdown({
                 key={status}
                 className="text-[13px] justify-center"
                 onSelect={(e) => {
-                  e.preventDefault()
-                  handleSelect(status)
+                  e.preventDefault();
+                  handleSelect(status);
                 }}
               >
                 {getStatusName(status) || status}
@@ -168,15 +185,30 @@ export default function StatusTransitionDropdown({
           </DialogHeader>
           <DialogBody>
             <p className="text-sm text-secondary">
-              确认将状态变更为「{getStatusName(pendingStatus || '') || pendingStatus}」？此操作可能不可逆。
+              确认将状态变更为「
+              {getStatusName(pendingStatus || "") || pendingStatus}
+              」？此操作可能不可逆。
             </p>
           </DialogBody>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => { setConfirmOpen(false); setPendingStatus(null) }}>取消</Button>
-            <Button onClick={handleConfirm} disabled={statusChangeMutation.isPending}>确认</Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setConfirmOpen(false);
+                setPendingStatus(null);
+              }}
+            >
+              取消
+            </Button>
+            <Button
+              onClick={handleConfirm}
+              disabled={statusChangeMutation.isPending}
+            >
+              确认
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }

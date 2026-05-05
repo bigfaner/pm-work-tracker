@@ -1,11 +1,11 @@
-import { useState, type ReactNode } from 'react'
-import { cn } from '@/lib/utils'
+import { useState, type ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 interface CollapsibleSectionProps {
-  title: string
-  defaultOpen?: boolean
-  children: ReactNode
-  className?: string
+  title: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+  className?: string;
 }
 
 export function CollapsibleSection({
@@ -14,10 +14,15 @@ export function CollapsibleSection({
   children,
   className,
 }: CollapsibleSectionProps) {
-  const [open, setOpen] = useState(defaultOpen)
+  const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className={cn('border border-border rounded-lg overflow-hidden', className)}>
+    <div
+      className={cn(
+        "border border-border rounded-lg overflow-hidden",
+        className,
+      )}
+    >
       <button
         type="button"
         onClick={() => setOpen(!open)}
@@ -26,8 +31,8 @@ export function CollapsibleSection({
         <span>{title}</span>
         <svg
           className={cn(
-            'w-4 h-4 text-tertiary transition-transform duration-200',
-            open ? 'rotate-180' : 'rotate-0',
+            "w-4 h-4 text-tertiary transition-transform duration-200",
+            open ? "rotate-180" : "rotate-0",
           )}
           viewBox="0 0 20 20"
           fill="currentColor"
@@ -41,12 +46,12 @@ export function CollapsibleSection({
       </button>
       <div
         className={cn(
-          'overflow-hidden transition-all duration-200',
-          open ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0',
+          "overflow-hidden transition-all duration-200",
+          open ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0",
         )}
       >
         <div className="px-4 py-3">{children}</div>
       </div>
     </div>
-  )
+  );
 }

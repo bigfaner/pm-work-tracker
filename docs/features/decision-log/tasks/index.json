@@ -1,0 +1,304 @@
+{
+  "feature": "decision-log",
+  "prd": "prd/prd-spec.md",
+  "design": "design/tech-design.md",
+  "created": "2026-05-04",
+  "status": "planning",
+  "tasks": {
+    "1-gate": {
+      "id": "1.gate",
+      "title": "Phase 1 Exit Gate",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "1.summary"
+      ],
+      "status": "completed",
+      "file": "1-gate.md",
+      "record": "records/1-gate.md",
+      "breaking": true,
+      "scope": "all"
+    },
+    "1-summary": {
+      "id": "1.summary",
+      "title": "Phase 1 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "1.x"
+      ],
+      "status": "completed",
+      "file": "1-summary.md",
+      "record": "records/1-summary.md",
+      "scope": "all"
+    },
+    "1.1-interfaces-models-migration": {
+      "id": "1.1",
+      "title": "Define Interfaces, Data Model, Error Types, and DB Migration",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "status": "completed",
+      "file": "1.1-interfaces-models-migration.md",
+      "record": "records/1.1-interfaces-models-migration.md",
+      "breaking": true,
+      "scope": "backend"
+    },
+    "2-gate": {
+      "id": "2.gate",
+      "title": "Phase 2 Exit Gate",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "2.summary"
+      ],
+      "status": "completed",
+      "file": "2-gate.md",
+      "record": "records/2-gate.md",
+      "breaking": true,
+      "scope": "all"
+    },
+    "2-summary": {
+      "id": "2.summary",
+      "title": "Phase 2 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "2.x"
+      ],
+      "status": "completed",
+      "file": "2-summary.md",
+      "record": "records/2-summary.md",
+      "scope": "all"
+    },
+    "2.1-repository": {
+      "id": "2.1",
+      "title": "Implement DecisionLog Repository",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1.gate"
+      ],
+      "status": "completed",
+      "file": "2.1-repository.md",
+      "record": "records/2.1-repository.md",
+      "scope": "backend"
+    },
+    "2.2-service": {
+      "id": "2.2",
+      "title": "Implement DecisionLog Service",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1.gate"
+      ],
+      "status": "completed",
+      "file": "2.2-service.md",
+      "record": "records/2.2-service.md",
+      "scope": "backend"
+    },
+    "2.3-handler-router": {
+      "id": "2.3",
+      "title": "Implement DecisionLog Handler and Register Routes",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1.gate"
+      ],
+      "status": "completed",
+      "file": "2.3-handler-router.md",
+      "record": "records/2.3-handler-router.md",
+      "scope": "backend"
+    },
+    "3-gate": {
+      "id": "3.gate",
+      "title": "Phase 3 Exit Gate",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "3.summary"
+      ],
+      "status": "completed",
+      "file": "3-gate.md",
+      "record": "records/3-gate.md",
+      "breaking": true,
+      "scope": "all"
+    },
+    "3-summary": {
+      "id": "3.summary",
+      "title": "Phase 3 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "3.x"
+      ],
+      "status": "completed",
+      "file": "3-summary.md",
+      "record": "records/3-summary.md",
+      "scope": "all"
+    },
+    "3.1-frontend-types-api": {
+      "id": "3.1",
+      "title": "Add Frontend Types and API Module for Decision Logs",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "2.gate"
+      ],
+      "status": "completed",
+      "file": "3.1-frontend-types-api.md",
+      "record": "records/3.1-frontend-types-api.md",
+      "scope": "frontend"
+    },
+    "3.2-decision-timeline": {
+      "id": "3.2",
+      "title": "Implement DecisionTimeline Component",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "2.gate",
+        "3.1"
+      ],
+      "status": "completed",
+      "file": "3.2-decision-timeline.md",
+      "record": "records/3.2-decision-timeline.md",
+      "scope": "frontend"
+    },
+    "3.3-decision-form-dialog": {
+      "id": "3.3",
+      "title": "Implement DecisionFormDialog Component",
+      "priority": "P0",
+      "estimatedTime": "3h",
+      "dependencies": [
+        "2.gate",
+        "3.1"
+      ],
+      "status": "completed",
+      "file": "3.3-decision-form-dialog.md",
+      "record": "records/3.3-decision-form-dialog.md",
+      "scope": "frontend"
+    },
+    "4.1-integrate-ui": {
+      "id": "4.1",
+      "title": "Integrate DecisionTimeline and DecisionFormDialog into MainItemDetailPage",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "dependencies": [
+        "3.2",
+        "3.3"
+      ],
+      "status": "completed",
+      "file": "4.1-integrate-ui.md",
+      "record": "records/4.1-integrate-ui.md",
+      "scope": "frontend"
+    },
+    "4.2-verify-e2e": {
+      "id": "4.2",
+      "title": "Re-run e2e tests to verify DecisionTimeline UI integration",
+      "priority": "P0",
+      "estimatedTime": "30min",
+      "dependencies": [
+        "4.1"
+      ],
+      "status": "completed",
+      "file": "4.2-verify-e2e.md",
+      "record": "records/4.2-verify-e2e.md",
+      "breaking": true,
+      "scope": "all"
+    },
+    "consolidate-specs": {
+      "id": "T-test-5",
+      "title": "Consolidate Specs",
+      "priority": "P2",
+      "estimatedTime": "20min",
+      "dependencies": [
+        "T-test-4"
+      ],
+      "status": "completed",
+      "file": "consolidate-specs.md",
+      "record": "records/consolidate-specs.md",
+      "scope": "all"
+    },
+    "disc-1": {
+      "id": "disc-1",
+      "title": "Fix: Wire DecisionLog handler in backend main.go",
+      "priority": "P0",
+      "status": "completed",
+      "file": "disc-1.md",
+      "record": "records/disc-1.md",
+      "breaking": true
+    },
+    "disc-2": {
+      "id": "disc-2",
+      "title": "Fix: DecisionLog handler double-resolution bug",
+      "priority": "P0",
+      "status": "completed",
+      "file": "disc-2.md",
+      "record": "records/disc-2.md",
+      "breaking": true
+    },
+    "gen-test-cases": {
+      "id": "T-test-1",
+      "title": "Generate e2e Test Cases",
+      "priority": "P1",
+      "estimatedTime": "1-2h",
+      "dependencies": [
+        "3.gate"
+      ],
+      "status": "completed",
+      "file": "gen-test-cases.md",
+      "record": "records/gen-test-cases.md",
+      "scope": "all"
+    },
+    "gen-test-scripts": {
+      "id": "T-test-2",
+      "title": "Generate e2e Test Scripts",
+      "priority": "P1",
+      "estimatedTime": "1-2h",
+      "dependencies": [
+        "T-test-1"
+      ],
+      "status": "completed",
+      "file": "gen-test-scripts.md",
+      "record": "records/gen-test-scripts.md",
+      "scope": "all"
+    },
+    "graduate-tests": {
+      "id": "T-test-4",
+      "title": "Graduate Test Scripts",
+      "priority": "P1",
+      "estimatedTime": "30min",
+      "dependencies": [
+        "T-test-3"
+      ],
+      "status": "completed",
+      "file": "graduate-tests.md",
+      "record": "records/graduate-tests.md",
+      "scope": "all"
+    },
+    "run-e2e-tests": {
+      "id": "T-test-3",
+      "title": "Run e2e Tests",
+      "priority": "P1",
+      "estimatedTime": "30min-1h",
+      "dependencies": [
+        "T-test-2"
+      ],
+      "status": "completed",
+      "file": "run-e2e-tests.md",
+      "record": "records/run-e2e-tests.md",
+      "scope": "all"
+    }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
+}

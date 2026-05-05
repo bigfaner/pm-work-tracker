@@ -1,20 +1,20 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import ProtectedRoute from '@/components/ProtectedRoute'
-import PermissionRoute from '@/components/PermissionRoute'
-import AppLayout from '@/components/layout/AppLayout'
-import LoginPage from '@/pages/LoginPage'
-import ItemViewPage from '@/pages/ItemViewPage'
-import MainItemDetailPage from '@/pages/MainItemDetailPage'
-import SubItemDetailPage from '@/pages/SubItemDetailPage'
-import WeeklyViewPage from '@/pages/WeeklyViewPage'
-import GanttViewPage from '@/pages/GanttViewPage'
-import TableViewPage from '@/pages/TableViewPage'
-import ItemPoolPage from '@/pages/ItemPoolPage'
-import ReportPage from '@/pages/ReportPage'
-import TeamManagementPage from '@/pages/TeamManagementPage'
-import TeamDetailPage from '@/pages/TeamDetailPage'
-import UserManagementPage from '@/pages/UserManagementPage'
-import RoleManagementPage from '@/pages/RoleManagementPage'
+import { Routes, Route, Navigate } from "react-router-dom";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import PermissionRoute from "@/components/PermissionRoute";
+import AppLayout from "@/components/layout/AppLayout";
+import LoginPage from "@/pages/LoginPage";
+import ItemViewPage from "@/pages/ItemViewPage";
+import MainItemDetailPage from "@/pages/MainItemDetailPage";
+import SubItemDetailPage from "@/pages/SubItemDetailPage";
+import WeeklyViewPage from "@/pages/WeeklyViewPage";
+import GanttViewPage from "@/pages/GanttViewPage";
+import TableViewPage from "@/pages/TableViewPage";
+import ItemPoolPage from "@/pages/ItemPoolPage";
+import ReportPage from "@/pages/ReportPage";
+import TeamManagementPage from "@/pages/TeamManagementPage";
+import TeamDetailPage from "@/pages/TeamDetailPage";
+import UserManagementPage from "@/pages/UserManagementPage";
+import RoleManagementPage from "@/pages/RoleManagementPage";
 
 export default function App() {
   return (
@@ -25,7 +25,10 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/items" element={<ItemViewPage />} />
           <Route path="/items/:mainItemId" element={<MainItemDetailPage />} />
-          <Route path="/items/:mainItemId/sub/:subItemId" element={<SubItemDetailPage />} />
+          <Route
+            path="/items/:mainItemId/sub/:subItemId"
+            element={<SubItemDetailPage />}
+          />
           <Route path="/weekly" element={<WeeklyViewPage />} />
           <Route path="/gantt" element={<GanttViewPage />} />
           <Route path="/table" element={<TableViewPage />} />
@@ -46,5 +49,5 @@ export default function App() {
         </Route>
       </Route>
     </Routes>
-  )
+  );
 }

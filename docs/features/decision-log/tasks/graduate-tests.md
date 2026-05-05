@@ -1,0 +1,55 @@
+---
+id: "T-test-4"
+title: "Graduate Test Scripts"
+priority: "P1"
+estimated_time: "30min"
+dependencies: ["T-test-3"]
+status: completed
+---
+
+# Graduate Test Scripts
+
+## Description
+
+Call `/graduate-tests` skill to migrate feature test scripts from `tests/e2e/features/decision-log/` to the project-wide regression suite at `tests/e2e/<target>/`.
+
+This task is a gate: it only proceeds if e2e tests are passing.
+
+## Reference Files
+
+- `tests/e2e/features/decision-log/results/latest.md` — Must show status = PASS before graduating
+- `tests/e2e/items/` — Source scripts (decision-log-api.spec.ts, decision-log-ui.spec.ts)
+- `tests/e2e/` — Destination regression suite
+
+## Acceptance Criteria
+
+- [x] `tests/e2e/decision-log/results/latest.md` shows status = PASS (since removed; tests now at `tests/e2e/items/`)
+- [x] `tests/e2e/.graduated/decision-log` marker exists
+- [x] Spec files present in `tests/e2e/items/` (`decision-log-api.spec.ts`, `decision-log-ui.spec.ts`)
+
+## User Stories
+
+No direct user story mapping. This is a standard test graduation task.
+
+## Implementation Notes
+
+**Step 1: Verify e2e passed**
+
+Read `tests/e2e/features/decision-log/results/latest.md`. Check status field.
+
+- Status = PASS → proceed to Step 2
+- Status = FAIL → mark task `blocked` and stop
+
+**Step 2: Graduate**
+
+Run `/graduate-tests` skill. The skill will:
+- Read each spec file and understand its content
+- Decide classification by functional module
+- Migrate to `tests/e2e/<module>/`
+- Validate TypeScript compilation post-migration
+- Rewrite import paths
+- Create graduation marker `tests/e2e/.graduated/decision-log`
+
+**Step 3: Record**
+
+Mark task completed.

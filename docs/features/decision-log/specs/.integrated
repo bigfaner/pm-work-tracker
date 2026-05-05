@@ -1,0 +1,6 @@
+feature: decision-log
+status: complete
+cross_items: 1
+local_items: 10-biz + 11-tech
+integration: "TECH-012 → docs/conventions/button-icons.md"
+date: 2026-05-04

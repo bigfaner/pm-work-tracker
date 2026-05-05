@@ -894,8 +894,9 @@ func TestGanttView_EmptyTeam_NoItems(t *testing.T) {
 }
 
 func TestGanttView_BasicStructure(t *testing.T) {
-	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
-	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+	now := time.Now()
+	startDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	endDate := startDate.AddDate(0, 6, 0) // 6 months from now — guaranteed not overdue
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
@@ -922,8 +923,8 @@ func TestGanttView_BasicStructure(t *testing.T) {
 	assert.Equal(t, "1", item.BizKey)
 	assert.Equal(t, "Main 1", item.Title)
 	assert.Equal(t, "P1", item.Priority)
-	assert.Equal(t, "2026-04-01", item.StartDate)
-	assert.Equal(t, "2026-04-30", item.ExpectedEndDate)
+	assert.Equal(t, startDate.Format("2006-01-02"), item.StartDate)
+	assert.Equal(t, endDate.Format("2006-01-02"), item.ExpectedEndDate)
 	assert.Equal(t, 45.5, item.Completion)
 	assert.Equal(t, "progressing", item.Status)
 	assert.False(t, item.IsOverdue)

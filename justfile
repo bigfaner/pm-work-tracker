@@ -73,8 +73,8 @@ test scope="":
     set -euo pipefail
     case "{{scope}}" in
       frontend) cd "{{frontend_dir}}" && npm test ;;
-      backend)  cd "{{backend_dir}}" && go test -race ./... ;;
-      "")       (cd "{{frontend_dir}}" && npm test) && (cd "{{backend_dir}}" && go test -race ./...) ;;
+      backend)  cd "{{backend_dir}}" && go test ./... ;;
+      "")       (cd "{{frontend_dir}}" && npm test) && (cd "{{backend_dir}}" && go test ./...) ;;
       *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
     esac
 

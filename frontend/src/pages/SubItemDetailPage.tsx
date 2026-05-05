@@ -1,15 +1,19 @@
-import { useState, useCallback, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useTeamStore } from '@/store/team'
-import { getMainItemApi } from '@/api/mainItems'
-import { getSubItemApi, updateSubItemApi, changeSubItemStatusApi } from '@/api/subItems'
-import { listProgressApi, appendProgressApi } from '@/api/progress'
-import { listMembersApi } from '@/api/teams'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { DateInput } from '@/components/ui/date-input'
-import { Textarea } from '@/components/ui/textarea'
+import { useState, useCallback } from "react";
+import { useParams } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTeamStore } from "@/store/team";
+import { getMainItemApi } from "@/api/mainItems";
+import {
+  getSubItemApi,
+  updateSubItemApi,
+  changeSubItemStatusApi,
+} from "@/api/subItems";
+import { listProgressApi, appendProgressApi } from "@/api/progress";
+import { listMembersApi } from "@/api/teams";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -17,196 +21,228 @@ import {
   DialogTitle,
   DialogBody,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardHeader, CardContent } from '@/components/ui/card'
-import { PermissionGuard } from '@/components/PermissionGuard'
-import { Progress } from '@/components/ui/progress'
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { PermissionGuard } from "@/components/PermissionGuard";
+import { Progress } from "@/components/ui/progress";
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
+} from "@/components/ui/breadcrumb";
 import {
   Select,
   SelectContent,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import PriorityBadge from '@/components/shared/PriorityBadge'
-import { PrioritySelectItems } from '@/components/shared/PrioritySelect'
-import StatusTransitionDropdown from '@/components/shared/StatusTransitionDropdown'
-import { MemberSelect } from '@/components/shared/MemberSelect'
-import { SUB_ITEM_STATUSES, isOverdue } from '@/lib/status'
-import { useMemberName } from '@/hooks/useMemberName'
-import { formatDate } from '@/lib/format'
-import { showToast } from '@/lib/toast'
+} from "@/components/ui/select";
+import PriorityBadge from "@/components/shared/PriorityBadge";
+import { PrioritySelectItems } from "@/components/shared/PrioritySelect";
+import StatusTransitionDropdown from "@/components/shared/StatusTransitionDropdown";
+import { MemberSelect } from "@/components/shared/MemberSelect";
+import { SUB_ITEM_STATUSES, isOverdue } from "@/lib/status";
+import { useMemberName } from "@/hooks/useMemberName";
+import { formatDate } from "@/lib/format";
+import { showToast } from "@/lib/toast";
 
 // --- Main Component ---
 
 export default function SubItemDetailPage() {
-  const { mainItemId, subItemId } = useParams<{ mainItemId: string; subItemId: string }>()
-  const teamId = useTeamStore((s) => s.currentTeamId)
-  const qc = useQueryClient()
-  const mId = mainItemId!
-  const sId = subItemId!
+  const { mainItemId, subItemId } = useParams<{
+    mainItemId: string;
+    subItemId: string;
+  }>();
+  const teamId = useTeamStore((s) => s.currentTeamId);
+  const qc = useQueryClient();
+  const mId = mainItemId!;
+  const sId = subItemId!;
 
   // State
-  const [appendOpen, setAppendOpen] = useState(false)
-  const [appendForm, setAppendForm] = useState({ completion: '', achievement: '', blocker: '' })
-  const [editOpen, setEditOpen] = useState(false)
-  const [editForm, setEditForm] = useState({ title: '', priority: '', assigneeKey: '', expectedEndDate: '', description: '' })
-  const [achievementOpen, setAchievementOpen] = useState(false)
-  const [achievementText, setAchievementText] = useState('')
-  const [achievementPendingStatus, setAchievementPendingStatus] = useState<string | null>(null)
-  const [achievementResolve, setAchievementResolve] = useState<((v: boolean) => void) | null>(null)
+  const [appendOpen, setAppendOpen] = useState(false);
+  const [appendForm, setAppendForm] = useState({
+    completion: "",
+    achievement: "",
+    blocker: "",
+  });
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    priority: "",
+    assigneeKey: "",
+    expectedEndDate: "",
+    description: "",
+  });
+  const [achievementOpen, setAchievementOpen] = useState(false);
+  const [achievementText, setAchievementText] = useState("");
+  const [achievementPendingStatus, setAchievementPendingStatus] = useState<
+    string | null
+  >(null);
+  const [achievementResolve, setAchievementResolve] = useState<
+    ((v: boolean) => void) | null
+  >(null);
 
   // --- Data fetching ---
 
   const { data: subItem, isLoading: subLoading } = useQuery({
-    queryKey: ['subItem', teamId, sId],
+    queryKey: ["subItem", teamId, sId],
     queryFn: () => getSubItemApi(teamId!, sId),
     enabled: !!teamId && !!sId,
-  })
+  });
 
   const { data: mainItem } = useQuery({
-    queryKey: ['mainItem', teamId, mId],
+    queryKey: ["mainItem", teamId, mId],
     queryFn: () => getMainItemApi(teamId!, mId),
     enabled: !!teamId && !!mId,
-  })
+  });
 
   const { data: progressRecords } = useQuery({
-    queryKey: ['progress', teamId, sId],
+    queryKey: ["progress", teamId, sId],
     queryFn: () => listProgressApi(teamId!, sId),
     enabled: !!teamId && !!sId,
-  })
+  });
 
   const { data: members } = useQuery({
-    queryKey: ['members', teamId],
+    queryKey: ["members", teamId],
     queryFn: () => listMembersApi(teamId!),
     enabled: !!teamId,
-  })
+  });
 
-  const memberName = useMemberName(members)
+  const memberName = useMemberName(members);
 
   // Last completion value for validation
-  const lastCompletion = progressRecords && progressRecords.length > 0
-    ? progressRecords[progressRecords.length - 1].completion
-    : 0
+  const lastCompletion =
+    progressRecords && progressRecords.length > 0
+      ? progressRecords[progressRecords.length - 1].completion
+      : 0;
 
   // --- Mutations ---
 
   const editMutation = useMutation({
-    mutationFn: (req: { title: string; priority: string; assigneeKey?: string; expectedEndDate?: string; description?: string }) =>
-      updateSubItemApi(teamId!, sId, req),
+    mutationFn: (req: {
+      title: string;
+      priority: string;
+      assigneeKey?: string;
+      expectedEndDate?: string;
+      description?: string;
+    }) => updateSubItemApi(teamId!, sId, req),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['subItem', teamId, sId] })
-      setEditOpen(false)
+      qc.invalidateQueries({ queryKey: ["subItem", teamId, sId] });
+      setEditOpen(false);
     },
-  })
+  });
 
   const appendMutation = useMutation({
-    mutationFn: (req: { completion: number; achievement?: string; blocker?: string }) =>
-      appendProgressApi(teamId!, sId, req),
+    mutationFn: (req: {
+      completion: number;
+      achievement?: string;
+      blocker?: string;
+    }) => appendProgressApi(teamId!, sId, req),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['progress', teamId, sId] })
-      qc.invalidateQueries({ queryKey: ['subItem', teamId, sId] })
-      setAppendOpen(false)
-      setAppendForm({ completion: '', achievement: '', blocker: '' })
+      qc.invalidateQueries({ queryKey: ["progress", teamId, sId] });
+      qc.invalidateQueries({ queryKey: ["subItem", teamId, sId] });
+      setAppendOpen(false);
+      setAppendForm({ completion: "", achievement: "", blocker: "" });
     },
-  })
+  });
 
   const achievementStatusMutation = useMutation({
     mutationFn: async (status: string) => {
-      await changeSubItemStatusApi(teamId!, sId, { status })
-      const achievement = achievementText.trim()
+      await changeSubItemStatusApi(teamId!, sId, { status });
+      const achievement = achievementText.trim();
       if (achievement) {
-        await appendProgressApi(teamId!, sId, { completion: 100, achievement })
+        await appendProgressApi(teamId!, sId, { completion: 100, achievement });
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['subItem', teamId, sId] })
-      qc.invalidateQueries({ queryKey: ['progress', teamId, sId] })
-      setAchievementOpen(false)
-      setAchievementText('')
-      setAchievementPendingStatus(null)
+      qc.invalidateQueries({ queryKey: ["subItem", teamId, sId] });
+      qc.invalidateQueries({ queryKey: ["progress", teamId, sId] });
+      setAchievementOpen(false);
+      setAchievementText("");
+      setAchievementPendingStatus(null);
       if (achievementResolve) {
-        achievementResolve(true)
-        setAchievementResolve(null)
+        achievementResolve(true);
+        setAchievementResolve(null);
       }
     },
     onError: () => {
       if (achievementResolve) {
-        achievementResolve(false)
-        setAchievementResolve(null)
+        achievementResolve(false);
+        setAchievementResolve(null);
       }
     },
-  })
+  });
 
   // --- Handlers ---
 
-  const handleBeforeTerminalStatus = useCallback(async (status: string): Promise<boolean> => {
-    if (status === 'completed') {
-      return new Promise<boolean>((resolve) => {
-        setAchievementPendingStatus(status)
-        setAchievementResolve(() => resolve)
-        setAchievementOpen(true)
-      })
-    }
-    return true
-  }, [])
+  const handleBeforeTerminalStatus = useCallback(
+    async (status: string): Promise<boolean> => {
+      if (status === "completed") {
+        return new Promise<boolean>((resolve) => {
+          setAchievementPendingStatus(status);
+          setAchievementResolve(() => resolve);
+          setAchievementOpen(true);
+        });
+      }
+      return true;
+    },
+    [],
+  );
 
   const handleAchievementConfirm = useCallback(() => {
     if (achievementPendingStatus) {
-      achievementStatusMutation.mutate(achievementPendingStatus)
+      achievementStatusMutation.mutate(achievementPendingStatus);
     }
-  }, [achievementPendingStatus, achievementStatusMutation])
+  }, [achievementPendingStatus, achievementStatusMutation]);
 
   const handleEdit = useCallback(() => {
-    if (!editForm.title.trim()) return
+    if (!editForm.title.trim()) return;
     editMutation.mutate({
       title: editForm.title.trim(),
       priority: editForm.priority,
       assigneeKey: editForm.assigneeKey || undefined,
       expectedEndDate: editForm.expectedEndDate || undefined,
       description: editForm.description,
-    })
-  }, [editForm, editMutation])
+    });
+  }, [editForm, editMutation]);
 
   const handleAppend = useCallback(() => {
-    const val = Number(appendForm.completion)
-    if (isNaN(val) || val < 0 || val > 100) return
+    const val = Number(appendForm.completion);
+    if (isNaN(val) || val < 0 || val > 100) return;
     if (val < lastCompletion) {
-      showToast('进度不能低于上一条记录', 'error')
-      return
+      showToast("进度不能低于上一条记录", "error");
+      return;
     }
     appendMutation.mutate({
       completion: val,
       ...(appendForm.achievement && { achievement: appendForm.achievement }),
       ...(appendForm.blocker && { blocker: appendForm.blocker }),
-    })
-  }, [appendForm, lastCompletion, appendMutation])
+    });
+  }, [appendForm, lastCompletion, appendMutation]);
 
   // Sorted progress records: reverse chronological
-  const sortedRecords = [...(progressRecords || [])].reverse()
+  const sortedRecords = [...(progressRecords || [])].reverse();
 
   // Terminal status guard
   const isTerminalStatus = subItem
-    ? !!(SUB_ITEM_STATUSES[subItem.itemStatus as keyof typeof SUB_ITEM_STATUSES]?.terminal)
-    : false
+    ? !!SUB_ITEM_STATUSES[subItem.itemStatus as keyof typeof SUB_ITEM_STATUSES]
+        ?.terminal
+    : false;
 
   // --- Render ---
 
-  if (!teamId) return <div className="p-6 text-tertiary">请先选择团队</div>
+  if (!teamId) return <div className="p-6 text-tertiary">请先选择团队</div>;
 
-  const isLoading = subLoading
+  const isLoading = subLoading;
 
   return (
     <div data-testid="sub-item-detail-page">
       {isLoading ? (
         <div className="py-8 text-center text-tertiary text-sm">加载中...</div>
       ) : !subItem ? (
-        <div className="py-8 text-center text-tertiary text-sm">子事项不存在</div>
+        <div className="py-8 text-center text-tertiary text-sm">
+          子事项不存在
+        </div>
       ) : (
         <>
           {/* Breadcrumb */}
@@ -222,8 +258,12 @@ export default function SubItemDetailPage() {
 
           {/* Title Bar */}
           <div className="flex items-center gap-3 mb-6 flex-wrap">
-            <Badge variant="default" className="font-mono">{subItem.code}</Badge>
-            <h1 className="text-xl font-semibold text-primary m-0">{subItem.title}</h1>
+            <Badge variant="default" className="font-mono">
+              {subItem.code}
+            </Badge>
+            <h1 className="text-xl font-semibold text-primary m-0">
+              {subItem.title}
+            </h1>
             <PriorityBadge priority={subItem.priority} />
             <StatusTransitionDropdown
               currentStatus={subItem.itemStatus}
@@ -231,23 +271,40 @@ export default function SubItemDetailPage() {
               teamId={teamId!}
               itemId={sId}
               parentItemId={mId}
-              onStatusChanged={() => { qc.invalidateQueries({ queryKey: ['subItem', teamId, sId] }) }}
+              onStatusChanged={() => {
+                qc.invalidateQueries({ queryKey: ["subItem", teamId, sId] });
+              }}
               onBeforeTerminalStatus={handleBeforeTerminalStatus}
             />
             <div className="flex-1" />
             <PermissionGuard code="sub_item:update">
-              <Button variant="secondary" disabled={isTerminalStatus} onClick={() => {
-                setEditForm({
-                  title: subItem.title,
-                  priority: subItem.priority,
-                  assigneeKey: subItem.assigneeKey || '',
-                  expectedEndDate: subItem.expectedEndDate || '',
-                  description: subItem.itemDesc || '',
-                })
-                setEditOpen(true)
-              }}>
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              <Button
+                variant="secondary"
+                disabled={isTerminalStatus}
+                onClick={() => {
+                  setEditForm({
+                    title: subItem.title,
+                    priority: subItem.priority,
+                    assigneeKey: subItem.assigneeKey || "",
+                    expectedEndDate: subItem.expectedEndDate || "",
+                    description: subItem.itemDesc || "",
+                  });
+                  setEditOpen(true);
+                }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
                 </svg>
                 编辑
               </Button>
@@ -260,29 +317,41 @@ export default function SubItemDetailPage() {
               <div className="grid grid-cols-4 gap-4 mb-4">
                 <div>
                   <div className="text-xs text-tertiary mb-1">负责人</div>
-                  <span className="text-[13px] font-medium">{memberName(subItem.assigneeKey)}</span>
+                  <span className="text-[13px] font-medium">
+                    {memberName(subItem.assigneeKey)}
+                  </span>
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">开始时间</div>
-                  <span className="text-[13px] font-medium">{formatDate(subItem.planStartDate)}</span>
+                  <span className="text-[13px] font-medium">
+                    {formatDate(subItem.planStartDate)}
+                  </span>
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">预期完成时间</div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[13px] font-medium">{formatDate(subItem.expectedEndDate)}</span>
-                    {isOverdue(subItem.expectedEndDate ?? undefined, subItem.itemStatus, new Date()) && (
-                      <Badge variant="error">延期</Badge>
-                    )}
+                    <span className="text-[13px] font-medium">
+                      {formatDate(subItem.expectedEndDate)}
+                    </span>
+                    {isOverdue(
+                      subItem.expectedEndDate ?? undefined,
+                      subItem.itemStatus,
+                      new Date(),
+                    ) && <Badge variant="error">延期</Badge>}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-tertiary mb-1">结束时间</div>
-                  <span className="text-[13px] font-medium">{formatDate(subItem.actualEndDate)}</span>
+                  <span className="text-[13px] font-medium">
+                    {formatDate(subItem.actualEndDate)}
+                  </span>
                 </div>
               </div>
               <div>
                 <div className="text-xs text-tertiary mb-1">描述</div>
-                <span className="text-[13px] text-secondary leading-relaxed">{subItem.itemDesc || '暂无描述'}</span>
+                <span className="text-[13px] text-secondary leading-relaxed">
+                  {subItem.itemDesc || "暂无描述"}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -293,7 +362,9 @@ export default function SubItemDetailPage() {
               <div>
                 <span className="text-[13px] text-secondary">总进度</span>
                 <Progress value={subItem.completion} className="mt-2" />
-                <span className="text-[13px] font-semibold mt-1 block text-center">{Math.round(subItem.completion)}%</span>
+                <span className="text-[13px] font-semibold mt-1 block text-center">
+                  {Math.round(subItem.completion)}%
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -301,9 +372,23 @@ export default function SubItemDetailPage() {
           {/* Progress Timeline */}
           <Card>
             <CardHeader>
-              <h3 className="text-sm font-semibold text-primary m-0">进度记录</h3>
+              <h3 className="text-sm font-semibold text-primary m-0">
+                进度记录
+              </h3>
               <PermissionGuard code="progress:update">
-                <Button size="sm" disabled={isTerminalStatus} onClick={() => { setAppendForm(f => ({ ...f, completion: String(lastCompletion) })); setAppendOpen(true) }}>追加进度</Button>
+                <Button
+                  size="sm"
+                  disabled={isTerminalStatus}
+                  onClick={() => {
+                    setAppendForm((f) => ({
+                      ...f,
+                      completion: String(lastCompletion),
+                    }));
+                    setAppendOpen(true);
+                  }}
+                >
+                  追加进度
+                </Button>
               </PermissionGuard>
             </CardHeader>
             <CardContent>
@@ -312,30 +397,43 @@ export default function SubItemDetailPage() {
               ) : (
                 <div className="relative pl-6 border-l-2 border-border space-y-5">
                   {sortedRecords.map((record, idx) => {
-                    const date = new Date(record.createTime)
-                    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+                    const date = new Date(record.createTime);
+                    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
                     return (
-                      <div key={`${record.createTime}-${idx}`} className="relative">
+                      <div
+                        key={`${record.createTime}-${idx}`}
+                        className="relative"
+                      >
                         {/* Timeline dot */}
                         <div className="absolute -left-6.25 top-1 w-2.5 h-2.5 rounded-full bg-primary-500 border-2 border-white" />
                         <div className="mb-1">
-                          <span className="text-xs text-tertiary">{dateStr}</span>
-                          <span className="text-xs text-tertiary ml-2">{Math.round(record.completion)}%</span>
+                          <span className="text-xs text-tertiary">
+                            {dateStr}
+                          </span>
+                          <span className="text-xs text-tertiary ml-2">
+                            {Math.round(record.completion)}%
+                          </span>
                         </div>
                         <div className="text-[13px] text-secondary">
                           {record.achievement && (
                             <div className="mt-1">
-                              <strong className="text-success-text">成果：</strong>{record.achievement}
+                              <strong className="text-success-text">
+                                成果：
+                              </strong>
+                              {record.achievement}
                             </div>
                           )}
                           {record.blocker && (
                             <div className="mt-1">
-                              <strong className="text-error-text">卡点：</strong>{record.blocker}
+                              <strong className="text-error-text">
+                                卡点：
+                              </strong>
+                              {record.blocker}
                             </div>
                           )}
                         </div>
                       </div>
-                    )
+                    );
                   })}
                 </div>
               )}
@@ -355,47 +453,83 @@ export default function SubItemDetailPage() {
                   </label>
                   <Input
                     value={editForm.title}
-                    onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, title: e.target.value }))
+                    }
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-primary mb-1">优先级</label>
-                    <Select value={editForm.priority} onValueChange={(v) => setEditForm((f) => ({ ...f, priority: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                    <label className="block text-sm font-medium text-primary mb-1">
+                      优先级
+                    </label>
+                    <Select
+                      value={editForm.priority}
+                      onValueChange={(v) =>
+                        setEditForm((f) => ({ ...f, priority: v }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
                         <PrioritySelectItems />
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-primary mb-1">负责人</label>
+                    <label className="block text-sm font-medium text-primary mb-1">
+                      负责人
+                    </label>
                     <MemberSelect
                       members={members || []}
                       selectedId={editForm.assigneeKey}
-                      onSelect={(v) => setEditForm((f) => ({ ...f, assigneeKey: v }))}
+                      onSelect={(v) =>
+                        setEditForm((f) => ({ ...f, assigneeKey: v }))
+                      }
                     />
                   </div>
                 </div>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-primary mb-1">预期完成时间</label>
+                  <label className="block text-sm font-medium text-primary mb-1">
+                    预期完成时间
+                  </label>
                   <DateInput
                     value={editForm.expectedEndDate}
-                    onChange={(e) => setEditForm((f) => ({ ...f, expectedEndDate: e.target.value }))}
+                    onChange={(e) =>
+                      setEditForm((f) => ({
+                        ...f,
+                        expectedEndDate: e.target.value,
+                      }))
+                    }
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-primary mb-1">描述</label>
+                  <label className="block text-sm font-medium text-primary mb-1">
+                    描述
+                  </label>
                   <Textarea
                     rows={3}
                     value={editForm.description}
-                    onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                    onChange={(e) =>
+                      setEditForm((f) => ({
+                        ...f,
+                        description: e.target.value,
+                      }))
+                    }
                   />
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="secondary" onClick={() => setEditOpen(false)}>取消</Button>
-                <Button onClick={handleEdit} disabled={!editForm.title.trim() || editMutation.isPending}>保存</Button>
+                <Button variant="secondary" onClick={() => setEditOpen(false)}>
+                  取消
+                </Button>
+                <Button
+                  onClick={handleEdit}
+                  disabled={!editForm.title.trim() || editMutation.isPending}
+                >
+                  保存
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -417,33 +551,55 @@ export default function SubItemDetailPage() {
                     max={100}
                     placeholder="请输入 0-100 的整数"
                     value={appendForm.completion}
-                    onChange={(e) => setAppendForm((f) => ({ ...f, completion: e.target.value }))}
+                    onChange={(e) =>
+                      setAppendForm((f) => ({
+                        ...f,
+                        completion: e.target.value,
+                      }))
+                    }
                   />
                   <div className="text-xs text-tertiary mt-1">
-                    不能低于上一条记录的进度（当前：{Math.round(lastCompletion)}%）
+                    不能低于上一条记录的进度（当前：{Math.round(lastCompletion)}
+                    %）
                   </div>
                 </div>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-primary mb-1">成果</label>
+                  <label className="block text-sm font-medium text-primary mb-1">
+                    成果
+                  </label>
                   <Textarea
                     rows={3}
                     placeholder="描述本次取得的成果"
                     value={appendForm.achievement}
-                    onChange={(e) => setAppendForm((f) => ({ ...f, achievement: e.target.value }))}
+                    onChange={(e) =>
+                      setAppendForm((f) => ({
+                        ...f,
+                        achievement: e.target.value,
+                      }))
+                    }
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-primary mb-1">卡点</label>
+                  <label className="block text-sm font-medium text-primary mb-1">
+                    卡点
+                  </label>
                   <Textarea
                     rows={3}
                     placeholder="描述遇到的问题或阻碍"
                     value={appendForm.blocker}
-                    onChange={(e) => setAppendForm((f) => ({ ...f, blocker: e.target.value }))}
+                    onChange={(e) =>
+                      setAppendForm((f) => ({ ...f, blocker: e.target.value }))
+                    }
                   />
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="secondary" onClick={() => setAppendOpen(false)}>取消</Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setAppendOpen(false)}
+                >
+                  取消
+                </Button>
                 <Button
                   onClick={handleAppend}
                   disabled={!appendForm.completion || appendMutation.isPending}
@@ -455,17 +611,20 @@ export default function SubItemDetailPage() {
           </Dialog>
 
           {/* Achievement dialog for completed status */}
-          <Dialog open={achievementOpen} onOpenChange={(open) => {
-            if (!open) {
-              setAchievementOpen(false)
-              setAchievementText('')
-              setAchievementPendingStatus(null)
-              if (achievementResolve) {
-                achievementResolve(false)
-                setAchievementResolve(null)
+          <Dialog
+            open={achievementOpen}
+            onOpenChange={(open) => {
+              if (!open) {
+                setAchievementOpen(false);
+                setAchievementText("");
+                setAchievementPendingStatus(null);
+                if (achievementResolve) {
+                  achievementResolve(false);
+                  setAchievementResolve(null);
+                }
               }
-            }
-          }}>
+            }}
+          >
             <DialogContent size="md">
               <DialogHeader>
                 <DialogTitle>填写完成成果</DialogTitle>
@@ -475,7 +634,9 @@ export default function SubItemDetailPage() {
                   即将标记为「已完成」，进度将自动设为 100%。
                 </p>
                 <div>
-                  <label className="block text-sm font-medium text-primary mb-1">成果</label>
+                  <label className="block text-sm font-medium text-primary mb-1">
+                    成果
+                  </label>
                   <Textarea
                     rows={4}
                     placeholder="描述本次取得的成果（选填）"
@@ -485,15 +646,20 @@ export default function SubItemDetailPage() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="secondary" onClick={() => {
-                  setAchievementOpen(false)
-                  setAchievementText('')
-                  setAchievementPendingStatus(null)
-                  if (achievementResolve) {
-                    achievementResolve(false)
-                    setAchievementResolve(null)
-                  }
-                }}>取消</Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setAchievementOpen(false);
+                    setAchievementText("");
+                    setAchievementPendingStatus(null);
+                    if (achievementResolve) {
+                      achievementResolve(false);
+                      setAchievementResolve(null);
+                    }
+                  }}
+                >
+                  取消
+                </Button>
                 <Button
                   onClick={handleAchievementConfirm}
                   disabled={achievementStatusMutation.isPending}
@@ -506,5 +672,5 @@ export default function SubItemDetailPage() {
         </>
       )}
     </div>
-  )
+  );
 }

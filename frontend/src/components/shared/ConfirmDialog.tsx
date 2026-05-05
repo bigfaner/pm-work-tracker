@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,19 +7,19 @@ import {
   DialogDescription,
   DialogBody,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface ConfirmDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  title: string
-  description?: string
-  confirmLabel?: string
-  confirmVariant?: 'primary' | 'danger'
-  confirmPlaceholder?: string
-  onConfirm: (inputValue?: string) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description?: string;
+  confirmLabel?: string;
+  confirmVariant?: "primary" | "danger";
+  confirmPlaceholder?: string;
+  onConfirm: (inputValue?: string) => void;
 }
 
 export default function ConfirmDialog({
@@ -27,22 +27,22 @@ export default function ConfirmDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = '确认',
-  confirmVariant = 'primary',
+  confirmLabel = "确认",
+  confirmVariant = "primary",
   confirmPlaceholder,
   onConfirm,
 }: ConfirmDialogProps) {
-  const [inputValue, setInputValue] = useState('')
+  const [inputValue, setInputValue] = useState("");
 
   const handleConfirm = () => {
-    onConfirm(confirmPlaceholder ? inputValue : undefined)
-    setInputValue('')
-  }
+    onConfirm(confirmPlaceholder ? inputValue : undefined);
+    setInputValue("");
+  };
 
   const handleOpenChange = (value: boolean) => {
-    if (!value) setInputValue('')
-    onOpenChange(value)
-  }
+    if (!value) setInputValue("");
+    onOpenChange(value);
+  };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -65,7 +65,7 @@ export default function ConfirmDialog({
             取消
           </Button>
           <Button
-            variant={confirmVariant === 'danger' ? 'danger' : 'primary'}
+            variant={confirmVariant === "danger" ? "danger" : "primary"}
             onClick={handleConfirm}
           >
             {confirmLabel}
@@ -73,5 +73,5 @@ export default function ConfirmDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

@@ -1,14 +1,18 @@
-import type { ReactNode } from 'react'
-import { usePermission } from '@/hooks/usePermission'
+import type { ReactNode } from "react";
+import { usePermission } from "@/hooks/usePermission";
 
 interface PermissionGuardProps {
-  code: string
-  teamId?: string
-  children: ReactNode
+  code: string;
+  teamId?: string;
+  children: ReactNode;
 }
 
-export function PermissionGuard({ code, teamId, children }: PermissionGuardProps) {
-  const allowed = usePermission(code, teamId)
-  if (!allowed) return null
-  return <>{children}</>
+export function PermissionGuard({
+  code,
+  teamId,
+  children,
+}: PermissionGuardProps) {
+  const allowed = usePermission(code, teamId);
+  if (!allowed) return null;
+  return <>{children}</>;
 }

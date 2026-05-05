@@ -1,18 +1,18 @@
-import { useCallback } from 'react'
-import { cn } from '@/lib/utils'
+import { useCallback } from "react";
+import { cn } from "@/lib/utils";
 
 export interface CheckboxOption {
-  value: string
-  label: string
+  value: string;
+  label: string;
 }
 
 interface CheckboxGroupProps {
-  options: CheckboxOption[]
-  selected: string[]
-  onChange: (selected: string[]) => void
-  title?: string
-  disabled?: boolean
-  className?: string
+  options: CheckboxOption[];
+  selected: string[];
+  onChange: (selected: string[]) => void;
+  title?: string;
+  disabled?: boolean;
+  className?: string;
 }
 
 export function CheckboxGroup({
@@ -23,43 +23,44 @@ export function CheckboxGroup({
   disabled = false,
   className,
 }: CheckboxGroupProps) {
-  const allSelected = options.length > 0 && options.every((o) => selected.includes(o.value))
-  const someSelected = options.some((o) => selected.includes(o.value))
-  const count = options.filter((o) => selected.includes(o.value)).length
+  const allSelected =
+    options.length > 0 && options.every((o) => selected.includes(o.value));
+  const someSelected = options.some((o) => selected.includes(o.value));
+  const count = options.filter((o) => selected.includes(o.value)).length;
 
   const toggleAll = useCallback(() => {
     if (allSelected) {
       // Remove all options in this group from selected
-      const groupValues = new Set(options.map((o) => o.value))
-      onChange(selected.filter((v) => !groupValues.has(v)))
+      const groupValues = new Set(options.map((o) => o.value));
+      onChange(selected.filter((v) => !groupValues.has(v)));
     } else {
       // Add all options in this group to selected (deduplicated)
-      const groupValues = options.map((o) => o.value)
-      const merged = Array.from(new Set([...selected, ...groupValues]))
-      onChange(merged)
+      const groupValues = options.map((o) => o.value);
+      const merged = Array.from(new Set([...selected, ...groupValues]));
+      onChange(merged);
     }
-  }, [options, selected, onChange, allSelected])
+  }, [options, selected, onChange, allSelected]);
 
   const toggleOne = useCallback(
     (value: string) => {
       if (selected.includes(value)) {
-        onChange(selected.filter((v) => v !== value))
+        onChange(selected.filter((v) => v !== value));
       } else {
-        onChange([...selected, value])
+        onChange([...selected, value]);
       }
     },
     [selected, onChange],
-  )
+  );
 
   return (
-    <div className={cn('space-y-1.5', className)}>
+    <div className={cn("space-y-1.5", className)}>
       {title && (
         <label className="flex items-center gap-2 text-sm font-medium text-primary cursor-pointer select-none">
           <input
             type="checkbox"
             checked={allSelected}
             ref={(el) => {
-              if (el) el.indeterminate = someSelected && !allSelected
+              if (el) el.indeterminate = someSelected && !allSelected;
             }}
             onChange={toggleAll}
             disabled={disabled}
@@ -89,5 +90,5 @@ export function CheckboxGroup({
         ))}
       </div>
     </div>
-  )
+  );
 }

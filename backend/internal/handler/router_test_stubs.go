@@ -354,3 +354,21 @@ func (s *StubProgressSvc) GetByBizKey(_ context.Context, _ int64) (*model.Progre
 }
 
 var _ service.ProgressService = (*StubProgressSvc)(nil)
+
+// StubDecisionLogSvc is a stub DecisionLogService for test wiring.
+type StubDecisionLogSvc struct{}
+
+func (s *StubDecisionLogSvc) Create(_ context.Context, _ int64, _ int64, _ dto.DecisionLogCreateReq) (*model.DecisionLog, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+func (s *StubDecisionLogSvc) Update(_ context.Context, _ int64, _ int64, _ dto.DecisionLogUpdateReq) (*model.DecisionLog, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+func (s *StubDecisionLogSvc) Publish(_ context.Context, _ int64, _ int64) (*model.DecisionLog, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+func (s *StubDecisionLogSvc) List(_ context.Context, _ int64, _ int64, _ dto.Pagination) (*dto.PageResult[model.DecisionLog], error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+var _ service.DecisionLogService = (*StubDecisionLogSvc)(nil)

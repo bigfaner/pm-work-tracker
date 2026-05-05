@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -8,8 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuLabel,
-} from './dropdown-menu'
-import { Button } from './button'
+} from "./dropdown-menu";
+import { Button } from "./button";
 
 function DropdownWrapper() {
   return (
@@ -24,26 +24,26 @@ function DropdownWrapper() {
         <DropdownMenuItem danger>Delete</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }
 
-describe('DropdownMenu', () => {
-  it('renders trigger', () => {
-    render(<DropdownWrapper />)
-    expect(screen.getByRole('button', { name: 'Menu' })).toBeInTheDocument()
-  })
+describe("DropdownMenu", () => {
+  it("renders trigger", () => {
+    render(<DropdownWrapper />);
+    expect(screen.getByRole("button", { name: "Menu" })).toBeInTheDocument();
+  });
 
-  it('opens on click and shows items', async () => {
-    render(<DropdownWrapper />)
-    await userEvent.click(screen.getByRole('button', { name: 'Menu' }))
-    expect(screen.getByText('Edit')).toBeInTheDocument()
-    expect(screen.getByText('Delete')).toBeInTheDocument()
-    expect(screen.getByText('Actions')).toBeInTheDocument()
-  })
+  it("opens on click and shows items", async () => {
+    render(<DropdownWrapper />);
+    await userEvent.click(screen.getByRole("button", { name: "Menu" }));
+    expect(screen.getByText("Edit")).toBeInTheDocument();
+    expect(screen.getByText("Delete")).toBeInTheDocument();
+    expect(screen.getByText("Actions")).toBeInTheDocument();
+  });
 
-  it('danger item has error styling', async () => {
-    render(<DropdownWrapper />)
-    await userEvent.click(screen.getByRole('button'))
-    expect(screen.getByText('Delete').className).toContain('text-error')
-  })
-})
+  it("danger item has error styling", async () => {
+    render(<DropdownWrapper />);
+    await userEvent.click(screen.getByRole("button"));
+    expect(screen.getByText("Delete").className).toContain("text-error");
+  });
+});

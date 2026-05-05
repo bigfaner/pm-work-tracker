@@ -193,6 +193,27 @@ CREATE TABLE IF NOT EXISTS pmw_status_histories (
     KEY idx_item (item_type, item_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='状态变更历史表（追加写入）';
 
+-- pmw_decision_logs (append-only after publishing: no soft-delete)
+CREATE TABLE IF NOT EXISTS pmw_decision_logs (
+    id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT       COMMENT '自增主键',
+    biz_key         BIGINT          NOT NULL                      COMMENT '业务唯一键',
+    main_item_key   BIGINT          NOT NULL                      COMMENT '所属主事项 biz_key',
+    team_key        BIGINT          NOT NULL                      COMMENT '所属团队 biz_key',
+    category        VARCHAR(20)     NOT NULL                      COMMENT '分类：technical/resource/requirement/schedule/risk/other',
+    tags            TEXT            NOT NULL                      COMMENT '标签 JSON 数组字符串',
+    content         TEXT            NOT NULL                      COMMENT '决策内容',
+    log_status      VARCHAR(10)     NOT NULL DEFAULT 'draft'      COMMENT '状态：draft=草稿，published=已发布',
+    created_by      BIGINT          NOT NULL                      COMMENT '创建人 biz_key',
+    create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_biz_key (biz_key),
+    KEY idx_decision_logs_main_item_key (main_item_key),
+    KEY idx_decision_logs_team_key (team_key),
+    KEY idx_decision_logs_main_status (main_item_key, log_status),
+    KEY idx_decision_logs_create_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='决策日志表（发布后追加写入）';
+
 -- pmw_roles (RBAC)
 CREATE TABLE IF NOT EXISTS pmw_roles (
     id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT       COMMENT '自增主键',
