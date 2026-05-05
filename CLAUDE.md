@@ -78,9 +78,9 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 docs/
 ├── ARCHITECTURE.md              # 分层架构总览
 ├── DECISIONS.md                 # 技术决策记录
+├── conventions/                 # 项目级规范（按需加载，不自动消耗 token）
+│   └── INDEX.md                 # ← 规范索引，按 scope/keyword 查找文件
 ├── lessons/                     # 经验教训（bug 修复、踩坑记录）
-│   ├── frontend-test-command.md # 前端测试命令正确用法
-│   └── weekly-view-bug-fixes.md # 周视图时区/ISO周计算 bug 修复
 └── features/<slug>/             # Feature 工作区
     ├── manifest.md              # Feature 索引 & 可追溯性映射
     ├── prd/                     # 需求文档
@@ -88,6 +88,13 @@ docs/
     ├── ui/                      # UI 设计规格
     └── tasks/                   # 任务定义 & 执行记录
 ```
+
+### Convention Loading
+
+执行任务前，按需从 `docs/conventions/` 加载规范：
+1. 先读 `docs/conventions/INDEX.md` 查找与当前任务相关的文件
+2. 按任务 scope 加载基线规范（backend/frontend/global）
+3. 按任务 keyword 加载领域规范
 
 ### Running Tests
 

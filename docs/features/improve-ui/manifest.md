@@ -7,6 +7,15 @@ status: tasks
 
 <!-- Status flow: prd → design → tasks → in-progress → done -->
 
+## Consolidated Specs
+
+| Spec File | Items | Target |
+|-----------|-------|--------|
+| specs/biz-specs.md | BIZ-001–008 (8 rules) | docs/conventions/ |
+| specs/tech-specs.md | TECH-001–005 (5 specs) | docs/conventions/ |
+
+Integrated: 2026-05-04
+
 ## Documents
 
 | Document | Path | Summary |

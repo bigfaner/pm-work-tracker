@@ -1,0 +1,16 @@
+---
+integrated_at: 2026-05-04
+target_files:
+  - docs/conventions/soft-delete.md
+  - docs/conventions/repo-helpers.md
+extracted_rules:
+  - SD-001 (soft-deletable entity classification)
+  - SD-002 (NotDeleted and NotDeletedTable scopes)
+  - SD-003 (SoftDelete method pattern, never db.Delete)
+  - SD-004 (isSoftDeletable runtime type switch)
+  - SD-005 (unique index includes deleted_flag + deleted_time)
+  - RH-001 (FindByID with automatic NotDeleted)
+  - RH-002 (FindByIDs partial results map)
+---
+
+Rules from soft-delete-consistency PRD and tech design have been extracted into project-level convention files. No feature-specific rules remain that are not represented in the conventions.

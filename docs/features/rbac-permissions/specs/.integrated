@@ -1,0 +1,19 @@
+---
+integrated: 2026-05-04
+source_prd: docs/features/rbac-permissions/prd/prd-spec.md
+source_design: docs/features/rbac-permissions/design/tech-design.md
+---
+
+# Integration Summary
+
+## Convention Files Written
+
+| File | Type | Rules Extracted |
+|------|------|-----------------|
+| docs/conventions/permission-codes.md | APPEND | 26 permission codes (resource:action), SuperAdmin bypass rule, 3 preset roles (immutable), JWT claims structure, permission API response |
+| docs/conventions/authorization.md | APPEND | Permission refresh strategy (login, route >5min, 403), role binding at team invite time |
+
+## Counts
+
+- biz_count: 4 (26 permission codes, SuperAdmin bypass, preset roles immutability, role binding at invite)
+- tech_count: 3 (JWT claims minimal structure, permission refresh strategy, permission API response format)

@@ -1,0 +1,29 @@
+---
+integrated_at: 2026-05-04
+target_files:
+  - docs/conventions/data-model.md
+  - docs/conventions/soft-delete.md
+  - docs/conventions/api-boundary.md
+  - docs/conventions/repo-helpers.md
+extracted_rules:
+  - DM-001 (table naming pmw_ prefix)
+  - DM-002 (BaseModel fields)
+  - DM-003 (FK naming *_key suffix)
+  - DM-004 (status field entity prefix)
+  - DM-005 (VARCHAR not TEXT)
+  - DM-006 (DECIMAL not REAL)
+  - SD-001 (soft-deletable entity classification)
+  - SD-002 (NotDeleted scope)
+  - SD-003 (SoftDelete method pattern)
+  - SD-005 (unique index with deleted_flag)
+  - AB-001 (service boundary int64)
+  - AB-002 (repository boundary uint)
+  - AB-003 (middleware injects teamBizKey)
+  - AB-004 (handler bizKey parsing)
+  - RH-001 (FindByID with NotDeleted)
+  - RH-002 (FindByIDs partial results)
+  - RH-003 (UpdateFields column names)
+  - RH-004 (DBTransactor interface)
+---
+
+Rules from jlc-schema-alignment PRD and tech design have been extracted into project-level convention files. No feature-specific rules remain that are not represented in the conventions.
