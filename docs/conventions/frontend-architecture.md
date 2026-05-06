@@ -33,4 +33,4 @@ Component directory structure:
 | Date handling | dayjs |
 | Charts/Gantt | frappe-gantt (style override with Tailwind) |
 
-Do not add alternative libraries for these purposes without a documented decision in `docs/decisions/`.
+Do not add alternative libraries for these purposes without a documented decision in `docs/conventions/` (use `/record-decision` skill).
