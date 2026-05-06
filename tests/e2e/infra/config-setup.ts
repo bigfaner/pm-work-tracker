@@ -9,7 +9,14 @@ const PROJECT_ROOT = join(__dirname, '..', '..', '..');
 const BACKEND_DIR = join(PROJECT_ROOT, 'backend');
 const CONFIG_PATH = join(BACKEND_DIR, 'config.test.yaml');
 
-export const serverBin = process.env.E2E_SERVER_BIN ?? join(PROJECT_ROOT, 'bin', 'windows-amd64', 'pm-work-tracker.exe');
+function detectServerBin(): string {
+  const platform = process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'darwin' : 'linux';
+  const arch = process.arch === 'arm64' ? 'arm64' : 'amd64';
+  const ext = process.platform === 'win32' ? '.exe' : '';
+  return join(PROJECT_ROOT, 'bin', `${platform}-${arch}`, `pm-work-tracker${ext}`);
+}
+
+export const serverBin = process.env.E2E_SERVER_BIN ?? detectServerBin();
 
 export function writeConfig(yaml: string): void {
   writeFileSync(CONFIG_PATH, yaml, 'utf-8');
