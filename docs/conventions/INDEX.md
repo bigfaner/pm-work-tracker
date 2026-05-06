@@ -10,9 +10,9 @@ description: "Convention index — keyword-to-file mapping for on-demand loading
 |-------|-------|
 | **backend** | api-boundary, backend-helpers, config-struct, data-model, db-dialect, error-codes, item-codes, permission-codes, repo-helpers, security, soft-delete, status-machine |
 | **frontend** | button-icons, frontend-architecture, frontend-components, frontend-ux |
-| **global** | authorization, config-management, data-validation, deployment, development-workflow, deduplication-threshold, lint-enforcement, performance-targets, user-management |
+| **global** | authorization, config-management, data-validation, deployment, development-workflow, deduplication-threshold, lint-enforcement, naming, performance-targets, testing, user-management |
 | **config** | config-management, config-struct |
-| **testing** | development-workflow, lint-enforcement |
+| **testing** | testing, development-workflow, lint-enforcement |
 
 ## By Domain Keyword
 
@@ -24,7 +24,7 @@ description: "Convention index — keyword-to-file mapping for on-demand loading
 | delete, remove, soft-delete, archive | soft-delete.md, user-management.md |
 | config, yaml, env, config.yaml | config-management.md, config-struct.md |
 | frontend, ui, component, page, react | frontend-architecture.md, frontend-components.md, frontend-ux.md |
-| test, lint, quality, coverage | lint-enforcement.md, development-workflow.md |
+| test, lint, quality, coverage | testing.md, lint-enforcement.md, development-workflow.md |
 | deploy, build, embed, binary, nginx | deployment.md |
 | status, state, lifecycle, transition | status-machine.md, data-validation.md |
 | item, code, sequence, team-code, bizkey | item-codes.md, api-boundary.md |
@@ -36,4 +36,4 @@ description: "Convention index — keyword-to-file mapping for on-demand loading
 | color, theme, token, badge | frontend-components.md |
 | button, icon, lucide | button-icons.md |
 | pagination, defaults, offset | backend-helpers.md |
-| naming, camelcase, snake_case | data-model.md |
+| naming, camelcase, snake_case | naming.md, data-model.md |

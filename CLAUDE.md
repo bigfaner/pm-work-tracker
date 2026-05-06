@@ -1,11 +1,3 @@
----
-paths:
-  backend: "backend/"
-  frontend: "frontend/"
-  docs: "docs/"
-  tasks: "docs/features/pm-work-tracker/tasks/"
----
-
 # CLAUDE.md
 
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.

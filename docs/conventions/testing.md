@@ -1,6 +1,11 @@
+---
+scope: global
+source: .claude/rules/testing.md (consolidated)
+---
+
 # Testing Conventions
 
-## TDD Flow
+## T-001: TDD Flow
 
 Follow red-green-refactor for all new code:
 
@@ -24,7 +29,7 @@ func (s *mainItemService) Create(ctx context.Context, teamID, pmID uint, req dto
 // Step 3: REFACTOR — if needed
 ```
 
-## Test File Naming
+## T-002: Test File Naming
 
 | Layer | Source file | Test file |
 |-------|-----------|-----------|
@@ -35,9 +40,7 @@ func (s *mainItemService) Create(ctx context.Context, teamID, pmID uint, req dto
 
 Test files are co-located: same directory as source file.
 
-## Go Test Patterns
-
-### Table-Driven Tests
+## T-003: Table-Driven Tests
 
 Use table-driven tests for multiple input/output cases.
 
@@ -70,7 +73,7 @@ func TestApplyPaginationDefaults_Negative(t *testing.T) { ... }
 func TestApplyPaginationDefaults_Normal(t *testing.T) { ... }
 ```
 
-### Handler Tests
+## T-004: Handler Tests
 
 Use `httptest` + Gin test context. Mock services via interfaces.
 
@@ -90,7 +93,7 @@ func TestMainItemHandler_Create(t *testing.T) {
 }
 ```
 
-### Service Tests
+## T-005: Service Tests
 
 Mock repositories via interfaces. Test business logic, not database queries.
 
@@ -112,9 +115,7 @@ func TestMainItemService_GetByID_NotFound(t *testing.T) {
 }
 ```
 
-## React Test Patterns
-
-### Component Tests
+## T-006: React Component Tests
 
 Use `@testing-library/react` + `vitest`.
 
@@ -137,7 +138,7 @@ describe('Badge', () => {
 });
 ```
 
-### API Module Tests
+## T-007: API Module Tests
 
 Mock axios client, verify call patterns.
 
@@ -154,7 +155,7 @@ it('calls correct endpoint for list', async () => {
 });
 ```
 
-## Running Tests
+## T-008: Targeted Test Execution
 
 **Only run tests directly related to the files you changed.** Do not run `go test ./...` or `go test ./internal/...` unless explicitly asked.
 
@@ -175,7 +176,7 @@ Map changed files to their test targets:
 - `handler/team_handler.go` → `go test ./internal/handler/ -run TestTeam`
 - `repository/gorm/team_repo.go` → `go test ./internal/repository/gorm/ -run TestTeam`
 
-## Test Assertions
+## T-009: Test Assertions
 
 Go: use `github.com/stretchr/testify` — `assert` for non-fatal, `require` for fatal (stops test on failure).
 
