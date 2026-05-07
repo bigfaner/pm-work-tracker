@@ -1,5 +1,5 @@
 ---
-scope: feature
+scope: frontend
 source: feature/improve-ui BIZ-006
 ---
 

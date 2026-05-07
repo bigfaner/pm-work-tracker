@@ -1,11 +1,3 @@
----
-paths:
-  backend: "backend/"
-  frontend: "frontend/"
-  docs: "docs/"
-  tasks: "docs/features/pm-work-tracker/tasks/"
----
-
 # CLAUDE.md
 
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
@@ -76,11 +68,12 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ```
 docs/
-├── ARCHITECTURE.md              # 分层架构总览
-├── DECISIONS.md                 # 技术决策记录
+├── ARCHITECTURE.md              # 分层架构总览（按需加载）
 ├── conventions/                 # 项目级规范（按需加载，不自动消耗 token）
 │   └── INDEX.md                 # ← 规范索引，按 scope/keyword 查找文件
-├── lessons/                     # 经验教训（bug 修复、踩坑记录）
+├── lessons/                     # 经验教训（按需加载）
+│   └── INDEX.md                 # ← 按 category/task-trigger 查找
+├── proposals/<slug>/            # 早期提案（brainstorm 输出）
 └── features/<slug>/             # Feature 工作区
     ├── manifest.md              # Feature 索引 & 可追溯性映射
     ├── prd/                     # 需求文档
@@ -95,6 +88,13 @@ docs/
 1. 先读 `docs/conventions/INDEX.md` 查找与当前任务相关的文件
 2. 按任务 scope 加载基线规范（backend/frontend/global）
 3. 按任务 keyword 加载领域规范
+
+### Lesson Loading
+
+高风险任务前，从 `docs/lessons/INDEX.md` 查找相关教训：
+- 新实体/schema 设计 → arch-bizkey, gotcha-bizkey 相关
+- E2E 测试生成 → gotcha-e2e 相关
+- Task breakdown → arch-ui-integration, pattern-phase-gate
 
 ### Running Tests
 

@@ -1,5 +1,5 @@
 ---
-scope: backend, frontend, build
+scope: backend, frontend
 source: feature/single-binary-deploy
 ---
 

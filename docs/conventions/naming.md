@@ -1,6 +1,11 @@
+---
+scope: global
+source: .claude/rules/naming.md (consolidated)
+---
+
 # Naming Conventions
 
-## Go Struct Tags
+## NAM-001: Go Struct Tags
 
 All JSON tags must be camelCase. GORM maps camelCase JSON tags to snake_case columns automatically.
 
@@ -22,7 +27,7 @@ type MainItem struct {
 
 Enforced by `tagliatelle` linter in `backend/.golangci.yml`.
 
-## Go Exported Names
+## NAM-002: Go Exported Names
 
 Functions, types, and interfaces use PascalCase. File names use snake_case.
 
@@ -42,7 +47,7 @@ File naming:
 - `backend/internal/repository/gorm/main_item_repo.go`
 - `backend/internal/service/main_item_service.go`
 
-## Go Package Names
+## NAM-003: Go Package Names
 
 Lowercase, single word, no underscores.
 
@@ -63,11 +68,11 @@ package repo
 package util
 ```
 
-## TypeScript Interfaces and Types
+## NAM-004: TypeScript Interfaces and Types
 
 PascalCase for interfaces and types. Files use camelCase.
 
-```go
+```ts
 // ✅ Correct
 interface MainItem { id: number; teamId: number; title: string }
 interface WeeklyViewResponse { rows: TableRow[] }
@@ -79,7 +84,7 @@ interface IMainItem { ... }  // no Hungarian prefix
 type pageResult<T> = { ... }
 ```
 
-## TypeScript Files and Modules
+## NAM-005: TypeScript API Modules
 
 One API module per domain entity, matching the backend service name.
 
@@ -91,7 +96,7 @@ frontend/src/api/permissions.ts
 frontend/src/api/auth.ts
 ```
 
-## Database Columns
+## NAM-006: Database Column Mapping
 
 Always snake_case, managed by GORM's naming strategy. Never reference column names directly in Go code — let GORM handle the mapping.
 
