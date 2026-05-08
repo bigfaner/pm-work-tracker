@@ -1,3 +1,4 @@
+// Package errors provides structured application errors with HTTP status mappings.
 package errors
 
 import (
@@ -20,7 +21,9 @@ func (e *AppError) Error() string {
 	return e.Message
 }
 
+// Application-level sentinel errors mapped to HTTP status codes.
 var (
+	// ErrUnauthorized indicates missing or invalid authentication.
 	ErrUnauthorized         = &AppError{Code: "UNAUTHORIZED", Status: 401, Message: "authentication required"}
 	ErrForbidden            = &AppError{Code: "FORBIDDEN", Status: 403, Message: "insufficient permissions"}
 	ErrTeamNotFound         = &AppError{Code: "TEAM_NOT_FOUND", Status: 404, Message: "team not found"}

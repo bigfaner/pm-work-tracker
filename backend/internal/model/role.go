@@ -10,6 +10,7 @@ type Role struct {
 	IsPreset    bool   `gorm:"not null;default:false" json:"isPreset"`
 }
 
+// TableName returns the database table name for Role.
 func (Role) TableName() string {
 	return "pmw_roles"
 }
@@ -23,6 +24,7 @@ type RolePermission struct {
 	PermissionCode string    `gorm:"type:varchar(50);not null;uniqueIndex:uk_role_permission" json:"permissionCode"`
 }
 
+// TableName returns the database table name for RolePermission.
 func (RolePermission) TableName() string {
 	return "pmw_role_permissions"
 }

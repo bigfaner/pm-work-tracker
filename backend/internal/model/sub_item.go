@@ -2,6 +2,7 @@ package model
 
 import "time"
 
+// SubItem represents a child task under a MainItem.
 type SubItem struct {
 	BaseModel
 	TeamKey         int64      `gorm:"not null;index" json:"teamKey"`
@@ -21,6 +22,7 @@ type SubItem struct {
 	Code            string     `gorm:"column:item_code;type:varchar(15);not null;default:''" json:"code"`
 }
 
+// TableName returns the database table name for SubItem.
 func (SubItem) TableName() string {
 	return "pmw_sub_items"
 }

@@ -19,6 +19,7 @@ type ItemPool struct {
 	ReviewerKey     *int64     `json:"reviewerKey"`
 }
 
+// TableName returns the database table name for ItemPool.
 func (ItemPool) TableName() string {
 	return "pmw_item_pools"
 }

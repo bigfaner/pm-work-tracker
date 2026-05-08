@@ -1,6 +1,9 @@
+// Package status provides status definitions and lookup helpers for work items.
 package status
 
 // StatusDef defines a status code with its display name and terminal flag.
+//
+//nolint:revive // stutter is acceptable here for clarity
 type StatusDef struct {
 	Code     string
 	Name     string

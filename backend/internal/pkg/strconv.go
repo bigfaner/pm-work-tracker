@@ -1,3 +1,4 @@
+// Package pkg provides shared utility functions for ID formatting and parsing.
 package pkg
 
 import (

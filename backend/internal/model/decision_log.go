@@ -18,4 +18,5 @@ type DecisionLog struct {
 	UpdateTime  time.Time `gorm:"not null;default:CURRENT_TIMESTAMP;autoUpdateTime" json:"updateTime"`
 }
 
+// TableName returns the database table name for DecisionLog.
 func (DecisionLog) TableName() string { return "pmw_decision_logs" }

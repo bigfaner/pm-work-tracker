@@ -17,6 +17,7 @@ type ProgressRecord struct {
 	CreateTime  time.Time `gorm:"not null;default:CURRENT_TIMESTAMP" json:"createTime"`
 }
 
+// TableName returns the database table name for ProgressRecord.
 func (ProgressRecord) TableName() string {
 	return "pmw_progress_records"
 }

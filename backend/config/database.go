@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// InitDB opens a database connection using the provided configuration.
 func InitDB(cfg *DatabaseConfig) (*gorm.DB, error) {
 	var dialector gorm.Dialector
 

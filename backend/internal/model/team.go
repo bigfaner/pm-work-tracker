@@ -2,6 +2,7 @@ package model
 
 import "time"
 
+// Team represents a project team with a PM and members.
 type Team struct {
 	BaseModel
 	TeamName string `gorm:"type:varchar(100);not null" json:"teamName"`
@@ -11,10 +12,12 @@ type Team struct {
 	ItemSeq  uint   `gorm:"not null;default:0" json:"itemSeq"`
 }
 
+// TableName returns the database table name for Team.
 func (Team) TableName() string {
 	return "pmw_teams"
 }
 
+// TeamMember represents a user's membership in a team.
 type TeamMember struct {
 	BaseModel
 	TeamKey  int64     `gorm:"not null" json:"teamKey"`
@@ -23,6 +26,7 @@ type TeamMember struct {
 	JoinedAt time.Time `gorm:"not null" json:"joinedAt"`
 }
 
+// TableName returns the database table name for TeamMember.
 func (TeamMember) TableName() string {
 	return "pmw_team_members"
 }

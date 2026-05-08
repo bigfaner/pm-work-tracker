@@ -64,10 +64,10 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}
-	if origins := corsOrigins(deps); len(origins) > 0 && !(len(origins) == 1 && origins[0] == "*") {
+	if origins := corsOrigins(deps); len(origins) > 0 && (len(origins) != 1 || origins[0] != "*") {
 		corsCfg.AllowOrigins = origins
 	} else {
-		corsCfg.AllowOriginFunc = func(origin string) bool {
+		corsCfg.AllowOriginFunc = func(_ string) bool {
 			return true // dev mode: allow all origins
 		}
 	}
