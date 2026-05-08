@@ -83,9 +83,9 @@ func (h *ProgressHandler) Append(c *gin.Context) {
 
 	teamBizKey := middleware.GetTeamBizKey(c)
 	callerBizKey := middleware.GetUserBizKey(c)
-	pmFlag := isPMOrSuperAdmin(c)
+	skipRegressionCheck := hasPermCode(c, "sub_item:assign")
 
-	record, err := h.svc.Append(c.Request.Context(), teamBizKey, callerBizKey, subID, completion, req.Achievement, req.Blocker, req.Lesson, pmFlag)
+	record, err := h.svc.Append(c.Request.Context(), teamBizKey, callerBizKey, subID, completion, req.Achievement, req.Blocker, req.Lesson, skipRegressionCheck)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
