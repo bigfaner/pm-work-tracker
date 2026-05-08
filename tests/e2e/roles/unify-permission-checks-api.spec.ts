@@ -8,7 +8,7 @@ import {
   extractBizKey,
   randomCode,
   setupRbacFixtures,
-} from '../../helpers.js';
+} from '../helpers.js';
 
 const apiUrl = apiBaseUrl;
 const runId = Date.now();
@@ -247,19 +247,54 @@ test.describe('Unify Permission Checks — API Tests (TC-004..TC-039)', () => {
 
   // Traceability: TC-013 → Story 3 / AC 3a
   test('TC-013: SuperAdmin transfers PM (200)', async () => {
-    // Transfer PM to member user, then back to PM user
-    const transferToMember = await curl('PUT', `${apiUrl}/v1/teams/${teamBizKey}/pm`, {
+    // Create a fresh throwaway team for PM transfer to avoid state pollution
+    const tmpTeamRes = await curl('POST', `${apiUrl}/v1/teams`, {
       headers: authHeader(superadminToken),
-      body: JSON.stringify({ newPmUserKey: memberUserBizKey }),
+      body: JSON.stringify({ name: `tc013-transfer-${runId}`, code: randomCode() }),
+    });
+    expect(tmpTeamRes.status === 200 || tmpTeamRes.status === 201).toBeTruthy();
+    const tmpTeamKey = extractBizKey(parseData(tmpTeamRes.body))!;
+
+    // Create fresh users for the transfer test
+    const tmpPmRes = await curl('POST', `${apiUrl}/v1/admin/users`, {
+      headers: authHeader(superadminToken),
+      body: JSON.stringify({ username: `tc013-pm-${runId}`, displayName: 'TC013 PM' }),
+    });
+    expect(tmpPmRes.status === 200 || tmpPmRes.status === 201).toBeTruthy();
+    const tmpPmData = parseData(tmpPmRes.body);
+    const tmpPmKey = extractBizKey(tmpPmData)!;
+
+    const tmpMemberRes = await curl('POST', `${apiUrl}/v1/admin/users`, {
+      headers: authHeader(superadminToken),
+      body: JSON.stringify({ username: `tc013-member-${runId}`, displayName: 'TC013 Member' }),
+    });
+    expect(tmpMemberRes.status === 200 || tmpMemberRes.status === 201).toBeTruthy();
+    const tmpMemberData = parseData(tmpMemberRes.body);
+    const tmpMemberKey = extractBizKey(tmpMemberData)!;
+
+    // Add both users to the throwaway team
+    await curl('POST', `${apiUrl}/v1/teams/${tmpTeamKey}/members`, {
+      headers: authHeader(superadminToken),
+      body: JSON.stringify({ username: `tc013-pm-${runId}`, roleKey: memberRoleKey }),
+    });
+    await curl('POST', `${apiUrl}/v1/teams/${tmpTeamKey}/members`, {
+      headers: authHeader(superadminToken),
+      body: JSON.stringify({ username: `tc013-member-${runId}`, roleKey: memberRoleKey }),
+    });
+
+    // Transfer PM to the pm user first
+    const transferToPm = await curl('PUT', `${apiUrl}/v1/teams/${tmpTeamKey}/pm`, {
+      headers: authHeader(superadminToken),
+      body: JSON.stringify({ newPmUserKey: tmpPmKey }),
+    });
+    expect(transferToPm.status === 200 || transferToPm.status === 204).toBeTruthy();
+
+    // Transfer PM to member user
+    const transferToMember = await curl('PUT', `${apiUrl}/v1/teams/${tmpTeamKey}/pm`, {
+      headers: authHeader(superadminToken),
+      body: JSON.stringify({ newPmUserKey: tmpMemberKey }),
     });
     expect(transferToMember.status === 200 || transferToMember.status === 204).toBeTruthy();
-
-    // Transfer back to PM user
-    const transferBack = await curl('PUT', `${apiUrl}/v1/teams/${teamBizKey}/pm`, {
-      headers: authHeader(superadminToken),
-      body: JSON.stringify({ newPmUserKey: pmUserBizKey }),
-    });
-    expect(transferBack.status === 200 || transferBack.status === 204).toBeTruthy();
   });
 
   // Traceability: TC-014 → Story 3 / AC 3a
@@ -365,7 +400,21 @@ test.describe('Unify Permission Checks — API Tests (TC-004..TC-039)', () => {
 
   // Traceability: TC-021 → Story 3 / AC 3b
   test('TC-021: SuperAdmin changes sub-item status (200)', async () => {
-    const res = await curl('PUT', `${apiUrl}/v1/teams/${teamBizKey}/sub-items/${subItemBizKey}/status`, {
+    // Create a fresh sub-item to avoid state pollution from TC-006
+    const freshSubRes = await curl('POST', `${apiUrl}/v1/teams/${teamBizKey}/main-items/${mainItemBizKey}/sub-items`, {
+      headers: authHeader(superadminToken),
+      body: JSON.stringify({ mainItemKey: mainItemBizKey, title: 'tc021-status-sub', priority: 'P2', assigneeKey: pmUserBizKey, startDate: '2026-01-01', expectedEndDate: '2026-12-31' }),
+    });
+    expect(freshSubRes.status === 200 || freshSubRes.status === 201).toBeTruthy();
+    const freshSubKey = extractBizKey(parseData(freshSubRes.body))!;
+
+    // Transition: pending -> progressing -> blocking
+    await curl('PUT', `${apiUrl}/v1/teams/${teamBizKey}/sub-items/${freshSubKey}/status`, {
+      headers: authHeader(superadminToken),
+      body: JSON.stringify({ status: 'progressing' }),
+    });
+
+    const res = await curl('PUT', `${apiUrl}/v1/teams/${teamBizKey}/sub-items/${freshSubKey}/status`, {
       headers: authHeader(superadminToken),
       body: JSON.stringify({ status: 'blocking' }),
     });
@@ -400,6 +449,34 @@ test.describe('Unify Permission Checks — API Tests (TC-004..TC-039)', () => {
 
   // Traceability: TC-024 → Story 6 / AC-1
   test('TC-024: PM team management operations succeed via permission codes', async () => {
+    // Create a fresh throwaway team for PM management tests to avoid state pollution
+    const tmpTeamRes = await curl('POST', `${apiUrl}/v1/teams`, {
+      headers: authHeader(superadminToken),
+      body: JSON.stringify({ name: `tc024-pm-mgmt-${runId}`, code: randomCode() }),
+    });
+    expect(tmpTeamRes.status === 200 || tmpTeamRes.status === 201).toBeTruthy();
+    const tmpTeamKey = extractBizKey(parseData(tmpTeamRes.body))!;
+
+    // Create a fresh PM user for this team
+    const tmpPmRes = await curl('POST', `${apiUrl}/v1/admin/users`, {
+      headers: authHeader(superadminToken),
+      body: JSON.stringify({ username: `tc024-pm-${runId}`, displayName: 'TC024 PM' }),
+    });
+    expect(tmpPmRes.status === 200 || tmpPmRes.status === 201).toBeTruthy();
+    const tmpPmData = parseData(tmpPmRes.body);
+    const tmpPmKey = extractBizKey(tmpPmData)!;
+    const tmpPmToken = await getApiToken(apiBaseUrl, { username: `tc024-pm-${runId}`, password: tmpPmData.initialPassword });
+
+    // Add PM user to team and transfer PM role
+    await curl('POST', `${apiUrl}/v1/teams/${tmpTeamKey}/members`, {
+      headers: authHeader(superadminToken),
+      body: JSON.stringify({ username: `tc024-pm-${runId}`, roleKey: memberRoleKey }),
+    });
+    await curl('PUT', `${apiUrl}/v1/teams/${tmpTeamKey}/pm`, {
+      headers: authHeader(superadminToken),
+      body: JSON.stringify({ newPmUserKey: tmpPmKey }),
+    });
+
     // Create a fresh user for invite test
     const newUserRes = await curl('POST', `${apiUrl}/v1/admin/users`, {
       headers: authHeader(superadminToken),
@@ -409,25 +486,18 @@ test.describe('Unify Permission Checks — API Tests (TC-004..TC-039)', () => {
     const newUserData = parseData(newUserRes.body);
     const newUserBizKey = extractBizKey(newUserData)!;
 
-    // Step 2: PM invites member
-    const inviteRes = await curl('POST', `${apiUrl}/v1/teams/${teamBizKey}/members`, {
-      headers: authHeader(pmToken),
+    // PM invites member
+    const inviteRes = await curl('POST', `${apiUrl}/v1/teams/${tmpTeamKey}/members`, {
+      headers: authHeader(tmpPmToken),
       body: JSON.stringify({ username: `tc024-newuser-${runId}`, roleKey: memberRoleKey }),
     });
     expect(inviteRes.status === 200 || inviteRes.status === 201).toBeTruthy();
 
-    // Step 3: PM removes member
-    const removeRes = await curl('DELETE', `${apiUrl}/v1/teams/${teamBizKey}/members/${newUserBizKey}`, {
-      headers: authHeader(pmToken),
+    // PM removes member
+    const removeRes = await curl('DELETE', `${apiUrl}/v1/teams/${tmpTeamKey}/members/${newUserBizKey}`, {
+      headers: authHeader(tmpPmToken),
     });
     expect(removeRes.status).toBe(200);
-
-    // Step 4: PM transfers PM role back to self
-    const transferRes = await curl('PUT', `${apiUrl}/v1/teams/${teamBizKey}/pm`, {
-      headers: authHeader(pmToken),
-      body: JSON.stringify({ newPmUserKey: pmUserBizKey }),
-    });
-    expect(transferRes.status === 200 || transferRes.status === 204).toBeTruthy();
   });
 
   // ── Story 7: Progress permission ────────────────────────────────────

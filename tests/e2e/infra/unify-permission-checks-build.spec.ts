@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { runCli } from '../../helpers.js';
+import { runCli } from '../helpers.js';
 
 // ── TC-001 & TC-002: Build and test verification (no browser needed) ──
 
