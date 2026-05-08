@@ -159,7 +159,7 @@ func signSuperAdminToken(t *testing.T, userID uint) string {
 func TestAdminListUsers_Success(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.listUsersFilteredResult.items = []*dto.AdminUserDTO{
-		{BizKey: "1", Username: "alice", DisplayName: "Alice", IsSuperAdmin: true, Status: "enabled", Teams: []dto.TeamSummary{}},
+		{BizKey: "1", Username: "alice", DisplayName: "Alice", Status: "enabled", Teams: []dto.TeamSummary{}},
 		{BizKey: "2", Username: "bob", DisplayName: "Bob", Status: "enabled", Teams: []dto.TeamSummary{}},
 	}
 	svc.listUsersFilteredResult.total = 2
@@ -191,7 +191,7 @@ func TestAdminListUsers_Success(t *testing.T) {
 	assert.Equal(t, "1", user0["bizKey"])
 	assert.Equal(t, "alice", user0["username"])
 	assert.Equal(t, "Alice", user0["displayName"])
-	assert.Equal(t, true, user0["isSuperAdmin"])
+	assert.Nil(t, user0["isSuperAdmin"])
 
 	assert.Equal(t, float64(2), data["total"])
 	assert.Equal(t, float64(1), data["page"])
@@ -404,13 +404,12 @@ func TestAdminCreateUser_InternalError(t *testing.T) {
 func TestAdminGetUser_Success(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.getUserResult.user = &dto.AdminUserDTO{
-		BizKey:       "5",
-		Username:     "bob",
-		DisplayName:  "Bob",
-		Email:        "bob@test.com",
-		Status:       "enabled",
-		IsSuperAdmin: false,
-		Teams:        []dto.TeamSummary{{BizKey: "1", Name: "Team A"}},
+		BizKey:      "5",
+		Username:    "bob",
+		DisplayName: "Bob",
+		Email:       "bob@test.com",
+		Status:      "enabled",
+		Teams:       []dto.TeamSummary{{BizKey: "1", Name: "Team A"}},
 	}
 
 	deps := depsWithAdminSvc(t, svc)

@@ -49,7 +49,6 @@ type AdminUserDTO struct {
 	DisplayName     string        `json:"displayName"`
 	Email           string        `json:"email"`
 	Status          string        `json:"userStatus"`
-	IsSuperAdmin    bool          `json:"isSuperAdmin"`
 	Teams           []TeamSummary `json:"teams"`
 	InitialPassword string        `json:"initialPassword,omitempty"`
 }

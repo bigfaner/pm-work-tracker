@@ -295,12 +295,11 @@ func modelToAdminUserDTO(u *model.User, teams []dto.TeamSummary) *dto.AdminUserD
 	}
 	base := vo.NewUserVO(u)
 	return &dto.AdminUserDTO{
-		BizKey:       base.BizKey,
-		Username:     base.Username,
-		DisplayName:  base.DisplayName,
-		Email:        base.Email,
-		Status:       base.Status,
-		IsSuperAdmin: base.IsSuperAdmin,
-		Teams:        teams,
+		BizKey:      base.BizKey,
+		Username:    base.Username,
+		DisplayName: base.DisplayName,
+		Email:       base.Email,
+		Status:      base.Status,
+		Teams:       teams,
 	}
 }

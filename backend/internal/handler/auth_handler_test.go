@@ -82,7 +82,7 @@ func TestLogin_Success(t *testing.T) {
 	assert.Equal(t, "1", user["bizKey"])
 	assert.Equal(t, "alice", user["username"])
 	assert.Equal(t, "Alice", user["displayName"])
-	assert.Equal(t, true, user["isSuperAdmin"])
+	assert.Nil(t, user["isSuperAdmin"])
 }
 
 func TestLogin_MissingUsername_Returns400(t *testing.T) {
