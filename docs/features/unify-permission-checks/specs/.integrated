@@ -1,0 +1,15 @@
+feature: "unify-permission-checks"
+integrated: "2026-05-09"
+status: "pending-review: CROSS items require user confirmation before integration"
+biz_count: 2
+tech_count: 6
+cross_biz:
+  - BIZ-001: Permission codes as single auth path → docs/conventions/permission-codes.md
+  - BIZ-002: SuperAdmin loads all codes → docs/conventions/permission-codes.md
+cross_tech:
+  - TECH-001: RequirePermission 2-tier → docs/conventions/permission-codes.md
+  - TECH-002: TeamScopeMiddleware code injection → docs/conventions/permission-codes.md
+  - TECH-004: Service methods no auth checks → docs/conventions/authorization.md
+  - TECH-006: seedPresetRoles pattern → docs/conventions/permission-codes.md
+  - TECH-007: IsSuperAdmin visibility rules → docs/conventions/security.md
+  - TECH-009: No handler-level special paths → docs/conventions/security.md
