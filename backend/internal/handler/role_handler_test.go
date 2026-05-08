@@ -89,7 +89,7 @@ func rbacTestEnv(t *testing.T) (*gin.Engine, *gorm.DB) {
 	userRepo := gormrepo.NewGormUserRepo(db)
 	roleRepo := gormrepo.NewGormRoleRepo(db)
 	teamRepo := gormrepo.NewGormTeamRepo(db)
-	roleSvc := service.NewRoleService(roleRepo, userRepo)
+	roleSvc := service.NewRoleService(roleRepo, userRepo, teamRepo)
 
 	cfg := &config.Config{
 		Auth: config.AuthConfig{
@@ -486,7 +486,8 @@ func TestGetUserPermissions_Success_SuperAdmin(t *testing.T) {
 	var resp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	data := resp["data"].(map[string]interface{})
-	assert.Equal(t, true, data["isSuperAdmin"])
+	teamPerms := data["teamPermissions"].(map[string]interface{})
+	assert.NotEmpty(t, teamPerms)
 }
 
 func TestGetUserPermissions_Success_RegularUser(t *testing.T) {
@@ -503,7 +504,6 @@ func TestGetUserPermissions_Success_RegularUser(t *testing.T) {
 	var resp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	data := resp["data"].(map[string]interface{})
-	assert.Equal(t, false, data["isSuperAdmin"])
 	perms := data["teamPermissions"].(map[string]interface{})
 	assert.Empty(t, perms)
 }

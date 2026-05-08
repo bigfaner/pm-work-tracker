@@ -32,6 +32,9 @@ type TeamRepo interface {
 	ListAllTeams(ctx context.Context) ([]*dto.AdminTeamDTO, error)
 	FindTeamsByUserIDs(ctx context.Context, userIDs []uint) (map[uint][]dto.TeamSummary, error)
 	FindTeamsByUserBizKeys(ctx context.Context, userBizKeys []int64) (map[int64][]dto.TeamSummary, error)
+
+	// ListTeamBizKeys returns all non-deleted team biz_keys.
+	ListTeamBizKeys(ctx context.Context) ([]int64, error)
 }
 
 // TeamMemberRepo defines persistence operations for TeamMember entities.

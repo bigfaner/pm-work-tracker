@@ -52,7 +52,6 @@ type PermissionItem struct {
 
 // UserPermissions is the response shape for a user's permission map.
 type UserPermissions struct {
-	IsSuperAdmin    bool               `json:"isSuperAdmin"`
 	TeamPermissions map[int64][]string `json:"teamPermissions"`
 }
 
@@ -70,11 +69,12 @@ type RoleService interface {
 type roleService struct {
 	roleRepo repository.RoleRepo
 	userRepo repository.UserRepo
+	teamRepo repository.TeamRepo
 }
 
 // NewRoleService creates a new RoleService.
-func NewRoleService(roleRepo repository.RoleRepo, userRepo repository.UserRepo) RoleService {
-	return &roleService{roleRepo: roleRepo, userRepo: userRepo}
+func NewRoleService(roleRepo repository.RoleRepo, userRepo repository.UserRepo, teamRepo repository.TeamRepo) RoleService {
+	return &roleService{roleRepo: roleRepo, userRepo: userRepo, teamRepo: teamRepo}
 }
 
 func (s *roleService) ListRoles(ctx context.Context, search string) ([]RoleListItem, error) {
@@ -296,6 +296,21 @@ func (s *roleService) GetUserPermissions(ctx context.Context, userID uint) (*Use
 		return nil, err
 	}
 
+	// SuperAdmin: return all 29 codes for all teams
+	if user.IsSuperAdmin {
+		teamKeys, err := s.teamRepo.ListTeamBizKeys(ctx)
+		if err != nil {
+			return nil, err
+		}
+		allCodes := permissions.AllCodeStrings()
+		teamPerms := make(map[int64][]string, len(teamKeys))
+		for _, key := range teamKeys {
+			teamPerms[key] = allCodes
+		}
+		return &UserPermissions{TeamPermissions: teamPerms}, nil
+	}
+
+	// Normal user: query from role assignments
 	teamPerms, err := s.roleRepo.GetUserTeamPermissions(ctx, user.BizKey)
 	if err != nil {
 		return nil, err
@@ -305,10 +320,7 @@ func (s *roleService) GetUserPermissions(ctx context.Context, userID uint) (*Use
 		teamPerms = map[int64][]string{}
 	}
 
-	return &UserPermissions{
-		IsSuperAdmin:    user.IsSuperAdmin,
-		TeamPermissions: teamPerms,
-	}, nil
+	return &UserPermissions{TeamPermissions: teamPerms}, nil
 }
 
 // --- internal helpers ---

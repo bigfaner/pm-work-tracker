@@ -148,7 +148,6 @@ func TestPermissionHandler_GetUserPermissions_Success(t *testing.T) {
 	mockSvc := &mockRoleServiceForPermission{
 		getUserPermissionsFn: func(_ context.Context, userID uint) (*service.UserPermissions, error) {
 			return &service.UserPermissions{
-				IsSuperAdmin:    false,
 				TeamPermissions: map[int64][]string{10: {"main_item:create", "main_item:read"}},
 			}, nil
 		},
@@ -174,7 +173,6 @@ func TestPermissionHandler_GetUserPermissions_Success(t *testing.T) {
 
 	data, ok := resp["data"].(map[string]interface{})
 	require.True(t, ok)
-	assert.Equal(t, false, data["isSuperAdmin"])
 
 	teamPerms, ok := data["teamPermissions"].(map[string]interface{})
 	require.True(t, ok)
@@ -185,8 +183,7 @@ func TestPermissionHandler_GetUserPermissions_SuperAdmin(t *testing.T) {
 	mockSvc := &mockRoleServiceForPermission{
 		getUserPermissionsFn: func(_ context.Context, userID uint) (*service.UserPermissions, error) {
 			return &service.UserPermissions{
-				IsSuperAdmin:    true,
-				TeamPermissions: map[int64][]string{},
+				TeamPermissions: map[int64][]string{100: {"team:read", "team:create"}},
 			}, nil
 		},
 	}
@@ -207,7 +204,8 @@ func TestPermissionHandler_GetUserPermissions_SuperAdmin(t *testing.T) {
 	require.NoError(t, err)
 
 	data := resp["data"].(map[string]interface{})
-	assert.Equal(t, true, data["isSuperAdmin"])
+	teamPerms := data["teamPermissions"].(map[string]interface{})
+	assert.NotEmpty(t, teamPerms)
 }
 
 func TestPermissionHandler_GetUserPermissions_ServiceError(t *testing.T) {

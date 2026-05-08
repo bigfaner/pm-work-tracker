@@ -556,6 +556,10 @@ func (m *mockTeamRepo) FindTeamsByUserBizKeys(_ context.Context, _ []int64) (map
 	return map[int64][]dto.TeamSummary{}, nil
 }
 
+func (m *mockTeamRepo) ListTeamBizKeys(_ context.Context) ([]int64, error) {
+	return nil, nil
+}
+
 // stubAuthService is a minimal stub for service.AuthService used by testDeps.
 // It returns ErrUnauthorized on Login (no real auth logic needed for router tests).
 type stubAuthService struct{}

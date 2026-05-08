@@ -129,6 +129,14 @@ func (m *mockTeamRepo) FindTeamsByUserBizKeys(ctx context.Context, userBizKeys [
 	return args.Get(0).(map[int64][]dto.TeamSummary), args.Error(1)
 }
 
+func (m *mockTeamRepo) ListTeamBizKeys(ctx context.Context) ([]int64, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]int64), args.Error(1)
+}
+
 // compile-time check that mockTeamRepo satisfies TeamRepo
 var _ repository.TeamRepo = (*mockTeamRepo)(nil)
 

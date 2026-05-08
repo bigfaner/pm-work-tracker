@@ -428,7 +428,6 @@ func TestUserPermissions_ReturnsCorrectPermissions(t *testing.T) {
 	var resp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	permData := resp["data"].(map[string]interface{})
-	assert.Equal(t, false, permData["isSuperAdmin"])
 	teamPerms := permData["teamPermissions"].(map[string]interface{})
 	assert.NotEmpty(t, teamPerms)
 }
@@ -444,7 +443,8 @@ func TestUserPermissions_SuperAdmin(t *testing.T) {
 	var resp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	permData := resp["data"].(map[string]interface{})
-	assert.Equal(t, true, permData["isSuperAdmin"])
+	teamPerms := permData["teamPermissions"].(map[string]interface{})
+	assert.NotEmpty(t, teamPerms)
 }
 
 // ========== Permission Codes Registry Tests ==========

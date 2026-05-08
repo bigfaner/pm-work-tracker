@@ -340,3 +340,12 @@ func (r *teamRepo) FindTeamsByUserBizKeys(ctx context.Context, userBizKeys []int
 	}
 	return result, nil
 }
+
+func (r *teamRepo) ListTeamBizKeys(ctx context.Context) ([]int64, error) {
+	var keys []int64
+	err := r.db.WithContext(ctx).
+		Model(&model.Team{}).
+		Scopes(NotDeleted).
+		Pluck("biz_key", &keys).Error
+	return keys, err
+}

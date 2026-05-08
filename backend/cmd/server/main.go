@@ -109,7 +109,7 @@ func run(configPath string, devMode bool) error {
 	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)
 	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
 	adminSvc := service.NewAdminService(userRepo, teamRepo)
-	roleSvc := service.NewRoleService(roleRepo, userRepo)
+	roleSvc := service.NewRoleService(roleRepo, userRepo, teamRepo)
 
 	// 6. Init handlers
 	deps := &handler.Dependencies{

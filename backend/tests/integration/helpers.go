@@ -111,7 +111,7 @@ func wireHandlers(t *testing.T, db *gorm.DB, data *seedData, includeRBAC bool) *
 	}
 
 	if includeRBAC {
-		roleSvc := service.NewRoleService(roleRepo, userRepo)
+		roleSvc := service.NewRoleService(roleRepo, userRepo, teamRepo)
 		deps.Role = handler.NewRoleHandler(roleSvc)
 		deps.Permission = handler.NewPermissionHandler(roleSvc)
 	}

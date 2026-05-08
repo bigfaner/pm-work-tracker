@@ -181,6 +181,10 @@ func (m *mockAdminTeamRepo) FindPMMembers(_ context.Context, _ []int64) (map[int
 	return map[int64]string{}, nil
 }
 
+func (m *mockAdminTeamRepo) ListTeamBizKeys(_ context.Context) ([]int64, error) {
+	return nil, nil
+}
+
 // ---------------------------------------------------------------------------
 // Tests: ListUsers
 // ---------------------------------------------------------------------------

@@ -155,6 +155,10 @@ func (m *mockTeamRepo) FindTeamsByUserBizKeys(_ context.Context, _ []int64) (map
 	return map[int64][]dto.TeamSummary{}, nil
 }
 
+func (m *mockTeamRepo) ListTeamBizKeys(_ context.Context) ([]int64, error) {
+	return nil, nil
+}
+
 func (m *mockTeamRepo) FindPMMembers(_ context.Context, _ []int64) (map[int64]string, error) {
 	result := make(map[int64]string)
 	for _, mem := range m.members {
