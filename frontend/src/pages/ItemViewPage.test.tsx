@@ -335,7 +335,6 @@ describe("ItemViewPage", () => {
       ],
     });
     useAuthStore.getState().setPermissions({
-      isSuperAdmin: false,
       teamPermissions: { 1: ["main_item:create", "progress:update"] },
     });
     setupHandlers();

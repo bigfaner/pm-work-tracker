@@ -32,11 +32,9 @@ function mockAuthStore(userBizKey: string) {
         bizKey: userBizKey,
         username: "testuser",
         displayName: "Test User",
-        isSuperAdmin: false,
         createTime: "2026-01-01T00:00:00Z",
       },
       isAuthenticated: true,
-      isSuperAdmin: false,
       permissions: null,
       permissionsLoadedAt: null,
       _hasHydrated: true,
@@ -384,7 +382,9 @@ describe("DecisionTimeline", () => {
         expect(mockListDecisionLogsApi).toHaveBeenCalledTimes(2);
       });
       await waitFor(() => {
-        expect(screen.getByText("New decision after refresh")).toBeInTheDocument();
+        expect(
+          screen.getByText("New decision after refresh"),
+        ).toBeInTheDocument();
       });
     });
   });

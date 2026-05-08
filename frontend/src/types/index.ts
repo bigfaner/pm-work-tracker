@@ -1,7 +1,6 @@
 // Permission types
 
 export interface PermissionData {
-  isSuperAdmin: boolean;
   teamPermissions: Record<string, string[]>;
 }
 
@@ -67,7 +66,6 @@ export interface User {
   username: string;
   displayName: string;
   email?: string;
-  isSuperAdmin: boolean;
   userStatus?: "enabled" | "disabled";
   teams?: TeamSummary[];
   createTime: string;
@@ -430,7 +428,6 @@ export interface AdminUser {
   username: string;
   displayName: string;
   email?: string;
-  isSuperAdmin: boolean;
   userStatus?: "enabled" | "disabled";
   teams?: TeamSummary[];
 }
@@ -491,7 +488,6 @@ export interface GetUserResp {
   username: string;
   displayName: string;
   email: string;
-  isSuperAdmin: boolean;
   userStatus: string;
   teams: TeamSummary[];
 }

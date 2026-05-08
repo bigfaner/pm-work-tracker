@@ -241,12 +241,9 @@ function setupHandlers() {
     }),
 
     // Change member role
-    http.put(
-      "/v1/teams/:teamId/members/:memberId/role",
-      async () => {
-        return HttpResponse.json({ code: 0, data: null });
-      },
-    ),
+    http.put("/v1/teams/:teamId/members/:memberId/role", async () => {
+      return HttpResponse.json({ code: 0, data: null });
+    }),
   );
 }
 
@@ -256,10 +253,8 @@ describe("TeamDetailPage", () => {
     // Set user and permissions atomically to avoid race conditions
     useAuthStore.setState({
       isAuthenticated: true,
-      isSuperAdmin: false,
       token: "test-token",
       permissions: {
-        isSuperAdmin: false,
         teamPermissions: {
           1: ["team:invite", "team:remove", "team:transfer", "team:delete"],
         },
@@ -273,7 +268,6 @@ describe("TeamDetailPage", () => {
     useAuthStore.setState({
       user: null,
       isAuthenticated: false,
-      isSuperAdmin: false,
       token: null,
       permissions: null,
       permissionsLoadedAt: null,
@@ -576,7 +570,7 @@ describe("TeamDetailPage", () => {
     let capturedBody: Record<string, unknown> | null = null;
     server.use(
       http.post("/v1/teams/:teamId/members", async ({ request }) => {
-        capturedBody = await request.json() as Record<string, unknown>;
+        capturedBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ code: 0, data: null });
       }),
     );
@@ -683,7 +677,7 @@ describe("TeamDetailPage", () => {
         "/v1/teams/:teamId/members/:memberId/role",
         async ({ params, request }) => {
           capturedMemberId = params.memberId as string;
-          capturedBody = await request.json() as Record<string, unknown>;
+          capturedBody = (await request.json()) as Record<string, unknown>;
           return HttpResponse.json({ code: 0, data: null });
         },
       ),

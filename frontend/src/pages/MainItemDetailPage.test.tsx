@@ -262,15 +262,17 @@ function setupHandlers() {
     }),
 
     // Decision logs: list
-    http.get(
-      "/v1/teams/:teamId/main-items/:mainBizKey/decision-logs",
-      () => {
-        return HttpResponse.json({
-          code: 0,
-          data: { items: seedDecisionLogs, total: seedDecisionLogs.length, page: 1, size: 20 },
-        });
-      },
-    ),
+    http.get("/v1/teams/:teamId/main-items/:mainBizKey/decision-logs", () => {
+      return HttpResponse.json({
+        code: 0,
+        data: {
+          items: seedDecisionLogs,
+          total: seedDecisionLogs.length,
+          page: 1,
+          size: 20,
+        },
+      });
+    }),
 
     // Decision logs: create
     http.post(
@@ -341,11 +343,9 @@ describe("MainItemDetailPage", () => {
       bizKey: "1",
       username: "testuser",
       displayName: "Test User",
-      isSuperAdmin: false,
       createTime: "",
     });
     useAuthStore.getState().setPermissions({
-      isSuperAdmin: false,
       teamPermissions: { 1: ["main_item:update"] },
     });
     setupHandlers();
@@ -664,7 +664,7 @@ describe("MainItemDetailPage", () => {
     });
     // Scope to sub-item table to avoid matching DecisionTimeline's edit button
     const subTable = screen.getByText("子事项列表").closest("div")!;
-    const editBtns = subTable.querySelectorAll('button');
+    const editBtns = subTable.querySelectorAll("button");
     const subEditBtns = Array.from(editBtns).filter(
       (btn) => btn.textContent?.trim() === "编辑",
     );
@@ -770,10 +770,12 @@ describe("MainItemDetailPage", () => {
     const subEl = screen.getByText("子事项列表");
     // Node.DOCUMENT_POSITION_FOLLOWING = 4
     expect(
-      decisionEl.compareDocumentPosition(progressEl) & Node.DOCUMENT_POSITION_FOLLOWING,
+      decisionEl.compareDocumentPosition(progressEl) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      progressEl.compareDocumentPosition(subEl) & Node.DOCUMENT_POSITION_FOLLOWING,
+      progressEl.compareDocumentPosition(subEl) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 

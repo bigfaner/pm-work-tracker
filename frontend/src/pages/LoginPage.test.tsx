@@ -23,7 +23,6 @@ const mockUser: User = {
   bizKey: "1",
   username: "testuser",
   displayName: "Test User",
-  isSuperAdmin: false,
   createTime: "",
 };
 

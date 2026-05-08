@@ -27,7 +27,11 @@ describe("API Client", () => {
 
   describe("request interceptor", () => {
     it("should not attach Authorization header when no token", () => {
-      const handlers = (client.interceptors.request as unknown as { handlers: Array<{ fulfilled: (config: unknown) => unknown }> }).handlers;
+      const handlers = (
+        client.interceptors.request as unknown as {
+          handlers: Array<{ fulfilled: (config: unknown) => unknown }>;
+        }
+      ).handlers;
       const fulfilled = handlers[handlers.length - 1].fulfilled;
       const config = { headers: {} as Record<string, string> };
       const result = fulfilled(config) as { headers: Record<string, string> };
@@ -39,12 +43,15 @@ describe("API Client", () => {
         bizKey: "1",
         username: "testuser",
         displayName: "Test User",
-        isSuperAdmin: false,
         createTime: "2026-01-01T00:00:00Z",
       });
 
       // Access the request interceptor directly through client
-      const handlers = (client.interceptors.request as unknown as { handlers: Array<{ fulfilled: (config: unknown) => unknown }> }).handlers;
+      const handlers = (
+        client.interceptors.request as unknown as {
+          handlers: Array<{ fulfilled: (config: unknown) => unknown }>;
+        }
+      ).handlers;
       const fulfilled = handlers[handlers.length - 1].fulfilled;
       const config = { headers: {} as Record<string, string> };
       const result = fulfilled(config) as { headers: Record<string, string> };
@@ -52,7 +59,11 @@ describe("API Client", () => {
     });
 
     it("should not attach Authorization header when token is null", () => {
-      const handlers = (client.interceptors.request as unknown as { handlers: Array<{ fulfilled: (config: unknown) => unknown }> }).handlers;
+      const handlers = (
+        client.interceptors.request as unknown as {
+          handlers: Array<{ fulfilled: (config: unknown) => unknown }>;
+        }
+      ).handlers;
       const fulfilled = handlers[handlers.length - 1].fulfilled;
       const config = { headers: {} as Record<string, string> };
       const result = fulfilled(config) as { headers: Record<string, string> };
@@ -62,7 +73,11 @@ describe("API Client", () => {
 
   describe("response interceptor - success", () => {
     it("should unwrap response.data.data for success responses", () => {
-      const handlers = (client.interceptors.response as unknown as { handlers: Array<{ fulfilled: (config: unknown) => unknown }> }).handlers;
+      const handlers = (
+        client.interceptors.response as unknown as {
+          handlers: Array<{ fulfilled: (config: unknown) => unknown }>;
+        }
+      ).handlers;
       const fulfilled = handlers[handlers.length - 1].fulfilled;
 
       const response = {
@@ -73,7 +88,11 @@ describe("API Client", () => {
     });
 
     it("should pass through response.data if code is not 0", () => {
-      const handlers = (client.interceptors.response as unknown as { handlers: Array<{ fulfilled: (config: unknown) => unknown }> }).handlers;
+      const handlers = (
+        client.interceptors.response as unknown as {
+          handlers: Array<{ fulfilled: (config: unknown) => unknown }>;
+        }
+      ).handlers;
       const fulfilled = handlers[handlers.length - 1].fulfilled;
 
       const response = {
@@ -86,7 +105,11 @@ describe("API Client", () => {
 
   describe("response interceptor - errors", () => {
     function getRejectHandler() {
-      const handlers = (client.interceptors.response as unknown as { handlers: Array<{ rejected: (error: unknown) => unknown }> }).handlers;
+      const handlers = (
+        client.interceptors.response as unknown as {
+          handlers: Array<{ rejected: (error: unknown) => unknown }>;
+        }
+      ).handlers;
       return handlers[handlers.length - 1].rejected;
     }
 
@@ -95,7 +118,6 @@ describe("API Client", () => {
         bizKey: "1",
         username: "u",
         displayName: "U",
-        isSuperAdmin: false,
         createTime: "",
       });
 

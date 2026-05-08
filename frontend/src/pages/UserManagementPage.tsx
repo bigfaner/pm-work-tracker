@@ -183,7 +183,8 @@ export default function UserManagementPage() {
       setPasswordOpen(true);
     },
     onError: (err: unknown) => {
-      const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      const code = (err as { response?: { data?: { code?: string } } })
+        ?.response?.data?.code;
       if (code === "USER_EXISTS") {
         setCreateError("该账号名已存在");
       } else if (code === "VALIDATION_ERROR") {
@@ -219,7 +220,8 @@ export default function UserManagementPage() {
       setStatusError("");
     },
     onError: (err: unknown) => {
-      const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      const code = (err as { response?: { data?: { code?: string } } })
+        ?.response?.data?.code;
       if (code === "CANNOT_DISABLE_SELF") {
         setStatusError("不能禁用自己");
       } else {
@@ -246,7 +248,8 @@ export default function UserManagementPage() {
       addToast("密码已重置", "success");
     },
     onError: (err: unknown) => {
-      const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      const code = (err as { response?: { data?: { code?: string } } })
+        ?.response?.data?.code;
       if (code === "VALIDATION_ERROR") {
         setResetError("密码格式不正确");
       } else if (code === "USER_NOT_FOUND") {
@@ -267,7 +270,9 @@ export default function UserManagementPage() {
       addToast("用户已删除", "success");
     },
     onError: (err: unknown) => {
-      const resp = (err as { response?: { status?: number; data?: { code?: string } } }).response;
+      const resp = (
+        err as { response?: { status?: number; data?: { code?: string } } }
+      ).response;
       const status = resp?.status;
       const code = resp?.data?.code;
       if (status === 404 || code === "USER_NOT_FOUND") {
@@ -284,7 +289,7 @@ export default function UserManagementPage() {
 
   // --- Handlers ---
 
-  const isSuperAdmin = useAuthStore((s) => s.isSuperAdmin);
+  const canManageUser = useAuthStore((s) => s.hasPermission("user:update"));
 
   const handleCreate = useCallback(() => {
     setCreateError("");
@@ -543,7 +548,7 @@ export default function UserManagementPage() {
                         )}
                         修改状态
                       </Button>
-                      {isSuperAdmin && (
+                      {canManageUser && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -554,7 +559,7 @@ export default function UserManagementPage() {
                           重置密码
                         </Button>
                       )}
-                      {isSuperAdmin &&
+                      {canManageUser &&
                         (user.bizKey === currentUserBizKey ? (
                           <TooltipProvider>
                             <Tooltip>

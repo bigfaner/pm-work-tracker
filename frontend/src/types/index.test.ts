@@ -19,11 +19,9 @@ describe("shared TypeScript interfaces", () => {
       bizKey: "1",
       username: "testuser",
       displayName: "Test User",
-      isSuperAdmin: false,
       createTime: "",
     };
     expect(user.username).toBe("testuser");
-    expect(user.isSuperAdmin).toBe(false);
   });
 
   it("should define a valid Team", () => {
@@ -121,10 +119,8 @@ describe("shared TypeScript interfaces", () => {
 
   it("should define a valid PermissionData", () => {
     const permData: PermissionData = {
-      isSuperAdmin: false,
       teamPermissions: { 1: ["team:read", "team:write"] },
     };
-    expect(permData.isSuperAdmin).toBe(false);
     expect(permData.teamPermissions[1]).toContain("team:read");
   });
 

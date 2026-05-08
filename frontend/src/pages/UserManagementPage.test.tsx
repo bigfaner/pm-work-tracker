@@ -63,7 +63,6 @@ const seedUsers = [
     username: "zhangming",
     displayName: "张明",
     email: "zhangming@example.com",
-    isSuperAdmin: true,
     userStatus: "enabled",
     teams: [{ bizKey: "1", name: "产品研发团队", role: "pm" }],
   },
@@ -72,7 +71,6 @@ const seedUsers = [
     username: "lihua",
     displayName: "李华",
     email: "lihua@example.com",
-    isSuperAdmin: false,
     userStatus: "enabled",
     teams: [{ bizKey: "1", name: "产品研发团队", role: "member" }],
   },
@@ -81,7 +79,6 @@ const seedUsers = [
     username: "wangfang",
     displayName: "王芳",
     email: "wangfang@example.com",
-    isSuperAdmin: false,
     userStatus: "enabled",
     teams: [{ bizKey: "1", name: "产品研发团队", role: "member" }],
   },
@@ -90,7 +87,6 @@ const seedUsers = [
     username: "zhaoqiang",
     displayName: "赵强",
     email: "zhaoqiang@example.com",
-    isSuperAdmin: false,
     userStatus: "disabled",
     teams: [{ bizKey: "2", name: "设计团队", role: "member" }],
   },
@@ -523,18 +519,19 @@ describe("UserManagementPage", () => {
 
   describe("reset password dialog", () => {
     beforeEach(() => {
-      // Set current user as super admin
+      // Set current user with user:update permission
       useAuthStore.setState({
         token: "test-token",
         user: {
           bizKey: "1",
           username: "zhangming",
           displayName: "张明",
-          isSuperAdmin: true,
           createTime: "",
         },
         isAuthenticated: true,
-        isSuperAdmin: true,
+        permissions: {
+          teamPermissions: { "1": ["user:update"] },
+        },
         _hasHydrated: true,
       });
     });
@@ -552,8 +549,10 @@ describe("UserManagementPage", () => {
       expect(resetButtons.length).toBe(4); // one per user row
     });
 
-    it("does not show reset password button for non-super-admin", async () => {
-      useAuthStore.setState({ isSuperAdmin: false });
+    it("does not show reset password button for user without user:update permission", async () => {
+      useAuthStore.setState({
+        permissions: { teamPermissions: {} },
+      });
       renderPage();
       await waitFor(() => {
         expect(screen.getByText("张明")).toBeInTheDocument();
@@ -783,11 +782,12 @@ describe("UserManagementPage", () => {
           bizKey: "1",
           username: "zhangming",
           displayName: "张明",
-          isSuperAdmin: true,
           createTime: "",
         },
         isAuthenticated: true,
-        isSuperAdmin: true,
+        permissions: {
+          teamPermissions: { "1": ["user:update"] },
+        },
         _hasHydrated: true,
       });
     });
@@ -805,8 +805,10 @@ describe("UserManagementPage", () => {
       expect(deleteButtons.length).toBe(4);
     });
 
-    it("does not show delete button for non-super-admin", async () => {
-      useAuthStore.setState({ isSuperAdmin: false });
+    it("does not show delete button for user without user:update permission", async () => {
+      useAuthStore.setState({
+        permissions: { teamPermissions: {} },
+      });
       renderPage();
       await waitFor(() => {
         expect(screen.getByText("张明")).toBeInTheDocument();
@@ -964,11 +966,12 @@ describe("UserManagementPage", () => {
           bizKey: "1",
           username: "zhangming",
           displayName: "张明",
-          isSuperAdmin: true,
           createTime: "",
         },
         isAuthenticated: true,
-        isSuperAdmin: true,
+        permissions: {
+          teamPermissions: { "1": ["user:update"] },
+        },
         _hasHydrated: true,
       });
       vi.mocked(copyToClipboard).mockResolvedValue(undefined);

@@ -293,7 +293,6 @@ describe("ItemPoolPage", () => {
       ],
     });
     useAuthStore.getState().setPermissions({
-      isSuperAdmin: false,
       teamPermissions: { 1: ["item_pool:review"] },
     });
     setupHandlers();
@@ -453,7 +452,6 @@ describe("ItemPoolPage", () => {
 
   it("shows edit button when user has item_pool:submit permission", async () => {
     useAuthStore.getState().setPermissions({
-      isSuperAdmin: false,
       teamPermissions: { 1: ["item_pool:submit"] },
     });
     renderPage();
@@ -465,7 +463,6 @@ describe("ItemPoolPage", () => {
 
   it("shows edit button to the left of 转为主事项 when user has both permissions", async () => {
     useAuthStore.getState().setPermissions({
-      isSuperAdmin: false,
       teamPermissions: { 1: ["item_pool:submit", "item_pool:review"] },
     });
     renderPage();
@@ -485,7 +482,6 @@ describe("ItemPoolPage", () => {
 
   it("edit and review buttons are in the same action row", async () => {
     useAuthStore.getState().setPermissions({
-      isSuperAdmin: false,
       teamPermissions: { 1: ["item_pool:submit", "item_pool:review"] },
     });
     renderPage();

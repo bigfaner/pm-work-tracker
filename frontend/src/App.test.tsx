@@ -65,7 +65,6 @@ const mockUser: User = {
   bizKey: "1",
   username: "testuser",
   displayName: "Test User",
-  isSuperAdmin: false,
   createTime: "",
 };
 
@@ -73,7 +72,6 @@ const superAdminUser: User = {
   ...mockUser,
   bizKey: "2",
   username: "admin",
-  isSuperAdmin: true,
 };
 
 function renderApp(initialPath = "/") {
@@ -212,8 +210,7 @@ describe("App Routing", () => {
     it("renders UserManagementPage at /users for super admin", () => {
       useAuthStore.getState().setAuth("token", superAdminUser);
       useAuthStore.getState().setPermissions({
-        isSuperAdmin: true,
-        teamPermissions: {},
+        teamPermissions: { "1": ["user:read"] },
       });
       renderApp("/users");
       expect(screen.getByTestId("user-management-page")).toBeInTheDocument();

@@ -11,7 +11,6 @@ const mockUser: User = {
   bizKey: "U001",
   username: "testuser",
   displayName: "张明",
-  isSuperAdmin: false,
   createTime: "2024-01-01",
 };
 
@@ -20,7 +19,6 @@ const superAdminUser: User = {
   bizKey: "U002",
   username: "admin",
   displayName: "Admin",
-  isSuperAdmin: true,
 };
 
 const mockTeams: Team[] = [
@@ -69,7 +67,6 @@ describe("Sidebar", () => {
   it("renders navigation items with correct labels", () => {
     // Set permissions so 甘特图 is visible
     useAuthStore.getState().setPermissions({
-      isSuperAdmin: false,
       teamPermissions: { 1: ["view:gantt"] },
     });
     renderWithRouter();
@@ -101,12 +98,11 @@ describe("Sidebar", () => {
     expect(itemsLink?.className).toContain("text-primary-700");
   });
 
-  it("shows user management nav item only for SuperAdmin", () => {
+  it("shows user management nav item for user with user:read permission", () => {
     useAuthStore.getState().clearAuth();
     useAuthStore.getState().setAuth("token", superAdminUser);
     useAuthStore.getState().setPermissions({
-      isSuperAdmin: true,
-      teamPermissions: {},
+      teamPermissions: { 1: ["user:read", "user:manage_role"] },
     });
     renderWithRouter();
     expect(screen.getByText("用户管理")).toBeInTheDocument();
@@ -141,12 +137,11 @@ describe("Sidebar", () => {
     expect(navLinks.length).toBe(5);
   });
 
-  it("renders 8 nav items (including user mgmt and roles) for SuperAdmin", () => {
+  it("renders 8 nav items (including user mgmt and roles) for user with all permissions", () => {
     useAuthStore.getState().clearAuth();
     useAuthStore.getState().setAuth("token", superAdminUser);
     useAuthStore.getState().setPermissions({
-      isSuperAdmin: true,
-      teamPermissions: {},
+      teamPermissions: { 1: ["user:read", "user:manage_role", "view:gantt"] },
     });
     renderWithRouter();
     const navLinks = screen.getAllByRole("link");

@@ -140,7 +140,6 @@ describe("TeamManagementPage", () => {
   beforeEach(() => {
     setupHandlers();
     useAuthStore.getState().setPermissions({
-      isSuperAdmin: false,
       teamPermissions: { 1: ["team:create"] },
     });
   });

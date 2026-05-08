@@ -238,7 +238,6 @@ describe("SubItemDetailPage", () => {
       ],
     });
     useAuthStore.getState().setPermissions({
-      isSuperAdmin: false,
       teamPermissions: { 1: ["progress:update"] },
     });
     setupHandlers();

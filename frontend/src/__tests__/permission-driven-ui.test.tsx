@@ -33,7 +33,6 @@ describe("Permission-driven UI", () => {
       bizKey: "1",
       username: "testuser",
       displayName: "Test User",
-      isSuperAdmin: false,
       createTime: "",
     });
     useTeamStore.getState().setTeams([]);
@@ -42,9 +41,7 @@ describe("Permission-driven UI", () => {
 
   describe("Sidebar - view:gantt permission", () => {
     it("hides gantt nav item when user lacks view:gantt permission", async () => {
-      useAuthStore
-        .getState()
-        .setPermissions({ isSuperAdmin: false, teamPermissions: {} });
+      useAuthStore.getState().setPermissions({ teamPermissions: {} });
       const { default: Sidebar } = await import("@/components/layout/Sidebar");
       render(
         <MemoryRouter>
@@ -58,7 +55,6 @@ describe("Permission-driven UI", () => {
 
     it("shows gantt nav item when user has view:gantt permission", async () => {
       useAuthStore.getState().setPermissions({
-        isSuperAdmin: false,
         teamPermissions: { 1: ["view:gantt"] },
       });
       const { default: Sidebar } = await import("@/components/layout/Sidebar");
@@ -76,7 +72,6 @@ describe("Permission-driven UI", () => {
   describe("Sidebar - admin items use permission codes", () => {
     it("shows user management when user has user:read permission", async () => {
       useAuthStore.getState().setPermissions({
-        isSuperAdmin: false,
         teamPermissions: { 1: ["user:read"] },
       });
       const { default: Sidebar } = await import("@/components/layout/Sidebar");
@@ -92,7 +87,6 @@ describe("Permission-driven UI", () => {
 
     it("shows role management when user has user:manage_role permission", async () => {
       useAuthStore.getState().setPermissions({
-        isSuperAdmin: false,
         teamPermissions: { 1: ["user:manage_role"] },
       });
       const { default: Sidebar } = await import("@/components/layout/Sidebar");
@@ -109,9 +103,7 @@ describe("Permission-driven UI", () => {
 
   describe("TeamManagementPage - team:create permission", () => {
     it("hides create team button without team:create permission", async () => {
-      useAuthStore
-        .getState()
-        .setPermissions({ isSuperAdmin: false, teamPermissions: {} });
+      useAuthStore.getState().setPermissions({ teamPermissions: {} });
       server.use(
         http.get("/v1/teams", () => HttpResponse.json({ code: 0, data: [] })),
       );
@@ -131,7 +123,6 @@ describe("Permission-driven UI", () => {
 
     it("shows create team button with team:create permission", async () => {
       useAuthStore.getState().setPermissions({
-        isSuperAdmin: false,
         teamPermissions: { 1: ["team:create"] },
       });
       server.use(
@@ -225,9 +216,7 @@ describe("Permission-driven UI", () => {
     }
 
     it("hides invite button without team:invite permission", async () => {
-      useAuthStore
-        .getState()
-        .setPermissions({ isSuperAdmin: false, teamPermissions: { 1: [] } });
+      useAuthStore.getState().setPermissions({ teamPermissions: { 1: [] } });
       await renderTeamDetail();
       await waitFor(() =>
         expect(screen.getByText("成员列表")).toBeInTheDocument(),
@@ -236,9 +225,7 @@ describe("Permission-driven UI", () => {
     });
 
     it("hides dissolve button without team:delete permission", async () => {
-      useAuthStore
-        .getState()
-        .setPermissions({ isSuperAdmin: false, teamPermissions: { 1: [] } });
+      useAuthStore.getState().setPermissions({ teamPermissions: { 1: [] } });
       await renderTeamDetail();
       await waitFor(() =>
         expect(screen.getByText("成员列表")).toBeInTheDocument(),
@@ -250,7 +237,6 @@ describe("Permission-driven UI", () => {
 
     it("shows invite button with team:invite permission", async () => {
       useAuthStore.getState().setPermissions({
-        isSuperAdmin: false,
         teamPermissions: { 1: ["team:invite"] },
       });
       await renderTeamDetail();

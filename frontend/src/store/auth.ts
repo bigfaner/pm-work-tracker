@@ -7,7 +7,6 @@ interface AuthState {
   token: string | null;
   user: User | null;
   isAuthenticated: boolean;
-  isSuperAdmin: boolean;
   permissions: PermissionData | null;
   permissionsLoadedAt: number | null;
   _hasHydrated: boolean;
@@ -25,7 +24,6 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       user: null,
       isAuthenticated: false,
-      isSuperAdmin: false,
       permissions: null,
       permissionsLoadedAt: null,
       _hasHydrated: false,
@@ -34,14 +32,12 @@ export const useAuthStore = create<AuthState>()(
           token,
           user,
           isAuthenticated: token !== null,
-          isSuperAdmin: user?.isSuperAdmin === true,
         }),
       clearAuth: () =>
         set({
           token: null,
           user: null,
           isAuthenticated: false,
-          isSuperAdmin: false,
           permissions: null,
           permissionsLoadedAt: null,
           _hasHydrated: true,
@@ -59,7 +55,6 @@ export const useAuthStore = create<AuthState>()(
       hasPermission: (code, teamId) => {
         const { permissions } = get();
         if (!permissions) return false;
-        if (permissions.isSuperAdmin) return true;
         if (teamId !== undefined) {
           return permissions.teamPermissions?.[teamId]?.includes(code) ?? false;
         }

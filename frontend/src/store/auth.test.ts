@@ -6,15 +6,7 @@ const mockUser: User = {
   bizKey: "1",
   username: "testuser",
   displayName: "Test User",
-  isSuperAdmin: false,
   createTime: "",
-};
-
-const superAdminUser: User = {
-  ...mockUser,
-  bizKey: "2",
-  username: "admin",
-  isSuperAdmin: true,
 };
 
 describe("useAuthStore", () => {
@@ -60,20 +52,6 @@ describe("useAuthStore", () => {
     useAuthStore.getState().clearAuth();
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
   });
-
-  it("isSuperAdmin returns false when no user", () => {
-    expect(useAuthStore.getState().isSuperAdmin).toBe(false);
-  });
-
-  it("isSuperAdmin returns false for regular user", () => {
-    useAuthStore.getState().setAuth("jwt-token-123", mockUser);
-    expect(useAuthStore.getState().isSuperAdmin).toBe(false);
-  });
-
-  it("isSuperAdmin returns true for super admin user", () => {
-    useAuthStore.getState().setAuth("jwt-token-456", superAdminUser);
-    expect(useAuthStore.getState().isSuperAdmin).toBe(true);
-  });
 });
 
 describe("useAuthStore permissions", () => {
@@ -90,7 +68,6 @@ describe("useAuthStore permissions", () => {
 
     it("clearAuth resets permissions", () => {
       const perms: PermissionData = {
-        isSuperAdmin: false,
         teamPermissions: { "1": ["team:read"] },
       };
       useAuthStore.getState().setPermissions(perms);
@@ -107,10 +84,9 @@ describe("useAuthStore permissions", () => {
       expect(useAuthStore.getState().hasPermission("team:read")).toBe(false);
     });
 
-    it("returns true for superadmin regardless of code", () => {
+    it("returns true for user with all codes (superadmin equivalent)", () => {
       const perms: PermissionData = {
-        isSuperAdmin: true,
-        teamPermissions: {},
+        teamPermissions: { "1": ["any:permission"] },
       };
       useAuthStore.getState().setPermissions(perms);
       expect(useAuthStore.getState().hasPermission("any:permission")).toBe(
@@ -120,7 +96,6 @@ describe("useAuthStore permissions", () => {
 
     it("returns true when teamId matches and team has the permission", () => {
       const perms: PermissionData = {
-        isSuperAdmin: false,
         teamPermissions: { "1": ["team:read", "team:write"] },
       };
       useAuthStore.getState().setPermissions(perms);
@@ -131,7 +106,6 @@ describe("useAuthStore permissions", () => {
 
     it("returns false when teamId matches but team lacks the permission", () => {
       const perms: PermissionData = {
-        isSuperAdmin: false,
         teamPermissions: { "1": ["team:read"] },
       };
       useAuthStore.getState().setPermissions(perms);
@@ -142,7 +116,6 @@ describe("useAuthStore permissions", () => {
 
     it("returns false when teamId is not in teamPermissions", () => {
       const perms: PermissionData = {
-        isSuperAdmin: false,
         teamPermissions: { "1": ["team:read"] },
       };
       useAuthStore.getState().setPermissions(perms);
@@ -153,7 +126,6 @@ describe("useAuthStore permissions", () => {
 
     it("returns true when no teamId and any team has the permission", () => {
       const perms: PermissionData = {
-        isSuperAdmin: false,
         teamPermissions: {
           "1": ["team:read"],
           "2": ["team:write", "item:create"],
@@ -165,7 +137,6 @@ describe("useAuthStore permissions", () => {
 
     it("returns false when no teamId and no team has the permission", () => {
       const perms: PermissionData = {
-        isSuperAdmin: false,
         teamPermissions: { "1": ["team:read"] },
       };
       useAuthStore.getState().setPermissions(perms);
@@ -174,29 +145,16 @@ describe("useAuthStore permissions", () => {
 
     it("returns false when teamPermissions is empty", () => {
       const perms: PermissionData = {
-        isSuperAdmin: false,
         teamPermissions: {},
       };
       useAuthStore.getState().setPermissions(perms);
       expect(useAuthStore.getState().hasPermission("team:read")).toBe(false);
-    });
-
-    it("superadmin overrides team-specific check even if team lacks permission", () => {
-      const perms: PermissionData = {
-        isSuperAdmin: true,
-        teamPermissions: { "1": [] },
-      };
-      useAuthStore.getState().setPermissions(perms);
-      expect(useAuthStore.getState().hasPermission("team:write", "1")).toBe(
-        true,
-      );
     });
   });
 
   describe("fetchPermissions", () => {
     it("calls API and stores permissions", async () => {
       const mockPerms: PermissionData = {
-        isSuperAdmin: false,
         teamPermissions: { "1": ["team:read", "team:write"] },
       };
       vi.spyOn(
@@ -219,7 +177,6 @@ describe("useAuthStore permissions", () => {
 
       // Set some existing permissions first
       useAuthStore.getState().setPermissions({
-        isSuperAdmin: false,
         teamPermissions: { "1": ["team:read"] },
       });
       expect(useAuthStore.getState().permissions).not.toBeNull();
