@@ -478,6 +478,7 @@ export interface RbacFixtures {
   memberUserBizKey: string;
   teamBizKey: string;
   memberRoleKey: string;
+  noPermsUsername?: string;
 }
 
 /**
@@ -495,6 +496,9 @@ export async function setupRbacFixtures(extra?: { noPerms?: boolean }): Promise<
   const memberRole = roles.find((r) => r.roleName === 'member');
   if (!memberRole) throw new Error('member role not found');
   const memberRoleKey = memberRole.bizKey;
+  const pmRole = roles.find((r) => r.roleName === 'pm');
+  if (!pmRole) throw new Error('pm role not found');
+  const pmRoleKey = pmRole.bizKey;
 
   // Create test team
   const teamRes = await curl('POST', `${apiUrl}/v1/teams`, {
@@ -521,7 +525,7 @@ export async function setupRbacFixtures(extra?: { noPerms?: boolean }): Promise<
   // Add users to team
   await curl('POST', `${apiUrl}/v1/teams/${teamBizKey}/members`, {
     headers: authHeader(superadminToken),
-    body: JSON.stringify({ username: `e2e-pm-${runId}`, roleKey: memberRoleKey }),
+    body: JSON.stringify({ username: `e2e-pm-${runId}`, roleKey: pmRoleKey }),
   });
   await curl('POST', `${apiUrl}/v1/teams/${teamBizKey}/members`, {
     headers: authHeader(superadminToken),
@@ -545,8 +549,14 @@ export async function setupRbacFixtures(extra?: { noPerms?: boolean }): Promise<
   };
 
   if (extra?.noPerms) {
-    const noPerms = await makeUser(`e2e-noperms-${runId}`, 'E2E NoPerms');
-    return { ...base, noPermsToken: noPerms.token, noPermsUserBizKey: noPerms.bizKey };
+    const noPermsUsername = `e2e-noperms-${runId}`;
+    const noPerms = await makeUser(noPermsUsername, 'E2E NoPerms');
+    // Add noPerms user to team with member role so test can later change role
+    await curl('POST', `${apiUrl}/v1/teams/${teamBizKey}/members`, {
+      headers: authHeader(superadminToken),
+      body: JSON.stringify({ username: noPermsUsername, roleKey: memberRoleKey }),
+    });
+    return { ...base, noPermsToken: noPerms.token, noPermsUserBizKey: noPerms.bizKey, noPermsUsername };
   }
 
   return base;
