@@ -25,7 +25,6 @@ type mockAuthService struct {
 		err   error
 	}
 	logoutErr error
-	parseErr  error
 }
 
 func (m *mockAuthService) Login(_ context.Context, _, _ string) (string, *model.User, error) {

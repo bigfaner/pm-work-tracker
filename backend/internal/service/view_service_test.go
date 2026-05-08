@@ -882,8 +882,6 @@ func TestWeeklyComparison_StatsOverdue_ClosedNotCounted(t *testing.T) {
 	assert.Equal(t, 0, result.Stats.Overdue)
 }
 
-func ptrTime(t time.Time) *time.Time { return &t }
-
 func TestGanttView_EmptyTeam_NoItems(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
 	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})

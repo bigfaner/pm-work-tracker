@@ -23,7 +23,7 @@ func setupPermissionRouter(code string, roleRepo *mockRoleRepo) (*gin.Engine, *c
 		}
 		if v := c.Query("userID"); v != "" {
 			var id uint
-			fmt.Sscanf(v, "%d", &id)
+			_, _ = fmt.Sscanf(v, "%d", &id)
 			c.Set("userID", id)
 			c.Set("userBizKey", int64(id))
 		}
@@ -58,11 +58,7 @@ func setupTeamPermRouter(code string) (*gin.Engine, *capturedPermContext) {
 		}
 		// Set permCodes to simulate team context
 		if codes := c.Query("permCodes"); codes != "" {
-			// Parse comma-separated codes
-			var permCodes []string
-			for _, code := range splitCodes(codes) {
-				permCodes = append(permCodes, code)
-			}
+			permCodes := append([]string{}, splitCodes(codes)...)
 			if permCodes != nil {
 				c.Set("permCodes", permCodes)
 			}
@@ -72,7 +68,7 @@ func setupTeamPermRouter(code string) (*gin.Engine, *capturedPermContext) {
 		}
 		if v := c.Query("userID"); v != "" {
 			var id uint
-			fmt.Sscanf(v, "%d", &id)
+			_, _ = fmt.Sscanf(v, "%d", &id)
 			c.Set("userID", id)
 			c.Set("userBizKey", int64(id))
 		}

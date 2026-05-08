@@ -83,7 +83,7 @@ func TestMigrateToRBAC_FirstRunSuccess(t *testing.T) {
 
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
@@ -94,7 +94,7 @@ func TestMigrateToRBAC_PresetRolesSeeded(t *testing.T) {
 	seedPreRBACData(t, db)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)

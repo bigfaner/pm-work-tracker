@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -603,38 +602,12 @@ func getSubItem(t *testing.T, db *gorm.DB, id uint) *model.SubItem {
 
 // ========== Role Lookup Helpers ==========
 
-// findRoleByName looks up a role by name from the database.
-func findRoleByName(t *testing.T, db *gorm.DB, name string) *model.Role {
-	t.Helper()
-	var role model.Role
-	require.NoError(t, db.Where("role_name = ?", name).First(&role).Error)
-	return &role
-}
-
 // findRoleBizKeyByName looks up a role's BizKey as string by name from the database.
 func findRoleBizKeyByName(t *testing.T, db *gorm.DB, name string) string {
 	t.Helper()
 	var role model.Role
 	require.NoError(t, db.Where("role_name = ?", name).First(&role).Error)
 	return fmt.Sprintf("%d", role.BizKey)
-}
-
-// findRoleBizKeyInt64ByName looks up a role's BizKey as int64 by name.
-func findRoleBizKeyInt64ByName(t *testing.T, db *gorm.DB, name string) int64 {
-	t.Helper()
-	var role model.Role
-	require.NoError(t, db.Where("role_name = ?", name).First(&role).Error)
-	return role.BizKey
-}
-
-// findRoleIDByBizKey looks up a role's numeric ID by its BizKey string.
-func findRoleIDByBizKey(t *testing.T, db *gorm.DB, bizKey string) uint {
-	t.Helper()
-	var role model.Role
-	bk, err := strconv.ParseInt(bizKey, 10, 64)
-	require.NoError(t, err)
-	require.NoError(t, db.Where("biz_key = ?", bk).First(&role).Error)
-	return role.ID
 }
 
 // ========== Item Lifecycle Setup Helpers ==========
@@ -705,86 +678,6 @@ func createTestSubItem(t *testing.T, r *gin.Engine, token string, teamBizKey int
 }
 
 // ========== New Helpers (F7 spec) ==========
-
-// createTeamWithMembers creates a team with the given PM and additional members.
-// It seeds the team and team_member records directly into the database.
-// Returns the team's internal ID.
-//
-// This is the F7 shared helper extracted from F1 patterns for use by
-// future integration test files that need multi-member team setups.
-func createTeamWithMembers(t *testing.T, db *gorm.DB, pmID uint, memberCount int) uint {
-	t.Helper()
-
-	team := &model.Team{
-		BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
-		TeamName:  fmt.Sprintf("Team-PM%d-M%d", pmID, memberCount),
-		PmKey:     getUserBizKey(t, db, pmID),
-		Code:      fmt.Sprintf("TPM%d", pmID),
-	}
-	require.NoError(t, db.Create(team).Error)
-
-	// Add PM as team member with PM role
-	pmRoleBizKey := findRoleBizKeyInt64ByName(t, db, "pm")
-	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey:  team.BizKey,
-		UserKey:  getUserBizKey(t, db, pmID),
-		RoleKey:  &pmRoleBizKey,
-		JoinedAt: time.Now(),
-	}).Error)
-
-	// Create additional member users if needed
-	memberRoleBizKey := findRoleBizKeyInt64ByName(t, db, "member")
-	for i := 0; i < memberCount; i++ {
-		hash, err := bcrypt.GenerateFromPassword([]byte(fmt.Sprintf("member%dpass", i)), 4)
-		require.NoError(t, err)
-		member := &model.User{
-			Username:     fmt.Sprintf("teammember-pm%d-%d", pmID, i),
-			DisplayName:  fmt.Sprintf("Member %d", i),
-			PasswordHash: string(hash),
-		}
-		require.NoError(t, db.Create(member).Error)
-		require.NoError(t, db.Create(&model.TeamMember{
-			TeamKey:  team.BizKey,
-			UserKey:  member.BizKey,
-			RoleKey:  &memberRoleBizKey,
-			JoinedAt: time.Now(),
-		}).Error)
-	}
-
-	return team.ID
-}
-
-// createMainItem creates a MainItem via the API using a dto.MainItemCreateReq.
-// Returns the new item's BizKey (int64).
-//
-// This is the F7 shared helper extracted from F1 patterns for use by
-// future integration test files. Unlike createTestMainItem which takes
-// a simple title string, this accepts the full DTO for flexible request bodies.
-func createMainItem(t *testing.T, r *gin.Engine, token string, teamBizKey int64, title string, priority string) int64 {
-	t.Helper()
-
-	body := fmt.Sprintf(`{
-		"title": %q,
-		"priority": %q,
-		"assigneeKey": "1",
-		"startDate": "2026-01-01",
-		"expectedEndDate": "2026-06-30",
-		"isKeyItem": false
-	}`, title, priority)
-
-	w := makeRequest(t, r, http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", teamBizKey), body, token)
-	require.Equal(t, http.StatusCreated, w.Code)
-
-	var resp map[string]interface{}
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	data := resp["data"].(map[string]interface{})
-	bizKeyStr, ok := data["bizKey"].(string)
-	require.True(t, ok, "expected bizKey string in response")
-	bizKey, err := strconv.ParseInt(bizKeyStr, 10, 64)
-	require.NoError(t, err)
-	return bizKey
-}
 
 // ========== User Data Helpers ==========
 

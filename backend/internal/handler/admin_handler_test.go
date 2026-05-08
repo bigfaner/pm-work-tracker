@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"pm-work-tracker/backend/internal/dto"
-	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 )
 
@@ -22,10 +21,6 @@ import (
 // ---------------------------------------------------------------------------
 
 type mockAdminService struct {
-	listUsersResult struct {
-		users []*model.User
-		err   error
-	}
 	listAllTeamsResult struct {
 		teams []*dto.AdminTeamDTO
 		err   error

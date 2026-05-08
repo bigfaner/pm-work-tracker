@@ -82,7 +82,7 @@ func (s *teamService) GetTeam(ctx context.Context, teamBizKey int64) (*model.Tea
 }
 
 func (s *teamService) ListTeams(ctx context.Context, search string, page, pageSize int) ([]*dto.TeamListResp, int64, error) {
-	offset, page, pageSize := dto.ApplyPaginationDefaults(page, pageSize)
+	offset, _, pageSize := dto.ApplyPaginationDefaults(page, pageSize)
 	teams, total, err := s.teamRepo.ListFiltered(ctx, search, offset, pageSize)
 	if err != nil {
 		return nil, 0, err

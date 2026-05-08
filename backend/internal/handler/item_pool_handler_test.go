@@ -144,11 +144,9 @@ type mockItemPoolService struct {
 	lastPoolID uint
 
 	assignCalled  bool
-	lastAssignID  uint
 	lastAssignReq dto.AssignItemPoolReq
 
 	rejectCalled bool
-	lastRejectID uint
 	lastReason   string
 }
 
@@ -206,8 +204,6 @@ func (m *mockItemPoolService) Update(_ context.Context, _ int64, _ uint, _ dto.U
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-func ptrUint(v uint) *uint { return &v }
 
 // depsWithItemPoolSvc wires a mock ItemPoolService into test deps.
 func depsWithItemPoolSvc(t *testing.T, svc *mockItemPoolService, userRepo repository.UserRepo) *Dependencies {

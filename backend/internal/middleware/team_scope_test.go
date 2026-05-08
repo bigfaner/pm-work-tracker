@@ -243,7 +243,7 @@ func setupTeamScopeRouter(teamRepo repository.TeamRepo, roleRepo repository.Role
 		isAdmin := c.Query("isSuperAdmin")
 		if uid != "" {
 			var id uint
-			fmt.Sscanf(uid, "%d", &id)
+			_, _ = fmt.Sscanf(uid, "%d", &id)
 			c.Set("userID", id)
 			c.Set("userBizKey", int64(id))
 		}

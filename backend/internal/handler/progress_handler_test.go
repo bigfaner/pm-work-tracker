@@ -874,7 +874,7 @@ func TestAppendProgress_ResponseShapeMatchesDataContract(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
-	body := fmt.Sprintf(`{"completion":60,"achievement":"completed SDK init","blocker":"certificate pending","lesson":"sandbox vs prod config diff"}`)
+	body := `{"completion":60,"achievement":"completed SDK init","blocker":"certificate pending","lesson":"sandbox vs prod config diff"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/1/sub-items/10/progress", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

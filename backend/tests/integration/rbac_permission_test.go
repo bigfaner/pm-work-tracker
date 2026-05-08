@@ -171,8 +171,8 @@ func TestCustomRole_PartialPermissions(t *testing.T) {
 	adminToken := loginAs(t, r, "superadmin", "adminPass")
 
 	// Step 1: Create custom role with only main_item:read + progress:read
-	var customRole model.Role
-	customRole = model.Role{
+
+	customRole := model.Role{
 		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
 		Name:        "custom-partial",
 		Description: "Partial permissions role",

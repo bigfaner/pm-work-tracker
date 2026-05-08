@@ -16,8 +16,6 @@ import (
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 )
 
-func uintPtr(v uint) *uint { return &v }
-
 // ---------------------------------------------------------------------------
 // Mock repos for ItemPoolService tests
 // ---------------------------------------------------------------------------

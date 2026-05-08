@@ -120,7 +120,6 @@ type mockAdminTeamRepo struct {
 	teamByIDErr              error
 	addMemberErr             error
 	removeMemberErr          error
-	teamsByUserIDs           map[uint][]dto.TeamSummary
 	teamsByUIDErr            error
 	teamsByUserBizKeys       map[int64][]dto.TeamSummary
 	findTeamsByUserBizKeysFn func(ctx context.Context, ids []int64) (map[int64][]dto.TeamSummary, error)

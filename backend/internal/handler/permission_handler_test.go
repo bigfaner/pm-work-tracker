@@ -146,7 +146,7 @@ func TestPermissionHandler_ListPermissionCodes_EmptyResult(t *testing.T) {
 
 func TestPermissionHandler_GetUserPermissions_Success(t *testing.T) {
 	mockSvc := &mockRoleServiceForPermission{
-		getUserPermissionsFn: func(_ context.Context, userID uint) (*service.UserPermissions, error) {
+		getUserPermissionsFn: func(_ context.Context, _ uint) (*service.UserPermissions, error) {
 			return &service.UserPermissions{
 				TeamPermissions: map[int64][]string{10: {"main_item:create", "main_item:read"}},
 			}, nil
@@ -181,7 +181,7 @@ func TestPermissionHandler_GetUserPermissions_Success(t *testing.T) {
 
 func TestPermissionHandler_GetUserPermissions_SuperAdmin(t *testing.T) {
 	mockSvc := &mockRoleServiceForPermission{
-		getUserPermissionsFn: func(_ context.Context, userID uint) (*service.UserPermissions, error) {
+		getUserPermissionsFn: func(_ context.Context, _ uint) (*service.UserPermissions, error) {
 			return &service.UserPermissions{
 				TeamPermissions: map[int64][]string{100: {"team:read", "team:create"}},
 			}, nil
