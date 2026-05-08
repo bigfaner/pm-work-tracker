@@ -100,7 +100,7 @@ const seedRows: TableRow[] = [
     assigneeName: "赵强",
     itemStatus: "progressing",
     completion: 40,
-    expectedEndDate: "2026-05-05",
+    expectedEndDate: "2026-12-31",
     actualEndDate: null,
     mainItemId: null,
   },

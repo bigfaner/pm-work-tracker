@@ -245,7 +245,7 @@
       "title": "Fix: TableViewPage date styling test (pre-existing)",
       "priority": "P0",
       "estimatedTime": "30min",
-      "status": "pending",
+      "status": "completed",
       "file": "disc-1.md",
       "record": "records/disc-1.md",
       "breaking": true,
