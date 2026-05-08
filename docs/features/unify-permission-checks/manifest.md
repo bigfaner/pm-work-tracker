@@ -1,6 +1,6 @@
 ---
 feature: "unify-permission-checks"
-status: design
+status: tasks
 ---
 
 # Feature: unify-permission-checks
@@ -18,12 +18,16 @@ status: design
 
 ## Traceability
 
-| PRD Section | Design Section | UI Component | Tasks |
-|-------------|----------------|--------------|-------|
-| 5.1 Seed & Data Changes | Interface 6: seedPresetRoles + Interface 3: GetUserPermissions | — | |
-| 5.2 Backend Middleware Changes | Interface 1: RequirePermission + Interface 2: TeamScopeMiddleware | — | |
-| 5.3 Backend Handler Changes | Interface 4: TeamService, Interface 5: ProgressService | — | |
-| 5.4 Backend Service Changes | Interface 4: TeamService — Simplified Signatures | — | |
-| 5.5 Backend VO/DTO Changes | Cross-Layer Data Map | — | |
-| 5.6 Frontend Changes | Cross-Layer Data Map + Frontend File Enumeration | — | |
-| 5.7 Related Changes | Interface 6: seedPresetRoles | — | |
+| PRD Section | Design Section | UI Component | Placement | Tasks |
+|-------------|----------------|--------------|-----------|-------|
+| 5.1 Seed & Data Changes | Interface 6: seedPresetRoles | — | — | 1.1 |
+| 5.2 Backend Middleware Changes | Interface 1: RequirePermission | — | — | 1.2 |
+| 5.2 Backend Middleware Changes | Interface 2: TeamScopeMiddleware | — | — | 1.3 |
+| 5.3 Backend Handler Changes (sub_item) | Error Path Migration: Assignee checks | — | — | 2.3 |
+| 5.3 Backend Handler Changes (progress) | Interface 5: ProgressService | — | — | 2.4 |
+| 5.3 Backend Handler Changes (team) | Interface 4: TeamService | — | — | 2.1, 2.2 |
+| 5.4 Backend Service Changes | Interface 4: TeamService — Simplified Signatures | — | — | 2.1 |
+| 5.4 Backend Service Changes | Interface 3: GetUserPermissions | — | — | 2.5 |
+| 5.5 Backend VO/DTO Changes | Cross-Layer Data Map | — | — | 2.6 |
+| 5.6 Frontend Changes | Frontend File Enumeration | — | — | 3.1, 3.2 |
+| 5.7 Related Changes | Interface 6: seedPresetRoles | — | — | 1.1 |
