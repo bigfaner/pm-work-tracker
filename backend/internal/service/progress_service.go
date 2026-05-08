@@ -13,7 +13,7 @@ import (
 
 // ProgressService defines business operations for progress records.
 type ProgressService interface {
-	Append(ctx context.Context, teamBizKey int64, authorBizKey int64, subItemID uint, completion float64, achievement, blocker, lesson string, isPM bool) (*model.ProgressRecord, error)
+	Append(ctx context.Context, teamBizKey int64, authorBizKey int64, subItemID uint, completion float64, achievement, blocker, lesson string, skipRegressionCheck bool) (*model.ProgressRecord, error)
 	CorrectCompletion(ctx context.Context, teamBizKey int64, recordID uint, completion float64) error
 	List(ctx context.Context, teamBizKey int64, subItemID uint) ([]model.ProgressRecord, error)
 	GetByBizKey(ctx context.Context, bizKey int64) (*model.ProgressRecord, error)
@@ -31,7 +31,7 @@ func NewProgressService(progressRepo repository.ProgressRepo, subItemRepo reposi
 	return &progressService{progressRepo: progressRepo, subItemRepo: subItemRepo, mainItemSvc: mainItemSvc, statusHistorySvc: statusHistorySvc}
 }
 
-func (s *progressService) Append(ctx context.Context, teamBizKey int64, authorBizKey int64, subItemID uint, completion float64, achievement, blocker, lesson string, isPM bool) (*model.ProgressRecord, error) {
+func (s *progressService) Append(ctx context.Context, teamBizKey int64, authorBizKey int64, subItemID uint, completion float64, achievement, blocker, lesson string, skipRegressionCheck bool) (*model.ProgressRecord, error) {
 	subItem, err := s.subItemRepo.FindByID(ctx, subItemID)
 	if err != nil {
 		return nil, err
@@ -42,8 +42,8 @@ func (s *progressService) Append(ctx context.Context, teamBizKey int64, authorBi
 		return nil, err
 	}
 
-	// Regression check: skip for PM
-	if !isPM {
+	// Regression check: skip when caller has sub_item:assign permission
+	if !skipRegressionCheck {
 		if latest != nil && completion < latest.Completion {
 			return nil, apperrors.ErrProgressRegression
 		}
