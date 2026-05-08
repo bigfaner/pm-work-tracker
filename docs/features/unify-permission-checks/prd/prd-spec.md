@@ -19,17 +19,19 @@ team_handler 中还有 5 处通过 `IsSuperAdmin` 标志获取团队 PM BizKey �
 
 ### What (Target)
 
-移除所有 bypass 逻辑，统一采用权限码校验：
-- 删除 `User.IsSuperAdmin` 字段
-- superadmin 预设角色获得全部 29 个权限码
-- 所有权限判断统一通过权限码完成
-- 前端同步移除 `isSuperAdmin` 引用
+移除 handler-level bypass 逻辑，统一前后端权限码校验：
+- 保留 `User.IsSuperAdmin` 字段（仅用于判断是否加载全部权限码）
+- superadmin 用户加载全部 29 个权限码，所有校验统一走 permCodes 路径
+- 移除 `RequirePermission` 中间件的 SuperAdmin 短路（tier-1）
+- 移除 handler-level bypass（`isPMOrSuperAdmin`、assignee 检查、PM BizKey 替换）
+- 服务层 PM 身份校验改为权限码校验
+- 前端同步移除 `isSuperAdmin` 引用，统一使用 `hasPermission()`
 
 ### Who (Users)
 
 | 用户角色 | 影响 |
 |---------|------|
-| SuperAdmin | 无功能性变化，仍可执行所有操作（通过权限码而非硬编码短路） |
+| SuperAdmin | 无功能性变化，仍可执行所有操作（通过全部 29 个权限码统一校验） |
 | PM | 无变化 |
 | 自定义角色用户（如 ext-member） | **核心受益方** -- 拥有的权限码不再被 bypass 逻辑阻塞 |
 | Member | 无变化 |
@@ -39,24 +41,31 @@ team_handler 中还有 5 处通过 `IsSuperAdmin` 标志获取团队 PM BizKey �
 | Goal | Metric | Notes |
 |------|--------|-------|
 | 自定义角色权限码生效 | 自定义角色拥有 `sub_item:update` 后编辑子事项成功率 100%（当前 0%） | 核心修复目标 |
-| 消除 bypass 代码 | `IsSuperAdmin`/`isPMOrSuperAdmin` 引用数从 ~40 降为 0 | 后端 + 前端合计 |
-| SuperAdmin 功能无损 | SuperAdmin 角色可执行全部 14 类操作，与移除前一致 | 回归验证 |
+| 消除 handler-level bypass | `isPMOrSuperAdmin` 引用数降为 0；前端 `isSuperAdmin` 引用数降为 0 | handler + 前端 |
+| SuperAdmin 功能无损 | SuperAdmin 角色可执行全部 22 项操作（AC 3a/3b/3c），与移除前一致 | 回归验证 |
 
 ## Scope
 
 ### In Scope
 
-- [x] 删除 `User.IsSuperAdmin` 字段（model、migration、VO/DTO）
+- [x] 移除 `RequirePermission` 中间件的 SuperAdmin tier-1 短路
+- [x] `TeamScopeMiddleware` SuperAdmin 改为注入全部 29 个权限码（而非空码）
 - [x] superadmin 预设角色 seed 全部 29 个权限码
-- [x] 移除 `RequirePermission` 中间件的 SuperAdmin 短路
 - [x] 移除 `isPMOrSuperAdmin()` 函数及所有调用点（sub_item_handler、progress_handler）
 - [x] 移除 sub_item_handler 中的 assignee 所有权检查
 - [x] 替换 team_handler 中 5 处 "SuperAdmin 充当 PM" 逻辑为权限码驱动
-- [x] TeamScopeMiddleware 为 superadmin 角色自动注入团队成员身份
 - [x] 服务层（team_service 等）将 PM 身份校验改为权限码校验
-- [x] DB migration：删除 `users.is_super_admin` 列，将原 SuperAdmin 用户绑定到 superadmin 角色
+- [x] 移除 VO/DTO 中的 `IsSuperAdmin` 字段（响应体不再暴露）
+- [x] `GetUserPermissions` 为 SuperAdmin 返回全部 29 个权限码
 - [x] 前端：从 types、auth store、PermissionGuard、页面组件中移除 `isSuperAdmin`，改用权限码
 - [x] 更新 `docs/conventions/permission-codes.md` 中的 SuperAdmin Bypass Rule 章节
+
+### Intentionally Kept (Not Changed)
+
+- [ ] `User.IsSuperAdmin` 模型字段和 `is_super_admin` DB 列保留（仅用于加载全部权限码）
+- [ ] `AuthMiddleware` 的 `isSuperAdmin` context 注入保留（TeamScopeMiddleware 据此加载全部权限码）
+- [ ] `config/seed.go` 中 `IsSuperAdmin: true` 保留
+- [ ] `TeamScopeMiddleware` SuperAdmin 跳过团队成员检查（改为注入全部 29 码而非空码）
 
 ### Out of Scope
 
@@ -80,13 +89,14 @@ team_handler 中还有 5 处通过 `IsSuperAdmin` 标志获取团队 PM BizKey �
 
 自定义角色（ext-member）在步骤 4 被 403 拒绝：拥有 `sub_item:update` 但没有 `sub_item:assign`，且不是 assignee。
 
-#### 目标流程（无 bypass）
+#### 目标流程（统一权限码校验）
 
-1. 用户发起请求 → AuthMiddleware 加载 User（无 IsSuperAdmin 字段）
-2. TeamScopeMiddleware 检查：若用户角色为 superadmin → 自动注入团队成员身份（无需 team_members 记录）；否则正常加载 permCodes
-3. RequirePermission 检查：所有用户统一走 permCodes 线性扫描
+1. 用户发起请求 → AuthMiddleware 加载 User（`IsSuperAdmin` 字段保留，设入 context）
+2. TeamScopeMiddleware 检查：SuperAdmin → 注入全部 29 个权限码（跳过团队成员检查）；普通成员 → 加载角色权限码
+3. RequirePermission 检查：所有用户统一走 permCodes 线性扫描（无 tier-1 短路）
 4. Handler 中：不再有 `isPMOrSuperAdmin()` 调用，不再有 assignee 检查
-5. team_handler 中：不再有 "充当 PM" 逻辑，服务层校验权限码而非 PM 身份
+5. team_handler 中：不再有 "充当 PM" 逻辑，服务层不再做 PM 身份校验
+6. `/me/permissions` 端点：SuperAdmin 返回全部 29 个权限码（前端统一使用 `hasPermission()`）
 
 自定义角色（ext-member）在步骤 3 通过 `sub_item:update` 检查，步骤 4 不再有额外检查，请求成功。
 
@@ -126,28 +136,26 @@ flowchart TD
 
 ## Functional Specs
 
-### 5.1 DB Migration
+### 5.1 Seed & Data Changes
 
 | # | 变更项 | 详情 |
 |---|--------|------|
-| 1 | 删除 `users.is_super_admin` 列 | `ALTER TABLE users DROP COLUMN is_super_admin` |
-| 2 | 绑定 SuperAdmin 用户到 superadmin 角色 | 查找原 `is_super_admin=true` 的用户，为其在每个已有团队中创建 `team_members` 记录并关联 superadmin 角色。事务保证原子性 |
-| 3 | superadmin 角色 seed 全部 29 个权限码 | 在 `role_permissions` 表中为 superadmin 角色插入全部 29 条权限码记录 |
+| 1 | superadmin 角色 seed 全部 29 个权限码 | `seedPresetRoles` 改为 `seedRole(tx, "superadmin", ..., permissions.AllCodeStrings())`。`seedRole` 是 additive 的，下次启动自动插入 |
+| 2 | `GetUserPermissions` SuperAdmin 路径 | SuperAdmin 用户请求 `/me/permissions` 时返回全部 29 个权限码给所有团队，前端统一使用 `hasPermission()` |
 
 ### 5.2 Backend Middleware Changes
 
 | # | 文件 | 变更 |
 |---|------|------|
-| 1 | `middleware/auth.go` | 移除 `IsSuperAdmin()` 函数；AuthMiddleware 不再设置 `isSuperAdmin` 到 context |
-| 2 | `middleware/permission.go` | `RequirePermission` 移除 SuperAdmin 短路：删除 `if IsSuperAdmin(c) { c.Next(); return }` |
-| 3 | `middleware/team_scope.go` | SuperAdmin bypass 替换为角色检测：若用户在任何团队中的角色为 superadmin，自动注入团队成员身份。不再依赖 `isSuperAdmin` context 值 |
+| 1 | `middleware/permission.go` | `RequirePermission` 移除 SuperAdmin tier-1 短路：删除 `if IsSuperAdmin(c) { c.Next(); return }` |
+| 2 | `middleware/team_scope.go` | SuperAdmin 改为注入全部 29 个权限码：`c.Set("permCodes", permissions.AllCodeStrings())` 代替 `c.Set("permCodes", []string{})` |
 
 ### 5.3 Backend Handler Changes
 
 | # | 文件 | 变更 |
 |---|------|------|
 | 1 | `handler/sub_item_handler.go` | 删除 `isPMOrSuperAdmin()` 函数；Update 和 ChangeStatus handler 中移除 assignee 所有权检查 |
-| 2 | `handler/progress_handler.go` | 移除 `pmFlag` 参数和 `isPMOrSuperAdmin()` 调用 |
+| 2 | `handler/progress_handler.go` | `pmFlag` 改为从 `sub_item:assign` permCode 获取（重命名 `isPM` → `skipRegressionCheck`）；移除 `isPMOrSuperAdmin()` 调用 |
 | 3 | `handler/team_handler.go` L99 | Update: 移除 `IsSuperAdmin` 判断，改为依赖 `team:update` 权限码 |
 | 4 | `handler/team_handler.go` L128 | Disband: 同上，依赖 `team:delete` 权限码 |
 | 5 | `handler/team_handler.go` L194 | RemoveMember: 移除 `IsSuperAdmin` 判断，依赖 `team:remove` 权限码 |
@@ -159,9 +167,8 @@ flowchart TD
 
 | # | 文件 | 变更 |
 |---|------|------|
-| 1 | `service/team_service.go` | `ListTeams` 移除 `isSuperAdmin` 参数；PM 身份校验改为权限码校验（`team:update` 等） |
-| 2 | `service/role_service.go` | `UserInfo` 移除 `IsSuperAdmin` 字段 |
-| 3 | `model/user.go` | 移除 `IsSuperAdmin` 字段 |
+| 1 | `service/team_service.go` | `ListTeams` 移除 `isSuperAdmin` 参数；移除 `team.PmKey != pmBizKey` 检查，简化方法签名 |
+| 2 | `service/role_service.go` | `UserPermissions` 移除 `IsSuperAdmin` 字段；`GetUserPermissions` 为 SuperAdmin 返回全部权限码 |
 
 ### 5.5 Backend VO/DTO Changes
 
@@ -177,38 +184,35 @@ flowchart TD
 |---|-----------|------|
 | 1 | `types/index.ts` | 移除 `isSuperAdmin` 字段 |
 | 2 | `store/auth.ts` | 移除 `isSuperAdmin` 状态和相关逻辑 |
-| 3 | `components/PermissionGuard` | 移除 `isSuperAdmin` 快捷路径，统一使用 `hasPermission()` |
-| 4 | 页面组件（25 个文件） | 移除所有 `isSuperAdmin` 引用，改用 `hasPermission()` |
+| 3 | `components/PermissionGuard` | 无直接 `isSuperAdmin` 引用，但依赖 store 的 `hasPermission` 统一移除 bypass 后自动生效 |
+| 4 | 页面及测试文件（22 个文件，详见 design Frontend File Enumeration） | 移除所有 `isSuperAdmin` 引用，改用 `hasPermission()` |
 | 5 | `mocks/handlers.ts` | 移除 `isSuperAdmin` mock 数据 |
 
 ### 5.7 Related Changes
 
 | # | Project | Module | Change Point | Updated Logic |
 |---|---------|--------|-------------|---------------|
-| 1 | backend | `config/seed.go` | 创建初始 admin 用户 | 移除 `IsSuperAdmin: true`，改为创建 team_members 记录关联 superadmin 角色 |
-| 2 | backend | `migration/rbac.go` | seedPresetRoles | superadmin 角色写入全部 29 个权限码 |
-| 3 | docs | `conventions/permission-codes.md` | SuperAdmin Bypass Rule 章节 | 删除 bypass 描述，改为 "superadmin 角色拥有全部权限码" |
+| 1 | backend | `migration/rbac.go` | seedPresetRoles | superadmin 角色写入全部 29 个权限码 |
+| 2 | docs | `conventions/permission-codes.md` | SuperAdmin Bypass Rule 章节 | 更新描述：handler-level 和 middleware-level bypass 均已移除，SuperAdmin 通过加载全部 29 个权限码统一校验 |
 
 ## Other Notes
 
 ### Performance Requirements
 
 - 权限码检查仍为 permCodes 切片线性扫描（当前方案，29 个码足够小），无需变更
-- TeamScopeMiddleware 对 superadmin 角色的自动注入不应增加 DB 查询
+- SuperAdmin 持有全部 29 码，线性扫描开销可忽略
 
 ### Data Requirements
 
-- **Migration 必须是事务性的**：`is_super_admin` 列删除和 team_members 记录创建在同一事务中
-- **Seed 数据更新**：superadmin 角色的权限码记录在 migration 中创建
-- **SQLite 和 MySQL schema 同步**：两份 schema 文件均需移除 `is_super_admin` 列
+- **Seed 数据更新**：superadmin 角色的权限码通过 `seedPresetRoles` 在启动时写入（additive）
+- **无 DB schema 变更**：`is_super_admin` 列保留
 
 ### Failure Scenarios
 
 | 场景 | 影响 | 应对策略 |
 |------|------|----------|
-| Migration 部分失败（列已删除但 team_members 记录未创建） | SuperAdmin 用户无法通过权限码校验，所有操作返回 403 | Migration 使用单事务包裹：`DROP COLUMN` 和 `INSERT INTO team_members` 在同一事务中，失败时整体回滚。回滚后系统保持原状态（IsSuperAdmin 字段仍存在） |
-| 部署期间并发请求 | 后端已部署新代码但 migration 尚未执行，或 migration 已执行但前端仍发送 `isSuperAdmin` 参数 | 部署顺序：先执行 DB migration → 再部署后端 → 最后部署前端。Migration 是向后兼容的（新代码不依赖旧字段），前端发送多余字段被后端忽略 |
-| 孤儿 SuperAdmin 用户（`is_super_admin=true` 但在 users 表中无有效记录） | Migration 查找不到对应用户 | Migration 在事务开头校验：`SELECT id FROM users WHERE is_super_admin = true AND deleted_at IS NULL`，若结果集为空则跳过 team_members 插入步骤并记录 warning 日志 |
+| `seedPresetRoles` 启动失败 | superadmin 角色无权限码，前端 `hasPermission()` 返回 false，UI 元素隐藏 | `seedRole` 是 additive 且幂等的，重启即可修复。不影响后端操作（middleware bypass 保留） |
+| 前端发送多余 `isSuperAdmin` 参数 | 后端 DTO 不再包含该字段 | 后端忽略未知 JSON 字段，无影响 |
 
 ### Monitoring Requirements
 
@@ -217,9 +221,11 @@ flowchart TD
 
 ### Security Requirements
 
-- 权限码校验统一后，SuperAdmin 不再有代码层面的 "超级权限" -- 全部通过 DB 中的权限码控制
+- handler-level bypass 移除后，所有 handler 不再有 SuperAdmin 特殊路径
+- middleware-level bypass 同步移除：`RequirePermission` 无 SuperAdmin 短路，SuperAdmin 通过全部 29 码走 permCodes 检查通过
+- `IsSuperAdmin` 不再通过 API 响应暴露，前端无感知
+- `IsSuperAdmin` 仅用于 TeamScopeMiddleware 决定是否注入全部权限码，以及 `GetUserPermissions` 返回全部权限码
 - superadmin 角色的权限码为 seed 数据，不可通过 API 修改（is_preset = true）
-- 若需要撤销 SuperAdmin 的某些权限，可直接从 `role_permissions` 中删除对应记录
 
 ---
 
