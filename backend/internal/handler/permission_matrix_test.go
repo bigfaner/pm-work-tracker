@@ -76,19 +76,21 @@ func (m *mockTeamSvc) GetTeam(_ context.Context, _ int64) (*model.Team, error) {
 func (m *mockTeamSvc) GetTeamDetail(_ context.Context, _ int64) (*dto.TeamDetailResp, error) {
 	return nil, nil
 }
-func (m *mockTeamSvc) ListTeams(_ context.Context, _ uint, _ bool, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
+func (m *mockTeamSvc) ListTeams(_ context.Context, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
 	return nil, 0, nil
 }
-func (m *mockTeamSvc) UpdateTeam(_ context.Context, _ int64, _ int64, _ dto.UpdateTeamReq) (*model.Team, error) {
+func (m *mockTeamSvc) UpdateTeam(_ context.Context, _ int64, _ dto.UpdateTeamReq) (*model.Team, error) {
 	return nil, nil
 }
 func (m *mockTeamSvc) InviteMember(_ context.Context, _ int64, _ int64, _ dto.InviteMemberReq) error {
 	return nil
 }
-func (m *mockTeamSvc) RemoveMember(_ context.Context, _ int64, _ int64, _ int64) error  { return nil }
-func (m *mockTeamSvc) TransferPM(_ context.Context, _ int64, _ int64, _ int64) error    { return nil }
-func (m *mockTeamSvc) DisbandTeam(_ context.Context, _ int64, _ int64, _ string) error  { return nil }
-func (m *mockTeamSvc) UpdateMemberRole(_ context.Context, _, _ int64, _, _ int64) error { return nil }
+func (m *mockTeamSvc) RemoveMember(_ context.Context, _ int64, _ int64) error { return nil }
+func (m *mockTeamSvc) TransferPM(_ context.Context, _ int64, _ int64) error   { return nil }
+func (m *mockTeamSvc) DisbandTeam(_ context.Context, _ int64, _ string) error { return nil }
+func (m *mockTeamSvc) UpdateMemberRole(_ context.Context, _ int64, _ int64, _ int64) error {
+	return nil
+}
 func (m *mockTeamSvc) ListMembers(_ context.Context, _ int64) ([]*dto.TeamMemberDTO, error) {
 	return nil, nil
 }

@@ -11,7 +11,8 @@
       "priority": "P0",
       "estimatedTime": "1h",
       "dependencies": [
-        "1.summary"
+        "1.summary",
+        "disc-1"
       ],
       "status": "completed",
       "file": "1-gate.md",
@@ -97,7 +98,7 @@
       "dependencies": [
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.1-teamservice-simplify-signatures.md",
       "record": "records/2.1-teamservice-simplify-signatures.md",
       "breaking": true,
@@ -238,6 +239,17 @@
       "file": "consolidate-specs.md",
       "record": "records/consolidate-specs.md",
       "scope": "all"
+    },
+    "disc-1": {
+      "id": "disc-1",
+      "title": "Fix: TableViewPage date styling test (pre-existing)",
+      "priority": "P0",
+      "estimatedTime": "30min",
+      "status": "pending",
+      "file": "disc-1.md",
+      "record": "records/disc-1.md",
+      "breaking": true,
+      "sourceTaskID": "1.gate"
     },
     "eval-test-cases": {
       "id": "T-test-1b",

@@ -107,14 +107,13 @@ func (m *mockTeamService) GetTeamDetail(_ context.Context, teamBizKey int64) (*d
 	return m.getTeamDetailResult.detail, m.getTeamDetailResult.err
 }
 
-func (m *mockTeamService) ListTeams(_ context.Context, callerID uint, isSuperAdmin bool, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
+func (m *mockTeamService) ListTeams(_ context.Context, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
 	m.listCalled = true
 	return m.listTeamsResult.teams, int64(len(m.listTeamsResult.teams)), m.listTeamsResult.err
 }
 
-func (m *mockTeamService) UpdateTeam(_ context.Context, pmBizKey int64, teamBizKey int64, req dto.UpdateTeamReq) (*model.Team, error) {
+func (m *mockTeamService) UpdateTeam(_ context.Context, teamBizKey int64, req dto.UpdateTeamReq) (*model.Team, error) {
 	m.updateCalled = true
-	m.lastPmID = uint(pmBizKey)
 	m.lastTeamID = uint(teamBizKey)
 	m.lastUpdateReq = req
 	return m.updateTeamResult.team, m.updateTeamResult.err
@@ -128,31 +127,28 @@ func (m *mockTeamService) InviteMember(_ context.Context, pmBizKey int64, teamBi
 	return m.inviteMemberErr
 }
 
-func (m *mockTeamService) RemoveMember(_ context.Context, pmBizKey int64, teamBizKey int64, targetUserBizKey int64) error {
+func (m *mockTeamService) RemoveMember(_ context.Context, teamBizKey int64, targetUserBizKey int64) error {
 	m.removeCalled = true
-	m.lastPmID = uint(pmBizKey)
 	m.removeTeamID = uint(teamBizKey)
 	m.removeTargetID = uint(targetUserBizKey)
 	return m.removeMemberErr
 }
 
-func (m *mockTeamService) TransferPM(_ context.Context, currentPMBizKey int64, teamBizKey int64, newPMBizKey int64) error {
+func (m *mockTeamService) TransferPM(_ context.Context, teamBizKey int64, newPMBizKey int64) error {
 	m.transferCalled = true
-	m.lastPmID = uint(currentPMBizKey)
 	m.transferTeamID = uint(teamBizKey)
 	m.newPmID = uint(newPMBizKey)
 	return m.transferPMErr
 }
 
-func (m *mockTeamService) DisbandTeam(_ context.Context, callerBizKey int64, teamBizKey int64, confirmName string) error {
+func (m *mockTeamService) DisbandTeam(_ context.Context, teamBizKey int64, confirmName string) error {
 	m.disbandCalled = true
-	m.lastPmID = uint(callerBizKey)
 	m.disbandTeamID = uint(teamBizKey)
 	m.lastConfirmName = confirmName
 	return m.disbandTeamErr
 }
 
-func (m *mockTeamService) UpdateMemberRole(_ context.Context, pmBizKey, targetUserBizKey int64, teamBizKey int64, roleID int64) error {
+func (m *mockTeamService) UpdateMemberRole(_ context.Context, targetUserBizKey int64, teamBizKey int64, roleID int64) error {
 	return m.updateMemberRoleErr
 }
 
@@ -941,8 +937,6 @@ func TestTransferPM_SuperAdminNotTeamMember_Succeeds(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, svc.transferCalled)
-	// SuperAdmin → handler fetches team.PmKey (10) as currentPMID
-	assert.Equal(t, uint(10), svc.lastPmID)
 	assert.Equal(t, uint(1), svc.transferTeamID)
 	assert.Equal(t, uint(5), svc.newPmID)
 }

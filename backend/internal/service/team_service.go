@@ -19,13 +19,13 @@ type TeamService interface {
 	CreateTeam(ctx context.Context, creatorBizKey int64, req dto.CreateTeamReq) (*model.Team, error)
 	GetTeam(ctx context.Context, teamBizKey int64) (*model.Team, error)
 	GetTeamDetail(ctx context.Context, teamBizKey int64) (*dto.TeamDetailResp, error)
-	ListTeams(ctx context.Context, callerID uint, isSuperAdmin bool, search string, page, pageSize int) ([]*dto.TeamListResp, int64, error)
-	UpdateTeam(ctx context.Context, pmBizKey int64, teamBizKey int64, req dto.UpdateTeamReq) (*model.Team, error)
+	ListTeams(ctx context.Context, search string, page, pageSize int) ([]*dto.TeamListResp, int64, error)
+	UpdateTeam(ctx context.Context, teamBizKey int64, req dto.UpdateTeamReq) (*model.Team, error)
 	InviteMember(ctx context.Context, pmBizKey int64, teamBizKey int64, req dto.InviteMemberReq) error
-	RemoveMember(ctx context.Context, pmBizKey int64, teamBizKey int64, targetUserBizKey int64) error
-	TransferPM(ctx context.Context, currentPMBizKey int64, teamBizKey int64, newPMBizKey int64) error
-	DisbandTeam(ctx context.Context, callerBizKey int64, teamBizKey int64, confirmName string) error
-	UpdateMemberRole(ctx context.Context, pmBizKey int64, targetUserBizKey int64, teamBizKey int64, roleBizKey int64) error
+	RemoveMember(ctx context.Context, teamBizKey int64, targetUserBizKey int64) error
+	TransferPM(ctx context.Context, teamBizKey int64, newPMBizKey int64) error
+	DisbandTeam(ctx context.Context, teamBizKey int64, confirmName string) error
+	UpdateMemberRole(ctx context.Context, targetUserBizKey int64, teamBizKey int64, roleBizKey int64) error
 	ListMembers(ctx context.Context, teamBizKey int64) ([]*dto.TeamMemberDTO, error)
 	SearchAvailableUsers(ctx context.Context, teamBizKey int64, search string) ([]*dto.UserSearchDTO, error)
 }
@@ -81,7 +81,7 @@ func (s *teamService) GetTeam(ctx context.Context, teamBizKey int64) (*model.Tea
 	return team, nil
 }
 
-func (s *teamService) ListTeams(ctx context.Context, _ uint, _ bool, search string, page, pageSize int) ([]*dto.TeamListResp, int64, error) {
+func (s *teamService) ListTeams(ctx context.Context, search string, page, pageSize int) ([]*dto.TeamListResp, int64, error) {
 	offset, page, pageSize := dto.ApplyPaginationDefaults(page, pageSize)
 	teams, total, err := s.teamRepo.ListFiltered(ctx, search, offset, pageSize)
 	if err != nil {
@@ -151,13 +151,10 @@ func (s *teamService) GetTeamDetail(ctx context.Context, teamBizKey int64) (*dto
 	}, nil
 }
 
-func (s *teamService) UpdateTeam(ctx context.Context, pmBizKey int64, teamBizKey int64, req dto.UpdateTeamReq) (*model.Team, error) {
+func (s *teamService) UpdateTeam(ctx context.Context, teamBizKey int64, req dto.UpdateTeamReq) (*model.Team, error) {
 	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
-	}
-	if team.PmKey != pmBizKey {
-		return nil, apperrors.ErrForbidden
 	}
 
 	team.TeamName = req.Name
@@ -173,8 +170,13 @@ func (s *teamService) InviteMember(ctx context.Context, pmBizKey int64, teamBizK
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
-	if roleID, err := pkg.ParseID(req.RoleKey); err == nil && s.isPMRole(ctx, roleID) {
-		return apperrors.ErrCannotAssignPMRole
+	// Inline PM-role check: PM role can only be assigned via TransferPM
+	if roleID, err := pkg.ParseID(req.RoleKey); err == nil {
+		if s.roleRepo != nil {
+			if role, roleErr := s.roleRepo.FindByBizKey(ctx, roleID); roleErr == nil && role.Name == "pm" {
+				return apperrors.ErrCannotAssignPMRole
+			}
+		}
 	}
 
 	user, err := s.userRepo.FindByUsername(ctx, req.Username)
@@ -200,28 +202,22 @@ func (s *teamService) InviteMember(ctx context.Context, pmBizKey int64, teamBizK
 	return s.teamRepo.AddMember(ctx, member)
 }
 
-func (s *teamService) RemoveMember(ctx context.Context, pmBizKey int64, teamBizKey int64, targetUserBizKey int64) error {
+func (s *teamService) RemoveMember(ctx context.Context, teamBizKey int64, targetUserBizKey int64) error {
 	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
-	if team.PmKey != pmBizKey {
-		return apperrors.ErrForbidden
-	}
-	if targetUserBizKey == pmBizKey {
+	if targetUserBizKey == team.PmKey {
 		return apperrors.ErrCannotRemoveSelf
 	}
 
 	return s.teamRepo.RemoveMember(ctx, team.BizKey, targetUserBizKey)
 }
 
-func (s *teamService) TransferPM(ctx context.Context, currentPMBizKey int64, teamBizKey int64, newPMBizKey int64) error {
+func (s *teamService) TransferPM(ctx context.Context, teamBizKey int64, newPMBizKey int64) error {
 	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
-	}
-	if team.PmKey != currentPMBizKey {
-		return apperrors.ErrForbidden
 	}
 
 	// Verify new PM is a team member
@@ -232,6 +228,8 @@ func (s *teamService) TransferPM(ctx context.Context, currentPMBizKey int64, tea
 
 	// Atomic transfer via transaction
 	return s.db.Transaction(func(_ *gorm.DB) error {
+		currentPMBizKey := team.PmKey
+
 		// Update team PM
 		team.PmKey = newPMBizKey
 		if err := s.teamRepo.Update(ctx, team); err != nil {
@@ -264,13 +262,10 @@ func (s *teamService) TransferPM(ctx context.Context, currentPMBizKey int64, tea
 	})
 }
 
-func (s *teamService) DisbandTeam(ctx context.Context, callerBizKey int64, teamBizKey int64, confirmName string) error {
+func (s *teamService) DisbandTeam(ctx context.Context, teamBizKey int64, confirmName string) error {
 	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
-	}
-	if team.PmKey != callerBizKey {
-		return apperrors.ErrForbidden
 	}
 	if team.TeamName != confirmName {
 		return apperrors.ErrValidation
@@ -279,17 +274,17 @@ func (s *teamService) DisbandTeam(ctx context.Context, callerBizKey int64, teamB
 	return s.teamRepo.SoftDelete(ctx, team.ID)
 }
 
-func (s *teamService) UpdateMemberRole(ctx context.Context, pmBizKey int64, targetUserBizKey int64, teamBizKey int64, roleBizKey int64) error {
+func (s *teamService) UpdateMemberRole(ctx context.Context, targetUserBizKey int64, teamBizKey int64, roleBizKey int64) error {
 	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
-	if team.PmKey != pmBizKey {
-		return apperrors.ErrForbidden
-	}
 
-	if s.isPMRole(ctx, roleBizKey) {
-		return apperrors.ErrCannotAssignPMRole
+	// Inline PM-role check: PM role can only be assigned via TransferPM
+	if s.roleRepo != nil {
+		if role, roleErr := s.roleRepo.FindByBizKey(ctx, roleBizKey); roleErr == nil && role.Name == "pm" {
+			return apperrors.ErrCannotAssignPMRole
+		}
 	}
 
 	member, err := s.teamRepo.FindMember(ctx, team.BizKey, targetUserBizKey)
@@ -299,18 +294,6 @@ func (s *teamService) UpdateMemberRole(ctx context.Context, pmBizKey int64, targ
 
 	member.RoleKey = &roleBizKey
 	return s.teamRepo.UpdateMember(ctx, member)
-}
-
-// isPMRole returns true if the given bizKey corresponds to the "pm" preset role.
-func (s *teamService) isPMRole(ctx context.Context, bizKey int64) bool {
-	if s.roleRepo == nil {
-		return false
-	}
-	role, err := s.roleRepo.FindByBizKey(ctx, bizKey)
-	if err != nil {
-		return false
-	}
-	return role.Name == "pm"
 }
 
 func (s *teamService) ListMembers(ctx context.Context, teamBizKey int64) ([]*dto.TeamMemberDTO, error) {

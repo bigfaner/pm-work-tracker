@@ -26,25 +26,25 @@ func (s *StubTeamSvc) GetTeam(_ context.Context, _ int64) (*model.Team, error) {
 func (s *StubTeamSvc) GetTeamDetail(_ context.Context, _ int64) (*dto.TeamDetailResp, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
-func (s *StubTeamSvc) ListTeams(_ context.Context, _ uint, _ bool, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
+func (s *StubTeamSvc) ListTeams(_ context.Context, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
 	return nil, 0, fmt.Errorf("stub: not implemented")
 }
-func (s *StubTeamSvc) UpdateTeam(_ context.Context, _ int64, _ int64, _ dto.UpdateTeamReq) (*model.Team, error) {
+func (s *StubTeamSvc) UpdateTeam(_ context.Context, _ int64, _ dto.UpdateTeamReq) (*model.Team, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 func (s *StubTeamSvc) InviteMember(_ context.Context, _ int64, _ int64, _ dto.InviteMemberReq) error {
 	return fmt.Errorf("stub: not implemented")
 }
-func (s *StubTeamSvc) RemoveMember(_ context.Context, _ int64, _ int64, _ int64) error {
+func (s *StubTeamSvc) RemoveMember(_ context.Context, _ int64, _ int64) error {
 	return fmt.Errorf("stub: not implemented")
 }
-func (s *StubTeamSvc) TransferPM(_ context.Context, _ int64, _ int64, _ int64) error {
+func (s *StubTeamSvc) TransferPM(_ context.Context, _ int64, _ int64) error {
 	return fmt.Errorf("stub: not implemented")
 }
-func (s *StubTeamSvc) DisbandTeam(_ context.Context, _ int64, _ int64, _ string) error {
+func (s *StubTeamSvc) DisbandTeam(_ context.Context, _ int64, _ string) error {
 	return fmt.Errorf("stub: not implemented")
 }
-func (s *StubTeamSvc) UpdateMemberRole(_ context.Context, _ int64, _ int64, _ int64, _ int64) error {
+func (s *StubTeamSvc) UpdateMemberRole(_ context.Context, _ int64, _ int64, _ int64) error {
 	return fmt.Errorf("stub: not implemented")
 }
 func (s *StubTeamSvc) ListMembers(_ context.Context, _ int64) ([]*dto.TeamMemberDTO, error) {
