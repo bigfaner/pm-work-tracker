@@ -256,7 +256,7 @@
       "title": "Fix: e2e test scripts use wrong cwd 'ui' instead of 'frontend'",
       "priority": "P0",
       "estimatedTime": "30min",
-      "status": "pending",
+      "status": "completed",
       "file": "disc-2.md",
       "record": "records/disc-2.md",
       "breaking": true,
