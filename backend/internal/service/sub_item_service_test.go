@@ -420,51 +420,37 @@ func testValidTransitionTM(t *testing.T, from, to string) {
 // Tests: ChangeStatus — invalid transitions
 // ---------------------------------------------------------------------------
 
-func TestChangeStatus_Invalid_CompletedToAnything(t *testing.T) {
-	for _, target := range []string{"pending", "progressing", "blocking", "pausing", "closed"} {
-		t.Run("completed->"+target, func(t *testing.T) {
-			existing := &model.SubItem{
-				BaseModel:  model.BaseModel{ID: 1},
-				TeamKey:    1,
-				ItemStatus: "completed",
-			}
-			repo := new(mockSubItemRepoTM)
-			mainSvc := new(mockMainItemSvcTM)
-			historySvc := new(mockStatusHistorySvcTM)
-			svc := NewSubItemService(repo, mainSvc, historySvc)
-
-			repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
-
-			result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, target)
-			assert.ErrorIs(t, err, apperrors.ErrInvalidStatus, "from completed to %s should be invalid", target)
-			assert.Nil(t, result)
-
-			repo.AssertExpectations(t)
-		})
+func TestChangeStatus_Invalid_TerminalStateTransitions(t *testing.T) {
+	tests := []struct {
+		fromStatus string
+		targets    []string
+	}{
+		{"completed", []string{"pending", "progressing", "blocking", "pausing", "closed"}},
+		{"closed", []string{"pending", "progressing", "blocking", "pausing", "completed"}},
 	}
-}
 
-func TestChangeStatus_Invalid_ClosedToAnything(t *testing.T) {
-	for _, target := range []string{"pending", "progressing", "blocking", "pausing", "completed"} {
-		t.Run("closed->"+target, func(t *testing.T) {
-			existing := &model.SubItem{
-				BaseModel:  model.BaseModel{ID: 1},
-				TeamKey:    1,
-				ItemStatus: "closed",
-			}
-			repo := new(mockSubItemRepoTM)
-			mainSvc := new(mockMainItemSvcTM)
-			historySvc := new(mockStatusHistorySvcTM)
-			svc := NewSubItemService(repo, mainSvc, historySvc)
+	for _, tt := range tests {
+		for _, target := range tt.targets {
+			t.Run(tt.fromStatus+"->"+target, func(t *testing.T) {
+				existing := &model.SubItem{
+					BaseModel:  model.BaseModel{ID: 1},
+					TeamKey:    1,
+					ItemStatus: tt.fromStatus,
+				}
+				repo := new(mockSubItemRepoTM)
+				mainSvc := new(mockMainItemSvcTM)
+				historySvc := new(mockStatusHistorySvcTM)
+				svc := NewSubItemService(repo, mainSvc, historySvc)
 
-			repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
+				repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 
-			result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, target)
-			assert.ErrorIs(t, err, apperrors.ErrInvalidStatus, "from closed to %s should be invalid", target)
-			assert.Nil(t, result)
+				result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, target)
+				assert.ErrorIs(t, err, apperrors.ErrInvalidStatus, "from %s to %s should be invalid", tt.fromStatus, target)
+				assert.Nil(t, result)
 
-			repo.AssertExpectations(t)
-		})
+				repo.AssertExpectations(t)
+			})
+		}
 	}
 }
 
@@ -509,84 +495,56 @@ func testInvalidTransitionTM(t *testing.T, from, to string) {
 // Tests: ChangeStatus — completed sets completion=100 and ActualEndDate
 // ---------------------------------------------------------------------------
 
-func TestChangeStatus_Completed_SetsCompletionAndActualEndDate(t *testing.T) {
-	existing := &model.SubItem{
-		BaseModel:   model.BaseModel{ID: 1},
-		TeamKey:     1,
-		MainItemKey: int64(5),
-		ItemStatus:  "progressing",
+func TestChangeStatus_SetsCompletionAndActualEndDate(t *testing.T) {
+	tests := []struct {
+		name   string
+		status string
+	}{
+		{"Completed", "completed"},
+		{"Closed", "closed"},
 	}
-	updated := &model.SubItem{
-		BaseModel:   model.BaseModel{ID: 1},
-		TeamKey:     1,
-		MainItemKey: int64(5),
-		ItemStatus:  "completed",
-		Completion:  100,
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			existing := &model.SubItem{
+				BaseModel:   model.BaseModel{ID: 1},
+				TeamKey:     1,
+				MainItemKey: int64(5),
+				ItemStatus:  "progressing",
+			}
+			updated := &model.SubItem{
+				BaseModel:   model.BaseModel{ID: 1},
+				TeamKey:     1,
+				MainItemKey: int64(5),
+				ItemStatus:  tt.status,
+				Completion:  100,
+			}
+			repo := new(mockSubItemRepoTM)
+			mainSvc := new(mockMainItemSvcTM)
+			historySvc := new(mockStatusHistorySvcTM)
+			svc := NewSubItemService(repo, mainSvc, historySvc)
+
+			repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil).Once()
+			repo.On("Update", mock.Anything, existing, mock.MatchedBy(func(fields map[string]interface{}) bool {
+				return fields["item_status"] == tt.status &&
+					fields["completion_pct"] == float64(100) &&
+					fields["actual_end_date"] != nil
+			})).Return(nil)
+			repo.On("FindByID", mock.Anything, uint(1)).Return(updated, nil).Once()
+			mainSvc.On("RecalcCompletion", mock.Anything, int64(5)).Return(nil)
+			historySvc.On("Record", mock.Anything, mock.Anything).Return(nil)
+			mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), int64(10)).Return(nil, nil)
+
+			result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, tt.status)
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.Equal(t, tt.status, result.SubItem.ItemStatus)
+
+			repo.AssertExpectations(t)
+			mainSvc.AssertExpectations(t)
+			historySvc.AssertExpectations(t)
+		})
 	}
-	repo := new(mockSubItemRepoTM)
-	mainSvc := new(mockMainItemSvcTM)
-	historySvc := new(mockStatusHistorySvcTM)
-	svc := NewSubItemService(repo, mainSvc, historySvc)
-
-	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil).Once()
-	repo.On("Update", mock.Anything, existing, mock.MatchedBy(func(fields map[string]interface{}) bool {
-		return fields["item_status"] == "completed" &&
-			fields["completion_pct"] == float64(100) &&
-			fields["actual_end_date"] != nil
-	})).Return(nil)
-	repo.On("FindByID", mock.Anything, uint(1)).Return(updated, nil).Once()
-	mainSvc.On("RecalcCompletion", mock.Anything, int64(5)).Return(nil)
-	historySvc.On("Record", mock.Anything, mock.Anything).Return(nil)
-	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), int64(10)).Return(nil, nil)
-
-	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, "completed")
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	assert.Equal(t, "completed", result.SubItem.ItemStatus)
-
-	repo.AssertExpectations(t)
-	mainSvc.AssertExpectations(t)
-	historySvc.AssertExpectations(t)
-}
-
-func TestChangeStatus_Closed_SetsCompletionAndActualEndDate(t *testing.T) {
-	existing := &model.SubItem{
-		BaseModel:   model.BaseModel{ID: 1},
-		TeamKey:     1,
-		MainItemKey: int64(5),
-		ItemStatus:  "progressing",
-	}
-	updated := &model.SubItem{
-		BaseModel:   model.BaseModel{ID: 1},
-		TeamKey:     1,
-		MainItemKey: int64(5),
-		ItemStatus:  "closed",
-		Completion:  100,
-	}
-	repo := new(mockSubItemRepoTM)
-	mainSvc := new(mockMainItemSvcTM)
-	historySvc := new(mockStatusHistorySvcTM)
-	svc := NewSubItemService(repo, mainSvc, historySvc)
-
-	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil).Once()
-	repo.On("Update", mock.Anything, existing, mock.MatchedBy(func(fields map[string]interface{}) bool {
-		return fields["item_status"] == "closed" &&
-			fields["completion_pct"] == float64(100) &&
-			fields["actual_end_date"] != nil
-	})).Return(nil)
-	repo.On("FindByID", mock.Anything, uint(1)).Return(updated, nil).Once()
-	mainSvc.On("RecalcCompletion", mock.Anything, int64(5)).Return(nil)
-	historySvc.On("Record", mock.Anything, mock.Anything).Return(nil)
-	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), int64(10)).Return(nil, nil)
-
-	result, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, "closed")
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	assert.Equal(t, "closed", result.SubItem.ItemStatus)
-
-	repo.AssertExpectations(t)
-	mainSvc.AssertExpectations(t)
-	historySvc.AssertExpectations(t)
 }
 
 func TestChangeStatus_Completed_RecalcCompletion_CalledWithCorrectMainItemID(t *testing.T) {
@@ -792,6 +750,7 @@ func TestSubItemAvailableTransitions_TerminalStatus(t *testing.T) {
 	repo.AssertExpectations(t)
 }
 
+//nolint:dupl // same NotFound pattern as TestSubItemGet_NotFound; different service method under test
 func TestSubItemAvailableTransitions_NotFound(t *testing.T) {
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)

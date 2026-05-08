@@ -650,6 +650,7 @@ func TestWeeklyComparison_SubItemCompletedBeforeWeek_NotActive(t *testing.T) {
 }
 
 func TestWeeklyComparison_SubItemOutsideWeek_NotShown(t *testing.T) {
+	//nolint:dupl // two test cases with structurally similar SubItem fields; merging would hurt readability
 	tests := []struct {
 		name      string
 		weekStart time.Time
@@ -1514,6 +1515,7 @@ func TestTableView_FilterByPriority(t *testing.T) {
 	assert.Equal(t, "P1", result.Items[0].Priority)
 }
 
+//nolint:dupl // same setup pattern as FilterByPriority; tests a different filter dimension
 func TestTableView_FilterByStatus(t *testing.T) {
 	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 
@@ -1556,6 +1558,7 @@ func TestTableView_FilterByAssigneeID(t *testing.T) {
 	assert.Equal(t, "100", *result.Items[0].AssigneeID)
 }
 
+//nolint:dupl // same 3-item repo setup as TestTableView_Page2_ReturnsSecondPage; different pagination/assertion
 func TestTableView_Pagination(t *testing.T) {
 	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 
@@ -1581,6 +1584,7 @@ func TestTableView_Pagination(t *testing.T) {
 	assert.Equal(t, "P2", result.Items[1].Priority)
 }
 
+//nolint:dupl // same 3-item repo setup as TestTableView_Pagination; different sort/assertion
 func TestTableView_DefaultSort_PriorityDescThenExpectedEndDateAsc(t *testing.T) {
 	endDate1 := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	endDate2 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
@@ -1608,7 +1612,7 @@ func TestTableView_DefaultSort_PriorityDescThenExpectedEndDateAsc(t *testing.T) 
 
 func TestTableView_SortByCompletion(t *testing.T) {
 	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
-
+	//nolint:dupl // two test cases with structurally similar MainItem slices; different sort directions
 	tests := []struct {
 		name      string
 		sortOrder string
@@ -1752,6 +1756,7 @@ func TestTableView_NilDates_ReturnNil(t *testing.T) {
 	assert.Nil(t, result.Items[0].ActualEndDate)
 }
 
+//nolint:dupl // same 3-item repo setup as TestTableView_Pagination; different page/assertion
 func TestTableView_Page2_ReturnsSecondPage(t *testing.T) {
 	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 
@@ -1888,6 +1893,7 @@ func TestTableExportCSV_MultipleRows(t *testing.T) {
 	assert.Equal(t, "sub", records[2][2])
 }
 
+//nolint:dupl // same repo setup as TestTableView_FilterByPriority; tests CSV export with filter
 func TestTableExportCSV_ExportWithFilter(t *testing.T) {
 	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 
@@ -2364,7 +2370,7 @@ func seedBenchmarkData() (*mockViewMainItemRepo, *mockViewSubItemRepo, *mockView
 		&mockViewUserRepo{users: users}
 }
 
-func BenchmarkTableView(b *testing.B) {
+func benchmarkTableView(b *testing.B, pageSize int) {
 	b.StopTimer()
 	mainRepo, subRepo, userRepo := seedBenchmarkData()
 	svc := newViewServiceWithUsers(mainRepo, subRepo, userRepo)
@@ -2372,27 +2378,15 @@ func BenchmarkTableView(b *testing.B) {
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		_, err := svc.TableView(ctx, 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 20})
+		_, err := svc.TableView(ctx, 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: pageSize})
 		if err != nil {
 			b.Fatal(err)
 		}
 	}
 }
 
-func BenchmarkTableView_LargePage(b *testing.B) {
-	b.StopTimer()
-	mainRepo, subRepo, userRepo := seedBenchmarkData()
-	svc := newViewServiceWithUsers(mainRepo, subRepo, userRepo)
-	ctx := context.Background()
-	b.StartTimer()
-
-	for i := 0; i < b.N; i++ {
-		_, err := svc.TableView(ctx, 1, dto.TableFilter{}, dto.Pagination{Page: 1, PageSize: 100})
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
+func BenchmarkTableView(b *testing.B)          { benchmarkTableView(b, 20) }
+func BenchmarkTableView_LargePage(b *testing.B) { benchmarkTableView(b, 100) }
 
 func BenchmarkGanttView(b *testing.B) {
 	b.StopTimer()

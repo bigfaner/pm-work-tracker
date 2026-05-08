@@ -77,6 +77,7 @@ func (r *mainItemRepo) List(ctx context.Context, teamBizKey int64, filter dto.Ma
 	}, nil
 }
 
+//nolint:dupl // same transaction shape as subItemRepo.NextSubCode; core logic extracted to nextSeqInTx
 func (r *mainItemRepo) NextCode(ctx context.Context, teamBizKey int64) (string, error) {
 	var code string
 	err := r.db.WithContext(ctx).Transaction(func(tx *gormlib.DB) error {
@@ -88,23 +89,10 @@ func (r *mainItemRepo) NextCode(ctx context.Context, teamBizKey int64) (string, 
 		if err := tx.Where("biz_key = ?", teamBizKey).First(&team).Error; err != nil {
 			return err
 		}
-		seq := team.ItemSeq
 
-		// If items were inserted directly with a higher seq (e.g. migration), skip past them.
-		var maxSeq *int
-		subExpr := r.dialect.Substr(dbutil.ColCode, len(team.Code)+2)
-		castExpr := r.dialect.CastInt(dbutil.NewColumnExpr(subExpr))
-		if err := tx.Model(&model.MainItem{}).
-			Where("team_key = ?", teamBizKey).
-			Select("MAX(" + castExpr + ")").
-			Scan(&maxSeq).Error; err != nil {
+		seq, err := nextSeqInTx(tx, r.dialect, "pmw_teams", "item_seq", "biz_key", teamBizKey, team.ItemSeq, team.Code, "team_key", teamBizKey, &model.MainItem{})
+		if err != nil {
 			return err
-		}
-		if maxSeq != nil && uint(*maxSeq) >= seq {
-			seq = uint(*maxSeq) + 1
-			if err := tx.Exec("UPDATE pmw_teams SET item_seq = ? WHERE biz_key = ?", seq, teamBizKey).Error; err != nil {
-				return err
-			}
 		}
 
 		code = fmt.Sprintf("%s-%05d", team.Code, seq)

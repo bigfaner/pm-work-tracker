@@ -98,6 +98,7 @@ func (r *subItemRepo) ListByTeam(ctx context.Context, teamBizKey int64) ([]model
 	return items, err
 }
 
+//nolint:dupl // same transaction shape as mainItemRepo.NextCode; core logic extracted to nextSeqInTx
 // NextSubCode generates the next sub-item code for the given main item.
 // It locks the main item row (SELECT FOR UPDATE) to serialize concurrent calls,
 // reads the current MAX sub sequence, and returns "{mainCode}-{seq:02d}".
@@ -112,23 +113,10 @@ func (r *subItemRepo) NextSubCode(ctx context.Context, mainItemBizKey int64) (st
 		if err := tx.Where("biz_key = ?", mainItemBizKey).First(&mainItem).Error; err != nil {
 			return err
 		}
-		seq := mainItem.SubItemSeq
 
-		// If sub-items were inserted directly with a higher seq, skip past them.
-		var maxSeq *int
-		subExpr := r.dialect.Substr(dbutil.ColCode, len(mainItem.Code)+2)
-		castExpr := r.dialect.CastInt(dbutil.NewColumnExpr(subExpr))
-		if err := tx.Model(&model.SubItem{}).
-			Where("main_item_key = ?", mainItemBizKey).
-			Select("MAX(" + castExpr + ")").
-			Scan(&maxSeq).Error; err != nil {
+		seq, err := nextSeqInTx(tx, r.dialect, "pmw_main_items", "sub_item_seq", "biz_key", mainItemBizKey, mainItem.SubItemSeq, mainItem.Code, "main_item_key", mainItemBizKey, &model.SubItem{})
+		if err != nil {
 			return err
-		}
-		if maxSeq != nil && uint(*maxSeq) >= seq {
-			seq = uint(*maxSeq) + 1
-			if err := tx.Exec("UPDATE pmw_main_items SET sub_item_seq = ? WHERE biz_key = ?", seq, mainItemBizKey).Error; err != nil {
-				return err
-			}
 		}
 
 		code = fmt.Sprintf("%s-%02d", mainItem.Code, seq)

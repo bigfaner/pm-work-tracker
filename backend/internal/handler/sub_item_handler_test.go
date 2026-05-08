@@ -500,36 +500,11 @@ func TestUpdateSubItem_Success_AsPM(t *testing.T) {
 	assert.Equal(t, "Updated Title", *svc.lastUpdateReq.Title)
 }
 
+// After removing assignee checks, a member with sub_item:update can update any sub-item
+// (including sub-items assigned to a different user).
 func TestUpdateSubItem_Success_AsMember(t *testing.T) {
 	svc := &mockSubItemService{}
 	assigneeID := uint(99) // different user — member can still update (no assignee check)
-	item := testSubItem(1)
-	item.ID = 1
-	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
-	item.Title = "Updated"
-	svc.getResult.item = item
-
-	deps := depsWithSubItemSvcMemberRole(t, svc)
-	r := SetupRouter(deps, nil)
-
-	token := signTestToken(t, 5, "testuser") // userID=5, NOT the assignee (99)
-	body := `{"title":"Updated"}`
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.True(t, svc.updateCalled)
-}
-
-// After removing assignee checks, a member with sub_item:update can update any sub-item.
-func TestUpdateSubItem_Success_NonAssigneeMember(t *testing.T) {
-	// Same as AsMember — both verify member with sub_item:update permission succeeds.
-	// Kept as separate test for documentation of the removed-assignee-check behavior.
-	svc := &mockSubItemService{}
-	assigneeID := uint(99) // different user
 	item := testSubItem(1)
 	item.ID = 1
 	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
@@ -737,34 +712,11 @@ func TestChangeStatus_InvalidBody(t *testing.T) {
 	assert.False(t, svc.changeStatusCalled)
 }
 
+// After removing assignee checks, a member with sub_item:change_status can change any sub-item status
+// (including sub-items assigned to a different user).
 func TestChangeStatus_Success_AsMember(t *testing.T) {
 	svc := &mockSubItemService{}
 	assigneeID := uint(99) // different user — member can still change status (no assignee check)
-	item := testSubItem(1)
-	item.ID = 1
-	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
-	item.ItemStatus = "progressing"
-	svc.changeStatusResult.result = &service.SubItemChangeResult{SubItem: item}
-
-	deps := depsWithSubItemSvcMemberRole(t, svc)
-	r := SetupRouter(deps, nil)
-
-	token := signTestToken(t, 5, "testuser")
-	body := `{"status":"progressing"}`
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/status", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.True(t, svc.changeStatusCalled)
-}
-
-// After removing assignee checks, a member with sub_item:change_status can change any sub-item status.
-func TestChangeStatus_Success_NonAssigneeMember(t *testing.T) {
-	svc := &mockSubItemService{}
-	assigneeID := uint(99)
 	item := testSubItem(1)
 	item.ID = 1
 	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()

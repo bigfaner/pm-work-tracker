@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -166,91 +168,42 @@ func TestAdminUser_UpdateUser_Returns200(t *testing.T) {
 	assert.Equal(t, "updated@test.com", d["email"])
 }
 
-func TestAdminUser_UpdateUser_EmptyDisplayNameReturns422(t *testing.T) {
-	db, data := setupRBACTestDB(t)
-	backfillUserBizKeys(t, db)
-	r := setupRBACTestRouter(t, db, data)
-	token := loginAs(t, r, "superadmin", "adminPass")
-
-	// Get userA's bizKey
-	w := makeRequest(t, r, http.MethodGet, "/api/v1/admin/users?search=userA", "", token)
+// fetchUserBizKey searches for a user and returns their bizKey.
+func fetchUserBizKey(t *testing.T, r *gin.Engine, token, search string) string {
+	t.Helper()
+	w := makeRequest(t, r, http.MethodGet, "/api/v1/admin/users?search="+search, "", token)
 	require.Equal(t, http.StatusOK, w.Code)
 	var listResp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &listResp))
 	items := listResp["data"].(map[string]interface{})["items"].([]interface{})
 	require.GreaterOrEqual(t, len(items), 1)
-	userBizKey := items[0].(map[string]interface{})["bizKey"].(string)
-
-	body := `{"displayName":""}`
-	w = makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/users/%s", userBizKey), body, token)
-	assert.Equal(t, http.StatusBadRequest, w.Code) // validation error maps to 400
+	return items[0].(map[string]interface{})["bizKey"].(string)
 }
 
-func TestAdminUser_UpdateUser_DisplayNameTooLongReturns422(t *testing.T) {
+func TestAdminUser_UpdateUser_ValidationErrors(t *testing.T) {
 	db, data := setupRBACTestDB(t)
 	backfillUserBizKeys(t, db)
 	r := setupRBACTestRouter(t, db, data)
 	token := loginAs(t, r, "superadmin", "adminPass")
+	userBizKey := fetchUserBizKey(t, r, token, "userA")
 
-	w := makeRequest(t, r, http.MethodGet, "/api/v1/admin/users?search=userA", "", token)
-	require.Equal(t, http.StatusOK, w.Code)
-	var listResp map[string]interface{}
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &listResp))
-	items := listResp["data"].(map[string]interface{})["items"].([]interface{})
-	require.GreaterOrEqual(t, len(items), 1)
-	userBizKey := items[0].(map[string]interface{})["bizKey"].(string)
-
-	// displayName max is 64 chars
-	longName := ""
-	for i := 0; i < 65; i++ {
-		longName += "a"
+	tests := []struct {
+		name       string
+		body       string
+		wantStatus int
+	}{
+		{"EmptyDisplayName", `{"displayName":""}`, http.StatusBadRequest},
+		{"DisplayNameTooLong", fmt.Sprintf(`{"displayName":"%s"}`, strings.Repeat("a", 65)), http.StatusBadRequest},
+		{"EmailTooLong", fmt.Sprintf(`{"email":"%s"}`, strings.Repeat("a", 101)), http.StatusBadRequest},
+		{"InvalidTeamKey", `{"teamKey":"99999999"}`, http.StatusNotFound},
 	}
-	body := fmt.Sprintf(`{"displayName":"%s"}`, longName)
-	w = makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/users/%s", userBizKey), body, token)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
 
-func TestAdminUser_UpdateUser_EmailTooLongReturns422(t *testing.T) {
-	db, data := setupRBACTestDB(t)
-	backfillUserBizKeys(t, db)
-	r := setupRBACTestRouter(t, db, data)
-	token := loginAs(t, r, "superadmin", "adminPass")
-
-	w := makeRequest(t, r, http.MethodGet, "/api/v1/admin/users?search=userA", "", token)
-	require.Equal(t, http.StatusOK, w.Code)
-	var listResp map[string]interface{}
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &listResp))
-	items := listResp["data"].(map[string]interface{})["items"].([]interface{})
-	require.GreaterOrEqual(t, len(items), 1)
-	userBizKey := items[0].(map[string]interface{})["bizKey"].(string)
-
-	// email max is 100 chars
-	longEmail := ""
-	for i := 0; i < 101; i++ {
-		longEmail += "a"
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/users/%s", userBizKey), tt.body, token)
+			assert.Equal(t, tt.wantStatus, w.Code)
+		})
 	}
-	body := fmt.Sprintf(`{"email":"%s"}`, longEmail)
-	w = makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/users/%s", userBizKey), body, token)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestAdminUser_UpdateUser_InvalidTeamKeyReturns422(t *testing.T) {
-	db, data := setupRBACTestDB(t)
-	backfillUserBizKeys(t, db)
-	r := setupRBACTestRouter(t, db, data)
-	token := loginAs(t, r, "superadmin", "adminPass")
-
-	w := makeRequest(t, r, http.MethodGet, "/api/v1/admin/users?search=userA", "", token)
-	require.Equal(t, http.StatusOK, w.Code)
-	var listResp map[string]interface{}
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &listResp))
-	items := listResp["data"].(map[string]interface{})["items"].([]interface{})
-	require.GreaterOrEqual(t, len(items), 1)
-	userBizKey := items[0].(map[string]interface{})["bizKey"].(string)
-
-	body := `{"teamKey":"99999999"}`
-	w = makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/users/%s", userBizKey), body, token)
-	assert.Equal(t, http.StatusNotFound, w.Code) // team not found
 }
 
 func TestAdminUser_UpdateUser_NotFoundReturns404(t *testing.T) {
@@ -296,19 +249,11 @@ func TestAdminUser_ToggleStatus_EnableReturns200(t *testing.T) {
 	backfillUserBizKeys(t, db)
 	r := setupRBACTestRouter(t, db, data)
 	token := loginAs(t, r, "superadmin", "adminPass")
-
-	// Get userA's bizKey
-	w := makeRequest(t, r, http.MethodGet, "/api/v1/admin/users?search=userA", "", token)
-	require.Equal(t, http.StatusOK, w.Code)
-	var listResp map[string]interface{}
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &listResp))
-	items := listResp["data"].(map[string]interface{})["items"].([]interface{})
-	require.GreaterOrEqual(t, len(items), 1)
-	userBizKey := items[0].(map[string]interface{})["bizKey"].(string)
+	userBizKey := fetchUserBizKey(t, r, token, "userA")
 
 	// Disable first
 	body := `{"status":"disabled"}`
-	w = makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/users/%s/status", userBizKey), body, token)
+	w := makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/users/%s/status", userBizKey), body, token)
 	require.Equal(t, http.StatusOK, w.Code)
 
 	// Re-enable
@@ -327,18 +272,10 @@ func TestAdminUser_ToggleStatus_DisableSelfReturns422(t *testing.T) {
 	backfillUserBizKeys(t, db)
 	r := setupRBACTestRouter(t, db, data)
 	token := loginAs(t, r, "superadmin", "adminPass")
-
-	// Get superadmin's bizKey
-	w := makeRequest(t, r, http.MethodGet, "/api/v1/admin/users?search=superadmin", "", token)
-	require.Equal(t, http.StatusOK, w.Code)
-	var listResp map[string]interface{}
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &listResp))
-	items := listResp["data"].(map[string]interface{})["items"].([]interface{})
-	require.GreaterOrEqual(t, len(items), 1)
-	adminBizKey := items[0].(map[string]interface{})["bizKey"].(string)
+	adminBizKey := fetchUserBizKey(t, r, token, "superadmin")
 
 	body := `{"status":"disabled"}`
-	w = makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/users/%s/status", adminBizKey), body, token)
+	w := makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/users/%s/status", adminBizKey), body, token)
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 }
 
