@@ -109,6 +109,17 @@ func AllCodes() map[string]bool {
 	return result
 }
 
+// AllCodeStrings returns a flat slice of all registered permission code strings.
+func AllCodeStrings() []string {
+	codes := make([]string, 0, countCodes())
+	for _, rp := range Registry {
+		for _, p := range rp.Permissions {
+			codes = append(codes, p.Code)
+		}
+	}
+	return codes
+}
+
 // ValidateCode returns true if the given code is a registered permission code.
 func ValidateCode(code string) bool {
 	return allCodes[code]

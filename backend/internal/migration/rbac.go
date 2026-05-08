@@ -153,8 +153,8 @@ func rbacTableDDL(tx *gorm.DB) []string {
 }
 
 func seedPresetRoles(tx *gorm.DB) error {
-	// Seed superadmin (id=1, no permission codes)
-	if err := seedRole(tx, "superadmin", "系统超级管理员，绕过所有权限检查", true, nil); err != nil {
+	// Seed superadmin (id=1, all 29 permission codes)
+	if err := seedRole(tx, "superadmin", "系统超级管理员", true, permissions.AllCodeStrings()); err != nil {
 		return err
 	}
 

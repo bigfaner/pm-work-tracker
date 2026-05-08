@@ -105,10 +105,10 @@ func TestMigrateToRBAC_PresetRolesSeeded(t *testing.T) {
 	assert.True(t, superadmin.IsPreset)
 	assert.Equal(t, uint(1), superadmin.ID)
 
-	// superadmin should have NO permission codes
+	// superadmin should have all 29 permission codes
 	count, err := CountPermissionsForRole(db, superadmin.BizKey)
 	require.NoError(t, err)
-	assert.Equal(t, int64(0), count, "superadmin should have no permission codes")
+	assert.Equal(t, int64(29), count, "superadmin should have all 29 permission codes")
 
 	// Check pm role
 	var pm model.Role
@@ -356,7 +356,7 @@ func TestMigrateToRBAC_PMPresetHasAllExpectedCodes(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestMigrateToRBAC_SuperadminNoPermissionCodes(t *testing.T) {
+func TestMigrateToRBAC_SuperadminHasAllPermissionCodes(t *testing.T) {
 	db := setupRBACTestDB(t)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
@@ -369,7 +369,7 @@ func TestMigrateToRBAC_SuperadminNoPermissionCodes(t *testing.T) {
 	require.NoError(t, db.Where("role_name = ?", "superadmin").First(&superadminRole).Error)
 	count, err := CountPermissionsForRole(db, superadminRole.BizKey)
 	require.NoError(t, err)
-	assert.Equal(t, int64(0), count, "superadmin should have zero permission codes in role_permissions")
+	assert.Equal(t, int64(29), count, "superadmin should have all 29 permission codes in role_permissions")
 }
 
 func TestMigrateToRBAC_MemberHasExactCodes(t *testing.T) {
