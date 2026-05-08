@@ -206,7 +206,7 @@ func (s *mainItemService) Update(ctx context.Context, teamBizKey int64, itemID u
 	return s.mainItemRepo.Update(ctx, item, fields)
 }
 
-func (s *mainItemService) Archive(ctx context.Context, teamBizKey int64, itemID uint) error {
+func (s *mainItemService) Archive(ctx context.Context, _ int64, itemID uint) error {
 	item, err := s.mainItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)

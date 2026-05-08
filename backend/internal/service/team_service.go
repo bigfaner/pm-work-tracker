@@ -15,6 +15,7 @@ import (
 	"pm-work-tracker/backend/internal/repository"
 )
 
+// TeamService handles team management operations.
 type TeamService interface {
 	CreateTeam(ctx context.Context, creatorBizKey int64, req dto.CreateTeamReq) (*model.Team, error)
 	GetTeam(ctx context.Context, teamBizKey int64) (*model.Team, error)
@@ -38,6 +39,7 @@ type teamService struct {
 	db           repo.DBTransactor
 }
 
+// NewTeamService creates a new TeamService instance.
 func NewTeamService(teamRepo repository.TeamRepo, userRepo repository.UserRepo, mainItemRepo repository.MainItemRepo, roleRepo repository.RoleRepo, db repo.DBTransactor) TeamService {
 	return &teamService{teamRepo: teamRepo, userRepo: userRepo, mainItemRepo: mainItemRepo, roleRepo: roleRepo, db: db}
 }
@@ -165,7 +167,7 @@ func (s *teamService) UpdateTeam(ctx context.Context, teamBizKey int64, req dto.
 	return team, nil
 }
 
-func (s *teamService) InviteMember(ctx context.Context, pmBizKey int64, teamBizKey int64, req dto.InviteMemberReq) error {
+func (s *teamService) InviteMember(ctx context.Context, _ int64, teamBizKey int64, req dto.InviteMemberReq) error {
 	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)

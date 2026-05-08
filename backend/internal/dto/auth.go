@@ -1,3 +1,4 @@
+// Package dto provides data transfer objects for API request/response boundaries.
 package dto
 
 import "pm-work-tracker/backend/internal/vo"

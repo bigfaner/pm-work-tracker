@@ -122,7 +122,7 @@ func (s *progressService) GetByBizKey(ctx context.Context, bizKey int64) (*model
 	return record, nil
 }
 
-func (s *progressService) CorrectCompletion(ctx context.Context, teamBizKey int64, recordID uint, completion float64) error {
+func (s *progressService) CorrectCompletion(ctx context.Context, _ int64, recordID uint, completion float64) error {
 	record, err := s.progressRepo.FindByID(ctx, recordID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)

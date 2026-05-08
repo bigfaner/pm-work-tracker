@@ -1,3 +1,4 @@
+// Package migration handles database schema and data migrations.
 package migration
 
 import (
@@ -184,11 +185,7 @@ func seedPresetRoles(tx *gorm.DB) error {
 		"view:weekly", "view:table",
 		"report:export",
 	}
-	if err := seedRole(tx, "member", "团队成员，基础操作权限", memberCodes); err != nil {
-		return err
-	}
-
-	return nil
+	return seedRole(tx, "member", "团队成员，基础操作权限", memberCodes)
 }
 
 func seedRole(tx *gorm.DB, name, description string, codes []string) error {

@@ -1,3 +1,4 @@
+// Package report provides report rendering and template utilities.
 package report
 
 import (

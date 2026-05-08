@@ -224,7 +224,7 @@ func (s *subItemService) AvailableTransitions(ctx context.Context, teamBizKey in
 	return status.GetAvailableTransitions(status.SubItemTransitions, item.ItemStatus), nil
 }
 
-func (s *subItemService) Get(ctx context.Context, teamBizKey int64, itemID uint) (*model.SubItem, error) {
+func (s *subItemService) Get(ctx context.Context, _ int64, itemID uint) (*model.SubItem, error) {
 	item, err := s.subItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
@@ -248,7 +248,7 @@ func (s *subItemService) List(ctx context.Context, teamBizKey int64, mainItemBiz
 	return s.subItemRepo.List(ctx, teamBizKey, mid, filter, page)
 }
 
-func (s *subItemService) Assign(ctx context.Context, teamBizKey int64, pmBizKey int64, itemID uint, assigneeBizKey int64) error {
+func (s *subItemService) Assign(ctx context.Context, teamBizKey int64, _ int64, itemID uint, assigneeBizKey int64) error {
 	item, err := s.subItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)

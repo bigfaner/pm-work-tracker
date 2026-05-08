@@ -11,6 +11,7 @@ import (
 	"pm-work-tracker/backend/internal/repository"
 )
 
+// AuthService handles authentication operations.
 type AuthService interface {
 	Login(ctx context.Context, username, password string) (token string, user *model.User, err error)
 	Logout(ctx context.Context, token string) error
@@ -22,6 +23,7 @@ type authService struct {
 	jwtSecret string
 }
 
+// NewAuthService creates a new AuthService instance.
 func NewAuthService(userRepo repository.UserRepo, jwtSecret string) AuthService {
 	return &authService{userRepo: userRepo, jwtSecret: jwtSecret}
 }
@@ -52,7 +54,7 @@ func (s *authService) Login(ctx context.Context, username, password string) (str
 	return token, user, nil
 }
 
-func (s *authService) ParseToken(ctx context.Context, token string) (*appjwt.Claims, error) {
+func (s *authService) ParseToken(_ context.Context, token string) (*appjwt.Claims, error) {
 	return appjwt.Verify(token, s.jwtSecret)
 }
 

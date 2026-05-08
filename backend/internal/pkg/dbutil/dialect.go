@@ -1,3 +1,4 @@
+// Package dbutil provides database dialect abstraction and SQL helpers.
 package dbutil
 
 import (

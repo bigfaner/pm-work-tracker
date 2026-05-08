@@ -649,124 +649,102 @@ func TestWeeklyComparison_SubItemCompletedBeforeWeek_NotActive(t *testing.T) {
 	assert.Equal(t, "10", group.CompletedNoChange[0].BizKey)
 }
 
-func TestWeeklyComparison_SubItemCreatedAfterWeek_Completed_NotShown(t *testing.T) {
-	// Viewing week April 6-12, but sub-item was created and completed on April 14 (after that week)
-	weekStart := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC)
-	actualEnd := time.Date(2026, 4, 14, 0, 0, 0, 0, time.UTC)
-
-	mainRepo := &mockViewMainItemRepo{
-		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1", Completion: 100},
-		},
-	}
-	subRepo := &mockViewSubItemRepo{
-		items: []model.SubItem{
-			{
+func TestWeeklyComparison_SubItemOutsideWeek_NotShown(t *testing.T) {
+	tests := []struct {
+		name      string
+		weekStart time.Time
+		subItem   model.SubItem
+	}{
+		{
+			name:      "CreatedAfterWeek",
+			weekStart: time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC),
+			subItem: model.SubItem{
 				BaseModel:     model.BaseModel{ID: 10, BizKey: 10, CreateTime: time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)},
 				TeamKey:       1,
 				MainItemKey:   int64(1),
 				Title:         "Future Completed Sub",
 				ItemStatus:    "completed",
 				Completion:    100,
-				ActualEndDate: &actualEnd,
+				ActualEndDate: func() *time.Time { t := time.Date(2026, 4, 14, 0, 0, 0, 0, time.UTC); return &t }(),
 			},
 		},
-	}
-	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
-
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
-	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
-	require.NoError(t, err)
-
-	// Main item should be omitted entirely — sub-item didn't exist during the viewed week
-	assert.Empty(t, result.Groups)
-}
-
-func TestWeeklyComparison_SubItemCompletedAfterWeek_NotShown(t *testing.T) {
-	// Viewing week Dec 1-7 2025, but sub-item was completed in April 2026 (after that week)
-	weekStart := time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC)
-	actualEnd := time.Date(2026, 4, 21, 0, 0, 0, 0, time.UTC)
-
-	mainRepo := &mockViewMainItemRepo{
-		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Test Item", Priority: "P2", Completion: 100},
-		},
-	}
-	subRepo := &mockViewSubItemRepo{
-		items: []model.SubItem{
-			{
+		{
+			name:      "CompletedAfterWeek",
+			weekStart: time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC),
+			subItem: model.SubItem{
 				BaseModel:     model.BaseModel{ID: 10, BizKey: 10, CreateTime: time.Date(2026, 4, 21, 0, 0, 0, 0, time.UTC)},
 				TeamKey:       1,
 				MainItemKey:   int64(1),
 				Title:         "Future Sub",
 				ItemStatus:    "completed",
 				Completion:    100,
-				ActualEndDate: &actualEnd,
+				ActualEndDate: func() *time.Time { t := time.Date(2026, 4, 21, 0, 0, 0, 0, time.UTC); return &t }(),
 			},
 		},
 	}
-	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
-	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
-	require.NoError(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mainRepo := &mockViewMainItemRepo{
+				items: []model.MainItem{
+					{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1", Completion: 100},
+				},
+			}
+			subRepo := &mockViewSubItemRepo{items: []model.SubItem{tt.subItem}}
+			progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
 
-	// Main item should not appear — sub-item was created and completed after the viewed week
-	assert.Empty(t, result.Groups)
+			svc := NewViewService(mainRepo, subRepo, progressRepo)
+			result, err := svc.WeeklyComparison(context.Background(), 1, tt.weekStart)
+			require.NoError(t, err)
+			assert.Empty(t, result.Groups)
+		})
+	}
 }
 
-func TestWeeklyComparison_StatsPending(t *testing.T) {
+func TestWeeklyComparison_StatsByStatus(t *testing.T) {
 	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
 
-	mainRepo := &mockViewMainItemRepo{
-		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1"},
-		},
-	}
-	subRepo := &mockViewSubItemRepo{
-		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Pending Sub", ItemStatus: "pending"},
-		},
-	}
-	progressRepo := &mockViewProgressRepo{
-		records: []model.ProgressRecord{
-			{ID: 100, SubItemKey: 10, TeamKey: 1, Completion: 0, CreateTime: weekStart.AddDate(0, 0, 1)},
-		},
-	}
-
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
-	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
-	require.NoError(t, err)
-
-	assert.Equal(t, 1, result.Stats.Pending)
-	assert.Equal(t, 0, result.Stats.Pausing)
-}
-
-func TestWeeklyComparison_StatsPausing(t *testing.T) {
-	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-
-	mainRepo := &mockViewMainItemRepo{
-		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1"},
-		},
-	}
-	subRepo := &mockViewSubItemRepo{
-		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Pausing Sub", ItemStatus: "pausing"},
-		},
-	}
-	progressRepo := &mockViewProgressRepo{
-		records: []model.ProgressRecord{
-			{ID: 100, SubItemKey: 10, TeamKey: 1, Completion: 20, CreateTime: weekStart.AddDate(0, 0, 1)},
-		},
+	tests := []struct {
+		name          string
+		subStatus     string
+		subTitle      string
+		completion    float64
+		wantPending   int
+		wantPausing   int
+		wantProgress  int
+		wantCompleted int
+		wantClosed    int
+	}{
+		{"Pending", "pending", "Pending Sub", 0, 1, 0, 0, 0, 0},
+		{"Pausing", "pausing", "Pausing Sub", 20, 0, 1, 0, 0, 0},
 	}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
-	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
-	require.NoError(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mainRepo := &mockViewMainItemRepo{
+				items: []model.MainItem{
+					{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main 1", Priority: "P1"},
+				},
+			}
+			subRepo := &mockViewSubItemRepo{
+				items: []model.SubItem{
+					{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamKey: 1, MainItemKey: int64(1), Title: tt.subTitle, ItemStatus: tt.subStatus},
+				},
+			}
+			progressRepo := &mockViewProgressRepo{
+				records: []model.ProgressRecord{
+					{ID: 100, SubItemKey: 10, TeamKey: 1, Completion: tt.completion, CreateTime: weekStart.AddDate(0, 0, 1)},
+				},
+			}
 
-	assert.Equal(t, 0, result.Stats.Pending)
-	assert.Equal(t, 1, result.Stats.Pausing)
+			svc := NewViewService(mainRepo, subRepo, progressRepo)
+			result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.wantPending, result.Stats.Pending)
+			assert.Equal(t, tt.wantPausing, result.Stats.Pausing)
+		})
+	}
 }
 
 func TestWeeklyComparison_StatsOverdue(t *testing.T) {
@@ -1479,7 +1457,7 @@ func TestTableView_CombinesMainAndSubItems(t *testing.T) {
 	assert.Equal(t, "P2", result.Items[1].Priority)
 }
 
-func TestTableView_FilterByTypeMain(t *testing.T) {
+func TestTableView_FilterByType(t *testing.T) {
 	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 
 	mainRepo := &mockViewMainItemRepo{
@@ -1493,38 +1471,29 @@ func TestTableView_FilterByTypeMain(t *testing.T) {
 		},
 	}
 
-	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
-	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{Type: "main"}, dto.Pagination{Page: 1, PageSize: 10})
-	require.NoError(t, err)
-
-	assert.Equal(t, int64(1), result.Total)
-	require.Len(t, result.Items, 1)
-	assert.Equal(t, "main", result.Items[0].Type)
-}
-
-func TestTableView_FilterByTypeSub(t *testing.T) {
-	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
-
-	mainRepo := &mockViewMainItemRepo{
-		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Code: "TEST-00001", Title: "Main", Priority: "P1", ItemStatus: "progressing", Completion: 50, ExpectedEndDate: &endDate},
-		},
-	}
-	subRepo := &mockViewSubItemRepo{
-		items: []model.SubItem{
-			{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub", Priority: "P2", ItemStatus: "pending", Completion: 0, ExpectedEndDate: &endDate},
-		},
+	tests := []struct {
+		name     string
+		typeVal  string
+		wantType string
+	}{
+		{"Main", "main", "main"},
+		{"Sub", "sub", "sub"},
 	}
 
-	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
-	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{Type: "sub"}, dto.Pagination{Page: 1, PageSize: 10})
-	require.NoError(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+			result, err := svc.TableView(context.Background(), 1, dto.TableFilter{Type: tt.typeVal}, dto.Pagination{Page: 1, PageSize: 10})
+			require.NoError(t, err)
 
-	assert.Equal(t, int64(1), result.Total)
-	require.Len(t, result.Items, 1)
-	assert.Equal(t, "sub", result.Items[0].Type)
+			assert.Equal(t, int64(1), result.Total)
+			require.Len(t, result.Items, 1)
+			assert.Equal(t, tt.wantType, result.Items[0].Type)
+		})
+	}
 }
 
+//nolint:dupl // FilterByPriority and FilterByStatus test different filter dimensions; table-driven merge would reduce readability
 func TestTableView_FilterByPriority(t *testing.T) {
 	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 
@@ -1637,44 +1606,50 @@ func TestTableView_DefaultSort_PriorityDescThenExpectedEndDateAsc(t *testing.T) 
 	assert.Equal(t, "P2 Late", result.Items[2].Title)
 }
 
-func TestTableView_SortByCompletion_Asc(t *testing.T) {
+func TestTableView_SortByCompletion(t *testing.T) {
 	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 
-	mainRepo := &mockViewMainItemRepo{
-		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Code: "TEST-00001", Title: "High", Priority: "P1", ItemStatus: "progressing", Completion: 80, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2, BizKey: 2}, TeamKey: 1, Code: "TEST-00002", Title: "Low", Priority: "P1", ItemStatus: "pending", Completion: 10, ExpectedEndDate: &endDate},
+	tests := []struct {
+		name      string
+		sortOrder string
+		items     []model.MainItem
+		wantFirst float64
+		wantLast  float64
+	}{
+		{
+			"Asc",
+			"asc",
+			[]model.MainItem{
+				{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Code: "TEST-00001", Title: "High", Priority: "P1", ItemStatus: "progressing", Completion: 80, ExpectedEndDate: &endDate},
+				{BaseModel: model.BaseModel{ID: 2, BizKey: 2}, TeamKey: 1, Code: "TEST-00002", Title: "Low", Priority: "P1", ItemStatus: "pending", Completion: 10, ExpectedEndDate: &endDate},
+			},
+			10.0, 80.0,
+		},
+		{
+			"Desc",
+			"desc",
+			[]model.MainItem{
+				{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Code: "TEST-00001", Title: "Low", Priority: "P1", ItemStatus: "progressing", Completion: 10, ExpectedEndDate: &endDate},
+				{BaseModel: model.BaseModel{ID: 2, BizKey: 2}, TeamKey: 1, Code: "TEST-00002", Title: "High", Priority: "P1", ItemStatus: "pending", Completion: 80, ExpectedEndDate: &endDate},
+			},
+			80.0, 10.0,
 		},
 	}
-	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
 
-	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
-	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{SortBy: "completion", SortOrder: "asc"}, dto.Pagination{Page: 1, PageSize: 10})
-	require.NoError(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mainRepo := &mockViewMainItemRepo{items: tt.items}
+			subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
 
-	require.Len(t, result.Items, 2)
-	assert.Equal(t, 10.0, result.Items[0].Completion)
-	assert.Equal(t, 80.0, result.Items[1].Completion)
-}
+			svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
+			result, err := svc.TableView(context.Background(), 1, dto.TableFilter{SortBy: "completion", SortOrder: tt.sortOrder}, dto.Pagination{Page: 1, PageSize: 10})
+			require.NoError(t, err)
 
-func TestTableView_SortByCompletion_Desc(t *testing.T) {
-	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
-
-	mainRepo := &mockViewMainItemRepo{
-		items: []model.MainItem{
-			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Code: "TEST-00001", Title: "Low", Priority: "P1", ItemStatus: "progressing", Completion: 10, ExpectedEndDate: &endDate},
-			{BaseModel: model.BaseModel{ID: 2, BizKey: 2}, TeamKey: 1, Code: "TEST-00002", Title: "High", Priority: "P1", ItemStatus: "pending", Completion: 80, ExpectedEndDate: &endDate},
-		},
+			require.Len(t, result.Items, 2)
+			assert.Equal(t, tt.wantFirst, result.Items[0].Completion)
+			assert.Equal(t, tt.wantLast, result.Items[1].Completion)
+		})
 	}
-	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
-
-	svc := newViewServiceWithUsers(mainRepo, subRepo, &mockViewUserRepo{})
-	result, err := svc.TableView(context.Background(), 1, dto.TableFilter{SortBy: "completion", SortOrder: "desc"}, dto.Pagination{Page: 1, PageSize: 10})
-	require.NoError(t, err)
-
-	require.Len(t, result.Items, 2)
-	assert.Equal(t, 80.0, result.Items[0].Completion)
-	assert.Equal(t, 10.0, result.Items[1].Completion)
 }
 
 func TestTableView_SubItemCodeFormat(t *testing.T) {

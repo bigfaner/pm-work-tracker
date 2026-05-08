@@ -1,3 +1,4 @@
+// Package vo provides value objects for API response composition.
 package vo
 
 import (

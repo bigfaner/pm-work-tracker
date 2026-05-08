@@ -1,3 +1,4 @@
+// Package repo provides generic repository helper functions.
 package repo
 
 import (

@@ -1,3 +1,4 @@
+// Package service implements business logic for all domain services.
 package service
 
 import (
