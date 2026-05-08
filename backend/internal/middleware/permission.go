@@ -17,6 +17,12 @@ import (
 //  2. Non-team context -> query RoleRepo.HasPermission(userID, code) -> pass / 403
 func RequirePermission(code string, roleRepo repository.RoleRepo) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 0. SuperAdmin bypasses all permission checks
+		if IsSuperAdmin(c) {
+			c.Next()
+			return
+		}
+
 		// 1. Team context: check permCodes
 		permCodes := GetPermCodes(c)
 		if permCodes != nil {
