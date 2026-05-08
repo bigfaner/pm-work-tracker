@@ -57,7 +57,7 @@
       "title": "TeamScopeMiddleware: inject all 29 codes for SuperAdmin",
       "priority": "P0",
       "estimatedTime": "30min",
-      "status": "pending",
+      "status": "completed",
       "file": "1.3-teamscope-inject-all-codes.md",
       "record": "records/1.3-teamscope-inject-all-codes.md",
       "scope": "backend"

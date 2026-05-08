@@ -13,6 +13,7 @@ import (
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/permissions"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -318,7 +319,8 @@ func TestTeamScopeMiddleware_SuperAdmin_BypassesMembership(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, int64(99), cc.teamBizKey)
-	assert.Equal(t, allPermCodes, cc.permCodes)
+	assert.Equal(t, permissions.AllCodeStrings(), cc.permCodes)
+	assert.Len(t, cc.permCodes, permissions.TotalCodeCount())
 	teamRepo.AssertNotCalled(t, "FindMember", mock.Anything, mock.Anything, mock.Anything)
 }
 
