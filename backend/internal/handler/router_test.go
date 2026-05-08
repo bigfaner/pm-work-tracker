@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -108,6 +109,19 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 			IsSuperAdmin: false,
 		})
 	}
+
+	// Seed a team and membership for the superadmin user so RequirePermission's
+	// DB-query tier (non-team-context routes like /admin/*) finds permissions.
+	adminTeam := model.Team{TeamName: "admin-team", PmKey: 1, Code: "ADM001"}
+	require.NoError(t, db.Create(&adminTeam).Error)
+	adminTeam.BizKey = int64(adminTeam.ID)
+	require.NoError(t, db.Save(&adminTeam).Error)
+	require.NoError(t, db.Create(&model.TeamMember{
+		TeamKey:  adminTeam.BizKey,
+		UserKey:  1,
+		RoleKey:  &pmRole.BizKey,
+		JoinedAt: time.Now(),
+	}).Error)
 
 	cfg := &config.Config{
 		Auth: config.AuthConfig{

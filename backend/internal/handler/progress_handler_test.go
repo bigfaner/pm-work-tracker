@@ -827,8 +827,9 @@ func TestCorrectCompletion_RecordNotFound(t *testing.T) {
 func TestCorrectCompletion_SuperAdminBypass(t *testing.T) {
 	svc := &mockProgressService{}
 
-	// Use member-role team, but superadmin token
-	deps := depsWithProgressSvcMemberRole(t, svc)
+	// Use PM-role team with superadmin token
+	// SuperAdmin now passes through permCodes check (TeamScopeMiddleware injects all codes)
+	deps := depsWithProgressSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")

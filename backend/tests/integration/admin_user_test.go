@@ -93,8 +93,8 @@ func TestAdminUser_CreateUser_NonSuperAdminReturns403(t *testing.T) {
 	db, data := setupRBACTestDB(t)
 	backfillUserBizKeys(t, db)
 	r := setupRBACTestRouter(t, db, data)
-	// userA has user:read but NOT user:manage_role
-	token := loginAs(t, r, "userA", "passwordA")
+	// memberA does not have user:manage_role
+	token := loginAs(t, r, "memberA", "passwordMemberA")
 
 	body := `{"username":"newuser","displayName":"New User"}`
 	w := makeRequest(t, r, http.MethodPost, "/api/v1/admin/users", body, token)

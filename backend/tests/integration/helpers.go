@@ -171,14 +171,15 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	memberRole := model.Role{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Name: "member", Description: "Team Member", IsPreset: true}
 	require.NoError(t, db.Create(&memberRole).Error)
 
-	// PM gets all team-scoped permissions
+	// PM gets all permissions
 	pmPermCodes := []string{
-		"team:read", "team:update", "team:delete", "team:invite", "team:remove", "team:transfer",
-		"main_item:create", "main_item:read", "main_item:update", "main_item:archive",
+		"team:create", "team:read", "team:update", "team:delete", "team:invite", "team:remove", "team:transfer",
+		"main_item:create", "main_item:read", "main_item:update", "main_item:archive", "main_item:change_status",
 		"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:change_status", "sub_item:assign",
 		"progress:create", "progress:read", "progress:update",
 		"item_pool:submit", "item_pool:review",
 		"view:weekly", "view:gantt", "view:table", "report:export",
+		"user:read", "user:update", "user:manage_role",
 	}
 	for _, code := range pmPermCodes {
 		require.NoError(t, db.Create(&model.RolePermission{RoleKey: pmRole.BizKey, PermissionCode: code}).Error)
@@ -209,6 +210,10 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
 		TeamKey: teamB.BizKey, UserKey: userB.BizKey, RoleKey: &pmRole.BizKey, JoinedAt: now,
+	}).Error)
+	// SuperAdmin team membership (for non-team-context HasPermission DB query)
+	require.NoError(t, db.Create(&model.TeamMember{
+		TeamKey: teamA.BizKey, UserKey: superAdmin.BizKey, RoleKey: &pmRole.BizKey, JoinedAt: now,
 	}).Error)
 
 	return db, &seedData{
@@ -312,17 +317,18 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	memberRole := model.Role{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Name: "member", Description: "Team Member", IsPreset: true}
 	require.NoError(t, db.Create(&memberRole).Error)
 
-	// PM permissions (matching migration)
+	// PM permissions (all 29 codes)
 	pmPermCodes := []string{
 		"team:create", "team:read", "team:update", "team:delete",
 		"team:invite", "team:remove", "team:transfer",
 		"main_item:create", "main_item:read", "main_item:update", "main_item:archive",
+		"main_item:change_status",
 		"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:assign", "sub_item:change_status",
 		"progress:create", "progress:read", "progress:update",
 		"item_pool:submit", "item_pool:review",
 		"view:weekly", "view:gantt", "view:table",
 		"report:export",
-		"user:read",
+		"user:read", "user:update", "user:manage_role",
 	}
 	for _, code := range pmPermCodes {
 		require.NoError(t, db.Create(&model.RolePermission{RoleKey: pmRole.BizKey, PermissionCode: code}).Error)
@@ -341,7 +347,7 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		require.NoError(t, db.Create(&model.RolePermission{RoleKey: memberRole.BizKey, PermissionCode: code}).Error)
 	}
 
-	// Superadmin has no permission codes (bypasses all checks)
+	// Superadmin passes via PM role team membership
 	_ = superadminRole
 
 	// Seed teams (with BizKey so middleware can resolve bizKey to internal ID)
@@ -360,6 +366,10 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
 		TeamKey: teamB.BizKey, UserKey: userB.BizKey, RoleKey: &pmRole.BizKey, JoinedAt: now,
+	}).Error)
+	// Superadmin team membership (for non-team-context HasPermission DB query)
+	require.NoError(t, db.Create(&model.TeamMember{
+		TeamKey: teamA.BizKey, UserKey: superAdmin.BizKey, RoleKey: &pmRole.BizKey, JoinedAt: now,
 	}).Error)
 
 	return db, &seedData{
@@ -630,19 +640,10 @@ func findRoleIDByBizKey(t *testing.T, db *gorm.DB, bizKey string) uint {
 // ========== Item Lifecycle Setup Helpers ==========
 
 // setupLifecycleTest creates a fresh DB and router for item lifecycle tests.
-// It extends setupRBACTestDB by adding main_item:change_status to the PM role,
-// which is required by the ChangeStatus endpoint but missing from the seed data.
 func setupLifecycleTest(t *testing.T) (*gin.Engine, *seedData, *gorm.DB) {
 	t.Helper()
 
 	db, data := setupRBACTestDB(t)
-
-	// Add main_item:change_status permission for PM role (required by router but missing from seed)
-	pmRole := findRoleByName(t, db, "pm")
-	require.NoError(t, db.Create(&model.RolePermission{
-		RoleKey:        pmRole.BizKey,
-		PermissionCode: "main_item:change_status",
-	}).Error)
 
 	r := setupRBACTestRouter(t, db, data)
 	return r, data, db

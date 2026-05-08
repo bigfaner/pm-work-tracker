@@ -6,8 +6,12 @@ import (
 	"github.com/gin-gonic/gin"
 
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/permissions"
 	"pm-work-tracker/backend/internal/repository"
 )
+
+// allPermCodes is the pre-computed list of all 29 permission codes, used for SuperAdmin.
+var allPermCodes = permissions.AllCodeStrings()
 
 // TeamScopeMiddleware verifies team membership for all /api/v1/teams/:teamId/* routes.
 // It must run after AuthMiddleware in the middleware chain.
@@ -36,7 +40,7 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleR
 		if IsSuperAdmin(c) {
 			c.Set("teamBizKey", teamBizKey)
 			c.Set("callerTeamRole", "superadmin")
-			c.Set("permCodes", []string{})
+			c.Set("permCodes", allPermCodes)
 			c.Next()
 			return
 		}

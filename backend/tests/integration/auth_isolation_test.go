@@ -205,7 +205,7 @@ func TestSuperAdmin_CanAccessAdminRoutes(t *testing.T) {
 func TestRegularUser_CannotAccessAdminRoutes(t *testing.T) {
 	r, _ := setupTestRouter(t)
 
-	token := loginAs(t, r, "userA", "passwordA")
+	token := loginAs(t, r, "memberA", "passwordMemberA")
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users", nil)

@@ -752,8 +752,9 @@ func TestCreateMainItem_SuperAdminBypass(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{}
 	subItemRepo := &mockSubItemRepoForHandler{}
 
-	// Use member-role team, but superadmin token
-	deps := depsWithMemberRoleMainItem(t, svc, userRepo, subItemRepo)
+	// Use PM-role team with superadmin token
+	// SuperAdmin now passes through permCodes check (TeamScopeMiddleware injects all codes)
+	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")

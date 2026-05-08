@@ -13,18 +13,11 @@ import (
 // has the specified permission code.
 //
 // Check order:
-//  1. SuperAdmin -> always pass
-//  2. Team context (permCodes set) -> code in permCodes -> pass / 403
-//  3. Non-team context -> query RoleRepo.HasPermission(userID, code) -> pass / 403
+//  1. Team context (permCodes set) -> code in permCodes -> pass / 403
+//  2. Non-team context -> query RoleRepo.HasPermission(userID, code) -> pass / 403
 func RequirePermission(code string, roleRepo repository.RoleRepo) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 1. SuperAdmin always passes
-		if IsSuperAdmin(c) {
-			c.Next()
-			return
-		}
-
-		// 2. Team context: check permCodes
+		// 1. Team context: check permCodes
 		permCodes := GetPermCodes(c)
 		if permCodes != nil {
 			if containsString(permCodes, code) {
@@ -40,7 +33,7 @@ func RequirePermission(code string, roleRepo repository.RoleRepo) gin.HandlerFun
 			return
 		}
 
-		// 3. Non-team context: query DB
+		// 2. Non-team context: query DB
 		userBizKey := GetUserBizKey(c)
 		if userBizKey == 0 {
 			c.Abort()

@@ -47,7 +47,7 @@
       "title": "RequirePermission: remove SuperAdmin tier-1 bypass",
       "priority": "P0",
       "estimatedTime": "30min",
-      "status": "pending",
+      "status": "completed",
       "file": "1.2-remove-require-permission-bypass.md",
       "record": "records/1.2-remove-require-permission-bypass.md",
       "scope": "backend"

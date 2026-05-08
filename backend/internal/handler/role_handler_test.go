@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -44,16 +45,46 @@ func rbacTestEnv(t *testing.T) (*gin.Engine, *gorm.DB) {
 
 	// Seed a superadmin user (ID=1) and a regular user (ID=2)
 	require.NoError(t, db.Create(&model.User{
-		Username: "rbacsuper", DisplayName: "RBAC Super", IsSuperAdmin: true,
+		BaseModel: model.BaseModel{BizKey: 1},
+		Username:  "rbacsuper", DisplayName: "RBAC Super", IsSuperAdmin: true,
 	}).Error)
 	require.NoError(t, db.Create(&model.User{
-		Username: "rbacregular", DisplayName: "RBAC Regular", IsSuperAdmin: false,
+		BaseModel: model.BaseModel{BizKey: 2},
+		Username:  "rbacregular", DisplayName: "RBAC Regular", IsSuperAdmin: false,
 	}).Error)
 
 	// Seed preset roles
 	require.NoError(t, db.Create(&model.Role{BaseModel: model.BaseModel{BizKey: 1}, Name: "superadmin", Description: "superadmin", IsPreset: true}).Error)
 	require.NoError(t, db.Create(&model.Role{BaseModel: model.BaseModel{BizKey: 2}, Name: "pm", Description: "PM", IsPreset: true}).Error)
 	require.NoError(t, db.Create(&model.Role{BaseModel: model.BaseModel{BizKey: 3}, Name: "member", Description: "Member", IsPreset: true}).Error)
+
+	// Seed all 29 permission codes for the PM role so SuperAdmin passes HasPermission DB query
+	allPermCodes := []string{
+		"team:create", "team:read", "team:update", "team:delete", "team:invite",
+		"team:remove", "team:transfer", "main_item:create", "main_item:read",
+		"main_item:update", "main_item:archive", "main_item:change_status",
+		"sub_item:create", "sub_item:read",
+		"sub_item:update", "sub_item:change_status", "sub_item:assign",
+		"progress:create", "progress:read", "progress:update",
+		"item_pool:submit", "item_pool:review",
+		"view:weekly", "view:gantt", "view:table",
+		"report:export", "user:read", "user:update", "user:manage_role",
+	}
+	for _, code := range allPermCodes {
+		require.NoError(t, db.Create(&model.RolePermission{RoleKey: 2, PermissionCode: code}).Error)
+	}
+
+	// Seed a team and membership for the superadmin user (with PM role)
+	adminTeam := model.Team{TeamName: "rbac-admin-team", PmKey: 1, Code: "RBT001"}
+	require.NoError(t, db.Create(&adminTeam).Error)
+	adminTeam.BizKey = int64(adminTeam.ID)
+	require.NoError(t, db.Save(&adminTeam).Error)
+	require.NoError(t, db.Create(&model.TeamMember{
+		TeamKey:  adminTeam.BizKey,
+		UserKey:  1,
+		RoleKey:  func() *int64 { v := int64(2); return &v }(),
+		JoinedAt: time.Now(),
+	}).Error)
 
 	userRepo := gormrepo.NewGormUserRepo(db)
 	roleRepo := gormrepo.NewGormRoleRepo(db)

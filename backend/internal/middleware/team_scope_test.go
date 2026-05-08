@@ -318,7 +318,7 @@ func TestTeamScopeMiddleware_SuperAdmin_BypassesMembership(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, int64(99), cc.teamBizKey)
-	assert.Equal(t, []string{}, cc.permCodes)
+	assert.Equal(t, allPermCodes, cc.permCodes)
 	teamRepo.AssertNotCalled(t, "FindMember", mock.Anything, mock.Anything, mock.Anything)
 }
 

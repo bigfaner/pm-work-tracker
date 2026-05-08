@@ -652,7 +652,8 @@ func TestAssignItemPool_SuperAdminBypass(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "Admin"}}
 
 	// Use member-role team, but superadmin token
-	deps := depsWithItemPoolMemberRole(t, svc, userRepo)
+	// SuperAdmin now passes through permCodes check (TeamScopeMiddleware injects all codes)
+	deps := depsWithItemPoolSvc(t, svc, userRepo)
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")

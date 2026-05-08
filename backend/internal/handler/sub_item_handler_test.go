@@ -211,8 +211,8 @@ func depsWithSubItemSvcCustomRole(t *testing.T, svc *mockSubItemService, permCod
 
 	for _, code := range permCodes {
 		require.NoError(t, db.Create(&model.RolePermission{
-			RoleKey:         customRole.BizKey,
-			PermissionCode:  code,
+			RoleKey:        customRole.BizKey,
+			PermissionCode: code,
 		}).Error)
 	}
 

@@ -103,9 +103,9 @@ func splitCodes(s string) []string {
 	return result
 }
 
-// --- SuperAdmin bypass tests ---
+// --- SuperAdmin no longer bypasses (goes through permCodes) ---
 
-func TestRequirePermission_SuperAdminBypasses_Passes(t *testing.T) {
+func TestRequirePermission_SuperAdmin_NoPermCodes_Returns403(t *testing.T) {
 	roleRepo := new(mockRoleRepo)
 	r, cc := setupPermissionRouter("team:invite", roleRepo)
 
@@ -113,9 +113,20 @@ func TestRequirePermission_SuperAdminBypasses_Passes(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/test?isSuperAdmin=true", nil)
 	r.ServeHTTP(w, req)
 
+	// No permCodes set (non-team context) -> falls through to DB query tier
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.False(t, cc.called)
+}
+
+func TestRequirePermission_SuperAdmin_AllCodes_Passes(t *testing.T) {
+	r, cc := setupTeamPermRouter("team:invite")
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/test?isSuperAdmin=true&permCodes=team:read,team:invite,team:update", nil)
+	r.ServeHTTP(w, req)
+
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, cc.called)
-	roleRepo.AssertNotCalled(t, "HasPermission")
 }
 
 // --- Team context tests ---
