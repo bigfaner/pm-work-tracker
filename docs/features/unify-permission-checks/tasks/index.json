@@ -251,6 +251,28 @@
       "breaking": true,
       "sourceTaskID": "1.gate"
     },
+    "disc-2": {
+      "id": "disc-2",
+      "title": "Fix: e2e test scripts use wrong cwd 'ui' instead of 'frontend'",
+      "priority": "P0",
+      "estimatedTime": "30min",
+      "status": "pending",
+      "file": "disc-2.md",
+      "record": "records/disc-2.md",
+      "breaking": true,
+      "sourceTaskID": "T-test-3"
+    },
+    "disc-3": {
+      "id": "disc-3",
+      "title": "Fix: RequirePermission middleware missing SuperAdmin bypass for non-team routes",
+      "priority": "P0",
+      "estimatedTime": "30min",
+      "status": "pending",
+      "file": "disc-3.md",
+      "record": "records/disc-3.md",
+      "breaking": true,
+      "sourceTaskID": "T-test-3"
+    },
     "eval-test-cases": {
       "id": "T-test-1b",
       "title": "Evaluate e2e Test Cases",
@@ -310,9 +332,11 @@
       "priority": "P1",
       "estimatedTime": "30min-1h",
       "dependencies": [
-        "T-test-2"
+        "T-test-2",
+        "disc-2",
+        "disc-3"
       ],
-      "status": "pending",
+      "status": "blocked",
       "file": "run-e2e-tests.md",
       "record": "records/run-e2e-tests.md",
       "scope": "all"
