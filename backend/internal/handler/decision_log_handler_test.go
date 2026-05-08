@@ -166,11 +166,11 @@ func TestNewDecisionLogHandler_NilDependencies(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // testDecisionLog creates a DecisionLog model for tests.
-func testDecisionLog(id uint, mainItemKey int64) *model.DecisionLog {
+func testDecisionLog(id uint) *model.DecisionLog {
 	return &model.DecisionLog{
 		ID:          id,
 		BizKey:      int64(id*100 + 1),
-		MainItemKey: mainItemKey,
+		MainItemKey: 100,
 		TeamKey:     10,
 		Category:    "technical",
 		Tags:        `["缓存策略"]`,
@@ -206,7 +206,7 @@ func depsWithMemberRoleDecisionLog(t *testing.T, svc *mockDecisionLogService, us
 
 func TestDecisionLogCreate_Success(t *testing.T) {
 	svc := &mockDecisionLogService{}
-	log := testDecisionLog(1, 100)
+	log := testDecisionLog(1)
 	svc.createResult.log = log
 
 	mainItemRepo := &mockMainItemRepoForDecisionLog{
@@ -340,7 +340,7 @@ func TestDecisionLogCreate_ServiceError(t *testing.T) {
 
 func TestDecisionLogUpdate_Success(t *testing.T) {
 	svc := &mockDecisionLogService{}
-	updatedLog := testDecisionLog(1, 100)
+	updatedLog := testDecisionLog(1)
 	updatedLog.Content = "Updated content"
 	updatedLog.Category = "risk"
 	svc.updateResult.log = updatedLog
@@ -479,7 +479,7 @@ func TestDecisionLogUpdate_NotFound(t *testing.T) {
 
 func TestDecisionLogPublish_Success(t *testing.T) {
 	svc := &mockDecisionLogService{}
-	publishedLog := testDecisionLog(1, 100)
+	publishedLog := testDecisionLog(1)
 	publishedLog.LogStatus = "published"
 	svc.publishResult.log = publishedLog
 
@@ -594,7 +594,7 @@ func TestDecisionLogPublish_NotFound(t *testing.T) {
 func TestDecisionLogList_Success(t *testing.T) {
 	svc := &mockDecisionLogService{}
 	svc.listResult.page = &dto.PageResult[model.DecisionLog]{
-		Items: []model.DecisionLog{*testDecisionLog(1, 100), *testDecisionLog(2, 100)},
+		Items: []model.DecisionLog{*testDecisionLog(1), *testDecisionLog(2)},
 		Total: 2,
 		Page:  1,
 		Size:  20,

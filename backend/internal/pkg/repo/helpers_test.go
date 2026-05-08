@@ -59,7 +59,7 @@ func TestFindByID_DBError(t *testing.T) {
 	// Close the DB to force an error
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	sqlDB.Close()
+	_ = sqlDB.Close()
 
 	_, err = FindByID[model.MainItem](db, ctx, 1)
 	assert.Error(t, err)
@@ -165,7 +165,7 @@ func TestFindByIDs_DBError(t *testing.T) {
 
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	sqlDB.Close()
+	_ = sqlDB.Close()
 
 	_, err = FindByIDs[model.MainItem](db, ctx, []uint{1, 2})
 	assert.Error(t, err)

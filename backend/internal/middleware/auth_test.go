@@ -83,10 +83,10 @@ var _ repository.UserRepo = (*mockUserRepo)(nil)
 
 // setupAuthRouter creates a test router with AuthMiddleware and a dummy handler
 // that captures the userID and isSuperAdmin from context.
-func setupAuthRouter(jwtSecret string, userRepo repository.UserRepo) (*gin.Engine, *capturedAuthContext) {
+func setupAuthRouter(userRepo repository.UserRepo) (*gin.Engine, *capturedAuthContext) {
 	r := gin.New()
 	cc := &capturedAuthContext{}
-	r.Use(AuthMiddleware(jwtSecret, userRepo))
+	r.Use(AuthMiddleware(testSecret, userRepo))
 	r.GET("/test", func(c *gin.Context) {
 		cc.userID = GetUserID(c)
 		cc.isSuperAdmin = IsSuperAdmin(c)
@@ -102,7 +102,7 @@ type capturedAuthContext struct {
 
 func TestAuthMiddleware_MissingHeader(t *testing.T) {
 	repo := new(mockUserRepo)
-	r, _ := setupAuthRouter(testSecret, repo)
+	r, _ := setupAuthRouter(repo)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	r.ServeHTTP(w, req)
@@ -112,7 +112,7 @@ func TestAuthMiddleware_MissingHeader(t *testing.T) {
 
 func TestAuthMiddleware_MalformedHeader(t *testing.T) {
 	repo := new(mockUserRepo)
-	r, _ := setupAuthRouter(testSecret, repo)
+	r, _ := setupAuthRouter(repo)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	req.Header.Set("Authorization", "NotBearer sometoken")
@@ -123,7 +123,7 @@ func TestAuthMiddleware_MalformedHeader(t *testing.T) {
 
 func TestAuthMiddleware_InvalidToken(t *testing.T) {
 	repo := new(mockUserRepo)
-	r, _ := setupAuthRouter(testSecret, repo)
+	r, _ := setupAuthRouter(repo)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	req.Header.Set("Authorization", "Bearer invalid-token-string")
@@ -134,7 +134,7 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 
 func TestAuthMiddleware_ExpiredToken(t *testing.T) {
 	repo := new(mockUserRepo)
-	r, _ := setupAuthRouter(testSecret, repo)
+	r, _ := setupAuthRouter(repo)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 
@@ -154,7 +154,7 @@ func TestAuthMiddleware_ValidToken_SetsContext(t *testing.T) {
 		IsSuperAdmin: false,
 	}, nil)
 
-	r, cc := setupAuthRouter(testSecret, repo)
+	r, cc := setupAuthRouter(repo)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 
@@ -176,7 +176,7 @@ func TestAuthMiddleware_SuperAdmin_SetsIsSuperAdmin(t *testing.T) {
 		IsSuperAdmin: true,
 	}, nil)
 
-	r, cc := setupAuthRouter(testSecret, repo)
+	r, cc := setupAuthRouter(repo)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 
@@ -195,7 +195,7 @@ func TestAuthMiddleware_UserNotFound_Returns401(t *testing.T) {
 	repo := new(mockUserRepo)
 	repo.On("FindByID", mock.Anything, uint(99)).Return(nil, fmt.Errorf("not found"))
 
-	r, _ := setupAuthRouter(testSecret, repo)
+	r, _ := setupAuthRouter(repo)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 
@@ -227,7 +227,7 @@ func TestAuthMiddleware_DeletedUser_Returns401(t *testing.T) {
 		Username:  "deleted",
 	}, nil)
 
-	r, _ := setupAuthRouter(testSecret, repo)
+	r, _ := setupAuthRouter(repo)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 

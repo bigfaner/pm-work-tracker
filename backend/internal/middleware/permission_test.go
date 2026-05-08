@@ -48,7 +48,7 @@ type capturedPermContext struct {
 }
 
 // setupTeamPermRouter creates a test router with team-context (permCodes set).
-func setupTeamPermRouter(code string) (*gin.Engine, *capturedPermContext) {
+func setupTeamPermRouter() (*gin.Engine, *capturedPermContext) {
 	r := gin.New()
 	cc := &capturedPermContext{}
 
@@ -75,7 +75,7 @@ func setupTeamPermRouter(code string) (*gin.Engine, *capturedPermContext) {
 		c.Next()
 	})
 
-	r.Use(RequirePermission(code, new(mockRoleRepo)))
+	r.Use(RequirePermission("team:invite", new(mockRoleRepo)))
 
 	r.GET("/test", func(c *gin.Context) {
 		cc.called = true
@@ -115,7 +115,7 @@ func TestRequirePermission_SuperAdmin_NoPermCodes_Bypasses(t *testing.T) {
 }
 
 func TestRequirePermission_SuperAdmin_AllCodes_Passes(t *testing.T) {
-	r, cc := setupTeamPermRouter("team:invite")
+	r, cc := setupTeamPermRouter()
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test?isSuperAdmin=true&permCodes=team:read,team:invite,team:update", nil)
@@ -128,7 +128,7 @@ func TestRequirePermission_SuperAdmin_AllCodes_Passes(t *testing.T) {
 // --- Team context tests ---
 
 func TestRequirePermission_TeamContext_HasCode_Passes(t *testing.T) {
-	r, cc := setupTeamPermRouter("team:invite")
+	r, cc := setupTeamPermRouter()
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test?permCodes=team:read,team:invite,team:update", nil)
@@ -139,7 +139,7 @@ func TestRequirePermission_TeamContext_HasCode_Passes(t *testing.T) {
 }
 
 func TestRequirePermission_TeamContext_MissingCode_Returns403(t *testing.T) {
-	r, cc := setupTeamPermRouter("team:invite")
+	r, cc := setupTeamPermRouter()
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test?permCodes=team:read,team:update", nil)
@@ -152,7 +152,7 @@ func TestRequirePermission_TeamContext_MissingCode_Returns403(t *testing.T) {
 }
 
 func TestRequirePermission_TeamContext_EmptyPermCodes_Returns403(t *testing.T) {
-	r, cc := setupTeamPermRouter("team:invite")
+	r, cc := setupTeamPermRouter()
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test?", nil)
@@ -240,7 +240,7 @@ func TestGetPermCodes_WithValue(t *testing.T) {
 // --- Error response format test ---
 
 func TestRequirePermission_ErrorResponseFormat(t *testing.T) {
-	r, _ := setupTeamPermRouter("team:invite")
+	r, _ := setupTeamPermRouter()
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test?permCodes=team:read", nil)

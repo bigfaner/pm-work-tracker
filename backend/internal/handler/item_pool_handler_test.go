@@ -224,7 +224,7 @@ func depsWithItemPoolMemberRole(t *testing.T, svc *mockItemPoolService, userRepo
 }
 
 // helper to create an ItemPool model for tests.
-func testItemPool(id uint, teamID uint) *model.ItemPool {
+func testItemPool(_ uint, teamID uint) *model.ItemPool {
 	return &model.ItemPool{
 		TeamKey:      int64(teamID),
 		Title:        "Test Pool Item",

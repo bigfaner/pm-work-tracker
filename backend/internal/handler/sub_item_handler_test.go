@@ -223,7 +223,7 @@ func depsWithSubItemSvcCustomRole(t *testing.T, svc *mockSubItemService, permCod
 }
 
 // testSubItem creates a SubItem model for tests.
-func testSubItem(id uint, teamID uint) *model.SubItem {
+func testSubItem(_ uint, teamID uint) *model.SubItem {
 	return &model.SubItem{
 		TeamKey:     int64(teamID),
 		MainItemKey: int64(1),

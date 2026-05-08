@@ -23,12 +23,12 @@ func setupDecisionLogTestDB(t *testing.T) *gormlib.DB {
 	return db
 }
 
-func createTestDecisionLog(t *testing.T, db *gormlib.DB, mainItemKey, teamKey int64, createdBy int64, status string, content string, createdAt time.Time) *model.DecisionLog {
+func createTestDecisionLog(t *testing.T, db *gormlib.DB, mainItemKey int64, createdBy int64, status string, content string, createdAt time.Time) *model.DecisionLog {
 	t.Helper()
 	log := model.DecisionLog{
-		BizKey:      int64(time.Now().UnixNano()),
+		BizKey:      time.Now().UnixNano(),
 		MainItemKey: mainItemKey,
-		TeamKey:     teamKey,
+		TeamKey:     10,
 		Category:    "tech",
 		Tags:        `["go","gorm"]`,
 		Content:     content,
@@ -68,7 +68,7 @@ func TestDecisionLogRepo_FindByID(t *testing.T) {
 	repo := gormrepo.NewGormDecisionLogRepo(db)
 	ctx := context.Background()
 
-	log := createTestDecisionLog(t, db, 100, 10, 1, "published", "Some decision", time.Now())
+	log := createTestDecisionLog(t, db, 100, 1, "published", "Some decision", time.Now())
 
 	t.Run("found", func(t *testing.T) {
 		found, err := repo.FindByID(ctx, log.ID)
@@ -91,7 +91,7 @@ func TestDecisionLogRepo_FindByBizKey(t *testing.T) {
 	repo := gormrepo.NewGormDecisionLogRepo(db)
 	ctx := context.Background()
 
-	log := createTestDecisionLog(t, db, 100, 10, 1, "draft", "Draft decision", time.Now())
+	log := createTestDecisionLog(t, db, 100, 1, "draft", "Draft decision", time.Now())
 
 	t.Run("found", func(t *testing.T) {
 		found, err := repo.FindByBizKey(ctx, log.BizKey)
@@ -114,24 +114,23 @@ func TestDecisionLogRepo_ListByItem(t *testing.T) {
 	ctx := context.Background()
 
 	mainItemKey := int64(100)
-	teamKey := int64(10)
 	userA := int64(1)
 	userB := int64(2)
 
 	base := time.Now()
 
 	// User A creates published and draft
-	pub1 := createTestDecisionLog(t, db, mainItemKey, teamKey, userA, "published", "Published by A", base.Add(-3*time.Hour))
+	pub1 := createTestDecisionLog(t, db, mainItemKey, userA, "published", "Published by A", base.Add(-3*time.Hour))
 	_ = pub1
-	draft1 := createTestDecisionLog(t, db, mainItemKey, teamKey, userA, "draft", "Draft by A", base.Add(-2*time.Hour))
+	draft1 := createTestDecisionLog(t, db, mainItemKey, userA, "draft", "Draft by A", base.Add(-2*time.Hour))
 	_ = draft1
 	// User B creates published and draft
-	createTestDecisionLog(t, db, mainItemKey, teamKey, userB, "published", "Published by B", base.Add(-1*time.Hour))
-	draft2 := createTestDecisionLog(t, db, mainItemKey, teamKey, userB, "draft", "Draft by B", base)
+	createTestDecisionLog(t, db, mainItemKey, userB, "published", "Published by B", base.Add(-1*time.Hour))
+	draft2 := createTestDecisionLog(t, db, mainItemKey, userB, "draft", "Draft by B", base)
 	_ = draft2
 
 	t.Run("user_a_sees_own_drafts_and_all_published", func(t *testing.T) {
-		logs, total, err := repo.ListByItem(ctx, mainItemKey, int64(userA), 0, 10)
+		logs, total, err := repo.ListByItem(ctx, mainItemKey, userA, 0, 10)
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), total) // pub1 + draft1 + pub2 (not draft2)
 		assert.Len(t, logs, 3)
@@ -142,7 +141,7 @@ func TestDecisionLogRepo_ListByItem(t *testing.T) {
 	})
 
 	t.Run("user_b_sees_own_drafts_and_all_published", func(t *testing.T) {
-		logs, total, err := repo.ListByItem(ctx, mainItemKey, int64(userB), 0, 10)
+		logs, total, err := repo.ListByItem(ctx, mainItemKey, userB, 0, 10)
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), total) // pub1 + pub2 + draft2 (not draft1)
 		assert.Len(t, logs, 3)
@@ -159,20 +158,20 @@ func TestDecisionLogRepo_ListByItem(t *testing.T) {
 	})
 
 	t.Run("pagination_offset_and_limit", func(t *testing.T) {
-		logs, total, err := repo.ListByItem(ctx, mainItemKey, int64(userA), 0, 2)
+		logs, total, err := repo.ListByItem(ctx, mainItemKey, userA, 0, 2)
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), total) // total reflects all matching records
 		assert.Len(t, logs, 2)           // but only 2 returned
 
 		// Second page
-		logs2, total2, err := repo.ListByItem(ctx, mainItemKey, int64(userA), 2, 10)
+		logs2, total2, err := repo.ListByItem(ctx, mainItemKey, userA, 2, 10)
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), total2)
 		assert.Len(t, logs2, 1)
 	})
 
 	t.Run("empty_when_no_match", func(t *testing.T) {
-		logs, total, err := repo.ListByItem(ctx, int64(9999), int64(userA), 0, 10)
+		logs, total, err := repo.ListByItem(ctx, int64(9999), userA, 0, 10)
 		require.NoError(t, err)
 		assert.Equal(t, int64(0), total)
 		assert.Empty(t, logs)
@@ -186,7 +185,7 @@ func TestDecisionLogRepo_Update(t *testing.T) {
 	repo := gormrepo.NewGormDecisionLogRepo(db)
 	ctx := context.Background()
 
-	log := createTestDecisionLog(t, db, 100, 10, 1, "draft", "Original content", time.Now())
+	log := createTestDecisionLog(t, db, 100, 1, "draft", "Original content", time.Now())
 
 	log.Content = "Updated content"
 	log.LogStatus = "published"

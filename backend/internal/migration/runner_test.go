@@ -22,7 +22,7 @@ func TestRunSchema_CreatesTables(t *testing.T) {
 	db := setupTestDB(t)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	tmpDir := t.TempDir()
 	schemaSQL := `
@@ -47,7 +47,7 @@ func TestRunSchema_Idempotent(t *testing.T) {
 	db := setupTestDB(t)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	tmpDir := t.TempDir()
 	schemaSQL := `
@@ -69,7 +69,7 @@ func TestRunSchema_FileNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	err = RunSchema(db, "/nonexistent/schema.sql")
 	assert.Error(t, err)

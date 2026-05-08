@@ -53,7 +53,7 @@ func (t transactor) Transaction(fc func(tx *gorm.DB) error, opts ...*sql.TxOptio
 // wireHandlers creates all repos+services+handlers and returns *handler.Dependencies.
 // Called by all setup* functions to eliminate duplicated DI wiring.
 // includeRBAC adds Role and Permission handlers (needed for RBAC-aware routes).
-func wireHandlers(t *testing.T, db *gorm.DB, data *seedData, includeRBAC bool) *handler.Dependencies {
+func wireHandlers(t *testing.T, db *gorm.DB, _ *seedData, includeRBAC bool) *handler.Dependencies {
 	t.Helper()
 
 	userRepo := gormrepo.NewGormUserRepo(db)
@@ -125,7 +125,7 @@ func wireHandlers(t *testing.T, db *gorm.DB, data *seedData, includeRBAC bool) *
 func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	t.Helper()
 
-	snowflake.Init(1)
+	_ = snowflake.Init(1)
 
 	dbName := fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())
 	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
@@ -240,11 +240,10 @@ func setupTestRouter(t *testing.T) (*gin.Engine, *seedData) {
 
 // setupTestRouterWithDB creates a router that reuses an existing DB instance.
 // Needed for tests that seed data and then verify via the same DB.
-func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engine, *seedData) {
+func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) *gin.Engine {
 	t.Helper()
 	deps := wireHandlers(t, db, data, false)
-	r := handler.SetupRouter(deps, nil)
-	return r, data
+	return handler.SetupRouter(deps, nil)
 }
 
 // createFreshDB creates a fresh in-memory SQLite database for migration tests.
@@ -267,7 +266,7 @@ func createFreshDB(t *testing.T) *gorm.DB {
 // setupRBACTestDB creates an in-memory DB with RBAC tables seeded via the migration path.
 func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	t.Helper()
-	snowflake.Init(1)
+	_ = snowflake.Init(1)
 
 	dbName := fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())
 	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
@@ -454,8 +453,8 @@ func makeRequest(t *testing.T, r *gin.Engine, method, path, body, token string) 
 // ========== Data Seeding Helpers ==========
 
 // seedProgressData creates a MainItem with two SubItems (weight=1 each) for progress tests.
-// Returns the main item ID, the two sub item IDs, and their bizKey values.
-func seedProgressData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) (mainItemID, subItem1ID, subItem2ID uint, subItem1BizKey, subItem2BizKey int64) {
+// Returns the main item ID, sub item 1 ID, and their bizKey values.
+func seedProgressData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) (mainItemID, subItem1ID uint, subItem1BizKey, subItem2BizKey int64) {
 	t.Helper()
 
 	mainItem := &model.MainItem{
@@ -491,7 +490,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) 
 	}
 	require.NoError(t, db.Create(sub2).Error)
 
-	return mainItem.ID, sub1.ID, sub2.ID, sub1.BizKey, sub2.BizKey
+	return mainItem.ID, sub1.ID, sub1.BizKey, sub2.BizKey
 }
 
 // appendProgress sends a progress append request via the router.
@@ -510,7 +509,7 @@ func appendProgress(t *testing.T, r *gin.Engine, token string, teamBizKey, subBi
 }
 
 // seedPoolData creates a pool item and a main item for assign tests.
-func seedPoolData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) (poolID, mainItemID uint, poolBizKey, mainItemBizKey int64) {
+func seedPoolData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) (poolID uint, poolBizKey, mainItemBizKey int64) {
 	t.Helper()
 
 	poolItem := &model.ItemPool{
@@ -534,7 +533,7 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) (poo
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
-	return poolItem.ID, mainItem.ID, poolItem.BizKey, mainItem.BizKey
+	return poolItem.ID, poolItem.BizKey, mainItem.BizKey
 }
 
 // seedReportData creates a MainItem with a SubItem that has progress during the given week.
@@ -692,7 +691,7 @@ func getUserBizKey(t *testing.T, db *gorm.DB, userID uint) int64 {
 // backfillUserBizKeys sets unique bizKeys on seeded users that have biz_key = 0.
 func backfillUserBizKeys(t *testing.T, db *gorm.DB) {
 	t.Helper()
-	snowflake.Init(1)
+	_ = snowflake.Init(1)
 	var users []model.User
 	require.NoError(t, db.Where("biz_key = 0").Find(&users).Error)
 	for _, u := range users {

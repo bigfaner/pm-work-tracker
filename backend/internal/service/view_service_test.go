@@ -2320,12 +2320,12 @@ func TestBuildWeeklyGroups_Stats(t *testing.T) {
 // Benchmarks
 // ---------------------------------------------------------------------------
 
-// seedBenchmarkData creates a dataset of n main items with sub-items and progress.
-func seedBenchmarkData(n int) (*mockViewMainItemRepo, *mockViewSubItemRepo, *mockViewProgressRepo, *mockViewUserRepo) {
+// seedBenchmarkData creates a dataset of 200 main items with sub-items and progress.
+func seedBenchmarkData() (*mockViewMainItemRepo, *mockViewSubItemRepo, *mockViewProgressRepo, *mockViewUserRepo) {
 	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
 
-	mainItems := make([]model.MainItem, n)
+	mainItems := make([]model.MainItem, 200)
 	for i := range mainItems {
 		id := uint(i + 1)
 		assigneeID := uint((i % 50) + 1) // 50 unique assignees
@@ -2344,7 +2344,7 @@ func seedBenchmarkData(n int) (*mockViewMainItemRepo, *mockViewSubItemRepo, *moc
 	}
 
 	// Each main item has 2 sub-items
-	subItems := make([]model.SubItem, n*2)
+	subItems := make([]model.SubItem, 200*2)
 	for i := range subItems {
 		mainID := uint(i/2 + 1)
 		subItems[i] = model.SubItem{
@@ -2363,7 +2363,7 @@ func seedBenchmarkData(n int) (*mockViewMainItemRepo, *mockViewSubItemRepo, *moc
 
 	// Progress records for the current week
 	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-	records := make([]model.ProgressRecord, n)
+	records := make([]model.ProgressRecord, 200)
 	for i := range records {
 		records[i] = model.ProgressRecord{
 			ID:          uint(i + 1),
@@ -2392,7 +2392,7 @@ func seedBenchmarkData(n int) (*mockViewMainItemRepo, *mockViewSubItemRepo, *moc
 
 func BenchmarkTableView(b *testing.B) {
 	b.StopTimer()
-	mainRepo, subRepo, _, userRepo := seedBenchmarkData(200)
+	mainRepo, subRepo, _, userRepo := seedBenchmarkData()
 	svc := newViewServiceWithUsers(mainRepo, subRepo, userRepo)
 	ctx := context.Background()
 	b.StartTimer()
@@ -2407,7 +2407,7 @@ func BenchmarkTableView(b *testing.B) {
 
 func BenchmarkTableView_LargePage(b *testing.B) {
 	b.StopTimer()
-	mainRepo, subRepo, _, userRepo := seedBenchmarkData(200)
+	mainRepo, subRepo, _, userRepo := seedBenchmarkData()
 	svc := newViewServiceWithUsers(mainRepo, subRepo, userRepo)
 	ctx := context.Background()
 	b.StartTimer()
@@ -2422,7 +2422,7 @@ func BenchmarkTableView_LargePage(b *testing.B) {
 
 func BenchmarkGanttView(b *testing.B) {
 	b.StopTimer()
-	mainRepo, subRepo, _, _ := seedBenchmarkData(200)
+	mainRepo, subRepo, _, _ := seedBenchmarkData()
 	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
 	ctx := context.Background()
 	b.StartTimer()
@@ -2437,7 +2437,7 @@ func BenchmarkGanttView(b *testing.B) {
 
 func BenchmarkGanttView_WithStatusFilter(b *testing.B) {
 	b.StopTimer()
-	mainRepo, subRepo, _, _ := seedBenchmarkData(200)
+	mainRepo, subRepo, _, _ := seedBenchmarkData()
 	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
 	ctx := context.Background()
 	b.StartTimer()

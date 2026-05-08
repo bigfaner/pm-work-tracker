@@ -31,12 +31,6 @@ func RunSchema(db *gorm.DB, schemaFile string) error {
 // ignoring comments and empty lines.
 func splitStatements(sql string) []string {
 	var stmts []string
-	for _, line := range strings.Split(sql, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "--") {
-			continue
-		}
-	}
 	// Split by semicolons and keep non-empty statements.
 	for _, part := range strings.Split(sql, ";") {
 		part = strings.TrimSpace(part)

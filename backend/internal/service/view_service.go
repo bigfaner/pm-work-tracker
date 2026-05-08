@@ -61,7 +61,7 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamBizKey int64, we
 	}
 
 	subItemsByMain := indexSubItemsByMain(subItems)
-	lastWeekProgress, thisWeekProgress := splitProgressByWeek(allProgress, lastWeekStart, weekStart, weekEnd)
+	lastWeekProgress, thisWeekProgress := splitProgressByWeek(allProgress, lastWeekStart, weekStart)
 	lastWeekActive, thisWeekActive := computeActiveSubItems(subItems, lastWeekProgress, thisWeekProgress, lastWeekStart, weekStart, weekEnd)
 	lastWeekCompletion := computeLastWeekCompletion(lastWeekProgress)
 	latestProgressDesc := computeLatestProgressDesc(thisWeekProgress)
@@ -115,7 +115,7 @@ func (s *viewService) fetchWeeklyData(ctx context.Context, teamBizKey int64, las
 }
 
 // splitProgressByWeek partitions progress records into last-week and this-week buckets by sub-item biz_key.
-func splitProgressByWeek(allProgress []model.ProgressRecord, lastWeekStart, thisWeekStart, weekEnd time.Time) (
+func splitProgressByWeek(allProgress []model.ProgressRecord, lastWeekStart, thisWeekStart time.Time) (
 	map[int64][]model.ProgressRecord, map[int64][]model.ProgressRecord,
 ) {
 	lastWeekEnd := lastWeekStart.AddDate(0, 0, 7) // exclusive upper bound

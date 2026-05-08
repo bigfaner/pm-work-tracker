@@ -33,7 +33,7 @@ func rbacTestEnv(t *testing.T) (*gin.Engine, *gorm.DB) {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
 
-	snowflake.Init(1)
+	_ = snowflake.Init(1)
 
 	require.NoError(t, db.AutoMigrate(
 		&model.User{},

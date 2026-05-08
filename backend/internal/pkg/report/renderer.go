@@ -14,7 +14,7 @@ func RenderMarkdown(preview *dto.ReportPreview, weekStart time.Time) []byte {
 
 	// Header: # 周报 YYYY-WXX
 	_, isoWeek := weekStart.ISOWeek()
-	buf.WriteString(fmt.Sprintf("# 周报 %d-W%02d\n\n", weekStart.Year(), isoWeek))
+	fmt.Fprintf(&buf, "# 周报 %d-W%02d\n\n", weekStart.Year(), isoWeek)
 
 	for _, section := range preview.Sections {
 		// Main item section
@@ -22,16 +22,16 @@ func RenderMarkdown(preview *dto.ReportPreview, weekStart time.Time) []byte {
 		if section.MainItem.IsKeyItem {
 			mainTitle = "[重点] " + mainTitle
 		}
-		buf.WriteString(fmt.Sprintf("## %s\n\n", mainTitle))
+		fmt.Fprintf(&buf, "## %s\n\n", mainTitle)
 
 		for _, sub := range section.SubItems {
-			buf.WriteString(fmt.Sprintf("### %s\n\n", sub.Title))
-			buf.WriteString(fmt.Sprintf("完成度: %.0f%%\n\n", sub.Completion))
+			fmt.Fprintf(&buf, "### %s\n\n", sub.Title)
+			fmt.Fprintf(&buf, "完成度: %.0f%%\n\n", sub.Completion)
 
 			if len(sub.Achievements) > 0 {
 				buf.WriteString("**成果:**\n\n")
 				for _, a := range sub.Achievements {
-					buf.WriteString(fmt.Sprintf("- %s\n", a))
+					fmt.Fprintf(&buf, "- %s\n", a)
 				}
 				buf.WriteString("\n")
 			}
@@ -39,7 +39,7 @@ func RenderMarkdown(preview *dto.ReportPreview, weekStart time.Time) []byte {
 			if len(sub.Blockers) > 0 {
 				buf.WriteString("**卡点:**\n\n")
 				for _, b := range sub.Blockers {
-					buf.WriteString(fmt.Sprintf("- %s\n", b))
+					fmt.Fprintf(&buf, "- %s\n", b)
 				}
 				buf.WriteString("\n")
 			}

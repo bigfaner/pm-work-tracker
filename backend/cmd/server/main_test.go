@@ -29,7 +29,7 @@ func initSnowflake(t *testing.T) {
 }
 
 // writeTestConfig writes a minimal valid config.yaml to a temp file and returns its path.
-func writeTestConfig(t *testing.T, jwtSecret string) string {
+func writeTestConfig(t *testing.T) string {
 	t.Helper()
 	content := []byte(`server:
   port: "18080"
@@ -43,7 +43,7 @@ database:
   path: ":memory:"
 
 auth:
-  jwt_secret: "` + jwtSecret + `"
+  jwt_secret: "test-secret-that-is-at-least-32-bytes!!"
   jwt_expiry: 1h
   initial_admin:
     username: ""
@@ -61,7 +61,7 @@ logging:
 	_, err = f.Write(content)
 	require.NoError(t, err)
 	require.NoError(t, f.Close())
-	t.Cleanup(func() { os.Remove(f.Name()) })
+	t.Cleanup(func() { _ = os.Remove(f.Name()) })
 	return f.Name()
 }
 
@@ -69,14 +69,14 @@ func TestRun_FailsWhenAssetsInvalid(t *testing.T) {
 	// dist/index.html is embedded, so ValidateAssets passes. The next early-exit
 	// is the schema migration: the temp config dir has no migrations/ folder, so
 	// run() returns a "migration error: ..." before starting the server.
-	path := writeTestConfig(t, "test-secret-that-is-at-least-32-bytes!!")
+	path := writeTestConfig(t)
 	err := run(path, false)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "migration error:")
 }
 
 func TestRun_LoadsConfigFromFile(t *testing.T) {
-	path := writeTestConfig(t, "test-secret-that-is-at-least-32-bytes!!")
+	path := writeTestConfig(t)
 	cfg, err := config.LoadConfig(path)
 	require.NoError(t, err)
 	assert.Equal(t, "18080", cfg.Server.Port)
@@ -84,7 +84,7 @@ func TestRun_LoadsConfigFromFile(t *testing.T) {
 }
 
 func TestRun_InitDBWithConfig(t *testing.T) {
-	path := writeTestConfig(t, "test-secret-that-is-at-least-32-bytes!!")
+	path := writeTestConfig(t)
 	cfg, err := config.LoadConfig(path)
 	require.NoError(t, err)
 
@@ -98,7 +98,7 @@ func TestRun_InitDBWithConfig(t *testing.T) {
 }
 
 func TestRun_SeedAdminSkippedWhenNoUsername(t *testing.T) {
-	path := writeTestConfig(t, "test-secret-that-is-at-least-32-bytes!!")
+	path := writeTestConfig(t)
 	cfg, err := config.LoadConfig(path)
 	require.NoError(t, err)
 
@@ -143,7 +143,7 @@ logging:
 	_, err = f.Write(content)
 	require.NoError(t, err)
 	require.NoError(t, f.Close())
-	t.Cleanup(func() { os.Remove(f.Name()) })
+	t.Cleanup(func() { _ = os.Remove(f.Name()) })
 
 	cfg, err := config.LoadConfig(f.Name())
 	require.NoError(t, err)
@@ -164,7 +164,7 @@ logging:
 }
 
 func TestRun_ServerAppliesTimeouts(t *testing.T) {
-	path := writeTestConfig(t, "test-secret-that-is-at-least-32-bytes!!")
+	path := writeTestConfig(t)
 	cfg, err := config.LoadConfig(path)
 	require.NoError(t, err)
 
@@ -174,7 +174,7 @@ func TestRun_ServerAppliesTimeouts(t *testing.T) {
 }
 
 func TestRun_WiredRouterHealthCheck(t *testing.T) {
-	path := writeTestConfig(t, "test-secret-that-is-at-least-32-bytes!!")
+	path := writeTestConfig(t)
 	cfg, err := config.LoadConfig(path)
 	require.NoError(t, err)
 

@@ -446,7 +446,7 @@ func evaluateLinkageTarget(subItems []*model.SubItem, currentMainStatus string) 
 		if !isClosed {
 			allClosed = false
 		}
-		if !(isPausing || isClosed) {
+		if !isPausing && !isClosed {
 			allPausingOrClosed = false
 		}
 		if isCompleted {
