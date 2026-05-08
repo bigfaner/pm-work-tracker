@@ -284,6 +284,17 @@
       "breaking": true,
       "sourceTaskID": "T-test-3"
     },
+    "disc-5": {
+      "id": "disc-5",
+      "title": "Fix: SuperAdmin bypass missing in RequirePermission middleware for admin routes",
+      "priority": "P0",
+      "estimatedTime": "30min",
+      "status": "pending",
+      "file": "disc-5.md",
+      "record": "records/disc-5.md",
+      "breaking": true,
+      "sourceTaskID": "T-test-3"
+    },
     "eval-test-cases": {
       "id": "T-test-1b",
       "title": "Evaluate e2e Test Cases",
@@ -346,9 +357,10 @@
         "T-test-2",
         "disc-2",
         "disc-3",
-        "disc-4"
+        "disc-4",
+        "disc-5"
       ],
-      "status": "pending",
+      "status": "blocked",
       "file": "run-e2e-tests.md",
       "record": "records/run-e2e-tests.md",
       "scope": "all"

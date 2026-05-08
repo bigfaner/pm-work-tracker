@@ -1,6 +1,6 @@
 ---
 status: "blocked"
-started: "2026-05-09 02:58"
+started: "2026-05-09 03:37"
 completed: "N/A"
 time_spent: ""
 ---
@@ -8,24 +8,23 @@ time_spent: ""
 # Task Record: T-test-3 Run e2e Tests
 
 ## Summary
-Executed e2e test scripts for unify-permission-checks. 0/38 passed, 3 failed, 35 skipped (cascade from beforeAll failure). Two root causes found: (1) ui.spec.ts uses wrong cwd 'ui' instead of 'frontend' in runCli calls (TC-001, TC-002); (2) RequirePermission middleware lacks SuperAdmin bypass for non-team-scoped routes, causing setupRbacFixtures to fail on GET /admin/roles (TC-004 cascade). Created two P0 fix tasks: disc-2 (test script cwd) and disc-3 (middleware bypass). Results report written to tests/e2e/features/unify-permission-checks/results/latest.md.
+Executed e2e test scripts for unify-permission-checks. TC-001 and TC-002 (CLI tests) PASS. TC-004 (API) FAILS due to RequirePermission middleware not checking isSuperAdmin for admin routes, causing cascade skip of TC-005..TC-039. Created fix task disc-5.
 
 ## Changes
 
 ### Files Created
-- tests/e2e/features/unify-permission-checks/results/latest.md
-
-### Files Modified
 无
 
+### Files Modified
+- tests/e2e/features/unify-permission-checks/results/latest.md
+
 ### Key Decisions
-- Marked T-test-3 as blocked pending fix tasks disc-2 and disc-3
-- Created disc-2: fix test script cwd 'ui' -> 'frontend' in ui.spec.ts
-- Created disc-3: add SuperAdmin bypass to RequirePermission middleware for non-team-scoped routes
+- Created fix task disc-5 (P0) for the RequirePermission middleware SuperAdmin bypass issue
+- Marked T-test-3 as blocked pending disc-5 fix
 
 ## Test Results
-- **Passed**: 0
-- **Failed**: 3
+- **Passed**: 2
+- **Failed**: 1
 - **Coverage**: N/A (task has no tests)
 
 ## Acceptance Criteria
@@ -33,4 +32,4 @@ Executed e2e test scripts for unify-permission-checks. 0/38 passed, 3 failed, 35
 - [ ] All tests pass (status = PASS in latest.md)
 
 ## Notes
-TC-001 and TC-002: runCli cwd bug ('ui' should be 'frontend'). TC-004: RequirePermission middleware only checks roleRepo.HasPermission() for non-team routes, missing isSuperAdmin bypass that TeamScopeMiddleware provides for team-scoped routes. All 35 API tests skipped due to cascade from TC-004 beforeAll failure.
+Root cause: GET /v1/admin/roles returns 403 for admin user because RequirePermission middleware on /admin/* routes does not check isSuperAdmin flag. Only team-scoped routes have the SuperAdmin bypass via TeamScopeMiddleware. Fix options: (1) add isSuperAdmin bypass to RequirePermission, (2) seed user:manage_role to admin role.
