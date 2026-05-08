@@ -211,6 +211,7 @@ func TestWeeklyPreview_RequiresAuth(t *testing.T) {
 	assert.False(t, svc.previewCalled)
 }
 
+//nolint:dupl // cross-handler test: same non-member setup pattern as view_handler_test TestWeeklyView_RequiresTeamMembership
 func TestWeeklyPreview_RequiresTeamMembership(t *testing.T) {
 	svc := &mockReportService{}
 	deps, db := testDeps(t)

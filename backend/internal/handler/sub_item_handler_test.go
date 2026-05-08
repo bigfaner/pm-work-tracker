@@ -526,6 +526,8 @@ func TestUpdateSubItem_Success_AsMember(t *testing.T) {
 
 // After removing assignee checks, a member with sub_item:update can update any sub-item.
 func TestUpdateSubItem_Success_NonAssigneeMember(t *testing.T) {
+	// Same as AsMember — both verify member with sub_item:update permission succeeds.
+	// Kept as separate test for documentation of the removed-assignee-check behavior.
 	svc := &mockSubItemService{}
 	assigneeID := uint(99) // different user
 	item := testSubItem(1)

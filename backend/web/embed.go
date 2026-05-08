@@ -6,8 +6,9 @@ import (
 	"io/fs"
 )
 
-//go:embed all:dist
 // FS is the embedded frontend assets from the dist directory.
+//
+//go:embed all:dist
 var FS embed.FS
 
 // ValidateAssets checks that the embedded FS contains dist/index.html.

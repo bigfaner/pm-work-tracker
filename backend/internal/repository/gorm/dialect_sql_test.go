@@ -24,7 +24,7 @@ func (d mockDialector) DataTypeOf(_ *schema.Field) string                     { 
 func (d mockDialector) DefaultValueOf(_ *schema.Field) clause.Expression      { return nil }
 func (d mockDialector) BindVarTo(clause.Writer, *gorm.Statement, interface{}) {}
 func (d mockDialector) QuoteTo(clause.Writer, string)                         {}
-func (d mockDialector) Explain(sql string, _ ...interface{}) string              { return sql }
+func (d mockDialector) Explain(sql string, _ ...interface{}) string           { return sql }
 
 func openDBWithDialector(name string) *gorm.DB {
 	db, err := gorm.Open(mockDialector{name: name}, &gorm.Config{})
