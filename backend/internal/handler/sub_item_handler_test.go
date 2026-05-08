@@ -223,9 +223,9 @@ func depsWithSubItemSvcCustomRole(t *testing.T, svc *mockSubItemService, permCod
 }
 
 // testSubItem creates a SubItem model for tests.
-func testSubItem(_ uint, teamID uint) *model.SubItem {
+func testSubItem(_ uint) *model.SubItem {
 	return &model.SubItem{
-		TeamKey:     int64(teamID),
+		TeamKey:     10,
 		MainItemKey: int64(1),
 		Title:       "Test SubItem",
 		Priority:    "P2",
@@ -239,7 +239,7 @@ func testSubItem(_ uint, teamID uint) *model.SubItem {
 
 func TestCreateSubItem_Success(t *testing.T) {
 	svc := &mockSubItemService{}
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	svc.createResult.item = item
 
@@ -271,7 +271,7 @@ func TestCreateSubItem_Success(t *testing.T) {
 
 func TestCreateSubItem_MemberCanCreate(t *testing.T) {
 	svc := &mockSubItemService{}
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	svc.createResult.item = item
 
@@ -333,7 +333,7 @@ func TestCreateSubItem_ServiceError(t *testing.T) {
 func TestListSubItems_Success(t *testing.T) {
 	svc := &mockSubItemService{}
 	svc.listResult.page = &dto.PageResult[model.SubItem]{
-		Items: []model.SubItem{*testSubItem(1, 10), *testSubItem(2, 10)},
+		Items: []model.SubItem{*testSubItem(1), *testSubItem(2)},
 		Total: 2,
 		Page:  1,
 		Size:  20,
@@ -404,7 +404,7 @@ func TestListSubItems_ServiceError(t *testing.T) {
 
 func TestGetSubItem_Success(t *testing.T) {
 	svc := &mockSubItemService{}
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	item.BizKey = 1
 	item.ItemStatus = "progressing"
@@ -477,7 +477,7 @@ func TestGetSubItem_NotFound(t *testing.T) {
 
 func TestUpdateSubItem_Success_AsPM(t *testing.T) {
 	svc := &mockSubItemService{}
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	item.Title = "Updated Title"
 	svc.getResult.item = item
@@ -503,7 +503,7 @@ func TestUpdateSubItem_Success_AsPM(t *testing.T) {
 func TestUpdateSubItem_Success_AsMember(t *testing.T) {
 	svc := &mockSubItemService{}
 	assigneeID := uint(99) // different user — member can still update (no assignee check)
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
 	item.Title = "Updated"
@@ -528,7 +528,7 @@ func TestUpdateSubItem_Success_AsMember(t *testing.T) {
 func TestUpdateSubItem_Success_NonAssigneeMember(t *testing.T) {
 	svc := &mockSubItemService{}
 	assigneeID := uint(99) // different user
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
 	item.Title = "Updated"
@@ -552,7 +552,7 @@ func TestUpdateSubItem_Success_NonAssigneeMember(t *testing.T) {
 // Custom role with sub_item:update can update any sub-item (no assignee check).
 func TestUpdateSubItem_Success_CustomRoleWithUpdatePerm(t *testing.T) {
 	svc := &mockSubItemService{}
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	item.Title = "Updated Title"
 	svc.getResult.item = item
@@ -579,7 +579,7 @@ func TestUpdateSubItem_Success_CustomRoleWithUpdatePerm(t *testing.T) {
 func TestUpdateSubItem_Success_CustomRoleWithoutAssignPerm(t *testing.T) {
 	svc := &mockSubItemService{}
 	assigneeID := uint(99)
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
 	item.Title = "Updated"
@@ -645,7 +645,7 @@ func TestUpdateSubItem_NotFound(t *testing.T) {
 
 func TestChangeStatus_Success(t *testing.T) {
 	svc := &mockSubItemService{}
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	item.BizKey = 1
 	item.ItemStatus = "progressing"
@@ -738,7 +738,7 @@ func TestChangeStatus_InvalidBody(t *testing.T) {
 func TestChangeStatus_Success_AsMember(t *testing.T) {
 	svc := &mockSubItemService{}
 	assigneeID := uint(99) // different user — member can still change status (no assignee check)
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
 	item.ItemStatus = "progressing"
@@ -763,7 +763,7 @@ func TestChangeStatus_Success_AsMember(t *testing.T) {
 func TestChangeStatus_Success_NonAssigneeMember(t *testing.T) {
 	svc := &mockSubItemService{}
 	assigneeID := uint(99)
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
 	item.ItemStatus = "progressing"

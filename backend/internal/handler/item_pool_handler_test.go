@@ -224,9 +224,9 @@ func depsWithItemPoolMemberRole(t *testing.T, svc *mockItemPoolService, userRepo
 }
 
 // helper to create an ItemPool model for tests.
-func testItemPool(_ uint, teamID uint) *model.ItemPool {
+func testItemPool(_ uint) *model.ItemPool {
 	return &model.ItemPool{
-		TeamKey:      int64(teamID),
+		TeamKey:      10,
 		Title:        "Test Pool Item",
 		PoolStatus:   "pending",
 		SubmitterKey: 5,
@@ -239,7 +239,7 @@ func testItemPool(_ uint, teamID uint) *model.ItemPool {
 
 func TestSubmitItemPool_Success(t *testing.T) {
 	svc := &mockItemPoolService{}
-	item := testItemPool(1, 10)
+	item := testItemPool(1)
 	item.ID = 1
 	svc.submitResult.item = item
 
@@ -274,7 +274,7 @@ func TestSubmitItemPool_Success(t *testing.T) {
 func TestSubmitItemPool_MemberCanSubmit(t *testing.T) {
 	// Any team member can submit, not just PM
 	svc := &mockItemPoolService{}
-	item := testItemPool(1, 10)
+	item := testItemPool(1)
 	item.ID = 1
 	svc.submitResult.item = item
 
@@ -341,7 +341,7 @@ func TestSubmitItemPool_ServiceError(t *testing.T) {
 func TestListItemPool_Success(t *testing.T) {
 	svc := &mockItemPoolService{}
 	svc.listResult.page = &dto.PageResult[model.ItemPool]{
-		Items: []model.ItemPool{*testItemPool(1, 10), *testItemPool(2, 10)},
+		Items: []model.ItemPool{*testItemPool(1), *testItemPool(2)},
 		Total: 2,
 		Page:  1,
 		Size:  20,
@@ -416,7 +416,7 @@ func TestListItemPool_ServiceError(t *testing.T) {
 
 func TestGetItemPool_Success(t *testing.T) {
 	svc := &mockItemPoolService{}
-	item := testItemPool(5, 10)
+	item := testItemPool(5)
 	item.ID = 5
 	item.Background = "some background"
 	item.ExpectedOutput = "some output"

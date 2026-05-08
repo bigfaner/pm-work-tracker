@@ -2321,7 +2321,7 @@ func TestBuildWeeklyGroups_Stats(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // seedBenchmarkData creates a dataset of 200 main items with sub-items and progress.
-func seedBenchmarkData() (*mockViewMainItemRepo, *mockViewSubItemRepo, *mockViewProgressRepo, *mockViewUserRepo) {
+func seedBenchmarkData() (*mockViewMainItemRepo, *mockViewSubItemRepo, *mockViewUserRepo) {
 	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
 
@@ -2386,13 +2386,12 @@ func seedBenchmarkData() (*mockViewMainItemRepo, *mockViewSubItemRepo, *mockView
 
 	return &mockViewMainItemRepo{items: mainItems},
 		&mockViewSubItemRepo{items: subItems},
-		&mockViewProgressRepo{records: records},
 		&mockViewUserRepo{users: users}
 }
 
 func BenchmarkTableView(b *testing.B) {
 	b.StopTimer()
-	mainRepo, subRepo, _, userRepo := seedBenchmarkData()
+	mainRepo, subRepo, userRepo := seedBenchmarkData()
 	svc := newViewServiceWithUsers(mainRepo, subRepo, userRepo)
 	ctx := context.Background()
 	b.StartTimer()
@@ -2407,7 +2406,7 @@ func BenchmarkTableView(b *testing.B) {
 
 func BenchmarkTableView_LargePage(b *testing.B) {
 	b.StopTimer()
-	mainRepo, subRepo, _, userRepo := seedBenchmarkData()
+	mainRepo, subRepo, userRepo := seedBenchmarkData()
 	svc := newViewServiceWithUsers(mainRepo, subRepo, userRepo)
 	ctx := context.Background()
 	b.StartTimer()
@@ -2422,7 +2421,7 @@ func BenchmarkTableView_LargePage(b *testing.B) {
 
 func BenchmarkGanttView(b *testing.B) {
 	b.StopTimer()
-	mainRepo, subRepo, _, _ := seedBenchmarkData()
+	mainRepo, subRepo, _ := seedBenchmarkData()
 	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
 	ctx := context.Background()
 	b.StartTimer()
@@ -2437,7 +2436,7 @@ func BenchmarkGanttView(b *testing.B) {
 
 func BenchmarkGanttView_WithStatusFilter(b *testing.B) {
 	b.StopTimer()
-	mainRepo, subRepo, _, _ := seedBenchmarkData()
+	mainRepo, subRepo, _ := seedBenchmarkData()
 	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
 	ctx := context.Background()
 	b.StartTimer()
