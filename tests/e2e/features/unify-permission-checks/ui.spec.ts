@@ -5,13 +5,13 @@ import { runCli } from '../../helpers.js';
 
 // Traceability: TC-001 → Story 5 / AC-1
 test('TC-001: TypeScript compilation passes after isSuperAdmin removal', () => {
-  const result = runCli('npx tsc --noEmit', 'frontend');
+  const result = runCli('npx tsc --noEmit', '../../frontend');
   expect(result.exitCode).toBe(0);
   expect(result.stderr).not.toContain('isSuperAdmin');
 });
 
 // Traceability: TC-002 → Story 5 / AC-1
 test('TC-002: Frontend tests pass after isSuperAdmin removal', () => {
-  const result = runCli('npx vitest run', 'frontend', 60000);
+  const result = runCli('npx vitest run', '../../frontend', 60000);
   expect(result.exitCode).toBe(0);
 });

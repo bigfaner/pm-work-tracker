@@ -273,6 +273,17 @@
       "breaking": true,
       "sourceTaskID": "T-test-3"
     },
+    "disc-4": {
+      "id": "disc-4",
+      "title": "Fix: CLI test cwd path and re-run e2e",
+      "priority": "P0",
+      "estimatedTime": "30min",
+      "status": "completed",
+      "file": "disc-4.md",
+      "record": "records/disc-4.md",
+      "breaking": true,
+      "sourceTaskID": "T-test-3"
+    },
     "eval-test-cases": {
       "id": "T-test-1b",
       "title": "Evaluate e2e Test Cases",
@@ -334,7 +345,8 @@
       "dependencies": [
         "T-test-2",
         "disc-2",
-        "disc-3"
+        "disc-3",
+        "disc-4"
       ],
       "status": "pending",
       "file": "run-e2e-tests.md",
