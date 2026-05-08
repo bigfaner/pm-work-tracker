@@ -197,6 +197,32 @@ func depsWithSubItemSvcMemberRole(t *testing.T, svc *mockSubItemService) *Depend
 	return deps
 }
 
+// depsWithSubItemSvcCustomRole wires with a custom role that has the given permission codes.
+// The custom role does NOT have team:invite, so isPMOrSuperAdmin depends on sub_item:assign.
+
+func depsWithSubItemSvcCustomRole(t *testing.T, svc *mockSubItemService, permCodes []string) *Dependencies {
+	t.Helper()
+	deps, db := testDeps(t)
+
+	customRole := model.Role{Name: "custom-test-role", Description: "Custom Test Role", IsPreset: false}
+	require.NoError(t, db.Create(&customRole).Error)
+	customRole.BizKey = int64(customRole.ID)
+	require.NoError(t, db.Save(&customRole).Error)
+
+	for _, code := range permCodes {
+		require.NoError(t, db.Create(&model.RolePermission{
+			RoleKey:         customRole.BizKey,
+			PermissionCode:  code,
+		}).Error)
+	}
+
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{
+		RoleKey: func() *int64 { v := int64(customRole.ID); return &v }(),
+	}}
+	deps.SubItem = NewSubItemHandler(svc, &mockMainItemSvcForSubItem{})
+	return deps
+}
+
 // testSubItem creates a SubItem model for tests.
 func testSubItem(id uint, teamID uint) *model.SubItem {
 	return &model.SubItem{
@@ -511,6 +537,60 @@ func TestUpdateSubItem_Forbidden_NonPMNonAssignee(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser") // userID=5, NOT the assignee (99)
+	body := `{"title":"Hacked"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.False(t, svc.updateCalled)
+}
+
+// bug: custom role with sub_item:assign should bypass assignee check (uses sub_item:assign, not team:invite)
+func TestUpdateSubItem_Success_CustomRoleWithSubItemAssign(t *testing.T) {
+	svc := &mockSubItemService{}
+	item := testSubItem(1, 10)
+	item.ID = 1
+	item.Title = "Updated Title"
+	svc.getResult.item = item
+
+	// Custom role with sub_item:assign but NOT team:invite → should bypass assignee check
+	deps := depsWithSubItemSvcCustomRole(t, svc, []string{
+		"sub_item:read", "sub_item:update", "sub_item:assign",
+	})
+	r := SetupRouter(deps, nil)
+
+	// User ID=5, sub-item has no assignee — would fail assignee check if isPMOrSuperAdmin returned false
+	token := signTestToken(t, 5, "testuser")
+	body := `{"title":"Updated Title"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, svc.updateCalled)
+}
+
+// bug: custom role without sub_item:assign should still be restricted to assigned items
+func TestUpdateSubItem_Forbidden_CustomRoleWithoutAssignPerm(t *testing.T) {
+	svc := &mockSubItemService{}
+	assigneeID := uint(99)
+	item := testSubItem(1, 10)
+	item.ID = 1
+	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
+	svc.getResult.item = item
+
+	// Custom role with sub_item:update but NOT sub_item:assign or team:invite
+	deps := depsWithSubItemSvcCustomRole(t, svc, []string{
+		"sub_item:read", "sub_item:update",
+	})
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Hacked"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1", strings.NewReader(body))

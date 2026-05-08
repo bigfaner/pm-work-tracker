@@ -32,18 +32,16 @@ func NewSubItemHandler(svc service.SubItemService, mainItemSvc service.MainItemS
 	return &SubItemHandler{svc: svc, mainItemSvc: mainItemSvc}
 }
 
-// isPMOrSuperAdmin checks if the caller is a PM or superadmin using the permission codes in context.
-// This is used for the assignee business rule pattern in sub_item handlers.
+// isPMOrSuperAdmin checks if the caller can manage all sub-items (bypass assignee check).
+// SuperAdmin always passes. For other roles, sub_item:assign grants full management access.
 func isPMOrSuperAdmin(c *gin.Context) bool {
 	if middleware.IsSuperAdmin(c) {
 		return true
 	}
-	// Check if the caller has PM-level permissions by checking a PM-specific permission code.
-	// The "team:invite" permission is typically PM-only.
 	permCodes := middleware.GetPermCodes(c)
 	if permCodes != nil {
 		for _, code := range permCodes {
-			if code == "team:invite" {
+			if code == "sub_item:assign" {
 				return true
 			}
 		}
