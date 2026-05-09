@@ -6,10 +6,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   retries: 0,
   workers: 1,
-  reporter: [
-    ['list'],
-    ['json', { outputFile: 'results/test-results.json' }],
-  ],
+  reporter: 'list',
   use: {
     headless: true,
     screenshot: 'only-on-failure',

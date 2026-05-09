@@ -29,7 +29,7 @@ type identifiable interface {
 // Uses a negative list: only ProgressRecord and StatusHistory return false.
 func isSoftDeletable[T any]() bool {
 	switch any(new(T)).(type) {
-	case *model.ProgressRecord, *model.StatusHistory, *model.DecisionLog:
+	case *model.ProgressRecord, *model.StatusHistory:
 		return false
 	default:
 		return true
