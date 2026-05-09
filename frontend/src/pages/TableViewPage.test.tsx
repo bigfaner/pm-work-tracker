@@ -10,6 +10,11 @@ import { ToastProvider } from '@/components/ui/toast'
 import TableViewPage from './TableViewPage'
 import type { TableRow, PageResult } from '@/types'
 
+// Relative date helper — avoids hardcoded dates that expire
+const fmt = (d: Date) => d.toISOString().slice(0, 10)
+const pastDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return fmt(d) }
+const futureDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return fmt(d) }
+
 // MSW lifecycle
 beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
 afterEach(() => server.resetHandlers())
@@ -49,7 +54,7 @@ const seedRows: TableRow[] = [
     assigneeName: '张明',
     itemStatus: 'progressing',
     completion: 65,
-    expectedEndDate: '2026-04-15',
+    expectedEndDate: pastDays(30),
     actualEndDate: null,
     mainItemId: null,
   },
@@ -63,8 +68,8 @@ const seedRows: TableRow[] = [
     assigneeName: '李华',
     itemStatus: 'completed',
     completion: 100,
-    expectedEndDate: '2026-04-10',
-    actualEndDate: '2026-04-09',
+    expectedEndDate: pastDays(20),
+    actualEndDate: pastDays(21),
     mainItemId: '1',
   },
   {
@@ -77,7 +82,7 @@ const seedRows: TableRow[] = [
     assigneeName: '王芳',
     itemStatus: 'progressing',
     completion: 80,
-    expectedEndDate: '2026-04-18',
+    expectedEndDate: pastDays(15),
     actualEndDate: null,
     mainItemId: '1',
   },
@@ -91,7 +96,7 @@ const seedRows: TableRow[] = [
     assigneeName: '赵强',
     itemStatus: 'progressing',
     completion: 40,
-    expectedEndDate: '2026-05-05',
+    expectedEndDate: futureDays(30),
     actualEndDate: null,
     mainItemId: null,
   },
@@ -105,8 +110,8 @@ const seedRows: TableRow[] = [
     assigneeName: '赵强',
     itemStatus: 'completed',
     completion: 100,
-    expectedEndDate: '2026-04-05',
-    actualEndDate: '2026-04-04',
+    expectedEndDate: pastDays(25),
+    actualEndDate: pastDays(26),
     mainItemId: '4',
   },
 ]
