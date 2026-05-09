@@ -112,7 +112,7 @@ func NewMainItemService(mainItemRepo repository.MainItemRepo, subItemRepo reposi
 	return &mainItemService{mainItemRepo: mainItemRepo, subItemRepo: subItemRepo, statusHistorySvc: statusHistorySvc}
 }
 
-func (s *mainItemService) Create(ctx context.Context, teamBizKey int64, pmBizKey int64, req dto.MainItemCreateReq) (*model.MainItem, error) {
+func (s *mainItemService) Create(ctx context.Context, teamBizKey, pmBizKey int64, req dto.MainItemCreateReq) (*model.MainItem, error) {
 	code, err := s.mainItemRepo.NextCode(ctx, teamBizKey)
 	if err != nil {
 		return nil, err
@@ -206,7 +206,7 @@ func (s *mainItemService) Update(ctx context.Context, teamBizKey int64, itemID u
 	return s.mainItemRepo.Update(ctx, item, fields)
 }
 
-func (s *mainItemService) Archive(ctx context.Context, teamBizKey int64, itemID uint) error {
+func (s *mainItemService) Archive(ctx context.Context, _ int64, itemID uint) error {
 	item, err := s.mainItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
@@ -259,7 +259,7 @@ func (s *mainItemService) RecalcCompletion(ctx context.Context, mainItemBizKey i
 	})
 }
 
-func (s *mainItemService) ChangeStatus(ctx context.Context, teamBizKey int64, callerBizKey int64, itemID uint, newStatus string) (*model.MainItem, error) {
+func (s *mainItemService) ChangeStatus(ctx context.Context, teamBizKey, callerBizKey int64, itemID uint, newStatus string) (*model.MainItem, error) {
 	item, err := s.mainItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
@@ -287,7 +287,7 @@ func (s *mainItemService) ChangeStatus(ctx context.Context, teamBizKey int64, ca
 
 	// Guard: cannot transition to terminal if any sub-item is non-terminal
 	if status.IsMainTerminal(newStatus) {
-		subs, err := s.subItemRepo.ListByMainItem(ctx, item.BizKey)
+		subs, err := s.subItemRepo.ListByMainItem(ctx, item.BizKey) //nolint:govet // intentional shadow: inner-block err assignment
 		if err != nil {
 			return nil, err
 		}
@@ -312,12 +312,12 @@ func (s *mainItemService) ChangeStatus(ctx context.Context, teamBizKey int64, ca
 	// Capture old status before update (repo may mutate the item)
 	oldStatus := item.ItemStatus
 
-	if err := s.mainItemRepo.Update(ctx, item, fields); err != nil {
+	if err := s.mainItemRepo.Update(ctx, item, fields); err != nil { //nolint:govet // intentional shadow: inner-block err assignment
 		return nil, err
 	}
 
 	// Record to status history
-	if err := RecordStatusChange(s.statusHistorySvc, ctx, "main_item", item.BizKey, oldStatus, newStatus, callerBizKey, 0, ""); err != nil {
+	if err := RecordStatusChange(s.statusHistorySvc, ctx, "main_item", item.BizKey, oldStatus, newStatus, callerBizKey, 0, ""); err != nil { //nolint:govet // intentional shadow: inner-block err assignment
 		return nil, err
 	}
 
@@ -329,7 +329,7 @@ func (s *mainItemService) ChangeStatus(ctx context.Context, teamBizKey int64, ca
 	return updated, nil
 }
 
-func (s *mainItemService) AvailableTransitions(ctx context.Context, teamBizKey int64, callerBizKey int64, itemID uint) ([]string, error) {
+func (s *mainItemService) AvailableTransitions(ctx context.Context, teamBizKey, callerBizKey int64, itemID uint) ([]string, error) {
 	item, err := s.mainItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
@@ -356,7 +356,7 @@ func (s *mainItemService) AvailableTransitions(ctx context.Context, teamBizKey i
 
 // EvaluateLinkage evaluates the main-sub item linkage rules and updates MainItem status.
 // It acquires a per-MainItem mutex to prevent race conditions.
-func (s *mainItemService) EvaluateLinkage(ctx context.Context, mainItemBizKey int64, changedByBizKey int64) (*LinkageResult, error) {
+func (s *mainItemService) EvaluateLinkage(ctx context.Context, mainItemBizKey, changedByBizKey int64) (*LinkageResult, error) {
 	mu := getLinkageMutex(mainItemBizKey)
 	mu.Lock()
 	defer mu.Unlock()
@@ -446,7 +446,7 @@ func evaluateLinkageTarget(subItems []*model.SubItem, currentMainStatus string) 
 		if !isClosed {
 			allClosed = false
 		}
-		if !(isPausing || isClosed) {
+		if !isPausing && !isClosed {
 			allPausingOrClosed = false
 		}
 		if isCompleted {

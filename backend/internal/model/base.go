@@ -1,3 +1,4 @@
+// Package model defines database entity types and base model helpers.
 package model
 
 import "time"

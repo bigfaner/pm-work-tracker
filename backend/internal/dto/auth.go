@@ -1,3 +1,4 @@
+// Package dto provides data transfer objects for API request/response boundaries.
 package dto
 
 import "pm-work-tracker/backend/internal/vo"
@@ -49,7 +50,6 @@ type AdminUserDTO struct {
 	DisplayName     string        `json:"displayName"`
 	Email           string        `json:"email"`
 	Status          string        `json:"userStatus"`
-	IsSuperAdmin    bool          `json:"isSuperAdmin"`
 	Teams           []TeamSummary `json:"teams"`
 	InitialPassword string        `json:"initialPassword,omitempty"`
 }

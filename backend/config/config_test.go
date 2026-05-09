@@ -262,7 +262,7 @@ func TestApplyEnvOverrides_UnsetEnvVar(t *testing.T) {
 	cfg := defaultConfig()
 	cfg.Server.Port = "9090"
 	// Ensure env var is not set at all
-	os.Unsetenv("SERVER_PORT")
+	_ = os.Unsetenv("SERVER_PORT")
 
 	err := applyEnvOverrides(cfg)
 	require.NoError(t, err)

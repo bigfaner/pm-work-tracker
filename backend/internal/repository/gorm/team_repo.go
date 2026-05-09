@@ -32,6 +32,7 @@ func (r *teamRepo) Create(ctx context.Context, team *model.Team) error {
 	return err
 }
 
+//nolint:dupl // same FindByID shape as role_repo
 func (r *teamRepo) FindByID(ctx context.Context, teamID uint) (*model.Team, error) {
 	var team model.Team
 	err := r.db.WithContext(ctx).Scopes(NotDeleted).Where("id = ?", teamID).First(&team).Error
@@ -339,4 +340,13 @@ func (r *teamRepo) FindTeamsByUserBizKeys(ctx context.Context, userBizKeys []int
 		})
 	}
 	return result, nil
+}
+
+func (r *teamRepo) ListTeamBizKeys(ctx context.Context) ([]int64, error) {
+	var keys []int64
+	err := r.db.WithContext(ctx).
+		Model(&model.Team{}).
+		Scopes(NotDeleted).
+		Pluck("biz_key", &keys).Error
+	return keys, err
 }

@@ -40,11 +40,10 @@ test.describe('Team Detail - Page Load', () => {
     teamId = await getFirstTeamId(authToken);
   });
 
-  test.beforeEach(async ({ page }) => { await login(page); });
+  test.beforeEach(async ({ page }) => { await login(page, undefined, teamId ? `/teams/${teamId}` : '/items'); });
 
   test('page renders team info card', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('text=团队名称')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('text=CODE')).toBeVisible();
@@ -54,14 +53,12 @@ test.describe('Team Detail - Page Load', () => {
 
   test('breadcrumb shows 团队管理 link', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('[data-testid="team-detail-page"]').locator('nav a[href="/teams"]')).toBeVisible({ timeout: 10000 });
   });
 
   test('member list section is visible', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('text=成员列表')).toBeVisible();
     await expect(page.locator('th', { hasText: '姓名' })).toBeVisible();
@@ -72,7 +69,6 @@ test.describe('Team Detail - Page Load', () => {
 
   test('danger zone section is visible', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('text=危险操作')).toBeVisible();
     await expect(page.locator('button', { hasText: '解散团队' })).toBeVisible();
@@ -96,18 +92,16 @@ test.describe('Team Detail - Member List', () => {
     teamId = await getFirstTeamId(authToken);
   });
 
-  test.beforeEach(async ({ page }) => { await login(page); });
+  test.beforeEach(async ({ page }) => { await login(page, undefined, teamId ? `/teams/${teamId}` : '/items'); });
 
   test('at least one member row is visible', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 5000 });
   });
 
   test('PM row shows PM badge and no action buttons', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     const pmRow = page.locator('tbody tr').filter({ has: page.getByText('PM', { exact: true }) }).first();
     await expect(pmRow).toBeVisible({ timeout: 5000 });
@@ -116,7 +110,6 @@ test.describe('Team Detail - Member List', () => {
 
   test('search by name filters member list', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 10000 });
 
@@ -131,7 +124,6 @@ test.describe('Team Detail - Member List', () => {
 
   test('searching with no match shows empty table', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('input[placeholder="搜索姓名..."]').fill('zzz_no_such_member_xyz');
     await page.waitForTimeout(500);
@@ -140,7 +132,6 @@ test.describe('Team Detail - Member List', () => {
 
   test('refresh button reloads member list', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-testid="refresh-btn"]').click();
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 5000 });
@@ -167,11 +158,10 @@ test.describe('Team Detail - Change Role', () => {
     if (teamId && testMemberId) await removeTestMember(authToken, teamId, testMemberId);
   });
 
-  test.beforeEach(async ({ page }) => { await login(page); });
+  test.beforeEach(async ({ page }) => { await login(page, undefined, teamId ? `/teams/${teamId}` : '/items'); });
 
   test('non-PM member row has change role button', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     const changeRoleBtn = page.locator('[data-testid="change-role-btn"]').first();
     await expect(changeRoleBtn).toBeVisible({ timeout: 5000 });
@@ -180,7 +170,6 @@ test.describe('Team Detail - Change Role', () => {
 
   test('clicking change role opens dialog with role select', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-testid="change-role-btn"]').first().click();
     await expect(page.getByRole('heading', { name: '修改角色' })).toBeVisible({ timeout: 5000 });
@@ -189,7 +178,6 @@ test.describe('Team Detail - Change Role', () => {
 
   test('confirm button disabled when role unchanged', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-testid="change-role-btn"]').first().click();
     await expect(page.getByRole('heading', { name: '修改角色' })).toBeVisible({ timeout: 5000 });
@@ -198,7 +186,6 @@ test.describe('Team Detail - Change Role', () => {
 
   test('role select does not include pm option', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-testid="change-role-btn"]').first().click();
     await expect(page.locator('[data-testid="role-edit-select"]')).toBeVisible({ timeout: 5000 });
@@ -209,7 +196,6 @@ test.describe('Team Detail - Change Role', () => {
 
   test('cancelling change role dialog closes it', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-testid="change-role-btn"]').first().click();
     await expect(page.getByRole('heading', { name: '修改角色' })).toBeVisible({ timeout: 5000 });
@@ -238,11 +224,10 @@ test.describe('Team Detail - Transfer PM', () => {
     if (teamId && testMemberId) await removeTestMember(authToken, teamId, testMemberId);
   });
 
-  test.beforeEach(async ({ page }) => { await login(page); });
+  test.beforeEach(async ({ page }) => { await login(page, undefined, teamId ? `/teams/${teamId}` : '/items'); });
 
   test('non-PM member row has 设为PM button', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     const transferBtn = page.locator('button', { hasText: '设为PM' }).first();
     await expect(transferBtn).toBeVisible({ timeout: 5000 });
@@ -250,7 +235,6 @@ test.describe('Team Detail - Transfer PM', () => {
 
   test('clicking 设为PM opens confirmation dialog', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '设为PM' }).first().click();
     await expect(page.locator('text=确认将')).toBeVisible({ timeout: 5000 });
@@ -259,7 +243,6 @@ test.describe('Team Detail - Transfer PM', () => {
 
   test('cancelling transfer PM dialog closes it', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '设为PM' }).first().click();
     await expect(page.locator('button', { hasText: '确认设为PM' })).toBeVisible({ timeout: 5000 });
@@ -289,18 +272,16 @@ test.describe('Team Detail - Remove Member', () => {
     if (teamId && testMemberId) await removeTestMember(authToken, teamId, testMemberId);
   });
 
-  test.beforeEach(async ({ page }) => { await login(page); });
+  test.beforeEach(async ({ page }) => { await login(page, undefined, teamId ? `/teams/${teamId}` : '/items'); });
 
   test('non-PM member row has 移除 button', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('button', { hasText: '移除' }).first()).toBeVisible({ timeout: 5000 });
   });
 
   test('clicking 移除 opens confirmation dialog', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '移除' }).first().click();
     await expect(page.getByRole('heading', { name: '移除成员' })).toBeVisible({ timeout: 5000 });
@@ -310,7 +291,6 @@ test.describe('Team Detail - Remove Member', () => {
 
   test('cancelling remove dialog closes it', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '移除' }).first().click();
     await expect(page.getByRole('heading', { name: '移除成员' })).toBeVisible({ timeout: 5000 });
@@ -337,7 +317,7 @@ test.describe('Team Detail - Remove Member', () => {
       body: JSON.stringify({ username, roleKey: '3' }),
     });
 
-    await page.goto(`${BASE}/teams/${teamId}`);
+    await page.reload();
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
 
     const memberRow = page.locator('tbody tr').filter({ hasText: 'E2E Remove Test' });
@@ -369,18 +349,16 @@ test.describe('Team Detail - Add Member', () => {
     teamId = await getFirstTeamId(authToken);
   });
 
-  test.beforeEach(async ({ page }) => { await login(page); });
+  test.beforeEach(async ({ page }) => { await login(page, undefined, teamId ? `/teams/${teamId}` : '/items'); });
 
   test('添加成员 button is visible', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('button', { hasText: '添加成员' })).toBeVisible({ timeout: 5000 });
   });
 
   test('clicking 添加成员 opens invite dialog', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '添加成员' }).click();
     await expect(page.locator('[data-testid="invite-user-search"]')).toBeVisible({ timeout: 5000 });
@@ -390,7 +368,6 @@ test.describe('Team Detail - Add Member', () => {
 
   test('invite role select does not include pm option', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '添加成员' }).click();
     await expect(page.locator('[data-testid="invite-role-select"]')).toBeVisible({ timeout: 5000 });
@@ -401,7 +378,6 @@ test.describe('Team Detail - Add Member', () => {
 
   test('searching users shows dropdown', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '添加成员' }).click();
     const searchInput = page.locator('[data-testid="invite-user-search"]');
@@ -416,7 +392,6 @@ test.describe('Team Detail - Add Member', () => {
 
   test('cancelling invite dialog closes it', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '添加成员' }).click();
     await expect(page.locator('[data-testid="invite-user-search"]')).toBeVisible({ timeout: 5000 });
@@ -436,11 +411,10 @@ test.describe('Team Detail - Disband Team', () => {
     teamId = await getFirstTeamId(authToken);
   });
 
-  test.beforeEach(async ({ page }) => { await login(page); });
+  test.beforeEach(async ({ page }) => { await login(page, undefined, teamId ? `/teams/${teamId}` : '/items'); });
 
   test('clicking 解散团队 opens confirmation dialog', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '解散团队' }).click();
     await expect(page.locator('text=此操作不可恢复')).toBeVisible({ timeout: 5000 });
@@ -449,7 +423,6 @@ test.describe('Team Detail - Disband Team', () => {
 
   test('disband confirm button disabled when name not entered', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '解散团队' }).click();
     await expect(page.locator('text=此操作不可恢复')).toBeVisible({ timeout: 5000 });
@@ -459,7 +432,6 @@ test.describe('Team Detail - Disband Team', () => {
 
   test('disband confirm button disabled with wrong name', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '解散团队' }).click();
     await expect(page.locator('text=此操作不可恢复')).toBeVisible({ timeout: 5000 });
@@ -470,7 +442,6 @@ test.describe('Team Detail - Disband Team', () => {
 
   test('cancelling disband dialog closes it', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '解散团队' }).click();
     await expect(page.locator('text=此操作不可恢复')).toBeVisible({ timeout: 5000 });
@@ -480,7 +451,6 @@ test.describe('Team Detail - Disband Team', () => {
 
   test('disband enabled only when correct team name entered', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
 
     const teamName = await page.locator('h1').first().textContent();
@@ -528,10 +498,7 @@ test.describe('Team Detail - Member Perspective', () => {
 
     // Login as the member
     const memberToken = await getTokenForUser(memberUser!.username, memberUser!.initialPassword || 'defaultPassword');
-    await loginAsUser(page, memberToken, { isSuperAdmin: false });
-
-    // Navigate to team detail
-    await page.goto(`${BASE}/teams/${teamId}`);
+    await loginAsUser(page, memberToken, { isSuperAdmin: false }, `/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('text=团队名称')).toBeVisible({ timeout: 5000 });
   });
@@ -540,9 +507,7 @@ test.describe('Team Detail - Member Perspective', () => {
     test.skip(!teamId || !memberUser, 'No team or member available');
 
     const memberToken = await getTokenForUser(memberUser!.username, memberUser!.initialPassword || 'defaultPassword');
-    await loginAsUser(page, memberToken, { isSuperAdmin: false });
-
-    await page.goto(`${BASE}/teams/${teamId}`);
+    await loginAsUser(page, memberToken, { isSuperAdmin: false }, `/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
 
     // Member should NOT see these PM-only buttons
@@ -554,9 +519,7 @@ test.describe('Team Detail - Member Perspective', () => {
     test.skip(!teamId || !memberUser, 'No team or member available');
 
     const memberToken = await getTokenForUser(memberUser!.username, memberUser!.initialPassword || 'defaultPassword');
-    await loginAsUser(page, memberToken, { isSuperAdmin: false });
-
-    await page.goto(`${BASE}/teams/${teamId}`);
+    await loginAsUser(page, memberToken, { isSuperAdmin: false }, `/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
 
     // Member should NOT see change role buttons
@@ -567,9 +530,7 @@ test.describe('Team Detail - Member Perspective', () => {
     test.skip(!teamId || !memberUser, 'No team or member available');
 
     const memberToken = await getTokenForUser(memberUser!.username, memberUser!.initialPassword || 'defaultPassword');
-    await loginAsUser(page, memberToken, { isSuperAdmin: false });
-
-    await page.goto(`${BASE}/teams/${teamId}`);
+    await loginAsUser(page, memberToken, { isSuperAdmin: false }, `/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
 
     // Member should NOT see remove buttons
@@ -580,9 +541,7 @@ test.describe('Team Detail - Member Perspective', () => {
     test.skip(!teamId || !memberUser, 'No team or member available');
 
     const memberToken = await getTokenForUser(memberUser!.username, memberUser!.initialPassword || 'defaultPassword');
-    await loginAsUser(page, memberToken, { isSuperAdmin: false });
-
-    await page.goto(`${BASE}/teams/${teamId}`);
+    await loginAsUser(page, memberToken, { isSuperAdmin: false }, `/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
 
     // Member should NOT see "设为PM" buttons

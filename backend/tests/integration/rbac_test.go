@@ -166,12 +166,12 @@ func TestPresetRole_PMNameLocked(t *testing.T) {
 	roleBizKey := findRoleBizKeyByName(t, db, "pm")
 
 	// Try to rename PM role
-	body := fmt.Sprintf(`{"name":"renamed-pm"}`)
+	body := `{"name":"renamed-pm"}`
 	w := makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%s", roleBizKey), body, adminToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 
 	// But description change should succeed
-	body = fmt.Sprintf(`{"description":"new PM desc"}`)
+	body = `{"description":"new PM desc"}`
 	w = makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%s", roleBizKey), body, adminToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
@@ -183,7 +183,7 @@ func TestPresetRole_MemberNameLocked(t *testing.T) {
 
 	roleBizKey := findRoleBizKeyByName(t, db, "member")
 
-	body := fmt.Sprintf(`{"name":"renamed-member"}`)
+	body := `{"name":"renamed-member"}`
 	w := makeRequest(t, r, http.MethodPut, fmt.Sprintf("/api/v1/admin/roles/%s", roleBizKey), body, adminToken)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
@@ -428,7 +428,6 @@ func TestUserPermissions_ReturnsCorrectPermissions(t *testing.T) {
 	var resp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	permData := resp["data"].(map[string]interface{})
-	assert.Equal(t, false, permData["isSuperAdmin"])
 	teamPerms := permData["teamPermissions"].(map[string]interface{})
 	assert.NotEmpty(t, teamPerms)
 }
@@ -444,7 +443,8 @@ func TestUserPermissions_SuperAdmin(t *testing.T) {
 	var resp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	permData := resp["data"].(map[string]interface{})
-	assert.Equal(t, true, permData["isSuperAdmin"])
+	teamPerms := permData["teamPermissions"].(map[string]interface{})
+	assert.NotEmpty(t, teamPerms)
 }
 
 // ========== Permission Codes Registry Tests ==========

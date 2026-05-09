@@ -69,6 +69,29 @@ func TestAllCodesContainsSpecificCodes(t *testing.T) {
 	}
 }
 
+func TestAllCodeStringsReturnsAllCodes(t *testing.T) {
+	codes := AllCodeStrings()
+	if len(codes) != 29 {
+		t.Fatalf("AllCodeStrings() returned %d codes, want 29", len(codes))
+	}
+	// Verify each code is also in AllCodes()
+	allCodesMap := AllCodes()
+	for _, code := range codes {
+		if !allCodesMap[code] {
+			t.Errorf("AllCodeStrings() returned code %q not in AllCodes()", code)
+		}
+	}
+}
+
+func TestAllCodeStringsReturnsCopy(t *testing.T) {
+	codes1 := AllCodeStrings()
+	codes1[0] = "fake:code"
+	codes2 := AllCodeStrings()
+	if codes2[0] == "fake:code" {
+		t.Error("AllCodeStrings() should return independent copies")
+	}
+}
+
 func TestAllCodesReturnsCopy(t *testing.T) {
 	codes1 := AllCodes()
 	codes2 := AllCodes()

@@ -32,24 +32,20 @@ func NewSubItemHandler(svc service.SubItemService, mainItemSvc service.MainItemS
 	return &SubItemHandler{svc: svc, mainItemSvc: mainItemSvc}
 }
 
-// isPMOrSuperAdmin checks if the caller can manage all sub-items (bypass assignee check).
-// SuperAdmin always passes. For other roles, sub_item:assign grants full management access.
-func isPMOrSuperAdmin(c *gin.Context) bool {
-	if middleware.IsSuperAdmin(c) {
-		return true
-	}
+// hasPermCode checks whether the current context has a specific permission code.
+func hasPermCode(c *gin.Context, code string) bool {
 	permCodes := middleware.GetPermCodes(c)
-	if permCodes != nil {
-		for _, code := range permCodes {
-			if code == "sub_item:assign" {
-				return true
-			}
+	for _, pc := range permCodes {
+		if pc == code {
+			return true
 		}
 	}
 	return false
 }
 
 // Create handles POST /api/v1/teams/:teamId/main-items/:itemId/sub-items
+//
+//nolint:dupl // similar request handling shape as MainItem.Create but different business logic
 func (h *SubItemHandler) Create(c *gin.Context) {
 	teamBizKey := middleware.GetTeamBizKey(c)
 	callerBizKey := middleware.GetUserBizKey(c)
@@ -85,13 +81,13 @@ func (h *SubItemHandler) List(c *gin.Context) {
 	mainItemBizKey := mainItem.BizKey
 
 	var filter dto.SubItemFilter
-	if err := c.ShouldBindQuery(&filter); err != nil {
+	if bindErr := c.ShouldBindQuery(&filter); bindErr != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
 	}
 
 	var page dto.Pagination
-	if err := c.ShouldBindQuery(&page); err != nil {
+	if bindErr := c.ShouldBindQuery(&page); bindErr != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
 	}
@@ -152,23 +148,6 @@ func (h *SubItemHandler) Update(c *gin.Context) {
 		return
 	}
 
-	// Assignee pattern: PM/SuperAdmin can update all, other members only their assigned items.
-	// Permission check (sub_item:update) is done by RequirePermission middleware.
-	if !isPMOrSuperAdmin(c) {
-		// Check if caller is the assignee
-		teamBizKey := middleware.GetTeamBizKey(c)
-		item, err := h.svc.Get(c.Request.Context(), teamBizKey, subID)
-		if err != nil {
-			apperrors.RespondError(c, err)
-			return
-		}
-		callerBizKey := middleware.GetUserBizKey(c)
-		if item.AssigneeKey == nil || *item.AssigneeKey != callerBizKey {
-			apperrors.RespondError(c, apperrors.ErrForbidden)
-			return
-		}
-	}
-
 	teamBizKey := middleware.GetTeamBizKey(c)
 
 	var req dto.SubItemUpdateReq
@@ -204,22 +183,6 @@ func (h *SubItemHandler) ChangeStatus(c *gin.Context) {
 	})
 	if !ok {
 		return
-	}
-
-	// Assignee pattern: PM/SuperAdmin can change status for all, other members only their assigned items.
-	// Permission check (sub_item:change_status) is done by RequirePermission middleware.
-	if !isPMOrSuperAdmin(c) {
-		teamBizKey := middleware.GetTeamBizKey(c)
-		item, err := h.svc.Get(c.Request.Context(), teamBizKey, subID)
-		if err != nil {
-			apperrors.RespondError(c, err)
-			return
-		}
-		callerBizKey := middleware.GetUserBizKey(c)
-		if item.AssigneeKey == nil || *item.AssigneeKey != callerBizKey {
-			apperrors.RespondError(c, apperrors.ErrForbidden)
-			return
-		}
 	}
 
 	teamBizKey := middleware.GetTeamBizKey(c)

@@ -83,7 +83,7 @@ func TestMigrateToRBAC_FirstRunSuccess(t *testing.T) {
 
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
@@ -94,7 +94,7 @@ func TestMigrateToRBAC_PresetRolesSeeded(t *testing.T) {
 	seedPreRBACData(t, db)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
@@ -105,10 +105,10 @@ func TestMigrateToRBAC_PresetRolesSeeded(t *testing.T) {
 	assert.True(t, superadmin.IsPreset)
 	assert.Equal(t, uint(1), superadmin.ID)
 
-	// superadmin should have NO permission codes
+	// superadmin should have all 29 permission codes
 	count, err := CountPermissionsForRole(db, superadmin.BizKey)
 	require.NoError(t, err)
-	assert.Equal(t, int64(0), count, "superadmin should have no permission codes")
+	assert.Equal(t, int64(29), count, "superadmin should have all 29 permission codes")
 
 	// Check pm role
 	var pm model.Role
@@ -138,7 +138,7 @@ func TestMigrateToRBAC_TeamMemberRoleMigrated(t *testing.T) {
 	seedPreRBACData(t, db)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
@@ -166,7 +166,7 @@ func TestMigrateToRBAC_TeamMembersRoleColumnRemoved(t *testing.T) {
 	seedPreRBACData(t, db)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
@@ -185,7 +185,7 @@ func TestMigrateToRBAC_UsersDataPreserved(t *testing.T) {
 	seedPreRBACData(t, db)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
@@ -211,7 +211,7 @@ func TestMigrateToRBAC_TrackedInSchemaMigrations(t *testing.T) {
 	seedPreRBACData(t, db)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
@@ -228,7 +228,7 @@ func TestMigrateToRBAC_IdempotentReRun(t *testing.T) {
 	seedPreRBACData(t, db)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	// First run
 	err = MigrateToRBAC(db, true)
@@ -259,7 +259,7 @@ func TestMigrateToRBAC_IdempotentReRunPreservesData(t *testing.T) {
 	seedPreRBACData(t, db)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
@@ -283,7 +283,7 @@ func TestMigrateToRBAC_RollbackOnClosedDB(t *testing.T) {
 	// Close the underlying connection to force errors
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	sqlDB.Close()
+	_ = sqlDB.Close()
 
 	err = MigrateToRBAC(db, true)
 	assert.Error(t, err, "migration should fail on closed DB")
@@ -296,7 +296,7 @@ func TestMigrateToRBAC_EmptyDBSucceeds(t *testing.T) {
 	require.NoError(t, err)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
@@ -319,7 +319,7 @@ func TestMigrateToRBAC_TransactionRollback(t *testing.T) {
 	db := setupRBACTestDB(t)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	// Seed only a user (no team_members)
 	u := model.User{Username: "testuser", DisplayName: "Test", PasswordHash: "h"}
@@ -347,7 +347,7 @@ func TestMigrateToRBAC_PMPresetHasAllExpectedCodes(t *testing.T) {
 	db := setupRBACTestDB(t)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
@@ -356,11 +356,11 @@ func TestMigrateToRBAC_PMPresetHasAllExpectedCodes(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestMigrateToRBAC_SuperadminNoPermissionCodes(t *testing.T) {
+func TestMigrateToRBAC_SuperadminHasAllPermissionCodes(t *testing.T) {
 	db := setupRBACTestDB(t)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
@@ -369,14 +369,14 @@ func TestMigrateToRBAC_SuperadminNoPermissionCodes(t *testing.T) {
 	require.NoError(t, db.Where("role_name = ?", "superadmin").First(&superadminRole).Error)
 	count, err := CountPermissionsForRole(db, superadminRole.BizKey)
 	require.NoError(t, err)
-	assert.Equal(t, int64(0), count, "superadmin should have zero permission codes in role_permissions")
+	assert.Equal(t, int64(29), count, "superadmin should have all 29 permission codes in role_permissions")
 }
 
 func TestMigrateToRBAC_MemberHasExactCodes(t *testing.T) {
 	db := setupRBACTestDB(t)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	err = MigrateToRBAC(db, true)
 	require.NoError(t, err)
@@ -410,7 +410,7 @@ func TestVerifyPresetRoleCodes_FailsOnMissingRole(t *testing.T) {
 	require.NoError(t, err)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	// No roles seeded — should fail
 	err = VerifyPresetRoleCodes(db)
@@ -422,7 +422,7 @@ func TestVerifyPresetRoleCodes_FailsOnMissingCode(t *testing.T) {
 	require.NoError(t, err)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	require.NoError(t, db.AutoMigrate(&model.Role{}, &model.RolePermission{}))
 
@@ -446,7 +446,7 @@ func TestMigrateToRBAC_UsersTableAlreadyMigrated(t *testing.T) {
 	seedPreRBACData(t, db)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	// Run migration once
 	require.NoError(t, MigrateToRBAC(db, true))
@@ -461,7 +461,7 @@ func TestMigrateToRBAC_UnknownRoleDefaultsToMember(t *testing.T) {
 	db := setupRBACTestDB(t)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	// Create user and team
 	u := model.User{Username: "unknown_role_user", DisplayName: "URU", PasswordHash: "h"}
@@ -489,7 +489,7 @@ func TestSeedRole_SkipsExisting(t *testing.T) {
 	db := setupRBACTestDB(t)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	require.NoError(t, db.AutoMigrate(&model.Role{}, &model.RolePermission{}))
 
@@ -498,7 +498,7 @@ func TestSeedRole_SkipsExisting(t *testing.T) {
 	require.NoError(t, db.Create(&existing).Error)
 
 	// seedRole should not error and should add missing permissions
-	err = seedRole(db, "pm", "new description", true, []string{"team:create"})
+	err = seedRole(db, "pm", "new description", []string{"team:create"})
 	require.NoError(t, err)
 
 	// Description should not be modified
@@ -516,7 +516,7 @@ func TestHasColumn_TableNotExists(t *testing.T) {
 	require.NoError(t, err)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	assert.False(t, HasColumn(db, "nonexistent_table", "some_col"))
 }
@@ -527,7 +527,7 @@ func TestHasColumn_DelegatesToColumnExists(t *testing.T) {
 	require.NoError(t, err)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	require.NoError(t, db.Exec("CREATE TABLE test_tbl (id INTEGER PRIMARY KEY, name TEXT)").Error)
 
@@ -540,7 +540,7 @@ func TestTeamMembersDDL_ContainsSQLiteDialect(t *testing.T) {
 	require.NoError(t, err)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	ddl := teamMembersDDL(db)
 	require.Len(t, ddl, 1, "SQLite should produce a single DDL statement")
@@ -578,7 +578,7 @@ func TestTableExists(t *testing.T) {
 	require.NoError(t, err)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	assert.False(t, tableExists(db, "pmw_users"))
 
@@ -628,7 +628,7 @@ func TestMigrateToRBAC_AutoSchemaFalse_NoSchemaMigrationsTable(t *testing.T) {
 	db := setupAutoSchemaFalseDB(t)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	err = MigrateToRBAC(db, false)
 	require.NoError(t, err)
@@ -641,7 +641,7 @@ func TestMigrateToRBAC_AutoSchemaFalse_SeedsPresetRoles(t *testing.T) {
 	db := setupAutoSchemaFalseDB(t)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	err = MigrateToRBAC(db, false)
 	require.NoError(t, err)
@@ -655,7 +655,7 @@ func TestMigrateToRBAC_AutoSchemaFalse_IdempotentReRun(t *testing.T) {
 	db := setupAutoSchemaFalseDB(t)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	require.NoError(t, MigrateToRBAC(db, false))
 	require.NoError(t, MigrateToRBAC(db, false))

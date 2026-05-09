@@ -1,3 +1,4 @@
+// Package main is the application entry point.
 package main
 
 import (
@@ -61,9 +62,9 @@ func run(configPath string, devMode bool) error {
 	// 3b. Run schema DDL (CREATE TABLE) — skip when auto_schema is false
 	if cfg.Database.AutoSchema {
 		configDir := filepath.Dir(configPath)
-		schemaFile := filepath.Join(configDir, "migrations/SQLite-schema.sql")
+		schemaFile := filepath.Join(configDir, "migrations", "SQLite-schema.sql")
 		if cfg.Database.Driver == "mysql" {
-			schemaFile = filepath.Join(configDir, "migrations/MySql-schema.sql")
+			schemaFile = filepath.Join(configDir, "migrations", "MySql-schema.sql")
 		}
 		if err := migration.RunSchema(db, schemaFile); err != nil {
 			return fmt.Errorf("migration error: %w", err)
@@ -107,7 +108,7 @@ func run(configPath string, devMode bool) error {
 	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)
 	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
 	adminSvc := service.NewAdminService(userRepo, teamRepo)
-	roleSvc := service.NewRoleService(roleRepo, userRepo)
+	roleSvc := service.NewRoleService(roleRepo, userRepo, teamRepo)
 
 	// 6. Init handlers
 	deps := &handler.Dependencies{

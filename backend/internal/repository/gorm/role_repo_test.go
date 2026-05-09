@@ -317,40 +317,37 @@ func TestRoleRepo_CountMembersByRoleKey_NoMembers(t *testing.T) {
 
 // --- HasPermission ---
 
-func TestRoleRepo_HasPermission_True(t *testing.T) {
-	db := setupRoleTestDB(t)
-	repo := gormrepo.NewGormRoleRepo(db)
-	ctx := context.Background()
+func TestRoleRepo_HasPermission(t *testing.T) {
+	tests := []struct {
+		name       string
+		roleName   string
+		permCode   string
+		checkCode  string
+		wantResult bool
+	}{
+		{"True", "pm", "team:create", "team:create", true},
+		{"False", "member", "team:read", "team:delete", false},
+	}
 
-	u := seedRoleUser(t, db, "user1")
-	team := model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team", PmKey: u.BizKey, Code: "TM01"}
-	require.NoError(t, db.Create(&team).Error)
-	r := seedRole(t, db, "pm", "PM role", true)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db := setupRoleTestDB(t)
+			repo := gormrepo.NewGormRoleRepo(db)
+			ctx := context.Background()
 
-	require.NoError(t, db.Create(&model.RolePermission{RoleKey: r.BizKey, PermissionCode: "team:create"}).Error)
-	require.NoError(t, db.Create(&model.TeamMember{TeamKey: team.BizKey, UserKey: u.BizKey, RoleKey: &r.BizKey, JoinedAt: timeNow()}).Error)
+			u := seedRoleUser(t, db, "user1")
+			team := model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team", PmKey: u.BizKey, Code: "TM01"}
+			require.NoError(t, db.Create(&team).Error)
+			r := seedRole(t, db, tt.roleName, tt.roleName+" role", true)
 
-	has, err := repo.HasPermission(ctx, u.BizKey, "team:create")
-	require.NoError(t, err)
-	assert.True(t, has)
-}
+			require.NoError(t, db.Create(&model.RolePermission{RoleKey: r.BizKey, PermissionCode: tt.permCode}).Error)
+			require.NoError(t, db.Create(&model.TeamMember{TeamKey: team.BizKey, UserKey: u.BizKey, RoleKey: &r.BizKey, JoinedAt: timeNow()}).Error)
 
-func TestRoleRepo_HasPermission_False(t *testing.T) {
-	db := setupRoleTestDB(t)
-	repo := gormrepo.NewGormRoleRepo(db)
-	ctx := context.Background()
-
-	u := seedRoleUser(t, db, "user1")
-	team := model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team", PmKey: u.BizKey, Code: "TM01"}
-	require.NoError(t, db.Create(&team).Error)
-	r := seedRole(t, db, "member", "Member role", true)
-
-	require.NoError(t, db.Create(&model.RolePermission{RoleKey: r.BizKey, PermissionCode: "team:read"}).Error)
-	require.NoError(t, db.Create(&model.TeamMember{TeamKey: team.BizKey, UserKey: u.BizKey, RoleKey: &r.BizKey, JoinedAt: timeNow()}).Error)
-
-	has, err := repo.HasPermission(ctx, u.BizKey, "team:delete")
-	require.NoError(t, err)
-	assert.False(t, has)
+			has, err := repo.HasPermission(ctx, u.BizKey, tt.checkCode)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantResult, has)
+		})
+	}
 }
 
 func TestRoleRepo_HasPermission_UserNotMember(t *testing.T) {

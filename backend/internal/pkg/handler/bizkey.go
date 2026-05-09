@@ -1,3 +1,4 @@
+// Package handler provides shared HTTP parameter parsing helpers.
 package handler
 
 import (

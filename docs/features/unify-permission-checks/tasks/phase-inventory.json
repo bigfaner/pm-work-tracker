@@ -1,0 +1,35 @@
+[
+  {
+    "phase": 1,
+    "name": "Middleware & Seed Foundation",
+    "source": "fallback",
+    "gates": [
+      {
+        "afterPhase": 1,
+        "description": "SuperAdmin loads all 29 codes via TeamScopeMiddleware; RequirePermission has no SuperAdmin bypass; seed data has 29 codes for superadmin role"
+      }
+    ]
+  },
+  {
+    "phase": 2,
+    "name": "Handler & Service Refactoring",
+    "source": "fallback",
+    "gates": [
+      {
+        "afterPhase": 2,
+        "description": "All handler-level bypass removed; service signatures simplified; VO/DTO no longer exposes IsSuperAdmin; GetUserPermissions returns all 29 codes for SuperAdmin"
+      }
+    ]
+  },
+  {
+    "phase": 3,
+    "name": "Frontend Cleanup",
+    "source": "fallback",
+    "gates": [
+      {
+        "afterPhase": 3,
+        "description": "No isSuperAdmin references in frontend source or tests; TypeScript compiles; all tests pass"
+      }
+    ]
+  }
+]

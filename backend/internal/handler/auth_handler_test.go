@@ -25,7 +25,6 @@ type mockAuthService struct {
 		err   error
 	}
 	logoutErr error
-	parseErr  error
 }
 
 func (m *mockAuthService) Login(_ context.Context, _, _ string) (string, *model.User, error) {
@@ -82,7 +81,7 @@ func TestLogin_Success(t *testing.T) {
 	assert.Equal(t, "1", user["bizKey"])
 	assert.Equal(t, "alice", user["username"])
 	assert.Equal(t, "Alice", user["displayName"])
-	assert.Equal(t, true, user["isSuperAdmin"])
+	assert.Nil(t, user["isSuperAdmin"])
 }
 
 func TestLogin_MissingUsername_Returns400(t *testing.T) {

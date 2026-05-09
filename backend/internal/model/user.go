@@ -1,5 +1,6 @@
 package model
 
+// User represents an application user.
 type User struct {
 	BaseModel
 	Username     string `gorm:"type:varchar(64);uniqueIndex;not null" json:"username"`
@@ -10,6 +11,7 @@ type User struct {
 	IsSuperAdmin bool   `gorm:"not null;default:false" json:"isSuperAdmin"`
 }
 
+// TableName returns the database table name for User.
 func (User) TableName() string {
 	return "pmw_users"
 }

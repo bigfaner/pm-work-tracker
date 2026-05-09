@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -54,7 +53,7 @@ func (t transactor) Transaction(fc func(tx *gorm.DB) error, opts ...*sql.TxOptio
 // wireHandlers creates all repos+services+handlers and returns *handler.Dependencies.
 // Called by all setup* functions to eliminate duplicated DI wiring.
 // includeRBAC adds Role and Permission handlers (needed for RBAC-aware routes).
-func wireHandlers(t *testing.T, db *gorm.DB, data *seedData, includeRBAC bool) *handler.Dependencies {
+func wireHandlers(t *testing.T, db *gorm.DB, _ *seedData, includeRBAC bool) *handler.Dependencies {
 	t.Helper()
 
 	userRepo := gormrepo.NewGormUserRepo(db)
@@ -108,7 +107,7 @@ func wireHandlers(t *testing.T, db *gorm.DB, data *seedData, includeRBAC bool) *
 	}
 
 	if includeRBAC {
-		roleSvc := service.NewRoleService(roleRepo, userRepo)
+		roleSvc := service.NewRoleService(roleRepo, userRepo, teamRepo)
 		deps.Role = handler.NewRoleHandler(roleSvc)
 		deps.Permission = handler.NewPermissionHandler(roleSvc)
 	}
@@ -123,7 +122,7 @@ func wireHandlers(t *testing.T, db *gorm.DB, data *seedData, includeRBAC bool) *
 func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	t.Helper()
 
-	snowflake.Init(1)
+	_ = snowflake.Init(1)
 
 	dbName := fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())
 	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
@@ -168,14 +167,15 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	memberRole := model.Role{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Name: "member", Description: "Team Member", IsPreset: true}
 	require.NoError(t, db.Create(&memberRole).Error)
 
-	// PM gets all team-scoped permissions
+	// PM gets all permissions
 	pmPermCodes := []string{
-		"team:read", "team:update", "team:delete", "team:invite", "team:remove", "team:transfer",
-		"main_item:create", "main_item:read", "main_item:update", "main_item:archive",
+		"team:create", "team:read", "team:update", "team:delete", "team:invite", "team:remove", "team:transfer",
+		"main_item:create", "main_item:read", "main_item:update", "main_item:archive", "main_item:change_status",
 		"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:change_status", "sub_item:assign",
 		"progress:create", "progress:read", "progress:update",
 		"item_pool:submit", "item_pool:review",
 		"view:weekly", "view:gantt", "view:table", "report:export",
+		"user:read", "user:update", "user:manage_role",
 	}
 	for _, code := range pmPermCodes {
 		require.NoError(t, db.Create(&model.RolePermission{RoleKey: pmRole.BizKey, PermissionCode: code}).Error)
@@ -207,6 +207,10 @@ func setupTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	require.NoError(t, db.Create(&model.TeamMember{
 		TeamKey: teamB.BizKey, UserKey: userB.BizKey, RoleKey: &pmRole.BizKey, JoinedAt: now,
 	}).Error)
+	// SuperAdmin team membership (for non-team-context HasPermission DB query)
+	require.NoError(t, db.Create(&model.TeamMember{
+		TeamKey: teamA.BizKey, UserKey: superAdmin.BizKey, RoleKey: &pmRole.BizKey, JoinedAt: now,
+	}).Error)
 
 	return db, &seedData{
 		userAID:      userA.ID,
@@ -233,11 +237,10 @@ func setupTestRouter(t *testing.T) (*gin.Engine, *seedData) {
 
 // setupTestRouterWithDB creates a router that reuses an existing DB instance.
 // Needed for tests that seed data and then verify via the same DB.
-func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) (*gin.Engine, *seedData) {
+func setupTestRouterWithDB(t *testing.T, db *gorm.DB, data *seedData) *gin.Engine {
 	t.Helper()
 	deps := wireHandlers(t, db, data, false)
-	r := handler.SetupRouter(deps, nil)
-	return r, data
+	return handler.SetupRouter(deps, nil)
 }
 
 // createFreshDB creates a fresh in-memory SQLite database for migration tests.
@@ -260,7 +263,7 @@ func createFreshDB(t *testing.T) *gorm.DB {
 // setupRBACTestDB creates an in-memory DB with RBAC tables seeded via the migration path.
 func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	t.Helper()
-	snowflake.Init(1)
+	_ = snowflake.Init(1)
 
 	dbName := fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())
 	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
@@ -309,17 +312,18 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	memberRole := model.Role{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, Name: "member", Description: "Team Member", IsPreset: true}
 	require.NoError(t, db.Create(&memberRole).Error)
 
-	// PM permissions (matching migration)
+	// PM permissions (all 29 codes)
 	pmPermCodes := []string{
 		"team:create", "team:read", "team:update", "team:delete",
 		"team:invite", "team:remove", "team:transfer",
 		"main_item:create", "main_item:read", "main_item:update", "main_item:archive",
+		"main_item:change_status",
 		"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:assign", "sub_item:change_status",
 		"progress:create", "progress:read", "progress:update",
 		"item_pool:submit", "item_pool:review",
 		"view:weekly", "view:gantt", "view:table",
 		"report:export",
-		"user:read",
+		"user:read", "user:update", "user:manage_role",
 	}
 	for _, code := range pmPermCodes {
 		require.NoError(t, db.Create(&model.RolePermission{RoleKey: pmRole.BizKey, PermissionCode: code}).Error)
@@ -338,7 +342,7 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 		require.NoError(t, db.Create(&model.RolePermission{RoleKey: memberRole.BizKey, PermissionCode: code}).Error)
 	}
 
-	// Superadmin has no permission codes (bypasses all checks)
+	// Superadmin passes via PM role team membership
 	_ = superadminRole
 
 	// Seed teams (with BizKey so middleware can resolve bizKey to internal ID)
@@ -357,6 +361,10 @@ func setupRBACTestDB(t *testing.T) (*gorm.DB, *seedData) {
 	}).Error)
 	require.NoError(t, db.Create(&model.TeamMember{
 		TeamKey: teamB.BizKey, UserKey: userB.BizKey, RoleKey: &pmRole.BizKey, JoinedAt: now,
+	}).Error)
+	// Superadmin team membership (for non-team-context HasPermission DB query)
+	require.NoError(t, db.Create(&model.TeamMember{
+		TeamKey: teamA.BizKey, UserKey: superAdmin.BizKey, RoleKey: &pmRole.BizKey, JoinedAt: now,
 	}).Error)
 
 	return db, &seedData{
@@ -384,7 +392,7 @@ func setupRBACTestRouter(t *testing.T, db *gorm.DB, data *seedData) *gin.Engine 
 func loginAs(t *testing.T, r *gin.Engine, username, password string) string {
 	t.Helper()
 
-	body := fmt.Sprintf(`{"username":"%s","password":"%s"}`, username, password)
+	body := fmt.Sprintf(`{"username":%q,"password":%q}`, username, password)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -424,7 +432,7 @@ func makeRequest(t *testing.T, r *gin.Engine, method, path, body, token string) 
 	if bodyReader != nil {
 		req = httptest.NewRequest(method, path, bodyReader)
 	} else {
-		req = httptest.NewRequest(method, path, nil)
+		req = httptest.NewRequest(method, path, http.NoBody)
 	}
 
 	if body != "" {
@@ -442,8 +450,8 @@ func makeRequest(t *testing.T, r *gin.Engine, method, path, body, token string) 
 // ========== Data Seeding Helpers ==========
 
 // seedProgressData creates a MainItem with two SubItems (weight=1 each) for progress tests.
-// Returns the main item ID, the two sub item IDs, and their bizKey values.
-func seedProgressData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) (mainItemID, subItem1ID, subItem2ID uint, subItem1BizKey, subItem2BizKey int64) {
+// Returns the main item ID, sub item 1 ID, and their bizKey values.
+func seedProgressData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) (mainItemID, subItem1ID uint, subItem1BizKey, subItem2BizKey int64) {
 	t.Helper()
 
 	mainItem := &model.MainItem{
@@ -479,7 +487,7 @@ func seedProgressData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) 
 	}
 	require.NoError(t, db.Create(sub2).Error)
 
-	return mainItem.ID, sub1.ID, sub2.ID, sub1.BizKey, sub2.BizKey
+	return mainItem.ID, sub1.ID, sub1.BizKey, sub2.BizKey
 }
 
 // appendProgress sends a progress append request via the router.
@@ -498,7 +506,7 @@ func appendProgress(t *testing.T, r *gin.Engine, token string, teamBizKey, subBi
 }
 
 // seedPoolData creates a pool item and a main item for assign tests.
-func seedPoolData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) (poolID, mainItemID uint, poolBizKey, mainItemBizKey int64) {
+func seedPoolData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) (poolID uint, poolBizKey, mainItemBizKey int64) {
 	t.Helper()
 
 	poolItem := &model.ItemPool{
@@ -522,7 +530,7 @@ func seedPoolData(t *testing.T, db *gorm.DB, teamBizKey int64, userID uint) (poo
 	}
 	require.NoError(t, db.Create(mainItem).Error)
 
-	return poolItem.ID, mainItem.ID, poolItem.BizKey, mainItem.BizKey
+	return poolItem.ID, poolItem.BizKey, mainItem.BizKey
 }
 
 // seedReportData creates a MainItem with a SubItem that has progress during the given week.
@@ -590,14 +598,6 @@ func getSubItem(t *testing.T, db *gorm.DB, id uint) *model.SubItem {
 
 // ========== Role Lookup Helpers ==========
 
-// findRoleByName looks up a role by name from the database.
-func findRoleByName(t *testing.T, db *gorm.DB, name string) *model.Role {
-	t.Helper()
-	var role model.Role
-	require.NoError(t, db.Where("role_name = ?", name).First(&role).Error)
-	return &role
-}
-
 // findRoleBizKeyByName looks up a role's BizKey as string by name from the database.
 func findRoleBizKeyByName(t *testing.T, db *gorm.DB, name string) string {
 	t.Helper()
@@ -606,40 +606,13 @@ func findRoleBizKeyByName(t *testing.T, db *gorm.DB, name string) string {
 	return fmt.Sprintf("%d", role.BizKey)
 }
 
-// findRoleBizKeyInt64ByName looks up a role's BizKey as int64 by name.
-func findRoleBizKeyInt64ByName(t *testing.T, db *gorm.DB, name string) int64 {
-	t.Helper()
-	var role model.Role
-	require.NoError(t, db.Where("role_name = ?", name).First(&role).Error)
-	return role.BizKey
-}
-
-// findRoleIDByBizKey looks up a role's numeric ID by its BizKey string.
-func findRoleIDByBizKey(t *testing.T, db *gorm.DB, bizKey string) uint {
-	t.Helper()
-	var role model.Role
-	bk, err := strconv.ParseInt(bizKey, 10, 64)
-	require.NoError(t, err)
-	require.NoError(t, db.Where("biz_key = ?", bk).First(&role).Error)
-	return role.ID
-}
-
 // ========== Item Lifecycle Setup Helpers ==========
 
 // setupLifecycleTest creates a fresh DB and router for item lifecycle tests.
-// It extends setupRBACTestDB by adding main_item:change_status to the PM role,
-// which is required by the ChangeStatus endpoint but missing from the seed data.
 func setupLifecycleTest(t *testing.T) (*gin.Engine, *seedData, *gorm.DB) {
 	t.Helper()
 
 	db, data := setupRBACTestDB(t)
-
-	// Add main_item:change_status permission for PM role (required by router but missing from seed)
-	pmRole := findRoleByName(t, db, "pm")
-	require.NoError(t, db.Create(&model.RolePermission{
-		RoleKey:        pmRole.BizKey,
-		PermissionCode: "main_item:change_status",
-	}).Error)
 
 	r := setupRBACTestRouter(t, db, data)
 	return r, data, db
@@ -678,7 +651,7 @@ func createTestMainItem(t *testing.T, r *gin.Engine, token string, teamBizKey in
 
 // createTestSubItem creates a SubItem via the API under the given main item.
 // Returns the SubItem bizKey string.
-func createTestSubItem(t *testing.T, r *gin.Engine, token string, teamBizKey int64, mainItemBizKey string, title string) string {
+func createTestSubItem(t *testing.T, r *gin.Engine, token string, teamBizKey int64, mainItemBizKey, title string) string {
 	t.Helper()
 	body := fmt.Sprintf(`{
 			"mainItemKey": "%s",
@@ -702,86 +675,6 @@ func createTestSubItem(t *testing.T, r *gin.Engine, token string, teamBizKey int
 
 // ========== New Helpers (F7 spec) ==========
 
-// createTeamWithMembers creates a team with the given PM and additional members.
-// It seeds the team and team_member records directly into the database.
-// Returns the team's internal ID.
-//
-// This is the F7 shared helper extracted from F1 patterns for use by
-// future integration test files that need multi-member team setups.
-func createTeamWithMembers(t *testing.T, db *gorm.DB, pmID uint, memberCount int) uint {
-	t.Helper()
-
-	team := &model.Team{
-		BaseModel: model.BaseModel{BizKey: snowflake.Generate()},
-		TeamName:  fmt.Sprintf("Team-PM%d-M%d", pmID, memberCount),
-		PmKey:     getUserBizKey(t, db, pmID),
-		Code:      fmt.Sprintf("TPM%d", pmID),
-	}
-	require.NoError(t, db.Create(team).Error)
-
-	// Add PM as team member with PM role
-	pmRoleBizKey := findRoleBizKeyInt64ByName(t, db, "pm")
-	require.NoError(t, db.Create(&model.TeamMember{
-		TeamKey:  team.BizKey,
-		UserKey:  getUserBizKey(t, db, pmID),
-		RoleKey:  &pmRoleBizKey,
-		JoinedAt: time.Now(),
-	}).Error)
-
-	// Create additional member users if needed
-	memberRoleBizKey := findRoleBizKeyInt64ByName(t, db, "member")
-	for i := 0; i < memberCount; i++ {
-		hash, err := bcrypt.GenerateFromPassword([]byte(fmt.Sprintf("member%dpass", i)), 4)
-		require.NoError(t, err)
-		member := &model.User{
-			Username:     fmt.Sprintf("teammember-pm%d-%d", pmID, i),
-			DisplayName:  fmt.Sprintf("Member %d", i),
-			PasswordHash: string(hash),
-		}
-		require.NoError(t, db.Create(member).Error)
-		require.NoError(t, db.Create(&model.TeamMember{
-			TeamKey:  team.BizKey,
-			UserKey:  member.BizKey,
-			RoleKey:  &memberRoleBizKey,
-			JoinedAt: time.Now(),
-		}).Error)
-	}
-
-	return team.ID
-}
-
-// createMainItem creates a MainItem via the API using a dto.MainItemCreateReq.
-// Returns the new item's BizKey (int64).
-//
-// This is the F7 shared helper extracted from F1 patterns for use by
-// future integration test files. Unlike createTestMainItem which takes
-// a simple title string, this accepts the full DTO for flexible request bodies.
-func createMainItem(t *testing.T, r *gin.Engine, token string, teamBizKey int64, title string, priority string) int64 {
-	t.Helper()
-
-	body := fmt.Sprintf(`{
-		"title": %q,
-		"priority": %q,
-		"assigneeKey": "1",
-		"startDate": "2026-01-01",
-		"expectedEndDate": "2026-06-30",
-		"isKeyItem": false
-	}`, title, priority)
-
-	w := makeRequest(t, r, http.MethodPost,
-		fmt.Sprintf("/api/v1/teams/%d/main-items", teamBizKey), body, token)
-	require.Equal(t, http.StatusCreated, w.Code)
-
-	var resp map[string]interface{}
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	data := resp["data"].(map[string]interface{})
-	bizKeyStr, ok := data["bizKey"].(string)
-	require.True(t, ok, "expected bizKey string in response")
-	bizKey, err := strconv.ParseInt(bizKeyStr, 10, 64)
-	require.NoError(t, err)
-	return bizKey
-}
-
 // ========== User Data Helpers ==========
 
 // getUserBizKey resolves a user's auto-increment ID to their BizKey.
@@ -795,7 +688,7 @@ func getUserBizKey(t *testing.T, db *gorm.DB, userID uint) int64 {
 // backfillUserBizKeys sets unique bizKeys on seeded users that have biz_key = 0.
 func backfillUserBizKeys(t *testing.T, db *gorm.DB) {
 	t.Helper()
-	snowflake.Init(1)
+	_ = snowflake.Init(1)
 	var users []model.User
 	require.NoError(t, db.Where("biz_key = 0").Find(&users).Error)
 	for _, u := range users {

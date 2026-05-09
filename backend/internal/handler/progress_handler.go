@@ -83,9 +83,9 @@ func (h *ProgressHandler) Append(c *gin.Context) {
 
 	teamBizKey := middleware.GetTeamBizKey(c)
 	callerBizKey := middleware.GetUserBizKey(c)
-	pmFlag := isPMOrSuperAdmin(c)
+	skipRegressionCheck := hasPermCode(c, "sub_item:assign")
 
-	record, err := h.svc.Append(c.Request.Context(), teamBizKey, callerBizKey, subID, completion, req.Achievement, req.Blocker, req.Lesson, pmFlag)
+	record, err := h.svc.Append(c.Request.Context(), teamBizKey, callerBizKey, subID, completion, req.Achievement, req.Blocker, req.Lesson, skipRegressionCheck)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -134,7 +134,7 @@ func (h *ProgressHandler) CorrectCompletion(c *gin.Context) {
 	}
 
 	var req correctCompletionReq
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if bindErr := c.ShouldBindJSON(&req); bindErr != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
 	}
@@ -158,6 +158,8 @@ func (h *ProgressHandler) CorrectCompletion(c *gin.Context) {
 
 // buildProgressRecordVOs converts a slice of ProgressRecord to ProgressRecordVO using batch lookups (fixes N+1).
 // Single-item callers pass a 1-element slice; the batch path has no N+1 overhead.
+//
+//nolint:dupl // same batch-lookup shape as buildDecisionLogVOs but different model/VO types
 func buildProgressRecordVOs(records []model.ProgressRecord, userRepo repository.UserRepo, c *gin.Context) []vo.ProgressRecordVO {
 	if len(records) == 0 {
 		return []vo.ProgressRecordVO{}

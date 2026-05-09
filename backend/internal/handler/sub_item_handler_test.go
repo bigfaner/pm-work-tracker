@@ -198,7 +198,6 @@ func depsWithSubItemSvcMemberRole(t *testing.T, svc *mockSubItemService) *Depend
 }
 
 // depsWithSubItemSvcCustomRole wires with a custom role that has the given permission codes.
-// The custom role does NOT have team:invite, so isPMOrSuperAdmin depends on sub_item:assign.
 
 func depsWithSubItemSvcCustomRole(t *testing.T, svc *mockSubItemService, permCodes []string) *Dependencies {
 	t.Helper()
@@ -211,8 +210,8 @@ func depsWithSubItemSvcCustomRole(t *testing.T, svc *mockSubItemService, permCod
 
 	for _, code := range permCodes {
 		require.NoError(t, db.Create(&model.RolePermission{
-			RoleKey:         customRole.BizKey,
-			PermissionCode:  code,
+			RoleKey:        customRole.BizKey,
+			PermissionCode: code,
 		}).Error)
 	}
 
@@ -224,9 +223,9 @@ func depsWithSubItemSvcCustomRole(t *testing.T, svc *mockSubItemService, permCod
 }
 
 // testSubItem creates a SubItem model for tests.
-func testSubItem(id uint, teamID uint) *model.SubItem {
+func testSubItem(_ uint) *model.SubItem {
 	return &model.SubItem{
-		TeamKey:     int64(teamID),
+		TeamKey:     10,
 		MainItemKey: int64(1),
 		Title:       "Test SubItem",
 		Priority:    "P2",
@@ -240,7 +239,7 @@ func testSubItem(id uint, teamID uint) *model.SubItem {
 
 func TestCreateSubItem_Success(t *testing.T) {
 	svc := &mockSubItemService{}
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	svc.createResult.item = item
 
@@ -272,7 +271,7 @@ func TestCreateSubItem_Success(t *testing.T) {
 
 func TestCreateSubItem_MemberCanCreate(t *testing.T) {
 	svc := &mockSubItemService{}
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	svc.createResult.item = item
 
@@ -334,7 +333,7 @@ func TestCreateSubItem_ServiceError(t *testing.T) {
 func TestListSubItems_Success(t *testing.T) {
 	svc := &mockSubItemService{}
 	svc.listResult.page = &dto.PageResult[model.SubItem]{
-		Items: []model.SubItem{*testSubItem(1, 10), *testSubItem(2, 10)},
+		Items: []model.SubItem{*testSubItem(1), *testSubItem(2)},
 		Total: 2,
 		Page:  1,
 		Size:  20,
@@ -405,7 +404,7 @@ func TestListSubItems_ServiceError(t *testing.T) {
 
 func TestGetSubItem_Success(t *testing.T) {
 	svc := &mockSubItemService{}
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	item.BizKey = 1
 	item.ItemStatus = "progressing"
@@ -478,7 +477,7 @@ func TestGetSubItem_NotFound(t *testing.T) {
 
 func TestUpdateSubItem_Success_AsPM(t *testing.T) {
 	svc := &mockSubItemService{}
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	item.Title = "Updated Title"
 	svc.getResult.item = item
@@ -501,10 +500,12 @@ func TestUpdateSubItem_Success_AsPM(t *testing.T) {
 	assert.Equal(t, "Updated Title", *svc.lastUpdateReq.Title)
 }
 
-func TestUpdateSubItem_Success_AsAssignee(t *testing.T) {
+// After removing assignee checks, a member with sub_item:update can update any sub-item
+// (including sub-items assigned to a different user).
+func TestUpdateSubItem_Success_AsMember(t *testing.T) {
 	svc := &mockSubItemService{}
-	assigneeID := uint(5)
-	item := testSubItem(1, 10)
+	assigneeID := uint(99) // different user — member can still update (no assignee check)
+	item := testSubItem(1)
 	item.ID = 1
 	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
 	item.Title = "Updated"
@@ -513,7 +514,7 @@ func TestUpdateSubItem_Success_AsAssignee(t *testing.T) {
 	deps := depsWithSubItemSvcMemberRole(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signTestToken(t, 5, "testuser") // userID=5, same as assigneeID
+	token := signTestToken(t, 5, "testuser") // userID=5, NOT the assignee (99)
 	body := `{"title":"Updated"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1", strings.NewReader(body))
@@ -525,44 +526,20 @@ func TestUpdateSubItem_Success_AsAssignee(t *testing.T) {
 	assert.True(t, svc.updateCalled)
 }
 
-func TestUpdateSubItem_Forbidden_NonPMNonAssignee(t *testing.T) {
+// Custom role with sub_item:update can update any sub-item (no assignee check).
+func TestUpdateSubItem_Success_CustomRoleWithUpdatePerm(t *testing.T) {
 	svc := &mockSubItemService{}
-	assigneeID := uint(99) // different user
-	item := testSubItem(1, 10)
-	item.ID = 1
-	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
-	svc.getResult.item = item
-
-	deps := depsWithSubItemSvcMemberRole(t, svc)
-	r := SetupRouter(deps, nil)
-
-	token := signTestToken(t, 5, "testuser") // userID=5, NOT the assignee (99)
-	body := `{"title":"Hacked"}`
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusForbidden, w.Code)
-	assert.False(t, svc.updateCalled)
-}
-
-// bug: custom role with sub_item:assign should bypass assignee check (uses sub_item:assign, not team:invite)
-func TestUpdateSubItem_Success_CustomRoleWithSubItemAssign(t *testing.T) {
-	svc := &mockSubItemService{}
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	item.Title = "Updated Title"
 	svc.getResult.item = item
 
-	// Custom role with sub_item:assign but NOT team:invite → should bypass assignee check
+	// Custom role with sub_item:update — no assignee check needed
 	deps := depsWithSubItemSvcCustomRole(t, svc, []string{
-		"sub_item:read", "sub_item:update", "sub_item:assign",
+		"sub_item:read", "sub_item:update",
 	})
 	r := SetupRouter(deps, nil)
 
-	// User ID=5, sub-item has no assignee — would fail assignee check if isPMOrSuperAdmin returned false
 	token := signTestToken(t, 5, "testuser")
 	body := `{"title":"Updated Title"}`
 	w := httptest.NewRecorder()
@@ -575,31 +552,32 @@ func TestUpdateSubItem_Success_CustomRoleWithSubItemAssign(t *testing.T) {
 	assert.True(t, svc.updateCalled)
 }
 
-// bug: custom role without sub_item:assign should still be restricted to assigned items
-func TestUpdateSubItem_Forbidden_CustomRoleWithoutAssignPerm(t *testing.T) {
+// Custom role without sub_item:assign can still update any sub-item (assignee check removed).
+func TestUpdateSubItem_Success_CustomRoleWithoutAssignPerm(t *testing.T) {
 	svc := &mockSubItemService{}
 	assigneeID := uint(99)
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
+	item.Title = "Updated"
 	svc.getResult.item = item
 
-	// Custom role with sub_item:update but NOT sub_item:assign or team:invite
+	// Custom role with sub_item:update but NOT sub_item:assign — no longer restricted
 	deps := depsWithSubItemSvcCustomRole(t, svc, []string{
 		"sub_item:read", "sub_item:update",
 	})
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"title":"Hacked"}`
+	body := `{"title":"Updated"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusForbidden, w.Code)
-	assert.False(t, svc.updateCalled)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, svc.updateCalled)
 }
 
 func TestUpdateSubItem_InvalidID(t *testing.T) {
@@ -644,7 +622,7 @@ func TestUpdateSubItem_NotFound(t *testing.T) {
 
 func TestChangeStatus_Success(t *testing.T) {
 	svc := &mockSubItemService{}
-	item := testSubItem(1, 10)
+	item := testSubItem(1)
 	item.ID = 1
 	item.BizKey = 1
 	item.ItemStatus = "progressing"
@@ -734,14 +712,15 @@ func TestChangeStatus_InvalidBody(t *testing.T) {
 	assert.False(t, svc.changeStatusCalled)
 }
 
-func TestChangeStatus_AsAssignee(t *testing.T) {
+// After removing assignee checks, a member with sub_item:change_status can change any sub-item status
+// (including sub-items assigned to a different user).
+func TestChangeStatus_Success_AsMember(t *testing.T) {
 	svc := &mockSubItemService{}
-	assigneeID := uint(5)
-	item := testSubItem(1, 10)
+	assigneeID := uint(99) // different user — member can still change status (no assignee check)
+	item := testSubItem(1)
 	item.ID = 1
 	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
 	item.ItemStatus = "progressing"
-	svc.getResult.item = item // needed for assignee check
 	svc.changeStatusResult.result = &service.SubItemChangeResult{SubItem: item}
 
 	deps := depsWithSubItemSvcMemberRole(t, svc)
@@ -757,29 +736,6 @@ func TestChangeStatus_AsAssignee(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, svc.changeStatusCalled)
-}
-
-func TestChangeStatus_Forbidden_NonPMNonAssignee(t *testing.T) {
-	svc := &mockSubItemService{}
-	assigneeID := uint(99)
-	item := testSubItem(1, 10)
-	item.ID = 1
-	item.AssigneeKey = func() *int64 { v := int64(assigneeID); return &v }()
-	svc.getResult.item = item
-
-	deps := depsWithSubItemSvcMemberRole(t, svc)
-	r := SetupRouter(deps, nil)
-
-	token := signTestToken(t, 5, "testuser")
-	body := `{"status":"progressing"}`
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/1/status", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusForbidden, w.Code)
-	assert.False(t, svc.changeStatusCalled)
 }
 
 // ---------------------------------------------------------------------------

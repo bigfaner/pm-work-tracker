@@ -200,12 +200,80 @@ func (m *mockRoleUserRepo) SearchAvailable(_ context.Context, _ int64, _ string,
 }
 func (m *mockRoleUserRepo) SoftDelete(_ context.Context, _ *model.User) error { return nil }
 
+// mockTeamRepoForRole implements repository.TeamRepo for role service tests.
+type mockTeamRepoForRole struct {
+	bizKeys []int64
+	listErr error
+}
+
+func (m *mockTeamRepoForRole) Create(_ context.Context, _ *model.Team) error {
+	return nil
+}
+func (m *mockTeamRepoForRole) FindByID(_ context.Context, _ uint) (*model.Team, error) {
+	return nil, nil
+}
+func (m *mockTeamRepoForRole) FindByBizKey(_ context.Context, _ int64) (*model.Team, error) {
+	return nil, nil
+}
+func (m *mockTeamRepoForRole) List(_ context.Context) ([]*model.Team, error) {
+	return nil, nil
+}
+func (m *mockTeamRepoForRole) Update(_ context.Context, _ *model.Team) error {
+	return nil
+}
+func (m *mockTeamRepoForRole) SoftDelete(_ context.Context, _ uint) error {
+	return nil
+}
+func (m *mockTeamRepoForRole) AddMember(_ context.Context, _ *model.TeamMember) error {
+	return nil
+}
+func (m *mockTeamRepoForRole) RemoveMember(_ context.Context, _, _ int64) error {
+	return nil
+}
+func (m *mockTeamRepoForRole) FindMember(_ context.Context, _, _ int64) (*model.TeamMember, error) {
+	return nil, nil
+}
+func (m *mockTeamRepoForRole) ListMembers(_ context.Context, _ int64) ([]*dto.TeamMemberDTO, error) {
+	return nil, nil
+}
+func (m *mockTeamRepoForRole) CountMembers(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
+func (m *mockTeamRepoForRole) UpdateMember(_ context.Context, _ *model.TeamMember) error {
+	return nil
+}
+func (m *mockTeamRepoForRole) FindPMMembers(_ context.Context, _ []int64) (map[int64]string, error) {
+	return nil, nil
+}
+func (m *mockTeamRepoForRole) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.Team, int64, error) {
+	return nil, 0, nil
+}
+func (m *mockTeamRepoForRole) ListAllTeams(_ context.Context) ([]*dto.AdminTeamDTO, error) {
+	return nil, nil
+}
+func (m *mockTeamRepoForRole) FindTeamsByUserIDs(_ context.Context, _ []uint) (map[uint][]dto.TeamSummary, error) {
+	return nil, nil
+}
+func (m *mockTeamRepoForRole) FindTeamsByUserBizKeys(_ context.Context, _ []int64) (map[int64][]dto.TeamSummary, error) {
+	return nil, nil
+}
+func (m *mockTeamRepoForRole) ListTeamBizKeys(_ context.Context) ([]int64, error) {
+	if m.listErr != nil {
+		return nil, m.listErr
+	}
+	return m.bizKeys, nil
+}
+
 // ---------------------------------------------------------------------------
 // Helper: build the service under test
 // ---------------------------------------------------------------------------
 
 func newTestRoleService(repo repository.RoleRepo, userRepo repository.UserRepo) RoleService {
-	return NewRoleService(repo, userRepo)
+	return NewRoleService(repo, userRepo, nil)
+}
+
+func newTestRoleServiceWithTeam(repo repository.RoleRepo, userRepo repository.UserRepo, teamRepo repository.TeamRepo) RoleService {
+	return NewRoleService(repo, userRepo, teamRepo)
 }
 
 // ---------------------------------------------------------------------------
@@ -540,12 +608,17 @@ func TestRoleService_GetUserPermissions_SuperAdmin(t *testing.T) {
 	user := &model.User{BaseModel: model.BaseModel{ID: 1}, Username: "admin", IsSuperAdmin: true}
 	repo := &mockRoleRepo{userTeamPerms: map[int64][]string{1: {"team:read"}}}
 	userRepo := &mockRoleUserRepo{user: user}
-	svc := newTestRoleService(repo, userRepo)
+	teamRepo := &mockTeamRepoForRole{bizKeys: []int64{100, 200}}
+	svc := newTestRoleServiceWithTeam(repo, userRepo, teamRepo)
 
 	result, err := svc.GetUserPermissions(context.Background(), 1)
 	require.NoError(t, err)
-	assert.True(t, result.IsSuperAdmin)
-	assert.Equal(t, map[int64][]string{1: {"team:read"}}, result.TeamPermissions)
+	// SuperAdmin gets all 29 codes for every team
+	allCodes := permissions.AllCodeStrings()
+	for _, teamKey := range []int64{100, 200} {
+		assert.Equal(t, allCodes, result.TeamPermissions[teamKey])
+	}
+	assert.Equal(t, 2, len(result.TeamPermissions))
 }
 
 func TestRoleService_GetUserPermissions_NormalUser(t *testing.T) {
@@ -560,8 +633,30 @@ func TestRoleService_GetUserPermissions_NormalUser(t *testing.T) {
 
 	result, err := svc.GetUserPermissions(context.Background(), 2)
 	require.NoError(t, err)
-	assert.False(t, result.IsSuperAdmin)
 	assert.Equal(t, teamPerms, result.TeamPermissions)
+}
+
+func TestRoleService_GetUserPermissions_SuperAdmin_NoTeams(t *testing.T) {
+	user := &model.User{BaseModel: model.BaseModel{ID: 1}, Username: "admin", IsSuperAdmin: true}
+	repo := &mockRoleRepo{}
+	userRepo := &mockRoleUserRepo{user: user}
+	teamRepo := &mockTeamRepoForRole{bizKeys: []int64{}}
+	svc := newTestRoleServiceWithTeam(repo, userRepo, teamRepo)
+
+	result, err := svc.GetUserPermissions(context.Background(), 1)
+	require.NoError(t, err)
+	assert.Empty(t, result.TeamPermissions)
+}
+
+func TestRoleService_GetUserPermissions_SuperAdmin_ListTeamBizKeysError(t *testing.T) {
+	user := &model.User{BaseModel: model.BaseModel{ID: 1}, Username: "admin", IsSuperAdmin: true}
+	repo := &mockRoleRepo{}
+	userRepo := &mockRoleUserRepo{user: user}
+	teamRepo := &mockTeamRepoForRole{listErr: assert.AnError}
+	svc := newTestRoleServiceWithTeam(repo, userRepo, teamRepo)
+
+	_, err := svc.GetUserPermissions(context.Background(), 1)
+	assert.Error(t, err)
 }
 
 func TestRoleService_GetUserPermissions_UserNotFound(t *testing.T) {

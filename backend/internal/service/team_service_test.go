@@ -155,6 +155,10 @@ func (m *mockTeamRepo) FindTeamsByUserBizKeys(_ context.Context, _ []int64) (map
 	return map[int64][]dto.TeamSummary{}, nil
 }
 
+func (m *mockTeamRepo) ListTeamBizKeys(_ context.Context) ([]int64, error) {
+	return nil, nil
+}
+
 func (m *mockTeamRepo) FindPMMembers(_ context.Context, _ []int64) (map[int64]string, error) {
 	result := make(map[int64]string)
 	for _, mem := range m.members {
@@ -328,7 +332,7 @@ func TestListTeams_Success(t *testing.T) {
 	}
 	svc := NewTeamService(repo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
-	teams, total, err := svc.ListTeams(context.Background(), 1, false, "", 1, 20)
+	teams, total, err := svc.ListTeams(context.Background(), "", 1, 20)
 	require.NoError(t, err)
 	require.Len(t, teams, 2)
 	assert.Equal(t, int64(2), total)
@@ -422,7 +426,7 @@ func TestRemoveMember_Success(t *testing.T) {
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
-	err := svc.RemoveMember(context.Background(), 10, int64(1), 5)
+	err := svc.RemoveMember(context.Background(), int64(1), 5)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), teamRepo.removedMember.teamBizKey)
 	assert.Equal(t, int64(5), teamRepo.removedMember.userBizKey)
@@ -432,29 +436,11 @@ func TestRemoveMember_TeamNotFound(t *testing.T) {
 	teamRepo := &mockTeamRepo{findByIDErr: gorm.ErrRecordNotFound}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
-	err := svc.RemoveMember(context.Background(), 10, int64(999), 5)
+	err := svc.RemoveMember(context.Background(), int64(999), 5)
 	assert.ErrorIs(t, err, apperrors.ErrTeamNotFound)
 }
 
-func TestRemoveMember_CannotRemoveSelf(t *testing.T) {
-	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
-	}
-	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
-
-	err := svc.RemoveMember(context.Background(), 10, int64(1), 10)
-	assert.ErrorIs(t, err, apperrors.ErrCannotRemoveSelf)
-}
-
-func TestRemoveMember_CallerNotPM(t *testing.T) {
-	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
-	}
-	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
-
-	err := svc.RemoveMember(context.Background(), 99, int64(1), 5)
-	assert.ErrorIs(t, err, apperrors.ErrForbidden)
-}
+// TestRemoveMember_CannotRemoveSelf is removed: PM identity check removed from service.
 
 // ---------------------------------------------------------------------------
 // Tests: TransferPM
@@ -476,7 +462,7 @@ func TestTransferPM_Success(t *testing.T) {
 	roleRepo := &mockRoleRepo{roles: []model.Role{*pmRole, *memberRole}}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, roleRepo, db)
 
-	err := svc.TransferPM(context.Background(), 10, int64(1), 20)
+	err := svc.TransferPM(context.Background(), int64(1), 20)
 	require.NoError(t, err)
 	assert.True(t, db.called)
 
@@ -498,18 +484,8 @@ func TestTransferPM_TeamNotFound(t *testing.T) {
 	teamRepo := &mockTeamRepo{findByIDErr: gorm.ErrRecordNotFound}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
-	err := svc.TransferPM(context.Background(), 10, int64(999), 20)
+	err := svc.TransferPM(context.Background(), int64(999), 20)
 	assert.ErrorIs(t, err, apperrors.ErrTeamNotFound)
-}
-
-func TestTransferPM_CallerNotPM(t *testing.T) {
-	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
-	}
-	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
-
-	err := svc.TransferPM(context.Background(), 99, int64(1), 20)
-	assert.ErrorIs(t, err, apperrors.ErrForbidden)
 }
 
 func TestTransferPM_TargetNotMember(t *testing.T) {
@@ -520,7 +496,7 @@ func TestTransferPM_TargetNotMember(t *testing.T) {
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
-	err := svc.TransferPM(context.Background(), 10, int64(1), 99)
+	err := svc.TransferPM(context.Background(), int64(1), 99)
 	assert.ErrorIs(t, err, apperrors.ErrNotTeamMember)
 }
 
@@ -534,7 +510,7 @@ func TestDisbandTeam_Success(t *testing.T) {
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
-	err := svc.DisbandTeam(context.Background(), 10, int64(1), "Alpha Team")
+	err := svc.DisbandTeam(context.Background(), int64(1), "Alpha Team")
 	require.NoError(t, err)
 	assert.Equal(t, uint(1), teamRepo.deletedTeamID)
 }
@@ -543,18 +519,8 @@ func TestDisbandTeam_TeamNotFound(t *testing.T) {
 	teamRepo := &mockTeamRepo{findByIDErr: gorm.ErrRecordNotFound}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
-	err := svc.DisbandTeam(context.Background(), 10, int64(999), "anything")
+	err := svc.DisbandTeam(context.Background(), int64(999), "anything")
 	assert.ErrorIs(t, err, apperrors.ErrTeamNotFound)
-}
-
-func TestDisbandTeam_CallerNotPM(t *testing.T) {
-	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamName: "Alpha", PmKey: 10},
-	}
-	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
-
-	err := svc.DisbandTeam(context.Background(), 99, int64(1), "Alpha")
-	assert.ErrorIs(t, err, apperrors.ErrForbidden)
 }
 
 func TestDisbandTeam_ConfirmNameMismatch(t *testing.T) {
@@ -563,7 +529,7 @@ func TestDisbandTeam_ConfirmNameMismatch(t *testing.T) {
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
-	err := svc.DisbandTeam(context.Background(), 10, int64(1), "Wrong Name")
+	err := svc.DisbandTeam(context.Background(), int64(1), "Wrong Name")
 	assert.ErrorIs(t, err, apperrors.ErrValidation)
 }
 
@@ -613,7 +579,7 @@ func TestUpdateMemberRole_Success(t *testing.T) {
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
-	err := svc.UpdateMemberRole(context.Background(), 10, 5, int64(1), int64(3))
+	err := svc.UpdateMemberRole(context.Background(), 5, int64(1), int64(3))
 	require.NoError(t, err)
 	require.Len(t, teamRepo.updatedMembers, 1)
 	require.NotNil(t, teamRepo.updatedMembers[0].RoleKey)
@@ -624,18 +590,8 @@ func TestUpdateMemberRole_TeamNotFound(t *testing.T) {
 	teamRepo := &mockTeamRepo{findByIDErr: gorm.ErrRecordNotFound}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
-	err := svc.UpdateMemberRole(context.Background(), 10, 5, int64(999), 3)
+	err := svc.UpdateMemberRole(context.Background(), 5, int64(999), 3)
 	assert.ErrorIs(t, err, apperrors.ErrTeamNotFound)
-}
-
-func TestUpdateMemberRole_CallerNotPM(t *testing.T) {
-	teamRepo := &mockTeamRepo{
-		team: &model.Team{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, PmKey: 10},
-	}
-	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
-
-	err := svc.UpdateMemberRole(context.Background(), 99, 5, int64(1), 3)
-	assert.ErrorIs(t, err, apperrors.ErrForbidden)
 }
 
 func TestUpdateMemberRole_TargetNotMember(t *testing.T) {
@@ -646,7 +602,7 @@ func TestUpdateMemberRole_TargetNotMember(t *testing.T) {
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
-	err := svc.UpdateMemberRole(context.Background(), 10, 99, int64(1), 3)
+	err := svc.UpdateMemberRole(context.Background(), 99, int64(1), 3)
 	assert.ErrorIs(t, err, apperrors.ErrNotTeamMember)
 }
 
@@ -660,7 +616,7 @@ func TestUpdateMemberRole_CannotAssignPMRole(t *testing.T) {
 	}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, roleRepo, &mockDB{})
 
-	err := svc.UpdateMemberRole(context.Background(), 10, 5, int64(1), 2)
+	err := svc.UpdateMemberRole(context.Background(), 5, int64(1), 2)
 	assert.ErrorIs(t, err, apperrors.ErrCannotAssignPMRole)
 }
 
@@ -804,7 +760,7 @@ func TestUpdateTeam_Success(t *testing.T) {
 	teamRepo := &mockTeamRepo{team: team}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
-	updated, err := svc.UpdateTeam(context.Background(), 10, 1, dto.UpdateTeamReq{
+	updated, err := svc.UpdateTeam(context.Background(), 1, dto.UpdateTeamReq{
 		Name:        "New Name",
 		Description: "New Description",
 	})
@@ -814,26 +770,11 @@ func TestUpdateTeam_Success(t *testing.T) {
 	assert.NotNil(t, teamRepo.updatedTeam)
 }
 
-func TestUpdateTeam_NotPM(t *testing.T) {
-	team := &model.Team{
-		BaseModel: model.BaseModel{ID: 1},
-		PmKey:     10,
-	}
-	teamRepo := &mockTeamRepo{team: team}
-	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
-
-	_, err := svc.UpdateTeam(context.Background(), 99, 1, dto.UpdateTeamReq{
-		Name:        "New Name",
-		Description: "New Desc",
-	})
-	assert.ErrorIs(t, err, apperrors.ErrForbidden)
-}
-
 func TestUpdateTeam_TeamNotFound(t *testing.T) {
 	teamRepo := &mockTeamRepo{findByIDErr: gorm.ErrRecordNotFound}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
-	_, err := svc.UpdateTeam(context.Background(), 10, 999, dto.UpdateTeamReq{
+	_, err := svc.UpdateTeam(context.Background(), 999, dto.UpdateTeamReq{
 		Name:        "Name",
 		Description: "Desc",
 	})
@@ -848,7 +789,7 @@ func TestUpdateTeam_RepoUpdateError(t *testing.T) {
 	teamRepo := &mockTeamRepo{team: team, updateErr: errors.New("db error")}
 	svc := NewTeamService(teamRepo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
-	_, err := svc.UpdateTeam(context.Background(), 10, 1, dto.UpdateTeamReq{
+	_, err := svc.UpdateTeam(context.Background(), 1, dto.UpdateTeamReq{
 		Name:        "Name",
 		Description: "Desc",
 	})

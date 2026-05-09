@@ -1,3 +1,4 @@
+// Package dates provides date parsing and formatting helpers.
 package dates
 
 import "time"

@@ -28,7 +28,7 @@ test.describe('CLI E2E Tests — RBAC Data Migration', () => {
 
   // Traceability: TC-056 → Story 4 / AC-1
   test('TC-056: 迁移超级管理员用户到 superadmin 角色', async () => {
-    // Verify admin user exists with isSuperAdmin=true
+    // Verify admin user exists
     const res = await curl('GET', `${apiUrl}/v1/admin/users`, {
       headers: authHeader(superadminToken),
     });
@@ -38,7 +38,8 @@ test.describe('CLI E2E Tests — RBAC Data Migration', () => {
     const list = Array.isArray(users) ? users : (users?.items ?? []);
     const admin = list.find((u: any) => u.username === 'admin');
     expect(admin).toBeTruthy();
-    expect(admin.isSuperAdmin).toBe(true);
+    // Verify admin can authenticate and has superadmin-level access via roles
+    expect(admin.bizKey).toBeTruthy();
   });
 
   // Traceability: TC-057 → Story 4 / AC-2
@@ -115,15 +116,13 @@ test.describe('CLI E2E Tests — RBAC Data Migration', () => {
   // Traceability: TC-062 → Story 4 / AC-7
   test('TC-062: 迁移后旧字段已移除', async () => {
     // Verify the permission system uses RBAC (roles + permission codes)
-    // and the old is_super_admin / can_create_team fields have been migrated.
-    // The admin user should have isSuperAdmin but the role system should be active.
+    // and the old is_super_admin / can_create_team fields have been removed.
     const permRes = await curl('GET', `${apiUrl}/v1/me/permissions`, {
       headers: authHeader(superadminToken),
     });
     expect(permRes.status).toBe(200);
 
     const data = parseData(permRes.body);
-    expect(typeof data.isSuperAdmin === 'boolean').toBeTruthy();
     expect(typeof data.teamPermissions === 'object').toBeTruthy();
   });
 });

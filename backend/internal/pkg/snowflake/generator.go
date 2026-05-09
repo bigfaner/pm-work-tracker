@@ -1,3 +1,4 @@
+// Package snowflake provides distributed unique ID generation.
 package snowflake
 
 import "github.com/bwmarrin/snowflake"

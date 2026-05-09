@@ -16,6 +16,7 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | arch-button-icon-convention.md | Building action buttons — icon+text pattern |
 | arch-e2e-graduation-staging.md | Graduating e2e tests — directory reorganization |
 | arch-task-executor-missing-e2e-step.md | Task executor flow — missing e2e verification step |
+| arch-task-failure-recovery-loop.md | Task executor encounters test failures — must block + spawn fix tasks |
 | arch-ui-integration-gap.md | Component task breakdown — must include page wiring task |
 
 ### debug- — Debugging Techniques
@@ -80,7 +81,7 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | Task breakdown | arch-ui-integration-gap, pattern-phase-gate-tasks, gotcha-tech-design-decision-archiving |
 | E2E test generation | gotcha-e2e-script-generation, debug-e2e-zero-tests, debug-e2e-beforeall-cascade |
 | E2E test graduation | arch-e2e-graduation-staging, tool-e2e-graduation-structure |
-| Running /run-tasks | gotcha-subagent-partial-commits, gotcha-ac-self-report-without-verification |
+| Running /run-tasks | gotcha-subagent-partial-commits, gotcha-ac-self-report-without-verification, arch-task-failure-recovery-loop |
 | Using subagents | gotcha-no-subagent-for-sequential-work, gotcha-agent-breaks-safety-net |
 | Schema migration | gotcha-schema-alignment-cascading-test-failures |
 | Writing tech design | gotcha-design-tech-skip-askuserquestion, gotcha-tech-design-decision-archiving |

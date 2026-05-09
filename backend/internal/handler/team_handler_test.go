@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -107,14 +108,13 @@ func (m *mockTeamService) GetTeamDetail(_ context.Context, teamBizKey int64) (*d
 	return m.getTeamDetailResult.detail, m.getTeamDetailResult.err
 }
 
-func (m *mockTeamService) ListTeams(_ context.Context, callerID uint, isSuperAdmin bool, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
+func (m *mockTeamService) ListTeams(_ context.Context, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
 	m.listCalled = true
 	return m.listTeamsResult.teams, int64(len(m.listTeamsResult.teams)), m.listTeamsResult.err
 }
 
-func (m *mockTeamService) UpdateTeam(_ context.Context, pmBizKey int64, teamBizKey int64, req dto.UpdateTeamReq) (*model.Team, error) {
+func (m *mockTeamService) UpdateTeam(_ context.Context, teamBizKey int64, req dto.UpdateTeamReq) (*model.Team, error) {
 	m.updateCalled = true
-	m.lastPmID = uint(pmBizKey)
 	m.lastTeamID = uint(teamBizKey)
 	m.lastUpdateReq = req
 	return m.updateTeamResult.team, m.updateTeamResult.err
@@ -128,31 +128,28 @@ func (m *mockTeamService) InviteMember(_ context.Context, pmBizKey int64, teamBi
 	return m.inviteMemberErr
 }
 
-func (m *mockTeamService) RemoveMember(_ context.Context, pmBizKey int64, teamBizKey int64, targetUserBizKey int64) error {
+func (m *mockTeamService) RemoveMember(_ context.Context, teamBizKey int64, targetUserBizKey int64) error {
 	m.removeCalled = true
-	m.lastPmID = uint(pmBizKey)
 	m.removeTeamID = uint(teamBizKey)
 	m.removeTargetID = uint(targetUserBizKey)
 	return m.removeMemberErr
 }
 
-func (m *mockTeamService) TransferPM(_ context.Context, currentPMBizKey int64, teamBizKey int64, newPMBizKey int64) error {
+func (m *mockTeamService) TransferPM(_ context.Context, teamBizKey int64, newPMBizKey int64) error {
 	m.transferCalled = true
-	m.lastPmID = uint(currentPMBizKey)
 	m.transferTeamID = uint(teamBizKey)
 	m.newPmID = uint(newPMBizKey)
 	return m.transferPMErr
 }
 
-func (m *mockTeamService) DisbandTeam(_ context.Context, callerBizKey int64, teamBizKey int64, confirmName string) error {
+func (m *mockTeamService) DisbandTeam(_ context.Context, teamBizKey int64, confirmName string) error {
 	m.disbandCalled = true
-	m.lastPmID = uint(callerBizKey)
 	m.disbandTeamID = uint(teamBizKey)
 	m.lastConfirmName = confirmName
 	return m.disbandTeamErr
 }
 
-func (m *mockTeamService) UpdateMemberRole(_ context.Context, pmBizKey, targetUserBizKey int64, teamBizKey int64, roleID int64) error {
+func (m *mockTeamService) UpdateMemberRole(_ context.Context, targetUserBizKey int64, teamBizKey int64, roleID int64) error {
 	return m.updateMemberRoleErr
 }
 
@@ -776,54 +773,59 @@ func TestUpdateMemberRole_InvalidUserID(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
-func TestUpdateMemberRole_NotMember(t *testing.T) {
-	svc := &mockTeamService{}
-	svc.updateMemberRoleErr = apperrors.ErrNotTeamMember
-	svc.getTeamResult.team = &model.Team{PmKey: 1}
-	userRepo := &mockUserRepoForHandler{user: &model.User{}}
-	userRepo.user.ID = 99
+func TestUpdateMemberRole_ErrorCases(t *testing.T) {
+	tests := []struct {
+		name       string
+		svcErr     error
+		targetID   uint
+		roleKey    string
+		wantStatus int
+		wantCode   string
+	}{
+		{
+			name:       "NotMember",
+			svcErr:     apperrors.ErrNotTeamMember,
+			targetID:   99,
+			roleKey:    "3",
+			wantStatus: http.StatusForbidden,
+			wantCode:   "NOT_TEAM_MEMBER",
+		},
+		{
+			name:       "CannotAssignPMRole",
+			svcErr:     apperrors.ErrCannotAssignPMRole,
+			targetID:   5,
+			roleKey:    "2",
+			wantStatus: http.StatusUnprocessableEntity,
+			wantCode:   "CANNOT_ASSIGN_PM_ROLE",
+		},
+	}
 
-	deps := depsWithTeamSvc(t, svc, userRepo)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
-	r := SetupRouter(deps, nil)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := &mockTeamService{}
+			svc.updateMemberRoleErr = tt.svcErr
+			svc.getTeamResult.team = &model.Team{PmKey: 1}
+			userRepo := &mockUserRepoForHandler{user: &model.User{}}
+			userRepo.user.ID = tt.targetID
 
-	token := signTestToken(t, 1, "testuser")
-	body := `{"roleKey":"3"}`
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/1/members/99/role", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	r.ServeHTTP(w, req)
+			deps := depsWithTeamSvc(t, svc, userRepo)
+			deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
+			r := SetupRouter(deps, nil)
 
-	assert.Equal(t, http.StatusForbidden, w.Code)
-	var resp map[string]interface{}
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	assert.Equal(t, "NOT_TEAM_MEMBER", resp["code"])
-}
+			token := signTestToken(t, 1, "testuser")
+			body := fmt.Sprintf(`{"roleKey":"%s"}`, tt.roleKey)
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/v1/teams/1/members/%d/role", tt.targetID), strings.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Authorization", "Bearer "+token)
+			r.ServeHTTP(w, req)
 
-func TestUpdateMemberRole_CannotAssignPMRole(t *testing.T) {
-	svc := &mockTeamService{}
-	svc.updateMemberRoleErr = apperrors.ErrCannotAssignPMRole
-	svc.getTeamResult.team = &model.Team{PmKey: 1}
-	userRepo := &mockUserRepoForHandler{user: &model.User{}}
-	userRepo.user.ID = 5
-
-	deps := depsWithTeamSvc(t, svc, userRepo)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
-	r := SetupRouter(deps, nil)
-
-	token := signTestToken(t, 1, "testuser")
-	body := `{"roleKey":"2"}`
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/1/members/5/role", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
-	var resp map[string]interface{}
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	assert.Equal(t, "CANNOT_ASSIGN_PM_ROLE", resp["code"])
+			assert.Equal(t, tt.wantStatus, w.Code)
+			var resp map[string]interface{}
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+			assert.Equal(t, tt.wantCode, resp["code"])
+		})
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -941,8 +943,6 @@ func TestTransferPM_SuperAdminNotTeamMember_Succeeds(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, svc.transferCalled)
-	// SuperAdmin → handler fetches team.PmKey (10) as currentPMID
-	assert.Equal(t, uint(10), svc.lastPmID)
 	assert.Equal(t, uint(1), svc.transferTeamID)
 	assert.Equal(t, uint(5), svc.newPmID)
 }

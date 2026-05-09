@@ -1,3 +1,4 @@
+// Package main provides a one-time migration CLI for rewriting item codes.
 package main
 
 import (

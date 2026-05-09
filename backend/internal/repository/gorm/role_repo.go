@@ -31,6 +31,7 @@ func (r *roleRepo) List(ctx context.Context, search string) ([]model.Role, error
 	return roles, err
 }
 
+//nolint:dupl // same FindByID shape
 func (r *roleRepo) FindByID(ctx context.Context, id uint) (*model.Role, error) {
 	var role model.Role
 	err := r.db.WithContext(ctx).Scopes(NotDeleted).Where("id = ?", id).First(&role).Error
@@ -43,6 +44,7 @@ func (r *roleRepo) FindByID(ctx context.Context, id uint) (*model.Role, error) {
 	return &role, nil
 }
 
+//nolint:dupl // same FindByBizKey shape
 func (r *roleRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.Role, error) {
 	var role model.Role
 	err := r.db.WithContext(ctx).Scopes(NotDeleted).Where("biz_key = ?", bizKey).First(&role).Error
@@ -55,6 +57,7 @@ func (r *roleRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.Role,
 	return &role, nil
 }
 
+//nolint:dupl // same lookup-by-field shape as FindByBizKey
 func (r *roleRepo) FindByName(ctx context.Context, name string) (*model.Role, error) {
 	var role model.Role
 	err := r.db.WithContext(ctx).Scopes(NotDeleted).Where("role_name = ?", name).First(&role).Error

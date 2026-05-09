@@ -1,3 +1,4 @@
+// Package jwt provides JWT token signing and verification utilities.
 package jwt
 
 import (
@@ -17,7 +18,7 @@ type Claims struct {
 }
 
 // Sign creates a signed HS256 JWT with 24h expiry containing the given userID and username.
-func Sign(userID uint, username string, secret string) (string, error) {
+func Sign(userID uint, username, secret string) (string, error) {
 	now := time.Now()
 	claims := &Claims{
 		UserID:   userID,
@@ -33,8 +34,8 @@ func Sign(userID uint, username string, secret string) (string, error) {
 
 // Verify parses and validates a JWT string, returning the claims or an error.
 // Returns ErrUnauthorized for expired or invalid tokens.
-func Verify(tokenStr string, secret string) (*Claims, error) {
-	token, err := jwtv5.ParseWithClaims(tokenStr, &Claims{}, func(t *jwtv5.Token) (any, error) {
+func Verify(tokenStr, secret string) (*Claims, error) {
+	token, err := jwtv5.ParseWithClaims(tokenStr, &Claims{}, func(_ *jwtv5.Token) (any, error) {
 		return []byte(secret), nil
 	})
 	if err != nil {

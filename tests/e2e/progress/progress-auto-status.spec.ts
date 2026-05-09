@@ -76,10 +76,7 @@ test.describe.serial('进度追加 - 自动状态流转', () => {
 
   // ====== TEST 1: First progress on pending sub-item -> progressing ======
   test('首次追加进度，pending 自动变为 progressing', async ({ page }) => {
-    await login(page);
-
-    // Navigate to sub-item detail page
-    await page.goto(`${BASE}/items/${testMainItemId}/sub/${subItem1Id}`);
+    await login(page, undefined, `/items/${testMainItemId}/sub/${subItem1Id}`);
     await page.waitForTimeout(2000);
 
     // Verify initial status is "待开始"
@@ -113,10 +110,7 @@ test.describe.serial('进度追加 - 自动状态流转', () => {
 
   // ====== TEST 2: 100% completion on progressing sub-item -> completed ======
   test('追加100%进度，progressing 自动变为 completed', async ({ page }) => {
-    await login(page);
-
-    // Navigate to sub-item detail page
-    await page.goto(`${BASE}/items/${testMainItemId}/sub/${subItem2Id}`);
+    await login(page, undefined, `/items/${testMainItemId}/sub/${subItem2Id}`);
     await page.waitForTimeout(2000);
 
     // Verify initial status is "进行中"

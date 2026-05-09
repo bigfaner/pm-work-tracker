@@ -36,6 +36,8 @@ func NewMainItemHandler(svc service.MainItemService, userRepo repository.UserRep
 }
 
 // Create handles POST /api/v1/teams/:teamId/main-items
+//
+//nolint:dupl // similar request handling shape as SubItem.Create but different business logic
 func (h *MainItemHandler) Create(c *gin.Context) {
 	teamBizKey := middleware.GetTeamBizKey(c)
 	pmBizKey := middleware.GetUserBizKey(c)

@@ -28,5 +28,4 @@ func TestNewUserVO(t *testing.T) {
 	assert.Equal(t, "Alice", result.DisplayName)
 	assert.Equal(t, "alice@example.com", result.Email)
 	assert.Equal(t, "enabled", result.Status)
-	assert.True(t, result.IsSuperAdmin)
 }

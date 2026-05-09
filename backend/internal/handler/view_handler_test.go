@@ -533,6 +533,7 @@ func TestExportTable_RequiresAuth(t *testing.T) {
 	assert.False(t, svc.csvCalled)
 }
 
+//nolint:dupl // cross-handler test: same non-member setup pattern as report_handler_test TestWeeklyPreview_RequiresTeamMembership
 func TestWeeklyView_RequiresTeamMembership(t *testing.T) {
 	svc := &mockViewService{}
 	deps, db := testDeps(t)

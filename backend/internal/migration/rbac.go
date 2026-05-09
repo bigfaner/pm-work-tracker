@@ -1,3 +1,4 @@
+// Package migration handles database schema and data migrations.
 package migration
 
 import (
@@ -153,8 +154,8 @@ func rbacTableDDL(tx *gorm.DB) []string {
 }
 
 func seedPresetRoles(tx *gorm.DB) error {
-	// Seed superadmin (id=1, no permission codes)
-	if err := seedRole(tx, "superadmin", "系统超级管理员，绕过所有权限检查", true, nil); err != nil {
+	// Seed superadmin (id=1, all 29 permission codes)
+	if err := seedRole(tx, "superadmin", "系统超级管理员", permissions.AllCodeStrings()); err != nil {
 		return err
 	}
 
@@ -170,7 +171,7 @@ func seedPresetRoles(tx *gorm.DB) error {
 		"report:export",
 		"user:read",
 	}
-	if err := seedRole(tx, "pm", "项目经理，团队管理权限", true, pmCodes); err != nil {
+	if err := seedRole(tx, "pm", "项目经理，团队管理权限", pmCodes); err != nil {
 		return err
 	}
 
@@ -184,14 +185,10 @@ func seedPresetRoles(tx *gorm.DB) error {
 		"view:weekly", "view:table",
 		"report:export",
 	}
-	if err := seedRole(tx, "member", "团队成员，基础操作权限", true, memberCodes); err != nil {
-		return err
-	}
-
-	return nil
+	return seedRole(tx, "member", "团队成员，基础操作权限", memberCodes)
 }
 
-func seedRole(tx *gorm.DB, name, description string, isPreset bool, codes []string) error {
+func seedRole(tx *gorm.DB, name, description string, codes []string) error {
 	// Check if role already exists
 	var existing model.Role
 	result := tx.Where("role_name = ?", name).First(&existing)
@@ -226,7 +223,7 @@ func seedRole(tx *gorm.DB, name, description string, isPreset bool, codes []stri
 		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
 		Name:        name,
 		Description: description,
-		IsPreset:    isPreset,
+		IsPreset:    true,
 	}
 	if err := tx.Create(&role).Error; err != nil {
 		return fmt.Errorf("create role %s: %w", name, err)
@@ -379,7 +376,7 @@ func HasColumn(db *gorm.DB, table, column string) bool {
 
 // isMySQL returns true if the underlying database is MySQL.
 func isMySQL(db *gorm.DB) bool {
-	return db.Dialector.Name() == "mysql"
+	return db.Name() == "mysql"
 }
 
 // columnExists checks if a column exists in a table.

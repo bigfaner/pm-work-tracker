@@ -26,6 +26,7 @@ func (r *userRepo) FindByID(ctx context.Context, id uint) (*model.User, error) {
 	return repo.FindByID[model.User](r.db, ctx, id)
 }
 
+//nolint:dupl // same FindByBizKey shape as role_repo
 func (r *userRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.User, error) {
 	var user model.User
 	err := r.db.WithContext(ctx).Scopes(NotDeleted).Where("biz_key = ?", bizKey).First(&user).Error
@@ -38,6 +39,7 @@ func (r *userRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.User,
 	return &user, nil
 }
 
+//nolint:dupl // same lookup-by-field shape as FindByBizKey
 func (r *userRepo) FindByUsername(ctx context.Context, username string) (*model.User, error) {
 	var user model.User
 	err := r.db.WithContext(ctx).Scopes(NotDeleted).Where("username = ?", username).First(&user).Error

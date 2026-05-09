@@ -1,3 +1,4 @@
+// Package dbutil provides database dialect abstraction and SQL helpers.
 package dbutil
 
 import (
@@ -85,12 +86,12 @@ func NewDialect(db *gorm.DB) Dialect {
 		panic("dbutil: db must not be nil")
 	}
 
-	switch db.Dialector.Name() {
+	switch db.Name() {
 	case "sqlite":
 		return sqliteDialect{}
 	case "mysql":
 		return mysqlDialect{}
 	default:
-		panic(UnsupportedDialectError{Name: db.Dialector.Name()})
+		panic(UnsupportedDialectError{Name: db.Name()})
 	}
 }

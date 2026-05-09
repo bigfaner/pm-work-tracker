@@ -120,7 +120,6 @@ type mockAdminTeamRepo struct {
 	teamByIDErr              error
 	addMemberErr             error
 	removeMemberErr          error
-	teamsByUserIDs           map[uint][]dto.TeamSummary
 	teamsByUIDErr            error
 	teamsByUserBizKeys       map[int64][]dto.TeamSummary
 	findTeamsByUserBizKeysFn func(ctx context.Context, ids []int64) (map[int64][]dto.TeamSummary, error)
@@ -181,6 +180,10 @@ func (m *mockAdminTeamRepo) FindPMMembers(_ context.Context, _ []int64) (map[int
 	return map[int64]string{}, nil
 }
 
+func (m *mockAdminTeamRepo) ListTeamBizKeys(_ context.Context) ([]int64, error) {
+	return nil, nil
+}
+
 // ---------------------------------------------------------------------------
 // Tests: ListUsers
 // ---------------------------------------------------------------------------
@@ -198,7 +201,7 @@ func TestAdminListUsers_Success(t *testing.T) {
 
 	items, total, err := svc.ListUsers(context.Background(), "", 1, 20)
 	require.NoError(t, err)
-	assert.Equal(t, 2, int(total))
+	assert.Equal(t, 2, total)
 	assert.Len(t, items, 2)
 	assert.Equal(t, "alice", items[0].Username)
 	assert.Equal(t, "bob", items[1].Username)
@@ -215,7 +218,7 @@ func TestAdminListUsers_Empty(t *testing.T) {
 
 	items, total, err := svc.ListUsers(context.Background(), "", 1, 20)
 	require.NoError(t, err)
-	assert.Equal(t, 0, int(total))
+	assert.Equal(t, 0, total)
 	assert.Empty(t, items)
 }
 
@@ -247,7 +250,7 @@ func TestAdminListUsers_SearchFilter(t *testing.T) {
 
 	items, total, err := svc.ListUsers(context.Background(), "alice", 1, 20)
 	require.NoError(t, err)
-	assert.Equal(t, 2, int(total))
+	assert.Equal(t, 2, total)
 	assert.Len(t, items, 2)
 	assert.Equal(t, "alice", items[0].Username)
 	assert.Equal(t, "charlie", items[1].Username)
@@ -279,7 +282,7 @@ func TestAdminListUsers_Pagination(t *testing.T) {
 
 	items, total, err := svc.ListUsers(context.Background(), "", 2, 2)
 	require.NoError(t, err)
-	assert.Equal(t, 5, int(total))
+	assert.Equal(t, 5, total)
 	assert.Len(t, items, 2)
 	assert.Equal(t, "u3", items[0].Username)
 	assert.Equal(t, "u4", items[1].Username)
@@ -304,7 +307,7 @@ func TestAdminListUsers_WithTeams(t *testing.T) {
 
 	items, total, err := svc.ListUsers(context.Background(), "", 1, 20)
 	require.NoError(t, err)
-	assert.Equal(t, 1, int(total))
+	assert.Equal(t, 1, total)
 	require.Len(t, items, 1)
 	require.Len(t, items[0].Teams, 1)
 	assert.Equal(t, "10", items[0].Teams[0].BizKey)

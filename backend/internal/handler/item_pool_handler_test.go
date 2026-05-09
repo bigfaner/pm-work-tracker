@@ -60,7 +60,7 @@ func seedItemPoolBenchData(n int) (*mockItemPoolService, *trackingUserRepo, *tra
 	return svc, trackingUser, trackingMainItem
 }
 
-func BenchmarkItemPoolHandler_List(b *testing.B) {
+func benchmarkItemPoolList(b *testing.B, pageSize int) {
 	b.StopTimer()
 	svc, trackingUser, trackingMainItem := seedItemPoolBenchData(200)
 
@@ -74,7 +74,7 @@ func BenchmarkItemPoolHandler_List(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		w := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool?page=1&pageSize=20", nil)
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/teams/10/item-pool?page=1&pageSize=%d", pageSize), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		r.ServeHTTP(w, req)
 		if w.Code != http.StatusOK {
@@ -83,28 +83,8 @@ func BenchmarkItemPoolHandler_List(b *testing.B) {
 	}
 }
 
-func BenchmarkItemPoolHandler_List_LargePage(b *testing.B) {
-	b.StopTimer()
-	svc, trackingUser, trackingMainItem := seedItemPoolBenchData(200)
-
-	deps, _ := testDeps(b)
-	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
-	deps.ItemPool = NewItemPoolHandler(svc, trackingUser, trackingMainItem)
-	r := SetupRouter(deps, nil)
-
-	token := signTestToken(b, 5, "testuser")
-	b.StartTimer()
-
-	for i := 0; i < b.N; i++ {
-		w := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/item-pool?page=1&pageSize=100", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		r.ServeHTTP(w, req)
-		if w.Code != http.StatusOK {
-			b.Fatalf("unexpected status: %d", w.Code)
-		}
-	}
-}
+func BenchmarkItemPoolHandler_List(b *testing.B)           { benchmarkItemPoolList(b, 20) }
+func BenchmarkItemPoolHandler_List_LargePage(b *testing.B) { benchmarkItemPoolList(b, 100) }
 
 // ---------------------------------------------------------------------------
 // Mock ItemPoolService for handler tests
@@ -144,11 +124,9 @@ type mockItemPoolService struct {
 	lastPoolID uint
 
 	assignCalled  bool
-	lastAssignID  uint
 	lastAssignReq dto.AssignItemPoolReq
 
 	rejectCalled bool
-	lastRejectID uint
 	lastReason   string
 }
 
@@ -207,8 +185,6 @@ func (m *mockItemPoolService) Update(_ context.Context, _ int64, _ uint, _ dto.U
 // Helpers
 // ---------------------------------------------------------------------------
 
-func ptrUint(v uint) *uint { return &v }
-
 // depsWithItemPoolSvc wires a mock ItemPoolService into test deps.
 func depsWithItemPoolSvc(t *testing.T, svc *mockItemPoolService, userRepo repository.UserRepo) *Dependencies {
 	t.Helper()
@@ -228,9 +204,9 @@ func depsWithItemPoolMemberRole(t *testing.T, svc *mockItemPoolService, userRepo
 }
 
 // helper to create an ItemPool model for tests.
-func testItemPool(id uint, teamID uint) *model.ItemPool {
+func testItemPool(_ uint) *model.ItemPool {
 	return &model.ItemPool{
-		TeamKey:      int64(teamID),
+		TeamKey:      10,
 		Title:        "Test Pool Item",
 		PoolStatus:   "pending",
 		SubmitterKey: 5,
@@ -243,7 +219,7 @@ func testItemPool(id uint, teamID uint) *model.ItemPool {
 
 func TestSubmitItemPool_Success(t *testing.T) {
 	svc := &mockItemPoolService{}
-	item := testItemPool(1, 10)
+	item := testItemPool(1)
 	item.ID = 1
 	svc.submitResult.item = item
 
@@ -278,7 +254,7 @@ func TestSubmitItemPool_Success(t *testing.T) {
 func TestSubmitItemPool_MemberCanSubmit(t *testing.T) {
 	// Any team member can submit, not just PM
 	svc := &mockItemPoolService{}
-	item := testItemPool(1, 10)
+	item := testItemPool(1)
 	item.ID = 1
 	svc.submitResult.item = item
 
@@ -345,7 +321,7 @@ func TestSubmitItemPool_ServiceError(t *testing.T) {
 func TestListItemPool_Success(t *testing.T) {
 	svc := &mockItemPoolService{}
 	svc.listResult.page = &dto.PageResult[model.ItemPool]{
-		Items: []model.ItemPool{*testItemPool(1, 10), *testItemPool(2, 10)},
+		Items: []model.ItemPool{*testItemPool(1), *testItemPool(2)},
 		Total: 2,
 		Page:  1,
 		Size:  20,
@@ -420,7 +396,7 @@ func TestListItemPool_ServiceError(t *testing.T) {
 
 func TestGetItemPool_Success(t *testing.T) {
 	svc := &mockItemPoolService{}
-	item := testItemPool(5, 10)
+	item := testItemPool(5)
 	item.ID = 5
 	item.Background = "some background"
 	item.ExpectedOutput = "some output"
@@ -604,11 +580,11 @@ func TestAssignItemPool_MissingRequiredFields(t *testing.T) {
 	assert.False(t, svc.assignCalled)
 }
 
-func TestAssignItemPool_AlreadyProcessed(t *testing.T) {
+func testItemPoolActionAlreadyProcessed(t *testing.T, action string, setupErr func(svc *mockItemPoolService), reqBody string) {
 	svc := &mockItemPoolService{}
 	svc.getResult.item = &model.ItemPool{}
 	svc.getResult.item.ID = 5
-	svc.assignResult.err = apperrors.ErrItemAlreadyProcessed
+	setupErr(svc)
 
 	userRepo := &mockUserRepoForHandler{}
 
@@ -616,9 +592,8 @@ func TestAssignItemPool_AlreadyProcessed(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 5, "testuser")
-	body := `{"mainItemKey":"1","assigneeKey":"3","startDate":"2026-01-01","expectedEndDate":"2026-02-01"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/assign", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/"+action, strings.NewReader(reqBody))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
@@ -629,6 +604,13 @@ func TestAssignItemPool_AlreadyProcessed(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	require.NoError(t, err)
 	assert.Equal(t, "ITEM_ALREADY_PROCESSED", resp["code"])
+}
+
+func TestAssignItemPool_AlreadyProcessed(t *testing.T) {
+	testItemPoolActionAlreadyProcessed(t, "assign",
+		func(svc *mockItemPoolService) { svc.assignResult.err = apperrors.ErrItemAlreadyProcessed },
+		`{"mainItemKey":"1","assigneeKey":"3","startDate":"2026-01-01","expectedEndDate":"2026-02-01"}`,
+	)
 }
 
 func TestAssignItemPool_SuperAdminBypass(t *testing.T) {
@@ -652,7 +634,8 @@ func TestAssignItemPool_SuperAdminBypass(t *testing.T) {
 	userRepo := &mockUserRepoForHandler{user: &model.User{DisplayName: "Admin"}}
 
 	// Use member-role team, but superadmin token
-	deps := depsWithItemPoolMemberRole(t, svc, userRepo)
+	// SuperAdmin now passes through permCodes check (TeamScopeMiddleware injects all codes)
+	deps := depsWithItemPoolSvc(t, svc, userRepo)
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
@@ -764,30 +747,10 @@ func TestRejectItemPool_ReasonRequired(t *testing.T) {
 }
 
 func TestRejectItemPool_AlreadyProcessed(t *testing.T) {
-	svc := &mockItemPoolService{}
-	svc.getResult.item = &model.ItemPool{}
-	svc.getResult.item.ID = 5
-	svc.rejectResult.err = apperrors.ErrItemAlreadyProcessed
-
-	userRepo := &mockUserRepoForHandler{}
-
-	deps := depsWithItemPoolSvc(t, svc, userRepo)
-	r := SetupRouter(deps, nil)
-
-	token := signTestToken(t, 5, "testuser")
-	body := `{"reason":"some reason"}`
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/10/item-pool/5/reject", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
-
-	var resp map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	require.NoError(t, err)
-	assert.Equal(t, "ITEM_ALREADY_PROCESSED", resp["code"])
+	testItemPoolActionAlreadyProcessed(t, "reject",
+		func(svc *mockItemPoolService) { svc.rejectResult.err = apperrors.ErrItemAlreadyProcessed },
+		`{"reason":"some reason"}`,
+	)
 }
 
 // ---------------------------------------------------------------------------

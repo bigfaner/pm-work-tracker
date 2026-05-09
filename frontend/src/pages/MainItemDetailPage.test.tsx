@@ -129,7 +129,6 @@ describe('MainItemDetailPage', () => {
   beforeEach(() => {
     useTeamStore.setState({ currentTeamId: '1', teams: [{ bizKey: '1', name: 'Test Team', description: '', code: '', pmKey: '1', createdAt: '', updatedAt: '' }] })
     useAuthStore.getState().setPermissions({
-      isSuperAdmin: false,
       teamPermissions: { 1: ['main_item:update'] },
     })
     setupHandlers()

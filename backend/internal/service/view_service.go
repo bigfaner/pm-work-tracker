@@ -61,7 +61,7 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamBizKey int64, we
 	}
 
 	subItemsByMain := indexSubItemsByMain(subItems)
-	lastWeekProgress, thisWeekProgress := splitProgressByWeek(allProgress, lastWeekStart, weekStart, weekEnd)
+	lastWeekProgress, thisWeekProgress := splitProgressByWeek(allProgress, lastWeekStart, weekStart)
 	lastWeekActive, thisWeekActive := computeActiveSubItems(subItems, lastWeekProgress, thisWeekProgress, lastWeekStart, weekStart, weekEnd)
 	lastWeekCompletion := computeLastWeekCompletion(lastWeekProgress)
 	latestProgressDesc := computeLatestProgressDesc(thisWeekProgress)
@@ -115,14 +115,14 @@ func (s *viewService) fetchWeeklyData(ctx context.Context, teamBizKey int64, las
 }
 
 // splitProgressByWeek partitions progress records into last-week and this-week buckets by sub-item biz_key.
-func splitProgressByWeek(allProgress []model.ProgressRecord, lastWeekStart, thisWeekStart, weekEnd time.Time) (
-	map[int64][]model.ProgressRecord, map[int64][]model.ProgressRecord,
+func splitProgressByWeek(allProgress []model.ProgressRecord, lastWeekStart, thisWeekStart time.Time) (
+	lastWeek, thisWeek map[int64][]model.ProgressRecord,
 ) {
 	lastWeekEnd := lastWeekStart.AddDate(0, 0, 7) // exclusive upper bound
 	thisWeekEnd := thisWeekStart.AddDate(0, 0, 7) // exclusive upper bound
 
-	lastWeek := make(map[int64][]model.ProgressRecord)
-	thisWeek := make(map[int64][]model.ProgressRecord)
+	lastWeek = make(map[int64][]model.ProgressRecord)
+	thisWeek = make(map[int64][]model.ProgressRecord)
 	for _, pr := range allProgress {
 		if !pr.CreateTime.Before(lastWeekStart) && pr.CreateTime.Before(lastWeekEnd) {
 			lastWeek[pr.SubItemKey] = append(lastWeek[pr.SubItemKey], pr)
@@ -136,11 +136,11 @@ func splitProgressByWeek(allProgress []model.ProgressRecord, lastWeekStart, this
 
 // computeActiveSubItems determines which sub-items were active in each week.
 func computeActiveSubItems(subItems []model.SubItem, lastWeekProgress, thisWeekProgress map[int64][]model.ProgressRecord, lastWeekStart, weekStart, weekEnd time.Time) (
-	map[int64]struct{}, map[int64]struct{},
+	lastWeekActive, thisWeekActive map[int64]struct{},
 ) {
 	lastWeekEnd := lastWeekStart.AddDate(0, 0, 6)
-	lastWeekActive := make(map[int64]struct{})
-	thisWeekActive := make(map[int64]struct{})
+	lastWeekActive = make(map[int64]struct{})
+	thisWeekActive = make(map[int64]struct{})
 
 	for _, si := range subItems {
 		if _, ok := lastWeekProgress[si.BizKey]; ok {
@@ -682,6 +682,7 @@ func derefString(s *string) string {
 	return *s
 }
 
+//nolint:dupl // mainItem and subItem to-row converters are structurally similar
 func mainItemToRow(mi model.MainItem) dto.TableRow {
 	return dto.TableRow{
 		BizKey:          pkg.FormatID(mi.BizKey),
@@ -697,6 +698,7 @@ func mainItemToRow(mi model.MainItem) dto.TableRow {
 	}
 }
 
+//nolint:dupl // mirrors mainItemToRow for sub-item fields
 func subItemToRow(si model.SubItem) dto.TableRow {
 	return dto.TableRow{
 		BizKey:          pkg.FormatID(si.BizKey),
@@ -712,6 +714,7 @@ func subItemToRow(si model.SubItem) dto.TableRow {
 	}
 }
 
+//nolint:dupl // matchesFilterMain and matchesFilterSub share filter logic
 func matchesFilterMain(mi model.MainItem, filter dto.TableFilter) bool {
 	if len(filter.Priority) > 0 && !contains(filter.Priority, mi.Priority) {
 		return false
@@ -727,6 +730,7 @@ func matchesFilterMain(mi model.MainItem, filter dto.TableFilter) bool {
 	return true
 }
 
+//nolint:dupl // mirrors matchesFilterMain for sub-item fields
 func matchesFilterSub(si model.SubItem, filter dto.TableFilter) bool {
 	if len(filter.Priority) > 0 && !contains(filter.Priority, si.Priority) {
 		return false

@@ -57,7 +57,7 @@ test.describe('Single-Binary Deploy Smoke (TC-072..TC-078)', () => {
     });
     expect(res.status).toBe(200);
     const data = JSON.parse(res.body);
-    expect(data.data?.isSuperAdmin ?? data.isSuperAdmin).toBe(true);
+    expect(data.data?.teamPermissions ?? data.teamPermissions).toBeTruthy();
   });
 
   // ── Basic CRUD Smoke ───────────────────────────────────────────────

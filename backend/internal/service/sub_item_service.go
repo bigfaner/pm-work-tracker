@@ -44,7 +44,7 @@ func NewSubItemService(subItemRepo repository.SubItemRepo, mainItemSvc MainItemS
 	return &subItemService{subItemRepo: subItemRepo, mainItemSvc: mainItemSvc, statusHistorySvc: statusHistorySvc}
 }
 
-func (s *subItemService) Create(ctx context.Context, teamBizKey int64, callerBizKey int64, req dto.SubItemCreateReq) (*model.SubItem, error) {
+func (s *subItemService) Create(ctx context.Context, teamBizKey, callerBizKey int64, req dto.SubItemCreateReq) (*model.SubItem, error) {
 	mainBizKey, _ := pkg.ParseID(req.MainItemKey)
 	mainItem, err := s.mainItemSvc.GetByBizKey(ctx, mainBizKey)
 	if err != nil {
@@ -139,7 +139,7 @@ func (s *subItemService) Update(ctx context.Context, teamBizKey int64, itemID ui
 	return s.subItemRepo.Update(ctx, item, fields)
 }
 
-func (s *subItemService) ChangeStatus(ctx context.Context, teamBizKey int64, callerBizKey int64, itemID uint, newStatus string) (*SubItemChangeResult, error) {
+func (s *subItemService) ChangeStatus(ctx context.Context, teamBizKey, callerBizKey int64, itemID uint, newStatus string) (*SubItemChangeResult, error) {
 	item, err := s.subItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
@@ -166,19 +166,19 @@ func (s *subItemService) ChangeStatus(ctx context.Context, teamBizKey int64, cal
 	// Capture old status before update (repo may mutate the item)
 	oldStatus := item.ItemStatus
 
-	if err := s.subItemRepo.Update(ctx, item, fields); err != nil {
+	if err := s.subItemRepo.Update(ctx, item, fields); err != nil { //nolint:govet // intentional shadow: inner-block err assignment
 		return nil, err
 	}
 
 	// After terminal transition, recalculate parent MainItem completion
 	if newStatus == "completed" || newStatus == "closed" {
-		if err := s.mainItemSvc.RecalcCompletion(ctx, item.MainItemKey); err != nil {
+		if err := s.mainItemSvc.RecalcCompletion(ctx, item.MainItemKey); err != nil { //nolint:govet // intentional shadow: inner-block err assignment
 			return nil, err
 		}
 	}
 
 	// Record to status history
-	if err := RecordStatusChange(s.statusHistorySvc, ctx, "sub_item", item.BizKey, oldStatus, newStatus, callerBizKey, 0, ""); err != nil {
+	if err := RecordStatusChange(s.statusHistorySvc, ctx, "sub_item", item.BizKey, oldStatus, newStatus, callerBizKey, 0, ""); err != nil { //nolint:govet // intentional shadow: inner-block err assignment
 		return nil, err
 	}
 
@@ -194,7 +194,7 @@ func (s *subItemService) ChangeStatus(ctx context.Context, teamBizKey int64, cal
 	return &SubItemChangeResult{SubItem: updated, LinkageResult: linkageResult}, nil
 }
 
-func (s *subItemService) Delete(ctx context.Context, teamBizKey int64, callerBizKey int64, itemID uint) error {
+func (s *subItemService) Delete(ctx context.Context, teamBizKey, callerBizKey int64, itemID uint) error {
 	item, err := s.subItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
@@ -224,7 +224,7 @@ func (s *subItemService) AvailableTransitions(ctx context.Context, teamBizKey in
 	return status.GetAvailableTransitions(status.SubItemTransitions, item.ItemStatus), nil
 }
 
-func (s *subItemService) Get(ctx context.Context, teamBizKey int64, itemID uint) (*model.SubItem, error) {
+func (s *subItemService) Get(ctx context.Context, _ int64, itemID uint) (*model.SubItem, error) {
 	item, err := s.subItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
@@ -248,7 +248,7 @@ func (s *subItemService) List(ctx context.Context, teamBizKey int64, mainItemBiz
 	return s.subItemRepo.List(ctx, teamBizKey, mid, filter, page)
 }
 
-func (s *subItemService) Assign(ctx context.Context, teamBizKey int64, pmBizKey int64, itemID uint, assigneeBizKey int64) error {
+func (s *subItemService) Assign(ctx context.Context, teamBizKey, _ int64, itemID uint, assigneeBizKey int64) error {
 	item, err := s.subItemRepo.FindByID(ctx, itemID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)

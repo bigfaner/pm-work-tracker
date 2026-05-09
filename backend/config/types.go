@@ -1,3 +1,4 @@
+//nolint:tagliatelle // yaml tags use snake_case for compatibility with existing config files
 package config
 
 import (

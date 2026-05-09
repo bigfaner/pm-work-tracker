@@ -16,6 +16,7 @@ type StatusHistory struct {
 	CreateTime time.Time `gorm:"not null;default:CURRENT_TIMESTAMP" json:"createTime"`
 }
 
+// TableName returns the database table name for StatusHistory.
 func (StatusHistory) TableName() string {
 	return "pmw_status_histories"
 }

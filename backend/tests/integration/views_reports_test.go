@@ -585,22 +585,3 @@ func TestReports_WeeklyPreview_MemberWithPermission_Returns200(t *testing.T) {
 		"", memberToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
-
-// ========== Helper: get sub-item bizKey by title ==========
-
-// getSubBizKey finds a sub-item's bizKey string by title directly from the database.
-func getSubBizKey(t *testing.T, db *gorm.DB, title string) string {
-	t.Helper()
-	var sub model.SubItem
-	require.NoError(t, db.Where("title = ?", title).First(&sub).Error)
-	return fmt.Sprintf("%d", sub.BizKey)
-}
-
-// mustParseInt64 parses a string to int64, panicking on failure.
-func mustParseInt64(s string) int64 {
-	v, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		panic(fmt.Sprintf("mustParseInt64(%q): %v", s, err))
-	}
-	return v
-}

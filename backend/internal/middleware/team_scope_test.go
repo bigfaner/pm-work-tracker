@@ -13,6 +13,7 @@ import (
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/permissions"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -128,6 +129,14 @@ func (m *mockTeamRepo) FindTeamsByUserBizKeys(ctx context.Context, userBizKeys [
 	return args.Get(0).(map[int64][]dto.TeamSummary), args.Error(1)
 }
 
+func (m *mockTeamRepo) ListTeamBizKeys(ctx context.Context) ([]int64, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]int64), args.Error(1)
+}
+
 // compile-time check that mockTeamRepo satisfies TeamRepo
 var _ repository.TeamRepo = (*mockTeamRepo)(nil)
 
@@ -234,7 +243,7 @@ func setupTeamScopeRouter(teamRepo repository.TeamRepo, roleRepo repository.Role
 		isAdmin := c.Query("isSuperAdmin")
 		if uid != "" {
 			var id uint
-			fmt.Sscanf(uid, "%d", &id)
+			_, _ = fmt.Sscanf(uid, "%d", &id)
 			c.Set("userID", id)
 			c.Set("userBizKey", int64(id))
 		}
@@ -318,7 +327,8 @@ func TestTeamScopeMiddleware_SuperAdmin_BypassesMembership(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, int64(99), cc.teamBizKey)
-	assert.Equal(t, []string{}, cc.permCodes)
+	assert.Equal(t, permissions.AllCodeStrings(), cc.permCodes)
+	assert.Len(t, cc.permCodes, permissions.TotalCodeCount())
 	teamRepo.AssertNotCalled(t, "FindMember", mock.Anything, mock.Anything, mock.Anything)
 }
 

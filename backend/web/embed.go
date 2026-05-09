@@ -1,3 +1,4 @@
+// Package web embeds and serves the compiled frontend assets.
 package web
 
 import (
@@ -6,6 +7,8 @@ import (
 	"io/fs"
 )
 
+// FS is the embedded frontend assets from the dist directory.
+//
 //go:embed all:dist
 var FS embed.FS
 

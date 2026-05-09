@@ -20,7 +20,7 @@ func ServeStatic(fsys fs.FS) gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 			return
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		c.Header("Cache-Control", "max-age=31536000, immutable")
 		c.Header("X-Content-Type-Options", "nosniff")
@@ -48,7 +48,7 @@ func ServeSPA(fsys fs.FS) gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 			return
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		data, err := io.ReadAll(f)
 		if err != nil {

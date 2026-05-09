@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"pm-work-tracker/backend/internal/dto"
-	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 )
 
@@ -22,10 +21,6 @@ import (
 // ---------------------------------------------------------------------------
 
 type mockAdminService struct {
-	listUsersResult struct {
-		users []*model.User
-		err   error
-	}
 	listAllTeamsResult struct {
 		teams []*dto.AdminTeamDTO
 		err   error
@@ -147,9 +142,9 @@ func depsWithAdminSvc(t *testing.T, svc *mockAdminService) *Dependencies {
 }
 
 // signSuperAdminToken creates a JWT token for the superadmin user.
-func signSuperAdminToken(t *testing.T, userID uint) string {
+func signSuperAdminToken(t *testing.T) string {
 	t.Helper()
-	return signTestToken(t, userID, "admin")
+	return signTestToken(t, 1, "admin")
 }
 
 // ---------------------------------------------------------------------------
@@ -159,7 +154,7 @@ func signSuperAdminToken(t *testing.T, userID uint) string {
 func TestAdminListUsers_Success(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.listUsersFilteredResult.items = []*dto.AdminUserDTO{
-		{BizKey: "1", Username: "alice", DisplayName: "Alice", IsSuperAdmin: true, Status: "enabled", Teams: []dto.TeamSummary{}},
+		{BizKey: "1", Username: "alice", DisplayName: "Alice", Status: "enabled", Teams: []dto.TeamSummary{}},
 		{BizKey: "2", Username: "bob", DisplayName: "Bob", Status: "enabled", Teams: []dto.TeamSummary{}},
 	}
 	svc.listUsersFilteredResult.total = 2
@@ -167,7 +162,7 @@ func TestAdminListUsers_Success(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -191,7 +186,7 @@ func TestAdminListUsers_Success(t *testing.T) {
 	assert.Equal(t, "1", user0["bizKey"])
 	assert.Equal(t, "alice", user0["username"])
 	assert.Equal(t, "Alice", user0["displayName"])
-	assert.Equal(t, true, user0["isSuperAdmin"])
+	assert.Nil(t, user0["isSuperAdmin"])
 
 	assert.Equal(t, float64(2), data["total"])
 	assert.Equal(t, float64(1), data["page"])
@@ -208,7 +203,7 @@ func TestAdminListUsers_WithSearch(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users?search=alice", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -226,7 +221,7 @@ func TestAdminListUsers_DefaultPageSize(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -244,7 +239,7 @@ func TestAdminListUsers_ServiceError(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -261,7 +256,7 @@ func TestAdminListUsers_CustomPagination(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users?page=3&pageSize=10", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -291,7 +286,7 @@ func TestAdminCreateUser_Success(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"username":"newuser","displayName":"New User","email":"new@test.com","teamKey":"10"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/users", strings.NewReader(body))
@@ -323,7 +318,7 @@ func TestAdminCreateUser_DuplicateUsername(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"username":"existing","displayName":"Existing"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/users", strings.NewReader(body))
@@ -345,7 +340,7 @@ func TestAdminCreateUser_ValidationFail(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/users", strings.NewReader(body))
@@ -363,7 +358,7 @@ func TestAdminCreateUser_TeamNotFound(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"username":"newuser","displayName":"New User","teamKey":"999"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/users", strings.NewReader(body))
@@ -386,7 +381,7 @@ func TestAdminCreateUser_InternalError(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"username":"newuser","displayName":"New User"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/users", strings.NewReader(body))
@@ -404,19 +399,18 @@ func TestAdminCreateUser_InternalError(t *testing.T) {
 func TestAdminGetUser_Success(t *testing.T) {
 	svc := &mockAdminService{}
 	svc.getUserResult.user = &dto.AdminUserDTO{
-		BizKey:       "5",
-		Username:     "bob",
-		DisplayName:  "Bob",
-		Email:        "bob@test.com",
-		Status:       "enabled",
-		IsSuperAdmin: false,
-		Teams:        []dto.TeamSummary{{BizKey: "1", Name: "Team A"}},
+		BizKey:      "5",
+		Username:    "bob",
+		DisplayName: "Bob",
+		Email:       "bob@test.com",
+		Status:      "enabled",
+		Teams:       []dto.TeamSummary{{BizKey: "1", Name: "Team A"}},
 	}
 
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users/5", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -442,7 +436,7 @@ func TestAdminGetUser_NotFound(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users/999", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -462,7 +456,7 @@ func TestAdminGetUser_InvalidId(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users/abc", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -478,7 +472,7 @@ func TestAdminGetUser_ServiceError(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users/5", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -505,7 +499,7 @@ func TestAdminUpdateUser_Success(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"displayName":"Robert","email":"robert@test.com"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5", strings.NewReader(body))
@@ -526,7 +520,7 @@ func TestAdminUpdateUser_NotFound(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"displayName":"Robert"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/999", strings.NewReader(body))
@@ -543,7 +537,7 @@ func TestAdminUpdateUser_ValidationFail(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"displayName":""}` // fails min=1
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5", strings.NewReader(body))
@@ -560,7 +554,7 @@ func TestAdminUpdateUser_InvalidId(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"displayName":"Robert"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/abc", strings.NewReader(body))
@@ -578,7 +572,7 @@ func TestAdminUpdateUser_ServiceError(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"displayName":"Robert"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5", strings.NewReader(body))
@@ -602,7 +596,7 @@ func TestAdminListTeams_OutOfBoundsPage(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/teams?page=99&pageSize=10", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -624,7 +618,7 @@ func TestAdminToggleUserStatus_MissingBody(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/status", nil)
 	req.Header.Set("Content-Type", "application/json")
@@ -646,7 +640,7 @@ func TestAdminToggleUserStatus_DisableSuccess(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"status":"disabled"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/status", strings.NewReader(body))
@@ -667,7 +661,7 @@ func TestAdminToggleUserStatus_CannotDisableSelf(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"status":"disabled"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/1/status", strings.NewReader(body))
@@ -689,7 +683,7 @@ func TestAdminToggleUserStatus_InvalidStatus(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"status":"suspended"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/status", strings.NewReader(body))
@@ -707,7 +701,7 @@ func TestAdminToggleUserStatus_UserNotFound(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"status":"disabled"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/999/status", strings.NewReader(body))
@@ -727,7 +721,7 @@ func TestAdminToggleUserStatus_EnableSuccess(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"status":"enabled"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/status", strings.NewReader(body))
@@ -745,7 +739,7 @@ func TestAdminToggleUserStatus_InvalidId(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"status":"disabled"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/abc/status", strings.NewReader(body))
@@ -763,7 +757,7 @@ func TestAdminToggleUserStatus_ServiceError(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"status":"disabled"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/status", strings.NewReader(body))
@@ -788,7 +782,7 @@ func TestAdminListTeams_Success(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/teams", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -833,7 +827,7 @@ func TestAdminListTeams_Pagination(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/teams?page=2&pageSize=1", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -863,7 +857,7 @@ func TestAdminListTeams_Empty(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/teams", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -888,7 +882,7 @@ func TestAdminListTeams_ServiceError(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/teams", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -912,7 +906,7 @@ func TestAdminResetPassword_Success(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"newPassword":"newPass123"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/password", strings.NewReader(body))
@@ -942,7 +936,7 @@ func TestAdminResetPassword_UserNotFound(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"newPassword":"newPass123"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/999/password", strings.NewReader(body))
@@ -964,7 +958,7 @@ func TestAdminResetPassword_InvalidInput(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"newPassword":"short"}` // fails min=8
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/password", strings.NewReader(body))
@@ -981,7 +975,7 @@ func TestAdminResetPassword_InvalidUserId(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"newPassword":"newPass123"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/abc/password", strings.NewReader(body))
@@ -999,7 +993,7 @@ func TestAdminResetPassword_ServiceError(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	body := `{"newPassword":"newPass123"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/users/5/password", strings.NewReader(body))
@@ -1020,7 +1014,7 @@ func TestAdminDeleteUser_Success(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/admin/users/5", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -1043,7 +1037,7 @@ func TestAdminDeleteUser_UserNotFound(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/admin/users/999", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -1064,7 +1058,7 @@ func TestAdminDeleteUser_SelfDelete(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/admin/users/1", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -1084,7 +1078,7 @@ func TestAdminDeleteUser_InvalidUserId(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/admin/users/abc", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -1100,7 +1094,7 @@ func TestAdminDeleteUser_ServiceError(t *testing.T) {
 	deps := depsWithAdminSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
-	token := signSuperAdminToken(t, 1)
+	token := signSuperAdminToken(t)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/admin/users/5", nil)
 	req.Header.Set("Authorization", "Bearer "+token)

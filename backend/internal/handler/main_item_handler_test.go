@@ -217,9 +217,9 @@ func depsWithMemberRoleMainItem(t *testing.T, svc *mockMainItemService, userRepo
 }
 
 // helper to create a MainItem model for tests.
-func testMainItem(id uint, teamID uint) *model.MainItem {
+func testMainItem(id uint) *model.MainItem {
 	return &model.MainItem{
-		TeamKey:    int64(teamID),
+		TeamKey:    10,
 		Code:       fmt.Sprintf("TEST-%05d", id),
 		Title:      "Test Item",
 		Priority:   "P1",
@@ -233,7 +233,7 @@ func testMainItem(id uint, teamID uint) *model.MainItem {
 
 func TestCreateMainItem_Success(t *testing.T) {
 	svc := &mockMainItemService{}
-	item := testMainItem(1, 10)
+	item := testMainItem(1)
 	item.ID = 1
 	item.ProposerKey = 5
 	svc.createResult.item = item
@@ -269,7 +269,7 @@ func TestCreateMainItem_Success(t *testing.T) {
 
 func TestCreateMainItem_WithOptionalFields(t *testing.T) {
 	svc := &mockMainItemService{}
-	item := testMainItem(1, 10)
+	item := testMainItem(1)
 	item.ID = 1
 	svc.createResult.item = item
 
@@ -363,7 +363,7 @@ func TestCreateMainItem_ServiceError(t *testing.T) {
 func TestListMainItems_Success(t *testing.T) {
 	svc := &mockMainItemService{}
 	svc.listResult.page = &dto.PageResult[model.MainItem]{
-		Items: []model.MainItem{*testMainItem(1, 10), *testMainItem(2, 10)},
+		Items: []model.MainItem{*testMainItem(1), *testMainItem(2)},
 		Total: 2,
 		Page:  1,
 		Size:  20,
@@ -443,7 +443,7 @@ func TestListMainItems_ServiceError(t *testing.T) {
 
 func TestGetMainItem_Success(t *testing.T) {
 	svc := &mockMainItemService{}
-	item := testMainItem(1, 10)
+	item := testMainItem(1)
 	item.ID = 1
 	item.ItemStatus = "progressing"
 	item.Completion = 45.5
@@ -535,7 +535,7 @@ func TestGetMainItem_NotFound(t *testing.T) {
 
 func TestUpdateMainItem_Success(t *testing.T) {
 	svc := &mockMainItemService{}
-	updatedItem := testMainItem(1, 10)
+	updatedItem := testMainItem(1)
 	updatedItem.ID = 1
 	updatedItem.Title = "Updated Title"
 	updatedItem.Priority = "P2"
@@ -606,7 +606,7 @@ func TestUpdateMainItem_InvalidItemID(t *testing.T) {
 
 func TestUpdateMainItem_ItemNotFound(t *testing.T) {
 	svc := &mockMainItemService{}
-	item := testMainItem(1, 10)
+	item := testMainItem(1)
 	item.ID = 1
 	svc.getResult.item = item
 	svc.updateResult.err = apperrors.ErrItemNotFound
@@ -634,7 +634,7 @@ func TestUpdateMainItem_ItemNotFound(t *testing.T) {
 
 func TestArchiveMainItem_Success(t *testing.T) {
 	svc := &mockMainItemService{}
-	item := testMainItem(1, 10)
+	item := testMainItem(1)
 	item.ID = 1
 	svc.getResult.item = item
 
@@ -676,7 +676,7 @@ func TestArchiveMainItem_RequiresPM(t *testing.T) {
 
 func TestArchiveMainItem_ArchiveNotAllowed(t *testing.T) {
 	svc := &mockMainItemService{}
-	item := testMainItem(1, 10)
+	item := testMainItem(1)
 	item.ID = 1
 	svc.getResult.item = item
 	svc.archiveResult.err = apperrors.ErrArchiveNotAllowed
@@ -745,15 +745,16 @@ func TestArchiveMainItem_ItemNotFound(t *testing.T) {
 
 func TestCreateMainItem_SuperAdminBypass(t *testing.T) {
 	svc := &mockMainItemService{}
-	item := testMainItem(1, 10)
+	item := testMainItem(1)
 	item.ID = 1
 	svc.createResult.item = item
 
 	userRepo := &mockUserRepoForHandler{}
 	subItemRepo := &mockSubItemRepoForHandler{}
 
-	// Use member-role team, but superadmin token
-	deps := depsWithMemberRoleMainItem(t, svc, userRepo, subItemRepo)
+	// Use PM-role team with superadmin token
+	// SuperAdmin now passes through permCodes check (TeamScopeMiddleware injects all codes)
+	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
@@ -780,7 +781,7 @@ func TestCreateMainItem_SuperAdminBypass(t *testing.T) {
 
 func TestChangeStatusMainItem_Success(t *testing.T) {
 	svc := &mockMainItemService{}
-	updatedItem := testMainItem(1, 10)
+	updatedItem := testMainItem(1)
 	updatedItem.ID = 1
 	updatedItem.ItemStatus = "progressing"
 	svc.getResult.item = updatedItem
@@ -835,7 +836,7 @@ func TestChangeStatusMainItem_InvalidBody(t *testing.T) {
 
 func TestChangeStatusMainItem_InvalidTransition(t *testing.T) {
 	svc := &mockMainItemService{}
-	item := testMainItem(1, 10)
+	item := testMainItem(1)
 	item.ID = 1
 	svc.getResult.item = item
 	svc.changeStatusResult.err = apperrors.ErrInvalidStatus
@@ -906,7 +907,7 @@ func TestChangeStatusMainItem_InvalidItemID(t *testing.T) {
 
 func TestAvailableTransitionsMainItem_Success(t *testing.T) {
 	svc := &mockMainItemService{}
-	item := testMainItem(1, 10)
+	item := testMainItem(1)
 	item.ID = 1
 	svc.getResult.item = item
 	svc.availableTransitionsResult.transitions = []string{"progressing", "closed"}

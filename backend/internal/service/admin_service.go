@@ -1,3 +1,4 @@
+// Package service implements business logic for all domain services.
 package service
 
 import (
@@ -146,7 +147,7 @@ func (s *adminService) CreateUser(ctx context.Context, req *dto.CreateUserReq) (
 			UserKey:   user.BizKey,
 			JoinedAt:  time.Now(),
 		}
-		if err := s.teamRepo.AddMember(ctx, member); err != nil {
+		if err := s.teamRepo.AddMember(ctx, member); err != nil { //nolint:govet // intentional shadow: inner-block err assignment
 			return nil, err
 		}
 		teams = []dto.TeamSummary{{BizKey: pkg.FormatID(team.BizKey), Name: "", Role: "member"}}
@@ -181,14 +182,14 @@ func (s *adminService) UpdateUser(ctx context.Context, userBizKey int64, req *dt
 		user.Email = *req.Email
 	}
 
-	if err := s.userRepo.Update(ctx, user); err != nil {
+	if err := s.userRepo.Update(ctx, user); err != nil { //nolint:govet // intentional shadow: inner-block err assignment
 		return nil, err
 	}
 
 	// Handle team assignment
 	if req.TeamKey != nil {
 		// Remove from all current teams, add to new one
-		teamsMap, err := s.teamRepo.FindTeamsByUserBizKeys(ctx, []int64{user.BizKey})
+		teamsMap, err := s.teamRepo.FindTeamsByUserBizKeys(ctx, []int64{user.BizKey}) //nolint:govet // intentional shadow: inner-block err assignment
 		if err != nil {
 			return nil, err
 		}
@@ -237,7 +238,7 @@ func (s *adminService) ToggleUserStatus(ctx context.Context, callerID uint, targ
 	}
 
 	user.UserStatus = status
-	if err := s.userRepo.Update(ctx, user); err != nil {
+	if err := s.userRepo.Update(ctx, user); err != nil { //nolint:govet // intentional shadow: inner-block err assignment
 		return nil, err
 	}
 
@@ -295,12 +296,11 @@ func modelToAdminUserDTO(u *model.User, teams []dto.TeamSummary) *dto.AdminUserD
 	}
 	base := vo.NewUserVO(u)
 	return &dto.AdminUserDTO{
-		BizKey:       base.BizKey,
-		Username:     base.Username,
-		DisplayName:  base.DisplayName,
-		Email:        base.Email,
-		Status:       base.Status,
-		IsSuperAdmin: base.IsSuperAdmin,
-		Teams:        teams,
+		BizKey:      base.BizKey,
+		Username:    base.Username,
+		DisplayName: base.DisplayName,
+		Email:       base.Email,
+		Status:      base.Status,
+		Teams:       teams,
 	}
 }

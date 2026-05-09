@@ -33,26 +33,22 @@ test.describe('团队成员权限测试', () => {
   });
 
   test('成员可以访问事项清单页面', async ({ page }) => {
-    await loginAsUser(page, memberToken, { isSuperAdmin: false });
-    await page.goto(`${BASE}/items`);
+    await loginAsUser(page, memberToken, { isSuperAdmin: false }, '/items');
     await expect(page.locator('[data-testid="item-view-page"]')).toBeVisible({ timeout: 10000 });
   });
 
   test('成员可以访问待办事项页面', async ({ page }) => {
-    await loginAsUser(page, memberToken, { isSuperAdmin: false });
-    await page.goto(`${BASE}/item-pool`);
+    await loginAsUser(page, memberToken, { isSuperAdmin: false }, '/item-pool');
     await expect(page.locator('[data-testid="item-pool-page"]')).toBeVisible({ timeout: 10000 });
   });
 
   test('成员可以访问周视图页面', async ({ page }) => {
-    await loginAsUser(page, memberToken, { isSuperAdmin: false });
-    await page.goto(`${BASE}/weekly`);
+    await loginAsUser(page, memberToken, { isSuperAdmin: false }, '/weekly');
     await expect(page.locator('[data-testid="weekly-view-page"]')).toBeVisible({ timeout: 10000 });
   });
 
   test('成员可以访问团队管理页面', async ({ page }) => {
-    await loginAsUser(page, memberToken, { isSuperAdmin: false });
-    await page.goto(`${BASE}/teams/${teamId}`);
+    await loginAsUser(page, memberToken, { isSuperAdmin: false }, `/teams/${teamId}`);
     await expect(page.locator('[data-testid="team-detail-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('text=团队名称')).toBeVisible({ timeout: 5000 });
 

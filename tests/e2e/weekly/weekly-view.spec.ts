@@ -152,8 +152,7 @@ test.describe.serial('每周进展 - 完整E2E交互流程测试', () => {
   });
 
   test.beforeEach(async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/weekly`);
+    await login(page, undefined, '/weekly');
     await page.waitForLoadState('networkidle').catch(() => {});
   });
 

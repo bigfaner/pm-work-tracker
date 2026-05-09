@@ -2,6 +2,7 @@ package model
 
 import "time"
 
+// MainItem represents a top-level work item within a team.
 type MainItem struct {
 	BaseModel
 	TeamKey         int64      `gorm:"not null;uniqueIndex:uk_main_items_team_code_deleted" json:"teamKey"`
@@ -22,6 +23,7 @@ type MainItem struct {
 	SubItemSeq      uint       `gorm:"not null;default:0" json:"subItemSeq"`
 }
 
+// TableName returns the database table name for MainItem.
 func (MainItem) TableName() string {
 	return "pmw_main_items"
 }

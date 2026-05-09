@@ -24,7 +24,7 @@ func TestInitDB_SQLiteWithPoolSettings(t *testing.T) {
 
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	assert.NoError(t, sqlDB.Ping())
 }
@@ -45,7 +45,7 @@ func TestInitDB_SQLiteFileWithPoolSettings(t *testing.T) {
 
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	sqlDB.Close()
+	_ = sqlDB.Close()
 }
 
 func TestInitDB_InvalidDriver(t *testing.T) {
@@ -92,5 +92,5 @@ func TestInitDB_EmptyPathDefaultsToDataDevDB(t *testing.T) {
 
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
-	sqlDB.Close()
+	_ = sqlDB.Close()
 }

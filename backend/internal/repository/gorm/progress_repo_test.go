@@ -26,7 +26,7 @@ func setupProgressTestDB(t *testing.T) *gormlib.DB {
 	return db
 }
 
-func seedProgressData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team, *model.MainItem, *model.SubItem) {
+func seedProgressData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team, *model.SubItem) {
 	t.Helper()
 	u := model.User{Username: "pr_pm", DisplayName: "PR PM", PasswordHash: "h"}
 	require.NoError(t, db.Create(&u).Error)
@@ -40,7 +40,7 @@ func seedProgressData(t *testing.T, db *gormlib.DB) (*model.User, *model.Team, *
 	require.NoError(t, db.Create(&si).Error)
 	si.BizKey = snowflake.Generate()
 	require.NoError(t, db.Save(&si).Error)
-	return &u, &team, &mi, &si
+	return &u, &team, &si
 }
 
 func createProgressRecord(t *testing.T, db *gormlib.DB, subItemBizKey int64, teamBizKey int64, authorID uint, completion float64, achievement string, createdAt time.Time) *model.ProgressRecord {
@@ -64,7 +64,7 @@ func TestProgressRepo_Create(t *testing.T) {
 	repo := gormrepo.NewGormProgressRepo(db)
 	ctx := context.Background()
 
-	u, team, _, si := seedProgressData(t, db)
+	u, team, si := seedProgressData(t, db)
 	record := &model.ProgressRecord{
 		SubItemKey:  si.BizKey,
 		TeamKey:     int64(team.ID),
@@ -84,7 +84,7 @@ func TestProgressRepo_FindByID(t *testing.T) {
 	repo := gormrepo.NewGormProgressRepo(db)
 	ctx := context.Background()
 
-	u, team, _, si := seedProgressData(t, db)
+	u, team, si := seedProgressData(t, db)
 	record := createProgressRecord(t, db, si.BizKey, team.BizKey, u.ID, 50.0, "Half done", time.Now())
 
 	t.Run("found", func(t *testing.T) {
@@ -108,7 +108,7 @@ func TestProgressRepo_ListBySubItem(t *testing.T) {
 	repo := gormrepo.NewGormProgressRepo(db)
 	ctx := context.Background()
 
-	u, team, _, si := seedProgressData(t, db)
+	u, team, si := seedProgressData(t, db)
 
 	base := time.Now()
 	createProgressRecord(t, db, si.BizKey, team.BizKey, u.ID, 20.0, "First", base.Add(-2*time.Hour))
@@ -151,7 +151,7 @@ func TestProgressRepo_LatestBySubItem(t *testing.T) {
 	repo := gormrepo.NewGormProgressRepo(db)
 	ctx := context.Background()
 
-	u, team, _, si := seedProgressData(t, db)
+	u, team, si := seedProgressData(t, db)
 
 	t.Run("nil_when_none", func(t *testing.T) {
 		found, err := repo.LatestBySubItem(ctx, si.BizKey)
@@ -179,7 +179,7 @@ func TestProgressRepo_UpdateCompletion(t *testing.T) {
 	repo := gormrepo.NewGormProgressRepo(db)
 	ctx := context.Background()
 
-	u, team, _, si := seedProgressData(t, db)
+	u, team, si := seedProgressData(t, db)
 	record := createProgressRecord(t, db, si.BizKey, team.BizKey, u.ID, 50.0, "Original", time.Now())
 
 	require.NoError(t, repo.UpdateCompletion(ctx, record.ID, 75.0))

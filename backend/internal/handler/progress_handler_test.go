@@ -215,10 +215,10 @@ func depsWithProgressSvcAndUser(t *testing.T, svc *mockProgressService, userRepo
 }
 
 // testProgressRecord creates a ProgressRecord model for tests.
-func testProgressRecord(id uint, subItemID uint, authorID uint) *model.ProgressRecord {
+func testProgressRecord(id uint, authorID uint) *model.ProgressRecord {
 	return &model.ProgressRecord{
 		ID:          id,
-		SubItemKey:  int64(subItemID),
+		SubItemKey:  5,
 		TeamKey:     10,
 		AuthorKey:   int64(authorID),
 		Completion:  60.0,
@@ -288,7 +288,7 @@ var _ repository.UserRepo = (*trackingUserRepo)(nil)
 
 func TestAppendProgress_Success(t *testing.T) {
 	svc := &mockProgressService{}
-	record := testProgressRecord(1, 5, 3)
+	record := testProgressRecord(1, 3)
 	svc.appendResult.record = record
 
 	deps := depsWithProgressSvc(t, svc)
@@ -321,7 +321,7 @@ func TestAppendProgress_Success(t *testing.T) {
 func TestAppendProgress_MemberCanAppend(t *testing.T) {
 	// Any team member can append progress
 	svc := &mockProgressService{}
-	record := testProgressRecord(1, 5, 3)
+	record := testProgressRecord(1, 3)
 	svc.appendResult.record = record
 
 	deps := depsWithProgressSvcMemberRole(t, svc)
@@ -395,7 +395,7 @@ func TestAppendProgress_CompletionOutOfRange_Above100(t *testing.T) {
 
 func TestAppendProgress_CompletionBoundary_0(t *testing.T) {
 	svc := &mockProgressService{}
-	record := testProgressRecord(1, 5, 3)
+	record := testProgressRecord(1, 3)
 	record.Completion = 0
 	svc.appendResult.record = record
 
@@ -416,7 +416,7 @@ func TestAppendProgress_CompletionBoundary_0(t *testing.T) {
 
 func TestAppendProgress_CompletionBoundary_100(t *testing.T) {
 	svc := &mockProgressService{}
-	record := testProgressRecord(1, 5, 3)
+	record := testProgressRecord(1, 3)
 	record.Completion = 100
 	svc.appendResult.record = record
 
@@ -496,7 +496,7 @@ func TestAppendProgress_InvalidSubID(t *testing.T) {
 
 func TestAppendProgress_IncludesAuthorName(t *testing.T) {
 	svc := &mockProgressService{}
-	record := testProgressRecord(1, 5, 3)
+	record := testProgressRecord(1, 3)
 	svc.appendResult.record = record
 
 	userRepo := &mockUserRepoForHandler{
@@ -531,8 +531,8 @@ func TestAppendProgress_IncludesAuthorName(t *testing.T) {
 func TestListProgress_Success(t *testing.T) {
 	svc := &mockProgressService{}
 	svc.listResult.records = []model.ProgressRecord{
-		*testProgressRecord(1, 5, 3),
-		*testProgressRecord(2, 5, 3),
+		*testProgressRecord(1, 3),
+		*testProgressRecord(2, 3),
 	}
 	svc.listResult.records[0].Completion = 30
 	svc.listResult.records[1].Completion = 60
@@ -618,8 +618,8 @@ func TestListProgress_ServiceError(t *testing.T) {
 
 func TestListProgress_IncludesAuthorNames(t *testing.T) {
 	svc := &mockProgressService{}
-	record1 := testProgressRecord(1, 5, 3)
-	record2 := testProgressRecord(2, 5, 7)
+	record1 := testProgressRecord(1, 3)
+	record2 := testProgressRecord(2, 7)
 	svc.listResult.records = []model.ProgressRecord{*record1, *record2}
 
 	userRepo := &mockUserRepoForHandler{
@@ -654,9 +654,9 @@ func TestListProgress_UsesBatchLookup(t *testing.T) {
 	// Verify progressRecordsToVOs uses FindByIDs (batch) not FindByID (N+1)
 	svc := &mockProgressService{}
 	svc.listResult.records = []model.ProgressRecord{
-		*testProgressRecord(1, 5, 3),
-		*testProgressRecord(2, 5, 7),
-		*testProgressRecord(3, 5, 3),
+		*testProgressRecord(1, 3),
+		*testProgressRecord(2, 7),
+		*testProgressRecord(3, 3),
 	}
 
 	trackingRepo := &trackingUserRepo{
@@ -827,8 +827,9 @@ func TestCorrectCompletion_RecordNotFound(t *testing.T) {
 func TestCorrectCompletion_SuperAdminBypass(t *testing.T) {
 	svc := &mockProgressService{}
 
-	// Use member-role team, but superadmin token
-	deps := depsWithProgressSvcMemberRole(t, svc)
+	// Use PM-role team with superadmin token
+	// SuperAdmin now passes through permCodes check (TeamScopeMiddleware injects all codes)
+	deps := depsWithProgressSvc(t, svc)
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 1, "admin")
@@ -873,7 +874,7 @@ func TestAppendProgress_ResponseShapeMatchesDataContract(t *testing.T) {
 	r := SetupRouter(deps, nil)
 
 	token := signTestToken(t, 3, "testuser")
-	body := fmt.Sprintf(`{"completion":60,"achievement":"completed SDK init","blocker":"certificate pending","lesson":"sandbox vs prod config diff"}`)
+	body := `{"completion":60,"achievement":"completed SDK init","blocker":"certificate pending","lesson":"sandbox vs prod config diff"}`
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/teams/1/sub-items/10/progress", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

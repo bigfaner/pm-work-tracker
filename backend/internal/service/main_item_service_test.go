@@ -789,7 +789,7 @@ func TestAvailableTransitions_Success(t *testing.T) {
 				BaseModel:   model.BaseModel{ID: 1},
 				TeamKey:     1,
 				ItemStatus:  tt.status,
-				ProposerKey: int64(tt.proposerID),
+				ProposerKey: tt.proposerID,
 			}
 			mainRepo := &mockMainItemRepo{item: item}
 			svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)

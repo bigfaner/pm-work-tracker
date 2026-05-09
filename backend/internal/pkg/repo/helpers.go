@@ -1,3 +1,4 @@
+// Package repo provides generic repository helper functions.
 package repo
 
 import (
@@ -114,7 +115,7 @@ func UpdateFields[T any](db *gormlib.DB, ctx context.Context, item *T, teamKey i
 	}
 
 	stmt := &gormlib.Statement{DB: db}
-	stmt.Parse(item)
+	_ = stmt.Parse(item)
 	tableName := stmt.Table
 	allowed, ok := acceptedFields[tableName]
 	if !ok {

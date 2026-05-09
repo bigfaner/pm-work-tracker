@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// InitDB opens a database connection using the provided configuration.
 func InitDB(cfg *DatabaseConfig) (*gorm.DB, error) {
 	var dialector gorm.Dialector
 
@@ -20,7 +21,7 @@ func InitDB(cfg *DatabaseConfig) (*gorm.DB, error) {
 			path = "./data/dev.db"
 		}
 		if dir := filepath.Dir(path); dir != "." {
-			if err := os.MkdirAll(dir, 0755); err != nil {
+			if err := os.MkdirAll(dir, 0o755); err != nil {
 				return nil, fmt.Errorf("create database directory: %w", err)
 			}
 		}
