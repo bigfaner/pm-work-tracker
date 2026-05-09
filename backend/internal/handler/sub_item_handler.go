@@ -44,6 +44,8 @@ func hasPermCode(c *gin.Context, code string) bool {
 }
 
 // Create handles POST /api/v1/teams/:teamId/main-items/:itemId/sub-items
+//
+//nolint:dupl // similar request handling shape as MainItem.Create but different business logic
 func (h *SubItemHandler) Create(c *gin.Context) {
 	teamBizKey := middleware.GetTeamBizKey(c)
 	callerBizKey := middleware.GetUserBizKey(c)

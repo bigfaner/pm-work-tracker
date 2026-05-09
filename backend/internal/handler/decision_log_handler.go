@@ -142,6 +142,8 @@ func buildDecisionLogVO(log *model.DecisionLog, userRepo repository.UserRepo, c 
 }
 
 // buildDecisionLogVOs converts a slice of DecisionLog models to VOs using batch user lookup.
+//
+//nolint:dupl // same batch-lookup shape as buildProgressRecordVOs but different model/VO types
 func buildDecisionLogVOs(logs []model.DecisionLog, userRepo repository.UserRepo, c *gin.Context) []vo.DecisionLogVO {
 	if len(logs) == 0 {
 		return []vo.DecisionLogVO{}

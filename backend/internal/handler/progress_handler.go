@@ -158,6 +158,8 @@ func (h *ProgressHandler) CorrectCompletion(c *gin.Context) {
 
 // buildProgressRecordVOs converts a slice of ProgressRecord to ProgressRecordVO using batch lookups (fixes N+1).
 // Single-item callers pass a 1-element slice; the batch path has no N+1 overhead.
+//
+//nolint:dupl // same batch-lookup shape as buildDecisionLogVOs but different model/VO types
 func buildProgressRecordVOs(records []model.ProgressRecord, userRepo repository.UserRepo, c *gin.Context) []vo.ProgressRecordVO {
 	if len(records) == 0 {
 		return []vo.ProgressRecordVO{}

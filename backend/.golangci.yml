@@ -27,6 +27,7 @@ linters:
           - govet
           - revive
           - gocritic
+          - dupl
 
   settings:
     dupl:

@@ -32,6 +32,8 @@ func NewTeamHandler(teamSvc service.TeamService, userRepo repository.UserRepo) *
 
 // Create handles POST /api/v1/teams
 // Permission check (team:create) is handled by RequirePermission middleware.
+//
+//nolint:dupl // similar request handling shape as Update but with different service call
 func (h *TeamHandler) Create(c *gin.Context) {
 	userBizKey := middleware.GetUserBizKey(c)
 
@@ -84,6 +86,8 @@ func (h *TeamHandler) Get(c *gin.Context) {
 }
 
 // Update handles PUT /api/v1/teams/:teamId
+//
+//nolint:dupl // similar request handling shape as Create but with different service call
 func (h *TeamHandler) Update(c *gin.Context) {
 	teamBizKey := middleware.GetTeamBizKey(c)
 
