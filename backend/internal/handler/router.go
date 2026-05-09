@@ -33,7 +33,6 @@ type Dependencies struct {
 	Admin       *AdminHandler
 	Role        *RoleHandler
 	Permission  *PermissionHandler
-	DecisionLog *DecisionLogHandler
 }
 
 // perm is a shorthand for creating a RequirePermission middleware with the deps' RoleRepo.
@@ -133,13 +132,6 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 	teamsGroup.POST("/sub-items/:subId/progress", deps.perm("progress:create"), deps.Progress.Append)
 	teamsGroup.GET("/sub-items/:subId/progress", deps.perm("progress:read"), deps.Progress.List)
 	teamsGroup.PATCH("/progress/:recordId/completion", deps.perm("progress:update"), deps.Progress.CorrectCompletion)
-
-	// Decision logs (under main-items, inherit auth + team-scope middleware)
-	teamsGroup.GET("/main-items/:itemId/decision-logs", deps.DecisionLog.List)
-	teamsGroup.POST("/main-items/:itemId/decision-logs", deps.perm("main_item:update"), deps.DecisionLog.Create)
-	teamsGroup.PUT("/main-items/:itemId/decision-logs/:logId", deps.perm("main_item:update"), deps.DecisionLog.Update)
-	teamsGroup.PATCH("/main-items/:itemId/decision-logs/:logId/publish", deps.perm("main_item:update"), deps.DecisionLog.Publish)
-
 	// Item pool
 	teamsGroup.POST("/item-pool", deps.perm("item_pool:submit"), deps.ItemPool.Submit)
 	teamsGroup.GET("/item-pool", deps.perm("sub_item:read"), deps.ItemPool.List)

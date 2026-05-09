@@ -94,7 +94,6 @@ func run(configPath string, devMode bool) error {
 	subItemRepo := gormrepo.NewGormSubItemRepo(db, dialect)
 	progressRepo := gormrepo.NewGormProgressRepo(db)
 	itemPoolRepo := gormrepo.NewGormItemPoolRepo(db)
-	decisionLogRepo := gormrepo.NewGormDecisionLogRepo(db)
 
 	// 5. Init services
 	authSvc := service.NewAuthService(userRepo, cfg.Auth.JWTSecret)
@@ -106,7 +105,6 @@ func run(configPath string, devMode bool) error {
 	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc, statusHistorySvc)
 	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc, statusHistorySvc)
 	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, db)
-	decisionLogSvc := service.NewDecisionLogService(decisionLogRepo, mainItemRepo)
 	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)
 	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
 	adminSvc := service.NewAdminService(userRepo, teamRepo)
@@ -114,22 +112,21 @@ func run(configPath string, devMode bool) error {
 
 	// 6. Init handlers
 	deps := &handler.Dependencies{
-		Config:      cfg,
-		TeamRepo:    teamRepo,
-		UserRepo:    userRepo,
-		RoleRepo:    roleRepo,
-		Auth:        handler.NewAuthHandler(authSvc),
-		Team:        handler.NewTeamHandler(teamSvc, userRepo),
-		MainItem:    handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
-		SubItem:     handler.NewSubItemHandler(subItemSvc, mainItemSvc),
-		Progress:    handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
-		ItemPool:    handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
-		View:        handler.NewViewHandler(viewSvc),
-		Report:      handler.NewReportHandler(reportSvc),
-		Admin:       handler.NewAdminHandler(adminSvc),
-		Role:        handler.NewRoleHandler(roleSvc),
-		Permission:  handler.NewPermissionHandler(roleSvc),
-		DecisionLog: handler.NewDecisionLogHandler(decisionLogSvc, userRepo, mainItemRepo),
+		Config:     cfg,
+		TeamRepo:   teamRepo,
+		UserRepo:   userRepo,
+		RoleRepo:   roleRepo,
+		Auth:       handler.NewAuthHandler(authSvc),
+		Team:       handler.NewTeamHandler(teamSvc, userRepo),
+		MainItem:   handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
+		SubItem:    handler.NewSubItemHandler(subItemSvc, mainItemSvc),
+		Progress:   handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
+		ItemPool:   handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
+		View:       handler.NewViewHandler(viewSvc),
+		Report:     handler.NewReportHandler(reportSvc),
+		Admin:      handler.NewAdminHandler(adminSvc),
+		Role:       handler.NewRoleHandler(roleSvc),
+		Permission: handler.NewPermissionHandler(roleSvc),
 	}
 
 	// 7. Setup router

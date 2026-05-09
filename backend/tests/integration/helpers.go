@@ -64,7 +64,6 @@ func wireHandlers(t *testing.T, db *gorm.DB, _ *seedData, includeRBAC bool) *han
 	progressRepo := gormrepo.NewGormProgressRepo(db)
 	itemPoolRepo := gormrepo.NewGormItemPoolRepo(db)
 	roleRepo := gormrepo.NewGormRoleRepo(db)
-	decisionLogRepo := gormrepo.NewGormDecisionLogRepo(db)
 
 	authSvc := service.NewAuthService(userRepo, testJWTSecret)
 	statusHistoryRepo := gormrepo.NewGormStatusHistoryRepo(db)
@@ -74,7 +73,6 @@ func wireHandlers(t *testing.T, db *gorm.DB, _ *seedData, includeRBAC bool) *han
 	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc, statusHistorySvc)
 	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, transactor{db: db})
 	teamSvc := service.NewTeamService(teamRepo, userRepo, mainItemRepo, roleRepo, transactor{db: db})
-	decisionLogSvc := service.NewDecisionLogService(decisionLogRepo, mainItemRepo)
 	adminSvc := service.NewAdminService(userRepo, teamRepo)
 	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)
 	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
@@ -93,20 +91,19 @@ func wireHandlers(t *testing.T, db *gorm.DB, _ *seedData, includeRBAC bool) *han
 	}
 
 	deps := &handler.Dependencies{
-		Config:      cfg,
-		TeamRepo:    teamRepo,
-		UserRepo:    userRepo,
-		RoleRepo:    roleRepo,
-		Auth:        handler.NewAuthHandler(authSvc),
-		Team:        handler.NewTeamHandler(teamSvc, userRepo),
-		MainItem:    handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
-		SubItem:     handler.NewSubItemHandler(subItemSvc, mainItemSvc),
-		Progress:    handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
-		ItemPool:    handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
-		DecisionLog: handler.NewDecisionLogHandler(decisionLogSvc, userRepo, mainItemRepo),
-		View:        handler.NewViewHandler(viewSvc),
-		Report:      handler.NewReportHandler(reportSvc),
-		Admin:       handler.NewAdminHandler(adminSvc),
+		Config:   cfg,
+		TeamRepo: teamRepo,
+		UserRepo: userRepo,
+		RoleRepo: roleRepo,
+		Auth:     handler.NewAuthHandler(authSvc),
+		Team:     handler.NewTeamHandler(teamSvc, userRepo),
+		MainItem: handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
+		SubItem:  handler.NewSubItemHandler(subItemSvc, mainItemSvc),
+		Progress: handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
+		ItemPool: handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
+		View:     handler.NewViewHandler(viewSvc),
+		Report:   handler.NewReportHandler(reportSvc),
+		Admin:    handler.NewAdminHandler(adminSvc),
 	}
 
 	if includeRBAC {
