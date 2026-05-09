@@ -127,55 +127,79 @@ export const defaultCreds: UICredentials = {
 
 const _loginLocators = _config.loginLocators;
 
-// ── Token caching (one login per test run) ──────────────────────────
-let cachedToken: string | null = null;
-let cachedTokenExpiry = 0;
+// ── Token caching (multi-account, shared across all helpers) ───────
+const _tokenCache = new Map<string, { token: string; expiry: number }>();
+const TOKEN_TTL = 23 * 60 * 60 * 1000; // 23 hours
 
-export async function getAuthToken(creds: UICredentials = defaultCreds): Promise<string> {
-  if (cachedToken && Date.now() < cachedTokenExpiry) {
-    return cachedToken;
-  }
-  const api = _config.apiBaseUrl ?? 'http://localhost:8080';
+function cacheKey(username: string, password: string): string {
+  return `${username}:${password}`;
+}
+
+function getCachedToken(key: string): string | null {
+  const entry = _tokenCache.get(key);
+  if (entry && Date.now() < entry.expiry) return entry.token;
+  _tokenCache.delete(key);
+  return null;
+}
+
+function setCachedToken(key: string, token: string): void {
+  _tokenCache.set(key, { token, expiry: Date.now() + TOKEN_TTL });
+}
+
+async function fetchLoginToken(apiBase: string, username: string, password: string): Promise<string> {
   for (let attempt = 0; attempt < 5; attempt++) {
-    const res = await fetch(`${api}/v1/auth/login`, {
+    const res = await fetch(`${apiBase}/v1/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: creds.username, password: creds.password }),
+      body: JSON.stringify({ username, password }),
     });
     if (res.status === 429) {
       await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
       continue;
     }
-    if (res.status !== 200) throw new Error(`Auth failed: ${res.status}`);
+    if (res.status !== 200) throw new Error(`Auth failed for ${username}: ${res.status}`);
     const json = await res.json();
-    const token = json.data?.token ?? json.token;
+    const token = json.data?.token ?? json.token ?? json.access_token;
     if (!token) throw new Error(`No token in auth response`);
-    cachedToken = token;
-    cachedTokenExpiry = Date.now() + 23 * 60 * 60 * 1000;
     return token;
   }
-  throw new Error('Auth failed after retries: rate limited');
+  throw new Error(`Auth failed for ${username} after retries: rate limited`);
 }
 
-/** Inject cached token into localStorage and navigate to /items */
-export async function login(page: Page, creds: UICredentials = defaultCreds): Promise<void> {
+export async function getAuthToken(creds: UICredentials = defaultCreds): Promise<string> {
+  const key = cacheKey(creds.username, creds.password);
+  const cached = getCachedToken(key);
+  if (cached) return cached;
+  const api = _config.apiBaseUrl ?? 'http://localhost:8080';
+  const token = await fetchLoginToken(api, creds.username, creds.password);
+  setCachedToken(key, token);
+  return token;
+}
+
+/** Inject cached token and navigate to targetPath */
+export async function login(page: Page, creds: UICredentials = defaultCreds, targetPath = '/items'): Promise<void> {
   const token = await getAuthToken(creds);
-  await page.goto(`${baseUrl}/login`);
-  await page.evaluate((t) => {
-    localStorage.setItem('auth-storage', JSON.stringify({
-      state: {
-        token: t,
-        user: { isSuperAdmin: true },
-        isAuthenticated: true,
-        isSuperAdmin: true,
-        permissions: null,
-        permissionsLoadedAt: null,
-        _hasHydrated: true,
-      },
-      version: 0,
-    }));
-  }, token);
+  const authStorage = JSON.stringify({
+    state: {
+      token,
+      user: { isSuperAdmin: true },
+      isAuthenticated: true,
+      isSuperAdmin: true,
+      permissions: null,
+      permissionsLoadedAt: null,
+      _hasHydrated: true,
+    },
+    version: 0,
+  });
+  // Navigate to /items first to let the app boot and hydrate Zustand.
+  // We inject auth after the page loads (not via addInitScript) to avoid
+  // re-injection on subsequent navigations which causes Zustand rehydration storms.
   await page.goto(`${baseUrl}/items`);
+  await page.evaluate((storage) => {
+    localStorage.setItem('auth-storage', storage);
+  }, authStorage);
+  // Reload so Zustand picks up the injected auth from localStorage
+  await page.reload();
   await page.waitForURL(/\/items/, { timeout: 10000 });
   // Wait for permissions to load
   await page.waitForFunction(() => {
@@ -195,6 +219,10 @@ export async function login(page: Page, creds: UICredentials = defaultCreds): Pr
       return parsed?.state?.currentTeamId != null;
     } catch { return false; }
   }, { timeout: 5000 }).catch(() => {});
+  // Navigate to actual target if different from /items
+  if (targetPath !== '/items') {
+    await page.goto(`${baseUrl}${targetPath}`);
+  }
 }
 
 /** Legacy UI login — kept for login-specific tests (TC-025, TC-026) */
@@ -211,27 +239,12 @@ export async function loginViaUI(page: Page, creds: UICredentials = defaultCreds
 }
 
 export async function getApiToken(apiBaseUrl: string, creds: UICredentials = defaultCreds): Promise<string> {
-  // Use cached token for default credentials to avoid 429 rate limiting
-  if (creds.username === defaultCreds.username && creds.password === defaultCreds.password) {
-    return getAuthToken(creds);
-  }
-  // Auth endpoint: POST /v1/auth/login (matches backend router)
-  // Retry on 429 (rate limit) with exponential backoff
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const res = await curl('POST', `${apiBaseUrl}/v1/auth/login`, {
-      body: JSON.stringify({ username: creds.username, password: creds.password }),
-    });
-    if (res.status === 429) {
-      await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
-      continue;
-    }
-    if (res.status !== 200) throw new Error(`Auth failed: ${res.status} ${res.body}`);
-    const data = JSON.parse(res.body);
-    const token = data.token ?? data.access_token ?? data.data?.token;
-    if (!token) throw new Error(`No token in auth response. Keys: ${Object.keys(data).join(', ')}`);
-    return token;
-  }
-  throw new Error('Auth failed after retries: rate limited');
+  const key = cacheKey(creds.username, creds.password);
+  const cached = getCachedToken(key);
+  if (cached) return cached;
+  const token = await fetchLoginToken(apiBaseUrl, creds.username, creds.password);
+  setCachedToken(key, token);
+  return token;
 }
 
 export function createAuthCurl(
@@ -308,27 +321,18 @@ export async function browserLogin(page: Page, username: string, password: strin
   await page.waitForURL((url) => !url.pathname.includes('login'), { timeout: DEFAULT_TIMEOUT });
 }
 
-/** Login via API and return {authHeader, token}. Retries on 429. */
+/** Login via API and return {authHeader, token}. Uses shared token cache. */
 export async function loginAs(
   username: string,
   password: string,
 ): Promise<{ authHeader: Record<string, string>; token: string }> {
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const res = await curl('POST', `${apiBaseUrl}/v1/auth/login`, {
-      body: JSON.stringify({ username, password }),
-    });
-    if (res.status === 429) {
-      await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
-      continue;
-    }
-    if (res.status !== 200) {
-      throw new Error(`Login failed for ${username}: ${res.status} ${res.body}`);
-    }
-    const data = JSON.parse(res.body);
-    const token = data.data?.token ?? data.token;
-    return { authHeader: { Authorization: `Bearer ${token}` }, token };
+  const key = cacheKey(username, password);
+  let token = getCachedToken(key);
+  if (!token) {
+    token = await fetchLoginToken(apiBaseUrl, username, password);
+    setCachedToken(key, token);
   }
-  throw new Error(`Login failed for ${username} after retries: rate limited`);
+  return { authHeader: { Authorization: `Bearer ${token}` }, token };
 }
 
 // ── Frontend compatibility functions ────────────────────────────────
@@ -336,8 +340,7 @@ export async function loginAs(
 let _cachedTeamId: string | null = null;
 
 export function invalidateAuthCache(): void {
-  cachedToken = null;
-  cachedTokenExpiry = 0;
+  _tokenCache.clear();
   _cachedTeamId = null;
 }
 
@@ -619,24 +622,25 @@ export async function softDeleteUser(token: string, userBizKey: string): Promise
   if (res.status !== 200) throw new Error(`softDeleteUser failed: ${res.status}`);
 }
 
-export async function loginAsUser(page: Page, token: string, user: { isSuperAdmin: boolean }): Promise<void> {
-  await page.goto(`${baseUrl}/login`);
-  await page.evaluate((t) => {
-    localStorage.setItem('auth-storage', JSON.stringify({
-      state: {
-        token: t,
-        user: { isSuperAdmin: false },
-        isAuthenticated: true,
-        isSuperAdmin: false,
-        permissions: null,
-        permissionsLoadedAt: null,
-        _hasHydrated: true,
-      },
-      version: 0,
-    }));
-  }, token);
+export async function loginAsUser(page: Page, token: string, user: { isSuperAdmin: boolean }, targetPath = '/items'): Promise<void> {
+  const authStorage = JSON.stringify({
+    state: {
+      token,
+      user: { isSuperAdmin: user.isSuperAdmin },
+      isAuthenticated: true,
+      isSuperAdmin: user.isSuperAdmin,
+      permissions: null,
+      permissionsLoadedAt: null,
+      _hasHydrated: true,
+    },
+    version: 0,
+  });
 
   await page.goto(`${baseUrl}/items`);
+  await page.evaluate((storage) => {
+    localStorage.setItem('auth-storage', storage);
+  }, authStorage);
+  await page.reload();
   await page.waitForURL(/\/items/, { timeout: 10000 });
   await page.waitForFunction(() => {
     try {
@@ -646,4 +650,8 @@ export async function loginAsUser(page: Page, token: string, user: { isSuperAdmi
       return parsed?.state?.permissions !== null && parsed?.state?.permissions !== undefined;
     } catch { return false; }
   }, { timeout: 10000 });
+
+  if (targetPath !== '/items') {
+    await page.goto(`${baseUrl}${targetPath}`);
+  }
 }

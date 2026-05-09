@@ -20,8 +20,7 @@ test.describe('刷新按钮 - 事项清单', () => {
 
 test.describe('刷新按钮 - 待办事项', () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/item-pool`);
+    await login(page, undefined, '/item-pool');
     await expect(page.locator('[data-testid="item-pool-page"]')).toBeVisible({ timeout: 10000 });
   });
 
@@ -48,8 +47,7 @@ test.describe('刷新按钮 - 待办事项', () => {
 
 test.describe('刷新按钮 - 表格视图', () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/table`);
+    await login(page, undefined, '/table');
     await expect(page.locator('[data-testid="table-view-page"]')).toBeVisible({ timeout: 10000 });
   });
 
@@ -64,8 +62,7 @@ test.describe('刷新按钮 - 表格视图', () => {
 
 test.describe('刷新按钮 - 整体进度', () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/gantt`);
+    await login(page, undefined, '/gantt');
     await expect(page.locator('[data-testid="gantt-view-page"]')).toBeVisible({ timeout: 10000 });
   });
 
@@ -91,8 +88,7 @@ test.describe('刷新按钮 - 整体进度', () => {
 
 test.describe('刷新按钮 - 用户管理', () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/users`);
+    await login(page, undefined, '/users');
     await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
   });
 
@@ -111,8 +107,7 @@ test.describe('刷新按钮 - 用户管理', () => {
 
 test.describe('刷新按钮 - 角色管理', () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/roles`);
+    await login(page, undefined, '/roles');
     await expect(page.locator('[data-testid="role-management-page"]')).toBeVisible({ timeout: 10000 });
   });
 

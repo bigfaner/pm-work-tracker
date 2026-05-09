@@ -241,24 +241,21 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
 
   // ====== STEP 7: MAIN ITEM DETAIL PAGE ======
   test('7.1 主事项详情页渲染', async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/items/${testMainItemId}`);
+    await login(page, undefined, `/items/${testMainItemId}`);
     await page.waitForTimeout(3000);
     await expect(page.locator('[data-testid="main-item-detail-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('h1:text("E2E测试-主事项-详情页")')).toBeVisible();
   });
 
   test('7.2 面包屑导航', async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/items/${testMainItemId}`);
+    await login(page, undefined, `/items/${testMainItemId}`);
     await page.waitForTimeout(3000);
     await expect(page.locator('[data-testid="main-item-detail-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('[data-testid="main-item-detail-page"] a:has-text("事项清单")')).toBeVisible();
   });
 
   test('7.3 信息卡片显示', async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/items/${testMainItemId}`);
+    await login(page, undefined, `/items/${testMainItemId}`);
     await page.waitForTimeout(3000);
     const detailPage = page.locator('[data-testid="main-item-detail-page"]');
     await expect(detailPage).toBeVisible({ timeout: 10000 });
@@ -268,8 +265,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
   });
 
   test('7.4 编辑主事项标题', async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/items/${testMainItemId}`);
+    await login(page, undefined, `/items/${testMainItemId}`);
     await page.waitForTimeout(3000);
     await expect(page.locator('[data-testid="main-item-detail-page"]')).toBeVisible({ timeout: 10000 });
 
@@ -288,8 +284,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
   });
 
   test('7.5 子事项列表显示', async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/items/${testMainItemId}`);
+    await login(page, undefined, `/items/${testMainItemId}`);
     await page.waitForTimeout(3000);
     await expect(page.locator('[data-testid="main-item-detail-page"]')).toBeVisible({ timeout: 10000 });
 
@@ -298,8 +293,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
   });
 
   test('7.6 子事项状态变更', async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/items/${testMainItemId}`);
+    await login(page, undefined, `/items/${testMainItemId}`);
     await page.waitForTimeout(3000);
     await expect(page.locator('[data-testid="main-item-detail-page"]')).toBeVisible({ timeout: 10000 });
 
@@ -318,8 +312,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
   });
 
   test('7.7 面包屑返回事项清单', async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/items/${testMainItemId}`);
+    await login(page, undefined, `/items/${testMainItemId}`);
     await page.waitForTimeout(3000);
     await expect(page.locator('[data-testid="main-item-detail-page"]')).toBeVisible({ timeout: 10000 });
 
@@ -330,24 +323,21 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
 
   // ====== STEP 8: SUB-ITEM DETAIL PAGE ======
   test('8.1 子事项详情页渲染', async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/items/${testMainItemId}/sub/${testSubItemId}`);
+    await login(page, undefined, `/items/${testMainItemId}/sub/${testSubItemId}`);
     await page.waitForTimeout(3000);
     await expect(page.locator('[data-testid="sub-item-detail-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('h1:text("E2E测试-子事项-详情页")')).toBeVisible();
   });
 
   test('8.2 面包屑完整路径', async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/items/${testMainItemId}/sub/${testSubItemId}`);
+    await login(page, undefined, `/items/${testMainItemId}/sub/${testSubItemId}`);
     await page.waitForTimeout(3000);
     await expect(page.locator('[data-testid="sub-item-detail-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('[data-testid="sub-item-detail-page"] a:has-text("事项清单")')).toBeVisible();
   });
 
   test('8.3 信息卡片字段', async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/items/${testMainItemId}/sub/${testSubItemId}`);
+    await login(page, undefined, `/items/${testMainItemId}/sub/${testSubItemId}`);
     await page.waitForTimeout(3000);
     const subPage = page.locator('[data-testid="sub-item-detail-page"]');
     await expect(subPage).toBeVisible({ timeout: 10000 });
@@ -357,8 +347,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
   });
 
   test('8.4 进度条显示', async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/items/${testMainItemId}/sub/${testSubItemId}`);
+    await login(page, undefined, `/items/${testMainItemId}/sub/${testSubItemId}`);
     await page.waitForTimeout(3000);
     const subPage = page.locator('[data-testid="sub-item-detail-page"]');
     await expect(subPage).toBeVisible({ timeout: 10000 });
@@ -366,8 +355,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
   });
 
   test('8.5 追加进度记录', async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/items/${testMainItemId}/sub/${testSubItemId}`);
+    await login(page, undefined, `/items/${testMainItemId}/sub/${testSubItemId}`);
     await page.waitForTimeout(3000);
     await expect(page.locator('[data-testid="sub-item-detail-page"]')).toBeVisible({ timeout: 10000 });
 
@@ -384,8 +372,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
   });
 
   test('8.6 追加更多进度(递增)', async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/items/${testMainItemId}/sub/${testSubItemId}`);
+    await login(page, undefined, `/items/${testMainItemId}/sub/${testSubItemId}`);
     await page.waitForTimeout(3000);
     await expect(page.locator('[data-testid="sub-item-detail-page"]')).toBeVisible({ timeout: 10000 });
 
@@ -402,8 +389,7 @@ test.describe.serial('事项清单 - 完整E2E业务流程测试', () => {
   });
 
   test('8.7 面包屑跳转到主事项详情', async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/items/${testMainItemId}/sub/${testSubItemId}`);
+    await login(page, undefined, `/items/${testMainItemId}/sub/${testSubItemId}`);
     await page.waitForTimeout(3000);
     await expect(page.locator('[data-testid="sub-item-detail-page"]')).toBeVisible({ timeout: 10000 });
 

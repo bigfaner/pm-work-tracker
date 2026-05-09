@@ -46,11 +46,8 @@ test.describe('PM Work Tracker - Full E2E Test', () => {
     });
 
     test('1.5 auth persists after page refresh', async ({ page }) => {
-      await page.goto(`${BASE}/login`);
-      await page.locator('[data-testid="login-username"]').fill('admin');
-      await page.locator('[data-testid="login-password"]').fill('admin123');
-      await page.locator('[data-testid="login-submit"]').click();
-      await page.waitForURL('**/items**', { timeout: 10000 });
+      // Use cached token to avoid rate limiting from repeated UI logins
+      await login(page);
       await page.reload();
       await page.waitForTimeout(3000);
       // Zustand persist middleware keeps auth across refreshes

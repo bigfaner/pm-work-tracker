@@ -50,10 +50,7 @@ test.describe('待办事项 (ItemPool) - E2E Business Flow', () => {
     }
 
     page = await browser.newPage();
-    await login(page);
-
-    // Navigate to item pool
-    await navTo(page, '/item-pool');
+    await login(page, undefined, '/item-pool');
     await page.waitForTimeout(2000);
   });
 

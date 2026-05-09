@@ -536,11 +536,9 @@ test.describe('UI E2E Tests — RBAC Permissions', () => {
 // ── Data-testid based tests (from role-management.spec.ts) ────────────
 
 test.describe('Role Management — Data-testid Assertions', () => {
-  test.beforeEach(async ({ page }) => { await login(page); });
+  test.beforeEach(async ({ page }) => { await login(page, undefined, '/roles'); });
 
   test('superadmin shows non-zero permission count', async ({ page }) => {
-    await page.goto(`${BASE}/roles`);
-    await expect(page.locator('[data-testid="role-management-page"]')).toBeVisible({ timeout: 10000 });
     const superadminBtn = page.locator('button[data-testid^="role-name-"]').filter({ hasText: 'superadmin' });
     await expect(superadminBtn).toBeVisible({ timeout: 5000 });
     const row = page.locator('tr').filter({ has: superadminBtn });
@@ -549,15 +547,11 @@ test.describe('Role Management — Data-testid Assertions', () => {
   });
 
   test('refresh button reloads data', async ({ page }) => {
-    await page.goto(`${BASE}/roles`);
-    await expect(page.locator('[data-testid="role-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-testid="refresh-btn"]').click();
     await expect(page.locator('button[data-testid^="role-name-"]').first()).toBeVisible({ timeout: 5000 });
   });
 
   test('permissions dialog title contains the role name', async ({ page }) => {
-    await page.goto(`${BASE}/roles`);
-    await expect(page.locator('[data-testid="role-management-page"]')).toBeVisible({ timeout: 10000 });
     const roleNames = page.locator('button[data-testid^="role-name-"]');
     await expect(roleNames.first()).toBeVisible({ timeout: 5000 });
     const roleName = await roleNames.first().textContent();
@@ -566,8 +560,6 @@ test.describe('Role Management — Data-testid Assertions', () => {
   });
 
   test('permissions dialog displays checkboxes', async ({ page }) => {
-    await page.goto(`${BASE}/roles`);
-    await expect(page.locator('[data-testid="role-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button[data-testid^="role-name-"]').first().click();
     await expect(page.locator('[data-testid="role-permissions-dialog"]')).toBeVisible({ timeout: 5000 });
     const checkboxes = page.locator('[data-testid="role-permissions-dialog"] input[type="checkbox"]');
@@ -579,7 +571,7 @@ test.describe('Role Management — Custom Role Edit', () => {
   let authToken: string;
 
   test.beforeAll(async () => { authToken = await getAuthToken(); });
-  test.beforeEach(async ({ page }) => { await login(page); });
+  test.beforeEach(async ({ page }) => { await login(page, undefined, '/roles'); });
 
   test('custom role edit button is enabled', async ({ page }) => {
     const uniqueName = `e2e_edit_${Date.now()}`;
@@ -592,8 +584,6 @@ test.describe('Role Management — Custom Role Edit', () => {
     const created = await createRes.json();
     const roleId = created?.data?.bizKey;
 
-    await page.goto(`${BASE}/roles`);
-    await expect(page.locator('[data-testid="role-management-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator(`button[data-testid="edit-role-${roleId}"]`)).toBeEnabled({ timeout: 5000 });
 
     await fetch(`${API}/admin/roles/${roleId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${authToken}` } });

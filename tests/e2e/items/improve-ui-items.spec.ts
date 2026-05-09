@@ -5,7 +5,6 @@ import { snapshotContains, findElement, screenshot, baseUrl, login } from '../he
 test.describe('UI E2E Tests — 事项清单 (Main Items)', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await page.goto(`${baseUrl}/items`);
     await page.waitForLoadState('networkidle');
   });
 

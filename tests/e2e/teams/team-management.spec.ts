@@ -4,10 +4,9 @@ import { BASE, API, login, getAuthToken, getFirstTeamId } from '../helpers.js';
 // ── Section 1: Page Load ──────────────────────────────────────────────────────
 
 test.describe('Team Management - Page Load', () => {
-  test.beforeEach(async ({ page }) => { await login(page); });
+  test.beforeEach(async ({ page }) => { await login(page, undefined, '/teams'); });
 
   test('page renders with table headers', async ({ page }) => {
-    await page.goto(`${BASE}/teams`);
     await expect(page.locator('[data-testid="team-management-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('th', { hasText: '团队名称' })).toBeVisible();
     await expect(page.locator('th', { hasText: 'Code' })).toBeVisible();
@@ -15,7 +14,6 @@ test.describe('Team Management - Page Load', () => {
   });
 
   test('create team button is visible', async ({ page }) => {
-    await page.goto(`${BASE}/teams`);
     await expect(page.locator('[data-testid="team-management-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('button', { hasText: '创建团队' })).toBeVisible();
   });
@@ -27,10 +25,9 @@ test.describe('Team Management - Create Team', () => {
   let authToken: string;
 
   test.beforeAll(async () => { authToken = await getAuthToken(); });
-  test.beforeEach(async ({ page }) => { await login(page); });
+  test.beforeEach(async ({ page }) => { await login(page, undefined, '/teams'); });
 
   test('clicking create team opens dialog', async ({ page }) => {
-    await page.goto(`${BASE}/teams`);
     await expect(page.locator('[data-testid="team-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '创建团队' }).click();
     await expect(page.locator('input[placeholder="请输入团队名称"]')).toBeVisible({ timeout: 5000 });
@@ -38,7 +35,6 @@ test.describe('Team Management - Create Team', () => {
   });
 
   test('submit disabled when name or code is empty', async ({ page }) => {
-    await page.goto(`${BASE}/teams`);
     await expect(page.locator('[data-testid="team-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '创建团队' }).click();
     await expect(page.locator('input[placeholder="请输入团队名称"]')).toBeVisible({ timeout: 5000 });
@@ -47,7 +43,6 @@ test.describe('Team Management - Create Team', () => {
   });
 
   test('invalid code shows validation error', async ({ page }) => {
-    await page.goto(`${BASE}/teams`);
     await expect(page.locator('[data-testid="team-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '创建团队' }).click();
     await page.locator('input[placeholder="请输入团队名称"]').fill('Test Team');
@@ -61,7 +56,6 @@ test.describe('Team Management - Create Team', () => {
     const uniqueCode = `T${Date.now().toString(36).slice(-4).toUpperCase().replace(/\d/g, 'X')}`;
     const teamName = `E2E Team ${uniqueCode}`;
 
-    await page.goto(`${BASE}/teams`);
     await expect(page.locator('[data-testid="team-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '创建团队' }).click();
     await page.locator('input[placeholder="请输入团队名称"]').fill(teamName);
@@ -116,11 +110,10 @@ test.describe('Team Management - Add Member', () => {
     }
   });
 
-  test.beforeEach(async ({ page }) => { await login(page); });
+  test.beforeEach(async ({ page }) => { await login(page, undefined, '/teams'); });
 
   test('each team row has an add member button', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams`);
     await expect(page.locator('[data-testid="team-management-page"]')).toBeVisible({ timeout: 10000 });
     const btn = page.locator('button[data-testid^="add-member-btn-"]').first();
     await expect(btn).toBeVisible();
@@ -129,7 +122,6 @@ test.describe('Team Management - Add Member', () => {
 
   test('clicking add member opens dialog with search and role fields', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams`);
     await expect(page.locator('[data-testid="team-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator(`[data-testid="add-member-btn-${teamId}"]`).click();
     await expect(page.locator('[data-testid="add-member-user-search"]')).toBeVisible({ timeout: 5000 });
@@ -139,7 +131,6 @@ test.describe('Team Management - Add Member', () => {
 
   test('searching users shows dropdown results', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams`);
     await expect(page.locator('[data-testid="team-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator(`[data-testid="add-member-btn-${teamId}"]`).click();
     const searchInput = page.locator('[data-testid="add-member-user-search"]');
@@ -153,7 +144,6 @@ test.describe('Team Management - Add Member', () => {
 
   test('selecting user enables submit button', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams`);
     await expect(page.locator('[data-testid="team-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator(`[data-testid="add-member-btn-${teamId}"]`).click();
     const searchInput = page.locator('[data-testid="add-member-user-search"]');
@@ -168,7 +158,6 @@ test.describe('Team Management - Add Member', () => {
 
   test('role select does not include pm option', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams`);
     await expect(page.locator('[data-testid="team-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator(`[data-testid="add-member-btn-${teamId}"]`).click();
     await expect(page.locator('[data-testid="add-member-role-select"]')).toBeVisible({ timeout: 5000 });
@@ -180,7 +169,6 @@ test.describe('Team Management - Add Member', () => {
 
   test('cancelling dialog closes it', async ({ page }) => {
     test.skip(!teamId, 'No team available');
-    await page.goto(`${BASE}/teams`);
     await expect(page.locator('[data-testid="team-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator(`[data-testid="add-member-btn-${teamId}"]`).click();
     await expect(page.locator('[data-testid="add-member-user-search"]')).toBeVisible({ timeout: 5000 });

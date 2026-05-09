@@ -71,7 +71,6 @@ test.describe('UI E2E Tests — Login & Navigation', () => {
   // Traceability: TC-049 → UI Function 13 / Flow
   test('TC-049: 侧边栏导航高亮当前页', async ({ page }) => {
     await login(page);
-    await page.goto(`${baseUrl}/items`);
     await page.waitForLoadState('networkidle');
     await screenshot(page, 'TC-049-items-highlight');
     expect(await snapshotContains(page, '事项')).toBeTruthy();
@@ -80,7 +79,6 @@ test.describe('UI E2E Tests — Login & Navigation', () => {
   // Traceability: TC-050 → UI Function 13 / Flow
   test('TC-050: 侧边栏团队选择器', async ({ page }) => {
     await login(page);
-    await page.goto(`${baseUrl}/items`);
     await page.waitForLoadState('networkidle');
 
     await screenshot(page, 'TC-050-team-selector');

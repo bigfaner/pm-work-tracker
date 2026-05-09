@@ -3,15 +3,13 @@ import { snapshotContains, findElement, screenshot, baseUrl, login, BASE, API, g
 
 test.describe('UI E2E Tests — User Management Reset Password & Delete', () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
+    await login(page, undefined, '/users');
   });
 
   // ── Story 5: Super admin can see reset password and delete buttons ──
 
   // Traceability: TC-001 → Story 5 / AC-1, UI Function 1
   test('TC-001: Super admin can see reset password and delete buttons', async ({ page }) => {
-    await page.goto(`${baseUrl}/users`);
-    await page.waitForLoadState('networkidle');
 
     expect(await snapshotContains(page, '用户管理')).toBeTruthy();
     expect(await snapshotContains(page, '操作')).toBeTruthy();
@@ -28,8 +26,6 @@ test.describe('UI E2E Tests — User Management Reset Password & Delete', () => 
   test('TC-002: Non-super-admin cannot see reset password and delete buttons', async ({ page }) => {
     // This test requires logging in as a non-super-admin user
     // In a real scenario, logout first then login as regular user
-    await page.goto(`${baseUrl}/users`);
-    await page.waitForLoadState('networkidle');
 
     // For non-super-admin, these buttons should NOT be rendered
     // This test documents expected behavior; actual execution requires role switch
@@ -38,8 +34,6 @@ test.describe('UI E2E Tests — User Management Reset Password & Delete', () => 
 
   // Traceability: TC-003 → Story 4 / AC-1, UI Function 1 States
   test('TC-003: Delete button disabled on own row with tooltip', async ({ page }) => {
-    await page.goto(`${baseUrl}/users`);
-    await page.waitForLoadState('networkidle');
 
     // Find the logged-in user's row and check delete button is disabled
     // The own-row delete button should have disabled attribute
@@ -51,8 +45,6 @@ test.describe('UI E2E Tests — User Management Reset Password & Delete', () => 
 
   // Traceability: TC-004 → Story 1 / AC-1, UI Function 2
   test('TC-004: Clicking reset password opens dialog with user display name', async ({ page }) => {
-    await page.goto(`${baseUrl}/users`);
-    await page.waitForLoadState('networkidle');
 
     const resetBtn = findElement(page, 'button', '重置密码');
     if (await resetBtn.isVisible().catch(() => false)) {
@@ -68,8 +60,6 @@ test.describe('UI E2E Tests — User Management Reset Password & Delete', () => 
 
   // Traceability: TC-005 → Story 2 / AC-1, UI Function 2 Validation Rules
   test('TC-005: Reset password empty validation on submit', async ({ page }) => {
-    await page.goto(`${baseUrl}/users`);
-    await page.waitForLoadState('networkidle');
 
     const resetBtn = findElement(page, 'button', '重置密码');
     if (await resetBtn.isVisible().catch(() => false)) {
@@ -93,8 +83,6 @@ test.describe('UI E2E Tests — User Management Reset Password & Delete', () => 
 
   // Traceability: TC-006 → Story 2 / AC-1, PRD Spec Section 5.3 Validation Rules
   test('TC-006: Reset password strength validation on blur and submit', async ({ page }) => {
-    await page.goto(`${baseUrl}/users`);
-    await page.waitForLoadState('networkidle');
 
     const resetBtn = findElement(page, 'button', '重置密码');
     if (await resetBtn.isVisible().catch(() => false)) {
@@ -134,8 +122,6 @@ test.describe('UI E2E Tests — User Management Reset Password & Delete', () => 
 
   // Traceability: TC-007 → Story 2 / AC-1, UI Function 2 Validation Rules
   test('TC-007: Reset password confirm mismatch validation', async ({ page }) => {
-    await page.goto(`${baseUrl}/users`);
-    await page.waitForLoadState('networkidle');
 
     const resetBtn = findElement(page, 'button', '重置密码');
     if (await resetBtn.isVisible().catch(() => false)) {
@@ -163,8 +149,6 @@ test.describe('UI E2E Tests — User Management Reset Password & Delete', () => 
 
   // Traceability: TC-008 → Story 1 / AC-1
   test('TC-008: Reset password success flow', async ({ page }) => {
-    await page.goto(`${baseUrl}/users`);
-    await page.waitForLoadState('networkidle');
 
     const resetBtn = findElement(page, 'button', '重置密码');
     if (await resetBtn.isVisible().catch(() => false)) {
@@ -191,8 +175,6 @@ test.describe('UI E2E Tests — User Management Reset Password & Delete', () => 
 
   // Traceability: TC-009 → Story 1 / AC-2
   test('TC-009: Reset password API error keeps dialog open', async ({ page }) => {
-    await page.goto(`${baseUrl}/users`);
-    await page.waitForLoadState('networkidle');
 
     const resetBtn = findElement(page, 'button', '重置密码');
     if (await resetBtn.isVisible().catch(() => false)) {
@@ -219,8 +201,6 @@ test.describe('UI E2E Tests — User Management Reset Password & Delete', () => 
 
   // Traceability: TC-010 → Story 3 / AC-1, UI Function 3
   test('TC-010: Clicking delete opens confirmation dialog with username', async ({ page }) => {
-    await page.goto(`${baseUrl}/users`);
-    await page.waitForLoadState('networkidle');
 
     // Find a delete button that is NOT on the current user's row
     const deleteBtn = findElement(page, 'button', '删除');
@@ -242,8 +222,6 @@ test.describe('UI E2E Tests — User Management Reset Password & Delete', () => 
 
   // Traceability: TC-011 → Story 3 / AC-1
   test('TC-011: Delete user success removes row and shows toast', async ({ page }) => {
-    await page.goto(`${baseUrl}/users`);
-    await page.waitForLoadState('networkidle');
 
     const deleteBtn = findElement(page, 'button', '删除');
     if (await deleteBtn.isVisible().catch(() => false)) {
@@ -266,8 +244,6 @@ test.describe('UI E2E Tests — User Management Reset Password & Delete', () => 
 
   // Traceability: TC-012 → Story 3 / AC-2
   test('TC-012: Delete user 404 shows message and removes row', async ({ page }) => {
-    await page.goto(`${baseUrl}/users`);
-    await page.waitForLoadState('networkidle');
 
     // This test documents expected behavior for 404 scenario
     // Simulating stale list requires backend to return 404
@@ -276,8 +252,6 @@ test.describe('UI E2E Tests — User Management Reset Password & Delete', () => 
 
   // Traceability: TC-013 → UI Function 3 States
   test('TC-013: Delete user API error shows error in dialog', async ({ page }) => {
-    await page.goto(`${baseUrl}/users`);
-    await page.waitForLoadState('networkidle');
 
     // This test documents expected behavior for API error scenario
     // Simulating backend error requires test environment setup
@@ -288,8 +262,6 @@ test.describe('UI E2E Tests — User Management Reset Password & Delete', () => 
 
   // Traceability: TC-014 → Story 6 / AC-1, UI Function 4
   test('TC-014: Copy credentials button copies to clipboard', async ({ page }) => {
-    await page.goto(`${baseUrl}/users`);
-    await page.waitForLoadState('networkidle');
 
     // Step 1: Create a new user to trigger result dialog
     const createBtn = findElement(page, 'button', '创建用户');
@@ -336,8 +308,6 @@ test.describe('UI E2E Tests — User Management Reset Password & Delete', () => 
 
   // Traceability: TC-016 → UI Function 2 (password field with show/hide toggle)
   test('TC-016: Password visibility toggle in reset password dialog', async ({ page }) => {
-    await page.goto(`${baseUrl}/users`);
-    await page.waitForLoadState('networkidle');
 
     const resetBtn = findElement(page, 'button', '重置密码');
     if (await resetBtn.isVisible().catch(() => false)) {
@@ -374,11 +344,9 @@ test.describe('UI E2E Tests — User Management Reset Password & Delete', () => 
 // ── Data-testid based tests (from user-management.spec.ts) ────────────
 
 test.describe('User Management — Page Load', () => {
-  test.beforeEach(async ({ page }) => { await login(page); });
+  test.beforeEach(async ({ page }) => { await login(page, undefined, '/users'); });
 
   test('page renders with table headers', async ({ page }) => {
-    await page.goto(`${BASE}/users`);
-    await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('th', { hasText: '姓名' })).toBeVisible();
     await expect(page.locator('th', { hasText: '账号' })).toBeVisible();
     await expect(page.locator('th', { hasText: '状态' })).toBeVisible();
@@ -386,20 +354,14 @@ test.describe('User Management — Page Load', () => {
   });
 
   test('create user button is visible', async ({ page }) => {
-    await page.goto(`${BASE}/users`);
-    await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('button', { hasText: '创建用户' })).toBeVisible();
   });
 
   test('search input is visible', async ({ page }) => {
-    await page.goto(`${BASE}/users`);
-    await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('input[placeholder="搜索用户名/姓名"]')).toBeVisible();
   });
 
   test('admin user appears in table', async ({ page }) => {
-    await page.goto(`${BASE}/users`);
-    await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 5000 });
   });
 });
@@ -408,19 +370,15 @@ test.describe('User Management — Create User', () => {
   let authToken: string;
 
   test.beforeAll(async () => { authToken = await getAuthToken(); });
-  test.beforeEach(async ({ page }) => { await login(page); });
+  test.beforeEach(async ({ page }) => { await login(page, undefined, '/users'); });
 
   test('clicking create user opens dialog', async ({ page }) => {
-    await page.goto(`${BASE}/users`);
-    await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '创建用户' }).click();
     await expect(page.locator('input[placeholder="请输入姓名"]')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('input[placeholder="请输入账号"]')).toBeVisible();
   });
 
   test('submit disabled when required fields are empty', async ({ page }) => {
-    await page.goto(`${BASE}/users`);
-    await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '创建用户' }).click();
     await expect(page.locator('input[placeholder="请输入姓名"]')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('button', { hasText: '确认创建' })).toBeDisabled();
@@ -428,8 +386,6 @@ test.describe('User Management — Create User', () => {
 
   test('creates user and shows initial password dialog', async ({ page }) => {
     const username = `e2e_${Date.now()}`;
-    await page.goto(`${BASE}/users`);
-    await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '创建用户' }).click();
     await page.locator('input[placeholder="请输入姓名"]').fill('E2E Test User');
     await page.locator('input[placeholder="请输入账号"]').fill(username);
@@ -457,8 +413,6 @@ test.describe('User Management — Create User', () => {
   });
 
   test('cancelling dialog closes it', async ({ page }) => {
-    await page.goto(`${BASE}/users`);
-    await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('button', { hasText: '创建用户' }).click();
     await expect(page.locator('input[placeholder="请输入姓名"]')).toBeVisible({ timeout: 5000 });
     await page.locator('button', { hasText: '取消' }).first().click();
@@ -467,11 +421,9 @@ test.describe('User Management — Create User', () => {
 });
 
 test.describe('User Management — Edit User', () => {
-  test.beforeEach(async ({ page }) => { await login(page); });
+  test.beforeEach(async ({ page }) => { await login(page, undefined, '/users'); });
 
   test('clicking edit opens edit dialog with pre-filled data', async ({ page }) => {
-    await page.goto(`${BASE}/users`);
-    await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 5000 });
     await page.locator('button', { hasText: '编辑' }).first().click();
     await expect(page.locator('text=编辑用户')).toBeVisible({ timeout: 5000 });
@@ -481,8 +433,6 @@ test.describe('User Management — Edit User', () => {
   });
 
   test('save button is visible in edit dialog', async ({ page }) => {
-    await page.goto(`${BASE}/users`);
-    await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 5000 });
     await page.locator('button', { hasText: '编辑' }).first().click();
     await expect(page.locator('button', { hasText: '保存修改' })).toBeVisible({ timeout: 5000 });
@@ -493,11 +443,9 @@ test.describe('User Management — Toggle Status', () => {
   let authToken: string;
 
   test.beforeAll(async () => { authToken = await getAuthToken(); });
-  test.beforeEach(async ({ page }) => { await login(page); });
+  test.beforeEach(async ({ page }) => { await login(page, undefined, '/users'); });
 
   test('clicking modify status opens status dialog', async ({ page }) => {
-    await page.goto(`${BASE}/users`);
-    await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 5000 });
     await page.locator('button', { hasText: '修改状态' }).first().click();
     await expect(page.locator('text=修改用户状态')).toBeVisible({ timeout: 5000 });
@@ -516,8 +464,6 @@ test.describe('User Management — Toggle Status', () => {
     const created = await createRes.json();
     const userId = created.data?.id || created.id;
 
-    await page.goto(`${BASE}/users`);
-    await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('input[placeholder="搜索用户名/姓名"]').fill(username);
     await page.waitForTimeout(1000);
 
@@ -537,11 +483,9 @@ test.describe('User Management — Toggle Status', () => {
 });
 
 test.describe('User Management — Search and Refresh', () => {
-  test.beforeEach(async ({ page }) => { await login(page); });
+  test.beforeEach(async ({ page }) => { await login(page, undefined, '/users'); });
 
   test('searching by username filters the table', async ({ page }) => {
-    await page.goto(`${BASE}/users`);
-    await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('input[placeholder="搜索用户名/姓名"]').fill('admin');
     await page.waitForTimeout(800);
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 5000 });
@@ -550,16 +494,12 @@ test.describe('User Management — Search and Refresh', () => {
   });
 
   test('searching with no match shows empty state', async ({ page }) => {
-    await page.goto(`${BASE}/users`);
-    await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('input[placeholder="搜索用户名/姓名"]').fill('zzz_no_such_user_xyz');
     await page.waitForTimeout(800);
     await expect(page.locator('text=暂无用户')).toBeVisible({ timeout: 5000 });
   });
 
   test('refresh button triggers data reload', async ({ page }) => {
-    await page.goto(`${BASE}/users`);
-    await expect(page.locator('[data-testid="user-management-page"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-testid="refresh-btn"]').click();
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 5000 });
   });
