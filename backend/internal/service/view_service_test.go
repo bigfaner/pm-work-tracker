@@ -871,8 +871,9 @@ func TestGanttView_EmptyTeam_NoItems(t *testing.T) {
 }
 
 func TestGanttView_BasicStructure(t *testing.T) {
-	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
-	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+	now := time.Now()
+	startDate := now.AddDate(0, -1, 0)
+	endDate := now.AddDate(0, 1, 0)
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
@@ -899,8 +900,8 @@ func TestGanttView_BasicStructure(t *testing.T) {
 	assert.Equal(t, "1", item.BizKey)
 	assert.Equal(t, "Main 1", item.Title)
 	assert.Equal(t, "P1", item.Priority)
-	assert.Equal(t, "2026-04-01", item.StartDate)
-	assert.Equal(t, "2026-04-30", item.ExpectedEndDate)
+	assert.Equal(t, startDate.Format("2006-01-02"), item.StartDate)
+	assert.Equal(t, endDate.Format("2006-01-02"), item.ExpectedEndDate)
 	assert.Equal(t, 45.5, item.Completion)
 	assert.Equal(t, "progressing", item.Status)
 	assert.False(t, item.IsOverdue)
@@ -908,8 +909,8 @@ func TestGanttView_BasicStructure(t *testing.T) {
 
 func TestGanttView_OverdueItem(t *testing.T) {
 	// expectedEndDate is in the past, status is not 已完成 or 已关闭
-	pastDate := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
-	startDate := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+	pastDate := time.Now().AddDate(0, -1, 0)
+	startDate := time.Now().AddDate(0, -2, 0)
 
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{

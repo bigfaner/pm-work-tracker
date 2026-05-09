@@ -357,7 +357,9 @@ func TestCORS_WildcardWhenNoOriginsConfigured(t *testing.T) {
 	req.Header.Set("Access-Control-Request-Method", "GET")
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, "*", w.Header().Get("Access-Control-Allow-Origin"))
+	// With AllowCredentials: true, the cors library echoes the request origin
+	// instead of "*" (which is forbidden by the spec when credentials are used).
+	assert.Equal(t, "http://any-origin.com", w.Header().Get("Access-Control-Allow-Origin"))
 }
 
 func TestRateLimit_Login(t *testing.T) {
