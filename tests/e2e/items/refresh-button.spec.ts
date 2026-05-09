@@ -70,6 +70,7 @@ test.describe('刷新按钮 - 整体进度', () => {
   });
 
   test('刷新按钮在搜索框右侧', async ({ page }) => {
+    await expect(page.locator('.gantt-label-header')).toBeVisible({ timeout: 10000 });
     const header = page.locator('.gantt-label-header');
     const searchInput = header.locator('.label-search');
     const refreshBtn = header.locator('[data-testid="refresh-btn"]');

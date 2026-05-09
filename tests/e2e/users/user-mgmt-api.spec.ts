@@ -31,7 +31,7 @@ test.describe('API E2E Tests — User Management Reset Password & Delete', () =>
     expect(usersRes.status).toBe(200);
     const usersBody = JSON.parse(usersRes.body);
     const usersList: any[] = usersBody.data?.items ?? usersBody.data ?? (Array.isArray(usersBody) ? usersBody : []);
-    const admin = usersList.find((u: any) => u.isSuperAdmin);
+    const admin = usersList.find((u: any) => u.username === 'admin');
     expect(admin).toBeTruthy();
     ownUserBizKey = String(admin.bizKey);
 

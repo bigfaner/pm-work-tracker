@@ -525,7 +525,7 @@ export async function setupRbacFixtures(extra?: { noPerms?: boolean }): Promise<
   // Add users to team
   await curl('POST', `${apiUrl}/v1/teams/${teamBizKey}/members`, {
     headers: authHeader(superadminToken),
-    body: JSON.stringify({ username: `e2e-pm-${runId}`, roleKey: pmRoleKey }),
+    body: JSON.stringify({ username: `e2e-pm-${runId}`, roleKey: memberRoleKey }),
   });
   await curl('POST', `${apiUrl}/v1/teams/${teamBizKey}/members`, {
     headers: authHeader(superadminToken),

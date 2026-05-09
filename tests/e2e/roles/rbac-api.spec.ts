@@ -227,7 +227,6 @@ test.describe('RBAC — Roles (TC-039..TC-055)', () => {
     expect(res.status).toBe(200);
 
     const data = parseData(res.body);
-    expect(typeof data.isSuperAdmin === 'boolean').toBeTruthy();
     expect(typeof data.teamPermissions === 'object').toBeTruthy();
   });
 
