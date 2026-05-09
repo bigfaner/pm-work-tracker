@@ -185,8 +185,7 @@ func (h *AdminHandler) ListTeams(c *gin.Context) {
 }
 
 // parsePageParams extracts page and pageSize from query params (returns 0 if absent/invalid).
-func parsePageParams(c *gin.Context) (int, int) {
-	var page, pageSize int
+func parsePageParams(c *gin.Context) (page, pageSize int) {
 	if p := c.Query("page"); p != "" {
 		if v, err := strconv.Atoi(p); err == nil {
 			page = v

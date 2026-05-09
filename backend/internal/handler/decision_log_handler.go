@@ -35,6 +35,8 @@ func NewDecisionLogHandler(svc service.DecisionLogService, userRepo repository.U
 }
 
 // Create handles POST /api/v1/teams/:teamId/main-items/:itemId/decision-logs
+//
+//nolint:dupl // Create and Update share similar request/response shape but differ in business logic
 func (h *DecisionLogHandler) Create(c *gin.Context) {
 	mainItemKey, ok := pkgHandler.ParseBizKeyParam(c, "itemId")
 	if !ok {
@@ -59,6 +61,8 @@ func (h *DecisionLogHandler) Create(c *gin.Context) {
 }
 
 // Update handles PUT /api/v1/teams/:teamId/main-items/:itemId/decision-logs/:logId
+//
+//nolint:dupl // Create and Update share similar request/response shape but differ in business logic
 func (h *DecisionLogHandler) Update(c *gin.Context) {
 	logBizKey, ok := pkgHandler.ParseBizKeyParam(c, "logId")
 	if !ok {

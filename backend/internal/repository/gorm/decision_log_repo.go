@@ -30,6 +30,7 @@ func (r *decisionLogRepo) FindByID(ctx context.Context, id uint) (*model.Decisio
 	return repo.FindByID[model.DecisionLog](r.db, ctx, id)
 }
 
+//nolint:dupl // same FindByBizKey shape as progress_repo
 func (r *decisionLogRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.DecisionLog, error) {
 	var log model.DecisionLog
 	err := r.db.WithContext(ctx).Where("biz_key = ?", bizKey).First(&log).Error
@@ -42,7 +43,7 @@ func (r *decisionLogRepo) FindByBizKey(ctx context.Context, bizKey int64) (*mode
 	return &log, nil
 }
 
-func (r *decisionLogRepo) ListByItem(ctx context.Context, mainItemKey int64, userBizKey int64, offset, limit int) ([]model.DecisionLog, int64, error) {
+func (r *decisionLogRepo) ListByItem(ctx context.Context, mainItemKey, userBizKey int64, offset, limit int) ([]model.DecisionLog, int64, error) {
 	query := r.db.WithContext(ctx).
 		Where("main_item_key = ? AND (log_status = 'published' OR created_by = ?)", mainItemKey, userBizKey)
 

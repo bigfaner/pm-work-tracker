@@ -2,7 +2,10 @@ import * as React from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
-function Breadcrumb({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
+function Breadcrumb({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLElement>) {
   return (
     <nav
       aria-label="Breadcrumb"

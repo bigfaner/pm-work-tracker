@@ -51,7 +51,7 @@ func (r *subItemRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.Su
 	return &item, nil
 }
 
-func (r *subItemRepo) List(ctx context.Context, teamBizKey int64, mainItemBizKey int64, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
+func (r *subItemRepo) List(ctx context.Context, teamBizKey, mainItemBizKey int64, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error) {
 	query := r.db.WithContext(ctx).Scopes(NotDeleted).Where("team_key = ?", teamBizKey)
 
 	if mainItemBizKey > 0 {
@@ -98,10 +98,11 @@ func (r *subItemRepo) ListByTeam(ctx context.Context, teamBizKey int64) ([]model
 	return items, err
 }
 
-//nolint:dupl // same transaction shape as mainItemRepo.NextCode; core logic extracted to nextSeqInTx
 // NextSubCode generates the next sub-item code for the given main item.
 // It locks the main item row (SELECT FOR UPDATE) to serialize concurrent calls,
 // reads the current MAX sub sequence, and returns "{mainCode}-{seq:02d}".
+//
+//nolint:dupl // same transaction shape as mainItemRepo.NextCode; core logic extracted to nextSeqInTx
 func (r *subItemRepo) NextSubCode(ctx context.Context, mainItemBizKey int64) (string, error) {
 	var code string
 	err := r.db.WithContext(ctx).Transaction(func(tx *gormlib.DB) error {

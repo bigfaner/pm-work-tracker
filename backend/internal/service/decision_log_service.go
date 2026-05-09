@@ -29,7 +29,7 @@ func NewDecisionLogService(repo repository.DecisionLogRepo, mainItemRepo reposit
 	return &decisionLogService{repo: repo, mainItemRepo: mainItemRepo}
 }
 
-func (s *decisionLogService) Create(ctx context.Context, mainItemKey int64, userBizKey int64, req dto.DecisionLogCreateReq) (*model.DecisionLog, error) {
+func (s *decisionLogService) Create(ctx context.Context, mainItemKey, userBizKey int64, req dto.DecisionLogCreateReq) (*model.DecisionLog, error) {
 	// Validate main item exists and get TeamKey
 	mainItem, err := s.mainItemRepo.FindByBizKey(ctx, mainItemKey)
 	if err != nil {
@@ -59,7 +59,7 @@ func (s *decisionLogService) Create(ctx context.Context, mainItemKey int64, user
 	return log, nil
 }
 
-func (s *decisionLogService) Update(ctx context.Context, bizKey int64, userBizKey int64, req dto.DecisionLogUpdateReq) (*model.DecisionLog, error) {
+func (s *decisionLogService) Update(ctx context.Context, bizKey, userBizKey int64, req dto.DecisionLogUpdateReq) (*model.DecisionLog, error) {
 	log, err := s.repo.FindByBizKey(ctx, bizKey)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrDecisionLogNotFound)
@@ -91,7 +91,7 @@ func (s *decisionLogService) Update(ctx context.Context, bizKey int64, userBizKe
 	return log, nil
 }
 
-func (s *decisionLogService) Publish(ctx context.Context, bizKey int64, userBizKey int64) (*model.DecisionLog, error) {
+func (s *decisionLogService) Publish(ctx context.Context, bizKey, userBizKey int64) (*model.DecisionLog, error) {
 	log, err := s.repo.FindByBizKey(ctx, bizKey)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrDecisionLogNotFound)
@@ -115,7 +115,7 @@ func (s *decisionLogService) Publish(ctx context.Context, bizKey int64, userBizK
 	return log, nil
 }
 
-func (s *decisionLogService) List(ctx context.Context, mainItemKey int64, userBizKey int64, page dto.Pagination) (*dto.PageResult[model.DecisionLog], error) {
+func (s *decisionLogService) List(ctx context.Context, mainItemKey, userBizKey int64, page dto.Pagination) (*dto.PageResult[model.DecisionLog], error) {
 	offset, pageNum, pageSize := dto.ApplyPaginationDefaults(page.Page, page.PageSize)
 
 	logs, total, err := s.repo.ListByItem(ctx, mainItemKey, userBizKey, offset, pageSize)

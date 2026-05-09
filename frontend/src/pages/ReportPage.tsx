@@ -88,7 +88,8 @@ export default function ReportPage() {
       const resp = await getWeeklyReportPreviewApi(currentTeamId, weekValue);
       setPreview(resp);
     } catch (err: unknown) {
-      const resp = (err as { response?: { data?: { message?: string } } }).response;
+      const resp = (err as { response?: { data?: { message?: string } } })
+        .response;
       setError(resp?.data?.message || "获取预览失败");
     } finally {
       setLoading(false);

@@ -122,7 +122,7 @@ func (s *roleService) GetRole(ctx context.Context, roleBizKey int64) (*RoleDetai
 	if role.Name == "superadmin" {
 		codes = allCodes()
 	} else {
-		var err error
+		var err error //nolint:govet // intentional shadow: inner-block err assignment
 		codes, err = s.roleRepo.ListPermissions(ctx, role.BizKey)
 		if err != nil {
 			return nil, err
@@ -205,12 +205,12 @@ func (s *roleService) UpdateRole(ctx context.Context, roleBizKey int64, req dto.
 
 	// Validate new name if provided
 	if req.Name != nil {
-		if err := validateRoleName(*req.Name); err != nil {
+		if err := validateRoleName(*req.Name); err != nil { //nolint:govet // intentional shadow: inner-block err assignment
 			return nil, err
 		}
 		// Check name uniqueness (skip if name unchanged)
 		if *req.Name != role.Name {
-			if _, err := s.roleRepo.FindByName(ctx, *req.Name); err == nil {
+			if _, err := s.roleRepo.FindByName(ctx, *req.Name); err == nil { //nolint:govet // intentional shadow: inner-block err assignment
 				return nil, ErrRoleNameExists
 			}
 		}
@@ -221,7 +221,7 @@ func (s *roleService) UpdateRole(ctx context.Context, roleBizKey int64, req dto.
 		if len(req.PermissionCodes) == 0 {
 			return nil, ErrValidation
 		}
-		if err := validatePermissionCodes(req.PermissionCodes); err != nil {
+		if err := validatePermissionCodes(req.PermissionCodes); err != nil { //nolint:govet // intentional shadow: inner-block err assignment
 			return nil, err
 		}
 	}
@@ -233,13 +233,13 @@ func (s *roleService) UpdateRole(ctx context.Context, roleBizKey int64, req dto.
 	if req.Description != nil {
 		role.Description = *req.Description
 	}
-	if err := s.roleRepo.Update(ctx, role); err != nil {
+	if err := s.roleRepo.Update(ctx, role); err != nil { //nolint:govet // intentional shadow: inner-block err assignment
 		return nil, err
 	}
 
 	// Update permissions if provided
 	if req.PermissionCodes != nil {
-		if err := s.roleRepo.SetPermissions(ctx, role.BizKey, req.PermissionCodes); err != nil {
+		if err := s.roleRepo.SetPermissions(ctx, role.BizKey, req.PermissionCodes); err != nil { //nolint:govet // intentional shadow: inner-block err assignment
 			return nil, err
 		}
 	}
@@ -298,7 +298,7 @@ func (s *roleService) GetUserPermissions(ctx context.Context, userID uint) (*Use
 
 	// SuperAdmin: return all 29 codes for all teams
 	if user.IsSuperAdmin {
-		teamKeys, err := s.teamRepo.ListTeamBizKeys(ctx)
+		teamKeys, err := s.teamRepo.ListTeamBizKeys(ctx) //nolint:govet // intentional shadow: inner-block err assignment
 		if err != nil {
 			return nil, err
 		}

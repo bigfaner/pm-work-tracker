@@ -34,7 +34,9 @@ export default function LoginPage() {
       const redirect = searchParams.get("redirect") || "/items";
       navigate(redirect);
     } catch (err: unknown) {
-      const resp = (err as { response?: { status?: number; data?: { code?: string } } }).response;
+      const resp = (
+        err as { response?: { status?: number; data?: { code?: string } } }
+      ).response;
       const status = resp?.status;
       const code = resp?.data?.code;
       if (status === 401) {

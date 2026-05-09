@@ -27,9 +27,7 @@ func setupPermissionRouter(code string, roleRepo *mockRoleRepo) (*gin.Engine, *c
 			c.Set("userID", id)
 			c.Set("userBizKey", int64(id))
 		}
-		if v := c.Query("permCodes"); v != "" {
-			// Don't set permCodes - nil means non-team context
-		}
+		// Intentionally skip permCodes — nil means non-team context
 		c.Next()
 	})
 

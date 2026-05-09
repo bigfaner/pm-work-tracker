@@ -371,7 +371,9 @@ export default function MainItemDetailPage() {
             mainStatus={item.itemStatus}
             refreshKey={decisionRefreshKey}
             collapsed={!decisionTimelineExpanded}
-            onToggleCollapse={() => setDecisionTimelineExpanded(!decisionTimelineExpanded)}
+            onToggleCollapse={() =>
+              setDecisionTimelineExpanded(!decisionTimelineExpanded)
+            }
             onAdd={() => {
               setDecisionFormMode("new");
               setDecisionEditBizKey("");

@@ -134,7 +134,7 @@ func (h *ProgressHandler) CorrectCompletion(c *gin.Context) {
 	}
 
 	var req correctCompletionReq
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if bindErr := c.ShouldBindJSON(&req); bindErr != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
 	}

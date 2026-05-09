@@ -66,7 +66,7 @@ func (h *ReportHandler) WeeklyExport(c *gin.Context) {
 	isoYear, isoWeek := weekStart.ISOWeek()
 	filename := fmt.Sprintf("weekly-report-%d-W%02d.md", isoYear, isoWeek)
 
-	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
 	c.Data(http.StatusOK, "text/markdown", mdBytes)
 }
 

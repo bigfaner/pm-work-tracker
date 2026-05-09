@@ -199,7 +199,8 @@ export default function TeamDetailPage() {
       addToast("成员已添加", "success");
     },
     onError: (err: unknown) => {
-      const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      const code = (err as { response?: { data?: { code?: string } } })
+        ?.response?.data?.code;
       if (code === "ALREADY_MEMBER") {
         addToast("该用户已是团队成员", "error");
       } else {
@@ -237,7 +238,8 @@ export default function TeamDetailPage() {
       navigate("/teams");
     },
     onError: (err: unknown) => {
-      const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      const code = (err as { response?: { data?: { code?: string } } })
+        ?.response?.data?.code;
       if (code === "NAME_MISMATCH") {
         addToast("团队名称不匹配", "error");
       } else {

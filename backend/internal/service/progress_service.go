@@ -31,7 +31,7 @@ func NewProgressService(progressRepo repository.ProgressRepo, subItemRepo reposi
 	return &progressService{progressRepo: progressRepo, subItemRepo: subItemRepo, mainItemSvc: mainItemSvc, statusHistorySvc: statusHistorySvc}
 }
 
-func (s *progressService) Append(ctx context.Context, teamBizKey int64, authorBizKey int64, subItemID uint, completion float64, achievement, blocker, lesson string, skipRegressionCheck bool) (*model.ProgressRecord, error) {
+func (s *progressService) Append(ctx context.Context, teamBizKey, authorBizKey int64, subItemID uint, completion float64, achievement, blocker, lesson string, skipRegressionCheck bool) (*model.ProgressRecord, error) {
 	subItem, err := s.subItemRepo.FindByID(ctx, subItemID)
 	if err != nil {
 		return nil, err
@@ -128,7 +128,7 @@ func (s *progressService) CorrectCompletion(ctx context.Context, _ int64, record
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
 	}
 
-	if err := s.progressRepo.UpdateCompletion(ctx, recordID, completion); err != nil {
+	if err := s.progressRepo.UpdateCompletion(ctx, recordID, completion); err != nil { //nolint:govet // intentional shadow: inner-block err assignment
 		return err
 	}
 

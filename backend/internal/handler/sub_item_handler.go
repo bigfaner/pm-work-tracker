@@ -79,13 +79,13 @@ func (h *SubItemHandler) List(c *gin.Context) {
 	mainItemBizKey := mainItem.BizKey
 
 	var filter dto.SubItemFilter
-	if err := c.ShouldBindQuery(&filter); err != nil {
+	if bindErr := c.ShouldBindQuery(&filter); bindErr != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
 	}
 
 	var page dto.Pagination
-	if err := c.ShouldBindQuery(&page); err != nil {
+	if bindErr := c.ShouldBindQuery(&page); bindErr != nil {
 		apperrors.RespondError(c, apperrors.ErrValidation)
 		return
 	}

@@ -34,7 +34,7 @@ func (s *authService) Login(ctx context.Context, username, password string) (str
 		return "", nil, apperrors.ErrUnauthorized
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil { //nolint:govet // intentional shadow: inner-block err assignment
 		return "", nil, apperrors.ErrUnauthorized
 	}
 

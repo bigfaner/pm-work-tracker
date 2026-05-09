@@ -72,7 +72,8 @@ export default function RoleEditDialog({
       onSuccess?.();
     },
     onError: (err: unknown) => {
-      const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      const code = (err as { response?: { data?: { code?: string } } })
+        ?.response?.data?.code;
       if (code === "ERR_ROLE_NAME_EXISTS") {
         setError("角色名称已存在");
       } else if (code === "ERR_VALIDATION") {
@@ -97,7 +98,8 @@ export default function RoleEditDialog({
       onSuccess?.();
     },
     onError: (err: unknown) => {
-      const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      const code = (err as { response?: { data?: { code?: string } } })
+        ?.response?.data?.code;
       if (code === "ERR_ROLE_NAME_EXISTS") {
         setError("角色名称已存在");
       } else if (code === "ERR_PRESET_ROLE_IMMUTABLE") {

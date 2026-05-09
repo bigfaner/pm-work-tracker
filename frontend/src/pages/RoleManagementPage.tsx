@@ -105,7 +105,8 @@ export default function RoleManagementPage() {
       setDeleteError("");
     },
     onError: (err: unknown) => {
-      const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      const code = (err as { response?: { data?: { code?: string } } })
+        ?.response?.data?.code;
       if (code === "ERR_PRESET_ROLE_IMMUTABLE") {
         setDeleteError("预置角色不可删除");
       } else if (code === "ERR_ROLE_IN_USE") {

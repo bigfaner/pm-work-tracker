@@ -30,6 +30,7 @@ func (r *progressRepo) FindByID(ctx context.Context, id uint) (*model.ProgressRe
 	return repo.FindByID[model.ProgressRecord](r.db, ctx, id)
 }
 
+//nolint:dupl // same FindByBizKey shape as decision_log_repo
 func (r *progressRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.ProgressRecord, error) {
 	var record model.ProgressRecord
 	err := r.db.WithContext(ctx).Where("biz_key = ?", bizKey).First(&record).Error
@@ -42,7 +43,7 @@ func (r *progressRepo) FindByBizKey(ctx context.Context, bizKey int64) (*model.P
 	return &record, nil
 }
 
-func (r *progressRepo) ListBySubItem(ctx context.Context, teamBizKey int64, subItemBizKey int64) ([]model.ProgressRecord, error) {
+func (r *progressRepo) ListBySubItem(ctx context.Context, teamBizKey, subItemBizKey int64) ([]model.ProgressRecord, error) {
 	var records []model.ProgressRecord
 	err := r.db.WithContext(ctx).
 		Where("team_key = ? AND sub_item_key = ?", teamBizKey, subItemBizKey).

@@ -163,9 +163,7 @@ export function DecisionTimeline({
 
   // --- Render ---
 
-  const collapsibleHeader = (
-    headerRight?: React.ReactNode,
-  ) => (
+  const collapsibleHeader = (headerRight?: React.ReactNode) => (
     <CardHeader
       className={onToggleCollapse ? "cursor-pointer select-none" : ""}
       onClick={onToggleCollapse}
@@ -233,7 +231,10 @@ export function DecisionTimeline({
             <Button
               variant="primary"
               size="sm"
-              onClick={(e) => { e.stopPropagation(); onAdd(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAdd();
+              }}
             >
               <Plus size={14} />
               添加决策
@@ -272,7 +273,10 @@ export function DecisionTimeline({
           <Button
             variant="primary"
             size="sm"
-            onClick={(e) => { e.stopPropagation(); onAdd(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdd();
+            }}
           >
             添加决策
           </Button>
@@ -313,7 +317,9 @@ export function DecisionTimeline({
                       <div className="flex items-center gap-2 mb-1">
                         <Badge
                           variant={CATEGORY_VARIANTS[log.category] ?? "default"}
-                          aria-label={CATEGORY_LABELS[log.category] ?? log.category}
+                          aria-label={
+                            CATEGORY_LABELS[log.category] ?? log.category
+                          }
                         >
                           {CATEGORY_LABELS[log.category] ?? log.category}
                         </Badge>

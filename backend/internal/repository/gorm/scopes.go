@@ -24,7 +24,7 @@ func NotDeletedTable(table string) func(db *gormlib.DB) *gormlib.DB {
 
 // nextSeqInTx checks whether child records have a higher code sequence than the current counter,
 // and if so, advances the counter. Returns the sequence to use for formatting the next code.
-func nextSeqInTx(tx *gormlib.DB, dialect dbutil.Dialect, parentTable, seqCol, parentKeyCol string, parentKeyVal int64, seq uint, code string, filterCol string, filterVal int64, childModel interface{}) (uint, error) {
+func nextSeqInTx(tx *gormlib.DB, dialect dbutil.Dialect, parentTable, seqCol, parentKeyCol string, parentKeyVal int64, seq uint, code, filterCol string, filterVal int64, childModel interface{}) (uint, error) {
 	// If child records were inserted directly with a higher seq, skip past them.
 	var maxSeq *int
 	subExpr := dialect.Substr(dbutil.ColCode, len(code)+2)

@@ -395,7 +395,7 @@ func setupRBACTestRouter(t *testing.T, db *gorm.DB, data *seedData) *gin.Engine 
 func loginAs(t *testing.T, r *gin.Engine, username, password string) string {
 	t.Helper()
 
-	body := fmt.Sprintf(`{"username":"%s","password":"%s"}`, username, password)
+	body := fmt.Sprintf(`{"username":%q,"password":%q}`, username, password)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -435,7 +435,7 @@ func makeRequest(t *testing.T, r *gin.Engine, method, path, body, token string) 
 	if bodyReader != nil {
 		req = httptest.NewRequest(method, path, bodyReader)
 	} else {
-		req = httptest.NewRequest(method, path, nil)
+		req = httptest.NewRequest(method, path, http.NoBody)
 	}
 
 	if body != "" {
@@ -654,7 +654,7 @@ func createTestMainItem(t *testing.T, r *gin.Engine, token string, teamBizKey in
 
 // createTestSubItem creates a SubItem via the API under the given main item.
 // Returns the SubItem bizKey string.
-func createTestSubItem(t *testing.T, r *gin.Engine, token string, teamBizKey int64, mainItemBizKey string, title string) string {
+func createTestSubItem(t *testing.T, r *gin.Engine, token string, teamBizKey int64, mainItemBizKey, title string) string {
 	t.Helper()
 	body := fmt.Sprintf(`{
 			"mainItemKey": "%s",

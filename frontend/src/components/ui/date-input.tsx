@@ -2,10 +2,7 @@ import { forwardRef, useRef } from "react";
 import { Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type DateInputProps = Omit<
-  React.InputHTMLAttributes<HTMLInputElement>,
-  "type"
->;
+type DateInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type">;
 
 const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
   ({ className, ...props }, forwardedRef) => {

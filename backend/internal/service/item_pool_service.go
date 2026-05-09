@@ -45,7 +45,7 @@ func NewItemPoolService(poolRepo repository.ItemPoolRepo, subRepo repository.Sub
 	}
 }
 
-func (s *itemPoolService) Submit(ctx context.Context, teamBizKey int64, submitterBizKey int64, req dto.SubmitItemPoolReq) (*model.ItemPool, error) {
+func (s *itemPoolService) Submit(ctx context.Context, teamBizKey, submitterBizKey int64, req dto.SubmitItemPoolReq) (*model.ItemPool, error) {
 	item := &model.ItemPool{
 		BaseModel:      model.BaseModel{BizKey: snowflake.Generate()},
 		TeamKey:        teamBizKey,
@@ -61,7 +61,7 @@ func (s *itemPoolService) Submit(ctx context.Context, teamBizKey int64, submitte
 	return item, nil
 }
 
-func (s *itemPoolService) Assign(ctx context.Context, teamBizKey int64, pmBizKey int64, poolItemID uint, req dto.AssignItemPoolReq) error {
+func (s *itemPoolService) Assign(ctx context.Context, teamBizKey, pmBizKey int64, poolItemID uint, req dto.AssignItemPoolReq) error {
 	poolItem, err := s.poolRepo.FindByID(ctx, poolItemID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
@@ -137,7 +137,7 @@ func (s *itemPoolService) Assign(ctx context.Context, teamBizKey int64, pmBizKey
 	})
 }
 
-func (s *itemPoolService) ConvertToMain(ctx context.Context, teamBizKey int64, pmBizKey int64, poolItemID uint, req dto.ConvertToMainItemReq) (*model.MainItem, error) {
+func (s *itemPoolService) ConvertToMain(ctx context.Context, teamBizKey, pmBizKey int64, poolItemID uint, req dto.ConvertToMainItemReq) (*model.MainItem, error) {
 	poolItem, err := s.poolRepo.FindByID(ctx, poolItemID)
 	if err != nil {
 		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
@@ -153,7 +153,7 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamBizKey int64, p
 	err = s.db.Transaction(func(_ *gorm.DB) error {
 		now := time.Now()
 
-		code, err := s.mainRepo.NextCode(ctx, teamBizKey)
+		code, err := s.mainRepo.NextCode(ctx, teamBizKey) //nolint:govet // intentional shadow: inner-block err assignment
 		if err != nil {
 			return err
 		}
@@ -214,7 +214,7 @@ func (s *itemPoolService) ConvertToMain(ctx context.Context, teamBizKey int64, p
 	return created, err
 }
 
-func (s *itemPoolService) Reject(ctx context.Context, teamBizKey int64, pmBizKey int64, poolItemID uint, reason string) error {
+func (s *itemPoolService) Reject(ctx context.Context, teamBizKey, pmBizKey int64, poolItemID uint, reason string) error {
 	poolItem, err := s.poolRepo.FindByID(ctx, poolItemID)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)

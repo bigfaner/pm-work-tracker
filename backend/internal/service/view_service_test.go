@@ -2385,7 +2385,7 @@ func benchmarkTableView(b *testing.B, pageSize int) {
 	}
 }
 
-func BenchmarkTableView(b *testing.B)          { benchmarkTableView(b, 20) }
+func BenchmarkTableView(b *testing.B)           { benchmarkTableView(b, 20) }
 func BenchmarkTableView_LargePage(b *testing.B) { benchmarkTableView(b, 100) }
 
 func BenchmarkGanttView(b *testing.B) {

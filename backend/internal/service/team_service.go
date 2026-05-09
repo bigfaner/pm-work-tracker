@@ -167,13 +167,13 @@ func (s *teamService) UpdateTeam(ctx context.Context, teamBizKey int64, req dto.
 	return team, nil
 }
 
-func (s *teamService) InviteMember(ctx context.Context, _ int64, teamBizKey int64, req dto.InviteMemberReq) error {
+func (s *teamService) InviteMember(ctx context.Context, _, teamBizKey int64, req dto.InviteMemberReq) error {
 	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
 	}
 	// Inline PM-role check: PM role can only be assigned via TransferPM
-	if roleID, err := pkg.ParseID(req.RoleKey); err == nil {
+	if roleID, err := pkg.ParseID(req.RoleKey); err == nil { //nolint:govet // intentional shadow: inner-block err assignment
 		if s.roleRepo != nil {
 			if role, roleErr := s.roleRepo.FindByBizKey(ctx, roleID); roleErr == nil && role.Name == "pm" {
 				return apperrors.ErrCannotAssignPMRole
@@ -204,7 +204,7 @@ func (s *teamService) InviteMember(ctx context.Context, _ int64, teamBizKey int6
 	return s.teamRepo.AddMember(ctx, member)
 }
 
-func (s *teamService) RemoveMember(ctx context.Context, teamBizKey int64, targetUserBizKey int64) error {
+func (s *teamService) RemoveMember(ctx context.Context, teamBizKey, targetUserBizKey int64) error {
 	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
@@ -216,7 +216,7 @@ func (s *teamService) RemoveMember(ctx context.Context, teamBizKey int64, target
 	return s.teamRepo.RemoveMember(ctx, team.BizKey, targetUserBizKey)
 }
 
-func (s *teamService) TransferPM(ctx context.Context, teamBizKey int64, newPMBizKey int64) error {
+func (s *teamService) TransferPM(ctx context.Context, teamBizKey, newPMBizKey int64) error {
 	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)
@@ -276,7 +276,7 @@ func (s *teamService) DisbandTeam(ctx context.Context, teamBizKey int64, confirm
 	return s.teamRepo.SoftDelete(ctx, team.ID)
 }
 
-func (s *teamService) UpdateMemberRole(ctx context.Context, targetUserBizKey int64, teamBizKey int64, roleBizKey int64) error {
+func (s *teamService) UpdateMemberRole(ctx context.Context, targetUserBizKey, teamBizKey, roleBizKey int64) error {
 	team, err := s.teamRepo.FindByBizKey(ctx, teamBizKey)
 	if err != nil {
 		return apperrors.MapNotFound(err, apperrors.ErrTeamNotFound)

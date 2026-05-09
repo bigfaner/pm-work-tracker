@@ -123,7 +123,8 @@ export default function TeamManagementPage() {
       setCodeError("");
     },
     onError: (err: unknown) => {
-      const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      const code = (err as { response?: { data?: { code?: string } } })
+        ?.response?.data?.code;
       if (code === "TEAM_CODE_DUPLICATE") {
         setCodeError("该CODE已被使用");
       } else {
@@ -145,7 +146,8 @@ export default function TeamManagementPage() {
       addToast("成员已添加", "success");
     },
     onError: (err: unknown) => {
-      const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      const code = (err as { response?: { data?: { code?: string } } })
+        ?.response?.data?.code;
       if (code === "ALREADY_MEMBER") {
         addToast("该用户已是团队成员", "error");
       } else {
