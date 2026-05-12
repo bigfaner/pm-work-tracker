@@ -6,6 +6,7 @@ import {
   beforeAll,
   afterAll,
   afterEach,
+  vi,
 } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -1069,5 +1070,34 @@ describe("ItemViewPage", () => {
 
     // Expanded state must be preserved — sub-items still visible
     expect(screen.getByText("Sub Alpha 1")).toBeInTheDocument();
+  });
+
+  describe("copyLink from code badge", () => {
+    let clipboardSpy: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      clipboardSpy = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, "clipboard", {
+        value: { writeText: clipboardSpy },
+        configurable: true,
+      });
+    });
+
+    it("bug: copied link includes base_path in summary view", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText("MI-0001")).toBeInTheDocument();
+      });
+
+      // Click the code badge (MI-0001) in summary view
+      const codeBadge = screen.getByText("MI-0001");
+      fireEvent.click(codeBadge);
+
+      expect(clipboardSpy).toHaveBeenCalledOnce();
+      const copiedText = clipboardSpy.mock.calls[0][0] as string;
+      // The URL must include the VITE_BASE_PATH prefix
+      const basePath = import.meta.env.VITE_BASE_PATH || "";
+      expect(copiedText).toContain(basePath + "/items/1");
+    });
   });
 });
