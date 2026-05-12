@@ -28,7 +28,7 @@ status: Draft
 新增 Milestone 实体，作为团队级别的阶段节点。一个里程碑可绑定多个 MainItem（多对一关系），通过独立的时间线图页面可视化展示。
 
 核心要素：
-- **Milestone 实体**：名称、计划日期、四态状态机（not_started/in_progress/completed/cancelled）、自动计算完成度
+- **Milestone 实体**：名称、计划完成时间、四态状态机（not_started/in_progress/completed/cancelled）、自动计算完成度
 - **关联模型**：MainItem.milestone_key 外键，一个 MI 只属于一个里程碑（可空）
 - **时间线图**：横向时间轴，里程碑为节点，关联 MI 按时间排列并连线到对应里程碑。性能目标：支持单个团队最多 20 个里程碑、200 个 MI（~10 个 MI/里程碑）在视口内渲染，初始绘制 < 500ms、交互帧率 ≥ 30fps。超出 200 个 MI 时启用分页加载（按里程碑分组，默认展开前 5 个里程碑，其余折叠）
 - **交互**：点击查看详情/创建、拖拽改变 MI 归属、时间轴缩放（周/月/季）

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>事项清单 - PM Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .items-list-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .list-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+      cursor: pointer;
+    }
+    .list-item:last-child {
+      border-bottom: none;
+    }
+    .list-item:hover {
+      background: var(--bg);
+    }
+    .list-item .item-type {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      width: 40px;
+      flex-shrink: 0;
+    }
+    .list-item .item-code {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      width: 72px;
+      flex-shrink: 0;
+    }
+    .list-item .item-title {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .list-item .item-priority {
+      width: 36px;
+      flex-shrink: 0;
+      text-align: center;
+    }
+    .list-item .item-assignee {
+      font-size: 13px;
+      color: var(--text-secondary);
+      width: 56px;
+      flex-shrink: 0;
+    }
+    .list-item .item-milestone-tag {
+      flex-shrink: 0;
+    }
+    .list-item .item-progress-text {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      width: 36px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .priority-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .priority-P1 { background: var(--error-bg); color: var(--error-text); }
+    .priority-P2 { background: var(--warning-bg); color: var(--warning-text); }
+    .priority-P3 { background: var(--bg); color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <h2>PM Tracker</h2>
+        <p>工作事项追踪</p>
+      </div>
+      <div class="sidebar-nav">
+        <a href="index.html" class="sidebar-link">
+          <span class="nav-icon">&#9776;</span>
+          原型导航
+        </a>
+        <div class="sidebar-divider"></div>
+        <a href="milestones.html" class="sidebar-link">
+          <span class="nav-icon">&#9670;</span>
+          里程碑图
+        </a>
+        <a href="items.html" class="sidebar-link active">
+          <span class="nav-icon">&#9776;</span>
+          事项清单
+        </a>
+        <a href="item-detail.html" class="sidebar-link">
+          <span class="nav-icon">&#9998;</span>
+          事项详情
+        </a>
+        <a href="table.html" class="sidebar-link">
+          <span class="nav-icon">&#9600;</span>
+          表格视图
+        </a>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar">张</div>
+        <div class="user-name">张三</div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1>事项清单</h1>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary">&#8635; 刷新</button>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <!-- Status filter -->
+        <div class="dropdown">
+          <button class="dropdown-trigger" onclick="toggleDropdown('status-dropdown')">
+            状态：全部 <span class="arrow">&#9660;</span>
+          </button>
+          <div class="dropdown-menu" id="status-dropdown">
+            <div class="dropdown-item active">全部</div>
+            <div class="dropdown-item">未开始</div>
+            <div class="dropdown-item">进行中</div>
+            <div class="dropdown-item">已完成</div>
+          </div>
+        </div>
+
+        <!-- Assignee filter -->
+        <div class="dropdown">
+          <button class="dropdown-trigger" onclick="toggleDropdown('assignee-dropdown')">
+            负责人：全部 <span class="arrow">&#9660;</span>
+          </button>
+          <div class="dropdown-menu" id="assignee-dropdown">
+            <div class="dropdown-item active">全部</div>
+            <div class="dropdown-item">张三</div>
+            <div class="dropdown-item">李四</div>
+            <div class="dropdown-item">王五</div>
+          </div>
+        </div>
+
+        <!-- NEW: Milestone filter (UF-4) -->
+        <div class="dropdown">
+          <button class="dropdown-trigger" onclick="toggleDropdown('milestone-dropdown')">
+            里程碑：全部 <span class="arrow">&#9660;</span>
+          </button>
+          <div class="dropdown-menu" id="milestone-dropdown">
+            <div class="dropdown-item active">全部</div>
+            <div class="dropdown-item">未分配</div>
+            <div class="dropdown-item">MVP 发布</div>
+            <div class="dropdown-item">Beta 测试</div>
+          </div>
+        </div>
+
+        <!-- Search -->
+        <div class="search-wrapper">
+          <span class="search-icon">&#128269;</span>
+          <input type="text" class="search-input" placeholder="搜索事项..." aria-label="搜索事项">
+        </div>
+
+        <button class="btn btn-ghost">重置</button>
+      </div>
+
+      <!-- Items List -->
+      <div class="items-list-card">
+        <div class="list-item" onclick="location.href='item-detail.html'">
+          <span class="item-type">主事项</span>
+          <span class="item-code">MI-0001</span>
+          <span class="item-title">需求分析</span>
+          <span class="item-priority"><span class="priority-badge priority-P1">P1</span></span>
+          <span class="item-assignee">张三</span>
+          <span class="item-milestone-tag"><span class="badge badge-accent">MVP发布</span></span>
+          <span class="item-progress-text">60%</span>
+        </div>
+        <div class="list-item" onclick="location.href='item-detail.html'">
+          <span class="item-type">主事项</span>
+          <span class="item-code">MI-0002</span>
+          <span class="item-title">架构设计</span>
+          <span class="item-priority"><span class="priority-badge priority-P1">P1</span></span>
+          <span class="item-assignee">李四</span>
+          <span class="item-milestone-tag"><span class="badge badge-accent">MVP发布</span></span>
+          <span class="item-progress-text">100%</span>
+        </div>
+        <div class="list-item" onclick="location.href='item-detail.html'">
+          <span class="item-type">主事项</span>
+          <span class="item-code">MI-0003</span>
+          <span class="item-title">UI设计</span>
+          <span class="item-priority"><span class="priority-badge priority-P2">P2</span></span>
+          <span class="item-assignee">王五</span>
+          <span class="item-milestone-tag"><span class="badge badge-accent">MVP发布</span></span>
+          <span class="item-progress-text">100%</span>
+        </div>
+        <div class="list-item" onclick="location.href='item-detail.html'">
+          <span class="item-type">主事项</span>
+          <span class="item-code">MI-0004</span>
+          <span class="item-title">数据库设计</span>
+          <span class="item-priority"><span class="priority-badge priority-P2">P2</span></span>
+          <span class="item-assignee">张三</span>
+          <span class="item-milestone-tag"></span>
+          <span class="item-progress-text">40%</span>
+        </div>
+        <div class="list-item" onclick="location.href='item-detail.html'">
+          <span class="item-type">主事项</span>
+          <span class="item-code">MI-0005</span>
+          <span class="item-title">API开发</span>
+          <span class="item-priority"><span class="priority-badge priority-P1">P1</span></span>
+          <span class="item-assignee">李四</span>
+          <span class="item-milestone-tag"><span class="badge badge-accent">MVP发布</span></span>
+          <span class="item-progress-text">80%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

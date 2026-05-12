@@ -8,7 +8,7 @@ feature: "里程碑图"
 
 ## UI Scope
 
-新增 1 个独立页面（/milestones）+ 修改 3 个现有页面（事项清单、主事项编辑、表格视图），提供里程碑的创建、管理、可视化展示和与现有事项的集成。
+新增 1 个独立页面（/milestones，含两级视图）+ 修改 3 个现有页面（事项清单、主事项编辑、表格视图），提供里程碑图的创建管理、里程碑的可视化展示和与现有事项的集成。
 
 ## Navigation Architecture
 
@@ -24,18 +24,21 @@ feature: "里程碑图"
 
 | Page | Entry Point (UF# or action) | Return Target |
 |------|-----------------------------|---------------|
-| 里程碑详情面板 | UF-1 点击里程碑节点 | /milestones |
+| 时间线详情 | UF-1 点击里程碑图卡片 | /milestones（列表视图） |
+| 里程碑详情面板 | UF-1 时间线中点击里程碑节点 | /milestones（时间线视图） |
 | 主事项详情 | UF-1 点击关联的 MI 条目 | /items/:mainItemId |
 
 ### Navigation Rules
 
 - 里程碑图页面从主导航进入，与事项清单/甘特图/周报/表格平级
+- 页面默认显示里程碑图列表视图，点击卡片进入时间线视图
+- 时间线视图通过面包屑导航返回列表视图
 - 里程碑详情面板为 overlay（不离开当前页面）
 - 从详情面板点击 MI 条目跳转到主事项详情页
 
 ---
 
-## UI Function 1: 里程碑时间线页面
+## UI Function 1: 里程碑图页面（两级视图）
 
 ### Placement
 
@@ -45,47 +48,71 @@ feature: "里程碑图"
 
 ### Description
 
-展示团队所有里程碑及其关联 MainItem 的横向时间线视图。里程碑作为时间轴上的节点，关联的 MI 按时间排列在下方并连线到对应里程碑。支持缩放、拖拽归属变更、点击交互。
+两级视图页面：
+- **第一级（列表视图）**：展示团队所有里程碑图的卡片列表，支持按状态筛选。每张卡片显示名称、状态、里程碑数量、事项数量、整体进度、里程碑节点缩略图。
+- **第二级（时间线视图）**：点击卡片进入该里程碑图的时间线视图，展示里程碑节点及关联 MI 的横向时间线。支持缩放、点击交互。
 
 ### User Interaction Flow
 
+**列表视图：**
 1. 用户从主导航进入 /milestones 页面
-2. 系统渲染时间线：横向时间轴，里程碑节点按计划日期排列，关联 MI 展示在对应里程碑下方
-3. 用户可缩放时间轴（周/月/季切换控件）
-4. 用户点击里程碑节点 → 弹出详情面板（名称、日期、状态、完成度、关联 MI 列表）
-5. 用户点击空白处或"创建里程碑"按钮 → 弹出创建表单
-6. 用户拖拽 MI 条目到不同里程碑 → 改变 MI 归属
-7. 用户拖拽 MI 到空白区域 → 解绑 MI
+2. 系统渲染里程碑图卡片列表，支持按状态筛选（全部/规划中/已评审/待实施/实施中/已完成）
+3. 用户点击某张卡片 → 进入该里程碑图的时间线视图
+
+**时间线视图：**
+4. 系统渲染时间线：横向时间轴，里程碑节点按计划完成时间排列，关联 MI 展示在对应里程碑下方
+5. 用户可缩放时间轴（周/月/季切换控件）
+6. 用户点击里程碑节点 → 弹出详情面板（UF-3）
+7. 用户点击"+ 创建里程碑"按钮 → 弹出创建弹窗（UF-2）
+8. 用户点击面包屑"里程碑图"或"返回列表"按钮 → 返回列表视图
 
 ### Data Requirements
+
+**列表视图：**
+
+| Field | Type | Source | Notes |
+|-------|------|--------|-------|
+| 里程碑图名称 | string | milestone_map.name | 卡片标题 |
+| 里程碑图状态 | enum | milestone_map.status | 规划中/已评审/待实施/实施中/已完成 |
+| 里程碑数量 | int | 计算值 | 关联里程碑计数 |
+| 事项数量 | int | 计算值 | 所有关联 MI 计数 |
+| 整体进度 | decimal | 计算值 | 所有关联 MI completion 的平均值 |
+
+**时间线视图：**
 
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
 | 里程碑名称 | string | milestone.name | 节点上显示 |
-| 计划日期 | date | milestone.planned_date | 节点上显示，决定时间轴位置 |
+| 计划完成时间 | date | milestone.planned_completion_date | 决定时间轴位置 |
 | 状态 | enum | milestone.status | not_started/in_progress/completed/cancelled |
 | 完成度 | decimal | 计算值 | 关联 MI completion 的平均值，空里程碑为 0 |
 | 关联 MI 数量 | int | 计算值 | 悬停时显示 |
-| MI 标题 | string | main_item.title | 时间线上 MI 条目 |
-| MI 编号 | string | main_item.code | 如 MI-0001 |
-| MI 状态 | enum | main_item.status | MI 条目上显示 |
-| MI 完成度 | int | main_item.completion | MI 条目上显示 |
+| MI 标题/编号/状态/完成度 | various | main_item.* | MI 条目上显示 |
 
 ### States
 
+**列表视图：**
+
 | State | Display | Trigger |
 |-------|---------|---------|
-| Loading | 骨架屏/加载动画 | 页面初始加载 |
-| Empty | 空状态提示"暂无里程碑，点击创建" + 创建按钮 | 团队无里程碑 |
+| Loading | 骨架屏卡片 | 页面初始加载 |
+| Empty | 空状态提示"暂无里程碑图" + 创建按钮 | 团队无里程碑图 |
+| Populated | 卡片网格 | 有里程碑图数据 |
+| Error | 错误提示+重试按钮 | API 请求失败 |
+
+**时间线视图：**
+
+| State | Display | Trigger |
+|-------|---------|---------|
+| Loading | 骨架屏 | 进入时间线 |
 | Populated | 时间线+里程碑节点+MI 条目 | 有里程碑数据 |
 | No Permission | 403 提示页 | 用户缺少 milestone:read 权限 |
 | Error | 错误提示+重试按钮 | API 请求失败 |
 
 ### Validation Rules
 
-- 创建里程碑：名称必填（1-100 字符），计划日期必填
-- 编辑里程碑：名称和日期不可同时为空
-- 拖拽归属：目标里程碑必须与 MI 属于同一团队
+- 创建里程碑图：名称必填（1-100 字符），描述可选
+- 状态筛选值必须是有效状态枚举值或 `all`
 
 ---
 
@@ -95,16 +122,16 @@ feature: "里程碑图"
 
 - **Mode**: existing-page:/milestones
 - **Target Page**: /milestones
-- **Position**: 页面中央 modal overlay，从时间线页面触发
+- **Position**: 页面中央 modal overlay，从时间线视图触发
 
 ### Description
 
-弹窗表单用于创建新里程碑或编辑现有里程碑。包含名称、计划日期字段。
+弹窗表单用于创建新里程碑或编辑现有里程碑。包含名称、计划完成时间字段。
 
 ### User Interaction Flow
 
-1. 用户点击时间线页面的"创建里程碑"按钮（或点击空白区域）→ 弹出创建弹窗
-2. 用户填写名称和计划日期 → 点击确认 → 创建成功 → 弹窗关闭 → 时间线刷新
+1. 用户点击时间线视图的"+ 创建里程碑"按钮 → 弹出创建弹窗
+2. 用户填写名称和计划完成时间 → 点击确认 → 创建成功 → 弹窗关闭 → 时间线刷新
 3. 用户在里程碑详情面板点击"编辑" → 弹出编辑弹窗（预填当前值）
 4. 用户修改后点击保存 → 保存成功 → 弹窗关闭 → 时间线刷新
 
@@ -113,7 +140,7 @@ feature: "里程碑图"
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
 | 名称 | string | milestone.name | 必填，1-100 字符 |
-| 计划日期 | date | milestone.planned_date | 必填，日期选择器 |
+| 计划完成时间 | date | milestone.planned_completion_date | 必填，日期选择器 |
 
 ### States
 
@@ -127,7 +154,7 @@ feature: "里程碑图"
 ### Validation Rules
 
 - 名称：必填，1-100 字符
-- 计划日期：必填
+- 计划完成时间：必填
 
 ---
 
@@ -141,26 +168,28 @@ feature: "里程碑图"
 
 ### Description
 
-展示单个里程碑的完整信息：名称、计划日期、状态、完成度、关联 MI 列表。提供编辑、删除、状态切换操作。
+展示单个里程碑的完整信息：名称、计划完成时间、状态（Badge+下拉切换）、完成度、关联 MI 列表（每行含解绑按钮）。提供编辑、删除、快速添加事项操作。
 
 ### User Interaction Flow
 
 1. 用户在时间线上点击里程碑节点 → 右侧弹出详情面板
-2. 面板显示：名称、计划日期、状态标签、完成度进度条、关联 MI 列表
-3. 用户点击"编辑" → 弹出编辑弹窗（UF-2）
-4. 用户点击状态切换按钮 → 状态变更 → 面板和时间线刷新
+2. 面板顶部：计划完成时间（左） + 状态 Badge（可点击切换） + 编辑按钮（右），三者同行
+3. 用户点击状态 Badge → 下拉显示可用状态转换 → 选择目标状态 → 状态变更 → 面板和时间线刷新
+4. 用户点击"编辑" → 弹出编辑弹窗（UF-2）
 5. 用户点击"删除" → 确认弹窗 → 删除成功 → 面板关闭，时间线刷新
 6. 用户点击关联 MI 列表中的某条 → 跳转到主事项详情页
+7. 用户点击关联 MI 列表行右侧的 × 按钮 → 解除该 MI 与里程碑的绑定 → MI 列表刷新
+8. 用户点击"关联事项"标题行右侧的"+ 添加"按钮 → 弹出快速添加事项弹窗（UF-3a） → 填写完整主事项表单并确认 → 创建 MI 并绑定当前里程碑 → 详情面板 MI 列表刷新
 
 ### Data Requirements
 
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
-| 名称 | string | milestone.name | 标题 |
-| 计划日期 | date | milestone.planned_date | 日期格式 |
-| 状态 | enum | milestone.status | 状态标签样式区分 |
+| 名称 | string | milestone.name | 面板标题 |
+| 计划完成时间 | date | milestone.planned_completion_date | 同行显示 |
+| 状态 | enum | milestone.status | Badge 显示，点击弹出下拉 |
 | 完成度 | decimal | 计算值 | 进度条 + 百分比 |
-| 关联 MI 列表 | list | main_items where milestone_key = this | 编号+标题+状态+完成度 |
+| 关联 MI 列表 | list | main_items where milestone_key = this | 编号+标题+状态+完成度+解绑按钮 |
 
 ### States
 
@@ -172,12 +201,51 @@ feature: "里程碑图"
 
 ### Validation Rules
 
-- 状态切换：明确合法转换方向如下：
-  - `not_started` → `in_progress` ✓ / `cancelled` ✓；→ `completed` ✗（按钮禁用，tooltip 提示"未开始的里程碑不可直接标记为已完成"）
-  - `in_progress` → `completed` ✓ / `cancelled` ✓；→ `not_started` ✗（按钮禁用，tooltip 提示"进行中不可回退为未开始"）
-  - `completed` → `cancelled` ✓；→ `in_progress` ✗ / `not_started` ✗（按钮禁用，tooltip 提示"已完成状态不可回退"）
-  - `cancelled` → 任何状态 ✗（所有切换按钮禁用，tooltip 提示"已取消的里程碑不可恢复"）
+- 状态切换：点击状态 Badge 弹出下拉菜单，仅显示合法转换选项（不可用的状态以灰色+不可点击显示）：
+  - `not_started` → `in_progress` ✓ / `cancelled` ✓
+  - `in_progress` → `completed` ✓ / `cancelled` ✓
+  - `completed` → `cancelled` ✓
+  - `cancelled` → 任何状态 ✗（无下拉选项）
 - 删除：点击删除按钮后弹出确认弹窗（非 alert），用户确认后执行删除，取消则关闭弹窗不做操作
+- 解绑：点击 MI 行右侧 × 按钮即解除绑定，显示撤销 toast
+
+---
+
+## UI Function 3a: 快速添加事项弹窗
+
+### Placement
+
+- **Mode**: existing-page:/milestones
+- **Target Page**: /milestones
+- **Position**: 页面中央 modal overlay，从详情面板"+ 添加"按钮触发
+
+### Description
+
+复用与事项清单页一致的主事项创建表单（CreateMainItemDialog），所属里程碑自动预填为当前里程碑且不可修改。
+
+### User Interaction Flow
+
+1. 用户在详情面板点击"+ 添加"按钮 → 弹出创建主事项弹窗
+2. 表单字段与事项清单创建表单完全一致：标题、优先级+负责人、开始时间+预期完成时间、所属里程碑、描述
+3. 所属里程碑字段自动预填当前里程碑名称，disabled 不可修改
+4. 用户填写表单并点击"确认" → 创建 MI 并绑定当前里程碑 → 弹窗关闭 → 详情面板 MI 列表刷新
+
+### Data Requirements
+
+| Field | Type | Source | Notes |
+|-------|------|--------|-------|
+| 标题 | string | main_item.title | 必填，1-100 字符 |
+| 优先级 | enum | main_item.priority | 必填，默认 P2，下拉选择 |
+| 负责人 | string | main_item.assignee_key | 必填，团队成员下拉选择 |
+| 开始时间 | date | main_item.start_date | 必填，默认今天 |
+| 预期完成时间 | date | main_item.expected_end_date | 必填 |
+| 所属里程碑 | string | 自动预填 | disabled，不可修改 |
+| 描述 | string | main_item.description | 可选 |
+
+### Validation Rules
+
+- 与事项清单创建主事项表单校验规则一致：标题、负责人、开始时间、预期完成时间为必填
+- 所属里程碑不可修改，自动传入当前里程碑 bizKey
 
 ---
 
@@ -269,7 +337,7 @@ feature: "里程碑图"
 
 - **Mode**: existing-page:/table
 - **Target Page**: /table
-- **Position**: 表格列，在"状态"列和"预期完成"列之间
+- **Position**: 表格列，在"标题"列和"优先级"列之间
 
 ### Description
 
@@ -302,11 +370,51 @@ feature: "里程碑图"
 
 ---
 
+## UI Function 7: 创建/编辑里程碑图弹窗
+
+### Placement
+
+- **Mode**: existing-page:/milestones
+- **Target Page**: /milestones
+- **Position**: 页面中央 modal overlay，从列表视图触发
+
+### Description
+
+弹窗表单用于创建新里程碑图或编辑现有里程碑图。包含名称、描述字段。
+
+### User Interaction Flow
+
+1. 用户点击列表视图的"+ 创建里程碑图"按钮或虚线创建卡片 → 弹出创建弹窗
+2. 用户填写名称和描述 → 点击创建 → 创建成功 → 弹窗关闭 → 列表刷新
+3. 用户在里程碑图卡片上点击编辑 → 弹出编辑弹窗（预填当前值）
+4. 用户修改后点击保存 → 保存成功 → 弹窗关闭 → 列表刷新
+
+### Data Requirements
+
+| Field | Type | Source | Notes |
+|-------|------|--------|-------|
+| 名称 | string | milestone_map.name | 必填，1-100 字符 |
+| 描述 | string | milestone_map.description | 可选 |
+
+### States
+
+| State | Display | Trigger |
+|-------|---------|---------|
+| Create Mode | 标题"创建里程碑图"，表单为空 | 点击创建按钮 |
+| Edit Mode | 标题"编辑里程碑图"，表单预填值 | 点击编辑按钮 |
+| Submitting | 确认按钮 loading 状态 | 提交中 |
+
+### Validation Rules
+
+- 名称：必填，1-100 字符
+
+---
+
 ## Page Composition
 
 | Page | Type | UI Functions | Position Notes |
 |------|------|-------------|----------------|
-| /milestones | new | UF-1, UF-2, UF-3 | 新页面：时间线(UF-1) + 创建/编辑弹窗(UF-2) + 详情面板(UF-3) |
+| /milestones | new | UF-1, UF-2, UF-3, UF-3a, UF-7 | 新页面：列表+时间线(UF-1) + 创建/编辑里程碑弹窗(UF-2) + 详情面板(UF-3) + 快速添加事项(UF-3a) + 创建/编辑里程碑图弹窗(UF-7) |
 | /items | existing | UF-4 | 筛选栏增加里程碑筛选器 + MI 条目显示里程碑标签 |
 | /items/:mainItemId | existing | UF-5 | 编辑弹窗增加里程碑选择器 |
 | /table | existing | UF-6 | 表格增加里程碑列 |

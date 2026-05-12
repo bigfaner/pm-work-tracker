@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>表格视图 - PM Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .table-filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .th-sort {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .th-sort .sort-icon {
+      font-size: 10px;
+      color: var(--text-tertiary);
+    }
+    .th-sort:hover .sort-icon {
+      color: var(--text-secondary);
+    }
+    .th-filter {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      cursor: pointer;
+    }
+    .th-filter .filter-icon {
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+    .th-filter:hover .filter-icon {
+      color: var(--accent);
+    }
+    .priority-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .priority-P1 { background: var(--error-bg); color: var(--error-text); }
+    .priority-P2 { background: var(--warning-bg); color: var(--warning-text); }
+    .priority-P3 { background: var(--bg); color: var(--text-secondary); }
+
+    /* Column filter dropdown (inline in table header) */
+    .col-filter-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      min-width: 140px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--elevation-2);
+      z-index: 30;
+      padding: 4px;
+      display: none;
+    }
+    .col-filter-dropdown.show {
+      display: block;
+    }
+    .col-filter-item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+    .col-filter-item:hover {
+      background: var(--accent-bg);
+      color: var(--accent);
+    }
+    .col-filter-item.active {
+      font-weight: 500;
+      color: var(--accent);
+    }
+    .th-wrapper {
+      position: relative;
+    }
+    .unassigned-cell {
+      color: var(--text-tertiary);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <h2>PM Tracker</h2>
+        <p>工作事项追踪</p>
+      </div>
+      <div class="sidebar-nav">
+        <a href="index.html" class="sidebar-link">
+          <span class="nav-icon">&#9776;</span>
+          原型导航
+        </a>
+        <div class="sidebar-divider"></div>
+        <a href="milestones.html" class="sidebar-link">
+          <span class="nav-icon">&#9670;</span>
+          里程碑图
+        </a>
+        <a href="items.html" class="sidebar-link">
+          <span class="nav-icon">&#9776;</span>
+          事项清单
+        </a>
+        <a href="item-detail.html" class="sidebar-link">
+          <span class="nav-icon">&#9998;</span>
+          事项详情
+        </a>
+        <a href="table.html" class="sidebar-link active">
+          <span class="nav-icon">&#9600;</span>
+          表格视图
+        </a>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar">张</div>
+        <div class="user-name">张三</div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1>表格视图</h1>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary">&#8635; 刷新</button>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <div class="dropdown">
+          <button class="dropdown-trigger" onclick="toggleDropdown('table-status')">
+            状态：全部 <span class="arrow">&#9660;</span>
+          </button>
+          <div class="dropdown-menu" id="table-status">
+            <div class="dropdown-item active">全部</div>
+            <div class="dropdown-item">未开始</div>
+            <div class="dropdown-item">进行中</div>
+            <div class="dropdown-item">已完成</div>
+          </div>
+        </div>
+        <div class="dropdown">
+          <button class="dropdown-trigger" onclick="toggleDropdown('table-priority')">
+            优先级：全部 <span class="arrow">&#9660;</span>
+          </button>
+          <div class="dropdown-menu" id="table-priority">
+            <div class="dropdown-item active">全部</div>
+            <div class="dropdown-item">P1</div>
+            <div class="dropdown-item">P2</div>
+            <div class="dropdown-item">P3</div>
+          </div>
+        </div>
+        <div class="search-wrapper">
+          <span class="search-icon">&#128269;</span>
+          <input type="text" class="search-input" placeholder="搜索..." aria-label="搜索">
+        </div>
+        <button class="btn btn-ghost">重置</button>
+      </div>
+
+      <!-- Table -->
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="sortable">
+                <span class="th-sort">类型 <span class="sort-icon">&#8597;</span></span>
+              </th>
+              <th class="sortable">
+                <span class="th-sort">编号 <span class="sort-icon">&#8597;</span></span>
+              </th>
+              <th class="sortable">
+                <span class="th-sort">标题 <span class="sort-icon">&#8597;</span></span>
+              </th>
+              <th class="sortable">
+                <span class="th-sort">优先级 <span class="sort-icon">&#8597;</span></span>
+              </th>
+              <!-- NEW: Milestone column (UF-6) -->
+              <th class="sortable">
+                <div class="th-wrapper">
+                  <span class="th-sort" onclick="toggleDropdown('col-milestone-filter')">里程碑 <span class="sort-icon">&#8597;</span> <span class="filter-icon">&#9662;</span></span>
+                  <div class="col-filter-dropdown" id="col-milestone-filter">
+                    <div class="col-filter-item active">全部</div>
+                    <div class="col-filter-item">未分配</div>
+                    <div class="col-filter-item">MVP发布</div>
+                    <div class="col-filter-item">Beta测试</div>
+                  </div>
+                </div>
+              </th>
+              <th>负责人</th>
+              <th class="sortable">
+                <span class="th-sort">进度 <span class="sort-icon">&#8597;</span></span>
+              </th>
+              <th>状态</th>
+              <th class="sortable">
+                <span class="th-sort">预期完成 <span class="sort-icon">&#8597;</span></span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>主事项</td>
+              <td style="color: var(--accent); font-weight: 500;">MI-0001</td>
+              <td style="color: var(--text-primary);">需求分析</td>
+              <td><span class="priority-badge priority-P1">P1</span></td>
+              <!-- NEW: Milestone cell -->
+              <td style="color: var(--text-secondary);">MVP发布</td>
+              <td>张三</td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div class="progress-bar" style="width: 60px;">
+                    <div class="progress-bar-fill" style="width: 60%"></div>
+                  </div>
+                  <span style="font-size: 12px; color: var(--text-tertiary);">60%</span>
+                </div>
+              </td>
+              <td><span class="badge badge-accent">进行中</span></td>
+              <td style="color: var(--text-tertiary);">06/15</td>
+            </tr>
+            <tr>
+              <td>主事项</td>
+              <td style="color: var(--accent); font-weight: 500;">MI-0002</td>
+              <td style="color: var(--text-primary);">架构设计</td>
+              <td><span class="priority-badge priority-P1">P1</span></td>
+              <td style="color: var(--text-secondary);">MVP发布</td>
+              <td>李四</td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div class="progress-bar" style="width: 60px;">
+                    <div class="progress-bar-fill" style="width: 100%"></div>
+                  </div>
+                  <span style="font-size: 12px; color: var(--text-tertiary);">100%</span>
+                </div>
+              </td>
+              <td><span class="badge badge-success">已完成</span></td>
+              <td style="color: var(--text-tertiary);">05/20</td>
+            </tr>
+            <tr>
+              <td>主事项</td>
+              <td style="color: var(--accent); font-weight: 500;">MI-0003</td>
+              <td style="color: var(--text-primary);">UI设计</td>
+              <td><span class="priority-badge priority-P2">P2</span></td>
+              <td style="color: var(--text-secondary);">MVP发布</td>
+              <td>王五</td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div class="progress-bar" style="width: 60px;">
+                    <div class="progress-bar-fill" style="width: 100%"></div>
+                  </div>
+                  <span style="font-size: 12px; color: var(--text-tertiary);">100%</span>
+                </div>
+              </td>
+              <td><span class="badge badge-success">已完成</span></td>
+              <td style="color: var(--text-tertiary);">06/01</td>
+            </tr>
+            <tr>
+              <td>主事项</td>
+              <td style="color: var(--accent); font-weight: 500;">MI-0004</td>
+              <td style="color: var(--text-primary);">数据库设计</td>
+              <td><span class="priority-badge priority-P2">P2</span></td>
+              <td class="unassigned-cell">-</td>
+              <td>张三</td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div class="progress-bar" style="width: 60px;">
+                    <div class="progress-bar-fill" style="width: 40%"></div>
+                  </div>
+                  <span style="font-size: 12px; color: var(--text-tertiary);">40%</span>
+                </div>
+              </td>
+              <td><span class="badge badge-accent">进行中</span></td>
+              <td style="color: var(--text-tertiary);">07/15</td>
+            </tr>
+            <tr>
+              <td>主事项</td>
+              <td style="color: var(--accent); font-weight: 500;">MI-0005</td>
+              <td style="color: var(--text-primary);">API开发</td>
+              <td><span class="priority-badge priority-P1">P1</span></td>
+              <td style="color: var(--text-secondary);">MVP发布</td>
+              <td>李四</td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div class="progress-bar" style="width: 60px;">
+                    <div class="progress-bar-fill" style="width: 80%"></div>
+                  </div>
+                  <span style="font-size: 12px; color: var(--text-tertiary);">80%</span>
+                </div>
+              </td>
+              <td><span class="badge badge-accent">进行中</span></td>
+              <td style="color: var(--text-tertiary);">06/25</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

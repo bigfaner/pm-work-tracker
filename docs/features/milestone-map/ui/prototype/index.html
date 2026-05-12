@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>里程碑图 - 原型导航</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <h2>PM Tracker</h2>
+        <p>工作事项追踪</p>
+      </div>
+      <div class="sidebar-nav">
+        <a href="index.html" class="sidebar-link active">
+          <span class="nav-icon">&#9776;</span>
+          原型导航
+        </a>
+        <div class="sidebar-divider"></div>
+        <a href="milestones.html" class="sidebar-link">
+          <span class="nav-icon">&#9670;</span>
+          里程碑图
+        </a>
+        <a href="items.html" class="sidebar-link">
+          <span class="nav-icon">&#9776;</span>
+          事项清单
+        </a>
+        <a href="item-detail.html" class="sidebar-link">
+          <span class="nav-icon">&#9998;</span>
+          事项详情
+        </a>
+        <a href="table.html" class="sidebar-link">
+          <span class="nav-icon">&#9600;</span>
+          表格视图
+        </a>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar">张</div>
+        <div class="user-name">张三</div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="page-header">
+        <h1>里程碑图原型导航</h1>
+      </div>
+
+      <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">
+        以下是里程碑图功能的 HTML 原型页面。每个页面展示了不同 UI Function 的交互效果，包含可点击的弹窗、面板、下拉框等组件。
+      </p>
+
+      <div class="prototype-grid">
+        <a href="milestones.html" class="prototype-card">
+          <h3>里程碑时间线</h3>
+          <p>主时间线页面，包含横向时间轴、里程碑节点、关联事项展示。支持创建弹窗(UF-2)、详情面板(UF-3)、删除确认、撤销 Toast、多状态切换预览。</p>
+          <span class="card-tag">UF-1 + UF-2 + UF-3</span>
+        </a>
+
+        <a href="items.html" class="prototype-card">
+          <h3>事项清单（含里程碑筛选）</h3>
+          <p>事项列表页新增里程碑筛选下拉框，支持按里程碑过滤事项。事项条目旁显示里程碑名称标签。</p>
+          <span class="card-tag">UF-4</span>
+        </a>
+
+        <a href="item-detail.html" class="prototype-card">
+          <h3>事项详情（含里程碑选择器）</h3>
+          <p>事项详情页的编辑弹窗中新增"所属里程碑"下拉选择器，支持分配/取消分配里程碑。</p>
+          <span class="card-tag">UF-5</span>
+        </a>
+
+        <a href="table.html" class="prototype-card">
+          <h3>表格视图（含里程碑列）</h3>
+          <p>表格视图新增"里程碑"列，显示已分配的里程碑名称或"-"。支持列头排序和筛选。</p>
+          <span class="card-tag">UF-6</span>
+        </a>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

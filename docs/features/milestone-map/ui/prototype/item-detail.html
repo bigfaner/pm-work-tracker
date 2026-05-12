@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MI-0001 需求分析 - PM Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .detail-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .detail-title-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .detail-title-row h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .detail-meta {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .detail-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .detail-meta-label {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    .detail-meta-value {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    .detail-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .detail-section h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+    .detail-description {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .progress-bar-detail {
+      margin-top: 8px;
+      max-width: 300px;
+    }
+    .priority-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .priority-P1 { background: var(--error-bg); color: var(--error-text); }
+    .priority-P2 { background: var(--warning-bg); color: var(--warning-text); }
+    .priority-P3 { background: var(--bg); color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <h2>PM Tracker</h2>
+        <p>工作事项追踪</p>
+      </div>
+      <div class="sidebar-nav">
+        <a href="index.html" class="sidebar-link">
+          <span class="nav-icon">&#9776;</span>
+          原型导航
+        </a>
+        <div class="sidebar-divider"></div>
+        <a href="milestones.html" class="sidebar-link">
+          <span class="nav-icon">&#9670;</span>
+          里程碑图
+        </a>
+        <a href="items.html" class="sidebar-link">
+          <span class="nav-icon">&#9776;</span>
+          事项清单
+        </a>
+        <a href="item-detail.html" class="sidebar-link active">
+          <span class="nav-icon">&#9998;</span>
+          事项详情
+        </a>
+        <a href="table.html" class="sidebar-link">
+          <span class="nav-icon">&#9600;</span>
+          表格视图
+        </a>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar">张</div>
+        <div class="user-name">张三</div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Breadcrumb -->
+      <div class="breadcrumb">
+        <a href="items.html">事项清单</a>
+        <span class="sep">/</span>
+        <span class="current">MI-0001</span>
+      </div>
+
+      <!-- Detail Header -->
+      <div class="detail-header">
+        <div class="detail-title-row">
+          <h1>MI-0001 需求分析</h1>
+          <span class="badge badge-accent">进行中</span>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary" onclick="openModal('edit-modal')">编辑</button>
+        </div>
+      </div>
+
+      <!-- Meta -->
+      <div class="detail-meta">
+        <div class="detail-meta-item">
+          <span class="detail-meta-label">优先级</span>
+          <span class="detail-meta-value"><span class="priority-badge priority-P1">P1</span></span>
+        </div>
+        <div class="detail-meta-item">
+          <span class="detail-meta-label">负责人</span>
+          <span class="detail-meta-value">张三</span>
+        </div>
+        <div class="detail-meta-item">
+          <span class="detail-meta-label">所属里程碑</span>
+          <span class="detail-meta-value"><span class="badge badge-accent">MVP发布</span></span>
+        </div>
+        <div class="detail-meta-item">
+          <span class="detail-meta-label">进度</span>
+          <span class="detail-meta-value">60%</span>
+        </div>
+        <div class="detail-meta-item">
+          <span class="detail-meta-label">预期完成</span>
+          <span class="detail-meta-value">2026-06-15</span>
+        </div>
+        <div class="detail-meta-item">
+          <span class="detail-meta-label">创建时间</span>
+          <span class="detail-meta-value">2026-05-01</span>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="detail-section">
+        <h3>完成度</h3>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="progress-bar progress-bar-detail" style="flex:1;">
+            <div class="progress-bar-fill" style="width: 60%"></div>
+          </div>
+          <span style="font-size: 14px; font-weight: 600; color: var(--accent);">60%</span>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="detail-section">
+        <h3>描述</h3>
+        <div class="detail-description">
+          完成项目需求分析工作，包括用户调研、竞品分析、需求文档编写。需要与产品经理、设计师协作确认功能范围和优先级，输出 PRD 文档供后续开发参考。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal (UF-5) -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal" style="width: 440px;">
+      <div class="modal-header">
+        <h3>编辑主事项</h3>
+        <button class="modal-close" onclick="closeModal('edit-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Priority -->
+        <div class="input-group">
+          <label>优先级</label>
+          <div class="dropdown" style="width:100%;">
+            <button class="dropdown-trigger" style="width:100%; justify-content: space-between;" onclick="toggleDropdown('edit-priority')">
+              P1 <span class="arrow">&#9660;</span>
+            </button>
+            <div class="dropdown-menu" id="edit-priority" style="width:100%;">
+              <div class="dropdown-item active">P1</div>
+              <div class="dropdown-item">P2</div>
+              <div class="dropdown-item">P3</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Assignee -->
+        <div class="input-group">
+          <label>负责人</label>
+          <div class="dropdown" style="width:100%;">
+            <button class="dropdown-trigger" style="width:100%; justify-content: space-between;" onclick="toggleDropdown('edit-assignee')">
+              张三 <span class="arrow">&#9660;</span>
+            </button>
+            <div class="dropdown-menu" id="edit-assignee" style="width:100%;">
+              <div class="dropdown-item active">张三</div>
+              <div class="dropdown-item">李四</div>
+              <div class="dropdown-item">王五</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW: Milestone selector (UF-5) -->
+        <div class="input-group">
+          <label>所属里程碑</label>
+          <div class="dropdown" style="width:100%;">
+            <button class="dropdown-trigger" style="width:100%; justify-content: space-between;" onclick="toggleDropdown('edit-milestone')">
+              MVP 发布 <span class="arrow">&#9660;</span>
+            </button>
+            <div class="dropdown-menu" id="edit-milestone" style="width:100%;">
+              <div class="dropdown-item">未分配</div>
+              <div class="dropdown-item active">MVP 发布</div>
+              <div class="dropdown-item">Beta 测试</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="input-group">
+          <label>描述</label>
+          <textarea class="input-field" style="height: 80px; padding: 8px 12px; resize: vertical;" placeholder="输入描述...">完成项目需求分析工作，包括用户调研、竞品分析、需求文档编写。</textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('edit-modal')">取消</button>
+        <button class="btn btn-primary" onclick="closeModal('edit-modal'); showToast('事项已更新')">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

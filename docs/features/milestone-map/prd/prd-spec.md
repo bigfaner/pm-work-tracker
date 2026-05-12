@@ -18,10 +18,11 @@ db-schema: "yes"
 
 ### What (Target)
 
-新增 Milestone 实体作为团队级别的阶段节点，支持：
+新增「里程碑图」（MilestoneMap）和「里程碑」（Milestone）两个层级实体：
+- MilestoneMap 作为里程碑图的容器，归属团队，拥有五态状态机（规划中/已评审/待实施/实施中/已完成）
+- Milestone 作为阶段节点，归属于某个 MilestoneMap，拥有四态状态机（not_started/in_progress/completed/cancelled）
 - 一个里程碑绑定多个 MainItem（多对一关系）
-- 独立的时间线图页面可视化展示里程碑及关联事项
-- 四态状态机管理里程碑生命周期
+- 独立的时间线图页面，两级视图：里程碑图列表 → 点击进入时间线
 - 完成度自动计算
 - 在现有事项页面中集成里程碑维度
 
@@ -29,29 +30,32 @@ db-schema: "yes"
 
 | 角色 | 使用场景 |
 |------|----------|
-| PM（项目经理） | 创建/管理里程碑，将事项分配到阶段，按里程碑跟踪进度，进行阶段盘点和汇报 |
+| PM（项目经理） | 创建/管理里程碑图和里程碑，将事项分配到阶段，按里程碑跟踪进度，进行阶段盘点和汇报 |
 | 团队成员 | 查看里程碑时间线，了解当前所处阶段和交付节点 |
-| 管理层 | 通过时间线图快速了解项目整体进度和阶段分布 |
+| 管理层 | 通过里程碑图列表和时间线快速了解各项目整体进度和阶段分布 |
 
 ## Goals
 
 | Goal | Metric | Notes |
 |------|--------|-------|
-| 提供里程碑维度的分组跟踪能力 | 支持创建里程碑并关联 MainItem | 核心功能 |
+| 提供里程碑维度的分组跟踪能力 | 支持创建里程碑图、里程碑并关联 MainItem | 核心功能 |
 | 减少跨阶段进度盘点时间 | 从 25 分钟/项目降至 5 分钟/项目 | 80% 效率提升 |
-| 可视化展示阶段进展 | 时间线图渲染里程碑+关联事项 | 含缩放和拖拽交互 |
+| 可视化展示阶段进展 | 时间线图渲染里程碑+关联事项 | 含缩放交互 |
 | 与现有页面集成 | 3 个现有页面增加里程碑维度 | 事项清单/详情/表格 |
 
 ## Scope
 
 ### In Scope
-- [ ] 里程碑数据模型（新表 pmw_milestones + MainItem 加 milestone_key 外键）
-- [ ] CRUD API（创建/读取/更新/删除/列表）
+- [ ] 里程碑图数据模型（新表 pmw_milestone_maps）
+- [ ] 里程碑数据模型（新表 pmw_milestones，归属 pmw_milestone_maps + MainItem 加 milestone_key 外键）
+- [ ] 里程碑图 CRUD API（创建/读取/更新/删除/列表）
+- [ ] 里程碑 CRUD API（创建/读取/更新/删除/列表）
 - [ ] 独立 RBAC 权限码（milestone:create/update/delete/read）
-- [ ] 时间线可视化页面（/milestones，含缩放和拖拽）
+- [ ] 里程碑图列表页面 + 时间线可视化页面（/milestones，含缩放）
 - [ ] 现有页面集成：事项清单增加里程碑筛选、主事项编辑增加里程碑选择器、表格视图增加里程碑列
 - [ ] 完成度自动计算（关联 MI 完成度的简单平均值）
-- [ ] 四态状态机（not_started/in_progress/completed/cancelled）
+- [ ] 里程碑图五态状态机（规划中/已评审/待实施/实施中/已完成）
+- [ ] 里程碑四态状态机（not_started/in_progress/completed/cancelled）
 - [ ] 软删除 + 事务内解绑关联 MI
 - [ ] 数据库迁移（SQLite + MySQL 双 schema）
 
@@ -66,9 +70,29 @@ db-schema: "yes"
 
 ### Business Flow Description
 
-#### 里程碑生命周期
+#### 里程碑图（MilestoneMap）生命周期
 
-1. **创建**：PM 在时间线页面或通过 API 创建里程碑，填写名称和计划日期，初始状态为 `not_started`
+1. **创建**：PM 在里程碑图列表页面创建里程碑图，填写名称和描述，初始状态为"规划中"
+2. **添加里程碑**：PM 在里程碑图内创建里程碑节点，每个节点包含名称和计划完成时间
+3. **状态推进**：PM 根据项目进展推进里程碑图状态：规划中 → 已评审 → 待实施 → 实施中 → 已完成
+4. **完成**：所有里程碑均完成后，里程碑图可标记为"已完成"
+
+#### 里程碑图状态机转换规则
+
+| 当前状态 | 可转换到 | 触发条件 |
+|----------|----------|----------|
+| 规划中 | 已评审 | PM 手动切换 |
+| 已评审 | 待实施 | PM 手动切换 |
+| 已评审 | 规划中 | PM 手动回退 |
+| 待实施 | 实施中 | PM 手动切换 |
+| 待实施 | 已评审 | PM 手动回退 |
+| 实施中 | 已完成 | PM 手动标记 |
+| 实施中 | 待实施 | PM 手动回退 |
+| 已完成 | — | 终态，不可回退 |
+
+#### 里程碑（Milestone）生命周期
+
+1. **创建**：PM 在时间线页面或通过 API 创建里程碑，填写名称和计划完成时间，初始状态为 `not_started`
 2. **绑定事项**：PM 通过时间线拖拽或在主事项编辑页选择里程碑，将 MainItem 关联到里程碑
 3. **启动**：PM 手动将里程碑状态切换为 `in_progress`，或第一个关联 MI 进入 progressing 时提示切换
 4. **跟踪**：系统自动计算完成度（关联 MI 完成度平均值），PM 在时间线图查看阶段进展
@@ -97,8 +121,8 @@ db-schema: "yes"
 
 ```mermaid
 flowchart TD
-    Start([创建里程碑]) --> Create[填写名称+计划日期]
-    Create --> Validate{校验名称 1-100 字符\n+ 计划日期必填?}
+    Start([创建里程碑]) --> Create[填写名称+计划完成时间]
+    Create --> Validate{校验名称 1-100 字符\n+ 计划完成时间必填?}
     Validate -->|校验失败| ValidationErr[返回字段错误提示]
     Validate -->|校验通过| APICreate[调用创建 API]
     APICreate --> APICheck{API 响应?}
@@ -143,19 +167,21 @@ flowchart TD
 
 | # | Project | Module | Change Point | Updated Logic |
 |------|----------|----------|------------|----------------|
-| 1 | backend | MainItem model | 新增 milestone_key 字段 | 可空字符串，引用 pmw_milestones.biz_key |
-| 2 | backend | MainItem API | 更新/查询接口支持 milestone_key | create/update 接受 milestone_key，list/detail 返回该字段 |
-| 3 | backend | RBAC | 新增 4 个权限码 | milestone:create/update/delete/read |
-| 4 | backend | database | SQLite + MySQL schema | 新增 pmw_milestones 表，pmw_main_items 加列 |
-| 5 | frontend | 事项清单页 /items | 增加里程碑筛选和标签显示 | 新增筛选下拉框和列表中的里程碑标签 |
-| 6 | frontend | 主事项详情页 /items/:id | 编辑弹窗增加里程碑选择器 | 新增下拉框字段 |
-| 7 | frontend | 表格视图 /table | 增加里程碑列 | 新增表格列 |
+| 1 | backend | MilestoneMap model | 新增 pmw_milestone_maps 表 | 名称、描述、五态状态、团队归属 |
+| 2 | backend | Milestone model | 新增 pmw_milestones 表 | 归属 pmw_milestone_maps，四态状态 |
+| 3 | backend | MainItem model | 新增 milestone_key 字段 | 可空字符串，引用 pmw_milestones.biz_key |
+| 4 | backend | MainItem API | 更新/查询接口支持 milestone_key | create/update 接受 milestone_key，list/detail 返回该字段 |
+| 5 | backend | RBAC | 新增 4 个权限码 | milestone:create/update/delete/read |
+| 6 | backend | database | SQLite + MySQL schema | 新增 pmw_milestone_maps 和 pmw_milestones 表，pmw_main_items 加列 |
+| 7 | frontend | 事项清单页 /items | 增加里程碑筛选和标签显示 | 新增筛选下拉框和列表中的里程碑标签 |
+| 8 | frontend | 主事项详情页 /items/:id | 编辑弹窗增加里程碑选择器 | 新增下拉框字段 |
+| 9 | frontend | 表格视图 /table | 增加里程碑列 | 新增表格列 |
 
 ## Other Notes
 
 ### Performance Requirements
+- 里程碑图列表页面渲染 < 300ms（10 个里程碑图卡片）
 - 时间线页面初始渲染 < 500ms（20 里程碑 + 200 MI）
-- 拖拽交互帧率 ≥ 30fps
 - 里程碑列表 API 响应 < 200ms
 - 超出 200 个 MI 时启用分页加载（按里程碑分组折叠）
 
