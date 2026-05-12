@@ -89,6 +89,7 @@ type MainItemCreateReq struct {
 	StartDate       *string `json:"startDate" binding:"required"`
 	ExpectedEndDate *string `json:"expectedEndDate" binding:"required"`
 	IsKeyItem       bool    `json:"isKeyItem"`
+	MilestoneKey    *string `json:"milestoneKey"`
 }
 
 // MainItemUpdateReq is the request DTO for updating a main item.
@@ -102,6 +103,7 @@ type MainItemUpdateReq struct {
 	ExpectedEndDate *string `json:"expectedEndDate"`
 	ActualEndDate   *string `json:"actualEndDate"`
 	IsKeyItem       *bool   `json:"isKeyItem"`
+	MilestoneKey    *string `json:"milestoneKey"`
 }
 
 // ChangeStatusReq is the request DTO for changing item status.

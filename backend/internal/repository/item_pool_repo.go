@@ -1,3 +1,4 @@
+// Package repository defines repository interfaces for data access.
 package repository
 
 import (

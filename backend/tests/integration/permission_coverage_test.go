@@ -24,6 +24,8 @@ var testedCodes = map[string]bool{
 	"progress:create": true, "progress:read": true, "progress:update": true,
 	// item_pool
 	"item_pool:submit": true, "item_pool:review": true,
+	// milestone
+	"milestone:create": true, "milestone:read": true, "milestone:update": true, "milestone:delete": true,
 	// view
 	"view:weekly": true, "view:gantt": true, "view:table": true,
 	// report

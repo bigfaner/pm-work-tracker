@@ -105,10 +105,10 @@ func TestMigrateToRBAC_PresetRolesSeeded(t *testing.T) {
 	assert.True(t, superadmin.IsPreset)
 	assert.Equal(t, uint(1), superadmin.ID)
 
-	// superadmin should have all 29 permission codes
+	// superadmin should have all 33 permission codes
 	count, err := CountPermissionsForRole(db, superadmin.BizKey)
 	require.NoError(t, err)
-	assert.Equal(t, int64(29), count, "superadmin should have all 29 permission codes")
+	assert.Equal(t, int64(33), count, "superadmin should have all 33 permission codes")
 
 	// Check pm role
 	var pm model.Role
@@ -119,7 +119,7 @@ func TestMigrateToRBAC_PresetRolesSeeded(t *testing.T) {
 	// pm should have 26 codes
 	count, err = CountPermissionsForRole(db, pm.BizKey)
 	require.NoError(t, err)
-	assert.Equal(t, int64(26), count, "pm should have 26 permission codes")
+	assert.Equal(t, int64(30), count, "pm should have 30 permission codes")
 
 	// Check member role
 	var member model.Role
@@ -130,7 +130,7 @@ func TestMigrateToRBAC_PresetRolesSeeded(t *testing.T) {
 	// member should have 14 codes
 	count, err = CountPermissionsForRole(db, member.BizKey)
 	require.NoError(t, err)
-	assert.Equal(t, int64(14), count, "member should have 14 permission codes")
+	assert.Equal(t, int64(15), count, "member should have 15 permission codes")
 }
 
 func TestMigrateToRBAC_TeamMemberRoleMigrated(t *testing.T) {
@@ -251,7 +251,7 @@ func TestMigrateToRBAC_IdempotentReRun(t *testing.T) {
 	var pmRole model.Role
 	require.NoError(t, db.Where("role_name = ?", "pm").First(&pmRole).Error)
 	pmPerms, _ := CountPermissionsForRole(db, pmRole.BizKey)
-	assert.Equal(t, int64(26), pmPerms, "pm permissions should not be duplicated")
+	assert.Equal(t, int64(30), pmPerms, "pm permissions should not be duplicated")
 }
 
 func TestMigrateToRBAC_IdempotentReRunPreservesData(t *testing.T) {
@@ -369,7 +369,7 @@ func TestMigrateToRBAC_SuperadminHasAllPermissionCodes(t *testing.T) {
 	require.NoError(t, db.Where("role_name = ?", "superadmin").First(&superadminRole).Error)
 	count, err := CountPermissionsForRole(db, superadminRole.BizKey)
 	require.NoError(t, err)
-	assert.Equal(t, int64(29), count, "superadmin should have all 29 permission codes in role_permissions")
+	assert.Equal(t, int64(33), count, "superadmin should have all 33 permission codes in role_permissions")
 }
 
 func TestMigrateToRBAC_MemberHasExactCodes(t *testing.T) {
@@ -387,6 +387,7 @@ func TestMigrateToRBAC_MemberHasExactCodes(t *testing.T) {
 		"sub_item:create": true, "sub_item:read": true, "sub_item:update": true, "sub_item:change_status": true,
 		"progress:create": true, "progress:read": true,
 		"item_pool:submit": true,
+		"milestone:read":   true,
 		"view:weekly":      true, "view:table": true,
 		"report:export": true,
 	}

@@ -159,7 +159,7 @@ func seedPresetRoles(tx *gorm.DB) error {
 		return err
 	}
 
-	// Seed pm (id=2, 22 codes)
+	// Seed pm (id=2, 26 codes)
 	pmCodes := []string{
 		"team:create", "team:read", "team:update", "team:delete",
 		"team:invite", "team:remove", "team:transfer",
@@ -167,6 +167,7 @@ func seedPresetRoles(tx *gorm.DB) error {
 		"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:assign", "sub_item:change_status",
 		"progress:create", "progress:read", "progress:update",
 		"item_pool:submit", "item_pool:review",
+		"milestone:create", "milestone:read", "milestone:update", "milestone:delete",
 		"view:weekly", "view:gantt", "view:table",
 		"report:export",
 		"user:read",
@@ -175,13 +176,14 @@ func seedPresetRoles(tx *gorm.DB) error {
 		return err
 	}
 
-	// Seed member (id=3, 14 codes)
+	// Seed member (id=3, 15 codes)
 	memberCodes := []string{
 		"team:read",
 		"main_item:create", "main_item:read", "main_item:update",
 		"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:change_status",
 		"progress:create", "progress:read",
 		"item_pool:submit",
+		"milestone:read",
 		"view:weekly", "view:table",
 		"report:export",
 	}
@@ -430,6 +432,7 @@ func VerifyPresetRoleCodes(db *gorm.DB) error {
 			"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:assign", "sub_item:change_status",
 			"progress:create", "progress:read", "progress:update",
 			"item_pool:submit", "item_pool:review",
+			"milestone:create", "milestone:read", "milestone:update", "milestone:delete",
 			"view:weekly", "view:gantt", "view:table",
 			"report:export",
 			"user:read",
@@ -440,6 +443,7 @@ func VerifyPresetRoleCodes(db *gorm.DB) error {
 			"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:change_status",
 			"progress:create", "progress:read",
 			"item_pool:submit",
+			"milestone:read",
 			"view:weekly", "view:table",
 			"report:export",
 		},

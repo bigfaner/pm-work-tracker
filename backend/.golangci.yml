@@ -70,6 +70,8 @@ linters:
 
     misspell:
       locale: US
+      ignore-rules:
+        - "cancelled"
 
 issues:
   max-issues-per-linter: 50

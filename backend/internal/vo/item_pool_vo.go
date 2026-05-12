@@ -1,3 +1,4 @@
+// Package vo provides view object conversions for API responses.
 package vo
 
 import (

@@ -18,21 +18,21 @@ import (
 // Dependencies holds all services and configuration needed by the router.
 // Handlers are wired here to avoid global state.
 type Dependencies struct {
-	Config      *config.Config
-	TeamRepo    repository.TeamRepo
-	UserRepo    repository.UserRepo
-	RoleRepo    repository.RoleRepo
-	Auth        *AuthHandler
-	Team        *TeamHandler
-	MainItem    *MainItemHandler
-	SubItem     *SubItemHandler
-	Progress    *ProgressHandler
-	ItemPool    *ItemPoolHandler
-	View        *ViewHandler
-	Report      *ReportHandler
-	Admin       *AdminHandler
-	Role        *RoleHandler
-	Permission  *PermissionHandler
+	Config     *config.Config
+	TeamRepo   repository.TeamRepo
+	UserRepo   repository.UserRepo
+	RoleRepo   repository.RoleRepo
+	Auth       *AuthHandler
+	Team       *TeamHandler
+	MainItem   *MainItemHandler
+	SubItem    *SubItemHandler
+	Progress   *ProgressHandler
+	ItemPool   *ItemPoolHandler
+	View       *ViewHandler
+	Report     *ReportHandler
+	Admin      *AdminHandler
+	Role       *RoleHandler
+	Permission *PermissionHandler
 }
 
 // perm is a shorthand for creating a RequirePermission middleware with the deps' RoleRepo.
