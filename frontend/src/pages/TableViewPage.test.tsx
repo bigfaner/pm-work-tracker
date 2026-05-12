@@ -24,11 +24,6 @@ const fmt = (d: Date) => d.toISOString().slice(0, 10)
 const pastDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return fmt(d) }
 const futureDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return fmt(d) }
 
-// Relative date helper — avoids hardcoded dates that expire
-const fmt = (d: Date) => d.toISOString().slice(0, 10)
-const pastDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return fmt(d) }
-const futureDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return fmt(d) }
-
 // MSW lifecycle
 beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
 afterEach(() => server.resetHandlers());
