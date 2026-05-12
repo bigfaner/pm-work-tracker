@@ -218,3 +218,47 @@ CREATE TABLE IF NOT EXISTS pmw_role_permissions (
     PRIMARY KEY (id),
     UNIQUE KEY uk_role_permission (role_key, permission_code, deleted_flag, deleted_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色权限表';
+
+-- pmw_milestone_maps (里程碑图)
+CREATE TABLE IF NOT EXISTS pmw_milestone_maps (
+    id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT       COMMENT '自增主键',
+    biz_key         BIGINT          NOT NULL                      COMMENT '业务唯一键',
+    create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    db_update_time  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '数据库更新时间',
+    deleted_flag    TINYINT(1)      NOT NULL DEFAULT 0            COMMENT '软删标志：0=正常，1=已删除',
+    deleted_time    DATETIME        NOT NULL DEFAULT '1970-01-01 08:00:00' COMMENT '软删时间，未删除时为固定占位值',
+    team_key        BIGINT          NOT NULL                      COMMENT '所属团队 biz_key',
+    map_name        VARCHAR(100)    NOT NULL                      COMMENT '里程碑图名称',
+    map_desc        TEXT                                          COMMENT '里程碑图描述',
+    map_status      VARCHAR(20)     NOT NULL DEFAULT 'planning'   COMMENT '状态：planning=规划中，reviewed=已评审，ready=待实施，executing=实施中，completed=已完成',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_milestone_maps_biz_key (biz_key),
+    KEY idx_milestone_maps_team_status (team_key, map_status),
+    KEY idx_milestone_maps_deleted_flag (deleted_flag)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='里程碑图表';
+
+-- pmw_milestones (里程碑)
+CREATE TABLE IF NOT EXISTS pmw_milestones (
+    id                      BIGINT UNSIGNED NOT NULL AUTO_INCREMENT       COMMENT '自增主键',
+    biz_key                 BIGINT          NOT NULL                      COMMENT '业务唯一键',
+    create_time             DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    db_update_time          DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '数据库更新时间',
+    deleted_flag            TINYINT(1)      NOT NULL DEFAULT 0            COMMENT '软删标志：0=正常，1=已删除',
+    deleted_time            DATETIME        NOT NULL DEFAULT '1970-01-01 08:00:00' COMMENT '软删时间，未删除时为固定占位值',
+    team_key                BIGINT          NOT NULL                      COMMENT '所属团队 biz_key',
+    milestone_map_key       BIGINT          NOT NULL                      COMMENT '所属里程碑图 biz_key',
+    milestone_name          VARCHAR(100)    NOT NULL                      COMMENT '里程碑名称',
+    expected_end_date       DATETIME                                      COMMENT '计划完成时间',
+    milestone_status        VARCHAR(20)     NOT NULL DEFAULT 'not_started' COMMENT '状态：not_started=未开始，in_progress=进行中，completed=已完成，cancelled=已取消',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_milestones_biz_key (biz_key),
+    KEY idx_milestones_milestone_map_key (milestone_map_key),
+    KEY idx_milestones_team_key (team_key),
+    KEY idx_milestones_team_status (team_key, milestone_status),
+    KEY idx_milestones_deleted_flag (deleted_flag)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='里程碑表';
+
+-- [MODIFIED] pmw_main_items: add milestone_key column
+ALTER TABLE pmw_main_items
+    ADD COLUMN milestone_key BIGINT DEFAULT NULL COMMENT '所属里程碑 biz_key，NULL 表示未分配',
+    ADD KEY idx_main_items_milestone_key (milestone_key);
