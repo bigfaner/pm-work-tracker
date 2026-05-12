@@ -76,8 +76,10 @@ func (m *mockItemPoolRepo) List(_ context.Context, teamBizKey int64, filter dto.
 
 // mockSubItemRepoForPool captures Create calls from Assign.
 type mockSubItemRepoForPool struct {
-	createdItem *model.SubItem
-	createErr   error
+	createdItem    *model.SubItem
+	createErr      error
+	nextSubCodeVal string
+	nextSubCodeErr error
 }
 
 func (m *mockSubItemRepoForPool) Create(_ context.Context, item *model.SubItem) error {
@@ -111,7 +113,7 @@ func (m *mockSubItemRepoForPool) FindByBizKey(_ context.Context, _ int64) (*mode
 	return nil, nil
 }
 func (m *mockSubItemRepoForPool) NextSubCode(_ context.Context, _ int64) (string, error) {
-	return "", nil
+	return m.nextSubCodeVal, m.nextSubCodeErr
 }
 
 // mockMainItemRepoForPool captures FindByID for Assign validation.
@@ -280,6 +282,27 @@ func TestItemPoolAssign_SubItemInheritsBackgroundAsDescription(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "some background info", subRepo.createdItem.ItemDesc)
+}
+
+// bug: SubItem created by Assign has empty Code (display number)
+func TestItemPoolAssign_SubItemHasCode(t *testing.T) {
+	poolItem := &model.ItemPool{
+		BaseModel:  model.BaseModel{ID: 5},
+		TeamKey:    1,
+		Title:      "Pool item",
+		PoolStatus: "pending",
+	}
+	poolRepo := &mockItemPoolRepo{item: poolItem}
+	subRepo := &mockSubItemRepoForPool{nextSubCodeVal: "TEAM-00001-01"}
+	mainRepo := &mockMainItemRepoForPool{item: &model.MainItem{BaseModel: model.BaseModel{ID: 20, BizKey: 200}, TeamKey: 1}}
+	dbtx := &mockDBTx{txFunc: func(fc func(tx *gorm.DB) error) error { return fc(nil) }}
+	svc := NewItemPoolService(poolRepo, subRepo, mainRepo, dbtx)
+
+	err := svc.Assign(context.Background(), int64(1), 100, 5, dto.AssignItemPoolReq{
+		MainItemKey: "200",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "TEAM-00001-01", subRepo.createdItem.Code, "SubItem should have a display code assigned via NextSubCode")
 }
 
 // ---------------------------------------------------------------------------

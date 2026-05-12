@@ -87,10 +87,16 @@ func (s *itemPoolService) Assign(ctx context.Context, teamBizKey, pmBizKey int64
 		now := time.Now()
 
 		// Create SubItem under the MainItem
+		code, err := s.subRepo.NextSubCode(ctx, mainItem.BizKey) //nolint:govet // intentional shadow: inner-block err assignment
+		if err != nil {
+			return err
+		}
+
 		subItem := &model.SubItem{
 			BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
 			TeamKey:     teamBizKey,
 			MainItemKey: mainItem.BizKey,
+			Code:        code,
 			Title:       poolItem.Title,
 			ItemDesc:    poolItem.Background,
 			Priority:    defaultPriority(req.Priority),
