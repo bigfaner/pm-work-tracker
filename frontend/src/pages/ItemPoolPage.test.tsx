@@ -7,7 +7,7 @@ import {
   afterAll,
   afterEach,
 } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
@@ -540,6 +540,25 @@ describe("ItemPoolPage", () => {
         2,
       );
     });
+  });
+
+  it("enables 确认转换 button when dates are pre-filled in convert-to-main dialog", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByText("移动端适配需求")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByTestId("to-main-1"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "确认转换" }),
+      ).toBeInTheDocument();
+    });
+
+    // Dates are pre-filled with today, so button should be enabled immediately
+    expect(screen.getByRole("button", { name: "确认转换" })).toBeEnabled();
   });
 
   // --- Convert to sub item dialog ---
