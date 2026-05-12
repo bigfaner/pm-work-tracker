@@ -12,9 +12,11 @@ describe('Popover', () => {
           <Button>Open Popover</Button>
         </PopoverTrigger>
         <PopoverContent>Popover content here</PopoverContent>
-      </Popover>
+      </Popover>,
     )
-    expect(screen.getByRole('button', { name: 'Open Popover' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Open Popover' }),
+    ).toBeInTheDocument()
   })
 
   it('shows content on click', async () => {
@@ -24,7 +26,7 @@ describe('Popover', () => {
           <Button>Open</Button>
         </PopoverTrigger>
         <PopoverContent>Popover content</PopoverContent>
-      </Popover>
+      </Popover>,
     )
     await userEvent.click(screen.getByRole('button'))
     expect(screen.getByText('Popover content')).toBeInTheDocument()

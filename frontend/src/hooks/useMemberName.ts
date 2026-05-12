@@ -5,7 +5,10 @@ interface Member {
   displayName: string
 }
 
-export function getMemberName(members: Member[] | undefined, assigneeKey: string | null): string {
+export function getMemberName(
+  members: Member[] | undefined,
+  assigneeKey: string | null,
+): string {
   if (assigneeKey === null) return 'Unassigned'
   if (!members) return 'Unknown'
   const m = members.find((m) => m.userKey === assigneeKey)

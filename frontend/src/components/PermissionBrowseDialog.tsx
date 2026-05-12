@@ -36,7 +36,11 @@ export default function PermissionBrowseDialog({
         <DialogBody>
           <div className="space-y-2 max-h-[60vh] overflow-y-auto">
             {PERMISSION_GROUPS.map((group) => (
-              <CollapsibleSection key={group.key} title={group.label} defaultOpen>
+              <CollapsibleSection
+                key={group.key}
+                title={group.label}
+                defaultOpen
+              >
                 <Table>
                   <TableHeader>
                     <TableRow>

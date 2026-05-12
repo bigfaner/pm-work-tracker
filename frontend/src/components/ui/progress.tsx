@@ -3,18 +3,21 @@ import * as ProgressPrimitive from '@radix-ui/react-progress'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
-const progressVariants = cva('relative w-full overflow-hidden rounded-full bg-border', {
-  variants: {
-    size: {
-      default: 'h-2',
-      sm: 'h-1.5',
-      lg: 'h-3',
+const progressVariants = cva(
+  'relative w-full overflow-hidden rounded-full bg-border',
+  {
+    variants: {
+      size: {
+        default: 'h-2',
+        sm: 'h-1.5',
+        lg: 'h-3',
+      },
+    },
+    defaultVariants: {
+      size: 'default',
     },
   },
-  defaultVariants: {
-    size: 'default',
-  },
-})
+)
 
 interface ProgressProps
   extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>,
@@ -34,7 +37,7 @@ const Progress = React.forwardRef<
     <ProgressPrimitive.Indicator
       className={cn(
         'h-full rounded-full bg-primary-500 transition-all duration-300',
-        indicatorClassName
+        indicatorClassName,
       )}
       style={{ width: `${value ?? 0}%` }}
     />

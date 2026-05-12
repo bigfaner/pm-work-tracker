@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES, isOverdue, STATUS_OPTIONS, MAIN_TERMINAL_STATUSES, SUB_TERMINAL_STATUSES } from './status'
+import {
+  MAIN_ITEM_STATUSES,
+  SUB_ITEM_STATUSES,
+  isOverdue,
+  STATUS_OPTIONS,
+  MAIN_TERMINAL_STATUSES,
+  SUB_TERMINAL_STATUSES,
+} from './status'
 
 describe('MAIN_ITEM_STATUSES', () => {
   it('has 7 entries', () => {
@@ -60,7 +67,15 @@ describe('SUB_ITEM_STATUSES', () => {
 describe('STATUS_OPTIONS', () => {
   it('contains main item status codes for filter dropdowns', () => {
     expect(STATUS_OPTIONS).toEqual(
-      expect.arrayContaining(['pending', 'progressing', 'blocking', 'pausing', 'reviewing', 'completed', 'closed']),
+      expect.arrayContaining([
+        'pending',
+        'progressing',
+        'blocking',
+        'pausing',
+        'reviewing',
+        'completed',
+        'closed',
+      ]),
     )
   })
 })

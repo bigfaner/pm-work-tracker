@@ -25,14 +25,24 @@ const businessItems = [
   { key: '/items', label: '事项清单', icon: LayoutGrid },
   { key: '/item-pool', label: '待办事项', icon: Inbox },
   { key: '/weekly', label: '每周进展', icon: Calendar },
-  { key: '/gantt', label: '整体进度', icon: AlignLeft, permission: 'view:gantt' },
+  {
+    key: '/gantt',
+    label: '整体进度',
+    icon: AlignLeft,
+    permission: 'view:gantt',
+  },
   { key: '/report', label: '周报导出', icon: FileDown },
 ]
 
 const adminItems = [
   { key: '/teams', label: '团队管理', icon: Users },
   { key: '/users', label: '用户管理', icon: UserCog, permission: 'user:read' },
-  { key: '/roles', label: '角色管理', icon: Shield, permission: 'user:manage_role' },
+  {
+    key: '/roles',
+    label: '角色管理',
+    icon: Shield,
+    permission: 'user:manage_role',
+  },
 ]
 
 export default function Sidebar() {
@@ -65,12 +75,19 @@ export default function Sidebar() {
             value={currentTeamId ?? undefined}
             onValueChange={(val) => setCurrentTeam(val)}
           >
-            <SelectTrigger data-testid="team-switcher" className="w-full h-8 text-[13px] [&>span:first-child]:flex-1 [&>span:first-child]:text-center">
+            <SelectTrigger
+              data-testid="team-switcher"
+              className="w-full h-8 text-[13px] [&>span:first-child]:flex-1 [&>span:first-child]:text-center"
+            >
               <SelectValue placeholder="选择团队" />
             </SelectTrigger>
             <SelectContent>
               {teams.map((t) => (
-                <SelectItem key={t.bizKey} value={String(t.bizKey)} className="justify-center">
+                <SelectItem
+                  key={t.bizKey}
+                  value={String(t.bizKey)}
+                  className="justify-center"
+                >
                   {t.name}
                 </SelectItem>
               ))}
@@ -87,7 +104,10 @@ export default function Sidebar() {
             <a
               key={item.key}
               href={item.key}
-              onClick={(e) => { e.preventDefault(); navigate(item.key) }}
+              onClick={(e) => {
+                e.preventDefault()
+                navigate(item.key)
+              }}
               className={`flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all ${
                 isActive
                   ? 'bg-primary-50 text-primary-700'
@@ -115,7 +135,10 @@ export default function Sidebar() {
             <a
               key={item.key}
               href={item.key}
-              onClick={(e) => { e.preventDefault(); navigate(item.key) }}
+              onClick={(e) => {
+                e.preventDefault()
+                navigate(item.key)
+              }}
               className={`flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all ${
                 idx === 0 ? 'mt-2 pt-2 border-t border-border' : ''
               } ${
@@ -144,7 +167,9 @@ export default function Sidebar() {
           {user?.displayName?.charAt(0) ?? '?'}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[13px] font-medium text-primary truncate">{user?.displayName}</div>
+          <div className="text-[13px] font-medium text-primary truncate">
+            {user?.displayName}
+          </div>
         </div>
         <button
           data-testid="sidebar-logout"

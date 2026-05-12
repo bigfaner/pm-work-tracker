@@ -1,8 +1,8 @@
-import { Fragment } from "react";
-import { Link } from "react-router-dom";
-import { Pencil, Plus } from "lucide-react";
-import { MainItem, SubItem } from "@/types";
-import { Button } from "@/components/ui/button";
+import { Fragment } from 'react'
+import { Link } from 'react-router-dom'
+import { Pencil, Plus } from 'lucide-react'
+import { MainItem, SubItem } from '@/types'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableHeader,
@@ -10,26 +10,26 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from "@/components/ui/table";
-import PaginationBar from "@/components/shared/PaginationBar";
-import PriorityBadge from "@/components/shared/PriorityBadge";
-import StatusTransitionDropdown from "@/components/shared/StatusTransitionDropdown";
-import { Badge } from "@/components/ui/badge";
-import { PermissionGuard } from "@/components/PermissionGuard";
-import { MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES } from "@/lib/status";
-import { isOverdue } from "@/lib/status";
-import { showToast } from "@/lib/toast";
-import { buildFullUrl } from "@/lib/url";
+} from '@/components/ui/table'
+import PaginationBar from '@/components/shared/PaginationBar'
+import PriorityBadge from '@/components/shared/PriorityBadge'
+import StatusTransitionDropdown from '@/components/shared/StatusTransitionDropdown'
+import { Badge } from '@/components/ui/badge'
+import { PermissionGuard } from '@/components/PermissionGuard'
+import { MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES } from '@/lib/status'
+import { isOverdue } from '@/lib/status'
+import { showToast } from '@/lib/toast'
+import { buildFullUrl } from '@/lib/url'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from '@/components/ui/tooltip'
 
 function copyLink(path: string, title: string) {
-  navigator.clipboard.writeText(`${buildFullUrl(path)} ${title}`);
-  showToast("链接已复制", "success");
+  navigator.clipboard.writeText(`${buildFullUrl(path)} ${title}`)
+  showToast('链接已复制', 'success')
 }
 
 function CodeBadge({
@@ -38,20 +38,20 @@ function CodeBadge({
   title,
   className,
 }: {
-  label: string;
-  path: string;
-  title: string;
-  className?: string;
+  label: string
+  path: string
+  title: string
+  className?: string
 }) {
   return (
     <TooltipProvider delayDuration={300}>
       <Tooltip>
         <TooltipTrigger asChild>
           <span
-            className={`font-mono cursor-pointer transition-colors ${className ?? ""}`}
+            className={`font-mono cursor-pointer transition-colors ${className ?? ''}`}
             onClick={(e) => {
-              e.stopPropagation();
-              copyLink(path, title);
+              e.stopPropagation()
+              copyLink(path, title)
             }}
           >
             {label}
@@ -62,30 +62,30 @@ function CodeBadge({
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
-  );
+  )
 }
 
 interface DetailViewProps {
-  items: (MainItem & { subItems?: SubItem[] })[];
-  subItemsMap: Record<string, SubItem[]>;
-  memberName: (id: string | null) => string;
-  formatDate: (date: string | null) => string;
-  teamId: string;
-  onRefresh: () => void;
-  currentPage: number;
-  totalPages: number;
-  pageSize: number;
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (size: number) => void;
-  totalItems: number;
-  onAddSubItem: (mainItemId: string, mainItemTitle: string) => void;
-  onEditMainItem: (item: MainItem) => void;
+  items: (MainItem & { subItems?: SubItem[] })[]
+  subItemsMap: Record<string, SubItem[]>
+  memberName: (id: string | null) => string
+  formatDate: (date: string | null) => string
+  teamId: string
+  onRefresh: () => void
+  currentPage: number
+  totalPages: number
+  pageSize: number
+  onPageChange: (page: number) => void
+  onPageSizeChange: (size: number) => void
+  totalItems: number
+  onAddSubItem: (mainItemId: string, mainItemTitle: string) => void
+  onEditMainItem: (item: MainItem) => void
   onAppendProgress: (
     subItemId: string,
     subItemTitle: string,
     subItemCompletion: number,
-  ) => void;
-  onEditSubItem: (sub: SubItem, mainItemBizKey: string) => void;
+  ) => void
+  onEditSubItem: (sub: SubItem, mainItemBizKey: string) => void
 }
 
 export default function ItemDetailView({
@@ -126,10 +126,10 @@ export default function ItemDetailView({
           </TableHeader>
           <TableBody>
             {items.map((item) => {
-              const subs = subItemsMap[item.bizKey];
+              const subs = subItemsMap[item.bizKey]
               return (
                 <Fragment key={item.bizKey}>
-                  <TableRow className={subs?.length ? "bg-blue-50/40" : ""}>
+                  <TableRow className={subs?.length ? 'bg-blue-50/40' : ''}>
                     <TableCell className="whitespace-nowrap">
                       <CodeBadge
                         label={item.code}
@@ -226,7 +226,7 @@ export default function ItemDetailView({
                     >
                       <TableCell className="whitespace-nowrap">
                         <CodeBadge
-                          label={sub.code.split("-").pop()!}
+                          label={sub.code.split('-').pop()!}
                           path={`/items/${item.bizKey}/sub/${sub.bizKey}`}
                           title={sub.title}
                           className="text-[11px] text-tertiary ml-4 hover:bg-primary-100 hover:text-primary-600 px-0.5 rounded"
@@ -315,7 +315,7 @@ export default function ItemDetailView({
                     </TableRow>
                   ))}
                 </Fragment>
-              );
+              )
             })}
           </TableBody>
         </Table>
@@ -330,5 +330,5 @@ export default function ItemDetailView({
         pageSizeOptions={[5, 10, 20, 50]}
       />
     </div>
-  );
+  )
 }

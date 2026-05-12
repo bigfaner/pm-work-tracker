@@ -23,7 +23,8 @@ export function CheckboxGroup({
   disabled = false,
   className,
 }: CheckboxGroupProps) {
-  const allSelected = options.length > 0 && options.every((o) => selected.includes(o.value))
+  const allSelected =
+    options.length > 0 && options.every((o) => selected.includes(o.value))
   const someSelected = options.some((o) => selected.includes(o.value))
   const count = options.filter((o) => selected.includes(o.value)).length
 

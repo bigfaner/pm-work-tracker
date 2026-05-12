@@ -14,7 +14,7 @@ describe('Breadcrumb', () => {
           <BreadcrumbSeparator />
           <BreadcrumbItem isCurrent>Detail</BreadcrumbItem>
         </Breadcrumb>
-      </MemoryRouter>
+      </MemoryRouter>,
     )
     expect(screen.getByText('Home')).toBeInTheDocument()
     expect(screen.getByText('Items')).toBeInTheDocument()
@@ -27,7 +27,7 @@ describe('Breadcrumb', () => {
         <Breadcrumb>
           <BreadcrumbItem href="/">Home</BreadcrumbItem>
         </Breadcrumb>
-      </MemoryRouter>
+      </MemoryRouter>,
     )
     expect(screen.getByText('Home').tagName).toBe('A')
   })
@@ -38,7 +38,7 @@ describe('Breadcrumb', () => {
         <Breadcrumb>
           <BreadcrumbItem isCurrent>Current</BreadcrumbItem>
         </Breadcrumb>
-      </MemoryRouter>
+      </MemoryRouter>,
     )
     const current = screen.getByText('Current')
     expect(current.tagName).toBe('SPAN')

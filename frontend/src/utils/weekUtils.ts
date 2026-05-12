@@ -14,7 +14,8 @@ export function getWeekNumber(dateStr: string): number {
   const thursday = new Date(date)
   thursday.setDate(date.getDate() + 4 - dayNum)
   const jan1 = new Date(thursday.getFullYear(), 0, 1)
-  const dayOfYear = Math.floor((thursday.getTime() - jan1.getTime()) / 86400000) + 1
+  const dayOfYear =
+    Math.floor((thursday.getTime() - jan1.getTime()) / 86400000) + 1
   return Math.ceil(dayOfYear / 7)
 }
 

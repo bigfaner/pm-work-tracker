@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, beforeAll, afterAll, afterEach } from 'vitest'
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  beforeAll,
+  afterAll,
+  afterEach,
+} from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -29,11 +37,14 @@ function renderPage(mainItemId = '1') {
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[`/items/${mainItemId}`]}>
         <Routes>
-          <Route path="/items/:mainItemId" element={
-            <ToastProvider>
-              <MainItemDetailPage />
-            </ToastProvider>
-          } />
+          <Route
+            path="/items/:mainItemId"
+            element={
+              <ToastProvider>
+                <MainItemDetailPage />
+              </ToastProvider>
+            }
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -43,34 +54,110 @@ function renderPage(mainItemId = '1') {
 // --- Seed data ---
 
 const seedMembers = [
-  { id: 1, bizKey: '1', teamKey: '1', userKey: 'U001', displayName: 'Test User', username: 'testuser', role: 'pm', roleKey: 1, roleName: 'pm', joinedAt: '2024-01-01' },
-  { id: 2, bizKey: '2', teamKey: '1', userKey: 'U002', displayName: 'Alice', username: 'alice', role: 'member', roleKey: 2, roleName: 'member', joinedAt: '2024-01-01' },
-  { id: 3, bizKey: '3', teamKey: '1', userKey: 'U003', displayName: 'Bob', username: 'bob', role: 'member', roleKey: 3, roleName: 'member', joinedAt: '2024-01-01' },
+  {
+    id: 1,
+    bizKey: '1',
+    teamKey: '1',
+    userKey: 'U001',
+    displayName: 'Test User',
+    username: 'testuser',
+    role: 'pm',
+    roleKey: 1,
+    roleName: 'pm',
+    joinedAt: '2024-01-01',
+  },
+  {
+    id: 2,
+    bizKey: '2',
+    teamKey: '1',
+    userKey: 'U002',
+    displayName: 'Alice',
+    username: 'alice',
+    role: 'member',
+    roleKey: 2,
+    roleName: 'member',
+    joinedAt: '2024-01-01',
+  },
+  {
+    id: 3,
+    bizKey: '3',
+    teamKey: '1',
+    userKey: 'U003',
+    displayName: 'Bob',
+    username: 'bob',
+    role: 'member',
+    roleKey: 3,
+    roleName: 'member',
+    joinedAt: '2024-01-01',
+  },
 ]
 
 const seedMainItem = {
-  bizKey: '1', teamKey: '1', code: 'MI-0001', title: 'Alpha Task', priority: 'P1',
-  proposerKey: 'U001', assigneeKey: 'U001', planStartDate: '2026-03-20', expectedEndDate: '2026-04-15',
-  actualEndDate: null, itemStatus: 'progressing', completion: 65,
-  createTime: '2026-03-20T00:00:00Z', dbUpdateTime: '2026-04-01T00:00:00Z',
+  bizKey: '1',
+  teamKey: '1',
+  code: 'MI-0001',
+  title: 'Alpha Task',
+  priority: 'P1',
+  proposerKey: 'U001',
+  assigneeKey: 'U001',
+  planStartDate: '2026-03-20',
+  expectedEndDate: '2026-04-15',
+  actualEndDate: null,
+  itemStatus: 'progressing',
+  completion: 65,
+  createTime: '2026-03-20T00:00:00Z',
+  dbUpdateTime: '2026-04-01T00:00:00Z',
   subItems: [
     {
-      bizKey: '11', teamKey: '1', mainItemKey: '1', title: 'Sub Alpha 1', itemDesc: '',
-      priority: 'P1', assigneeKey: 'U002', planStartDate: '2026-04-01', expectedEndDate: '2026-04-10',
-      actualEndDate: '2026-04-09', itemStatus: 'completed', completion: 100,
-      weight: 1, createTime: '2026-04-01T00:00:00Z', dbUpdateTime: '2026-04-09T00:00:00Z',
+      bizKey: '11',
+      teamKey: '1',
+      mainItemKey: '1',
+      title: 'Sub Alpha 1',
+      itemDesc: '',
+      priority: 'P1',
+      assigneeKey: 'U002',
+      planStartDate: '2026-04-01',
+      expectedEndDate: '2026-04-10',
+      actualEndDate: '2026-04-09',
+      itemStatus: 'completed',
+      completion: 100,
+      weight: 1,
+      createTime: '2026-04-01T00:00:00Z',
+      dbUpdateTime: '2026-04-09T00:00:00Z',
     },
     {
-      bizKey: '12', teamKey: '1', mainItemKey: '1', title: 'Sub Alpha 2', itemDesc: '',
-      priority: 'P2', assigneeKey: 'U003', planStartDate: '2026-04-08', expectedEndDate: '2026-04-18',
-      actualEndDate: null, itemStatus: 'progressing', completion: 80,
-      weight: 1, createTime: '2026-04-01T00:00:00Z', dbUpdateTime: '2026-04-08T00:00:00Z',
+      bizKey: '12',
+      teamKey: '1',
+      mainItemKey: '1',
+      title: 'Sub Alpha 2',
+      itemDesc: '',
+      priority: 'P2',
+      assigneeKey: 'U003',
+      planStartDate: '2026-04-08',
+      expectedEndDate: '2026-04-18',
+      actualEndDate: null,
+      itemStatus: 'progressing',
+      completion: 80,
+      weight: 1,
+      createTime: '2026-04-01T00:00:00Z',
+      dbUpdateTime: '2026-04-08T00:00:00Z',
     },
     {
-      bizKey: '13', teamKey: '1', mainItemKey: '1', title: 'Sub Alpha 3', itemDesc: '',
-      priority: 'P2', assigneeKey: 'U003', planStartDate: '2026-04-15', expectedEndDate: '2026-04-25',
-      actualEndDate: null, itemStatus: 'progressing', completion: 30,
-      weight: 1, createTime: '2026-04-01T00:00:00Z', dbUpdateTime: '2026-04-15T00:00:00Z',
+      bizKey: '13',
+      teamKey: '1',
+      mainItemKey: '1',
+      title: 'Sub Alpha 3',
+      itemDesc: '',
+      priority: 'P2',
+      assigneeKey: 'U003',
+      planStartDate: '2026-04-15',
+      expectedEndDate: '2026-04-25',
+      actualEndDate: null,
+      itemStatus: 'progressing',
+      completion: 30,
+      weight: 1,
+      createTime: '2026-04-01T00:00:00Z',
+      dbUpdateTime: '2026-04-15T00:00:00Z',
     },
   ],
   achievements: ['登录/注册接口开发完成', 'JWT Token 签发与验证逻辑实现'],
@@ -82,7 +169,11 @@ function setupHandlers() {
     // Get main item with sub items
     http.get('/v1/teams/:teamId/main-items/:itemId', ({ params }) => {
       const item = String(params.itemId) === '1' ? seedMainItem : null
-      if (!item) return HttpResponse.json({ code: 'NOT_FOUND', message: 'not found' }, { status: 404 })
+      if (!item)
+        return HttpResponse.json(
+          { code: 'NOT_FOUND', message: 'not found' },
+          { status: 404 },
+        )
       return HttpResponse.json({ code: 0, data: item })
     }),
 
@@ -93,24 +184,37 @@ function setupHandlers() {
 
     // Update main item
     http.put('/v1/teams/:teamId/main-items/:itemId', async ({ request }) => {
-      const body = await request.json() as Record<string, unknown>
+      const body = (await request.json()) as Record<string, unknown>
       return HttpResponse.json({ code: 0, data: { ...seedMainItem, ...body } })
     }),
 
     // Create sub item
-    http.post('/v1/teams/:teamId/main-items/:mainId/sub-items', async ({ request }) => {
-      const body = await request.json() as Record<string, unknown>
-      return HttpResponse.json({
-        code: 0,
-        data: {
-          bizKey: '100', teamKey: '1', mainItemKey: '1', itemDesc: '', priority: 'P2',
-          assigneeKey: null, planStartDate: null, expectedEndDate: null, actualEndDate: null,
-          itemStatus: 'pending', completion: 0, weight: 1,
-          createTime: new Date().toISOString(), dbUpdateTime: new Date().toISOString(),
-          ...body,
-        },
-      })
-    }),
+    http.post(
+      '/v1/teams/:teamId/main-items/:mainId/sub-items',
+      async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({
+          code: 0,
+          data: {
+            bizKey: '100',
+            teamKey: '1',
+            mainItemKey: '1',
+            itemDesc: '',
+            priority: 'P2',
+            assigneeKey: null,
+            planStartDate: null,
+            expectedEndDate: null,
+            actualEndDate: null,
+            itemStatus: 'pending',
+            completion: 0,
+            weight: 1,
+            createTime: new Date().toISOString(),
+            dbUpdateTime: new Date().toISOString(),
+            ...body,
+          },
+        })
+      },
+    ),
 
     // Change sub item status
     http.put('/v1/teams/:teamId/sub-items/:itemId/status', async () => {
@@ -119,7 +223,14 @@ function setupHandlers() {
 
     // Available transitions for sub items
     http.get('/v1/teams/:teamId/sub-items/:subId/available-transitions', () => {
-      const allStatuses = ['pending', 'progressing', 'blocking', 'pausing', 'completed', 'closed']
+      const allStatuses = [
+        'pending',
+        'progressing',
+        'blocking',
+        'pausing',
+        'completed',
+        'closed',
+      ]
       return HttpResponse.json({ code: 0, data: { transitions: allStatuses } })
     }),
   )
@@ -127,7 +238,20 @@ function setupHandlers() {
 
 describe('MainItemDetailPage', () => {
   beforeEach(() => {
-    useTeamStore.setState({ currentTeamId: '1', teams: [{ bizKey: '1', name: 'Test Team', description: '', code: '', pmKey: '1', createdAt: '', updatedAt: '' }] })
+    useTeamStore.setState({
+      currentTeamId: '1',
+      teams: [
+        {
+          bizKey: '1',
+          name: 'Test Team',
+          description: '',
+          code: '',
+          pmKey: '1',
+          createdAt: '',
+          updatedAt: '',
+        },
+      ],
+    })
     useAuthStore.getState().setPermissions({
       teamPermissions: { 1: ['main_item:update'] },
     })
@@ -149,7 +273,9 @@ describe('MainItemDetailPage', () => {
   it('renders main item title and code badge', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Alpha Task' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('heading', { name: 'Alpha Task' }),
+      ).toBeInTheDocument()
       expect(screen.getByText('MI-0001')).toBeInTheDocument()
     })
   })
@@ -174,7 +300,9 @@ describe('MainItemDetailPage', () => {
       // Some labels appear in both info grid and table headers
       expect(screen.getAllByText('负责人').length).toBeGreaterThanOrEqual(1)
       expect(screen.getAllByText('开始时间').length).toBeGreaterThanOrEqual(1)
-      expect(screen.getAllByText('预期完成时间').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText('预期完成时间').length).toBeGreaterThanOrEqual(
+        1,
+      )
       expect(screen.getAllByText('结束时间').length).toBeGreaterThanOrEqual(1)
     })
   })
@@ -271,7 +399,9 @@ describe('MainItemDetailPage', () => {
     const user = userEvent.setup()
     renderPage()
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Alpha Task' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('heading', { name: 'Alpha Task' }),
+      ).toBeInTheDocument()
     })
 
     // Find the "+ 新增子事项" button
@@ -288,7 +418,9 @@ describe('MainItemDetailPage', () => {
     const user = userEvent.setup()
     renderPage()
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Alpha Task' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('heading', { name: 'Alpha Task' }),
+      ).toBeInTheDocument()
     })
 
     await user.click(screen.getByRole('button', { name: /新增子事项/ }))
@@ -299,12 +431,16 @@ describe('MainItemDetailPage', () => {
 
     // Priority should have a required marker (red asterisk)
     const priorityLabels = screen.getAllByText(/优先级/)
-    const priorityWithRequired = priorityLabels.find(el => el.closest('label')?.innerHTML.includes('*'))
+    const priorityWithRequired = priorityLabels.find((el) =>
+      el.closest('label')?.innerHTML.includes('*'),
+    )
     expect(priorityWithRequired).toBeTruthy()
 
     // Start date field should exist in the dialog with a required marker
     const startDateLabels = screen.getAllByText(/开始时间/)
-    const startDateInDialog = startDateLabels.find(el => el.closest('label')?.innerHTML.includes('*'))
+    const startDateInDialog = startDateLabels.find((el) =>
+      el.closest('label')?.innerHTML.includes('*'),
+    )
     expect(startDateInDialog).toBeTruthy()
     // Verify a date input for start date exists
     const allDateInputs = document.querySelectorAll('input[type="date"]')
@@ -312,7 +448,9 @@ describe('MainItemDetailPage', () => {
 
     // Expected end date should have required marker
     const endDateLabels = screen.getAllByText(/预期完成时间/)
-    const endDateWithRequired = endDateLabels.find(el => el.closest('label')?.innerHTML.includes('*'))
+    const endDateWithRequired = endDateLabels.find((el) =>
+      el.closest('label')?.innerHTML.includes('*'),
+    )
     expect(endDateWithRequired).toBeTruthy()
   })
 
@@ -320,7 +458,9 @@ describe('MainItemDetailPage', () => {
     const user = userEvent.setup()
     renderPage()
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Alpha Task' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('heading', { name: 'Alpha Task' }),
+      ).toBeInTheDocument()
     })
 
     await user.click(screen.getByRole('button', { name: /新增子事项/ }))
@@ -342,7 +482,9 @@ describe('MainItemDetailPage', () => {
     const { fireEvent } = await import('@testing-library/react')
     renderPage()
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Alpha Task' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('heading', { name: 'Alpha Task' }),
+      ).toBeInTheDocument()
     })
 
     await user.click(screen.getByRole('button', { name: /新增子事项/ }))
@@ -357,10 +499,13 @@ describe('MainItemDetailPage', () => {
     // Select priority via fireEvent on the Radix Select
     // The priority select trigger is the one near "优先级" label
     const priorityLabels = screen.getAllByText(/优先级/)
-    const priorityLabelInDialog = priorityLabels.find(el => el.closest('label')?.innerHTML.includes('*'))
+    const priorityLabelInDialog = priorityLabels.find((el) =>
+      el.closest('label')?.innerHTML.includes('*'),
+    )
     expect(priorityLabelInDialog).toBeTruthy()
     // Find the select trigger button near this label
-    const priorityContainer = priorityLabelInDialog!.closest('div')?.parentElement
+    const priorityContainer =
+      priorityLabelInDialog!.closest('div')?.parentElement
     const selectTrigger = priorityContainer?.querySelector('button')
     expect(selectTrigger).toBeTruthy()
     await user.click(selectTrigger!)
@@ -368,23 +513,34 @@ describe('MainItemDetailPage', () => {
     await user.click(screen.getByRole('option', { name: 'P2' }))
 
     // Select assignee - use container query since Radix Select is hard to test with RTL
-    const allSelects = document.querySelectorAll('[role="dialog"] button[role="combobox"], [role="dialog"] button[data-state]')
+    const allSelects = document.querySelectorAll(
+      '[role="dialog"] button[role="combobox"], [role="dialog"] button[data-state]',
+    )
     // Find the one that shows "不指定" (assignee)
-    const assigneeBtn = Array.from(allSelects).find(btn => btn.textContent?.includes('不指定'))
+    const assigneeBtn = Array.from(allSelects).find((btn) =>
+      btn.textContent?.includes('不指定'),
+    )
     if (assigneeBtn) {
       await user.click(assigneeBtn)
       // Wait for options to appear
       await waitFor(() => {
-        expect(screen.getByRole('option', { name: 'Test User' })).toBeInTheDocument()
+        expect(
+          screen.getByRole('option', { name: 'Test User' }),
+        ).toBeInTheDocument()
       })
       await user.click(screen.getByRole('option', { name: 'Test User' }))
     }
 
     // Fill start date and expected end date via fireEvent
     const allDateInputs = document.querySelectorAll('input[type="date"]')
-    const dialogDateInputs = Array.from(allDateInputs).filter(input => {
+    const dialogDateInputs = Array.from(allDateInputs).filter((input) => {
       const label = input.closest('div')?.parentElement?.querySelector('label')
-      return label && (label.textContent?.includes('开始時間') || label.textContent?.includes('开始时间') || label.textContent?.includes('预期完成时间'))
+      return (
+        label &&
+        (label.textContent?.includes('开始時間') ||
+          label.textContent?.includes('开始时间') ||
+          label.textContent?.includes('预期完成时间'))
+      )
     })
     expect(dialogDateInputs.length).toBe(2)
 
@@ -403,7 +559,10 @@ describe('MainItemDetailPage', () => {
   it('disables sub-item edit and append-progress buttons when main item is terminal', async () => {
     server.use(
       http.get('/v1/teams/:teamId/main-items/:itemId', () => {
-        return HttpResponse.json({ code: 0, data: { ...seedMainItem, itemStatus: 'completed' } })
+        return HttpResponse.json({
+          code: 0,
+          data: { ...seedMainItem, itemStatus: 'completed' },
+        })
       }),
     )
     renderPage()
@@ -412,8 +571,8 @@ describe('MainItemDetailPage', () => {
     })
     const editBtns = screen.getAllByRole('button', { name: /编辑/ })
     const appendBtns = screen.getAllByRole('button', { name: /追加进度/ })
-    editBtns.forEach(btn => expect(btn).toBeDisabled())
-    appendBtns.forEach(btn => expect(btn).toBeDisabled())
+    editBtns.forEach((btn) => expect(btn).toBeDisabled())
+    appendBtns.forEach((btn) => expect(btn).toBeDisabled())
   })
 
   it('enables sub-item edit and append-progress buttons when main item is non-terminal', async () => {
@@ -422,7 +581,7 @@ describe('MainItemDetailPage', () => {
       expect(screen.getByText('Sub Alpha 1')).toBeInTheDocument()
     })
     const appendBtns = screen.getAllByRole('button', { name: /追加进度/ })
-    appendBtns.forEach(btn => expect(btn).toBeEnabled())
+    appendBtns.forEach((btn) => expect(btn).toBeEnabled())
   })
 
   // --- Action buttons ---
@@ -430,7 +589,9 @@ describe('MainItemDetailPage', () => {
   it('renders edit button', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Alpha Task' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('heading', { name: 'Alpha Task' }),
+      ).toBeInTheDocument()
       expect(screen.getAllByText('编辑').length).toBeGreaterThanOrEqual(1)
     })
   })
@@ -450,7 +611,9 @@ describe('MainItemDetailPage', () => {
   it('does not import antd', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Alpha Task' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('heading', { name: 'Alpha Task' }),
+      ).toBeInTheDocument()
     })
     const antdElements = document.querySelectorAll('[class*="ant-"]')
     expect(antdElements.length).toBe(0)
@@ -474,7 +637,9 @@ describe('MainItemDetailPage', () => {
     const user = userEvent.setup()
     renderPage()
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Alpha Task' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('heading', { name: 'Alpha Task' }),
+      ).toBeInTheDocument()
     })
 
     // Open edit dialog

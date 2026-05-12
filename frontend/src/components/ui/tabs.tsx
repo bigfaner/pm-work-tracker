@@ -12,7 +12,7 @@ const TabsList = React.forwardRef<
     ref={ref}
     className={cn(
       'inline-flex items-center gap-1 border-b border-border',
-      className
+      className,
     )}
     {...props}
   />
@@ -30,7 +30,7 @@ const TabsTrigger = React.forwardRef<
       'hover:text-secondary',
       'data-[state=active]:text-primary-700 data-[state=active]:border-primary-600',
       'focus-visible:outline-none',
-      className
+      className,
     )}
     {...props}
   />

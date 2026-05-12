@@ -1,4 +1,13 @@
-import { describe, it, expect, vi, beforeEach, beforeAll, afterAll, afterEach } from 'vitest'
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  beforeAll,
+  afterAll,
+  afterEach,
+} from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -184,9 +193,7 @@ function setupHandlers() {
         code: 0,
         data: {
           ...role,
-          permissions: [
-            { code: 'team:read', description: '查看团队信息' },
-          ],
+          permissions: [{ code: 'team:read', description: '查看团队信息' }],
         },
       })
     }),
@@ -384,7 +391,9 @@ describe('RoleManagementPage', () => {
     await user.click(screen.getByText('创建角色'))
 
     await waitFor(() => {
-      expect(screen.getByText('创建角色', { selector: '[data-state] *' })).toBeInTheDocument()
+      expect(
+        screen.getByText('创建角色', { selector: '[data-state] *' }),
+      ).toBeInTheDocument()
     })
   })
 
@@ -447,7 +456,12 @@ describe('RoleManagementPage', () => {
         await new Promise((r) => setTimeout(r, 500))
         return HttpResponse.json({
           code: 0,
-          data: { items: seedRoles, total: seedRoles.length, page: 1, pageSize: 20 },
+          data: {
+            items: seedRoles,
+            total: seedRoles.length,
+            page: 1,
+            pageSize: 20,
+          },
         })
       }),
     )

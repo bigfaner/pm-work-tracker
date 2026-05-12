@@ -21,7 +21,7 @@ const toggleVariants = cva(
       variant: 'default',
       size: 'default',
     },
-  }
+  },
 )
 
 interface ToggleProps
@@ -36,7 +36,7 @@ const Toggle = React.forwardRef<
     ref={ref}
     className={cn(
       toggleVariants({ variant, size, className }),
-      'data-[state=on]:bg-primary-50 data-[state=on]:text-primary-700'
+      'data-[state=on]:bg-primary-50 data-[state=on]:text-primary-700',
     )}
     {...props}
   />

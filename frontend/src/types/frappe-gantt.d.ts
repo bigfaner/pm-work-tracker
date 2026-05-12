@@ -30,7 +30,11 @@ declare module 'frappe-gantt' {
   }
 
   class Gantt {
-    constructor(wrapper: HTMLElement | string, tasks: GanttTask[], options?: GanttOptions)
+    constructor(
+      wrapper: HTMLElement | string,
+      tasks: GanttTask[],
+      options?: GanttOptions,
+    )
     change_view_mode(mode?: string): void
     refresh(tasks: GanttTask[]): void
   }

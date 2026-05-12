@@ -25,7 +25,10 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/items" element={<ItemViewPage />} />
           <Route path="/items/:mainItemId" element={<MainItemDetailPage />} />
-          <Route path="/items/:mainItemId/sub/:subItemId" element={<SubItemDetailPage />} />
+          <Route
+            path="/items/:mainItemId/sub/:subItemId"
+            element={<SubItemDetailPage />}
+          />
           <Route path="/weekly" element={<WeeklyViewPage />} />
           <Route path="/gantt" element={<GanttViewPage />} />
           <Route path="/table" element={<TableViewPage />} />

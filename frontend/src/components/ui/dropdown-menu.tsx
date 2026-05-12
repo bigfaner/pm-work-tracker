@@ -16,7 +16,7 @@ const DropdownMenuContent = React.forwardRef<
       className={cn(
         'z-50 min-w-[160px] overflow-hidden rounded-lg border border-border bg-white p-1 shadow-lg',
         'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-        className
+        className,
       )}
       {...props}
     />
@@ -36,7 +36,7 @@ const DropdownMenuItem = React.forwardRef<
       'relative flex cursor-default select-none items-center gap-2 rounded-sm px-3 py-2 text-[13px] text-secondary outline-none transition-colors',
       'focus:bg-bg-alt focus:text-primary',
       danger && 'text-error focus:text-error focus:bg-error-bg',
-      className
+      className,
     )}
     {...props}
   />

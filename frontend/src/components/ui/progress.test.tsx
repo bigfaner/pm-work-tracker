@@ -14,13 +14,17 @@ describe('Progress', () => {
   })
 
   it('renders small size', () => {
-    const { container } = render(<Progress value={50} size="sm" data-testid="progress" />)
+    const { container } = render(
+      <Progress value={50} size="sm" data-testid="progress" />,
+    )
     const root = container.firstChild as HTMLElement
     expect(root.className).toContain('h-1.5')
   })
 
   it('renders large size', () => {
-    const { container } = render(<Progress value={50} size="lg" data-testid="progress" />)
+    const { container } = render(
+      <Progress value={50} size="lg" data-testid="progress" />,
+    )
     const root = container.firstChild as HTMLElement
     expect(root.className).toContain('h-3')
   })

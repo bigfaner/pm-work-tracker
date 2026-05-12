@@ -14,7 +14,7 @@ describe('Card', () => {
         <CardHeader>Header</CardHeader>
         <CardContent>Body</CardContent>
         <CardFooter>Footer</CardFooter>
-      </Card>
+      </Card>,
     )
     expect(screen.getByText('Header')).toBeInTheDocument()
     expect(screen.getByText('Body')).toBeInTheDocument()

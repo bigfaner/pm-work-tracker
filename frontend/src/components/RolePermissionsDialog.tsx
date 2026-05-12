@@ -29,7 +29,9 @@ export default function RolePermissionsDialog({
     enabled: roleId != null && open,
   })
 
-  const permissionCodes = new Set(roleDetail?.permissions.map((p) => p.code) ?? [])
+  const permissionCodes = new Set(
+    roleDetail?.permissions.map((p) => p.code) ?? [],
+  )
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -41,16 +43,27 @@ export default function RolePermissionsDialog({
         </DialogHeader>
         <DialogBody>
           {roleDetail ? (
-            <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1" data-testid="role-permissions-list">
+            <div
+              className="space-y-2 max-h-[50vh] overflow-y-auto pr-1"
+              data-testid="role-permissions-list"
+            >
               {PERMISSION_GROUPS.map((group) => {
-                const groupPermissionValues = group.permissions.map((p) => p.value)
-                const hasAnyInGroup = groupPermissionValues.some((v) => permissionCodes.has(v))
+                const groupPermissionValues = group.permissions.map(
+                  (p) => p.value,
+                )
+                const hasAnyInGroup = groupPermissionValues.some((v) =>
+                  permissionCodes.has(v),
+                )
 
                 // Skip groups where the role has no permissions
                 if (!hasAnyInGroup) return null
 
                 return (
-                  <CollapsibleSection key={group.key} title={group.label} defaultOpen>
+                  <CollapsibleSection
+                    key={group.key}
+                    title={group.label}
+                    defaultOpen
+                  >
                     <div className="space-y-1.5 pl-6">
                       {group.permissions.map((p) => {
                         const hasPermission = permissionCodes.has(p.value)
@@ -65,7 +78,11 @@ export default function RolePermissionsDialog({
                               disabled
                               className="w-4 h-4 rounded border-border-dark"
                             />
-                            <span className={hasPermission ? 'text-primary' : 'text-tertiary'}>
+                            <span
+                              className={
+                                hasPermission ? 'text-primary' : 'text-tertiary'
+                              }
+                            >
                               {p.label}
                             </span>
                           </label>
@@ -77,11 +94,17 @@ export default function RolePermissionsDialog({
               })}
             </div>
           ) : (
-            <div className="py-8 text-center text-sm text-tertiary">加载中...</div>
+            <div className="py-8 text-center text-sm text-tertiary">
+              加载中...
+            </div>
           )}
         </DialogBody>
         <DialogFooter>
-          <Button variant="secondary" onClick={() => onOpenChange(false)} data-testid="role-permissions-close-btn">
+          <Button
+            variant="secondary"
+            onClick={() => onOpenChange(false)}
+            data-testid="role-permissions-close-btn"
+          >
             关闭
           </Button>
         </DialogFooter>

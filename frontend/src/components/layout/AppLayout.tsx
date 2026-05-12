@@ -15,7 +15,8 @@ export default function AppLayout() {
         const teams = Array.isArray(data) ? data : (data.items ?? [])
         setTeams(teams)
         if (teams.length > 0) {
-          const valid = currentTeamId && teams.some((t) => t.bizKey === currentTeamId)
+          const valid =
+            currentTeamId && teams.some((t) => t.bizKey === currentTeamId)
           if (!valid) {
             setCurrentTeam(teams[0].bizKey)
           }

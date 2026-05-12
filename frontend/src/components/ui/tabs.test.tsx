@@ -13,7 +13,7 @@ describe('Tabs', () => {
         </TabsList>
         <TabsContent value="tab1">Content 1</TabsContent>
         <TabsContent value="tab2">Content 2</TabsContent>
-      </Tabs>
+      </Tabs>,
     )
     expect(screen.getByText('Content 1')).toBeInTheDocument()
     expect(screen.getByText('Tab 1')).toBeInTheDocument()
@@ -28,7 +28,7 @@ describe('Tabs', () => {
         </TabsList>
         <TabsContent value="tab1">Content 1</TabsContent>
         <TabsContent value="tab2">Content 2</TabsContent>
-      </Tabs>
+      </Tabs>,
     )
     await userEvent.click(screen.getByText('Tab 2'))
     expect(screen.getByText('Content 2')).toBeInTheDocument()
@@ -40,7 +40,7 @@ describe('Tabs', () => {
         <TabsList>
           <TabsTrigger value="tab1">Tab 1</TabsTrigger>
         </TabsList>
-      </Tabs>
+      </Tabs>,
     )
     const trigger = screen.getByText('Tab 1')
     expect(trigger.getAttribute('data-state')).toBe('active')

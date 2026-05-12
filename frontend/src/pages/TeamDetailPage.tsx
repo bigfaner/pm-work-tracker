@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
-import { Crown, UserMinus, Edit, RefreshCw } from "lucide-react";
-import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo } from 'react'
+import { Crown, UserMinus, Edit, RefreshCw } from 'lucide-react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getTeamApi,
   listMembersApi,
@@ -12,17 +12,17 @@ import {
   changeMemberRoleApi,
   searchAvailableUsersApi,
   type UserSearchResult,
-} from "@/api/teams";
-import { listRolesApi } from "@/api/roles";
-import type { TeamMemberResp } from "@/types";
+} from '@/api/teams'
+import { listRolesApi } from '@/api/roles'
+import type { TeamMemberResp } from '@/types'
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { PermissionGuard } from "@/components/PermissionGuard";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/breadcrumb'
+import { PermissionGuard } from '@/components/PermissionGuard'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
@@ -31,14 +31,14 @@ import {
   DialogDescription,
   DialogBody,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select'
 import {
   Table,
   TableHeader,
@@ -46,32 +46,32 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import UserAvatar from "@/components/shared/UserAvatar";
-import { useToast } from "@/components/ui/toast";
-import { useAuthStore } from "@/store/auth";
-import { formatDateOnly } from "@/lib/format";
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import UserAvatar from '@/components/shared/UserAvatar'
+import { useToast } from '@/components/ui/toast'
+import { useAuthStore } from '@/store/auth'
+import { formatDateOnly } from '@/lib/format'
 
 // --- Main Component ---
 
 export default function TeamDetailPage() {
-  const { teamId } = useParams<{ teamId: string }>();
-  const navigate = useNavigate();
-  const qc = useQueryClient();
-  const { addToast } = useToast();
-  const numericTeamId = teamId!;
+  const { teamId } = useParams<{ teamId: string }>()
+  const navigate = useNavigate()
+  const qc = useQueryClient()
+  const { addToast } = useToast()
+  const numericTeamId = teamId!
 
   // Current user info
-  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const hasPermission = useAuthStore((s) => s.hasPermission)
 
   // --- Data fetching ---
 
   const { data: team, isLoading: teamLoading } = useQuery({
-    queryKey: ["team", numericTeamId],
+    queryKey: ['team', numericTeamId],
     queryFn: () => getTeamApi(numericTeamId),
     enabled: !!numericTeamId,
-  });
+  })
 
   const {
     data: members = [],
@@ -79,82 +79,82 @@ export default function TeamDetailPage() {
     isFetching: membersFetching,
     refetch: refetchMembers,
   } = useQuery({
-    queryKey: ["teamMembers", numericTeamId],
+    queryKey: ['teamMembers', numericTeamId],
     queryFn: () => listMembersApi(numericTeamId),
     enabled: !!numericTeamId,
-  });
+  })
 
   // Roles list (exclude superadmin) — only fetch if user can invite/change roles
-  const canManageMembers = hasPermission("team:invite", numericTeamId);
+  const canManageMembers = hasPermission('team:invite', numericTeamId)
   const { data: rolesData } = useQuery({
-    queryKey: ["roles"],
+    queryKey: ['roles'],
     queryFn: () => listRolesApi({ pageSize: 100 }),
     staleTime: 5 * 60 * 1000,
     enabled: canManageMembers,
-  });
+  })
 
   const roles = useMemo(() => {
-    if (!rolesData?.items) return [];
+    if (!rolesData?.items) return []
     return rolesData.items.filter(
-      (r) => r.roleName !== "superadmin" && r.roleName !== "pm",
-    );
-  }, [rolesData]);
+      (r) => r.roleName !== 'superadmin' && r.roleName !== 'pm',
+    )
+  }, [rolesData])
 
   const defaultRoleId =
-    roles.find((r) => r.roleName === "member")?.bizKey ?? roles[0]?.bizKey;
+    roles.find((r) => r.roleName === 'member')?.bizKey ?? roles[0]?.bizKey
 
-  const isLoading = teamLoading || membersLoading;
+  const isLoading = teamLoading || membersLoading
 
   // --- Filter state ---
 
-  const [searchText, setSearchText] = useState("");
-  const [roleFilter, setRoleFilter] = useState("");
+  const [searchText, setSearchText] = useState('')
+  const [roleFilter, setRoleFilter] = useState('')
 
   const filteredMembers = useMemo(() => {
-    let result = members;
+    let result = members
     if (searchText.trim()) {
-      const q = searchText.trim().toLowerCase();
-      result = result.filter((m) => m.displayName.toLowerCase().includes(q));
+      const q = searchText.trim().toLowerCase()
+      result = result.filter((m) => m.displayName.toLowerCase().includes(q))
     }
     if (roleFilter) {
-      result = result.filter((m) => m.role === roleFilter);
+      result = result.filter((m) => m.role === roleFilter)
     }
-    return result;
-  }, [members, searchText, roleFilter]);
+    return result
+  }, [members, searchText, roleFilter])
 
   // --- Dialog state ---
 
   const [transferTarget, setTransferTarget] = useState<TeamMemberResp | null>(
     null,
-  );
-  const [removeTarget, setRemoveTarget] = useState<TeamMemberResp | null>(null);
-  const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteUsername, setInviteUsername] = useState("");
+  )
+  const [removeTarget, setRemoveTarget] = useState<TeamMemberResp | null>(null)
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [inviteUsername, setInviteUsername] = useState('')
   const [inviteRoleId, setInviteRoleId] = useState<string | undefined>(
     undefined,
-  );
-  const [userSearch, setUserSearch] = useState("");
+  )
+  const [userSearch, setUserSearch] = useState('')
   const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(
     null,
-  );
-  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const [disbandOpen, setDisbandOpen] = useState(false);
-  const [disbandInput, setDisbandInput] = useState("");
+  )
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false)
+  const [disbandOpen, setDisbandOpen] = useState(false)
+  const [disbandInput, setDisbandInput] = useState('')
 
   // Role edit dialog state
   const [roleEditTarget, setRoleEditTarget] = useState<TeamMemberResp | null>(
     null,
-  );
+  )
   const [roleEditRoleId, setRoleEditRoleId] = useState<string | undefined>(
     undefined,
-  );
+  )
 
   // User search for invite dialog
   const { data: userSearchResults = [] } = useQuery({
-    queryKey: ["searchUsers", numericTeamId, userSearch],
+    queryKey: ['searchUsers', numericTeamId, userSearch],
     queryFn: () => searchAvailableUsersApi(numericTeamId, userSearch),
     enabled: inviteOpen && !!numericTeamId,
-  });
+  })
 
   // --- Mutations ---
 
@@ -162,25 +162,25 @@ export default function TeamDetailPage() {
     mutationFn: () =>
       transferPmApi(numericTeamId, { newPmUserKey: transferTarget!.userKey }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["team", numericTeamId] });
-      qc.invalidateQueries({ queryKey: ["teamMembers", numericTeamId] });
-      setTransferTarget(null);
-      addToast("已设为PM", "success");
+      qc.invalidateQueries({ queryKey: ['team', numericTeamId] })
+      qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
+      setTransferTarget(null)
+      addToast('已设为PM', 'success')
     },
-  });
+  })
 
   const removeMutation = useMutation({
     mutationFn: () => removeMemberApi(numericTeamId, removeTarget!.userKey),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["team", numericTeamId] });
-      qc.invalidateQueries({ queryKey: ["teamMembers", numericTeamId] });
-      setRemoveTarget(null);
-      addToast("已移除成员", "success");
+      qc.invalidateQueries({ queryKey: ['team', numericTeamId] })
+      qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
+      setRemoveTarget(null)
+      addToast('已移除成员', 'success')
     },
     onError: () => {
-      addToast("移除成员失败", "error");
+      addToast('移除成员失败', 'error')
     },
-  });
+  })
 
   const inviteMutation = useMutation({
     mutationFn: () =>
@@ -189,64 +189,64 @@ export default function TeamDetailPage() {
         roleKey: inviteRoleId!,
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["team", numericTeamId] });
-      qc.invalidateQueries({ queryKey: ["teamMembers", numericTeamId] });
-      setInviteOpen(false);
-      setInviteUsername("");
-      setInviteRoleId(undefined);
-      setUserSearch("");
-      setSelectedUser(null);
-      addToast("成员已添加", "success");
+      qc.invalidateQueries({ queryKey: ['team', numericTeamId] })
+      qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
+      setInviteOpen(false)
+      setInviteUsername('')
+      setInviteRoleId(undefined)
+      setUserSearch('')
+      setSelectedUser(null)
+      addToast('成员已添加', 'success')
     },
     onError: (err: unknown) => {
       const code = (err as { response?: { data?: { code?: string } } })
-        ?.response?.data?.code;
-      if (code === "ALREADY_MEMBER") {
-        addToast("该用户已是团队成员", "error");
+        ?.response?.data?.code
+      if (code === 'ALREADY_MEMBER') {
+        addToast('该用户已是团队成员', 'error')
       } else {
-        addToast("添加失败，请稍后重试", "error");
+        addToast('添加失败，请稍后重试', 'error')
       }
     },
-  });
+  })
 
   const changeRoleMutation = useMutation({
     mutationFn: ({
       memberId,
       roleKey,
     }: {
-      memberId: string;
-      roleKey: string;
+      memberId: string
+      roleKey: string
     }) => changeMemberRoleApi(numericTeamId, memberId, { roleKey }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["teamMembers", numericTeamId] });
-      setRoleEditTarget(null);
-      addToast("角色已更新", "success");
+      qc.invalidateQueries({ queryKey: ['teamMembers', numericTeamId] })
+      setRoleEditTarget(null)
+      addToast('角色已更新', 'success')
     },
     onError: () => {
-      setRoleEditTarget(null);
-      addToast("角色变更失败，请稍后重试", "error");
+      setRoleEditTarget(null)
+      addToast('角色变更失败，请稍后重试', 'error')
     },
-  });
+  })
 
   const disbandMutation = useMutation({
     mutationFn: () =>
       deleteTeamApi(numericTeamId, { confirmName: disbandInput }),
     onSuccess: () => {
-      setDisbandOpen(false);
-      setDisbandInput("");
-      addToast("团队已解散", "success");
-      navigate("/teams");
+      setDisbandOpen(false)
+      setDisbandInput('')
+      addToast('团队已解散', 'success')
+      navigate('/teams')
     },
     onError: (err: unknown) => {
       const code = (err as { response?: { data?: { code?: string } } })
-        ?.response?.data?.code;
-      if (code === "NAME_MISMATCH") {
-        addToast("团队名称不匹配", "error");
+        ?.response?.data?.code
+      if (code === 'NAME_MISMATCH') {
+        addToast('团队名称不匹配', 'error')
       } else {
-        addToast("解散失败，请稍后重试", "error");
+        addToast('解散失败，请稍后重试', 'error')
       }
     },
-  });
+  })
 
   // --- Render ---
 
@@ -258,7 +258,7 @@ export default function TeamDetailPage() {
       >
         加载中...
       </div>
-    );
+    )
   }
 
   if (!team) {
@@ -269,10 +269,10 @@ export default function TeamDetailPage() {
       >
         团队不存在
       </div>
-    );
+    )
   }
 
-  const isPm = (member: TeamMemberResp) => member.role === "pm";
+  const isPm = (member: TeamMemberResp) => member.role === 'pm'
 
   return (
     <div data-testid="team-detail-page">
@@ -321,7 +321,7 @@ export default function TeamDetailPage() {
           <div className="col-span-2">
             <div className="text-xs text-tertiary mb-1">简介</div>
             <span className="text-sm text-secondary">
-              {team.description || "暂无简介"}
+              {team.description || '暂无简介'}
             </span>
           </div>
         </div>
@@ -334,10 +334,10 @@ export default function TeamDetailPage() {
           <Button
             size="sm"
             onClick={() => {
-              setInviteOpen(true);
-              setInviteRoleId(defaultRoleId);
-              setUserSearch("");
-              setSelectedUser(null);
+              setInviteOpen(true)
+              setInviteRoleId(defaultRoleId)
+              setUserSearch('')
+              setSelectedUser(null)
             }}
           >
             添加成员
@@ -354,8 +354,8 @@ export default function TeamDetailPage() {
           className="w-[180px]"
         />
         <Select
-          value={roleFilter || "_all"}
-          onValueChange={(v) => setRoleFilter(v === "_all" ? "" : v)}
+          value={roleFilter || '_all'}
+          onValueChange={(v) => setRoleFilter(v === '_all' ? '' : v)}
         >
           <SelectTrigger className="w-[120px]">
             <SelectValue placeholder="角色：全部" />
@@ -370,15 +370,15 @@ export default function TeamDetailPage() {
           variant="secondary"
           size="sm"
           onClick={async () => {
-            await refetchMembers();
-            addToast("数据已刷新", "success");
+            await refetchMembers()
+            addToast('数据已刷新', 'success')
           }}
           disabled={membersFetching}
           data-testid="refresh-btn"
         >
           <RefreshCw
             size={14}
-            className={membersFetching ? "animate-spin" : ""}
+            className={membersFetching ? 'animate-spin' : ''}
           />
           刷新
         </Button>
@@ -412,7 +412,7 @@ export default function TeamDetailPage() {
                       <Badge variant="primary">PM</Badge>
                     ) : (
                       <Badge variant="default">
-                        {member.roleName || "成员"}
+                        {member.roleName || '成员'}
                       </Badge>
                     )}
                   </div>
@@ -436,8 +436,8 @@ export default function TeamDetailPage() {
                           size="sm"
                           className="text-primary-600"
                           onClick={() => {
-                            setRoleEditTarget(member);
-                            setRoleEditRoleId(member.roleKey);
+                            setRoleEditTarget(member)
+                            setRoleEditRoleId(member.roleKey)
                           }}
                           data-testid="change-role-btn"
                         >
@@ -506,7 +506,7 @@ export default function TeamDetailPage() {
       <Dialog
         open={!!roleEditTarget}
         onOpenChange={(open) => {
-          if (!open) setRoleEditTarget(null);
+          if (!open) setRoleEditTarget(null)
         }}
       >
         <DialogContent size="sm">
@@ -518,7 +518,7 @@ export default function TeamDetailPage() {
           </DialogHeader>
           <DialogBody>
             <Select
-              value={roleEditRoleId ?? ""}
+              value={roleEditRoleId ?? ''}
               onValueChange={(v) => setRoleEditRoleId(v)}
             >
               <SelectTrigger data-testid="role-edit-select">
@@ -560,7 +560,7 @@ export default function TeamDetailPage() {
       <Dialog
         open={!!transferTarget}
         onOpenChange={(open) => {
-          if (!open) setTransferTarget(null);
+          if (!open) setTransferTarget(null)
         }}
       >
         <DialogContent size="sm">
@@ -589,7 +589,7 @@ export default function TeamDetailPage() {
       <Dialog
         open={!!removeTarget}
         onOpenChange={(open) => {
-          if (!open) setRemoveTarget(null);
+          if (!open) setRemoveTarget(null)
         }}
       >
         <DialogContent size="sm">
@@ -618,12 +618,12 @@ export default function TeamDetailPage() {
       <Dialog
         open={inviteOpen}
         onOpenChange={(open) => {
-          setInviteOpen(open);
+          setInviteOpen(open)
           if (!open) {
-            setInviteUsername("");
-            setInviteRoleId(undefined);
-            setUserSearch("");
-            setSelectedUser(null);
+            setInviteUsername('')
+            setInviteRoleId(undefined)
+            setUserSearch('')
+            setSelectedUser(null)
           }
         }}
       >
@@ -645,10 +645,10 @@ export default function TeamDetailPage() {
                       : userSearch
                   }
                   onChange={(e) => {
-                    setUserSearch(e.target.value);
-                    setSelectedUser(null);
-                    setInviteUsername("");
-                    setUserDropdownOpen(true);
+                    setUserSearch(e.target.value)
+                    setSelectedUser(null)
+                    setInviteUsername('')
+                    setUserDropdownOpen(true)
                   }}
                   onFocus={() => setUserDropdownOpen(true)}
                   data-testid="invite-user-search"
@@ -666,10 +666,10 @@ export default function TeamDetailPage() {
                           type="button"
                           className="w-full px-3 py-2 text-left text-sm hover:bg-bg-alt focus:bg-bg-alt focus:outline-none"
                           onClick={() => {
-                            setSelectedUser(u);
-                            setInviteUsername(u.username);
-                            setUserSearch("");
-                            setUserDropdownOpen(false);
+                            setSelectedUser(u)
+                            setInviteUsername(u.username)
+                            setUserSearch('')
+                            setUserDropdownOpen(false)
                           }}
                           data-testid={`invite-user-option-${u.bizKey}`}
                         >
@@ -689,7 +689,7 @@ export default function TeamDetailPage() {
                   角色 <span className="text-error">*</span>
                 </label>
                 <Select
-                  value={inviteRoleId ?? ""}
+                  value={inviteRoleId ?? ''}
                   onValueChange={(v) => setInviteRoleId(v)}
                 >
                   <SelectTrigger data-testid="invite-role-select">
@@ -729,8 +729,8 @@ export default function TeamDetailPage() {
       <Dialog
         open={disbandOpen}
         onOpenChange={(open) => {
-          setDisbandOpen(open);
-          if (!open) setDisbandInput("");
+          setDisbandOpen(open)
+          if (!open) setDisbandInput('')
         }}
       >
         <DialogContent size="sm">
@@ -767,5 +767,5 @@ export default function TeamDetailPage() {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

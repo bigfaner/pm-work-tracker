@@ -4,7 +4,7 @@
  */
 export function buildFullUrl(
   path: string,
-  basePath: string = import.meta.env.VITE_BASE_PATH ?? "",
+  basePath: string = import.meta.env.VITE_BASE_PATH ?? '',
 ): string {
-  return `${window.location.origin}${basePath}${path}`;
+  return `${window.location.origin}${basePath}${path}`
 }

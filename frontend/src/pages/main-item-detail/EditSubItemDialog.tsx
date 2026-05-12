@@ -29,7 +29,9 @@ interface EditSubItemDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   form: EditSubItemFormState
-  onFormChange: (updater: (prev: EditSubItemFormState) => EditSubItemFormState) => void
+  onFormChange: (
+    updater: (prev: EditSubItemFormState) => EditSubItemFormState,
+  ) => void
   onSubmit: () => void
   isPending: boolean
 }
@@ -55,39 +57,65 @@ export default function EditSubItemDialog({
             </label>
             <Input
               value={form.title}
-              onChange={(e) => onFormChange((f) => ({ ...f, title: e.target.value }))}
+              onChange={(e) =>
+                onFormChange((f) => ({ ...f, title: e.target.value }))
+              }
             />
           </div>
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div>
-              <label className="block text-sm font-medium text-primary mb-1">优先级</label>
-              <Select value={form.priority} onValueChange={(v) => onFormChange((f) => ({ ...f, priority: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <label className="block text-sm font-medium text-primary mb-1">
+                优先级
+              </label>
+              <Select
+                value={form.priority}
+                onValueChange={(v) =>
+                  onFormChange((f) => ({ ...f, priority: v }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <PrioritySelectItems />
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-primary mb-1">预期完成时间</label>
+              <label className="block text-sm font-medium text-primary mb-1">
+                预期完成时间
+              </label>
               <DateInput
                 value={form.expectedEndDate}
-                onChange={(e) => onFormChange((f) => ({ ...f, expectedEndDate: e.target.value }))}
+                onChange={(e) =>
+                  onFormChange((f) => ({
+                    ...f,
+                    expectedEndDate: e.target.value,
+                  }))
+                }
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-primary mb-1">描述</label>
+            <label className="block text-sm font-medium text-primary mb-1">
+              描述
+            </label>
             <Textarea
               rows={3}
               value={form.description}
-              onChange={(e) => onFormChange((f) => ({ ...f, description: e.target.value }))}
+              onChange={(e) =>
+                onFormChange((f) => ({ ...f, description: e.target.value }))
+              }
             />
           </div>
         </DialogBody>
         <DialogFooter>
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>取消</Button>
-          <Button onClick={onSubmit} disabled={!form.title.trim() || isPending}>保存</Button>
+          <Button variant="secondary" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button onClick={onSubmit} disabled={!form.title.trim() || isPending}>
+            保存
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

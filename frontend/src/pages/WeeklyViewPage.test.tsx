@@ -1,4 +1,13 @@
-import { describe, it, expect, beforeEach, beforeAll, afterAll, afterEach, vi } from 'vitest'
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  beforeAll,
+  afterAll,
+  afterEach,
+  vi,
+} from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -11,7 +20,7 @@ import type { WeeklyViewResponse } from '@/types'
 
 // Fix current week to a known date for deterministic tests
 vi.mock('@/utils/weekUtils', async (importOriginal) => {
-  const actual = await importOriginal() as typeof import('@/utils/weekUtils')
+  const actual = (await importOriginal()) as typeof import('@/utils/weekUtils')
   return { ...actual, getCurrentWeekStart: () => '2026-04-13' }
 })
 
@@ -108,8 +117,20 @@ const mockWeeklyResponse: WeeklyViewResponse = {
           completion: 70,
           progressDescription: 'Token 签发完成，黑名单联调中',
           progressRecords: [
-            { bizKey: '101', completion: 60, achievement: 'Token 签发完成', blocker: '', createdAt: '2026-04-15T10:00:00Z' },
-            { bizKey: '102', completion: 70, achievement: '黑名单联调中', blocker: 'Redis 连接超时', createdAt: '2026-04-17T14:00:00Z' },
+            {
+              bizKey: '101',
+              completion: 60,
+              achievement: 'Token 签发完成',
+              blocker: '',
+              createdAt: '2026-04-15T10:00:00Z',
+            },
+            {
+              bizKey: '102',
+              completion: 70,
+              achievement: '黑名单联调中',
+              blocker: 'Redis 连接超时',
+              createdAt: '2026-04-17T14:00:00Z',
+            },
           ],
           delta: 30,
           isNew: false,
@@ -127,7 +148,13 @@ const mockWeeklyResponse: WeeklyViewResponse = {
           completion: 45,
           progressDescription: '中间件完成，RBAC 冲突待讨论',
           progressRecords: [
-            { bizKey: '103', completion: 45, achievement: '中间件完成', blocker: 'RBAC 冲突待讨论', createdAt: '2026-04-16T09:00:00Z' },
+            {
+              bizKey: '103',
+              completion: 45,
+              achievement: '中间件完成',
+              blocker: 'RBAC 冲突待讨论',
+              createdAt: '2026-04-16T09:00:00Z',
+            },
           ],
           delta: 25,
           isNew: false,
@@ -207,7 +234,13 @@ const mockWeeklyResponse: WeeklyViewResponse = {
           completion: 100,
           progressDescription: '图表渲染性能达标',
           progressRecords: [
-            { bizKey: '104', completion: 100, achievement: '图表渲染性能达标', blocker: '', createdAt: '2026-04-14T11:00:00Z' },
+            {
+              bizKey: '104',
+              completion: 100,
+              achievement: '图表渲染性能达标',
+              blocker: '',
+              createdAt: '2026-04-14T11:00:00Z',
+            },
           ],
           delta: 45,
           isNew: false,
@@ -255,7 +288,17 @@ describe('WeeklyViewPage', () => {
   beforeEach(() => {
     useTeamStore.setState({
       currentTeamId: '1',
-      teams: [{ bizKey: '1', name: 'Test Team', description: '', code: '', pmKey: '1', createdAt: '', updatedAt: '' }],
+      teams: [
+        {
+          bizKey: '1',
+          name: 'Test Team',
+          description: '',
+          code: '',
+          pmKey: '1',
+          createdAt: '',
+          updatedAt: '',
+        },
+      ],
     })
     setupWeeklyHandler()
   })
@@ -296,7 +339,9 @@ describe('WeeklyViewPage', () => {
     await waitFor(() => {
       expect(screen.getByText('本周活跃')).toBeInTheDocument()
       // These labels appear in both stats bar and legend, use getAllByText
-      expect(screen.getAllByText('本周新完成').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText('本周新完成').length).toBeGreaterThanOrEqual(
+        1,
+      )
       expect(screen.getAllByText('进行中').length).toBeGreaterThanOrEqual(1)
       expect(screen.getByText('阻塞中')).toBeInTheDocument()
     })
@@ -351,7 +396,9 @@ describe('WeeklyViewPage', () => {
   it('shows tooltip content on click', async () => {
     const user = userEvent.setup()
     renderPage()
-    await waitFor(() => expect(screen.getByTestId('stat-active')).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByTestId('stat-active')).toBeInTheDocument(),
+    )
     const trigger = screen.getByTestId('stat-active').closest('button')!
     await user.click(trigger)
     await waitFor(() => {
@@ -362,7 +409,9 @@ describe('WeeklyViewPage', () => {
   it('stat card trigger has aria-describedby when tooltip is open', async () => {
     const user = userEvent.setup()
     renderPage()
-    await waitFor(() => expect(screen.getByTestId('stat-active')).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByTestId('stat-active')).toBeInTheDocument(),
+    )
     const trigger = screen.getByTestId('stat-active').closest('button')!
     await user.click(trigger)
     await waitFor(() => {
@@ -373,7 +422,10 @@ describe('WeeklyViewPage', () => {
   it('shows "-" for all stat cards when API returns error', async () => {
     server.use(
       http.get('/v1/teams/:teamId/views/weekly', () =>
-        HttpResponse.json({ code: 'SERVER_ERROR', message: 'internal error' }, { status: 500 }),
+        HttpResponse.json(
+          { code: 'SERVER_ERROR', message: 'internal error' },
+          { status: 500 },
+        ),
       ),
     )
     renderPage()
@@ -454,8 +506,12 @@ describe('WeeklyViewPage', () => {
     renderPage()
     await waitFor(() => {
       // These appear in both last week and this week columns
-      expect(screen.getAllByText('JWT Token 集成').length).toBeGreaterThanOrEqual(1)
-      expect(screen.getAllByText('权限中间件').length).toBeGreaterThanOrEqual(1)
+      expect(
+        screen.getAllByText('JWT Token 集成').length,
+      ).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText('权限中间件').length).toBeGreaterThanOrEqual(
+        1,
+      )
     })
   })
 
@@ -500,39 +556,51 @@ describe('WeeklyViewPage', () => {
     setupWeeklyHandler({
       weekStart: '2026-04-13',
       weekEnd: '2026-04-19',
-      stats: { activeSubItems: 1, newlyCompleted: 0, inProgress: 1, blocked: 0, pending: 0, pausing: 0, overdue: 0 },
-      groups: [{
-        mainItem: {
-          bizKey: '99',
-          code: 'M-099',
-          title: 'Fallback测试',
-          priority: 'P2',
-          itemStatus: '进行中',
-          startDate: '2026-04-13',
-          expectedEndDate: '2026-04-19',
-          actualEndDate: null,
-          completion: 50,
-          subItemCount: 1,
+      stats: {
+        activeSubItems: 1,
+        newlyCompleted: 0,
+        inProgress: 1,
+        blocked: 0,
+        pending: 0,
+        pausing: 0,
+        overdue: 0,
+      },
+      groups: [
+        {
+          mainItem: {
+            bizKey: '99',
+            code: 'M-099',
+            title: 'Fallback测试',
+            priority: 'P2',
+            itemStatus: '进行中',
+            startDate: '2026-04-13',
+            expectedEndDate: '2026-04-19',
+            actualEndDate: null,
+            completion: 50,
+            subItemCount: 1,
+          },
+          lastWeek: [],
+          thisWeek: [
+            {
+              bizKey: '90',
+              code: 'SI-090',
+              title: '回退测试子事项',
+              priority: 'P2',
+              itemStatus: 'progressing',
+              assigneeName: '测试',
+              startDate: '2026-04-13',
+              expectedEndDate: '2026-04-19',
+              completion: 50,
+              progressDescription: '后端未更新时的描述',
+              progressRecords: [],
+              delta: 0,
+              isNew: false,
+              justCompleted: false,
+            },
+          ],
+          completedNoChange: [],
         },
-        lastWeek: [],
-        thisWeek: [{
-          bizKey: '90',
-          code: 'SI-090',
-          title: '回退测试子事项',
-          priority: 'P2',
-          itemStatus: 'progressing',
-          assigneeName: '测试',
-          startDate: '2026-04-13',
-          expectedEndDate: '2026-04-19',
-          completion: 50,
-          progressDescription: '后端未更新时的描述',
-          progressRecords: [],
-          delta: 0,
-          isNew: false,
-          justCompleted: false,
-        }],
-        completedNoChange: [],
-      }],
+      ],
     })
     renderPage()
     await waitFor(() => {
@@ -594,8 +662,12 @@ describe('WeeklyViewPage', () => {
     await user.click(expandBtn)
 
     await waitFor(() => {
-      expect(screen.getAllByText('已完成无变化').length).toBeGreaterThanOrEqual(1)
-      expect(screen.getAllByText('登录页开发').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText('已完成无变化').length).toBeGreaterThanOrEqual(
+        1,
+      )
+      expect(screen.getAllByText('登录页开发').length).toBeGreaterThanOrEqual(
+        1,
+      )
     })
   })
 
@@ -664,7 +736,15 @@ describe('WeeklyViewPage', () => {
     setupWeeklyHandler({
       weekStart: '2026-04-13',
       weekEnd: '2026-04-19',
-      stats: { activeSubItems: 0, newlyCompleted: 0, inProgress: 0, blocked: 0, pending: 0, pausing: 0, overdue: 0 },
+      stats: {
+        activeSubItems: 0,
+        newlyCompleted: 0,
+        inProgress: 0,
+        blocked: 0,
+        pending: 0,
+        pausing: 0,
+        overdue: 0,
+      },
       groups: [],
     })
     renderPage()
@@ -672,7 +752,6 @@ describe('WeeklyViewPage', () => {
       expect(screen.getByText(/暂无周数据/)).toBeInTheDocument()
     })
   })
-
 
   // --- Week selector change ---
 
@@ -705,27 +784,31 @@ describe('WeeklyViewPage', () => {
   it('does not auto-generate SI- codes for sub-items', async () => {
     setupWeeklyHandler({
       ...mockWeeklyResponse,
-      groups: [{
-        ...mockWeeklyResponse.groups[0],
-        thisWeek: [{
-          bizKey: '10',
-          code: 'AUTH-00001-01',
-          title: 'JWT Token 集成',
-          priority: 'P2',
-          itemStatus: 'progressing',
-          assigneeName: '李伟',
-          startDate: '2026-04-10',
-          expectedEndDate: '2026-04-18',
-          completion: 70,
-          progressDescription: 'Token 签发完成',
-          progressRecords: [],
-          delta: 30,
-          isNew: false,
-          justCompleted: false,
-        }],
-        lastWeek: [],
-        completedNoChange: [],
-      }],
+      groups: [
+        {
+          ...mockWeeklyResponse.groups[0],
+          thisWeek: [
+            {
+              bizKey: '10',
+              code: 'AUTH-00001-01',
+              title: 'JWT Token 集成',
+              priority: 'P2',
+              itemStatus: 'progressing',
+              assigneeName: '李伟',
+              startDate: '2026-04-10',
+              expectedEndDate: '2026-04-18',
+              completion: 70,
+              progressDescription: 'Token 签发完成',
+              progressRecords: [],
+              delta: 30,
+              isNew: false,
+              justCompleted: false,
+            },
+          ],
+          lastWeek: [],
+          completedNoChange: [],
+        },
+      ],
     })
     renderPage()
     await waitFor(() => {

@@ -20,7 +20,7 @@ function Toast({ variant = 'default', className, ...props }: ToastProps) {
       className={cn(
         'flex items-center gap-2 rounded-lg px-4 py-3 text-[13px] font-medium border shadow-md',
         toastVariants[variant],
-        className
+        className,
       )}
       {...props}
     />

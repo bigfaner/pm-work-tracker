@@ -1,18 +1,18 @@
-import { useState, useCallback } from "react";
-import { Pencil, Trash2, RefreshCw } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listRolesApi, deleteRoleApi } from "@/api/roles";
-import { formatDateOnly } from "@/lib/format";
-import type { Role } from "@/types";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useState, useCallback } from 'react'
+import { Pencil, Trash2, RefreshCw } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { listRolesApi, deleteRoleApi } from '@/api/roles'
+import { formatDateOnly } from '@/lib/format'
+import type { Role } from '@/types'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select'
 import {
   Table,
   TableHeader,
@@ -20,48 +20,48 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Pagination } from "@/components/ui/pagination";
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Pagination } from '@/components/ui/pagination'
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
   TooltipProvider,
-} from "@/components/ui/tooltip";
+} from '@/components/ui/tooltip'
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import ConfirmDialog from "@/components/shared/ConfirmDialog";
-import RoleEditDialog from "@/components/RoleEditDialog";
-import PermissionBrowseDialog from "@/components/PermissionBrowseDialog";
-import RolePermissionsDialog from "@/components/RolePermissionsDialog";
-import { useToast } from "@/components/ui/toast";
+} from '@/components/ui/breadcrumb'
+import ConfirmDialog from '@/components/shared/ConfirmDialog'
+import RoleEditDialog from '@/components/RoleEditDialog'
+import PermissionBrowseDialog from '@/components/PermissionBrowseDialog'
+import RolePermissionsDialog from '@/components/RolePermissionsDialog'
+import { useToast } from '@/components/ui/toast'
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 20
 
 export default function RoleManagementPage() {
-  const qc = useQueryClient();
-  const { addToast } = useToast();
+  const qc = useQueryClient()
+  const { addToast } = useToast()
 
   // Filters
-  const [searchText, setSearchText] = useState("");
-  const [presetFilter, setPresetFilter] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchText, setSearchText] = useState('')
+  const [presetFilter, setPresetFilter] = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
 
   // Dialogs
-  const [editOpen, setEditOpen] = useState(false);
-  const [editRoleId, setEditRoleId] = useState<string | null>(null);
-  const [browseOpen, setBrowseOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteRole, setDeleteRole] = useState<Role | null>(null);
-  const [deleteError, setDeleteError] = useState("");
-  const [permissionsOpen, setPermissionsOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false)
+  const [editRoleId, setEditRoleId] = useState<string | null>(null)
+  const [browseOpen, setBrowseOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteRole, setDeleteRole] = useState<Role | null>(null)
+  const [deleteError, setDeleteError] = useState('')
+  const [permissionsOpen, setPermissionsOpen] = useState(false)
   const [permissionsRoleId, setPermissionsRoleId] = useState<string | null>(
     null,
-  );
+  )
 
   // Data
   const {
@@ -70,79 +70,79 @@ export default function RoleManagementPage() {
     isFetching,
     refetch,
   } = useQuery({
-    queryKey: ["roles", currentPage, searchText, presetFilter],
+    queryKey: ['roles', currentPage, searchText, presetFilter],
     queryFn: () =>
       listRolesApi({
         page: currentPage,
         pageSize: PAGE_SIZE,
         ...(searchText.trim() && { search: searchText.trim() }),
-        ...(presetFilter !== "all" && { isPreset: presetFilter }),
+        ...(presetFilter !== 'all' && { isPreset: presetFilter }),
       }),
-  });
+  })
 
-  const roles = rolesData?.items || [];
-  const total = rolesData?.total || 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const roles = rolesData?.items || []
+  const total = rolesData?.total || 0
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   // Handlers
   const handleSearchChange = useCallback((value: string) => {
-    setSearchText(value);
-    setCurrentPage(1);
-  }, []);
+    setSearchText(value)
+    setCurrentPage(1)
+  }, [])
 
   const handlePresetFilterChange = useCallback((value: string) => {
-    setPresetFilter(value);
-    setCurrentPage(1);
-  }, []);
+    setPresetFilter(value)
+    setCurrentPage(1)
+  }, [])
 
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: (bizKey: string) => deleteRoleApi(bizKey),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["roles"] });
-      setDeleteOpen(false);
-      setDeleteRole(null);
-      setDeleteError("");
+      qc.invalidateQueries({ queryKey: ['roles'] })
+      setDeleteOpen(false)
+      setDeleteRole(null)
+      setDeleteError('')
     },
     onError: (err: unknown) => {
       const code = (err as { response?: { data?: { code?: string } } })
-        ?.response?.data?.code;
-      if (code === "ERR_PRESET_ROLE_IMMUTABLE") {
-        setDeleteError("预置角色不可删除");
-      } else if (code === "ERR_ROLE_IN_USE") {
-        setDeleteError("角色正在被使用，无法删除");
+        ?.response?.data?.code
+      if (code === 'ERR_PRESET_ROLE_IMMUTABLE') {
+        setDeleteError('预置角色不可删除')
+      } else if (code === 'ERR_ROLE_IN_USE') {
+        setDeleteError('角色正在被使用，无法删除')
       } else {
-        setDeleteError("删除失败，请稍后重试");
+        setDeleteError('删除失败，请稍后重试')
       }
     },
-  });
+  })
 
   const openEdit = useCallback((role: Role) => {
-    setEditRoleId(role.bizKey);
-    setEditOpen(true);
-  }, []);
+    setEditRoleId(role.bizKey)
+    setEditOpen(true)
+  }, [])
 
   const openCreate = useCallback(() => {
-    setEditRoleId(null);
-    setEditOpen(true);
-  }, []);
+    setEditRoleId(null)
+    setEditOpen(true)
+  }, [])
 
   const openDelete = useCallback((role: Role) => {
-    setDeleteRole(role);
-    setDeleteError("");
-    setDeleteOpen(true);
-  }, []);
+    setDeleteRole(role)
+    setDeleteError('')
+    setDeleteOpen(true)
+  }, [])
 
   const openPermissions = useCallback((role: Role) => {
-    setPermissionsRoleId(role.bizKey);
-    setPermissionsOpen(true);
-  }, []);
+    setPermissionsRoleId(role.bizKey)
+    setPermissionsOpen(true)
+  }, [])
 
   const handleDeleteConfirm = useCallback(() => {
     if (deleteRole) {
-      deleteMutation.mutate(deleteRole.bizKey);
+      deleteMutation.mutate(deleteRole.bizKey)
     }
-  }, [deleteRole, deleteMutation]);
+  }, [deleteRole, deleteMutation])
 
   return (
     <TooltipProvider>
@@ -207,13 +207,13 @@ export default function RoleManagementPage() {
             variant="secondary"
             size="sm"
             onClick={async () => {
-              await refetch();
-              addToast("数据已刷新", "success");
+              await refetch()
+              addToast('数据已刷新', 'success')
             }}
             disabled={isFetching}
             data-testid="refresh-btn"
           >
-            <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
+            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
             刷新
           </Button>
         </div>
@@ -230,11 +230,11 @@ export default function RoleManagementPage() {
         ) : roles.length === 0 ? (
           <div className="py-12 text-center">
             <p className="text-tertiary text-sm">
-              {searchText || presetFilter !== "all"
-                ? "没有匹配的角色"
-                : "暂无自定义角色"}
+              {searchText || presetFilter !== 'all'
+                ? '没有匹配的角色'
+                : '暂无自定义角色'}
             </p>
-            {!searchText && presetFilter === "all" && (
+            {!searchText && presetFilter === 'all' && (
               <Button className="mt-3" size="sm" onClick={openCreate}>
                 创建角色
               </Button>
@@ -269,7 +269,7 @@ export default function RoleManagementPage() {
                     </TableCell>
                     <TableCell>
                       <span className="text-secondary">
-                        {role.roleDesc || "-"}
+                        {role.roleDesc || '-'}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -279,8 +279,8 @@ export default function RoleManagementPage() {
                       <span>{role.memberCount}</span>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={role.isPreset ? "primary" : "default"}>
-                        {role.isPreset ? "预置" : "自定义"}
+                      <Badge variant={role.isPreset ? 'primary' : 'default'}>
+                        {role.isPreset ? '预置' : '自定义'}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -328,7 +328,7 @@ export default function RoleManagementPage() {
                           {(role.isPreset || role.memberCount > 0) && (
                             <TooltipContent>
                               {role.isPreset
-                                ? "预置角色不可删除"
+                                ? '预置角色不可删除'
                                 : `该角色正在被 ${role.memberCount} 个用户使用`}
                             </TooltipContent>
                           )}
@@ -380,14 +380,14 @@ export default function RoleManagementPage() {
         <ConfirmDialog
           open={deleteOpen}
           onOpenChange={(v) => {
-            setDeleteOpen(v);
-            if (!v) setDeleteError("");
+            setDeleteOpen(v)
+            if (!v) setDeleteError('')
           }}
           title="删除角色"
           description={
             deleteRole
               ? `确定要删除角色"${deleteRole.roleName}"吗？此操作不可撤销。`
-              : ""
+              : ''
           }
           confirmLabel="确认删除"
           confirmVariant="danger"
@@ -398,5 +398,5 @@ export default function RoleManagementPage() {
         )}
       </div>
     </TooltipProvider>
-  );
+  )
 }

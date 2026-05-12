@@ -1,19 +1,19 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import {
   ArrowUpCircle,
   ArrowDownCircle,
   XCircle,
   Pencil,
   RefreshCw,
-} from "lucide-react";
-import { Link } from "react-router-dom";
+} from 'lucide-react'
+import { Link } from 'react-router-dom'
 import {
   useQuery,
   useInfiniteQuery,
   useMutation,
   useQueryClient,
-} from "@tanstack/react-query";
-import { useTeamStore } from "@/store/team";
+} from '@tanstack/react-query'
+import { useTeamStore } from '@/store/team'
 import {
   listItemPoolApi,
   submitItemPoolApi,
@@ -21,29 +21,29 @@ import {
   assignItemPoolApi,
   convertToMainApi,
   rejectItemPoolApi,
-} from "@/api/itemPool";
-import { listMainItemsApi } from "@/api/mainItems";
-import { listMembersApi } from "@/api/teams";
+} from '@/api/itemPool'
+import { listMainItemsApi } from '@/api/mainItems'
+import { listMembersApi } from '@/api/teams'
 import type {
   ItemPool,
   AssignItemPoolReq,
   ConvertToMainItemReq,
   UpdateItemPoolReq,
-} from "@/types";
-import { usePermission } from "@/hooks/usePermission";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { DateInput } from "@/components/ui/date-input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+} from '@/types'
+import { usePermission } from '@/hooks/usePermission'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { DateInput } from '@/components/ui/date-input'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { PrioritySelectItems } from "@/components/shared/PrioritySelect";
+} from '@/components/ui/select'
+import { PrioritySelectItems } from '@/components/shared/PrioritySelect'
 import {
   Dialog,
   DialogContent,
@@ -51,45 +51,45 @@ import {
   DialogTitle,
   DialogBody,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { useToast } from "@/components/ui/toast";
+} from '@/components/ui/dialog'
+import { useToast } from '@/components/ui/toast'
 
 // --- Constants ---
 
-const POOL_BATCH_SIZE = 5;
+const POOL_BATCH_SIZE = 5
 const POOL_STATUS_OPTIONS = [
-  { value: "pending", label: "待分配" },
-  { value: "assigned", label: "已分配" },
-  { value: "rejected", label: "已拒绝" },
-];
+  { value: 'pending', label: '待分配' },
+  { value: 'assigned', label: '已分配' },
+  { value: 'rejected', label: '已拒绝' },
+]
 
 const STATUS_BORDER: Record<string, string> = {
-  pending: "border-l-4 border-l-blue-500",
-  assigned: "border-l-4 border-l-tertiary opacity-70",
-  rejected: "border-l-4 border-l-error opacity-70",
-};
+  pending: 'border-l-4 border-l-blue-500',
+  assigned: 'border-l-4 border-l-tertiary opacity-70',
+  rejected: 'border-l-4 border-l-error opacity-70',
+}
 
-const STATUS_BADGE_VARIANT: Record<string, "primary" | "success" | "default"> =
+const STATUS_BADGE_VARIANT: Record<string, 'primary' | 'success' | 'default'> =
   {
-    pending: "primary",
-    assigned: "success",
-    rejected: "default",
-  };
+    pending: 'primary',
+    assigned: 'success',
+    rejected: 'default',
+  }
 
 const STATUS_LABEL: Record<string, string> = {
-  pending: "待分配",
-  assigned: "已分配",
-  rejected: "已拒绝",
-};
+  pending: '待分配',
+  assigned: '已分配',
+  rejected: '已拒绝',
+}
 
 // --- Pool Item Card ---
 
 interface PoolItemCardProps {
-  item: ItemPool;
-  onEdit: (item: ItemPool) => void;
-  onConvertToMain: (item: ItemPool) => void;
-  onConvertToSub: (item: ItemPool) => void;
-  onReject: (item: ItemPool) => void;
+  item: ItemPool
+  onEdit: (item: ItemPool) => void
+  onConvertToMain: (item: ItemPool) => void
+  onConvertToSub: (item: ItemPool) => void
+  onReject: (item: ItemPool) => void
 }
 
 function PoolItemCard({
@@ -99,25 +99,25 @@ function PoolItemCard({
   onConvertToSub,
   onReject,
 }: PoolItemCardProps) {
-  const isPending = item.poolStatus === "pending";
-  const canSubmit = usePermission("item_pool:submit");
-  const canReview = usePermission("item_pool:review");
+  const isPending = item.poolStatus === 'pending'
+  const canSubmit = usePermission('item_pool:submit')
+  const canReview = usePermission('item_pool:review')
 
   return (
     <div
       data-testid={`pool-item-${item.bizKey}`}
-      className={`rounded-xl border border-border bg-white shadow-sm ${STATUS_BORDER[item.poolStatus] || ""}`}
+      className={`rounded-xl border border-border bg-white shadow-sm ${STATUS_BORDER[item.poolStatus] || ''}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3">
         <div className="flex items-center gap-2">
-          {item.poolStatus === "assigned" && item.assignedMainKey ? (
+          {item.poolStatus === 'assigned' && item.assignedMainKey ? (
             <Link
               to={`/items/${item.assignedMainKey}`}
               className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline max-w-xs truncate"
               title={item.title}
             >
-              {item.assignedMainCode ? `${item.assignedMainCode} ` : ""}
+              {item.assignedMainCode ? `${item.assignedMainCode} ` : ''}
               {item.title}
             </Link>
           ) : (
@@ -151,9 +151,9 @@ function PoolItemCard({
             {item.expectedOutput}
           </p>
         )}
-        {item.poolStatus === "assigned" && item.assignedMainKey && (
+        {item.poolStatus === 'assigned' && item.assignedMainKey && (
           <div className="mt-2 text-[13px] text-secondary">
-            {item.assignedSubKey ? "已转为子事项挂载至：" : "已转为主事项："}
+            {item.assignedSubKey ? '已转为子事项挂载至：' : '已转为主事项：'}
             <Link
               to={`/items/${item.assignedMainKey}`}
               className="font-medium text-primary-600 hover:text-primary-700 hover:underline"
@@ -164,7 +164,7 @@ function PoolItemCard({
             </Link>
           </div>
         )}
-        {item.poolStatus === "rejected" && item.rejectReason && (
+        {item.poolStatus === 'rejected' && item.rejectReason && (
           <div className="mt-2 text-[13px] text-tertiary">
             拒绝原因：{item.rejectReason}
           </div>
@@ -223,56 +223,56 @@ function PoolItemCard({
         </div>
       )}
     </div>
-  );
+  )
 }
 
 // --- Main Component ---
 
 export default function ItemPoolPage() {
-  const teamId = useTeamStore((s) => s.currentTeamId);
-  const qc = useQueryClient();
-  const { addToast } = useToast();
+  const teamId = useTeamStore((s) => s.currentTeamId)
+  const qc = useQueryClient()
+  const { addToast } = useToast()
 
   // Filter state
-  const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [searchText, setSearchText] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('')
 
   // Infinite scroll
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
   // Dialogs
-  const [submitOpen, setSubmitOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const [toMainOpen, setToMainOpen] = useState(false);
-  const [toSubOpen, setToSubOpen] = useState(false);
-  const [rejectOpen, setRejectOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<ItemPool | null>(null);
+  const [submitOpen, setSubmitOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [toMainOpen, setToMainOpen] = useState(false)
+  const [toSubOpen, setToSubOpen] = useState(false)
+  const [rejectOpen, setRejectOpen] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<ItemPool | null>(null)
 
   // Form states
   const [submitForm, setSubmitForm] = useState({
-    title: "",
-    background: "",
-    expectedOutput: "",
-  });
+    title: '',
+    background: '',
+    expectedOutput: '',
+  })
   const [editForm, setEditForm] = useState({
-    title: "",
-    background: "",
-    expectedOutput: "",
-  });
+    title: '',
+    background: '',
+    expectedOutput: '',
+  })
   const [toMainForm, setToMainForm] = useState({
-    priority: "P2",
-    assigneeKey: "",
-    startDate: "",
-    expectedEndDate: "",
-  });
+    priority: 'P2',
+    assigneeKey: '',
+    startDate: '',
+    expectedEndDate: '',
+  })
   const [toSubForm, setToSubForm] = useState({
-    parentItemId: "",
-    priority: "P2",
-    assigneeKey: "",
-    startDate: "",
-    expectedEndDate: "",
-  });
-  const [rejectForm, setRejectForm] = useState({ reason: "" });
+    parentItemId: '',
+    priority: 'P2',
+    assigneeKey: '',
+    startDate: '',
+    expectedEndDate: '',
+  })
+  const [rejectForm, setRejectForm] = useState({ reason: '' })
 
   // --- Data fetching ---
 
@@ -284,7 +284,7 @@ export default function ItemPoolPage() {
     isFetchingNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["itemPool", teamId],
+    queryKey: ['itemPool', teamId],
     queryFn: ({ pageParam }) =>
       listItemPoolApi(teamId!, {
         page: pageParam as number,
@@ -292,243 +292,243 @@ export default function ItemPoolPage() {
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
-      const totalPages = Math.ceil(lastPage.total / lastPage.size);
-      return lastPage.page < totalPages ? lastPage.page + 1 : undefined;
+      const totalPages = Math.ceil(lastPage.total / lastPage.size)
+      return lastPage.page < totalPages ? lastPage.page + 1 : undefined
     },
     enabled: !!teamId,
-  });
+  })
 
   const { data: membersData } = useQuery({
-    queryKey: ["members", teamId],
+    queryKey: ['members', teamId],
     queryFn: () => listMembersApi(teamId!),
     enabled: !!teamId,
-  });
+  })
 
   const { data: mainItemsData } = useQuery({
-    queryKey: ["mainItemsList", teamId],
+    queryKey: ['mainItemsList', teamId],
     queryFn: () => listMainItemsApi(teamId!),
     enabled: !!teamId,
-  });
+  })
 
-  const members = membersData || [];
-  const mainItems = mainItemsData?.items || [];
+  const members = membersData || []
+  const mainItems = mainItemsData?.items || []
   const allItems: ItemPool[] = useMemo(
     () => poolInfiniteData?.pages.flatMap((p) => p.items) ?? [],
     [poolInfiniteData],
-  );
+  )
 
   // --- Client-side filtering ---
 
   const filteredItems = useMemo(() => {
-    let items = allItems;
+    let items = allItems
     if (searchText.trim()) {
-      const q = searchText.trim().toLowerCase();
+      const q = searchText.trim().toLowerCase()
       items = items.filter(
         (item) =>
           item.title.toLowerCase().includes(q) ||
-          `pool-${item.bizKey.padStart(3, "0")}`.includes(q),
-      );
+          `pool-${item.bizKey.padStart(3, '0')}`.includes(q),
+      )
     }
     if (statusFilter) {
-      items = items.filter((item) => item.poolStatus === statusFilter);
+      items = items.filter((item) => item.poolStatus === statusFilter)
     }
-    return items;
-  }, [allItems, searchText, statusFilter]);
+    return items
+  }, [allItems, searchText, statusFilter])
 
   // --- Infinite scroll ---
 
-  const visibleItems = filteredItems;
-  const hasMore = !!hasNextPage;
+  const visibleItems = filteredItems
+  const hasMore = !!hasNextPage
 
   useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
+          fetchNextPage()
         }
       },
-      { rootMargin: "200px" },
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+      { rootMargin: '200px' },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   // --- Mutations ---
 
   const submitMutation = useMutation({
     mutationFn: (req: {
-      title: string;
-      background?: string;
-      expectedOutput?: string;
+      title: string
+      background?: string
+      expectedOutput?: string
     }) => submitItemPoolApi(teamId!, req),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["itemPool", teamId] });
-      setSubmitOpen(false);
-      setSubmitForm({ title: "", background: "", expectedOutput: "" });
+      qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
+      setSubmitOpen(false)
+      setSubmitForm({ title: '', background: '', expectedOutput: '' })
     },
-  });
+  })
 
   const updateMutation = useMutation({
-    mutationFn: ({ poolId, req }: { poolId: string; req: UpdateItemPoolReq }) =>
+    mutationFn: ({ poolId, req }: { poolId: string, req: UpdateItemPoolReq }) =>
       updateItemPoolApi(teamId!, poolId, req),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["itemPool", teamId] });
-      setEditOpen(false);
-      setSelectedItem(null);
+      qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
+      setEditOpen(false)
+      setSelectedItem(null)
     },
-  });
+  })
 
   const assignMutation = useMutation({
-    mutationFn: ({ poolId, req }: { poolId: string; req: AssignItemPoolReq }) =>
+    mutationFn: ({ poolId, req }: { poolId: string, req: AssignItemPoolReq }) =>
       assignItemPoolApi(teamId!, poolId, req),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["itemPool", teamId] });
-      qc.invalidateQueries({ queryKey: ["mainItemsList", teamId] });
-      setToSubOpen(false);
-      setSelectedItem(null);
+      qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
+      qc.invalidateQueries({ queryKey: ['mainItemsList', teamId] })
+      setToSubOpen(false)
+      setSelectedItem(null)
     },
-  });
+  })
 
   const convertToMainMutation = useMutation({
     mutationFn: ({
       poolId,
       req,
     }: {
-      poolId: string;
-      req: ConvertToMainItemReq;
+      poolId: string
+      req: ConvertToMainItemReq
     }) => convertToMainApi(teamId!, poolId, req),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["itemPool", teamId] });
-      qc.invalidateQueries({ queryKey: ["mainItemsList", teamId] });
-      setToMainOpen(false);
-      setSelectedItem(null);
+      qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
+      qc.invalidateQueries({ queryKey: ['mainItemsList', teamId] })
+      setToMainOpen(false)
+      setSelectedItem(null)
     },
-  });
+  })
 
   const rejectMutation = useMutation({
     mutationFn: ({
       poolId,
       req,
     }: {
-      poolId: string;
-      req: { reason: string };
+      poolId: string
+      req: { reason: string }
     }) => rejectItemPoolApi(teamId!, poolId, req),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["itemPool", teamId] });
-      setRejectOpen(false);
-      setRejectForm({ reason: "" });
-      setSelectedItem(null);
+      qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
+      setRejectOpen(false)
+      setRejectForm({ reason: '' })
+      setSelectedItem(null)
     },
-  });
+  })
 
   // --- Handlers ---
 
   const openConvertToMain = useCallback((item: ItemPool) => {
-    setSelectedItem(item);
-    const today = new Date().toISOString().split("T")[0];
+    setSelectedItem(item)
+    const today = new Date().toISOString().split('T')[0]
     setToMainForm({
-      priority: "P2",
-      assigneeKey: "",
+      priority: 'P2',
+      assigneeKey: '',
       startDate: today,
       expectedEndDate: today,
-    });
-    setToMainOpen(true);
-  }, []);
+    })
+    setToMainOpen(true)
+  }, [])
 
   const openEdit = useCallback((item: ItemPool) => {
-    setSelectedItem(item);
+    setSelectedItem(item)
     setEditForm({
       title: item.title,
       background: item.background,
       expectedOutput: item.expectedOutput,
-    });
-    setEditOpen(true);
-  }, []);
+    })
+    setEditOpen(true)
+  }, [])
 
   const openConvertToSub = useCallback((item: ItemPool) => {
-    setSelectedItem(item);
-    const today = new Date().toISOString().split("T")[0];
+    setSelectedItem(item)
+    const today = new Date().toISOString().split('T')[0]
     setToSubForm({
-      parentItemId: "",
-      priority: "P2",
-      assigneeKey: "",
+      parentItemId: '',
+      priority: 'P2',
+      assigneeKey: '',
       startDate: today,
       expectedEndDate: today,
-    });
-    setToSubOpen(true);
-  }, []);
+    })
+    setToSubOpen(true)
+  }, [])
 
   const openReject = useCallback((item: ItemPool) => {
-    setSelectedItem(item);
-    setRejectForm({ reason: "" });
-    setRejectOpen(true);
-  }, []);
+    setSelectedItem(item)
+    setRejectForm({ reason: '' })
+    setRejectOpen(true)
+  }, [])
 
   const resetFilters = useCallback(() => {
-    setSearchText("");
-    setStatusFilter("");
-  }, []);
+    setSearchText('')
+    setStatusFilter('')
+  }, [])
 
   const handleSubmit = useCallback(() => {
-    if (!submitForm.title.trim()) return;
+    if (!submitForm.title.trim()) return
     submitMutation.mutate({
       title: submitForm.title.trim(),
       ...(submitForm.background && { background: submitForm.background }),
       ...(submitForm.expectedOutput && {
         expectedOutput: submitForm.expectedOutput,
       }),
-    });
-  }, [submitForm, submitMutation]);
+    })
+  }, [submitForm, submitMutation])
 
   const handleEdit = useCallback(() => {
-    if (!selectedItem || !editForm.title.trim()) return;
-    const req: UpdateItemPoolReq = {};
+    if (!selectedItem || !editForm.title.trim()) return
+    const req: UpdateItemPoolReq = {}
     if (editForm.title.trim() !== selectedItem.title)
-      req.title = editForm.title.trim();
+      req.title = editForm.title.trim()
     if (editForm.background !== selectedItem.background)
-      req.background = editForm.background;
+      req.background = editForm.background
     if (editForm.expectedOutput !== selectedItem.expectedOutput)
-      req.expectedOutput = editForm.expectedOutput;
-    updateMutation.mutate({ poolId: selectedItem.bizKey, req });
-  }, [selectedItem, editForm, updateMutation]);
+      req.expectedOutput = editForm.expectedOutput
+    updateMutation.mutate({ poolId: selectedItem.bizKey, req })
+  }, [selectedItem, editForm, updateMutation])
 
   const handleToMain = useCallback(() => {
-    if (!selectedItem) return;
+    if (!selectedItem) return
     convertToMainMutation.mutate({
       poolId: selectedItem.bizKey,
       req: {
-        priority: toMainForm.priority || "P2",
-        assigneeKey: toMainForm.assigneeKey || "",
-        startDate: toMainForm.startDate || "",
-        expectedEndDate: toMainForm.expectedEndDate || "",
+        priority: toMainForm.priority || 'P2',
+        assigneeKey: toMainForm.assigneeKey || '',
+        startDate: toMainForm.startDate || '',
+        expectedEndDate: toMainForm.expectedEndDate || '',
       },
-    });
-  }, [selectedItem, toMainForm, convertToMainMutation]);
+    })
+  }, [selectedItem, toMainForm, convertToMainMutation])
 
   const handleToSub = useCallback(() => {
-    if (!selectedItem || !toSubForm.parentItemId) return;
+    if (!selectedItem || !toSubForm.parentItemId) return
     assignMutation.mutate({
       poolId: selectedItem.bizKey,
       req: {
         mainItemKey: toSubForm.parentItemId,
-        assigneeKey: toSubForm.assigneeKey || "",
-        priority: toSubForm.priority || "P2",
-        startDate: toSubForm.startDate || "",
-        expectedEndDate: toSubForm.expectedEndDate || "",
+        assigneeKey: toSubForm.assigneeKey || '',
+        priority: toSubForm.priority || 'P2',
+        startDate: toSubForm.startDate || '',
+        expectedEndDate: toSubForm.expectedEndDate || '',
       },
-    });
-  }, [selectedItem, toSubForm, assignMutation]);
+    })
+  }, [selectedItem, toSubForm, assignMutation])
 
   const handleReject = useCallback(() => {
-    if (!selectedItem || !rejectForm.reason.trim()) return;
+    if (!selectedItem || !rejectForm.reason.trim()) return
     rejectMutation.mutate({
       poolId: selectedItem.bizKey,
       req: { reason: rejectForm.reason.trim() },
-    });
-  }, [selectedItem, rejectForm, rejectMutation]);
+    })
+  }, [selectedItem, rejectForm, rejectMutation])
 
   // --- Render ---
 
@@ -569,7 +569,7 @@ export default function ItemPoolPage() {
             />
             <Select
               value={statusFilter}
-              onValueChange={(v) => setStatusFilter(v === "_all" ? "" : v)}
+              onValueChange={(v) => setStatusFilter(v === '_all' ? '' : v)}
             >
               <SelectTrigger className="w-35" data-testid="pool-status-filter">
                 <SelectValue placeholder="状态：全部" />
@@ -590,15 +590,15 @@ export default function ItemPoolPage() {
               variant="secondary"
               size="sm"
               onClick={async () => {
-                await refetch();
-                addToast("数据已刷新", "success");
+                await refetch()
+                addToast('数据已刷新', 'success')
               }}
               disabled={isFetchingNextPage}
               data-testid="refresh-btn"
             >
               <RefreshCw
                 size={14}
-                className={isFetchingNextPage ? "animate-spin" : ""}
+                className={isFetchingNextPage ? 'animate-spin' : ''}
               />
               刷新
             </Button>
@@ -792,7 +792,7 @@ export default function ItemPoolPage() {
                   <label className="block text-sm font-medium text-primary mb-1">
                     标题 <span className="text-error">*</span>
                   </label>
-                  <Input value={selectedItem?.title || ""} readOnly />
+                  <Input value={selectedItem?.title || ''} readOnly />
                 </div>
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
@@ -818,11 +818,11 @@ export default function ItemPoolPage() {
                       负责人
                     </label>
                     <Select
-                      value={toMainForm.assigneeKey || "_none"}
+                      value={toMainForm.assigneeKey || '_none'}
                       onValueChange={(v) =>
                         setToMainForm((f) => ({
                           ...f,
-                          assigneeKey: v === "_none" ? "" : v,
+                          assigneeKey: v === '_none' ? '' : v,
                         }))
                       }
                     >
@@ -876,7 +876,7 @@ export default function ItemPoolPage() {
                   </label>
                   <Textarea
                     rows={3}
-                    value={selectedItem?.background || ""}
+                    value={selectedItem?.background || ''}
                     readOnly
                   />
                 </div>
@@ -914,11 +914,11 @@ export default function ItemPoolPage() {
                     挂载主事项 <span className="text-error">*</span>
                   </label>
                   <Select
-                    value={toSubForm.parentItemId || "_none"}
+                    value={toSubForm.parentItemId || '_none'}
                     onValueChange={(v) =>
                       setToSubForm((f) => ({
                         ...f,
-                        parentItemId: v === "_none" ? "" : v,
+                        parentItemId: v === '_none' ? '' : v,
                       }))
                     }
                   >
@@ -939,7 +939,7 @@ export default function ItemPoolPage() {
                   <label className="block text-sm font-medium text-primary mb-1">
                     标题 <span className="text-error">*</span>
                   </label>
-                  <Input value={selectedItem?.title || ""} readOnly />
+                  <Input value={selectedItem?.title || ''} readOnly />
                 </div>
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
@@ -965,11 +965,11 @@ export default function ItemPoolPage() {
                       负责人
                     </label>
                     <Select
-                      value={toSubForm.assigneeKey || "_none"}
+                      value={toSubForm.assigneeKey || '_none'}
                       onValueChange={(v) =>
                         setToSubForm((f) => ({
                           ...f,
-                          assigneeKey: v === "_none" ? "" : v,
+                          assigneeKey: v === '_none' ? '' : v,
                         }))
                       }
                     >
@@ -1023,7 +1023,7 @@ export default function ItemPoolPage() {
                   </label>
                   <Textarea
                     rows={3}
-                    value={selectedItem?.background || ""}
+                    value={selectedItem?.background || ''}
                     readOnly
                   />
                 </div>
@@ -1089,22 +1089,22 @@ export default function ItemPoolPage() {
         </>
       )}
     </div>
-  );
+  )
 }
 
 // --- Utility ---
 
 function formatRelativeTime(dateStr: string): string {
-  const now = new Date();
-  const date = new Date(dateStr);
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (diffDays === 0) return "今天提交";
-  if (diffDays === 1) return "1天前提交";
-  if (diffDays < 7) return `${diffDays}天前提交`;
+  const now = new Date()
+  const date = new Date(dateStr)
+  const diffMs = now.getTime() - date.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  if (diffDays === 0) return '今天提交'
+  if (diffDays === 1) return '1天前提交'
+  if (diffDays < 7) return `${diffDays}天前提交`
   if (diffDays < 30) {
-    const weeks = Math.floor(diffDays / 7);
-    return `${weeks}周前提交`;
+    const weeks = Math.floor(diffDays / 7)
+    return `${weeks}周前提交`
   }
-  return date.toLocaleDateString("zh-CN");
+  return date.toLocaleDateString('zh-CN')
 }

@@ -7,7 +7,11 @@ interface PermissionGuardProps {
   children: ReactNode
 }
 
-export function PermissionGuard({ code, teamId, children }: PermissionGuardProps) {
+export function PermissionGuard({
+  code,
+  teamId,
+  children,
+}: PermissionGuardProps) {
   const allowed = usePermission(code, teamId)
   if (!allowed) return null
   return <>{children}</>

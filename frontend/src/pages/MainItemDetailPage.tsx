@@ -19,10 +19,18 @@ import PriorityBadge from '@/components/shared/PriorityBadge'
 import StatusTransitionDropdown from '@/components/shared/StatusTransitionDropdown'
 import { MAIN_ITEM_STATUSES } from '@/lib/status'
 import { useMemberName } from '@/hooks/useMemberName'
-import EditMainItemDialog, { type EditMainItemFormState } from './main-item-detail/EditMainItemDialog'
-import CreateSubItemDialog, { type CreateSubItemFormState } from './main-item-detail/CreateSubItemDialog'
-import EditSubItemDialog, { type EditSubItemFormState } from './main-item-detail/EditSubItemDialog'
-import AppendProgressDialog, { type AppendProgressFormState } from './main-item-detail/AppendProgressDialog'
+import EditMainItemDialog, {
+  type EditMainItemFormState,
+} from './main-item-detail/EditMainItemDialog'
+import CreateSubItemDialog, {
+  type CreateSubItemFormState,
+} from './main-item-detail/CreateSubItemDialog'
+import EditSubItemDialog, {
+  type EditSubItemFormState,
+} from './main-item-detail/EditSubItemDialog'
+import AppendProgressDialog, {
+  type AppendProgressFormState,
+} from './main-item-detail/AppendProgressDialog'
 import SubItemsTable from './main-item-detail/SubItemsTable'
 import ProgressSummaryCard from './main-item-detail/ProgressSummaryCard'
 import ItemInfoCard from './main-item-detail/ItemInfoCard'
@@ -40,16 +48,40 @@ export default function MainItemDetailPage() {
 
   const [editOpen, setEditOpen] = useState(false)
   const [createSubOpen, setCreateSubOpen] = useState(false)
-  const [editForm, setEditForm] = useState<EditMainItemFormState>({ title: '', priority: '', assigneeKey: '', expectedEndDate: '', description: '' })
-  const [subForm, setSubForm] = useState<CreateSubItemFormState>({ title: '', priority: 'P2', assigneeKey: '', startDate: today(), expectedEndDate: '', description: '' })
+  const [editForm, setEditForm] = useState<EditMainItemFormState>({
+    title: '',
+    priority: '',
+    assigneeKey: '',
+    expectedEndDate: '',
+    description: '',
+  })
+  const [subForm, setSubForm] = useState<CreateSubItemFormState>({
+    title: '',
+    priority: 'P2',
+    assigneeKey: '',
+    startDate: today(),
+    expectedEndDate: '',
+    description: '',
+  })
 
   const [editSubOpen, setEditSubOpen] = useState(false)
   const [editSubTarget, setEditSubTarget] = useState<SubItem | null>(null)
-  const [editSubForm, setEditSubForm] = useState<EditSubItemFormState>({ title: '', priority: '', expectedEndDate: '', description: '' })
+  const [editSubForm, setEditSubForm] = useState<EditSubItemFormState>({
+    title: '',
+    priority: '',
+    expectedEndDate: '',
+    description: '',
+  })
 
   const [appendProgressOpen, setAppendProgressOpen] = useState(false)
-  const [appendProgressTarget, setAppendProgressTarget] = useState<SubItem | null>(null)
-  const [appendProgressForm, setAppendProgressForm] = useState<AppendProgressFormState>({ completion: '', achievement: '', blocker: '' })
+  const [appendProgressTarget, setAppendProgressTarget] =
+    useState<SubItem | null>(null)
+  const [appendProgressForm, setAppendProgressForm] =
+    useState<AppendProgressFormState>({
+      completion: '',
+      achievement: '',
+      blocker: '',
+    })
 
   // --- Data fetching ---
 
@@ -83,8 +115,14 @@ export default function MainItemDetailPage() {
   // --- Mutations ---
 
   const updateMutation = useMutation({
-    mutationFn: (req: { title?: string; priority?: string; assigneeKey?: string | null; expectedEndDate?: string | null; actualEndDate?: string | null; description?: string }) =>
-      updateMainItemApi(teamId!, itemId, req),
+    mutationFn: (req: {
+      title?: string
+      priority?: string
+      assigneeKey?: string | null
+      expectedEndDate?: string | null
+      actualEndDate?: string | null
+      description?: string
+    }) => updateMainItemApi(teamId!, itemId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       setEditOpen(false)
@@ -92,18 +130,41 @@ export default function MainItemDetailPage() {
   })
 
   const createSubMutation = useMutation({
-    mutationFn: (req: { title: string; priority: string; assigneeKey: string; startDate?: string; expectedEndDate?: string; description?: string }) =>
-      createSubItemApi(teamId!, itemId, req),
+    mutationFn: (req: {
+      title: string
+      priority: string
+      assigneeKey: string
+      startDate?: string
+      expectedEndDate?: string
+      description?: string
+    }) => createSubItemApi(teamId!, itemId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       setCreateSubOpen(false)
-      setSubForm({ title: '', priority: 'P2', assigneeKey: '', startDate: today(), expectedEndDate: '', description: '' })
+      setSubForm({
+        title: '',
+        priority: 'P2',
+        assigneeKey: '',
+        startDate: today(),
+        expectedEndDate: '',
+        description: '',
+      })
     },
   })
 
   const updateSubMutation = useMutation({
-    mutationFn: ({ subId, req }: { subId: string; req: { title?: string; priority?: string; expectedEndDate?: string; description?: string } }) =>
-      updateSubItemApi(teamId!, subId, req),
+    mutationFn: ({
+      subId,
+      req,
+    }: {
+      subId: string
+      req: {
+        title?: string
+        priority?: string
+        expectedEndDate?: string
+        description?: string
+      }
+    }) => updateSubItemApi(teamId!, subId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       setEditSubOpen(false)
@@ -112,8 +173,13 @@ export default function MainItemDetailPage() {
   })
 
   const appendProgressMutation = useMutation({
-    mutationFn: ({ subId, req }: { subId: string; req: { completion: number; achievement?: string; blocker?: string } }) =>
-      appendProgressApi(teamId!, subId, req),
+    mutationFn: ({
+      subId,
+      req,
+    }: {
+      subId: string
+      req: { completion: number, achievement?: string, blocker?: string }
+    }) => appendProgressApi(teamId!, subId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       setAppendProgressOpen(false)
@@ -136,7 +202,14 @@ export default function MainItemDetailPage() {
   }, [editForm, updateMutation])
 
   const handleCreateSub = useCallback(() => {
-    if (!subForm.title.trim() || !subForm.priority || !subForm.assigneeKey || !subForm.startDate || !subForm.expectedEndDate) return
+    if (
+      !subForm.title.trim() ||
+      !subForm.priority ||
+      !subForm.assigneeKey ||
+      !subForm.startDate ||
+      !subForm.expectedEndDate
+    )
+      return
     createSubMutation.mutate({
       title: subForm.title.trim(),
       priority: subForm.priority,
@@ -173,7 +246,11 @@ export default function MainItemDetailPage() {
 
   const openAppendProgress = useCallback((sub: SubItem) => {
     setAppendProgressTarget(sub)
-    setAppendProgressForm({ completion: String(sub.completion), achievement: '', blocker: '' })
+    setAppendProgressForm({
+      completion: String(sub.completion),
+      achievement: '',
+      blocker: '',
+    })
     setAppendProgressOpen(true)
   }, [])
 
@@ -183,14 +260,20 @@ export default function MainItemDetailPage() {
       subId: appendProgressTarget.bizKey,
       req: {
         completion: Number(appendProgressForm.completion),
-        ...(appendProgressForm.achievement && { achievement: appendProgressForm.achievement }),
-        ...(appendProgressForm.blocker && { blocker: appendProgressForm.blocker }),
+        ...(appendProgressForm.achievement && {
+          achievement: appendProgressForm.achievement,
+        }),
+        ...(appendProgressForm.blocker && {
+          blocker: appendProgressForm.blocker,
+        }),
       },
     })
   }, [appendProgressTarget, appendProgressForm, appendProgressMutation])
 
   const subItems: SubItem[] = item?.subItems || []
-  const completedCount = subItems.filter((s) => s.itemStatus === 'completed').length
+  const completedCount = subItems.filter(
+    (s) => s.itemStatus === 'completed',
+  ).length
   const completion = item?.completion ?? 0
 
   // --- Render ---
@@ -213,15 +296,48 @@ export default function MainItemDetailPage() {
           </Breadcrumb>
           {/* Title Bar */}
           <div className="flex items-center gap-3 mb-6 flex-wrap">
-            <Badge variant="default" className="font-mono">{item.code}</Badge>
-            <h1 className="text-xl font-semibold text-primary m-0">{item.title}</h1>
+            <Badge variant="default" className="font-mono">
+              {item.code}
+            </Badge>
+            <h1 className="text-xl font-semibold text-primary m-0">
+              {item.title}
+            </h1>
             <PriorityBadge priority={item.priority} />
-            <StatusTransitionDropdown currentStatus={item.itemStatus} itemType="main" teamId={teamId!} itemId={item.bizKey} onStatusChanged={() => { qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] }) }} />
+            <StatusTransitionDropdown
+              currentStatus={item.itemStatus}
+              itemType="main"
+              teamId={teamId!}
+              itemId={item.bizKey}
+              onStatusChanged={() => {
+                qc.invalidateQueries({
+                  queryKey: ['mainItem', teamId, itemId],
+                })
+              }}
+            />
             <div className="flex-1" />
             <PermissionGuard code="main_item:update">
-              <Button variant="secondary" disabled={!!MAIN_ITEM_STATUSES[item.itemStatus as keyof typeof MAIN_ITEM_STATUSES]?.terminal} onClick={() => setEditOpen(true)}>
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              <Button
+                variant="secondary"
+                disabled={
+                  !!MAIN_ITEM_STATUSES[
+                    item.itemStatus as keyof typeof MAIN_ITEM_STATUSES
+                  ]?.terminal
+                }
+                onClick={() => setEditOpen(true)}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
                 </svg>
                 编辑
               </Button>
@@ -253,7 +369,9 @@ export default function MainItemDetailPage() {
             mainStatus={item.itemStatus}
             teamId={teamId!}
             memberName={memberName}
-            onStatusChanged={() => { qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] }) }}
+            onStatusChanged={() => {
+              qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
+            }}
             onEditSub={openEditSub}
             onAppendProgress={openAppendProgress}
             onCreateSub={() => setCreateSubOpen(true)}

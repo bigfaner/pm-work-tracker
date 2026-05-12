@@ -32,16 +32,25 @@ interface UserAvatarProps {
   className?: string
 }
 
-export default function UserAvatar({ name, src, size = 'md', className }: UserAvatarProps) {
+export default function UserAvatar({
+  name,
+  src,
+  size = 'md',
+  className,
+}: UserAvatarProps) {
   const initial = name ? name.charAt(0) : '?'
   const colorClass = getColorForName(name)
 
   return (
     <Avatar className={cn(sizeClasses[size], className)}>
-      {src && <img src={src} alt={name} className="aspect-square h-full w-full object-cover" />}
-      <AvatarFallback className={colorClass}>
-        {initial}
-      </AvatarFallback>
+      {src && (
+        <img
+          src={src}
+          alt={name}
+          className="aspect-square h-full w-full object-cover"
+        />
+      )}
+      <AvatarFallback className={colorClass}>{initial}</AvatarFallback>
     </Avatar>
   )
 }

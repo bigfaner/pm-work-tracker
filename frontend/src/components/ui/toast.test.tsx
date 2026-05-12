@@ -40,7 +40,7 @@ describe('ToastProvider + useToast', () => {
     render(
       <ToastProvider>
         <TestComponent />
-      </ToastProvider>
+      </ToastProvider>,
     )
     await userEvent.click(screen.getByText('Show Toast'))
     expect(screen.getByText('Hello toast')).toBeInTheDocument()
@@ -50,7 +50,7 @@ describe('ToastProvider + useToast', () => {
     render(
       <ToastProvider>
         <TestComponent />
-      </ToastProvider>
+      </ToastProvider>,
     )
     await userEvent.click(screen.getByText('Show Toast'))
     const toast = screen.getByText('Hello toast')

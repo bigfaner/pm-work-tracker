@@ -103,9 +103,9 @@ fmt scope="":
     #!/usr/bin/env bash
     set -euo pipefail
     case "{{scope}}" in
-      frontend) cd "{{frontend_dir}}" && npx prettier --write . ;;
+      frontend) cd "{{frontend_dir}}" && npm run fmt ;;
       backend)  cd "{{backend_dir}}" && gofmt -w . ;;
-      "")       (cd "{{frontend_dir}}" && npx prettier --write .) && (cd "{{backend_dir}}" && gofmt -w .) ;;
+      "")       (cd "{{frontend_dir}}" && npm run fmt) && (cd "{{backend_dir}}" && gofmt -w .) ;;
       *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
     esac
 

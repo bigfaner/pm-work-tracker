@@ -1,4 +1,13 @@
-import { describe, it, expect, vi, beforeEach, beforeAll, afterAll, afterEach } from 'vitest'
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  beforeAll,
+  afterAll,
+  afterEach,
+} from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -17,7 +26,11 @@ function createQueryClient() {
   })
 }
 
-function renderDialog(props: { open: boolean; onOpenChange: (v: boolean) => void; roleId?: string | null }) {
+function renderDialog(props: {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  roleId?: string | null
+}) {
   const qc = createQueryClient()
   return render(
     <QueryClientProvider client={qc}>
@@ -133,7 +146,9 @@ describe('RoleEditDialog', () => {
   it('pre-fills form in edit mode', async () => {
     renderDialog({ open: true, onOpenChange: vi.fn(), roleId: '4' })
     await waitFor(() => {
-      const input = screen.getByPlaceholderText('请输入角色名称（2-50 个字符）') as HTMLInputElement
+      const input = screen.getByPlaceholderText(
+        '请输入角色名称（2-50 个字符）',
+      ) as HTMLInputElement
       expect(input.value).toBe('viewer')
     })
   })
@@ -141,7 +156,9 @@ describe('RoleEditDialog', () => {
   it('disables name input for preset roles', async () => {
     renderDialog({ open: true, onOpenChange: vi.fn(), roleId: '1' })
     await waitFor(() => {
-      const input = screen.getByPlaceholderText('请输入角色名称（2-50 个字符）') as HTMLInputElement
+      const input = screen.getByPlaceholderText(
+        '请输入角色名称（2-50 个字符）',
+      ) as HTMLInputElement
       expect(input.disabled).toBe(true)
     })
   })
@@ -151,7 +168,8 @@ describe('RoleEditDialog', () => {
     const onOpenChange = vi.fn()
     renderDialog({ open: true, onOpenChange })
 
-    const nameInput = screen.getByPlaceholderText('请输入角色名称（2-50 个字符）')
+    const nameInput =
+      screen.getByPlaceholderText('请输入角色名称（2-50 个字符）')
     await user.type(nameInput, 'a')
     await user.click(screen.getByText('保存'))
 
@@ -165,7 +183,8 @@ describe('RoleEditDialog', () => {
     const onOpenChange = vi.fn()
     renderDialog({ open: true, onOpenChange })
 
-    const nameInput = screen.getByPlaceholderText('请输入角色名称（2-50 个字符）')
+    const nameInput =
+      screen.getByPlaceholderText('请输入角色名称（2-50 个字符）')
     await user.type(nameInput, 'pm')
 
     // Select at least one permission - click the first checkbox option "创建团队"
@@ -180,6 +199,8 @@ describe('RoleEditDialog', () => {
 
   it('has description textarea', () => {
     renderDialog({ open: true, onOpenChange: vi.fn() })
-    expect(screen.getByPlaceholderText('请输入角色描述（最多 200 字符）')).toBeInTheDocument()
+    expect(
+      screen.getByPlaceholderText('请输入角色描述（最多 200 字符）'),
+    ).toBeInTheDocument()
   })
 })

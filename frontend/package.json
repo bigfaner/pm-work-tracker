@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest --run"
+    "test": "vitest --run",
+    "lint": "eslint \"**/*.{ts,tsx}\"",
+    "fmt": "eslint --fix \"**/*.{ts,tsx}\""
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",
@@ -34,6 +36,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@stylistic/eslint-plugin-ts": "^4.4.1",
     "@tailwindcss/vite": "^4.1.4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

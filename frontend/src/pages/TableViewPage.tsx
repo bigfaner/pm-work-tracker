@@ -82,9 +82,21 @@ export default function TableViewPage() {
     if (statusFilter) filter.status = statusFilter
     if (assigneeFilter) filter.assigneeKey = assigneeFilter
     return filter
-  }, [typeFilter, priorityFilter, statusFilter, assigneeFilter, currentPage, pageSize])
+  }, [
+    typeFilter,
+    priorityFilter,
+    statusFilter,
+    assigneeFilter,
+    currentPage,
+    pageSize,
+  ])
 
-  const { data: tableData, isLoading, isFetching, refetch } = useQuery({
+  const {
+    data: tableData,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ['tableView', teamId, serverFilter],
     queryFn: () => getTableViewApi(teamId!, serverFilter),
     enabled: !!teamId,
@@ -141,7 +153,10 @@ export default function TableViewPage() {
 
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
 
-  const isItemOverdue = (expectedEndDate: string | null, status: string): boolean => {
+  const isItemOverdue = (
+    expectedEndDate: string | null,
+    status: string,
+  ): boolean => {
     return checkOverdue(expectedEndDate || undefined, status, new Date())
   }
 
@@ -185,7 +200,11 @@ export default function TableViewPage() {
           {/* Page Header */}
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-semibold text-primary">表格视图</h1>
-            <Button size="sm" onClick={handleExportCsv} data-testid="export-csv-btn">
+            <Button
+              size="sm"
+              onClick={handleExportCsv}
+              data-testid="export-csv-btn"
+            >
               导出 CSV
             </Button>
           </div>
@@ -198,7 +217,10 @@ export default function TableViewPage() {
               onChange={(e) => setSearchText(e.target.value)}
               className="w-45"
             />
-            <Select value={typeFilter || '_all'} onValueChange={handleTypeChange}>
+            <Select
+              value={typeFilter || '_all'}
+              onValueChange={handleTypeChange}
+            >
               <SelectTrigger className="w-30" data-testid="type-filter">
                 <SelectValue placeholder="类型：全部" />
               </SelectTrigger>
@@ -210,18 +232,26 @@ export default function TableViewPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={priorityFilter || '_all'} onValueChange={handlePriorityChange}>
+            <Select
+              value={priorityFilter || '_all'}
+              onValueChange={handlePriorityChange}
+            >
               <SelectTrigger className="w-30" data-testid="priority-filter">
                 <SelectValue placeholder="优先级：全部" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="_all">优先级：全部</SelectItem>
                 {PRIORITY_OPTIONS.map((p) => (
-                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                  <SelectItem key={p} value={p}>
+                    {p}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select value={assigneeFilter || '_all'} onValueChange={handleAssigneeChange}>
+            <Select
+              value={assigneeFilter || '_all'}
+              onValueChange={handleAssigneeChange}
+            >
               <SelectTrigger className="w-30" data-testid="assignee-filter">
                 <SelectValue placeholder="负责人：全部" />
               </SelectTrigger>
@@ -234,29 +264,48 @@ export default function TableViewPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={statusFilter || '_all'} onValueChange={handleStatusChange}>
+            <Select
+              value={statusFilter || '_all'}
+              onValueChange={handleStatusChange}
+            >
               <SelectTrigger className="w-30" data-testid="status-filter">
                 <SelectValue placeholder="状态：全部" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="_all">状态：全部</SelectItem>
                 {STATUS_OPTIONS.map((s) => (
-                  <SelectItem key={s} value={s}>{getStatusName(s) || s}</SelectItem>
+                  <SelectItem key={s} value={s}>
+                    {getStatusName(s) || s}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Button variant="secondary" size="sm" onClick={resetFilters}>
               重置
             </Button>
-            <Button variant="secondary" size="sm" onClick={async () => { await refetch(); addToast('数据已刷新', 'success') }} disabled={isFetching} data-testid="refresh-btn">
-              <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={async () => {
+                await refetch()
+                addToast('数据已刷新', 'success')
+              }}
+              disabled={isFetching}
+              data-testid="refresh-btn"
+            >
+              <RefreshCw
+                size={14}
+                className={isFetching ? 'animate-spin' : ''}
+              />
               刷新
             </Button>
           </div>
 
           {/* Content */}
           {isLoading ? (
-            <div className="py-8 text-center text-tertiary text-sm">加载中...</div>
+            <div className="py-8 text-center text-tertiary text-sm">
+              加载中...
+            </div>
           ) : filteredItems.length === 0 ? (
             <div className="py-12 text-center">
               <p className="text-tertiary text-sm">暂无数据</p>
@@ -309,11 +358,17 @@ export default function TableViewPage() {
                         <TableCell>
                           <div className="flex items-center gap-1.5">
                             <UserAvatar name={row.assigneeName} size="sm" />
-                            <span className="text-[13px]">{row.assigneeName || '-'}</span>
+                            <span className="text-[13px]">
+                              {row.assigneeName || '-'}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <ProgressBar value={row.completion} size="sm" showPercentage />
+                          <ProgressBar
+                            value={row.completion}
+                            size="sm"
+                            showPercentage
+                          />
                         </TableCell>
                         <TableCell>
                           <StatusBadge status={row.itemStatus} />
@@ -321,13 +376,19 @@ export default function TableViewPage() {
                         <TableCell>
                           <span
                             data-testid={`expected-date-${row.bizKey}`}
-                            className={isItemOverdue(row.expectedEndDate, row.itemStatus) ? 'text-error text-xs' : 'text-xs'}
+                            className={
+                              isItemOverdue(row.expectedEndDate, row.itemStatus)
+                                ? 'text-error text-xs'
+                                : 'text-xs'
+                            }
                           >
                             {formatDate(row.expectedEndDate)}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-xs">{formatDate(row.actualEndDate)}</span>
+                          <span className="text-xs">
+                            {formatDate(row.actualEndDate)}
+                          </span>
                         </TableCell>
                       </TableRowComp>
                     ))}
@@ -346,7 +407,10 @@ export default function TableViewPage() {
                   options={PAGE_SIZE_OPTIONS}
                   data-testid="pagination-page-size"
                 />
-                <span className="text-[13px] text-tertiary" data-testid="total-count">
+                <span
+                  className="text-[13px] text-tertiary"
+                  data-testid="total-count"
+                >
                   共 {totalItems} 条
                 </span>
               </div>

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback } from 'react'
 import {
   Pencil,
   ToggleRight,
@@ -8,8 +8,8 @@ import {
   EyeOff,
   Trash2,
   Copy,
-} from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+} from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   listUsersApi,
   createUserApi,
@@ -18,18 +18,18 @@ import {
   resetPasswordApi,
   deleteUserApi,
   listAdminTeamsApi,
-} from "@/api/admin";
-import { useAuthStore } from "@/store/auth";
-import type { AdminUser, CreateUserReq, UpdateUserReq } from "@/types";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from '@/api/admin'
+import { useAuthStore } from '@/store/auth'
+import type { AdminUser, CreateUserReq, UpdateUserReq } from '@/types'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -38,7 +38,7 @@ import {
   DialogBody,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog'
 import {
   Table,
   TableHeader,
@@ -46,89 +46,89 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import PaginationBar from "@/components/shared/PaginationBar";
-import UserAvatar from "@/components/shared/UserAvatar";
-import { useToast } from "@/components/ui/toast";
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import PaginationBar from '@/components/shared/PaginationBar'
+import UserAvatar from '@/components/shared/UserAvatar'
+import { useToast } from '@/components/ui/toast'
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
   TooltipProvider,
-} from "@/components/ui/tooltip";
-import { copyToClipboard } from "@/lib/utils";
+} from '@/components/ui/tooltip'
+import { copyToClipboard } from '@/lib/utils'
 
 // --- Constants ---
 
-const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10
 
 // --- Main Component ---
 
 export default function UserManagementPage() {
-  const qc = useQueryClient();
-  const { addToast } = useToast();
+  const qc = useQueryClient()
+  const { addToast } = useToast()
 
   // Filter state
-  const [searchText, setSearchText] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [searchText, setSearchText] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
   // Create dialog
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false)
   const [createForm, setCreateForm] = useState<
     CreateUserReq & { email: string }
   >({
-    username: "",
-    displayName: "",
-    email: "",
-  });
-  const [createError, setCreateError] = useState("");
+    username: '',
+    displayName: '',
+    email: '',
+  })
+  const [createError, setCreateError] = useState('')
 
   // Password display dialog
-  const [passwordOpen, setPasswordOpen] = useState(false);
-  const [initialPassword, setInitialPassword] = useState("");
+  const [passwordOpen, setPasswordOpen] = useState(false)
+  const [initialPassword, setInitialPassword] = useState('')
 
   // Edit dialog
-  const [editOpen, setEditOpen] = useState(false);
-  const [editUserId, setEditUserId] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false)
+  const [editUserId, setEditUserId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<
-    UpdateUserReq & { displayName: string; email: string }
+    UpdateUserReq & { displayName: string, email: string }
   >({
-    displayName: "",
-    email: "",
-  });
+    displayName: '',
+    email: '',
+  })
 
   // Toggle status dialog
-  const [statusOpen, setStatusOpen] = useState(false);
-  const [statusUser, setStatusUser] = useState<AdminUser | null>(null);
-  const [statusError, setStatusError] = useState("");
+  const [statusOpen, setStatusOpen] = useState(false)
+  const [statusUser, setStatusUser] = useState<AdminUser | null>(null)
+  const [statusError, setStatusError] = useState('')
 
   // Reset password dialog
-  const [resetOpen, setResetOpen] = useState(false);
-  const [resetUser, setResetUser] = useState<AdminUser | null>(null);
+  const [resetOpen, setResetOpen] = useState(false)
+  const [resetUser, setResetUser] = useState<AdminUser | null>(null)
   const [resetForm, setResetForm] = useState({
-    newPassword: "",
-    confirmPassword: "",
-  });
+    newPassword: '',
+    confirmPassword: '',
+  })
   const [resetErrors, setResetErrors] = useState<{
-    newPassword?: string;
-    confirmPassword?: string;
-  }>({});
-  const [resetError, setResetError] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+    newPassword?: string
+    confirmPassword?: string
+  }>({})
+  const [resetError, setResetError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   // Delete dialog
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteUser, setDeleteUser] = useState<AdminUser | null>(null);
-  const [deleteError, setDeleteError] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteUser, setDeleteUser] = useState<AdminUser | null>(null)
+  const [deleteError, setDeleteError] = useState('')
 
   // Copy credentials
-  const [copied, setCopied] = useState(false);
-  const [createdUsername, setCreatedUsername] = useState("");
+  const [copied, setCopied] = useState(false)
+  const [createdUsername, setCreatedUsername] = useState('')
 
   // Current user bizKey for self-check
-  const currentUserBizKey = useAuthStore((s) => s.user?.bizKey ?? null);
+  const currentUserBizKey = useAuthStore((s) => s.user?.bizKey ?? null)
 
   // --- Data fetching ---
 
@@ -138,282 +138,282 @@ export default function UserManagementPage() {
     isFetching,
     refetch,
   } = useQuery({
-    queryKey: ["adminUsers", currentPage, pageSize, searchText],
+    queryKey: ['adminUsers', currentPage, pageSize, searchText],
     queryFn: () =>
       listUsersApi({
         page: currentPage,
         pageSize,
         ...(searchText.trim() && { search: searchText.trim() }),
       }),
-  });
+  })
 
   const { data: teamsData } = useQuery({
-    queryKey: ["adminTeams"],
+    queryKey: ['adminTeams'],
     queryFn: () => listAdminTeamsApi(1, 100),
-  });
+  })
 
-  const teams = teamsData?.items || [];
-  const users = usersData?.items || [];
-  const total = usersData?.total || 0;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const teams = teamsData?.items || []
+  const users = usersData?.items || []
+  const total = usersData?.total || 0
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   // Reset page when filters change
   const handleSearchChange = useCallback((value: string) => {
-    setSearchText(value);
-    setCurrentPage(1);
-  }, []);
+    setSearchText(value)
+    setCurrentPage(1)
+  }, [])
 
   const handlePageSizeChange = useCallback((size: number) => {
-    setPageSize(size);
-    setCurrentPage(1);
-  }, []);
+    setPageSize(size)
+    setCurrentPage(1)
+  }, [])
 
   // --- Mutations ---
 
   const createMutation = useMutation({
     mutationFn: (req: CreateUserReq) => createUserApi(req),
     onSuccess: (resp, req) => {
-      qc.invalidateQueries({ queryKey: ["adminUsers"] });
-      setCreateOpen(false);
-      setCreateForm({ username: "", displayName: "", email: "" });
-      setCreateError("");
-      setCreatedUsername(req.username);
-      setInitialPassword(resp.initialPassword);
-      setCopied(false);
-      setPasswordOpen(true);
+      qc.invalidateQueries({ queryKey: ['adminUsers'] })
+      setCreateOpen(false)
+      setCreateForm({ username: '', displayName: '', email: '' })
+      setCreateError('')
+      setCreatedUsername(req.username)
+      setInitialPassword(resp.initialPassword)
+      setCopied(false)
+      setPasswordOpen(true)
     },
     onError: (err: unknown) => {
       const code = (err as { response?: { data?: { code?: string } } })
-        ?.response?.data?.code;
-      if (code === "USER_EXISTS") {
-        setCreateError("该账号名已存在");
-      } else if (code === "VALIDATION_ERROR") {
-        setCreateError("请检查输入信息");
+        ?.response?.data?.code
+      if (code === 'USER_EXISTS') {
+        setCreateError('该账号名已存在')
+      } else if (code === 'VALIDATION_ERROR') {
+        setCreateError('请检查输入信息')
       } else {
-        setCreateError("创建失败，请稍后重试");
+        setCreateError('创建失败，请稍后重试')
       }
     },
-  });
+  })
 
   const editMutation = useMutation({
-    mutationFn: ({ userId, req }: { userId: string; req: UpdateUserReq }) =>
+    mutationFn: ({ userId, req }: { userId: string, req: UpdateUserReq }) =>
       updateUserApi(userId, req),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["adminUsers"] });
-      setEditOpen(false);
-      setEditUserId(null);
+      qc.invalidateQueries({ queryKey: ['adminUsers'] })
+      setEditOpen(false)
+      setEditUserId(null)
     },
-  });
+  })
 
   const statusMutation = useMutation({
     mutationFn: ({
       userId,
       status,
     }: {
-      userId: string;
-      status: "enabled" | "disabled";
+      userId: string
+      status: 'enabled' | 'disabled'
     }) => toggleUserStatusApi(userId, { status }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["adminUsers"] });
-      setStatusOpen(false);
-      setStatusUser(null);
-      setStatusError("");
+      qc.invalidateQueries({ queryKey: ['adminUsers'] })
+      setStatusOpen(false)
+      setStatusUser(null)
+      setStatusError('')
     },
     onError: (err: unknown) => {
       const code = (err as { response?: { data?: { code?: string } } })
-        ?.response?.data?.code;
-      if (code === "CANNOT_DISABLE_SELF") {
-        setStatusError("不能禁用自己");
+        ?.response?.data?.code
+      if (code === 'CANNOT_DISABLE_SELF') {
+        setStatusError('不能禁用自己')
       } else {
-        setStatusError("操作失败，请稍后重试");
+        setStatusError('操作失败，请稍后重试')
       }
     },
-  });
+  })
 
   const resetMutation = useMutation({
     mutationFn: ({
       userId,
       newPassword,
     }: {
-      userId: string;
-      newPassword: string;
+      userId: string
+      newPassword: string
     }) => resetPasswordApi(userId, { newPassword }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["adminUsers"] });
-      setResetOpen(false);
-      setResetUser(null);
-      setResetForm({ newPassword: "", confirmPassword: "" });
-      setResetErrors({});
-      setResetError("");
-      addToast("密码已重置", "success");
+      qc.invalidateQueries({ queryKey: ['adminUsers'] })
+      setResetOpen(false)
+      setResetUser(null)
+      setResetForm({ newPassword: '', confirmPassword: '' })
+      setResetErrors({})
+      setResetError('')
+      addToast('密码已重置', 'success')
     },
     onError: (err: unknown) => {
       const code = (err as { response?: { data?: { code?: string } } })
-        ?.response?.data?.code;
-      if (code === "VALIDATION_ERROR") {
-        setResetError("密码格式不正确");
-      } else if (code === "USER_NOT_FOUND") {
-        setResetError("用户不存在");
+        ?.response?.data?.code
+      if (code === 'VALIDATION_ERROR') {
+        setResetError('密码格式不正确')
+      } else if (code === 'USER_NOT_FOUND') {
+        setResetError('用户不存在')
       } else {
-        setResetError("操作失败，请稍后重试");
+        setResetError('操作失败，请稍后重试')
       }
     },
-  });
+  })
 
   const deleteMutation = useMutation({
     mutationFn: ({ userId }: { userId: string }) => deleteUserApi(userId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["adminUsers"] });
-      setDeleteOpen(false);
-      setDeleteUser(null);
-      setDeleteError("");
-      addToast("用户已删除", "success");
+      qc.invalidateQueries({ queryKey: ['adminUsers'] })
+      setDeleteOpen(false)
+      setDeleteUser(null)
+      setDeleteError('')
+      addToast('用户已删除', 'success')
     },
     onError: (err: unknown) => {
       const resp = (
-        err as { response?: { status?: number; data?: { code?: string } } }
-      ).response;
-      const status = resp?.status;
-      const code = resp?.data?.code;
-      if (status === 404 || code === "USER_NOT_FOUND") {
-        qc.invalidateQueries({ queryKey: ["adminUsers"] });
-        setDeleteOpen(false);
-        setDeleteUser(null);
-        setDeleteError("");
-        addToast("用户已删除", "success");
+        err as { response?: { status?: number, data?: { code?: string } } }
+      ).response
+      const status = resp?.status
+      const code = resp?.data?.code
+      if (status === 404 || code === 'USER_NOT_FOUND') {
+        qc.invalidateQueries({ queryKey: ['adminUsers'] })
+        setDeleteOpen(false)
+        setDeleteUser(null)
+        setDeleteError('')
+        addToast('用户已删除', 'success')
       } else {
-        setDeleteError("操作失败，请稍后重试");
+        setDeleteError('操作失败，请稍后重试')
       }
     },
-  });
+  })
 
   // --- Handlers ---
 
-  const canManageUser = useAuthStore((s) => s.hasPermission("user:update"));
+  const canManageUser = useAuthStore((s) => s.hasPermission('user:update'))
 
   const handleCreate = useCallback(() => {
-    setCreateError("");
+    setCreateError('')
     if (!createForm.username.trim() || !createForm.displayName.trim()) {
-      setCreateError("请填写必填字段");
-      return;
+      setCreateError('请填写必填字段')
+      return
     }
     if (
       createForm.email &&
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createForm.email)
     ) {
-      setCreateError("邮箱格式不正确");
-      return;
+      setCreateError('邮箱格式不正确')
+      return
     }
     createMutation.mutate({
       username: createForm.username.trim(),
       displayName: createForm.displayName.trim(),
       ...(createForm.email.trim() && { email: createForm.email.trim() }),
       ...(createForm.teamKey && { teamKey: createForm.teamKey }),
-    });
-  }, [createForm, createMutation]);
+    })
+  }, [createForm, createMutation])
 
   const openEdit = useCallback((user: AdminUser) => {
-    setEditUserId(user.bizKey);
+    setEditUserId(user.bizKey)
     setEditForm({
       displayName: user.displayName,
-      email: user.email || "",
-    });
-    setEditOpen(true);
-  }, []);
+      email: user.email || '',
+    })
+    setEditOpen(true)
+  }, [])
 
   const handleEdit = useCallback(() => {
-    if (!editUserId) return;
+    if (!editUserId) return
     editMutation.mutate({
       userId: editUserId,
       req: {
         displayName: editForm.displayName.trim(),
         ...(editForm.email.trim() && { email: editForm.email.trim() }),
       },
-    });
-  }, [editUserId, editForm, editMutation]);
+    })
+  }, [editUserId, editForm, editMutation])
 
   const openToggleStatus = useCallback((user: AdminUser) => {
-    setStatusUser(user);
-    setStatusError("");
-    setStatusOpen(true);
-  }, []);
+    setStatusUser(user)
+    setStatusError('')
+    setStatusOpen(true)
+  }, [])
 
   const handleToggleStatus = useCallback(() => {
-    if (!statusUser) return;
+    if (!statusUser) return
     const newStatus =
-      statusUser.userStatus === "enabled" ? "disabled" : "enabled";
-    statusMutation.mutate({ userId: statusUser.bizKey, status: newStatus });
-  }, [statusUser, statusMutation]);
+      statusUser.userStatus === 'enabled' ? 'disabled' : 'enabled'
+    statusMutation.mutate({ userId: statusUser.bizKey, status: newStatus })
+  }, [statusUser, statusMutation])
 
   // Reset password handlers
 
   const validatePassword = useCallback(
-    (form: { newPassword: string; confirmPassword: string }) => {
-      const errors: { newPassword?: string; confirmPassword?: string } = {};
+    (form: { newPassword: string, confirmPassword: string }) => {
+      const errors: { newPassword?: string, confirmPassword?: string } = {}
       if (!form.newPassword) {
-        errors.newPassword = "请输入新密码";
+        errors.newPassword = '请输入新密码'
       } else if (
         form.newPassword.length < 8 ||
         !/[a-zA-Z]/.test(form.newPassword) ||
         !/[0-9]/.test(form.newPassword)
       ) {
-        errors.newPassword = "密码需至少8位，包含字母和数字";
+        errors.newPassword = '密码需至少8位，包含字母和数字'
       }
       if (form.confirmPassword && form.confirmPassword !== form.newPassword) {
-        errors.confirmPassword = "两次输入的密码不一致";
+        errors.confirmPassword = '两次输入的密码不一致'
       }
-      return errors;
+      return errors
     },
     [],
-  );
+  )
 
   const openResetPassword = useCallback((user: AdminUser) => {
-    setResetUser(user);
-    setResetForm({ newPassword: "", confirmPassword: "" });
-    setResetErrors({});
-    setResetError("");
-    setShowPassword(false);
-    setResetOpen(true);
-  }, []);
+    setResetUser(user)
+    setResetForm({ newPassword: '', confirmPassword: '' })
+    setResetErrors({})
+    setResetError('')
+    setShowPassword(false)
+    setResetOpen(true)
+  }, [])
 
   const handleResetSubmit = useCallback(() => {
-    if (!resetUser) return;
-    const errors = validatePassword(resetForm);
+    if (!resetUser) return
+    const errors = validatePassword(resetForm)
     if (!resetForm.confirmPassword) {
-      errors.confirmPassword = "请输入确认密码";
+      errors.confirmPassword = '请输入确认密码'
     }
     if (Object.keys(errors).length > 0) {
-      setResetErrors(errors);
-      return;
+      setResetErrors(errors)
+      return
     }
     resetMutation.mutate({
       userId: resetUser.bizKey,
       newPassword: resetForm.newPassword,
-    });
-  }, [resetUser, resetForm, validatePassword, resetMutation]);
+    })
+  }, [resetUser, resetForm, validatePassword, resetMutation])
 
   const openDelete = useCallback((user: AdminUser) => {
-    setDeleteUser(user);
-    setDeleteError("");
-    setDeleteOpen(true);
-  }, []);
+    setDeleteUser(user)
+    setDeleteError('')
+    setDeleteOpen(true)
+  }, [])
 
   const handleDelete = useCallback(() => {
-    if (!deleteUser) return;
-    deleteMutation.mutate({ userId: deleteUser.bizKey });
-  }, [deleteUser, deleteMutation]);
+    if (!deleteUser) return
+    deleteMutation.mutate({ userId: deleteUser.bizKey })
+  }, [deleteUser, deleteMutation])
 
   const handleCopyCredentials = useCallback(async () => {
     try {
       await copyToClipboard(
         `账号：${createdUsername}\n密码：${initialPassword}`,
-      );
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      )
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     } catch {
-      addToast("复制失败，请手动选择文字复制", "error");
+      addToast('复制失败，请手动选择文字复制', 'error')
     }
-  }, [createdUsername, initialPassword, addToast]);
+  }, [createdUsername, initialPassword, addToast])
 
   // --- Render ---
 
@@ -454,13 +454,13 @@ export default function UserManagementPage() {
           variant="secondary"
           size="sm"
           onClick={async () => {
-            await refetch();
-            addToast("数据已刷新", "success");
+            await refetch()
+            addToast('数据已刷新', 'success')
           }}
           disabled={isFetching}
           data-testid="refresh-btn"
         >
-          <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
+          <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
           刷新
         </Button>
       </div>
@@ -500,7 +500,7 @@ export default function UserManagementPage() {
                     <span className="font-mono text-xs">{user.username}</span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-[13px]">{user.email || "-"}</span>
+                    <span className="text-[13px]">{user.email || '-'}</span>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
@@ -518,10 +518,10 @@ export default function UserManagementPage() {
                   <TableCell>
                     <Badge
                       variant={
-                        user.userStatus === "enabled" ? "success" : "warning"
+                        user.userStatus === 'enabled' ? 'success' : 'warning'
                       }
                     >
-                      {user.userStatus === "enabled" ? "启用" : "停用"}
+                      {user.userStatus === 'enabled' ? '启用' : '停用'}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -541,7 +541,7 @@ export default function UserManagementPage() {
                         className="text-primary-600"
                         onClick={() => openToggleStatus(user)}
                       >
-                        {user.userStatus === "enabled" ? (
+                        {user.userStatus === 'enabled' ? (
                           <ToggleRight className="w-3.5 h-3.5" />
                         ) : (
                           <ToggleLeft className="w-3.5 h-3.5" />
@@ -614,8 +614,8 @@ export default function UserManagementPage() {
       <Dialog
         open={createOpen}
         onOpenChange={(open) => {
-          setCreateOpen(open);
-          if (!open) setCreateError("");
+          setCreateOpen(open)
+          if (!open) setCreateError('')
         }}
       >
         <DialogContent size="md">
@@ -669,11 +669,11 @@ export default function UserManagementPage() {
                   所属团队
                 </label>
                 <Select
-                  value={createForm.teamKey || "_none"}
+                  value={createForm.teamKey || '_none'}
                   onValueChange={(v) =>
                     setCreateForm((f) => ({
                       ...f,
-                      teamKey: v === "_none" ? undefined : v,
+                      teamKey: v === '_none' ? undefined : v,
                     }))
                   }
                 >
@@ -699,8 +699,8 @@ export default function UserManagementPage() {
             <Button
               variant="secondary"
               onClick={() => {
-                setCreateOpen(false);
-                setCreateError("");
+                setCreateOpen(false)
+                setCreateError('')
               }}
             >
               取消
@@ -747,7 +747,7 @@ export default function UserManagementPage() {
                 disabled={copied}
               >
                 <Copy className="w-3.5 h-3.5" />
-                {copied ? "已复制" : "复制账号与密码"}
+                {copied ? '已复制' : '复制账号与密码'}
               </Button>
             )}
             <Button onClick={() => setPasswordOpen(false)}>我知道了</Button>
@@ -791,11 +791,11 @@ export default function UserManagementPage() {
                   所属团队
                 </label>
                 <Select
-                  value={editForm.teamKey || "_none"}
+                  value={editForm.teamKey || '_none'}
                   onValueChange={(v) =>
                     setEditForm((f) => ({
                       ...f,
-                      teamKey: v === "_none" ? undefined : v,
+                      teamKey: v === '_none' ? undefined : v,
                     }))
                   }
                 >
@@ -829,8 +829,8 @@ export default function UserManagementPage() {
       <Dialog
         open={statusOpen}
         onOpenChange={(open) => {
-          setStatusOpen(open);
-          if (!open) setStatusError("");
+          setStatusOpen(open)
+          if (!open) setStatusError('')
         }}
       >
         <DialogContent size="sm">
@@ -849,23 +849,23 @@ export default function UserManagementPage() {
                 <p className="text-sm text-tertiary mb-1">当前状态</p>
                 <Badge
                   variant={
-                    statusUser?.userStatus === "enabled" ? "success" : "warning"
+                    statusUser?.userStatus === 'enabled' ? 'success' : 'warning'
                   }
                 >
-                  {statusUser?.userStatus === "enabled" ? "启用" : "停用"}
+                  {statusUser?.userStatus === 'enabled' ? '启用' : '停用'}
                 </Badge>
               </div>
               <div>
                 <p className="text-sm text-tertiary mb-1">新状态</p>
                 <Badge
                   variant={
-                    statusUser?.userStatus === "enabled" ? "warning" : "success"
+                    statusUser?.userStatus === 'enabled' ? 'warning' : 'success'
                   }
                 >
-                  {statusUser?.userStatus === "enabled" ? "停用" : "启用"}
+                  {statusUser?.userStatus === 'enabled' ? '停用' : '启用'}
                 </Badge>
               </div>
-              {statusUser?.userStatus === "enabled" && (
+              {statusUser?.userStatus === 'enabled' && (
                 <div className="bg-warning-bg border border-warning-text/20 rounded-lg p-3 text-sm text-warning-text">
                   <strong>注意：</strong>
                   禁用用户后该用户将无法登录系统，但数据不会被删除。
@@ -880,8 +880,8 @@ export default function UserManagementPage() {
             <Button
               variant="secondary"
               onClick={() => {
-                setStatusOpen(false);
-                setStatusError("");
+                setStatusOpen(false)
+                setStatusError('')
               }}
             >
               取消
@@ -900,10 +900,10 @@ export default function UserManagementPage() {
       <Dialog
         open={resetOpen}
         onOpenChange={(open) => {
-          setResetOpen(open);
+          setResetOpen(open)
           if (!open) {
-            setResetError("");
-            setResetErrors({});
+            setResetError('')
+            setResetErrors({})
           }
         }}
       >
@@ -931,27 +931,27 @@ export default function UserManagementPage() {
                 </label>
                 <div className="relative">
                   <Input
-                    type={showPassword ? "text" : "password"}
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="请输入新密码"
                     value={resetForm.newPassword}
                     autoComplete="new-password"
                     onChange={(e) => {
-                      const val = e.target.value;
-                      setResetForm((f) => ({ ...f, newPassword: val }));
+                      const val = e.target.value
+                      setResetForm((f) => ({ ...f, newPassword: val }))
                       if (resetErrors.newPassword) {
                         setResetErrors((errs) => ({
                           ...errs,
                           newPassword: undefined,
-                        }));
+                        }))
                       }
                     }}
                     onBlur={() => {
-                      const errs = validatePassword(resetForm);
+                      const errs = validatePassword(resetForm)
                       if (errs.newPassword)
                         setResetErrors((e) => ({
                           ...e,
                           newPassword: errs.newPassword,
-                        }));
+                        }))
                     }}
                     disabled={resetMutation.isPending}
                   />
@@ -959,7 +959,7 @@ export default function UserManagementPage() {
                     type="button"
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-tertiary hover:text-secondary"
                     onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? "隐藏密码" : "显示密码"}
+                    aria-label={showPassword ? '隐藏密码' : '显示密码'}
                   >
                     {showPassword ? (
                       <EyeOff className="w-4 h-4" />
@@ -979,18 +979,18 @@ export default function UserManagementPage() {
                   确认密码 <span className="text-error">*</span>
                 </label>
                 <Input
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="请再次输入新密码"
                   value={resetForm.confirmPassword}
                   autoComplete="new-password"
                   onChange={(e) => {
-                    const val = e.target.value;
-                    setResetForm((f) => ({ ...f, confirmPassword: val }));
+                    const val = e.target.value
+                    setResetForm((f) => ({ ...f, confirmPassword: val }))
                     if (resetErrors.confirmPassword) {
                       setResetErrors((errs) => ({
                         ...errs,
                         confirmPassword: undefined,
-                      }));
+                      }))
                     }
                   }}
                   onBlur={() => {
@@ -1000,8 +1000,8 @@ export default function UserManagementPage() {
                     ) {
                       setResetErrors((e) => ({
                         ...e,
-                        confirmPassword: "两次输入的密码不一致",
-                      }));
+                        confirmPassword: '两次输入的密码不一致',
+                      }))
                     } else if (
                       resetForm.confirmPassword &&
                       resetForm.confirmPassword === resetForm.newPassword
@@ -1009,7 +1009,7 @@ export default function UserManagementPage() {
                       setResetErrors((e) => ({
                         ...e,
                         confirmPassword: undefined,
-                      }));
+                      }))
                     }
                   }}
                   disabled={resetMutation.isPending}
@@ -1029,9 +1029,9 @@ export default function UserManagementPage() {
             <Button
               variant="secondary"
               onClick={() => {
-                setResetOpen(false);
-                setResetError("");
-                setResetErrors({});
+                setResetOpen(false)
+                setResetError('')
+                setResetErrors({})
               }}
             >
               取消
@@ -1040,7 +1040,7 @@ export default function UserManagementPage() {
               onClick={handleResetSubmit}
               disabled={resetMutation.isPending}
             >
-              {resetMutation.isPending ? "提交中..." : "确认"}
+              {resetMutation.isPending ? '提交中...' : '确认'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1050,8 +1050,8 @@ export default function UserManagementPage() {
       <Dialog
         open={deleteOpen}
         onOpenChange={(open) => {
-          setDeleteOpen(open);
-          if (!open) setDeleteError("");
+          setDeleteOpen(open)
+          if (!open) setDeleteError('')
         }}
       >
         <DialogContent size="sm">
@@ -1070,8 +1070,8 @@ export default function UserManagementPage() {
             <Button
               variant="secondary"
               onClick={() => {
-                setDeleteOpen(false);
-                setDeleteError("");
+                setDeleteOpen(false)
+                setDeleteError('')
               }}
               disabled={deleteMutation.isPending}
             >
@@ -1082,11 +1082,11 @@ export default function UserManagementPage() {
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
             >
-              {deleteMutation.isPending ? "删除中..." : "确认删除"}
+              {deleteMutation.isPending ? '删除中...' : '确认删除'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

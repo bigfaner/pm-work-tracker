@@ -1,38 +1,38 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-import AppLayout from "./AppLayout";
-import { useAuthStore } from "@/store/auth";
-import { useTeamStore } from "@/store/team";
-import type { User, Team } from "@/types";
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import AppLayout from './AppLayout'
+import { useAuthStore } from '@/store/auth'
+import { useTeamStore } from '@/store/team'
+import type { User, Team } from '@/types'
 
 // Mock the teams API
-vi.mock("@/api/teams", () => ({
+vi.mock('@/api/teams', () => ({
   listTeamsApi: vi
     .fn()
     .mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 }),
-}));
+}))
 
 const mockUser: User = {
-  bizKey: "1",
-  username: "testuser",
-  displayName: "Test User",
-  createTime: "",
-};
+  bizKey: '1',
+  username: 'testuser',
+  displayName: 'Test User',
+  createTime: '',
+}
 
 const mockTeams: Team[] = [
   {
-    bizKey: "1",
-    name: "Team Alpha",
-    description: "",
-    code: "",
-    pmKey: "1",
-    createdAt: "2024-01-01",
-    updatedAt: "2024-01-01",
+    bizKey: '1',
+    name: 'Team Alpha',
+    description: '',
+    code: '',
+    pmKey: '1',
+    createdAt: '2024-01-01',
+    updatedAt: '2024-01-01',
   },
-];
+]
 
-function renderWithRouter(initialPath = "/items") {
+function renderWithRouter(initialPath = '/items') {
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
       <Routes>
@@ -60,41 +60,41 @@ function renderWithRouter(initialPath = "/items") {
         />
       </Routes>
     </MemoryRouter>,
-  );
+  )
 }
 
-describe("AppLayout", () => {
+describe('AppLayout', () => {
   beforeEach(() => {
-    useAuthStore.getState().clearAuth();
-    useAuthStore.getState().setAuth("token", mockUser);
-    useTeamStore.getState().setTeams([]);
-    useTeamStore.getState().setCurrentTeam(null);
-    vi.clearAllMocks();
-  });
+    useAuthStore.getState().clearAuth()
+    useAuthStore.getState().setAuth('token', mockUser)
+    useTeamStore.getState().setTeams([])
+    useTeamStore.getState().setCurrentTeam(null)
+    vi.clearAllMocks()
+  })
 
-  it("renders sidebar and scrollable main content area", () => {
-    renderWithRouter();
-    expect(screen.getByTestId("sidebar")).toBeInTheDocument();
-    expect(screen.getByTestId("content-area")).toBeInTheDocument();
-  });
+  it('renders sidebar and scrollable main content area', () => {
+    renderWithRouter()
+    expect(screen.getByTestId('sidebar')).toBeInTheDocument()
+    expect(screen.getByTestId('content-area')).toBeInTheDocument()
+  })
 
-  it("renders child route content in main content area", () => {
-    renderWithRouter("/items");
-    expect(screen.getByTestId("page-items")).toBeInTheDocument();
-  });
+  it('renders child route content in main content area', () => {
+    renderWithRouter('/items')
+    expect(screen.getByTestId('page-items')).toBeInTheDocument()
+  })
 
-  it("fetches teams on mount", async () => {
-    const { listTeamsApi } = await import("@/api/teams");
-    const mocked = vi.mocked(listTeamsApi);
+  it('fetches teams on mount', async () => {
+    const { listTeamsApi } = await import('@/api/teams')
+    const mocked = vi.mocked(listTeamsApi)
     mocked.mockResolvedValueOnce({
       items: mockTeams,
       total: mockTeams.length,
       page: 1,
       pageSize: 20,
-    });
+    })
 
-    renderWithRouter();
-    await screen.findByTestId("app-layout");
-    expect(mocked).toHaveBeenCalledOnce();
-  });
-});
+    renderWithRouter()
+    await screen.findByTestId('app-layout')
+    expect(mocked).toHaveBeenCalledOnce()
+  })
+})

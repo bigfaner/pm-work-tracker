@@ -16,7 +16,11 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import StatusBadge from '@/components/shared/StatusBadge'
-import { getStatusName, MAIN_TERMINAL_STATUSES, SUB_TERMINAL_STATUSES } from '@/lib/status'
+import {
+  getStatusName,
+  MAIN_TERMINAL_STATUSES,
+  SUB_TERMINAL_STATUSES,
+} from '@/lib/status'
 import {
   getMainItemTransitionsApi,
   changeMainItemStatusApi,
@@ -55,17 +59,24 @@ export default function StatusTransitionDropdown({
   const [open, setOpen] = useState(false)
   const [showTip, setShowTip] = useState(false)
 
-  const terminalStatuses = itemType === 'main' ? MAIN_TERMINAL_STATUSES : SUB_TERMINAL_STATUSES
+  const terminalStatuses =
+    itemType === 'main' ? MAIN_TERMINAL_STATUSES : SUB_TERMINAL_STATUSES
 
-  const queryKey = itemType === 'main'
-    ? ['mainItemTransitions', teamId, itemId]
-    : ['subItemTransitions', teamId, itemId]
+  const queryKey =
+    itemType === 'main'
+      ? ['mainItemTransitions', teamId, itemId]
+      : ['subItemTransitions', teamId, itemId]
 
-  const fetchTransitions = itemType === 'main'
-    ? () => getMainItemTransitionsApi(teamId, itemId)
-    : () => getSubItemTransitionsApi(teamId, itemId)
+  const fetchTransitions =
+    itemType === 'main'
+      ? () => getMainItemTransitionsApi(teamId, itemId)
+      : () => getSubItemTransitionsApi(teamId, itemId)
 
-  const { data: transitions = [], isFetched, isFetching } = useQuery({
+  const {
+    data: transitions = [],
+    isFetched,
+    isFetching,
+  } = useQuery({
     queryKey,
     queryFn: fetchTransitions,
     enabled: !!teamId && open,
@@ -88,13 +99,16 @@ export default function StatusTransitionDropdown({
   }
 
   const statusChangeMutation = useMutation({
-    mutationFn: ({ newStatus }: { newStatus: string }) => changeStatus(newStatus),
+    mutationFn: ({ newStatus }: { newStatus: string }) =>
+      changeStatus(newStatus),
     onSuccess: () => {
       if (itemType === 'main') {
         qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
         qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
       } else {
-        qc.invalidateQueries({ queryKey: ['subItems', teamId, parentItemId || itemId] })
+        qc.invalidateQueries({
+          queryKey: ['subItems', teamId, parentItemId || itemId],
+        })
       }
       qc.invalidateQueries({ queryKey })
       setOpen(false)
@@ -104,21 +118,24 @@ export default function StatusTransitionDropdown({
     },
   })
 
-  const handleSelect = useCallback(async (status: string) => {
-    if (!terminalStatuses.includes(status)) {
-      statusChangeMutation.mutate({ newStatus: status })
-      return
-    }
-    setPendingStatus(status)
-    if (onBeforeTerminalStatus) {
-      const proceed = await onBeforeTerminalStatus(status)
-      if (!proceed) {
-        setPendingStatus(null)
+  const handleSelect = useCallback(
+    async (status: string) => {
+      if (!terminalStatuses.includes(status)) {
+        statusChangeMutation.mutate({ newStatus: status })
         return
       }
-    }
-    setConfirmOpen(true)
-  }, [statusChangeMutation, terminalStatuses, onBeforeTerminalStatus])
+      setPendingStatus(status)
+      if (onBeforeTerminalStatus) {
+        const proceed = await onBeforeTerminalStatus(status)
+        if (!proceed) {
+          setPendingStatus(null)
+          return
+        }
+      }
+      setConfirmOpen(true)
+    },
+    [statusChangeMutation, terminalStatuses, onBeforeTerminalStatus],
+  )
 
   const handleConfirm = useCallback(() => {
     if (pendingStatus) {
@@ -168,12 +185,27 @@ export default function StatusTransitionDropdown({
           </DialogHeader>
           <DialogBody>
             <p className="text-sm text-secondary">
-              确认将状态变更为「{getStatusName(pendingStatus || '') || pendingStatus}」？此操作可能不可逆。
+              确认将状态变更为「
+              {getStatusName(pendingStatus || '') || pendingStatus}
+              」？此操作可能不可逆。
             </p>
           </DialogBody>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => { setConfirmOpen(false); setPendingStatus(null) }}>取消</Button>
-            <Button onClick={handleConfirm} disabled={statusChangeMutation.isPending}>确认</Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setConfirmOpen(false)
+                setPendingStatus(null)
+              }}
+            >
+              取消
+            </Button>
+            <Button
+              onClick={handleConfirm}
+              disabled={statusChangeMutation.isPending}
+            >
+              确认
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

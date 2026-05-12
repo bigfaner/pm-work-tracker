@@ -10,7 +10,7 @@ function renderInSelect() {
       <SelectContent>
         <PrioritySelectItems />
       </SelectContent>
-    </Select>
+    </Select>,
   )
 }
 

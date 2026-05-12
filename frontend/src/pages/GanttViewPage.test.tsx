@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, beforeAll, afterAll, afterEach } from 'vitest'
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  beforeAll,
+  afterAll,
+  afterEach,
+} from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -125,7 +133,17 @@ describe('GanttViewPage', () => {
   beforeEach(() => {
     useTeamStore.setState({
       currentTeamId: '1',
-      teams: [{ bizKey: '1', name: 'Test Team', description: '', code: '', pmKey: '1', createdAt: '', updatedAt: '' }],
+      teams: [
+        {
+          bizKey: '1',
+          name: 'Test Team',
+          description: '',
+          code: '',
+          pmKey: '1',
+          createdAt: '',
+          updatedAt: '',
+        },
+      ],
     })
     setupGanttHandler()
   })
@@ -236,7 +254,7 @@ describe('GanttViewPage', () => {
     renderPage()
     await waitFor(() => {
       // Item 1 has sub-items, should have toggle
-      const toggle1 = screen.getByTestId(`collapse-toggle-1`)
+      const toggle1 = screen.getByTestId('collapse-toggle-1')
       expect(toggle1).toBeInTheDocument()
     })
   })
@@ -245,7 +263,7 @@ describe('GanttViewPage', () => {
     renderPage()
     await waitFor(() => {
       // Item 2 has no sub-items, toggle should be hidden
-      const toggle2 = screen.getByTestId(`collapse-toggle-2`)
+      const toggle2 = screen.getByTestId('collapse-toggle-2')
       expect(toggle2).toHaveAttribute('data-hidden', 'true')
     })
   })
@@ -258,7 +276,9 @@ describe('GanttViewPage', () => {
     })
 
     // Sub-items should initially be hidden
-    expect(screen.getByTestId('timeline-row-10')).toHaveClass('gantt-row-hidden')
+    expect(screen.getByTestId('timeline-row-10')).toHaveClass(
+      'gantt-row-hidden',
+    )
 
     // Click toggle to expand
     const toggle = screen.getByTestId('collapse-toggle-1')
@@ -266,8 +286,12 @@ describe('GanttViewPage', () => {
 
     // Sub-items should now be visible
     await waitFor(() => {
-      expect(screen.getByTestId('timeline-row-10')).not.toHaveClass('gantt-row-hidden')
-      expect(screen.getByTestId('timeline-row-11')).not.toHaveClass('gantt-row-hidden')
+      expect(screen.getByTestId('timeline-row-10')).not.toHaveClass(
+        'gantt-row-hidden',
+      )
+      expect(screen.getByTestId('timeline-row-11')).not.toHaveClass(
+        'gantt-row-hidden',
+      )
     })
   })
 

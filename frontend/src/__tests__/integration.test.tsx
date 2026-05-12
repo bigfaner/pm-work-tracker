@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, beforeAll, afterAll, afterEach } from 'vitest'
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  beforeAll,
+  afterAll,
+  afterEach,
+} from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -38,7 +46,10 @@ describe('Integration: Login flow', () => {
       <MemoryRouter initialEntries={['/login']}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/items" element={<div data-testid="items-page">Items Page</div>} />
+          <Route
+            path="/items"
+            element={<div data-testid="items-page">Items Page</div>}
+          />
         </Routes>
       </MemoryRouter>,
     )
@@ -64,7 +75,10 @@ describe('Integration: Login flow', () => {
       <MemoryRouter initialEntries={['/login']}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/items" element={<div data-testid="items-page">Items Page</div>} />
+          <Route
+            path="/items"
+            element={<div data-testid="items-page">Items Page</div>}
+          />
         </Routes>
       </MemoryRouter>,
     )

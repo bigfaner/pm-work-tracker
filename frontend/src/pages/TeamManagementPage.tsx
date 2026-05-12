@@ -1,20 +1,20 @@
-import { useState, useCallback, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserPlus, RefreshCw } from "lucide-react";
+import { useState, useCallback, useMemo } from 'react'
+import { Link } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { UserPlus, RefreshCw } from 'lucide-react'
 import {
   listTeamsApi,
   createTeamApi,
   inviteMemberApi,
   searchAvailableUsersApi,
   type UserSearchResult,
-} from "@/api/teams";
-import { listRolesApi } from "@/api/roles";
-import { useAuthStore } from "@/store/auth";
-import { PermissionGuard } from "@/components/PermissionGuard";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+} from '@/api/teams'
+import { listRolesApi } from '@/api/roles'
+import { useAuthStore } from '@/store/auth'
+import { PermissionGuard } from '@/components/PermissionGuard'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
@@ -22,14 +22,14 @@ import {
   DialogTitle,
   DialogBody,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select'
 import {
   Table,
   TableHeader,
@@ -37,101 +37,101 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from "@/components/ui/table";
-import PaginationBar from "@/components/shared/PaginationBar";
-import { useToast } from "@/components/ui/toast";
-import { formatDateOnly } from "@/lib/format";
+} from '@/components/ui/table'
+import PaginationBar from '@/components/shared/PaginationBar'
+import { useToast } from '@/components/ui/toast'
+import { formatDateOnly } from '@/lib/format'
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 10
 
 export default function TeamManagementPage() {
-  const qc = useQueryClient();
-  const { addToast } = useToast();
+  const qc = useQueryClient()
+  const { addToast } = useToast()
 
   // Create dialog state
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false)
   const [createForm, setCreateForm] = useState({
-    name: "",
-    code: "",
-    description: "",
-  });
-  const [createError, setCreateError] = useState("");
-  const [codeError, setCodeError] = useState("");
+    name: '',
+    code: '',
+    description: '',
+  })
+  const [createError, setCreateError] = useState('')
+  const [codeError, setCodeError] = useState('')
 
   // Add member dialog state
-  const [addMemberOpen, setAddMemberOpen] = useState(false);
-  const [addMemberTeamId, setAddMemberTeamId] = useState<string | null>(null);
-  const [userSearch, setUserSearch] = useState("");
+  const [addMemberOpen, setAddMemberOpen] = useState(false)
+  const [addMemberTeamId, setAddMemberTeamId] = useState<string | null>(null)
+  const [userSearch, setUserSearch] = useState('')
   const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(
     null,
-  );
-  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  )
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false)
   const [inviteRoleId, setInviteRoleId] = useState<string | undefined>(
     undefined,
-  );
+  )
 
   // Search + pagination state
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
 
   // Data fetching
   const { data, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ["teams", search, page],
+    queryKey: ['teams', search, page],
     queryFn: () =>
       listTeamsApi({ search: search || undefined, page, pageSize: PAGE_SIZE }),
-  });
+  })
 
-  const teamList = data?.items ?? [];
-  const total = data?.total ?? 0;
-  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const teamList = data?.items ?? []
+  const total = data?.total ?? 0
+  const totalPages = Math.ceil(total / PAGE_SIZE)
 
   // Roles for invite dialog — only fetch if user can invite members
-  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const hasPermission = useAuthStore((s) => s.hasPermission)
   const { data: rolesData } = useQuery({
-    queryKey: ["roles"],
+    queryKey: ['roles'],
     queryFn: () => listRolesApi({ pageSize: 100 }),
     staleTime: 5 * 60 * 1000,
-    enabled: hasPermission("team:invite"),
-  });
+    enabled: hasPermission('team:invite'),
+  })
 
   const roles = useMemo(() => {
-    if (!rolesData?.items) return [];
+    if (!rolesData?.items) return []
     return rolesData.items.filter(
-      (r) => r.roleName !== "superadmin" && r.roleName !== "pm",
-    );
-  }, [rolesData]);
+      (r) => r.roleName !== 'superadmin' && r.roleName !== 'pm',
+    )
+  }, [rolesData])
 
   const defaultRoleId =
-    roles.find((r) => r.roleName === "member")?.bizKey ?? roles[0]?.bizKey;
+    roles.find((r) => r.roleName === 'member')?.bizKey ?? roles[0]?.bizKey
 
   // User search for add member dialog
   const { data: userSearchResults = [] } = useQuery({
-    queryKey: ["searchUsers", addMemberTeamId, userSearch],
+    queryKey: ['searchUsers', addMemberTeamId, userSearch],
     queryFn: () => searchAvailableUsersApi(addMemberTeamId!, userSearch),
     enabled: addMemberOpen && !!addMemberTeamId,
-  });
+  })
 
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: (req: { name: string; code: string; description?: string }) =>
+    mutationFn: (req: { name: string, code: string, description?: string }) =>
       createTeamApi(req),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["teams"] });
-      setCreateOpen(false);
-      setCreateForm({ name: "", code: "", description: "" });
-      setCreateError("");
-      setCodeError("");
+      qc.invalidateQueries({ queryKey: ['teams'] })
+      setCreateOpen(false)
+      setCreateForm({ name: '', code: '', description: '' })
+      setCreateError('')
+      setCodeError('')
     },
     onError: (err: unknown) => {
       const code = (err as { response?: { data?: { code?: string } } })
-        ?.response?.data?.code;
-      if (code === "TEAM_CODE_DUPLICATE") {
-        setCodeError("该CODE已被使用");
+        ?.response?.data?.code
+      if (code === 'TEAM_CODE_DUPLICATE') {
+        setCodeError('该CODE已被使用')
       } else {
-        setCreateError("创建失败，请稍后重试");
+        setCreateError('创建失败，请稍后重试')
       }
     },
-  });
+  })
 
   // Add member mutation
   const inviteMutation = useMutation({
@@ -141,52 +141,52 @@ export default function TeamManagementPage() {
         roleKey: inviteRoleId!,
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["teams"] });
-      closeAddMemberDialog();
-      addToast("成员已添加", "success");
+      qc.invalidateQueries({ queryKey: ['teams'] })
+      closeAddMemberDialog()
+      addToast('成员已添加', 'success')
     },
     onError: (err: unknown) => {
       const code = (err as { response?: { data?: { code?: string } } })
-        ?.response?.data?.code;
-      if (code === "ALREADY_MEMBER") {
-        addToast("该用户已是团队成员", "error");
+        ?.response?.data?.code
+      if (code === 'ALREADY_MEMBER') {
+        addToast('该用户已是团队成员', 'error')
       } else {
-        addToast("添加失败，请稍后重试", "error");
+        addToast('添加失败，请稍后重试', 'error')
       }
     },
-  });
+  })
 
   const closeAddMemberDialog = useCallback(() => {
-    setAddMemberOpen(false);
-    setAddMemberTeamId(null);
-    setUserSearch("");
-    setSelectedUser(null);
-    setUserDropdownOpen(false);
-    setInviteRoleId(undefined);
-  }, []);
+    setAddMemberOpen(false)
+    setAddMemberTeamId(null)
+    setUserSearch('')
+    setSelectedUser(null)
+    setUserDropdownOpen(false)
+    setInviteRoleId(undefined)
+  }, [])
 
   const openAddMemberDialog = useCallback(
     (teamId: string) => {
-      setAddMemberTeamId(teamId);
-      setInviteRoleId(defaultRoleId);
-      setUserSearch("");
-      setSelectedUser(null);
-      setUserDropdownOpen(false);
-      setAddMemberOpen(true);
+      setAddMemberTeamId(teamId)
+      setInviteRoleId(defaultRoleId)
+      setUserSearch('')
+      setSelectedUser(null)
+      setUserDropdownOpen(false)
+      setAddMemberOpen(true)
     },
     [defaultRoleId],
-  );
+  )
 
   const handleCreate = useCallback(() => {
-    setCreateError("");
-    setCodeError("");
+    setCreateError('')
+    setCodeError('')
     if (!createForm.name.trim()) {
-      setCreateError("请填写团队名称");
-      return;
+      setCreateError('请填写团队名称')
+      return
     }
     if (!/^[A-Za-z]{2,6}$/.test(createForm.code)) {
-      setCodeError("CODE须为 2~6 位英文字母");
-      return;
+      setCodeError('CODE须为 2~6 位英文字母')
+      return
     }
     createMutation.mutate({
       name: createForm.name.trim(),
@@ -194,8 +194,8 @@ export default function TeamManagementPage() {
       ...(createForm.description.trim() && {
         description: createForm.description.trim(),
       }),
-    });
-  }, [createForm, createMutation]);
+    })
+  }, [createForm, createMutation])
 
   return (
     <div data-testid="team-management-page">
@@ -229,8 +229,8 @@ export default function TeamManagementPage() {
           placeholder="搜索团队名称或CODE..."
           value={search}
           onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
+            setSearch(e.target.value)
+            setPage(1)
           }}
           className="w-[240px]"
           data-testid="team-search-input"
@@ -242,7 +242,7 @@ export default function TeamManagementPage() {
           disabled={isFetching}
           data-testid="refresh-btn"
         >
-          <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
+          <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
           刷新
         </Button>
       </div>
@@ -296,7 +296,7 @@ export default function TeamManagementPage() {
                       className="text-[13px] text-secondary"
                       style={{ maxWidth: 200 }}
                     >
-                      {team.description || "-"}
+                      {team.description || '-'}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -335,8 +335,8 @@ export default function TeamManagementPage() {
       <Dialog
         open={createOpen}
         onOpenChange={(open) => {
-          setCreateOpen(open);
-          if (!open) setCreateError("");
+          setCreateOpen(open)
+          if (!open) setCreateError('')
         }}
       >
         <DialogContent size="md">
@@ -365,15 +365,15 @@ export default function TeamManagementPage() {
                   placeholder="如 FEAT、CORE"
                   value={createForm.code}
                   onChange={(e) => {
-                    setCreateForm((f) => ({ ...f, code: e.target.value }));
-                    setCodeError("");
+                    setCreateForm((f) => ({ ...f, code: e.target.value }))
+                    setCodeError('')
                   }}
                   onBlur={() => {
                     if (
                       createForm.code &&
                       !/^[A-Za-z]{2,6}$/.test(createForm.code)
                     ) {
-                      setCodeError("CODE须为 2~6 位英文字母");
+                      setCodeError('CODE须为 2~6 位英文字母')
                     }
                   }}
                 />
@@ -407,8 +407,8 @@ export default function TeamManagementPage() {
             <Button
               variant="secondary"
               onClick={() => {
-                setCreateOpen(false);
-                setCreateError("");
+                setCreateOpen(false)
+                setCreateError('')
               }}
             >
               取消
@@ -431,7 +431,7 @@ export default function TeamManagementPage() {
       <Dialog
         open={addMemberOpen}
         onOpenChange={(open) => {
-          if (!open) closeAddMemberDialog();
+          if (!open) closeAddMemberDialog()
         }}
       >
         <DialogContent size="md">
@@ -452,9 +452,9 @@ export default function TeamManagementPage() {
                       : userSearch
                   }
                   onChange={(e) => {
-                    setUserSearch(e.target.value);
-                    setSelectedUser(null);
-                    setUserDropdownOpen(true);
+                    setUserSearch(e.target.value)
+                    setSelectedUser(null)
+                    setUserDropdownOpen(true)
                   }}
                   onFocus={() => setUserDropdownOpen(true)}
                   data-testid="add-member-user-search"
@@ -472,9 +472,9 @@ export default function TeamManagementPage() {
                           type="button"
                           className="w-full px-3 py-2 text-left text-sm hover:bg-bg-alt focus:bg-bg-alt focus:outline-none"
                           onClick={() => {
-                            setSelectedUser(u);
-                            setUserSearch("");
-                            setUserDropdownOpen(false);
+                            setSelectedUser(u)
+                            setUserSearch('')
+                            setUserDropdownOpen(false)
                           }}
                           data-testid={`add-member-user-option-${u.bizKey}`}
                         >
@@ -494,7 +494,7 @@ export default function TeamManagementPage() {
                   角色 <span className="text-error">*</span>
                 </label>
                 <Select
-                  value={inviteRoleId ?? ""}
+                  value={inviteRoleId ?? ''}
                   onValueChange={(v) => setInviteRoleId(v)}
                 >
                   <SelectTrigger data-testid="add-member-role-select">
@@ -530,5 +530,5 @@ export default function TeamManagementPage() {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

@@ -3,13 +3,13 @@ import { render, screen } from '@testing-library/react'
 import StatusBadge from './StatusBadge'
 
 const statuses = [
-  { code: 'pending',     name: '待开始', variant: 'status-planning' },
+  { code: 'pending', name: '待开始', variant: 'status-planning' },
   { code: 'progressing', name: '进行中', variant: 'status-in-progress' },
-  { code: 'reviewing',   name: '待验收', variant: 'status-pending' },
-  { code: 'completed',   name: '已完成', variant: 'status-completed' },
-  { code: 'closed',      name: '已关闭', variant: 'status-cancelled' },
-  { code: 'blocking',    name: '阻塞中', variant: 'status-overdue' },
-  { code: 'pausing',     name: '已暂停', variant: 'status-on-hold' },
+  { code: 'reviewing', name: '待验收', variant: 'status-pending' },
+  { code: 'completed', name: '已完成', variant: 'status-completed' },
+  { code: 'closed', name: '已关闭', variant: 'status-cancelled' },
+  { code: 'blocking', name: '阻塞中', variant: 'status-overdue' },
+  { code: 'pausing', name: '已暂停', variant: 'status-on-hold' },
 ]
 
 describe('StatusBadge', () => {
@@ -30,7 +30,7 @@ describe('StatusBadge', () => {
     for (const { code, variant } of statuses) {
       const { unmount } = render(<StatusBadge status={code} />)
       const badge = screen.getByText(
-        statuses.find(s => s.code === code)!.name,
+        statuses.find((s) => s.code === code)!.name,
       )
       expect(badge.className).toContain('rounded-full')
       // The variant class should be applied via Badge component

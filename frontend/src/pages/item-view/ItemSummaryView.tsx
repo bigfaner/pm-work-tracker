@@ -1,26 +1,26 @@
-import { Link } from "react-router-dom";
-import { Pencil, Plus } from "lucide-react";
-import { MainItem, SubItem } from "@/types";
-import { Button } from "@/components/ui/button";
-import PriorityBadge from "@/components/shared/PriorityBadge";
-import ProgressBar from "@/components/shared/ProgressBar";
-import StatusTransitionDropdown from "@/components/shared/StatusTransitionDropdown";
-import { Badge } from "@/components/ui/badge";
-import { PermissionGuard } from "@/components/PermissionGuard";
-import { MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES } from "@/lib/status";
-import { isOverdue } from "@/lib/status";
-import { showToast } from "@/lib/toast";
-import { buildFullUrl } from "@/lib/url";
+import { Link } from 'react-router-dom'
+import { Pencil, Plus } from 'lucide-react'
+import { MainItem, SubItem } from '@/types'
+import { Button } from '@/components/ui/button'
+import PriorityBadge from '@/components/shared/PriorityBadge'
+import ProgressBar from '@/components/shared/ProgressBar'
+import StatusTransitionDropdown from '@/components/shared/StatusTransitionDropdown'
+import { Badge } from '@/components/ui/badge'
+import { PermissionGuard } from '@/components/PermissionGuard'
+import { MAIN_ITEM_STATUSES, SUB_ITEM_STATUSES } from '@/lib/status'
+import { isOverdue } from '@/lib/status'
+import { showToast } from '@/lib/toast'
+import { buildFullUrl } from '@/lib/url'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from '@/components/ui/tooltip'
 
 function copyLink(path: string, title: string) {
-  navigator.clipboard.writeText(`${buildFullUrl(path)} ${title}`);
-  showToast("链接已复制", "success");
+  navigator.clipboard.writeText(`${buildFullUrl(path)} ${title}`)
+  showToast('链接已复制', 'success')
 }
 
 function CodeBadge({
@@ -29,20 +29,20 @@ function CodeBadge({
   title,
   className,
 }: {
-  label: string;
-  path: string;
-  title: string;
-  className?: string;
+  label: string
+  path: string
+  title: string
+  className?: string
 }) {
   return (
     <TooltipProvider delayDuration={300}>
       <Tooltip>
         <TooltipTrigger asChild>
           <span
-            className={`font-mono cursor-pointer transition-colors ${className ?? ""}`}
+            className={`font-mono cursor-pointer transition-colors ${className ?? ''}`}
             onClick={(e) => {
-              e.stopPropagation();
-              copyLink(path, title);
+              e.stopPropagation()
+              copyLink(path, title)
             }}
           >
             {label}
@@ -53,28 +53,28 @@ function CodeBadge({
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
-  );
+  )
 }
 
 interface SummaryViewProps {
-  items: (MainItem & { subItems?: SubItem[] })[];
-  expandedCards: Set<string>;
-  onToggleExpand: (id: string) => void;
-  subItemsMap: Record<string, SubItem[]>;
-  memberName: (id: string | null) => string;
-  formatDate: (date: string | null) => string;
-  hasMore: boolean;
-  sentinelRef: React.RefObject<HTMLDivElement>;
-  teamId: string;
-  onRefresh: () => void;
-  onAddSubItem: (mainItemId: string, mainItemTitle: string) => void;
-  onEditMainItem: (item: MainItem) => void;
+  items: (MainItem & { subItems?: SubItem[] })[]
+  expandedCards: Set<string>
+  onToggleExpand: (id: string) => void
+  subItemsMap: Record<string, SubItem[]>
+  memberName: (id: string | null) => string
+  formatDate: (date: string | null) => string
+  hasMore: boolean
+  sentinelRef: React.RefObject<HTMLDivElement>
+  teamId: string
+  onRefresh: () => void
+  onAddSubItem: (mainItemId: string, mainItemTitle: string) => void
+  onEditMainItem: (item: MainItem) => void
   onAppendProgress: (
     subItemId: string,
     subItemTitle: string,
     subItemCompletion: number,
-  ) => void;
-  onEditSubItem: (sub: SubItem, mainItemBizKey: string) => void;
+  ) => void
+  onEditSubItem: (sub: SubItem, mainItemBizKey: string) => void
 }
 
 export default function ItemSummaryView({
@@ -105,7 +105,7 @@ export default function ItemSummaryView({
               {/* Expand chevron */}
               <svg
                 className={`w-3.5 h-3.5 shrink-0 text-tertiary transition-transform ${
-                  expandedCards.has(item.bizKey) ? "rotate-90" : ""
+                  expandedCards.has(item.bizKey) ? 'rotate-90' : ''
                 }`}
                 fill="none"
                 viewBox="0 0 24 24"
@@ -142,7 +142,7 @@ export default function ItemSummaryView({
                 </Link>
                 {item.planStartDate && item.expectedEndDate && (
                   <span className="text-xs text-secondary whitespace-nowrap">
-                    计划周期 {formatDate(item.planStartDate)} ~{" "}
+                    计划周期 {formatDate(item.planStartDate)} ~{' '}
                     {formatDate(item.expectedEndDate)}
                   </span>
                 )}
@@ -233,7 +233,7 @@ export default function ItemSummaryView({
                     className="flex items-center gap-2 py-2 border-b border-border/50 last:border-b-0"
                   >
                     <CodeBadge
-                      label={sub.code.split("-").pop()!}
+                      label={sub.code.split('-').pop()!}
                       path={`/items/${item.bizKey}/sub/${sub.bizKey}`}
                       title={sub.title}
                       className="text-[11px] text-tertiary bg-bg-alt px-1.5 py-0.5 rounded hover:bg-primary-100 hover:text-primary-600"
@@ -251,7 +251,7 @@ export default function ItemSummaryView({
                     <span className="text-[11px] text-tertiary whitespace-nowrap">
                       {sub.planStartDate && sub.expectedEndDate
                         ? `计划周期 ${formatDate(sub.planStartDate)} ~ ${formatDate(sub.expectedEndDate)}`
-                        : "-"}
+                        : '-'}
                     </span>
                     {isOverdue(
                       sub.expectedEndDate ?? undefined,
@@ -355,5 +355,5 @@ export default function ItemSummaryView({
         )}
       </div>
     </div>
-  );
+  )
 }

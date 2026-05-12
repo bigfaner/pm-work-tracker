@@ -1,7 +1,17 @@
 import client from './client'
-import type { Role, RoleDetail, CreateRoleReq, UpdateRoleReq, RoleListParams, PageResult, PermissionGroup } from '@/types'
+import type {
+  Role,
+  RoleDetail,
+  CreateRoleReq,
+  UpdateRoleReq,
+  RoleListParams,
+  PageResult,
+  PermissionGroup,
+} from '@/types'
 
-export function listRolesApi(params?: RoleListParams): Promise<PageResult<Role>> {
+export function listRolesApi(
+  params?: RoleListParams,
+): Promise<PageResult<Role>> {
   return client.get<never, PageResult<Role>>('/admin/roles', { params })
 }
 
@@ -13,7 +23,10 @@ export function createRoleApi(req: CreateRoleReq): Promise<Role> {
   return client.post<never, Role>('/admin/roles', req)
 }
 
-export function updateRoleApi(bizKey: string, req: UpdateRoleReq): Promise<RoleDetail> {
+export function updateRoleApi(
+  bizKey: string,
+  req: UpdateRoleReq,
+): Promise<RoleDetail> {
   return client.put<never, RoleDetail>(`/admin/roles/${bizKey}`, req)
 }
 

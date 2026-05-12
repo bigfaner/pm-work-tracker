@@ -70,9 +70,7 @@ export const PERMISSION_GROUPS: PermissionGroupDef[] = [
   {
     key: 'report',
     label: '周报',
-    permissions: [
-      { value: 'report:export', label: '导出周报' },
-    ],
+    permissions: [{ value: 'report:export', label: '导出周报' }],
   },
   {
     key: 'user',

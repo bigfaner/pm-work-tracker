@@ -26,24 +26,12 @@ describe('MemberSelect', () => {
   })
 
   it('renders "不指定" when selectedId is empty and allowEmpty is true', () => {
-    render(
-      <MemberSelect
-        members={members}
-        selectedId=""
-        onSelect={vi.fn()}
-      />,
-    )
+    render(<MemberSelect members={members} selectedId="" onSelect={vi.fn()} />)
     expect(screen.getByText('不指定')).toBeInTheDocument()
   })
 
   it('renders member options when opened', async () => {
-    render(
-      <MemberSelect
-        members={members}
-        selectedId=""
-        onSelect={vi.fn()}
-      />,
-    )
+    render(<MemberSelect members={members} selectedId="" onSelect={vi.fn()} />)
     const trigger = screen.getByRole('combobox')
     await userEvent.click(trigger)
     expect(screen.getByText('Alice')).toBeInTheDocument()
@@ -54,11 +42,7 @@ describe('MemberSelect', () => {
   it('calls onSelect when a member is selected', async () => {
     const onSelect = vi.fn()
     render(
-      <MemberSelect
-        members={members}
-        selectedId=""
-        onSelect={onSelect}
-      />,
+      <MemberSelect members={members} selectedId="" onSelect={onSelect} />,
     )
     const trigger = screen.getByRole('combobox')
     await userEvent.click(trigger)

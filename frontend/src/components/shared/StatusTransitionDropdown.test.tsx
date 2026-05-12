@@ -28,9 +28,7 @@ function renderWithQueryClient(ui: React.ReactElement) {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
-  return render(
-    <QueryClientProvider client={qc}>{ui}</QueryClientProvider>,
-  )
+  return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>)
 }
 
 describe('StatusTransitionDropdown', () => {
@@ -52,7 +50,10 @@ describe('StatusTransitionDropdown', () => {
   })
 
   it('fetches main item transitions when dropdown opens', async () => {
-    vi.mocked(getMainItemTransitionsApi).mockResolvedValue(['progressing', 'completed'])
+    vi.mocked(getMainItemTransitionsApi).mockResolvedValue([
+      'progressing',
+      'completed',
+    ])
     const user = userEvent.setup()
     renderWithQueryClient(
       <StatusTransitionDropdown
@@ -89,7 +90,10 @@ describe('StatusTransitionDropdown', () => {
   })
 
   it('renders transition options in dropdown', async () => {
-    vi.mocked(getMainItemTransitionsApi).mockResolvedValue(['progressing', 'completed'])
+    vi.mocked(getMainItemTransitionsApi).mockResolvedValue([
+      'progressing',
+      'completed',
+    ])
     const user = userEvent.setup()
     renderWithQueryClient(
       <StatusTransitionDropdown
@@ -126,7 +130,9 @@ describe('StatusTransitionDropdown', () => {
     await user.click(screen.getByText('进行中'))
 
     await waitFor(() => {
-      expect(changeMainItemStatusApi).toHaveBeenCalledWith('t1', 'i10', { status: 'progressing' })
+      expect(changeMainItemStatusApi).toHaveBeenCalledWith('t1', 'i10', {
+        status: 'progressing',
+      })
     })
   })
 
@@ -173,7 +179,9 @@ describe('StatusTransitionDropdown', () => {
     await user.click(screen.getByRole('button', { name: '确认' }))
 
     await waitFor(() => {
-      expect(changeMainItemStatusApi).toHaveBeenCalledWith('t1', 'i10', { status: 'completed' })
+      expect(changeMainItemStatusApi).toHaveBeenCalledWith('t1', 'i10', {
+        status: 'completed',
+      })
     })
   })
 
@@ -289,8 +297,13 @@ describe('StatusTransitionDropdown', () => {
     })
     // Select the status and verify change API is called
     await user.click(screen.getByText('进行中'))
-    await waitFor(() => {
-      expect(changeSubItemStatusApi).toHaveBeenCalledWith('t1', 'i20', { status: 'progressing' })
-    }, { timeout: 3000 })
+    await waitFor(
+      () => {
+        expect(changeSubItemStatusApi).toHaveBeenCalledWith('t1', 'i20', {
+          status: 'progressing',
+        })
+      },
+      { timeout: 3000 },
+    )
   })
 })

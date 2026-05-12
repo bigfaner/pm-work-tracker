@@ -12,11 +12,7 @@ const options = [
 describe('CheckboxGroup', () => {
   it('renders all options', () => {
     render(
-      <CheckboxGroup
-        options={options}
-        selected={[]}
-        onChange={() => {}}
-      />,
+      <CheckboxGroup options={options} selected={[]} onChange={() => {}} />,
     )
     expect(screen.getByText('创建团队')).toBeInTheDocument()
     expect(screen.getByText('查看团队信息')).toBeInTheDocument()
@@ -54,11 +50,7 @@ describe('CheckboxGroup', () => {
     const user = userEvent.setup()
     const handleChange = vi.fn()
     render(
-      <CheckboxGroup
-        options={options}
-        selected={[]}
-        onChange={handleChange}
-      />,
+      <CheckboxGroup options={options} selected={[]} onChange={handleChange} />,
     )
 
     await user.click(screen.getByText('创建团队'))
@@ -95,7 +87,11 @@ describe('CheckboxGroup', () => {
 
     // Click the title (select all)
     await user.click(screen.getByText('团队管理'))
-    expect(handleChange).toHaveBeenCalledWith(['team:create', 'team:read', 'team:update'])
+    expect(handleChange).toHaveBeenCalledWith([
+      'team:create',
+      'team:read',
+      'team:update',
+    ])
   })
 
   it('deselect all when all are selected', async () => {

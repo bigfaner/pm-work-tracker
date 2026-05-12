@@ -14,15 +14,26 @@ function getIndicatorColor(value: number): string {
   return 'bg-border'
 }
 
-export default function ProgressBar({ value, size = 'default', showPercentage = false, className }: ProgressBarProps) {
+export default function ProgressBar({
+  value,
+  size = 'default',
+  showPercentage = false,
+  className,
+}: ProgressBarProps) {
   const clampedValue = Math.max(0, Math.min(100, value))
   const indicatorColor = getIndicatorColor(clampedValue)
 
   return (
     <div className={cn('flex flex-col gap-1', className)}>
-      <Progress value={clampedValue} size={size} indicatorClassName={indicatorColor} />
+      <Progress
+        value={clampedValue}
+        size={size}
+        indicatorClassName={indicatorColor}
+      />
       {showPercentage && (
-        <span className="text-xs text-tertiary block text-center">{Math.round(clampedValue)}%</span>
+        <span className="text-xs text-tertiary block text-center">
+          {Math.round(clampedValue)}%
+        </span>
       )}
     </div>
   )

@@ -9,7 +9,10 @@ const localStorageMock = {
   removeItem: vi.fn(),
   clear: vi.fn(),
 }
-Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true })
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+})
 
 // Mock frappe-gantt (vanilla JS library with scss imports that break in jsdom)
 vi.mock('frappe-gantt', () => ({
