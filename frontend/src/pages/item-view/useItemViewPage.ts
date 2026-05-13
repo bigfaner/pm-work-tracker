@@ -18,7 +18,8 @@ import {
 } from '@/api/subItems'
 import { appendProgressApi } from '@/api/progress'
 import { listMembersApi } from '@/api/teams'
-import { MainItem, SubItem } from '@/types'
+import { listMilestonesByTeamApi } from '@/api/milestones'
+import { MainItem, SubItem, Milestone } from '@/types'
 import { formatDate } from '@/lib/format'
 import { useMemberName } from '@/hooks/useMemberName'
 import { useToast } from '@/components/ui/toast'
@@ -43,6 +44,7 @@ export function useItemViewPage(teamId: string | null) {
   const [searchText, setSearchText] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [assigneeFilter, setAssigneeFilter] = useState<string>('')
+  const [milestoneFilter, setMilestoneFilter] = useState<string>('')
 
   // Summary view: infinite scroll
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -121,6 +123,12 @@ export function useItemViewPage(teamId: string | null) {
     enabled: !!teamId,
   })
 
+  const { data: milestonesData } = useQuery({
+    queryKey: ['milestones', teamId],
+    queryFn: () => listMilestonesByTeamApi(teamId!, { excludeCancelled: true }),
+    enabled: !!teamId,
+  })
+
   const {
     data: itemsInfiniteData,
     isLoading,
@@ -145,6 +153,17 @@ export function useItemViewPage(teamId: string | null) {
   })
 
   const members = membersData || []
+  const milestones: Milestone[] = milestonesData?.items ?? []
+
+  const milestoneName = useCallback(
+    (key: string | null): string => {
+      if (!key) return ''
+      const ms = milestones.find((m) => m.bizKey === key)
+      return ms?.milestoneName || ''
+    },
+    [milestones],
+  )
+
   const allItems: (MainItem & { subItems?: SubItem[] })[] = useMemo(
     () => itemsInfiniteData?.pages.flatMap((p) => p.items) ?? [],
     [itemsInfiniteData],
@@ -168,8 +187,15 @@ export function useItemViewPage(teamId: string | null) {
     if (assigneeFilter) {
       items = items.filter((item) => item.assigneeKey === assigneeFilter)
     }
+    if (milestoneFilter) {
+      if (milestoneFilter === '_unassigned') {
+        items = items.filter((item) => !item.milestoneKey)
+      } else {
+        items = items.filter((item) => item.milestoneKey === milestoneFilter)
+      }
+    }
     return items
-  }, [allItems, searchText, statusFilter, assigneeFilter])
+  }, [allItems, searchText, statusFilter, assigneeFilter, milestoneFilter])
 
   // --- Summary view ---
 
@@ -210,7 +236,7 @@ export function useItemViewPage(teamId: string | null) {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchText, statusFilter, assigneeFilter, pageSize])
+  }, [searchText, statusFilter, assigneeFilter, milestoneFilter, pageSize])
 
   // --- Sub-items via React Query ---
 
@@ -366,6 +392,7 @@ export function useItemViewPage(teamId: string | null) {
     setSearchText('')
     setStatusFilter('')
     setAssigneeFilter('')
+    setMilestoneFilter('')
   }, [])
 
   const handleRefresh = useCallback(() => {
@@ -525,6 +552,9 @@ export function useItemViewPage(teamId: string | null) {
     setStatusFilter,
     assigneeFilter,
     setAssigneeFilter,
+    milestoneFilter,
+    setMilestoneFilter,
+    milestones,
     sentinelRef,
     currentPage,
     setCurrentPage,
@@ -542,6 +572,7 @@ export function useItemViewPage(teamId: string | null) {
     totalPages,
     subItemsMap,
     memberName,
+    milestoneName,
     formatDate,
 
     // Expanded cards

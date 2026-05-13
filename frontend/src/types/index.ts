@@ -262,6 +262,7 @@ export interface MainItemFilter {
   priority?: string
   status?: string
   assigneeKey?: string
+  milestoneKey?: string
   archived?: boolean
   page?: number
   pageSize?: number

@@ -61,6 +61,7 @@ const seedMainItems = [
     actualEndDate: null,
     itemStatus: 'progressing',
     completion: 65,
+    milestoneKey: 'MS001',
     createTime: '2026-04-01T00:00:00Z',
     dbUpdateTime: '2026-04-01T00:00:00Z',
     subItems: [
@@ -115,6 +116,7 @@ const seedMainItems = [
     actualEndDate: null,
     itemStatus: 'progressing',
     completion: 40,
+    milestoneKey: null,
     createTime: '2026-04-15T00:00:00Z',
     dbUpdateTime: '2026-04-15T00:00:00Z',
     subItems: [],
@@ -132,6 +134,7 @@ const seedMainItems = [
     actualEndDate: '2026-04-12',
     itemStatus: 'completed',
     completion: 100,
+    milestoneKey: 'MS002',
     createTime: '2026-04-05T00:00:00Z',
     dbUpdateTime: '2026-04-12T00:00:00Z',
     subItems: [],
@@ -220,6 +223,44 @@ function setupHandlers() {
     // List members for assignee filter
     http.get('/v1/teams/:teamId/members', () => {
       return HttpResponse.json({ code: 0, data: seedMembers })
+    }),
+
+    // List milestones for milestone filter
+    http.get('/v1/teams/:teamId/milestones', () => {
+      return HttpResponse.json({
+        code: 0,
+        data: {
+          items: [
+            {
+              bizKey: 'MS001',
+              teamKey: '1',
+              milestoneMapKey: 'MAP001',
+              milestoneName: 'MVP发布',
+              expectedEndDate: '2026-06-30',
+              milestoneStatus: 'in_progress',
+              statusName: '进行中',
+              completion: 50,
+              relatedMICount: 1,
+              createTime: '2026-01-01T00:00:00Z',
+              dbUpdateTime: '2026-01-01T00:00:00Z',
+            },
+            {
+              bizKey: 'MS002',
+              teamKey: '1',
+              milestoneMapKey: 'MAP001',
+              milestoneName: '二期迭代',
+              expectedEndDate: '2026-09-30',
+              milestoneStatus: 'pending',
+              statusName: '待开始',
+              completion: 0,
+              relatedMICount: 1,
+              createTime: '2026-01-01T00:00:00Z',
+              dbUpdateTime: '2026-01-01T00:00:00Z',
+            },
+          ],
+          total: 2,
+        },
+      })
     }),
 
     // Update main item status
@@ -1098,6 +1139,137 @@ describe('ItemViewPage', () => {
       // The URL must include the VITE_BASE_PATH prefix
       const basePath = import.meta.env.VITE_BASE_PATH || ''
       expect(copiedText).toContain(basePath + '/items/1')
+    })
+  })
+
+  // --- Milestone filter ---
+
+  describe('milestone filter', () => {
+    it('renders milestone filter dropdown in filter bar', async () => {
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByTestId('milestone-filter')).toBeInTheDocument()
+      })
+    })
+
+    it('shows milestone name badge on MI rows in summary view', async () => {
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      })
+      // Alpha Task has milestoneKey MS001 -> milestoneName "MVP发布"
+      expect(screen.getByText('MVP发布')).toBeInTheDocument()
+    })
+
+    it('does not show milestone badge for items without milestone', async () => {
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Beta Task')).toBeInTheDocument()
+      })
+      // Beta Task has milestoneKey null — no badge rendered next to it
+      // The badge only appears for items that have a milestone
+      const badges = screen.getAllByText('MVP发布')
+      expect(badges.length).toBe(1) // Only on Alpha Task row
+    })
+
+    it('filters MI list by selected milestone', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      })
+
+      // Open milestone filter dropdown
+      await user.click(screen.getByTestId('milestone-filter'))
+
+      // Select "MVP发布" milestone
+      await waitFor(() => {
+        expect(screen.getByRole('option', { name: 'MVP发布' })).toBeInTheDocument()
+      })
+      await user.click(screen.getByRole('option', { name: 'MVP发布' }))
+
+      // Only Alpha Task (milestoneKey=MS001 -> MVP发布) should be visible
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+        expect(screen.queryByText('Beta Task')).not.toBeInTheDocument()
+        expect(screen.queryByText('Gamma Task')).not.toBeInTheDocument()
+      })
+    })
+
+    it('filters MI list by unassigned milestone', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      })
+
+      // Open milestone filter dropdown
+      await user.click(screen.getByTestId('milestone-filter'))
+
+      // Select "未分配"
+      await waitFor(() => {
+        expect(screen.getByRole('option', { name: '未分配' })).toBeInTheDocument()
+      })
+      await user.click(screen.getByRole('option', { name: '未分配' }))
+
+      // Only Beta Task (milestoneKey=null) should be visible
+      await waitFor(() => {
+        expect(screen.queryByText('Alpha Task')).not.toBeInTheDocument()
+        expect(screen.getByText('Beta Task')).toBeInTheDocument()
+        expect(screen.queryByText('Gamma Task')).not.toBeInTheDocument()
+      })
+    })
+
+    it('resets milestone filter along with other filters', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      })
+
+      // Open milestone filter and select a value
+      await user.click(screen.getByTestId('milestone-filter'))
+      await waitFor(() => {
+        expect(screen.getByRole('option', { name: 'MVP发布' })).toBeInTheDocument()
+      })
+      await user.click(screen.getByRole('option', { name: 'MVP发布' }))
+
+      // Only one item visible
+      await waitFor(() => {
+        expect(screen.queryByText('Beta Task')).not.toBeInTheDocument()
+      })
+
+      // Click reset
+      await user.click(screen.getByText('重置'))
+
+      // All items should be visible again
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+        expect(screen.getByText('Beta Task')).toBeInTheDocument()
+        expect(screen.getByText('Gamma Task')).toBeInTheDocument()
+      })
+    })
+
+    it('shows milestone badge in detail view table', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      })
+
+      // Switch to detail view
+      await user.click(screen.getByText('明细'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('detail-table')).toBeInTheDocument()
+      })
+
+      // Detail view should show milestone badge
+      await waitFor(() => {
+        // 里程碑 column header and value
+        expect(screen.getByText('里程碑')).toBeInTheDocument()
+        expect(screen.getByText('MVP发布')).toBeInTheDocument()
+      })
     })
   })
 })

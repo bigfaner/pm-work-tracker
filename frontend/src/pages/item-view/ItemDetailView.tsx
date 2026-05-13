@@ -69,6 +69,7 @@ interface DetailViewProps {
   items: (MainItem & { subItems?: SubItem[] })[]
   subItemsMap: Record<string, SubItem[]>
   memberName: (id: string | null) => string
+  milestoneName: (key: string | null) => string
   formatDate: (date: string | null) => string
   teamId: string
   onRefresh: () => void
@@ -92,6 +93,7 @@ export default function ItemDetailView({
   items,
   subItemsMap,
   memberName,
+  milestoneName,
   formatDate,
   teamId,
   onRefresh,
@@ -115,6 +117,7 @@ export default function ItemDetailView({
               <TableHead className="whitespace-nowrap">编号</TableHead>
               <TableHead className="whitespace-nowrap">优先级</TableHead>
               <TableHead className="min-w-[180px]">标题</TableHead>
+              <TableHead className="whitespace-nowrap">里程碑</TableHead>
               <TableHead className="whitespace-nowrap">负责人</TableHead>
               <TableHead className="whitespace-nowrap">进度</TableHead>
               <TableHead className="whitespace-nowrap">状态</TableHead>
@@ -149,6 +152,13 @@ export default function ItemDetailView({
                       >
                         {item.title}
                       </Link>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {milestoneName(item.milestoneKey) && (
+                        <span className="text-xs text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded-full">
+                          {milestoneName(item.milestoneKey)}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {memberName(item.assigneeKey)}
@@ -243,6 +253,7 @@ export default function ItemDetailView({
                           {sub.title}
                         </Link>
                       </TableCell>
+                      <TableCell />
                       <TableCell className="whitespace-nowrap">
                         {memberName(sub.assigneeKey)}
                       </TableCell>

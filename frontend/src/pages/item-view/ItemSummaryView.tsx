@@ -62,6 +62,7 @@ interface SummaryViewProps {
   onToggleExpand: (id: string) => void
   subItemsMap: Record<string, SubItem[]>
   memberName: (id: string | null) => string
+  milestoneName: (key: string | null) => string
   formatDate: (date: string | null) => string
   hasMore: boolean
   sentinelRef: React.RefObject<HTMLDivElement>
@@ -83,6 +84,7 @@ export default function ItemSummaryView({
   onToggleExpand,
   subItemsMap,
   memberName,
+  milestoneName,
   formatDate,
   hasMore,
   sentinelRef,
@@ -159,6 +161,11 @@ export default function ItemSummaryView({
                       结束于 {formatDate(item.actualEndDate)}
                     </span>
                   )}
+                {milestoneName(item.milestoneKey) && (
+                  <span className="text-xs text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                    {milestoneName(item.milestoneKey)}
+                  </span>
+                )}
               </div>
 
               {/* Assignee */}

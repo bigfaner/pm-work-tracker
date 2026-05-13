@@ -120,6 +120,27 @@ export default function ItemViewPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Select
+              value={s.milestoneFilter}
+              onValueChange={(v) =>
+                s.setMilestoneFilter(
+                  v === '_all' ? '' : v === '_unassigned' ? '_unassigned' : v,
+                )
+              }
+            >
+              <SelectTrigger className="w-35" data-testid="milestone-filter">
+                <SelectValue placeholder="里程碑：全部" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">里程碑：全部</SelectItem>
+                <SelectItem value="_unassigned">未分配</SelectItem>
+                {s.milestones.map((ms) => (
+                  <SelectItem key={ms.bizKey} value={ms.bizKey}>
+                    {ms.milestoneName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button variant="secondary" size="sm" onClick={s.resetFilters}>
               重置
             </Button>
@@ -162,6 +183,7 @@ export default function ItemViewPage() {
               onToggleExpand={s.toggleExpand}
               subItemsMap={s.subItemsMap}
               memberName={s.memberName}
+              milestoneName={s.milestoneName}
               formatDate={s.formatDate}
               hasMore={s.hasMoreSummary}
               sentinelRef={s.sentinelRef}
@@ -181,6 +203,7 @@ export default function ItemViewPage() {
               items={s.paginatedItems}
               subItemsMap={s.subItemsMap}
               memberName={s.memberName}
+              milestoneName={s.milestoneName}
               formatDate={s.formatDate}
               teamId={teamId}
               onRefresh={s.handleRefresh}
