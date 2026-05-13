@@ -169,6 +169,15 @@ func (m *mockMainItemRepoForPool) FindByBizKey(_ context.Context, _ int64) (*mod
 func (m *mockMainItemRepoForPool) ListByTeamAndStatus(_ context.Context, _ int64, _ string) ([]model.MainItem, error) {
 	return nil, nil
 }
+func (m *mockMainItemRepoForPool) UnbindByMilestone(_ context.Context, _ int64) error {
+	return nil
+}
+func (m *mockMainItemRepoForPool) CalcCompletionByMilestone(_ context.Context, _ int64) (float64, error) {
+	return 0, nil
+}
+func (m *mockMainItemRepoForPool) CountByMilestone(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
 
 // mockDBTx captures transaction callback execution.
 type mockDBTx struct {

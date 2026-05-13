@@ -164,6 +164,9 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 	teamsGroup.GET("/milestones", deps.perm("milestone:read"), deps.Milestone.ListByTeam)
 	teamsGroup.GET("/milestones/:milestoneId", deps.perm("milestone:read"), deps.Milestone.Get)
 	teamsGroup.PUT("/milestones/:milestoneId", deps.perm("milestone:update"), deps.Milestone.Update)
+	teamsGroup.DELETE("/milestones/:milestoneId", deps.perm("milestone:delete"), deps.Milestone.Delete)
+	teamsGroup.PUT("/milestones/:milestoneId/status", deps.perm("milestone:update"), deps.Milestone.ChangeStatus)
+	teamsGroup.GET("/milestones/:milestoneId/available-transitions", deps.perm("milestone:read"), deps.Milestone.AvailableTransitions)
 
 	// Team list/create routes (outside :teamId group, auth only)
 	authMW := middleware.AuthMiddleware(deps.Config.Auth.JWTSecret, deps.UserRepo)

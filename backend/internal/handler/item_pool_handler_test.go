@@ -1021,6 +1021,15 @@ func (t *trackingMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ int64)
 func (t *trackingMainItemRepo) ListByTeamAndStatus(_ context.Context, _ int64, _ string) ([]model.MainItem, error) {
 	return nil, nil
 }
+func (t *trackingMainItemRepo) UnbindByMilestone(_ context.Context, _ int64) error {
+	return nil
+}
+func (t *trackingMainItemRepo) CalcCompletionByMilestone(_ context.Context, _ int64) (float64, error) {
+	return 0, nil
+}
+func (t *trackingMainItemRepo) CountByMilestone(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
 
 // compile-time check
 var _ repository.MainItemRepo = (*trackingMainItemRepo)(nil)
@@ -1058,6 +1067,15 @@ func (m *mockMainItemRepoForPool) ListByTeamAndStatus(_ context.Context, _ int64
 }
 func (m *mockMainItemRepoForPool) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
 	return nil, nil
+}
+func (m *mockMainItemRepoForPool) UnbindByMilestone(_ context.Context, _ int64) error {
+	return nil
+}
+func (m *mockMainItemRepoForPool) CalcCompletionByMilestone(_ context.Context, _ int64) (float64, error) {
+	return 0, nil
+}
+func (m *mockMainItemRepoForPool) CountByMilestone(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
 }
 
 func ptrStr(s string) *string { return &s }

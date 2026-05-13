@@ -111,7 +111,7 @@ func run(configPath string, devMode bool) error {
 	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
 	adminSvc := service.NewAdminService(userRepo, teamRepo)
 	roleSvc := service.NewRoleService(roleRepo, userRepo, teamRepo)
-	milestoneSvc := service.NewMilestoneService(milestoneRepo, milestoneMapRepo)
+	milestoneSvc := service.NewMilestoneService(milestoneRepo, milestoneMapRepo, mainItemRepo, db)
 
 	// 6. Init handlers
 	deps := &handler.Dependencies{

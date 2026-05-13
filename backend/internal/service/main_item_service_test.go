@@ -109,6 +109,15 @@ func (m *mockMainItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.Main
 func (m *mockMainItemRepo) ListByTeamAndStatus(_ context.Context, _ int64, _ string) ([]model.MainItem, error) {
 	return nil, nil
 }
+func (m *mockMainItemRepo) UnbindByMilestone(_ context.Context, _ int64) error {
+	return nil
+}
+func (m *mockMainItemRepo) CalcCompletionByMilestone(_ context.Context, _ int64) (float64, error) {
+	return 0, nil
+}
+func (m *mockMainItemRepo) CountByMilestone(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
 
 type mockSubItemRepo struct {
 	subItems []*model.SubItem

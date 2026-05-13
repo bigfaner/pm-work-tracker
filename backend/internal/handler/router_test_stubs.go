@@ -466,6 +466,21 @@ func (s *StubRouterRepoMainItem) ListByTeamAndStatus(_ context.Context, _ int64,
 	return nil, nil
 }
 
+// UnbindByMilestone is a stub for repository.MainItemRepo.UnbindByMilestone.
+func (s *StubRouterRepoMainItem) UnbindByMilestone(_ context.Context, _ int64) error {
+	return nil
+}
+
+// CalcCompletionByMilestone is a stub for repository.MainItemRepo.CalcCompletionByMilestone.
+func (s *StubRouterRepoMainItem) CalcCompletionByMilestone(_ context.Context, _ int64) (float64, error) {
+	return 0, nil
+}
+
+// CountByMilestone is a stub for repository.MainItemRepo.CountByMilestone.
+func (s *StubRouterRepoMainItem) CountByMilestone(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
+
 var _ repository.MainItemRepo = (*StubRouterRepoMainItem)(nil)
 
 // StubReportSvc is a stub ReportService for test wiring.

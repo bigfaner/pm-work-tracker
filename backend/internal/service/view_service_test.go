@@ -87,6 +87,15 @@ func (m *mockViewMainItemRepo) ListByTeamAndStatus(_ context.Context, teamBizKey
 	}
 	return m.items, nil
 }
+func (m *mockViewMainItemRepo) UnbindByMilestone(_ context.Context, _ int64) error {
+	return nil
+}
+func (m *mockViewMainItemRepo) CalcCompletionByMilestone(_ context.Context, _ int64) (float64, error) {
+	return 0, nil
+}
+func (m *mockViewMainItemRepo) CountByMilestone(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
 
 type mockViewSubItemRepo struct {
 	items   []model.SubItem

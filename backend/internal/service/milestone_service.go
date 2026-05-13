@@ -4,11 +4,15 @@ import (
 	"context"
 	"time"
 
+	"gorm.io/gorm"
+
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	"pm-work-tracker/backend/internal/pkg/dates"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/repo"
 	"pm-work-tracker/backend/internal/pkg/snowflake"
+	"pm-work-tracker/backend/internal/pkg/status"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -20,16 +24,28 @@ type MilestoneService interface {
 	ListByMap(ctx context.Context, milestoneMapBizKey int64) ([]model.Milestone, error)
 	ListByTeam(ctx context.Context, teamBizKey int64, excludeCancelled bool) ([]model.Milestone, error)
 	Update(ctx context.Context, milestoneID uint, req dto.MilestoneUpdateReq) (*model.Milestone, error)
+	Delete(ctx context.Context, milestoneID uint) error
+	ChangeStatus(ctx context.Context, milestoneID uint, newStatus string) (*model.Milestone, error)
+	AvailableTransitions(ctx context.Context, milestoneID uint) ([]string, error)
+	CalcCompletion(ctx context.Context, milestoneBizKey int64) float64
+	CountRelatedMIs(ctx context.Context, milestoneBizKey int64) int64
 }
 
 type milestoneService struct {
 	milestoneRepo    repository.MilestoneRepo
 	milestoneMapRepo repository.MilestoneMapRepo
+	mainItemRepo     repository.MainItemRepo
+	db               repo.DBTransactor
 }
 
 // NewMilestoneService creates a new MilestoneService.
-func NewMilestoneService(milestoneRepo repository.MilestoneRepo, milestoneMapRepo repository.MilestoneMapRepo) MilestoneService {
-	return &milestoneService{milestoneRepo: milestoneRepo, milestoneMapRepo: milestoneMapRepo}
+func NewMilestoneService(milestoneRepo repository.MilestoneRepo, milestoneMapRepo repository.MilestoneMapRepo, mainItemRepo repository.MainItemRepo, db repo.DBTransactor) MilestoneService {
+	return &milestoneService{
+		milestoneRepo:    milestoneRepo,
+		milestoneMapRepo: milestoneMapRepo,
+		mainItemRepo:     mainItemRepo,
+		db:               db,
+	}
 }
 
 func (s *milestoneService) Create(ctx context.Context, teamBizKey, milestoneMapBizKey int64, req dto.MilestoneCreateReq) (*model.Milestone, error) {
@@ -124,4 +140,88 @@ func (s *milestoneService) Update(ctx context.Context, milestoneID uint, req dto
 		return nil, findErr
 	}
 	return updated, nil
+}
+
+func (s *milestoneService) Delete(ctx context.Context, milestoneID uint) error {
+	m, err := s.milestoneRepo.FindByID(ctx, milestoneID)
+	if err != nil {
+		return apperrors.MapNotFound(err, apperrors.ErrMilestoneNotFound)
+	}
+
+	return s.db.Transaction(func(_ *gorm.DB) error {
+		// Unbind all MIs pointing to this milestone
+		if err := s.mainItemRepo.UnbindByMilestone(ctx, m.BizKey); err != nil {
+			return err
+		}
+		// Soft-delete the milestone
+		return s.milestoneRepo.SoftDelete(ctx, milestoneID)
+	})
+}
+
+func (s *milestoneService) ChangeStatus(ctx context.Context, milestoneID uint, newStatus string) (*model.Milestone, error) {
+	m, err := s.milestoneRepo.FindByID(ctx, milestoneID)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrMilestoneNotFound)
+	}
+
+	// Validate the new status is a known milestone status
+	if _, ok := status.GetMilestoneStatus(newStatus); !ok {
+		return nil, apperrors.ErrInvalidStatus
+	}
+
+	// Validate the transition is legal
+	if !status.IsValidTransition(status.MilestoneTransitions, m.MilestoneStatus, newStatus) {
+		return nil, apperrors.ErrInvalidStatus
+	}
+
+	fields := map[string]interface{}{
+		"milestone_status": newStatus,
+	}
+
+	// Auto-unbind all MIs when canceling
+	if newStatus == "cancelled" {
+		if err := s.db.Transaction(func(_ *gorm.DB) error {
+			if err := s.mainItemRepo.UnbindByMilestone(ctx, m.BizKey); err != nil {
+				return err
+			}
+			return s.milestoneRepo.Update(ctx, m, fields)
+		}); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := s.milestoneRepo.Update(ctx, m, fields); err != nil {
+			return nil, err
+		}
+	}
+
+	// Fetch updated record
+	updated, findErr := s.milestoneRepo.FindByID(ctx, milestoneID)
+	if findErr != nil {
+		return nil, findErr
+	}
+	return updated, nil
+}
+
+func (s *milestoneService) AvailableTransitions(ctx context.Context, milestoneID uint) ([]string, error) {
+	m, err := s.milestoneRepo.FindByID(ctx, milestoneID)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrMilestoneNotFound)
+	}
+	return status.GetAvailableTransitions(status.MilestoneTransitions, m.MilestoneStatus), nil
+}
+
+func (s *milestoneService) CalcCompletion(ctx context.Context, milestoneBizKey int64) float64 {
+	avg, err := s.mainItemRepo.CalcCompletionByMilestone(ctx, milestoneBizKey)
+	if err != nil {
+		return 0
+	}
+	return avg
+}
+
+func (s *milestoneService) CountRelatedMIs(ctx context.Context, milestoneBizKey int64) int64 {
+	count, err := s.mainItemRepo.CountByMilestone(ctx, milestoneBizKey)
+	if err != nil {
+		return 0
+	}
+	return count
 }

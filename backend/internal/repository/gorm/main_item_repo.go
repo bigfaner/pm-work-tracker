@@ -142,3 +142,39 @@ func (r *mainItemRepo) ListByTeamAndStatus(ctx context.Context, teamBizKey int64
 		Find(&items).Error
 	return items, err
 }
+
+// UnbindByMilestone sets milestone_key to NULL for all main items bound to the given milestone bizKey.
+func (r *mainItemRepo) UnbindByMilestone(ctx context.Context, milestoneBizKey int64) error {
+	return r.db.WithContext(ctx).Scopes(NotDeleted).
+		Model(&model.MainItem{}).
+		Where("milestone_key = ?", milestoneBizKey).
+		Update("milestone_key", nil).Error
+}
+
+// CalcCompletionByMilestone returns the average completion_pct of all non-deleted main items
+// bound to the given milestone bizKey. Returns 0 if no items are bound.
+func (r *mainItemRepo) CalcCompletionByMilestone(ctx context.Context, milestoneBizKey int64) (float64, error) {
+	var avg *float64
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).
+		Model(&model.MainItem{}).
+		Where("milestone_key = ?", milestoneBizKey).
+		Select("AVG(completion_pct)").
+		Scan(&avg).Error
+	if err != nil {
+		return 0, err
+	}
+	if avg == nil {
+		return 0, nil
+	}
+	return *avg, nil
+}
+
+// CountByMilestone returns the count of non-deleted main items bound to the given milestone bizKey.
+func (r *mainItemRepo) CountByMilestone(ctx context.Context, milestoneBizKey int64) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).
+		Model(&model.MainItem{}).
+		Where("milestone_key = ?", milestoneBizKey).
+		Count(&count).Error
+	return count, err
+}
