@@ -152,6 +152,11 @@ describe('App Routing', () => {
       renderApp('/report')
       expect(screen.getByTestId('login-page')).toBeInTheDocument()
     })
+
+    it('redirects /milestones to /login', () => {
+      renderApp('/milestones')
+      expect(screen.getByTestId('login-page')).toBeInTheDocument()
+    })
   })
 
   describe('Protected routes - render pages when authenticated', () => {
@@ -197,6 +202,11 @@ describe('App Routing', () => {
     it('renders ReportPage at /report', () => {
       renderApp('/report')
       expect(screen.getByTestId('report-page')).toBeInTheDocument()
+    })
+
+    it('renders MilestonesPage at /milestones', () => {
+      renderApp('/milestones')
+      expect(screen.getByTestId('milestones-page')).toBeInTheDocument()
     })
   })
 

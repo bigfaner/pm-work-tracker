@@ -10,6 +10,7 @@ import WeeklyViewPage from '@/pages/WeeklyViewPage'
 import GanttViewPage from '@/pages/GanttViewPage'
 import TableViewPage from '@/pages/TableViewPage'
 import ItemPoolPage from '@/pages/ItemPoolPage'
+import MilestonesPage from '@/pages/MilestonesPage'
 import ReportPage from '@/pages/ReportPage'
 import TeamManagementPage from '@/pages/TeamManagementPage'
 import TeamDetailPage from '@/pages/TeamDetailPage'
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/gantt" element={<GanttViewPage />} />
           <Route path="/table" element={<TableViewPage />} />
           <Route path="/item-pool" element={<ItemPoolPage />} />
+          <Route path="/milestones" element={<MilestonesPage />} />
           <Route path="/report" element={<ReportPage />} />
           <Route path="/teams/:teamId" element={<TeamDetailPage />} />
           <Route path="/teams" element={<TeamManagementPage />} />

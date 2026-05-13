@@ -71,6 +71,7 @@ describe('Sidebar', () => {
     })
     renderWithRouter()
     expect(screen.getByText('事项清单')).toBeInTheDocument()
+    expect(screen.getByText('里程碑图')).toBeInTheDocument()
     expect(screen.getByText('每周进展')).toBeInTheDocument()
     expect(screen.getByText('整体进度')).toBeInTheDocument()
     expect(screen.getByText('待办事项')).toBeInTheDocument()
@@ -130,14 +131,14 @@ describe('Sidebar', () => {
     expect(useAuthStore.getState().isAuthenticated).toBe(false)
   })
 
-  it('renders 5 standard nav items for regular user without view:gantt', () => {
+  it('renders 6 standard nav items for regular user without view:gantt', () => {
     renderWithRouter()
     const navLinks = screen.getAllByRole('link')
-    // 5 standard (no gantt): items, weekly, item-pool, report, teams
-    expect(navLinks.length).toBe(5)
+    // 6 standard (no gantt): items, milestones, weekly, item-pool, report, teams
+    expect(navLinks.length).toBe(6)
   })
 
-  it('renders 8 nav items (including user mgmt and roles) for user with all permissions', () => {
+  it('renders 9 nav items (including user mgmt and roles) for user with all permissions', () => {
     useAuthStore.getState().clearAuth()
     useAuthStore.getState().setAuth('token', superAdminUser)
     useAuthStore.getState().setPermissions({
@@ -145,6 +146,6 @@ describe('Sidebar', () => {
     })
     renderWithRouter()
     const navLinks = screen.getAllByRole('link')
-    expect(navLinks.length).toBe(8)
+    expect(navLinks.length).toBe(9)
   })
 })
