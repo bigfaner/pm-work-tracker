@@ -189,7 +189,7 @@
       "dependencies": [
         "3.summary"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3-gate.md",
       "record": "records/3-gate.md",
       "breaking": true,
@@ -203,7 +203,7 @@
       "dependencies": [
         "3.x"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3-summary.md",
       "record": "records/3-summary.md",
       "scope": "all",
@@ -259,7 +259,7 @@
         "2.gate",
         "3.1"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.4-integrate-items-filter.md",
       "record": "records/3.4-integrate-items-filter.md",
       "scope": "frontend"
@@ -273,7 +273,7 @@
         "2.gate",
         "3.1"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.5-integrate-item-selector.md",
       "record": "records/3.5-integrate-item-selector.md",
       "scope": "frontend"
@@ -287,7 +287,7 @@
         "2.gate",
         "3.1"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.6-integrate-table-column.md",
       "record": "records/3.6-integrate-table-column.md",
       "scope": "frontend"
@@ -340,7 +340,7 @@
       "dependencies": [
         "3.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "gen-test-cases.md",
       "record": "records/gen-test-cases.md",
       "scope": "all",
