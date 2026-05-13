@@ -37,7 +37,9 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | gotcha-design-tech-skip-askuserquestion.md | /tech-design skill — skipped user confirmation |
 | gotcha-e2e-script-generation.md | Generated e2e scripts — wrong paths/prefixes/ports |
 | gotcha-eval-prd-use-zcode-agents.md | /eval-prd skill — must orchestrate scorer/reviser subagents |
+| gotcha-shared-interface-mock-cascade.md | Adding methods to shared interfaces — cascading mock failures stall agents |
 | gotcha-hook-unbounded-test-timeout.md | Stop hooks — unbounded test suites hang past 600s |
+| gotcha-large-output-stall-subagent.md | Subagent generating >30KB file — stalls 2h+ without output |
 | gotcha-no-subagent-for-sequential-work.md | Subagents for stateful sequential work — lost auth/context |
 | gotcha-pipe-tail-buffers-test-output.md | Playwright output buffering — appears hung for 50+ min |
 | gotcha-schema-alignment-cascading-test-failures.md | Schema changes cascade to unrelated test files |
@@ -79,11 +81,11 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | Task | Lessons |
 |------|---------|
 | New entity / schema design | arch-bizkey-vs-internal-id, gotcha-bizkey-vs-id-confusion, key-field-design-analysis |
-| Task breakdown | arch-ui-integration-gap, pattern-phase-gate-tasks, pattern-task-split-by-layer, gotcha-tech-design-decision-archiving |
-| E2E test generation | gotcha-e2e-script-generation, debug-e2e-zero-tests, debug-e2e-beforeall-cascade |
+| Task breakdown | arch-ui-integration-gap, pattern-phase-gate-tasks, pattern-task-split-by-layer, gotcha-shared-interface-mock-cascade, gotcha-tech-design-decision-archiving |
+| E2E test generation | gotcha-e2e-script-generation, debug-e2e-zero-tests, debug-e2e-beforeall-cascade, gotcha-large-output-stall-subagent |
 | E2E test graduation | arch-e2e-graduation-staging, tool-e2e-graduation-structure |
 | Running /run-tasks | gotcha-subagent-partial-commits, gotcha-ac-self-report-without-verification, arch-task-failure-recovery-loop |
-| Using subagents | gotcha-no-subagent-for-sequential-work, gotcha-agent-breaks-safety-net |
+| Using subagents | gotcha-no-subagent-for-sequential-work, gotcha-agent-breaks-safety-net, gotcha-large-output-stall-subagent |
 | Schema migration | gotcha-schema-alignment-cascading-test-failures |
 | Writing tech design | gotcha-design-tech-skip-askuserquestion, gotcha-tech-design-decision-archiving |
 | Using eval skills | gotcha-eval-prd-use-zcode-agents |
