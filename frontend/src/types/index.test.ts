@@ -51,6 +51,7 @@ describe('shared TypeScript interfaces', () => {
       actualEndDate: null,
       itemStatus: 'pending',
       completion: 0,
+      milestoneKey: null,
       createTime: '2024-01-01',
       dbUpdateTime: '2024-01-01',
     }

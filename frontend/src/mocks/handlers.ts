@@ -46,6 +46,7 @@ export function makeMainItem(overrides: Partial<MainItem> = {}): MainItem {
     actualEndDate: null,
     itemStatus: 'progressing',
     completion: 50,
+    milestoneKey: null,
     createTime: '2024-06-01T10:00:00Z',
     dbUpdateTime: '2024-06-01T10:00:00Z',
     ...overrides,

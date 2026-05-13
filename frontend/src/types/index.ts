@@ -97,6 +97,8 @@ export interface MainItem {
   itemStatus: string
   statusName?: string
   completion: number
+  milestoneKey: string | null
+  milestoneName?: string
   createTime: string
   dbUpdateTime: string
 }
@@ -341,6 +343,66 @@ export interface ItemPoolFilter {
 export interface AssignItemPoolResp {
   mainItemBizKey: string
   subItemBizKey: string
+}
+
+// MilestoneMap
+export interface MilestoneMap {
+  bizKey: string
+  teamKey: string
+  mapName: string
+  mapDesc: string
+  mapStatus: string
+  statusName: string
+  milestoneCount: number
+  itemCount: number
+  overallProgress: number
+  createTime: string
+  dbUpdateTime: string
+}
+
+export interface CreateMilestoneMapReq {
+  mapName: string
+  mapDesc?: string
+}
+
+export interface UpdateMilestoneMapReq {
+  mapName?: string
+  mapDesc?: string
+}
+
+export interface MilestoneMapFilter {
+  status?: string
+  page?: number
+  pageSize?: number
+}
+
+// Milestone
+export interface Milestone {
+  bizKey: string
+  teamKey: string
+  milestoneMapKey: string
+  milestoneName: string
+  expectedEndDate: string
+  milestoneStatus: string
+  statusName: string
+  completion: number
+  relatedMICount: number
+  createTime: string
+  dbUpdateTime: string
+}
+
+export interface CreateMilestoneReq {
+  milestoneName: string
+  expectedEndDate: string
+}
+
+export interface UpdateMilestoneReq {
+  milestoneName?: string
+  expectedEndDate?: string
+}
+
+export interface MilestoneTeamFilter {
+  excludeCancelled?: boolean
 }
 
 // Views
