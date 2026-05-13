@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { getTableViewApi, exportTableCsvApi } from '@/api/views'
 import { listMembersApi } from '@/api/teams'
+import { listMilestonesByTeamApi } from '@/api/milestones'
 import { formatDate } from '@/lib/format'
 import type { TableRow, TableFilter } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -56,6 +57,7 @@ export default function TableViewPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>('')
   const [assigneeFilter, setAssigneeFilter] = useState<string>('')
   const [statusFilter, setStatusFilter] = useState<string>('')
+  const [milestoneFilter, setMilestoneFilter] = useState<string>('')
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -71,6 +73,14 @@ export default function TableViewPage() {
 
   const members = membersData || []
 
+  const { data: milestonesData } = useQuery({
+    queryKey: ['milestones-team', teamId],
+    queryFn: () => listMilestonesByTeamApi(teamId!, { excludeCancelled: true }),
+    enabled: !!teamId,
+  })
+
+  const milestones = milestonesData?.items || []
+
   // Build server-side filter
   const serverFilter: TableFilter = useMemo(() => {
     const filter: TableFilter = {
@@ -81,12 +91,15 @@ export default function TableViewPage() {
     if (priorityFilter) filter.priority = priorityFilter
     if (statusFilter) filter.status = statusFilter
     if (assigneeFilter) filter.assigneeKey = assigneeFilter
+    if (milestoneFilter === '_unassigned') filter.milestoneKey = ''
+    else if (milestoneFilter) filter.milestoneKey = milestoneFilter
     return filter
   }, [
     typeFilter,
     priorityFilter,
     statusFilter,
     assigneeFilter,
+    milestoneFilter,
     currentPage,
     pageSize,
   ])
@@ -136,6 +149,10 @@ export default function TableViewPage() {
     setStatusFilter(v === '_all' ? '' : v)
     setCurrentPage(1)
   }, [])
+  const handleMilestoneChange = useCallback((v: string) => {
+    setMilestoneFilter(v === '_all' ? '' : v)
+    setCurrentPage(1)
+  }, [])
   const handlePageSizeChange = useCallback((size: number) => {
     setPageSize(size)
     setCurrentPage(1)
@@ -146,6 +163,7 @@ export default function TableViewPage() {
     setPriorityFilter('')
     setAssigneeFilter('')
     setStatusFilter('')
+    setMilestoneFilter('')
     setCurrentPage(1)
   }, [])
 
@@ -177,6 +195,8 @@ export default function TableViewPage() {
       if (priorityFilter) exportFilter.priority = priorityFilter
       if (statusFilter) exportFilter.status = statusFilter
       if (assigneeFilter) exportFilter.assigneeKey = assigneeFilter
+      if (milestoneFilter === '_unassigned') exportFilter.milestoneKey = ''
+      else if (milestoneFilter) exportFilter.milestoneKey = milestoneFilter
 
       const blob = await exportTableCsvApi(teamId, exportFilter)
       const url = URL.createObjectURL(blob)
@@ -280,6 +300,23 @@ export default function TableViewPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Select
+              value={milestoneFilter || '_all'}
+              onValueChange={handleMilestoneChange}
+            >
+              <SelectTrigger className="w-30" data-testid="milestone-filter">
+                <SelectValue placeholder="里程碑：全部" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">里程碑：全部</SelectItem>
+                <SelectItem value="_unassigned">未分配</SelectItem>
+                {milestones.map((m) => (
+                  <SelectItem key={m.bizKey} value={m.bizKey}>
+                    {m.milestoneName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button variant="secondary" size="sm" onClick={resetFilters}>
               重置
             </Button>
@@ -319,6 +356,7 @@ export default function TableViewPage() {
                       <TableHead>类型</TableHead>
                       <TableHead>编号</TableHead>
                       <TableHead>标题</TableHead>
+                      <TableHead>里程碑</TableHead>
                       <TableHead>优先级</TableHead>
                       <TableHead>负责人</TableHead>
                       <TableHead>进度</TableHead>
@@ -351,6 +389,20 @@ export default function TableViewPage() {
                           >
                             {row.title}
                           </Link>
+                        </TableCell>
+                        <TableCell
+                          data-testid={`milestone-cell-${row.bizKey}`}
+                          className="w-32"
+                        >
+                          <span
+                            className={
+                              row.milestoneName
+                                ? 'text-[13px] text-secondary'
+                                : 'text-[13px] text-tertiary'
+                            }
+                          >
+                            {row.milestoneName || '-'}
+                          </span>
                         </TableCell>
                         <TableCell>
                           <PriorityBadge priority={row.priority} />

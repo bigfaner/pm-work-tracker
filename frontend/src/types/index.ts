@@ -439,6 +439,7 @@ export interface TableFilter {
   priority?: string
   status?: string
   assigneeKey?: string
+  milestoneKey?: string
   sortBy?: string
   sortOrder?: string
   page?: number
@@ -455,6 +456,7 @@ export interface TableRow {
   assigneeName: string
   itemStatus: string
   completion: number
+  milestoneName: string | null
   expectedEndDate: string | null
   actualEndDate: string | null
   mainItemId?: string | null

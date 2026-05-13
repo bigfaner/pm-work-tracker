@@ -71,6 +71,7 @@ const seedRows: TableRow[] = [
     assigneeName: '张明',
     itemStatus: 'progressing',
     completion: 65,
+    milestoneName: 'MVP发布',
     expectedEndDate: pastDays(30),
     actualEndDate: null,
     mainItemId: null,
@@ -85,6 +86,7 @@ const seedRows: TableRow[] = [
     assigneeName: '李华',
     itemStatus: 'completed',
     completion: 100,
+    milestoneName: null,
     expectedEndDate: pastDays(20),
     actualEndDate: pastDays(21),
     mainItemId: '1',
@@ -99,6 +101,7 @@ const seedRows: TableRow[] = [
     assigneeName: '王芳',
     itemStatus: 'progressing',
     completion: 80,
+    milestoneName: 'MVP发布',
     expectedEndDate: pastDays(15),
     actualEndDate: null,
     mainItemId: '1',
@@ -113,6 +116,7 @@ const seedRows: TableRow[] = [
     assigneeName: '赵强',
     itemStatus: 'progressing',
     completion: 40,
+    milestoneName: '二期迭代',
     expectedEndDate: futureDays(30),
     actualEndDate: null,
     mainItemId: null,
@@ -127,6 +131,7 @@ const seedRows: TableRow[] = [
     assigneeName: '赵强',
     itemStatus: 'completed',
     completion: 100,
+    milestoneName: null,
     expectedEndDate: pastDays(25),
     actualEndDate: pastDays(26),
     mainItemId: '4',
@@ -157,6 +162,15 @@ function setupTableHandler(rows = seedRows) {
       const assigneeFilter = url.searchParams.get('assigneeKey')
       if (assigneeFilter) {
         filtered = filtered.filter((r) => r.assigneeKey === assigneeFilter)
+      }
+      const milestoneFilter = url.searchParams.get('milestoneKey')
+      if (milestoneFilter !== null) {
+        if (milestoneFilter === '') {
+          filtered = filtered.filter((r) => !r.milestoneName)
+        } else {
+          // Match by milestoneName for simplicity in tests
+          filtered = filtered.filter((r) => r.milestoneName === milestoneFilter)
+        }
       }
 
       const start = (page - 1) * pageSize
@@ -235,6 +249,42 @@ function setupTableHandler(rows = seedRows) {
             joinedAt: '2024-01-01',
           },
         ],
+      })
+    }),
+    http.get('/v1/teams/:teamId/milestones', () => {
+      return HttpResponse.json({
+        code: 0,
+        data: {
+          items: [
+            {
+              bizKey: '100',
+              teamKey: '1',
+              milestoneMapKey: '10',
+              milestoneName: 'MVP发布',
+              expectedEndDate: '2026-06-30',
+              milestoneStatus: 'in_progress',
+              statusName: '进行中',
+              completion: 60,
+              relatedMICount: 2,
+              createTime: '2026-01-01T00:00:00Z',
+              dbUpdateTime: '2026-01-01T00:00:00Z',
+            },
+            {
+              bizKey: '200',
+              teamKey: '1',
+              milestoneMapKey: '10',
+              milestoneName: '二期迭代',
+              expectedEndDate: '2026-09-30',
+              milestoneStatus: 'not_started',
+              statusName: '未开始',
+              completion: 0,
+              relatedMICount: 1,
+              createTime: '2026-01-01T00:00:00Z',
+              dbUpdateTime: '2026-01-01T00:00:00Z',
+            },
+          ],
+          total: 2,
+        },
       })
     }),
   )
@@ -486,5 +536,55 @@ describe('TableViewPage', () => {
   it('shows loading state', async () => {
     renderPage()
     expect(screen.getByText('加载中...')).toBeInTheDocument()
+  })
+
+  // --- Milestone column ---
+
+  it('renders milestone column header', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('里程碑')).toBeInTheDocument()
+    })
+  })
+
+  it('renders milestone name for assigned items', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('用户认证模块开发')).toBeInTheDocument()
+    })
+    // MI-0001 has milestoneName 'MVP发布'
+    const milestoneCells = screen.getAllByTestId(/milestone-cell-/)
+    expect(milestoneCells[0]).toHaveTextContent('MVP发布')
+  })
+
+  it('renders dash for unassigned milestone items', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('登录页开发')).toBeInTheDocument()
+    })
+    // SI-0002 has milestoneName null
+    const milestoneCells = screen.getAllByTestId(/milestone-cell-/)
+    expect(milestoneCells[1]).toHaveTextContent('-')
+  })
+
+  it('renders milestone filter dropdown', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByTestId('milestone-filter')).toBeInTheDocument()
+    })
+  })
+
+  it('milestone column appears between title and priority columns', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('用户认证模块开发')).toBeInTheDocument()
+    })
+    const headers = screen.getAllByRole('columnheader')
+    const headerTexts = headers.map((h) => h.textContent)
+    const titleIdx = headerTexts.indexOf('标题')
+    const milestoneIdx = headerTexts.indexOf('里程碑')
+    const priorityIdx = headerTexts.indexOf('优先级')
+    expect(milestoneIdx).toBeGreaterThan(titleIdx)
+    expect(milestoneIdx).toBeLessThan(priorityIdx)
   })
 })
