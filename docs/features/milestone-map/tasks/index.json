@@ -306,6 +306,48 @@
       "scope": "all",
       "noTest": true
     },
+    "disc-1": {
+      "id": "disc-1",
+      "title": "Generate UI Milestones page test scripts (TC-001~TC-030)",
+      "priority": "P1",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "T-test-1b"
+      ],
+      "status": "pending",
+      "file": "disc-1.md",
+      "record": "records/disc-1.md",
+      "scope": "all"
+    },
+    "disc-2": {
+      "id": "disc-2",
+      "title": "Generate UI Existing pages + Integration test scripts (TC-031~TC-052)",
+      "priority": "P1",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "T-test-1b"
+      ],
+      "status": "pending",
+      "file": "disc-2.md",
+      "record": "records/disc-2.md",
+      "scope": "all"
+    },
+    "disc-3": {
+      "id": "disc-3",
+      "title": "Verify all e2e scripts compile and run",
+      "priority": "P1",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "fix-2",
+        "disc-1",
+        "disc-2"
+      ],
+      "status": "pending",
+      "file": "disc-3.md",
+      "record": "records/disc-3.md",
+      "scope": "all",
+      "noTest": true
+    },
     "eval-test-cases": {
       "id": "T-test-1b",
       "title": "Evaluate e2e Test Cases",
@@ -314,7 +356,7 @@
       "dependencies": [
         "T-test-1"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "eval-test-cases.md",
       "record": "records/eval-test-cases.md",
       "scope": "all",
@@ -332,6 +374,19 @@
       "breaking": true,
       "sourceTaskID": "2.1c"
     },
+    "fix-2": {
+      "id": "fix-2",
+      "title": "Generate API e2e test scripts (TC-053~TC-070)",
+      "priority": "P0",
+      "estimatedTime": "30min",
+      "dependencies": [
+        "T-test-1b"
+      ],
+      "status": "completed",
+      "file": "fix-2.md",
+      "record": "records/fix-2.md",
+      "scope": "all"
+    },
     "gen-test-cases": {
       "id": "T-test-1",
       "title": "Generate e2e Test Cases",
@@ -348,13 +403,14 @@
     },
     "gen-test-scripts": {
       "id": "T-test-2",
-      "title": "Generate e2e Test Scripts",
+      "title": "Generate e2e Test Scripts (SPLIT into fix-2/disc-1/disc-2/disc-3)",
       "priority": "P1",
       "estimatedTime": "1-2h",
       "dependencies": [
-        "T-test-1b"
+        "T-test-1b",
+        "fix-2"
       ],
-      "status": "pending",
+      "status": "skipped",
       "file": "gen-test-scripts.md",
       "record": "records/gen-test-scripts.md",
       "scope": "all"
@@ -378,7 +434,7 @@
       "priority": "P1",
       "estimatedTime": "30min-1h",
       "dependencies": [
-        "T-test-2"
+        "disc-3"
       ],
       "status": "pending",
       "file": "run-e2e-tests.md",
