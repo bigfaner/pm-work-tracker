@@ -119,6 +119,7 @@ func (r *mainItemRepo) FindByIDs(ctx context.Context, ids []uint) (map[uint]*mod
 	return repo.FindByIDs[model.MainItem](r.db, ctx, ids)
 }
 
+//nolint:dupl // same FindByBizKeys shape as milestoneRepo
 func (r *mainItemRepo) FindByBizKeys(ctx context.Context, bizKeys []int64) (map[int64]*model.MainItem, error) {
 	result := make(map[int64]*model.MainItem)
 	if len(bizKeys) == 0 {

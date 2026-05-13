@@ -152,7 +152,14 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 	teamsGroup.GET("/reports/weekly/export", deps.perm("report:export"), deps.Report.WeeklyExport)
 
 	// Milestone maps (placeholder — handlers wired in later task)
-	_ = teamsGroup.Group("/milestone-maps")
+	milestoneMapsGroup := teamsGroup.Group("/milestone-maps")
+	_ = milestoneMapsGroup
+
+	// Milestones nested under milestone-maps (placeholder — handlers wired in later task)
+	_ = milestoneMapsGroup.Group("/:mapId/milestones")
+
+	// Milestones top-level under teams (placeholder — handlers wired in later task)
+	_ = teamsGroup.Group("/milestones")
 
 	// Team list/create routes (outside :teamId group, auth only)
 	authMW := middleware.AuthMiddleware(deps.Config.Auth.JWTSecret, deps.UserRepo)
