@@ -54,6 +54,9 @@ var (
 	ErrDuplicateBizKey      = &AppError{Code: "DUPLICATE_BIZ_KEY", Status: 409, Message: "biz_key uniqueness violation"}
 	ErrCannotDeleteSelf     = &AppError{Code: "CANNOT_DELETE_SELF", Status: 422, Message: "cannot delete your own account"}
 	ErrUserDeleted          = &AppError{Code: "USER_DELETED", Status: 403, Message: "user account has been deleted"}
+	ErrMilestoneMapNotFound = &AppError{Code: "MILESTONE_MAP_NOT_FOUND", Status: 404, Message: "milestone map not found"}
+	ErrMilestoneNotFound    = &AppError{Code: "MILESTONE_NOT_FOUND", Status: 404, Message: "milestone not found"}
+	ErrConcurrentEdit       = &AppError{Code: "CONCURRENT_EDIT", Status: 409, Message: "data has been modified by another user"}
 )
 
 // MapNotFound maps gorm.ErrRecordNotFound and ErrNotFound to the provided domain error.

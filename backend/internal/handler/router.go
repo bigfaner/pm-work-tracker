@@ -33,6 +33,7 @@ type Dependencies struct {
 	Admin      *AdminHandler
 	Role       *RoleHandler
 	Permission *PermissionHandler
+	Milestone  *MilestoneHandler
 }
 
 // perm is a shorthand for creating a RequirePermission middleware with the deps' RoleRepo.
@@ -155,11 +156,14 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 	milestoneMapsGroup := teamsGroup.Group("/milestone-maps")
 	_ = milestoneMapsGroup
 
-	// Milestones nested under milestone-maps (placeholder — handlers wired in later task)
-	_ = milestoneMapsGroup.Group("/:mapId/milestones")
+	// Milestones nested under milestone-maps
+	milestoneMapsGroup.POST("/:mapId/milestones", deps.perm("milestone:create"), deps.Milestone.Create)
+	milestoneMapsGroup.GET("/:mapId/milestones", deps.perm("milestone:read"), deps.Milestone.ListByMap)
 
-	// Milestones top-level under teams (placeholder — handlers wired in later task)
-	_ = teamsGroup.Group("/milestones")
+	// Milestones top-level under teams
+	teamsGroup.GET("/milestones", deps.perm("milestone:read"), deps.Milestone.ListByTeam)
+	teamsGroup.GET("/milestones/:milestoneId", deps.perm("milestone:read"), deps.Milestone.Get)
+	teamsGroup.PUT("/milestones/:milestoneId", deps.perm("milestone:update"), deps.Milestone.Update)
 
 	// Team list/create routes (outside :teamId group, auth only)
 	authMW := middleware.AuthMiddleware(deps.Config.Auth.JWTSecret, deps.UserRepo)

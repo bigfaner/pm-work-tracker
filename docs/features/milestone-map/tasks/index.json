@@ -85,30 +85,83 @@
       "scope": "all",
       "noTest": true
     },
-    "2.1-milestone-map-api": {
-      "id": "2.1",
-      "title": "MilestoneMap Repo + Service + Handler + Routes",
+    "2.1a-milestone-map-infra": {
+      "id": "2.1a",
+      "title": "MilestoneMap Infrastructure: Repo + GORM + Helpers + Routes Skeleton",
       "priority": "P0",
-      "estimatedTime": "3h",
+      "estimatedTime": "1h",
       "dependencies": [
         "1.gate"
       ],
-      "status": "pending",
-      "file": "2.1-milestone-map-api.md",
-      "record": "records/2.1-milestone-map-api.md",
+      "status": "completed",
+      "file": "2.1a-milestone-map-infra.md",
+      "record": "records/2.1a-milestone-map-infra.md",
       "scope": "backend"
     },
-    "2.2-milestone-api": {
-      "id": "2.2",
-      "title": "Milestone Repo + Service + Handler + Routes",
+    "2.1b-milestone-map-crud": {
+      "id": "2.1b",
+      "title": "MilestoneMap Basic CRUD: Create + List + Get + Update",
       "priority": "P0",
-      "estimatedTime": "3h",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "2.1a"
+      ],
+      "status": "pending",
+      "file": "2.1b-milestone-map-crud.md",
+      "record": "records/2.1b-milestone-map-crud.md",
+      "scope": "backend"
+    },
+    "2.1c-milestone-map-complex": {
+      "id": "2.1c",
+      "title": "MilestoneMap Complex Ops: Delete + ChangeStatus + Transitions + Computed Fields",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "dependencies": [
+        "2.1b",
+        "2.2a"
+      ],
+      "status": "pending",
+      "file": "2.1c-milestone-map-complex.md",
+      "record": "records/2.1c-milestone-map-complex.md",
+      "scope": "backend"
+    },
+    "2.2a-milestone-infra": {
+      "id": "2.2a",
+      "title": "Milestone Infrastructure: Repo + GORM + Routes Skeleton",
+      "priority": "P0",
+      "estimatedTime": "1h",
       "dependencies": [
         "1.gate"
       ],
+      "status": "completed",
+      "file": "2.2a-milestone-infra.md",
+      "record": "records/2.2a-milestone-infra.md",
+      "scope": "backend"
+    },
+    "2.2b-milestone-crud": {
+      "id": "2.2b",
+      "title": "Milestone Basic CRUD: Create + ListByMap + ListByTeam + Get + Update",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "2.2a"
+      ],
+      "status": "completed",
+      "file": "2.2b-milestone-crud.md",
+      "record": "records/2.2b-milestone-crud.md",
+      "scope": "backend"
+    },
+    "2.2c-milestone-complex": {
+      "id": "2.2c",
+      "title": "Milestone Complex Ops: Delete + ChangeStatus + Transitions + Computed Fields",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "dependencies": [
+        "2.2b"
+      ],
       "status": "pending",
-      "file": "2.2-milestone-api.md",
-      "record": "records/2.2-milestone-api.md",
+      "file": "2.2c-milestone-complex.md",
+      "record": "records/2.2c-milestone-complex.md",
       "scope": "backend"
     },
     "2.3-mainitem-integration": {
@@ -118,8 +171,8 @@
       "estimatedTime": "2h",
       "dependencies": [
         "1.gate",
-        "2.1",
-        "2.2"
+        "2.1c",
+        "2.2c"
       ],
       "status": "pending",
       "file": "2.3-mainitem-integration.md",

@@ -29,4 +29,5 @@ type MilestoneCreateReq struct {
 type MilestoneUpdateReq struct {
 	MilestoneName   *string `json:"milestoneName"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
+	DbUpdateTime    string  `json:"dbUpdateTime" binding:"required"`
 }
