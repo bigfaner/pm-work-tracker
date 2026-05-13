@@ -159,6 +159,9 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 	milestoneMapsGroup.GET("", deps.perm("milestone:read"), deps.MilestoneMap.List)
 	milestoneMapsGroup.GET("/:mapId", deps.perm("milestone:read"), deps.MilestoneMap.Get)
 	milestoneMapsGroup.PUT("/:mapId", deps.perm("milestone:update"), deps.MilestoneMap.Update)
+	milestoneMapsGroup.DELETE("/:mapId", deps.perm("milestone:delete"), deps.MilestoneMap.Delete)
+	milestoneMapsGroup.PUT("/:mapId/status", deps.perm("milestone:update"), deps.MilestoneMap.ChangeStatus)
+	milestoneMapsGroup.GET("/:mapId/available-transitions", deps.perm("milestone:read"), deps.MilestoneMap.AvailableTransitions)
 
 	// Milestones nested under milestone-maps
 	milestoneMapsGroup.POST("/:mapId/milestones", deps.perm("milestone:create"), deps.Milestone.Create)
