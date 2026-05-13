@@ -17,6 +17,17 @@ export const SUB_ITEM_STATUSES = {
   closed: { name: '已关闭', variant: 'cancelled', terminal: true },
 } as const
 
+export const MILESTONE_STATUSES = {
+  not_started: { name: '未开始', variant: 'planning', terminal: false },
+  in_progress: { name: '进行中', variant: 'in-progress', terminal: false },
+  completed: { name: '已完成', variant: 'completed', terminal: true },
+  cancelled: { name: '已取消', variant: 'cancelled', terminal: true },
+} as const
+
+export const MILESTONE_TERMINAL_STATUSES = Object.entries(MILESTONE_STATUSES)
+  .filter(([, v]) => v.terminal)
+  .map(([k]) => k)
+
 /** Terminal status codes for main items */
 export const MAIN_TERMINAL_STATUSES = Object.entries(MAIN_ITEM_STATUSES)
   .filter(([, v]) => v.terminal)
@@ -34,7 +45,8 @@ export const STATUS_OPTIONS = Object.keys(MAIN_ITEM_STATUSES)
 export function getStatusVariant(status: string): string {
   const def =
     (MAIN_ITEM_STATUSES as Record<string, { variant: string }>)[status] ||
-    (SUB_ITEM_STATUSES as Record<string, { variant: string }>)[status]
+    (SUB_ITEM_STATUSES as Record<string, { variant: string }>)[status] ||
+    (MILESTONE_STATUSES as Record<string, { variant: string }>)[status]
   return def?.variant ?? 'default'
 }
 
@@ -42,7 +54,8 @@ export function getStatusVariant(status: string): string {
 export function getStatusName(status: string): string | undefined {
   const def =
     (MAIN_ITEM_STATUSES as Record<string, { name: string }>)[status] ||
-    (SUB_ITEM_STATUSES as Record<string, { name: string }>)[status]
+    (SUB_ITEM_STATUSES as Record<string, { name: string }>)[status] ||
+    (MILESTONE_STATUSES as Record<string, { name: string }>)[status]
   return def?.name
 }
 

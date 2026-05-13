@@ -244,6 +244,7 @@ export interface CreateMainItemReq {
   assigneeKey: string
   startDate: string
   expectedEndDate: string
+  milestoneKey?: string | null
 }
 
 export interface UpdateMainItemReq {
@@ -254,6 +255,7 @@ export interface UpdateMainItemReq {
   startDate?: string | null
   expectedEndDate?: string | null
   actualEndDate?: string | null
+  milestoneKey?: string | null
 }
 
 export interface MainItemFilter {

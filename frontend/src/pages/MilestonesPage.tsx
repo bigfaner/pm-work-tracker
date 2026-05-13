@@ -14,6 +14,8 @@ import {
   listMilestoneMapsApi,
   createMilestoneMapApi,
   listMilestonesByMapApi,
+  createMilestoneApi,
+  updateMilestoneApi,
 } from '@/api/milestones'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -42,6 +44,8 @@ import {
 import { Toggle } from '@/components/ui/toggle'
 import ProgressBar from '@/components/shared/ProgressBar'
 import { useToast } from '@/components/ui/toast'
+import MilestoneDetailPanel from './milestones/MilestoneDetailPanel'
+import CreateEditMilestoneDialog from './milestones/CreateEditMilestoneDialog'
 import type { MilestoneMap, Milestone } from '@/types'
 
 // --- Constants ---
@@ -258,8 +262,20 @@ function TimelineView({
   onBack: () => void
 }) {
   const teamId = useTeamStore((s) => s.currentTeamId) ?? ''
+  const canCreate = usePermission('milestone:create')
   const [zoom, setZoom] = useState<ZoomLevel>('month')
   const zoomConfig = ZOOM_LEVELS.find((z) => z.key === zoom)!
+
+  // Detail panel state
+  const [selectedMilestoneKey, setSelectedMilestoneKey] = useState<string | null>(null)
+
+  // Create/edit milestone dialog state
+  const [milestoneDialogOpen, setMilestoneDialogOpen] = useState(false)
+  const [milestoneDialogMode, setMilestoneDialogMode] = useState<'create' | 'edit'>('create')
+  const [editingMilestone, setEditingMilestone] = useState<Milestone | null>(null)
+
+  const qc = useQueryClient()
+  const { addToast } = useToast()
 
   const {
     data: milestonesData,
@@ -273,6 +289,47 @@ function TimelineView({
   })
 
   const milestones = milestonesData?.items ?? []
+
+  // Create milestone mutation
+  const createMilestoneMutation = useMutation({
+    mutationFn: (data: { milestoneName: string, expectedEndDate: string }) =>
+      createMilestoneApi(teamId, mapId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['milestones-by-map', teamId, mapId] })
+      addToast('里程碑创建成功', 'success')
+      setMilestoneDialogOpen(false)
+    },
+    onError: () => {
+      addToast('创建失败，请重试', 'error')
+    },
+  })
+
+  // Update milestone mutation
+  const updateMilestoneMutation = useMutation({
+    mutationFn: (data: { bizKey: string, milestoneName: string, expectedEndDate: string }) =>
+      updateMilestoneApi(teamId, data.bizKey, {
+        milestoneName: data.milestoneName,
+        expectedEndDate: data.expectedEndDate,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['milestones-by-map', teamId, mapId] })
+      qc.invalidateQueries({ queryKey: ['milestone-detail', teamId, selectedMilestoneKey] })
+      addToast('里程碑更新成功', 'success')
+      setMilestoneDialogOpen(false)
+      setEditingMilestone(null)
+    },
+    onError: () => {
+      addToast('更新失败，请重试', 'error')
+    },
+  })
+
+  function handleMilestoneSubmit(data: { milestoneName: string, expectedEndDate: string }) {
+    if (milestoneDialogMode === 'create') {
+      createMilestoneMutation.mutate(data)
+    } else if (editingMilestone) {
+      updateMilestoneMutation.mutate({ bizKey: editingMilestone.bizKey, ...data })
+    }
+  }
 
   // Compute timeline positioning
   const timelineData = computeTimeline(milestones, zoomConfig)
@@ -291,6 +348,19 @@ function TimelineView({
           </Breadcrumb>
         </div>
         <div className="flex items-center gap-2">
+          {canCreate && (
+            <Button
+              size="sm"
+              onClick={() => {
+                setMilestoneDialogMode('create')
+                setEditingMilestone(null)
+                setMilestoneDialogOpen(true)
+              }}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              创建里程碑
+            </Button>
+          )}
           <Button variant="secondary" size="sm" onClick={onBack}>
             <ChevronLeft className="w-4 h-4 mr-1" />
             返回列表
@@ -376,8 +446,14 @@ function TimelineView({
                 role="button"
                 tabIndex={0}
                 aria-label={`${node.milestone.milestoneName}，${node.milestone.statusName}，完成度 ${Math.round(node.milestone.completion)}%，${node.milestone.relatedMICount} 个事项`}
+                onClick={() => setSelectedMilestoneKey(node.milestone.bizKey)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') setSelectedMilestoneKey(node.milestone.bizKey)
+                }}
               >
-                <div className="border border-border rounded-xl p-3 bg-white hover:bg-bg-alt transition-colors cursor-pointer">
+                <div className={`border rounded-xl p-3 bg-white hover:bg-bg-alt transition-colors cursor-pointer ${
+                  selectedMilestoneKey === node.milestone.bizKey ? 'border-primary ring-2 ring-blue-200' : 'border-border'
+                }`}>
                   <div className="flex items-center gap-1.5 mb-1">
                     <span
                       className={`w-2 h-2 rounded-full shrink-0 ${
@@ -415,6 +491,25 @@ function TimelineView({
           </div>
         </div>
       )}
+
+      {/* Milestone detail panel */}
+      {selectedMilestoneKey && (
+        <MilestoneDetailPanel
+          milestoneBizKey={selectedMilestoneKey}
+          onClose={() => setSelectedMilestoneKey(null)}
+          onDeleted={() => setSelectedMilestoneKey(null)}
+        />
+      )}
+
+      {/* Create/edit milestone dialog */}
+      <CreateEditMilestoneDialog
+        open={milestoneDialogOpen}
+        onOpenChange={setMilestoneDialogOpen}
+        mode={milestoneDialogMode}
+        milestone={editingMilestone}
+        onSubmit={handleMilestoneSubmit}
+        isPending={createMilestoneMutation.isPending || updateMilestoneMutation.isPending}
+      />
     </div>
   )
 }
