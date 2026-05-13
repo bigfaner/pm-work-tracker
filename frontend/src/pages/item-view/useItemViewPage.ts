@@ -66,6 +66,7 @@ export function useItemViewPage(teamId: string | null) {
     assigneeKey: '',
     startDate: today(),
     expectedEndDate: '',
+    milestoneKey: '',
   })
 
   const [createSubOpen, setCreateSubOpen] = useState(false)
@@ -89,6 +90,7 @@ export function useItemViewPage(teamId: string | null) {
     startDate: '',
     expectedEndDate: '',
     description: '',
+    milestoneKey: '',
   })
 
   const [appendOpen, setAppendOpen] = useState(false)
@@ -271,6 +273,7 @@ export function useItemViewPage(teamId: string | null) {
       assigneeKey: string
       startDate: string
       expectedEndDate: string
+      milestoneKey?: string
     }) => createMainItemApi(teamId!, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -282,6 +285,7 @@ export function useItemViewPage(teamId: string | null) {
         assigneeKey: '',
         startDate: today(),
         expectedEndDate: '',
+        milestoneKey: '',
       })
     },
   })
@@ -322,6 +326,7 @@ export function useItemViewPage(teamId: string | null) {
         expectedEndDate: string | null
         actualEndDate: string | null
         description: string
+        milestoneKey?: string | null
       }
     }) => updateMainItemApi(teamId!, req.itemId, req.data),
     onSuccess: () => {
@@ -416,6 +421,7 @@ export function useItemViewPage(teamId: string | null) {
       assigneeKey: createForm.assigneeKey,
       startDate: createForm.startDate,
       expectedEndDate: createForm.expectedEndDate,
+      ...(createForm.milestoneKey && { milestoneKey: createForm.milestoneKey }),
     })
   }, [createForm, createMutation])
 
@@ -451,6 +457,7 @@ export function useItemViewPage(teamId: string | null) {
       startDate: item.planStartDate || '',
       expectedEndDate: item.expectedEndDate || '',
       description: item.itemDesc || '',
+      milestoneKey: item.milestoneKey || '',
     })
     setEditOpen(true)
   }, [])
@@ -467,6 +474,7 @@ export function useItemViewPage(teamId: string | null) {
         expectedEndDate: editForm.expectedEndDate || null,
         actualEndDate: null,
         description: editForm.description,
+        milestoneKey: editForm.milestoneKey || null,
       },
     })
   }, [editForm, editTarget, updateMutation])

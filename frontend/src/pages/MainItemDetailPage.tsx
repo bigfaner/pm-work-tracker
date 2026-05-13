@@ -6,7 +6,8 @@ import { getMainItemApi, updateMainItemApi } from '@/api/mainItems'
 import { createSubItemApi, updateSubItemApi } from '@/api/subItems'
 import { appendProgressApi } from '@/api/progress'
 import { listMembersApi } from '@/api/teams'
-import type { SubItem } from '@/types'
+import { listMilestonesByTeamApi } from '@/api/milestones'
+import type { SubItem, Milestone } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PermissionGuard } from '@/components/PermissionGuard'
@@ -54,6 +55,7 @@ export default function MainItemDetailPage() {
     assigneeKey: '',
     expectedEndDate: '',
     description: '',
+    milestoneKey: '',
   })
   const [subForm, setSubForm] = useState<CreateSubItemFormState>({
     title: '',
@@ -97,6 +99,14 @@ export default function MainItemDetailPage() {
     enabled: !!teamId,
   })
 
+  const { data: milestonesData } = useQuery({
+    queryKey: ['milestones', teamId],
+    queryFn: () => listMilestonesByTeamApi(teamId!, { excludeCancelled: true }),
+    enabled: !!teamId,
+  })
+
+  const milestones: Milestone[] = milestonesData?.items ?? []
+
   const memberName = useMemberName(members)
 
   // Populate edit form when data loads
@@ -108,6 +118,7 @@ export default function MainItemDetailPage() {
         assigneeKey: item.assigneeKey || '',
         expectedEndDate: item.expectedEndDate || '',
         description: item.itemDesc || '',
+        milestoneKey: item.milestoneKey || '',
       })
     }
   }, [item])
@@ -122,6 +133,7 @@ export default function MainItemDetailPage() {
       expectedEndDate?: string | null
       actualEndDate?: string | null
       description?: string
+      milestoneKey?: string | null
     }) => updateMainItemApi(teamId!, itemId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
@@ -198,6 +210,7 @@ export default function MainItemDetailPage() {
       assigneeKey: editForm.assigneeKey || null,
       expectedEndDate: editForm.expectedEndDate || null,
       description: editForm.description,
+      milestoneKey: editForm.milestoneKey || null,
     })
   }, [editForm, updateMutation])
 
@@ -383,6 +396,7 @@ export default function MainItemDetailPage() {
             form={editForm}
             onFormChange={setEditForm}
             members={members || []}
+            milestones={milestones}
             onSubmit={handleEdit}
             isPending={updateMutation.isPending}
           />

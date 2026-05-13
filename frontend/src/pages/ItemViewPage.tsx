@@ -233,6 +233,7 @@ export default function ItemViewPage() {
             form={s.createForm}
             onFormChange={s.setCreateForm}
             members={s.members}
+            milestones={s.milestones}
             onSubmit={s.handleCreate}
             isPending={s.createMutation.isPending}
           />
@@ -254,6 +255,7 @@ export default function ItemViewPage() {
             form={s.editForm}
             onFormChange={s.setEditForm}
             members={s.members}
+            milestones={s.milestones}
             onSubmit={s.handleEdit}
             isPending={s.updateMutation.isPending}
           />

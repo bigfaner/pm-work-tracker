@@ -51,6 +51,7 @@ export default function QuickAddMIDialog({
     assigneeKey: '',
     startDate: '',
     expectedEndDate: '',
+    milestoneKey: '',
   })
 
   const createMutation = useMutation({
@@ -76,6 +77,7 @@ export default function QuickAddMIDialog({
         assigneeKey: '',
         startDate: '',
         expectedEndDate: '',
+        milestoneKey: '',
       })
       onOpenChange(false)
       onCreated()

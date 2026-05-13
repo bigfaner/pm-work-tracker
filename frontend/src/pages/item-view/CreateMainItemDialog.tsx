@@ -4,6 +4,7 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
+  SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
@@ -18,6 +19,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import type { Milestone } from '@/types'
 
 export interface CreateMainItemFormState {
   title: string
@@ -26,6 +28,7 @@ export interface CreateMainItemFormState {
   assigneeKey: string
   startDate: string
   expectedEndDate: string
+  milestoneKey: string
 }
 
 interface CreateMainItemDialogProps {
@@ -36,6 +39,7 @@ interface CreateMainItemDialogProps {
     updater: (prev: CreateMainItemFormState) => CreateMainItemFormState,
   ) => void
   members: { userKey: string, displayName: string }[]
+  milestones: Milestone[]
   onSubmit: () => void
   isPending: boolean
 }
@@ -46,6 +50,7 @@ export default function CreateMainItemDialog({
   form,
   onFormChange,
   members,
+  milestones,
   onSubmit,
   isPending,
 }: CreateMainItemDialogProps) {
@@ -101,6 +106,32 @@ export default function CreateMainItemDialog({
                 allowEmpty={false}
               />
             </div>
+          </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-primary mb-1">
+              所属里程碑
+            </label>
+            <Select
+              value={form.milestoneKey || '_unassigned'}
+              onValueChange={(v) =>
+                onFormChange((f) => ({
+                  ...f,
+                  milestoneKey: v === '_unassigned' ? '' : v,
+                }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_unassigned">未分配</SelectItem>
+                {milestones.map((ms) => (
+                  <SelectItem key={ms.bizKey} value={ms.bizKey}>
+                    {ms.milestoneName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div>

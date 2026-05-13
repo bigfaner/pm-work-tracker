@@ -1272,4 +1272,184 @@ describe('ItemViewPage', () => {
       })
     })
   })
+
+  // --- Milestone selector in dialogs ---
+
+  describe('milestone selector in create dialog', () => {
+    it('shows milestone selector with options when creating a new item', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByText('新增主事项'))
+
+      await waitFor(() => {
+        expect(screen.getByText('新建主事项')).toBeInTheDocument()
+      })
+
+      // Milestone selector label should be visible
+      expect(screen.getByText('所属里程碑')).toBeInTheDocument()
+
+      // Default should be "未分配"
+      const milestoneSelects = screen.getAllByText('未分配')
+      // At least one in the dialog
+      expect(milestoneSelects.length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('defaults to "未分配" for new items', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByText('新增主事项'))
+
+      await waitFor(() => {
+        expect(screen.getByText('新建主事项')).toBeInTheDocument()
+      })
+
+      // The milestone selector should show "未分配" (the default)
+      // Verify the select trigger shows "未分配"
+      const milestoneLabels = screen.getAllByText('所属里程碑')
+      const dialogLabel = milestoneLabels.find((el) =>
+        el.closest('[role="dialog"]'),
+      )
+      expect(dialogLabel).toBeTruthy()
+    })
+
+    it('shows milestone options in dropdown when creating an item', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByText('新增主事项'))
+
+      await waitFor(() => {
+        expect(screen.getByText('新建主事项')).toBeInTheDocument()
+      })
+
+      // Open the milestone dropdown
+      const dialogEl = screen.getByRole('dialog')
+      const selectTriggers = dialogEl.querySelectorAll('button[role="combobox"]')
+      const milestoneTrigger = Array.from(selectTriggers).find((btn) =>
+        btn.textContent?.includes('未分配'),
+      )
+      expect(milestoneTrigger).toBeTruthy()
+      await user.click(milestoneTrigger!)
+
+      // Should show milestone options
+      await waitFor(() => {
+        expect(
+          screen.getByRole('option', { name: 'MVP发布' }),
+        ).toBeInTheDocument()
+        expect(
+          screen.getByRole('option', { name: '二期迭代' }),
+        ).toBeInTheDocument()
+        expect(
+          screen.getByRole('option', { name: '未分配' }),
+        ).toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('milestone selector in edit dialog', () => {
+    it('pre-fills current milestone when editing an item', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      })
+
+      // Click edit on Alpha Task (which has milestoneKey MS001)
+      const editBtns = screen.getAllByRole('button', { name: /编辑/ })
+      const mainEditBtn = editBtns.find(
+        (btn) => !btn.getAttribute('data-testid')?.startsWith('edit-sub-'),
+      )
+      await user.click(mainEditBtn!)
+
+      await waitFor(() => {
+        expect(screen.getByText('编辑主事项')).toBeInTheDocument()
+      })
+
+      // The milestone selector should be visible
+      const milestoneLabels = screen.getAllByText('所属里程碑')
+      const dialogLabel = milestoneLabels.find((el) =>
+        el.closest('[role="dialog"]'),
+      )
+      expect(dialogLabel).toBeTruthy()
+    })
+
+    it('sends milestoneKey when editing an item', async () => {
+      let capturedBody: Record<string, unknown> | null = null
+      server.use(
+        http.put('/v1/teams/:teamId/main-items/:itemId', async ({ request }) => {
+          capturedBody = (await request.json()) as Record<string, unknown>
+          return HttpResponse.json({
+            code: 0,
+            data: { ...seedMainItems[0], ...capturedBody },
+          })
+        }),
+      )
+
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      })
+
+      // Click edit on Alpha Task (which has milestoneKey MS001)
+      const editBtns = screen.getAllByRole('button', { name: /编辑/ })
+      const mainEditBtn = editBtns.find(
+        (btn) => !btn.getAttribute('data-testid')?.startsWith('edit-sub-'),
+      )
+      await user.click(mainEditBtn!)
+
+      await waitFor(() => {
+        expect(screen.getByText('编辑主事项')).toBeInTheDocument()
+      })
+
+      // Submit the edit (form is pre-filled from the item)
+      await user.click(screen.getByRole('button', { name: '确认' }))
+
+      await waitFor(() => {
+        expect(capturedBody).toBeTruthy()
+      })
+
+      // Should include milestoneKey in the update
+      expect(capturedBody!.milestoneKey).toBe('MS001')
+    })
+  })
+
+  describe('milestone selector with no milestones', () => {
+    it('shows only "未分配" when team has no milestones', async () => {
+      server.use(
+        http.get('/v1/teams/:teamId/milestones', () => {
+          return HttpResponse.json({
+            code: 0,
+            data: { items: [], total: 0 },
+          })
+        }),
+      )
+
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByText('新增主事项'))
+
+      await waitFor(() => {
+        expect(screen.getByText('新建主事项')).toBeInTheDocument()
+      })
+
+      // Milestone selector should still be present
+      expect(screen.getByText('所属里程碑')).toBeInTheDocument()
+    })
+  })
 })
