@@ -33,7 +33,7 @@ description: "Convention index — keyword-to-file mapping for on-demand loading
 | password, user, admin, disable | user-management.md, security.md |
 | error, error-code, status-code | error-codes.md |
 | token, jwt, bcrypt | security.md |
-| helper, repository, generic, repo | repo-helpers.md, backend-helpers.md |
+| helper, repository, generic, repo, interface, mock | repo-helpers.md, backend-helpers.md |
 | weekly, progress, delta, comparison | weekly-view.md |
 | color, theme, token, badge | frontend-components.md |
 | button, icon, lucide | button-icons.md |

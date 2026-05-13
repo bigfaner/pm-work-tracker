@@ -96,3 +96,43 @@ func (s *teamService) InviteMember(ctx context.Context, ...) error {
 ```
 
 **Constraint**: Never import `*gorm.DB` directly in service constructors. Depend on the `DBTransactor` interface for testability and consistency.
+
+## RH-005: Shared Interface Change Protocol
+
+**Rule**: When adding methods to a shared repository interface (any interface with >3 test consumers), the interface change MUST be done as a separate step before the feature implementation task.
+
+**Why**: Adding one method to a shared interface (e.g., `MainItemRepo` with 17 methods) triggers O(consumers) mock updates. Each of the 9 mock types must implement all 17+ methods. An agent tasked with "implement feature X" will spend its entire budget fixing cascading mock compilation errors instead of writing feature logic, causing stalls.
+
+**Protocol**:
+
+1. **Interface update task** — Add new method(s) to the interface AND all existing mock/stub types. No business logic. Verify all tests compile and pass.
+2. **Feature implementation task** — Implement the actual feature using the already-updated interface. Mocks already compile, agent focuses on business logic.
+
+**Detection**: Applies when a task modifies any of these high-consumer interfaces:
+- `MainItemRepo` (9 test consumers)
+- `SubItemRepo` (multiple consumers)
+- Any interface with >5 methods
+
+**Example**:
+```go
+// Step 1 (interface update task): Add method to MainItemRepo
+type MainItemRepo interface {
+    // ... existing 16 methods ...
+    CalcCompletionByMap(ctx context.Context, mapBizKey int64) (float64, error) // NEW
+}
+
+// Fix ALL mock types immediately:
+// - mockMainItemRepo (main_item_service_test.go)
+// - mockMainItemRepoForPool (item_pool_service_test.go, item_pool_handler_test.go)
+// - mockViewMainItemRepo (view_service_test.go)
+// - msMockMainItemRepo (milestone_service_test.go)
+// - mmMockMainItemRepo (milestone_map_service_test.go)
+// - trackingMainItemRepo (item_pool_handler_test.go)
+// - StubRouterRepoMainItem (router_test_stubs.go)
+
+// Step 2 (feature task): Use the method in service logic
+func (s *milestoneMapService) enrichComputedFields(ctx context.Context, m *model.MilestoneMap) {
+    avg, _ := s.mainItemRepo.CalcCompletionByMap(ctx, m.BizKey)
+    m.OverallProgress = avg
+}
+```
