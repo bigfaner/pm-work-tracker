@@ -344,6 +344,46 @@ export function invalidateAuthCache(): void {
   _cachedTeamId = null;
 }
 
+/** One-time auth setup for Playwright storageState reuse.
+ *  Saves localStorage (auth + team) so authenticated tests skip login. */
+export async function ensureAuthState(page: Page, creds: UICredentials = defaultCreds): Promise<void> {
+  const token = await getAuthToken(creds);
+  const authStorage = JSON.stringify({
+    state: {
+      token,
+      user: { isSuperAdmin: true },
+      isAuthenticated: true,
+      isSuperAdmin: true,
+      permissions: null,
+      permissionsLoadedAt: null,
+      _hasHydrated: true,
+    },
+    version: 0,
+  });
+  await page.goto(`${baseUrl}/items`);
+  await page.evaluate((storage) => {
+    localStorage.setItem('auth-storage', storage);
+  }, authStorage);
+  await page.reload();
+  await page.waitForURL(/\/items/, { timeout: 10000 });
+  await page.waitForFunction(() => {
+    try {
+      const raw = localStorage.getItem('auth-storage');
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      return parsed?.state?.permissions !== null && parsed?.state?.permissions !== undefined;
+    } catch { return false; }
+  }, { timeout: 10000 });
+  await page.waitForFunction(() => {
+    try {
+      const raw = localStorage.getItem('team-storage');
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      return parsed?.state?.currentTeamId != null;
+    } catch { return false; }
+  }, { timeout: 5000 }).catch(() => {});
+}
+
 export async function getFirstTeamId(token: string): Promise<string | null> {
   if (_cachedTeamId != null) return _cachedTeamId;
   const res = await fetch(`${API}/teams`, {

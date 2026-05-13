@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import {
+  baseUrl,
   apiBaseUrl,
   getApiToken,
   createAuthCurl,
@@ -8,7 +9,6 @@ import {
   extractBizKey,
   createTestTeam,
   createTestMainItem,
-  login,
 } from '../../helpers.js';
 
 // ── Fact Table (verified from source) ───────────────────────────────
@@ -142,7 +142,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
     const itemBizKey = await createTestMainItem(token, teamBizKey, `TC031 Item ${randomCode()}`, 'P2');
 
     // Login and navigate to item detail
-    await login(page, undefined, `/items/${itemBizKey}`);
+    await page.goto(`${baseUrl}/items/${itemBizKey}`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
 
     // Click edit button to open edit dialog
@@ -172,7 +172,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
     await bindMilestoneToItem(authCurl, teamBizKey, itemBizKey, msBizKey);
 
     // Login and navigate to item detail
-    await login(page, undefined, `/items/${itemBizKey}`);
+    await page.goto(`${baseUrl}/items/${itemBizKey}`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
 
     // Open edit dialog
@@ -205,7 +205,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
     await bindMilestoneToItem(authCurl, teamBizKey, item2, ms2);
 
     // Login and navigate to items page
-    await login(page, undefined, '/items');
+    await page.goto(`${baseUrl}/items`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
 
     // Click milestone filter and select ms1
@@ -232,7 +232,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
     const itemBizKey = await createTestMainItem(token, emptyTeam, `TC034 Item ${randomCode()}`, 'P2');
 
     // Login and navigate to item detail in empty team
-    await login(page, undefined, `/items/${itemBizKey}`);
+    await page.goto(`${baseUrl}/items/${itemBizKey}`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
 
     // Open edit dialog
@@ -255,7 +255,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
   // Traceability: TC-035 → Story 9 / AC-1, Story 9 / AC-2, Story 11 / AC-1
   test('TC-035: Read-only user sees milestones page without action buttons', async ({ page }) => {
     // Login as admin (has all permissions) and navigate to milestones
-    await login(page, undefined, '/milestones');
+    await page.goto(`${baseUrl}/milestones`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
 
     // Verify list view renders (at least map cards or content visible)
@@ -276,7 +276,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
   test('TC-036: Read-only user with no maps sees empty state without create button', async ({ page }) => {
     // Create a team with no maps and navigate
     const emptyTeam = await createTestTeam(token, `e2e-empty-${randomCode()}`);
-    await login(page, undefined, '/milestones');
+    await page.goto(`${baseUrl}/milestones`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
 
     // For admin user with data, this verifies the empty state pattern
@@ -299,7 +299,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
     // This test requires a user without milestone:read permission.
     // With admin user, we verify the page loads normally instead.
     // Full 403 test requires RBAC user with restricted permissions.
-    await login(page, undefined, '/milestones');
+    await page.goto(`${baseUrl}/milestones`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
 
     // Admin should see the page, not 403
@@ -319,7 +319,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
     await bindMilestoneToItem(authCurl, teamBizKey, itemBizKey, msBizKey);
 
     // Navigate to table view
-    await login(page, undefined, '/table');
+    await page.goto(`${baseUrl}/table`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
 
     // Verify milestone column header is present
@@ -352,7 +352,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
     await bindMilestoneToItem(authCurl, teamBizKey, item2, ms2);
 
     // Navigate to table view
-    await login(page, undefined, '/table');
+    await page.goto(`${baseUrl}/table`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('[data-testid="columnheader-milestone"]')).toBeVisible({ timeout: 10000 });
 
@@ -385,7 +385,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
   // Traceability: TC-040 → Story 10 / AC-3
   test('TC-040: Table view milestone column error fallback', async ({ page }) => {
     // Navigate to table view (milestone API is healthy, this verifies column renders)
-    await login(page, undefined, '/table');
+    await page.goto(`${baseUrl}/table`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
 
     // Verify milestone column header is present
@@ -405,7 +405,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
     await deleteMilestone(authCurl, teamBizKey, msBizKey);
 
     // Navigate to table view
-    await login(page, undefined, '/table');
+    await page.goto(`${baseUrl}/table`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('[data-testid="columnheader-milestone"]')).toBeVisible({ timeout: 10000 });
 
@@ -437,7 +437,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
     // itemUn remains unassigned
 
     // Navigate to table view
-    await login(page, undefined, '/table');
+    await page.goto(`${baseUrl}/table`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('[data-testid="columnheader-milestone"]')).toBeVisible({ timeout: 10000 });
 
@@ -475,7 +475,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
     await bindMilestoneToItem(authCurl, teamBizKey, itemZ, msZ);
 
     // Navigate to table view (fresh load)
-    await login(page, undefined, '/table');
+    await page.goto(`${baseUrl}/table`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('[data-testid="columnheader-milestone"]')).toBeVisible({ timeout: 10000 });
 
@@ -499,7 +499,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
 
   // Traceability: TC-047 → PRD UI Function "UF-1" Navigation Architecture
   test('TC-047: Milestones page navigation link exists', async ({ page }) => {
-    await login(page, undefined, '/items');
+    await page.goto(`${baseUrl}/items`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
 
     // Verify milestones navigation link is visible in sidebar
@@ -517,7 +517,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
   // Traceability: TC-048 → Story 11 / AC-4
   test('TC-048: Management user sees error state with retry on API failure', async ({ page }) => {
     // Navigate to milestones page (with healthy API, verifies page loads)
-    await login(page, undefined, '/milestones');
+    await page.goto(`${baseUrl}/milestones`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
 
     // For admin user with healthy API, page should load normally
@@ -548,7 +548,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
 
   // Traceability: TC-044 → Story 6 / AC-3, PRD UI Function "UF-4"
   test('TC-044: Integration -- Milestone filter visible on Items page', async ({ page }) => {
-    await login(page, undefined, '/items');
+    await page.goto(`${baseUrl}/items`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
 
     // Verify milestone filter is visible within the filter bar
@@ -564,7 +564,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
   test('TC-045: Integration -- Milestone selector visible in Item Edit dialog', async ({ page }) => {
     const itemBizKey = await createTestMainItem(token, teamBizKey, `TC045 Item ${randomCode()}`, 'P2');
 
-    await login(page, undefined, `/items/${itemBizKey}`);
+    await page.goto(`${baseUrl}/items/${itemBizKey}`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
 
     // Open edit dialog
@@ -586,7 +586,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
     const itemBizKey = await createTestMainItem(token, teamBizKey, `TC046 Item ${randomCode()}`, 'P2');
     await bindMilestoneToItem(authCurl, teamBizKey, itemBizKey, msBizKey);
 
-    await login(page, undefined, '/table');
+    await page.goto(`${baseUrl}/table`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
 
     // Verify milestone column header is visible in thead
@@ -618,7 +618,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
     const msBizKey = await createMilestone(authCurl, teamBizKey, mapBizKey, milestoneName, '2026-08-01');
 
     // Navigate to items page
-    await login(page, undefined, '/items');
+    await page.goto(`${baseUrl}/items`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
 
     // Click milestone filter
@@ -640,7 +640,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
     await bindMilestoneToItem(authCurl, teamBizKey, itemBizKey, msBizKey);
 
     // Navigate to table view
-    await login(page, undefined, '/table');
+    await page.goto(`${baseUrl}/table`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('[data-testid="columnheader-milestone"]')).toBeVisible({ timeout: 10000 });
 
@@ -668,7 +668,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
     await deleteMilestone(authCurl, teamBizKey, msBizKey);
 
     // Navigate to table view
-    await login(page, undefined, '/table');
+    await page.goto(`${baseUrl}/table`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('[data-testid="columnheader-milestone"]')).toBeVisible({ timeout: 10000 });
 
@@ -703,7 +703,7 @@ test.describe('Milestone Map — Existing Pages + Integration', () => {
     expect(milestoneKey).toBeNull();
 
     // Navigate to table view
-    await login(page, undefined, '/table');
+    await page.goto(`${baseUrl}/table`); await page.waitForLoadState('networkidle');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('[data-testid="columnheader-milestone"]')).toBeVisible({ timeout: 10000 });
 

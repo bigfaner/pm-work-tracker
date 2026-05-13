@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import {
-  login,
   baseUrl,
   apiBaseUrl,
   getApiToken,
@@ -119,7 +118,8 @@ test.describe('Milestones Page (/milestones)', () => {
 
   test.beforeEach(async ({ page }) => {
     test.setTimeout(60000);
-    await login(page, undefined, '/milestones');
+    await page.goto(`${baseUrl}/milestones`);
+    await page.waitForLoadState('networkidle');
   });
 
   // ── Milestone Map CRUD ─────────────────────────────────────────────
@@ -574,7 +574,7 @@ test.describe('Milestones Page (/milestones)', () => {
 
     // Open two tabs
     const page2 = await context.newPage();
-    await login(page2, undefined, '/milestones');
+    await page2.goto(`${baseUrl}/milestones`);
 
     // Both navigate to timeline and open detail
     for (const p of [page, page2]) {
