@@ -18,22 +18,23 @@ import (
 // Dependencies holds all services and configuration needed by the router.
 // Handlers are wired here to avoid global state.
 type Dependencies struct {
-	Config     *config.Config
-	TeamRepo   repository.TeamRepo
-	UserRepo   repository.UserRepo
-	RoleRepo   repository.RoleRepo
-	Auth       *AuthHandler
-	Team       *TeamHandler
-	MainItem   *MainItemHandler
-	SubItem    *SubItemHandler
-	Progress   *ProgressHandler
-	ItemPool   *ItemPoolHandler
-	View       *ViewHandler
-	Report     *ReportHandler
-	Admin      *AdminHandler
-	Role       *RoleHandler
-	Permission *PermissionHandler
-	Milestone  *MilestoneHandler
+	Config       *config.Config
+	TeamRepo     repository.TeamRepo
+	UserRepo     repository.UserRepo
+	RoleRepo     repository.RoleRepo
+	Auth         *AuthHandler
+	Team         *TeamHandler
+	MainItem     *MainItemHandler
+	SubItem      *SubItemHandler
+	Progress     *ProgressHandler
+	ItemPool     *ItemPoolHandler
+	View         *ViewHandler
+	Report       *ReportHandler
+	Admin        *AdminHandler
+	Role         *RoleHandler
+	Permission   *PermissionHandler
+	Milestone    *MilestoneHandler
+	MilestoneMap *MilestoneMapHandler
 }
 
 // perm is a shorthand for creating a RequirePermission middleware with the deps' RoleRepo.
@@ -152,9 +153,12 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 	teamsGroup.GET("/reports/weekly/preview", deps.perm("report:export"), deps.Report.WeeklyPreview)
 	teamsGroup.GET("/reports/weekly/export", deps.perm("report:export"), deps.Report.WeeklyExport)
 
-	// Milestone maps (placeholder — handlers wired in later task)
+	// Milestone maps
 	milestoneMapsGroup := teamsGroup.Group("/milestone-maps")
-	_ = milestoneMapsGroup
+	milestoneMapsGroup.POST("", deps.perm("milestone:create"), deps.MilestoneMap.Create)
+	milestoneMapsGroup.GET("", deps.perm("milestone:read"), deps.MilestoneMap.List)
+	milestoneMapsGroup.GET("/:mapId", deps.perm("milestone:read"), deps.MilestoneMap.Get)
+	milestoneMapsGroup.PUT("/:mapId", deps.perm("milestone:update"), deps.MilestoneMap.Update)
 
 	// Milestones nested under milestone-maps
 	milestoneMapsGroup.POST("/:mapId/milestones", deps.perm("milestone:create"), deps.Milestone.Create)

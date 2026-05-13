@@ -106,7 +106,7 @@
       "dependencies": [
         "2.1a"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.1b-milestone-map-crud.md",
       "record": "records/2.1b-milestone-map-crud.md",
       "scope": "backend"
@@ -159,7 +159,7 @@
       "dependencies": [
         "2.2b"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.2c-milestone-complex.md",
       "record": "records/2.2c-milestone-complex.md",
       "scope": "backend"

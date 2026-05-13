@@ -58,6 +58,8 @@ func (h *MainItemHandler) Create(c *gin.Context) {
 }
 
 // List handles GET /api/v1/teams/:teamId/main-items
+//
+//nolint:dupl // similar request handling shape as MilestoneMap.List but different business logic
 func (h *MainItemHandler) List(c *gin.Context) {
 	teamBizKey := middleware.GetTeamBizKey(c)
 
@@ -134,6 +136,8 @@ func (h *MainItemHandler) Get(c *gin.Context) {
 }
 
 // Update handles PUT /api/v1/teams/:teamId/main-items/:itemId
+//
+//nolint:dupl // similar request handling shape as MilestoneMap.Update but different business logic
 func (h *MainItemHandler) Update(c *gin.Context) {
 	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "itemId")
 	if !ok {

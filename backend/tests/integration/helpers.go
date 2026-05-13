@@ -64,6 +64,7 @@ func wireHandlers(t *testing.T, db *gorm.DB, _ *seedData, includeRBAC bool) *han
 	progressRepo := gormrepo.NewGormProgressRepo(db)
 	itemPoolRepo := gormrepo.NewGormItemPoolRepo(db)
 	roleRepo := gormrepo.NewGormRoleRepo(db)
+	milestoneMapRepo := gormrepo.NewGormMilestoneMapRepo(db)
 
 	authSvc := service.NewAuthService(userRepo, testJWTSecret)
 	statusHistoryRepo := gormrepo.NewGormStatusHistoryRepo(db)
@@ -91,19 +92,20 @@ func wireHandlers(t *testing.T, db *gorm.DB, _ *seedData, includeRBAC bool) *han
 	}
 
 	deps := &handler.Dependencies{
-		Config:   cfg,
-		TeamRepo: teamRepo,
-		UserRepo: userRepo,
-		RoleRepo: roleRepo,
-		Auth:     handler.NewAuthHandler(authSvc),
-		Team:     handler.NewTeamHandler(teamSvc, userRepo),
-		MainItem: handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
-		SubItem:  handler.NewSubItemHandler(subItemSvc, mainItemSvc),
-		Progress: handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
-		ItemPool: handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
-		View:     handler.NewViewHandler(viewSvc),
-		Report:   handler.NewReportHandler(reportSvc),
-		Admin:    handler.NewAdminHandler(adminSvc),
+		Config:       cfg,
+		TeamRepo:     teamRepo,
+		UserRepo:     userRepo,
+		RoleRepo:     roleRepo,
+		Auth:         handler.NewAuthHandler(authSvc),
+		Team:         handler.NewTeamHandler(teamSvc, userRepo),
+		MainItem:     handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
+		SubItem:      handler.NewSubItemHandler(subItemSvc, mainItemSvc),
+		Progress:     handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
+		ItemPool:     handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
+		View:         handler.NewViewHandler(viewSvc),
+		Report:       handler.NewReportHandler(reportSvc),
+		Admin:        handler.NewAdminHandler(adminSvc),
+		MilestoneMap: handler.NewMilestoneMapHandler(service.NewMilestoneMapService(milestoneMapRepo)),
 	}
 
 	if includeRBAC {

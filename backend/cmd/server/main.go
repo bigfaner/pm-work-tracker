@@ -112,25 +112,27 @@ func run(configPath string, devMode bool) error {
 	adminSvc := service.NewAdminService(userRepo, teamRepo)
 	roleSvc := service.NewRoleService(roleRepo, userRepo, teamRepo)
 	milestoneSvc := service.NewMilestoneService(milestoneRepo, milestoneMapRepo, mainItemRepo, db)
+	milestoneMapSvc := service.NewMilestoneMapService(milestoneMapRepo)
 
 	// 6. Init handlers
 	deps := &handler.Dependencies{
-		Config:     cfg,
-		TeamRepo:   teamRepo,
-		UserRepo:   userRepo,
-		RoleRepo:   roleRepo,
-		Auth:       handler.NewAuthHandler(authSvc),
-		Team:       handler.NewTeamHandler(teamSvc, userRepo),
-		MainItem:   handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
-		SubItem:    handler.NewSubItemHandler(subItemSvc, mainItemSvc),
-		Progress:   handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
-		ItemPool:   handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
-		View:       handler.NewViewHandler(viewSvc),
-		Report:     handler.NewReportHandler(reportSvc),
-		Admin:      handler.NewAdminHandler(adminSvc),
-		Role:       handler.NewRoleHandler(roleSvc),
-		Permission: handler.NewPermissionHandler(roleSvc),
-		Milestone:  handler.NewMilestoneHandler(milestoneSvc),
+		Config:       cfg,
+		TeamRepo:     teamRepo,
+		UserRepo:     userRepo,
+		RoleRepo:     roleRepo,
+		Auth:         handler.NewAuthHandler(authSvc),
+		Team:         handler.NewTeamHandler(teamSvc, userRepo),
+		MainItem:     handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
+		SubItem:      handler.NewSubItemHandler(subItemSvc, mainItemSvc),
+		Progress:     handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
+		ItemPool:     handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
+		View:         handler.NewViewHandler(viewSvc),
+		Report:       handler.NewReportHandler(reportSvc),
+		Admin:        handler.NewAdminHandler(adminSvc),
+		Role:         handler.NewRoleHandler(roleSvc),
+		Permission:   handler.NewPermissionHandler(roleSvc),
+		Milestone:    handler.NewMilestoneHandler(milestoneSvc),
+		MilestoneMap: handler.NewMilestoneMapHandler(milestoneMapSvc),
 	}
 
 	// 7. Setup router

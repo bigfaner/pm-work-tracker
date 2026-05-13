@@ -18,6 +18,7 @@ type MilestoneMapVO struct {
 	MapStatus       string  `json:"mapStatus"`
 	StatusName      string  `json:"statusName"`
 	MilestoneCount  int     `json:"milestoneCount"`
+	ItemCount       int     `json:"itemCount"`
 	OverallProgress float64 `json:"overallProgress"`
 	CreateTime      string  `json:"createTime"`
 	DbUpdateTime    string  `json:"dbUpdateTime"`
