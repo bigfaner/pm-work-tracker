@@ -27,6 +27,8 @@ type MainItemVO struct {
 	Completion      float64 `json:"completion"`
 	IsKeyItem       bool    `json:"isKeyItem"`
 	ArchivedAt      *string `json:"archivedAt"`
+	MilestoneKey    *string `json:"milestoneKey"`
+	MilestoneName   string  `json:"milestoneName"`
 	CreateTime      string  `json:"createTime"`
 	DbUpdateTime    string  `json:"dbUpdateTime"`
 }
@@ -106,6 +108,7 @@ func NewMainItemVO(m *model.MainItem) MainItemVO {
 		Completion:      m.Completion,
 		IsKeyItem:       m.IsKeyItem,
 		ArchivedAt:      dates.FormatTimePtr(m.ArchivedAt),
+		MilestoneKey:    pkg.FormatIDPtr(m.MilestoneKey),
 		CreateTime:      m.CreateTime.Format(time.RFC3339),
 		DbUpdateTime:    m.DbUpdateTime.Format(time.RFC3339),
 	}

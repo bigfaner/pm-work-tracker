@@ -20,7 +20,7 @@ import (
 // Mock repos for MilestoneService tests
 // ---------------------------------------------------------------------------
 
-type mockMilestoneRepo struct {
+type msMockMilestoneRepo struct {
 	item       *model.Milestone
 	bizKeyItem *model.Milestone
 	items      []model.Milestone
@@ -37,7 +37,7 @@ type mockMilestoneRepo struct {
 	deleteByMapKey int64
 }
 
-func (m *mockMilestoneRepo) Create(_ context.Context, item *model.Milestone) error {
+func (m *msMockMilestoneRepo) Create(_ context.Context, item *model.Milestone) error {
 	m.createdItem = item
 	if m.createErr != nil {
 		return m.createErr
@@ -46,50 +46,50 @@ func (m *mockMilestoneRepo) Create(_ context.Context, item *model.Milestone) err
 	return nil
 }
 
-func (m *mockMilestoneRepo) FindByID(_ context.Context, id uint) (*model.Milestone, error) {
+func (m *msMockMilestoneRepo) FindByID(_ context.Context, id uint) (*model.Milestone, error) {
 	if m.item != nil {
 		return m.item, nil
 	}
 	return nil, m.findErr
 }
 
-func (m *mockMilestoneRepo) FindByBizKey(_ context.Context, _ int64) (*model.Milestone, error) {
+func (m *msMockMilestoneRepo) FindByBizKey(_ context.Context, _ int64) (*model.Milestone, error) {
 	if m.bizKeyItem != nil {
 		return m.bizKeyItem, nil
 	}
 	return nil, m.bizKeyErr
 }
 
-func (m *mockMilestoneRepo) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.Milestone, error) {
+func (m *msMockMilestoneRepo) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.Milestone, error) {
 	return nil, nil
 }
 
-func (m *mockMilestoneRepo) Update(_ context.Context, item *model.Milestone, fields map[string]interface{}) error {
+func (m *msMockMilestoneRepo) Update(_ context.Context, item *model.Milestone, fields map[string]interface{}) error {
 	m.updatedID = item.ID
 	m.updatedFields = fields
 	return m.updateErr
 }
 
-func (m *mockMilestoneRepo) ListByMap(_ context.Context, _ int64) ([]model.Milestone, error) {
+func (m *msMockMilestoneRepo) ListByMap(_ context.Context, _ int64) ([]model.Milestone, error) {
 	if m.listErr != nil {
 		return nil, m.listErr
 	}
 	return m.items, nil
 }
 
-func (m *mockMilestoneRepo) ListByTeam(_ context.Context, _ int64, _ bool) ([]model.Milestone, error) {
+func (m *msMockMilestoneRepo) ListByTeam(_ context.Context, _ int64, _ bool) ([]model.Milestone, error) {
 	if m.listErr != nil {
 		return nil, m.listErr
 	}
 	return m.items, nil
 }
 
-func (m *mockMilestoneRepo) SoftDelete(_ context.Context, id uint) error {
+func (m *msMockMilestoneRepo) SoftDelete(_ context.Context, id uint) error {
 	m.softDeletedID = id
 	return nil
 }
 
-func (m *mockMilestoneRepo) DeleteByMap(_ context.Context, bizKey int64) error {
+func (m *msMockMilestoneRepo) DeleteByMap(_ context.Context, bizKey int64) error {
 	m.deleteByMapKey = bizKey
 	return nil
 }
@@ -207,7 +207,7 @@ func (m *mockTransactor) Transaction(fc func(tx *gorm.DB) error, _ ...*sql.TxOpt
 // Helper: new service with default mocks
 // ---------------------------------------------------------------------------
 
-func newTestMilestoneService(milestoneRepo *mockMilestoneRepo, mapRepo *mockMilestoneMapRepo, mainItemRepo *msMockMainItemRepo, tx *mockTransactor) MilestoneService {
+func newTestMilestoneService(milestoneRepo *msMockMilestoneRepo, mapRepo *mockMilestoneMapRepo, mainItemRepo *msMockMainItemRepo, tx *mockTransactor) MilestoneService {
 	return NewMilestoneService(milestoneRepo, mapRepo, mainItemRepo, tx)
 }
 
@@ -217,7 +217,7 @@ func newTestMilestoneService(milestoneRepo *mockMilestoneRepo, mapRepo *mockMile
 
 func TestMilestoneCreate_Success(t *testing.T) {
 	mapRepo := &mockMilestoneMapRepo{item: &model.MilestoneMap{}}
-	milestoneRepo := &mockMilestoneRepo{}
+	milestoneRepo := &msMockMilestoneRepo{}
 	mainItemRepo := &msMockMainItemRepo{}
 	tx := &mockTransactor{}
 	svc := newTestMilestoneService(milestoneRepo, mapRepo, mainItemRepo, tx)
@@ -237,7 +237,7 @@ func TestMilestoneCreate_Success(t *testing.T) {
 
 func TestMilestoneCreate_ParentMapNotFound(t *testing.T) {
 	mapRepo := &mockMilestoneMapRepo{bizKeyErr: apperrors.ErrMilestoneMapNotFound}
-	milestoneRepo := &mockMilestoneRepo{}
+	milestoneRepo := &msMockMilestoneRepo{}
 	mainItemRepo := &msMockMainItemRepo{}
 	tx := &mockTransactor{}
 	svc := newTestMilestoneService(milestoneRepo, mapRepo, mainItemRepo, tx)
@@ -252,7 +252,7 @@ func TestMilestoneCreate_ParentMapNotFound(t *testing.T) {
 
 func TestMilestoneCreate_InvalidDate(t *testing.T) {
 	mapRepo := &mockMilestoneMapRepo{item: &model.MilestoneMap{}}
-	milestoneRepo := &mockMilestoneRepo{}
+	milestoneRepo := &msMockMilestoneRepo{}
 	mainItemRepo := &msMockMainItemRepo{}
 	tx := &mockTransactor{}
 	svc := newTestMilestoneService(milestoneRepo, mapRepo, mainItemRepo, tx)
@@ -267,7 +267,7 @@ func TestMilestoneCreate_InvalidDate(t *testing.T) {
 
 func TestMilestoneCreate_RepoCreateError(t *testing.T) {
 	mapRepo := &mockMilestoneMapRepo{item: &model.MilestoneMap{}}
-	milestoneRepo := &mockMilestoneRepo{createErr: errors.New("db error")}
+	milestoneRepo := &msMockMilestoneRepo{createErr: errors.New("db error")}
 	mainItemRepo := &msMockMainItemRepo{}
 	tx := &mockTransactor{}
 	svc := newTestMilestoneService(milestoneRepo, mapRepo, mainItemRepo, tx)
@@ -289,7 +289,7 @@ func TestMilestoneGet_Success(t *testing.T) {
 		BaseModel:     model.BaseModel{ID: 1},
 		MilestoneName: "M1",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	m, err := svc.Get(context.Background(), 1)
@@ -298,7 +298,7 @@ func TestMilestoneGet_Success(t *testing.T) {
 }
 
 func TestMilestoneGet_NotFound(t *testing.T) {
-	milestoneRepo := &mockMilestoneRepo{findErr: gorm.ErrRecordNotFound}
+	milestoneRepo := &msMockMilestoneRepo{findErr: gorm.ErrRecordNotFound}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	_, err := svc.Get(context.Background(), 99)
@@ -314,7 +314,7 @@ func TestMilestoneGetByBizKey_Success(t *testing.T) {
 		BaseModel:     model.BaseModel{ID: 1, BizKey: 123456},
 		MilestoneName: "M1",
 	}
-	milestoneRepo := &mockMilestoneRepo{bizKeyItem: existing}
+	milestoneRepo := &msMockMilestoneRepo{bizKeyItem: existing}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	m, err := svc.GetByBizKey(context.Background(), 123456)
@@ -323,7 +323,7 @@ func TestMilestoneGetByBizKey_Success(t *testing.T) {
 }
 
 func TestMilestoneGetByBizKey_NotFound(t *testing.T) {
-	milestoneRepo := &mockMilestoneRepo{bizKeyErr: gorm.ErrRecordNotFound}
+	milestoneRepo := &msMockMilestoneRepo{bizKeyErr: gorm.ErrRecordNotFound}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	_, err := svc.GetByBizKey(context.Background(), 999)
@@ -339,7 +339,7 @@ func TestMilestoneListByMap_Success(t *testing.T) {
 		{BaseModel: model.BaseModel{ID: 1}, MilestoneName: "M1"},
 		{BaseModel: model.BaseModel{ID: 2}, MilestoneName: "M2"},
 	}
-	milestoneRepo := &mockMilestoneRepo{items: items}
+	milestoneRepo := &msMockMilestoneRepo{items: items}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	result, err := svc.ListByMap(context.Background(), 100)
@@ -348,7 +348,7 @@ func TestMilestoneListByMap_Success(t *testing.T) {
 }
 
 func TestMilestoneListByMap_RepoError(t *testing.T) {
-	milestoneRepo := &mockMilestoneRepo{listErr: errors.New("db error")}
+	milestoneRepo := &msMockMilestoneRepo{listErr: errors.New("db error")}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	_, err := svc.ListByMap(context.Background(), 100)
@@ -363,7 +363,7 @@ func TestMilestoneListByTeam_Success(t *testing.T) {
 	items := []model.Milestone{
 		{BaseModel: model.BaseModel{ID: 1}, MilestoneName: "M1"},
 	}
-	milestoneRepo := &mockMilestoneRepo{items: items}
+	milestoneRepo := &msMockMilestoneRepo{items: items}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	result, err := svc.ListByTeam(context.Background(), 1, true)
@@ -372,7 +372,7 @@ func TestMilestoneListByTeam_Success(t *testing.T) {
 }
 
 func TestMilestoneListByTeam_RepoError(t *testing.T) {
-	milestoneRepo := &mockMilestoneRepo{listErr: errors.New("db error")}
+	milestoneRepo := &msMockMilestoneRepo{listErr: errors.New("db error")}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	_, err := svc.ListByTeam(context.Background(), 1, true)
@@ -389,7 +389,7 @@ func TestMilestoneUpdate_Success(t *testing.T) {
 		BaseModel:     model.BaseModel{ID: 1, DbUpdateTime: now},
 		MilestoneName: "Old Name",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	updated, err := svc.Update(context.Background(), 1, dto.MilestoneUpdateReq{
@@ -404,7 +404,7 @@ func TestMilestoneUpdate_Success(t *testing.T) {
 }
 
 func TestMilestoneUpdate_NotFound(t *testing.T) {
-	milestoneRepo := &mockMilestoneRepo{findErr: gorm.ErrRecordNotFound}
+	milestoneRepo := &msMockMilestoneRepo{findErr: gorm.ErrRecordNotFound}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	_, err := svc.Update(context.Background(), 99, dto.MilestoneUpdateReq{
@@ -421,7 +421,7 @@ func TestMilestoneUpdate_ConcurrentEdit(t *testing.T) {
 		BaseModel:     model.BaseModel{ID: 1, DbUpdateTime: now},
 		MilestoneName: "Old Name",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	_, err := svc.Update(context.Background(), 1, dto.MilestoneUpdateReq{
@@ -436,7 +436,7 @@ func TestMilestoneUpdate_InvalidDbUpdateTime(t *testing.T) {
 		BaseModel:     model.BaseModel{ID: 1},
 		MilestoneName: "Old Name",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	_, err := svc.Update(context.Background(), 1, dto.MilestoneUpdateReq{
@@ -452,7 +452,7 @@ func TestMilestoneUpdate_NoFields_NoOp(t *testing.T) {
 		BaseModel:     model.BaseModel{ID: 1, DbUpdateTime: now},
 		MilestoneName: "Old Name",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	updated, err := svc.Update(context.Background(), 1, dto.MilestoneUpdateReq{
@@ -469,7 +469,7 @@ func TestMilestoneUpdate_UpdateExpectedEndDate(t *testing.T) {
 		BaseModel:     model.BaseModel{ID: 1, DbUpdateTime: now},
 		MilestoneName: "M1",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	newDate := "2026-07-01"
@@ -490,7 +490,7 @@ func TestMilestoneDelete_Success(t *testing.T) {
 		BaseModel:     model.BaseModel{ID: 10, BizKey: 555},
 		MilestoneName: "M1",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	mainItemRepo := &msMockMainItemRepo{}
 	tx := &mockTransactor{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, tx)
@@ -503,7 +503,7 @@ func TestMilestoneDelete_Success(t *testing.T) {
 }
 
 func TestMilestoneDelete_NotFound(t *testing.T) {
-	milestoneRepo := &mockMilestoneRepo{findErr: gorm.ErrRecordNotFound}
+	milestoneRepo := &msMockMilestoneRepo{findErr: gorm.ErrRecordNotFound}
 	mainItemRepo := &msMockMainItemRepo{}
 	tx := &mockTransactor{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, tx)
@@ -517,7 +517,7 @@ func TestMilestoneDelete_UnbindError(t *testing.T) {
 		BaseModel:     model.BaseModel{ID: 10, BizKey: 555},
 		MilestoneName: "M1",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	mainItemRepo := &msMockMainItemRepo{unbindErr: errors.New("db error")}
 	tx := &mockTransactor{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, tx)
@@ -530,7 +530,7 @@ func TestMilestoneDelete_SoftDeleteError(t *testing.T) {
 	existing := &model.Milestone{
 		BaseModel: model.BaseModel{ID: 10, BizKey: 555},
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	mainItemRepo := &msMockMainItemRepo{}
 	tx := &mockTransactor{txErr: errors.New("tx error")}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, tx)
@@ -548,7 +548,7 @@ func TestMilestoneChangeStatus_NotStartedToInProgress(t *testing.T) {
 		BaseModel:       model.BaseModel{ID: 10, BizKey: 555},
 		MilestoneStatus: "not_started",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	mainItemRepo := &msMockMainItemRepo{}
 	tx := &mockTransactor{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, tx)
@@ -564,7 +564,7 @@ func TestMilestoneChangeStatus_ToCancelled_AutoUnbinds(t *testing.T) {
 		BaseModel:       model.BaseModel{ID: 10, BizKey: 555},
 		MilestoneStatus: "not_started",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	mainItemRepo := &msMockMainItemRepo{}
 	tx := &mockTransactor{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, tx)
@@ -582,7 +582,7 @@ func TestMilestoneChangeStatus_InProgressToCompleted(t *testing.T) {
 		BaseModel:       model.BaseModel{ID: 10, BizKey: 555},
 		MilestoneStatus: "in_progress",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	mainItemRepo := &msMockMainItemRepo{}
 	tx := &mockTransactor{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, tx)
@@ -598,7 +598,7 @@ func TestMilestoneChangeStatus_InvalidTransition(t *testing.T) {
 		BaseModel:       model.BaseModel{ID: 10},
 		MilestoneStatus: "not_started",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	mainItemRepo := &msMockMainItemRepo{}
 	tx := &mockTransactor{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, tx)
@@ -612,7 +612,7 @@ func TestMilestoneChangeStatus_InvalidStatus(t *testing.T) {
 		BaseModel:       model.BaseModel{ID: 10},
 		MilestoneStatus: "not_started",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	mainItemRepo := &msMockMainItemRepo{}
 	tx := &mockTransactor{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, tx)
@@ -626,7 +626,7 @@ func TestMilestoneChangeStatus_SelfTransition(t *testing.T) {
 		BaseModel:       model.BaseModel{ID: 10},
 		MilestoneStatus: "not_started",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	mainItemRepo := &msMockMainItemRepo{}
 	tx := &mockTransactor{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, tx)
@@ -636,7 +636,7 @@ func TestMilestoneChangeStatus_SelfTransition(t *testing.T) {
 }
 
 func TestMilestoneChangeStatus_NotFound(t *testing.T) {
-	milestoneRepo := &mockMilestoneRepo{findErr: gorm.ErrRecordNotFound}
+	milestoneRepo := &msMockMilestoneRepo{findErr: gorm.ErrRecordNotFound}
 	mainItemRepo := &msMockMainItemRepo{}
 	tx := &mockTransactor{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, tx)
@@ -650,7 +650,7 @@ func TestMilestoneChangeStatus_CompletedToCancelled(t *testing.T) {
 		BaseModel:       model.BaseModel{ID: 10, BizKey: 555},
 		MilestoneStatus: "completed",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	mainItemRepo := &msMockMainItemRepo{}
 	tx := &mockTransactor{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, tx)
@@ -667,7 +667,7 @@ func TestMilestoneChangeStatus_CancelledIsTerminal(t *testing.T) {
 		BaseModel:       model.BaseModel{ID: 10},
 		MilestoneStatus: "cancelled",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	mainItemRepo := &msMockMainItemRepo{}
 	tx := &mockTransactor{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, tx)
@@ -685,7 +685,7 @@ func TestMilestoneAvailableTransitions_NotStarted(t *testing.T) {
 		BaseModel:       model.BaseModel{ID: 10},
 		MilestoneStatus: "not_started",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	transitions, err := svc.AvailableTransitions(context.Background(), 10)
@@ -698,7 +698,7 @@ func TestMilestoneAvailableTransitions_InProgress(t *testing.T) {
 		BaseModel:       model.BaseModel{ID: 10},
 		MilestoneStatus: "in_progress",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	transitions, err := svc.AvailableTransitions(context.Background(), 10)
@@ -711,7 +711,7 @@ func TestMilestoneAvailableTransitions_CancelledEmpty(t *testing.T) {
 		BaseModel:       model.BaseModel{ID: 10},
 		MilestoneStatus: "cancelled",
 	}
-	milestoneRepo := &mockMilestoneRepo{item: existing}
+	milestoneRepo := &msMockMilestoneRepo{item: existing}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	transitions, err := svc.AvailableTransitions(context.Background(), 10)
@@ -720,7 +720,7 @@ func TestMilestoneAvailableTransitions_CancelledEmpty(t *testing.T) {
 }
 
 func TestMilestoneAvailableTransitions_NotFound(t *testing.T) {
-	milestoneRepo := &mockMilestoneRepo{findErr: gorm.ErrRecordNotFound}
+	milestoneRepo := &msMockMilestoneRepo{findErr: gorm.ErrRecordNotFound}
 	svc := newTestMilestoneService(milestoneRepo, nil, nil, nil)
 
 	_, err := svc.AvailableTransitions(context.Background(), 99)
@@ -733,7 +733,7 @@ func TestMilestoneAvailableTransitions_NotFound(t *testing.T) {
 
 func TestMilestoneCalcCompletion_WithValue(t *testing.T) {
 	mainItemRepo := &msMockMainItemRepo{calcCompletionVal: 75.5}
-	milestoneRepo := &mockMilestoneRepo{}
+	milestoneRepo := &msMockMilestoneRepo{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, nil)
 
 	result := svc.CalcCompletion(context.Background(), 555)
@@ -742,7 +742,7 @@ func TestMilestoneCalcCompletion_WithValue(t *testing.T) {
 
 func TestMilestoneCalcCompletion_NoMIs(t *testing.T) {
 	mainItemRepo := &msMockMainItemRepo{calcCompletionVal: 0}
-	milestoneRepo := &mockMilestoneRepo{}
+	milestoneRepo := &msMockMilestoneRepo{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, nil)
 
 	result := svc.CalcCompletion(context.Background(), 555)
@@ -751,7 +751,7 @@ func TestMilestoneCalcCompletion_NoMIs(t *testing.T) {
 
 func TestMilestoneCalcCompletion_Error(t *testing.T) {
 	mainItemRepo := &msMockMainItemRepo{calcCompletionErr: errors.New("db error")}
-	milestoneRepo := &mockMilestoneRepo{}
+	milestoneRepo := &msMockMilestoneRepo{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, nil)
 
 	result := svc.CalcCompletion(context.Background(), 555)
@@ -764,7 +764,7 @@ func TestMilestoneCalcCompletion_Error(t *testing.T) {
 
 func TestMilestoneCountRelatedMIs_WithValue(t *testing.T) {
 	mainItemRepo := &msMockMainItemRepo{countByMilestone: 5}
-	milestoneRepo := &mockMilestoneRepo{}
+	milestoneRepo := &msMockMilestoneRepo{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, nil)
 
 	result := svc.CountRelatedMIs(context.Background(), 555)
@@ -773,7 +773,7 @@ func TestMilestoneCountRelatedMIs_WithValue(t *testing.T) {
 
 func TestMilestoneCountRelatedMIs_Zero(t *testing.T) {
 	mainItemRepo := &msMockMainItemRepo{countByMilestone: 0}
-	milestoneRepo := &mockMilestoneRepo{}
+	milestoneRepo := &msMockMilestoneRepo{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, nil)
 
 	result := svc.CountRelatedMIs(context.Background(), 555)
@@ -782,7 +782,7 @@ func TestMilestoneCountRelatedMIs_Zero(t *testing.T) {
 
 func TestMilestoneCountRelatedMIs_Error(t *testing.T) {
 	mainItemRepo := &msMockMainItemRepo{countByMilestoneErr: errors.New("db error")}
-	milestoneRepo := &mockMilestoneRepo{}
+	milestoneRepo := &msMockMilestoneRepo{}
 	svc := newTestMilestoneService(milestoneRepo, nil, mainItemRepo, nil)
 
 	result := svc.CountRelatedMIs(context.Background(), 555)

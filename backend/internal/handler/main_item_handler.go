@@ -7,6 +7,7 @@ import (
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/middleware"
+	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	pkgHandler "pm-work-tracker/backend/internal/pkg/handler"
 	"pm-work-tracker/backend/internal/repository"
@@ -16,13 +17,19 @@ import (
 
 // MainItemHandler handles main item endpoints.
 type MainItemHandler struct {
-	svc         service.MainItemService
-	subItemRepo repository.SubItemRepo
-	userRepo    repository.UserRepo
+	svc          service.MainItemService
+	subItemRepo  repository.SubItemRepo
+	userRepo     repository.UserRepo
+	milestoneSvc *milestoneEnricher
+}
+
+// milestoneEnricher wraps the milestoneRepo for enriching handler responses.
+type milestoneEnricher struct {
+	milestoneRepo repository.MilestoneRepo
 }
 
 // NewMainItemHandler creates a new MainItemHandler with service and repo dependencies.
-func NewMainItemHandler(svc service.MainItemService, userRepo repository.UserRepo, subItemRepo repository.SubItemRepo) *MainItemHandler {
+func NewMainItemHandler(svc service.MainItemService, userRepo repository.UserRepo, subItemRepo repository.SubItemRepo, milestoneRepo repository.MilestoneRepo) *MainItemHandler {
 	if svc == nil {
 		panic("main_item_handler: mainItemService must not be nil")
 	}
@@ -32,7 +39,7 @@ func NewMainItemHandler(svc service.MainItemService, userRepo repository.UserRep
 	if subItemRepo == nil {
 		panic("main_item_handler: subItemRepo must not be nil")
 	}
-	return &MainItemHandler{svc: svc, userRepo: userRepo, subItemRepo: subItemRepo}
+	return &MainItemHandler{svc: svc, userRepo: userRepo, subItemRepo: subItemRepo, milestoneSvc: &milestoneEnricher{milestoneRepo: milestoneRepo}}
 }
 
 // Create handles POST /api/v1/teams/:teamId/main-items
@@ -54,7 +61,10 @@ func (h *MainItemHandler) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": vo.NewMainItemVO(item)})
+	itemVO := vo.NewMainItemVO(item)
+	itemVO.MilestoneName = h.milestoneSvc.resolveMilestoneName(c, item)
+
+	c.JSON(http.StatusCreated, gin.H{"code": 0, "data": itemVO})
 }
 
 // List handles GET /api/v1/teams/:teamId/main-items
@@ -82,9 +92,18 @@ func (h *MainItemHandler) List(c *gin.Context) {
 		return
 	}
 
+	// Batch milestone name enrichment
+	milestoneNames := h.milestoneSvc.batchResolveMilestoneNamesFromSlice(c, result.Items)
+
 	voItems := make([]vo.MainItemVO, 0, len(result.Items))
 	for i := range result.Items {
-		voItems = append(voItems, vo.NewMainItemVO(&result.Items[i]))
+		itemVO := vo.NewMainItemVO(&result.Items[i])
+		if result.Items[i].MilestoneKey != nil {
+			if name, ok := milestoneNames[*result.Items[i].MilestoneKey]; ok {
+				itemVO.MilestoneName = name
+			}
+		}
+		voItems = append(voItems, itemVO)
 	}
 	apperrors.RespondOK(c, gin.H{
 		"items": voItems,
@@ -108,6 +127,7 @@ func (h *MainItemHandler) Get(c *gin.Context) {
 	}
 
 	itemVO := vo.NewMainItemVO(item)
+	itemVO.MilestoneName = h.milestoneSvc.resolveMilestoneName(c, item)
 
 	// Fetch subItems summary
 	subItems, _ := h.subItemRepo.ListByMainItem(c.Request.Context(), item.BizKey)
@@ -129,6 +149,8 @@ func (h *MainItemHandler) Get(c *gin.Context) {
 		"completion":      itemVO.Completion,
 		"isKeyItem":       itemVO.IsKeyItem,
 		"archivedAt":      itemVO.ArchivedAt,
+		"milestoneKey":    itemVO.MilestoneKey,
+		"milestoneName":   itemVO.MilestoneName,
 		"createTime":      itemVO.CreateTime,
 		"dbUpdateTime":    itemVO.DbUpdateTime,
 		"subItems":        vo.NewSubItemSummaryVOs(subItems),
@@ -171,7 +193,10 @@ func (h *MainItemHandler) Update(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, vo.NewMainItemVO(updated))
+	itemVO := vo.NewMainItemVO(updated)
+	itemVO.MilestoneName = h.milestoneSvc.resolveMilestoneName(c, updated)
+
+	apperrors.RespondOK(c, itemVO)
 }
 
 // Archive handles POST /api/v1/teams/:teamId/main-items/:itemId/archive
@@ -226,7 +251,10 @@ func (h *MainItemHandler) ChangeStatus(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, vo.NewMainItemVO(item))
+	itemVO := vo.NewMainItemVO(item)
+	itemVO.MilestoneName = h.milestoneSvc.resolveMilestoneName(c, item)
+
+	apperrors.RespondOK(c, itemVO)
 }
 
 // AvailableTransitions handles GET /api/v1/teams/:teamId/main-items/:itemId/available-transitions
@@ -252,4 +280,62 @@ func (h *MainItemHandler) AvailableTransitions(c *gin.Context) {
 	}
 
 	apperrors.RespondOK(c, gin.H{"transitions": transitions})
+}
+
+// resolveMilestoneName resolves the milestone name for a single MainItem.
+func (e *milestoneEnricher) resolveMilestoneName(c *gin.Context, item *model.MainItem) string {
+	if item.MilestoneKey == nil {
+		return ""
+	}
+	names := e.batchResolveMilestoneNamesFromPtrs(c, []*model.MainItem{item})
+	return names[*item.MilestoneKey]
+}
+
+// batchResolveMilestoneNamesFromSlice enriches []model.MainItem (value slice) with milestone names.
+func (e *milestoneEnricher) batchResolveMilestoneNamesFromSlice(c *gin.Context, items []model.MainItem) map[int64]string {
+	// Collect non-nil milestoneKey values
+	bizKeys := make([]int64, 0)
+	for i := range items {
+		if items[i].MilestoneKey != nil {
+			bizKeys = append(bizKeys, *items[i].MilestoneKey)
+		}
+	}
+	return e.resolveBizKeys(c, bizKeys)
+}
+
+// batchResolveMilestoneNamesFromPtrs enriches []*model.MainItem with milestone names.
+func (e *milestoneEnricher) batchResolveMilestoneNamesFromPtrs(c *gin.Context, items []*model.MainItem) map[int64]string {
+	bizKeys := make([]int64, 0)
+	for _, item := range items {
+		if item.MilestoneKey != nil {
+			bizKeys = append(bizKeys, *item.MilestoneKey)
+		}
+	}
+	return e.resolveBizKeys(c, bizKeys)
+}
+
+// resolveBizKeys performs batch lookup of milestone bizKeys and returns map[int64]string.
+func (e *milestoneEnricher) resolveBizKeys(c *gin.Context, bizKeys []int64) map[int64]string {
+	if len(bizKeys) == 0 {
+		return nil
+	}
+
+	milestoneMap, err := e.milestoneRepo.FindByBizKeys(c.Request.Context(), bizKeys)
+	if err != nil {
+		result := make(map[int64]string, len(bizKeys))
+		for _, bk := range bizKeys {
+			result[bk] = "--"
+		}
+		return result
+	}
+
+	result := make(map[int64]string, len(bizKeys))
+	for _, bk := range bizKeys {
+		if m, ok := milestoneMap[bk]; ok {
+			result[bk] = m.MilestoneName
+		} else {
+			result[bk] = "--"
+		}
+	}
+	return result
 }

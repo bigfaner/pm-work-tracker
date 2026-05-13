@@ -158,6 +158,51 @@ func (m *mockMainItemService) EvaluateLinkage(_ context.Context, _ int64, _ int6
 }
 
 // ---------------------------------------------------------------------------
+// Mock MilestoneRepo for handler tests
+// ---------------------------------------------------------------------------
+
+type mockMilestoneRepoForHandler struct {
+	milestoneMap map[int64]*model.Milestone
+}
+
+func (m *mockMilestoneRepoForHandler) Create(_ context.Context, _ *model.Milestone) error {
+	return nil
+}
+func (m *mockMilestoneRepoForHandler) FindByID(_ context.Context, _ uint) (*model.Milestone, error) {
+	return nil, nil
+}
+func (m *mockMilestoneRepoForHandler) FindByBizKey(_ context.Context, _ int64) (*model.Milestone, error) {
+	return nil, nil
+}
+func (m *mockMilestoneRepoForHandler) FindByBizKeys(_ context.Context, bizKeys []int64) (map[int64]*model.Milestone, error) {
+	if m.milestoneMap == nil {
+		return nil, nil
+	}
+	result := make(map[int64]*model.Milestone)
+	for _, bk := range bizKeys {
+		if ms, ok := m.milestoneMap[bk]; ok {
+			result[bk] = ms
+		}
+	}
+	return result, nil
+}
+func (m *mockMilestoneRepoForHandler) Update(_ context.Context, _ *model.Milestone, _ map[string]interface{}) error {
+	return nil
+}
+func (m *mockMilestoneRepoForHandler) ListByMap(_ context.Context, _ int64) ([]model.Milestone, error) {
+	return nil, nil
+}
+func (m *mockMilestoneRepoForHandler) ListByTeam(_ context.Context, _ int64, _ bool) ([]model.Milestone, error) {
+	return nil, nil
+}
+func (m *mockMilestoneRepoForHandler) SoftDelete(_ context.Context, _ uint) error {
+	return nil
+}
+func (m *mockMilestoneRepoForHandler) DeleteByMap(_ context.Context, _ int64) error {
+	return nil
+}
+
+// ---------------------------------------------------------------------------
 // Mock SubItemRepo for Get endpoint (subItems summary)
 // ---------------------------------------------------------------------------
 
@@ -203,7 +248,16 @@ func depsWithMainItemSvc(t *testing.T, svc *mockMainItemService, userRepo reposi
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
-	deps.MainItem = NewMainItemHandler(svc, userRepo, subItemRepo)
+	deps.MainItem = NewMainItemHandler(svc, userRepo, subItemRepo, &mockMilestoneRepoForHandler{})
+	return deps
+}
+
+// depsWithMainItemSvcAndMilestone wires a mock MainItemService with a custom milestoneRepo.
+func depsWithMainItemSvcAndMilestone(t *testing.T, svc *mockMainItemService, userRepo repository.UserRepo, subItemRepo *mockSubItemRepoForHandler, msRepo *mockMilestoneRepoForHandler) *Dependencies {
+	t.Helper()
+	deps, _ := testDeps(t)
+	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
+	deps.MainItem = NewMainItemHandler(svc, userRepo, subItemRepo, msRepo)
 	return deps
 }
 
@@ -212,7 +266,7 @@ func depsWithMemberRoleMainItem(t *testing.T, svc *mockMainItemService, userRepo
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(2); return &v }()}}
-	deps.MainItem = NewMainItemHandler(svc, userRepo, subItemRepo)
+	deps.MainItem = NewMainItemHandler(svc, userRepo, subItemRepo, &mockMilestoneRepoForHandler{})
 	return deps
 }
 
@@ -1041,4 +1095,177 @@ func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	assert.Equal(t, 45.5, data["completion"])
 	assert.Equal(t, false, data["isKeyItem"])
 	assert.NotNil(t, data["subItems"])
+}
+
+// ---------------------------------------------------------------------------
+// Tests: milestoneKey/milestoneName in responses
+// ---------------------------------------------------------------------------
+
+func TestGetMainItem_MilestoneKeyAndNameInResponse(t *testing.T) {
+	svc := &mockMainItemService{}
+	milestoneBizKey := int64(9001)
+	item := &model.MainItem{
+		TeamKey:      10,
+		Code:         "TEST-00001",
+		Title:        "Item with milestone",
+		Priority:     "P1",
+		ProposerKey:  2,
+		ItemStatus:   "progressing",
+		MilestoneKey: &milestoneBizKey,
+	}
+	item.ID = 1
+	svc.getResult.item = item
+
+	userRepo := &mockUserRepoForHandler{}
+	subItemRepo := &mockSubItemRepoForHandler{items: []*model.SubItem{}}
+	msRepo := &mockMilestoneRepoForHandler{
+		milestoneMap: map[int64]*model.Milestone{
+			9001: {MilestoneName: "Sprint 1"},
+		},
+	}
+
+	deps := depsWithMainItemSvcAndMilestone(t, svc, userRepo, subItemRepo, msRepo)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/1", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+
+	data := resp["data"].(map[string]interface{})
+	assert.Equal(t, "9001", data["milestoneKey"])
+	assert.Equal(t, "Sprint 1", data["milestoneName"])
+}
+
+func TestGetMainItem_MilestoneKeyNil_EmptyMilestoneName(t *testing.T) {
+	svc := &mockMainItemService{}
+	item := &model.MainItem{
+		TeamKey:      10,
+		Code:         "TEST-00001",
+		Title:        "Item without milestone",
+		Priority:     "P1",
+		ProposerKey:  2,
+		ItemStatus:   "pending",
+		MilestoneKey: nil,
+	}
+	item.ID = 1
+	svc.getResult.item = item
+
+	userRepo := &mockUserRepoForHandler{}
+	subItemRepo := &mockSubItemRepoForHandler{items: []*model.SubItem{}}
+
+	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/1", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+
+	data := resp["data"].(map[string]interface{})
+	assert.Nil(t, data["milestoneKey"])
+	assert.Equal(t, "", data["milestoneName"])
+}
+
+func TestGetMainItem_SoftDeletedMilestone_ShowsDash(t *testing.T) {
+	svc := &mockMainItemService{}
+	milestoneBizKey := int64(9001)
+	item := &model.MainItem{
+		TeamKey:      10,
+		Code:         "TEST-00001",
+		Title:        "Item with deleted milestone",
+		Priority:     "P1",
+		ProposerKey:  2,
+		ItemStatus:   "pending",
+		MilestoneKey: &milestoneBizKey,
+	}
+	item.ID = 1
+	svc.getResult.item = item
+
+	userRepo := &mockUserRepoForHandler{}
+	subItemRepo := &mockSubItemRepoForHandler{items: []*model.SubItem{}}
+	// milestoneMap does NOT contain 9001 -> soft-deleted fallback
+	msRepo := &mockMilestoneRepoForHandler{milestoneMap: map[int64]*model.Milestone{}}
+
+	deps := depsWithMainItemSvcAndMilestone(t, svc, userRepo, subItemRepo, msRepo)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items/1", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+
+	data := resp["data"].(map[string]interface{})
+	assert.Equal(t, "9001", data["milestoneKey"])
+	assert.Equal(t, "--", data["milestoneName"])
+}
+
+func TestListMainItems_MilestoneEnrichment(t *testing.T) {
+	svc := &mockMainItemService{}
+	mk1 := int64(100)
+	mk2 := int64(200)
+	svc.listResult.page = &dto.PageResult[model.MainItem]{
+		Items: []model.MainItem{
+			{MilestoneKey: &mk1, Title: "Item 1"},
+			{MilestoneKey: &mk2, Title: "Item 2"},
+		},
+		Total: 2,
+		Page:  1,
+		Size:  20,
+	}
+
+	userRepo := &mockUserRepoForHandler{}
+	subItemRepo := &mockSubItemRepoForHandler{}
+	msRepo := &mockMilestoneRepoForHandler{
+		milestoneMap: map[int64]*model.Milestone{
+			100: {MilestoneName: "Sprint 1"},
+			200: {MilestoneName: "Sprint 2"},
+		},
+	}
+
+	deps := depsWithMainItemSvcAndMilestone(t, svc, userRepo, subItemRepo, msRepo)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/main-items?page=1&pageSize=20", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+
+	data := resp["data"].(map[string]interface{})
+	items := data["items"].([]interface{})
+	require.Len(t, items, 2)
+
+	item1 := items[0].(map[string]interface{})
+	assert.Equal(t, "Sprint 1", item1["milestoneName"])
+
+	item2 := items[1].(map[string]interface{})
+	assert.Equal(t, "Sprint 2", item2["milestoneName"])
 }

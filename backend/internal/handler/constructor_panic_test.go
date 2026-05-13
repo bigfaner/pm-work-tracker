@@ -42,24 +42,24 @@ func TestNewSubItemHandler_SucceedsWithValidDeps(t *testing.T) {
 
 func TestNewMainItemHandler_PanicsOnNilService(t *testing.T) {
 	assertPanicMessage(t, "MainItemHandler/nil-svc", func() {
-		NewMainItemHandler(nil, &StubRouterRepoUser{}, &StubRouterRepoSubItem{})
+		NewMainItemHandler(nil, &StubRouterRepoUser{}, &StubRouterRepoSubItem{}, &StubRouterRepoMilestone{})
 	}, "main_item_handler: mainItemService must not be nil")
 }
 
 func TestNewMainItemHandler_PanicsOnNilUserRepo(t *testing.T) {
 	assertPanicMessage(t, "MainItemHandler/nil-userRepo", func() {
-		NewMainItemHandler(&StubMainItemSvc{}, nil, &StubRouterRepoSubItem{})
+		NewMainItemHandler(&StubMainItemSvc{}, nil, &StubRouterRepoSubItem{}, &StubRouterRepoMilestone{})
 	}, "main_item_handler: userRepo must not be nil")
 }
 
 func TestNewMainItemHandler_PanicsOnNilSubItemRepo(t *testing.T) {
 	assertPanicMessage(t, "MainItemHandler/nil-subItemRepo", func() {
-		NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, nil)
+		NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, nil, &StubRouterRepoMilestone{})
 	}, "main_item_handler: subItemRepo must not be nil")
 }
 
 func TestNewMainItemHandler_SucceedsWithValidDeps(t *testing.T) {
-	h := NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, &StubRouterRepoSubItem{})
+	h := NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, &StubRouterRepoSubItem{}, &StubRouterRepoMilestone{})
 	if h == nil {
 		t.Fatal("expected non-nil handler")
 	}

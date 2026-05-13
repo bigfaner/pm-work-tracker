@@ -104,12 +104,13 @@ type MainItemService interface {
 type mainItemService struct {
 	mainItemRepo     repository.MainItemRepo
 	subItemRepo      repository.SubItemRepo
+	milestoneRepo    repository.MilestoneRepo
 	statusHistorySvc StatusHistoryService
 }
 
 // NewMainItemService creates a new MainItemService.
-func NewMainItemService(mainItemRepo repository.MainItemRepo, subItemRepo repository.SubItemRepo, statusHistorySvc StatusHistoryService) MainItemService {
-	return &mainItemService{mainItemRepo: mainItemRepo, subItemRepo: subItemRepo, statusHistorySvc: statusHistorySvc}
+func NewMainItemService(mainItemRepo repository.MainItemRepo, subItemRepo repository.SubItemRepo, statusHistorySvc StatusHistoryService, milestoneRepo repository.MilestoneRepo) MainItemService {
+	return &mainItemService{mainItemRepo: mainItemRepo, subItemRepo: subItemRepo, milestoneRepo: milestoneRepo, statusHistorySvc: statusHistorySvc}
 }
 
 func (s *mainItemService) Create(ctx context.Context, teamBizKey, pmBizKey int64, req dto.MainItemCreateReq) (*model.MainItem, error) {
@@ -118,14 +119,33 @@ func (s *mainItemService) Create(ctx context.Context, teamBizKey, pmBizKey int64
 		return nil, err
 	}
 
+	// Parse and validate milestoneKey if provided
+	var milestoneKeyVal *int64
+	if req.MilestoneKey != nil && *req.MilestoneKey != "" {
+		parsed, err := pkg.ParseID(*req.MilestoneKey)
+		if err != nil {
+			return nil, apperrors.ErrValidation
+		}
+		// Verify milestone exists and belongs to same team
+		milestone, err := s.milestoneRepo.FindByBizKey(ctx, parsed)
+		if err != nil {
+			return nil, apperrors.ErrMilestoneNotFound
+		}
+		if milestone.TeamKey != teamBizKey {
+			return nil, apperrors.ErrForbidden
+		}
+		milestoneKeyVal = &parsed
+	}
+
 	item := &model.MainItem{
-		BaseModel:   model.BaseModel{BizKey: snowflake.Generate()},
-		TeamKey:     teamBizKey,
-		Code:        code,
-		Title:       req.Title,
-		ItemDesc:    req.Description,
-		Priority:    req.Priority,
-		ProposerKey: pmBizKey,
+		BaseModel:    model.BaseModel{BizKey: snowflake.Generate()},
+		TeamKey:      teamBizKey,
+		Code:         code,
+		Title:        req.Title,
+		ItemDesc:     req.Description,
+		Priority:     req.Priority,
+		ProposerKey:  pmBizKey,
+		MilestoneKey: milestoneKeyVal,
 		AssigneeKey: func() *int64 {
 			if req.AssigneeKey != "" {
 				v, _ := pkg.ParseID(req.AssigneeKey)
@@ -188,6 +208,26 @@ func (s *mainItemService) Update(ctx context.Context, teamBizKey int64, itemID u
 	}
 	if req.IsKeyItem != nil {
 		fields["is_key_item"] = *req.IsKeyItem
+	}
+	if req.MilestoneKey != nil {
+		if *req.MilestoneKey == "" {
+			// Empty string means unbind
+			fields["milestone_key"] = nil
+		} else {
+			parsed, err := pkg.ParseID(*req.MilestoneKey)
+			if err != nil {
+				return apperrors.ErrValidation
+			}
+			// Verify milestone exists and belongs to same team
+			milestone, err := s.milestoneRepo.FindByBizKey(ctx, parsed)
+			if err != nil {
+				return apperrors.ErrMilestoneNotFound
+			}
+			if milestone.TeamKey != teamBizKey {
+				return apperrors.ErrForbidden
+			}
+			fields["milestone_key"] = parsed
+		}
 	}
 	if req.StartDate != nil {
 		fields["plan_start_date"] = *req.StartDate
@@ -517,4 +557,55 @@ func calcWeightedCompletion(items []*model.SubItem) float64 {
 	}
 
 	return weightedSum / totalWeight
+}
+
+// EnrichMainItemsWithMilestoneName enriches MainItem VOs with milestone names via batch lookup.
+// If a milestoneKey is non-nil but the milestone is not found (soft-deleted), milestoneName is set to "--".
+func (s *mainItemService) EnrichMainItemsWithMilestoneName(ctx context.Context, items []model.MainItem) map[int64]string {
+	// Collect non-nil milestoneKey values
+	bizKeys := make([]int64, 0)
+	for i := range items {
+		if items[i].MilestoneKey != nil {
+			bizKeys = append(bizKeys, *items[i].MilestoneKey)
+		}
+	}
+	if len(bizKeys) == 0 {
+		return nil
+	}
+
+	// Batch lookup
+	milestoneMap, err := s.milestoneRepo.FindByBizKeys(ctx, bizKeys)
+	if err != nil {
+		// On error, return "--" for all items with milestoneKeys
+		result := make(map[int64]string, len(bizKeys))
+		for _, bk := range bizKeys {
+			result[bk] = "--"
+		}
+		return result
+	}
+
+	// Build result map: milestoneBizKey -> milestoneName
+	// For milestones not found (soft-deleted), use "--"
+	result := make(map[int64]string, len(bizKeys))
+	for _, bk := range bizKeys {
+		if m, ok := milestoneMap[bk]; ok {
+			result[bk] = m.MilestoneName
+		} else {
+			result[bk] = "--"
+		}
+	}
+	return result
+}
+
+// GetMilestoneName resolves the milestone name for a single MainItem.
+// Returns the milestone name, or "--" if soft-deleted, or "" if not bound.
+func (s *mainItemService) GetMilestoneName(ctx context.Context, item *model.MainItem) string {
+	if item.MilestoneKey == nil {
+		return ""
+	}
+	milestone, err := s.milestoneRepo.FindByBizKey(ctx, *item.MilestoneKey)
+	if err != nil {
+		return "--"
+	}
+	return milestone.MilestoneName
 }

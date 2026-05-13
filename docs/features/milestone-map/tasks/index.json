@@ -175,7 +175,7 @@
         "2.1c",
         "2.2c"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.3-mainitem-integration.md",
       "record": "records/2.3-mainitem-integration.md",
       "breaking": true,

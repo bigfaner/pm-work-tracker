@@ -103,7 +103,7 @@ func run(configPath string, devMode bool) error {
 	teamSvc := service.NewTeamService(teamRepo, userRepo, mainItemRepo, roleRepo, db)
 	statusHistoryRepo := gormrepo.NewGormStatusHistoryRepo(db)
 	statusHistorySvc := service.NewStatusHistoryService(statusHistoryRepo)
-	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo, statusHistorySvc)
+	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo, statusHistorySvc, milestoneRepo)
 	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc, statusHistorySvc)
 	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc, statusHistorySvc)
 	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, db)
@@ -122,7 +122,7 @@ func run(configPath string, devMode bool) error {
 		RoleRepo:     roleRepo,
 		Auth:         handler.NewAuthHandler(authSvc),
 		Team:         handler.NewTeamHandler(teamSvc, userRepo),
-		MainItem:     handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
+		MainItem:     handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo, milestoneRepo),
 		SubItem:      handler.NewSubItemHandler(subItemSvc, mainItemSvc),
 		Progress:     handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
 		ItemPool:     handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),

@@ -111,7 +111,7 @@ func rbacTestEnv(t *testing.T) (*gin.Engine, *gorm.DB) {
 		TeamRepo:   teamRepo,
 		Auth:       NewAuthHandler(&rbacStubAuthService{}),
 		Team:       NewTeamHandler(&StubTeamSvc{}, &StubRouterRepoUser{}),
-		MainItem:   NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, &StubRouterRepoSubItem{}),
+		MainItem:   NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, &StubRouterRepoSubItem{}, &StubRouterRepoMilestone{}),
 		SubItem:    NewSubItemHandler(&StubSubItemSvc{}, &StubMainItemSvc{}),
 		Progress:   NewProgressHandler(&StubProgressSvc{}, &StubRouterRepoUser{}, &StubSubItemSvc{}),
 		ItemPool:   NewItemPoolHandler(&StubItemPoolSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMainItem{}),

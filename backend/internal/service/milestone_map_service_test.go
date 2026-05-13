@@ -82,18 +82,22 @@ func (m *mmMockMilestoneRepo) ListByMap(_ context.Context, _ int64) ([]model.Mil
 func (m *mmMockMilestoneRepo) ListByTeam(_ context.Context, _ int64, _ bool) ([]model.Milestone, error) {
 	return nil, nil
 }
-func (m *mmMockMilestoneRepo) SoftDelete(_ context.Context, _ uint) error { return nil }
+func (m *mmMockMilestoneRepo) SoftDelete(_ context.Context, _ uint) error   { return nil }
 func (m *mmMockMilestoneRepo) DeleteByMap(_ context.Context, _ int64) error { return nil }
 
 // mmMockMainItemRepo is a minimal mock for repository.MainItemRepo.
 type mmMockMainItemRepo struct{}
 
-func (m *mmMockMainItemRepo) Create(_ context.Context, _ *model.MainItem) error             { return nil }
-func (m *mmMockMainItemRepo) FindByID(_ context.Context, _ uint) (*model.MainItem, error)   { return nil, nil }
+func (m *mmMockMainItemRepo) Create(_ context.Context, _ *model.MainItem) error { return nil }
+func (m *mmMockMainItemRepo) FindByID(_ context.Context, _ uint) (*model.MainItem, error) {
+	return nil, nil
+}
 func (m *mmMockMainItemRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
 	return nil, nil
 }
-func (m *mmMockMainItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) { return nil, nil }
+func (m *mmMockMainItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
+	return nil, nil
+}
 func (m *mmMockMainItemRepo) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.MainItem, error) {
 	return nil, nil
 }
@@ -106,7 +110,7 @@ func (m *mmMockMainItemRepo) List(_ context.Context, _ int64, _ dto.MainItemFilt
 func (m *mmMockMainItemRepo) ListByTeamAndStatus(_ context.Context, _ int64, _ string) ([]model.MainItem, error) {
 	return nil, nil
 }
-func (m *mmMockMainItemRepo) NextCode(_ context.Context, _ int64) (string, error) { return "M001", nil }
+func (m *mmMockMainItemRepo) NextCode(_ context.Context, _ int64) (string, error)   { return "M001", nil }
 func (m *mmMockMainItemRepo) CountByTeam(_ context.Context, _ int64) (int64, error) { return 0, nil }
 func (m *mmMockMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ int64) ([]model.MainItem, error) {
 	return nil, nil
@@ -116,7 +120,9 @@ func (m *mmMockMainItemRepo) UnbindByMap(_ context.Context, _ int64) error      
 func (m *mmMockMainItemRepo) CalcCompletionByMilestone(_ context.Context, _ int64) (float64, error) {
 	return 0, nil
 }
-func (m *mmMockMainItemRepo) CountByMilestone(_ context.Context, _ int64) (int64, error) { return 0, nil }
+func (m *mmMockMainItemRepo) CountByMilestone(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
 func (m *mmMockMainItemRepo) CalcCompletionByMap(_ context.Context, _ int64) (float64, error) {
 	return 0, nil
 }

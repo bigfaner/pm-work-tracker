@@ -25,6 +25,60 @@ func TestMain(m *testing.M) {
 // Mock repos for MainItemService tests
 // ---------------------------------------------------------------------------
 
+type mockMilestoneRepo struct {
+	milestone       *model.Milestone
+	milestoneMap    map[int64]*model.Milestone
+	findByBizKeyErr error
+}
+
+func (m *mockMilestoneRepo) Create(_ context.Context, _ *model.Milestone) error {
+	return nil
+}
+func (m *mockMilestoneRepo) FindByID(_ context.Context, _ uint) (*model.Milestone, error) {
+	return nil, nil
+}
+func (m *mockMilestoneRepo) FindByBizKey(_ context.Context, bizKey int64) (*model.Milestone, error) {
+	if m.findByBizKeyErr != nil {
+		return nil, m.findByBizKeyErr
+	}
+	if m.milestone != nil {
+		return m.milestone, nil
+	}
+	if m.milestoneMap != nil {
+		if ms, ok := m.milestoneMap[bizKey]; ok {
+			return ms, nil
+		}
+	}
+	return nil, gorm.ErrRecordNotFound
+}
+func (m *mockMilestoneRepo) FindByBizKeys(_ context.Context, bizKeys []int64) (map[int64]*model.Milestone, error) {
+	if m.milestoneMap == nil {
+		return nil, nil
+	}
+	result := make(map[int64]*model.Milestone)
+	for _, bk := range bizKeys {
+		if ms, ok := m.milestoneMap[bk]; ok {
+			result[bk] = ms
+		}
+	}
+	return result, nil
+}
+func (m *mockMilestoneRepo) Update(_ context.Context, _ *model.Milestone, _ map[string]interface{}) error {
+	return nil
+}
+func (m *mockMilestoneRepo) ListByMap(_ context.Context, _ int64) ([]model.Milestone, error) {
+	return nil, nil
+}
+func (m *mockMilestoneRepo) ListByTeam(_ context.Context, _ int64, _ bool) ([]model.Milestone, error) {
+	return nil, nil
+}
+func (m *mockMilestoneRepo) SoftDelete(_ context.Context, _ uint) error {
+	return nil
+}
+func (m *mockMilestoneRepo) DeleteByMap(_ context.Context, _ int64) error {
+	return nil
+}
+
 type mockMainItemRepo struct {
 	item        *model.MainItem
 	bizKeyItem  *model.MainItem
@@ -193,7 +247,7 @@ func (m *mockStatusHistorySvc) ListByItem(_ context.Context, _ string, _ uint, _
 func TestMainItemCreate_Success(t *testing.T) {
 	mainRepo := &mockMainItemRepo{nextCodeVal: "MI-0001"}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	item, err := svc.Create(context.Background(), int64(1), 10, dto.MainItemCreateReq{
 		Title:    "Feature A",
@@ -211,7 +265,7 @@ func TestMainItemCreate_Success(t *testing.T) {
 func TestMainItemCreate_NextCodeError(t *testing.T) {
 	mainRepo := &mockMainItemRepo{nextErr: errors.New("db error")}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	_, err := svc.Create(context.Background(), int64(1), 10, dto.MainItemCreateReq{Title: "Feature A"})
 	assert.Error(t, err)
@@ -220,7 +274,7 @@ func TestMainItemCreate_NextCodeError(t *testing.T) {
 func TestMainItemCreate_RepoCreateError(t *testing.T) {
 	mainRepo := &mockMainItemRepo{nextCodeVal: "MI-0001", createErr: errors.New("db error")}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	_, err := svc.Create(context.Background(), int64(1), 10, dto.MainItemCreateReq{Title: "Feature A"})
 	assert.Error(t, err)
@@ -238,7 +292,7 @@ func TestMainItemUpdate_Success(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	err := svc.Update(context.Background(), int64(1), 1, dto.MainItemUpdateReq{
 		Title:    ptrStr("New Title"),
@@ -257,7 +311,7 @@ func TestMainItemUpdate_TeamMismatch(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	err := svc.Update(context.Background(), int64(1), 1, dto.MainItemUpdateReq{
 		Title: ptrStr("New Title"),
@@ -268,7 +322,7 @@ func TestMainItemUpdate_TeamMismatch(t *testing.T) {
 func TestMainItemUpdate_NotFound(t *testing.T) {
 	mainRepo := &mockMainItemRepo{findErr: gorm.ErrRecordNotFound}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	err := svc.Update(context.Background(), int64(1), 99, dto.MainItemUpdateReq{
 		Title: ptrStr("New Title"),
@@ -288,7 +342,7 @@ func TestMainItemArchive_Success(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	err := svc.Archive(context.Background(), int64(1), 1)
 	require.NoError(t, err)
@@ -303,7 +357,7 @@ func TestMainItemArchive_ClosedStatus(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	err := svc.Archive(context.Background(), int64(1), 1)
 	require.NoError(t, err)
@@ -317,7 +371,7 @@ func TestMainItemArchive_NotAllowed_InProgress(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	err := svc.Archive(context.Background(), int64(1), 1)
 	assert.ErrorIs(t, err, apperrors.ErrArchiveNotAllowed)
@@ -331,7 +385,7 @@ func TestMainItemArchive_NotAllowed_Pending(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	err := svc.Archive(context.Background(), int64(1), 1)
 	assert.ErrorIs(t, err, apperrors.ErrArchiveNotAllowed)
@@ -340,7 +394,7 @@ func TestMainItemArchive_NotAllowed_Pending(t *testing.T) {
 func TestMainItemArchive_NotFound(t *testing.T) {
 	mainRepo := &mockMainItemRepo{findErr: gorm.ErrRecordNotFound}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	err := svc.Archive(context.Background(), int64(1), 99)
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
@@ -357,7 +411,7 @@ func TestMainItemList_Success(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{items: items}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	result, err := svc.List(context.Background(), int64(1), dto.MainItemFilter{}, dto.Pagination{Page: 1, PageSize: 20})
 	require.NoError(t, err)
@@ -368,7 +422,7 @@ func TestMainItemList_Success(t *testing.T) {
 func TestMainItemList_RepoError(t *testing.T) {
 	mainRepo := &mockMainItemRepo{listErr: errors.New("db error")}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	_, err := svc.List(context.Background(), int64(1), dto.MainItemFilter{}, dto.Pagination{})
 	assert.Error(t, err)
@@ -386,7 +440,7 @@ func TestMainItemGet_Success(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{item: existing}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	item, err := svc.Get(context.Background(), 1)
 	require.NoError(t, err)
@@ -396,7 +450,7 @@ func TestMainItemGet_Success(t *testing.T) {
 func TestMainItemGet_NotFound(t *testing.T) {
 	mainRepo := &mockMainItemRepo{findErr: gorm.ErrRecordNotFound}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	_, err := svc.Get(context.Background(), 99)
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
@@ -415,7 +469,7 @@ func TestMainItemGetByBizKey_Success(t *testing.T) {
 	mainRepo := &mockMainItemRepo{}
 	mainRepo.bizKeyItem = existing
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	item, err := svc.GetByBizKey(context.Background(), 123456)
 	require.NoError(t, err)
@@ -425,7 +479,7 @@ func TestMainItemGetByBizKey_Success(t *testing.T) {
 func TestMainItemGetByBizKey_NotFound(t *testing.T) {
 	mainRepo := &mockMainItemRepo{bizKeyErr: gorm.ErrRecordNotFound}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	_, err := svc.GetByBizKey(context.Background(), 999)
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
@@ -443,7 +497,7 @@ func TestRecalcCompletion_ZeroSubItems(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{bizKeyItem: existing}
 	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{}}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
@@ -462,7 +516,7 @@ func TestRecalcCompletion_OneSubItem(t *testing.T) {
 			{Completion: 60, Weight: 1.0},
 		},
 	}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
@@ -483,7 +537,7 @@ func TestRecalcCompletion_MultipleSubItems_EqualWeights(t *testing.T) {
 			{Completion: 90, Weight: 1.0},
 		},
 	}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
@@ -504,7 +558,7 @@ func TestRecalcCompletion_AllZeroWeights_FallbackSimpleAvg(t *testing.T) {
 			{Completion: 80, Weight: 0},
 		},
 	}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
@@ -525,7 +579,7 @@ func TestRecalcCompletion_VaryingWeights(t *testing.T) {
 			{Completion: 50, Weight: 1.0},
 		},
 	}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	err := svc.RecalcCompletion(context.Background(), 1)
 	require.NoError(t, err)
@@ -536,7 +590,7 @@ func TestRecalcCompletion_VaryingWeights(t *testing.T) {
 func TestRecalcCompletion_ItemNotFound(t *testing.T) {
 	mainRepo := &mockMainItemRepo{bizKeyErr: gorm.ErrRecordNotFound}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	err := svc.RecalcCompletion(context.Background(), 99)
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
@@ -582,7 +636,7 @@ func TestChangeStatus_AllValidTransitions(t *testing.T) {
 			}
 			mainRepo := &mockMainItemRepo{item: item}
 			historySvc := &mockStatusHistorySvc{}
-			svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, historySvc)
+			svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, historySvc, &mockMilestoneRepo{})
 
 			updated, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, tt.to)
 			require.NoError(t, err)
@@ -608,7 +662,7 @@ func TestChangeStatus_SelfTransition(t *testing.T) {
 		ProposerKey: int64(10),
 	}
 	mainRepo := &mockMainItemRepo{item: item}
-	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil, &mockMilestoneRepo{})
 
 	_, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, "pending")
 	assert.ErrorIs(t, err, apperrors.ErrInvalidStatus)
@@ -640,7 +694,7 @@ func TestChangeStatus_InvalidTransitions(t *testing.T) {
 				ProposerKey: int64(10),
 			}
 			mainRepo := &mockMainItemRepo{item: item}
-			svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+			svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil, &mockMilestoneRepo{})
 
 			_, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, tt.to)
 			assert.ErrorIs(t, err, apperrors.ErrInvalidStatus)
@@ -656,7 +710,7 @@ func TestChangeStatus_PMOnly_ReviewingToCompleted(t *testing.T) {
 		ProposerKey: int64(10), // PM is user 10
 	}
 	mainRepo := &mockMainItemRepo{item: item}
-	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil, &mockMilestoneRepo{})
 
 	// Non-PM caller should be forbidden
 	_, err := svc.ChangeStatus(context.Background(), int64(1), 99, 1, "completed")
@@ -671,7 +725,7 @@ func TestChangeStatus_PMOnly_ReviewingToProgressing(t *testing.T) {
 		ProposerKey: int64(10),
 	}
 	mainRepo := &mockMainItemRepo{item: item}
-	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil, &mockMilestoneRepo{})
 
 	// Non-PM caller should be forbidden
 	_, err := svc.ChangeStatus(context.Background(), int64(1), 99, 1, "progressing")
@@ -702,7 +756,7 @@ func TestChangeStatus_TerminalSideEffects(t *testing.T) {
 				Completion:  50,
 			}
 			mainRepo := &mockMainItemRepo{item: item}
-			svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+			svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil, &mockMilestoneRepo{})
 
 			_, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, tt.newStatus)
 			require.NoError(t, err)
@@ -722,7 +776,7 @@ func TestChangeStatus_NonTerminal_NoSideEffects(t *testing.T) {
 		Completion:  30,
 	}
 	mainRepo := &mockMainItemRepo{item: item}
-	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil, &mockMilestoneRepo{})
 
 	_, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, "progressing")
 	require.NoError(t, err)
@@ -736,7 +790,7 @@ func TestChangeStatus_NonTerminal_NoSideEffects(t *testing.T) {
 
 func TestChangeStatus_ItemNotFound(t *testing.T) {
 	mainRepo := &mockMainItemRepo{findErr: gorm.ErrRecordNotFound}
-	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil, &mockMilestoneRepo{})
 
 	_, err := svc.ChangeStatus(context.Background(), int64(1), 10, 999, "progressing")
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
@@ -750,7 +804,7 @@ func TestMainItemChangeStatus_TeamMismatch(t *testing.T) {
 		ProposerKey: int64(10),
 	}
 	mainRepo := &mockMainItemRepo{item: item}
-	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil, &mockMilestoneRepo{})
 
 	_, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, "progressing")
 	assert.ErrorIs(t, err, apperrors.ErrForbidden)
@@ -765,7 +819,7 @@ func TestChangeStatus_StatusHistoryRecorded(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{item: item}
 	historySvc := &mockStatusHistorySvc{}
-	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, historySvc)
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, historySvc, &mockMilestoneRepo{})
 
 	_, err := svc.ChangeStatus(context.Background(), int64(1), 10, 1, "progressing")
 	require.NoError(t, err)
@@ -809,7 +863,7 @@ func TestAvailableTransitions_Success(t *testing.T) {
 				ProposerKey: tt.proposerID,
 			}
 			mainRepo := &mockMainItemRepo{item: item}
-			svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+			svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil, &mockMilestoneRepo{})
 
 			transitions, err := svc.AvailableTransitions(context.Background(), int64(1), tt.callerID, 1)
 			require.NoError(t, err)
@@ -826,7 +880,7 @@ func TestAvailableTransitions_NonPMReviewing_FiltersCompletedProgressing(t *test
 		ProposerKey: int64(10), // PM is user 10
 	}
 	mainRepo := &mockMainItemRepo{item: item}
-	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil, &mockMilestoneRepo{})
 
 	// Non-PM caller should not see completed/progressing
 	transitions, err := svc.AvailableTransitions(context.Background(), int64(1), 99, 1)
@@ -836,7 +890,7 @@ func TestAvailableTransitions_NonPMReviewing_FiltersCompletedProgressing(t *test
 
 func TestAvailableTransitions_ItemNotFound(t *testing.T) {
 	mainRepo := &mockMainItemRepo{findErr: gorm.ErrRecordNotFound}
-	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil, &mockMilestoneRepo{})
 
 	_, err := svc.AvailableTransitions(context.Background(), int64(1), 10, 999)
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
@@ -850,7 +904,7 @@ func TestAvailableTransitions_TeamMismatch(t *testing.T) {
 		ProposerKey: int64(10),
 	}
 	mainRepo := &mockMainItemRepo{item: item}
-	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil)
+	svc := NewMainItemService(mainRepo, &mockSubItemRepo{}, nil, &mockMilestoneRepo{})
 
 	_, err := svc.AvailableTransitions(context.Background(), int64(1), 10, 1)
 	assert.ErrorIs(t, err, apperrors.ErrForbidden)
@@ -868,7 +922,7 @@ func TestEvaluateLinkage_NoSubItems_NoLinkageTriggered(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 	subRepo := &mockSubItemRepo{subItems: []*model.SubItem{}}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
 	require.NoError(t, err)
@@ -878,7 +932,7 @@ func TestEvaluateLinkage_NoSubItems_NoLinkageTriggered(t *testing.T) {
 func TestEvaluateLinkage_MainItemNotFound(t *testing.T) {
 	mainRepo := &mockMainItemRepo{bizKeyErr: gorm.ErrRecordNotFound}
 	subRepo := &mockSubItemRepo{}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	_, err := svc.EvaluateLinkage(context.Background(), 999, 10)
 	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
@@ -891,7 +945,7 @@ func TestEvaluateLinkage_SubItemRepoError(t *testing.T) {
 	}
 	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 	subRepo := &mockSubItemRepo{findErr: errors.New("db error")}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	_, err := svc.EvaluateLinkage(context.Background(), 1, 10)
 	assert.Error(t, err)
@@ -929,7 +983,7 @@ func TestEvaluateLinkage_Priority1_AllCompletedOrClosed(t *testing.T) {
 			mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 			subRepo := &mockSubItemRepo{subItems: tt.items}
 			historySvc := &mockStatusHistorySvc{}
-			svc := NewMainItemService(mainRepo, subRepo, historySvc)
+			svc := NewMainItemService(mainRepo, subRepo, historySvc, &mockMilestoneRepo{})
 
 			result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
 			require.NoError(t, err)
@@ -958,7 +1012,7 @@ func TestEvaluateLinkage_Priority2_AllClosed(t *testing.T) {
 		{ItemStatus: "closed"},
 		{ItemStatus: "closed"},
 	}}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
 	require.NoError(t, err)
@@ -1001,7 +1055,7 @@ func TestEvaluateLinkage_Priority3_AllPausing(t *testing.T) {
 			}
 			mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 			subRepo := &mockSubItemRepo{subItems: tt.items}
-			svc := NewMainItemService(mainRepo, subRepo, nil)
+			svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 			result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
 			require.NoError(t, err)
@@ -1053,7 +1107,7 @@ func TestEvaluateLinkage_Priority4_AnyBlocking(t *testing.T) {
 			}
 			mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 			subRepo := &mockSubItemRepo{subItems: tt.items}
-			svc := NewMainItemService(mainRepo, subRepo, nil)
+			svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 			result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
 			require.NoError(t, err)
@@ -1101,7 +1155,7 @@ func TestEvaluateLinkage_Priority5_AnyProgressing(t *testing.T) {
 			}
 			mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
 			subRepo := &mockSubItemRepo{subItems: tt.items}
-			svc := NewMainItemService(mainRepo, subRepo, nil)
+			svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 			result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
 			require.NoError(t, err)
@@ -1128,7 +1182,7 @@ func TestEvaluateLinkage_ReviewingAndNewPending(t *testing.T) {
 		{ItemStatus: "completed"},
 		{ItemStatus: "pending"},
 	}}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
 	require.NoError(t, err)
@@ -1154,7 +1208,7 @@ func TestEvaluateLinkage_Failure_TransitionNotAllowed(t *testing.T) {
 		{ItemStatus: "completed"},
 	}}
 	historySvc := &mockStatusHistorySvc{}
-	svc := NewMainItemService(mainRepo, subRepo, historySvc)
+	svc := NewMainItemService(mainRepo, subRepo, historySvc, &mockMilestoneRepo{})
 
 	result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
 	require.NoError(t, err)
@@ -1185,7 +1239,7 @@ func TestEvaluateLinkage_SameStatus_NoTransition(t *testing.T) {
 		{ItemStatus: "completed"},
 		{ItemStatus: "completed"},
 	}}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
 	require.NoError(t, err)
@@ -1205,7 +1259,7 @@ func TestEvaluateLinkage_TerminalSideEffects(t *testing.T) {
 		{ItemStatus: "closed"},
 		{ItemStatus: "closed"},
 	}}
-	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
 
 	result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
 	require.NoError(t, err)
@@ -1228,7 +1282,7 @@ func TestEvaluateLinkage_StatusHistoryIsAuto(t *testing.T) {
 		{ItemStatus: "completed"},
 	}}
 	historySvc := &mockStatusHistorySvc{}
-	svc := NewMainItemService(mainRepo, subRepo, historySvc)
+	svc := NewMainItemService(mainRepo, subRepo, historySvc, &mockMilestoneRepo{})
 
 	result, err := svc.EvaluateLinkage(context.Background(), 1, 10)
 	require.NoError(t, err)
@@ -1311,4 +1365,286 @@ func TestGetLinkageMutex_CapacityBounded(t *testing.T) {
 		getLinkageMutex(int64(i))
 	}
 	assert.Len(t, linkageMuMap, maxLinkageMuMapSize)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: milestoneKey integration (Create/Update/Enrichment)
+// ---------------------------------------------------------------------------
+
+func TestMainItemCreate_WithMilestoneKey_SameTeam(t *testing.T) {
+	milestoneBizKey := int64(9001)
+	msRepo := &mockMilestoneRepo{
+		milestone: &model.Milestone{
+			BaseModel:     model.BaseModel{BizKey: milestoneBizKey},
+			TeamKey:       int64(1),
+			MilestoneName: "Sprint 1",
+		},
+	}
+	mainRepo := &mockMainItemRepo{nextCodeVal: "MI-0001"}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil, msRepo)
+
+	msKey := "9001"
+	item, err := svc.Create(context.Background(), int64(1), 10, dto.MainItemCreateReq{
+		Title:        "Feature A",
+		Priority:     "P0",
+		MilestoneKey: &msKey,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, item.MilestoneKey)
+	assert.Equal(t, milestoneBizKey, *item.MilestoneKey)
+}
+
+func TestMainItemCreate_WithMilestoneKey_TeamMismatch(t *testing.T) {
+	msRepo := &mockMilestoneRepo{
+		milestone: &model.Milestone{
+			BaseModel:     model.BaseModel{BizKey: 9001},
+			TeamKey:       int64(2), // different team
+			MilestoneName: "Sprint 1",
+		},
+	}
+	mainRepo := &mockMainItemRepo{nextCodeVal: "MI-0001"}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil, msRepo)
+
+	msKey := "9001"
+	_, err := svc.Create(context.Background(), int64(1), 10, dto.MainItemCreateReq{
+		Title:        "Feature A",
+		Priority:     "P0",
+		MilestoneKey: &msKey,
+	})
+	assert.ErrorIs(t, err, apperrors.ErrForbidden)
+}
+
+func TestMainItemCreate_WithMilestoneKey_NotFound(t *testing.T) {
+	msRepo := &mockMilestoneRepo{findByBizKeyErr: gorm.ErrRecordNotFound}
+	mainRepo := &mockMainItemRepo{nextCodeVal: "MI-0001"}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil, msRepo)
+
+	msKey := "9999"
+	_, err := svc.Create(context.Background(), int64(1), 10, dto.MainItemCreateReq{
+		Title:        "Feature A",
+		Priority:     "P0",
+		MilestoneKey: &msKey,
+	})
+	assert.ErrorIs(t, err, apperrors.ErrMilestoneNotFound)
+}
+
+func TestMainItemCreate_WithMilestoneKey_InvalidBizKey(t *testing.T) {
+	msRepo := &mockMilestoneRepo{}
+	mainRepo := &mockMainItemRepo{nextCodeVal: "MI-0001"}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil, msRepo)
+
+	msKey := "not-a-number"
+	_, err := svc.Create(context.Background(), int64(1), 10, dto.MainItemCreateReq{
+		Title:        "Feature A",
+		Priority:     "P0",
+		MilestoneKey: &msKey,
+	})
+	assert.ErrorIs(t, err, apperrors.ErrValidation)
+}
+
+func TestMainItemCreate_WithMilestoneKey_EmptyString_NoBind(t *testing.T) {
+	mainRepo := &mockMainItemRepo{nextCodeVal: "MI-0001"}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
+
+	msKey := ""
+	item, err := svc.Create(context.Background(), int64(1), 10, dto.MainItemCreateReq{
+		Title:        "Feature A",
+		Priority:     "P0",
+		MilestoneKey: &msKey,
+	})
+	require.NoError(t, err)
+	assert.Nil(t, item.MilestoneKey)
+}
+
+func TestMainItemCreate_WithoutMilestoneKey(t *testing.T) {
+	mainRepo := &mockMainItemRepo{nextCodeVal: "MI-0001"}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
+
+	item, err := svc.Create(context.Background(), int64(1), 10, dto.MainItemCreateReq{
+		Title:    "Feature A",
+		Priority: "P0",
+	})
+	require.NoError(t, err)
+	assert.Nil(t, item.MilestoneKey)
+}
+
+func TestMainItemUpdate_BindMilestoneKey(t *testing.T) {
+	existing := &model.MainItem{
+		BaseModel: model.BaseModel{ID: 1},
+		TeamKey:   1,
+	}
+	msRepo := &mockMilestoneRepo{
+		milestone: &model.Milestone{
+			BaseModel:     model.BaseModel{BizKey: 9001},
+			TeamKey:       int64(1),
+			MilestoneName: "Sprint 1",
+		},
+	}
+	mainRepo := &mockMainItemRepo{item: existing}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil, msRepo)
+
+	msKey := "9001"
+	err := svc.Update(context.Background(), int64(1), 1, dto.MainItemUpdateReq{
+		MilestoneKey: &msKey,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, int64(9001), mainRepo.updatedFields["milestone_key"])
+}
+
+func TestMainItemUpdate_UnbindMilestoneKey(t *testing.T) {
+	existing := &model.MainItem{
+		BaseModel:    model.BaseModel{ID: 1},
+		TeamKey:      1,
+		MilestoneKey: func() *int64 { v := int64(9001); return &v }(),
+	}
+	mainRepo := &mockMainItemRepo{item: existing}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
+
+	msKey := ""
+	err := svc.Update(context.Background(), int64(1), 1, dto.MainItemUpdateReq{
+		MilestoneKey: &msKey,
+	})
+	require.NoError(t, err)
+	assert.Nil(t, mainRepo.updatedFields["milestone_key"])
+}
+
+func TestMainItemUpdate_MilestoneKeyNil_NoChange(t *testing.T) {
+	existing := &model.MainItem{
+		BaseModel:    model.BaseModel{ID: 1},
+		TeamKey:      1,
+		MilestoneKey: func() *int64 { v := int64(9001); return &v }(),
+	}
+	mainRepo := &mockMainItemRepo{item: existing}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil, &mockMilestoneRepo{})
+
+	err := svc.Update(context.Background(), int64(1), 1, dto.MainItemUpdateReq{
+		Title: ptrStr("New Title"), // some other field
+	})
+	require.NoError(t, err)
+	_, hasMilestone := mainRepo.updatedFields["milestone_key"]
+	assert.False(t, hasMilestone, "milestone_key should not be in updated fields when nil")
+}
+
+func TestMainItemUpdate_MilestoneKey_TeamMismatch(t *testing.T) {
+	existing := &model.MainItem{
+		BaseModel: model.BaseModel{ID: 1},
+		TeamKey:   1,
+	}
+	msRepo := &mockMilestoneRepo{
+		milestone: &model.Milestone{
+			BaseModel:     model.BaseModel{BizKey: 9001},
+			TeamKey:       int64(2), // different team
+			MilestoneName: "Sprint 1",
+		},
+	}
+	mainRepo := &mockMainItemRepo{item: existing}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil, msRepo)
+
+	msKey := "9001"
+	err := svc.Update(context.Background(), int64(1), 1, dto.MainItemUpdateReq{
+		MilestoneKey: &msKey,
+	})
+	assert.ErrorIs(t, err, apperrors.ErrForbidden)
+}
+
+func TestEnrichMainItemsWithMilestoneName_BatchLookup(t *testing.T) {
+	msRepo := &mockMilestoneRepo{
+		milestoneMap: map[int64]*model.Milestone{
+			100: {MilestoneName: "Sprint 1"},
+			200: {MilestoneName: "Sprint 2"},
+		},
+	}
+	mainRepo := &mockMainItemRepo{}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil, msRepo).(*mainItemService)
+
+	items := []model.MainItem{
+		{MilestoneKey: func() *int64 { v := int64(100); return &v }()},
+		{MilestoneKey: func() *int64 { v := int64(200); return &v }()},
+		{MilestoneKey: nil},
+	}
+
+	names := svc.EnrichMainItemsWithMilestoneName(context.Background(), items)
+	assert.Equal(t, "Sprint 1", names[100])
+	assert.Equal(t, "Sprint 2", names[200])
+}
+
+func TestEnrichMainItemsWithMilestoneName_SoftDeletedFallsBackToDash(t *testing.T) {
+	msRepo := &mockMilestoneRepo{
+		milestoneMap: map[int64]*model.Milestone{
+			100: {MilestoneName: "Sprint 1"},
+		},
+	}
+	mainRepo := &mockMainItemRepo{}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil, msRepo).(*mainItemService)
+
+	items := []model.MainItem{
+		{MilestoneKey: func() *int64 { v := int64(100); return &v }()},
+		{MilestoneKey: func() *int64 { v := int64(999); return &v }()}, // soft-deleted
+	}
+
+	names := svc.EnrichMainItemsWithMilestoneName(context.Background(), items)
+	assert.Equal(t, "Sprint 1", names[100])
+	assert.Equal(t, "--", names[999])
+}
+
+func TestEnrichMainItemsWithMilestoneName_NoMilestoneKeys(t *testing.T) {
+	msRepo := &mockMilestoneRepo{}
+	mainRepo := &mockMainItemRepo{}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil, msRepo).(*mainItemService)
+
+	items := []model.MainItem{
+		{MilestoneKey: nil},
+		{MilestoneKey: nil},
+	}
+
+	names := svc.EnrichMainItemsWithMilestoneName(context.Background(), items)
+	assert.Nil(t, names)
+}
+
+func TestGetMilestoneName_Found(t *testing.T) {
+	msRepo := &mockMilestoneRepo{
+		milestone: &model.Milestone{MilestoneName: "Sprint 1"},
+	}
+	mainRepo := &mockMainItemRepo{}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil, msRepo).(*mainItemService)
+
+	item := &model.MainItem{MilestoneKey: func() *int64 { v := int64(100); return &v }()}
+	name := svc.GetMilestoneName(context.Background(), item)
+	assert.Equal(t, "Sprint 1", name)
+}
+
+func TestGetMilestoneName_NotBound(t *testing.T) {
+	msRepo := &mockMilestoneRepo{}
+	mainRepo := &mockMainItemRepo{}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil, msRepo).(*mainItemService)
+
+	item := &model.MainItem{MilestoneKey: nil}
+	name := svc.GetMilestoneName(context.Background(), item)
+	assert.Equal(t, "", name)
+}
+
+func TestGetMilestoneName_SoftDeleted(t *testing.T) {
+	msRepo := &mockMilestoneRepo{findByBizKeyErr: gorm.ErrRecordNotFound}
+	mainRepo := &mockMainItemRepo{}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil, msRepo).(*mainItemService)
+
+	item := &model.MainItem{MilestoneKey: func() *int64 { v := int64(100); return &v }()}
+	name := svc.GetMilestoneName(context.Background(), item)
+	assert.Equal(t, "--", name)
 }

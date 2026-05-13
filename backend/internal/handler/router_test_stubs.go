@@ -481,14 +481,17 @@ func (s *StubRouterRepoMainItem) CountByMilestone(_ context.Context, _ int64) (i
 	return 0, nil
 }
 
+// UnbindByMap is a stub for repository.MainItemRepo.UnbindByMap.
 func (s *StubRouterRepoMainItem) UnbindByMap(_ context.Context, _ int64) error {
 	return nil
 }
 
+// CalcCompletionByMap is a stub for repository.MainItemRepo.CalcCompletionByMap.
 func (s *StubRouterRepoMainItem) CalcCompletionByMap(_ context.Context, _ int64) (float64, error) {
 	return 0, nil
 }
 
+// CountByMap is a stub for repository.MainItemRepo.CountByMap.
 func (s *StubRouterRepoMainItem) CountByMap(_ context.Context, _ int64) (int64, error) {
 	return 0, nil
 }
@@ -559,3 +562,47 @@ func (s *StubProgressSvc) GetByBizKey(_ context.Context, _ int64) (*model.Progre
 }
 
 var _ service.ProgressService = (*StubProgressSvc)(nil)
+
+// StubRouterRepoMilestone is a stub implementation of repository.MilestoneRepo for testing.
+type StubRouterRepoMilestone struct{}
+
+// Create is a stub for repository.MilestoneRepo.Create.
+func (s *StubRouterRepoMilestone) Create(_ context.Context, _ *model.Milestone) error { return nil }
+
+// FindByID is a stub for repository.MilestoneRepo.FindByID.
+func (s *StubRouterRepoMilestone) FindByID(_ context.Context, _ uint) (*model.Milestone, error) {
+	return nil, nil
+}
+
+// FindByBizKey is a stub for repository.MilestoneRepo.FindByBizKey.
+func (s *StubRouterRepoMilestone) FindByBizKey(_ context.Context, _ int64) (*model.Milestone, error) {
+	return nil, nil
+}
+
+// FindByBizKeys is a stub for repository.MilestoneRepo.FindByBizKeys.
+func (s *StubRouterRepoMilestone) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.Milestone, error) {
+	return nil, nil
+}
+
+// Update is a stub for repository.MilestoneRepo.Update.
+func (s *StubRouterRepoMilestone) Update(_ context.Context, _ *model.Milestone, _ map[string]interface{}) error {
+	return nil
+}
+
+// ListByMap is a stub for repository.MilestoneRepo.ListByMap.
+func (s *StubRouterRepoMilestone) ListByMap(_ context.Context, _ int64) ([]model.Milestone, error) {
+	return nil, nil
+}
+
+// ListByTeam is a stub for repository.MilestoneRepo.ListByTeam.
+func (s *StubRouterRepoMilestone) ListByTeam(_ context.Context, _ int64, _ bool) ([]model.Milestone, error) {
+	return nil, nil
+}
+
+// SoftDelete is a stub for repository.MilestoneRepo.SoftDelete.
+func (s *StubRouterRepoMilestone) SoftDelete(_ context.Context, _ uint) error { return nil }
+
+// DeleteByMap is a stub for repository.MilestoneRepo.DeleteByMap.
+func (s *StubRouterRepoMilestone) DeleteByMap(_ context.Context, _ int64) error { return nil }
+
+var _ repository.MilestoneRepo = (*StubRouterRepoMilestone)(nil)

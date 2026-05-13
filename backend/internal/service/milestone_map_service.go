@@ -30,15 +30,15 @@ type MilestoneMapService interface {
 }
 
 type milestoneMapService struct {
-	repo           repository.MilestoneMapRepo
-	milestoneRepo  repository.MilestoneRepo
-	mainItemRepo   repository.MainItemRepo
-	db             repo.DBTransactor
+	repo          repository.MilestoneMapRepo
+	milestoneRepo repository.MilestoneRepo
+	mainItemRepo  repository.MainItemRepo
+	db            repo.DBTransactor
 }
 
 // NewMilestoneMapService creates a new MilestoneMapService.
-func NewMilestoneMapService(repo repository.MilestoneMapRepo, milestoneRepo repository.MilestoneRepo, mainItemRepo repository.MainItemRepo, db repo.DBTransactor) MilestoneMapService {
-	return &milestoneMapService{repo: repo, milestoneRepo: milestoneRepo, mainItemRepo: mainItemRepo, db: db}
+func NewMilestoneMapService(mapRepo repository.MilestoneMapRepo, milestoneRepo repository.MilestoneRepo, mainItemRepo repository.MainItemRepo, db repo.DBTransactor) MilestoneMapService {
+	return &milestoneMapService{repo: mapRepo, milestoneRepo: milestoneRepo, mainItemRepo: mainItemRepo, db: db}
 }
 
 func (s *milestoneMapService) Create(ctx context.Context, teamBizKey int64, req dto.MilestoneMapCreateReq) (*model.MilestoneMap, error) {

@@ -161,6 +161,8 @@ func (r *mainItemRepo) UnbindByMap(ctx context.Context, milestoneMapBizKey int64
 
 // CalcCompletionByMilestone returns the average completion_pct of all non-deleted main items
 // bound to the given milestone bizKey. Returns 0 if no items are bound.
+//
+//nolint:dupl // similar to CalcCompletionByMap but different WHERE clause
 func (r *mainItemRepo) CalcCompletionByMilestone(ctx context.Context, milestoneBizKey int64) (float64, error) {
 	var avg *float64
 	err := r.db.WithContext(ctx).Scopes(NotDeleted).
@@ -189,6 +191,8 @@ func (r *mainItemRepo) CountByMilestone(ctx context.Context, milestoneBizKey int
 
 // CalcCompletionByMap returns the average completion_pct of all non-deleted main items
 // bound to milestones belonging to the given map. Returns 0 if no items are bound.
+//
+//nolint:dupl // similar to CalcCompletionByMilestone but uses subquery for map-level lookup
 func (r *mainItemRepo) CalcCompletionByMap(ctx context.Context, milestoneMapBizKey int64) (float64, error) {
 	var avg *float64
 	err := r.db.WithContext(ctx).Scopes(NotDeleted).

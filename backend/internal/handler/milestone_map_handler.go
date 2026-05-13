@@ -138,6 +138,8 @@ func (h *MilestoneMapHandler) Update(c *gin.Context) {
 }
 
 // Delete handles DELETE /api/v1/teams/:teamId/milestone-maps/:mapId
+//
+//nolint:dupl // similar to MilestoneHandler.Delete but different entity/service
 func (h *MilestoneMapHandler) Delete(c *gin.Context) {
 	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "mapId")
 	if !ok {
