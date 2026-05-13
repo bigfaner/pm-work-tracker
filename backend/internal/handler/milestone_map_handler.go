@@ -136,3 +136,77 @@ func (h *MilestoneMapHandler) Update(c *gin.Context) {
 
 	apperrors.RespondOK(c, vo.NewMilestoneMapVO(updated))
 }
+
+// Delete handles DELETE /api/v1/teams/:teamId/milestone-maps/:mapId
+func (h *MilestoneMapHandler) Delete(c *gin.Context) {
+	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "mapId")
+	if !ok {
+		return
+	}
+
+	// Resolve bizKey to internal ID
+	record, err := h.svc.GetByBizKey(c.Request.Context(), bizKey)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	if err := h.svc.Delete(c.Request.Context(), record.ID); err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, gin.H{"message": "deleted"})
+}
+
+// ChangeStatus handles PUT /api/v1/teams/:teamId/milestone-maps/:mapId/status
+func (h *MilestoneMapHandler) ChangeStatus(c *gin.Context) {
+	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "mapId")
+	if !ok {
+		return
+	}
+
+	var req dto.ChangeStatusReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	// Resolve bizKey to internal ID
+	record, err := h.svc.GetByBizKey(c.Request.Context(), bizKey)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	updated, err := h.svc.ChangeStatus(c.Request.Context(), record.ID, req.Status)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, vo.NewMilestoneMapVO(updated))
+}
+
+// AvailableTransitions handles GET /api/v1/teams/:teamId/milestone-maps/:mapId/available-transitions
+func (h *MilestoneMapHandler) AvailableTransitions(c *gin.Context) {
+	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "mapId")
+	if !ok {
+		return
+	}
+
+	// Resolve bizKey to internal ID
+	record, err := h.svc.GetByBizKey(c.Request.Context(), bizKey)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	transitions, err := h.svc.AvailableTransitions(c.Request.Context(), record.ID)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, gin.H{"transitions": transitions})
+}

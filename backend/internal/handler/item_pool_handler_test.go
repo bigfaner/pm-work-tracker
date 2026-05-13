@@ -1031,6 +1031,14 @@ func (t *trackingMainItemRepo) CountByMilestone(_ context.Context, _ int64) (int
 	return 0, nil
 }
 
+func (t *trackingMainItemRepo) UnbindByMap(_ context.Context, _ int64) error { return nil }
+func (t *trackingMainItemRepo) CalcCompletionByMap(_ context.Context, _ int64) (float64, error) {
+	return 0, nil
+}
+func (t *trackingMainItemRepo) CountByMap(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
+
 // compile-time check
 var _ repository.MainItemRepo = (*trackingMainItemRepo)(nil)
 
@@ -1075,6 +1083,13 @@ func (m *mockMainItemRepoForPool) CalcCompletionByMilestone(_ context.Context, _
 	return 0, nil
 }
 func (m *mockMainItemRepoForPool) CountByMilestone(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
+func (m *mockMainItemRepoForPool) UnbindByMap(_ context.Context, _ int64) error { return nil }
+func (m *mockMainItemRepoForPool) CalcCompletionByMap(_ context.Context, _ int64) (float64, error) {
+	return 0, nil
+}
+func (m *mockMainItemRepoForPool) CountByMap(_ context.Context, _ int64) (int64, error) {
 	return 0, nil
 }
 

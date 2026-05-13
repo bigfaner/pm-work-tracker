@@ -2,15 +2,18 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/repo"
 )
 
 // mmMockRepo is a testify/mock implementation of repository.MilestoneMapRepo for service tests.
@@ -57,6 +60,76 @@ func (m *mmMockRepo) SoftDelete(ctx context.Context, id uint) error {
 	return args.Error(0)
 }
 
+// mmMockMilestoneRepo is a minimal mock for repository.MilestoneRepo.
+type mmMockMilestoneRepo struct{}
+
+func (m *mmMockMilestoneRepo) Create(_ context.Context, _ *model.Milestone) error { return nil }
+func (m *mmMockMilestoneRepo) FindByID(_ context.Context, _ uint) (*model.Milestone, error) {
+	return nil, nil
+}
+func (m *mmMockMilestoneRepo) FindByBizKey(_ context.Context, _ int64) (*model.Milestone, error) {
+	return nil, nil
+}
+func (m *mmMockMilestoneRepo) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.Milestone, error) {
+	return nil, nil
+}
+func (m *mmMockMilestoneRepo) Update(_ context.Context, _ *model.Milestone, _ map[string]interface{}) error {
+	return nil
+}
+func (m *mmMockMilestoneRepo) ListByMap(_ context.Context, _ int64) ([]model.Milestone, error) {
+	return nil, nil
+}
+func (m *mmMockMilestoneRepo) ListByTeam(_ context.Context, _ int64, _ bool) ([]model.Milestone, error) {
+	return nil, nil
+}
+func (m *mmMockMilestoneRepo) SoftDelete(_ context.Context, _ uint) error { return nil }
+func (m *mmMockMilestoneRepo) DeleteByMap(_ context.Context, _ int64) error { return nil }
+
+// mmMockMainItemRepo is a minimal mock for repository.MainItemRepo.
+type mmMockMainItemRepo struct{}
+
+func (m *mmMockMainItemRepo) Create(_ context.Context, _ *model.MainItem) error             { return nil }
+func (m *mmMockMainItemRepo) FindByID(_ context.Context, _ uint) (*model.MainItem, error)   { return nil, nil }
+func (m *mmMockMainItemRepo) FindByIDs(_ context.Context, _ []uint) (map[uint]*model.MainItem, error) {
+	return nil, nil
+}
+func (m *mmMockMainItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) { return nil, nil }
+func (m *mmMockMainItemRepo) FindByBizKeys(_ context.Context, _ []int64) (map[int64]*model.MainItem, error) {
+	return nil, nil
+}
+func (m *mmMockMainItemRepo) Update(_ context.Context, _ *model.MainItem, _ map[string]interface{}) error {
+	return nil
+}
+func (m *mmMockMainItemRepo) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+	return nil, nil
+}
+func (m *mmMockMainItemRepo) ListByTeamAndStatus(_ context.Context, _ int64, _ string) ([]model.MainItem, error) {
+	return nil, nil
+}
+func (m *mmMockMainItemRepo) NextCode(_ context.Context, _ int64) (string, error) { return "M001", nil }
+func (m *mmMockMainItemRepo) CountByTeam(_ context.Context, _ int64) (int64, error) { return 0, nil }
+func (m *mmMockMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ int64) ([]model.MainItem, error) {
+	return nil, nil
+}
+func (m *mmMockMainItemRepo) UnbindByMilestone(_ context.Context, _ int64) error { return nil }
+func (m *mmMockMainItemRepo) UnbindByMap(_ context.Context, _ int64) error       { return nil }
+func (m *mmMockMainItemRepo) CalcCompletionByMilestone(_ context.Context, _ int64) (float64, error) {
+	return 0, nil
+}
+func (m *mmMockMainItemRepo) CountByMilestone(_ context.Context, _ int64) (int64, error) { return 0, nil }
+func (m *mmMockMainItemRepo) CalcCompletionByMap(_ context.Context, _ int64) (float64, error) {
+	return 0, nil
+}
+func (m *mmMockMainItemRepo) CountByMap(_ context.Context, _ int64) (int64, error) { return 0, nil }
+
+type mmMockDBTx struct{}
+
+func (m *mmMockDBTx) Transaction(fc func(tx *gorm.DB) error, _ ...*sql.TxOptions) error {
+	return fc(nil)
+}
+
+var _ repo.DBTransactor = (*mmMockDBTx)(nil)
+
 // mmSampleMap creates a sample MilestoneMap model.
 func mmSampleMap(id uint, teamKey int64, name string) *model.MilestoneMap {
 	return &model.MilestoneMap{
@@ -71,7 +144,7 @@ func mmSampleMap(id uint, teamKey int64, name string) *model.MilestoneMap {
 func TestMilestoneMapService_Create(t *testing.T) {
 	ctx := context.Background()
 	repo := new(mmMockRepo)
-	svc := NewMilestoneMapService(repo)
+	svc := NewMilestoneMapService(repo, &mmMockMilestoneRepo{}, &mmMockMainItemRepo{}, &mmMockDBTx{})
 
 	t.Run("success", func(t *testing.T) {
 		req := dto.MilestoneMapCreateReq{MapName: "Test Map", MapDesc: "desc"}
@@ -101,7 +174,7 @@ func TestMilestoneMapService_Create(t *testing.T) {
 func TestMilestoneMapService_Get(t *testing.T) {
 	ctx := context.Background()
 	repo := new(mmMockRepo)
-	svc := NewMilestoneMapService(repo)
+	svc := NewMilestoneMapService(repo, &mmMockMilestoneRepo{}, &mmMockMainItemRepo{}, &mmMockDBTx{})
 
 	t.Run("success", func(t *testing.T) {
 		expected := mmSampleMap(1, 100, "Test")
@@ -125,7 +198,7 @@ func TestMilestoneMapService_Get(t *testing.T) {
 func TestMilestoneMapService_GetByBizKey(t *testing.T) {
 	ctx := context.Background()
 	repo := new(mmMockRepo)
-	svc := NewMilestoneMapService(repo)
+	svc := NewMilestoneMapService(repo, &mmMockMilestoneRepo{}, &mmMockMainItemRepo{}, &mmMockDBTx{})
 
 	t.Run("success", func(t *testing.T) {
 		expected := mmSampleMap(1, 100, "Test")
@@ -149,7 +222,7 @@ func TestMilestoneMapService_GetByBizKey(t *testing.T) {
 func TestMilestoneMapService_List(t *testing.T) {
 	ctx := context.Background()
 	repo := new(mmMockRepo)
-	svc := NewMilestoneMapService(repo)
+	svc := NewMilestoneMapService(repo, &mmMockMilestoneRepo{}, &mmMockMainItemRepo{}, &mmMockDBTx{})
 
 	t.Run("success", func(t *testing.T) {
 		items := []model.MilestoneMap{*mmSampleMap(1, 100, "Map A"), *mmSampleMap(2, 100, "Map B")}
@@ -184,7 +257,7 @@ func TestMilestoneMapService_List(t *testing.T) {
 func TestMilestoneMapService_Update(t *testing.T) {
 	ctx := context.Background()
 	repo := new(mmMockRepo)
-	svc := NewMilestoneMapService(repo)
+	svc := NewMilestoneMapService(repo, &mmMockMilestoneRepo{}, &mmMockMainItemRepo{}, &mmMockDBTx{})
 
 	t.Run("update name only", func(t *testing.T) {
 		existing := mmSampleMap(1, 100, "Old Name")

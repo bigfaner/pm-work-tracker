@@ -119,6 +119,14 @@ func (m *mockMainItemRepo) CountByMilestone(_ context.Context, _ int64) (int64, 
 	return 0, nil
 }
 
+func (m *mockMainItemRepo) UnbindByMap(_ context.Context, _ int64) error { return nil }
+func (m *mockMainItemRepo) CalcCompletionByMap(_ context.Context, _ int64) (float64, error) {
+	return 0, nil
+}
+func (m *mockMainItemRepo) CountByMap(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
+
 type mockSubItemRepo struct {
 	subItems []*model.SubItem
 	findErr  error

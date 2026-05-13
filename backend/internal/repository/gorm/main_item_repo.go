@@ -151,6 +151,14 @@ func (r *mainItemRepo) UnbindByMilestone(ctx context.Context, milestoneBizKey in
 		Update("milestone_key", nil).Error
 }
 
+// UnbindByMap sets milestone_key to NULL for all main items bound to milestones belonging to the given map.
+func (r *mainItemRepo) UnbindByMap(ctx context.Context, milestoneMapBizKey int64) error {
+	return r.db.WithContext(ctx).Scopes(NotDeleted).
+		Model(&model.MainItem{}).
+		Where("milestone_key IN (SELECT biz_key FROM pmw_milestones WHERE milestone_map_key = ? AND deleted_flag = 0)", milestoneMapBizKey).
+		Update("milestone_key", nil).Error
+}
+
 // CalcCompletionByMilestone returns the average completion_pct of all non-deleted main items
 // bound to the given milestone bizKey. Returns 0 if no items are bound.
 func (r *mainItemRepo) CalcCompletionByMilestone(ctx context.Context, milestoneBizKey int64) (float64, error) {
@@ -175,6 +183,34 @@ func (r *mainItemRepo) CountByMilestone(ctx context.Context, milestoneBizKey int
 	err := r.db.WithContext(ctx).Scopes(NotDeleted).
 		Model(&model.MainItem{}).
 		Where("milestone_key = ?", milestoneBizKey).
+		Count(&count).Error
+	return count, err
+}
+
+// CalcCompletionByMap returns the average completion_pct of all non-deleted main items
+// bound to milestones belonging to the given map. Returns 0 if no items are bound.
+func (r *mainItemRepo) CalcCompletionByMap(ctx context.Context, milestoneMapBizKey int64) (float64, error) {
+	var avg *float64
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).
+		Model(&model.MainItem{}).
+		Where("milestone_key IN (SELECT biz_key FROM pmw_milestones WHERE milestone_map_key = ? AND deleted_flag = 0)", milestoneMapBizKey).
+		Select("AVG(completion_pct)").
+		Scan(&avg).Error
+	if err != nil {
+		return 0, err
+	}
+	if avg == nil {
+		return 0, nil
+	}
+	return *avg, nil
+}
+
+// CountByMap returns the count of non-deleted main items bound to milestones of the given map.
+func (r *mainItemRepo) CountByMap(ctx context.Context, milestoneMapBizKey int64) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).
+		Model(&model.MainItem{}).
+		Where("milestone_key IN (SELECT biz_key FROM pmw_milestones WHERE milestone_map_key = ? AND deleted_flag = 0)", milestoneMapBizKey).
 		Count(&count).Error
 	return count, err
 }

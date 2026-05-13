@@ -21,6 +21,9 @@ type MainItemRepo interface {
 	CountByTeam(ctx context.Context, teamBizKey int64) (int64, error)
 	ListNonArchivedByTeam(ctx context.Context, teamBizKey int64) ([]model.MainItem, error)
 	UnbindByMilestone(ctx context.Context, milestoneBizKey int64) error
+	UnbindByMap(ctx context.Context, milestoneMapBizKey int64) error
 	CalcCompletionByMilestone(ctx context.Context, milestoneBizKey int64) (float64, error)
 	CountByMilestone(ctx context.Context, milestoneBizKey int64) (int64, error)
+	CalcCompletionByMap(ctx context.Context, milestoneMapBizKey int64) (float64, error)
+	CountByMap(ctx context.Context, milestoneMapBizKey int64) (int64, error)
 }

@@ -65,6 +65,7 @@ func wireHandlers(t *testing.T, db *gorm.DB, _ *seedData, includeRBAC bool) *han
 	itemPoolRepo := gormrepo.NewGormItemPoolRepo(db)
 	roleRepo := gormrepo.NewGormRoleRepo(db)
 	milestoneMapRepo := gormrepo.NewGormMilestoneMapRepo(db)
+		milestoneRepo := gormrepo.NewGormMilestoneRepo(db)
 
 	authSvc := service.NewAuthService(userRepo, testJWTSecret)
 	statusHistoryRepo := gormrepo.NewGormStatusHistoryRepo(db)
@@ -105,7 +106,7 @@ func wireHandlers(t *testing.T, db *gorm.DB, _ *seedData, includeRBAC bool) *han
 		View:         handler.NewViewHandler(viewSvc),
 		Report:       handler.NewReportHandler(reportSvc),
 		Admin:        handler.NewAdminHandler(adminSvc),
-		MilestoneMap: handler.NewMilestoneMapHandler(service.NewMilestoneMapService(milestoneMapRepo)),
+		MilestoneMap: handler.NewMilestoneMapHandler(service.NewMilestoneMapService(milestoneMapRepo, milestoneRepo, mainItemRepo, transactor{db: db})),
 	}
 
 	if includeRBAC {

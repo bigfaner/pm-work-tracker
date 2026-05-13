@@ -481,6 +481,18 @@ func (s *StubRouterRepoMainItem) CountByMilestone(_ context.Context, _ int64) (i
 	return 0, nil
 }
 
+func (s *StubRouterRepoMainItem) UnbindByMap(_ context.Context, _ int64) error {
+	return nil
+}
+
+func (s *StubRouterRepoMainItem) CalcCompletionByMap(_ context.Context, _ int64) (float64, error) {
+	return 0, nil
+}
+
+func (s *StubRouterRepoMainItem) CountByMap(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
+
 var _ repository.MainItemRepo = (*StubRouterRepoMainItem)(nil)
 
 // StubReportSvc is a stub ReportService for test wiring.

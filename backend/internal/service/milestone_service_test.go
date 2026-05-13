@@ -181,6 +181,14 @@ func (m *msMockMainItemRepo) CountByMilestone(_ context.Context, _ int64) (int64
 	return m.countByMilestone, m.countByMilestoneErr
 }
 
+func (m *msMockMainItemRepo) UnbindByMap(_ context.Context, _ int64) error { return nil }
+func (m *msMockMainItemRepo) CalcCompletionByMap(_ context.Context, _ int64) (float64, error) {
+	return 0, nil
+}
+func (m *msMockMainItemRepo) CountByMap(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
+
 // mockTransactor implements repo.DBTransactor for tests
 type mockTransactor struct {
 	txErr  error
