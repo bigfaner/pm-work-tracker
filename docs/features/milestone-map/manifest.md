@@ -25,11 +25,11 @@ status: tasks
 
 | PRD Section | Design Section | UI Component | Placement | Tasks |
 |-------------|----------------|--------------|-----------|-------|
-| UF-1 里程碑图两级视图 | Component: 里程碑图列表视图 + 时间线视图 | MilestoneMapListPage + TimelineView | new-page:/milestones | 1.1, 1.2, 2.1, 2.2, 3.1, 3.2 |
-| UF-2 创建/编辑里程碑弹窗 | Component: 创建/编辑里程碑弹窗 | MilestoneDialog | existing-page:/milestones | 2.2, 3.3 |
-| UF-3 详情面板 | Component: 里程碑详情面板 | MilestoneDetailPanel | existing-page:/milestones | 2.2, 3.3 |
+| UF-1 里程碑图两级视图 | Component: 里程碑图列表视图 + 时间线视图 | MilestoneMapListPage + TimelineView | new-page:/milestones | 1.1, 1.2, 2.1a~c, 2.2a~c, 3.1, 3.2 |
+| UF-2 创建/编辑里程碑弹窗 | Component: 创建/编辑里程碑弹窗 | MilestoneDialog | existing-page:/milestones | 2.2a~c, 3.3 |
+| UF-3 详情面板 | Component: 里程碑详情面板 | MilestoneDetailPanel | existing-page:/milestones | 2.2a~c, 3.3 |
 | UF-3a 快速添加事项 | Component: Quick Add MainItem Dialog | QuickAddDialog（复用 CreateMainItemDialog） | existing-page:/milestones | 2.3, 3.3 |
-| UF-4 事项清单筛选 | Component: 事项清单页里程碑筛选 | MilestoneFilter | existing-page:/items | 2.2, 3.4 |
+| UF-4 事项清单筛选 | Component: 事项清单页里程碑筛选 | MilestoneFilter | existing-page:/items | 2.2a~c, 3.4 |
 | UF-5 编辑选择器 | Component: 主事项编辑弹窗里程碑选择器 | MilestoneSelector | existing-page:/items/:mainItemId | 2.3, 3.5 |
 | UF-6 表格列 | Component: 表格视图里程碑列 | MilestoneColumn | existing-page:/table | 2.3, 3.6 |
-| UF-7 创建/编辑里程碑图弹窗 | Component: 创建/编辑里程碑图弹窗 | MilestoneMapDialog | existing-page:/milestones | 2.1, 3.2 |
+| UF-7 创建/编辑里程碑图弹窗 | Component: 创建/编辑里程碑图弹窗 | MilestoneMapDialog | existing-page:/milestones | 2.1a~c, 3.2 |

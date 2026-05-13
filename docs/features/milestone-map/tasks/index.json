@@ -118,9 +118,10 @@
       "estimatedTime": "1.5h",
       "dependencies": [
         "2.1b",
-        "2.2a"
+        "2.2a",
+        "fix-1"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.1c-milestone-map-complex.md",
       "record": "records/2.1c-milestone-map-complex.md",
       "scope": "backend"
@@ -319,6 +320,17 @@
       "scope": "all",
       "mainSession": true,
       "noTest": true
+    },
+    "fix-1": {
+      "id": "fix-1",
+      "title": "Fix: 2.1c agent stall - resume MilestoneMap complex ops",
+      "priority": "P0",
+      "estimatedTime": "30min",
+      "status": "completed",
+      "file": "fix-1.md",
+      "record": "records/fix-1.md",
+      "breaking": true,
+      "sourceTaskID": "2.1c"
     },
     "gen-test-cases": {
       "id": "T-test-1",

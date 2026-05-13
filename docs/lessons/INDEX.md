@@ -49,6 +49,7 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | File | When to Load |
 |------|-------------|
 | pattern-phase-gate-tasks.md | Task breakdown — model quality gates as explicit tasks |
+| pattern-task-split-by-layer.md | Task breakdown — split backend API tasks into infra/CRUD/complex layers |
 
 ### postmortem- — Postmortem Analysis
 
@@ -78,7 +79,7 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | Task | Lessons |
 |------|---------|
 | New entity / schema design | arch-bizkey-vs-internal-id, gotcha-bizkey-vs-id-confusion, key-field-design-analysis |
-| Task breakdown | arch-ui-integration-gap, pattern-phase-gate-tasks, gotcha-tech-design-decision-archiving |
+| Task breakdown | arch-ui-integration-gap, pattern-phase-gate-tasks, pattern-task-split-by-layer, gotcha-tech-design-decision-archiving |
 | E2E test generation | gotcha-e2e-script-generation, debug-e2e-zero-tests, debug-e2e-beforeall-cascade |
 | E2E test graduation | arch-e2e-graduation-staging, tool-e2e-graduation-structure |
 | Running /run-tasks | gotcha-subagent-partial-commits, gotcha-ac-self-report-without-verification, arch-task-failure-recovery-loop |
