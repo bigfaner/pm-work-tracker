@@ -210,7 +210,7 @@ export default function MainItemDetailPage() {
       assigneeKey: editForm.assigneeKey || null,
       expectedEndDate: editForm.expectedEndDate || null,
       description: editForm.description,
-      milestoneKey: editForm.milestoneKey || null,
+      milestoneKey: editForm.milestoneKey,
     })
   }, [editForm, updateMutation])
 
@@ -337,6 +337,7 @@ export default function MainItemDetailPage() {
                   ]?.terminal
                 }
                 onClick={() => setEditOpen(true)}
+                data-testid="btn-edit-item"
               >
                 <svg
                   width="16"

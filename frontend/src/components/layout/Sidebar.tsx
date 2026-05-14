@@ -106,6 +106,7 @@ export default function Sidebar() {
             <a
               key={item.key}
               href={item.key}
+              data-testid={`sidebar-link-${item.key.slice(1)}`}
               onClick={(e) => {
                 e.preventDefault()
                 navigate(item.key)

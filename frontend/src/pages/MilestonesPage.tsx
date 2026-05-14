@@ -107,13 +107,13 @@ function MapCard({
       type="button"
       onClick={onClick}
       className="flex flex-col gap-2.5 p-4 rounded-xl border border-border bg-white text-left hover:bg-bg-alt transition-colors cursor-pointer w-full"
-      data-testid={`map-card-${map.bizKey}`}
+      data-testid="map-card"
     >
       <div className="flex items-center justify-between">
-        <span className="text-[15px] font-medium text-primary truncate">
+        <span className="text-[15px] font-medium text-primary truncate" data-testid="map-card-title">
           {map.mapName}
         </span>
-        <Badge variant={badgeVariant as 'default' | 'warning' | 'primary' | 'success'}>
+        <Badge variant={badgeVariant as 'default' | 'warning' | 'primary' | 'success'} data-testid="badge-status">
           {map.statusName}
         </Badge>
       </div>
@@ -217,6 +217,7 @@ function CreateMapDialog({
               }}
               placeholder="请输入里程碑图名称"
               maxLength={100}
+              data-testid="input-map-name"
             />
             {nameError && (
               <p className="text-[12px] text-error-text mt-1">{nameError}</p>
@@ -231,6 +232,7 @@ function CreateMapDialog({
               onChange={(e) => setMapDesc(e.target.value)}
               placeholder="请输入描述（可选）"
               className="min-h-[80px]"
+              data-testid="input-map-description"
             />
           </div>
         </DialogBody>
@@ -241,6 +243,7 @@ function CreateMapDialog({
           <Button
             onClick={handleConfirm}
             disabled={createMutation.isPending}
+            data-testid="btn-confirm"
           >
             {createMutation.isPending ? '保存中...' : '确认'}
           </Button>
@@ -356,6 +359,7 @@ function TimelineView({
                 setEditingMilestone(null)
                 setMilestoneDialogOpen(true)
               }}
+              data-testid="btn-create-milestone"
             >
               <Plus className="w-4 h-4 mr-1" />
               创建里程碑
@@ -384,6 +388,7 @@ function TimelineView({
             onPressedChange={() => setZoom(z.key)}
             size="sm"
             variant="outline"
+            data-testid={`zoom-${z.key}`}
           >
             {z.label}
           </Toggle>
@@ -422,6 +427,7 @@ function TimelineView({
           className="relative overflow-x-auto min-h-[400px] border border-border rounded-xl bg-white p-6"
           role="application"
           aria-label="里程碑时间线"
+          data-testid="timeline-view"
         >
           {/* Time axis */}
           {timelineData.ticks.map((tick, i) => (
@@ -430,7 +436,7 @@ function TimelineView({
               className="absolute top-0 bottom-0 border-l border-border/40"
               style={{ left: tick.x }}
             >
-              <span className="text-[11px] text-tertiary ml-1 whitespace-nowrap">
+              <span className="text-[11px] text-tertiary ml-1 whitespace-nowrap" data-testid="axis-label">
                 {tick.label}
               </span>
             </div>
@@ -443,6 +449,7 @@ function TimelineView({
                 key={node.milestone.bizKey}
                 className="absolute w-40"
                 style={{ left: node.x, top: 8 }}
+                data-testid="milestone-node"
                 role="button"
                 tabIndex={0}
                 aria-label={`${node.milestone.milestoneName}，${node.milestone.statusName}，完成度 ${Math.round(node.milestone.completion)}%，${node.milestone.relatedMICount} 个事项`}
@@ -645,6 +652,7 @@ export default function MilestonesPage() {
           <Button
             onClick={() => setDialogOpen(true)}
             disabled={!canCreate}
+            data-testid="btn-create-map"
           >
             <Plus className="w-4 h-4 mr-1" />
             创建里程碑图
@@ -660,7 +668,7 @@ export default function MilestonesPage() {
       </div>
 
       {/* Status filter */}
-      <div className="mb-4">
+      <div className="mb-4" data-testid="filter-status">
         <Select
           value={statusFilter || '_all'}
           onValueChange={(val) => setStatusFilter(val === '_all' ? '' : val)}
@@ -685,17 +693,17 @@ export default function MilestonesPage() {
       {isLoading && <SkeletonCards />}
 
       {isError && (
-        <div className="flex flex-col items-center justify-center py-20">
+        <div className="flex flex-col items-center justify-center py-20" data-testid="error-state">
           <AlertCircle className="w-10 h-10 text-error mb-2" />
           <p className="text-[14px] text-secondary mb-3">加载失败，请重试</p>
-          <Button variant="secondary" size="sm" onClick={() => refetch()}>
+          <Button variant="secondary" size="sm" onClick={() => refetch()} data-testid="btn-retry">
             重试
           </Button>
         </div>
       )}
 
       {!isLoading && !isError && maps.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20">
+        <div className="flex flex-col items-center justify-center py-20" data-testid="empty-state">
           <MapPin className="w-10 h-10 text-tertiary mb-2" />
           <p className="text-[14px] text-secondary mb-3">暂无里程碑图</p>
           {canCreate && (

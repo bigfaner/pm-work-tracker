@@ -474,7 +474,7 @@ export function useItemViewPage(teamId: string | null) {
         expectedEndDate: editForm.expectedEndDate || null,
         actualEndDate: null,
         description: editForm.description,
-        milestoneKey: editForm.milestoneKey || null,
+        milestoneKey: editForm.milestoneKey,
       },
     })
   }, [editForm, editTarget, updateMutation])

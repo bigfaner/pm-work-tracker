@@ -117,7 +117,7 @@ export default function MilestoneDetailPanel({
   // Unbind MI mutation
   const unbindMutation = useMutation({
     mutationFn: (miBizKey: string) =>
-      updateMainItemApi(teamId, miBizKey, { milestoneKey: null }),
+      updateMainItemApi(teamId, miBizKey, { milestoneKey: '' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['milestone-related-mis', teamId, milestoneBizKey] })
       qc.invalidateQueries({ queryKey: ['milestone-detail', teamId, milestoneBizKey] })
@@ -146,7 +146,7 @@ export default function MilestoneDetailPanel({
         role="dialog"
         aria-label="里程碑详情"
         aria-modal="true"
-        data-testid="milestone-detail-panel"
+        data-testid="detail-panel"
       >
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div className="h-6 w-32 bg-bg-alt animate-pulse rounded" />
@@ -200,7 +200,7 @@ export default function MilestoneDetailPanel({
         role="dialog"
         aria-label="里程碑详情"
         aria-modal="true"
-        data-testid="milestone-detail-panel"
+        data-testid="detail-panel"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
@@ -246,6 +246,7 @@ export default function MilestoneDetailPanel({
                       disabled={!canUpdate || isCancelled}
                     >
                       <Badge
+                        data-testid="badge-status"
                         variant={
                           `status-${
                             milestone.milestoneStatus === 'not_started'
@@ -263,7 +264,7 @@ export default function MilestoneDetailPanel({
                       </Badge>
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="min-w-0 w-auto">
+                  <DropdownMenuContent className="min-w-0 w-auto" data-testid="dropdown-status-options">
                     {transitions.map((status) => (
                       <DropdownMenuItem
                         key={status}
@@ -287,6 +288,7 @@ export default function MilestoneDetailPanel({
                   size="sm"
                   onClick={() => setEditDialogOpen(true)}
                   aria-label="编辑里程碑"
+                  data-testid="btn-edit-milestone"
                 >
                   <Pencil className="w-4 h-4" />
                 </Button>
@@ -314,6 +316,7 @@ export default function MilestoneDetailPanel({
                   variant="ghost"
                   size="sm"
                   onClick={() => setQuickAddOpen(true)}
+                  data-testid="btn-quick-add-mi"
                 >
                   <Plus className="w-3 h-3 mr-1" />
                   添加
@@ -342,6 +345,7 @@ export default function MilestoneDetailPanel({
                         onClick={() => unbindMutation.mutate(mi.bizKey)}
                         aria-label={`解绑 ${mi.code}`}
                         disabled={unbindMutation.isPending}
+                        data-testid="btn-unbind-mi"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -359,6 +363,7 @@ export default function MilestoneDetailPanel({
                 variant="danger"
                 size="sm"
                 onClick={() => setDeleteConfirmOpen(true)}
+                data-testid="btn-delete"
               >
                 <Trash2 className="w-4 h-4 mr-1" />
                 删除里程碑
@@ -417,6 +422,7 @@ export default function MilestoneDetailPanel({
               variant="danger"
               onClick={() => deleteMutation.mutate()}
               disabled={deleteMutation.isPending}
+              data-testid="btn-confirm-delete"
             >
               {deleteMutation.isPending ? '删除中...' : '确认删除'}
             </Button>

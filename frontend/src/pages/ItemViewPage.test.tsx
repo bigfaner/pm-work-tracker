@@ -1148,7 +1148,7 @@ describe('ItemViewPage', () => {
     it('renders milestone filter dropdown in filter bar', async () => {
       renderPage()
       await waitFor(() => {
-        expect(screen.getByTestId('milestone-filter')).toBeInTheDocument()
+        expect(screen.getByTestId('filter-milestone')).toBeInTheDocument()
       })
     })
 
@@ -1180,7 +1180,7 @@ describe('ItemViewPage', () => {
       })
 
       // Open milestone filter dropdown
-      await user.click(screen.getByTestId('milestone-filter'))
+      await user.click(screen.getByTestId('filter-milestone'))
 
       // Select "MVP发布" milestone
       await waitFor(() => {
@@ -1204,7 +1204,7 @@ describe('ItemViewPage', () => {
       })
 
       // Open milestone filter dropdown
-      await user.click(screen.getByTestId('milestone-filter'))
+      await user.click(screen.getByTestId('filter-milestone'))
 
       // Select "未分配"
       await waitFor(() => {
@@ -1228,7 +1228,7 @@ describe('ItemViewPage', () => {
       })
 
       // Open milestone filter and select a value
-      await user.click(screen.getByTestId('milestone-filter'))
+      await user.click(screen.getByTestId('filter-milestone'))
       await waitFor(() => {
         expect(screen.getByRole('option', { name: 'MVP发布' })).toBeInTheDocument()
       })

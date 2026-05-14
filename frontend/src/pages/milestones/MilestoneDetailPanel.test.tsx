@@ -152,7 +152,7 @@ describe('MilestoneDetailPanel', () => {
       />,
     )
 
-    expect(screen.getByTestId('milestone-detail-panel')).toBeInTheDocument()
+    expect(screen.getByTestId('detail-panel')).toBeInTheDocument()
   })
 
   it('displays completion progress bar', async () => {

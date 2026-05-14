@@ -553,7 +553,7 @@ describe('TableViewPage', () => {
       expect(screen.getByText('用户认证模块开发')).toBeInTheDocument()
     })
     // MI-0001 has milestoneName 'MVP发布'
-    const milestoneCells = screen.getAllByTestId(/milestone-cell-/)
+    const milestoneCells = screen.getAllByTestId('cell-milestone')
     expect(milestoneCells[0]).toHaveTextContent('MVP发布')
   })
 
@@ -563,7 +563,7 @@ describe('TableViewPage', () => {
       expect(screen.getByText('登录页开发')).toBeInTheDocument()
     })
     // SI-0002 has milestoneName null
-    const milestoneCells = screen.getAllByTestId(/milestone-cell-/)
+    const milestoneCells = screen.getAllByTestId('cell-milestone')
     expect(milestoneCells[1]).toHaveTextContent('-')
   })
 

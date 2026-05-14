@@ -116,7 +116,7 @@ export default function EditMainItemDialog({
                 }))
               }
             >
-              <SelectTrigger>
+              <SelectTrigger data-testid="select-milestone">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -157,7 +157,7 @@ export default function EditMainItemDialog({
           <Button variant="secondary" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button onClick={onSubmit} disabled={!form.title.trim() || isPending}>
+          <Button onClick={onSubmit} disabled={!form.title.trim() || isPending} data-testid="btn-save">
             保存
           </Button>
         </DialogFooter>

@@ -96,11 +96,12 @@ export default function ItemSummaryView({
   onEditSubItem,
 }: SummaryViewProps) {
   return (
-    <div>
+    <div data-testid="item-list">
       {items.map((item) => (
         <div key={item.bizKey} className="mb-3">
           <div
             className="rounded-xl border border-border bg-white shadow-sm cursor-pointer"
+            data-testid="item-card"
             onClick={() => onToggleExpand(item.bizKey)}
           >
             <div className="flex items-center gap-2 px-4 py-3">

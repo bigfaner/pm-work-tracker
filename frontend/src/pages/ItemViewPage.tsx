@@ -128,7 +128,7 @@ export default function ItemViewPage() {
                 )
               }
             >
-              <SelectTrigger className="w-35" data-testid="milestone-filter">
+              <SelectTrigger className="w-35" data-testid="filter-milestone">
                 <SelectValue placeholder="里程碑：全部" />
               </SelectTrigger>
               <SelectContent>

@@ -80,6 +80,7 @@ export default function CreateEditMilestoneDialog({
               }}
               placeholder="请输入里程碑名称"
               maxLength={100}
+              data-testid="input-milestone-name"
             />
             {nameError && (
               <p className="text-[12px] text-error-text mt-1">{nameError}</p>
@@ -95,6 +96,7 @@ export default function CreateEditMilestoneDialog({
                 setEndDate(e.target.value)
                 if (e.target.value) setDateError('')
               }}
+              data-testid="input-planned-date"
             />
             {dateError && (
               <p className="text-[12px] text-error-text mt-1">{dateError}</p>
@@ -105,7 +107,7 @@ export default function CreateEditMilestoneDialog({
           <Button variant="secondary" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button onClick={handleConfirm} disabled={isPending}>
+          <Button onClick={handleConfirm} disabled={isPending} data-testid="btn-confirm">
             {isPending ? '保存中...' : '确认'}
           </Button>
         </DialogFooter>

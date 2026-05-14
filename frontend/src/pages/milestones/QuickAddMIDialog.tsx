@@ -106,7 +106,7 @@ export default function QuickAddMIDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="lg">
+      <DialogContent size="lg" data-testid="form-quick-add-mi">
         <DialogHeader>
           <DialogTitle>新建主事项</DialogTitle>
         </DialogHeader>
@@ -188,7 +188,7 @@ export default function QuickAddMIDialog({
             <label className="block text-sm font-medium text-primary mb-1">
               所属里程碑 <span className="text-error">*</span>
             </label>
-            <Input value={milestoneName} disabled className="bg-bg-alt" />
+            <Input value={milestoneName} disabled className="bg-bg-alt" data-testid="field-milestone" />
           </div>
           <div className="mt-4">
             <label className="block text-sm font-medium text-primary mb-1">
@@ -211,6 +211,7 @@ export default function QuickAddMIDialog({
           <Button
             onClick={() => createMutation.mutate()}
             disabled={!isValid || createMutation.isPending}
+            data-testid="btn-confirm"
           >
             {createMutation.isPending ? '保存中...' : '确认'}
           </Button>

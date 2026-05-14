@@ -355,8 +355,8 @@ export default function TableViewPage() {
                     <TableRowComp>
                       <TableHead>类型</TableHead>
                       <TableHead>编号</TableHead>
-                      <TableHead>标题</TableHead>
-                      <TableHead>里程碑</TableHead>
+                      <TableHead data-testid="columnheader-title">标题</TableHead>
+                      <TableHead data-testid="columnheader-milestone">里程碑</TableHead>
                       <TableHead>优先级</TableHead>
                       <TableHead>负责人</TableHead>
                       <TableHead>进度</TableHead>
@@ -391,7 +391,7 @@ export default function TableViewPage() {
                           </Link>
                         </TableCell>
                         <TableCell
-                          data-testid={`milestone-cell-${row.bizKey}`}
+                          data-testid="cell-milestone"
                           className="w-32"
                         >
                           <span
