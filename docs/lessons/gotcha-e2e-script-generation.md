@@ -45,3 +45,30 @@
 - 测试数据：测试内自行创建（setup/teardown），不依赖外部状态
 
 **反模式**：根据 PRD/设计文档推断实现细节 → 测试与实际代码脱节。
+
+---
+
+## 补充发现：UI 测试 testid 未验证导致全量超时（2026-05-14）
+
+### 问题
+
+24 个 UI e2e 测试全部超时（1-2 分钟/个），总耗时 16 分钟。根本原因：测试使用 `[data-testid="map-card"]`，但前端实际写的是 `[data-testid="map-card-${bizKey}"]`。
+
+### 为什么超时而不是立即失败
+
+Playwright 的 `locator()` 使用 auto-wait 机制：元素不存在时不报错，而是持续轮询 DOM 直到 timeout。所以 testid 不匹配时，每个测试都等满 60-120 秒超时才 fail。24 个超时测试 × 平均 60 秒 ÷ 3 个 worker ≈ 8 分钟纯等死。
+
+### 根因
+
+生成 UI 测试脚本时，**没有 grep 前端源码确认实际的 testid 值**。agent 根据测试用例文字描述猜测了 `map-card`，但前端实现用了动态 testid。
+
+### 新增规则
+
+生成 UI 测试脚本时，必须在写 selector 之前：
+```bash
+# 1. grep 前端源码确认实际 testid
+grep -rn "data-testid" frontend/src/ --include="*.tsx"
+# 2. 如果是动态 testid（如 map-card-${id}），使用属性前缀选择器
+page.locator('[data-testid^="map-card-"]').first()
+# 3. 不要假设 testid 命名，从源码中读取
+```
