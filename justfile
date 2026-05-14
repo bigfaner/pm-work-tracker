@@ -82,11 +82,12 @@ test scope="":
 test-e2e feature="":
     #!/usr/bin/env bash
     set -euo pipefail
+    LOG="/tmp/e2e-output.log"
     if [ "{{feature}}" != "" ]; then
-        cd tests/e2e && npx playwright test {{feature}}/
+        cd tests/e2e && npx playwright test {{feature}}/ > "$LOG" 2>&1; RC=$?; cat "$LOG"; exit $RC
     else
         [ ! -d tests/e2e/node_modules ] && npm install --prefix tests/e2e
-        cd tests/e2e && npx playwright test
+        cd tests/e2e && npx playwright test > "$LOG" 2>&1; RC=$?; cat "$LOG"; exit $RC
     fi
 
 lint scope="":

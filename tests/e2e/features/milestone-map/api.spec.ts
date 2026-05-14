@@ -189,13 +189,14 @@ test.describe('Milestone Map API', () => {
     expect(data1.mapStatus).toBe('reviewed');
 
     // Invalid transition: planning -> completed (skip intermediate)
+    // Backend returns 422 for business-rule violations (invalid state transition)
     const mapBizKey2 = await createMilestoneMap(authCurl, teamBizKey, 'Invalid Transition Map');
     const res2 = await authCurl(
       'PUT',
       `/v1/teams/${teamBizKey}/milestone-maps/${mapBizKey2}/status`,
       { body: JSON.stringify({ status: 'completed' }) },
     );
-    expect(res2.status).toBe(400);
+    expect(res2.status).toBe(422);
 
     // Completed map: no available transitions (verified via transitions endpoint below)
   });
@@ -403,6 +404,7 @@ test.describe('Milestone Map API', () => {
     expect(data1.milestoneStatus).toBe('in_progress');
 
     // Invalid transition: cancelled -> any (cancelled is terminal, no outgoing transitions)
+    // Backend returns 422 for business-rule violations (invalid state transition)
     // First transition to cancelled
     const ms2BizKey = await createMilestone(authCurl, teamBizKey, mapBizKey, 'Status MS 2', '2026-11-15');
     await authCurl(
@@ -415,7 +417,7 @@ test.describe('Milestone Map API', () => {
       `/v1/teams/${teamBizKey}/milestones/${ms2BizKey}/status`,
       { body: JSON.stringify({ status: 'in_progress' }) },
     );
-    expect(res2.status).toBe(400);
+    expect(res2.status).toBe(422);
 
     // Cancellation auto-unbinds MIs
     const ms3BizKey = await createMilestone(authCurl, teamBizKey, mapBizKey, 'Status MS 3', '2026-12-01');
@@ -526,7 +528,7 @@ test.describe('Milestone Map API', () => {
     const userRes = await superCurl('POST', '/v1/admin/users', {
       body: JSON.stringify({ username, displayName: 'NoPerms User' }),
     });
-    expect(userRes.status).toBe(200);
+    expect(userRes.status).toBe(201);
     const userData = parseApiBody(userRes.body);
     const userBizKey = extractBizKey(userData)!;
 
