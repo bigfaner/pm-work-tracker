@@ -314,7 +314,7 @@
       "dependencies": [
         "T-test-1b"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "disc-1.md",
       "record": "records/disc-1.md",
       "scope": "all"
@@ -327,7 +327,7 @@
       "dependencies": [
         "T-test-1b"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "disc-2.md",
       "record": "records/disc-2.md",
       "scope": "all"
@@ -342,7 +342,7 @@
         "disc-1",
         "disc-2"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "disc-3.md",
       "record": "records/disc-3.md",
       "scope": "all",
@@ -386,6 +386,17 @@
       "file": "fix-2.md",
       "record": "records/fix-2.md",
       "scope": "all"
+    },
+    "fix-3": {
+      "id": "fix-3",
+      "title": "Fix: T-test-3 agent stalled during e2e execution",
+      "priority": "P0",
+      "estimatedTime": "30min",
+      "status": "completed",
+      "file": "fix-3.md",
+      "record": "records/fix-3.md",
+      "breaking": true,
+      "sourceTaskID": "T-test-3"
     },
     "gen-test-cases": {
       "id": "T-test-1",
@@ -434,7 +445,8 @@
       "priority": "P1",
       "estimatedTime": "30min-1h",
       "dependencies": [
-        "disc-3"
+        "disc-3",
+        "fix-3"
       ],
       "status": "pending",
       "file": "run-e2e-tests.md",
