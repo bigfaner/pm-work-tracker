@@ -34,6 +34,8 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | gotcha-agent-breaks-safety-net.md | Agent commits files into nested .gitignore paths |
 | gotcha-agent-browser-causes-test-timeout.md | E2E tests using agent-browser — timeout when not installed |
 | gotcha-bizkey-vs-id-confusion.md | BizKey fields storing internal IDs — cascading 403 errors |
+| gotcha-browser-autofill-react-state-mismatch.md | Native `<input type="date">` + browser autofill — React state empty while DOM shows value, E2E fill() can't catch it |
+| gotcha-empty-sqlite-file.md | Backend returns INTERNAL_ERROR — check if .db file is 0 bytes |
 | gotcha-design-tech-skip-askuserquestion.md | /tech-design skill — skipped user confirmation |
 | gotcha-e2e-script-generation.md | Generated e2e scripts — wrong paths/prefixes/ports |
 | gotcha-eval-prd-use-zcode-agents.md | /eval-prd skill — must orchestrate scorer/reviser subagents |
@@ -84,7 +86,7 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 |------|---------|
 | New entity / schema design | arch-bizkey-vs-internal-id, gotcha-bizkey-vs-id-confusion, key-field-design-analysis |
 | Task breakdown | arch-ui-integration-gap, pattern-phase-gate-tasks, pattern-task-split-by-layer, gotcha-shared-interface-mock-cascade, gotcha-tech-design-decision-archiving |
-| E2E test generation | gotcha-e2e-script-generation, debug-e2e-zero-tests, debug-e2e-beforeall-cascade, gotcha-large-output-stall-subagent, gotcha-split-task-missing-shared-setup |
+| E2E test generation | gotcha-e2e-script-generation, debug-e2e-zero-tests, debug-e2e-beforeall-cascade, gotcha-large-output-stall-subagent, gotcha-split-task-missing-shared-setup, gotcha-empty-sqlite-file |
 | E2E test graduation | arch-e2e-graduation-staging, tool-e2e-graduation-structure |
 | Running /run-tasks | gotcha-subagent-partial-commits, gotcha-ac-self-report-without-verification, arch-task-failure-recovery-loop, gotcha-task-executor-ignores-implementation-notes |
 | Using subagents | gotcha-no-subagent-for-sequential-work, gotcha-agent-breaks-safety-net, gotcha-large-output-stall-subagent, gotcha-split-task-missing-shared-setup |
@@ -92,5 +94,5 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | Writing tech design | gotcha-design-tech-skip-askuserquestion, gotcha-tech-design-decision-archiving |
 | Using eval skills | gotcha-eval-prd-use-zcode-agents |
 | Hook configuration | gotcha-hook-unbounded-test-timeout, hook-stop-e2e-blocking |
-| Frontend component work | arch-button-icon-convention, weekly-view-bug-fixes |
-| Debugging test issues | tool-bash-retry-loop, gotcha-pipe-tail-buffers-test-output, frontend-test-command |
+| Frontend component work | arch-button-icon-convention, weekly-view-bug-fixes, gotcha-browser-autofill-react-state-mismatch |
+| Debugging test issues | tool-bash-retry-loop, gotcha-pipe-tail-buffers-test-output, gotcha-empty-sqlite-file, frontend-test-command |
