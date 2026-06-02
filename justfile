@@ -28,6 +28,7 @@ backend_dir  := "./backend"
 project-type:
     @echo "mixed"
 
+[group("language")]
 compile scope="":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -38,6 +39,7 @@ compile scope="":
       *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
     esac
 
+[group("language")]
 build scope="":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -47,6 +49,72 @@ build scope="":
       "")       (cd "{{frontend_dir}}" && npm run build) && (cd "{{backend_dir}}" && go build ./...) ;;
       *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
     esac
+
+[group("language")]
+install scope="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{scope}}" in
+      frontend) cd "{{frontend_dir}}" && npm install ;;
+      backend)  cd "{{backend_dir}}" && go mod download ;;
+      "")       (cd "{{frontend_dir}}" && npm install) && (cd "{{backend_dir}}" && go mod download) ;;
+      *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
+    esac
+
+[group("language")]
+clean scope="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{scope}}" in
+      frontend) cd "{{frontend_dir}}" && rm -rf dist ;;
+      backend)  cd "{{backend_dir}}" && go clean ./... ;;
+      "")       (cd "{{frontend_dir}}" && rm -rf dist) && (cd "{{backend_dir}}" && go clean ./...) ;;
+      *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
+    esac
+
+[group("language")]
+ci: install compile build unit-test lint
+
+[group("language-test")]
+unit-test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    (cd "{{frontend_dir}}" && npm test) && (cd "{{backend_dir}}" && go test ./...)
+
+[group("language-test")]
+lint scope="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{scope}}" in
+      frontend) cd "{{frontend_dir}}" && npm run lint ;;
+      backend)  cd "{{backend_dir}}" && golangci-lint run ./... ;;
+      "")       (cd "{{frontend_dir}}" && npm run lint) && (cd "{{backend_dir}}" && golangci-lint run ./...) ;;
+      *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
+    esac
+
+[group("language-test")]
+fmt scope="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{scope}}" in
+      frontend) cd "{{frontend_dir}}" && npm run fmt ;;
+      backend)  cd "{{backend_dir}}" && gofmt -w . ;;
+      "")       (cd "{{frontend_dir}}" && npm run fmt) && (cd "{{backend_dir}}" && gofmt -w .) ;;
+      *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
+    esac
+
+[group("language-test")]
+check scope="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{scope}}" in
+      frontend) cd "{{frontend_dir}}" && npm run lint && npx tsc --noEmit ;;
+      backend)  cd "{{backend_dir}}" && golangci-lint run ./... ;;
+      "")       (cd "{{frontend_dir}}" && npm run lint && npx tsc --noEmit) && (cd "{{backend_dir}}" && golangci-lint run ./...) ;;
+      *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
+    esac
+
+# convenience targets (not invoked by forge skills)
 
 run scope="":
     #!/usr/bin/env bash
@@ -88,58 +156,6 @@ test-e2e feature="":
         [ ! -d tests/e2e/node_modules ] && npm install --prefix tests/e2e
         cd tests/e2e && npx playwright test
     fi
-
-lint scope="":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    case "{{scope}}" in
-      frontend) cd "{{frontend_dir}}" && npm run lint ;;
-      backend)  cd "{{backend_dir}}" && golangci-lint run ./... ;;
-      "")       (cd "{{frontend_dir}}" && npm run lint) && (cd "{{backend_dir}}" && golangci-lint run ./...) ;;
-      *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
-    esac
-
-fmt scope="":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    case "{{scope}}" in
-      frontend) cd "{{frontend_dir}}" && npm run fmt ;;
-      backend)  cd "{{backend_dir}}" && gofmt -w . ;;
-      "")       (cd "{{frontend_dir}}" && npm run fmt) && (cd "{{backend_dir}}" && gofmt -w .) ;;
-      *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
-    esac
-
-check scope="":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    case "{{scope}}" in
-      frontend) cd "{{frontend_dir}}" && npm run lint && npx tsc --noEmit ;;
-      backend)  cd "{{backend_dir}}" && golangci-lint run ./... ;;
-      "")       (cd "{{frontend_dir}}" && npm run lint && npx tsc --noEmit) && (cd "{{backend_dir}}" && golangci-lint run ./...) ;;
-      *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
-    esac
-
-clean scope="":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    case "{{scope}}" in
-      frontend) cd "{{frontend_dir}}" && rm -rf dist ;;
-      backend)  cd "{{backend_dir}}" && go clean ./... ;;
-      "")       (cd "{{frontend_dir}}" && rm -rf dist) && (cd "{{backend_dir}}" && go clean ./...) ;;
-      *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
-    esac
-
-install scope="":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    case "{{scope}}" in
-      frontend) cd "{{frontend_dir}}" && npm install ;;
-      backend)  cd "{{backend_dir}}" && go mod download ;;
-      "")       (cd "{{frontend_dir}}" && npm install) && (cd "{{backend_dir}}" && go mod download) ;;
-      *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
-    esac
-
-ci: install compile build test lint
 
 e2e-setup:
     #!/usr/bin/env bash

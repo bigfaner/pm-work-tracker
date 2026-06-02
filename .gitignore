@@ -61,3 +61,11 @@ data/*.db
 tests/results/screenshots/
 tests/e2e/test-results/
 test-results/
+# Forge
+.forge/state.json
+.forge/test-state.json
+.forge/worktrees/
+docs/features/*/tasks/process/
+docs/features/*/tasks/index.json.lock
+docs/features/*/testing/results/
+tests/results/
