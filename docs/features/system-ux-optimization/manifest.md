@@ -1,7 +1,7 @@
 ---
 feature: "system-ux-optimization"
 created: "2026-06-02"
-status: prd
+status: design
 ---
 
 # Feature: system-ux-optimization
@@ -12,9 +12,13 @@ status: prd
 
 | Document | Path | Summary |
 |----------|------|---------|
-| PRD Spec | prd/prd-spec.md | 16 项 UX 优化分两阶段实施：阶段一 10 项（权限修复、状态提示、表单优化、删除、排序、清空、团队选择器、每周进展过滤），阶段二 6 项（子事项移动、过滤穿透、清单终态排序、进度页面过滤、甘特图修复） |
-| User Stories | prd/prd-user-stories.md | 11 个用户故事覆盖 PM、Member、macOS 用户角色，每个含 Given/When/Then 验收标准 |
-| UI Functions | prd/prd-ui-functions.md | 10 个 UI Function 覆盖状态提示、编辑弹窗、删除、转换表单、排序、移动、过滤穿透、甘特图修复、团队选择器 |
+| PRD Spec | prd/prd-spec.md | 16 项 UX 优化分两阶段实施：阶段一 10 项，阶段二 6 项 |
+| User Stories | prd/prd-user-stories.md | 11 个用户故事覆盖 PM、Member、macOS 用户角色 |
+| UI Functions | prd/prd-ui-functions.md | 10 个 UI Function |
+| Tech Design | design/tech-design.md | 技术设计：3 个新 API 端点（删除/移动）、5 个现有端点增强（过滤穿透/甘特图过滤/团队列表/排序/weekly 过滤）、无 schema 变更 |
+| API Handbook | design/api-handbook.md | API 契约：DELETE main-item/sub-item, PUT move, 增强的 List/Gantt/Teams 端点 |
+| ER Diagram | design/er-diagram.md | 涉及的现有实体关系图，无 DDL 变更，仅 seed 数据 |
+| Schema | design/schema.sql | Seed 数据：main_item:delete, sub_item:delete 权限码 |
 
 ## Traceability
 
