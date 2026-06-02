@@ -170,9 +170,10 @@ Delete(ctx context.Context, teamBizKey, itemBizKey int64, operatorBizKey int64) 
 2. `subItemRepo.ListByMainItem` 获取子事项列表
 3. 批量 `subItemRepo.SoftDelete` 所有子事项
 4. `mainItemRepo.SoftDelete` 主事项
-5. 重新计算相关主事项 `completion_pct`（如需）
+5. 为每个已删除事项插入 `status_histories`（`from_status=当前状态, to_status="deleted"`），仅作为审计记录，不修改 `item_status`
+6. 重新计算相关主事项 `completion_pct`（如需）
 
-注：仅设置 `deleted_flag=1` 和 `deleted_time`，不修改 `item_status`。
+注：仅设置 `deleted_flag=1` 和 `deleted_time`，不修改 `item_status`。`status_histories` 插入用于审计追踪。
 
 ---
 
@@ -195,7 +196,8 @@ Delete(ctx context.Context, teamBizKey, subItemBizKey int64, operatorBizKey int6
 **事务内操作序列**:
 1. `FindByBizKey` 获取子事项
 2. `subItemRepo.SoftDelete`
-3. 重新计算父主事项 `completion_pct`
+3. 插入 `status_histories`（`from_status=当前状态, to_status="deleted"`），仅审计记录
+4. 重新计算父主事项 `completion_pct`
 
 注：仅设置 `deleted_flag=1` 和 `deleted_time`，不修改 `item_status`。
 
@@ -240,7 +242,7 @@ type MoveResult struct {
 
 **事务内操作序列**:
 1. `FindByBizKey` 获取子事项（校验未删除）
-2. `FindByBizKey` 获取目标主事项（校验未删除、非终态、非同一主事项）
+2. `FindByBizKey` 获取目标主事项（校验未删除、`team_key == teamBizKey`、非终态、非同一主事项）
 3. 原子自增目标主事项 `sub_item_seq`：`UPDATE ... SET sub_item_seq = sub_item_seq + 1`
 4. 读回新的 `sub_item_seq` 值
 5. 更新子事项：`main_item_key`、`item_code`（新编号）
@@ -352,9 +354,17 @@ type GanttFilter struct {
 **变更点**: `ViewService.WeeklyComparison` — 在 `buildWeeklyGroups` 后追加过滤
 
 ```go
-func filterInactiveTerminal(groups []WeeklyComparisonGroup, weekStart, weekEnd time.Time) []WeeklyComparisonGroup {
+// StatusHistoryRepo 新增方法
+ListByItemKeysInRange(ctx context.Context, itemType string, itemKeys []int64, start, end time.Time) ([]model.StatusHistory, error)
+```
+
+```go
+func filterInactiveTerminal(groups []WeeklyComparisonGroup, weekStart, weekEnd time.Time, statusHistories []model.StatusHistory) []WeeklyComparisonGroup {
     // 隐藏条件: 主事项终态 AND 本周/上周都无活跃子事项
-    // 活跃定义: status_history 有变更 / 子事项 created_at 或 updated_at 在范围内 / 主事项 updated_at 且为进度更新
+    // 活跃定义:
+    //   (a) status_history 中存在该主事项的状态变更记录（create_time 在时间范围内）
+    //   (b) 该主事项下存在 create_time 或 db_update_time 在时间范围内的子事项
+    //   (c) 该主事项的 db_update_time 在时间范围内（进度更新）
 }
 ```
 
@@ -390,7 +400,23 @@ ListByUserMembership(ctx context.Context, userBizKey int64, search string, offse
 
 ---
 
-### Interface 10: 前端组件接口变更
+### Interface 10: Member 权限修复（#8）
+
+**根因**: `TeamScopeMiddleware` 中当 `pmw_team_members.role_key` 为 NULL 时，权限查询返回空集，导致 member 角色用户获取不到任何权限。
+
+**变更点**: 中间件中处理 nil RoleKey — 当 role_key 为 NULL 时，查询 member 预设角色的默认权限集。
+
+```go
+// middleware/team_scope.go — 权限查询逻辑修正
+// Before: 直接用 member.RoleKey 查询权限
+// After: if member.RoleKey == nil → 查询 "member" preset role 的权限码
+```
+
+纯中间件层变更，Service 和 Handler 接口不变。
+
+---
+
+### Interface 11: 前端组件接口变更（#1,#2,#4,#6,#7,#13,#14）
 
 **StatusTransitionDropdown (#1)**:
 
@@ -457,23 +483,23 @@ interface EditSubItemFormState {
 
 ```go
 var (
-    ErrTargetClosed = apperrors.New("BAD_REQUEST", "目标主事项已关闭")
-    ErrSameMainItem = apperrors.New("BAD_REQUEST", "不能移动到同一主事项")
+    ErrTargetClosed = &apperrors.AppError{Code: "BAD_REQUEST", Message: "目标主事项已关闭", Status: 400}
+    ErrSameMainItem = &apperrors.AppError{Code: "BAD_REQUEST", Message: "不能移动到同一主事项", Status: 400}
 )
 ```
 
-Handler 层统一通过 `handleError(c, err)` 映射到 HTTP 响应。
+Handler 层统一通过 `apperrors.RespondError(c, err)` 映射到 HTTP 响应（现有模式）。
 
 **前端**：`StatusTransitionDropdown` 的 mutation `onError` 从 `err.response.data.message` 提取错误消息显示为 Alert。删除和移动操作同理。
 
-**事务失败**：删除和移动均在事务内执行。GORM 回滚后返回 `ErrInternal`，前端展示通用错误提示，数据不变。
+**事务失败**：删除和移动均在事务内执行。GORM 回滚后返回 `ErrInternal`，`RespondError` 自动映射为 500，前端展示通用错误提示，数据不变。
 
 ## Cross-Layer Data Map
 
 | Field Name | Storage Layer | Backend Model | API/DTO | Frontend Type | Validation Rule |
 |------------|---------------|---------------|---------|---------------|-----------------|
 | `status` (多选) | — | `MainItemFilter.Statuses []string` | `form:"status"` | `string[]` | 每个值须为合法状态码 |
-| `assigneeKey` | `pmw_main_items.assignee_key BIGINT` | `*int64` | `json:"assigneeKey"` | `string \| null` | 穿透到子事项匹配 |
+| `assigneeKey` | `pmw_main_items.assignee_key BIGINT` | `*int64` | `json:"assigneeKey"` (query: `form:"assigneeKey"` as `*string`) | `string \| null` | 穿透到子事项匹配；query param 为 string，Service 层用 `pkg.ParseID` 转为 int64 |
 | `matchType` | — (计算值) | — | `json:"matchType,omitempty"` | `"direct" \| "indirect" \| undefined` | 仅过滤穿透时返回 |
 | `matchedSubItemIds` | — (计算值) | — | `json:"matchedSubItemIds,omitempty"` | `string[] \| undefined` | 仅 matchType=indirect 时返回 |
 | `startDate` | `pmw_sub_items.plan_start_date DATETIME` | `*time.Time` | `json:"startDate"` | `string` | 日期格式，不晚于 endDate |
@@ -519,6 +545,12 @@ Handler 层统一通过 `handleError(c, err)` 映射到 HTTP 响应。
 - **Insertion Point**: 状态过滤器改为 Checkbox Group（多选），负责人过滤器增加穿透逻辑
 - **Data Source**: `listMainItemsApi` 返回值中的 `matchType` 和 `matchedSubItemIds`
 
+### Integration: Member Permission Fix → TeamScopeMiddleware
+
+- **Target File**: `backend/internal/middleware/team_scope.go`
+- **Insertion Point**: 权限查询逻辑中处理 `role_key IS NULL` 分支
+- **Data Source**: 查询 `pmw_roles` 中 `role_name='member'` 的预设权限集
+
 ### Integration: StatusCheckboxGroup → GanttViewPage
 
 - **Target File**: `frontend/src/pages/GanttViewPage.tsx`
@@ -552,6 +584,7 @@ Handler 层统一通过 `handleError(c, err)` 映射到 HTTP 响应。
 | Backend Service | Unit | Go testing + testify | Delete 事务、Move 编号生成、过滤穿透逻辑、终态排序、weekly 过滤 | 85% |
 | Backend Handler | Integration | Go testing + httptest | Delete/Move API 端点契约、权限码拦截、参数校验 | 80% |
 | Backend Middleware | Unit | Go testing | nil RoleKey 权限查询修复 | 100%（该函数） |
+| Backend Repository | Unit | Go testing + testify | SubItemRepo ORDER BY, TeamRepo membership filter, StatusHistoryRepo range query | 80% |
 | Frontend Component | Unit | Vitest + @testing-library/react | Alert 生命周期、表单必填校验、表单清空、多选过滤器 | 80% |
 | Frontend Hook | Unit | Vitest + @testing-library/react | useItemViewPage 过滤穿透逻辑、matchType 展示 | 80% |
 
@@ -589,6 +622,12 @@ Handler 层统一通过 `handleError(c, err)` 映射到 HTTP 响应。
 
 **后端 — Member 权限修复（#8）**:
 - `role_key=NULL` 的 member → 权限查询返回 member 角色默认权限集
+
+**后端 — Repository 层变更**:
+- `SubItemRepo.ListByMainItem` → 验证返回结果按 `id DESC` 排序
+- `MainItemRepo.ListNonArchivedByTeam` → 验证终态排序生效
+- `TeamRepo.ListByUserMembership` → 验证仅返回用户所属团队
+- `StatusHistoryRepo.ListByItemKeysInRange` → 验证时间范围过滤和 item_type 过滤
 
 **后端 — 团队选择器过滤（#15）**:
 - 用户属于 2 个团队 → 仅返回这 2 个团队
@@ -628,27 +667,27 @@ Handler 层统一通过 `handleError(c, err)` 映射到 HTTP 响应。
 ### Mitigations
 
 - **删除**：`main_item:delete` / `sub_item:delete` 权限码通过 `RequirePermission` 中间件在 Router 层拦截。前端用 `PermissionGuard` 隐藏按钮（防御性 UI，非安全边界）
-- **移动**：复用现有 `sub_item:update` 权限码。目标主事项通过 `team_key` 校验属于同一团队（事务内 `FindByBizKey` 自动校验团队成员关系）
+- **移动**：复用现有 `sub_item:update` 权限码。Service 层显式校验目标主事项 `team_key == 当前 teamBizKey`，防止跨团队移动。`FindByBizKey` 仅验证记录存在性，不校验团队归属
 - **团队隔离**：所有操作在 `TeamScopeMiddleware` 上下文内执行，`teamBizKey` 从 JWT + URL param 绑定
 
 ## PRD Coverage Map
 
 | PRD Item | Design Component | Interface / Model |
 |----------|------------------|-------------------|
-| #1 状态流转错误提示 | StatusTransitionDropdown Alert | Interface 10 (前端) |
-| #2 子事项开始时间 | EditSubItemDialog + SubItemUpdateReq | Interface 10 (前端) |
+| #1 状态流转错误提示 | StatusTransitionDropdown Alert | Interface 11 (前端) |
+| #2 子事项开始时间 | EditSubItemDialog + SubItemUpdateReq | Interface 11 (前端) |
 | #3 删除事项 | MainItemService.Delete, SubItemService.Delete | Interface 1, 2 |
-| #4 描述置灰 | ItemPool assign form disabled | Interface 10 (前端) |
+| #4 描述置灰 | ItemPool assign form disabled | Interface 11 (前端) |
 | #5 子事项倒序 | SubItemRepo.ListByMainItem ORDER BY | Interface 5 |
-| #6 表单清空 | Form reset on close/success | Interface 10 (前端) |
-| #7 必填校验 | Assign form submit disabled | Interface 10 (前端) |
-| #8 Member 权限修复 | TeamScopeMiddleware nil RoleKey fix | Interface 9 (后端中间件) |
+| #6 表单清空 | Form reset on close/success | Interface 11 (前端) |
+| #7 必填校验 | Assign form submit disabled | Interface 11 (前端) |
+| #8 Member 权限修复 | TeamScopeMiddleware nil RoleKey fix | Interface 10 (后端中间件) |
 | #9 移动子事项 | SubItemService.Move | Interface 3 |
 | #10 过滤穿透 | ViewService + MainItemFilter 增强 | Interface 4 |
 | #11 终态排序 | Service 层排序逻辑 | Interface 6 |
 | #12 甘特图状态过滤 | GanttFilter 多选 + 前端 Checkbox Group | Interface 7 |
-| #13 甘特图时间范围 | GanttViewPage 日期计算 | Interface 10 (前端) |
-| #14 macOS 滚动条 | gantt-overrides.css | Interface 10 (前端) |
+| #13 甘特图时间范围 | GanttViewPage 日期计算 | Interface 11 (前端) |
+| #14 macOS 滚动条 | gantt-overrides.css | Interface 11 (前端) |
 | #15 团队选择器过滤 | TeamHandler.List + TeamRepo.ListByUserMembership | Interface 9 |
 | #16 每周进展过滤 | ViewService.WeeklyComparison 过滤 | Interface 8 |
 
