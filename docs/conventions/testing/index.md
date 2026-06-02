@@ -11,3 +11,76 @@ domains: [testing]
 |---------|---------|---------|---------|---------|
 | api | API 功能测试 | tests/<journey>/ | status code + response body + headers | [api/core.md](api/core.md) |
 | web | Web E2E 测试 | tests/<journey>/ | DOM 可见性 + 用户操作 + URL | [web/core.md](web/core.md) |
+
+| 测试层级 | 文件 |
+|---------|------|
+| 单元测试 | [unit.md](unit.md) |
+
+---
+
+## 全局测试约定
+
+### T-001: TDD Flow
+
+Follow red-green-refactor for all new code:
+
+1. **RED** — write a failing test that describes the desired behavior
+2. **GREEN** — write the minimal code to make the test pass
+3. **REFACTOR** — clean up while keeping tests green
+
+```go
+// Step 1: RED — failing test
+func TestMainItemService_Create(t *testing.T) {
+    _, err := svc.Create(ctx, teamID, pmID, dto.MainItemCreateReq{Title: "test"})
+    // fails: svc doesn't exist yet
+}
+
+// Step 2: GREEN — minimal implementation
+func (s *mainItemService) Create(ctx context.Context, teamID, pmID uint, req dto.MainItemCreateReq) (*model.MainItem, error) {
+    item := &model.MainItem{TeamID: teamID, Title: req.Title, Priority: req.Priority}
+    return item, s.repo.Create(ctx, item)
+}
+
+// Step 3: REFACTOR — if needed
+```
+
+### T-002: Test File Naming
+
+| Layer | Source file | Test file |
+|-------|-----------|-----------|
+| Go unit | `main_item_service.go` | `main_item_service_test.go` |
+| Go unit | `main_item_handler.go` | `main_item_handler_test.go` |
+| React unit | `badge.tsx` | `badge.test.tsx` |
+| React E2E | — | `item-list.spec.ts` |
+
+Test files are co-located: same directory as source file.
+
+### T-008: Targeted Test Execution
+
+**Only run tests directly related to the files you changed.** Do not run `go test ./...` or `go test ./internal/...` unless explicitly asked.
+
+```bash
+# ✅ Correct — run only the package you modified
+go test ./internal/service/team_service_test.go ./internal/service/team_service.go
+go test ./internal/handler/ -run TestTeam
+go test ./internal/model/ -run TestTeam
+
+# ❌ Wrong — runs everything, surfaces unrelated failures
+go test ./...
+go test ./internal/...
+```
+
+Map changed files to their test targets:
+- `model/team.go` → `go test ./internal/model/ -run TestTeam`
+- `service/team_service.go` → `go test ./internal/service/ -run TestTeam`
+- `handler/team_handler.go` → `go test ./internal/handler/ -run TestTeam`
+- `repository/gorm/team_repo.go` → `go test ./internal/repository/gorm/ -run TestTeam`
+
+### T-009: Test Assertions
+
+Go: use `github.com/stretchr/testify` — `assert` for non-fatal, `require` for fatal (stops test on failure).
+
+```go
+require.NoError(t, err)   // stops test if err != nil
+assert.Equal(t, want, got) // continues even if wrong
+```
