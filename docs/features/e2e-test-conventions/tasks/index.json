@@ -111,7 +111,7 @@
       "dependencies": [
         "4"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "8-web-conventions.md",
       "record": "records/8-web-conventions.md",
       "type": "doc"
