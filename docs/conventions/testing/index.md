@@ -10,7 +10,7 @@ domains: [testing]
 | Surface | 测试类型 | 框架 | 文件位置 | 断言重点 | 详细策略 |
 |---------|---------|------|---------|---------|---------|
 | api | API 功能测试 | Vitest (TypeScript) | tests/api/<feature>/ | status code + response body + headers | [api/core.md](api/core.md) |
-| web | Web E2E 测试 | Playwright (TypeScript) | tests/e2e/<feature>/ | DOM 可见性 + 用户操作 + URL | [web/core.md](web/core.md) |
+| web | Web E2E 测试 | Playwright (TypeScript) | tests/web/<feature>/ | DOM 可见性 + 用户操作 + URL | [web/core.md](web/core.md) |
 
 | 测试层级 | 文件 |
 |---------|------|
