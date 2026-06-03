@@ -35,7 +35,7 @@
       "dependencies": [
         "2"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3-migrate-api-tests.md",
       "record": "records/3-migrate-api-tests.md",
       "surface-key": "backend",

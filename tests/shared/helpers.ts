@@ -369,7 +369,7 @@ export interface RbacFixtures {
  */
 export async function setupRbacFixtures(extra?: { noPerms?: boolean }): Promise<RbacFixtures & { noPermsToken?: string; noPermsUserBizKey?: string }> {
   const superadminToken = await getApiToken(apiBaseUrl, { username: 'admin', password: 'admin123' });
-  const runId = Date.now();
+  const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   // Fetch preset role bizKeys
   const rolesRes = await curl('GET', `${apiUrl}/v1/admin/roles`, { headers: authHeader(superadminToken) });
