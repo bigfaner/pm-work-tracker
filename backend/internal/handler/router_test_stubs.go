@@ -532,4 +532,3 @@ func (s *StubProgressSvc) GetByBizKey(_ context.Context, _ int64) (*model.Progre
 }
 
 var _ service.ProgressService = (*StubProgressSvc)(nil)
-
