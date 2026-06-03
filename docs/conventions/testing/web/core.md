@@ -9,15 +9,17 @@ domains: [testing, web]
 
 ## 文件位置
 
-- **目录**: `tests/<journey>/`（Journey 名称由 gen-journeys 生成）
-- **文件命名**: `<feature>.<page>.spec.ts` 或 `<feature>.<journey>.test.ts`
-- **Build tag**: `@web-e2e`（BDD tag）——这是"e2e"术语正确使用的两个 surface 之一
-- **约束**: 仅 Web 和 Mobile surface 允许使用"e2e"术语
+- **目录**: `tests/e2e/<feature>/`（按功能模块组织）
+- **文件命名**: `<feature>.spec.ts` 或 `<scenario>.spec.ts`
+- **测试框架**: Playwright（TypeScript）
+- **配置文件**: `tests/e2e/playwright.config.ts`
+- **共享 Helpers**: `tests/e2e/helpers.ts`（re-export `tests/shared/helpers.ts` + 浏览器专用 helpers）
+- **E2E 配置**: `tests/e2e/config.yaml` 或 `tests/shared/config.yaml`
 
 ## 隔离模型
 
 - **浏览器隔离**: 每个测试使用独立的浏览器上下文（browser context），不共享 cookie、localStorage 或 session
-- **会话复用**: 认证场景在 Journey 级别登录一次，所有后续测试继承认证会话。非认证流程测试不得独立登录
+- **会话复用**: 通过 `login()` helper 注入 token 到 localStorage，所有后续测试继承认证会话。非认证流程测试不得独立登录
 - **网络拦截**: 依赖外部服务的测试必须拦截网络请求并返回固定响应，测试不得要求网络访问
 - **视口管理**: 所有测试必须声明明确的默认视口尺寸。响应式测试使用显式视口切换作为前置步骤
 
@@ -42,18 +44,32 @@ Web E2E 测试断言以下维度:
 
 ## 超时策略
 
-- **元素等待超时**: 等待元素可见/可操作的显式超时
-- **导航超时**: 页面导航完成的显式超时
-- **测试函数级超时**: 测试运行器内置超时机制限制总执行时间
-- **约束**: 每个阻塞操作必须指定超时，超时值来自 Convention 配置而非测试代码中的魔术数字
+- **元素等待超时**: Playwright expect timeout 10 秒（`playwright.config.ts` 中 `expect.timeout`）
+- **导航超时**: 默认导航超时
+- **测试函数级超时**: `playwright.config.ts` 设置 `timeout: 30000`（30 秒），个别测试可用 `test.setTimeout()` 覆盖
+- **约束**: 每个阻塞操作必须指定超时，超时值来自配置而非测试代码中的魔术数字
 
 ## 生命周期
 
-1. **Setup**: 创建浏览器上下文，配置视口，建立认证状态（如需要）
+1. **Setup**: 调用 `login(page)` 创建浏览器上下文，注入认证状态到 localStorage
 2. **Navigate**: 导航到目标页面
 3. **Interact**: 按测试步骤执行用户操作（点击、输入、选择）
 4. **Assert**: 验证 DOM 元素可见性、内容、属性、URL 状态
-5. **Teardown**: 关闭浏览器上下文，清理测试数据
+5. **Teardown**: Playwright 自动关闭浏览器上下文
+
+## 共享 Helper
+
+E2E 测试使用 `tests/e2e/helpers.ts` 提供的浏览器专用 helpers（re-export `tests/shared/helpers.ts` 的通用 helpers）：
+
+| Helper | 用途 |
+|--------|------|
+| `login(page, creds?, targetPath?)` | 注入 token 到 localStorage 并导航到目标页面 |
+| `loginViaUI(page, creds?)` | 通过 UI 表单登录（用于登录流程测试） |
+| `loginAsUser(page, token, user, targetPath?)` | 以指定用户身份登录 |
+| `screenshot(page, tcId)` | 截取全页截图用于证据 |
+| `snapshotContains(page, text)` | 检查页面是否包含指定文本 |
+| `findElement/findElements(page, role, name?)` | 通过 ARIA role 定位元素 |
+| `navTo(page, path)` | 通过侧边栏导航到指定路径 |
 
 ## Contract/Journey 比例
 
@@ -78,4 +94,4 @@ Web surface 目标 **50/50 平衡比例**。
 
 | 断言库 | mock 机制 | fixture 模式 |
 |--------|-----------|-------------|
-| expect (Vitest) + @testing-library/jest-dom | vi.mock() + msw | beforeEach/fixture |
+| expect (Playwright) | 路由拦截（route） | login() helper 注入认证状态 |

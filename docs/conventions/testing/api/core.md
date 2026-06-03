@@ -9,17 +9,29 @@ domains: [testing, api]
 
 ## 文件位置
 
-- **目录**: `tests/<journey>/`（Journey 名称由 gen-journeys 生成）
-- **文件命名**: `<feature>_<endpoint>_test.go`
-- **Build tag**: `//go:build api_functional`
-- **约束**: 不得使用 `e2e` 作为 build tag 或测试分类名
+- **目录**: `tests/api/<feature>/`（按功能模块组织）
+- **文件命名**: `<feature>.spec.ts` 或 `<scenario>.spec.ts`
+- **测试框架**: Vitest（TypeScript）
+- **配置文件**: `tests/api/vitest.config.ts`
+- **全局 Setup**: `tests/api/vitest.global-setup.ts`（启动独立 Go 后端服务器）
+- **约束**: 不得使用 `e2e` 作为测试分类名；API surface 使用 `api` 分类
+
+## 基础设施
+
+API 测试通过 Vitest global setup 自动管理后端服务器生命周期：
+
+1. **服务器启动**: global setup 构建并启动独立的 Go 后端进程，使用随机可用端口
+2. **临时数据库**: 每次测试运行创建独立的 SQLite 数据库（位于 `.tmp/api-test-<port>/`）
+3. **配置注入**: 通过 `E2E_CONFIG_PATH` 环境变量将服务器地址传递给测试文件
+4. **服务器等待**: 轮询 `/health` 端点直到服务器就绪
+5. **清理**: 测试结束后终止服务器进程并删除临时目录
 
 ## 隔离模型
 
-- **协议边界隔离**: 通过 HTTP 客户端发送请求、观测响应，验证 API 行为。测试工具在协议边界上观测被测系统的响应
-- **服务隔离**: 测试启动独立的 HTTP 服务器（或使用测试服务器），不依赖共享服务实例
-- **数据隔离**: 每个测试创建自己的测试数据并在完成后清理，或使用不会持久化的临时数据
-- **认证隔离**: 认证场景按 Auth Plan 分类——login-test 使用独立认证，auth-required-test 使用缓存共享认证
+- **协议边界隔离**: 通过 HTTP fetch 发送请求、观测响应，验证 API 行为。测试工具在协议边界上观测被测系统的响应
+- **服务隔离**: 每次测试运行启动独立的 Go 后端服务器，使用独立的临时数据库
+- **数据隔离**: 每个测试创建自己的测试数据。通过 `setupRbacFixtures` 等 helper 创建隔离的团队、用户和角色
+- **认证隔离**: 通过共享 helper `getApiToken` / `getAuthToken` 获取认证 token，使用内存缓存避免重复登录
 
 ## 断言重点
 
@@ -38,18 +50,36 @@ API 测试必须对以下每个维度包含具体断言:
 
 ## 超时策略
 
-- **连接超时**: HTTP 客户端必须设置连接超时
-- **读写超时**: HTTP 客户端必须设置读/写超时
-- **测试函数级超时**: 测试运行器内置超时机制限制总执行时间
+- **HTTP 请求超时**: `curl` helper 默认 10 秒超时（可通过 `timeout` 参数覆盖）
+- **测试函数级超时**: vitest.config.ts 设置 `testTimeout: 30000`（30 秒）
+- **Hook 超时**: `hookTimeout: 60000`（60 秒）
+- **服务器启动超时**: global setup 等待服务器就绪最长 30 秒
 - **约束**: 任何 HTTP 请求不得无限期等待连接或响应
 
 ## 生命周期
 
-1. **Setup**: 启动测试服务器（或确认服务器已运行），获取基础 URL 和端口，配置认证
-2. **Build request**: 组合 base URL 与端点路径，设置 HTTP 方法、Header 和请求体
-3. **Send**: 使用 Convention 指定的 HTTP 客户端发送请求
-4. **Assert**: 对状态码、响应体、响应头进行具体断言
-5. **Teardown**: 清理测试创建的数据，关闭连接
+1. **Global Setup**: 构建并启动独立 Go 后端服务器，分配端口，写入临时配置
+2. **Test Setup**: 通过 `beforeAll` 调用 `setupRbacFixtures` 等 helper 创建测试数据（团队、用户、角色）
+3. **Build request**: 使用 `curl` helper 构造 HTTP 请求（method、url、headers、body）
+4. **Send**: 通过 Node.js fetch 发送请求
+5. **Assert**: 对状态码、响应体（`parseApiBody`）、响应头进行具体断言
+6. **Teardown**: global setup 清理服务器进程和临时目录
+
+## 共享 Helper
+
+测试使用 `tests/shared/helpers.ts` 提供的共享 helper：
+
+| Helper | 用途 |
+|--------|------|
+| `curl(method, url, opts)` | HTTP 请求封装，自动处理超时 |
+| `authHeader(token)` | 构造 Authorization header |
+| `parseApiBody(body)` | 解析 API 响应体，检查 `code === 0` 并返回 `data` |
+| `getApiToken(apiBaseUrl, creds)` | 获取认证 token（带缓存） |
+| `loginAs(username, password)` | 登录并返回 `{authHeader, token}` |
+| `setupRbacFixtures(opts?)` | 创建完整的 RBAC 测试数据（团队、PM、成员、角色） |
+| `randomCode(length)` | 生成随机字符串用于测试数据 |
+| `createTestTeam/MainItem/SubItem/Role/User` | 实体创建快捷方法 |
+| `softDeleteRole/User` | 软删除快捷方法 |
 
 ## Contract/Journey 比例
 
@@ -64,14 +94,14 @@ API surface 目标 **50/50 平衡比例**。
 
 | 反模式 | 危害 | 替代方案 |
 |--------|------|----------|
-| 硬编码 URL | 端口或主机变更即失败 | 使用 config/环境变量构造 URL |
+| 硬编码 URL | 端口或主机变更即失败 | 使用 `apiBaseUrl` / `apiUrl`（来自 shared helpers） |
 | 缺少错误 Contract 测试 | 错误格式静默变更不被发现 | 每个端点至少一个错误场景测试 |
 | 空洞的"返回成功"断言 | 200 + 空响应体也通过测试 | 必须断言具体响应体字段 |
 | Sleep 等待 | 时序不稳定 | 使用事件驱动等待或轮询+超时 |
-| 硬编码配置 | 环境变更即失败 | 所有配置来自环境变量或 Fact Table |
+| 硬编码配置 | 环境变更即失败 | 所有配置来自 `config.yaml` 或 global setup |
 
 ## 断言偏好表
 
 | 断言库 | mock 机制 | fixture 模式 |
 |--------|-----------|-------------|
-| testify/assert | interfaces + test doubles | TestMain setup |
+| vitest (test/expect) | 无 mock（真实 HTTP 请求） | beforeAll setup + setupRbacFixtures |
