@@ -41,6 +41,7 @@
       "surface-key": "backend",
       "surface-type": "api",
       "type": "coding.refactor",
+      "blockedReason": "auto-downgrade: testsFailed=9",
       "complexity": "high"
     },
     "4-migrate-web-tests": {
@@ -154,13 +155,25 @@
       "sourceTaskID": "fix-1",
       "type": "coding.fix"
     },
+    "fix-3": {
+      "id": "fix-3",
+      "title": "Fix: API tests need backend server for quality gate",
+      "priority": "P0",
+      "estimatedTime": "30min",
+      "status": "completed",
+      "file": "fix-3.md",
+      "record": "records/fix-3.md",
+      "breaking": true,
+      "sourceTaskID": "3",
+      "type": "coding.fix"
+    },
     "quick-drift-detection": {
       "id": "T-quick-doc-drift",
       "title": "Detect Spec Drift",
       "priority": "P2",
       "estimatedTime": "15min",
       "dependencies": [
-        "5"
+        "fix-2"
       ],
       "status": "pending",
       "file": "quick-drift-detection.md",
@@ -174,10 +187,10 @@
       "priority": "P1",
       "estimatedTime": "30min",
       "dependencies": [
-        "7",
+        "9",
         "1",
-        "8",
-        "9"
+        "7",
+        "8"
       ],
       "status": "pending",
       "file": "review-doc.md",

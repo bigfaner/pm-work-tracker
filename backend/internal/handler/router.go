@@ -84,8 +84,12 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 
 	// Auth routes (public login, authenticated logout)
 	authGroup := v1.Group("/auth")
-	// Rate limit login: 10 req/min per IP
-	authGroup.POST("/login", rateLimitMiddleware(10, time.Minute), deps.Auth.Login)
+	// Rate limit login: 10 req/min per IP (100 req/min in test mode)
+	loginRateLimit := 10
+	if deps.Config != nil && deps.Config.Server.GinMode == "test" {
+		loginRateLimit = 100
+	}
+	authGroup.POST("/login", rateLimitMiddleware(loginRateLimit, time.Minute), deps.Auth.Login)
 	authGroup.POST("/logout", middleware.AuthMiddleware(deps.Config.Auth.JWTSecret, deps.UserRepo), deps.Auth.Logout)
 
 	// Team-scoped routes (require auth + team membership)
