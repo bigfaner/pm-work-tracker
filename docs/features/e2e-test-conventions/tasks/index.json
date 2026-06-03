@@ -68,7 +68,7 @@
       "dependencies": [
         "2"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "5-migrate-infra-tests.md",
       "record": "records/5-migrate-infra-tests.md",
       "type": "coding.refactor",
