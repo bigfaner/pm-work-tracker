@@ -76,7 +76,7 @@ describe('CheckboxGroup', () => {
     const user = userEvent.setup()
     const handleChange = vi.fn()
 
-    const { rerender } = render(
+    render(
       <CheckboxGroup
         options={options}
         selected={[]}

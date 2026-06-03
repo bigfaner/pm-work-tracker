@@ -18,7 +18,6 @@ import { useToast } from '@/components/ui/toast'
 // --- Constants ---
 
 const DAY_WIDTH = 28
-const ROW_HEIGHT = 40
 const ITEMS_PER_PAGE = 20
 
 // --- Helpers ---
@@ -229,7 +228,6 @@ export default function GanttViewPage() {
         <GanttChart
           items={visibleItems}
           rangeStart={rangeStart}
-          rangeEnd={rangeEnd}
           totalDays={totalDays}
           expandedGroups={expandedGroups}
           searchKeyword={searchKeyword}
@@ -253,7 +251,6 @@ export default function GanttViewPage() {
 interface GanttChartProps {
   items: GanttMainItem[]
   rangeStart: Date
-  rangeEnd: Date
   totalDays: number
   expandedGroups: Set<string>
   searchKeyword: string
@@ -268,7 +265,6 @@ interface GanttChartProps {
 function GanttChart({
   items,
   rangeStart,
-  rangeEnd,
   totalDays,
   expandedGroups,
   searchKeyword,

@@ -129,13 +129,38 @@
       "record": "records/9-helpers-conventions.md",
       "type": "doc"
     },
+    "fix-1": {
+      "id": "fix-1",
+      "title": "Fix: pre-existing frontend lint errors blocking quality gate",
+      "priority": "P0",
+      "estimatedTime": "30min",
+      "status": "pending",
+      "file": "fix-1.md",
+      "record": "records/fix-1.md",
+      "breaking": true,
+      "sourceTaskID": "2",
+      "type": "coding.fix",
+      "blockedReason": "just fmt failed: 20 pre-existing frontend eslint errors still present, fix was not actually implemented"
+    },
+    "fix-2": {
+      "id": "fix-2",
+      "title": "Fix: resolve frontend eslint errors (retry)",
+      "priority": "P0",
+      "estimatedTime": "30min",
+      "status": "completed",
+      "file": "fix-2.md",
+      "record": "records/fix-2.md",
+      "breaking": true,
+      "sourceTaskID": "fix-1",
+      "type": "coding.fix"
+    },
     "quick-drift-detection": {
       "id": "T-quick-doc-drift",
       "title": "Detect Spec Drift",
       "priority": "P2",
       "estimatedTime": "15min",
       "dependencies": [
-        "9"
+        "5"
       ],
       "status": "pending",
       "file": "quick-drift-detection.md",
@@ -149,8 +174,8 @@
       "priority": "P1",
       "estimatedTime": "30min",
       "dependencies": [
-        "1",
         "7",
+        "1",
         "8",
         "9"
       ],

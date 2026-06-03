@@ -113,6 +113,7 @@ describe('StatusTransitionDropdown', () => {
 
   it('calls change API and onStatusChanged for non-terminal status', async () => {
     vi.mocked(getMainItemTransitionsApi).mockResolvedValue(['progressing'])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(changeMainItemStatusApi).mockResolvedValue({} as any)
     const onStatusChanged = vi.fn()
     const user = userEvent.setup()
@@ -159,6 +160,7 @@ describe('StatusTransitionDropdown', () => {
 
   it('calls change API on confirm in confirmation dialog', async () => {
     vi.mocked(getMainItemTransitionsApi).mockResolvedValue(['completed'])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(changeMainItemStatusApi).mockResolvedValue({} as any)
     const onStatusChanged = vi.fn()
     const user = userEvent.setup()
