@@ -8,7 +8,7 @@
       "title": "迁移前审计：分类 tests/e2e/ 文件到 surface",
       "priority": "P0",
       "estimatedTime": "30m",
-      "status": "pending",
+      "status": "completed",
       "file": "1-migration-audit.md",
       "record": "records/1-migration-audit.md",
       "type": "doc"
