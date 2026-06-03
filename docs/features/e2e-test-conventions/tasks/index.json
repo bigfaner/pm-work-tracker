@@ -98,7 +98,7 @@
       "dependencies": [
         "3"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "7-api-conventions.md",
       "record": "records/7-api-conventions.md",
       "type": "doc"
