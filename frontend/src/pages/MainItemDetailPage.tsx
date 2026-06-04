@@ -69,6 +69,7 @@ export default function MainItemDetailPage() {
   const [editSubForm, setEditSubForm] = useState<EditSubItemFormState>({
     title: '',
     priority: '',
+    startDate: '',
     expectedEndDate: '',
     description: '',
   })
@@ -161,6 +162,7 @@ export default function MainItemDetailPage() {
       req: {
         title?: string
         priority?: string
+        startDate?: string
         expectedEndDate?: string
         description?: string
       }
@@ -225,6 +227,7 @@ export default function MainItemDetailPage() {
     setEditSubForm({
       title: sub.title,
       priority: sub.priority,
+      startDate: sub.planStartDate || '',
       expectedEndDate: sub.expectedEndDate || '',
       description: sub.itemDesc || '',
     })
@@ -238,6 +241,7 @@ export default function MainItemDetailPage() {
       req: {
         title: editSubForm.title.trim(),
         priority: editSubForm.priority,
+        startDate: editSubForm.startDate || undefined,
         expectedEndDate: editSubForm.expectedEndDate || undefined,
         description: editSubForm.description,
       },

@@ -89,7 +89,7 @@
       "title": "子事项编辑弹窗开始时间",
       "priority": "P1",
       "estimatedTime": "2h",
-      "status": "pending",
+      "status": "completed",
       "file": "1.7-subitem-start-date.md",
       "record": "records/1.7-subitem-start-date.md",
       "surface-key": "frontend",

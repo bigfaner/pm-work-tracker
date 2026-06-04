@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 export interface EditSubItemFormState {
   title: string
   priority: string
+  startDate: string
   expectedEndDate: string
   description: string
 }
@@ -44,6 +45,9 @@ export default function EditSubItemDialog({
   onSubmit,
   isPending,
 }: EditSubItemDialogProps) {
+  const dateInvalid =
+    form.startDate && form.expectedEndDate && form.startDate > form.expectedEndDate
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="md">
@@ -83,18 +87,32 @@ export default function EditSubItemDialog({
             </div>
             <div>
               <label className="block text-sm font-medium text-primary mb-1">
-                预期完成时间
+                开始时间
               </label>
               <DateInput
-                value={form.expectedEndDate}
+                value={form.startDate}
                 onChange={(e) =>
                   onFormChange((f) => ({
                     ...f,
-                    expectedEndDate: e.target.value,
+                    startDate: e.target.value,
                   }))
                 }
               />
             </div>
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-primary mb-1">
+              预期完成时间
+            </label>
+            <DateInput
+              value={form.expectedEndDate}
+              onChange={(e) =>
+                onFormChange((f) => ({
+                  ...f,
+                  expectedEndDate: e.target.value,
+                }))
+              }
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-primary mb-1">
@@ -113,9 +131,12 @@ export default function EditSubItemDialog({
           <Button variant="secondary" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button onClick={onSubmit} disabled={!form.title.trim() || isPending}>
+          <Button onClick={onSubmit} disabled={!form.title.trim() || isPending || !!dateInvalid}>
             保存
           </Button>
+          {dateInvalid && (
+            <p className="text-xs text-error ml-2">开始时间不得晚于结束时间</p>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

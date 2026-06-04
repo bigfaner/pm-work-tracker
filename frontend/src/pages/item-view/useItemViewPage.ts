@@ -106,6 +106,7 @@ export function useItemViewPage(teamId: string | null) {
     title: '',
     priority: '',
     assigneeKey: '',
+    startDate: '',
     expectedEndDate: '',
     description: '',
   })
@@ -315,6 +316,7 @@ export function useItemViewPage(teamId: string | null) {
         title: string
         priority: string
         assigneeKey?: string
+        startDate?: string
         expectedEndDate?: string
         description?: string
       }
@@ -467,6 +469,7 @@ export function useItemViewPage(teamId: string | null) {
         title: sub.title,
         priority: sub.priority,
         assigneeKey: sub.assigneeKey || '',
+        startDate: sub.planStartDate || '',
         expectedEndDate: sub.expectedEndDate || '',
         description: sub.itemDesc || '',
       })
@@ -484,6 +487,7 @@ export function useItemViewPage(teamId: string | null) {
         title: editSubForm.title.trim(),
         priority: editSubForm.priority,
         assigneeKey: editSubForm.assigneeKey || undefined,
+        startDate: editSubForm.startDate || undefined,
         expectedEndDate: editSubForm.expectedEndDate || undefined,
         description: editSubForm.description,
       },

@@ -277,6 +277,7 @@ export interface UpdateSubItemReq {
   title?: string
   description?: string
   priority?: string
+  startDate?: string
   expectedEndDate?: string
 }
 
