@@ -6,7 +6,7 @@ import { listTeamsApi } from '@/api/teams'
 import Sidebar from './Sidebar'
 
 export default function AppLayout() {
-  const { teams, currentTeamId, setCurrentTeam, setTeams } = useTeamStore()
+  const { currentTeamId, setCurrentTeam, setTeams } = useTeamStore()
   const fetchPermissions = useAuthStore((s) => s.fetchPermissions)
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function AppLayout() {
         }
       })
       .catch(() => {})
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     fetchPermissions()

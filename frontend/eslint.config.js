@@ -3,11 +3,13 @@ import tseslint from 'typescript-eslint'
 import stylisticTs from '@stylistic/eslint-plugin-ts'
 
 export default tseslint.config(
+  {
+    ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**'],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
     files: ['**/*.{ts,tsx}'],
-    ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**'],
     plugins: {
       '@stylistic/ts': stylisticTs,
     },

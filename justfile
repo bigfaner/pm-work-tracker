@@ -28,6 +28,8 @@ backend_dir  := "./backend"
 project-type:
     @echo "mixed"
 
+# Language-level targets (fast feedback, per-task submit gate)
+
 [group("language")]
 compile scope="":
     #!/usr/bin/env bash
@@ -114,7 +116,7 @@ check scope="":
       *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
     esac
 
-# convenience targets (not invoked by forge skills)
+# Convenience targets (not invoked by forge skills)
 
 run scope="":
     #!/usr/bin/env bash
@@ -136,62 +138,244 @@ dev scope="":
       *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
     esac
 
-test scope="":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    case "{{scope}}" in
-      frontend) cd "{{frontend_dir}}" && npm test ;;
-      backend)  cd "{{backend_dir}}" && go test -race ./... ;;
-      "")       (cd "{{frontend_dir}}" && npm test) && (cd "{{backend_dir}}" && go test -race ./...) ;;
-      *)        echo "[forge] invalid scope '{{scope}}'; expected frontend/backend" >&2; exit 1 ;;
-    esac
+# --- Surface: backend (api) ---
+# API tests are self-contained: Vitest global setup starts its own backend server.
+# backend-dev/probe/teardown are for manual development workflows.
 
-[arg("feature", long)]
-test-e2e feature="":
+# user-customized
+[group("backend")]
+[unix]
+backend-dev:
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ "{{feature}}" != "" ]; then
-        cd tests/e2e && npx playwright test {{feature}}/
+    cd "{{backend_dir}}" && go run cmd/server/main.go -dev &
+    _pid=$!
+    mkdir -p tests/results
+    printf '%s\n' "$_pid" > tests/results/.pid-backend
+    echo "Backend started (PID $_pid)"
+
+# user-customized
+[group("backend")]
+[windows]
+backend-dev:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{backend_dir}}" && go run cmd/server/main.go -dev &
+    _pid=$!
+    mkdir -p tests/results
+    printf '%s\n' "$_pid" > tests/results/.pid-backend
+    echo "Backend started (PID $_pid)"
+
+# user-customized
+[group("backend")]
+[unix]
+backend-probe:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for _i in {1..6}; do
+        if curl -sf http://localhost:8080/health > /dev/null 2>&1; then
+            echo "OK: backend (http://localhost:8080)"
+            exit 0
+        fi
+        sleep 5
+    done
+    echo "FAIL: backend health check timed out" >&2
+    exit 1
+
+# user-customized
+[group("backend")]
+[windows]
+backend-probe:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for _i in {1..6}; do
+        if curl -sf http://localhost:8080/health > /dev/null 2>&1; then
+            echo "OK: backend (http://localhost:8080)"
+            exit 0
+        fi
+        sleep 5
+    done
+    echo "FAIL: backend health check timed out" >&2
+    exit 1
+
+# user-customized
+[group("backend")]
+[unix]
+backend-test journey='':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -d tests/api/node_modules ]; then npm install --prefix tests/api; fi
+    if [ "{{journey}}" != "" ]; then
+        cd tests/api && npx vitest run "{{journey}}"
     else
-        [ ! -d tests/e2e/node_modules ] && npm install --prefix tests/e2e
-        cd tests/e2e && npx playwright test
+        cd tests/api && npx vitest run
     fi
 
-e2e-setup:
+# user-customized
+[group("backend")]
+[windows]
+backend-test journey='':
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ ! -f tests/e2e/package.json ]; then
-        echo "Error: tests/e2e/package.json not found" >&2
-        exit 1
+    if [ ! -d tests/api/node_modules ]; then npm install --prefix tests/api; fi
+    if [ "{{journey}}" != "" ]; then
+        cd tests/api && npx vitest run "{{journey}}"
+    else
+        cd tests/api && npx vitest run
     fi
-    if [ ! -d tests/e2e/node_modules ]; then
-        npm install --prefix tests/e2e
-    fi
-    npx --prefix tests/e2e playwright install chromium
-    echo "OK: e2e dependencies ready"
 
-[arg("feature", long)]
-e2e-verify feature="":
+# user-customized
+[group("backend")]
+[unix]
+backend-teardown:
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ -z "{{feature}}" ]; then
-        echo "Usage: just e2e-verify --feature <slug>" >&2
-        exit 1
+    if [ -f tests/results/.pid-backend ]; then
+        kill "$(tr -d '\r' < tests/results/.pid-backend)" 2>/dev/null || true
+        rm -f tests/results/.pid-backend
     fi
-    if [ ! -d "tests/e2e/{{feature}}" ]; then
-        echo "Error: tests/e2e/{{feature}}/ not found" >&2
-        exit 1
+
+# user-customized
+[group("backend")]
+[windows]
+backend-teardown:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -f tests/results/.pid-backend ]; then
+        kill "$(tr -d '\r' < tests/results/.pid-backend)" 2>/dev/null || true
+        rm -f tests/results/.pid-backend
     fi
-    matches=$(grep -rn '// VERIFY:' "tests/e2e/{{feature}}/" --include='*.spec.ts' || true)
-    if [ -n "$matches" ]; then
-        count=$(echo "$matches" | wc -l | tr -d ' ')
-        echo "Error: $count unresolved // VERIFY: marker(s) in tests/e2e/{{feature}}/" >&2
-        echo "" >&2
-        echo "$matches" >&2
-        echo "" >&2
-        echo "Replace each // VERIFY: comment with a real assertion before running tests." >&2
-        exit 1
+
+[group("backend")]
+backend:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just backend-test
+
+# --- Surface: frontend (web) ---
+# Web E2E tests need full stack: backend + frontend dev server running.
+
+# user-customized
+[group("frontend")]
+[unix]
+frontend-dev:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just backend-dev
+    cd "{{frontend_dir}}" && npm run dev &
+    _pid=$!
+    mkdir -p tests/results
+    printf '%s\n' "$_pid" > tests/results/.pid-frontend
+    echo "Frontend started (PID $_pid)"
+
+# user-customized
+[group("frontend")]
+[windows]
+frontend-dev:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just backend-dev
+    cd "{{frontend_dir}}" && npm run dev &
+    _pid=$!
+    mkdir -p tests/results
+    printf '%s\n' "$_pid" > tests/results/.pid-frontend
+    echo "Frontend started (PID $_pid)"
+
+# user-customized
+[group("frontend")]
+[unix]
+frontend-probe:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for _i in {1..6}; do
+        if curl -sf http://localhost:5173 > /dev/null 2>&1; then
+            echo "OK: frontend (http://localhost:5173)"
+            exit 0
+        fi
+        sleep 5
+    done
+    echo "FAIL: frontend health check timed out" >&2
+    exit 1
+
+# user-customized
+[group("frontend")]
+[windows]
+frontend-probe:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for _i in {1..6}; do
+        if curl -sf http://localhost:5173 > /dev/null 2>&1; then
+            echo "OK: frontend (http://localhost:5173)"
+            exit 0
+        fi
+        sleep 5
+    done
+    echo "FAIL: frontend health check timed out" >&2
+    exit 1
+
+# user-customized
+[group("frontend")]
+[unix]
+frontend-test journey='':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -d tests/web/node_modules ]; then npm install --prefix tests/web; fi
+    if [ "{{journey}}" != "" ]; then
+        cd tests/web && npx playwright test "{{journey}}"
+    else
+        cd tests/web && npx playwright test
     fi
-    echo "OK: no unresolved // VERIFY: markers in tests/e2e/{{feature}}/"
+
+# user-customized
+[group("frontend")]
+[windows]
+frontend-test journey='':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -d tests/web/node_modules ]; then npm install --prefix tests/web; fi
+    if [ "{{journey}}" != "" ]; then
+        cd tests/web && npx playwright test "{{journey}}"
+    else
+        cd tests/web && npx playwright test
+    fi
+
+# user-customized
+[group("frontend")]
+[unix]
+frontend-teardown:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -f tests/results/.pid-frontend ]; then
+        kill "$(tr -d '\r' < tests/results/.pid-frontend)" 2>/dev/null || true
+        rm -f tests/results/.pid-frontend
+    fi
+    just backend-teardown
+
+# user-customized
+[group("frontend")]
+[windows]
+frontend-teardown:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -f tests/results/.pid-frontend ]; then
+        kill "$(tr -d '\r' < tests/results/.pid-frontend)" 2>/dev/null || true
+        rm -f tests/results/.pid-frontend
+    fi
+    just backend-teardown
+
+[group("frontend")]
+frontend:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just frontend-dev && just frontend-probe && just frontend-test; rc=$?; just frontend-teardown; exit $rc
+
+# Infra tests (build/lint checks, no surface configured)
+
+[group("infra")]
+infra-test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -d tests/infra/node_modules ]; then npm install --prefix tests/infra; fi
+    cd tests/infra && npx vitest run
 
 # --- end forge standard recipes ---

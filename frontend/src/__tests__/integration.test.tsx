@@ -13,7 +13,6 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { server } from '@/mocks/server'
 import LoginPage from '@/pages/LoginPage'
 import { useAuthStore } from '@/store/auth'
-import type { User } from '@/types'
 
 // MSW lifecycle for this test suite only
 beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
@@ -21,13 +20,6 @@ afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
 
 // --- Shared data ---
-
-const mockUser: User = {
-  bizKey: '1',
-  username: 'testuser',
-  displayName: 'Test User',
-  createTime: '',
-}
 
 function getLoginButton() {
   return screen.getByRole('button', { name: /登录/ })

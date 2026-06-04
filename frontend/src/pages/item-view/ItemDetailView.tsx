@@ -102,7 +102,6 @@ export default function ItemDetailView({
   onPageSizeChange,
   totalItems,
   onAddSubItem,
-  onEditMainItem,
   onAppendProgress,
   onEditSubItem,
 }: DetailViewProps) {

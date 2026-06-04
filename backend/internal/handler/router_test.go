@@ -366,9 +366,10 @@ func TestRateLimit_Login(t *testing.T) {
 	deps, _ := testDeps(t)
 	r := SetupRouter(deps, nil)
 
-	// Send more than 10 requests to login — the 11th+ should be rate limited
+	// In test mode the rate limit is 100 req/min; send enough to trigger it.
+	// Use 105 requests to ensure we exceed the burst allowance.
 	got429 := false
-	for i := 0; i < 15; i++ {
+	for i := 0; i < 105; i++ {
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(`{}`))
 		req.Header.Set("Content-Type", "application/json")

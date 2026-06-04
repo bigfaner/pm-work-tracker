@@ -27,7 +27,7 @@ describe('StatusBadge', () => {
   })
 
   it('applies correct badge variant class for each status code', () => {
-    for (const { code, variant } of statuses) {
+    for (const { code } of statuses) {
       const { unmount } = render(<StatusBadge status={code} />)
       const badge = screen.getByText(
         statuses.find((s) => s.code === code)!.name,
