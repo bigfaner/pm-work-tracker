@@ -18,21 +18,21 @@ import (
 // Dependencies holds all services and configuration needed by the router.
 // Handlers are wired here to avoid global state.
 type Dependencies struct {
-	Config      *config.Config
-	TeamRepo    repository.TeamRepo
-	UserRepo    repository.UserRepo
-	RoleRepo    repository.RoleRepo
-	Auth        *AuthHandler
-	Team        *TeamHandler
-	MainItem    *MainItemHandler
-	SubItem     *SubItemHandler
-	Progress    *ProgressHandler
-	ItemPool    *ItemPoolHandler
-	View        *ViewHandler
-	Report      *ReportHandler
-	Admin       *AdminHandler
-	Role        *RoleHandler
-	Permission  *PermissionHandler
+	Config     *config.Config
+	TeamRepo   repository.TeamRepo
+	UserRepo   repository.UserRepo
+	RoleRepo   repository.RoleRepo
+	Auth       *AuthHandler
+	Team       *TeamHandler
+	MainItem   *MainItemHandler
+	SubItem    *SubItemHandler
+	Progress   *ProgressHandler
+	ItemPool   *ItemPoolHandler
+	View       *ViewHandler
+	Report     *ReportHandler
+	Admin      *AdminHandler
+	Role       *RoleHandler
+	Permission *PermissionHandler
 }
 
 // perm is a shorthand for creating a RequirePermission middleware with the deps' RoleRepo.
@@ -84,8 +84,12 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 
 	// Auth routes (public login, authenticated logout)
 	authGroup := v1.Group("/auth")
-	// Rate limit login: 10 req/min per IP
-	authGroup.POST("/login", rateLimitMiddleware(10, time.Minute), deps.Auth.Login)
+	// Rate limit login: 10 req/min per IP (100 req/min in test mode)
+	loginRateLimit := 10
+	if deps.Config != nil && deps.Config.Server.GinMode == "test" {
+		loginRateLimit = 100
+	}
+	authGroup.POST("/login", rateLimitMiddleware(loginRateLimit, time.Minute), deps.Auth.Login)
 	authGroup.POST("/logout", middleware.AuthMiddleware(deps.Config.Auth.JWTSecret, deps.UserRepo), deps.Auth.Logout)
 
 	// Team-scoped routes (require auth + team membership)

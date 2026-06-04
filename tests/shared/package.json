@@ -1,0 +1,9 @@
+{
+  "name": "shared-test-helpers",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "yaml": "^2.7.0"
+  }
+}
