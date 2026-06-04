@@ -54,6 +54,8 @@ var (
 	ErrDuplicateBizKey      = &AppError{Code: "DUPLICATE_BIZ_KEY", Status: 409, Message: "biz_key uniqueness violation"}
 	ErrCannotDeleteSelf     = &AppError{Code: "CANNOT_DELETE_SELF", Status: 422, Message: "cannot delete your own account"}
 	ErrUserDeleted          = &AppError{Code: "USER_DELETED", Status: 403, Message: "user account has been deleted"}
+	ErrTargetClosed         = &AppError{Code: "BAD_REQUEST", Status: 400, Message: "目标主事项已关闭"}
+	ErrSameMainItem         = &AppError{Code: "BAD_REQUEST", Status: 400, Message: "不能移动到同一主事项"}
 )
 
 // MapNotFound maps gorm.ErrRecordNotFound and ErrNotFound to the provided domain error.

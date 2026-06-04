@@ -133,6 +133,7 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 	teamsGroup.GET("/sub-items/:subId/available-transitions", deps.perm("sub_item:read"), deps.SubItem.AvailableTransitions)
 	teamsGroup.PUT("/sub-items/:subId/assignee", deps.perm("sub_item:assign"), deps.SubItem.Assign)
 	teamsGroup.DELETE("/sub-items/:subId", deps.perm("sub_item:delete"), deps.SubItem.DeleteSubItem)
+	teamsGroup.PUT("/sub-items/:subId/move", deps.perm("sub_item:update"), deps.SubItem.Move)
 
 	// Progress records
 	teamsGroup.POST("/sub-items/:subId/progress", deps.perm("progress:create"), deps.Progress.Append)

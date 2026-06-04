@@ -185,6 +185,11 @@ func (s *StubSubItemSvc) GetByBizKey(_ context.Context, _ int64) (*model.SubItem
 	return nil, fmt.Errorf("stub: not implemented")
 }
 
+// Move is a stub for service.SubItemService.Move.
+func (s *StubSubItemSvc) Move(_ context.Context, _, _, _, _ int64) (*service.MoveResult, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
 var _ service.SubItemService = (*StubSubItemSvc)(nil)
 
 // StubItemPoolSvc is a stub implementation of service.ItemPoolService for testing.

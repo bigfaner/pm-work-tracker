@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -285,4 +286,40 @@ func (h *SubItemHandler) DeleteSubItem(c *gin.Context) {
 	}
 
 	apperrors.RespondOK(c, gin.H{"message": "ok"})
+}
+
+// Move handles PUT /api/v1/teams/:teamId/sub-items/:subId/move
+func (h *SubItemHandler) Move(c *gin.Context) {
+	subBizKey, ok := pkgHandler.ParseBizKeyParam(c, "subId")
+	if !ok {
+		return
+	}
+
+	teamBizKey := middleware.GetTeamBizKey(c)
+	callerBizKey := middleware.GetUserBizKey(c)
+
+	var req struct {
+		TargetMainItemBizKey string `json:"targetMainItemBizKey" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	targetMainItemBizKey, err := pkg.ParseID(req.TargetMainItemBizKey)
+	if err != nil || targetMainItemBizKey <= 0 {
+		apperrors.RespondError(c, apperrors.ErrValidation)
+		return
+	}
+
+	result, err := h.svc.Move(c.Request.Context(), teamBizKey, subBizKey, targetMainItemBizKey, callerBizKey)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, gin.H{
+		"newSubCode":     result.NewSubCode,
+		"mainItemBizKey": fmt.Sprintf("%d", result.MainItemBizKey),
+	})
 }

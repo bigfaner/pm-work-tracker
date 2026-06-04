@@ -89,6 +89,14 @@ type mockSubItemService struct {
 		item *model.SubItem
 		err  error
 	}
+
+	moveResult struct {
+		result *service.MoveResult
+		err    error
+	}
+	moveCalled           bool
+	lastMoveSubBizKey    int64
+	lastMoveTargetBizKey int64
 }
 
 func (m *mockSubItemService) Create(_ context.Context, teamBizKey int64, callerBizKey int64, req dto.SubItemCreateReq) (*model.SubItem, error) {
@@ -159,6 +167,13 @@ func (m *mockSubItemService) GetByBizKey(_ context.Context, bizKey int64) (*mode
 	return &model.SubItem{BaseModel: model.BaseModel{ID: uint(bizKey), BizKey: bizKey}}, nil
 }
 
+func (m *mockSubItemService) Move(_ context.Context, _ int64, subItemBizKey int64, targetMainItemBizKey int64, _ int64) (*service.MoveResult, error) {
+	m.moveCalled = true
+	m.lastMoveSubBizKey = subItemBizKey
+	m.lastMoveTargetBizKey = targetMainItemBizKey
+	return m.moveResult.result, m.moveResult.err
+}
+
 // mockMainItemSvcForSubItem resolves bizKey for SubItemHandler List tests.
 type mockMainItemSvcForSubItem struct{}
 
@@ -190,6 +205,9 @@ func (m *mockMainItemSvcForSubItem) EvaluateLinkage(_ context.Context, _ int64, 
 }
 func (m *mockMainItemSvcForSubItem) Delete(_ context.Context, _ int64, _ int64, _ int64) error {
 	return nil
+}
+func (m *mockMainItemSvcForSubItem) Move(_ context.Context, _, _, _, _ int64) (*service.MoveResult, error) {
+	return nil, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -1077,4 +1095,148 @@ func TestDeleteSubItem_DeleteError(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: PUT /teams/:teamId/sub-items/:subId/move (Move)
+// ---------------------------------------------------------------------------
+
+func TestMoveSubItem_Success(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.moveResult.result = &service.MoveResult{
+		NewSubCode:     "FEAT-00002-03",
+		MainItemBizKey: 300,
+	}
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"targetMainItemBizKey":"300"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/100/move", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, svc.moveCalled)
+	assert.Equal(t, int64(100), svc.lastMoveSubBizKey)
+	assert.Equal(t, int64(300), svc.lastMoveTargetBizKey)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, float64(0), resp["code"])
+	data, ok := resp["data"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "FEAT-00002-03", data["newSubCode"])
+	assert.Equal(t, "300", data["mainItemBizKey"])
+}
+
+func TestMoveSubItem_TargetClosed(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.moveResult.err = apperrors.ErrTargetClosed
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"targetMainItemBizKey":"300"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/100/move", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestMoveSubItem_SameMainItem(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.moveResult.err = apperrors.ErrSameMainItem
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"targetMainItemBizKey":"300"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/100/move", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestMoveSubItem_SubItemNotFound(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.moveResult.err = apperrors.ErrItemNotFound
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"targetMainItemBizKey":"300"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/999/move", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestMoveSubItem_TargetNotFound(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.moveResult.err = apperrors.ErrItemNotFound
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"targetMainItemBizKey":"999"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/100/move", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestMoveSubItem_MissingBody(t *testing.T) {
+	svc := &mockSubItemService{}
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/100/move", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.False(t, svc.moveCalled)
+}
+
+func TestMoveSubItem_InvalidBizKey(t *testing.T) {
+	svc := &mockSubItemService{}
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"targetMainItemBizKey":"not-a-number"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/100/move", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.False(t, svc.moveCalled)
 }

@@ -1236,3 +1236,241 @@ func TestSubItemGetByBizKey_NotFound(t *testing.T) {
 
 	repo.AssertExpectations(t)
 }
+
+// ---------------------------------------------------------------------------
+// Tests: Move
+// ---------------------------------------------------------------------------
+
+func TestMove_Success(t *testing.T) {
+	repo := new(mockSubItemRepoTM)
+	mainSvc := new(mockMainItemSvcTM)
+	historySvc := new(mockStatusHistorySvcTM)
+	svc := NewSubItemService(repo, mainSvc, historySvc)
+
+	subItem := &model.SubItem{
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 100},
+		TeamKey:     10,
+		MainItemKey: 200,
+		ItemStatus:  "progressing",
+		AssigneeKey: func() *int64 { v := int64(50); return &v }(),
+		Code:        "FEAT-00001-01",
+	}
+
+	targetMainItem := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 2, BizKey: 300},
+		TeamKey:    10,
+		ItemStatus: "progressing",
+		Code:       "FEAT-00002",
+	}
+
+	repo.On("FindByBizKey", mock.Anything, int64(100)).Return(subItem, nil)
+	mainSvc.On("GetByBizKey", mock.Anything, int64(300)).Return(targetMainItem, nil)
+	repo.On("NextSubCode", mock.Anything, int64(300)).Return("FEAT-00002-01", nil)
+	repo.On("Update", mock.Anything, mock.AnythingOfType("*model.SubItem"), mock.AnythingOfType("map[string]interface {}")).Return(nil)
+	mainSvc.On("RecalcCompletion", mock.Anything, int64(200)).Return(nil)
+	mainSvc.On("RecalcCompletion", mock.Anything, int64(300)).Return(nil)
+
+	result, err := svc.Move(context.Background(), 10, 100, 300, 1)
+
+	require.NoError(t, err)
+	assert.Equal(t, "FEAT-00002-01", result.NewSubCode)
+	assert.Equal(t, int64(300), result.MainItemBizKey)
+
+	repo.AssertExpectations(t)
+	mainSvc.AssertExpectations(t)
+}
+
+func TestMove_SubItemNotFound(t *testing.T) {
+	repo := new(mockSubItemRepoTM)
+	mainSvc := new(mockMainItemSvcTM)
+	historySvc := new(mockStatusHistorySvcTM)
+	svc := NewSubItemService(repo, mainSvc, historySvc)
+
+	repo.On("FindByBizKey", mock.Anything, int64(999)).Return(nil, gorm.ErrRecordNotFound)
+
+	_, err := svc.Move(context.Background(), 10, 999, 300, 1)
+
+	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
+	repo.AssertExpectations(t)
+}
+
+func TestMove_TargetMainItemNotFound(t *testing.T) {
+	repo := new(mockSubItemRepoTM)
+	mainSvc := new(mockMainItemSvcTM)
+	historySvc := new(mockStatusHistorySvcTM)
+	svc := NewSubItemService(repo, mainSvc, historySvc)
+
+	subItem := &model.SubItem{
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 100},
+		TeamKey:     10,
+		MainItemKey: 200,
+		ItemStatus:  "progressing",
+	}
+
+	repo.On("FindByBizKey", mock.Anything, int64(100)).Return(subItem, nil)
+	mainSvc.On("GetByBizKey", mock.Anything, int64(999)).Return(nil, gorm.ErrRecordNotFound)
+
+	_, err := svc.Move(context.Background(), 10, 100, 999, 1)
+
+	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
+	repo.AssertExpectations(t)
+	mainSvc.AssertExpectations(t)
+}
+
+func TestMove_TargetClosed(t *testing.T) {
+	repo := new(mockSubItemRepoTM)
+	mainSvc := new(mockMainItemSvcTM)
+	historySvc := new(mockStatusHistorySvcTM)
+	svc := NewSubItemService(repo, mainSvc, historySvc)
+
+	subItem := &model.SubItem{
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 100},
+		TeamKey:     10,
+		MainItemKey: 200,
+		ItemStatus:  "progressing",
+	}
+
+	targetMainItem := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 2, BizKey: 300},
+		TeamKey:    10,
+		ItemStatus: "completed",
+	}
+
+	repo.On("FindByBizKey", mock.Anything, int64(100)).Return(subItem, nil)
+	mainSvc.On("GetByBizKey", mock.Anything, int64(300)).Return(targetMainItem, nil)
+
+	_, err := svc.Move(context.Background(), 10, 100, 300, 1)
+
+	assert.ErrorIs(t, err, apperrors.ErrTargetClosed)
+	repo.AssertExpectations(t)
+	mainSvc.AssertExpectations(t)
+}
+
+func TestMove_SameMainItem(t *testing.T) {
+	repo := new(mockSubItemRepoTM)
+	mainSvc := new(mockMainItemSvcTM)
+	historySvc := new(mockStatusHistorySvcTM)
+	svc := NewSubItemService(repo, mainSvc, historySvc)
+
+	subItem := &model.SubItem{
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 100},
+		TeamKey:     10,
+		MainItemKey: 300,
+		ItemStatus:  "progressing",
+	}
+
+	targetMainItem := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 2, BizKey: 300},
+		TeamKey:    10,
+		ItemStatus: "progressing",
+	}
+
+	repo.On("FindByBizKey", mock.Anything, int64(100)).Return(subItem, nil)
+	mainSvc.On("GetByBizKey", mock.Anything, int64(300)).Return(targetMainItem, nil)
+
+	_, err := svc.Move(context.Background(), 10, 100, 300, 1)
+
+	assert.ErrorIs(t, err, apperrors.ErrSameMainItem)
+	repo.AssertExpectations(t)
+	mainSvc.AssertExpectations(t)
+}
+
+func TestMove_CrossTeam(t *testing.T) {
+	repo := new(mockSubItemRepoTM)
+	mainSvc := new(mockMainItemSvcTM)
+	historySvc := new(mockStatusHistorySvcTM)
+	svc := NewSubItemService(repo, mainSvc, historySvc)
+
+	subItem := &model.SubItem{
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 100},
+		TeamKey:     10,
+		MainItemKey: 200,
+		ItemStatus:  "progressing",
+	}
+
+	// Target belongs to a different team (20 instead of 10)
+	targetMainItem := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 2, BizKey: 300},
+		TeamKey:    20,
+		ItemStatus: "progressing",
+	}
+
+	repo.On("FindByBizKey", mock.Anything, int64(100)).Return(subItem, nil)
+	mainSvc.On("GetByBizKey", mock.Anything, int64(300)).Return(targetMainItem, nil)
+
+	_, err := svc.Move(context.Background(), 10, 100, 300, 1)
+
+	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
+	repo.AssertExpectations(t)
+	mainSvc.AssertExpectations(t)
+}
+
+func TestMove_RecalcCompletionBothSides(t *testing.T) {
+	repo := new(mockSubItemRepoTM)
+	mainSvc := new(mockMainItemSvcTM)
+	historySvc := new(mockStatusHistorySvcTM)
+	svc := NewSubItemService(repo, mainSvc, historySvc)
+
+	subItem := &model.SubItem{
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 100},
+		TeamKey:     10,
+		MainItemKey: 200,
+		ItemStatus:  "progressing",
+	}
+
+	targetMainItem := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 2, BizKey: 300},
+		TeamKey:    10,
+		ItemStatus: "progressing",
+	}
+
+	repo.On("FindByBizKey", mock.Anything, int64(100)).Return(subItem, nil)
+	mainSvc.On("GetByBizKey", mock.Anything, int64(300)).Return(targetMainItem, nil)
+	repo.On("NextSubCode", mock.Anything, int64(300)).Return("FEAT-00002-01", nil)
+	repo.On("Update", mock.Anything, mock.AnythingOfType("*model.SubItem"), mock.AnythingOfType("map[string]interface {}")).Return(nil)
+
+	// Both source (200) and target (300) should be recalculated
+	mainSvc.On("RecalcCompletion", mock.Anything, int64(200)).Return(nil)
+	mainSvc.On("RecalcCompletion", mock.Anything, int64(300)).Return(nil)
+
+	result, err := svc.Move(context.Background(), 10, 100, 300, 1)
+
+	require.NoError(t, err)
+	assert.Equal(t, int64(300), result.MainItemBizKey)
+
+	mainSvc.AssertCalled(t, "RecalcCompletion", mock.Anything, int64(200))
+	mainSvc.AssertCalled(t, "RecalcCompletion", mock.Anything, int64(300))
+	repo.AssertExpectations(t)
+	mainSvc.AssertExpectations(t)
+}
+
+func TestMove_NextSubCodeError(t *testing.T) {
+	repo := new(mockSubItemRepoTM)
+	mainSvc := new(mockMainItemSvcTM)
+	historySvc := new(mockStatusHistorySvcTM)
+	svc := NewSubItemService(repo, mainSvc, historySvc)
+
+	subItem := &model.SubItem{
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 100},
+		TeamKey:     10,
+		MainItemKey: 200,
+		ItemStatus:  "progressing",
+	}
+
+	targetMainItem := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 2, BizKey: 300},
+		TeamKey:    10,
+		ItemStatus: "progressing",
+	}
+
+	repo.On("FindByBizKey", mock.Anything, int64(100)).Return(subItem, nil)
+	mainSvc.On("GetByBizKey", mock.Anything, int64(300)).Return(targetMainItem, nil)
+	repo.On("NextSubCode", mock.Anything, int64(300)).Return("", errors.New("seq error"))
+
+	_, err := svc.Move(context.Background(), 10, 100, 300, 1)
+
+	assert.Error(t, err)
+	assert.Equal(t, "seq error", err.Error())
+	repo.AssertExpectations(t)
+	mainSvc.AssertExpectations(t)
+}
