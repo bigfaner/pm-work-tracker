@@ -7,7 +7,7 @@ import {
   afterAll,
   afterEach,
 } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
@@ -53,7 +53,7 @@ const mockGanttResponse: GanttViewResp = {
       title: '用户认证模块开发',
       priority: 'P1',
       startDate: '2026-04-01',
-      expectedEndDate: '2026-04-30',
+      expectedEndDate: '2026-06-15',
       completion: 52,
       itemStatus: 'progressing',
       isOverdue: false,

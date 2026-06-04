@@ -1,3 +1,4 @@
+// Package vo provides value objects for domain models.
 package vo
 
 import (
