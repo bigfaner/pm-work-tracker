@@ -78,6 +78,17 @@ type mockSubItemService struct {
 	lastAssigneeID uint
 
 	availableTransitionsCalled bool
+
+	deleteResult struct {
+		err error
+	}
+	deleteCalled bool
+	lastDeleteID uint
+
+	getByBizKeyResult struct {
+		item *model.SubItem
+		err  error
+	}
 }
 
 func (m *mockSubItemService) Create(_ context.Context, teamBizKey int64, callerBizKey int64, req dto.SubItemCreateReq) (*model.SubItem, error) {
@@ -136,11 +147,16 @@ func (m *mockSubItemService) AvailableTransitions(_ context.Context, teamBizKey 
 	m.lastItemID = subID
 	return m.availableTransitionsResult.transitions, m.availableTransitionsResult.err
 }
-func (m *mockSubItemService) Delete(_ context.Context, _ int64, _ int64, _ uint) error {
-	return nil
+func (m *mockSubItemService) Delete(_ context.Context, _ int64, _ int64, itemID uint) error {
+	m.deleteCalled = true
+	m.lastDeleteID = itemID
+	return m.deleteResult.err
 }
 func (m *mockSubItemService) GetByBizKey(_ context.Context, bizKey int64) (*model.SubItem, error) {
-	return &model.SubItem{BaseModel: model.BaseModel{ID: uint(bizKey)}}, nil
+	if m.getByBizKeyResult.item != nil || m.getByBizKeyResult.err != nil {
+		return m.getByBizKeyResult.item, m.getByBizKeyResult.err
+	}
+	return &model.SubItem{BaseModel: model.BaseModel{ID: uint(bizKey), BizKey: bizKey}}, nil
 }
 
 // mockMainItemSvcForSubItem resolves bizKey for SubItemHandler List tests.
@@ -171,6 +187,9 @@ func (m *mockMainItemSvcForSubItem) AvailableTransitions(_ context.Context, _ in
 }
 func (m *mockMainItemSvcForSubItem) EvaluateLinkage(_ context.Context, _ int64, _ int64) (*service.LinkageResult, error) {
 	return nil, nil
+}
+func (m *mockMainItemSvcForSubItem) Delete(_ context.Context, _ int64, _ int64, _ int64) error {
+	return nil
 }
 
 // ---------------------------------------------------------------------------
@@ -994,4 +1013,68 @@ func TestCreateSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	assert.Equal(t, "New SubItem", data["title"])
 	assert.Equal(t, "P2", data["priority"])
 	assert.Equal(t, "pending", data["itemStatus"])
+}
+
+// ---------------------------------------------------------------------------
+// Tests: Delete Sub Item
+// ---------------------------------------------------------------------------
+
+func TestDeleteSubItem_Success(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.getByBizKeyResult.item = &model.SubItem{BaseModel: model.BaseModel{ID: 42, BizKey: 200}}
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/teams/10/sub-items/200", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, svc.deleteCalled)
+	assert.Equal(t, uint(42), svc.lastDeleteID)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, float64(0), resp["code"])
+	data, ok := resp["data"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "ok", data["message"])
+}
+
+func TestDeleteSubItem_NotFound(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.getByBizKeyResult.err = apperrors.ErrItemNotFound
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/teams/10/sub-items/999", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.False(t, svc.deleteCalled)
+}
+
+func TestDeleteSubItem_DeleteError(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.getByBizKeyResult.item = &model.SubItem{BaseModel: model.BaseModel{ID: 42, BizKey: 200}}
+	svc.deleteResult.err = apperrors.ErrForbidden
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/teams/10/sub-items/200", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
 }

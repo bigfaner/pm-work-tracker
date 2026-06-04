@@ -130,6 +130,11 @@ func (s *StubMainItemSvc) EvaluateLinkage(_ context.Context, _, _ int64) (*servi
 	return nil, fmt.Errorf("stub: not implemented")
 }
 
+// Delete is a stub for service.MainItemService.Delete.
+func (s *StubMainItemSvc) Delete(_ context.Context, _, _, _ int64) error {
+	return fmt.Errorf("stub: not implemented")
+}
+
 var _ service.MainItemService = (*StubMainItemSvc)(nil)
 
 // StubSubItemSvc is a stub implementation of service.SubItemService for testing.
@@ -464,6 +469,14 @@ func (s *StubRouterRepoMainItem) FindByIDs(_ context.Context, _ []uint) (map[uin
 // ListByTeamAndStatus is a stub for repository.MainItemRepo.ListByTeamAndStatus.
 func (s *StubRouterRepoMainItem) ListByTeamAndStatus(_ context.Context, _ int64, _ string) ([]model.MainItem, error) {
 	return nil, nil
+}
+
+// SoftDelete is a stub for repository.MainItemRepo.SoftDelete.
+func (s *StubRouterRepoMainItem) SoftDelete(_ context.Context, _ uint) error { return nil }
+
+// CascadeSoftDelete is a stub for repository.MainItemRepo.CascadeSoftDelete.
+func (s *StubRouterRepoMainItem) CascadeSoftDelete(_ context.Context, _ uint, _ []uint, _ []model.StatusHistory) error {
+	return nil
 }
 
 var _ repository.MainItemRepo = (*StubRouterRepoMainItem)(nil)

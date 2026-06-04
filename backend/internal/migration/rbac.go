@@ -163,8 +163,8 @@ func seedPresetRoles(tx *gorm.DB) error {
 	pmCodes := []string{
 		"team:create", "team:read", "team:update", "team:delete",
 		"team:invite", "team:remove", "team:transfer",
-		"main_item:create", "main_item:read", "main_item:update", "main_item:archive",
-		"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:assign", "sub_item:change_status",
+		"main_item:create", "main_item:read", "main_item:update", "main_item:archive", "main_item:delete",
+		"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:assign", "sub_item:change_status", "sub_item:delete",
 		"progress:create", "progress:read", "progress:update",
 		"item_pool:submit", "item_pool:review",
 		"view:weekly", "view:gantt", "view:table",
@@ -426,8 +426,8 @@ func VerifyPresetRoleCodes(db *gorm.DB) error {
 		"pm": {
 			"team:create", "team:read", "team:update", "team:delete",
 			"team:invite", "team:remove", "team:transfer",
-			"main_item:create", "main_item:read", "main_item:update", "main_item:archive",
-			"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:assign", "sub_item:change_status",
+			"main_item:create", "main_item:read", "main_item:update", "main_item:archive", "main_item:delete",
+			"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:assign", "sub_item:change_status", "sub_item:delete",
 			"progress:create", "progress:read", "progress:update",
 			"item_pool:submit", "item_pool:review",
 			"view:weekly", "view:gantt", "view:table",

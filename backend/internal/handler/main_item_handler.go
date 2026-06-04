@@ -194,6 +194,25 @@ func (h *MainItemHandler) Archive(c *gin.Context) {
 	apperrors.RespondOK(c, nil)
 }
 
+// Delete handles DELETE /api/v1/teams/:teamId/main-items/:itemId
+func (h *MainItemHandler) Delete(c *gin.Context) {
+	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "itemId")
+	if !ok {
+		return
+	}
+
+	teamBizKey := middleware.GetTeamBizKey(c)
+	callerBizKey := middleware.GetUserBizKey(c)
+
+	err := h.svc.Delete(c.Request.Context(), teamBizKey, bizKey, callerBizKey)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, gin.H{"message": "ok"})
+}
+
 // ChangeStatus handles PUT /api/v1/teams/:teamId/main-items/:itemId/status
 func (h *MainItemHandler) ChangeStatus(c *gin.Context) {
 	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "itemId")

@@ -164,6 +164,11 @@ func (m *mockMainItemSvcTM) GetByBizKey(ctx context.Context, bizKey int64) (*mod
 	return args.Get(0).(*model.MainItem), args.Error(1)
 }
 
+func (m *mockMainItemSvcTM) Delete(ctx context.Context, teamBizKey int64, itemBizKey int64, operatorBizKey int64) error {
+	args := m.Called(ctx, teamBizKey, itemBizKey, operatorBizKey)
+	return args.Error(0)
+}
+
 // mockStatusHistorySvcTM uses testify/mock to satisfy StatusHistoryService.
 type mockStatusHistorySvcTM struct {
 	mock.Mock
@@ -974,7 +979,7 @@ func TestSubItemCreate_TriggersLinkage(t *testing.T) {
 
 func TestSubItemDelete_TriggersLinkage(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:   model.BaseModel{ID: 1},
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 100},
 		TeamKey:     1,
 		MainItemKey: int64(5),
 		ItemStatus:  "pending",
@@ -986,6 +991,10 @@ func TestSubItemDelete_TriggersLinkage(t *testing.T) {
 
 	repo.On("FindByID", mock.Anything, uint(1)).Return(existing, nil)
 	repo.On("SoftDelete", mock.Anything, uint(1)).Return(nil)
+	historySvc.On("Record", mock.Anything, mock.MatchedBy(func(record *model.StatusHistory) bool {
+		return record.ItemType == "sub_item" && record.ItemKey == int64(100) && record.FromStatus == "pending" && record.ToStatus == "deleted"
+	})).Return(nil)
+	mainSvc.On("RecalcCompletion", mock.Anything, int64(5)).Return(nil)
 	mainSvc.On("EvaluateLinkage", mock.Anything, int64(5), int64(10)).Return(nil, nil)
 
 	err := svc.Delete(context.Background(), int64(1), 10, 1)
@@ -1031,7 +1040,7 @@ func TestSubItemDelete_TeamMismatch(t *testing.T) {
 
 func TestSubItemDelete_RepoError(t *testing.T) {
 	existing := &model.SubItem{
-		BaseModel:   model.BaseModel{ID: 1},
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 100},
 		TeamKey:     1,
 		MainItemKey: int64(5),
 		ItemStatus:  "pending",

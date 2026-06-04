@@ -92,6 +92,7 @@ type MainItemService interface {
 	Create(ctx context.Context, teamBizKey int64, pmBizKey int64, req dto.MainItemCreateReq) (*model.MainItem, error)
 	Update(ctx context.Context, teamBizKey int64, itemID uint, req dto.MainItemUpdateReq) error
 	Archive(ctx context.Context, teamBizKey int64, itemID uint) error
+	Delete(ctx context.Context, teamBizKey int64, itemBizKey int64, operatorBizKey int64) error
 	List(ctx context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error)
 	Get(ctx context.Context, itemID uint) (*model.MainItem, error)
 	GetByBizKey(ctx context.Context, bizKey int64) (*model.MainItem, error)
@@ -220,6 +221,49 @@ func (s *mainItemService) Archive(ctx context.Context, _ int64, itemID uint) err
 	return s.mainItemRepo.Update(ctx, item, map[string]interface{}{
 		"archived_at": &now,
 	})
+}
+
+func (s *mainItemService) Delete(ctx context.Context, _, itemBizKey, operatorBizKey int64) error {
+	item, err := s.mainItemRepo.FindByBizKey(ctx, itemBizKey)
+	if err != nil {
+		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
+	}
+
+	// Fetch sub-items for cascade delete
+	subItems, err := s.subItemRepo.ListByMainItem(ctx, item.BizKey)
+	if err != nil {
+		return err
+	}
+
+	// Build sub-item ID list and status history records
+	subItemIDs := make([]uint, 0, len(subItems))
+	histories := make([]model.StatusHistory, 0, 1+len(subItems))
+
+	// Main item audit record
+	histories = append(histories, model.StatusHistory{
+		ItemType:   "main_item",
+		ItemKey:    item.BizKey,
+		FromStatus: item.ItemStatus,
+		ToStatus:   "deleted",
+		ChangedBy:  operatorBizKey,
+		IsAuto:     0,
+	})
+
+	// Sub-item audit records
+	for _, sub := range subItems {
+		subItemIDs = append(subItemIDs, sub.ID)
+		histories = append(histories, model.StatusHistory{
+			ItemType:   "sub_item",
+			ItemKey:    sub.BizKey,
+			FromStatus: sub.ItemStatus,
+			ToStatus:   "deleted",
+			ChangedBy:  operatorBizKey,
+			IsAuto:     0,
+		})
+	}
+
+	// Cascade soft-delete in single transaction (Hard Rule)
+	return s.mainItemRepo.CascadeSoftDelete(ctx, item.ID, subItemIDs, histories)
 }
 
 func (s *mainItemService) List(ctx context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {

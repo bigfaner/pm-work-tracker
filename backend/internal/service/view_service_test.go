@@ -87,6 +87,10 @@ func (m *mockViewMainItemRepo) ListByTeamAndStatus(_ context.Context, teamBizKey
 	}
 	return m.items, nil
 }
+func (m *mockViewMainItemRepo) SoftDelete(_ context.Context, _ uint) error { return nil }
+func (m *mockViewMainItemRepo) CascadeSoftDelete(_ context.Context, _ uint, _ []uint, _ []model.StatusHistory) error {
+	return nil
+}
 
 type mockViewSubItemRepo struct {
 	items   []model.SubItem

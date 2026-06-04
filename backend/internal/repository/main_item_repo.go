@@ -17,6 +17,8 @@ type MainItemRepo interface {
 	Update(ctx context.Context, item *model.MainItem, fields map[string]interface{}) error
 	List(ctx context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error)
 	ListByTeamAndStatus(ctx context.Context, teamBizKey int64, status string) ([]model.MainItem, error)
+	SoftDelete(ctx context.Context, id uint) error
+	CascadeSoftDelete(ctx context.Context, mainItemID uint, subItemIDs []uint, histories []model.StatusHistory) error
 	NextCode(ctx context.Context, teamBizKey int64) (string, error)
 	CountByTeam(ctx context.Context, teamBizKey int64) (int64, error)
 	ListNonArchivedByTeam(ctx context.Context, teamBizKey int64) ([]model.MainItem, error)

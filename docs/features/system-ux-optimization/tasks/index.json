@@ -49,7 +49,7 @@
       "title": "删除功能",
       "priority": "P1",
       "estimatedTime": "4h",
-      "status": "pending",
+      "status": "completed",
       "file": "1.4-delete-items.md",
       "record": "records/1.4-delete-items.md",
       "breaking": true,

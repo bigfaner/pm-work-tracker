@@ -64,6 +64,9 @@ func (m *mockMainItemSvc) AvailableTransitions(_ context.Context, _ int64, _ int
 func (m *mockMainItemSvc) EvaluateLinkage(_ context.Context, _ int64, _ int64) (*service.LinkageResult, error) {
 	return nil, nil
 }
+func (m *mockMainItemSvc) Delete(_ context.Context, _ int64, _ int64, _ int64) error {
+	return nil
+}
 
 var _ service.MainItemService = (*mockMainItemSvc)(nil)
 

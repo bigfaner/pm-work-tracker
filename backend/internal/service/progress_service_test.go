@@ -187,6 +187,10 @@ func (m *mockMainItemSvcForProgress) GetByBizKey(_ context.Context, _ int64) (*m
 	return nil, nil
 }
 
+func (m *mockMainItemSvcForProgress) Delete(_ context.Context, _ int64, _ int64, _ int64) error {
+	return nil
+}
+
 var _ MainItemService = (*mockMainItemSvcForProgress)(nil)
 
 // mockStatusHistorySvcForProgress captures Record calls.

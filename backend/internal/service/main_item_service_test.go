@@ -32,16 +32,21 @@ type mockMainItemRepo struct {
 	pageResult  *dto.PageResult[model.MainItem]
 	nextCodeVal string
 	// per-operation errors
-	findErr   error
-	bizKeyErr error
-	createErr error
-	updateErr error
-	listErr   error
-	nextErr   error
+	findErr              error
+	bizKeyErr            error
+	createErr            error
+	updateErr            error
+	listErr              error
+	nextErr              error
+	cascadeSoftDeleteErr error
 	// capture calls
-	createdItem   *model.MainItem
-	updatedID     uint
-	updatedFields map[string]interface{}
+	createdItem              *model.MainItem
+	updatedID                uint
+	updatedFields            map[string]interface{}
+	cascadeSoftDeleteCalled  bool
+	cascadeSoftDeleteItemID  uint
+	cascadeSoftDeleteSubIDs  []uint
+	cascadeSoftDeleteHistory []model.StatusHistory
 }
 
 func (m *mockMainItemRepo) Create(_ context.Context, item *model.MainItem) error {
@@ -108,6 +113,16 @@ func (m *mockMainItemRepo) FindByBizKey(_ context.Context, _ int64) (*model.Main
 }
 func (m *mockMainItemRepo) ListByTeamAndStatus(_ context.Context, _ int64, _ string) ([]model.MainItem, error) {
 	return nil, nil
+}
+func (m *mockMainItemRepo) SoftDelete(_ context.Context, _ uint) error {
+	return nil
+}
+func (m *mockMainItemRepo) CascadeSoftDelete(_ context.Context, mainItemID uint, subItemIDs []uint, histories []model.StatusHistory) error {
+	m.cascadeSoftDeleteCalled = true
+	m.cascadeSoftDeleteItemID = mainItemID
+	m.cascadeSoftDeleteSubIDs = subItemIDs
+	m.cascadeSoftDeleteHistory = histories
+	return m.cascadeSoftDeleteErr
 }
 
 type mockSubItemRepo struct {
@@ -1294,4 +1309,98 @@ func TestGetLinkageMutex_CapacityBounded(t *testing.T) {
 		getLinkageMutex(int64(i))
 	}
 	assert.Len(t, linkageMuMap, maxLinkageMuMapSize)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: Delete
+// ---------------------------------------------------------------------------
+
+func TestMainItemDelete_Success_NoSubItems(t *testing.T) {
+	mainItem := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 1, BizKey: 100},
+		ItemStatus: "progressing",
+	}
+	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	err := svc.Delete(context.Background(), 1, 100, 10)
+	require.NoError(t, err)
+
+	assert.True(t, mainRepo.cascadeSoftDeleteCalled)
+	assert.Equal(t, uint(1), mainRepo.cascadeSoftDeleteItemID)
+	assert.Empty(t, mainRepo.cascadeSoftDeleteSubIDs)
+	// Should have 1 history record for the main item
+	require.Len(t, mainRepo.cascadeSoftDeleteHistory, 1)
+	assert.Equal(t, "main_item", mainRepo.cascadeSoftDeleteHistory[0].ItemType)
+	assert.Equal(t, int64(100), mainRepo.cascadeSoftDeleteHistory[0].ItemKey)
+	assert.Equal(t, "progressing", mainRepo.cascadeSoftDeleteHistory[0].FromStatus)
+	assert.Equal(t, "deleted", mainRepo.cascadeSoftDeleteHistory[0].ToStatus)
+	assert.Equal(t, int64(10), mainRepo.cascadeSoftDeleteHistory[0].ChangedBy)
+}
+
+func TestMainItemDelete_Success_WithSubItems(t *testing.T) {
+	mainItem := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 1, BizKey: 100},
+		ItemStatus: "progressing",
+	}
+	subItems := []*model.SubItem{
+		{BaseModel: model.BaseModel{ID: 2, BizKey: 200}, ItemStatus: "pending"},
+		{BaseModel: model.BaseModel{ID: 3, BizKey: 300}, ItemStatus: "progressing"},
+	}
+	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
+	subRepo := &mockSubItemRepo{subItems: subItems}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	err := svc.Delete(context.Background(), 1, 100, 10)
+	require.NoError(t, err)
+
+	assert.True(t, mainRepo.cascadeSoftDeleteCalled)
+	assert.Equal(t, uint(1), mainRepo.cascadeSoftDeleteItemID)
+	assert.Equal(t, []uint{2, 3}, mainRepo.cascadeSoftDeleteSubIDs)
+	// Should have 3 history records: 1 main item + 2 sub items
+	require.Len(t, mainRepo.cascadeSoftDeleteHistory, 3)
+	assert.Equal(t, "main_item", mainRepo.cascadeSoftDeleteHistory[0].ItemType)
+	assert.Equal(t, "sub_item", mainRepo.cascadeSoftDeleteHistory[1].ItemType)
+	assert.Equal(t, int64(200), mainRepo.cascadeSoftDeleteHistory[1].ItemKey)
+	assert.Equal(t, "sub_item", mainRepo.cascadeSoftDeleteHistory[2].ItemType)
+	assert.Equal(t, int64(300), mainRepo.cascadeSoftDeleteHistory[2].ItemKey)
+}
+
+func TestMainItemDelete_NotFound(t *testing.T) {
+	mainRepo := &mockMainItemRepo{bizKeyErr: gorm.ErrRecordNotFound}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	err := svc.Delete(context.Background(), 1, 999, 10)
+	assert.ErrorIs(t, err, apperrors.ErrItemNotFound)
+	assert.False(t, mainRepo.cascadeSoftDeleteCalled)
+}
+
+func TestMainItemDelete_SubItemListError(t *testing.T) {
+	mainItem := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 1, BizKey: 100},
+		ItemStatus: "progressing",
+	}
+	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem}
+	subRepo := &mockSubItemRepo{findErr: errors.New("db error")}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	err := svc.Delete(context.Background(), 1, 100, 10)
+	assert.Error(t, err)
+	assert.False(t, mainRepo.cascadeSoftDeleteCalled)
+}
+
+func TestMainItemDelete_CascadeError(t *testing.T) {
+	mainItem := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 1, BizKey: 100},
+		ItemStatus: "progressing",
+	}
+	mainRepo := &mockMainItemRepo{bizKeyItem: mainItem, cascadeSoftDeleteErr: errors.New("tx error")}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	err := svc.Delete(context.Background(), 1, 100, 10)
+	assert.Error(t, err)
+	assert.True(t, mainRepo.cascadeSoftDeleteCalled)
 }

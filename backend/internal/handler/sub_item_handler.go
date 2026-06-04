@@ -261,3 +261,28 @@ func (h *SubItemHandler) Assign(c *gin.Context) {
 
 	apperrors.RespondOK(c, nil)
 }
+
+// DeleteSubItem handles DELETE /api/v1/teams/:teamId/sub-items/:subId
+func (h *SubItemHandler) DeleteSubItem(c *gin.Context) {
+	subBizKey, ok := pkgHandler.ParseBizKeyParam(c, "subId")
+	if !ok {
+		return
+	}
+
+	teamBizKey := middleware.GetTeamBizKey(c)
+	callerBizKey := middleware.GetUserBizKey(c)
+
+	item, err := h.svc.GetByBizKey(c.Request.Context(), subBizKey)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	err = h.svc.Delete(c.Request.Context(), teamBizKey, callerBizKey, item.ID)
+	if err != nil {
+		apperrors.RespondError(c, err)
+		return
+	}
+
+	apperrors.RespondOK(c, gin.H{"message": "ok"})
+}

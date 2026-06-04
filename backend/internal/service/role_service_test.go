@@ -617,7 +617,7 @@ func TestRoleService_GetUserPermissions_SuperAdmin(t *testing.T) {
 
 	result, err := svc.GetUserPermissions(context.Background(), 1)
 	require.NoError(t, err)
-	// SuperAdmin gets all 29 codes for every team
+	// SuperAdmin gets all 31 codes for every team
 	allCodes := permissions.AllCodeStrings()
 	for _, teamKey := range []int64{100, 200} {
 		assert.Equal(t, allCodes, result.TeamPermissions[teamKey])

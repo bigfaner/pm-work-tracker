@@ -203,7 +203,18 @@ func (s *subItemService) Delete(ctx context.Context, teamBizKey, callerBizKey in
 		return apperrors.ErrForbidden
 	}
 
+	// Capture old status for audit before soft-delete
+	oldStatus := item.ItemStatus
+
 	if err := s.subItemRepo.SoftDelete(ctx, itemID); err != nil {
+		return err
+	}
+
+	// Record status history for audit (from_status -> "deleted")
+	_ = RecordStatusChange(s.statusHistorySvc, ctx, "sub_item", item.BizKey, oldStatus, "deleted", callerBizKey, 0, "")
+
+	// Recalculate parent main item completion
+	if err := s.mainItemSvc.RecalcCompletion(ctx, item.MainItemKey); err != nil {
 		return err
 	}
 

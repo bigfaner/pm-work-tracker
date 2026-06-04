@@ -120,6 +120,7 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 	teamsGroup.PUT("/main-items/:itemId/status", deps.perm("main_item:change_status"), deps.MainItem.ChangeStatus)
 	teamsGroup.GET("/main-items/:itemId/available-transitions", deps.perm("main_item:read"), deps.MainItem.AvailableTransitions)
 	teamsGroup.POST("/main-items/:itemId/archive", deps.perm("main_item:archive"), deps.MainItem.Archive)
+	teamsGroup.DELETE("/main-items/:itemId", deps.perm("main_item:delete"), deps.MainItem.Delete)
 
 	// Sub items (under main items)
 	teamsGroup.POST("/main-items/:itemId/sub-items", deps.perm("sub_item:create"), deps.SubItem.Create)
@@ -131,6 +132,7 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 	teamsGroup.PUT("/sub-items/:subId/status", deps.perm("sub_item:change_status"), deps.SubItem.ChangeStatus)
 	teamsGroup.GET("/sub-items/:subId/available-transitions", deps.perm("sub_item:read"), deps.SubItem.AvailableTransitions)
 	teamsGroup.PUT("/sub-items/:subId/assignee", deps.perm("sub_item:assign"), deps.SubItem.Assign)
+	teamsGroup.DELETE("/sub-items/:subId", deps.perm("sub_item:delete"), deps.SubItem.DeleteSubItem)
 
 	// Progress records
 	teamsGroup.POST("/sub-items/:subId/progress", deps.perm("progress:create"), deps.Progress.Append)
