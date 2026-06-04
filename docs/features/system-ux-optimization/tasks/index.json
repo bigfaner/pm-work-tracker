@@ -1,0 +1,509 @@
+{
+  "feature": "system-ux-optimization",
+  "prd": "prd/prd-spec.md",
+  "design": "design/tech-design.md",
+  "proposal": "docs/proposals/system-ux-optimization/proposal.md",
+  "created": "2026-06-04",
+  "tasks": {
+    "1.1-member-permission-fix": {
+      "id": "1.1",
+      "title": "Member 权限修复",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "status": "pending",
+      "file": "1.1-member-permission-fix.md",
+      "record": "records/1.1-member-permission-fix.md",
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.fix",
+      "complexity": "medium"
+    },
+    "1.2-team-selector-filter": {
+      "id": "1.2",
+      "title": "团队选择器权限过滤",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "status": "pending",
+      "file": "1.2-team-selector-filter.md",
+      "record": "records/1.2-team-selector-filter.md",
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.enhancement",
+      "complexity": "medium"
+    },
+    "1.3-subitem-reverse-order": {
+      "id": "1.3",
+      "title": "子事项列表倒序",
+      "priority": "P1",
+      "estimatedTime": "1h",
+      "status": "pending",
+      "file": "1.3-subitem-reverse-order.md",
+      "record": "records/1.3-subitem-reverse-order.md",
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.enhancement",
+      "complexity": "low"
+    },
+    "1.4-delete-items": {
+      "id": "1.4",
+      "title": "删除功能",
+      "priority": "P1",
+      "estimatedTime": "4h",
+      "status": "pending",
+      "file": "1.4-delete-items.md",
+      "record": "records/1.4-delete-items.md",
+      "breaking": true,
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "1.5-form-optimization": {
+      "id": "1.5",
+      "title": "转换表单优化",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "status": "pending",
+      "file": "1.5-form-optimization.md",
+      "record": "records/1.5-form-optimization.md",
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "coding.enhancement",
+      "complexity": "medium"
+    },
+    "1.6-status-error-alert": {
+      "id": "1.6",
+      "title": "状态流转错误提示",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "status": "pending",
+      "file": "1.6-status-error-alert.md",
+      "record": "records/1.6-status-error-alert.md",
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "coding.enhancement",
+      "complexity": "medium"
+    },
+    "1.7-subitem-start-date": {
+      "id": "1.7",
+      "title": "子事项编辑弹窗开始时间",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "status": "pending",
+      "file": "1.7-subitem-start-date.md",
+      "record": "records/1.7-subitem-start-date.md",
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "coding.enhancement",
+      "complexity": "medium"
+    },
+    "1.8-weekly-filter": {
+      "id": "1.8",
+      "title": "每周进展过滤",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "status": "pending",
+      "file": "1.8-weekly-filter.md",
+      "record": "records/1.8-weekly-filter.md",
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.enhancement",
+      "complexity": "medium"
+    },
+    "1.gate": {
+      "id": "1.gate",
+      "title": "Phase 1 Gate",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "1.summary"
+      ],
+      "status": "pending",
+      "file": "1.gate.md",
+      "record": "records/1.gate.md",
+      "breaking": true,
+      "type": "gate"
+    },
+    "1.summary": {
+      "id": "1.summary",
+      "title": "Phase 1 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "1.1",
+        "1.2",
+        "1.3",
+        "1.4",
+        "1.5",
+        "1.6",
+        "1.7",
+        "1.8"
+      ],
+      "status": "pending",
+      "file": "1.summary.md",
+      "record": "records/1.summary.md",
+      "type": "doc.summary"
+    },
+    "2.1-move-subitem": {
+      "id": "2.1",
+      "title": "移动子事项",
+      "priority": "P1",
+      "estimatedTime": "4h",
+      "dependencies": [
+        "1.gate",
+        "1.4"
+      ],
+      "status": "pending",
+      "file": "2.1-move-subitem.md",
+      "record": "records/2.1-move-subitem.md",
+      "breaking": true,
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "2.2-filter-penetration": {
+      "id": "2.2",
+      "title": "过滤穿透",
+      "priority": "P1",
+      "estimatedTime": "4h",
+      "dependencies": [
+        "1.gate"
+      ],
+      "status": "pending",
+      "file": "2.2-filter-penetration.md",
+      "record": "records/2.2-filter-penetration.md",
+      "breaking": true,
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "2.3-terminal-sort": {
+      "id": "2.3",
+      "title": "终态排序",
+      "priority": "P1",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "1.gate",
+        "2.2"
+      ],
+      "status": "pending",
+      "file": "2.3-terminal-sort.md",
+      "record": "records/2.3-terminal-sort.md",
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.enhancement",
+      "complexity": "low"
+    },
+    "2.4-gantt-status-filter": {
+      "id": "2.4",
+      "title": "甘特图状态过滤",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1.gate",
+        "2.2"
+      ],
+      "status": "pending",
+      "file": "2.4-gantt-status-filter.md",
+      "record": "records/2.4-gantt-status-filter.md",
+      "breaking": true,
+      "type": "coding.enhancement",
+      "complexity": "medium"
+    },
+    "2.5-gantt-time-range": {
+      "id": "2.5",
+      "title": "甘特图时间范围修复",
+      "priority": "P2",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "1.gate"
+      ],
+      "status": "pending",
+      "file": "2.5-gantt-time-range.md",
+      "record": "records/2.5-gantt-time-range.md",
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "coding.fix",
+      "complexity": "low"
+    },
+    "2.6-macos-scrollbar": {
+      "id": "2.6",
+      "title": "macOS 滚动条修复",
+      "priority": "P2",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "1.gate"
+      ],
+      "status": "pending",
+      "file": "2.6-macos-scrollbar.md",
+      "record": "records/2.6-macos-scrollbar.md",
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "coding.fix",
+      "complexity": "low"
+    },
+    "2.7-filter-penetration-ui": {
+      "id": "2.7",
+      "title": "前端过滤穿透 UI",
+      "priority": "P1",
+      "estimatedTime": "4h",
+      "dependencies": [
+        "1.gate",
+        "2.2"
+      ],
+      "status": "pending",
+      "file": "2.7-filter-penetration-ui.md",
+      "record": "records/2.7-filter-penetration-ui.md",
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "2.8-delete-move-ui": {
+      "id": "2.8",
+      "title": "删除和移动前端 UI",
+      "priority": "P1",
+      "estimatedTime": "4h",
+      "dependencies": [
+        "1.gate",
+        "1.4",
+        "2.1"
+      ],
+      "status": "pending",
+      "file": "2.8-delete-move-ui.md",
+      "record": "records/2.8-delete-move-ui.md",
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "2.gate": {
+      "id": "2.gate",
+      "title": "Phase 2 Gate",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "2.summary"
+      ],
+      "status": "pending",
+      "file": "2.gate.md",
+      "record": "records/2.gate.md",
+      "breaking": true,
+      "type": "gate"
+    },
+    "2.summary": {
+      "id": "2.summary",
+      "title": "Phase 2 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "2.1",
+        "2.2",
+        "2.3",
+        "2.4",
+        "2.5",
+        "2.6",
+        "2.7",
+        "2.8"
+      ],
+      "status": "pending",
+      "file": "2.summary.md",
+      "record": "records/2.summary.md",
+      "type": "doc.summary"
+    },
+    "clean-code": {
+      "id": "T-clean-code",
+      "title": "Simplify and Clean Code",
+      "priority": "P2",
+      "estimatedTime": "20min",
+      "dependencies": [
+        "2.gate"
+      ],
+      "status": "pending",
+      "file": "clean-code.md",
+      "record": "records/clean-code.md",
+      "breaking": true,
+      "type": "code-quality.simplify"
+    },
+    "consolidate-specs": {
+      "id": "T-specs-consolidate",
+      "title": "Consolidate Specs",
+      "priority": "P2",
+      "estimatedTime": "20min",
+      "dependencies": [
+        "T-test-run-frontend"
+      ],
+      "status": "pending",
+      "file": "consolidate-specs.md",
+      "record": "records/consolidate-specs.md",
+      "breaking": true,
+      "type": "doc.consolidate"
+    },
+    "eval-contract": {
+      "id": "T-eval-contract",
+      "title": "Evaluate Contract Quality",
+      "priority": "P1",
+      "estimatedTime": "20-30min",
+      "dependencies": [
+        "T-test-gen-contracts"
+      ],
+      "status": "pending",
+      "file": "eval-contract.md",
+      "record": "records/eval-contract.md",
+      "breaking": true,
+      "mainSession": true,
+      "type": "eval.contract"
+    },
+    "eval-journey": {
+      "id": "T-eval-journey",
+      "title": "Evaluate Journey Quality",
+      "priority": "P1",
+      "estimatedTime": "20-30min",
+      "dependencies": [
+        "T-test-gen-journeys"
+      ],
+      "status": "pending",
+      "file": "eval-journey.md",
+      "record": "records/eval-journey.md",
+      "breaking": true,
+      "mainSession": true,
+      "type": "eval.journey"
+    },
+    "gen-contracts": {
+      "id": "T-test-gen-contracts",
+      "title": "Generate Test Contracts",
+      "priority": "P1",
+      "estimatedTime": "30-45min",
+      "dependencies": [
+        "T-eval-journey"
+      ],
+      "status": "pending",
+      "file": "gen-contracts.md",
+      "record": "records/gen-contracts.md",
+      "breaking": true,
+      "type": "test.gen-contracts"
+    },
+    "gen-journeys": {
+      "id": "T-test-gen-journeys",
+      "title": "Generate Test Journeys",
+      "priority": "P1",
+      "estimatedTime": "20-30min",
+      "dependencies": [
+        "T-clean-code"
+      ],
+      "status": "pending",
+      "file": "gen-journeys.md",
+      "record": "records/gen-journeys.md",
+      "breaking": true,
+      "type": "test.gen-journeys"
+    },
+    "gen-test-scripts-api": {
+      "id": "T-test-gen-scripts-api",
+      "title": "Generate API Functional Test Scripts",
+      "priority": "P1",
+      "estimatedTime": "1-2h",
+      "dependencies": [
+        "T-eval-contract"
+      ],
+      "status": "pending",
+      "file": "gen-test-scripts-api.md",
+      "record": "records/gen-test-scripts-api.md",
+      "breaking": true,
+      "surface-type": "api",
+      "type": "test.gen-scripts"
+    },
+    "gen-test-scripts-web": {
+      "id": "T-test-gen-scripts-web",
+      "title": "Generate Web E2E Test Scripts",
+      "priority": "P1",
+      "estimatedTime": "1-2h",
+      "dependencies": [
+        "T-eval-contract"
+      ],
+      "status": "pending",
+      "file": "gen-test-scripts-web.md",
+      "record": "records/gen-test-scripts-web.md",
+      "breaking": true,
+      "surface-type": "web",
+      "type": "test.gen-scripts"
+    },
+    "run-test-backend": {
+      "id": "T-test-run-backend",
+      "title": "Run API Functional Test",
+      "priority": "P1",
+      "estimatedTime": "30min-1h",
+      "dependencies": [
+        "T-test-gen-scripts-api",
+        "T-test-gen-scripts-web"
+      ],
+      "status": "pending",
+      "file": "run-test-backend.md",
+      "record": "records/run-test-backend.md",
+      "breaking": true,
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "test.run"
+    },
+    "run-test-frontend": {
+      "id": "T-test-run-frontend",
+      "title": "Run Web E2E Test",
+      "priority": "P1",
+      "estimatedTime": "30min-1h",
+      "dependencies": [
+        "T-test-run-backend"
+      ],
+      "status": "pending",
+      "file": "run-test-frontend.md",
+      "record": "records/run-test-frontend.md",
+      "breaking": true,
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "test.run"
+    },
+    "validate-code": {
+      "id": "T-validate-code",
+      "title": "Validate Code Quality",
+      "priority": "P2",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "T-test-run-frontend"
+      ],
+      "status": "pending",
+      "file": "validate-code.md",
+      "record": "records/validate-code.md",
+      "breaking": true,
+      "type": "validation.code"
+    },
+    "validate-ux": {
+      "id": "T-validate-ux",
+      "title": "Validate User Experience",
+      "priority": "P2",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "T-test-run-frontend"
+      ],
+      "status": "pending",
+      "file": "validate-ux.md",
+      "record": "records/validate-ux.md",
+      "breaking": true,
+      "mainSession": true,
+      "type": "validation.ux"
+    }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "suspended",
+    "skipped",
+    "rejected"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
+}
