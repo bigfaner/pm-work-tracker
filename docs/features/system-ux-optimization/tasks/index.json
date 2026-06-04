@@ -102,7 +102,7 @@
       "title": "每周进展过滤",
       "priority": "P1",
       "estimatedTime": "2h",
-      "status": "pending",
+      "status": "completed",
       "file": "1.8-weekly-filter.md",
       "record": "records/1.8-weekly-filter.md",
       "surface-key": "backend",

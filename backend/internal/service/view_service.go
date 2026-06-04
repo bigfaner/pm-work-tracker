@@ -14,6 +14,7 @@ import (
 	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/pkg/dates"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
+	"pm-work-tracker/backend/internal/pkg/status"
 	"pm-work-tracker/backend/internal/repository"
 )
 
@@ -26,24 +27,26 @@ type ViewService interface {
 }
 
 type viewService struct {
-	mainItemRepo repository.MainItemRepo
-	subItemRepo  repository.SubItemRepo
-	progressRepo repository.ProgressRepo
-	userRepo     repository.UserRepo
+	mainItemRepo      repository.MainItemRepo
+	subItemRepo       repository.SubItemRepo
+	progressRepo      repository.ProgressRepo
+	statusHistoryRepo repository.StatusHistoryRepo
+	userRepo          repository.UserRepo
 }
 
 // NewViewService creates a new ViewService. userRepo is optional; when provided,
 // it enables assignee name resolution in table view and weekly comparison.
-func NewViewService(mainItemRepo repository.MainItemRepo, subItemRepo repository.SubItemRepo, progressRepo repository.ProgressRepo, userRepo ...repository.UserRepo) ViewService {
+func NewViewService(mainItemRepo repository.MainItemRepo, subItemRepo repository.SubItemRepo, progressRepo repository.ProgressRepo, statusHistoryRepo repository.StatusHistoryRepo, userRepo ...repository.UserRepo) ViewService {
 	var ur repository.UserRepo
 	if len(userRepo) > 0 {
 		ur = userRepo[0]
 	}
 	return &viewService{
-		mainItemRepo: mainItemRepo,
-		subItemRepo:  subItemRepo,
-		progressRepo: progressRepo,
-		userRepo:     ur,
+		mainItemRepo:      mainItemRepo,
+		subItemRepo:       subItemRepo,
+		progressRepo:      progressRepo,
+		statusHistoryRepo: statusHistoryRepo,
+		userRepo:          ur,
 	}
 }
 
@@ -70,13 +73,17 @@ func (s *viewService) WeeklyComparison(ctx context.Context, teamBizKey int64, we
 	groups, stats := buildWeeklyGroups(mainItems, subItemsByMain, lastWeekActive, thisWeekActive,
 		lastWeekProgress, thisWeekProgress, lastWeekCompletion, latestProgressDesc, assigneeNames, weekStart, weekEnd)
 
-	sortGroupsByPriority(groups)
+	// Filter out inactive terminal main items
+	filteredGroups := s.filterInactiveTerminal(ctx, groups, subItemsByMain, lastWeekStart, weekEnd)
+	stats = recomputeStats(filteredGroups, stats)
+
+	sortGroupsByPriority(filteredGroups)
 
 	return &dto.WeeklyViewResponse{
 		WeekStart: weekStart.Format("2006-01-02"),
 		WeekEnd:   weekEnd.Format("2006-01-02"),
 		Stats:     stats,
-		Groups:    groups,
+		Groups:    filteredGroups,
 	}, nil
 }
 
@@ -416,6 +423,121 @@ func sortGroupsByPriority(groups []dto.WeeklyComparisonGroup) {
 	})
 }
 
+// filterInactiveTerminal removes terminal main items that have no active sub-items
+// in either this week or last week. Non-terminal main items are always kept.
+func (s *viewService) filterInactiveTerminal(
+	ctx context.Context,
+	groups []dto.WeeklyComparisonGroup,
+	subItemsByMain map[int64][]model.SubItem,
+	lastWeekStart, weekEnd time.Time,
+) []dto.WeeklyComparisonGroup {
+	if s.statusHistoryRepo == nil {
+		return groups
+	}
+
+	// Collect main item bizKeys for status history query
+	var terminalBizKeys []int64
+	for _, g := range groups {
+		if status.IsMainTerminal(g.MainItem.Status) {
+			bizKey, _ := pkg.ParseID(g.MainItem.BizKey)
+			terminalBizKeys = append(terminalBizKeys, bizKey)
+		}
+	}
+
+	if len(terminalBizKeys) == 0 {
+		return groups
+	}
+
+	// Fetch status histories for terminal main items in the two-week window
+	twoWeekStart := startOfDay(lastWeekStart)
+	twoWeekEnd := startOfDay(weekEnd).AddDate(0, 0, 1)
+	statusHistories, err := s.statusHistoryRepo.ListByItemKeysInRange(ctx, "main_item", terminalBizKeys, twoWeekStart, twoWeekEnd)
+	if err != nil {
+		// On error, return groups unfiltered — graceful degradation
+		return groups
+	}
+
+	// Index status histories by item key
+	activeMainItems := make(map[int64]struct{})
+	for _, sh := range statusHistories {
+		activeMainItems[sh.ItemKey] = struct{}{}
+	}
+
+	// Check sub-item activity for each terminal main item
+	terminalActiveSubItems := make(map[int64]struct{})
+	for _, g := range groups {
+		if !status.IsMainTerminal(g.MainItem.Status) {
+			continue
+		}
+		mainBizKey, _ := pkg.ParseID(g.MainItem.BizKey)
+		subs := subItemsByMain[mainBizKey]
+		for _, si := range subs {
+			if isSubItemActiveInRange(si, lastWeekStart, weekEnd) {
+				terminalActiveSubItems[mainBizKey] = struct{}{}
+				break
+			}
+		}
+	}
+
+	// Filter groups
+	var filtered []dto.WeeklyComparisonGroup
+	for _, g := range groups {
+		if !status.IsMainTerminal(g.MainItem.Status) {
+			filtered = append(filtered, g)
+			continue
+		}
+		mainBizKey, _ := pkg.ParseID(g.MainItem.BizKey)
+		if _, hasHistory := activeMainItems[mainBizKey]; hasHistory {
+			filtered = append(filtered, g)
+			continue
+		}
+		if _, hasActiveSub := terminalActiveSubItems[mainBizKey]; hasActiveSub {
+			filtered = append(filtered, g)
+			continue
+		}
+		// Terminal main item with no status history and no active sub-items — hide
+	}
+	return filtered
+}
+
+// isSubItemActiveInRange checks if a sub-item was active during the given time range
+// based on its create_time or db_update_time.
+func isSubItemActiveInRange(si model.SubItem, rangeStart, rangeEnd time.Time) bool {
+	rangeEndNextDay := rangeEnd.AddDate(0, 0, 1)
+	if si.CreateTime.After(rangeStart) && si.CreateTime.Before(rangeEndNextDay) {
+		return true
+	}
+	if si.DbUpdateTime.After(rangeStart) && si.DbUpdateTime.Before(rangeEndNextDay) {
+		return true
+	}
+	return false
+}
+
+// recomputeStats recalculates stats after filtering groups.
+func recomputeStats(groups []dto.WeeklyComparisonGroup, originalStats dto.WeeklyStats) dto.WeeklyStats {
+	var stats dto.WeeklyStats
+	for _, g := range groups {
+		stats.ActiveSubItems += len(g.ThisWeek)
+		for _, si := range g.ThisWeek {
+			switch si.Status {
+			case "progressing":
+				stats.InProgress++
+			case "blocking":
+				stats.Blocked++
+			case "pending":
+				stats.Pending++
+			case "pausing":
+				stats.Pausing++
+			}
+			if si.JustCompleted {
+				stats.NewlyCompleted++
+			}
+		}
+	}
+	stats.Overdue = originalStats.Overdue
+	return stats
+}
+
 // startOfDay truncates a time to midnight in its location.
 func startOfDay(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
@@ -529,12 +651,12 @@ func formatDate(t *time.Time) string {
 	return t.Format("2006-01-02")
 }
 
-// computeIsOverdue returns true if expectedEndDate is before today and status is not terminal.
-func computeIsOverdue(expectedEndDate *time.Time, status string, today time.Time) bool {
+// computeIsOverdue returns true if expectedEndDate is before today and itemStatus is not terminal.
+func computeIsOverdue(expectedEndDate *time.Time, itemStatus string, today time.Time) bool {
 	if expectedEndDate == nil {
 		return false
 	}
-	if status == "completed" || status == "closed" {
+	if itemStatus == "completed" || itemStatus == "closed" {
 		return false
 	}
 	return expectedEndDate.Before(today)

@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"context"
+	"time"
 
 	gormlib "gorm.io/gorm"
 
@@ -54,4 +55,18 @@ func (r *statusHistoryRepo) ListByItem(ctx context.Context, itemType string, ite
 		Page:  page.Page,
 		Size:  page.PageSize,
 	}, nil
+}
+
+func (r *statusHistoryRepo) ListByItemKeysInRange(ctx context.Context, itemType string, itemKeys []int64, start, end time.Time) ([]model.StatusHistory, error) {
+	if len(itemKeys) == 0 {
+		return nil, nil
+	}
+	var records []model.StatusHistory
+	err := r.db.WithContext(ctx).
+		Where("item_type = ? AND item_key IN ? AND create_time >= ? AND create_time < ?", itemType, itemKeys, start, end).
+		Find(&records).Error
+	if err != nil {
+		return nil, err
+	}
+	return records, nil
 }

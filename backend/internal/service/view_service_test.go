@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"pm-work-tracker/backend/internal/dto"
@@ -163,14 +164,14 @@ func (m *mockViewProgressRepo) FindByBizKey(_ context.Context, _ int64) (*model.
 // ---------------------------------------------------------------------------
 
 func TestNewViewService_WithoutUserRepo(t *testing.T) {
-	svc := NewViewService(&mockViewMainItemRepo{}, &mockViewSubItemRepo{}, &mockViewProgressRepo{})
+	svc := NewViewService(&mockViewMainItemRepo{}, &mockViewSubItemRepo{}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 	vs := svc.(*viewService)
 	assert.Nil(t, vs.userRepo, "userRepo should be nil when not provided")
 }
 
 func TestNewViewService_WithUserRepo(t *testing.T) {
 	ur := &mockViewUserRepo{}
-	svc := NewViewService(&mockViewMainItemRepo{}, &mockViewSubItemRepo{}, &mockViewProgressRepo{}, ur)
+	svc := NewViewService(&mockViewMainItemRepo{}, &mockViewSubItemRepo{}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo), ur)
 	vs := svc.(*viewService)
 	assert.NotNil(t, vs.userRepo, "userRepo should be set when provided")
 }
@@ -180,7 +181,7 @@ func TestNewViewService_WithUserRepo(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestWeeklyComparison_RejectsNonMonday(t *testing.T) {
-	svc := NewViewService(&mockViewMainItemRepo{}, &mockViewSubItemRepo{}, &mockViewProgressRepo{})
+	svc := NewViewService(&mockViewMainItemRepo{}, &mockViewSubItemRepo{}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	tuesday := time.Date(2026, 4, 14, 0, 0, 0, 0, time.UTC)
 	_, err := svc.WeeklyComparison(context.Background(), 1, tuesday)
@@ -188,7 +189,7 @@ func TestWeeklyComparison_RejectsNonMonday(t *testing.T) {
 }
 
 func TestWeeklyComparison_RejectsFutureWeek(t *testing.T) {
-	svc := NewViewService(&mockViewMainItemRepo{}, &mockViewSubItemRepo{}, &mockViewProgressRepo{})
+	svc := NewViewService(&mockViewMainItemRepo{}, &mockViewSubItemRepo{}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	// A future Monday
 	futureMonday := time.Date(2099, 1, 5, 0, 0, 0, 0, time.UTC)
@@ -198,7 +199,7 @@ func TestWeeklyComparison_RejectsFutureWeek(t *testing.T) {
 
 func TestWeeklyComparison_AcceptsMonday(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
-	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	monday := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
 	result, err := svc.WeeklyComparison(context.Background(), 1, monday)
@@ -209,7 +210,7 @@ func TestWeeklyComparison_AcceptsMonday(t *testing.T) {
 
 func TestWeeklyComparison_EmptyTeam_NoGroups(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
-	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	monday := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
 	result, err := svc.WeeklyComparison(context.Background(), 1, monday)
@@ -241,7 +242,7 @@ func TestWeeklyComparison_StatsCounts(t *testing.T) {
 		},
 	}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 
@@ -274,7 +275,7 @@ func TestWeeklyComparison_DeltaComputation(t *testing.T) {
 		},
 	}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 
@@ -313,7 +314,7 @@ func TestWeeklyComparison_IsNew(t *testing.T) {
 		},
 	}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 
@@ -353,7 +354,7 @@ func TestWeeklyComparison_JustCompleted(t *testing.T) {
 		},
 	}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 
@@ -389,7 +390,7 @@ func TestWeeklyComparison_CompletedNoChange(t *testing.T) {
 	}
 	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 
@@ -420,7 +421,7 @@ func TestWeeklyComparison_GroupsSortedByPriority(t *testing.T) {
 	}
 	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 
@@ -456,7 +457,7 @@ func TestWeeklyComparison_MainItemSummary(t *testing.T) {
 	}
 	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 
@@ -482,7 +483,7 @@ func TestWeeklyComparison_MainItemWithNoSubItems_Omitted(t *testing.T) {
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
 	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 	assert.Empty(t, result.Groups)
@@ -515,7 +516,7 @@ func TestWeeklyComparison_ProgressDescriptionFromLatestRecord(t *testing.T) {
 		},
 	}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 
@@ -545,7 +546,7 @@ func TestWeeklyComparison_SnapshotCodePropagated(t *testing.T) {
 		},
 	}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 
@@ -561,7 +562,7 @@ func TestWeeklyComparison_RepoErrors(t *testing.T) {
 	monday := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
 
 	// MainItemRepo error
-	svc := NewViewService(&mockViewMainItemRepo{listErr: errors.New("db error")}, &mockViewSubItemRepo{}, &mockViewProgressRepo{})
+	svc := NewViewService(&mockViewMainItemRepo{listErr: errors.New("db error")}, &mockViewSubItemRepo{}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 	_, err := svc.WeeklyComparison(context.Background(), 1, monday)
 	assert.Error(t, err)
 
@@ -570,6 +571,7 @@ func TestWeeklyComparison_RepoErrors(t *testing.T) {
 		&mockViewMainItemRepo{items: []model.MainItem{{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main 1"}}},
 		&mockViewSubItemRepo{listErr: errors.New("db error")},
 		&mockViewProgressRepo{},
+		new(mockStatusHistoryRepo),
 	)
 	_, err = svc.WeeklyComparison(context.Background(), 1, monday)
 	assert.Error(t, err)
@@ -579,6 +581,7 @@ func TestWeeklyComparison_RepoErrors(t *testing.T) {
 		&mockViewMainItemRepo{items: []model.MainItem{{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main 1"}}},
 		&mockViewSubItemRepo{items: []model.SubItem{{BaseModel: model.BaseModel{ID: 10, BizKey: 10}, TeamKey: 1, MainItemKey: int64(1), Title: "Sub A"}}},
 		&mockViewProgressRepo{listErr: errors.New("db error")},
+		new(mockStatusHistoryRepo),
 	)
 	_, err = svc.WeeklyComparison(context.Background(), 1, monday)
 	assert.Error(t, err)
@@ -607,7 +610,7 @@ func TestWeeklyComparison_SubItemCreatedAfterWeek_NotActive(t *testing.T) {
 	}
 	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 
@@ -640,7 +643,7 @@ func TestWeeklyComparison_SubItemCompletedBeforeWeek_NotActive(t *testing.T) {
 	}
 	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 
@@ -698,7 +701,7 @@ func TestWeeklyComparison_SubItemOutsideWeek_NotShown(t *testing.T) {
 			subRepo := &mockViewSubItemRepo{items: []model.SubItem{tt.subItem}}
 			progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
 
-			svc := NewViewService(mainRepo, subRepo, progressRepo)
+			svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 			result, err := svc.WeeklyComparison(context.Background(), 1, tt.weekStart)
 			require.NoError(t, err)
 			assert.Empty(t, result.Groups)
@@ -742,7 +745,7 @@ func TestWeeklyComparison_StatsByStatus(t *testing.T) {
 				},
 			}
 
-			svc := NewViewService(mainRepo, subRepo, progressRepo)
+			svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 			result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 			require.NoError(t, err)
 
@@ -773,7 +776,7 @@ func TestWeeklyComparison_StatsOverdue(t *testing.T) {
 		},
 	}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 
@@ -801,7 +804,7 @@ func TestWeeklyComparison_StatsOverdue_NilExpectedEndDate_NotCounted(t *testing.
 		},
 	}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 
@@ -830,7 +833,7 @@ func TestWeeklyComparison_StatsOverdue_CompletedNotCounted(t *testing.T) {
 		},
 	}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 
@@ -858,7 +861,7 @@ func TestWeeklyComparison_StatsOverdue_ClosedNotCounted(t *testing.T) {
 		},
 	}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo))
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 
@@ -867,7 +870,7 @@ func TestWeeklyComparison_StatsOverdue_ClosedNotCounted(t *testing.T) {
 
 func TestGanttView_EmptyTeam_NoItems(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{items: []model.MainItem{}}
-	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
 	require.NoError(t, err)
@@ -894,7 +897,7 @@ func TestGanttView_BasicStructure(t *testing.T) {
 		},
 	}
 	subRepo := &mockViewSubItemRepo{items: []model.SubItem{}}
-	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
 	require.NoError(t, err)
@@ -929,7 +932,7 @@ func TestGanttView_OverdueItem(t *testing.T) {
 			},
 		},
 	}
-	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
 	require.NoError(t, err)
@@ -958,7 +961,7 @@ func TestGanttView_Overdue_ExemptWhenCompleted(t *testing.T) {
 					},
 				},
 			}
-			svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+			svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 			result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
 			require.NoError(t, err)
@@ -981,7 +984,7 @@ func TestGanttView_StatusFilter(t *testing.T) {
 			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "In Progress", ItemStatus: "progressing", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 	}
-	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{Status: "progressing"})
 	require.NoError(t, err)
@@ -1000,7 +1003,7 @@ func TestGanttView_StatusFilter_UsesSQLPushdown(t *testing.T) {
 			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "In Progress", ItemStatus: "progressing", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 	}
-	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	_, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{Status: "progressing"})
 	require.NoError(t, err)
@@ -1022,7 +1025,7 @@ func TestGanttView_NoStatusFilter_UsesListNonArchived(t *testing.T) {
 			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "A", ItemStatus: "progressing", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 	}
-	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	_, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
 	require.NoError(t, err)
@@ -1037,7 +1040,7 @@ func TestGanttView_StatusFilter_SQLPushdownError(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		listByTeamAndStatusErr: errors.New("db error"),
 	}
-	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	_, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{Status: "progressing"})
 	assert.Error(t, err)
@@ -1053,7 +1056,7 @@ func TestGanttView_StatusFilterEmpty_ReturnsAll(t *testing.T) {
 			{BaseModel: model.BaseModel{ID: 2, BizKey: 2}, TeamKey: 1, Title: "B", ItemStatus: "completed", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 	}
-	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
 	require.NoError(t, err)
@@ -1092,7 +1095,7 @@ func TestGanttView_SubItemsNested(t *testing.T) {
 			},
 		},
 	}
-	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
 	require.NoError(t, err)
@@ -1124,7 +1127,7 @@ func TestGanttView_SubItemsFromOtherMainItemNotIncluded(t *testing.T) {
 			{BaseModel: model.BaseModel{ID: 20, BizKey: 20}, TeamKey: 1, MainItemKey: int64(2), Title: "Sub for Main 2", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
 		},
 	}
-	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
 	require.NoError(t, err)
@@ -1154,7 +1157,7 @@ func TestGanttView_ArchivedItemsExcluded(t *testing.T) {
 			},
 		},
 	}
-	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
 	require.NoError(t, err)
@@ -1193,7 +1196,7 @@ func TestGanttView_DatesFormattedAsISO8601(t *testing.T) {
 			},
 		},
 	}
-	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
 	require.NoError(t, err)
@@ -1216,7 +1219,7 @@ func TestGanttView_NilDates_FormatAsEmptyString(t *testing.T) {
 			},
 		},
 	}
-	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
 	require.NoError(t, err)
@@ -1228,7 +1231,7 @@ func TestGanttView_NilDates_FormatAsEmptyString(t *testing.T) {
 
 func TestGanttView_MainItemRepoError(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{listErr: errors.New("db error")}
-	svc := NewViewService(mainRepo, &mockViewSubItemRepo{}, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	_, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
 	assert.Error(t, err)
@@ -1241,7 +1244,7 @@ func TestGanttView_SubItemRepoError(t *testing.T) {
 		},
 	}
 	subRepo := &mockViewSubItemRepo{listErr: errors.New("db error")}
-	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	_, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
 	assert.Error(t, err)
@@ -1274,7 +1277,7 @@ func TestGanttView_SubItemSummaryFieldsOnly(t *testing.T) {
 			},
 		},
 	}
-	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
 	require.NoError(t, err)
@@ -1305,7 +1308,7 @@ func TestGanttView_Overdue_NilExpectedEndDate(t *testing.T) {
 			},
 		},
 	}
-	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 
 	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
 	require.NoError(t, err)
@@ -1383,10 +1386,11 @@ func (m *mockViewUserRepo) SoftDelete(_ context.Context, _ *model.User) error { 
 // newViewServiceWithUsers creates a ViewService with a user repo for table view tests.
 func newViewServiceWithUsers(mainRepo *mockViewMainItemRepo, subRepo *mockViewSubItemRepo, userRepo *mockViewUserRepo) ViewService {
 	return &viewService{
-		mainItemRepo: mainRepo,
-		subItemRepo:  subRepo,
-		progressRepo: &mockViewProgressRepo{},
-		userRepo:     userRepo,
+		mainItemRepo:      mainRepo,
+		subItemRepo:       subRepo,
+		progressRepo:      &mockViewProgressRepo{},
+		statusHistoryRepo: new(mockStatusHistoryRepo),
+		userRepo:          userRepo,
 	}
 }
 
@@ -2054,7 +2058,7 @@ func TestWeeklyComparison_UsesBatchFindByBizKeys(t *testing.T) {
 		},
 	}
 
-	svc := NewViewService(mainRepo, subRepo, progressRepo, userRepo)
+	svc := NewViewService(mainRepo, subRepo, progressRepo, new(mockStatusHistoryRepo), userRepo)
 	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
 	require.NoError(t, err)
 
@@ -2395,7 +2399,7 @@ func BenchmarkTableView_LargePage(b *testing.B) { benchmarkTableView(b, 100) }
 func BenchmarkGanttView(b *testing.B) {
 	b.StopTimer()
 	mainRepo, subRepo, _ := seedBenchmarkData()
-	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 	ctx := context.Background()
 	b.StartTimer()
 
@@ -2410,7 +2414,7 @@ func BenchmarkGanttView(b *testing.B) {
 func BenchmarkGanttView_WithStatusFilter(b *testing.B) {
 	b.StopTimer()
 	mainRepo, subRepo, _ := seedBenchmarkData()
-	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{})
+	svc := NewViewService(mainRepo, subRepo, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
 	ctx := context.Background()
 	b.StartTimer()
 
@@ -2420,4 +2424,257 @@ func BenchmarkGanttView_WithStatusFilter(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Tests: Weekly filter — inactive terminal main items
+// ---------------------------------------------------------------------------
+
+func TestWeeklyFilter_TerminalMainItem_NoActiveSubItems_Hidden(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Completed Main", Priority: "P1", ItemStatus: "completed", Completion: 100},
+		},
+	}
+	// Sub-item created long ago, no activity this week or last week
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{
+				BaseModel:     model.BaseModel{ID: 10, BizKey: 10, CreateTime: time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)},
+				TeamKey:       1,
+				MainItemKey:   int64(1),
+				Title:         "Old Sub",
+				ItemStatus:    "completed",
+				Completion:    100,
+				ActualEndDate: func() *time.Time { t := time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC); return &t }(),
+			},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
+	// No status history for the main item in the two-week window
+	statusHistoryRepo := new(mockStatusHistoryRepo)
+	statusHistoryRepo.On("ListByItemKeysInRange", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]model.StatusHistory{}, nil)
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo, statusHistoryRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Empty(t, result.Groups, "terminal main item with no active sub-items should be hidden")
+}
+
+func TestWeeklyFilter_TerminalMainItem_ActiveSubItemsThisWeek_Shown(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Completed Main", Priority: "P1", ItemStatus: "completed", Completion: 100},
+		},
+	}
+	// Sub-item with db_update_time in this week -> active
+	thisWeekUpdate := time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{
+				BaseModel:   model.BaseModel{ID: 10, BizKey: 10, CreateTime: time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC), DbUpdateTime: thisWeekUpdate},
+				TeamKey:     1,
+				MainItemKey: int64(1),
+				Title:       "Active Sub",
+				ItemStatus:  "progressing",
+				Completion:  50,
+			},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 100, SubItemKey: 10, TeamKey: 1, Completion: 50, CreateTime: weekStart.AddDate(0, 0, 2)},
+		},
+	}
+	statusHistoryRepo := new(mockStatusHistoryRepo)
+	statusHistoryRepo.On("ListByItemKeysInRange", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]model.StatusHistory{}, nil)
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo, statusHistoryRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Len(t, result.Groups, 1, "terminal main item with active sub-items should be shown")
+	assert.Equal(t, "Completed Main", result.Groups[0].MainItem.Title)
+}
+
+func TestWeeklyFilter_NonTerminalMainItem_AlwaysShown(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "In Progress Main", Priority: "P2", ItemStatus: "progressing", Completion: 30},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{
+				BaseModel:   model.BaseModel{ID: 10, BizKey: 10, CreateTime: time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)},
+				TeamKey:     1,
+				MainItemKey: int64(1),
+				Title:       "Sub",
+				ItemStatus:  "pending",
+				Completion:  0,
+			},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
+	statusHistoryRepo := new(mockStatusHistoryRepo)
+	statusHistoryRepo.On("ListByItemKeysInRange", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]model.StatusHistory{}, nil)
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo, statusHistoryRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Len(t, result.Groups, 1, "non-terminal main item should always be shown")
+	assert.Equal(t, "In Progress Main", result.Groups[0].MainItem.Title)
+}
+
+func TestWeeklyFilter_TerminalMainItem_WithStatusHistory_Shown(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Closed Main", Priority: "P1", ItemStatus: "closed", Completion: 100},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{
+				BaseModel:     model.BaseModel{ID: 10, BizKey: 10, CreateTime: time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)},
+				TeamKey:       1,
+				MainItemKey:   int64(1),
+				Title:         "Old Sub",
+				ItemStatus:    "completed",
+				Completion:    100,
+				ActualEndDate: func() *time.Time { t := time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC); return &t }(),
+			},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
+	// Status history exists for the main item in the two-week window
+	statusHistoryRepo := new(mockStatusHistoryRepo)
+	statusHistoryRepo.On("ListByItemKeysInRange", mock.Anything, "main_item", mock.Anything, mock.Anything, mock.Anything).Return([]model.StatusHistory{
+		{ID: 1, ItemType: "main_item", ItemKey: 1, FromStatus: "reviewing", ToStatus: "closed", CreateTime: weekStart.AddDate(0, 0, 1)},
+	}, nil)
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo, statusHistoryRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Len(t, result.Groups, 1, "terminal main item with status history should be shown")
+}
+
+func TestWeeklyFilter_MixedTerminalAndNonTerminal(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Completed Hidden", Priority: "P1", ItemStatus: "completed", Completion: 100},
+			{BaseModel: model.BaseModel{ID: 2, BizKey: 2}, TeamKey: 1, Title: "In Progress", Priority: "P2", ItemStatus: "progressing", Completion: 50},
+			{BaseModel: model.BaseModel{ID: 3, BizKey: 3}, TeamKey: 1, Title: "Closed Shown", Priority: "P1", ItemStatus: "closed", Completion: 100},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{
+				BaseModel: model.BaseModel{ID: 10, BizKey: 10, CreateTime: time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)},
+				TeamKey:   1, MainItemKey: int64(1), Title: "Old Sub 1", ItemStatus: "completed", Completion: 100,
+				ActualEndDate: func() *time.Time { t := time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC); return &t }(),
+			},
+			{
+				BaseModel: model.BaseModel{ID: 20, BizKey: 20, CreateTime: time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)},
+				TeamKey:   1, MainItemKey: int64(2), Title: "Sub 2", ItemStatus: "progressing", Completion: 50,
+			},
+			{
+				BaseModel: model.BaseModel{ID: 30, BizKey: 30, CreateTime: time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)},
+				TeamKey:   1, MainItemKey: int64(3), Title: "Old Sub 3", ItemStatus: "completed", Completion: 100,
+				ActualEndDate: func() *time.Time { t := time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC); return &t }(),
+			},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{
+		records: []model.ProgressRecord{
+			{ID: 200, SubItemKey: 20, TeamKey: 1, Completion: 50, CreateTime: weekStart.AddDate(0, 0, 1)},
+		},
+	}
+	// Status history only for main item 3 (closed but has status change)
+	statusHistoryRepo := new(mockStatusHistoryRepo)
+	statusHistoryRepo.On("ListByItemKeysInRange", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]model.StatusHistory{
+		{ID: 1, ItemType: "main_item", ItemKey: 3, FromStatus: "completed", ToStatus: "closed", CreateTime: weekStart.AddDate(0, 0, -2)},
+	}, nil)
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo, statusHistoryRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	require.Len(t, result.Groups, 2, "should have 2 groups: non-terminal (shown) + closed with history (shown)")
+	titles := []string{result.Groups[0].MainItem.Title, result.Groups[1].MainItem.Title}
+	assert.Contains(t, titles, "In Progress")
+	assert.Contains(t, titles, "Closed Shown")
+	assert.NotContains(t, titles, "Completed Hidden")
+}
+
+func TestWeeklyFilter_StatusHistoryRepoError_GracefulDegradation(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Completed Main", Priority: "P1", ItemStatus: "completed", Completion: 100},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{
+				BaseModel: model.BaseModel{ID: 10, BizKey: 10, CreateTime: time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)},
+				TeamKey:   1, MainItemKey: int64(1), Title: "Old Sub", ItemStatus: "completed", Completion: 100,
+				ActualEndDate: func() *time.Time { t := time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC); return &t }(),
+			},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
+	statusHistoryRepo := new(mockStatusHistoryRepo)
+	statusHistoryRepo.On("ListByItemKeysInRange", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]model.StatusHistory(nil), errors.New("db error"))
+
+	svc := NewViewService(mainRepo, subRepo, progressRepo, statusHistoryRepo)
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	// Graceful degradation: when statusHistoryRepo errors, groups are returned unfiltered
+	assert.Len(t, result.Groups, 1, "on repo error, should return unfiltered groups")
+}
+
+func TestWeeklyFilter_NilStatusHistoryRepo_NoFilter(t *testing.T) {
+	weekStart := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Completed Main", Priority: "P1", ItemStatus: "completed", Completion: 100},
+		},
+	}
+	subRepo := &mockViewSubItemRepo{
+		items: []model.SubItem{
+			{
+				BaseModel: model.BaseModel{ID: 10, BizKey: 10, CreateTime: time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)},
+				TeamKey:   1, MainItemKey: int64(1), Title: "Old Sub", ItemStatus: "completed", Completion: 100,
+				ActualEndDate: func() *time.Time { t := time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC); return &t }(),
+			},
+		},
+	}
+	progressRepo := &mockViewProgressRepo{records: []model.ProgressRecord{}}
+	// Pass nil statusHistoryRepo by constructing viewService directly
+	svc := &viewService{
+		mainItemRepo: mainRepo,
+		subItemRepo:  subRepo,
+		progressRepo: progressRepo,
+	}
+
+	result, err := svc.WeeklyComparison(context.Background(), 1, weekStart)
+	require.NoError(t, err)
+
+	assert.Len(t, result.Groups, 1, "with nil statusHistoryRepo, no filtering should occur")
 }

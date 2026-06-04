@@ -3,6 +3,7 @@ package gorm_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
@@ -141,5 +142,59 @@ func TestStatusHistoryRepo_ListByItem(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 1, result.Page)
 		assert.Equal(t, 20, result.Size)
+	})
+}
+
+// --- ListByItemKeysInRange ---
+
+func TestStatusHistoryRepo_ListByItemKeysInRange(t *testing.T) {
+	db := setupStatusHistoryTestDB(t)
+	repo := gormrepo.NewGormStatusHistoryRepo(db)
+	ctx := context.Background()
+
+	start := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 4, 20, 0, 0, 0, 0, time.UTC)
+
+	// Create records with explicit timestamps
+	r1 := &model.StatusHistory{ItemType: "main_item", ItemKey: 1, FromStatus: "pending", ToStatus: "progressing", ChangedBy: 10}
+	r1.CreateTime = time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)
+	require.NoError(t, db.Create(r1).Error)
+
+	r2 := &model.StatusHistory{ItemType: "main_item", ItemKey: 2, FromStatus: "pending", ToStatus: "closed", ChangedBy: 10}
+	r2.CreateTime = time.Date(2026, 4, 11, 0, 0, 0, 0, time.UTC)
+	require.NoError(t, db.Create(r2).Error)
+
+	// Outside range
+	r3 := &model.StatusHistory{ItemType: "main_item", ItemKey: 1, FromStatus: "progressing", ToStatus: "completed", ChangedBy: 10}
+	r3.CreateTime = time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	require.NoError(t, db.Create(r3).Error)
+
+	// Different item type
+	r4 := &model.StatusHistory{ItemType: "sub_item", ItemKey: 1, FromStatus: "pending", ToStatus: "progressing", ChangedBy: 10}
+	r4.CreateTime = time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)
+	require.NoError(t, db.Create(r4).Error)
+
+	t.Run("returns matching records in range", func(t *testing.T) {
+		records, err := repo.ListByItemKeysInRange(ctx, "main_item", []int64{1, 2}, start, end)
+		require.NoError(t, err)
+		assert.Len(t, records, 2)
+	})
+
+	t.Run("filters by item type", func(t *testing.T) {
+		records, err := repo.ListByItemKeysInRange(ctx, "sub_item", []int64{1}, start, end)
+		require.NoError(t, err)
+		assert.Len(t, records, 1)
+	})
+
+	t.Run("filters by item keys", func(t *testing.T) {
+		records, err := repo.ListByItemKeysInRange(ctx, "main_item", []int64{1}, start, end)
+		require.NoError(t, err)
+		assert.Len(t, records, 1)
+	})
+
+	t.Run("empty item keys returns nil", func(t *testing.T) {
+		records, err := repo.ListByItemKeysInRange(ctx, "main_item", nil, start, end)
+		require.NoError(t, err)
+		assert.Nil(t, records)
 	})
 }

@@ -74,7 +74,7 @@ func wireHandlers(t *testing.T, db *gorm.DB, _ *seedData, includeRBAC bool) *han
 	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, transactor{db: db})
 	teamSvc := service.NewTeamService(teamRepo, userRepo, mainItemRepo, roleRepo, transactor{db: db})
 	adminSvc := service.NewAdminService(userRepo, teamRepo)
-	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)
+	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo, statusHistoryRepo)
 	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
 
 	cfg := &config.Config{

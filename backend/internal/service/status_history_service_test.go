@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -37,6 +38,14 @@ func (m *mockStatusHistoryRepo) ListByItem(ctx context.Context, itemType string,
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*dto.PageResult[model.StatusHistory]), args.Error(1)
+}
+
+func (m *mockStatusHistoryRepo) ListByItemKeysInRange(ctx context.Context, itemType string, itemKeys []int64, start, end time.Time) ([]model.StatusHistory, error) {
+	args := m.Called(ctx, itemType, itemKeys, start, end)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]model.StatusHistory), args.Error(1)
 }
 
 // --- Constructor ---
