@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg/permissions"
 	"pm-work-tracker/backend/internal/repository"
@@ -56,22 +57,35 @@ func TeamScopeMiddleware(teamRepo repository.TeamRepo, roleRepo repository.RoleR
 
 		// 4. Load permission codes from role
 		// member.RoleKey is the role's biz_key; resolve to auto-increment id first.
+		// When role_key is NULL (not yet assigned), fall back to the "member" preset role.
 		var permCodes []string
+		var roleBizKey int64
 		if member.RoleKey != nil {
-			role, err := roleRepo.FindByBizKey(c.Request.Context(), *member.RoleKey)
+			roleBizKey = *member.RoleKey
+		} else {
+			// Fallback: query the "member" preset role by name
+			var presetRole *model.Role
+			presetRole, err = roleRepo.FindByName(c.Request.Context(), "member")
 			if err != nil {
 				c.Abort()
 				apperrors.RespondError(c, apperrors.ErrInternal)
 				return
 			}
-			codes, err := roleRepo.ListPermissions(c.Request.Context(), role.BizKey)
-			if err != nil {
-				c.Abort()
-				apperrors.RespondError(c, apperrors.ErrInternal)
-				return
-			}
-			permCodes = codes
+			roleBizKey = presetRole.BizKey
 		}
+		role, err := roleRepo.FindByBizKey(c.Request.Context(), roleBizKey)
+		if err != nil {
+			c.Abort()
+			apperrors.RespondError(c, apperrors.ErrInternal)
+			return
+		}
+		codes, err := roleRepo.ListPermissions(c.Request.Context(), role.BizKey)
+		if err != nil {
+			c.Abort()
+			apperrors.RespondError(c, apperrors.ErrInternal)
+			return
+		}
+		permCodes = codes
 
 		// 5. Inject teamBizKey, callerTeamRole, and permCodes into context
 		c.Set("teamBizKey", teamBizKey)

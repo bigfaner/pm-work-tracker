@@ -332,7 +332,8 @@ func TestTeamScopeMiddleware_SuperAdmin_BypassesMembership(t *testing.T) {
 	teamRepo.AssertNotCalled(t, "FindMember", mock.Anything, mock.Anything, mock.Anything)
 }
 
-func TestTeamScopeMiddleware_MemberNoRoleID_SetsEmptyPermCodes(t *testing.T) {
+func TestTeamScopeMiddleware_MemberNilRoleKey_FallsBackToMemberPresetRole(t *testing.T) {
+	memberPresetBizKey := int64(5001)
 	teamRepo := new(mockTeamRepo)
 	roleRepo := new(mockRoleRepo)
 	teamRepo.On("FindByBizKey", mock.Anything, int64(3)).Return(&model.Team{BaseModel: model.BaseModel{ID: 3, BizKey: 3}}, nil)
@@ -341,6 +342,9 @@ func TestTeamScopeMiddleware_MemberNoRoleID_SetsEmptyPermCodes(t *testing.T) {
 		UserKey: 7,
 		RoleKey: nil,
 	}, nil)
+	roleRepo.On("FindByName", mock.Anything, "member").Return(&model.Role{BaseModel: model.BaseModel{ID: 10, BizKey: memberPresetBizKey}}, nil)
+	roleRepo.On("FindByBizKey", mock.Anything, memberPresetBizKey).Return(&model.Role{BaseModel: model.BaseModel{ID: 10, BizKey: memberPresetBizKey}}, nil)
+	roleRepo.On("ListPermissions", mock.Anything, memberPresetBizKey).Return([]string{"main_item:read", "sub_item:create", "sub_item:read"}, nil)
 	r, cc := setupTeamScopeRouter(teamRepo, roleRepo)
 
 	w := httptest.NewRecorder()
@@ -349,7 +353,7 @@ func TestTeamScopeMiddleware_MemberNoRoleID_SetsEmptyPermCodes(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, int64(3), cc.teamBizKey)
-	assert.Nil(t, cc.permCodes)
+	assert.Equal(t, []string{"main_item:read", "sub_item:create", "sub_item:read"}, cc.permCodes)
 }
 
 func TestTeamScopeMiddleware_RoleBizKeyNotFound_Returns500(t *testing.T) {

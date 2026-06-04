@@ -10,7 +10,7 @@
       "title": "Member 权限修复",
       "priority": "P0",
       "estimatedTime": "2h",
-      "status": "pending",
+      "status": "completed",
       "file": "1.1-member-permission-fix.md",
       "record": "records/1.1-member-permission-fix.md",
       "surface-key": "backend",
