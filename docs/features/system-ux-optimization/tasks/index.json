@@ -348,7 +348,7 @@
       "dependencies": [
         "T-test-gen-contracts"
       ],
-      "status": "blocked",
+      "status": "pending",
       "file": "eval-contract.md",
       "record": "records/eval-contract.md",
       "breaking": true,
@@ -388,7 +388,7 @@
       "title": "Fix: revise 4 failing contract sets to pass 850",
       "priority": "P0",
       "estimatedTime": "30min",
-      "status": "pending",
+      "status": "completed",
       "file": "fix-2.md",
       "record": "records/fix-2.md",
       "breaking": true,
