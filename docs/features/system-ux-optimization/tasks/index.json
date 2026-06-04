@@ -363,7 +363,7 @@
       "dependencies": [
         "T-test-gen-journeys"
       ],
-      "status": "suspended",
+      "status": "completed",
       "file": "eval-journey.md",
       "record": "records/eval-journey.md",
       "breaking": true,

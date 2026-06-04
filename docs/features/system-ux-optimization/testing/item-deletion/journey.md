@@ -6,6 +6,7 @@ surface_types: ["web", "api"]
 sources:
   - docs/features/system-ux-optimization/prd/prd-user-stories.md (Story 3)
   - docs/features/system-ux-optimization/prd/prd-spec.md
+  - docs/features/system-ux-optimization/design/api-handbook.md (Delete Main Item, Delete Sub Item)
 generated: "2026-06-04"
 ---
 
@@ -27,73 +28,124 @@ PM user deletes a main item (cascading to its sub-items) or an individual sub-it
 - PM user is logged in with main_item:delete and sub_item:delete permissions
 - A main item exists with at least 2 sub-items
 - A standalone sub-item exists under a different main item
+- A member-role user exists without delete permissions
 
 ## Happy Path
 
 ### Step 1: Delete main item with cascading sub-items
+<!-- surface: web -->
 
-**User Action**: PM user clicks the delete button on a main item that has 3 sub-items
+**Precondition**: A main item exists with 3 sub-items <!-- fact: prd-spec Story 3 AC1 -->
 
-**Expected Result**: Confirmation dialog appears with the message "Will also delete 3 sub-items"; after confirming, the main item and all 3 sub-items are soft-deleted in a single transaction; status_history records the deletion event; page updates to remove the deleted item
+**User Action**: PM user clicks the delete button on the main item
+
+**Expected Result**: A confirmation dialog appears showing the sub-item count; after confirming, the main item and all 3 sub-items are soft-deleted; a status_history audit record is created; the page updates to remove the deleted item
 
 ### Step 2: Delete individual sub-item
+<!-- surface: web -->
 
-**User Action**: PM user clicks the delete button on a sub-item in its detail view
+**Precondition**: A sub-item exists under a main item <!-- fact: prd-spec Story 3 AC2 -->
 
-**Expected Result**: Confirmation dialog appears; after confirming, the sub-item is soft-deleted; status_history records the deletion event; sub-item is removed from the parent item's sub-item list
+**User Action**: PM user clicks the delete button on the sub-item detail view
+
+**Expected Result**: A confirmation dialog appears; after confirming, the sub-item is soft-deleted; a status_history audit record is created; the parent item's sub-item list updates; the parent's completion percentage is recalculated
 
 ### Step 3: Non-PM user sees no delete button
+<!-- surface: web -->
 
-**User Action**: A member-role user views the same main item or sub-item detail page
+**Precondition**: A member-role user is viewing the same item <!-- fact: prd-spec Story 3 AC3 -->
+
+**User Action**: Member-role user views a main item or sub-item detail page
 
 **Expected Result**: No delete button is visible on the page
 
 ## Edge Cases
 
-### Step 1b: Cancel deletion of main item
+### Step E1: Cancel deletion of main item
+<!-- surface: web -->
 
-**Precondition**: Main item with sub-items is displayed
+**Precondition**: A main item with sub-items is displayed; the delete confirmation dialog is open
 
-**User Action**: PM user clicks delete, then clicks cancel on the confirmation dialog
+**User Action**: PM user clicks cancel on the confirmation dialog
 
-**Expected Result**: No data is deleted; the main item and all sub-items remain unchanged; dialog closes
+**Expected Result**: No data is deleted; the main item and all sub-items remain unchanged; the dialog closes
 
-### Step 2b: Concurrent deletion during sub-item move
+### Step E2: Concurrent deletion during sub-item move
+<!-- surface: web, api -->
 
-**Precondition**: Another PM user is moving a sub-item out of the main item while the current user initiates deletion of the same main item
+**Precondition**: Another PM user is moving a sub-item out of the main item while the current user has the delete confirmation dialog open
 
 **User Action**: PM user confirms deletion of the main item
 
-**Expected Result**: The move operation and delete operation are handled within transactions; if the main item is already soft-deleted by the time the move completes, the move fails with "source main item does not exist" error
+**Expected Result**: The delete transaction completes; if the move operation was in progress, it fails with an error indicating the source main item no longer exists; no data corruption occurs
 
-### Step 3b: Delete last sub-item of a main item
+### Step E3: Delete last sub-item of a main item
+<!-- surface: web -->
 
 **Precondition**: A main item has exactly 1 remaining sub-item
 
 **User Action**: PM user deletes the last sub-item
 
-**Expected Result**: Sub-item is soft-deleted; main item still exists with zero sub-items; status_history records the deletion
+**Expected Result**: The sub-item is soft-deleted; the main item still exists with zero sub-items; a status_history audit record is created
 
-### Step 4b: Unauthorized deletion attempt via API
+### Step E4: Unauthorized deletion attempt (API)
+<!-- surface: api -->
 
-**Precondition**: A member-role user sends a DELETE request to the item endpoint
+**Precondition**: A user without main_item:delete permission sends a delete request <!-- source: inferred — derived from API surface `unauthorized` mandatory outcome -->
 
-**User Action**: Member user sends DELETE /api/main-items/:id
+**User Action**: The user sends a delete API request for a main item
 
-**Expected Result**: API returns 403 Forbidden; no data is modified; deletion audit trail is not created
+**Expected Result**: The API returns an authorization error; no data is modified; no audit record is created
 
-### Step 5b: Delete transaction failure
+### Step E5: Unauthenticated deletion attempt (API)
+<!-- surface: api -->
 
-**Precondition**: Database constraint or unexpected error occurs during the delete transaction
+**Precondition**: A delete API request is sent without valid credentials <!-- source: inferred — derived from API surface `unauthorized` mandatory outcome -->
+
+**User Action**: A delete API request is sent without a valid authentication token
+
+**Expected Result**: The API returns an authentication error; no data is modified
+
+### Step E6: Delete non-existent item (API)
+<!-- surface: api -->
+
+**Precondition**: The item ID in the delete request does not exist in the database <!-- source: inferred — derived from API surface `not-found` common boundary outcome -->
+
+**User Action**: A delete API request is sent with a non-existent item ID
+
+**Expected Result**: The API returns a "not found" error
+
+### Step E7: Delete transaction failure
+<!-- surface: web -->
+
+**Precondition**: An unexpected database error occurs during the delete transaction
 
 **User Action**: PM user confirms deletion
 
-**Expected Result**: Transaction is rolled back; no data is deleted; frontend displays an error message; data remains unchanged
+**Expected Result**: The transaction is rolled back; no data is deleted; an error message is displayed to the user; data remains unchanged
+
+### Step E8: Session expired during deletion (Web)
+<!-- surface: web -->
+
+**Precondition**: The user's session has expired while the deletion confirmation dialog is open <!-- source: inferred — derived from Web surface `session-expired` mandatory outcome -->
+
+**User Action**: PM user confirms the deletion
+
+**Expected Result**: The user is redirected to the login page; after re-authenticating, the item still exists (no deletion was performed)
+
+### Step E9: Validation error on invalid item ID (Web)
+<!-- surface: web -->
+
+**Precondition**: The item URL contains a malformed or invalid item identifier <!-- source: inferred — derived from Web surface `validation-error` mandatory outcome -->
+
+**User Action**: PM user navigates to a delete action with an invalid item identifier
+
+**Expected Result**: An error message is displayed indicating the item identifier is invalid; no deletion is attempted
 
 ## Journey Invariants
 
-- Deletion always requires a confirmation dialog before executing
-- Main item deletion always cascades to all sub-items in a single transaction
-- Every successful deletion creates a status_history record documenting the deletion event
-- Delete button is only visible to PM users with appropriate permissions (main_item:delete, sub_item:delete)
-- Deletion is always soft-delete -- data is marked as deleted but never permanently removed
+- Deletion from the web UI always requires a confirmation dialog before executing
+- Main item deletion always cascades to all sub-items atomically (the operation either fully completes or fully rolls back)
+- Every successful deletion creates a status_history audit record documenting the deletion event
+- The delete button is only visible to users with appropriate permissions (main_item:delete, sub_item:delete)
+- Deletion is always soft-delete — data is marked as deleted but never permanently removed
