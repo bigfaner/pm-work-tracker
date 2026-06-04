@@ -569,16 +569,25 @@ func isActiveInWeek(si model.SubItem, weekStart, weekEnd time.Time) bool {
 }
 
 func (s *viewService) GanttView(ctx context.Context, teamBizKey int64, filter dto.GanttFilter) (*dto.GanttResult, error) {
-	// Fetch main items: use SQL pushdown for status filter, otherwise fetch all non-archived
-	var mainItems []model.MainItem
-	var err error
-	if filter.Status != "" {
-		mainItems, err = s.mainItemRepo.ListByTeamAndStatus(ctx, teamBizKey, filter.Status)
-	} else {
-		mainItems, err = s.mainItemRepo.ListNonArchivedByTeam(ctx, teamBizKey)
-	}
+	// Fetch all non-archived main items, then filter by status in memory
+	mainItems, err := s.mainItemRepo.ListNonArchivedByTeam(ctx, teamBizKey)
 	if err != nil {
 		return nil, err
+	}
+
+	// Memory filter by statuses when provided
+	if len(filter.Statuses) > 0 {
+		filtered := make([]model.MainItem, 0, len(mainItems))
+		statusSet := make(map[string]struct{}, len(filter.Statuses))
+		for _, s := range filter.Statuses {
+			statusSet[s] = struct{}{}
+		}
+		for _, mi := range mainItems {
+			if _, ok := statusSet[mi.ItemStatus]; ok {
+				filtered = append(filtered, mi)
+			}
+		}
+		mainItems = filtered
 	}
 
 	// Sort main items: priority ASC (P1 first), then created_at ASC

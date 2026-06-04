@@ -8,9 +8,11 @@ import {
 } from 'react'
 import { RotateCcw, RefreshCw } from 'lucide-react'
 import { DateInput } from '@/components/ui/date-input'
+import { CheckboxGroup } from '@/components/ui/checkbox-group'
 import { useQuery } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { getGanttViewApi } from '@/api/views'
+import { MAIN_ITEM_STATUSES } from '@/lib/status'
 import type { GanttMainItem } from '@/types'
 import './gantt-overrides.css'
 import { useToast } from '@/components/ui/toast'
@@ -90,10 +92,11 @@ export default function GanttViewPage() {
     start: string
     end: string
   } | null>(null)
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['progressing'])
 
   const { data, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ['ganttView', teamId],
-    queryFn: () => getGanttViewApi(teamId!),
+    queryKey: ['ganttView', teamId, selectedStatuses],
+    queryFn: () => getGanttViewApi(teamId!, selectedStatuses),
     enabled: !!teamId,
   })
 
@@ -209,6 +212,17 @@ export default function GanttViewPage() {
           >
             <RotateCcw className="h-4 w-4" />
           </button>
+        </div>
+        <div className="mt-2">
+          <CheckboxGroup
+            options={Object.entries(MAIN_ITEM_STATUSES).map(([value, { name: label }]) => ({
+              value,
+              label,
+            }))}
+            selected={selectedStatuses}
+            onChange={setSelectedStatuses}
+            title="状态过滤"
+          />
         </div>
       </div>
 

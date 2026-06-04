@@ -258,7 +258,7 @@ type TableRow struct {
 
 // GanttFilter holds filter parameters for the gantt view.
 type GanttFilter struct {
-	Status string `form:"status"`
+	Statuses []string `form:"status"`
 }
 
 // GanttResult is the response DTO for the gantt view.

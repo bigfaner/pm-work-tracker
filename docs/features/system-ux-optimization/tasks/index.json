@@ -188,7 +188,7 @@
         "1.gate",
         "2.2"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.3-terminal-sort.md",
       "record": "records/2.3-terminal-sort.md",
       "surface-key": "backend",
@@ -205,7 +205,7 @@
         "1.gate",
         "2.2"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.4-gantt-status-filter.md",
       "record": "records/2.4-gantt-status-filter.md",
       "breaking": true,
