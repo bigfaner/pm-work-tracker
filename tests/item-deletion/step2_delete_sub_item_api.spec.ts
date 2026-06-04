@@ -18,7 +18,6 @@ import {
   getApiToken,
   parseApiBody,
   setupRbacFixtures,
-  createTestTeam,
   createTestMainItem,
   createTestSubItem,
   type RbacFixtures,
@@ -26,22 +25,21 @@ import {
 
 let f: RbacFixtures;
 let teamBizKey: string;
-const runId = Date.now();
 
 describe('API: Delete individual sub-item', () => {
   beforeAll(async () => {
     f = await setupRbacFixtures();
-    teamBizKey = await createTestTeam(f.superadminToken, `e2e-del-sub-${runId}`);
+    teamBizKey = f.teamBizKey;
   });
 
   // ── Outcome "delete-last-sub-item" ──────────────────────────────────
   // Traceability: TC-API-DEL-003 -> Step 2 Outcome "delete-last-sub-item"
   test('TC-API-DEL-003: deleting last sub-item leaves main item with zero sub-items', async () => {
     const mainItemBizKey = await createTestMainItem(
-      f.superadminToken, teamBizKey, 'DelLast Main', 'P1',
+      f.pmToken, teamBizKey, 'DelLast Main', 'P1',
     );
     const subItemBizKey = await createTestSubItem(
-      f.superadminToken, teamBizKey, mainItemBizKey, 'Only Sub',
+      f.pmToken, teamBizKey, mainItemBizKey, 'Only Sub',
     );
 
     // Delete the sub-item
@@ -68,10 +66,10 @@ describe('API: Delete individual sub-item', () => {
   // Traceability: TC-API-DEL-004 -> Step 2 Outcome "unauthorized"
   test('TC-API-DEL-004: member without sub_item:delete gets 403', async () => {
     const mainItemBizKey = await createTestMainItem(
-      f.superadminToken, teamBizKey, 'Unauthorized Main', 'P2',
+      f.pmToken, teamBizKey, 'Unauthorized Main', 'P2',
     );
     const subItemBizKey = await createTestSubItem(
-      f.superadminToken, teamBizKey, mainItemBizKey, 'Unauthorized Sub',
+      f.pmToken, teamBizKey, mainItemBizKey, 'Unauthorized Sub',
     );
 
     const res = await curl(

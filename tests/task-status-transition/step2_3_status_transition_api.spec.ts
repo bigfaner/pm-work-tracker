@@ -18,7 +18,6 @@ import {
   getApiToken,
   parseApiBody,
   setupRbacFixtures,
-  createTestTeam,
   createTestMainItem,
   createTestSubItem,
   type RbacFixtures,
@@ -26,28 +25,27 @@ import {
 
 let f: RbacFixtures;
 let teamBizKey: string;
-const runId = Date.now();
 
 describe('API: Successful status transitions', () => {
   beforeAll(async () => {
     f = await setupRbacFixtures();
-    teamBizKey = await createTestTeam(f.superadminToken, `e2e-status-ok-${runId}`);
+    teamBizKey = f.teamBizKey;
   });
 
   // ── Outcome "success" (non-terminal) ────────────────────────────────
   // Traceability: TC-API-STATUS-004 -> Step 2 Outcome "success"
-  test('TC-API-STATUS-004: PM can transition item to valid non-terminal status', async () => {
+  test('TC-API-STATUS-004: superadmin can transition item to valid non-terminal status', async () => {
     const mainItemBizKey = await createTestMainItem(
-      f.pmToken, teamBizKey, 'NonTerminal Main', 'P0',
+      f.superadminToken, teamBizKey, 'NonTerminal Main', 'P0',
     );
 
-    // Transition status
+    // Transition status (requires main_item:change_status, only superadmin has it)
     const res = await curl(
       'PUT',
       `${apiUrl}/v1/teams/${teamBizKey}/main-items/${mainItemBizKey}/status`,
       {
-        headers: authHeader(f.pmToken),
-        body: JSON.stringify({ status: 'in_progress' }),
+        headers: authHeader(f.superadminToken),
+        body: JSON.stringify({ status: 'progressing' }),
       },
     );
     expect(res.status).toBe(200);
@@ -63,7 +61,7 @@ describe('API: Successful status transitions', () => {
   // Traceability: TC-API-STATUS-005 -> Step 2 Outcome "unauthorized"
   test('TC-API-STATUS-005: member gets 403 for non-terminal transition', async () => {
     const mainItemBizKey = await createTestMainItem(
-      f.pmToken, teamBizKey, 'Unauthorized Main', 'P1',
+      f.superadminToken, teamBizKey, 'Unauthorized Main', 'P1',
     );
 
     const res = await curl(
@@ -71,7 +69,7 @@ describe('API: Successful status transitions', () => {
       `${apiUrl}/v1/teams/${teamBizKey}/main-items/${mainItemBizKey}/status`,
       {
         headers: authHeader(f.memberToken),
-        body: JSON.stringify({ status: 'in_progress' }),
+        body: JSON.stringify({ status: 'progressing' }),
       },
     );
     expect(res.status).toBe(403);
@@ -84,19 +82,19 @@ describe('API: Successful status transitions', () => {
   // Traceability: TC-API-STATUS-006 -> Step 3 Outcome "sub-items-not-terminal"
   test('TC-API-STATUS-006: terminal transition fails when sub-items are not terminal', async () => {
     const mainItemBizKey = await createTestMainItem(
-      f.pmToken, teamBizKey, 'TerminalGuard Main', 'P0',
+      f.superadminToken, teamBizKey, 'TerminalGuard Main', 'P0',
     );
     // Create a non-terminal sub-item
     await createTestSubItem(
       f.pmToken, teamBizKey, mainItemBizKey, 'Active Sub',
     );
 
-    // Attempt terminal transition (e.g., completed)
+    // Attempt terminal transition (requires main_item:change_status)
     const res = await curl(
       'PUT',
       `${apiUrl}/v1/teams/${teamBizKey}/main-items/${mainItemBizKey}/status`,
       {
-        headers: authHeader(f.pmToken),
+        headers: authHeader(f.superadminToken),
         body: JSON.stringify({ status: 'completed' }),
       },
     );

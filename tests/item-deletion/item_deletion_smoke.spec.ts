@@ -18,7 +18,6 @@ import {
   getApiToken,
   parseApiBody,
   setupRbacFixtures,
-  createTestTeam,
   createTestMainItem,
   createTestSubItem,
   type RbacFixtures,
@@ -26,12 +25,11 @@ import {
 
 let f: RbacFixtures;
 let teamBizKey: string;
-const runId = Date.now();
 
 describe('Journey smoke: item-deletion (API happy path)', () => {
   beforeAll(async () => {
     f = await setupRbacFixtures();
-    teamBizKey = await createTestTeam(f.superadminToken, `e2e-del-smoke-${runId}`);
+    teamBizKey = f.teamBizKey;
   });
 
   test('SMOKE: PM deletes a sub-item and verifies it is gone from the list', async () => {

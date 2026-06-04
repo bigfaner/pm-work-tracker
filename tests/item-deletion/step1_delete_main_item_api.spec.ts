@@ -18,7 +18,6 @@ import {
   getApiToken,
   parseApiBody,
   setupRbacFixtures,
-  createTestTeam,
   createTestMainItem,
   createTestSubItem,
   type RbacFixtures,
@@ -27,18 +26,17 @@ import {
 let f: RbacFixtures;
 let teamBizKey: string;
 let mainItemBizKey: string;
-const runId = Date.now();
 
 describe('API: Delete main item (cascade)', () => {
   beforeAll(async () => {
     f = await setupRbacFixtures();
-    teamBizKey = await createTestTeam(f.superadminToken, `e2e-del-main-${runId}`);
+    teamBizKey = f.teamBizKey;
     mainItemBizKey = await createTestMainItem(
-      f.superadminToken, teamBizKey, 'DelCascade Main', 'P0',
+      f.pmToken, teamBizKey, 'DelCascade Main', 'P0',
     );
     // Create sub-items to verify cascade
-    await createTestSubItem(f.superadminToken, teamBizKey, mainItemBizKey, 'Sub 1');
-    await createTestSubItem(f.superadminToken, teamBizKey, mainItemBizKey, 'Sub 2');
+    await createTestSubItem(f.pmToken, teamBizKey, mainItemBizKey, 'Sub 1');
+    await createTestSubItem(f.pmToken, teamBizKey, mainItemBizKey, 'Sub 2');
   });
 
   // ── Outcome "unauthorized" ──────────────────────────────────────────

@@ -18,7 +18,6 @@ import {
   getApiToken,
   parseApiBody,
   setupRbacFixtures,
-  createTestTeam,
   createTestMainItem,
   type RbacFixtures,
 } from '../../shared/helpers.js';
@@ -26,14 +25,13 @@ import {
 let f: RbacFixtures;
 let teamBizKey: string;
 let mainItemBizKey: string;
-const runId = Date.now();
 
 describe('API: Status transition errors', () => {
   beforeAll(async () => {
     f = await setupRbacFixtures();
-    teamBizKey = await createTestTeam(f.superadminToken, `e2e-status-err-${runId}`);
+    teamBizKey = f.teamBizKey;
     mainItemBizKey = await createTestMainItem(
-      f.superadminToken, teamBizKey, 'StatusErr Main', 'P0',
+      f.pmToken, teamBizKey, 'StatusErr Main', 'P0',
     );
   });
 

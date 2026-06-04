@@ -18,41 +18,54 @@ import {
   getApiToken,
   parseApiBody,
   setupRbacFixtures,
-  createTestTeam,
   createTestMainItem,
   type RbacFixtures,
 } from '../../shared/helpers.js';
 
 let f: RbacFixtures;
 let teamBizKey: string;
-const runId = Date.now();
 
 describe('API: Conversion form errors', () => {
   beforeAll(async () => {
     f = await setupRbacFixtures();
-    teamBizKey = await createTestTeam(f.superadminToken, `e2e-conv-${runId}`);
+    teamBizKey = f.teamBizKey;
   });
 
   // ── Step 5 Outcome "unauthorized" ───────────────────────────────────
   // Traceability: TC-API-CONV-001 -> Step 5 Outcome "unauthorized"
-  test('TC-API-CONV-001: member gets 403 for sub-item creation', async () => {
+  // Member has sub_item:create but NOT sub_item:assign
+  test('TC-API-CONV-001: member gets 403 for sub-item assignment (no sub_item:assign)', async () => {
     const mainItemBizKey = await createTestMainItem(
       f.pmToken, teamBizKey, 'ConvAuth Main', 'P0',
     );
 
-    // Member attempts to create a sub-item (which is what conversion does)
-    const res = await curl(
+    // First create a sub-item as PM
+    const subRes = await curl(
       'POST',
       `${apiUrl}/v1/teams/${teamBizKey}/main-items/${mainItemBizKey}/sub-items`,
       {
-        headers: authHeader(f.memberToken),
+        headers: authHeader(f.pmToken),
         body: JSON.stringify({
           mainItemKey: mainItemBizKey,
-          title: 'Unauthorized Sub',
+          title: 'Sub for Assign',
           priority: 'P2',
           assigneeKey: '1',
           startDate: '2026-01-01',
           expectedEndDate: '2026-12-31',
+        }),
+      },
+    );
+    const subData = parseApiBody(subRes.body);
+    const subBizKey = String(subData.bizKey ?? subData.id);
+
+    // Member attempts to assign the sub-item (requires sub_item:assign via /assignee endpoint)
+    const res = await curl(
+      'PUT',
+      `${apiUrl}/v1/teams/${teamBizKey}/sub-items/${subBizKey}/assignee`,
+      {
+        headers: authHeader(f.memberToken),
+        body: JSON.stringify({
+          assigneeKey: f.memberUserBizKey,
         }),
       },
     );
@@ -66,7 +79,7 @@ describe('API: Conversion form errors', () => {
   // Traceability: TC-API-CONV-002 -> Step 5 Outcome "validation-error"
   test('TC-API-CONV-002: sub-item creation with missing required fields returns error', async () => {
     const mainItemBizKey = await createTestMainItem(
-      f.pmToken, teamBizKey, 'ConvVal Main', 'P1',
+      f.superadminToken, teamBizKey, 'ConvVal Main', 'P1',
     );
 
     const res = await curl(
@@ -89,17 +102,34 @@ describe('API: Conversion form errors', () => {
 
   // ── Step 7 Outcome "unauthorized" ───────────────────────────────────
   // Traceability: TC-API-CONV-003 -> Step 7 Outcome "unauthorized"
-  test('TC-API-CONV-003: member gets 403 for todo-to-main-item conversion', async () => {
-    // Todo-to-main-item conversion uses item pool endpoints
-    // Member without item_pool:review permission should be rejected
-    const res = await curl(
+  // Member has item_pool:submit but NOT item_pool:review (convert/reject)
+  test('TC-API-CONV-003: member gets 403 for pool item conversion (no item_pool:review)', async () => {
+    // First submit a pool item as member (they have item_pool:submit)
+    const submitRes = await curl(
       'POST',
       `${apiUrl}/v1/teams/${teamBizKey}/item-pool`,
       {
         headers: authHeader(f.memberToken),
         body: JSON.stringify({
-          title: 'Unauthorized Pool Item',
+          title: 'Pool Item for Conversion',
           priority: 'P2',
+        }),
+      },
+    );
+    const submitData = parseApiBody(submitRes.body);
+    const poolBizKey = String(submitData.bizKey ?? submitData.id);
+
+    // Member attempts to convert the pool item to main item (requires item_pool:review)
+    const res = await curl(
+      'POST',
+      `${apiUrl}/v1/teams/${teamBizKey}/item-pool/${poolBizKey}/convert-to-main`,
+      {
+        headers: authHeader(f.memberToken),
+        body: JSON.stringify({
+          priority: 'P2',
+          assigneeKey: f.pmUserBizKey,
+          startDate: '2026-01-01',
+          expectedEndDate: '2026-12-31',
         }),
       },
     );
