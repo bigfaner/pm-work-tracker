@@ -54,11 +54,13 @@ func (h *TeamHandler) Create(c *gin.Context) {
 
 // List handles GET /api/v1/teams
 func (h *TeamHandler) List(c *gin.Context) {
+	userBizKey := middleware.GetUserBizKey(c)
+	isSuperAdmin := middleware.IsSuperAdmin(c)
 	search := c.Query("search")
 	page, pageSize := parsePageParams(c)
 	_, page, pageSize = dto.ApplyPaginationDefaults(page, pageSize)
 
-	teams, total, err := h.teamSvc.ListTeams(c.Request.Context(), search, page, pageSize)
+	teams, total, err := h.teamSvc.ListTeams(c.Request.Context(), userBizKey, isSuperAdmin, search, page, pageSize)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return

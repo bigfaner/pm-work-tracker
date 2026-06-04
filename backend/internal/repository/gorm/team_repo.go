@@ -350,3 +350,23 @@ func (r *teamRepo) ListTeamBizKeys(ctx context.Context) ([]int64, error) {
 		Pluck("biz_key", &keys).Error
 	return keys, err
 }
+
+func (r *teamRepo) ListByUserMembership(ctx context.Context, userBizKey int64, search string, offset, limit int) ([]*model.Team, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.Team{}).
+		Scopes(NotDeletedTable("pmw_teams")).
+		Joins("JOIN pmw_team_members ON pmw_team_members.team_key = pmw_teams.biz_key AND pmw_team_members.deleted_flag = 0").
+		Where("pmw_team_members.user_key = ?", userBizKey)
+
+	if search != "" {
+		q = q.Where("pmw_teams.team_name LIKE ? OR pmw_teams.team_code LIKE ?", "%"+search+"%", "%"+search+"%")
+	}
+
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var teams []*model.Team
+	err := q.Order("pmw_teams.create_time DESC").Offset(offset).Limit(limit).Find(&teams).Error
+	return teams, total, err
+}

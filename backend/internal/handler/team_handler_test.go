@@ -58,7 +58,9 @@ type mockTeamService struct {
 	lastCreateReq dto.CreateTeamReq
 	lastCreatorID uint
 
-	listCalled bool
+	listCalled           bool
+	lastListUserBizKey   int64
+	lastListIsSuperAdmin bool
 
 	getCalled  bool
 	lastTeamID uint
@@ -108,8 +110,10 @@ func (m *mockTeamService) GetTeamDetail(_ context.Context, teamBizKey int64) (*d
 	return m.getTeamDetailResult.detail, m.getTeamDetailResult.err
 }
 
-func (m *mockTeamService) ListTeams(_ context.Context, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
+func (m *mockTeamService) ListTeams(_ context.Context, userBizKey int64, isSuperAdmin bool, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
 	m.listCalled = true
+	m.lastListUserBizKey = userBizKey
+	m.lastListIsSuperAdmin = isSuperAdmin
 	return m.listTeamsResult.teams, int64(len(m.listTeamsResult.teams)), m.listTeamsResult.err
 }
 
@@ -387,6 +391,52 @@ func TestListTeams_Success(t *testing.T) {
 	require.True(t, ok)
 	assert.Len(t, data, 2)
 	assert.True(t, svc.listCalled)
+}
+
+func TestListTeams_SuperAdminPassesIdentity(t *testing.T) {
+	svc := &mockTeamService{}
+	svc.listTeamsResult.teams = []*dto.TeamListResp{
+		{Name: "Team A"},
+	}
+	svc.listTeamsResult.teams[0].BizKey = "1"
+
+	deps := depsWithTeamSvc(t, svc, nil)
+	r := SetupRouter(deps, nil)
+
+	// User ID=1 is superadmin in testDeps
+	token := signTestToken(t, 1, "admin")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, svc.listCalled)
+	assert.True(t, svc.lastListIsSuperAdmin)
+}
+
+func TestListTeams_RegularUserPassesIdentity(t *testing.T) {
+	svc := &mockTeamService{}
+	svc.listTeamsResult.teams = []*dto.TeamListResp{
+		{Name: "My Team"},
+	}
+	svc.listTeamsResult.teams[0].BizKey = "1"
+
+	deps := depsWithTeamSvc(t, svc, nil)
+	r := SetupRouter(deps, nil)
+
+	// User ID=2 is a regular user (not superadmin) in testDeps
+	token := signTestToken(t, 2, "testuser1")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, svc.listCalled)
+	assert.False(t, svc.lastListIsSuperAdmin)
+	// userBizKey should be the user's bizKey (ID=2 -> bizKey=2 in testDeps)
+	assert.Equal(t, int64(2), svc.lastListUserBizKey)
 }
 
 // ---------------------------------------------------------------------------

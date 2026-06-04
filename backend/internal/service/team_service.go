@@ -20,7 +20,7 @@ type TeamService interface {
 	CreateTeam(ctx context.Context, creatorBizKey int64, req dto.CreateTeamReq) (*model.Team, error)
 	GetTeam(ctx context.Context, teamBizKey int64) (*model.Team, error)
 	GetTeamDetail(ctx context.Context, teamBizKey int64) (*dto.TeamDetailResp, error)
-	ListTeams(ctx context.Context, search string, page, pageSize int) ([]*dto.TeamListResp, int64, error)
+	ListTeams(ctx context.Context, userBizKey int64, isSuperAdmin bool, search string, page, pageSize int) ([]*dto.TeamListResp, int64, error)
 	UpdateTeam(ctx context.Context, teamBizKey int64, req dto.UpdateTeamReq) (*model.Team, error)
 	InviteMember(ctx context.Context, pmBizKey int64, teamBizKey int64, req dto.InviteMemberReq) error
 	RemoveMember(ctx context.Context, teamBizKey int64, targetUserBizKey int64) error
@@ -83,9 +83,18 @@ func (s *teamService) GetTeam(ctx context.Context, teamBizKey int64) (*model.Tea
 	return team, nil
 }
 
-func (s *teamService) ListTeams(ctx context.Context, search string, page, pageSize int) ([]*dto.TeamListResp, int64, error) {
+func (s *teamService) ListTeams(ctx context.Context, userBizKey int64, isSuperAdmin bool, search string, page, pageSize int) ([]*dto.TeamListResp, int64, error) {
 	offset, _, pageSize := dto.ApplyPaginationDefaults(page, pageSize)
-	teams, total, err := s.teamRepo.ListFiltered(ctx, search, offset, pageSize)
+
+	var teams []*model.Team
+	var total int64
+	var err error
+
+	if isSuperAdmin {
+		teams, total, err = s.teamRepo.ListFiltered(ctx, search, offset, pageSize)
+	} else {
+		teams, total, err = s.teamRepo.ListByUserMembership(ctx, userBizKey, search, offset, pageSize)
+	}
 	if err != nil {
 		return nil, 0, err
 	}

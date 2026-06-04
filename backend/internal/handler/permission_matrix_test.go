@@ -76,7 +76,7 @@ func (m *mockTeamSvc) GetTeam(_ context.Context, _ int64) (*model.Team, error) {
 func (m *mockTeamSvc) GetTeamDetail(_ context.Context, _ int64) (*dto.TeamDetailResp, error) {
 	return nil, nil
 }
-func (m *mockTeamSvc) ListTeams(_ context.Context, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
+func (m *mockTeamSvc) ListTeams(_ context.Context, _ int64, _ bool, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
 	return nil, 0, nil
 }
 func (m *mockTeamSvc) UpdateTeam(_ context.Context, _ int64, _ dto.UpdateTeamReq) (*model.Team, error) {

@@ -23,7 +23,7 @@
       "title": "团队选择器权限过滤",
       "priority": "P1",
       "estimatedTime": "2h",
-      "status": "pending",
+      "status": "completed",
       "file": "1.2-team-selector-filter.md",
       "record": "records/1.2-team-selector-filter.md",
       "surface-key": "backend",

@@ -52,6 +52,11 @@ type mockTeamRepo struct {
 		teamBizKey int64
 		userBizKey int64
 	}
+	// ListByUserMembership tracking
+	membershipTeams          []*model.Team
+	membershipErr            error
+	listByMembershipCalled   bool
+	lastMembershipUserBizKey int64
 }
 
 func (m *mockTeamRepo) Create(_ context.Context, team *model.Team) error {
@@ -76,6 +81,16 @@ func (m *mockTeamRepo) List(_ context.Context) ([]*model.Team, error) {
 
 func (m *mockTeamRepo) ListFiltered(_ context.Context, _ string, _, _ int) ([]*model.Team, int64, error) {
 	return m.teams, int64(len(m.teams)), m.listErr
+}
+
+func (m *mockTeamRepo) ListByUserMembership(_ context.Context, userBizKey int64, _ string, _, _ int) ([]*model.Team, int64, error) {
+	m.listByMembershipCalled = true
+	m.lastMembershipUserBizKey = userBizKey
+	teams := m.membershipTeams
+	if teams == nil {
+		teams = m.teams
+	}
+	return teams, int64(len(teams)), m.membershipErr
 }
 
 func (m *mockTeamRepo) Update(_ context.Context, team *model.Team) error {
@@ -332,12 +347,85 @@ func TestListTeams_Success(t *testing.T) {
 	}
 	svc := NewTeamService(repo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
 
-	teams, total, err := svc.ListTeams(context.Background(), "", 1, 20)
+	teams, total, err := svc.ListTeams(context.Background(), 1, true, "", 1, 20)
 	require.NoError(t, err)
 	require.Len(t, teams, 2)
 	assert.Equal(t, int64(2), total)
 	assert.Equal(t, "Alice", teams[0].PmDisplayName)
 	assert.Equal(t, "Bob", teams[1].PmDisplayName)
+}
+
+func TestListTeams_SuperAdmin_ReturnsAllTeams(t *testing.T) {
+	repo := &mockTeamRepo{
+		teams: []*model.Team{
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamName: "Team A", PmKey: 10},
+			{BaseModel: model.BaseModel{ID: 2, BizKey: 2}, TeamName: "Team B", PmKey: 20},
+			{BaseModel: model.BaseModel{ID: 3, BizKey: 3}, TeamName: "Team C", PmKey: 30},
+		},
+		members: []*dto.TeamMemberDTO{},
+	}
+	svc := NewTeamService(repo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
+
+	teams, total, err := svc.ListTeams(context.Background(), 99, true, "", 1, 20)
+	require.NoError(t, err)
+	assert.Equal(t, int64(3), total)
+	assert.Len(t, teams, 3)
+	// SuperAdmin should use ListFiltered, not ListByUserMembership
+	assert.False(t, repo.listByMembershipCalled)
+}
+
+func TestListTeams_RegularUser_ReturnsOnlyMembershipTeams(t *testing.T) {
+	repo := &mockTeamRepo{
+		teams: []*model.Team{
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamName: "Team A", PmKey: 10},
+		},
+		membershipTeams: []*model.Team{
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamName: "Team A", PmKey: 10},
+		},
+		members: []*dto.TeamMemberDTO{
+			{TeamKey: "1", UserKey: "10", Role: "pm", DisplayName: "Alice"},
+		},
+	}
+	svc := NewTeamService(repo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
+
+	teams, total, err := svc.ListTeams(context.Background(), 42, false, "", 1, 20)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	require.Len(t, teams, 1)
+	assert.Equal(t, "Team A", teams[0].Name)
+	assert.Equal(t, "Alice", teams[0].PmDisplayName)
+	// Regular user should use ListByUserMembership
+	assert.True(t, repo.listByMembershipCalled)
+	assert.Equal(t, int64(42), repo.lastMembershipUserBizKey)
+}
+
+func TestListTeams_UserNotMemberOfAnyTeam_ReturnsEmpty(t *testing.T) {
+	repo := &mockTeamRepo{
+		teams: []*model.Team{
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamName: "Team A", PmKey: 10},
+		},
+		membershipTeams: []*model.Team{}, // no membership
+		members:         []*dto.TeamMemberDTO{},
+	}
+	svc := NewTeamService(repo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
+
+	teams, total, err := svc.ListTeams(context.Background(), 99, false, "", 1, 20)
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), total)
+	assert.Empty(t, teams)
+	assert.True(t, repo.listByMembershipCalled)
+}
+
+func TestListTeams_RegularUser_RepoError(t *testing.T) {
+	repo := &mockTeamRepo{
+		membershipTeams: nil,
+		membershipErr:   errors.New("db error"),
+		members:         []*dto.TeamMemberDTO{},
+	}
+	svc := NewTeamService(repo, &mockTeamUserRepo{}, &mockMainItemRepo{}, nil, &mockDB{})
+
+	_, _, err := svc.ListTeams(context.Background(), 1, false, "", 1, 20)
+	assert.Error(t, err)
 }
 
 // ---------------------------------------------------------------------------

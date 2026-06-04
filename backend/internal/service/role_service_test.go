@@ -264,6 +264,10 @@ func (m *mockTeamRepoForRole) ListTeamBizKeys(_ context.Context) ([]int64, error
 	return m.bizKeys, nil
 }
 
+func (m *mockTeamRepoForRole) ListByUserMembership(_ context.Context, _ int64, _ string, _, _ int) ([]*model.Team, int64, error) {
+	return nil, 0, nil
+}
+
 // ---------------------------------------------------------------------------
 // Helper: build the service under test
 // ---------------------------------------------------------------------------
