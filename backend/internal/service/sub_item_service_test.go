@@ -1444,6 +1444,180 @@ func TestMove_RecalcCompletionBothSides(t *testing.T) {
 	mainSvc.AssertExpectations(t)
 }
 
+func TestMove_StatusAndAssigneePreserved(t *testing.T) {
+	repo := new(mockSubItemRepoTM)
+	mainSvc := new(mockMainItemSvcTM)
+	historySvc := new(mockStatusHistorySvcTM)
+	svc := NewSubItemService(repo, mainSvc, historySvc)
+
+	subItem := &model.SubItem{
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 100},
+		TeamKey:     10,
+		MainItemKey: 200,
+		ItemStatus:  "progressing",
+		AssigneeKey: func() *int64 { v := int64(50); return &v }(),
+		Code:        "FEAT-00001-01",
+	}
+
+	targetMainItem := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 2, BizKey: 300},
+		TeamKey:    10,
+		ItemStatus: "progressing",
+	}
+
+	repo.On("FindByBizKey", mock.Anything, int64(100)).Return(subItem, nil)
+	mainSvc.On("GetByBizKey", mock.Anything, int64(300)).Return(targetMainItem, nil)
+	repo.On("NextSubCode", mock.Anything, int64(300)).Return("FEAT-00002-01", nil)
+	repo.On("Update", mock.Anything, mock.AnythingOfType("*model.SubItem"), mock.MatchedBy(func(fields map[string]interface{}) bool {
+		// AC-2: only main_item_key and item_code should be updated, NOT item_status or assignee_key
+		_, hasStatus := fields["item_status"]
+		_, hasAssignee := fields["assignee_key"]
+		return !hasStatus && !hasAssignee &&
+			fields["main_item_key"] == int64(300) &&
+			fields["item_code"] == "FEAT-00002-01"
+	})).Return(nil)
+	mainSvc.On("RecalcCompletion", mock.Anything, int64(200)).Return(nil)
+	mainSvc.On("RecalcCompletion", mock.Anything, int64(300)).Return(nil)
+
+	result, err := svc.Move(context.Background(), 10, 100, 300, 1)
+
+	require.NoError(t, err)
+	assert.Equal(t, "FEAT-00002-01", result.NewSubCode)
+	assert.Equal(t, int64(300), result.MainItemBizKey)
+
+	repo.AssertExpectations(t)
+	mainSvc.AssertExpectations(t)
+}
+
+func TestMove_UpdateError(t *testing.T) {
+	repo := new(mockSubItemRepoTM)
+	mainSvc := new(mockMainItemSvcTM)
+	historySvc := new(mockStatusHistorySvcTM)
+	svc := NewSubItemService(repo, mainSvc, historySvc)
+
+	subItem := &model.SubItem{
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 100},
+		TeamKey:     10,
+		MainItemKey: 200,
+		ItemStatus:  "progressing",
+	}
+
+	targetMainItem := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 2, BizKey: 300},
+		TeamKey:    10,
+		ItemStatus: "progressing",
+	}
+
+	repo.On("FindByBizKey", mock.Anything, int64(100)).Return(subItem, nil)
+	mainSvc.On("GetByBizKey", mock.Anything, int64(300)).Return(targetMainItem, nil)
+	repo.On("NextSubCode", mock.Anything, int64(300)).Return("FEAT-00002-01", nil)
+	repo.On("Update", mock.Anything, mock.AnythingOfType("*model.SubItem"), mock.AnythingOfType("map[string]interface {}")).Return(errors.New("update failed"))
+
+	_, err := svc.Move(context.Background(), 10, 100, 300, 1)
+
+	assert.Error(t, err)
+	assert.Equal(t, "update failed", err.Error())
+	repo.AssertExpectations(t)
+	mainSvc.AssertExpectations(t)
+}
+
+func TestMove_SourceRecalcError(t *testing.T) {
+	repo := new(mockSubItemRepoTM)
+	mainSvc := new(mockMainItemSvcTM)
+	historySvc := new(mockStatusHistorySvcTM)
+	svc := NewSubItemService(repo, mainSvc, historySvc)
+
+	subItem := &model.SubItem{
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 100},
+		TeamKey:     10,
+		MainItemKey: 200,
+		ItemStatus:  "progressing",
+	}
+
+	targetMainItem := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 2, BizKey: 300},
+		TeamKey:    10,
+		ItemStatus: "progressing",
+	}
+
+	repo.On("FindByBizKey", mock.Anything, int64(100)).Return(subItem, nil)
+	mainSvc.On("GetByBizKey", mock.Anything, int64(300)).Return(targetMainItem, nil)
+	repo.On("NextSubCode", mock.Anything, int64(300)).Return("FEAT-00002-01", nil)
+	repo.On("Update", mock.Anything, mock.AnythingOfType("*model.SubItem"), mock.AnythingOfType("map[string]interface {}")).Return(nil)
+	mainSvc.On("RecalcCompletion", mock.Anything, int64(200)).Return(errors.New("recalc source failed"))
+
+	_, err := svc.Move(context.Background(), 10, 100, 300, 1)
+
+	assert.Error(t, err)
+	assert.Equal(t, "recalc source failed", err.Error())
+	repo.AssertExpectations(t)
+	mainSvc.AssertExpectations(t)
+}
+
+func TestMove_TargetRecalcError(t *testing.T) {
+	repo := new(mockSubItemRepoTM)
+	mainSvc := new(mockMainItemSvcTM)
+	historySvc := new(mockStatusHistorySvcTM)
+	svc := NewSubItemService(repo, mainSvc, historySvc)
+
+	subItem := &model.SubItem{
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 100},
+		TeamKey:     10,
+		MainItemKey: 200,
+		ItemStatus:  "progressing",
+	}
+
+	targetMainItem := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 2, BizKey: 300},
+		TeamKey:    10,
+		ItemStatus: "progressing",
+	}
+
+	repo.On("FindByBizKey", mock.Anything, int64(100)).Return(subItem, nil)
+	mainSvc.On("GetByBizKey", mock.Anything, int64(300)).Return(targetMainItem, nil)
+	repo.On("NextSubCode", mock.Anything, int64(300)).Return("FEAT-00002-01", nil)
+	repo.On("Update", mock.Anything, mock.AnythingOfType("*model.SubItem"), mock.AnythingOfType("map[string]interface {}")).Return(nil)
+	mainSvc.On("RecalcCompletion", mock.Anything, int64(200)).Return(nil)
+	mainSvc.On("RecalcCompletion", mock.Anything, int64(300)).Return(errors.New("recalc target failed"))
+
+	_, err := svc.Move(context.Background(), 10, 100, 300, 1)
+
+	assert.Error(t, err)
+	assert.Equal(t, "recalc target failed", err.Error())
+	repo.AssertExpectations(t)
+	mainSvc.AssertExpectations(t)
+}
+
+func TestMove_TargetClosed_Status_Closed(t *testing.T) {
+	repo := new(mockSubItemRepoTM)
+	mainSvc := new(mockMainItemSvcTM)
+	historySvc := new(mockStatusHistorySvcTM)
+	svc := NewSubItemService(repo, mainSvc, historySvc)
+
+	subItem := &model.SubItem{
+		BaseModel:   model.BaseModel{ID: 1, BizKey: 100},
+		TeamKey:     10,
+		MainItemKey: 200,
+		ItemStatus:  "progressing",
+	}
+
+	// "closed" is also a terminal status for main items
+	targetMainItem := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 2, BizKey: 300},
+		TeamKey:    10,
+		ItemStatus: "closed",
+	}
+
+	repo.On("FindByBizKey", mock.Anything, int64(100)).Return(subItem, nil)
+	mainSvc.On("GetByBizKey", mock.Anything, int64(300)).Return(targetMainItem, nil)
+
+	_, err := svc.Move(context.Background(), 10, 100, 300, 1)
+
+	assert.ErrorIs(t, err, apperrors.ErrTargetClosed)
+	repo.AssertExpectations(t)
+	mainSvc.AssertExpectations(t)
+}
+
 func TestMove_NextSubCodeError(t *testing.T) {
 	repo := new(mockSubItemRepoTM)
 	mainSvc := new(mockMainItemSvcTM)

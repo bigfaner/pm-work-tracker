@@ -153,7 +153,7 @@
         "1.gate",
         "1.4"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.1-move-subitem.md",
       "record": "records/2.1-move-subitem.md",
       "breaking": true,
@@ -363,12 +363,13 @@
       "dependencies": [
         "T-test-gen-journeys"
       ],
-      "status": "in_progress",
+      "status": "suspended",
       "file": "eval-journey.md",
       "record": "records/eval-journey.md",
       "breaking": true,
       "mainSession": true,
-      "type": "eval.journey"
+      "type": "eval.journey",
+      "blockedReason": "MAIN_SESSION task blocked by API 529 rate limits on scorer subagents. Suspending to unblock 2.x coding tasks."
     },
     "fix-1": {
       "id": "fix-1",

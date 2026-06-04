@@ -1223,6 +1223,26 @@ func TestMoveSubItem_MissingBody(t *testing.T) {
 	assert.False(t, svc.moveCalled)
 }
 
+func TestMoveSubItem_CrossTeam(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.moveResult.err = apperrors.ErrItemNotFound
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"targetMainItemBizKey":"300"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/100/move", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	// Cross-team returns 404 (ErrItemNotFound)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.True(t, svc.moveCalled)
+}
+
 func TestMoveSubItem_InvalidBizKey(t *testing.T) {
 	svc := &mockSubItemService{}
 
