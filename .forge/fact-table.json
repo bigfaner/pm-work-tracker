@@ -1,0 +1,362 @@
+[
+  {
+    "fact_id": "API_BASE_PATH",
+    "source": "static",
+    "subject": "API base path for all v1 endpoints",
+    "kind": "signature",
+    "value": "/api/v1",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "AUTH_MIDDLEWARE",
+    "source": "static",
+    "subject": "Authentication middleware using JWT Bearer tokens",
+    "kind": "precondition",
+    "value": "Authorization header with Bearer token; JWT verified against config secret; user loaded from DB; deleted_flag=0 checked",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "PERMISSION_MIDDLEWARE",
+    "source": "static",
+    "subject": "Permission middleware checks permission codes per route",
+    "kind": "precondition",
+    "value": "RequirePermission(code, roleRepo); checks permCodes from team scope or queries roleRepo.HasPermission for non-team routes; SuperAdmin bypasses all checks",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "TEAM_SCOPE_MIDDLEWARE",
+    "source": "static",
+    "subject": "Team scope middleware verifies team membership and injects permCodes",
+    "kind": "precondition",
+    "value": "Parses teamId as bizKey from URL; resolves to team record; checks membership (SuperAdmin bypasses); when role_key is NULL, falls back to 'member' preset role; injects permCodes into context",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "NIL_ROLE_KEY_FALLBACK",
+    "source": "static",
+    "subject": "Fallback when member role_key is nil/NULL",
+    "kind": "precondition",
+    "value": "TeamScopeMiddleware falls back to querying 'member' preset role by name when member.RoleKey is nil; source: backend/internal/middleware/team_scope.go:62-75",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_UNAUTHORIZED",
+    "source": "static",
+    "subject": "Authentication error response",
+    "kind": "error_code",
+    "value": "{\"code\":\"UNAUTHORIZED\",\"message\":\"authentication required\"} with HTTP 401",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_FORBIDDEN",
+    "source": "static",
+    "subject": "Authorization error response",
+    "kind": "error_code",
+    "value": "{\"code\":\"FORBIDDEN\",\"message\":\"insufficient permissions\"} with HTTP 403",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_ERR_FORBIDDEN_PERM",
+    "source": "static",
+    "subject": "Permission-denied error with specific code",
+    "kind": "error_code",
+    "value": "{\"code\":\"ERR_FORBIDDEN\",\"message\":\"权限不足：缺少 <code> 权限\"} with HTTP 403",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_VALIDATION",
+    "source": "static",
+    "subject": "Validation error response",
+    "kind": "error_code",
+    "value": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"request validation failed\"} with HTTP 400",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_ITEM_NOT_FOUND",
+    "source": "static",
+    "subject": "Item not found error response",
+    "kind": "error_code",
+    "value": "{\"code\":\"ITEM_NOT_FOUND\",\"message\":\"item not found\"} with HTTP 404",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_INVALID_STATUS",
+    "source": "static",
+    "subject": "Invalid status transition error response",
+    "kind": "error_code",
+    "value": "{\"code\":\"INVALID_STATUS\",\"message\":\"invalid status transition\"} with HTTP 422",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_TERMINAL_MAIN_ITEM",
+    "source": "static",
+    "subject": "Cannot modify terminal main item error",
+    "kind": "error_code",
+    "value": "{\"code\":\"TERMINAL_MAIN_ITEM\",\"message\":\"cannot modify a completed or closed main item\"} with HTTP 422",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_TARGET_CLOSED",
+    "source": "static",
+    "subject": "Target main item closed error for sub-item move",
+    "kind": "error_code",
+    "value": "{\"code\":\"BAD_REQUEST\",\"message\":\"目标主事项已关闭\"} with HTTP 400",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_SAME_MAIN_ITEM",
+    "source": "static",
+    "subject": "Move to same main item error",
+    "kind": "error_code",
+    "value": "{\"code\":\"BAD_REQUEST\",\"message\":\"不能移动到同一主事项\"} with HTTP 400",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_TEAM_NOT_FOUND",
+    "source": "static",
+    "subject": "Team not found error response",
+    "kind": "error_code",
+    "value": "{\"code\":\"TEAM_NOT_FOUND\",\"message\":\"team not found\"} with HTTP 404",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_NOT_TEAM_MEMBER",
+    "source": "static",
+    "subject": "Not a team member error",
+    "kind": "error_code",
+    "value": "{\"code\":\"NOT_TEAM_MEMBER\",\"message\":\"not a member of this team\"} with HTTP 403",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MAIN_ITEM_LIST",
+    "source": "static",
+    "subject": "Main item list endpoint",
+    "kind": "signature",
+    "value": "GET /api/v1/teams/:teamId/main-items (perm: main_item:read); supports assigneeKey, status query params; returns items, total, page, size",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MAIN_ITEM_CHANGE_STATUS",
+    "source": "static",
+    "subject": "Main item status change endpoint",
+    "kind": "signature",
+    "value": "PUT /api/v1/teams/:teamId/main-items/:itemId/status (perm: main_item:change_status); body: {status: string}",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MAIN_ITEM_DELETE",
+    "source": "static",
+    "subject": "Main item delete endpoint with cascade",
+    "kind": "signature",
+    "value": "DELETE /api/v1/teams/:teamId/main-items/:itemId (perm: main_item:delete); cascade soft-deletes all sub-items; creates status_history audit records",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_SUB_ITEM_DELETE",
+    "source": "static",
+    "subject": "Sub-item delete endpoint",
+    "kind": "signature",
+    "value": "DELETE /api/v1/teams/:teamId/sub-items/:subId (perm: sub_item:delete); soft-deletes; creates status_history audit; recalculates parent completion",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_SUB_ITEM_MOVE",
+    "source": "static",
+    "subject": "Sub-item move endpoint",
+    "kind": "signature",
+    "value": "PUT /api/v1/teams/:teamId/sub-items/:subId/move (perm: sub_item:update); body: {targetMainItemBizKey: string}; returns {newSubCode, mainItemBizKey}",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_SUB_ITEM_UPDATE",
+    "source": "static",
+    "subject": "Sub-item update endpoint",
+    "kind": "signature",
+    "value": "PUT /api/v1/teams/:teamId/sub-items/:subId (perm: sub_item:update); body: {title, description, priority, assigneeKey, startDate, expectedEndDate}",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_TEAM_LIST",
+    "source": "static",
+    "subject": "Team list endpoint (filtered by membership)",
+    "kind": "signature",
+    "value": "GET /api/v1/teams (auth only, no perm code); returns only teams the user belongs to; SuperAdmin sees all",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_VIEW_WEEKLY",
+    "source": "static",
+    "subject": "Weekly view endpoint",
+    "kind": "signature",
+    "value": "GET /api/v1/teams/:teamId/views/weekly (perm: view:weekly); query: weekStart (YYYY-MM-DD, must be Monday, not future)",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_VIEW_GANTT",
+    "source": "static",
+    "subject": "Gantt view endpoint with terminal item filter",
+    "kind": "signature",
+    "value": "GET /api/v1/teams/:teamId/views/gantt (perm: view:gantt); query: assigneeKey, status; returns items with sub-items; terminal items with no activity hidden when inactive=true",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "MOVE_SAME_PARENT_CHECK",
+    "source": "static",
+    "subject": "Move operation rejects same parent",
+    "kind": "precondition",
+    "value": "sub_item_service.Move checks subItem.MainItemKey == targetMainItemBizKey and returns ErrSameMainItem; source: backend/internal/service/sub_item_service.go:310",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "MOVE_TERMINAL_CHECK",
+    "source": "static",
+    "subject": "Move operation rejects terminal target",
+    "kind": "precondition",
+    "value": "sub_item_service.Move checks IsMainTerminal(targetMainItem.ItemStatus) and returns ErrTargetClosed; source: backend/internal/service/sub_item_service.go:305",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ASSIGNEE_PENETRATION_FILTER",
+    "source": "static",
+    "subject": "Main item list with assignee penetration logic",
+    "kind": "output_format",
+    "value": "When assigneeKey filter is set, returns matchType ('direct' or 'indirect') and matchedSubItemIds for each item; source: backend/internal/service/main_item_service.go:297-417",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "TERMINAL_SORT_BOTTOM",
+    "source": "static",
+    "subject": "Terminal items sorted to bottom of list",
+    "kind": "output_format",
+    "value": "sortTerminalItems uses sort.SliceStable to sink terminal (completed/closed) items to bottom while preserving relative order; source: backend/internal/service/main_item_service.go:714-723",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "CASCADE_DELETE_TRANSACTIONAL",
+    "source": "static",
+    "subject": "Main item delete cascades to sub-items in single transaction",
+    "kind": "side_effect",
+    "value": "CascadeSoftDelete soft-deletes main item and all sub-items atomically with status_history audit records; source: backend/internal/service/main_item_service.go:267",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "STATUS_HISTORY_ON_DELETE",
+    "source": "static",
+    "subject": "Status history audit record created on deletion",
+    "kind": "side_effect",
+    "value": "RecordStatusChange called with to_status='deleted' for both main items and sub-items on soft-delete; source: backend/internal/service/main_item_service.go:244-264, sub_item_service.go:221",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "RECALC_COMPLETION_ON_DELETE",
+    "source": "static",
+    "subject": "Parent completion recalculated after sub-item delete",
+    "kind": "side_effect",
+    "value": "RecalcCompletion called after sub-item soft-delete; source: backend/internal/service/sub_item_service.go:224",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "MOVE_RECALC_BOTH_PARENTS",
+    "source": "static",
+    "subject": "Completion recalculated for both source and target after move",
+    "kind": "side_effect",
+    "value": "RecalcCompletion called for both sourceMainItemBizKey and targetMainItemBizKey; source: backend/internal/service/sub_item_service.go:332-336",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "SUCCESS_RESPONSE_FORMAT",
+    "source": "static",
+    "subject": "Standard success response envelope",
+    "kind": "output_format",
+    "value": "{\"code\": 0, \"data\": <payload>}",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "STATUS_TRANSITIONS_MAIN",
+    "source": "static",
+    "subject": "Main item valid status transitions",
+    "kind": "precondition",
+    "value": "Validated via status.IsValidTransition(MainItemTransitions, current, target); self-transition rejected; terminal guard checks all sub-items are terminal; source: backend/internal/service/main_item_service.go:462-489",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "SUB_ITEM_CODE_AUTO_GEN",
+    "source": "static",
+    "subject": "Sub-item code auto-generated on move via atomic increment",
+    "kind": "side_effect",
+    "value": "NextSubCode atomically increments main item's sub_item_seq; source: backend/internal/service/sub_item_service.go:318",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "TEAM_LIST_MEMBERSHIP_FILTER",
+    "source": "static",
+    "subject": "Team list filtered by user membership",
+    "kind": "output_format",
+    "value": "ListTeams filters by userBizKey for non-superadmin users; SuperAdmin sees all teams; source: backend/internal/handler/team_handler.go:56-75",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "WEEKLY_VIEW_WEEK_VALIDATION",
+    "source": "static",
+    "subject": "Weekly view weekStart must be Monday and not future",
+    "kind": "precondition",
+    "value": "weekStart parsed as date; validated to be Monday; validated not after today; source: backend/internal/handler/view_handler.go:32-57",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "BIZ_KEY_SNOWFLAKE",
+    "source": "static",
+    "subject": "All entity IDs exposed to frontend use snowflake bizKey (int64 formatted as string)",
+    "kind": "signature",
+    "value": "BizKey generated via snowflake.Generate(); exposed as string via pkg.FormatID(); parsed via pkg.ParseID(); source: backend/internal/model/base.go",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "DELETE_SOFT_ONLY",
+    "source": "static",
+    "subject": "All deletions are soft-delete via deleted_flag",
+    "kind": "precondition",
+    "value": "SoftDelete sets deleted_flag; queries use NotDeleted() scope; data is never permanently removed; source: repository pattern",
+    "confidence": "inferred",
+    "updated_at": "2026-06-04T00:00:00Z"
+  }
+]
