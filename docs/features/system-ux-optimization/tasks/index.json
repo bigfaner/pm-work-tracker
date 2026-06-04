@@ -491,7 +491,7 @@
       "dependencies": [
         "T-test-run-frontend"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "validate-code.md",
       "record": "records/validate-code.md",
       "type": "validation.code"
