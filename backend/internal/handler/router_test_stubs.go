@@ -96,8 +96,8 @@ func (s *StubMainItemSvc) Archive(_ context.Context, _ int64, _ uint) error {
 }
 
 // List is a stub for service.MainItemService.List.
-func (s *StubMainItemSvc) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
-	return nil, fmt.Errorf("stub: not implemented")
+func (s *StubMainItemSvc) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], map[int64]*dto.MainItemMatchInfo, error) {
+	return nil, nil, fmt.Errorf("stub: not implemented")
 }
 
 // Get is a stub for service.MainItemService.Get.

@@ -206,7 +206,7 @@ func TestMainItemRepo_List(t *testing.T) {
 	})
 
 	t.Run("filter_by_status", func(t *testing.T) {
-		result, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{Status: "progressing"}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{Statuses: []string{"progressing"}}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), result.Total)
 		assert.Equal(t, "Item B", result.Items[0].Title)
@@ -219,7 +219,7 @@ func TestMainItemRepo_List(t *testing.T) {
 	})
 
 	t.Run("filter_by_status_and_priority", func(t *testing.T) {
-		result, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{Status: "pending", Priority: "P1"}, dto.Pagination{Page: 1, PageSize: 10})
+		result, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{Statuses: []string{"pending"}, Priority: "P1"}, dto.Pagination{Page: 1, PageSize: 10})
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), result.Total)
 		assert.Equal(t, "Item A", result.Items[0].Title)

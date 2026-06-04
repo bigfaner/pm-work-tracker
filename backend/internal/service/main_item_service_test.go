@@ -126,8 +126,10 @@ func (m *mockMainItemRepo) CascadeSoftDelete(_ context.Context, mainItemID uint,
 }
 
 type mockSubItemRepo struct {
-	subItems []*model.SubItem
-	findErr  error
+	subItems     []*model.SubItem
+	teamSubItems []model.SubItem
+	findErr      error
+	teamListErr  error
 }
 
 func (m *mockSubItemRepo) Create(_ context.Context, item *model.SubItem) error {
@@ -154,7 +156,10 @@ func (m *mockSubItemRepo) ListByMainItem(_ context.Context, mainItemBizKey int64
 }
 
 func (m *mockSubItemRepo) ListByTeam(_ context.Context, _ int64) ([]model.SubItem, error) {
-	return nil, nil
+	if m.teamListErr != nil {
+		return nil, m.teamListErr
+	}
+	return m.teamSubItems, nil
 }
 
 func (m *mockSubItemRepo) SoftDelete(_ context.Context, _ uint) error {
@@ -357,10 +362,11 @@ func TestMainItemList_Success(t *testing.T) {
 	subRepo := &mockSubItemRepo{}
 	svc := NewMainItemService(mainRepo, subRepo, nil)
 
-	result, err := svc.List(context.Background(), int64(1), dto.MainItemFilter{}, dto.Pagination{Page: 1, PageSize: 20})
+	result, matchInfo, err := svc.List(context.Background(), int64(1), dto.MainItemFilter{}, dto.Pagination{Page: 1, PageSize: 20})
 	require.NoError(t, err)
 	assert.Len(t, result.Items, 2)
 	assert.Equal(t, int64(2), result.Total)
+	assert.Nil(t, matchInfo, "no matchInfo when no filter active")
 }
 
 func TestMainItemList_RepoError(t *testing.T) {
@@ -368,7 +374,7 @@ func TestMainItemList_RepoError(t *testing.T) {
 	subRepo := &mockSubItemRepo{}
 	svc := NewMainItemService(mainRepo, subRepo, nil)
 
-	_, err := svc.List(context.Background(), int64(1), dto.MainItemFilter{}, dto.Pagination{})
+	_, _, err := svc.List(context.Background(), int64(1), dto.MainItemFilter{}, dto.Pagination{})
 	assert.Error(t, err)
 }
 
@@ -1403,4 +1409,249 @@ func TestMainItemDelete_CascadeError(t *testing.T) {
 	err := svc.Delete(context.Background(), 1, 100, 10)
 	assert.Error(t, err)
 	assert.True(t, mainRepo.cascadeSoftDeleteCalled)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: Filter Penetration (List with assigneeKey)
+// ---------------------------------------------------------------------------
+
+// helper: string pointer for filter tests
+func filterStrPtr(v string) *string { return &v }
+
+func TestList_StatusOnly_ReturnsDirect(t *testing.T) {
+	// AC-1: Only status filter -> returns status-matched items, all direct matchType
+	// The repo mock returns pre-filtered items (simulating SQL WHERE status IN (...))
+	assignee := int64(100)
+	mainRepo := &mockMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{BizKey: 1}, ItemStatus: "progressing", AssigneeKey: &assignee},
+			{BaseModel: model.BaseModel{BizKey: 3}, ItemStatus: "progressing"},
+		},
+	}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	result, matchInfo, err := svc.List(context.Background(), 1,
+		dto.MainItemFilter{Statuses: []string{"progressing"}},
+		dto.Pagination{Page: 1, PageSize: 20})
+	require.NoError(t, err)
+	assert.Len(t, result.Items, 2)
+	assert.NotNil(t, matchInfo)
+	assert.Equal(t, "direct", matchInfo[1].MatchType)
+	assert.Equal(t, "direct", matchInfo[3].MatchType)
+	assert.Nil(t, matchInfo[1].MatchedSubItemIds)
+}
+
+func TestList_AssigneeOnly_DirectMatch(t *testing.T) {
+	// AC-2: Only assignee -> returns direct match
+	assignee := int64(100)
+	mainRepo := &mockMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{BizKey: 1}, ItemStatus: "progressing", AssigneeKey: &assignee},
+			{BaseModel: model.BaseModel{BizKey: 2}, ItemStatus: "pending"},
+		},
+	}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	result, matchInfo, err := svc.List(context.Background(), 1,
+		dto.MainItemFilter{AssigneeKey: filterStrPtr("100")},
+		dto.Pagination{Page: 1, PageSize: 20})
+	require.NoError(t, err)
+	assert.Len(t, result.Items, 1)
+	assert.Equal(t, int64(1), result.Items[0].BizKey)
+	assert.NotNil(t, matchInfo)
+	assert.Equal(t, "direct", matchInfo[1].MatchType)
+}
+
+func TestList_AssigneeOnly_IndirectMatch(t *testing.T) {
+	// AC-2: Only assignee -> returns indirect match via sub-items
+	mainRepo := &mockMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{BizKey: 1}, ItemStatus: "progressing"},
+		},
+	}
+	subAssignee := int64(100)
+	subRepo := &mockSubItemRepo{
+		teamSubItems: []model.SubItem{
+			{BaseModel: model.BaseModel{BizKey: 10}, MainItemKey: 1, AssigneeKey: &subAssignee},
+		},
+	}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	result, matchInfo, err := svc.List(context.Background(), 1,
+		dto.MainItemFilter{AssigneeKey: filterStrPtr("100")},
+		dto.Pagination{Page: 1, PageSize: 20})
+	require.NoError(t, err)
+	assert.Len(t, result.Items, 1)
+	assert.Equal(t, int64(1), result.Items[0].BizKey)
+	assert.Equal(t, "indirect", matchInfo[1].MatchType)
+	assert.Equal(t, []string{"10"}, matchInfo[1].MatchedSubItemIds)
+}
+
+func TestList_StatusAndAssignee_ANDLogic(t *testing.T) {
+	// AC-3: Both status and assignee -> AND logic
+	assignee := int64(100)
+	subAssignee := int64(100)
+	mainRepo := &mockMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{BizKey: 1}, ItemStatus: "progressing", AssigneeKey: &assignee}, // matches both
+			{BaseModel: model.BaseModel{BizKey: 2}, ItemStatus: "pending", AssigneeKey: &assignee},     // wrong status
+			{BaseModel: model.BaseModel{BizKey: 3}, ItemStatus: "progressing"},                         // no assignee
+			{BaseModel: model.BaseModel{BizKey: 4}, ItemStatus: "blocking"},                            // wrong status + sub match
+		},
+	}
+	subRepo := &mockSubItemRepo{
+		teamSubItems: []model.SubItem{
+			{BaseModel: model.BaseModel{BizKey: 10}, MainItemKey: 3, AssigneeKey: &subAssignee}, // main 3 matches status + sub assignee
+			{BaseModel: model.BaseModel{BizKey: 11}, MainItemKey: 4, AssigneeKey: &subAssignee}, // main 4 wrong status
+		},
+	}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	result, matchInfo, err := svc.List(context.Background(), 1,
+		dto.MainItemFilter{Statuses: []string{"progressing"}, AssigneeKey: filterStrPtr("100")},
+		dto.Pagination{Page: 1, PageSize: 20})
+	require.NoError(t, err)
+	assert.Len(t, result.Items, 2)
+	// MainItem 1: direct match (status + assignee)
+	assert.Equal(t, "direct", matchInfo[1].MatchType)
+	// MainItem 3: indirect match (status + sub-item assignee)
+	assert.Equal(t, "indirect", matchInfo[3].MatchType)
+	assert.Equal(t, []string{"10"}, matchInfo[3].MatchedSubItemIds)
+}
+
+func TestList_MatchedSubItemIds_OnlyIncludesMatching(t *testing.T) {
+	// AC-4: matchedSubItemIds only contains matching sub-items
+	subAssignee := int64(100)
+	otherAssignee := int64(200)
+	mainRepo := &mockMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{BizKey: 1}, ItemStatus: "progressing"},
+		},
+	}
+	subRepo := &mockSubItemRepo{
+		teamSubItems: []model.SubItem{
+			{BaseModel: model.BaseModel{BizKey: 10}, MainItemKey: 1, AssigneeKey: &subAssignee},   // matches
+			{BaseModel: model.BaseModel{BizKey: 11}, MainItemKey: 1, AssigneeKey: &otherAssignee}, // no match
+			{BaseModel: model.BaseModel{BizKey: 12}, MainItemKey: 1, AssigneeKey: &subAssignee},   // matches
+			{BaseModel: model.BaseModel{BizKey: 13}, MainItemKey: 1},                              // no assignee
+		},
+	}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	_, matchInfo, err := svc.List(context.Background(), 1,
+		dto.MainItemFilter{AssigneeKey: filterStrPtr("100")},
+		dto.Pagination{Page: 1, PageSize: 20})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"10", "12"}, matchInfo[1].MatchedSubItemIds)
+}
+
+func TestList_StatusAndAssignee_StatusBlocksIndirect(t *testing.T) {
+	// AC-3 strict AND: main item status must match, even if sub-items match assignee
+	subAssignee := int64(100)
+	mainRepo := &mockMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{BizKey: 1}, ItemStatus: "pending"},     // wrong status, has matching sub
+			{BaseModel: model.BaseModel{BizKey: 2}, ItemStatus: "progressing"}, // correct status, has matching sub
+		},
+	}
+	subRepo := &mockSubItemRepo{
+		teamSubItems: []model.SubItem{
+			{BaseModel: model.BaseModel{BizKey: 10}, MainItemKey: 1, AssigneeKey: &subAssignee},
+			{BaseModel: model.BaseModel{BizKey: 11}, MainItemKey: 2, AssigneeKey: &subAssignee},
+		},
+	}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	result, _, err := svc.List(context.Background(), 1,
+		dto.MainItemFilter{Statuses: []string{"progressing"}, AssigneeKey: filterStrPtr("100")},
+		dto.Pagination{Page: 1, PageSize: 20})
+	require.NoError(t, err)
+	assert.Len(t, result.Items, 1)
+	assert.Equal(t, int64(2), result.Items[0].BizKey) // only main 2 passes AND filter
+}
+
+func TestList_NoFilter_ReturnsAllNoMatchInfo(t *testing.T) {
+	// AC: No filter -> all items, no matchType
+	mainRepo := &mockMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{BizKey: 1}, ItemStatus: "progressing"},
+			{BaseModel: model.BaseModel{BizKey: 2}, ItemStatus: "pending"},
+		},
+	}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	result, matchInfo, err := svc.List(context.Background(), 1,
+		dto.MainItemFilter{},
+		dto.Pagination{Page: 1, PageSize: 20})
+	require.NoError(t, err)
+	assert.Len(t, result.Items, 2)
+	assert.Nil(t, matchInfo, "no matchInfo when no filter active")
+}
+
+func TestList_AssigneeMultiStatus_ANDLogic(t *testing.T) {
+	// Multiple statuses with assignee -> OR across statuses, AND with assignee
+	assignee := int64(100)
+	subAssignee := int64(100)
+	mainRepo := &mockMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{BizKey: 1}, ItemStatus: "progressing", AssigneeKey: &assignee},
+			{BaseModel: model.BaseModel{BizKey: 2}, ItemStatus: "blocking", AssigneeKey: &assignee},
+			{BaseModel: model.BaseModel{BizKey: 3}, ItemStatus: "pending", AssigneeKey: &assignee}, // excluded by status
+		},
+	}
+	subRepo := &mockSubItemRepo{
+		teamSubItems: []model.SubItem{
+			{BaseModel: model.BaseModel{BizKey: 10}, MainItemKey: 3, AssigneeKey: &subAssignee}, // main 3 excluded by status
+		},
+	}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	result, _, err := svc.List(context.Background(), 1,
+		dto.MainItemFilter{Statuses: []string{"progressing", "blocking"}, AssigneeKey: filterStrPtr("100")},
+		dto.Pagination{Page: 1, PageSize: 20})
+	require.NoError(t, err)
+	assert.Len(t, result.Items, 2) // main 1 and 2 match, main 3 excluded
+}
+
+func TestList_DirectAndIndirectBothMatch(t *testing.T) {
+	// When main item's assignee matches AND it has matching sub-items
+	assignee := int64(100)
+	mainRepo := &mockMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{BizKey: 1}, ItemStatus: "progressing", AssigneeKey: &assignee},
+		},
+	}
+	subRepo := &mockSubItemRepo{
+		teamSubItems: []model.SubItem{
+			{BaseModel: model.BaseModel{BizKey: 10}, MainItemKey: 1, AssigneeKey: &assignee},
+		},
+	}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	_, matchInfo, err := svc.List(context.Background(), 1,
+		dto.MainItemFilter{AssigneeKey: filterStrPtr("100")},
+		dto.Pagination{Page: 1, PageSize: 20})
+	require.NoError(t, err)
+	assert.Equal(t, "direct", matchInfo[1].MatchType)
+	assert.Equal(t, []string{"10"}, matchInfo[1].MatchedSubItemIds)
+}
+
+func TestList_InvalidAssigneeKey_ReturnsEmpty(t *testing.T) {
+	mainRepo := &mockMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{BizKey: 1}, ItemStatus: "progressing"},
+		},
+	}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	result, _, err := svc.List(context.Background(), 1,
+		dto.MainItemFilter{AssigneeKey: filterStrPtr("invalid")},
+		dto.Pagination{Page: 1, PageSize: 20})
+	require.NoError(t, err)
+	assert.Empty(t, result.Items)
+	assert.Equal(t, int64(0), result.Total)
 }

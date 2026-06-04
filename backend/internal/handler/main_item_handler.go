@@ -74,7 +74,7 @@ func (h *MainItemHandler) List(c *gin.Context) {
 	}
 	_, page.Page, page.PageSize = dto.ApplyPaginationDefaults(page.Page, page.PageSize)
 
-	result, err := h.svc.List(c.Request.Context(), teamBizKey, filter, page)
+	result, matchInfo, err := h.svc.List(c.Request.Context(), teamBizKey, filter, page)
 	if err != nil {
 		apperrors.RespondError(c, err)
 		return
@@ -82,7 +82,12 @@ func (h *MainItemHandler) List(c *gin.Context) {
 
 	voItems := make([]vo.MainItemVO, 0, len(result.Items))
 	for i := range result.Items {
-		voItems = append(voItems, vo.NewMainItemVO(&result.Items[i]))
+		itemVO := vo.NewMainItemVO(&result.Items[i])
+		if mi, ok := matchInfo[result.Items[i].BizKey]; ok {
+			itemVO.MatchType = mi.MatchType
+			itemVO.MatchedSubItemIds = mi.MatchedSubItemIds
+		}
+		voItems = append(voItems, itemVO)
 	}
 	apperrors.RespondOK(c, gin.H{
 		"items": voItems,

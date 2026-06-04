@@ -157,8 +157,8 @@ func (m *mockMainItemSvcForProgress) Archive(_ context.Context, _ int64, _ uint)
 	return nil
 }
 
-func (m *mockMainItemSvcForProgress) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
-	return nil, nil
+func (m *mockMainItemSvcForProgress) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], map[int64]*dto.MainItemMatchInfo, error) {
+	return nil, nil, nil
 }
 
 func (m *mockMainItemSvcForProgress) Get(_ context.Context, itemID uint) (*model.MainItem, error) {

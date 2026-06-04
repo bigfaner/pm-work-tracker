@@ -116,12 +116,12 @@ func (m *mockMainItemService) Archive(_ context.Context, _ int64, itemID uint) e
 	return m.archiveResult.err
 }
 
-func (m *mockMainItemService) List(_ context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+func (m *mockMainItemService) List(_ context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], map[int64]*dto.MainItemMatchInfo, error) {
 	m.listCalled = true
 	m.lastTeamID = uint(teamBizKey)
 	m.lastFilter = filter
 	m.lastPage = page
-	return m.listResult.page, m.listResult.err
+	return m.listResult.page, nil, m.listResult.err
 }
 
 func (m *mockMainItemService) Get(_ context.Context, itemID uint) (*model.MainItem, error) {
@@ -427,7 +427,7 @@ func TestListMainItems_WithFilters(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, svc.listCalled)
 	assert.Equal(t, "P1", svc.lastFilter.Priority)
-	assert.Equal(t, "progressing", svc.lastFilter.Status)
+	assert.Equal(t, []string{"progressing"}, svc.lastFilter.Statuses)
 	assert.Equal(t, 2, svc.lastPage.Page)
 	assert.Equal(t, 10, svc.lastPage.PageSize)
 }

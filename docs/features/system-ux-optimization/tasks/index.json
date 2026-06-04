@@ -170,7 +170,7 @@
       "dependencies": [
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.2-filter-penetration.md",
       "record": "records/2.2-filter-penetration.md",
       "breaking": true,

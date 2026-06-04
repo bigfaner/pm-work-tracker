@@ -111,12 +111,12 @@ func (m *mockMainItemSvcTM) Archive(ctx context.Context, teamBizKey int64, itemI
 	return args.Error(0)
 }
 
-func (m *mockMainItemSvcTM) List(ctx context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+func (m *mockMainItemSvcTM) List(ctx context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], map[int64]*dto.MainItemMatchInfo, error) {
 	args := m.Called(ctx, teamBizKey, filter, page)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, nil, args.Error(1)
 	}
-	return args.Get(0).(*dto.PageResult[model.MainItem]), args.Error(1)
+	return args.Get(0).(*dto.PageResult[model.MainItem]), nil, args.Error(1)
 }
 
 func (m *mockMainItemSvcTM) Get(ctx context.Context, itemID uint) (*model.MainItem, error) {

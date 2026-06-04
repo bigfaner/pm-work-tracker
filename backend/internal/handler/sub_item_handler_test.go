@@ -184,8 +184,8 @@ func (m *mockMainItemSvcForSubItem) Update(_ context.Context, _ int64, _ uint, _
 	return nil
 }
 func (m *mockMainItemSvcForSubItem) Archive(_ context.Context, _ int64, _ uint) error { return nil }
-func (m *mockMainItemSvcForSubItem) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
-	return nil, nil
+func (m *mockMainItemSvcForSubItem) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], map[int64]*dto.MainItemMatchInfo, error) {
+	return nil, nil, nil
 }
 func (m *mockMainItemSvcForSubItem) Get(_ context.Context, _ uint) (*model.MainItem, error) {
 	return nil, nil

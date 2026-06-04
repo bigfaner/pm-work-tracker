@@ -11,24 +11,26 @@ import (
 
 // MainItemVO is the frontend-facing view object for a main item.
 type MainItemVO struct {
-	BizKey          string  `json:"bizKey"`
-	TeamKey         string  `json:"teamKey"`
-	Code            string  `json:"code"`
-	Title           string  `json:"title"`
-	ItemDesc        string  `json:"itemDesc"`
-	Priority        string  `json:"priority"`
-	ProposerKey     string  `json:"proposerKey"`
-	AssigneeKey     *string `json:"assigneeKey"`
-	PlanStartDate   *string `json:"planStartDate"`
-	ExpectedEndDate *string `json:"expectedEndDate"`
-	ActualEndDate   *string `json:"actualEndDate"`
-	ItemStatus      string  `json:"itemStatus"`
-	StatusName      string  `json:"statusName"`
-	Completion      float64 `json:"completion"`
-	IsKeyItem       bool    `json:"isKeyItem"`
-	ArchivedAt      *string `json:"archivedAt"`
-	CreateTime      string  `json:"createTime"`
-	DbUpdateTime    string  `json:"dbUpdateTime"`
+	BizKey            string   `json:"bizKey"`
+	TeamKey           string   `json:"teamKey"`
+	Code              string   `json:"code"`
+	Title             string   `json:"title"`
+	ItemDesc          string   `json:"itemDesc"`
+	Priority          string   `json:"priority"`
+	ProposerKey       string   `json:"proposerKey"`
+	AssigneeKey       *string  `json:"assigneeKey"`
+	PlanStartDate     *string  `json:"planStartDate"`
+	ExpectedEndDate   *string  `json:"expectedEndDate"`
+	ActualEndDate     *string  `json:"actualEndDate"`
+	ItemStatus        string   `json:"itemStatus"`
+	StatusName        string   `json:"statusName"`
+	Completion        float64  `json:"completion"`
+	IsKeyItem         bool     `json:"isKeyItem"`
+	ArchivedAt        *string  `json:"archivedAt"`
+	CreateTime        string   `json:"createTime"`
+	DbUpdateTime      string   `json:"dbUpdateTime"`
+	MatchType         string   `json:"matchType,omitempty"`
+	MatchedSubItemIds []string `json:"matchedSubItemIds,omitempty"`
 }
 
 // SubItemVO is the frontend-facing view object for a sub item.
