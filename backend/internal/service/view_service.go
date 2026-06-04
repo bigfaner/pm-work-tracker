@@ -597,6 +597,16 @@ func (s *viewService) GanttView(ctx context.Context, teamBizKey int64, filter dt
 		return mainItems[i].CreateTime.Before(mainItems[j].CreateTime)
 	})
 
+	// Terminal sort: sink terminal items to bottom while preserving relative order
+	sort.SliceStable(mainItems, func(i, j int) bool {
+		iTerminal := status.IsMainTerminal(mainItems[i].ItemStatus)
+		jTerminal := status.IsMainTerminal(mainItems[j].ItemStatus)
+		if iTerminal != jTerminal {
+			return !iTerminal // terminal sinks to bottom
+		}
+		return false // preserve existing relative order
+	})
+
 	// Fetch all sub-items for the team (single query, avoid N+1)
 	subItems, err := s.subItemRepo.ListByTeam(ctx, teamBizKey)
 	if err != nil {

@@ -1318,6 +1318,89 @@ func TestGanttView_Overdue_NilExpectedEndDate(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// Tests: GanttView Terminal Sort (Interface 6: #11)
+// ---------------------------------------------------------------------------
+
+func TestGanttView_TerminalSort_MixedStatus_TerminalSinksToBottom(t *testing.T) {
+	// AC-1: Mixed status list — terminal items sink to bottom
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, Priority: "P1", ItemStatus: "completed", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2, BizKey: 2}, Priority: "P1", ItemStatus: "progressing", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 3, BizKey: 3}, Priority: "P1", ItemStatus: "closed", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 4, BizKey: 4}, Priority: "P1", ItemStatus: "pending", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+		},
+	}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
+
+	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	require.NoError(t, err)
+	require.Len(t, result.Items, 4)
+
+	// Non-terminal items first (relative order preserved)
+	assert.Equal(t, "2", result.Items[0].BizKey)
+	assert.Equal(t, "progressing", result.Items[0].Status)
+	assert.Equal(t, "4", result.Items[1].BizKey)
+	assert.Equal(t, "pending", result.Items[1].Status)
+	// Terminal items sink to bottom (relative order preserved)
+	assert.Equal(t, "1", result.Items[2].BizKey)
+	assert.Equal(t, "completed", result.Items[2].Status)
+	assert.Equal(t, "3", result.Items[3].BizKey)
+	assert.Equal(t, "closed", result.Items[3].Status)
+}
+
+func TestGanttView_TerminalSort_AllTerminal_RelativeOrderPreserved(t *testing.T) {
+	// AC-2: All terminal — relative order preserved
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, Priority: "P1", ItemStatus: "completed", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2, BizKey: 2}, Priority: "P1", ItemStatus: "closed", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 3, BizKey: 3}, Priority: "P1", ItemStatus: "completed", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+		},
+	}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
+
+	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	require.NoError(t, err)
+	require.Len(t, result.Items, 3)
+
+	// All terminal — original relative order preserved
+	assert.Equal(t, "1", result.Items[0].BizKey)
+	assert.Equal(t, "2", result.Items[1].BizKey)
+	assert.Equal(t, "3", result.Items[2].BizKey)
+}
+
+func TestGanttView_TerminalSort_NoTerminal_Unchanged(t *testing.T) {
+	// AC-3: No terminal items — result unchanged
+	startDate := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+
+	mainRepo := &mockViewMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, Priority: "P1", ItemStatus: "progressing", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 2, BizKey: 2}, Priority: "P1", ItemStatus: "pending", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+			{BaseModel: model.BaseModel{ID: 3, BizKey: 3}, Priority: "P1", ItemStatus: "blocking", PlanStartDate: &startDate, ExpectedEndDate: &endDate},
+		},
+	}
+	svc := NewViewService(mainRepo, &mockViewSubItemRepo{items: []model.SubItem{}}, &mockViewProgressRepo{}, new(mockStatusHistoryRepo))
+
+	result, err := svc.GanttView(context.Background(), 1, dto.GanttFilter{})
+	require.NoError(t, err)
+	require.Len(t, result.Items, 3)
+
+	// No terminal — original order preserved
+	assert.Equal(t, "1", result.Items[0].BizKey)
+	assert.Equal(t, "2", result.Items[1].BizKey)
+	assert.Equal(t, "3", result.Items[2].BizKey)
+}
+
+// ---------------------------------------------------------------------------
 // Mock UserRepo for table view tests
 // ---------------------------------------------------------------------------
 

@@ -1655,3 +1655,86 @@ func TestList_InvalidAssigneeKey_ReturnsEmpty(t *testing.T) {
 	assert.Empty(t, result.Items)
 	assert.Equal(t, int64(0), result.Total)
 }
+
+// ---------------------------------------------------------------------------
+// Tests: Terminal Sort (Interface 6: #11)
+// ---------------------------------------------------------------------------
+
+func TestList_TerminalSort_MixedStatus_TerminalSinksToBottom(t *testing.T) {
+	// AC-1: Mixed status list — terminal items sink to bottom
+	mainRepo := &mockMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{BizKey: 1}, ItemStatus: "completed"},
+			{BaseModel: model.BaseModel{BizKey: 2}, ItemStatus: "progressing"},
+			{BaseModel: model.BaseModel{BizKey: 3}, ItemStatus: "closed"},
+			{BaseModel: model.BaseModel{BizKey: 4}, ItemStatus: "pending"},
+		},
+	}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	result, _, err := svc.List(context.Background(), 1,
+		dto.MainItemFilter{},
+		dto.Pagination{Page: 1, PageSize: 20})
+	require.NoError(t, err)
+	require.Len(t, result.Items, 4)
+
+	// Non-terminal items come first (order preserved)
+	assert.Equal(t, int64(2), result.Items[0].BizKey)
+	assert.Equal(t, "progressing", result.Items[0].ItemStatus)
+	assert.Equal(t, int64(4), result.Items[1].BizKey)
+	assert.Equal(t, "pending", result.Items[1].ItemStatus)
+	// Terminal items sink to bottom (relative order preserved)
+	assert.Equal(t, int64(1), result.Items[2].BizKey)
+	assert.Equal(t, "completed", result.Items[2].ItemStatus)
+	assert.Equal(t, int64(3), result.Items[3].BizKey)
+	assert.Equal(t, "closed", result.Items[3].ItemStatus)
+}
+
+func TestList_TerminalSort_AllTerminal_RelativeOrderPreserved(t *testing.T) {
+	// AC-2: All terminal — relative order preserved
+	mainRepo := &mockMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{BizKey: 1}, ItemStatus: "completed"},
+			{BaseModel: model.BaseModel{BizKey: 2}, ItemStatus: "closed"},
+			{BaseModel: model.BaseModel{BizKey: 3}, ItemStatus: "completed"},
+		},
+	}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	result, _, err := svc.List(context.Background(), 1,
+		dto.MainItemFilter{},
+		dto.Pagination{Page: 1, PageSize: 20})
+	require.NoError(t, err)
+	require.Len(t, result.Items, 3)
+
+	// All terminal — original relative order preserved
+	assert.Equal(t, int64(1), result.Items[0].BizKey)
+	assert.Equal(t, int64(2), result.Items[1].BizKey)
+	assert.Equal(t, int64(3), result.Items[2].BizKey)
+}
+
+func TestList_TerminalSort_NoTerminal_Unchanged(t *testing.T) {
+	// AC-3: No terminal items — result unchanged
+	mainRepo := &mockMainItemRepo{
+		items: []model.MainItem{
+			{BaseModel: model.BaseModel{BizKey: 1}, ItemStatus: "progressing"},
+			{BaseModel: model.BaseModel{BizKey: 2}, ItemStatus: "pending"},
+			{BaseModel: model.BaseModel{BizKey: 3}, ItemStatus: "blocking"},
+		},
+	}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	result, _, err := svc.List(context.Background(), 1,
+		dto.MainItemFilter{},
+		dto.Pagination{Page: 1, PageSize: 20})
+	require.NoError(t, err)
+	require.Len(t, result.Items, 3)
+
+	// No terminal — original order preserved
+	assert.Equal(t, int64(1), result.Items[0].BizKey)
+	assert.Equal(t, int64(2), result.Items[1].BizKey)
+	assert.Equal(t, int64(3), result.Items[2].BizKey)
+}

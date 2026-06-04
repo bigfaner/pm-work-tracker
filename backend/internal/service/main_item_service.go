@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -278,6 +279,9 @@ func (s *mainItemService) List(ctx context.Context, teamBizKey int64, filter dto
 		return nil, nil, err
 	}
 
+	// Terminal sort: sink terminal items to bottom while preserving relative order
+	sortTerminalItems(result.Items)
+
 	// Status-only filter: all items are "direct" matches
 	var matchInfo map[int64]*dto.MainItemMatchInfo
 	if len(filter.Statuses) > 0 {
@@ -381,6 +385,9 @@ func (s *mainItemService) listWithPenetration(ctx context.Context, teamBizKey in
 			}
 		}
 	}
+
+	// Terminal sort: sink terminal items to bottom while preserving relative order
+	sortTerminalItems(filtered)
 
 	// Paginate filtered results
 	total := int64(len(filtered))
@@ -700,4 +707,17 @@ func calcWeightedCompletion(items []*model.SubItem) float64 {
 	}
 
 	return weightedSum / totalWeight
+}
+
+// sortTerminalItems sinks terminal main items to the bottom of the list
+// while preserving the relative order of terminal and non-terminal groups.
+func sortTerminalItems(items []model.MainItem) {
+	sort.SliceStable(items, func(i, j int) bool {
+		iTerminal := status.IsMainTerminal(items[i].ItemStatus)
+		jTerminal := status.IsMainTerminal(items[j].ItemStatus)
+		if iTerminal != jTerminal {
+			return !iTerminal // terminal sinks to bottom
+		}
+		return false // preserve original relative order within each group
+	})
 }
