@@ -76,7 +76,7 @@
       "title": "状态流转错误提示",
       "priority": "P1",
       "estimatedTime": "2h",
-      "status": "pending",
+      "status": "completed",
       "file": "1.6-status-error-alert.md",
       "record": "records/1.6-status-error-alert.md",
       "surface-key": "frontend",

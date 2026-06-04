@@ -29,6 +29,8 @@ import {
   getSubItemTransitionsApi,
   changeSubItemStatusApi,
 } from '@/api/subItems'
+import { X } from 'lucide-react'
+import { isAxiosError } from 'axios'
 
 export interface StatusTransitionDropdownProps {
   currentStatus: string
@@ -57,7 +59,7 @@ export default function StatusTransitionDropdown({
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingStatus, setPendingStatus] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
-  const [showTip, setShowTip] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const terminalStatuses =
     itemType === 'main' ? MAIN_TERMINAL_STATUSES : SUB_TERMINAL_STATUSES
@@ -85,8 +87,6 @@ export default function StatusTransitionDropdown({
   useEffect(() => {
     if (open && isFetched && !isFetching && transitions.length === 0) {
       setOpen(false)
-      setShowTip(true)
-      setTimeout(() => setShowTip(false), 2000)
     }
   }, [open, isFetched, isFetching, transitions.length])
 
@@ -114,7 +114,15 @@ export default function StatusTransitionDropdown({
       setOpen(false)
       setConfirmOpen(false)
       setPendingStatus(null)
+      setErrorMessage(null)
       onStatusChanged()
+    },
+    onError: (err) => {
+      if (isAxiosError(err) && err.response?.data?.message) {
+        setErrorMessage(err.response.data.message)
+      } else {
+        setErrorMessage('操作失败，请稍后重试')
+      }
     },
   })
 
@@ -150,11 +158,6 @@ export default function StatusTransitionDropdown({
   return (
     <>
       <div className="relative inline-flex">
-        {showTip && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap text-xs px-2 py-1 rounded-md bg-primary text-white shadow-md pointer-events-none z-50">
-            暂无可用流转
-          </div>
-        )}
         <DropdownMenu open={open} onOpenChange={setOpen}>
           <DropdownMenuTrigger asChild>
             <button className="focus:outline-none">
@@ -177,6 +180,22 @@ export default function StatusTransitionDropdown({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      {errorMessage && (
+        <div
+          role="alert"
+          className="mt-2 flex items-start gap-2 rounded-md border border-[var(--color-error)] bg-[var(--color-error-bg)] px-3 py-2 text-sm text-[var(--color-error-text)]"
+        >
+          <span className="flex-1">{errorMessage}</span>
+          <button
+            type="button"
+            onClick={() => setErrorMessage(null)}
+            className="shrink-0 opacity-70 hover:opacity-100"
+            aria-label="关闭错误提示"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent size="sm">
