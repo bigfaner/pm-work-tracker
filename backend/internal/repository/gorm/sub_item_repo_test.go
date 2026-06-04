@@ -264,13 +264,12 @@ func TestSubItemRepo_ListByMainItem(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, items, 3)
 
-	titles := map[string]bool{}
-	for _, item := range items {
-		titles[item.Title] = true
+	// Verify descending order by ID (newest first)
+	for i := 1; i < len(items); i++ {
+		assert.True(t, items[i-1].ID > items[i].ID,
+			"expected DESC order: items[%d].ID=%d should be > items[%d].ID=%d",
+			i-1, items[i-1].ID, i, items[i].ID)
 	}
-	assert.True(t, titles["Sub 1"])
-	assert.True(t, titles["Sub 2"])
-	assert.True(t, titles["Sub 3"])
 }
 
 func TestSubItemRepo_ListByMainItem_Empty(t *testing.T) {

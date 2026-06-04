@@ -86,6 +86,7 @@ func (r *subItemRepo) ListByMainItem(ctx context.Context, mainItemBizKey int64) 
 	var items []*model.SubItem
 	err := r.db.WithContext(ctx).Scopes(NotDeleted).
 		Where("main_item_key = ?", mainItemBizKey).
+		Order("id DESC").
 		Find(&items).Error
 	return items, err
 }
