@@ -220,7 +220,7 @@
       "dependencies": [
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.5-gantt-time-range.md",
       "record": "records/2.5-gantt-time-range.md",
       "surface-key": "frontend",

@@ -43,18 +43,12 @@ function getDateRange(items: GanttMainItem[]): { start: Date, end: Date } {
     }
   }
 
-  // Add padding: 14 days before earliest, 30 days after latest
+  // Add padding: 1 day before earliest, 1 day after latest
   const start = minDate ? new Date(minDate) : new Date(now)
-  start.setDate(start.getDate() - 14)
+  start.setDate(start.getDate() - 1)
 
   const end = maxDate ? new Date(maxDate) : new Date(now)
-  end.setDate(end.getDate() + 30)
-
-  // Ensure minimum range of 60 days
-  const MIN_DAYS = 60
-  if (daysBetween(start, end) < MIN_DAYS) {
-    end.setDate(start.getDate() + MIN_DAYS)
-  }
+  end.setDate(end.getDate() + 1)
 
   // Cap maximum range at 365 days to avoid an unreadably wide chart
   const MAX_DAYS = 365
@@ -110,7 +104,7 @@ export default function GanttViewPage() {
     if (dateRange?.start) return new Date(dateRange.start)
     if (allItems.length > 0) return getDateRange(allItems).start
     const d = new Date()
-    d.setDate(d.getDate() - 14)
+    d.setDate(d.getDate() - 1)
     return d
   }, [dateRange, allItems])
 
@@ -118,7 +112,7 @@ export default function GanttViewPage() {
     if (dateRange?.end) return new Date(dateRange.end)
     if (allItems.length > 0) return getDateRange(allItems).end
     const d = new Date()
-    d.setDate(d.getDate() + 14)
+    d.setDate(d.getDate() + 1)
     return d
   }, [dateRange, allItems])
 
