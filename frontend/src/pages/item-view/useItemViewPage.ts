@@ -41,7 +41,7 @@ export function useItemViewPage(teamId: string | null) {
 
   // Filter state
   const [searchText, setSearchText] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [assigneeFilter, setAssigneeFilter] = useState<string>('')
 
   // Summary view: infinite scroll
@@ -130,11 +130,13 @@ export function useItemViewPage(teamId: string | null) {
     fetchNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['mainItems', teamId],
+    queryKey: ['mainItems', teamId, statusFilter, assigneeFilter],
     queryFn: ({ pageParam }) =>
       listMainItemsApi(teamId!, {
         page: pageParam as number,
         pageSize: DEFAULT_PAGE_SIZE,
+        ...(statusFilter.length > 0 && { status: statusFilter }),
+        ...(assigneeFilter && { assigneeKey: assigneeFilter }),
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
@@ -163,14 +165,11 @@ export function useItemViewPage(teamId: string | null) {
           item.code.toLowerCase().includes(q),
       )
     }
-    if (statusFilter) {
-      items = items.filter((item) => item.itemStatus === statusFilter)
-    }
-    if (assigneeFilter) {
-      items = items.filter((item) => item.assigneeKey === assigneeFilter)
+    if (statusFilter.length > 0) {
+      items = items.filter((item) => statusFilter.includes(item.itemStatus))
     }
     return items
-  }, [allItems, searchText, statusFilter, assigneeFilter])
+  }, [allItems, searchText, statusFilter])
 
   // --- Summary view ---
 
@@ -211,7 +210,7 @@ export function useItemViewPage(teamId: string | null) {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchText, statusFilter, assigneeFilter, pageSize])
+  }, [searchText, statusFilter.length, assigneeFilter, pageSize])
 
   // --- Sub-items via React Query ---
 
@@ -366,7 +365,7 @@ export function useItemViewPage(teamId: string | null) {
 
   const resetFilters = useCallback(() => {
     setSearchText('')
-    setStatusFilter('')
+    setStatusFilter([])
     setAssigneeFilter('')
   }, [])
 

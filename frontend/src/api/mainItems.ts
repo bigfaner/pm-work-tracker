@@ -20,9 +20,16 @@ export function listMainItemsApi(
   teamBizKey: string,
   filter?: MainItemFilter,
 ): Promise<PageResult<MainItem>> {
+  const params: Record<string, unknown> = { ...filter }
+  // Serialize multi-status as comma-separated string for backend
+  if (Array.isArray(filter?.status) && filter.status.length > 0) {
+    params.status = filter.status.join(',')
+  } else if (Array.isArray(filter?.status)) {
+    delete params.status
+  }
   return client.get<never, PageResult<MainItem>>(
     `/teams/${teamBizKey}/main-items`,
-    { params: filter },
+    { params },
   )
 }
 

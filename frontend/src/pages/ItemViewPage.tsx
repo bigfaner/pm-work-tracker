@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { CheckboxGroup } from '@/components/ui/checkbox-group'
 import { STATUS_OPTIONS } from '@/lib/status'
 import { getStatusName } from '@/lib/status'
 import ItemSummaryView from './item-view/ItemSummaryView'
@@ -81,29 +82,22 @@ export default function ItemViewPage() {
           </div>
 
           {/* Filter Bar */}
-          <div className="flex items-center gap-3 mb-4 flex-wrap">
+          <div className="flex items-start gap-3 mb-4 flex-wrap">
             <Input
               placeholder="搜索标题或编号..."
               value={s.searchText}
               onChange={(e) => s.setSearchText(e.target.value)}
               className="w-90"
             />
-            <Select
-              value={s.statusFilter}
-              onValueChange={(v) => s.setStatusFilter(v === '_all' ? '' : v)}
-            >
-              <SelectTrigger className="w-35">
-                <SelectValue placeholder="状态：全部" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="_all">状态：全部</SelectItem>
-                {STATUS_OPTIONS.map((st) => (
-                  <SelectItem key={st} value={st}>
-                    {getStatusName(st) || st}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CheckboxGroup
+              title="状态"
+              options={STATUS_OPTIONS.map((st) => ({
+                value: st,
+                label: getStatusName(st) || st,
+              }))}
+              selected={s.statusFilter}
+              onChange={s.setStatusFilter}
+            />
             <Select
               value={s.assigneeFilter}
               onValueChange={(v) => s.setAssigneeFilter(v === '_all' ? '' : v)}

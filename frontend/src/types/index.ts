@@ -99,6 +99,8 @@ export interface MainItem {
   completion: number
   createTime: string
   dbUpdateTime: string
+  matchType?: 'direct' | 'indirect'
+  matchedSubItemIds?: string[]
 }
 
 export interface SubItem {
@@ -256,7 +258,7 @@ export interface UpdateMainItemReq {
 
 export interface MainItemFilter {
   priority?: string
-  status?: string
+  status?: string | string[]
   assigneeKey?: string
   archived?: boolean
   page?: number

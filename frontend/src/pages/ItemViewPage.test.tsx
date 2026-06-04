@@ -429,7 +429,9 @@ describe('ItemViewPage', () => {
       expect(screen.getByText('标题')).toBeInTheDocument()
       expect(screen.getByText('负责人')).toBeInTheDocument()
       expect(screen.getByText('进度')).toBeInTheDocument()
-      expect(screen.getByText('状态')).toBeInTheDocument()
+      // "状态" appears in both filter checkbox group and table header
+      const statusElements = screen.getAllByText('状态')
+      expect(statusElements.length).toBeGreaterThanOrEqual(2)
     })
   })
 
@@ -662,12 +664,15 @@ describe('ItemViewPage', () => {
     })
 
     const badges = screen.getAllByText('进行中')
-    await user.click(badges[0])
+    // Find the one inside a button (status dropdown trigger), not checkbox label
+    const badgeInButton = badges.find((el) => el.closest('button') !== null)
+    await user.click(badgeInButton!)
 
     await waitFor(() => {
-      expect(screen.getByText('阻塞中')).toBeInTheDocument()
+      // "阻塞中" should appear in the dropdown menu (role menuitem)
+      expect(screen.getByRole('menuitem', { name: '阻塞中' })).toBeInTheDocument()
     })
-    await user.click(screen.getByText('阻塞中'))
+    await user.click(screen.getByRole('menuitem', { name: '阻塞中' }))
 
     await waitFor(() => {
       expect(statusChanged).toBe(true)
@@ -1098,6 +1103,256 @@ describe('ItemViewPage', () => {
       // The URL must include the VITE_BASE_PATH prefix
       const basePath = import.meta.env.VITE_BASE_PATH || ''
       expect(copiedText).toContain(basePath + '/items/1')
+    })
+  })
+
+  // --- Filter penetration: multi-select status filter ---
+
+  describe('filter penetration: status checkbox group', () => {
+    it('renders status checkbox group with status options', async () => {
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      })
+      // Should have checkbox inputs for status filtering
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]')
+      expect(checkboxes.length).toBeGreaterThan(0)
+      // Should show status label texts within checkbox group
+      const checkboxLabels = document.querySelectorAll('.space-y-1 label span')
+      const labelTexts = Array.from(checkboxLabels).map((el) => el.textContent)
+      expect(labelTexts).toContain('进行中')
+      expect(labelTexts).toContain('待开始')
+      expect(labelTexts).toContain('已完成')
+    })
+
+    it('filters items by multiple selected statuses', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      })
+
+      // All items should be visible initially
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      expect(screen.getByText('Beta Task')).toBeInTheDocument()
+      expect(screen.getByText('Gamma Task')).toBeInTheDocument()
+
+      // Find the "进行中" checkbox in the status checkbox group (not status dropdown)
+      // The "进行中" option checkbox is in the checkbox group's children
+      const progressingLabel = Array.from(document.querySelectorAll('.space-y-1 label')).find(
+        (label) => label.textContent?.includes('进行中'),
+      )
+      const progressingCheckbox = progressingLabel?.querySelector('input[type="checkbox"]')
+      expect(progressingCheckbox).toBeTruthy()
+      await user.click(progressingCheckbox!)
+
+      await waitFor(() => {
+        // "进行中" items should still be visible
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+        expect(screen.getByText('Beta Task')).toBeInTheDocument()
+        // "completed" item should be hidden
+        expect(screen.queryByText('Gamma Task')).not.toBeInTheDocument()
+      })
+    })
+
+    it('shows all items when no status checkboxes are selected', async () => {
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+        expect(screen.getByText('Beta Task')).toBeInTheDocument()
+        expect(screen.getByText('Gamma Task')).toBeInTheDocument()
+      })
+    })
+  })
+
+  // --- Filter penetration: assignee filter with matchType ---
+
+  describe('filter penetration: assignee match with matchType', () => {
+    const indirectSubItems = [
+      {
+        bizKey: '21',
+        teamKey: '1',
+        mainItemKey: '2',
+        code: 'MI-0002-01',
+        title: 'Matched Sub',
+        itemDesc: '',
+        priority: 'P2',
+        assigneeKey: 'U001',
+        planStartDate: '2026-04-15',
+        expectedEndDate: '2026-04-25',
+        actualEndDate: null,
+        itemStatus: 'progressing',
+        completion: 50,
+        weight: 1,
+        createTime: '2026-04-15T00:00:00Z',
+        dbUpdateTime: '2026-04-15T00:00:00Z',
+      },
+      {
+        bizKey: '22',
+        teamKey: '1',
+        mainItemKey: '2',
+        code: 'MI-0002-02',
+        title: 'Unmatched Sub',
+        itemDesc: '',
+        priority: 'P3',
+        assigneeKey: 'U002',
+        planStartDate: '2026-04-15',
+        expectedEndDate: '2026-04-25',
+        actualEndDate: null,
+        itemStatus: 'pending',
+        completion: 0,
+        weight: 1,
+        createTime: '2026-04-15T00:00:00Z',
+        dbUpdateTime: '2026-04-15T00:00:00Z',
+      },
+    ]
+
+    const indirectItems = [
+      {
+        bizKey: '1',
+        teamKey: '1',
+        code: 'MI-0001',
+        title: 'Direct Item',
+        priority: 'P1',
+        proposerKey: 'U001',
+        assigneeKey: 'U001',
+        planStartDate: '2026-04-01',
+        expectedEndDate: '2026-04-15',
+        actualEndDate: null,
+        itemStatus: 'progressing',
+        completion: 65,
+        createTime: '2026-04-01T00:00:00Z',
+        dbUpdateTime: '2026-04-01T00:00:00Z',
+        matchType: 'direct',
+      },
+      {
+        bizKey: '2',
+        teamKey: '1',
+        code: 'MI-0002',
+        title: 'Indirect Item',
+        priority: 'P2',
+        proposerKey: 'U001',
+        assigneeKey: 'U002',
+        planStartDate: '2026-04-15',
+        expectedEndDate: '2026-04-25',
+        actualEndDate: null,
+        itemStatus: 'progressing',
+        completion: 40,
+        createTime: '2026-04-15T00:00:00Z',
+        dbUpdateTime: '2026-04-15T00:00:00Z',
+        matchType: 'indirect',
+        matchedSubItemIds: ['21'],
+      },
+    ]
+
+    function setupIndirectHandlers() {
+      server.use(
+        http.get('/v1/teams/:teamId/main-items', () => {
+          return HttpResponse.json({
+            code: 0,
+            data: { items: indirectItems, total: 2, page: 1, pageSize: 20 },
+          })
+        }),
+        http.get('/v1/teams/:teamId/main-items/1/sub-items', () => {
+          return HttpResponse.json({
+            code: 0,
+            data: { items: [], total: 0, page: 1, pageSize: 20 },
+          })
+        }),
+        http.get('/v1/teams/:teamId/main-items/2/sub-items', () => {
+          return HttpResponse.json({
+            code: 0,
+            data: { items: indirectSubItems, total: 2, page: 1, pageSize: 20 },
+          })
+        }),
+      )
+    }
+
+    it('shows "因子事项匹配" badge for indirect match items in summary view', async () => {
+      setupIndirectHandlers()
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Direct Item')).toBeInTheDocument()
+        expect(screen.getByText('Indirect Item')).toBeInTheDocument()
+      })
+
+      // The indirect item should show the badge
+      expect(screen.getByText('因子事项匹配')).toBeInTheDocument()
+      // Only one badge (for the indirect item only)
+      const badges = screen.getAllByText('因子事项匹配')
+      expect(badges.length).toBe(1)
+
+      // Expand the indirect item to check sub-item filtering
+      const expandBtn = screen.getByTestId('expand-card-2')
+      await user.click(expandBtn)
+
+      await waitFor(() => {
+        // Only the matched sub-item should be shown
+        expect(screen.getByText('Matched Sub')).toBeInTheDocument()
+        // The unmatched sub-item should be hidden
+        expect(screen.queryByText('Unmatched Sub')).not.toBeInTheDocument()
+      })
+    })
+
+    it('shows "因子事项匹配" badge in detail view for indirect items', async () => {
+      setupIndirectHandlers()
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Direct Item')).toBeInTheDocument()
+      })
+
+      // Switch to detail view
+      await user.click(screen.getByText('明细'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('detail-table')).toBeInTheDocument()
+      })
+
+      // The indirect item should show the badge in detail view
+      expect(screen.getByText('因子事项匹配')).toBeInTheDocument()
+
+      // Only matched sub should be visible, not unmatched
+      await waitFor(() => {
+        expect(screen.getByText('Matched Sub')).toBeInTheDocument()
+        expect(screen.queryByText('Unmatched Sub')).not.toBeInTheDocument()
+      })
+    })
+  })
+
+  // --- Reset filters ---
+
+  describe('reset filters', () => {
+    it('clears status filter when clicking reset', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      })
+
+      // Select the "已完成" checkbox from the checkbox group
+      const completedLabel = Array.from(document.querySelectorAll('.space-y-1 label')).find(
+        (label) => label.textContent?.includes('已完成'),
+      )
+      const completedCheckbox = completedLabel?.querySelector('input[type="checkbox"]')
+      await user.click(completedCheckbox!)
+
+      await waitFor(() => {
+        // Only completed item visible
+        expect(screen.queryByText('Alpha Task')).not.toBeInTheDocument()
+        expect(screen.getByText('Gamma Task')).toBeInTheDocument()
+      })
+
+      // Click reset
+      await user.click(screen.getByText('重置'))
+
+      await waitFor(() => {
+        // All items should be visible again
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+        expect(screen.getByText('Beta Task')).toBeInTheDocument()
+        expect(screen.getByText('Gamma Task')).toBeInTheDocument()
+      })
     })
   })
 })

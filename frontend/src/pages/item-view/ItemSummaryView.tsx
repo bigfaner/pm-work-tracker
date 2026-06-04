@@ -132,6 +132,9 @@ export default function ItemSummaryView({
 
               {/* Title + date range */}
               <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                {item.matchType === 'indirect' && (
+                  <Badge variant="primary">因子事项匹配</Badge>
+                )}
                 <Link
                   to={`/items/${item.bizKey}`}
                   className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline truncate"
@@ -227,7 +230,13 @@ export default function ItemSummaryView({
                 {subItemsMap[item.bizKey]?.length === 0 && (
                   <div className="text-xs text-tertiary py-2">暂无子事项</div>
                 )}
-                {subItemsMap[item.bizKey]?.map((sub) => (
+                {subItemsMap[item.bizKey]
+                  ?.filter((sub) =>
+                    !item.matchedSubItemIds || item.matchType !== 'indirect'
+                      ? true
+                      : item.matchedSubItemIds.includes(sub.bizKey),
+                  )
+                  .map((sub) => (
                   <div
                     key={sub.bizKey}
                     className="flex items-center gap-2 py-2 border-b border-border/50 last:border-b-0"

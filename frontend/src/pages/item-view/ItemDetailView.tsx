@@ -125,10 +125,13 @@ export default function ItemDetailView({
           </TableHeader>
           <TableBody>
             {items.map((item) => {
-              const subs = subItemsMap[item.bizKey]
+              const allSubs = subItemsMap[item.bizKey]
+              const subs = item.matchedSubItemIds && item.matchType === 'indirect'
+                ? allSubs?.filter((sub) => item.matchedSubItemIds!.includes(sub.bizKey))
+                : allSubs
               return (
                 <Fragment key={item.bizKey}>
-                  <TableRow className={subs?.length ? 'bg-blue-50/40' : ''}>
+                  <TableRow className={allSubs?.length ? 'bg-blue-50/40' : ''}>
                     <TableCell className="whitespace-nowrap">
                       <CodeBadge
                         label={item.code}
@@ -141,13 +144,18 @@ export default function ItemDetailView({
                       <PriorityBadge priority={item.priority} />
                     </TableCell>
                     <TableCell>
-                      <Link
-                        to={`/items/${item.bizKey}`}
-                        className="font-medium text-primary-600 hover:text-primary-700 hover:underline truncate block max-w-xs"
-                        title={item.title}
-                      >
-                        {item.title}
-                      </Link>
+                      <div className="flex items-center gap-1.5">
+                        {item.matchType === 'indirect' && (
+                          <Badge variant="primary">因子事项匹配</Badge>
+                        )}
+                        <Link
+                          to={`/items/${item.bizKey}`}
+                          className="font-medium text-primary-600 hover:text-primary-700 hover:underline truncate block max-w-xs"
+                          title={item.title}
+                        >
+                          {item.title}
+                        </Link>
+                      </div>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {memberName(item.assigneeKey)}
