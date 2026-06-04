@@ -428,7 +428,7 @@
       "dependencies": [
         "T-eval-contract"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "gen-test-scripts-api.md",
       "record": "records/gen-test-scripts-api.md",
       "breaking": true,
