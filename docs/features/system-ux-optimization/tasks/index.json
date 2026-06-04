@@ -443,7 +443,7 @@
       "dependencies": [
         "T-eval-contract"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "gen-test-scripts-web.md",
       "record": "records/gen-test-scripts-web.md",
       "breaking": true,
