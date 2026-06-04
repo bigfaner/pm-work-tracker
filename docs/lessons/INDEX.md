@@ -45,6 +45,7 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | gotcha-schema-alignment-cascading-test-failures.md | Schema changes cascade to unrelated test files |
 | gotcha-subagent-partial-commits.md | Subagents leave 75+ files uncommitted after /run-tasks |
 | gotcha-interface-blast-radius-dispatcher.md | Adding methods to shared interfaces — large blast radius appears as "stuck" |
+| gotcha-claim-in-progress-priority.md | forge task claim prioritizes in_progress over pending — blocks dispatch loop |
 | gotcha-task-claim-priority-skip.md | forge task claim skips unblocked tasks — jumps to unrelated pipeline tasks |
 | gotcha-tech-design-decision-archiving.md | Tech design must record naming/structural conventions |
 
@@ -85,7 +86,7 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | Task breakdown | arch-ui-integration-gap, pattern-phase-gate-tasks, gotcha-tech-design-decision-archiving |
 | E2E test generation | gotcha-e2e-script-generation, debug-e2e-zero-tests, debug-e2e-beforeall-cascade |
 | E2E test graduation | arch-e2e-graduation-staging, tool-e2e-graduation-structure |
-| Running /run-tasks | gotcha-subagent-partial-commits, gotcha-ac-self-report-without-verification, arch-task-failure-recovery-loop, gotcha-continue-replay-fresh-agent, gotcha-task-claim-priority-skip |
+| Running /run-tasks | gotcha-subagent-partial-commits, gotcha-ac-self-report-without-verification, arch-task-failure-recovery-loop, gotcha-continue-replay-fresh-agent, gotcha-claim-in-progress-priority, gotcha-task-claim-priority-skip |
 | Using subagents | gotcha-no-subagent-for-sequential-work, gotcha-agent-breaks-safety-net, gotcha-parallel-subagent-rate-limit |
 | Schema migration | gotcha-schema-alignment-cascading-test-failures |
 | Adding interface methods | gotcha-interface-blast-radius-dispatcher |
