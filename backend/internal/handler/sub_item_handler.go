@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -320,6 +319,6 @@ func (h *SubItemHandler) Move(c *gin.Context) {
 
 	apperrors.RespondOK(c, gin.H{
 		"newSubCode":     result.NewSubCode,
-		"mainItemBizKey": fmt.Sprintf("%d", result.MainItemBizKey),
+		"mainItemBizKey": pkg.FormatID(result.MainItemBizKey),
 	})
 }
