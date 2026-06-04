@@ -76,3 +76,15 @@ SubItem.Code unique index is **per-main-item** (composite: `main_item_id + code`
 The index name is `idx_sub_items_main_code` on `(main_item_id, code)`.
 
 **Why**: Sub-item codes are only meaningful in the context of their parent main item. A global unique constraint would force artificial coordination between unrelated main items.
+
+## BIZ-code-007: Atomic Counter for Sub-Item Move
+
+When a sub-item is moved to a different main item, its code is regenerated using the target main item's `sub_item_seq` atomic counter:
+
+1. Within the move transaction: `UPDATE pmw_main_items SET sub_item_seq = sub_item_seq + 1 WHERE biz_key = ?` on the target
+2. Read back the new `sub_item_seq` value
+3. Generate new code: `fmt.Sprintf("%s-%02d", targetMainItem.Code, targetMainItem.SubItemSeq)`
+
+This reuses the same atomic UPDATE pattern as BIZ-code-004 (creation), guaranteeing unique codes even when multiple sub-items are moved to the same target concurrently.
+
+**Source**: feature/system-ux-optimization BIZ-008

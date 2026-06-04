@@ -23,6 +23,13 @@ source: feature/pm-work-tracker
 - Applies to MainItem list, SubItem list, ItemPool list, Table view.
 - Default page size: 20 items (Table view: 50 items).
 
+## Filter Penetration
+
+- **Filter penetration queries must respond in ≤500ms.**
+- Baseline: 1000 main items + 5000 sub items.
+- Implementation: in-memory filtering at ViewService layer (no pagination). If pagination is introduced, penetration logic must be re-evaluated.
+- **Source**: feature/system-ux-optimization TECH-013
+
 ## JWT Token Expiry
 
 - **JWT tokens expire 24 hours after issuance.**

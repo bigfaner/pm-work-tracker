@@ -22,3 +22,10 @@ source: feature/improve-ui TECH-003
 - Middleware chain: Auth → TeamScope → RequireRole
 - Team data isolation via `teamID` filtering in queries
 - SuperAdmin self-protect: cannot disable own account
+
+## Team Data Access
+
+- Team list endpoint (`GET /v1/teams`) returns only teams where the requesting user is a member (via `pmw_team_members` join). SuperAdmin bypasses this filter and sees all teams.
+- Destructive action buttons (delete, move) wrapped in `<PermissionGuard code="...">` on frontend as defensive UI. Backend `RequirePermission` middleware enforces actual authorization.
+
+**Source**: feature/system-ux-optimization BIZ-011, TECH-010

@@ -136,3 +136,19 @@ UNIQUE KEY uk_main_items_team_code_deleted (team_key, code, deleted_flag, delete
 UNIQUE KEY uk_sub_items_main_code (main_item_key, code, deleted_flag, deleted_time)
 UNIQUE KEY uk_team_user_deleted (team_key, user_key, deleted_flag, deleted_time)
 ```
+
+## SD-006: Cascade Soft-Delete for Main Items
+
+**Rule**: Deleting a main item soft-deletes all its sub-items within a single database transaction. The transaction sequence is:
+1. Fetch main item by bizKey
+2. List all sub-items under the main item
+3. Batch `SoftDelete` all sub-items
+4. `SoftDelete` the main item
+5. Insert `status_histories` audit entries for each deleted item (`from_status=current`, `to_status="deleted"`)
+6. Recalculate parent completion percentages if needed
+
+The `item_status` field is NOT modified during deletion -- only `deleted_flag` and `deleted_time` are set.
+
+**Why**: Ensures data consistency by preventing orphaned sub-items. Single transaction guarantees atomicity. Audit trail in `status_histories` provides deletion traceability without modifying the item's status field.
+
+**Source**: feature/system-ux-optimization BIZ-003, BIZ-004

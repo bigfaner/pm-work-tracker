@@ -47,6 +47,8 @@ All API error codes follow `UPPER_SNAKE_CASE`, mapped to specific HTTP status co
 | TERMINAL_MAIN_ITEM | 422 | Cannot modify completed/closed main item |
 | SUB_ITEMS_NOT_TERMINAL | 422 | All sub-items must be completed/closed first |
 | CANNOT_ASSIGN_PM_ROLE | 422 | Use transfer PM to change team PM |
+| BAD_REQUEST (ErrTargetClosed) | 400 | Cannot move sub-item to a closed/completed main item |
+| BAD_REQUEST (ErrSameMainItem) | 400 | Cannot move sub-item to its current parent main item |
 
 ## Adding New Error Codes
 

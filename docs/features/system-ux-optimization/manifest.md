@@ -19,6 +19,10 @@ status: tasks
 | API Handbook | design/api-handbook.md | API 契约：DELETE main-item/sub-item, PUT move, 增强的 List/Gantt/Teams 端点 |
 | ER Diagram | design/er-diagram.md | 涉及的现有实体关系图，无 DDL 变更，仅 seed 数据 |
 | Schema | design/schema.sql | Seed 数据：main_item:delete, sub_item:delete 权限码 |
+| Spec Preview (biz) | specs/biz-specs.md | Extracted business rules preview |
+| Spec Preview (tech) | specs/tech-specs.md | Extracted technical specifications preview |
+| Spec Review | specs/review-choices.md | Integration review choices |
+| Spec Integration | specs/.integrated | Integration marker (12 biz + 7 tech CROSS items) |
 
 ## Traceability
 

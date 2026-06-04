@@ -54,7 +54,7 @@ All permission codes follow `resource:action` format. Codes are defined in Go co
 
 **Why:** Codes couple to code logic (handler routing, middleware checks). Allowing runtime creation of new codes would create orphaned codes with no enforcement. PRD explicitly scopes out custom permission codes.
 
-### Complete Permission Code List (29 codes)
+### Complete Permission Code List (31 codes)
 
 | Resource | Code | Description |
 |----------|------|-------------|
@@ -68,11 +68,13 @@ All permission codes follow `resource:action` format. Codes are defined in Go co
 | main_item | `main_item:create` | 创建主事项 |
 | main_item | `main_item:read` | 查看主事项 |
 | main_item | `main_item:update` | 编辑主事项 |
+| main_item | `main_item:delete` | 软删除主事项（级联删除子事项） |
 | main_item | `main_item:archive` | 归档主事项 |
 | main_item | `main_item:change_status` | 变更主事项状态 |
 | sub_item | `sub_item:create` | 创建子事项 |
 | sub_item | `sub_item:read` | 查看子事项 |
 | sub_item | `sub_item:update` | 编辑子事项 |
+| sub_item | `sub_item:delete` | 软删除子事项 |
 | sub_item | `sub_item:assign` | 分配子事项负责人 |
 | sub_item | `sub_item:change_status` | 变更子事项状态 |
 | progress | `progress:create` | 追加进度记录 |

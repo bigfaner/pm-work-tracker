@@ -17,3 +17,12 @@ Example messages:
 ## Layout
 
 Desktop-only, minimum resolution 1280px. No mobile adaptation.
+
+## Filter Empty State
+
+When filter conditions produce zero results, display "没有符合条件的事项" with a "清除过滤条件" button that resets all filters and shows all items. Applies to:
+- Item list (card and table views)
+- Progress page
+- Weekly page
+
+**Source**: feature/system-ux-optimization BIZ-014
