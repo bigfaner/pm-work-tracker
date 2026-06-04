@@ -236,7 +236,7 @@
       "dependencies": [
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.6-macos-scrollbar.md",
       "record": "records/2.6-macos-scrollbar.md",
       "surface-key": "frontend",

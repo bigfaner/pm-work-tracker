@@ -464,4 +464,16 @@ describe('GanttViewPage', () => {
       expect(weekends.length).toBeGreaterThan(0)
     })
   })
+
+  // --- macOS scrollbar (overflow-x: auto) ---
+
+  it('gantt-container has gantt-container class for scrollbar CSS rules', async () => {
+    renderPage()
+    await waitFor(() => {
+      const container = screen.getByTestId('gantt-container')
+      // CSS file gantt-overrides.css targets .gantt-container with
+      // overflow-x: auto and -webkit-scrollbar hover-visible rules
+      expect(container).toHaveClass('gantt-container')
+    })
+  })
 })
