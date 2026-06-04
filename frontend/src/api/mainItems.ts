@@ -81,3 +81,12 @@ export function getMainItemTransitionsApi(
     >(`/teams/${teamBizKey}/main-items/${bizKey}/available-transitions`)
     .then((res) => res.transitions ?? [])
 }
+
+export function deleteMainItemApi(
+  teamBizKey: string,
+  bizKey: string,
+): Promise<{ message: string }> {
+  return client.delete<never, { message: string }>(
+    `/teams/${teamBizKey}/main-items/${bizKey}`,
+  )
+}

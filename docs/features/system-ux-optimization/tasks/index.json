@@ -253,7 +253,7 @@
         "1.gate",
         "2.2"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.7-filter-penetration-ui.md",
       "record": "records/2.7-filter-penetration-ui.md",
       "surface-key": "frontend",
@@ -271,7 +271,7 @@
         "1.4",
         "2.1"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.8-delete-move-ui.md",
       "record": "records/2.8-delete-move-ui.md",
       "surface-key": "frontend",

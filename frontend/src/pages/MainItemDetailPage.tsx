@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
-import { getMainItemApi, updateMainItemApi } from '@/api/mainItems'
+import { getMainItemApi, updateMainItemApi, deleteMainItemApi } from '@/api/mainItems'
 import { createSubItemApi, updateSubItemApi } from '@/api/subItems'
 import { appendProgressApi } from '@/api/progress'
 import { listMembersApi } from '@/api/teams'
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/breadcrumb'
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import StatusTransitionDropdown from '@/components/shared/StatusTransitionDropdown'
+import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import { MAIN_ITEM_STATUSES } from '@/lib/status'
 import { useMemberName } from '@/hooks/useMemberName'
 import EditMainItemDialog, {
@@ -41,9 +42,11 @@ export default function MainItemDetailPage() {
   const { mainItemId } = useParams<{ mainItemId: string }>()
   const teamId = useTeamStore((s) => s.currentTeamId)
   const qc = useQueryClient()
+  const navigate = useNavigate()
   const itemId = mainItemId!
   // State
   const [expanded, setExpanded] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const today = () => new Date().toISOString().slice(0, 10)
 
   const [editOpen, setEditOpen] = useState(false)
@@ -187,6 +190,14 @@ export default function MainItemDetailPage() {
       setAppendProgressOpen(false)
       setAppendProgressTarget(null)
       setAppendProgressForm({ completion: '', achievement: '', blocker: '' })
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteMainItemApi(teamId!, itemId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
+      navigate('/items')
     },
   })
 
@@ -346,6 +357,28 @@ export default function MainItemDetailPage() {
                 编辑
               </Button>
             </PermissionGuard>
+            <PermissionGuard code="main_item:delete">
+              <Button
+                variant="danger"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+                删除
+              </Button>
+            </PermissionGuard>
           </div>
           {/* Info Grid */}
           <ItemInfoCard
@@ -414,6 +447,15 @@ export default function MainItemDetailPage() {
             onFormChange={setAppendProgressForm}
             onSubmit={handleAppendProgress}
             isPending={appendProgressMutation.isPending}
+          />
+          <ConfirmDialog
+            open={deleteOpen}
+            onOpenChange={setDeleteOpen}
+            title="删除主事项"
+            description={`确认删除该主事项？将同时删除 ${subItems.length} 个子事项。`}
+            confirmLabel="删除"
+            confirmVariant="danger"
+            onConfirm={() => deleteMutation.mutate()}
           />
         </>
       )}

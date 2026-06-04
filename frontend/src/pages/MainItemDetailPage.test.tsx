@@ -2,6 +2,7 @@ import {
   describe,
   it,
   expect,
+  vi,
   beforeEach,
   beforeAll,
   afterAll,
@@ -186,6 +187,11 @@ function setupHandlers() {
     http.put('/v1/teams/:teamId/main-items/:itemId', async ({ request }) => {
       const body = (await request.json()) as Record<string, unknown>
       return HttpResponse.json({ code: 0, data: { ...seedMainItem, ...body } })
+    }),
+
+    // Delete main item
+    http.delete('/v1/teams/:teamId/main-items/:itemId', () => {
+      return HttpResponse.json({ code: 0, data: { message: 'ok' } })
     }),
 
     // Create sub item
@@ -649,6 +655,91 @@ describe('MainItemDetailPage', () => {
       // Edit form should be populated with the item's data (not empty)
       const titleInput = screen.getByDisplayValue('Alpha Task')
       expect(titleInput).toBeInTheDocument()
+    })
+  })
+
+  // --- Delete button ---
+
+  it('renders delete button with PM permission', async () => {
+    useAuthStore.getState().setPermissions({
+      teamPermissions: { 1: ['main_item:update', 'main_item:delete'] },
+    })
+    renderPage()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Alpha Task' }),
+      ).toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: /删除/ })).toBeInTheDocument()
+  })
+
+  it('does not render delete button without delete permission', async () => {
+    // Default permissions only have main_item:update, not delete
+    renderPage()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Alpha Task' }),
+      ).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('button', { name: /删除/ })).not.toBeInTheDocument()
+  })
+
+  it('opens confirmation dialog with sub-item count on delete click', async () => {
+    useAuthStore.getState().setPermissions({
+      teamPermissions: { 1: ['main_item:update', 'main_item:delete'] },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Alpha Task' }),
+      ).toBeInTheDocument()
+    })
+
+    // Find the delete button in the title bar (has SVG + text)
+    const deleteButtons = screen.getAllByRole('button', { name: /删除/ })
+    await user.click(deleteButtons[0])
+
+    await waitFor(() => {
+      expect(screen.getByText('删除主事项')).toBeInTheDocument()
+      // seedMainItem has 3 subItems
+      expect(screen.getByText(/将同时删除 3 个子事项/)).toBeInTheDocument()
+    })
+  })
+
+  it('calls delete API on confirmation', async () => {
+    useAuthStore.getState().setPermissions({
+      teamPermissions: { 1: ['main_item:update', 'main_item:delete'] },
+    })
+    const deleteFn = vi.fn()
+    server.use(
+      http.delete('/v1/teams/:teamId/main-items/:itemId', () => {
+        deleteFn()
+        return HttpResponse.json({ code: 0, data: { message: 'ok' } })
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Alpha Task' }),
+      ).toBeInTheDocument()
+    })
+
+    const deleteButtons = screen.getAllByRole('button', { name: /删除/ })
+    await user.click(deleteButtons[0])
+    await waitFor(() => {
+      expect(screen.getByText('删除主事项')).toBeInTheDocument()
+    })
+    // The confirm dialog's delete button
+    const dialogDeleteBtn = screen.getAllByRole('button', { name: '删除' }).find(
+      (btn) => btn.closest('[role="dialog"]'),
+    )
+    expect(dialogDeleteBtn).toBeTruthy()
+    await user.click(dialogDeleteBtn!)
+
+    await waitFor(() => {
+      expect(deleteFn).toHaveBeenCalledOnce()
     })
   })
 })
