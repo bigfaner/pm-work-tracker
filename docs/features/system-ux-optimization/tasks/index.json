@@ -363,7 +363,7 @@
       "dependencies": [
         "T-test-gen-journeys"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "file": "eval-journey.md",
       "record": "records/eval-journey.md",
       "breaking": true,
@@ -401,7 +401,7 @@
       "title": "Generate Test Journeys",
       "priority": "P1",
       "estimatedTime": "20-30min",
-      "status": "pending",
+      "status": "completed",
       "file": "gen-journeys.md",
       "record": "records/gen-journeys.md",
       "breaking": true,
