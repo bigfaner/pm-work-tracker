@@ -59,6 +59,17 @@ describe('API E2E Tests', () => {
 
   // Traceability: TC-005 → Story 4 / AC-1; Story 6 / AC-1
   test('TC-005: 资源 API 响应包含 bizKey 且不含 id', async () => {
+    // Create a test item to ensure data exists (fresh server may have no items)
+    const makeItem = JSON.stringify({
+      title: 'E2E TC-005 test item',
+      priority: 'P1',
+      assigneeKey: '1',
+      startDate: '2026-01-01',
+      expectedEndDate: '2026-12-31',
+    });
+    const createRes = await authCurl('POST', `/v1/teams/${TEAM_BIZ_KEY}/main-items`, { body: makeItem });
+    expect(createRes.status === 200 || createRes.status === 201).toBeTruthy();
+
     const res = await authCurl('GET', `/v1/teams/${TEAM_BIZ_KEY}/main-items`);
     expect(res.status).toBe(200);
     const data = JSON.parse(res.body);

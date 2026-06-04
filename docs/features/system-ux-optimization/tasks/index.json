@@ -324,7 +324,6 @@
       "status": "pending",
       "file": "clean-code.md",
       "record": "records/clean-code.md",
-      "breaking": true,
       "type": "code-quality.simplify"
     },
     "consolidate-specs": {
@@ -371,6 +370,18 @@
       "mainSession": true,
       "type": "eval.journey"
     },
+    "fix-1": {
+      "id": "fix-1",
+      "title": "Fix: pre-existing API test infrastructure blocks submit gate",
+      "priority": "P0",
+      "estimatedTime": "30min",
+      "status": "completed",
+      "file": "fix-1.md",
+      "record": "records/fix-1.md",
+      "breaking": true,
+      "sourceTaskID": "2.1",
+      "type": "coding.fix"
+    },
     "gen-contracts": {
       "id": "T-test-gen-contracts",
       "title": "Generate Test Contracts",
@@ -390,9 +401,6 @@
       "title": "Generate Test Journeys",
       "priority": "P1",
       "estimatedTime": "20-30min",
-      "dependencies": [
-        "T-clean-code"
-      ],
       "status": "pending",
       "file": "gen-journeys.md",
       "record": "records/gen-journeys.md",
@@ -473,7 +481,6 @@
       "status": "pending",
       "file": "validate-code.md",
       "record": "records/validate-code.md",
-      "breaking": true,
       "type": "validation.code"
     },
     "validate-ux": {
@@ -487,7 +494,6 @@
       "status": "pending",
       "file": "validate-ux.md",
       "record": "records/validate-ux.md",
-      "breaking": true,
       "mainSession": true,
       "type": "validation.ux"
     }
