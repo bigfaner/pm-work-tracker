@@ -114,6 +114,21 @@ export function useItemViewPage(teamId: string | null) {
   // Expanded cards
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
 
+  // Move sub-item
+  const [moveSubOpen, setMoveSubOpen] = useState(false)
+  const [moveSubItem, setMoveSubItemData] = useState<{
+    bizKey: string
+    mainItemBizKey: string
+  } | null>(null)
+
+  const openMoveSubDialog = useCallback(
+    (sub: { bizKey: string }, mainItemBizKey: string) => {
+      setMoveSubItemData({ bizKey: sub.bizKey, mainItemBizKey })
+      setMoveSubOpen(true)
+    },
+    [],
+  )
+
   // --- Data fetching ---
 
   const { data: membersData } = useQuery({
@@ -602,5 +617,11 @@ export function useItemViewPage(teamId: string | null) {
     openEditSubDialog,
     handleEditSub,
     updateSubMutation,
+
+    // Move sub-item
+    moveSubOpen,
+    setMoveSubOpen,
+    moveSubItem,
+    openMoveSubDialog,
   }
 }

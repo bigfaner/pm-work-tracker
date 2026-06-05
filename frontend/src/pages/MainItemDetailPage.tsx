@@ -18,6 +18,7 @@ import {
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import StatusTransitionDropdown from '@/components/shared/StatusTransitionDropdown'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
+import MoveSubItemDialog from '@/components/shared/MoveSubItemDialog'
 import { MAIN_ITEM_STATUSES } from '@/lib/status'
 import { useMemberName } from '@/hooks/useMemberName'
 import EditMainItemDialog, {
@@ -86,6 +87,10 @@ export default function MainItemDetailPage() {
       achievement: '',
       blocker: '',
     })
+
+  // Move sub-item
+  const [moveSubOpen, setMoveSubOpen] = useState(false)
+  const [moveSubTarget, setMoveSubTarget] = useState<SubItem | null>(null)
 
   // --- Data fetching ---
 
@@ -412,6 +417,10 @@ export default function MainItemDetailPage() {
             onEditSub={openEditSub}
             onAppendProgress={openAppendProgress}
             onCreateSub={() => setCreateSubOpen(true)}
+            onMoveSubItem={(sub) => {
+              setMoveSubTarget(sub)
+              setMoveSubOpen(true)
+            }}
           />
           {/* Dialogs */}
           <EditMainItemDialog
@@ -457,6 +466,16 @@ export default function MainItemDetailPage() {
             confirmVariant="danger"
             onConfirm={() => deleteMutation.mutate()}
           />
+          {moveSubTarget && (
+            <MoveSubItemDialog
+              open={moveSubOpen}
+              onOpenChange={setMoveSubOpen}
+              subItemBizKey={moveSubTarget.bizKey}
+              currentMainItemBizKey={item!.bizKey}
+              teamId={teamId!}
+              onSuccess={() => qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })}
+            />
+          )}
         </>
       )}
     </div>
