@@ -112,7 +112,7 @@ test.describe('task-status-transition: Contract tests', () => {
     const mainKey = await createTestMainItem(token, teamBizKey, 'E2E terminal', 'P2');
     // Create and complete sub-item
     const subKey = await createTestSubItem(token, teamBizKey, mainKey, 'E2E terminal sub');
-    await curl('PUT', `${API}/teams/${teamBizKey}/main-items/${mainKey}/sub-items/${subKey}/status`, {
+    await curl('PUT', `${API}/teams/${teamBizKey}/sub-items/${subKey}/status`, {
       headers: authHeader(token),
       body: JSON.stringify({ status: 'completed' }),
     });
@@ -162,7 +162,7 @@ test.describe('task-status-transition: Contract tests', () => {
   test('step3-cancelled: Cancel terminal transition dialog', async ({ page }) => {
     const mainKey = await createTestMainItem(token, teamBizKey, 'E2E cancel terminal', 'P2');
     const subKey = await createTestSubItem(token, teamBizKey, mainKey, 'E2E cancel sub');
-    await curl('PUT', `${API}/teams/${teamBizKey}/main-items/${mainKey}/sub-items/${subKey}/status`, {
+    await curl('PUT', `${API}/teams/${teamBizKey}/sub-items/${subKey}/status`, {
       headers: authHeader(token),
       body: JSON.stringify({ status: 'completed' }),
     });
@@ -334,7 +334,7 @@ test.describe('task-status-transition: Journey smoke test (happy path)', () => {
   test('smoke-cancel: Attempt terminal transition, cancel dialog, verify status unchanged', async ({ page }) => {
     const mainKey = await createTestMainItem(token, smokeTeamId, 'E2E smoke cancel term', 'P2');
     const subKey = await createTestSubItem(token, smokeTeamId, mainKey, 'E2E cancel term sub');
-    await curl('PUT', `${API}/teams/${smokeTeamId}/main-items/${mainKey}/sub-items/${subKey}/status`, {
+    await curl('PUT', `${API}/teams/${smokeTeamId}/sub-items/${subKey}/status`, {
       headers: authHeader(token),
       body: JSON.stringify({ status: 'completed' }),
     });

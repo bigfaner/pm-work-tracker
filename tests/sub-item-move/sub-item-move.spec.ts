@@ -136,7 +136,7 @@ test.describe('sub-item-move: Contract tests', () => {
     const subKey = await createTestSubItem(token, teamBizKey, mainKeyA, 'E2E sub verify');
 
     // Move via API
-    const moveRes = await curl('POST', `${API}/teams/${teamBizKey}/main-items/${mainKeyA}/sub-items/${subKey}/move`, {
+    const moveRes = await curl('PUT', `${API}/teams/${teamBizKey}/sub-items/${subKey}/move`, {
       headers: authHeader(token),
       body: JSON.stringify({ targetMainItemBizKey: mainKeyB }),
     });
@@ -248,7 +248,7 @@ test.describe('sub-item-move: Journey smoke test (happy path)', () => {
     const subKey = await createTestSubItem(token, smokeTeamId, mainKeyA, 'E2E verify sub');
 
     // Move via API
-    await curl('POST', `${API}/teams/${smokeTeamId}/main-items/${mainKeyA}/sub-items/${subKey}/move`, {
+    await curl('PUT', `${API}/teams/${smokeTeamId}/sub-items/${subKey}/move`, {
       headers: authHeader(token),
       body: JSON.stringify({ targetMainItemBizKey: mainKeyB }),
     });
