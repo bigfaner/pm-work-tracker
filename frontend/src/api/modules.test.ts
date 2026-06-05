@@ -151,6 +151,7 @@ describe('API modules', () => {
       await mainItemsApi.listMainItemsApi('team-bk', { status: 'open' })
       expect(mockClient.get).toHaveBeenCalledWith('/teams/team-bk/main-items', {
         params: { status: 'open' },
+        paramsSerializer: { serialize: expect.any(Function) },
       })
     })
 

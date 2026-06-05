@@ -16,20 +16,31 @@ export function createMainItemApi(
   return client.post<never, MainItem>(`/teams/${teamBizKey}/main-items`, req)
 }
 
+// serializeParams sends array values as repeated keys (?status=a&status=b)
+// so Gin binds []string correctly instead of treating comma-joined as one value.
+const serializeParams = (p: Record<string, unknown>) => {
+  const parts: string[] = []
+  for (const [key, value] of Object.entries(p)) {
+    if (value == null) continue
+    const values = Array.isArray(value) ? value : [value]
+    for (const v of values) {
+      parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`)
+    }
+  }
+  return parts.join('&')
+}
+
 export function listMainItemsApi(
   teamBizKey: string,
   filter?: MainItemFilter,
 ): Promise<PageResult<MainItem>> {
   const params: Record<string, unknown> = { ...filter }
-  // Serialize multi-status as comma-separated string for backend
-  if (Array.isArray(filter?.status) && filter.status.length > 0) {
-    params.status = filter.status.join(',')
-  } else if (Array.isArray(filter?.status)) {
+  if (Array.isArray(params.status) && params.status.length === 0) {
     delete params.status
   }
   return client.get<never, PageResult<MainItem>>(
     `/teams/${teamBizKey}/main-items`,
-    { params },
+    { params, paramsSerializer: { serialize: serializeParams } },
   )
 }
 
