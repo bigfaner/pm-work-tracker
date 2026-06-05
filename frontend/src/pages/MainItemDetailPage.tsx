@@ -98,6 +98,7 @@ export default function MainItemDetailPage() {
     queryKey: ['mainItem', teamId, itemId],
     queryFn: () => getMainItemApi(teamId!, itemId),
     enabled: !!teamId && !!itemId,
+    refetchOnMount: 'always',
   })
 
   const { data: members } = useQuery({

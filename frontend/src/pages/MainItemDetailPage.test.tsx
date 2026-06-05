@@ -707,6 +707,78 @@ describe('MainItemDetailPage', () => {
     })
   })
 
+  // --- Stale data on breadcrumb navigation (bug fix) ---
+
+  it('bug: refetches data on remount so deleted sub-items are not shown', async () => {
+    // Simulate production staleTime so cached data is considered fresh
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 30000 } },
+    })
+
+    let fetchCount = 0
+    server.use(
+      http.get('/v1/teams/:teamId/main-items/:itemId', () => {
+        fetchCount++
+        if (fetchCount === 1) {
+          return HttpResponse.json({ code: 0, data: seedMainItem })
+        }
+        // Subsequent fetch: Sub Alpha 2 has been deleted
+        return HttpResponse.json({
+          code: 0,
+          data: {
+            ...seedMainItem,
+            subItems: seedMainItem.subItems.filter((s) => s.bizKey !== '12'),
+          },
+        })
+      }),
+    )
+
+    // First render: shows all 3 sub-items
+    const { unmount } = render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/items/1']}>
+          <Routes>
+            <Route
+              path="/items/:mainItemId"
+              element={<MainItemDetailPage />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Sub Alpha 2')).toBeInTheDocument()
+    })
+    expect(fetchCount).toBe(1)
+
+    // Navigate away (unmount)
+    unmount()
+
+    // Navigate back (remount) — simulates breadcrumb click
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/items/1']}>
+          <Routes>
+            <Route
+              path="/items/:mainItemId"
+              element={<MainItemDetailPage />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    // With refetchOnMount: 'always', the deleted sub-item should disappear
+    await waitFor(
+      () => {
+        expect(screen.queryByText('Sub Alpha 2')).not.toBeInTheDocument()
+      },
+      { timeout: 3000 },
+    )
+    expect(fetchCount).toBeGreaterThanOrEqual(2)
+  })
+
   it('calls delete API on confirmation', async () => {
     useAuthStore.getState().setPermissions({
       teamPermissions: { 1: ['main_item:update', 'main_item:delete'] },
