@@ -512,11 +512,13 @@ describe('GanttViewPage', () => {
 
   // --- Status filter (AC1: default progressing, AC2: multi-select, AC3: uncheck all = show all) ---
 
-  it('shows status filter with 进行中 checked by default', async () => {
+  it('shows status filter with 进行中 selected by default', async () => {
     renderPage()
     await waitFor(() => {
-      const checkbox = screen.getByRole('checkbox', { name: '进行中' })
-      expect(checkbox).toBeChecked()
+      const tag = screen.getByTestId('status-filter-progressing')
+      expect(tag).toBeInTheDocument()
+      // Selected tags have ring style (opacity-40 is for unselected)
+      expect(tag.className).not.toContain('opacity-40')
     })
   })
 
@@ -532,16 +534,15 @@ describe('GanttViewPage', () => {
     })
   })
 
-  it('shows all items when all checkboxes unchecked', async () => {
+  it('shows all items when all tags unchecked', async () => {
     const user = userEvent.setup()
     renderPage()
     await waitFor(() => {
       expect(screen.getByText('用户认证模块开发')).toBeInTheDocument()
     })
 
-    // Uncheck the "进行中" checkbox (the only one checked by default)
-    const checkbox = screen.getByRole('checkbox', { name: '进行中' })
-    await user.click(checkbox)
+    // Uncheck the "进行中" tag (the only one selected by default)
+    await user.click(screen.getByTestId('status-filter-progressing'))
 
     // Now all items should appear since no status filter is applied
     await waitFor(() => {

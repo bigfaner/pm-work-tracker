@@ -10,9 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { CheckboxGroup } from '@/components/ui/checkbox-group'
-import { STATUS_OPTIONS } from '@/lib/status'
-import { getStatusName } from '@/lib/status'
+import { StatusTagFilter } from '@/components/shared/StatusTagFilter'
+import MoveSubItemDialog from '@/components/shared/MoveSubItemDialog'
+import { STATUS_OPTIONS, getStatusName } from '@/lib/status'
 import ItemSummaryView from './item-view/ItemSummaryView'
 import ItemDetailView from './item-view/ItemDetailView'
 import CreateMainItemDialog from './item-view/CreateMainItemDialog'
@@ -82,21 +82,12 @@ export default function ItemViewPage() {
           </div>
 
           {/* Filter Bar */}
-          <div className="flex items-start gap-3 mb-4 flex-wrap">
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
             <Input
               placeholder="搜索标题或编号..."
               value={s.searchText}
               onChange={(e) => s.setSearchText(e.target.value)}
               className="w-90"
-            />
-            <CheckboxGroup
-              title="状态"
-              options={STATUS_OPTIONS.map((st) => ({
-                value: st,
-                label: getStatusName(st) || st,
-              }))}
-              selected={s.statusFilter}
-              onChange={s.setStatusFilter}
             />
             <Select
               value={s.assigneeFilter}
@@ -114,6 +105,14 @@ export default function ItemViewPage() {
                 ))}
               </SelectContent>
             </Select>
+            <StatusTagFilter
+              options={STATUS_OPTIONS.map((st) => ({
+                value: st,
+                label: getStatusName(st) || st,
+              }))}
+              selected={s.statusFilter}
+              onChange={s.setStatusFilter}
+            />
             <Button variant="secondary" size="sm" onClick={s.resetFilters}>
               重置
             </Button>
@@ -169,6 +168,7 @@ export default function ItemViewPage() {
               onEditMainItem={s.openEditDialog}
               onAppendProgress={s.openAppendDialog}
               onEditSubItem={s.openEditSubDialog}
+              onMoveSubItem={s.openMoveSubDialog}
             />
           ) : (
             <ItemDetailView
@@ -195,6 +195,7 @@ export default function ItemViewPage() {
               onEditMainItem={s.openEditDialog}
               onAppendProgress={s.openAppendDialog}
               onEditSubItem={s.openEditSubDialog}
+              onMoveSubItem={s.openMoveSubDialog}
             />
           )}
 
@@ -248,6 +249,17 @@ export default function ItemViewPage() {
             onSubmit={s.handleEditSub}
             isPending={s.updateSubMutation.isPending}
           />
+
+          {s.moveSubItem && (
+            <MoveSubItemDialog
+              open={s.moveSubOpen}
+              onOpenChange={s.setMoveSubOpen}
+              subItemBizKey={s.moveSubItem.bizKey}
+              currentMainItemBizKey={s.moveSubItem.mainItemBizKey}
+              teamId={teamId!}
+              onSuccess={s.handleRefresh}
+            />
+          )}
         </>
       )}
     </div>

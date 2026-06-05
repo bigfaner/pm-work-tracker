@@ -429,9 +429,9 @@ describe('ItemViewPage', () => {
       expect(screen.getByText('标题')).toBeInTheDocument()
       expect(screen.getByText('负责人')).toBeInTheDocument()
       expect(screen.getByText('进度')).toBeInTheDocument()
-      // "状态" appears in both filter checkbox group and table header
+      // "状态" appears in the table header
       const statusElements = screen.getAllByText('状态')
-      expect(statusElements.length).toBeGreaterThanOrEqual(2)
+      expect(statusElements.length).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -596,6 +596,7 @@ describe('ItemViewPage', () => {
     await waitFor(() => {
       // Each main item should show its status
       const statuses = screen.getAllByText('进行中')
+      // Includes status badge in cards and status filter tag
       expect(statuses.length).toBeGreaterThanOrEqual(2)
     })
   })
@@ -619,9 +620,11 @@ describe('ItemViewPage', () => {
       expect(screen.getByText('Alpha Task')).toBeInTheDocument()
     })
 
-    // Click the first status badge (with cursor-pointer class = dropdown trigger) to open dropdown
+    // Click the first status badge (in the table, not the filter bar) to open dropdown
     const badges = screen.getAllByText('进行中')
-    const triggerBadges = badges.filter((el) => el.closest('button') !== null)
+    const triggerBadges = badges.filter(
+      (el) => el.closest('button') !== null && !el.closest('button')!.dataset.testid,
+    )
     await user.click(triggerBadges[0])
 
     await waitFor(() => {
@@ -664,8 +667,10 @@ describe('ItemViewPage', () => {
     })
 
     const badges = screen.getAllByText('进行中')
-    // Find the one inside a button (status dropdown trigger), not checkbox label
-    const badgeInButton = badges.find((el) => el.closest('button') !== null)
+    // Find the one inside a button in the table (status dropdown trigger), not filter tag
+    const badgeInButton = badges.find(
+      (el) => el.closest('button') !== null && !el.closest('button')!.dataset.testid,
+    )
     await user.click(badgeInButton!)
 
     await waitFor(() => {
@@ -698,7 +703,9 @@ describe('ItemViewPage', () => {
     })
 
     const badges = screen.getAllByText('进行中')
-    const triggerBadges = badges.filter((el) => el.closest('button') !== null)
+    const triggerBadges = badges.filter(
+      (el) => el.closest('button') !== null && !el.closest('button')!.dataset.testid,
+    )
     await user.click(triggerBadges[0])
 
     await waitFor(() => {
@@ -1108,21 +1115,16 @@ describe('ItemViewPage', () => {
 
   // --- Filter penetration: multi-select status filter ---
 
-  describe('filter penetration: status checkbox group', () => {
-    it('renders status checkbox group with status options', async () => {
+  describe('filter penetration: status tag filter', () => {
+    it('renders status tag filter with status options', async () => {
       renderPage()
       await waitFor(() => {
         expect(screen.getByText('Alpha Task')).toBeInTheDocument()
       })
-      // Should have checkbox inputs for status filtering
-      const checkboxes = document.querySelectorAll('input[type="checkbox"]')
-      expect(checkboxes.length).toBeGreaterThan(0)
-      // Should show status label texts within checkbox group
-      const checkboxLabels = document.querySelectorAll('.space-y-1 label span')
-      const labelTexts = Array.from(checkboxLabels).map((el) => el.textContent)
-      expect(labelTexts).toContain('进行中')
-      expect(labelTexts).toContain('待开始')
-      expect(labelTexts).toContain('已完成')
+      // Should have clickable status filter tags
+      expect(screen.getByTestId('status-filter-progressing')).toBeInTheDocument()
+      expect(screen.getByTestId('status-filter-pending')).toBeInTheDocument()
+      expect(screen.getByTestId('status-filter-completed')).toBeInTheDocument()
     })
 
     it('filters items by multiple selected statuses', async () => {
@@ -1132,19 +1134,13 @@ describe('ItemViewPage', () => {
         expect(screen.getByText('Alpha Task')).toBeInTheDocument()
       })
 
-      // All items should be visible initially
+      // All items should be visible initially (no filter = show all)
       expect(screen.getByText('Alpha Task')).toBeInTheDocument()
       expect(screen.getByText('Beta Task')).toBeInTheDocument()
       expect(screen.getByText('Gamma Task')).toBeInTheDocument()
 
-      // Find the "进行中" checkbox in the status checkbox group (not status dropdown)
-      // The "进行中" option checkbox is in the checkbox group's children
-      const progressingLabel = Array.from(document.querySelectorAll('.space-y-1 label')).find(
-        (label) => label.textContent?.includes('进行中'),
-      )
-      const progressingCheckbox = progressingLabel?.querySelector('input[type="checkbox"]')
-      expect(progressingCheckbox).toBeTruthy()
-      await user.click(progressingCheckbox!)
+      // Click the "进行中" status filter tag to select it
+      await user.click(screen.getByTestId('status-filter-progressing'))
 
       await waitFor(() => {
         // "进行中" items should still be visible
@@ -1155,7 +1151,7 @@ describe('ItemViewPage', () => {
       })
     })
 
-    it('shows all items when no status checkboxes are selected', async () => {
+    it('shows all items when no status tags are selected', async () => {
       renderPage()
       await waitFor(() => {
         expect(screen.getByText('Alpha Task')).toBeInTheDocument()
@@ -1331,12 +1327,8 @@ describe('ItemViewPage', () => {
         expect(screen.getByText('Alpha Task')).toBeInTheDocument()
       })
 
-      // Select the "已完成" checkbox from the checkbox group
-      const completedLabel = Array.from(document.querySelectorAll('.space-y-1 label')).find(
-        (label) => label.textContent?.includes('已完成'),
-      )
-      const completedCheckbox = completedLabel?.querySelector('input[type="checkbox"]')
-      await user.click(completedCheckbox!)
+      // Click the "已完成" status filter tag to select it
+      await user.click(screen.getByTestId('status-filter-completed'))
 
       await waitFor(() => {
         // Only completed item visible

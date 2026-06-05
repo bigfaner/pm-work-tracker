@@ -8,7 +8,7 @@ import {
 } from 'react'
 import { RotateCcw, RefreshCw } from 'lucide-react'
 import { DateInput } from '@/components/ui/date-input'
-import { CheckboxGroup } from '@/components/ui/checkbox-group'
+import { StatusTagFilter } from '@/components/shared/StatusTagFilter'
 import { useQuery } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { getGanttViewApi } from '@/api/views'
@@ -190,7 +190,16 @@ export default function GanttViewPage() {
       {/* Page Header */}
       <div className="gantt-page-header">
         <h1 className="text-xl font-semibold text-primary">整体进度</h1>
-        <div className="flex items-center gap-2 text-[13px] text-secondary">
+        <div className="mt-2 flex items-center justify-end gap-3">
+          <StatusTagFilter
+            options={Object.entries(MAIN_ITEM_STATUSES).map(([value, { name: label }]) => ({
+              value,
+              label,
+            }))}
+            selected={selectedStatuses}
+            onChange={setSelectedStatuses}
+          />
+          <div className="flex items-center gap-2 text-[13px] text-secondary">
           <DateInput
             data-testid="date-start"
             className="h-8 w-36"
@@ -213,16 +222,6 @@ export default function GanttViewPage() {
             <RotateCcw className="h-4 w-4" />
           </button>
         </div>
-        <div className="mt-2">
-          <CheckboxGroup
-            options={Object.entries(MAIN_ITEM_STATUSES).map(([value, { name: label }]) => ({
-              value,
-              label,
-            }))}
-            selected={selectedStatuses}
-            onChange={setSelectedStatuses}
-            title="状态过滤"
-          />
         </div>
       </div>
 

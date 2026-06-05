@@ -46,6 +46,7 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | gotcha-subagent-partial-commits.md | Subagents leave 75+ files uncommitted after /run-tasks |
 | gotcha-interface-blast-radius-dispatcher.md | Adding methods to shared interfaces — large blast radius appears as "stuck" |
 | gotcha-claim-in-progress-priority.md | forge task claim prioritizes in_progress over pending — blocks dispatch loop |
+| gotcha-forge-surfaces-path-matching.md | forge surfaces <path> needs surface key prefix — `.` or `docs/` won't match |
 | gotcha-task-claim-priority-skip.md | forge task claim skips unblocked tasks — jumps to unrelated pipeline tasks |
 | gotcha-tech-design-decision-archiving.md | Tech design must record naming/structural conventions |
 
