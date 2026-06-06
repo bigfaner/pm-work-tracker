@@ -1,5 +1,5 @@
 import { execSync, spawn, ChildProcess } from 'node:child_process';
-import { writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
+import { writeFileSync, mkdirSync, rmSync, existsSync, copyFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'node:net';
@@ -98,9 +98,10 @@ logging:
   // Copy migrations directory so the server can find it
   const migrationsDir = resolve(tempDir, 'migrations');
   mkdirSync(migrationsDir, { recursive: true });
-  execSync(`cp ${resolve(BACKEND_DIR, 'migrations', 'SQLite-schema.sql')} ${migrationsDir}/`, {
-    cwd: PROJECT_ROOT,
-  });
+  copyFileSync(
+    resolve(BACKEND_DIR, 'migrations', 'SQLite-schema.sql'),
+    resolve(migrationsDir, 'SQLite-schema.sql'),
+  );
 
   // Write E2E config for the test helpers to pick up
   const e2eConfigContent = `baseUrl: http://localhost:5173
@@ -149,11 +150,28 @@ password: 'admin123'
 
   return () => {
     if (serverProcess && !serverProcess.killed) {
-      serverProcess.kill('SIGTERM');
+      // Windows ignores signal names; force-kill via taskkill for a clean shutdown
+      if (process.platform === 'win32') {
+        try {
+          process.kill(serverProcess.pid!);
+        } catch { /* already exited */ }
+      } else {
+        serverProcess.kill('SIGTERM');
+      }
       serverProcess = null;
     }
     if (tempDir && existsSync(tempDir)) {
-      rmSync(tempDir, { recursive: true, force: true });
+      // Retry rmSync on Windows — the process may still hold file locks briefly
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          rmSync(tempDir, { recursive: true, force: true });
+          break;
+        } catch {
+          if (attempt < 2) {
+            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 500);
+          }
+        }
+      }
       tempDir = null;
     }
   };
