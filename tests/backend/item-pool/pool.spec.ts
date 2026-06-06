@@ -1,5 +1,5 @@
 import { test, expect, describe, beforeAll } from 'vitest';
-import { apiBaseUrl, getApiToken, createAuthCurl } from '../../shared/helpers.js';
+import { apiBaseUrl, getApiToken, createAuthCurl, randomCode } from '../../shared/helpers.js';
 
 /** Required request body for convert-to-main endpoint */
 const convertBody = {
@@ -18,26 +18,14 @@ describe('API E2E Tests', () => {
     const token = await getApiToken(apiBaseUrl);
     authCurl = createAuthCurl(apiBaseUrl, token);
 
-    // Find or create a team for testing
-    teamId = process.env.E2E_TEAM_ID ?? '';
-    if (!teamId) {
-      // List teams and pick the first one
-      const listRes = await authCurl('GET', '/v1/teams');
-      expect(listRes.status).toBe(200);
-      const listData = JSON.parse(listRes.body);
-      const teams = listData.data?.items ?? listData;
-      if (teams.length > 0) {
-        teamId = String(teams[0].bizKey);
-      } else {
-        // No teams exist — create one for e2e tests
-        const createRes = await authCurl('POST', '/v1/teams', {
-          body: JSON.stringify({ name: 'E2E Test Team', code: 'ETEST', description: 'Auto-created for e2e tests' }),
-        });
-        expect(createRes.status).toBe(201);
-        const created = JSON.parse(createRes.body);
-        teamId = String((created.data ?? created).bizKey);
-      }
-    }
+    // Always create an isolated team to avoid sequence interference from other tests
+    const code = randomCode();
+    const createRes = await authCurl('POST', '/v1/teams', {
+      body: JSON.stringify({ name: `Pool E2E ${code}`, code, description: 'Isolated team for pool tests' }),
+    });
+    expect(createRes.status).toBe(201);
+    const created = JSON.parse(createRes.body);
+    teamId = String((created.data ?? created).bizKey);
   });
 
   /** Submit a pool entry and return its bizKey */

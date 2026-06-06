@@ -2,7 +2,7 @@ import { test, expect, describe, beforeAll } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { curl, apiBaseUrl, getApiToken, createAuthCurl } from '../../shared/helpers.js';
+import { curl, apiBaseUrl, getApiToken, createAuthCurl, randomCode } from '../../shared/helpers.js';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 const PROJECT_ROOT = resolve(__dirname, '..', '..', '..');
@@ -15,16 +15,17 @@ describe('API E2E Tests', () => {
     const token = await getApiToken(apiBaseUrl);
     authCurl = createAuthCurl(apiBaseUrl, token);
 
-    // Resolve team bizKey: use env var, or pick the first available team
+    // Resolve team bizKey: use env var, or create an isolated team
     if (process.env.TEAM_ID) {
       TEAM_BIZ_KEY = process.env.TEAM_ID;
     } else {
-      const teamsRes = await authCurl('GET', '/v1/teams');
-      const teamsData = JSON.parse(teamsRes.body);
-      const teams = teamsData.data?.items ?? [];
-      const team = teams.find((t: any) => t.bizKey && t.bizKey !== '0') || teams[0];
-      if (!team?.bizKey) throw new Error('No team found. Create a team first or set TEAM_ID env var.');
-      TEAM_BIZ_KEY = team.bizKey;
+      const code = randomCode();
+      const createRes = await authCurl('POST', '/v1/teams', {
+        body: JSON.stringify({ name: `Schema E2E ${code}`, code, description: 'Isolated team for schema alignment tests' }),
+      });
+      expect(createRes.status).toBe(201);
+      const created = JSON.parse(createRes.body);
+      TEAM_BIZ_KEY = String((created.data ?? created).bizKey);
     }
   });
 
@@ -98,7 +99,7 @@ describe('API E2E Tests', () => {
       expectedEndDate: '2026-12-31',
     });
     const createRes = await authCurl('POST', `/v1/teams/${TEAM_BIZ_KEY}/main-items`, { body: makeItem });
-    expect(createRes.status === 200 || createRes.status === 201).toBeTruthy();
+    expect(createRes.status === 200 || createRes.status === 201, `Create main item returned ${createRes.status}: ${createRes.body}`).toBeTruthy();
     const bkMatch = createRes.body.match(/"bizKey"\s*:\s*"(\d+)"/);
     const testBizKey = bkMatch ? bkMatch[1] : '';
     expect(testBizKey).toBeTruthy();
