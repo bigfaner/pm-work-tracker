@@ -1,5 +1,0 @@
-[
-  {"phase": 1, "name": "Backend Foundation", "source": "fallback", "gates": [{"afterPhase": 1, "description": "Schema, models, status, permissions, DTOs, VOs all compile and match design"}]},
-  {"phase": 2, "name": "Backend API", "source": "fallback", "gates": [{"afterPhase": 2, "description": "All CRUD + status APIs functional, MainItem milestoneKey integration works"}]},
-  {"phase": 3, "name": "Frontend", "source": "fallback", "gates": [{"afterPhase": 3, "description": "MilestonesPage + 3 integrations complete, all PRD ACs covered"}]}
-]
