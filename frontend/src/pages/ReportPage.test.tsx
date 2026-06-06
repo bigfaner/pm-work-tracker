@@ -188,6 +188,24 @@ describe('ReportPage', () => {
     })
   })
 
+  it('bug: shows friendly empty message when preview returns empty sections', async () => {
+    mockGetPreview.mockResolvedValue({
+      weekStart: '2026-06-01',
+      weekEnd: '2026-06-07',
+      sections: [],
+    })
+    const user = userEvent.setup()
+    renderReportPage()
+
+    await user.click(screen.getByRole('button', { name: '生成预览' }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/暂无进度数据/)).toBeInTheDocument()
+    })
+    // Should NOT show error banner
+    expect(screen.queryByText(/no data/i)).not.toBeInTheDocument()
+  })
+
   it('uses no antd imports', async () => {
     const fs = await import('fs')
     const path = await import('path')

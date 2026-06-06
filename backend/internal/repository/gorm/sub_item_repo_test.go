@@ -264,13 +264,12 @@ func TestSubItemRepo_ListByMainItem(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, items, 3)
 
-	titles := map[string]bool{}
-	for _, item := range items {
-		titles[item.Title] = true
+	// Verify descending order by ID (newest first)
+	for i := 1; i < len(items); i++ {
+		assert.True(t, items[i-1].ID > items[i].ID,
+			"expected DESC order: items[%d].ID=%d should be > items[%d].ID=%d",
+			i-1, items[i-1].ID, i, items[i].ID)
 	}
-	assert.True(t, titles["Sub 1"])
-	assert.True(t, titles["Sub 2"])
-	assert.True(t, titles["Sub 3"])
 }
 
 func TestSubItemRepo_ListByMainItem_Empty(t *testing.T) {
@@ -472,4 +471,31 @@ func TestSubItemRepo_SoftDelete_RecreateWithSameCode(t *testing.T) {
 	require.NoError(t, db.Create(newItem).Error)
 	assert.NotZero(t, newItem.ID)
 	assert.NotEqual(t, item.ID, newItem.ID, "new item should have a different ID")
+}
+
+func TestSubItemRepo_Update_MoveFields(t *testing.T) {
+	db := setupSubItemTestDB(t)
+	repo := gormrepo.NewGormSubItemRepo(db, dbutil.NewDialect(db))
+	ctx := context.Background()
+
+	_, team, mi := seedSubItemData(t, db)
+
+	// Create a second main item as move target
+	mi2 := model.MainItem{TeamKey: team.BizKey, Code: "MI-SI02", ItemStatus: "pending", Priority: "P2", Title: "SI02"}
+	require.NoError(t, db.Create(&mi2).Error)
+	mi2.BizKey = int64(mi2.ID)
+	require.NoError(t, db.Save(&mi2).Error)
+
+	sub := createSubItem(t, db, team.BizKey, mi.ID, "Move Me", "P1", "progressing")
+
+	err := repo.Update(ctx, sub, map[string]interface{}{
+		"main_item_key": mi2.BizKey,
+		"item_code":     "MI-SI02-01",
+	})
+	require.NoError(t, err)
+
+	updated, err := repo.FindByBizKey(ctx, sub.BizKey)
+	require.NoError(t, err)
+	assert.Equal(t, mi2.BizKey, updated.MainItemKey)
+	assert.Equal(t, "MI-SI02-01", updated.Code)
 }

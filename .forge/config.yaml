@@ -1,4 +1,4 @@
-version: "1"
+version: '1'
 auto:
   test:
     quick: false
@@ -26,7 +26,30 @@ auto:
     techDesign: true
 worktree:
   source-branch: main
-  copy-files: ["backend/config.yaml"]
+  copy-files:
+    - backend/config.yaml
+eval:
+  proposal:
+    target: 900
+    iterations: 1
+  prd:
+    target: 900
+    iterations: 2
+  design:
+    target: 900
+    iterations: 2
+  ui:
+    target: 950
+    iterations: 2
+  journey:
+    target: 850
+    iterations: 1
+  contract:
+    target: 850
+    iterations: 1
+  consistency:
+    target: 900
+    iterations: 1
 surfaces:
   backend: api
   frontend: web

@@ -179,6 +179,9 @@ func (m *mockSubItemSvcForProgress) Assign(_ context.Context, _ int64, _ int64, 
 func (m *mockSubItemSvcForProgress) AvailableTransitions(_ context.Context, _ int64, _ uint) ([]string, error) {
 	return nil, nil
 }
+func (m *mockSubItemSvcForProgress) Move(_ context.Context, _, _, _, _ int64) (*service.MoveResult, error) {
+	return nil, nil
+}
 
 // ---------------------------------------------------------------------------
 // Helpers

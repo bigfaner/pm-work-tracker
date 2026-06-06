@@ -273,7 +273,25 @@ func TestGanttView_WithStatusFilter(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, svc.ganttCalled)
-	assert.Equal(t, "progressing", svc.lastFilter.Status)
+	assert.Equal(t, []string{"progressing"}, svc.lastFilter.Statuses)
+}
+
+func TestGanttView_WithMultiStatusFilter(t *testing.T) {
+	svc := &mockViewService{}
+	svc.ganttResult.result = &dto.GanttResult{}
+
+	deps := depsWithViewSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/teams/10/views/gantt?status=progressing&status=blocking", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, svc.ganttCalled)
+	assert.Equal(t, []string{"progressing", "blocking"}, svc.lastFilter.Statuses)
 }
 
 func TestGanttView_ServiceError(t *testing.T) {

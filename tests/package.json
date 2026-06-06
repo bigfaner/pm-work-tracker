@@ -1,0 +1,1 @@
+{"name":"tests","type":"module","private":true,"dependencies":{"@playwright/test":"^1.60.0","yaml":"^2.9.0"}}

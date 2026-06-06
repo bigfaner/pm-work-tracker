@@ -1,0 +1,19 @@
+[
+  {
+    "phase": 1,
+    "name": "Phase 1 — 核心修复与低风险优化",
+    "source": "PRD-explicit",
+    "gates": [
+      {
+        "afterPhase": 1,
+        "description": "Phase 1 所有任务通过测试，核心功能可正常使用"
+      }
+    ]
+  },
+  {
+    "phase": 2,
+    "name": "Phase 2 — 高复杂度功能与 UI 集成",
+    "source": "PRD-explicit",
+    "gates": []
+  }
+]

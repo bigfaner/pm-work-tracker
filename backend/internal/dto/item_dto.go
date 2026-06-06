@@ -2,11 +2,17 @@ package dto
 
 // MainItemFilter holds filter parameters for listing MainItems.
 type MainItemFilter struct {
-	Status      string  `form:"status"`
-	Priority    string  `form:"priority"`
-	AssigneeKey *string `form:"assigneeKey" json:"assigneeKey"`
-	IsKeyItem   *bool   `form:"isKeyItem"`
-	Archived    bool    `form:"archived"`
+	Statuses    []string `form:"status" json:"status"`
+	Priority    string   `form:"priority" json:"priority"`
+	AssigneeKey *string  `form:"assigneeKey" json:"assigneeKey"`
+	IsKeyItem   *bool    `form:"isKeyItem"`
+	Archived    bool     `form:"archived"`
+}
+
+// MainItemMatchInfo holds filter penetration match information for a main item.
+type MainItemMatchInfo struct {
+	MatchType         string   `json:"matchType,omitempty"`
+	MatchedSubItemIds []string `json:"matchedSubItemIds,omitempty"`
 }
 
 // SubItemFilter holds filter parameters for listing SubItems.
@@ -252,7 +258,7 @@ type TableRow struct {
 
 // GanttFilter holds filter parameters for the gantt view.
 type GanttFilter struct {
-	Status string `form:"status"`
+	Statuses []string `form:"status"`
 }
 
 // GanttResult is the response DTO for the gantt view.

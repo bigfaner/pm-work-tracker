@@ -59,7 +59,7 @@ jobs:
     needs: [backend, frontend]
     defaults:
       run:
-        working-directory: tests/api
+        working-directory: tests/backend
     steps:
       - uses: actions/checkout@v4
 
@@ -73,7 +73,7 @@ jobs:
 
       - name: Install API test dependencies
         run: npm ci
-        working-directory: tests/api
+        working-directory: tests/backend
 
       - name: Start backend
         run: |
@@ -91,7 +91,7 @@ jobs:
     needs: [backend, frontend]
     defaults:
       run:
-        working-directory: tests/web
+        working-directory: tests/frontend
     steps:
       - uses: actions/checkout@v4
 
@@ -111,11 +111,11 @@ jobs:
 
       - name: Install web test dependencies
         run: npm ci
-        working-directory: tests/web
+        working-directory: tests/frontend
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
-        working-directory: tests/web
+        working-directory: tests/frontend
 
       - name: Start backend
         run: |

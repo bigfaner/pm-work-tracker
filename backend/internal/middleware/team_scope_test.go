@@ -137,6 +137,14 @@ func (m *mockTeamRepo) ListTeamBizKeys(ctx context.Context) ([]int64, error) {
 	return args.Get(0).([]int64), args.Error(1)
 }
 
+func (m *mockTeamRepo) ListByUserMembership(ctx context.Context, userBizKey int64, search string, offset, limit int) ([]*model.Team, int64, error) {
+	args := m.Called(ctx, userBizKey, search, offset, limit)
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(int64), args.Error(2)
+	}
+	return args.Get(0).([]*model.Team), args.Get(1).(int64), args.Error(2)
+}
+
 // compile-time check that mockTeamRepo satisfies TeamRepo
 var _ repository.TeamRepo = (*mockTeamRepo)(nil)
 
@@ -332,7 +340,8 @@ func TestTeamScopeMiddleware_SuperAdmin_BypassesMembership(t *testing.T) {
 	teamRepo.AssertNotCalled(t, "FindMember", mock.Anything, mock.Anything, mock.Anything)
 }
 
-func TestTeamScopeMiddleware_MemberNoRoleID_SetsEmptyPermCodes(t *testing.T) {
+func TestTeamScopeMiddleware_MemberNilRoleKey_FallsBackToMemberPresetRole(t *testing.T) {
+	memberPresetBizKey := int64(5001)
 	teamRepo := new(mockTeamRepo)
 	roleRepo := new(mockRoleRepo)
 	teamRepo.On("FindByBizKey", mock.Anything, int64(3)).Return(&model.Team{BaseModel: model.BaseModel{ID: 3, BizKey: 3}}, nil)
@@ -341,6 +350,9 @@ func TestTeamScopeMiddleware_MemberNoRoleID_SetsEmptyPermCodes(t *testing.T) {
 		UserKey: 7,
 		RoleKey: nil,
 	}, nil)
+	roleRepo.On("FindByName", mock.Anything, "member").Return(&model.Role{BaseModel: model.BaseModel{ID: 10, BizKey: memberPresetBizKey}}, nil)
+	roleRepo.On("FindByBizKey", mock.Anything, memberPresetBizKey).Return(&model.Role{BaseModel: model.BaseModel{ID: 10, BizKey: memberPresetBizKey}}, nil)
+	roleRepo.On("ListPermissions", mock.Anything, memberPresetBizKey).Return([]string{"main_item:read", "sub_item:create", "sub_item:read"}, nil)
 	r, cc := setupTeamScopeRouter(teamRepo, roleRepo)
 
 	w := httptest.NewRecorder()
@@ -349,7 +361,7 @@ func TestTeamScopeMiddleware_MemberNoRoleID_SetsEmptyPermCodes(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, int64(3), cc.teamBizKey)
-	assert.Nil(t, cc.permCodes)
+	assert.Equal(t, []string{"main_item:read", "sub_item:create", "sub_item:read"}, cc.permCodes)
 }
 
 func TestTeamScopeMiddleware_RoleBizKeyNotFound_Returns500(t *testing.T) {

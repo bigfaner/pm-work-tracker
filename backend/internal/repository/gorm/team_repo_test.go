@@ -477,3 +477,100 @@ func TestTeamRepo_RemoveMember_ReaddAfterRemove(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, newTm.ID, found.ID)
 }
+
+// --- ListByUserMembership ---
+
+func TestTeamRepo_ListByUserMembership_ReturnsOnlyJoinedTeams(t *testing.T) {
+	db := setupTeamTestDB(t)
+	repo := gormrepo.NewGormTeamRepo(db)
+	ctx := context.Background()
+
+	pm := seedUser(t, db, "pm1")
+	user := seedUser(t, db, "user1")
+
+	teamA := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team A", PmKey: pm.BizKey, Code: "TA"}
+	teamB := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team B", PmKey: pm.BizKey, Code: "TB"}
+	require.NoError(t, db.Create(teamA).Error)
+	require.NoError(t, db.Create(teamB).Error)
+
+	// user is member of teamA only
+	require.NoError(t, db.Create(&model.TeamMember{
+		TeamKey: teamA.BizKey, UserKey: user.BizKey, JoinedAt: time.Now(),
+	}).Error)
+
+	teams, total, err := repo.ListByUserMembership(ctx, user.BizKey, "", 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	require.Len(t, teams, 1)
+	assert.Equal(t, "Team A", teams[0].TeamName)
+}
+
+func TestTeamRepo_ListByUserMembership_NoMembership_ReturnsEmpty(t *testing.T) {
+	db := setupTeamTestDB(t)
+	repo := gormrepo.NewGormTeamRepo(db)
+	ctx := context.Background()
+
+	pm := seedUser(t, db, "pm1")
+	user := seedUser(t, db, "loner")
+
+	teamA := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team A", PmKey: pm.BizKey, Code: "TA"}
+	require.NoError(t, db.Create(teamA).Error)
+
+	// user is not a member of any team
+	teams, total, err := repo.ListByUserMembership(ctx, user.BizKey, "", 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), total)
+	assert.Empty(t, teams)
+}
+
+func TestTeamRepo_ListByUserMembership_WithSearch(t *testing.T) {
+	db := setupTeamTestDB(t)
+	repo := gormrepo.NewGormTeamRepo(db)
+	ctx := context.Background()
+
+	pm := seedUser(t, db, "pm2")
+	user := seedUser(t, db, "user2")
+
+	teamA := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Alpha Team", PmKey: pm.BizKey, Code: "ALPHA"}
+	teamB := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Beta Team", PmKey: pm.BizKey, Code: "BETA"}
+	require.NoError(t, db.Create(teamA).Error)
+	require.NoError(t, db.Create(teamB).Error)
+
+	require.NoError(t, db.Create(&model.TeamMember{
+		TeamKey: teamA.BizKey, UserKey: user.BizKey, JoinedAt: time.Now(),
+	}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{
+		TeamKey: teamB.BizKey, UserKey: user.BizKey, JoinedAt: time.Now(),
+	}).Error)
+
+	teams, total, err := repo.ListByUserMembership(ctx, user.BizKey, "Alpha", 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	require.Len(t, teams, 1)
+	assert.Equal(t, "Alpha Team", teams[0].TeamName)
+}
+
+func TestTeamRepo_ListByUserMembership_ExcludesSoftDeletedMembers(t *testing.T) {
+	db := setupTeamTestDB(t)
+	repo := gormrepo.NewGormTeamRepo(db)
+	ctx := context.Background()
+
+	pm := seedUser(t, db, "pm3")
+	user := seedUser(t, db, "user3")
+
+	teamA := &model.Team{BaseModel: model.BaseModel{BizKey: snowflake.Generate()}, TeamName: "Team A", PmKey: pm.BizKey, Code: "TAD"}
+	require.NoError(t, db.Create(teamA).Error)
+
+	tm := &model.TeamMember{
+		TeamKey: teamA.BizKey, UserKey: user.BizKey, JoinedAt: time.Now(),
+	}
+	require.NoError(t, db.Create(tm).Error)
+
+	// Soft-delete the membership
+	require.NoError(t, db.Model(tm).Updates(map[string]any{"deleted_flag": 1, "deleted_time": time.Now()}).Error)
+
+	teams, total, err := repo.ListByUserMembership(ctx, user.BizKey, "", 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), total)
+	assert.Empty(t, teams)
+}

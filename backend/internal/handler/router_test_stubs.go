@@ -31,7 +31,7 @@ func (s *StubTeamSvc) GetTeamDetail(_ context.Context, _ int64) (*dto.TeamDetail
 }
 
 // ListTeams is a stub for service.TeamService.ListTeams.
-func (s *StubTeamSvc) ListTeams(_ context.Context, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
+func (s *StubTeamSvc) ListTeams(_ context.Context, _ int64, _ bool, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
 	return nil, 0, fmt.Errorf("stub: not implemented")
 }
 
@@ -96,8 +96,8 @@ func (s *StubMainItemSvc) Archive(_ context.Context, _ int64, _ uint) error {
 }
 
 // List is a stub for service.MainItemService.List.
-func (s *StubMainItemSvc) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
-	return nil, fmt.Errorf("stub: not implemented")
+func (s *StubMainItemSvc) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], map[int64]*dto.MainItemMatchInfo, error) {
+	return nil, nil, fmt.Errorf("stub: not implemented")
 }
 
 // Get is a stub for service.MainItemService.Get.
@@ -128,6 +128,11 @@ func (s *StubMainItemSvc) AvailableTransitions(_ context.Context, _, _ int64, _ 
 // EvaluateLinkage is a stub for service.MainItemService.EvaluateLinkage.
 func (s *StubMainItemSvc) EvaluateLinkage(_ context.Context, _, _ int64) (*service.LinkageResult, error) {
 	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// Delete is a stub for service.MainItemService.Delete.
+func (s *StubMainItemSvc) Delete(_ context.Context, _, _, _ int64) error {
+	return fmt.Errorf("stub: not implemented")
 }
 
 var _ service.MainItemService = (*StubMainItemSvc)(nil)
@@ -177,6 +182,11 @@ func (s *StubSubItemSvc) Delete(_ context.Context, _, _ int64, _ uint) error {
 
 // GetByBizKey is a stub for service.SubItemService.GetByBizKey.
 func (s *StubSubItemSvc) GetByBizKey(_ context.Context, _ int64) (*model.SubItem, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// Move is a stub for service.SubItemService.Move.
+func (s *StubSubItemSvc) Move(_ context.Context, _, _, _, _ int64) (*service.MoveResult, error) {
 	return nil, fmt.Errorf("stub: not implemented")
 }
 
@@ -464,6 +474,14 @@ func (s *StubRouterRepoMainItem) FindByIDs(_ context.Context, _ []uint) (map[uin
 // ListByTeamAndStatus is a stub for repository.MainItemRepo.ListByTeamAndStatus.
 func (s *StubRouterRepoMainItem) ListByTeamAndStatus(_ context.Context, _ int64, _ string) ([]model.MainItem, error) {
 	return nil, nil
+}
+
+// SoftDelete is a stub for repository.MainItemRepo.SoftDelete.
+func (s *StubRouterRepoMainItem) SoftDelete(_ context.Context, _ uint) error { return nil }
+
+// CascadeSoftDelete is a stub for repository.MainItemRepo.CascadeSoftDelete.
+func (s *StubRouterRepoMainItem) CascadeSoftDelete(_ context.Context, _ uint, _ []uint, _ []model.StatusHistory) error {
+	return nil
 }
 
 var _ repository.MainItemRepo = (*StubRouterRepoMainItem)(nil)

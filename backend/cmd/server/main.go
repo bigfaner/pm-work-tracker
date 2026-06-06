@@ -105,7 +105,7 @@ func run(configPath string, devMode bool) error {
 	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc, statusHistorySvc)
 	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc, statusHistorySvc)
 	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, db)
-	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo)
+	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo, statusHistoryRepo)
 	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
 	adminSvc := service.NewAdminService(userRepo, teamRepo)
 	roleSvc := service.NewRoleService(roleRepo, userRepo, teamRepo)

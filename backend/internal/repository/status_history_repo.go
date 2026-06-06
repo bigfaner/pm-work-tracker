@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
@@ -12,4 +13,5 @@ type StatusHistoryRepo interface {
 	Create(ctx context.Context, record *model.StatusHistory) error
 	FindByID(ctx context.Context, id uint) (*model.StatusHistory, error)
 	ListByItem(ctx context.Context, itemType string, itemID uint, page dto.Pagination) (*dto.PageResult[model.StatusHistory], error)
+	ListByItemKeysInRange(ctx context.Context, itemType string, itemKeys []int64, start, end time.Time) ([]model.StatusHistory, error)
 }

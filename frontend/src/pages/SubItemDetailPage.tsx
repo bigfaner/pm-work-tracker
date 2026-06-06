@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { getMainItemApi } from '@/api/mainItems'
@@ -7,7 +7,10 @@ import {
   getSubItemApi,
   updateSubItemApi,
   changeSubItemStatusApi,
+  deleteSubItemApi,
+  moveSubItemApi,
 } from '@/api/subItems'
+import { listMainItemsApi } from '@/api/mainItems'
 import { listProgressApi, appendProgressApi } from '@/api/progress'
 import { listMembersApi } from '@/api/teams'
 import { Button } from '@/components/ui/button'
@@ -34,14 +37,16 @@ import {
 import {
   Select,
   SelectContent,
+  SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import { PrioritySelectItems } from '@/components/shared/PrioritySelect'
 import StatusTransitionDropdown from '@/components/shared/StatusTransitionDropdown'
+import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import { MemberSelect } from '@/components/shared/MemberSelect'
-import { SUB_ITEM_STATUSES, isOverdue } from '@/lib/status'
+import { SUB_ITEM_STATUSES, MAIN_ITEM_STATUSES, isOverdue } from '@/lib/status'
 import { useMemberName } from '@/hooks/useMemberName'
 import { formatDate } from '@/lib/format'
 import { showToast } from '@/lib/toast'
@@ -55,6 +60,7 @@ export default function SubItemDetailPage() {
   }>()
   const teamId = useTeamStore((s) => s.currentTeamId)
   const qc = useQueryClient()
+  const navigate = useNavigate()
   const mId = mainItemId!
   const sId = subItemId!
 
@@ -81,6 +87,9 @@ export default function SubItemDetailPage() {
   const [achievementResolve, setAchievementResolve] = useState<
     ((v: boolean) => void) | null
   >(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [moveOpen, setMoveOpen] = useState(false)
+  const [moveTarget, setMoveTarget] = useState<string>('')
 
   // --- Data fetching ---
 
@@ -106,6 +115,12 @@ export default function SubItemDetailPage() {
     queryKey: ['members', teamId],
     queryFn: () => listMembersApi(teamId!),
     enabled: !!teamId,
+  })
+
+  const { data: mainItemsPage } = useQuery({
+    queryKey: ['mainItems', teamId, 'for-move'],
+    queryFn: () => listMainItemsApi(teamId!),
+    enabled: !!teamId && moveOpen,
   })
 
   const memberName = useMemberName(members)
@@ -170,6 +185,26 @@ export default function SubItemDetailPage() {
         achievementResolve(false)
         setAchievementResolve(null)
       }
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteSubItemApi(teamId!, sId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['mainItem', teamId, mId] })
+      navigate(`/items/${mId}`)
+    },
+  })
+
+  const moveMutation = useMutation({
+    mutationFn: (targetMainItemBizKey: string) =>
+      moveSubItemApi(teamId!, sId, targetMainItemBizKey),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['subItem', teamId, sId] })
+      qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
+      setMoveOpen(false)
+      setMoveTarget('')
+      navigate(`/items/${data.mainItemBizKey}/sub/${sId}`)
     },
   })
 
@@ -307,6 +342,54 @@ export default function SubItemDetailPage() {
                   />
                 </svg>
                 编辑
+              </Button>
+            </PermissionGuard>
+            <PermissionGuard code="sub_item:update">
+              <Button
+                variant="secondary"
+                disabled={isTerminalStatus}
+                onClick={() => {
+                  setMoveTarget('')
+                  setMoveOpen(true)
+                }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                  />
+                </svg>
+                移动
+              </Button>
+            </PermissionGuard>
+            <PermissionGuard code="sub_item:delete">
+              <Button
+                variant="danger"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+                删除
               </Button>
             </PermissionGuard>
           </div>
@@ -665,6 +748,62 @@ export default function SubItemDetailPage() {
                   disabled={achievementStatusMutation.isPending}
                 >
                   确认完成
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Delete confirmation */}
+          <ConfirmDialog
+            open={deleteOpen}
+            onOpenChange={setDeleteOpen}
+            title="删除子事项"
+            description="确认删除该子事项？删除后无法恢复。"
+            confirmLabel="删除"
+            confirmVariant="danger"
+            onConfirm={() => deleteMutation.mutate()}
+          />
+
+          {/* Move dialog */}
+          <Dialog open={moveOpen} onOpenChange={setMoveOpen}>
+            <DialogContent size="md">
+              <DialogHeader>
+                <DialogTitle>移动到其他主事项</DialogTitle>
+              </DialogHeader>
+              <DialogBody>
+                <Select
+                  value={moveTarget}
+                  onValueChange={setMoveTarget}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择目标主事项" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(mainItemsPage?.items || [])
+                      .filter((mi) => {
+                        if (mi.bizKey === mId) return false
+                        const statusDef = MAIN_ITEM_STATUSES[
+                          mi.itemStatus as keyof typeof MAIN_ITEM_STATUSES
+                        ]
+                        return !statusDef?.terminal
+                      })
+                      .map((mi) => (
+                        <SelectItem key={mi.bizKey} value={mi.bizKey}>
+                          {mi.code} - {mi.title}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </DialogBody>
+              <DialogFooter>
+                <Button variant="secondary" onClick={() => setMoveOpen(false)}>
+                  取消
+                </Button>
+                <Button
+                  onClick={() => moveTarget && moveMutation.mutate(moveTarget)}
+                  disabled={!moveTarget || moveMutation.isPending}
+                >
+                  确认移动
                 </Button>
               </DialogFooter>
             </DialogContent>

@@ -7,11 +7,11 @@ import (
 	gormlib "gorm.io/gorm"
 )
 
-// applyItemFilter applies shared filter fields (status, priority, assigneeKey, isKeyItem)
+// applyItemFilter applies shared filter fields (statuses, priority, assigneeKey, isKeyItem)
 // to a GORM query. Used by both MainItem and SubItem repositories.
-func applyItemFilter(query *gormlib.DB, status, priority string, assigneeKey *string, isKeyItem *bool) *gormlib.DB {
-	if status != "" {
-		query = query.Where("item_status = ?", status)
+func applyItemFilter(query *gormlib.DB, statuses []string, priority string, assigneeKey *string, isKeyItem *bool) *gormlib.DB {
+	if len(statuses) > 0 {
+		query = query.Where("item_status IN ?", statuses)
 	}
 	if priority != "" {
 		query = query.Where("priority = ?", priority)

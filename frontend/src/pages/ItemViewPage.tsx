@@ -10,8 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { STATUS_OPTIONS } from '@/lib/status'
-import { getStatusName } from '@/lib/status'
+import { StatusTagFilter } from '@/components/shared/StatusTagFilter'
+import MoveSubItemDialog from '@/components/shared/MoveSubItemDialog'
+import { STATUS_OPTIONS, getStatusName } from '@/lib/status'
 import ItemSummaryView from './item-view/ItemSummaryView'
 import ItemDetailView from './item-view/ItemDetailView'
 import CreateMainItemDialog from './item-view/CreateMainItemDialog'
@@ -89,22 +90,6 @@ export default function ItemViewPage() {
               className="w-90"
             />
             <Select
-              value={s.statusFilter}
-              onValueChange={(v) => s.setStatusFilter(v === '_all' ? '' : v)}
-            >
-              <SelectTrigger className="w-35">
-                <SelectValue placeholder="状态：全部" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="_all">状态：全部</SelectItem>
-                {STATUS_OPTIONS.map((st) => (
-                  <SelectItem key={st} value={st}>
-                    {getStatusName(st) || st}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
               value={s.assigneeFilter}
               onValueChange={(v) => s.setAssigneeFilter(v === '_all' ? '' : v)}
             >
@@ -120,6 +105,14 @@ export default function ItemViewPage() {
                 ))}
               </SelectContent>
             </Select>
+            <StatusTagFilter
+              options={STATUS_OPTIONS.map((st) => ({
+                value: st,
+                label: getStatusName(st) || st,
+              }))}
+              selected={s.statusFilter}
+              onChange={s.setStatusFilter}
+            />
             <Button variant="secondary" size="sm" onClick={s.resetFilters}>
               重置
             </Button>
@@ -175,6 +168,7 @@ export default function ItemViewPage() {
               onEditMainItem={s.openEditDialog}
               onAppendProgress={s.openAppendDialog}
               onEditSubItem={s.openEditSubDialog}
+              onMoveSubItem={s.openMoveSubDialog}
             />
           ) : (
             <ItemDetailView
@@ -201,6 +195,7 @@ export default function ItemViewPage() {
               onEditMainItem={s.openEditDialog}
               onAppendProgress={s.openAppendDialog}
               onEditSubItem={s.openEditSubDialog}
+              onMoveSubItem={s.openMoveSubDialog}
             />
           )}
 
@@ -254,6 +249,17 @@ export default function ItemViewPage() {
             onSubmit={s.handleEditSub}
             isPending={s.updateSubMutation.isPending}
           />
+
+          {s.moveSubItem && (
+            <MoveSubItemDialog
+              open={s.moveSubOpen}
+              onOpenChange={s.setMoveSubOpen}
+              subItemBizKey={s.moveSubItem.bizKey}
+              currentMainItemBizKey={s.moveSubItem.mainItemBizKey}
+              teamId={teamId!}
+              onSuccess={s.handleRefresh}
+            />
+          )}
         </>
       )}
     </div>

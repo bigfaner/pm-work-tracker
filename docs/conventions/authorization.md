@@ -55,3 +55,13 @@ When a user is invited to a team, the inviting PM/SuperAdmin selects a role from
 - When changing a member's role, the new role must exist and not be `superadmin`.
 
 **Why:** Separates team-level role management from global SuperAdmin management. Each team operates independently for role assignments.
+
+## Member Role Nil RoleKey Fallback
+
+_Source: feature/system-ux-optimization_
+
+When `pmw_team_members.role_key` is NULL, the `TeamScopeMiddleware` must query the preset "member" role's default permission set instead of returning an empty permission set.
+
+**Why**: Without this fallback, member-role users with no explicit `role_key` assignment receive zero permissions and cannot use the system. The preset "member" role always exists (seeded at startup) and provides baseline access (main_item:read, sub_item:create/read/update/change_status, etc.).
+
+**Source**: feature/system-ux-optimization BIZ-012

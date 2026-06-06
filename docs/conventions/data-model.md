@@ -170,6 +170,12 @@ MainItem.Completion = sum(SubItem.Completion * SubItem.Weight) / sum(SubItem.Wei
 
 **Why synchronous recalc:** No message queue, no cache layer, no background workers in v1. Progress rollup is computed synchronously. Data volume is small enough that this is fast.
 
+**Recalculation triggers** (complete list):
+1. ProgressRecord append (original trigger)
+2. Sub-item completion change
+3. Sub-item deletion -- recalculates parent main item
+4. Sub-item move -- recalculates both source and target main items within the same transaction
+
 ## DM-009: ProgressRecord Append-Only
 
 _Source: feature/pm-work-tracker_

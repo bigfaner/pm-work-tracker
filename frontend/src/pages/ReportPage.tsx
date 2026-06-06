@@ -138,7 +138,14 @@ export default function ReportPage() {
       )}
 
       {/* Preview Card */}
-      {preview && (
+      {preview && (preview.sections?.length ?? 0) === 0 && (
+        <Card>
+          <CardContent className="py-8 text-center text-tertiary text-sm">
+            所选周次暂无进度数据
+          </CardContent>
+        </Card>
+      )}
+      {preview && (preview.sections?.length ?? 0) > 0 && (
         <Card>
           <CardHeader>
             <h3>预览</h3>

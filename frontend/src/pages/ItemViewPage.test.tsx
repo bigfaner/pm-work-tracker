@@ -429,7 +429,9 @@ describe('ItemViewPage', () => {
       expect(screen.getByText('标题')).toBeInTheDocument()
       expect(screen.getByText('负责人')).toBeInTheDocument()
       expect(screen.getByText('进度')).toBeInTheDocument()
-      expect(screen.getByText('状态')).toBeInTheDocument()
+      // "状态" appears in the table header
+      const statusElements = screen.getAllByText('状态')
+      expect(statusElements.length).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -594,6 +596,7 @@ describe('ItemViewPage', () => {
     await waitFor(() => {
       // Each main item should show its status
       const statuses = screen.getAllByText('进行中')
+      // Includes status badge in cards and status filter tag
       expect(statuses.length).toBeGreaterThanOrEqual(2)
     })
   })
@@ -617,9 +620,11 @@ describe('ItemViewPage', () => {
       expect(screen.getByText('Alpha Task')).toBeInTheDocument()
     })
 
-    // Click the first status badge (with cursor-pointer class = dropdown trigger) to open dropdown
+    // Click the first status badge (in the table, not the filter bar) to open dropdown
     const badges = screen.getAllByText('进行中')
-    const triggerBadges = badges.filter((el) => el.closest('button') !== null)
+    const triggerBadges = badges.filter(
+      (el) => el.closest('button') !== null && !el.closest('button')!.dataset.testid,
+    )
     await user.click(triggerBadges[0])
 
     await waitFor(() => {
@@ -662,12 +667,17 @@ describe('ItemViewPage', () => {
     })
 
     const badges = screen.getAllByText('进行中')
-    await user.click(badges[0])
+    // Find the one inside a button in the table (status dropdown trigger), not filter tag
+    const badgeInButton = badges.find(
+      (el) => el.closest('button') !== null && !el.closest('button')!.dataset.testid,
+    )
+    await user.click(badgeInButton!)
 
     await waitFor(() => {
-      expect(screen.getByText('阻塞中')).toBeInTheDocument()
+      // "阻塞中" should appear in the dropdown menu (role menuitem)
+      expect(screen.getByRole('menuitem', { name: '阻塞中' })).toBeInTheDocument()
     })
-    await user.click(screen.getByText('阻塞中'))
+    await user.click(screen.getByRole('menuitem', { name: '阻塞中' }))
 
     await waitFor(() => {
       expect(statusChanged).toBe(true)
@@ -693,7 +703,9 @@ describe('ItemViewPage', () => {
     })
 
     const badges = screen.getAllByText('进行中')
-    const triggerBadges = badges.filter((el) => el.closest('button') !== null)
+    const triggerBadges = badges.filter(
+      (el) => el.closest('button') !== null && !el.closest('button')!.dataset.testid,
+    )
     await user.click(triggerBadges[0])
 
     await waitFor(() => {
@@ -1098,6 +1110,232 @@ describe('ItemViewPage', () => {
       // The URL must include the VITE_BASE_PATH prefix
       const basePath = import.meta.env.VITE_BASE_PATH || ''
       expect(copiedText).toContain(basePath + '/items/1')
+    })
+  })
+
+  // --- Filter penetration: multi-select status filter ---
+
+  describe('filter penetration: status tag filter', () => {
+    it('renders status tag filter with status options', async () => {
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      })
+      // Should have clickable status filter tags
+      expect(screen.getByTestId('status-filter-progressing')).toBeInTheDocument()
+      expect(screen.getByTestId('status-filter-pending')).toBeInTheDocument()
+      expect(screen.getByTestId('status-filter-completed')).toBeInTheDocument()
+    })
+
+    it('filters items by multiple selected statuses', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      })
+
+      // All items should be visible initially (no filter = show all)
+      expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      expect(screen.getByText('Beta Task')).toBeInTheDocument()
+      expect(screen.getByText('Gamma Task')).toBeInTheDocument()
+
+      // Click the "进行中" status filter tag to select it
+      await user.click(screen.getByTestId('status-filter-progressing'))
+
+      await waitFor(() => {
+        // "进行中" items should still be visible
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+        expect(screen.getByText('Beta Task')).toBeInTheDocument()
+        // "completed" item should be hidden
+        expect(screen.queryByText('Gamma Task')).not.toBeInTheDocument()
+      })
+    })
+
+    it('shows all items when no status tags are selected', async () => {
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+        expect(screen.getByText('Beta Task')).toBeInTheDocument()
+        expect(screen.getByText('Gamma Task')).toBeInTheDocument()
+      })
+    })
+  })
+
+  // --- Filter penetration: assignee filter with matchType ---
+
+  describe('filter penetration: assignee match with matchType', () => {
+    const indirectSubItems = [
+      {
+        bizKey: '21',
+        teamKey: '1',
+        mainItemKey: '2',
+        code: 'MI-0002-01',
+        title: 'Matched Sub',
+        itemDesc: '',
+        priority: 'P2',
+        assigneeKey: 'U001',
+        planStartDate: '2026-04-15',
+        expectedEndDate: '2026-04-25',
+        actualEndDate: null,
+        itemStatus: 'progressing',
+        completion: 50,
+        weight: 1,
+        createTime: '2026-04-15T00:00:00Z',
+        dbUpdateTime: '2026-04-15T00:00:00Z',
+      },
+      {
+        bizKey: '22',
+        teamKey: '1',
+        mainItemKey: '2',
+        code: 'MI-0002-02',
+        title: 'Unmatched Sub',
+        itemDesc: '',
+        priority: 'P3',
+        assigneeKey: 'U002',
+        planStartDate: '2026-04-15',
+        expectedEndDate: '2026-04-25',
+        actualEndDate: null,
+        itemStatus: 'pending',
+        completion: 0,
+        weight: 1,
+        createTime: '2026-04-15T00:00:00Z',
+        dbUpdateTime: '2026-04-15T00:00:00Z',
+      },
+    ]
+
+    const indirectItems = [
+      {
+        bizKey: '1',
+        teamKey: '1',
+        code: 'MI-0001',
+        title: 'Direct Item',
+        priority: 'P1',
+        proposerKey: 'U001',
+        assigneeKey: 'U001',
+        planStartDate: '2026-04-01',
+        expectedEndDate: '2026-04-15',
+        actualEndDate: null,
+        itemStatus: 'progressing',
+        completion: 65,
+        createTime: '2026-04-01T00:00:00Z',
+        dbUpdateTime: '2026-04-01T00:00:00Z',
+        matchType: 'direct',
+      },
+      {
+        bizKey: '2',
+        teamKey: '1',
+        code: 'MI-0002',
+        title: 'Indirect Item',
+        priority: 'P2',
+        proposerKey: 'U001',
+        assigneeKey: 'U002',
+        planStartDate: '2026-04-15',
+        expectedEndDate: '2026-04-25',
+        actualEndDate: null,
+        itemStatus: 'progressing',
+        completion: 40,
+        createTime: '2026-04-15T00:00:00Z',
+        dbUpdateTime: '2026-04-15T00:00:00Z',
+        matchType: 'indirect',
+        matchedSubItemIds: ['21'],
+      },
+    ]
+
+    function setupIndirectHandlers() {
+      server.use(
+        http.get('/v1/teams/:teamId/main-items', () => {
+          return HttpResponse.json({
+            code: 0,
+            data: { items: indirectItems, total: 2, page: 1, pageSize: 20 },
+          })
+        }),
+        http.get('/v1/teams/:teamId/main-items/1/sub-items', () => {
+          return HttpResponse.json({
+            code: 0,
+            data: { items: [], total: 0, page: 1, pageSize: 20 },
+          })
+        }),
+        http.get('/v1/teams/:teamId/main-items/2/sub-items', () => {
+          return HttpResponse.json({
+            code: 0,
+            data: { items: indirectSubItems, total: 2, page: 1, pageSize: 20 },
+          })
+        }),
+      )
+    }
+
+    it('shows indirect match items with sub-item filtering in summary view', async () => {
+      setupIndirectHandlers()
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Direct Item')).toBeInTheDocument()
+        expect(screen.getByText('Indirect Item')).toBeInTheDocument()
+      })
+
+      // Expand the indirect item to check sub-item filtering
+      const expandBtn = screen.getByTestId('expand-card-2')
+      await user.click(expandBtn)
+
+      await waitFor(() => {
+        // Only the matched sub-item should be shown
+        expect(screen.getByText('Matched Sub')).toBeInTheDocument()
+        // The unmatched sub-item should be hidden
+        expect(screen.queryByText('Unmatched Sub')).not.toBeInTheDocument()
+      })
+    })
+
+    it('shows indirect match items with sub-item filtering in detail view', async () => {
+      setupIndirectHandlers()
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Direct Item')).toBeInTheDocument()
+      })
+
+      // Switch to detail view
+      await user.click(screen.getByText('明细'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('detail-table')).toBeInTheDocument()
+      })
+
+      // Only matched sub should be visible, not unmatched
+      await waitFor(() => {
+        expect(screen.getByText('Matched Sub')).toBeInTheDocument()
+        expect(screen.queryByText('Unmatched Sub')).not.toBeInTheDocument()
+      })
+    })
+  })
+
+  // --- Reset filters ---
+
+  describe('reset filters', () => {
+    it('clears status filter when clicking reset', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+      })
+
+      // Click the "已完成" status filter tag to select it
+      await user.click(screen.getByTestId('status-filter-completed'))
+
+      await waitFor(() => {
+        // Only completed item visible
+        expect(screen.queryByText('Alpha Task')).not.toBeInTheDocument()
+        expect(screen.getByText('Gamma Task')).toBeInTheDocument()
+      })
+
+      // Click reset
+      await user.click(screen.getByText('重置'))
+
+      await waitFor(() => {
+        // All items should be visible again
+        expect(screen.getByText('Alpha Task')).toBeInTheDocument()
+        expect(screen.getByText('Beta Task')).toBeInTheDocument()
+        expect(screen.getByText('Gamma Task')).toBeInTheDocument()
+      })
     })
   })
 })

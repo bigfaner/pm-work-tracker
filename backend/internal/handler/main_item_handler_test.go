@@ -56,6 +56,9 @@ type mockMainItemService struct {
 		transitions []string
 		err         error
 	}
+	deleteResult struct {
+		err error
+	}
 
 	// capture calls
 	createCalled  bool
@@ -85,6 +88,10 @@ type mockMainItemService struct {
 	lastNewStatus      string
 
 	availableTransitionsCalled bool
+
+	deleteCalled     bool
+	lastDeleteBizKey int64
+	lastDeleteCaller int64
 }
 
 func (m *mockMainItemService) Create(_ context.Context, teamBizKey int64, pmBizKey int64, req dto.MainItemCreateReq) (*model.MainItem, error) {
@@ -109,12 +116,12 @@ func (m *mockMainItemService) Archive(_ context.Context, _ int64, itemID uint) e
 	return m.archiveResult.err
 }
 
-func (m *mockMainItemService) List(_ context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
+func (m *mockMainItemService) List(_ context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], map[int64]*dto.MainItemMatchInfo, error) {
 	m.listCalled = true
 	m.lastTeamID = uint(teamBizKey)
 	m.lastFilter = filter
 	m.lastPage = page
-	return m.listResult.page, m.listResult.err
+	return m.listResult.page, nil, m.listResult.err
 }
 
 func (m *mockMainItemService) Get(_ context.Context, itemID uint) (*model.MainItem, error) {
@@ -155,6 +162,13 @@ func (m *mockMainItemService) AvailableTransitions(_ context.Context, _ int64, c
 
 func (m *mockMainItemService) EvaluateLinkage(_ context.Context, _ int64, _ int64) (*service.LinkageResult, error) {
 	return nil, nil
+}
+
+func (m *mockMainItemService) Delete(_ context.Context, _, itemBizKey, operatorBizKey int64) error {
+	m.deleteCalled = true
+	m.lastDeleteBizKey = itemBizKey
+	m.lastDeleteCaller = operatorBizKey
+	return m.deleteResult.err
 }
 
 // ---------------------------------------------------------------------------
@@ -413,7 +427,7 @@ func TestListMainItems_WithFilters(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, svc.listCalled)
 	assert.Equal(t, "P1", svc.lastFilter.Priority)
-	assert.Equal(t, "progressing", svc.lastFilter.Status)
+	assert.Equal(t, []string{"progressing"}, svc.lastFilter.Statuses)
 	assert.Equal(t, 2, svc.lastPage.Page)
 	assert.Equal(t, 10, svc.lastPage.PageSize)
 }
@@ -1041,4 +1055,70 @@ func TestGetMainItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	assert.Equal(t, 45.5, data["completion"])
 	assert.Equal(t, false, data["isKeyItem"])
 	assert.NotNil(t, data["subItems"])
+}
+
+// ---------------------------------------------------------------------------
+// Tests: Delete Main Item
+// ---------------------------------------------------------------------------
+
+func TestDeleteMainItem_Success(t *testing.T) {
+	svc := &mockMainItemService{}
+	userRepo := &mockUserRepoForHandler{}
+	subItemRepo := &mockSubItemRepoForHandler{}
+
+	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/teams/10/main-items/100", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, svc.deleteCalled)
+	assert.Equal(t, int64(100), svc.lastDeleteBizKey)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, float64(0), resp["code"])
+	data, ok := resp["data"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "ok", data["message"])
+}
+
+func TestDeleteMainItem_NotFound(t *testing.T) {
+	svc := &mockMainItemService{deleteResult: struct{ err error }{err: apperrors.ErrItemNotFound}}
+	userRepo := &mockUserRepoForHandler{}
+	subItemRepo := &mockSubItemRepoForHandler{}
+
+	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/teams/10/main-items/999", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestDeleteMainItem_InvalidBizKey(t *testing.T) {
+	svc := &mockMainItemService{}
+	userRepo := &mockUserRepoForHandler{}
+	subItemRepo := &mockSubItemRepoForHandler{}
+
+	deps := depsWithMainItemSvc(t, svc, userRepo, subItemRepo)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/teams/10/main-items/abc", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.False(t, svc.deleteCalled)
 }

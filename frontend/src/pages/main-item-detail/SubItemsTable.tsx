@@ -26,6 +26,7 @@ interface SubItemsTableProps {
   onEditSub: (sub: SubItem) => void
   onAppendProgress: (sub: SubItem) => void
   onCreateSub: () => void
+  onMoveSubItem?: (sub: SubItem) => void
 }
 
 export default function SubItemsTable({
@@ -38,6 +39,7 @@ export default function SubItemsTable({
   onEditSub,
   onAppendProgress,
   onCreateSub,
+  onMoveSubItem,
 }: SubItemsTableProps) {
   const mainTerminal =
     (MAIN_ITEM_STATUSES as Record<string, { terminal: boolean }>)[mainStatus]
@@ -134,6 +136,31 @@ export default function SubItemsTable({
                       <Plus size={12} />
                       追加进度
                     </Button>
+                    {onMoveSubItem && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary-600"
+                        disabled={mainTerminal}
+                        onClick={() => onMoveSubItem(sub)}
+                      >
+                        <svg
+                          width="12"
+                          height="12"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                          />
+                        </svg>
+                        移动
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

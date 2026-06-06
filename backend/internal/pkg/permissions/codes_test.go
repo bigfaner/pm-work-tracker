@@ -22,8 +22,8 @@ func TestRegistryContainsAllResources(t *testing.T) {
 func TestRegistryResourceCodeCounts(t *testing.T) {
 	wantCounts := map[string]int{
 		"team":      7,
-		"main_item": 5,
-		"sub_item":  5,
+		"main_item": 6,
+		"sub_item":  6,
 		"progress":  3,
 		"item_pool": 2,
 		"view":      3,
@@ -44,7 +44,7 @@ func TestRegistryResourceCodeCounts(t *testing.T) {
 
 func TestAllCodesReturnsExpectedCount(t *testing.T) {
 	codes := AllCodes()
-	wantCount := 29 // 7+5+5+3+2+3+1+3
+	wantCount := 31 // 7+6+6+3+2+3+1+3
 	if len(codes) != wantCount {
 		t.Fatalf("AllCodes() returned %d codes, want %d", len(codes), wantCount)
 	}
@@ -54,8 +54,8 @@ func TestAllCodesContainsSpecificCodes(t *testing.T) {
 	codes := AllCodes()
 	mustHave := []string{
 		"team:create", "team:read", "team:update", "team:delete", "team:invite", "team:remove", "team:transfer",
-		"main_item:create", "main_item:read", "main_item:update", "main_item:archive", "main_item:change_status",
-		"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:assign", "sub_item:change_status",
+		"main_item:create", "main_item:read", "main_item:update", "main_item:archive", "main_item:change_status", "main_item:delete",
+		"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:assign", "sub_item:change_status", "sub_item:delete",
 		"progress:create", "progress:read", "progress:update",
 		"item_pool:submit", "item_pool:review",
 		"view:weekly", "view:gantt", "view:table",
@@ -71,8 +71,8 @@ func TestAllCodesContainsSpecificCodes(t *testing.T) {
 
 func TestAllCodeStringsReturnsAllCodes(t *testing.T) {
 	codes := AllCodeStrings()
-	if len(codes) != 29 {
-		t.Fatalf("AllCodeStrings() returned %d codes, want 29", len(codes))
+	if len(codes) != 31 {
+		t.Fatalf("AllCodeStrings() returned %d codes, want 31", len(codes))
 	}
 	// Verify each code is also in AllCodes()
 	allCodesMap := AllCodes()

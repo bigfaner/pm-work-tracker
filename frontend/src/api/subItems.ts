@@ -73,3 +73,28 @@ export function getSubItemTransitionsApi(
     >(`/teams/${teamBizKey}/sub-items/${bizKey}/available-transitions`)
     .then((res) => res.transitions ?? [])
 }
+
+export function deleteSubItemApi(
+  teamBizKey: string,
+  bizKey: string,
+): Promise<{ message: string }> {
+  return client.delete<never, { message: string }>(
+    `/teams/${teamBizKey}/sub-items/${bizKey}`,
+  )
+}
+
+export interface MoveSubItemResult {
+  newSubCode: string
+  mainItemBizKey: string
+}
+
+export function moveSubItemApi(
+  teamBizKey: string,
+  bizKey: string,
+  targetMainItemBizKey: string,
+): Promise<MoveSubItemResult> {
+  return client.put<never, MoveSubItemResult>(
+    `/teams/${teamBizKey}/sub-items/${bizKey}/move`,
+    { targetMainItemBizKey },
+  )
+}

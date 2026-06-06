@@ -78,6 +78,25 @@ type mockSubItemService struct {
 	lastAssigneeID uint
 
 	availableTransitionsCalled bool
+
+	deleteResult struct {
+		err error
+	}
+	deleteCalled bool
+	lastDeleteID uint
+
+	getByBizKeyResult struct {
+		item *model.SubItem
+		err  error
+	}
+
+	moveResult struct {
+		result *service.MoveResult
+		err    error
+	}
+	moveCalled           bool
+	lastMoveSubBizKey    int64
+	lastMoveTargetBizKey int64
 }
 
 func (m *mockSubItemService) Create(_ context.Context, teamBizKey int64, callerBizKey int64, req dto.SubItemCreateReq) (*model.SubItem, error) {
@@ -136,11 +155,23 @@ func (m *mockSubItemService) AvailableTransitions(_ context.Context, teamBizKey 
 	m.lastItemID = subID
 	return m.availableTransitionsResult.transitions, m.availableTransitionsResult.err
 }
-func (m *mockSubItemService) Delete(_ context.Context, _ int64, _ int64, _ uint) error {
-	return nil
+func (m *mockSubItemService) Delete(_ context.Context, _ int64, _ int64, itemID uint) error {
+	m.deleteCalled = true
+	m.lastDeleteID = itemID
+	return m.deleteResult.err
 }
 func (m *mockSubItemService) GetByBizKey(_ context.Context, bizKey int64) (*model.SubItem, error) {
-	return &model.SubItem{BaseModel: model.BaseModel{ID: uint(bizKey)}}, nil
+	if m.getByBizKeyResult.item != nil || m.getByBizKeyResult.err != nil {
+		return m.getByBizKeyResult.item, m.getByBizKeyResult.err
+	}
+	return &model.SubItem{BaseModel: model.BaseModel{ID: uint(bizKey), BizKey: bizKey}}, nil
+}
+
+func (m *mockSubItemService) Move(_ context.Context, _ int64, subItemBizKey int64, targetMainItemBizKey int64, _ int64) (*service.MoveResult, error) {
+	m.moveCalled = true
+	m.lastMoveSubBizKey = subItemBizKey
+	m.lastMoveTargetBizKey = targetMainItemBizKey
+	return m.moveResult.result, m.moveResult.err
 }
 
 // mockMainItemSvcForSubItem resolves bizKey for SubItemHandler List tests.
@@ -153,8 +184,8 @@ func (m *mockMainItemSvcForSubItem) Update(_ context.Context, _ int64, _ uint, _
 	return nil
 }
 func (m *mockMainItemSvcForSubItem) Archive(_ context.Context, _ int64, _ uint) error { return nil }
-func (m *mockMainItemSvcForSubItem) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
-	return nil, nil
+func (m *mockMainItemSvcForSubItem) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], map[int64]*dto.MainItemMatchInfo, error) {
+	return nil, nil, nil
 }
 func (m *mockMainItemSvcForSubItem) Get(_ context.Context, _ uint) (*model.MainItem, error) {
 	return nil, nil
@@ -170,6 +201,12 @@ func (m *mockMainItemSvcForSubItem) AvailableTransitions(_ context.Context, _ in
 	return nil, nil
 }
 func (m *mockMainItemSvcForSubItem) EvaluateLinkage(_ context.Context, _ int64, _ int64) (*service.LinkageResult, error) {
+	return nil, nil
+}
+func (m *mockMainItemSvcForSubItem) Delete(_ context.Context, _ int64, _ int64, _ int64) error {
+	return nil
+}
+func (m *mockMainItemSvcForSubItem) Move(_ context.Context, _, _, _, _ int64) (*service.MoveResult, error) {
 	return nil, nil
 }
 
@@ -994,4 +1031,232 @@ func TestCreateSubItem_ResponseShapeMatchesDataContract(t *testing.T) {
 	assert.Equal(t, "New SubItem", data["title"])
 	assert.Equal(t, "P2", data["priority"])
 	assert.Equal(t, "pending", data["itemStatus"])
+}
+
+// ---------------------------------------------------------------------------
+// Tests: Delete Sub Item
+// ---------------------------------------------------------------------------
+
+func TestDeleteSubItem_Success(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.getByBizKeyResult.item = &model.SubItem{BaseModel: model.BaseModel{ID: 42, BizKey: 200}}
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/teams/10/sub-items/200", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, svc.deleteCalled)
+	assert.Equal(t, uint(42), svc.lastDeleteID)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, float64(0), resp["code"])
+	data, ok := resp["data"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "ok", data["message"])
+}
+
+func TestDeleteSubItem_NotFound(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.getByBizKeyResult.err = apperrors.ErrItemNotFound
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/teams/10/sub-items/999", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.False(t, svc.deleteCalled)
+}
+
+func TestDeleteSubItem_DeleteError(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.getByBizKeyResult.item = &model.SubItem{BaseModel: model.BaseModel{ID: 42, BizKey: 200}}
+	svc.deleteResult.err = apperrors.ErrForbidden
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/teams/10/sub-items/200", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: PUT /teams/:teamId/sub-items/:subId/move (Move)
+// ---------------------------------------------------------------------------
+
+func TestMoveSubItem_Success(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.moveResult.result = &service.MoveResult{
+		NewSubCode:     "FEAT-00002-03",
+		MainItemBizKey: 300,
+	}
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"targetMainItemBizKey":"300"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/100/move", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, svc.moveCalled)
+	assert.Equal(t, int64(100), svc.lastMoveSubBizKey)
+	assert.Equal(t, int64(300), svc.lastMoveTargetBizKey)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, float64(0), resp["code"])
+	data, ok := resp["data"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "FEAT-00002-03", data["newSubCode"])
+	assert.Equal(t, "300", data["mainItemBizKey"])
+}
+
+func TestMoveSubItem_TargetClosed(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.moveResult.err = apperrors.ErrTargetClosed
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"targetMainItemBizKey":"300"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/100/move", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestMoveSubItem_SameMainItem(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.moveResult.err = apperrors.ErrSameMainItem
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"targetMainItemBizKey":"300"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/100/move", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestMoveSubItem_SubItemNotFound(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.moveResult.err = apperrors.ErrItemNotFound
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"targetMainItemBizKey":"300"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/999/move", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestMoveSubItem_TargetNotFound(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.moveResult.err = apperrors.ErrItemNotFound
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"targetMainItemBizKey":"999"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/100/move", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestMoveSubItem_MissingBody(t *testing.T) {
+	svc := &mockSubItemService{}
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/100/move", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.False(t, svc.moveCalled)
+}
+
+func TestMoveSubItem_CrossTeam(t *testing.T) {
+	svc := &mockSubItemService{}
+	svc.moveResult.err = apperrors.ErrItemNotFound
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"targetMainItemBizKey":"300"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/100/move", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	// Cross-team returns 404 (ErrItemNotFound)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.True(t, svc.moveCalled)
+}
+
+func TestMoveSubItem_InvalidBizKey(t *testing.T) {
+	svc := &mockSubItemService{}
+
+	deps := depsWithSubItemSvc(t, svc)
+	r := SetupRouter(deps, nil)
+
+	token := signTestToken(t, 5, "testuser")
+	body := `{"targetMainItemBizKey":"not-a-number"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/teams/10/sub-items/100/move", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.False(t, svc.moveCalled)
 }

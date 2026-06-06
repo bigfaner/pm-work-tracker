@@ -1021,6 +1021,10 @@ func (t *trackingMainItemRepo) ListNonArchivedByTeam(_ context.Context, _ int64)
 func (t *trackingMainItemRepo) ListByTeamAndStatus(_ context.Context, _ int64, _ string) ([]model.MainItem, error) {
 	return nil, nil
 }
+func (t *trackingMainItemRepo) SoftDelete(_ context.Context, _ uint) error { return nil }
+func (t *trackingMainItemRepo) CascadeSoftDelete(_ context.Context, _ uint, _ []uint, _ []model.StatusHistory) error {
+	return nil
+}
 
 // compile-time check
 var _ repository.MainItemRepo = (*trackingMainItemRepo)(nil)
@@ -1058,6 +1062,10 @@ func (m *mockMainItemRepoForPool) ListByTeamAndStatus(_ context.Context, _ int64
 }
 func (m *mockMainItemRepoForPool) FindByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
 	return nil, nil
+}
+func (m *mockMainItemRepoForPool) SoftDelete(_ context.Context, _ uint) error { return nil }
+func (m *mockMainItemRepoForPool) CascadeSoftDelete(_ context.Context, _ uint, _ []uint, _ []model.StatusHistory) error {
+	return nil
 }
 
 func ptrStr(s string) *string { return &s }

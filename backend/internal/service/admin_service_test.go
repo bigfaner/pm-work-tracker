@@ -180,6 +180,10 @@ func (m *mockAdminTeamRepo) FindPMMembers(_ context.Context, _ []int64) (map[int
 	return map[int64]string{}, nil
 }
 
+func (m *mockAdminTeamRepo) ListByUserMembership(_ context.Context, _ int64, _ string, _, _ int) ([]*model.Team, int64, error) {
+	return nil, 0, nil
+}
+
 func (m *mockAdminTeamRepo) ListTeamBizKeys(_ context.Context) ([]int64, error) {
 	return nil, nil
 }

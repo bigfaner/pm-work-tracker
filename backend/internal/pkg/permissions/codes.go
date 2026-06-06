@@ -37,6 +37,7 @@ var Registry = []ResourcePermissions{
 			{Code: "main_item:update", Description: "编辑主事项"},
 			{Code: "main_item:archive", Description: "归档主事项"},
 			{Code: "main_item:change_status", Description: "变更主事项状态"},
+			{Code: "main_item:delete", Description: "删除主事项"},
 		},
 	},
 	{
@@ -47,6 +48,7 @@ var Registry = []ResourcePermissions{
 			{Code: "sub_item:update", Description: "编辑子事项"},
 			{Code: "sub_item:assign", Description: "分配子事项负责人"},
 			{Code: "sub_item:change_status", Description: "变更子事项状态"},
+			{Code: "sub_item:delete", Description: "删除子事项"},
 		},
 	},
 	{

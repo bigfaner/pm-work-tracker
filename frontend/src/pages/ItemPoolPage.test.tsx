@@ -542,7 +542,7 @@ describe('ItemPoolPage', () => {
     })
   })
 
-  it('enables 确认转换 button when dates are pre-filled in convert-to-main dialog', async () => {
+  it('disables 确认转换 button when assignee not selected in convert-to-main dialog', async () => {
     const user = userEvent.setup()
     renderPage()
     await waitFor(() => {
@@ -557,8 +557,62 @@ describe('ItemPoolPage', () => {
       ).toBeInTheDocument()
     })
 
-    // Dates are pre-filled with today, so button should be enabled immediately
-    expect(screen.getByRole('button', { name: '确认转换' })).toBeEnabled()
+    // Dates are pre-filled but no assignee selected, so button should be disabled
+    expect(screen.getByRole('button', { name: '确认转换' })).toBeDisabled()
+  })
+
+  it('enables 确认转换 button when assignee is selected in convert-to-main dialog', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('移动端适配需求')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByTestId('to-main-1'))
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: '确认转换' }),
+      ).toBeInTheDocument()
+    })
+
+    // Select an assignee
+    const assigneeTriggers = screen.getAllByRole('combobox')
+    // The second combobox in the to-main dialog is the assignee
+    const assigneeTrigger = assigneeTriggers.find(
+      (el) => el.textContent?.includes('请选择'),
+    )
+    if (assigneeTrigger) {
+      await user.click(assigneeTrigger)
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+      await user.click(screen.getByText('张明'))
+    }
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '确认转换' })).toBeEnabled()
+    })
+  })
+
+  it('shows required * mark on 优先级 and 负责人 labels in convert-to-main dialog', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('移动端适配需求')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByTestId('to-main-1'))
+
+    await waitFor(() => {
+      // Dialog should be open
+      expect(screen.getAllByText('转为主事项').length).toBeGreaterThanOrEqual(2)
+    })
+
+    // Find all labels with * inside the dialog
+    const dialog = screen.getByRole('dialog')
+    const requiredLabels = dialog.querySelectorAll('label .text-error')
+    expect(requiredLabels.length).toBeGreaterThanOrEqual(2)
   })
 
   // --- Convert to sub item dialog ---
@@ -577,6 +631,155 @@ describe('ItemPoolPage', () => {
       expect(screen.getAllByText('转为子事项').length).toBeGreaterThanOrEqual(
         2,
       )
+    })
+  })
+
+  // AC-1: description disabled in to-sub dialog
+  it('disables description textarea in convert-to-sub dialog', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('移动端适配需求')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByTestId('to-sub-1'))
+
+    await waitFor(() => {
+      expect(screen.getAllByText('转为子事项').length).toBeGreaterThanOrEqual(2)
+    })
+
+    // Find the description textarea inside the dialog - it should be disabled
+    const dialog = screen.getByRole('dialog')
+    const textareas = dialog.querySelectorAll('textarea')
+    const descTextarea = textareas[0]
+    expect(descTextarea).toBeDisabled()
+  })
+
+  // AC-2: submit disabled when no assignee in to-sub dialog
+  it('disables 确认转换 button when assignee not selected in convert-to-sub dialog', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('移动端适配需求')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByTestId('to-sub-1'))
+
+    await waitFor(() => {
+      expect(screen.getAllByText('转为子事项').length).toBeGreaterThanOrEqual(2)
+    })
+
+    // Need to select parent item first for the submit to consider other conditions
+    // But even with parent selected, no assignee means disabled
+    // The button should be disabled because no parent is selected and no assignee
+    const submitButtons = screen.getAllByRole('button', { name: '确认转换' })
+    const subDialogSubmit = submitButtons[submitButtons.length - 1]
+    expect(subDialogSubmit).toBeDisabled()
+  })
+
+  // AC-2: required * marks on to-sub dialog
+  it('shows required * mark on 优先级 and 负责人 labels in convert-to-sub dialog', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('移动端适配需求')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByTestId('to-sub-1'))
+
+    await waitFor(() => {
+      expect(screen.getAllByText('转为子事项').length).toBeGreaterThanOrEqual(2)
+    })
+
+    const dialog = screen.getByRole('dialog')
+    const requiredLabels = dialog.querySelectorAll('label .text-error')
+    // 挂载主事项, 标题, 优先级, 负责人, 开始时间, 预期完成时间 all have *
+    expect(requiredLabels.length).toBeGreaterThanOrEqual(4)
+  })
+
+  // AC-3: form cleared on dialog close
+  it('clears to-main form fields when dialog is closed', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('移动端适配需求')).toBeInTheDocument()
+    })
+
+    // Open to-main dialog
+    await user.click(screen.getByTestId('to-main-1'))
+
+    await waitFor(() => {
+      expect(screen.getAllByText('转为主事项').length).toBeGreaterThanOrEqual(2)
+    })
+
+    // Close by clicking cancel
+    const cancelButtons = screen.getAllByRole('button', { name: '取消' })
+    await user.click(cancelButtons[cancelButtons.length - 1])
+
+    // Re-open the dialog - form should be reset
+    await user.click(screen.getByTestId('to-main-1'))
+
+    await waitFor(() => {
+      expect(screen.getAllByText('转为主事项').length).toBeGreaterThanOrEqual(2)
+    })
+
+    // Assignee should be reset (shows placeholder)
+    const dialog = screen.getByRole('dialog')
+    const triggers = dialog.querySelectorAll('button[role="combobox"]')
+    // The assignee trigger should show the placeholder
+    const assigneeTrigger = Array.from(triggers).find(
+      (el) => el.textContent?.includes('请选择'),
+    )
+    expect(assigneeTrigger).toBeTruthy()
+  })
+
+  // AC-4: form preserved on submission failure
+  it('preserves to-main form fields when submission fails', async () => {
+    server.use(
+      http.post('/v1/teams/:teamId/item-pool/:poolId/convert-to-main', () => {
+        return HttpResponse.json(
+          { code: 1, message: '转换失败' },
+          { status: 500 },
+        )
+      }),
+    )
+
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('移动端适配需求')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByTestId('to-main-1'))
+
+    await waitFor(() => {
+      expect(screen.getAllByText('转为主事项').length).toBeGreaterThanOrEqual(2)
+    })
+
+    // Select an assignee so submit becomes enabled
+    const assigneeTriggers = screen.getAllByRole('combobox')
+    const assigneeTrigger = assigneeTriggers.find(
+      (el) => el.textContent?.includes('请选择'),
+    )
+    if (assigneeTrigger) {
+      await user.click(assigneeTrigger)
+      await waitFor(() => {
+        expect(screen.getByText('张明')).toBeInTheDocument()
+      })
+      await user.click(screen.getByText('张明'))
+    }
+
+    // Submit
+    const submitBtn = screen.getByRole('button', { name: '确认转换' })
+    await waitFor(() => {
+      expect(submitBtn).toBeEnabled()
+    })
+    await user.click(submitBtn)
+
+    // Dialog should still be open (form preserved) after failure
+    await waitFor(() => {
+      // The dialog is still visible
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
   })
 

@@ -16,10 +16,10 @@ var testedCodes = map[string]bool{
 	"team:delete": true, "team:invite": true, "team:remove": true, "team:transfer": true,
 	// main_item
 	"main_item:create": true, "main_item:read": true, "main_item:update": true,
-	"main_item:archive": true, "main_item:change_status": true,
+	"main_item:archive": true, "main_item:change_status": true, "main_item:delete": true,
 	// sub_item
 	"sub_item:create": true, "sub_item:read": true, "sub_item:update": true,
-	"sub_item:assign": true, "sub_item:change_status": true,
+	"sub_item:assign": true, "sub_item:change_status": true, "sub_item:delete": true,
 	// progress
 	"progress:create": true, "progress:read": true, "progress:update": true,
 	// item_pool

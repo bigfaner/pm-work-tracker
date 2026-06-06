@@ -19,10 +19,27 @@ export function getWeeklyViewApi(
 
 export function getGanttViewApi(
   teamBizKey: string,
-  status?: string,
+  statuses?: string[],
 ): Promise<GanttViewResp> {
+  const params: Record<string, string | string[] | undefined> = {}
+  if (statuses && statuses.length > 0) {
+    params.status = statuses
+  }
   return client.get<never, GanttViewResp>(`/teams/${teamBizKey}/views/gantt`, {
-    params: { status },
+    params,
+    paramsSerializer: {
+      serialize: (p) => {
+        const parts: string[] = []
+        for (const [key, value] of Object.entries(p)) {
+          if (value == null) continue
+          const values = Array.isArray(value) ? value : [value]
+          for (const v of values) {
+            parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(v)}`)
+          }
+        }
+        return parts.join('&')
+      },
+    },
   })
 }
 

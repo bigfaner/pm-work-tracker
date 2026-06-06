@@ -41,7 +41,7 @@ export function useItemViewPage(teamId: string | null) {
 
   // Filter state
   const [searchText, setSearchText] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [assigneeFilter, setAssigneeFilter] = useState<string>('')
 
   // Summary view: infinite scroll
@@ -106,12 +106,28 @@ export function useItemViewPage(teamId: string | null) {
     title: '',
     priority: '',
     assigneeKey: '',
+    startDate: '',
     expectedEndDate: '',
     description: '',
   })
 
   // Expanded cards
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
+
+  // Move sub-item
+  const [moveSubOpen, setMoveSubOpen] = useState(false)
+  const [moveSubItem, setMoveSubItemData] = useState<{
+    bizKey: string
+    mainItemBizKey: string
+  } | null>(null)
+
+  const openMoveSubDialog = useCallback(
+    (sub: { bizKey: string }, mainItemBizKey: string) => {
+      setMoveSubItemData({ bizKey: sub.bizKey, mainItemBizKey })
+      setMoveSubOpen(true)
+    },
+    [],
+  )
 
   // --- Data fetching ---
 
@@ -129,11 +145,13 @@ export function useItemViewPage(teamId: string | null) {
     fetchNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['mainItems', teamId],
+    queryKey: ['mainItems', teamId, statusFilter, assigneeFilter],
     queryFn: ({ pageParam }) =>
       listMainItemsApi(teamId!, {
         page: pageParam as number,
         pageSize: DEFAULT_PAGE_SIZE,
+        ...(statusFilter.length > 0 && { status: statusFilter }),
+        ...(assigneeFilter && { assigneeKey: assigneeFilter }),
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
@@ -162,14 +180,11 @@ export function useItemViewPage(teamId: string | null) {
           item.code.toLowerCase().includes(q),
       )
     }
-    if (statusFilter) {
-      items = items.filter((item) => item.itemStatus === statusFilter)
-    }
-    if (assigneeFilter) {
-      items = items.filter((item) => item.assigneeKey === assigneeFilter)
+    if (statusFilter.length > 0) {
+      items = items.filter((item) => statusFilter.includes(item.itemStatus))
     }
     return items
-  }, [allItems, searchText, statusFilter, assigneeFilter])
+  }, [allItems, searchText, statusFilter])
 
   // --- Summary view ---
 
@@ -210,7 +225,7 @@ export function useItemViewPage(teamId: string | null) {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchText, statusFilter, assigneeFilter, pageSize])
+  }, [searchText, statusFilter.length, assigneeFilter, pageSize])
 
   // --- Sub-items via React Query ---
 
@@ -315,6 +330,7 @@ export function useItemViewPage(teamId: string | null) {
         title: string
         priority: string
         assigneeKey?: string
+        startDate?: string
         expectedEndDate?: string
         description?: string
       }
@@ -364,7 +380,7 @@ export function useItemViewPage(teamId: string | null) {
 
   const resetFilters = useCallback(() => {
     setSearchText('')
-    setStatusFilter('')
+    setStatusFilter([])
     setAssigneeFilter('')
   }, [])
 
@@ -467,6 +483,7 @@ export function useItemViewPage(teamId: string | null) {
         title: sub.title,
         priority: sub.priority,
         assigneeKey: sub.assigneeKey || '',
+        startDate: sub.planStartDate || '',
         expectedEndDate: sub.expectedEndDate || '',
         description: sub.itemDesc || '',
       })
@@ -484,6 +501,7 @@ export function useItemViewPage(teamId: string | null) {
         title: editSubForm.title.trim(),
         priority: editSubForm.priority,
         assigneeKey: editSubForm.assigneeKey || undefined,
+        startDate: editSubForm.startDate || undefined,
         expectedEndDate: editSubForm.expectedEndDate || undefined,
         description: editSubForm.description,
       },
@@ -599,5 +617,11 @@ export function useItemViewPage(teamId: string | null) {
     openEditSubDialog,
     handleEditSub,
     updateSubMutation,
+
+    // Move sub-item
+    moveSubOpen,
+    setMoveSubOpen,
+    moveSubItem,
+    openMoveSubDialog,
   }
 }

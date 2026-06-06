@@ -204,11 +204,11 @@ backend-probe:
 backend-test journey='':
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ ! -d tests/api/node_modules ]; then npm install --prefix tests/api; fi
+    if [ ! -d tests/backend/node_modules ]; then npm install --prefix tests/backend; fi
     if [ "{{journey}}" != "" ]; then
-        cd tests/api && npx vitest run "{{journey}}"
+        cd tests/backend && npx vitest run "{{journey}}"
     else
-        cd tests/api && npx vitest run
+        cd tests/backend && npx vitest run
     fi
 
 # user-customized
@@ -217,11 +217,11 @@ backend-test journey='':
 backend-test journey='':
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ ! -d tests/api/node_modules ]; then npm install --prefix tests/api; fi
+    if [ ! -d tests/backend/node_modules ]; then npm install --prefix tests/backend; fi
     if [ "{{journey}}" != "" ]; then
-        cd tests/api && npx vitest run "{{journey}}"
+        cd tests/backend && npx vitest run "{{journey}}"
     else
-        cd tests/api && npx vitest run
+        cd tests/backend && npx vitest run
     fi
 
 # user-customized
@@ -319,11 +319,11 @@ frontend-probe:
 frontend-test journey='':
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ ! -d tests/web/node_modules ]; then npm install --prefix tests/web; fi
+    if [ ! -d tests/frontend/node_modules ]; then npm install --prefix tests/frontend; fi
     if [ "{{journey}}" != "" ]; then
-        cd tests/web && npx playwright test "{{journey}}"
+        cd tests/frontend && npx playwright test "{{journey}}"
     else
-        cd tests/web && npx playwright test
+        cd tests/frontend && npx playwright test
     fi
 
 # user-customized
@@ -332,11 +332,11 @@ frontend-test journey='':
 frontend-test journey='':
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ ! -d tests/web/node_modules ]; then npm install --prefix tests/web; fi
+    if [ ! -d tests/frontend/node_modules ]; then npm install --prefix tests/frontend; fi
     if [ "{{journey}}" != "" ]; then
-        cd tests/web && npx playwright test "{{journey}}"
+        cd tests/frontend && npx playwright test "{{journey}}"
     else
-        cd tests/web && npx playwright test
+        cd tests/frontend && npx playwright test
     fi
 
 # user-customized

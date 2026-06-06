@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import StatusTransitionDropdown from './StatusTransitionDropdown'
+import axios from 'axios'
 
 // Mock API functions
 vi.mock('@/api/mainItems', () => ({
@@ -29,6 +30,19 @@ function renderWithQueryClient(ui: React.ReactElement) {
     defaultOptions: { queries: { retry: false } },
   })
   return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>)
+}
+
+/** Query for role="alert" bypassing aria-hidden (Radix overlay hides content). */
+function queryAlert(container: HTMLElement) {
+  return container.querySelector('[role="alert"]')
+}
+
+async function findAlert(container: HTMLElement) {
+  return waitFor(() => {
+    const el = queryAlert(container)
+    expect(el).toBeInTheDocument()
+    return el!
+  })
 }
 
 describe('StatusTransitionDropdown', () => {
@@ -235,7 +249,7 @@ describe('StatusTransitionDropdown', () => {
     expect(screen.queryByText('确认变更状态')).not.toBeInTheDocument()
   })
 
-  it('shows tooltip when no transitions available', async () => {
+  it('closes dropdown when no transitions available', async () => {
     vi.mocked(getMainItemTransitionsApi).mockResolvedValue([])
     const user = userEvent.setup()
     renderWithQueryClient(
@@ -248,14 +262,12 @@ describe('StatusTransitionDropdown', () => {
       />,
     )
     await user.click(screen.getByText('已完成'))
-    // Wait for query to resolve and tooltip to appear
+    // Wait for query to resolve
     await waitFor(() => {
       expect(getMainItemTransitionsApi).toHaveBeenCalled()
     })
-    // The useEffect sets showTip=true after transitions resolve empty
-    await waitFor(() => {
-      expect(screen.getByText('暂无可用流转')).toBeInTheDocument()
-    })
+    // No tooltip should appear (old behavior removed)
+    expect(screen.queryByText('暂无可用流转')).not.toBeInTheDocument()
   })
 
   it('does not render button when disabled', () => {
@@ -307,5 +319,178 @@ describe('StatusTransitionDropdown', () => {
       },
       { timeout: 3000 },
     )
+  })
+
+  describe('inline error alert', () => {
+    function createAxiosError(message: string, status: number = 422) {
+      const error = new axios.AxiosError(
+        'Request failed',
+        undefined,
+        undefined,
+        undefined,
+        {
+          status,
+          statusText: '',
+          headers: {},
+          config: {} as never,
+          data: { code: 'INVALID_STATUS', message },
+        },
+      )
+      return error
+    }
+
+    it('shows inline Alert with backend error message on transition failure', async () => {
+      vi.mocked(getMainItemTransitionsApi).mockResolvedValue(['progressing'])
+      vi.mocked(changeMainItemStatusApi).mockRejectedValue(
+        createAxiosError('该主事项下还有未完成的子事项，无法关闭'),
+      )
+      const user = userEvent.setup()
+      const { container } = renderWithQueryClient(
+        <StatusTransitionDropdown
+          currentStatus="pending"
+          itemType="main"
+          teamId="t1"
+          itemId="i10"
+          onStatusChanged={() => {}}
+        />,
+      )
+      await user.click(screen.getByText('待开始'))
+      await waitFor(() => screen.getByText('进行中'))
+      await user.click(screen.getByText('进行中'))
+
+      const alert = await findAlert(container)
+      expect(alert).toHaveTextContent('该主事项下还有未完成的子事项，无法关闭')
+    })
+
+    it('does not auto-dismiss the error Alert', async () => {
+      vi.mocked(getMainItemTransitionsApi).mockResolvedValue(['progressing'])
+      vi.mocked(changeMainItemStatusApi).mockRejectedValue(
+        createAxiosError('错误消息'),
+      )
+      const user = userEvent.setup()
+      const { container } = renderWithQueryClient(
+        <StatusTransitionDropdown
+          currentStatus="pending"
+          itemType="main"
+          teamId="t1"
+          itemId="i10"
+          onStatusChanged={() => {}}
+        />,
+      )
+      await user.click(screen.getByText('待开始'))
+      await waitFor(() => screen.getByText('进行中'))
+      await user.click(screen.getByText('进行中'))
+
+      const alert = await findAlert(container)
+      expect(alert).toBeInTheDocument()
+
+      // Wait 3 seconds — alert should still be there (no auto-dismiss)
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 3000))
+      })
+      expect(queryAlert(container)).toBeInTheDocument()
+    })
+
+    it('hides Alert on manual close', async () => {
+      vi.mocked(getMainItemTransitionsApi).mockResolvedValue(['progressing'])
+      vi.mocked(changeMainItemStatusApi).mockRejectedValue(
+        createAxiosError('错误消息'),
+      )
+      const user = userEvent.setup()
+      const { container } = renderWithQueryClient(
+        <StatusTransitionDropdown
+          currentStatus="pending"
+          itemType="main"
+          teamId="t1"
+          itemId="i10"
+          onStatusChanged={() => {}}
+        />,
+      )
+      await user.click(screen.getByText('待开始'))
+      await waitFor(() => screen.getByText('进行中'))
+      await user.click(screen.getByText('进行中'))
+
+      await findAlert(container)
+
+      // Dismiss dropdown overlay first (body has pointer-events: none while Radix overlay is active)
+      await user.keyboard('{Escape}')
+
+      // Click close button
+      const closeBtn = container.querySelector('button[aria-label="关闭错误提示"]')
+      expect(closeBtn).toBeInTheDocument()
+      await user.click(closeBtn!)
+      await waitFor(() => {
+        expect(queryAlert(container)).not.toBeInTheDocument()
+      })
+    })
+
+    it('updates Alert content on repeated transition failure', async () => {
+      vi.mocked(getMainItemTransitionsApi).mockResolvedValue(['progressing'])
+      vi.mocked(changeMainItemStatusApi)
+        .mockRejectedValueOnce(createAxiosError('第一次错误'))
+        .mockRejectedValueOnce(createAxiosError('第二次错误'))
+      const user = userEvent.setup()
+      const { container } = renderWithQueryClient(
+        <StatusTransitionDropdown
+          currentStatus="pending"
+          itemType="main"
+          teamId="t1"
+          itemId="i10"
+          onStatusChanged={() => {}}
+        />,
+      )
+
+      // First failure
+      await user.click(screen.getByText('待开始'))
+      await waitFor(() => screen.getByText('进行中'))
+      await user.click(screen.getByText('进行中'))
+      const alert1 = await findAlert(container)
+      expect(alert1).toHaveTextContent('第一次错误')
+
+      // Dismiss dropdown overlay by pressing Escape
+      await user.keyboard('{Escape}')
+
+      // Second failure — Alert content should update
+      await user.click(screen.getByText('待开始'))
+      await waitFor(() => screen.getByText('进行中'))
+      await user.click(screen.getByText('进行中'))
+      const alert2 = await findAlert(container)
+      expect(alert2).toHaveTextContent('第二次错误')
+    })
+
+    it('clears Alert on successful transition', async () => {
+      vi.mocked(getMainItemTransitionsApi).mockResolvedValue(['progressing'])
+      vi.mocked(changeMainItemStatusApi)
+        .mockRejectedValueOnce(createAxiosError('错误消息'))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .mockResolvedValueOnce({} as any)
+      const user = userEvent.setup()
+      const { container } = renderWithQueryClient(
+        <StatusTransitionDropdown
+          currentStatus="pending"
+          itemType="main"
+          teamId="t1"
+          itemId="i10"
+          onStatusChanged={() => {}}
+        />,
+      )
+
+      // First: trigger error
+      await user.click(screen.getByText('待开始'))
+      await waitFor(() => screen.getByText('进行中'))
+      await user.click(screen.getByText('进行中'))
+      await findAlert(container)
+
+      // Dismiss dropdown overlay
+      await user.keyboard('{Escape}')
+
+      // Then: trigger success
+      await user.click(screen.getByText('待开始'))
+      await waitFor(() => screen.getByText('进行中'))
+      await user.click(screen.getByText('进行中'))
+      await waitFor(() => {
+        expect(queryAlert(container)).not.toBeInTheDocument()
+      })
+    })
   })
 })

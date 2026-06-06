@@ -47,8 +47,8 @@ func (m *mockMainItemSvc) Update(_ context.Context, _ int64, _ uint, _ dto.MainI
 	return nil
 }
 func (m *mockMainItemSvc) Archive(_ context.Context, _ int64, _ uint) error { return nil }
-func (m *mockMainItemSvc) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], error) {
-	return nil, nil
+func (m *mockMainItemSvc) List(_ context.Context, _ int64, _ dto.MainItemFilter, _ dto.Pagination) (*dto.PageResult[model.MainItem], map[int64]*dto.MainItemMatchInfo, error) {
+	return nil, nil, nil
 }
 func (m *mockMainItemSvc) Get(_ context.Context, _ uint) (*model.MainItem, error) { return nil, nil }
 func (m *mockMainItemSvc) GetByBizKey(_ context.Context, _ int64) (*model.MainItem, error) {
@@ -64,6 +64,9 @@ func (m *mockMainItemSvc) AvailableTransitions(_ context.Context, _ int64, _ int
 func (m *mockMainItemSvc) EvaluateLinkage(_ context.Context, _ int64, _ int64) (*service.LinkageResult, error) {
 	return nil, nil
 }
+func (m *mockMainItemSvc) Delete(_ context.Context, _ int64, _ int64, _ int64) error {
+	return nil
+}
 
 var _ service.MainItemService = (*mockMainItemSvc)(nil)
 
@@ -76,7 +79,7 @@ func (m *mockTeamSvc) GetTeam(_ context.Context, _ int64) (*model.Team, error) {
 func (m *mockTeamSvc) GetTeamDetail(_ context.Context, _ int64) (*dto.TeamDetailResp, error) {
 	return nil, nil
 }
-func (m *mockTeamSvc) ListTeams(_ context.Context, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
+func (m *mockTeamSvc) ListTeams(_ context.Context, _ int64, _ bool, _ string, _, _ int) ([]*dto.TeamListResp, int64, error) {
 	return nil, 0, nil
 }
 func (m *mockTeamSvc) UpdateTeam(_ context.Context, _ int64, _ dto.UpdateTeamReq) (*model.Team, error) {

@@ -53,9 +53,9 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 	allPermCodes := []string{
 		"team:create", "team:read", "team:update", "team:delete", "team:invite",
 		"team:remove", "team:transfer", "main_item:create", "main_item:read",
-		"main_item:update", "main_item:archive", "main_item:change_status",
+		"main_item:update", "main_item:archive", "main_item:change_status", "main_item:delete",
 		"sub_item:create", "sub_item:read",
-		"sub_item:update", "sub_item:change_status", "sub_item:assign",
+		"sub_item:update", "sub_item:change_status", "sub_item:assign", "sub_item:delete",
 		"progress:create", "progress:read", "progress:update",
 		"item_pool:submit", "item_pool:review",
 		"view:weekly", "view:gantt", "view:table",
@@ -558,6 +558,10 @@ func (m *mockTeamRepo) FindTeamsByUserBizKeys(_ context.Context, _ []int64) (map
 
 func (m *mockTeamRepo) ListTeamBizKeys(_ context.Context) ([]int64, error) {
 	return nil, nil
+}
+
+func (m *mockTeamRepo) ListByUserMembership(_ context.Context, _ int64, _ string, _, _ int) ([]*model.Team, int64, error) {
+	return nil, 0, nil
 }
 
 // stubAuthService is a minimal stub for service.AuthService used by testDeps.

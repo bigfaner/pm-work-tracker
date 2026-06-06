@@ -388,6 +388,13 @@ export default function ItemPoolPage() {
       qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
       qc.invalidateQueries({ queryKey: ['mainItemsList', teamId] })
       setToSubOpen(false)
+      setToSubForm({
+        parentItemId: '',
+        priority: 'P2',
+        assigneeKey: '',
+        startDate: '',
+        expectedEndDate: '',
+      })
       setSelectedItem(null)
     },
   })
@@ -404,6 +411,12 @@ export default function ItemPoolPage() {
       qc.invalidateQueries({ queryKey: ['itemPool', teamId] })
       qc.invalidateQueries({ queryKey: ['mainItemsList', teamId] })
       setToMainOpen(false)
+      setToMainForm({
+        priority: 'P2',
+        assigneeKey: '',
+        startDate: '',
+        expectedEndDate: '',
+      })
       setSelectedItem(null)
     },
   })
@@ -470,6 +483,31 @@ export default function ItemPoolPage() {
   const resetFilters = useCallback(() => {
     setSearchText('')
     setStatusFilter('')
+  }, [])
+
+  const handleToMainDialogClose = useCallback((open: boolean) => {
+    if (!open) {
+      setToMainForm({
+        priority: 'P2',
+        assigneeKey: '',
+        startDate: '',
+        expectedEndDate: '',
+      })
+    }
+    setToMainOpen(open)
+  }, [])
+
+  const handleToSubDialogClose = useCallback((open: boolean) => {
+    if (!open) {
+      setToSubForm({
+        parentItemId: '',
+        priority: 'P2',
+        assigneeKey: '',
+        startDate: '',
+        expectedEndDate: '',
+      })
+    }
+    setToSubOpen(open)
   }, [])
 
   const handleSubmit = useCallback(() => {
@@ -782,7 +820,7 @@ export default function ItemPoolPage() {
           </Dialog>
 
           {/* Convert to Main Item Dialog */}
-          <Dialog open={toMainOpen} onOpenChange={setToMainOpen}>
+          <Dialog open={toMainOpen} onOpenChange={handleToMainDialogClose}>
             <DialogContent size="lg">
               <DialogHeader>
                 <DialogTitle>转为主事项</DialogTitle>
@@ -797,7 +835,7 @@ export default function ItemPoolPage() {
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-primary mb-1">
-                      优先级
+                      优先级 <span className="text-error">*</span>
                     </label>
                     <Select
                       value={toMainForm.priority}
@@ -815,7 +853,7 @@ export default function ItemPoolPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-primary mb-1">
-                      负责人
+                      负责人 <span className="text-error">*</span>
                     </label>
                     <Select
                       value={toMainForm.assigneeKey || '_none'}
@@ -884,13 +922,14 @@ export default function ItemPoolPage() {
               <DialogFooter>
                 <Button
                   variant="secondary"
-                  onClick={() => setToMainOpen(false)}
+                  onClick={() => handleToMainDialogClose(false)}
                 >
                   取消
                 </Button>
                 <Button
                   onClick={handleToMain}
                   disabled={
+                    !toMainForm.assigneeKey ||
                     !toMainForm.startDate ||
                     !toMainForm.expectedEndDate ||
                     convertToMainMutation.isPending
@@ -903,7 +942,7 @@ export default function ItemPoolPage() {
           </Dialog>
 
           {/* Convert to Sub Item Dialog */}
-          <Dialog open={toSubOpen} onOpenChange={setToSubOpen}>
+          <Dialog open={toSubOpen} onOpenChange={handleToSubDialogClose}>
             <DialogContent size="lg">
               <DialogHeader>
                 <DialogTitle>转为子事项</DialogTitle>
@@ -944,7 +983,7 @@ export default function ItemPoolPage() {
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-primary mb-1">
-                      优先级
+                      优先级 <span className="text-error">*</span>
                     </label>
                     <Select
                       value={toSubForm.priority}
@@ -962,7 +1001,7 @@ export default function ItemPoolPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-primary mb-1">
-                      负责人
+                      负责人 <span className="text-error">*</span>
                     </label>
                     <Select
                       value={toSubForm.assigneeKey || '_none'}
@@ -1024,18 +1063,19 @@ export default function ItemPoolPage() {
                   <Textarea
                     rows={3}
                     value={selectedItem?.background || ''}
-                    readOnly
+                    disabled
                   />
                 </div>
               </DialogBody>
               <DialogFooter>
-                <Button variant="secondary" onClick={() => setToSubOpen(false)}>
+                <Button variant="secondary" onClick={() => handleToSubDialogClose(false)}>
                   取消
                 </Button>
                 <Button
                   onClick={handleToSub}
                   disabled={
                     !toSubForm.parentItemId ||
+                    !toSubForm.assigneeKey ||
                     !toSubForm.startDate ||
                     !toSubForm.expectedEndDate ||
                     assignMutation.isPending

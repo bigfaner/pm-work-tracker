@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -18,7 +19,7 @@ import (
 // Tests: ReportService.Preview
 // ---------------------------------------------------------------------------
 
-func TestReportService_Preview_NoProgressRecords_ReturnsNoData(t *testing.T) {
+func TestReportService_Preview_NoProgressRecords_ReturnsEmptySections(t *testing.T) {
 	mainRepo := &mockViewMainItemRepo{
 		items: []model.MainItem{
 			{BaseModel: model.BaseModel{ID: 1, BizKey: 1}, TeamKey: 1, Title: "Main 1", Completion: 0},
@@ -33,8 +34,16 @@ func TestReportService_Preview_NoProgressRecords_ReturnsNoData(t *testing.T) {
 
 	svc := NewReportService(mainRepo, subRepo, progressRepo)
 	monday := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
-	_, err := svc.Preview(context.Background(), 1, monday)
-	assert.ErrorIs(t, err, apperrors.ErrNoData)
+	result, err := svc.Preview(context.Background(), 1, monday)
+	require.NoError(t, err)
+	require.Empty(t, result.Sections)
+	assert.Equal(t, "2026-04-13", result.WeekStart)
+	assert.Equal(t, "2026-04-19", result.WeekEnd)
+
+	// nil slice marshals to JSON null; ensure it's an empty array
+	data, err := json.Marshal(result)
+	require.NoError(t, err)
+	assert.Contains(t, string(data), `"sections":[]`)
 }
 
 func TestReportService_Preview_WithProgressRecords(t *testing.T) {

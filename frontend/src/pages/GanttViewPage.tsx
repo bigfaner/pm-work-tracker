@@ -8,9 +8,11 @@ import {
 } from 'react'
 import { RotateCcw, RefreshCw } from 'lucide-react'
 import { DateInput } from '@/components/ui/date-input'
+import { StatusTagFilter } from '@/components/shared/StatusTagFilter'
 import { useQuery } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { getGanttViewApi } from '@/api/views'
+import { MAIN_ITEM_STATUSES } from '@/lib/status'
 import type { GanttMainItem } from '@/types'
 import './gantt-overrides.css'
 import { useToast } from '@/components/ui/toast'
@@ -43,18 +45,12 @@ function getDateRange(items: GanttMainItem[]): { start: Date, end: Date } {
     }
   }
 
-  // Add padding: 14 days before earliest, 30 days after latest
+  // Add padding: 1 day before earliest, 1 day after latest
   const start = minDate ? new Date(minDate) : new Date(now)
-  start.setDate(start.getDate() - 14)
+  start.setDate(start.getDate() - 1)
 
   const end = maxDate ? new Date(maxDate) : new Date(now)
-  end.setDate(end.getDate() + 30)
-
-  // Ensure minimum range of 60 days
-  const MIN_DAYS = 60
-  if (daysBetween(start, end) < MIN_DAYS) {
-    end.setDate(start.getDate() + MIN_DAYS)
-  }
+  end.setDate(end.getDate() + 1)
 
   // Cap maximum range at 365 days to avoid an unreadably wide chart
   const MAX_DAYS = 365
@@ -96,10 +92,11 @@ export default function GanttViewPage() {
     start: string
     end: string
   } | null>(null)
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['progressing'])
 
   const { data, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ['ganttView', teamId],
-    queryFn: () => getGanttViewApi(teamId!),
+    queryKey: ['ganttView', teamId, selectedStatuses],
+    queryFn: () => getGanttViewApi(teamId!, selectedStatuses),
     enabled: !!teamId,
   })
 
@@ -110,7 +107,7 @@ export default function GanttViewPage() {
     if (dateRange?.start) return new Date(dateRange.start)
     if (allItems.length > 0) return getDateRange(allItems).start
     const d = new Date()
-    d.setDate(d.getDate() - 14)
+    d.setDate(d.getDate() - 1)
     return d
   }, [dateRange, allItems])
 
@@ -118,7 +115,7 @@ export default function GanttViewPage() {
     if (dateRange?.end) return new Date(dateRange.end)
     if (allItems.length > 0) return getDateRange(allItems).end
     const d = new Date()
-    d.setDate(d.getDate() + 14)
+    d.setDate(d.getDate() + 1)
     return d
   }, [dateRange, allItems])
 
@@ -193,7 +190,16 @@ export default function GanttViewPage() {
       {/* Page Header */}
       <div className="gantt-page-header">
         <h1 className="text-xl font-semibold text-primary">整体进度</h1>
-        <div className="flex items-center gap-2 text-[13px] text-secondary">
+        <div className="mt-2 flex items-center justify-end gap-3">
+          <StatusTagFilter
+            options={Object.entries(MAIN_ITEM_STATUSES).map(([value, { name: label }]) => ({
+              value,
+              label,
+            }))}
+            selected={selectedStatuses}
+            onChange={setSelectedStatuses}
+          />
+          <div className="flex items-center gap-2 text-[13px] text-secondary">
           <DateInput
             data-testid="date-start"
             className="h-8 w-36"
@@ -215,6 +221,7 @@ export default function GanttViewPage() {
           >
             <RotateCcw className="h-4 w-4" />
           </button>
+        </div>
         </div>
       </div>
 

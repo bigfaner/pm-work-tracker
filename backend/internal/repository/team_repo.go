@@ -35,6 +35,10 @@ type TeamRepo interface {
 
 	// ListTeamBizKeys returns all non-deleted team biz_keys.
 	ListTeamBizKeys(ctx context.Context) ([]int64, error)
+
+	// ListByUserMembership returns teams the given user is a member of,
+	// with optional search filter and pagination.
+	ListByUserMembership(ctx context.Context, userBizKey int64, search string, offset, limit int) ([]*model.Team, int64, error)
 }
 
 // TeamMemberRepo defines persistence operations for TeamMember entities.

@@ -86,6 +86,7 @@ interface DetailViewProps {
     subItemCompletion: number,
   ) => void
   onEditSubItem: (sub: SubItem, mainItemBizKey: string) => void
+  onMoveSubItem?: (sub: SubItem, mainItemBizKey: string) => void
 }
 
 export default function ItemDetailView({
@@ -104,6 +105,7 @@ export default function ItemDetailView({
   onAddSubItem,
   onAppendProgress,
   onEditSubItem,
+  onMoveSubItem,
 }: DetailViewProps) {
   return (
     <div className="rounded-xl border border-border bg-white shadow-sm">
@@ -125,10 +127,13 @@ export default function ItemDetailView({
           </TableHeader>
           <TableBody>
             {items.map((item) => {
-              const subs = subItemsMap[item.bizKey]
+              const allSubs = subItemsMap[item.bizKey]
+              const subs = item.matchedSubItemIds && item.matchType === 'indirect'
+                ? allSubs?.filter((sub) => item.matchedSubItemIds!.includes(sub.bizKey))
+                : allSubs
               return (
                 <Fragment key={item.bizKey}>
-                  <TableRow className={subs?.length ? 'bg-blue-50/40' : ''}>
+                  <TableRow className={allSubs?.length ? 'bg-blue-50/40' : ''}>
                     <TableCell className="whitespace-nowrap">
                       <CodeBadge
                         label={item.code}
@@ -141,13 +146,15 @@ export default function ItemDetailView({
                       <PriorityBadge priority={item.priority} />
                     </TableCell>
                     <TableCell>
-                      <Link
-                        to={`/items/${item.bizKey}`}
-                        className="font-medium text-primary-600 hover:text-primary-700 hover:underline truncate block max-w-xs"
-                        title={item.title}
-                      >
-                        {item.title}
-                      </Link>
+                      <div className="flex items-center gap-1.5">
+                        <Link
+                          to={`/items/${item.bizKey}`}
+                          className="font-medium text-primary-600 hover:text-primary-700 hover:underline truncate block max-w-xs"
+                          title={item.title}
+                        >
+                          {item.title}
+                        </Link>
+                      </div>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {memberName(item.assigneeKey)}
@@ -309,6 +316,37 @@ export default function ItemDetailView({
                               追加进度
                             </Button>
                           </PermissionGuard>
+                          {onMoveSubItem && (
+                            <PermissionGuard code="sub_item:update">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-primary-600"
+                                disabled={
+                                  !!SUB_ITEM_STATUSES[
+                                    sub.itemStatus as keyof typeof SUB_ITEM_STATUSES
+                                  ]?.terminal
+                                }
+                                onClick={() => onMoveSubItem(sub, item.bizKey)}
+                              >
+                                <svg
+                                  width="14"
+                                  height="14"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                                  />
+                                </svg>
+                                移动
+                              </Button>
+                            </PermissionGuard>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

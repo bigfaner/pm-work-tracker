@@ -75,6 +75,7 @@ interface SummaryViewProps {
     subItemCompletion: number,
   ) => void
   onEditSubItem: (sub: SubItem, mainItemBizKey: string) => void
+  onMoveSubItem?: (sub: SubItem, mainItemBizKey: string) => void
 }
 
 export default function ItemSummaryView({
@@ -92,6 +93,7 @@ export default function ItemSummaryView({
   onEditMainItem,
   onAppendProgress,
   onEditSubItem,
+  onMoveSubItem,
 }: SummaryViewProps) {
   return (
     <div>
@@ -227,7 +229,13 @@ export default function ItemSummaryView({
                 {subItemsMap[item.bizKey]?.length === 0 && (
                   <div className="text-xs text-tertiary py-2">暂无子事项</div>
                 )}
-                {subItemsMap[item.bizKey]?.map((sub) => (
+                {subItemsMap[item.bizKey]
+                  ?.filter((sub) =>
+                    !item.matchedSubItemIds || item.matchType !== 'indirect'
+                      ? true
+                      : item.matchedSubItemIds.includes(sub.bizKey),
+                  )
+                  .map((sub) => (
                   <div
                     key={sub.bizKey}
                     className="flex items-center gap-2 py-2 border-b border-border/50 last:border-b-0"
@@ -329,6 +337,37 @@ export default function ItemSummaryView({
                           追加进度
                         </Button>
                       </PermissionGuard>
+                      {onMoveSubItem && (
+                        <PermissionGuard code="sub_item:update">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-[11px] h-6 px-1.5 text-primary-600"
+                            disabled={
+                              !!SUB_ITEM_STATUSES[
+                                sub.itemStatus as keyof typeof SUB_ITEM_STATUSES
+                              ]?.terminal
+                            }
+                            onClick={() => onMoveSubItem(sub, item.bizKey)}
+                          >
+                            <svg
+                              width="12"
+                              height="12"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                              />
+                            </svg>
+                            移动
+                          </Button>
+                        </PermissionGuard>
+                      )}
                     </div>
                   </div>
                 ))}

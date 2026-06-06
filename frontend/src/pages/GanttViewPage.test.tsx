@@ -123,6 +123,27 @@ const mockGanttResponse: GanttViewResp = {
 
 function setupGanttHandler(response = mockGanttResponse) {
   server.use(
+    http.get('/v1/teams/:teamId/views/gantt', ({ request }) => {
+      const url = new URL(request.url)
+      const statuses = url.searchParams.getAll('status')
+      let filtered = response
+      if (statuses.length > 0) {
+        filtered = {
+          ...response,
+          items: response.items.filter((item) =>
+            statuses.includes(item.itemStatus),
+          ),
+        }
+      }
+      return HttpResponse.json({ code: 0, data: filtered })
+    }),
+  )
+}
+
+// setupGanttHandlerAll bypasses status filtering — returns all items regardless of query.
+// Use for tests that need the full dataset.
+function setupGanttHandlerAll(response = mockGanttResponse) {
+  server.use(
     http.get('/v1/teams/:teamId/views/gantt', () => {
       return HttpResponse.json({ code: 0, data: response })
     }),
@@ -183,6 +204,7 @@ describe('GanttViewPage', () => {
   })
 
   it('renders label rows for each main item', async () => {
+    setupGanttHandlerAll()
     renderPage()
     await waitFor(() => {
       expect(screen.getByText('用户认证模块开发')).toBeInTheDocument()
@@ -193,6 +215,7 @@ describe('GanttViewPage', () => {
   })
 
   it('renders timeline rows for each item', async () => {
+    setupGanttHandlerAll()
     renderPage()
     await waitFor(() => {
       // Each main item + sub items gets a timeline row
@@ -205,6 +228,7 @@ describe('GanttViewPage', () => {
   // --- Task bar status colors ---
 
   it('renders completed bar with green fill', async () => {
+    setupGanttHandlerAll()
     renderPage()
     await waitFor(() => {
       const bar = screen.getByTestId('gantt-bar-2')
@@ -221,6 +245,7 @@ describe('GanttViewPage', () => {
   })
 
   it('renders no-data bar with dashed border for items without dates', async () => {
+    setupGanttHandlerAll()
     renderPage()
     await waitFor(() => {
       const bar = screen.getByTestId('gantt-bar-3')
@@ -260,6 +285,7 @@ describe('GanttViewPage', () => {
   })
 
   it('hides toggle for items without sub-items', async () => {
+    setupGanttHandlerAll()
     renderPage()
     await waitFor(() => {
       // Item 2 has no sub-items, toggle should be hidden
@@ -298,6 +324,7 @@ describe('GanttViewPage', () => {
   // --- Search/filter ---
 
   it('filters items by search keyword', async () => {
+    setupGanttHandlerAll()
     const user = userEvent.setup()
     renderPage()
     await waitFor(() => {
@@ -413,6 +440,7 @@ describe('GanttViewPage', () => {
   // --- Percentage display ---
 
   it('renders completion percentage on bars', async () => {
+    setupGanttHandlerAll()
     renderPage()
     await waitFor(() => {
       expect(screen.getByText('52%')).toBeInTheDocument()
@@ -423,6 +451,7 @@ describe('GanttViewPage', () => {
   // --- No-data label ---
 
   it('renders "未设置时间" for items without dates', async () => {
+    setupGanttHandlerAll()
     renderPage()
     await waitFor(() => {
       expect(screen.getByText('未设置时间')).toBeInTheDocument()
@@ -432,6 +461,7 @@ describe('GanttViewPage', () => {
   // --- Layout structure matching prototype ---
 
   it('renders scroll-based layout with gantt-scroll and gantt-inner wrappers', async () => {
+    setupGanttHandlerAll()
     renderPage()
     await waitFor(() => {
       const container = screen.getByTestId('gantt-container')
@@ -442,6 +472,7 @@ describe('GanttViewPage', () => {
   })
 
   it('renders sticky label panel and scrollable timeline side by side', async () => {
+    setupGanttHandlerAll()
     renderPage()
     await waitFor(() => {
       const container = screen.getByTestId('gantt-container')
@@ -455,6 +486,7 @@ describe('GanttViewPage', () => {
   // --- Weekday/weekend background colors ---
 
   it('renders weekday and weekend day cells', async () => {
+    setupGanttHandlerAll()
     renderPage()
     await waitFor(() => {
       const container = screen.getByTestId('gantt-container')
@@ -462,6 +494,62 @@ describe('GanttViewPage', () => {
       const weekends = container.querySelectorAll('.gantt-day.weekend')
       expect(weekdays.length).toBeGreaterThan(0)
       expect(weekends.length).toBeGreaterThan(0)
+    })
+  })
+
+  // --- macOS scrollbar (overflow-x: auto) ---
+
+  it('gantt-container has gantt-container class for scrollbar CSS rules', async () => {
+    setupGanttHandlerAll()
+    renderPage()
+    await waitFor(() => {
+      const container = screen.getByTestId('gantt-container')
+      // CSS file gantt-overrides.css targets .gantt-container with
+      // overflow-x: auto and -webkit-scrollbar hover-visible rules
+      expect(container).toHaveClass('gantt-container')
+    })
+  })
+
+  // --- Status filter (AC1: default progressing, AC2: multi-select, AC3: uncheck all = show all) ---
+
+  it('shows status filter with 进行中 selected by default', async () => {
+    renderPage()
+    await waitFor(() => {
+      const tag = screen.getByTestId('status-filter-progressing')
+      expect(tag).toBeInTheDocument()
+      // Selected tags have ring style (opacity-40 is for unselected)
+      expect(tag.className).not.toContain('opacity-40')
+    })
+  })
+
+  it('only shows progressing items by default', async () => {
+    renderPage()
+    await waitFor(() => {
+      // Only progressing items: 用户认证模块开发 and 移动端适配
+      expect(screen.getByText('用户认证模块开发')).toBeInTheDocument()
+      expect(screen.getByText('移动端适配')).toBeInTheDocument()
+      // Non-progressing items should not appear
+      expect(screen.queryByText('数据报表系统')).not.toBeInTheDocument()
+      expect(screen.queryByText('性能优化项目')).not.toBeInTheDocument()
+    })
+  })
+
+  it('shows all items when all tags unchecked', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('用户认证模块开发')).toBeInTheDocument()
+    })
+
+    // Uncheck the "进行中" tag (the only one selected by default)
+    await user.click(screen.getByTestId('status-filter-progressing'))
+
+    // Now all items should appear since no status filter is applied
+    await waitFor(() => {
+      expect(screen.getByText('用户认证模块开发')).toBeInTheDocument()
+      expect(screen.getByText('数据报表系统')).toBeInTheDocument()
+      expect(screen.getByText('性能优化项目')).toBeInTheDocument()
+      expect(screen.getByText('移动端适配')).toBeInTheDocument()
     })
   })
 })

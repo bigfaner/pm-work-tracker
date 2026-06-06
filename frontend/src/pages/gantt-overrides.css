@@ -22,7 +22,29 @@
   border: 1px solid var(--color-border);
   border-radius: 8px;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
+}
+
+/* macOS scrollbar: show on hover only */
+.gantt-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.gantt-container::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.gantt-container:hover::-webkit-scrollbar-thumb {
+  background: var(--color-border-dark, #94a3b8);
+}
+
+.gantt-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gantt-container:hover::-webkit-scrollbar-track {
+  background: var(--color-bg-alt, #f1f5f9);
 }
 
 /* Inner flex: label panel + timeline side by side */

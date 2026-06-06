@@ -108,3 +108,19 @@ func ResolveBizKey(c *gin.Context, paramName string, lookupFn func(ctx context.C
 | Must match existing record | `FindByBizKey` returns not found | 404 |
 
 **BizKey does NOT enforce snowflake digit length** -- only requires positive int64 and database existence.
+
+## AB-005: Delete and Move Endpoint Patterns
+
+_Source: feature/system-ux-optimization_
+
+Destructive and structural operations follow these endpoint patterns:
+
+| Operation | Method | Path | Permission | Service Pattern |
+|-----------|--------|------|------------|-----------------|
+| Delete main item | DELETE | `/teams/:teamId/main-items/:itemId` | `main_item:delete` | Cascade soft-delete in tx |
+| Delete sub item | DELETE | `/teams/:teamId/sub-items/:subId` | `sub_item:delete` | Soft-delete + recalc parent |
+| Move sub item | PUT | `/teams/:teamId/sub-items/:subId/move` | `sub_item:update` | Tx: reassign + renumber |
+
+All endpoints use bizKey URL params. Handler resolves bizKey via existing `ParseBizKeyParam` helper. Service layer uses `FindByBizKey` for lookups and `SoftDelete` for deletions (per AB-002 two-step pattern).
+
+**Source**: feature/system-ux-optimization TECH-001, TECH-002, TECH-003

@@ -161,9 +161,13 @@ func TestWeeklyPreview_NotAMonday(t *testing.T) {
 	assert.False(t, svc.previewCalled)
 }
 
-func TestWeeklyPreview_NoData(t *testing.T) {
+func TestWeeklyPreview_EmptyData_Returns200(t *testing.T) {
 	svc := &mockReportService{}
-	svc.previewResult.err = apperrors.ErrNoData
+	svc.previewResult.result = &dto.ReportPreview{
+		WeekStart: "2026-04-13",
+		WeekEnd:   "2026-04-19",
+		Sections:  []dto.ReportSectionDTO{},
+	}
 
 	deps := depsWithReportSvc(t, svc)
 	r := SetupRouter(deps, nil)
@@ -174,12 +178,19 @@ func TestWeeklyPreview_NoData(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	assert.Equal(t, http.StatusOK, w.Code)
 
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	require.NoError(t, err)
-	assert.Equal(t, "NO_DATA", resp["code"])
+	assert.Equal(t, float64(0), resp["code"])
+
+	data, ok := resp["data"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "2026-04-13", data["weekStart"])
+	assert.Equal(t, "2026-04-19", data["weekEnd"])
+	sections := data["sections"].([]interface{})
+	assert.Empty(t, sections)
 }
 
 func TestWeeklyPreview_ServiceError(t *testing.T) {

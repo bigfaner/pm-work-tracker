@@ -20,6 +20,12 @@ type SubItemChangeResult struct {
 	LinkageResult *LinkageResult
 }
 
+// MoveResult holds the result of a sub-item move operation.
+type MoveResult struct {
+	NewSubCode     string
+	MainItemBizKey int64
+}
+
 // SubItemService defines business operations for SubItem.
 type SubItemService interface {
 	Create(ctx context.Context, teamBizKey int64, callerBizKey int64, req dto.SubItemCreateReq) (*model.SubItem, error)
@@ -31,6 +37,7 @@ type SubItemService interface {
 	List(ctx context.Context, teamBizKey int64, mainItemBizKey *int64, filter dto.SubItemFilter, page dto.Pagination) (*dto.PageResult[model.SubItem], error)
 	Assign(ctx context.Context, teamBizKey int64, pmBizKey int64, itemID uint, assigneeBizKey int64) error
 	AvailableTransitions(ctx context.Context, teamBizKey int64, subID uint) ([]string, error)
+	Move(ctx context.Context, teamBizKey, subItemBizKey, targetMainItemBizKey, operatorBizKey int64) (*MoveResult, error)
 }
 
 type subItemService struct {
@@ -203,7 +210,18 @@ func (s *subItemService) Delete(ctx context.Context, teamBizKey, callerBizKey in
 		return apperrors.ErrForbidden
 	}
 
+	// Capture old status for audit before soft-delete
+	oldStatus := item.ItemStatus
+
 	if err := s.subItemRepo.SoftDelete(ctx, itemID); err != nil {
+		return err
+	}
+
+	// Record status history for audit (from_status -> "deleted")
+	_ = RecordStatusChange(s.statusHistorySvc, ctx, "sub_item", item.BizKey, oldStatus, "deleted", callerBizKey, 0, "")
+
+	// Recalculate parent main item completion
+	if err := s.mainItemSvc.RecalcCompletion(ctx, item.MainItemKey); err != nil {
 		return err
 	}
 
@@ -260,4 +278,66 @@ func (s *subItemService) Assign(ctx context.Context, teamBizKey, _ int64, itemID
 	return s.subItemRepo.Update(ctx, item, map[string]interface{}{
 		"assignee_key": assigneeBizKey,
 	})
+}
+
+// Move moves a sub-item from its current main item to a target main item.
+// It atomically increments the target main item's sub_item_seq, reassigns the sub-item,
+// and recalculates completion percentages for both source and target main items.
+func (s *subItemService) Move(ctx context.Context, teamBizKey, subItemBizKey, targetMainItemBizKey, _ int64) (*MoveResult, error) {
+	// Step 1: Find the sub-item by bizKey
+	subItem, err := s.subItemRepo.FindByBizKey(ctx, subItemBizKey)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
+	}
+
+	// Step 2: Find the target main item
+	targetMainItem, err := s.mainItemSvc.GetByBizKey(ctx, targetMainItemBizKey)
+	if err != nil {
+		return nil, apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
+	}
+
+	// Explicit team_key check per Hard Rules
+	if targetMainItem.TeamKey != teamBizKey {
+		return nil, apperrors.ErrItemNotFound
+	}
+
+	// Check target is not terminal
+	if status.IsMainTerminal(targetMainItem.ItemStatus) {
+		return nil, apperrors.ErrTargetClosed
+	}
+
+	// Check not same main item
+	if subItem.MainItemKey == targetMainItemBizKey {
+		return nil, apperrors.ErrSameMainItem
+	}
+
+	// Save source main item bizKey for recalc
+	sourceMainItemBizKey := subItem.MainItemKey
+
+	// Step 3: Generate new sub code via atomic increment
+	newCode, err := s.subItemRepo.NextSubCode(ctx, targetMainItemBizKey)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 4: Update the sub-item: main_item_key and item_code
+	if err := s.subItemRepo.Update(ctx, subItem, map[string]interface{}{
+		"main_item_key": targetMainItemBizKey,
+		"item_code":     newCode,
+	}); err != nil {
+		return nil, err
+	}
+
+	// Step 5: Recalculate completion for both source and target main items
+	if err := s.mainItemSvc.RecalcCompletion(ctx, sourceMainItemBizKey); err != nil {
+		return nil, err
+	}
+	if err := s.mainItemSvc.RecalcCompletion(ctx, targetMainItemBizKey); err != nil {
+		return nil, err
+	}
+
+	return &MoveResult{
+		NewSubCode:     newCode,
+		MainItemBizKey: targetMainItemBizKey,
+	}, nil
 }

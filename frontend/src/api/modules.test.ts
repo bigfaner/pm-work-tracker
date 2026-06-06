@@ -151,6 +151,7 @@ describe('API modules', () => {
       await mainItemsApi.listMainItemsApi('team-bk', { status: 'open' })
       expect(mockClient.get).toHaveBeenCalledWith('/teams/team-bk/main-items', {
         params: { status: 'open' },
+        paramsSerializer: { serialize: expect.any(Function) },
       })
     })
 
@@ -359,12 +360,20 @@ describe('API modules', () => {
       })
     })
 
-    it('getGanttViewApi should GET gantt view', async () => {
+    it('getGanttViewApi should GET gantt view with statuses', async () => {
       mockClient.get.mockResolvedValue({})
-      await viewsApi.getGanttViewApi('1', 'open')
-      expect(mockClient.get).toHaveBeenCalledWith('/teams/1/views/gantt', {
-        params: { status: 'open' },
-      })
+      await viewsApi.getGanttViewApi('1', ['progressing', 'blocking'])
+      expect(mockClient.get).toHaveBeenCalledWith('/teams/1/views/gantt', expect.objectContaining({
+        params: { status: ['progressing', 'blocking'] },
+      }))
+    })
+
+    it('getGanttViewApi should GET gantt view without statuses', async () => {
+      mockClient.get.mockResolvedValue({})
+      await viewsApi.getGanttViewApi('1')
+      expect(mockClient.get).toHaveBeenCalledWith('/teams/1/views/gantt', expect.objectContaining({
+        params: {},
+      }))
     })
 
     it('getTableViewApi should GET table view with filter', async () => {

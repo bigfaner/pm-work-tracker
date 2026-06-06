@@ -3,6 +3,7 @@ package gorm
 import (
 	"context"
 	"fmt"
+	"time"
 
 	gormlib "gorm.io/gorm"
 
@@ -52,7 +53,7 @@ func (r *mainItemRepo) List(ctx context.Context, teamBizKey int64, filter dto.Ma
 		query = query.Where("archived_at IS NULL")
 	}
 
-	query = applyItemFilter(query, filter.Status, filter.Priority, filter.AssigneeKey, filter.IsKeyItem)
+	query = applyItemFilter(query, filter.Statuses, filter.Priority, filter.AssigneeKey, filter.IsKeyItem)
 
 	var total int64
 	if err := query.Model(&model.MainItem{}).Count(&total).Error; err != nil {
@@ -140,4 +141,38 @@ func (r *mainItemRepo) ListByTeamAndStatus(ctx context.Context, teamBizKey int64
 		Where("team_key = ? AND item_status = ?", teamBizKey, status).
 		Find(&items).Error
 	return items, err
+}
+
+func (r *mainItemRepo) SoftDelete(ctx context.Context, id uint) error {
+	return r.db.WithContext(ctx).Model(&model.MainItem{}).
+		Where("id = ?", id).
+		Updates(map[string]any{"deleted_flag": 1, "deleted_time": time.Now()}).Error
+}
+
+func (r *mainItemRepo) CascadeSoftDelete(ctx context.Context, mainItemID uint, subItemIDs []uint, histories []model.StatusHistory) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gormlib.DB) error {
+		now := time.Now()
+		// Soft-delete all sub-items
+		if len(subItemIDs) > 0 {
+			if err := tx.Model(&model.SubItem{}).
+				Where("id IN ?", subItemIDs).
+				Updates(map[string]any{"deleted_flag": 1, "deleted_time": now}).Error; err != nil {
+				return err
+			}
+		}
+		// Soft-delete the main item
+		if err := tx.Model(&model.MainItem{}).
+			Where("id = ?", mainItemID).
+			Updates(map[string]any{"deleted_flag": 1, "deleted_time": now}).Error; err != nil {
+			return err
+		}
+		// Insert status history records for audit
+		for i := range histories {
+			histories[i].CreateTime = now
+			if err := tx.Create(&histories[i]).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

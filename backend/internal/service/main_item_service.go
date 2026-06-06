@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -92,7 +93,8 @@ type MainItemService interface {
 	Create(ctx context.Context, teamBizKey int64, pmBizKey int64, req dto.MainItemCreateReq) (*model.MainItem, error)
 	Update(ctx context.Context, teamBizKey int64, itemID uint, req dto.MainItemUpdateReq) error
 	Archive(ctx context.Context, teamBizKey int64, itemID uint) error
-	List(ctx context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error)
+	Delete(ctx context.Context, teamBizKey int64, itemBizKey int64, operatorBizKey int64) error
+	List(ctx context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], map[int64]*dto.MainItemMatchInfo, error)
 	Get(ctx context.Context, itemID uint) (*model.MainItem, error)
 	GetByBizKey(ctx context.Context, bizKey int64) (*model.MainItem, error)
 	RecalcCompletion(ctx context.Context, mainItemBizKey int64) error
@@ -222,8 +224,196 @@ func (s *mainItemService) Archive(ctx context.Context, _ int64, itemID uint) err
 	})
 }
 
-func (s *mainItemService) List(ctx context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], error) {
-	return s.mainItemRepo.List(ctx, teamBizKey, filter, page)
+func (s *mainItemService) Delete(ctx context.Context, _, itemBizKey, operatorBizKey int64) error {
+	item, err := s.mainItemRepo.FindByBizKey(ctx, itemBizKey)
+	if err != nil {
+		return apperrors.MapNotFound(err, apperrors.ErrItemNotFound)
+	}
+
+	// Fetch sub-items for cascade delete
+	subItems, err := s.subItemRepo.ListByMainItem(ctx, item.BizKey)
+	if err != nil {
+		return err
+	}
+
+	// Build sub-item ID list and status history records
+	subItemIDs := make([]uint, 0, len(subItems))
+	histories := make([]model.StatusHistory, 0, 1+len(subItems))
+
+	// Main item audit record
+	histories = append(histories, model.StatusHistory{
+		ItemType:   "main_item",
+		ItemKey:    item.BizKey,
+		FromStatus: item.ItemStatus,
+		ToStatus:   "deleted",
+		ChangedBy:  operatorBizKey,
+		IsAuto:     0,
+	})
+
+	// Sub-item audit records
+	for _, sub := range subItems {
+		subItemIDs = append(subItemIDs, sub.ID)
+		histories = append(histories, model.StatusHistory{
+			ItemType:   "sub_item",
+			ItemKey:    sub.BizKey,
+			FromStatus: sub.ItemStatus,
+			ToStatus:   "deleted",
+			ChangedBy:  operatorBizKey,
+			IsAuto:     0,
+		})
+	}
+
+	// Cascade soft-delete in single transaction (Hard Rule)
+	return s.mainItemRepo.CascadeSoftDelete(ctx, item.ID, subItemIDs, histories)
+}
+
+func (s *mainItemService) List(ctx context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], map[int64]*dto.MainItemMatchInfo, error) {
+	// When assigneeKey is set, perform penetration filter in memory.
+	if filter.AssigneeKey != nil && *filter.AssigneeKey != "" {
+		return s.listWithPenetration(ctx, teamBizKey, filter, page)
+	}
+
+	// No assigneeKey: use standard repo-level filtering (no penetration needed).
+	result, err := s.mainItemRepo.List(ctx, teamBizKey, filter, page)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Terminal sort: sink terminal items to bottom while preserving relative order
+	sortTerminalItems(result.Items)
+
+	// Status-only filter: all items are "direct" matches
+	var matchInfo map[int64]*dto.MainItemMatchInfo
+	if len(filter.Statuses) > 0 {
+		matchInfo = make(map[int64]*dto.MainItemMatchInfo, len(result.Items))
+		for _, item := range result.Items {
+			matchInfo[item.BizKey] = &dto.MainItemMatchInfo{MatchType: "direct"}
+		}
+	}
+
+	return result, matchInfo, nil
+}
+
+func (s *mainItemService) listWithPenetration(ctx context.Context, teamBizKey int64, filter dto.MainItemFilter, page dto.Pagination) (*dto.PageResult[model.MainItem], map[int64]*dto.MainItemMatchInfo, error) {
+	assigneeBizKey, err := pkg.ParseID(*filter.AssigneeKey)
+	if err != nil {
+		// Invalid assigneeKey: return empty result
+		return &dto.PageResult[model.MainItem]{
+			Items: []model.MainItem{},
+			Total: 0,
+			Page:  page.Page,
+			Size:  page.PageSize,
+		}, nil, nil
+	}
+
+	// Fetch all non-archived main items for the team (no assignee filter at DB level)
+	noAssigneeFilter := filter
+	noAssigneeFilter.AssigneeKey = nil
+	allItems, err := s.mainItemRepo.List(ctx, teamBizKey, noAssigneeFilter, dto.Pagination{Page: 1, PageSize: 10000})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Fetch all sub-items for the team
+	subItems, err := s.subItemRepo.ListByTeam(ctx, teamBizKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Index sub-items by main item BizKey
+	subsByMain := make(map[int64][]model.SubItem)
+	for _, si := range subItems {
+		subsByMain[si.MainItemKey] = append(subsByMain[si.MainItemKey], si)
+	}
+
+	// Filter main items with penetration logic
+	var filtered []model.MainItem
+	matchInfo := make(map[int64]*dto.MainItemMatchInfo)
+	statusSet := make(map[string]struct{}, len(filter.Statuses))
+	for _, s := range filter.Statuses {
+		statusSet[s] = struct{}{}
+	}
+
+	for _, mi := range allItems.Items {
+		// Check status match (if statuses selected)
+		statusMatch := len(statusSet) == 0
+		if !statusMatch {
+			_, statusMatch = statusSet[mi.ItemStatus]
+		}
+
+		// Check direct assignee match
+		directMatch := mi.AssigneeKey != nil && *mi.AssigneeKey == assigneeBizKey
+
+		// Check indirect match via sub-items
+		var matchedSubIds []string
+		for _, si := range subsByMain[mi.BizKey] {
+			if si.AssigneeKey != nil && *si.AssigneeKey == assigneeBizKey {
+				matchedSubIds = append(matchedSubIds, pkg.FormatID(si.BizKey))
+			}
+		}
+		indirectMatch := len(matchedSubIds) > 0
+
+		// AND logic when both filters active
+		if len(statusSet) > 0 {
+			// Status must match AND (direct OR indirect)
+			if !statusMatch {
+				continue
+			}
+			if !directMatch && !indirectMatch {
+				continue
+			}
+		} else if !directMatch && !indirectMatch {
+			// Only assignee filter: either direct or indirect
+			continue
+		}
+
+		filtered = append(filtered, mi)
+		switch {
+		case directMatch && len(matchedSubIds) == 0:
+			matchInfo[mi.BizKey] = &dto.MainItemMatchInfo{MatchType: "direct"}
+		case directMatch:
+			// Direct match but also has matching sub-items — report as direct with matched subs
+			matchInfo[mi.BizKey] = &dto.MainItemMatchInfo{
+				MatchType:         "direct",
+				MatchedSubItemIds: matchedSubIds,
+			}
+		default:
+			// Only indirect match
+			matchInfo[mi.BizKey] = &dto.MainItemMatchInfo{
+				MatchType:         "indirect",
+				MatchedSubItemIds: matchedSubIds,
+			}
+		}
+	}
+
+	// Terminal sort: sink terminal items to bottom while preserving relative order
+	sortTerminalItems(filtered)
+
+	// Paginate filtered results
+	total := int64(len(filtered))
+	_, resultPage, pageSize := dto.ApplyPaginationDefaults(page.Page, page.PageSize)
+	offset := (resultPage - 1) * pageSize
+
+	if offset >= len(filtered) {
+		return &dto.PageResult[model.MainItem]{
+			Items: []model.MainItem{},
+			Total: total,
+			Page:  resultPage,
+			Size:  pageSize,
+		}, matchInfo, nil
+	}
+
+	end := offset + pageSize
+	if end > len(filtered) {
+		end = len(filtered)
+	}
+
+	return &dto.PageResult[model.MainItem]{
+		Items: filtered[offset:end],
+		Total: total,
+		Page:  resultPage,
+		Size:  pageSize,
+	}, matchInfo, nil
 }
 
 func (s *mainItemService) Get(ctx context.Context, itemID uint) (*model.MainItem, error) {
@@ -517,4 +707,17 @@ func calcWeightedCompletion(items []*model.SubItem) float64 {
 	}
 
 	return weightedSum / totalWeight
+}
+
+// sortTerminalItems sinks terminal main items to the bottom of the list
+// while preserving the relative order of terminal and non-terminal groups.
+func sortTerminalItems(items []model.MainItem) {
+	sort.SliceStable(items, func(i, j int) bool {
+		iTerminal := status.IsMainTerminal(items[i].ItemStatus)
+		jTerminal := status.IsMainTerminal(items[j].ItemStatus)
+		if iTerminal != jTerminal {
+			return !iTerminal // terminal sinks to bottom
+		}
+		return false // preserve original relative order within each group
+	})
 }

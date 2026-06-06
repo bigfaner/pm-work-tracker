@@ -2,6 +2,7 @@ import {
   describe,
   it,
   expect,
+  vi,
   beforeEach,
   beforeAll,
   afterAll,
@@ -186,6 +187,11 @@ function setupHandlers() {
     http.put('/v1/teams/:teamId/main-items/:itemId', async ({ request }) => {
       const body = (await request.json()) as Record<string, unknown>
       return HttpResponse.json({ code: 0, data: { ...seedMainItem, ...body } })
+    }),
+
+    // Delete main item
+    http.delete('/v1/teams/:teamId/main-items/:itemId', () => {
+      return HttpResponse.json({ code: 0, data: { message: 'ok' } })
     }),
 
     // Create sub item
@@ -649,6 +655,163 @@ describe('MainItemDetailPage', () => {
       // Edit form should be populated with the item's data (not empty)
       const titleInput = screen.getByDisplayValue('Alpha Task')
       expect(titleInput).toBeInTheDocument()
+    })
+  })
+
+  // --- Delete button ---
+
+  it('renders delete button with PM permission', async () => {
+    useAuthStore.getState().setPermissions({
+      teamPermissions: { 1: ['main_item:update', 'main_item:delete'] },
+    })
+    renderPage()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Alpha Task' }),
+      ).toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: /删除/ })).toBeInTheDocument()
+  })
+
+  it('does not render delete button without delete permission', async () => {
+    // Default permissions only have main_item:update, not delete
+    renderPage()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Alpha Task' }),
+      ).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('button', { name: /删除/ })).not.toBeInTheDocument()
+  })
+
+  it('opens confirmation dialog with sub-item count on delete click', async () => {
+    useAuthStore.getState().setPermissions({
+      teamPermissions: { 1: ['main_item:update', 'main_item:delete'] },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Alpha Task' }),
+      ).toBeInTheDocument()
+    })
+
+    // Find the delete button in the title bar (has SVG + text)
+    const deleteButtons = screen.getAllByRole('button', { name: /删除/ })
+    await user.click(deleteButtons[0])
+
+    await waitFor(() => {
+      expect(screen.getByText('删除主事项')).toBeInTheDocument()
+      // seedMainItem has 3 subItems
+      expect(screen.getByText(/将同时删除 3 个子事项/)).toBeInTheDocument()
+    })
+  })
+
+  // --- Stale data on breadcrumb navigation (bug fix) ---
+
+  it('bug: refetches data on remount so deleted sub-items are not shown', async () => {
+    // Simulate production staleTime so cached data is considered fresh
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 30000 } },
+    })
+
+    let fetchCount = 0
+    server.use(
+      http.get('/v1/teams/:teamId/main-items/:itemId', () => {
+        fetchCount++
+        if (fetchCount === 1) {
+          return HttpResponse.json({ code: 0, data: seedMainItem })
+        }
+        // Subsequent fetch: Sub Alpha 2 has been deleted
+        return HttpResponse.json({
+          code: 0,
+          data: {
+            ...seedMainItem,
+            subItems: seedMainItem.subItems.filter((s) => s.bizKey !== '12'),
+          },
+        })
+      }),
+    )
+
+    // First render: shows all 3 sub-items
+    const { unmount } = render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/items/1']}>
+          <Routes>
+            <Route
+              path="/items/:mainItemId"
+              element={<MainItemDetailPage />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Sub Alpha 2')).toBeInTheDocument()
+    })
+    expect(fetchCount).toBe(1)
+
+    // Navigate away (unmount)
+    unmount()
+
+    // Navigate back (remount) — simulates breadcrumb click
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/items/1']}>
+          <Routes>
+            <Route
+              path="/items/:mainItemId"
+              element={<MainItemDetailPage />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    // With refetchOnMount: 'always', the deleted sub-item should disappear
+    await waitFor(
+      () => {
+        expect(screen.queryByText('Sub Alpha 2')).not.toBeInTheDocument()
+      },
+      { timeout: 3000 },
+    )
+    expect(fetchCount).toBeGreaterThanOrEqual(2)
+  })
+
+  it('calls delete API on confirmation', async () => {
+    useAuthStore.getState().setPermissions({
+      teamPermissions: { 1: ['main_item:update', 'main_item:delete'] },
+    })
+    const deleteFn = vi.fn()
+    server.use(
+      http.delete('/v1/teams/:teamId/main-items/:itemId', () => {
+        deleteFn()
+        return HttpResponse.json({ code: 0, data: { message: 'ok' } })
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Alpha Task' }),
+      ).toBeInTheDocument()
+    })
+
+    const deleteButtons = screen.getAllByRole('button', { name: /删除/ })
+    await user.click(deleteButtons[0])
+    await waitFor(() => {
+      expect(screen.getByText('删除主事项')).toBeInTheDocument()
+    })
+    // The confirm dialog's delete button
+    const dialogDeleteBtn = screen.getAllByRole('button', { name: '删除' }).find(
+      (btn) => btn.closest('[role="dialog"]'),
+    )
+    expect(dialogDeleteBtn).toBeTruthy()
+    await user.click(dialogDeleteBtn!)
+
+    await waitFor(() => {
+      expect(deleteFn).toHaveBeenCalledOnce()
     })
   })
 })

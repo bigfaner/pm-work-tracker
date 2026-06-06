@@ -169,6 +169,10 @@ func (m *mockMainItemRepoForPool) FindByBizKey(_ context.Context, _ int64) (*mod
 func (m *mockMainItemRepoForPool) ListByTeamAndStatus(_ context.Context, _ int64, _ string) ([]model.MainItem, error) {
 	return nil, nil
 }
+func (m *mockMainItemRepoForPool) SoftDelete(_ context.Context, _ uint) error { return nil }
+func (m *mockMainItemRepoForPool) CascadeSoftDelete(_ context.Context, _ uint, _ []uint, _ []model.StatusHistory) error {
+	return nil
+}
 
 // mockDBTx captures transaction callback execution.
 type mockDBTx struct {

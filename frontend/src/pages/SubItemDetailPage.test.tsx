@@ -218,6 +218,50 @@ function setupHandlers() {
         })
       },
     ),
+
+    // Delete sub item
+    http.delete('/v1/teams/:teamId/sub-items/:itemId', () => {
+      return HttpResponse.json({ code: 0, data: { message: 'ok' } })
+    }),
+
+    // Move sub item
+    http.put('/v1/teams/:teamId/sub-items/:itemId/move', async ({ request }) => {
+      const body = (await request.json()) as { targetMainItemBizKey: string }
+      return HttpResponse.json({
+        code: 0,
+        data: {
+          newSubCode: 'MI-0002-001',
+          mainItemBizKey: body.targetMainItemBizKey,
+        },
+      })
+    }),
+
+    // Available transitions for sub items
+    http.get('/v1/teams/:teamId/sub-items/:subId/available-transitions', () => {
+      return HttpResponse.json({
+        code: 0,
+        data: {
+          transitions: ['pending', 'progressing', 'blocking', 'pausing', 'completed', 'closed'],
+        },
+      })
+    }),
+
+    // List main items (for move target selector)
+    http.get('/v1/teams/:teamId/main-items', () => {
+      return HttpResponse.json({
+        code: 0,
+        data: {
+          items: [
+            { bizKey: '1', code: 'MI-0001', title: 'Alpha Task', itemStatus: 'progressing', teamKey: '1' },
+            { bizKey: '2', code: 'MI-0002', title: 'Beta Task', itemStatus: 'progressing', teamKey: '1' },
+            { bizKey: '3', code: 'MI-0003', title: 'Closed Task', itemStatus: 'closed', teamKey: '1' },
+          ],
+          total: 3,
+          page: 1,
+          size: 20,
+        },
+      })
+    }),
   )
 }
 
@@ -470,5 +514,190 @@ describe('SubItemDetailPage', () => {
     })
     const antdElements = document.querySelectorAll('[class*="ant-"]')
     expect(antdElements.length).toBe(0)
+  })
+
+  // --- Delete button ---
+
+  it('renders delete button with delete permission', async () => {
+    useAuthStore.getState().setPermissions({
+      teamPermissions: { 1: ['sub_item:delete'] },
+    })
+    renderPage()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Sub Alpha 2' }),
+      ).toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: /删除/ })).toBeInTheDocument()
+  })
+
+  it('does not render delete button without delete permission', async () => {
+    // Default permissions only have progress:update, not delete
+    renderPage()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Sub Alpha 2' }),
+      ).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('button', { name: /删除/ })).not.toBeInTheDocument()
+  })
+
+  it('opens delete confirmation dialog on click', async () => {
+    useAuthStore.getState().setPermissions({
+      teamPermissions: { 1: ['sub_item:delete'] },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Sub Alpha 2' }),
+      ).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /删除/ }))
+
+    await waitFor(() => {
+      expect(screen.getByText('删除子事项')).toBeInTheDocument()
+      expect(screen.getByText('确认删除该子事项？删除后无法恢复。')).toBeInTheDocument()
+    })
+  })
+
+  it('calls delete API on confirmation', async () => {
+    useAuthStore.getState().setPermissions({
+      teamPermissions: { 1: ['sub_item:delete'] },
+    })
+    const deleteFn = vi.fn()
+    server.use(
+      http.delete('/v1/teams/:teamId/sub-items/:itemId', () => {
+        deleteFn()
+        return HttpResponse.json({ code: 0, data: { message: 'ok' } })
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Sub Alpha 2' }),
+      ).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /删除/ }))
+    await waitFor(() => {
+      expect(screen.getByText('删除子事项')).toBeInTheDocument()
+    })
+    const dialogDeleteBtn = screen.getAllByRole('button', { name: '删除' }).find(
+      (btn) => btn.closest('[role="dialog"]'),
+    )
+    expect(dialogDeleteBtn).toBeTruthy()
+    await user.click(dialogDeleteBtn!)
+
+    await waitFor(() => {
+      expect(deleteFn).toHaveBeenCalledOnce()
+    })
+  })
+
+  // --- Move button ---
+
+  it('renders move button with update permission', async () => {
+    useAuthStore.getState().setPermissions({
+      teamPermissions: { 1: ['sub_item:update'] },
+    })
+    renderPage()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Sub Alpha 2' }),
+      ).toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: /移动/ })).toBeInTheDocument()
+  })
+
+  it('does not render move button without update permission', async () => {
+    useAuthStore.getState().setPermissions({
+      teamPermissions: { 1: ['progress:update'] },
+    })
+    renderPage()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Sub Alpha 2' }),
+      ).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('button', { name: /移动/ })).not.toBeInTheDocument()
+  })
+
+  it('opens move dialog and lists available main items excluding current and closed', async () => {
+    useAuthStore.getState().setPermissions({
+      teamPermissions: { 1: ['sub_item:update'] },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Sub Alpha 2' }),
+      ).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /移动/ }))
+
+    await waitFor(() => {
+      expect(screen.getByText('移动到其他主事项')).toBeInTheDocument()
+    })
+
+    // Open the select dropdown
+    const selectTrigger = screen.getByRole('combobox', { name: '' })
+    await user.click(selectTrigger)
+
+    await waitFor(() => {
+      // Beta Task should be available (non-terminal, not current)
+      expect(screen.getByRole('option', { name: /Beta Task/ })).toBeInTheDocument()
+      // Alpha Task should be excluded (current main item)
+      expect(screen.queryByRole('option', { name: /Alpha Task/ })).not.toBeInTheDocument()
+      // Closed Task should be excluded (terminal status)
+      expect(screen.queryByRole('option', { name: /Closed Task/ })).not.toBeInTheDocument()
+    })
+  })
+
+  it('calls move API on confirmation', async () => {
+    useAuthStore.getState().setPermissions({
+      teamPermissions: { 1: ['sub_item:update'] },
+    })
+    const moveFn = vi.fn()
+    server.use(
+      http.put('/v1/teams/:teamId/sub-items/:itemId/move', async ({ request }) => {
+        moveFn()
+        const body = (await request.json()) as { targetMainItemBizKey: string }
+        return HttpResponse.json({
+          code: 0,
+          data: { newSubCode: 'MI-0002-001', mainItemBizKey: body.targetMainItemBizKey },
+        })
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Sub Alpha 2' }),
+      ).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /移动/ }))
+    await waitFor(() => {
+      expect(screen.getByText('移动到其他主事项')).toBeInTheDocument()
+    })
+
+    // Select target
+    const selectTrigger = screen.getByRole('combobox', { name: '' })
+    await user.click(selectTrigger)
+
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: /Beta Task/ })).toBeInTheDocument()
+    })
+    await user.click(screen.getByRole('option', { name: /Beta Task/ }))
+
+    // Confirm move
+    await user.click(screen.getByRole('button', { name: '确认移动' }))
+
+    await waitFor(() => {
+      expect(moveFn).toHaveBeenCalledOnce()
+    })
   })
 })

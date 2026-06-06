@@ -23,3 +23,11 @@ Progress data only exists for past and current weeks.
 Items are sorted by priority ascending (P1 → P2 → P3). Items with the same priority are sorted by deadline ascending (earliest first).
 
 Applied consistently across: item list, table view, weekly view groups.
+
+## BIZ-validation-004: Multi-Select Status Filter
+
+Status filter parameters accept comma-separated values (e.g., `?status=progressing,blocking`), parsed as `[]string` via the `form:"status"` binding tag. Single-value queries continue to work as one-element slices. Applies to:
+- MainItemFilter (item list view)
+- GanttFilter (gantt view)
+
+**Source**: feature/system-ux-optimization TECH-006
