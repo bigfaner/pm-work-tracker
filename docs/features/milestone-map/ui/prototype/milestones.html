@@ -43,6 +43,7 @@
 
     .map-card-meta {
       display: flex;
+      justify-content: space-between;
       gap: 16px;
       margin-bottom: 12px;
       font-size: 13px;
@@ -132,301 +133,6 @@
       font-weight: 500;
     }
 
-    /* Breadcrumb for timeline view */
-    .breadcrumb {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
-      font-size: 13px;
-    }
-
-    .breadcrumb a {
-      color: var(--accent);
-      text-decoration: none;
-    }
-
-    .breadcrumb a:hover {
-      text-decoration: underline;
-    }
-
-    .breadcrumb .sep {
-      color: var(--text-tertiary);
-    }
-
-    .breadcrumb .current {
-      color: var(--text-primary);
-      font-weight: 500;
-    }
-
-    /* Timeline-specific styles */
-    .timeline-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      min-height: 400px;
-      overflow-x: auto;
-      position: relative;
-    }
-
-    .timeline-axis {
-      position: relative;
-      padding: 40px 40px 20px;
-      min-width: 900px;
-    }
-
-    .timeline-line {
-      display: none;
-    }
-
-    .timeline-months {
-      display: flex;
-      justify-content: space-between;
-      padding: 0 20px;
-      margin-bottom: 60px;
-    }
-
-    .timeline-month {
-      font-size: 12px;
-      color: var(--text-tertiary);
-      font-weight: 500;
-      white-space: nowrap;
-    }
-
-    .milestone-nodes {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      padding: 0 10px;
-      position: relative;
-      gap: 0;
-    }
-
-    .milestone-node {
-      width: 160px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
-      cursor: pointer;
-      transition: all 0.2s;
-      position: relative;
-      flex-shrink: 0;
-    }
-
-    .node-arrow {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 1;
-      min-width: 24px;
-      margin-top: 50px;
-      position: relative;
-    }
-
-    .node-arrow::before {
-      content: '';
-      display: block;
-      width: 100%;
-      height: 2px;
-      background: var(--text-tertiary);
-    }
-
-    .node-arrow::after {
-      content: '';
-      display: block;
-      width: 0;
-      height: 0;
-      border-top: 5px solid transparent;
-      border-bottom: 5px solid transparent;
-      border-left: 7px solid var(--text-tertiary);
-      position: absolute;
-      right: 0;
-    }
-
-    .milestone-node:hover {
-      background: var(--bg);
-      box-shadow: var(--elevation-2);
-    }
-
-    .milestone-node.selected {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px var(--accent-ring);
-    }
-
-    .milestone-node.cancelled {
-      opacity: 0.5;
-    }
-
-    .node-header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 6px;
-    }
-
-    .node-name {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-primary);
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .node-completion {
-      font-size: 12px;
-      color: var(--text-secondary);
-      font-weight: 500;
-    }
-
-    .node-date {
-      font-size: 12px;
-      color: var(--text-tertiary);
-      margin-bottom: 4px;
-    }
-
-    .node-count {
-      font-size: 12px;
-      color: var(--text-tertiary);
-      margin-bottom: 8px;
-    }
-
-    .node-progress {
-      height: 4px;
-      background: var(--border);
-      border-radius: 9999px;
-      overflow: hidden;
-    }
-
-    .node-progress-fill {
-      height: 100%;
-      background: var(--accent-light);
-      border-radius: 9999px;
-      transition: width 0.3s;
-    }
-
-    .mi-section {
-      margin-top: 12px;
-      padding: 0 10px;
-    }
-
-    .mi-group {
-      width: 160px;
-      flex-shrink: 0;
-    }
-
-    .mi-groups-container {
-      display: flex;
-      justify-content: space-between;
-      padding: 0 10px;
-    }
-
-    .mi-connector {
-      width: 1px;
-      height: 16px;
-      background: var(--border);
-      margin: 0 auto 8px;
-      border-left: 1px dashed var(--text-tertiary);
-    }
-
-    .mi-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 13px;
-      margin-bottom: 4px;
-      transition: background 0.1s;
-      cursor: pointer;
-    }
-
-    .mi-item:hover {
-      background: var(--bg);
-    }
-
-    .mi-grip {
-      color: var(--text-tertiary);
-      font-size: 10px;
-      cursor: grab;
-      user-select: none;
-    }
-
-    .mi-code {
-      color: var(--accent);
-      font-weight: 500;
-      white-space: nowrap;
-    }
-
-    .mi-title {
-      color: var(--text-primary);
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .mi-pct {
-      font-size: 12px;
-      color: var(--text-tertiary);
-      white-space: nowrap;
-    }
-
-    .mi-status {
-      font-size: 11px;
-      white-space: nowrap;
-    }
-
-    .status-switches { display: none; }
-
-    .panel-mi-list {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      overflow: hidden;
-    }
-
-    .panel-mi-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
-      font-size: 13px;
-      border-bottom: 1px solid var(--border);
-      cursor: pointer;
-      transition: background 0.1s;
-    }
-
-    .panel-mi-row:last-child {
-      border-bottom: none;
-    }
-
-    .panel-mi-row:hover {
-      background: var(--bg);
-    }
-
-    .panel-mi-unbind {
-      background: none;
-      border: none;
-      color: var(--text-tertiary);
-      font-size: 16px;
-      cursor: pointer;
-      padding: 0 4px;
-      line-height: 1;
-      opacity: 0;
-      transition: all 0.15s;
-      flex-shrink: 0;
-    }
-
-    .panel-mi-row:hover .panel-mi-unbind {
-      opacity: 1;
-    }
-
-    .panel-mi-unbind:hover {
-      color: var(--error-text);
-    }
-
     .state-preview-bar {
       display: flex;
       align-items: center;
@@ -454,8 +160,65 @@
       border-color: var(--accent);
     }
 
-    /* View toggle for prototype */
-    .view-hidden { display: none; }
+    /* Status Tag Filter */
+    .stf {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border-dark);
+      border-radius: 6px;
+      background: var(--surface);
+      padding: 4px 10px;
+    }
+
+    .stf-label {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      white-space: nowrap;
+    }
+
+    .stf-divider {
+      width: 1px;
+      height: 16px;
+      background: var(--border-dark);
+      flex-shrink: 0;
+    }
+
+    .stf-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .stf-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: none;
+      user-select: none;
+      opacity: 0.4;
+    }
+
+    .stf-tag:hover {
+      opacity: 0.7;
+    }
+
+    .stf-tag.active {
+      opacity: 1;
+      outline: 2px solid currentColor;
+      outline-offset: 1px;
+    }
+
+    .stf-tag-planning   { background: #f1f5f9; color: #475569; }
+    .stf-tag-reviewed   { background: #fffbeb; color: #92400e; }
+    .stf-tag-ready      { background: #fff7ed; color: #9a3412; }
+    .stf-tag-executing  { background: #eff6ff; color: #1d4ed8; }
+    .stf-tag-completed  { background: #f0fdf4; color: #166534; }
   </style>
 </head>
 <body>
@@ -506,36 +269,50 @@
         <button class="state-toggle-btn" data-state="error" onclick="switchState('error')">错误</button>
       </div>
 
-      <!-- ============ VIEW 1: Map List ============ -->
+      <!-- Map List: Populated -->
       <div id="map-list-view" data-state="populated">
         <div class="page-header">
           <h1>里程碑图</h1>
           <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('create-map-modal')">+ 创建里程碑图</button>
-            <button class="btn btn-secondary" title="刷新">&#8635; 刷新</button>
           </div>
         </div>
 
         <!-- Filter Bar -->
         <div class="filter-bar">
+          <div class="search-wrapper">
+            <span class="search-icon">&#128269;</span>
+            <input type="text" class="search-input" placeholder="搜索名称..." aria-label="搜索里程碑图名称">
+          </div>
           <div class="dropdown">
-            <button class="dropdown-trigger" onclick="toggleDropdown('map-status-filter')">
-              状态：全部 <span class="arrow">&#9660;</span>
+            <button class="dropdown-trigger" onclick="toggleDropdown('map-assignee-filter')">
+              负责人：全部 <span class="arrow">&#9660;</span>
             </button>
-            <div class="dropdown-menu" id="map-status-filter">
+            <div class="dropdown-menu" id="map-assignee-filter">
               <div class="dropdown-item active">全部</div>
-              <div class="dropdown-item">规划中</div>
-              <div class="dropdown-item">已评审</div>
-              <div class="dropdown-item">待实施</div>
-              <div class="dropdown-item">实施中</div>
-              <div class="dropdown-item">已完成</div>
+              <div class="dropdown-item">张三</div>
+              <div class="dropdown-item">李四</div>
+              <div class="dropdown-item">王五</div>
             </div>
           </div>
+          <div class="stf">
+            <span class="stf-label">状态</span>
+            <div class="stf-divider"></div>
+            <div class="stf-tags">
+              <button class="stf-tag stf-tag-planning" onclick="toggleTag(this)">规划中</button>
+              <button class="stf-tag stf-tag-reviewed" onclick="toggleTag(this)">已评审</button>
+              <button class="stf-tag stf-tag-ready" onclick="toggleTag(this)">待实施</button>
+              <button class="stf-tag stf-tag-executing active" onclick="toggleTag(this)">实施中</button>
+              <button class="stf-tag stf-tag-completed" onclick="toggleTag(this)">已完成</button>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm">重置</button>
+          <button class="btn btn-secondary btn-sm" title="刷新">&#8635; 刷新</button>
         </div>
 
         <div class="map-grid">
           <!-- Map Card 1: 产品 MVP -->
-          <div class="map-card" onclick="showTimelineView('产品 MVP')">
+          <div class="map-card" onclick="location.href='milestone-detail.html'">
             <div class="map-card-header">
               <span class="map-card-title">产品 MVP</span>
               <span class="badge badge-accent">实施中</span>
@@ -545,13 +322,13 @@
               <span>&#9776; 8 个事项</span>
               <span>&#128100; 张三</span>
             </div>
-            <div class="map-card-progress">
-              <div class="map-card-progress-label">
-                <span>整体进度</span>
-                <span>60%</span>
-              </div>
-              <div class="node-progress">
-                <div class="node-progress-fill" style="width: 60%"></div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px;">
+              <span style="font-size: 12px; color: var(--text-tertiary);">&#128197; 2026-05 ~ 2026-12</span>
+              <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                <div class="node-progress" style="width: 60px;">
+                  <div class="node-progress-fill" style="width: 60%"></div>
+                </div>
+                <span style="font-size: 12px; color: var(--text-tertiary);">整体进度 60%</span>
               </div>
             </div>
             <div class="map-card-nodes">
@@ -568,7 +345,7 @@
           </div>
 
           <!-- Map Card 2: 二期迭代 -->
-          <div class="map-card" onclick="showTimelineView('二期迭代')">
+          <div class="map-card" onclick="location.href='milestone-detail.html'">
             <div class="map-card-header">
               <span class="map-card-title">二期迭代</span>
               <span class="badge badge-warning">待实施</span>
@@ -578,13 +355,13 @@
               <span>&#9776; 0 个事项</span>
               <span>&#128100; 李四</span>
             </div>
-            <div class="map-card-progress">
-              <div class="map-card-progress-label">
-                <span>整体进度</span>
-                <span>0%</span>
-              </div>
-              <div class="node-progress">
-                <div class="node-progress-fill" style="width: 0%"></div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px;">
+              <span style="font-size: 12px; color: var(--text-tertiary);">&#128197; 2026-08 ~ 2026-12</span>
+              <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                <div class="node-progress" style="width: 60px;">
+                  <div class="node-progress-fill" style="width: 0%"></div>
+                </div>
+                <span style="font-size: 12px; color: var(--text-tertiary);">整体进度 0%</span>
               </div>
             </div>
             <div class="map-card-nodes">
@@ -599,7 +376,7 @@
           </div>
 
           <!-- Map Card 3: 已完成 -->
-          <div class="map-card" onclick="showTimelineView('技术债务清理')">
+          <div class="map-card" onclick="location.href='milestone-detail.html'">
             <div class="map-card-header">
               <span class="map-card-title">技术债务清理</span>
               <span class="badge badge-success">已完成</span>
@@ -609,13 +386,13 @@
               <span>&#9776; 5 个事项</span>
               <span>&#128100; 张三</span>
             </div>
-            <div class="map-card-progress">
-              <div class="map-card-progress-label">
-                <span>整体进度</span>
-                <span>100%</span>
-              </div>
-              <div class="node-progress">
-                <div class="node-progress-fill" style="width: 100%"></div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px;">
+              <span style="font-size: 12px; color: var(--text-tertiary);">&#128197; 2026-03 ~ 2026-05</span>
+              <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                <div class="node-progress" style="width: 60px;">
+                  <div class="node-progress-fill" style="width: 100%"></div>
+                </div>
+                <span style="font-size: 12px; color: var(--text-tertiary);">整体进度 100%</span>
               </div>
             </div>
             <div class="map-card-nodes">
@@ -655,7 +432,7 @@
             <button class="btn btn-primary" onclick="openModal('create-map-modal')">+ 创建里程碑图</button>
           </div>
         </div>
-        <div class="timeline-card">
+        <div class="card">
           <div class="empty-state">
             <div class="empty-icon">&#128466;</div>
             <div class="empty-title">暂无里程碑图</div>
@@ -669,7 +446,7 @@
         <div class="page-header">
           <h1>里程碑图</h1>
         </div>
-        <div class="timeline-card">
+        <div class="card">
           <div class="error-state">
             <div class="error-icon">&#9888;</div>
             <div class="error-title">加载失败</div>
@@ -677,256 +454,10 @@
           </div>
         </div>
       </div>
-
-      <!-- ============ VIEW 2: Timeline Detail ============ -->
-      <div id="timeline-view" style="display:none;">
-        <!-- Breadcrumb -->
-        <div class="breadcrumb">
-          <a href="#" onclick="showMapListView(); return false;">里程碑图</a>
-          <span class="sep">/</span>
-          <span class="current" id="timeline-map-name">产品 MVP</span>
-        </div>
-
-        <!-- Page Header -->
-        <div class="page-header">
-          <h1 id="timeline-title">产品 MVP</h1>
-          <div class="page-header-actions">
-            <button class="btn btn-secondary" onclick="showMapListView()">&#8592; 返回列表</button>
-            <button class="btn btn-primary" onclick="openModal('create-modal')">+ 创建里程碑</button>
-            <button class="btn btn-secondary" title="刷新">&#8635; 刷新</button>
-            <div class="zoom-controls">
-              <button class="zoom-btn" data-zoom="week" onclick="setZoom('week')">周</button>
-              <button class="zoom-btn active" data-zoom="month" onclick="setZoom('month')">月</button>
-              <button class="zoom-btn" data-zoom="quarter" onclick="setZoom('quarter')">季</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Filter Bar -->
-        <div class="filter-bar">
-          <div class="dropdown">
-            <button class="dropdown-trigger" onclick="toggleDropdown('status-filter')">
-              状态：全部 <span class="arrow">&#9660;</span>
-            </button>
-            <div class="dropdown-menu" id="status-filter">
-              <div class="dropdown-item active">全部</div>
-              <div class="dropdown-item">未开始</div>
-              <div class="dropdown-item">进行中</div>
-              <div class="dropdown-item">已完成</div>
-              <div class="dropdown-item">已取消</div>
-            </div>
-          </div>
-          <div class="search-wrapper">
-            <span class="search-icon">&#128269;</span>
-            <input type="text" class="search-input" placeholder="搜索里程碑..." aria-label="搜索里程碑">
-          </div>
-        </div>
-
-        <!-- Timeline -->
-        <div class="timeline-card">
-          <div class="timeline-axis">
-            <div class="timeline-months">
-              <span class="timeline-month">6月</span>
-              <span class="timeline-month">7月</span>
-              <span class="timeline-month">8月</span>
-              <span class="timeline-month">9月</span>
-              <span class="timeline-month">10月</span>
-              <span class="timeline-month">11月</span>
-            </div>
-            <div class="timeline-line"></div>
-
-            <div class="milestone-nodes">
-              <!-- M1: MVP 发布 -->
-              <div class="milestone-node" onclick="openPanel('detail-panel','panel-overlay'); this.classList.add('selected')" title="3 个事项，0 已完成">
-                <div class="node-header">
-                  <span class="status-dot in-progress"></span>
-                  <span class="node-name">MVP 发布</span>
-                  <span class="node-completion">80%</span>
-                </div>
-                <div class="node-date">2026-06-30</div>
-                <div class="node-count">3 个事项</div>
-                <div class="node-progress">
-                  <div class="node-progress-fill" style="width: 80%"></div>
-                </div>
-              </div>
-
-              <div class="node-arrow"></div>
-
-              <!-- M2: Beta 测试 -->
-              <div class="milestone-node" onclick="openPanel('detail-panel','panel-overlay')">
-                <div class="node-header">
-                  <span class="status-dot not-started"></span>
-                  <span class="node-name">Beta 测试</span>
-                  <span class="node-completion">0%</span>
-                </div>
-                <div class="node-date">2026-08-15</div>
-                <div class="node-count">0 个事项</div>
-                <div class="node-progress">
-                  <div class="node-progress-fill" style="width: 0%"></div>
-                </div>
-              </div>
-
-              <div class="node-arrow"></div>
-
-              <!-- M3: 正式上线 -->
-              <div class="milestone-node" onclick="openPanel('detail-panel','panel-overlay')">
-                <div class="node-header">
-                  <span class="status-dot not-started"></span>
-                  <span class="node-name">正式上线</span>
-                  <span class="node-completion">0%</span>
-                </div>
-                <div class="node-date">2026-10-01</div>
-                <div class="node-count">0 个事项</div>
-                <div class="node-progress">
-                  <div class="node-progress-fill" style="width: 0%"></div>
-                </div>
-              </div>
-
-              <div class="node-arrow"></div>
-
-              <!-- M4: 迭代优化 (cancelled) -->
-              <div class="milestone-node cancelled" onclick="openPanel('detail-panel','panel-overlay')">
-                <div class="node-header">
-                  <span class="status-dot cancelled"></span>
-                  <span class="node-name">迭代优化</span>
-                  <span class="node-completion">0%</span>
-                </div>
-                <div class="node-date">2026-11-15</div>
-                <div class="node-count">0 个事项</div>
-                <div class="node-progress">
-                  <div class="node-progress-fill" style="width: 0%"></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- MI Items under milestones -->
-            <div class="mi-groups-container" style="margin-top: 16px;">
-              <!-- M1 items -->
-              <div class="mi-group">
-                <div class="mi-connector"></div>
-                <div class="mi-item">
-                  <span class="mi-grip">&#8942;</span>
-                  <span class="mi-code">MI-0001</span>
-                  <span class="mi-title">需求分析</span>
-                  <span class="mi-pct">60%</span>
-                  <span class="badge badge-accent">进行中</span>
-                </div>
-                <div class="mi-item">
-                  <span class="mi-grip">&#8942;</span>
-                  <span class="mi-code">MI-0003</span>
-                  <span class="mi-title">UI设计</span>
-                  <span class="mi-pct">100%</span>
-                  <span class="badge badge-success">已完成</span>
-                </div>
-                <div class="mi-item">
-                  <span class="mi-grip">&#8942;</span>
-                  <span class="mi-code">MI-0005</span>
-                  <span class="mi-title">API开发</span>
-                  <span class="mi-pct">80%</span>
-                  <span class="badge badge-accent">进行中</span>
-                </div>
-              </div>
-
-              <!-- M2 items (empty) -->
-              <div class="mi-group"></div>
-              <!-- M3 items (empty) -->
-              <div class="mi-group"></div>
-              <!-- M4 items (cancelled, empty) -->
-              <div class="mi-group"></div>
-            </div>
-
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 
-  <!-- ============ PANELS & MODALS ============ -->
-
-  <!-- Detail Panel Overlay -->
-  <div class="panel-overlay" id="panel-overlay" onclick="closePanel('detail-panel','panel-overlay')"></div>
-
-  <!-- Detail Panel (UF-3) -->
-  <div class="detail-panel" id="detail-panel">
-    <div class="panel-header">
-      <h3 class="panel-title">MVP 发布</h3>
-      <button class="panel-close" onclick="closePanel('detail-panel','panel-overlay')">&times;</button>
-    </div>
-    <div class="panel-body">
-
-      <!-- Meta -->
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-        <div>
-          <div style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 2px;">计划完成时间</div>
-          <div style="font-size: 14px; font-weight: 500; color: var(--text-primary);">2026-06-30</div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <div class="dropdown" style="display:inline-block;">
-            <button class="dropdown-trigger" style="padding:0; border:none; background:none; cursor:pointer;" onclick="toggleDropdown('milestone-status-dd')">
-              <span class="badge badge-accent" style="cursor:pointer;">进行中 ▾</span>
-            </button>
-            <div class="dropdown-menu" id="milestone-status-dd" style="min-width: 120px;">
-              <div class="dropdown-item" style="color: var(--text-tertiary); cursor: not-allowed;" title="不可回退">未开始</div>
-              <div class="dropdown-item active">进行中</div>
-              <div class="dropdown-item" onclick="showToast('状态已变更（演示）')">已完成</div>
-              <div class="dropdown-item" onclick="showToast('状态已变更（演示）')">已取消</div>
-            </div>
-          </div>
-          <button class="btn btn-secondary btn-sm" onclick="openModal('edit-modal')">编辑</button>
-        </div>
-      </div>
-
-      <!-- Completion -->
-      <div style="margin-bottom: 20px;">
-        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
-          <span style="color: var(--text-secondary);">完成度</span>
-          <span style="font-weight: 600; color: var(--accent);">80%</span>
-        </div>
-        <div class="node-progress" style="height: 6px;">
-          <div class="node-progress-fill" style="width: 80%"></div>
-        </div>
-      </div>
-
-      <!-- Related MIs -->
-      <div style="margin-bottom: 20px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-          <span style="font-size: 12px; color: var(--text-tertiary);">关联事项 (3)</span>
-          <button class="btn btn-ghost btn-sm" style="font-size: 12px; padding: 2px 8px; color: var(--accent);" onclick="openModal('add-mi-modal')">+ 添加</button>
-        </div>
-        <div class="panel-mi-list">
-          <div class="panel-mi-row">
-            <span style="color: var(--accent); font-weight: 500;">MI-0001</span>
-            <span style="flex:1; color: var(--text-primary);">需求分析</span>
-            <span style="font-size: 12px; color: var(--text-tertiary);">60%</span>
-            <span class="badge badge-accent">进行中</span>
-            <button class="panel-mi-unbind" title="解除绑定" onclick="event.stopPropagation(); showToast('已解除绑定', '撤销', function(){ showToast('已撤销') })">&times;</button>
-          </div>
-          <div class="panel-mi-row">
-            <span style="color: var(--accent); font-weight: 500;">MI-0003</span>
-            <span style="flex:1; color: var(--text-primary);">UI设计</span>
-            <span style="font-size: 12px; color: var(--text-tertiary);">100%</span>
-            <span class="badge badge-success">已完成</span>
-            <button class="panel-mi-unbind" title="解除绑定" onclick="event.stopPropagation(); showToast('已解除绑定', '撤销', function(){ showToast('已撤销') })">&times;</button>
-          </div>
-          <div class="panel-mi-row">
-            <span style="color: var(--accent); font-weight: 500;">MI-0005</span>
-            <span style="flex:1; color: var(--text-primary);">API开发</span>
-            <span style="font-size: 12px; color: var(--text-tertiary);">80%</span>
-            <span class="badge badge-accent">进行中</span>
-            <button class="panel-mi-unbind" title="解除绑定" onclick="event.stopPropagation(); showToast('已解除绑定', '撤销', function(){ showToast('已撤销') })">&times;</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Danger Zone -->
-      <div class="danger-zone">
-        <div class="danger-zone-title">危险操作</div>
-        <button class="btn btn-danger btn-sm" onclick="openModal('delete-modal')">删除里程碑</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Create MilestoneMap Modal -->
+  <!-- Create MilestoneMap Modal (UF-7) -->
   <div class="modal-overlay" id="create-map-modal">
     <div class="modal">
       <div class="modal-header">
@@ -937,6 +468,25 @@
         <div class="input-group">
           <label>名称 <span class="required">*</span></label>
           <input type="text" class="input-field" placeholder="请输入里程碑图名称">
+        </div>
+        <div class="input-group">
+          <label>负责人 <span class="required">*</span></label>
+          <select class="input-field">
+            <option value="">请选择负责人</option>
+            <option value="zhangsan">张三</option>
+            <option value="lisi">李四</option>
+            <option value="wangwu">王五</option>
+          </select>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="input-group">
+            <label>计划开始时间</label>
+            <input type="date" class="input-field">
+          </div>
+          <div class="input-group">
+            <label>计划完成时间</label>
+            <input type="date" class="input-field">
+          </div>
         </div>
         <div class="input-group">
           <label>描述</label>
@@ -950,180 +500,20 @@
     </div>
   </div>
 
-  <!-- Create Milestone Modal (UF-2) -->
-  <div class="modal-overlay" id="create-modal">
-    <div class="modal">
-      <div class="modal-header">
-        <h3>创建里程碑</h3>
-        <button class="modal-close" onclick="closeModal('create-modal')">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="input-group">
-          <label>名称 <span class="required">*</span></label>
-          <input type="text" class="input-field" placeholder="请输入里程碑名称">
-        </div>
-        <div class="input-group">
-          <label>计划完成时间 <span class="required">*</span></label>
-          <input type="date" class="input-field">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('create-modal')">取消</button>
-        <button class="btn btn-primary" onclick="closeModal('create-modal'); showToast('里程碑已创建')">创建</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Edit Milestone Modal (UF-2) -->
-  <div class="modal-overlay" id="edit-modal">
-    <div class="modal">
-      <div class="modal-header">
-        <h3>编辑里程碑</h3>
-        <button class="modal-close" onclick="closeModal('edit-modal')">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="input-group">
-          <label>名称 <span class="required">*</span></label>
-          <input type="text" class="input-field" value="MVP 发布">
-        </div>
-        <div class="input-group">
-          <label>计划完成时间 <span class="required">*</span></label>
-          <input type="date" class="input-field" value="2026-06-30">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('edit-modal')">取消</button>
-        <button class="btn btn-primary" onclick="closeModal('edit-modal'); showToast('里程碑已更新')">保存</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Quick Add MainItem Modal (full form, same as CreateMainItemDialog) -->
-  <div class="modal-overlay" id="add-mi-modal">
-    <div class="modal" style="width: 440px;">
-      <div class="modal-header">
-        <h3>新建主事项</h3>
-        <button class="modal-close" onclick="closeModal('add-mi-modal')">&times;</button>
-      </div>
-      <div class="modal-body">
-        <!-- 标题 -->
-        <div class="input-group">
-          <label>标题 <span class="required">*</span></label>
-          <input type="text" class="input-field" placeholder="请输入标题" maxlength="100">
-        </div>
-        <!-- 优先级 + 负责人 (same row) -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <div class="input-group">
-            <label>优先级 <span class="required">*</span></label>
-            <div class="dropdown" style="width:100%;">
-              <button class="dropdown-trigger" style="width:100%; justify-content: space-between;" onclick="toggleDropdown('add-mi-priority')">
-                P2 <span class="arrow">&#9660;</span>
-              </button>
-              <div class="dropdown-menu" id="add-mi-priority" style="width:100%;">
-                <div class="dropdown-item">P1</div>
-                <div class="dropdown-item active">P2</div>
-                <div class="dropdown-item">P3</div>
-              </div>
-            </div>
-          </div>
-          <div class="input-group">
-            <label>负责人 <span class="required">*</span></label>
-            <div class="dropdown" style="width:100%;">
-              <button class="dropdown-trigger" style="width:100%; justify-content: space-between;" onclick="toggleDropdown('add-mi-assignee')">
-                请选择 <span class="arrow">&#9660;</span>
-              </button>
-              <div class="dropdown-menu" id="add-mi-assignee" style="width:100%;">
-                <div class="dropdown-item">张三</div>
-                <div class="dropdown-item">李四</div>
-                <div class="dropdown-item">王五</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- 开始时间 + 预期完成时间 (same row) -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <div class="input-group">
-            <label>开始时间 <span class="required">*</span></label>
-            <input type="date" class="input-field" value="2026-05-12">
-          </div>
-          <div class="input-group">
-            <label>预期完成时间 <span class="required">*</span></label>
-            <input type="date" class="input-field">
-          </div>
-        </div>
-        <!-- 所属里程碑 (auto-filled from current milestone, required) -->
-        <div class="input-group">
-          <label>所属里程碑 <span class="required">*</span></label>
-          <input type="text" class="input-field" value="MVP 发布" disabled style="background: var(--bg-secondary); color: var(--text-secondary);">
-        </div>
-        <!-- 描述 -->
-        <div class="input-group">
-          <label>描述</label>
-          <textarea class="input-field" style="height: 66px; padding: 8px 12px; resize: vertical;" placeholder="请输入描述（可选）"></textarea>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('add-mi-modal')">取消</button>
-        <button class="btn btn-primary" onclick="closeModal('add-mi-modal'); showToast('事项已添加到里程碑')">确认</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Delete Confirmation Dialog -->
-  <div class="modal-overlay" id="delete-modal">
-    <div class="modal delete-dialog">
-      <div class="modal-body" style="text-align: center;">
-        <div class="warning-icon">&#9888;</div>
-        <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">
-          确定删除里程碑 "MVP 发布"？
-        </h3>
-        <div class="delete-desc">
-          关联的 3 个事项将解除绑定，<br>
-          里程碑数据不可恢复。
-        </div>
-      </div>
-      <div class="modal-footer" style="justify-content: center;">
-        <button class="btn btn-secondary" onclick="closeModal('delete-modal')">取消</button>
-        <button class="btn btn-danger" onclick="closeModal('delete-modal'); closePanel('detail-panel','panel-overlay'); showToast('里程碑已删除', '撤销', function(){ showToast('已撤销删除') })">确认删除</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container"></div>
 
   <script src="app.js"></script>
   <script>
-    // View switching: Map List ↔ Timeline
-    function showTimelineView(mapName) {
-      document.getElementById('map-list-view').style.display = 'none';
-      document.getElementById('map-list-loading').style.display = 'none';
-      document.getElementById('map-list-empty').style.display = 'none';
-      document.getElementById('map-list-error').style.display = 'none';
-      document.getElementById('timeline-view').style.display = 'block';
-      document.getElementById('timeline-map-name').textContent = mapName;
-      document.getElementById('timeline-title').textContent = mapName;
-      // hide state preview bar in timeline view
-      document.querySelector('.state-preview-bar').style.display = 'none';
+    function toggleTag(el) {
+      el.classList.toggle('active');
     }
 
-    function showMapListView() {
-      document.getElementById('timeline-view').style.display = 'none';
-      document.getElementById('map-list-view').style.display = 'block';
-      document.querySelector('.state-preview-bar').style.display = 'flex';
-      // close any open panels
-      closePanel('detail-panel', 'panel-overlay');
-    }
-
-    // Override switchState for map list view
-    var origSwitchState = typeof switchState === 'function' ? switchState : null;
     function switchState(state) {
       var views = ['map-list-view', 'map-list-loading', 'map-list-empty', 'map-list-error'];
       views.forEach(function(id) {
         document.getElementById(id).style.display = 'none';
       });
-      document.getElementById('timeline-view').style.display = 'none';
-      document.querySelector('.state-preview-bar').style.display = 'flex';
 
       if (state === 'populated') document.getElementById('map-list-view').style.display = 'block';
       else if (state === 'loading') document.getElementById('map-list-loading').style.display = 'block';

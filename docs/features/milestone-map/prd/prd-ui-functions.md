@@ -49,22 +49,23 @@ feature: "里程碑图"
 ### Description
 
 两级视图页面：
-- **第一级（列表视图）**：展示团队所有里程碑图的卡片列表，支持按状态筛选。每张卡片显示名称、状态、里程碑数量、事项数量、整体进度、里程碑节点缩略图。
-- **第二级（时间线视图）**：点击卡片进入该里程碑图的时间线视图，展示里程碑节点及关联 MI 的横向时间线。支持缩放、点击交互。
+- **第一级（列表视图）**：展示团队所有里程碑图的卡片列表，支持按名称、负责人、状态三种方式筛选。每张卡片分四行展示：第一行名称+状态 Badge，第二行里程碑数量+事项数量+负责人（左右对齐），第三行计划时间跨度（左）+"整体进度"+进度条+百分比（右），底部为里程碑节点缩略图。
+- **第二级（时间线视图）**：点击卡片进入该里程碑图的时间线视图。页面顶部为详情标题区（名称+可点击的状态 Badge，右上角编辑和删除按钮位于卡片外部），紧接基本信息卡片（负责人、计划开始、计划完成、整体进度四字段同一行左右对齐，下方分隔线后显示描述，描述最多三行溢出截断），再下方展示里程碑节点及关联 MI 的横向时间线。支持按名称、状态两种方式筛选。支持缩放、点击交互。
 
 ### User Interaction Flow
 
 **列表视图：**
 1. 用户从主导航进入 /milestones 页面
-2. 系统渲染里程碑图卡片列表，支持按状态筛选（全部/规划中/已评审/待实施/实施中/已完成）
+2. 系统渲染里程碑图卡片列表，支持三种筛选（按名称搜索、按负责人下拉、按状态下拉），依次排列
 3. 用户点击某张卡片 → 进入该里程碑图的时间线视图
 
 **时间线视图：**
-4. 系统渲染时间线：横向时间轴，里程碑节点按计划完成时间排列，关联 MI 展示在对应里程碑下方
-5. 用户可缩放时间轴（周/月/季切换控件）
-6. 用户点击里程碑节点 → 弹出详情面板（UF-3）
-7. 用户点击"+ 创建里程碑"按钮 → 弹出创建弹窗（UF-2）
-8. 用户点击面包屑"里程碑图"或"返回列表"按钮 → 返回列表视图
+4. 系统渲染时间线：顶部详情标题区（名称+可点击的状态 Badge，右上角编辑和删除按钮位于卡片外部），下方基本信息卡片（负责人、计划开始、计划完成、整体进度四字段同一行左右对齐，下方分隔线后显示描述，描述最多三行溢出截断，悬浮 Tooltip 展示完整内容），再下方横向时间轴，里程碑节点按计划完成时间排列，关联 MI 展示在对应里程碑下方。支持两种筛选（按名称搜索、按状态下拉）
+5. 用户点击标题区的状态 Badge → 下拉显示可用状态转换选项（不可用的状态以灰色不可点击显示）→ 选择目标状态 → 状态变更 → 页面刷新
+6. 用户可缩放时间轴（周/月/季切换控件）：改变时间轴刻度标签的粒度（周=每7天一条刻度线、月=每30天、季=每90天），不改变节点位置，不隐藏任何节点。节点过密时自动出现水平滚动条
+7. 用户点击里程碑节点 → 弹出详情面板（UF-3）
+8. 用户点击"+ 创建里程碑"按钮 → 弹出创建弹窗（UF-2）
+9. 用户点击面包屑"里程碑图" → 返回列表视图
 
 ### Data Requirements
 
@@ -72,19 +73,34 @@ feature: "里程碑图"
 
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
-| 里程碑图名称 | string | milestone_map.name | 卡片标题 |
-| 里程碑图状态 | enum | milestone_map.status | 规划中/已评审/待实施/实施中/已完成 |
+| 里程碑图名称 | string | milestone_map.name | 卡片标题；支持名称搜索筛选 |
+| 负责人（PM） | string | milestone_map 创建者 | 支持负责人下拉筛选 |
+| 里程碑图状态 | enum | milestone_map.status | 规划中/已评审/待实施/实施中/已完成；支持状态筛选 |
 | 里程碑数量 | int | 计算值 | 关联里程碑计数 |
 | 事项数量 | int | 计算值 | 所有关联 MI 计数 |
 | 整体进度 | decimal | 计算值 | 所有关联 MI completion 的平均值 |
+| 计划开始时间 | date | milestone_map.planned_start_date | 卡片上显示日期跨度 |
+| 计划完成时间 | date | milestone_map.planned_end_date | 卡片上显示日期跨度 |
 
-**时间线视图：**
+**时间线视图（信息卡）：**
 
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
-| 里程碑名称 | string | milestone.name | 节点上显示 |
-| 计划完成时间 | date | milestone.planned_completion_date | 决定时间轴位置 |
-| 状态 | enum | milestone.status | not_started/in_progress/completed/cancelled |
+| 里程碑图名称 | string | milestone_map.name | 信息卡标题 |
+| 状态 | enum | milestone_map.status | 信息卡标题旁 Badge |
+| 负责人 | string | milestone_map 创建者 | 信息卡显示 |
+| 计划开始时间 | date | milestone_map.planned_start_date | 信息卡显示 |
+| 计划完成时间 | date | milestone_map.planned_end_date | 信息卡显示 |
+| 整体进度 | decimal | 计算值 | 信息卡显示进度条+百分比 |
+| 描述 | string | milestone_map.description | 信息卡显示，最多三行溢出截断，鼠标悬浮 Tooltip 展示完整内容 |
+
+**时间线视图（时间轴）：**
+
+| Field | Type | Source | Notes |
+|-------|------|--------|-------|
+| 里程碑名称 | string | milestone.name | 节点上显示；支持名称搜索筛选 |
+| 计划完成时间 | date | milestone.expected_end_date | 决定时间轴位置 |
+| 状态 | enum | milestone.status | not_started/in_progress/completed/cancelled；支持状态筛选 |
 | 完成度 | decimal | 计算值 | 关联 MI completion 的平均值，空里程碑为 0 |
 | 关联 MI 数量 | int | 计算值 | 悬停时显示 |
 | MI 标题/编号/状态/完成度 | various | main_item.* | MI 条目上显示 |
@@ -112,7 +128,10 @@ feature: "里程碑图"
 ### Validation Rules
 
 - 创建里程碑图：名称必填（1-100 字符），描述可选
-- 状态筛选值必须是有效状态枚举值或 `all`
+- 列表视图筛选：名称搜索为客户端模糊匹配；负责人下拉选项为团队成员列表；状态筛选值必须是有效状态枚举值或 `all`
+- 时间线视图筛选：名称搜索为客户端模糊匹配；状态筛选值必须是有效状态枚举值或 `all`
+- 里程碑节点不可重叠，节点间必须保持最小间距
+- 删除里程碑图：仅 `planning` 状态的里程碑图可被删除；点击详情标题区右上角的删除按钮后弹出确认弹窗，用户确认后执行删除并返回列表视图
 
 ---
 
@@ -126,7 +145,7 @@ feature: "里程碑图"
 
 ### Description
 
-弹窗表单用于创建新里程碑或编辑现有里程碑。包含名称、计划完成时间字段。
+弹窗表单用于创建新里程碑或编辑现有里程碑。包含名称、计划完成时间、描述字段。
 
 ### User Interaction Flow
 
@@ -141,6 +160,7 @@ feature: "里程碑图"
 |-------|------|--------|-------|
 | 名称 | string | milestone.name | 必填，1-100 字符 |
 | 计划完成时间 | date | milestone.planned_completion_date | 必填，日期选择器 |
+| 描述 | string | milestone.description | 可选，多行文本 |
 
 ### States
 
@@ -155,6 +175,7 @@ feature: "里程碑图"
 
 - 名称：必填，1-100 字符
 - 计划完成时间：必填
+- 描述：可选
 
 ---
 
@@ -189,6 +210,7 @@ feature: "里程碑图"
 | 计划完成时间 | date | milestone.planned_completion_date | 同行显示 |
 | 状态 | enum | milestone.status | Badge 显示，点击弹出下拉 |
 | 完成度 | decimal | 计算值 | 进度条 + 百分比 |
+| 描述 | string | milestone.description | 面板内显示 |
 | 关联 MI 列表 | list | main_items where milestone_key = this | 编号+标题+状态+完成度+解绑按钮 |
 
 ### States
@@ -206,7 +228,7 @@ feature: "里程碑图"
   - `in_progress` → `completed` ✓ / `cancelled` ✓
   - `completed` → `cancelled` ✓
   - `cancelled` → 任何状态 ✗（无下拉选项）
-- 删除：点击删除按钮后弹出确认弹窗（非 alert），用户确认后执行删除，取消则关闭弹窗不做操作
+- 删除：仅 `not_started` 和 `cancelled` 状态的里程碑可被删除；点击删除按钮后弹出确认弹窗（非 alert），用户确认后执行删除，取消则关闭弹窗不做操作
 - 解绑：点击 MI 行右侧 × 按钮即解除绑定，显示撤销 toast
 
 ---
@@ -380,12 +402,12 @@ feature: "里程碑图"
 
 ### Description
 
-弹窗表单用于创建新里程碑图或编辑现有里程碑图。包含名称、描述字段。
+弹窗表单用于创建新里程碑图或编辑现有里程碑图。包含名称、负责人、计划开始时间、计划完成时间、描述字段。
 
 ### User Interaction Flow
 
 1. 用户点击列表视图的"+ 创建里程碑图"按钮或虚线创建卡片 → 弹出创建弹窗
-2. 用户填写名称和描述 → 点击创建 → 创建成功 → 弹窗关闭 → 列表刷新
+2. 用户填写名称、负责人、计划开始时间、计划完成时间和描述 → 点击创建 → 创建成功 → 弹窗关闭 → 列表刷新
 3. 用户在里程碑图卡片上点击编辑 → 弹出编辑弹窗（预填当前值）
 4. 用户修改后点击保存 → 保存成功 → 弹窗关闭 → 列表刷新
 
@@ -394,6 +416,9 @@ feature: "里程碑图"
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
 | 名称 | string | milestone_map.name | 必填，1-100 字符 |
+| 负责人 | string | milestone_map 创建者 | 必填，团队成员下拉选择 |
+| 计划开始时间 | date | milestone_map.planned_start_date | 可选，日期选择器 |
+| 计划完成时间 | date | milestone_map.planned_end_date | 可选，日期选择器 |
 | 描述 | string | milestone_map.description | 可选 |
 
 ### States
@@ -407,6 +432,22 @@ feature: "里程碑图"
 ### Validation Rules
 
 - 名称：必填，1-100 字符
+- 负责人：必填，必须是当前团队成员
+- 计划开始时间：可选；若填写，计划完成时间不得早于计划开始时间
+- 计划完成时间：可选；若填写，不得早于计划开始时间
+
+---
+
+## Status Transition Business Rules
+
+> 跨 UI Function 共用的状态流转约束。各 UF 的 Validation Rules 节引用此处规则。
+
+| Rule ID | Rule | Enforced At |
+|---------|------|-------------|
+| BR-1 | 里程碑（Milestone）不可切换至终态（`completed`/`cancelled`），除非其下所有 MI 均已处于终态（`completed`/`cancelled`） | UF-3 状态切换 |
+| BR-2 | 里程碑图（Milestone Map）不可切换至终态（`completed`/`cancelled`），除非其下所有里程碑均已处于终态 | UF-1 信息卡状态切换 |
+| BR-3 | MI 不可移动至其所属里程碑之外的里程碑（即 MI 的里程碑归属变更不受里程碑状态约束，但 MI 自身状态不受里程碑状态约束） | UF-5 里程碑选择器 |
+| BR-4 | 删除约束：仅 `planning` 状态的里程碑图可删除（UF-1）；仅 `not_started` 和 `cancelled` 状态的里程碑可删除（UF-3） | UF-1、UF-3 删除操作 |
 
 ---
 

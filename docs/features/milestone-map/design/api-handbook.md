@@ -67,6 +67,8 @@ related: design/tech-design.md
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| name | string | No | 按名称模糊搜索 |
+| assigneeKey | string | No | 按负责人（创建者）筛选，bizKey |
 | status | string | No | 按状态筛选：planning/reviewed/ready/executing/completed |
 | page | number | No | 页码，默认 1 |
 | pageSize | number | No | 每页数量，默认 20 |
@@ -255,12 +257,14 @@ related: design/tech-design.md
 **Path**: `/api/v1/teams/:teamId/milestones`
 **Auth**: `milestone:read`
 
-用于 UF-4（事项清单筛选）、UF-5（编辑选择器）、UF-6（表格列）。
+用于 UF-4（事项清单筛选）、UF-5（编辑选择器）、UF-6（表格列）、UF-1 时间线视图筛选。
 
 #### Query Parameters
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| name | string | No | 按名称模糊搜索 |
+| status | string | No | 按状态筛选：not_started/in_progress/completed/cancelled |
 | excludeCancelled | boolean | No | 是否排除已取消里程碑，默认 true |
 
 #### Response (200)

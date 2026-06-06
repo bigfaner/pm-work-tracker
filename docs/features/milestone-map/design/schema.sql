@@ -16,8 +16,9 @@ CREATE TABLE IF NOT EXISTS pmw_milestone_maps (
     deleted_flag    TINYINT(1)      NOT NULL DEFAULT 0            COMMENT '软删标志：0=正常，1=已删除',
     deleted_time    DATETIME        NOT NULL DEFAULT '1970-01-01 08:00:00' COMMENT '软删时间，未删除时为固定占位值',
     team_key        BIGINT          NOT NULL                      COMMENT '所属团队 biz_key',
+    creator_key     BIGINT          NOT NULL                      COMMENT '创建者 biz_key',
     map_name        VARCHAR(100)    NOT NULL                      COMMENT '里程碑图名称',
-    map_desc        TEXT                                          COMMENT '里程碑图描述',
+    map_desc        VARCHAR(2000)   NOT NULL DEFAULT ''           COMMENT '里程碑图描述',
     map_status      VARCHAR(20)     NOT NULL DEFAULT 'planning'   COMMENT '状态：planning=规划中，reviewed=已评审，ready=待实施，executing=实施中，completed=已完成',
     PRIMARY KEY (id),
     UNIQUE KEY uk_milestone_maps_biz_key (biz_key),
@@ -36,7 +37,7 @@ CREATE TABLE IF NOT EXISTS pmw_milestones (
     team_key                BIGINT          NOT NULL                      COMMENT '所属团队 biz_key',
     milestone_map_key       BIGINT          NOT NULL                      COMMENT '所属里程碑图 biz_key',
     milestone_name          VARCHAR(100)    NOT NULL                      COMMENT '里程碑名称',
-    expected_end_date      DATETIME                                      COMMENT '计划完成时间',
+    expected_end_date       DATETIME                                      COMMENT '计划完成时间',
     milestone_status        VARCHAR(20)     NOT NULL DEFAULT 'not_started' COMMENT '状态：not_started=未开始，in_progress=进行中，completed=已完成，cancelled=已取消',
     PRIMARY KEY (id),
     UNIQUE KEY uk_milestones_biz_key (biz_key),
@@ -64,8 +65,9 @@ CREATE TABLE IF NOT EXISTS pmw_milestone_maps (
     deleted_flag    INTEGER       NOT NULL DEFAULT 0,
     deleted_time    DATETIME      NOT NULL DEFAULT '1970-01-01 08:00:00',
     team_key        INTEGER       NOT NULL,
+    creator_key     INTEGER       NOT NULL,
     map_name        VARCHAR(100)  NOT NULL,
-    map_desc        TEXT,
+    map_desc        VARCHAR(2000) NOT NULL DEFAULT '',
     map_status      VARCHAR(20)   NOT NULL DEFAULT 'planning'
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uk_milestone_maps_biz_key ON pmw_milestone_maps(biz_key);

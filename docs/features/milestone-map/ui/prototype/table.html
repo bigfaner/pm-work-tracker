@@ -185,10 +185,7 @@
               <th class="sortable">
                 <span class="th-sort">标题 <span class="sort-icon">&#8597;</span></span>
               </th>
-              <th class="sortable">
-                <span class="th-sort">优先级 <span class="sort-icon">&#8597;</span></span>
-              </th>
-              <!-- NEW: Milestone column (UF-6) -->
+              <!-- Milestone column between 标题 and 优先级 (UF-6) -->
               <th class="sortable">
                 <div class="th-wrapper">
                   <span class="th-sort" onclick="toggleDropdown('col-milestone-filter')">里程碑 <span class="sort-icon">&#8597;</span> <span class="filter-icon">&#9662;</span></span>
@@ -199,6 +196,9 @@
                     <div class="col-filter-item">Beta测试</div>
                   </div>
                 </div>
+              </th>
+              <th class="sortable">
+                <span class="th-sort">优先级 <span class="sort-icon">&#8597;</span></span>
               </th>
               <th>负责人</th>
               <th class="sortable">
@@ -215,9 +215,8 @@
               <td>主事项</td>
               <td style="color: var(--accent); font-weight: 500;">MI-0001</td>
               <td style="color: var(--text-primary);">需求分析</td>
-              <td><span class="priority-badge priority-P1">P1</span></td>
-              <!-- NEW: Milestone cell -->
               <td style="color: var(--text-secondary);">MVP发布</td>
+              <td><span class="priority-badge priority-P1">P1</span></td>
               <td>张三</td>
               <td>
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -234,8 +233,8 @@
               <td>主事项</td>
               <td style="color: var(--accent); font-weight: 500;">MI-0002</td>
               <td style="color: var(--text-primary);">架构设计</td>
-              <td><span class="priority-badge priority-P1">P1</span></td>
               <td style="color: var(--text-secondary);">MVP发布</td>
+              <td><span class="priority-badge priority-P1">P1</span></td>
               <td>李四</td>
               <td>
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -252,8 +251,8 @@
               <td>主事项</td>
               <td style="color: var(--accent); font-weight: 500;">MI-0003</td>
               <td style="color: var(--text-primary);">UI设计</td>
-              <td><span class="priority-badge priority-P2">P2</span></td>
               <td style="color: var(--text-secondary);">MVP发布</td>
+              <td><span class="priority-badge priority-P2">P2</span></td>
               <td>王五</td>
               <td>
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -270,8 +269,8 @@
               <td>主事项</td>
               <td style="color: var(--accent); font-weight: 500;">MI-0004</td>
               <td style="color: var(--text-primary);">数据库设计</td>
-              <td><span class="priority-badge priority-P2">P2</span></td>
               <td class="unassigned-cell">-</td>
+              <td><span class="priority-badge priority-P2">P2</span></td>
               <td>张三</td>
               <td>
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -288,8 +287,8 @@
               <td>主事项</td>
               <td style="color: var(--accent); font-weight: 500;">MI-0005</td>
               <td style="color: var(--text-primary);">API开发</td>
-              <td><span class="priority-badge priority-P1">P1</span></td>
               <td style="color: var(--text-secondary);">MVP发布</td>
+              <td><span class="priority-badge priority-P1">P1</span></td>
               <td>李四</td>
               <td>
                 <div style="display: flex; align-items: center; gap: 8px;">

@@ -17,8 +17,9 @@ erDiagram
         BIGINT id PK
         BIGINT biz_key UK
         BIGINT team_key FK
+        BIGINT creator_key FK
         VARCHAR_100 map_name
-        TEXT map_desc
+        VARCHAR_2000 map_desc
         VARCHAR_20 map_status
     }
 
@@ -50,8 +51,9 @@ erDiagram
 | deleted_flag | TINYINT(1) | NOT NULL, DEFAULT 0 | 软删标志：0=正常，1=已删除 |
 | deleted_time | DATETIME | NOT NULL, DEFAULT '1970-01-01 08:00:00' | 软删时间 |
 | team_key | BIGINT | NOT NULL | 所属团队 biz_key |
+| creator_key | BIGINT | NOT NULL | 创建者 biz_key |
 | map_name | VARCHAR(100) | NOT NULL | 里程碑图名称 |
-| map_desc | TEXT | DEFAULT NULL | 里程碑图描述 |
+| map_desc | VARCHAR(2000) | NOT NULL, DEFAULT '' | 里程碑图描述 |
 | map_status | VARCHAR(20) | NOT NULL, DEFAULT 'planning' | 状态：planning/reviewed/ready/executing/completed |
 
 ### pmw_milestones [NEW]
