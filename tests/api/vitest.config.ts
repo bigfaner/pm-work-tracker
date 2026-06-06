@@ -7,9 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   test: {
     include: [
-      '**/*_api*.spec.ts',
-      '**/*_smoke.spec.ts',
-      'api/**/*.spec.ts',
+      '**/*.spec.ts',
     ],
     exclude: [
       '**/node_modules/**',

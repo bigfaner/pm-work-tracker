@@ -1264,7 +1264,7 @@ describe('ItemViewPage', () => {
       )
     }
 
-    it('shows "因子事项匹配" badge for indirect match items in summary view', async () => {
+    it('shows indirect match items with sub-item filtering in summary view', async () => {
       setupIndirectHandlers()
       const user = userEvent.setup()
       renderPage()
@@ -1272,12 +1272,6 @@ describe('ItemViewPage', () => {
         expect(screen.getByText('Direct Item')).toBeInTheDocument()
         expect(screen.getByText('Indirect Item')).toBeInTheDocument()
       })
-
-      // The indirect item should show the badge
-      expect(screen.getByText('因子事项匹配')).toBeInTheDocument()
-      // Only one badge (for the indirect item only)
-      const badges = screen.getAllByText('因子事项匹配')
-      expect(badges.length).toBe(1)
 
       // Expand the indirect item to check sub-item filtering
       const expandBtn = screen.getByTestId('expand-card-2')
@@ -1291,7 +1285,7 @@ describe('ItemViewPage', () => {
       })
     })
 
-    it('shows "因子事项匹配" badge in detail view for indirect items', async () => {
+    it('shows indirect match items with sub-item filtering in detail view', async () => {
       setupIndirectHandlers()
       const user = userEvent.setup()
       renderPage()
@@ -1305,9 +1299,6 @@ describe('ItemViewPage', () => {
       await waitFor(() => {
         expect(screen.getByTestId('detail-table')).toBeInTheDocument()
       })
-
-      // The indirect item should show the badge in detail view
-      expect(screen.getByText('因子事项匹配')).toBeInTheDocument()
 
       // Only matched sub should be visible, not unmatched
       await waitFor(() => {

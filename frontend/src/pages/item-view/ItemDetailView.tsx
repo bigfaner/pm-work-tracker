@@ -147,9 +147,6 @@ export default function ItemDetailView({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        {item.matchType === 'indirect' && (
-                          <Badge variant="primary">因子事项匹配</Badge>
-                        )}
                         <Link
                           to={`/items/${item.bizKey}`}
                           className="font-medium text-primary-600 hover:text-primary-700 hover:underline truncate block max-w-xs"

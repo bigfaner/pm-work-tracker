@@ -134,9 +134,6 @@ export default function ItemSummaryView({
 
               {/* Title + date range */}
               <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                {item.matchType === 'indirect' && (
-                  <Badge variant="primary">因子事项匹配</Badge>
-                )}
                 <Link
                   to={`/items/${item.bizKey}`}
                   className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline truncate"

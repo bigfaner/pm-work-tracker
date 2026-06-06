@@ -59,6 +59,8 @@ export default async function setup() {
   mkdirSync(tempDir, { recursive: true });
 
   // Write backend config pointing to this temp dir
+  // Use forward slashes in YAML to avoid backslash escape errors on Windows
+  const yamlSafeDir = tempDir.replace(/\\/g, '/');
   const configContent = `server:
   port: "${port}"
   gin_mode: "test"
@@ -69,7 +71,7 @@ export default async function setup() {
 
 database:
   driver: "sqlite"
-  path: "${tempDir}/test.db"
+  path: "${yamlSafeDir}/test.db"
   auto_schema: true
   max_open_conns: 5
   max_idle_conns: 2
@@ -113,8 +115,9 @@ password: 'admin123'
   process.env.E2E_CONFIG_PATH = e2eConfigPath;
 
   // Build and start the backend server
-  const binPath = resolve(tempDir, 'test-server');
-  execSync(`go build -o ${binPath} ./cmd/server/`, {
+  const binName = process.platform === 'win32' ? 'test-server.exe' : 'test-server';
+  const binPath = resolve(tempDir, binName);
+  execSync(`go build -o "${binPath}" ./cmd/server/`, {
     cwd: BACKEND_DIR,
     stdio: 'pipe',
     timeout: 60000,
