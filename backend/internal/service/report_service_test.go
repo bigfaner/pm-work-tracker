@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -35,9 +36,14 @@ func TestReportService_Preview_NoProgressRecords_ReturnsEmptySections(t *testing
 	monday := time.Date(2026, 4, 13, 0, 0, 0, 0, time.UTC)
 	result, err := svc.Preview(context.Background(), 1, monday)
 	require.NoError(t, err)
-	assert.Empty(t, result.Sections)
+	require.Empty(t, result.Sections)
 	assert.Equal(t, "2026-04-13", result.WeekStart)
 	assert.Equal(t, "2026-04-19", result.WeekEnd)
+
+	// nil slice marshals to JSON null; ensure it's an empty array
+	data, err := json.Marshal(result)
+	require.NoError(t, err)
+	assert.Contains(t, string(data), `"sections":[]`)
 }
 
 func TestReportService_Preview_WithProgressRecords(t *testing.T) {

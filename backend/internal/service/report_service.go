@@ -69,7 +69,7 @@ func (s *reportService) Preview(ctx context.Context, teamBizKey int64, weekStart
 	}
 
 	// Build sections
-	var sections []dto.ReportSectionDTO
+	sections := make([]dto.ReportSectionDTO, 0)
 	for _, mi := range mainItems {
 		subs, ok := subItemsByMain[mi.BizKey]
 		if !ok {
