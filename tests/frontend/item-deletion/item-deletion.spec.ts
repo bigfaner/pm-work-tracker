@@ -27,7 +27,7 @@ import {
   authHeader,
   curl,
   getFirstTeamId,
-} from '../web/helpers.js';
+} from '../helpers.js';
 
 // --- Shared state ---
 let superadminToken: string;

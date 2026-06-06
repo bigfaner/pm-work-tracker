@@ -26,7 +26,7 @@ import {
   parseApiBody,
   randomCode,
   extractBizKey,
-} from '../web/helpers.js';
+} from '../helpers.js';
 
 let token: string;
 let teamBizKey: string;

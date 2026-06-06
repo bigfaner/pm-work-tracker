@@ -9,11 +9,11 @@ domains: [testing, testing-web, web, playwright, e2e]
 
 ## 文件位置
 
-- **目录**: `tests/web/<feature>/`（按功能模块组织）
+- **目录**: `tests/frontend/<feature>/`（按功能模块组织）
 - **文件命名**: `<feature>.spec.ts` 或 `<scenario>.spec.ts`
 - **测试框架**: Playwright（TypeScript）
-- **配置文件**: `tests/web/playwright.config.ts`
-- **共享 Helpers**: `tests/web/helpers.ts`（re-export `tests/shared/helpers.ts` + 浏览器专用 helpers）
+- **配置文件**: `tests/frontend/playwright.config.ts`
+- **共享 Helpers**: `tests/frontend/helpers.ts`（re-export `tests/shared/helpers.ts` + 浏览器专用 helpers）
 - **E2E 配置**: `tests/shared/config.yaml`
 
 ## 隔离模型
@@ -59,7 +59,7 @@ Web E2E 测试断言以下维度:
 
 ## 共享 Helper
 
-E2E 测试使用 `tests/web/helpers.ts` 提供的浏览器专用 helpers（re-export `tests/shared/helpers.ts` 的通用 helpers）：
+E2E 测试使用 `tests/frontend/helpers.ts` 提供的浏览器专用 helpers（re-export `tests/shared/helpers.ts` 的通用 helpers）：
 
 | Helper | 用途 |
 |--------|------|

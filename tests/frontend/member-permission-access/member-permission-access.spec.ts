@@ -28,7 +28,7 @@ import {
   getTokenForUser,
   randomCode,
   extractBizKey,
-} from '../web/helpers.js';
+} from '../helpers.js';
 
 let superadminToken: string;
 let teamBizKey: string;

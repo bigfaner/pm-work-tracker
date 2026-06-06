@@ -9,11 +9,11 @@ domains: [testing-api, vitest, http-client]
 
 ## 文件位置
 
-- **目录**: `tests/api/<feature>/`（按功能模块组织）
+- **目录**: `tests/backend/<feature>/`（按功能模块组织）
 - **文件命名**: `<feature>.spec.ts` 或 `<scenario>.spec.ts`
 - **测试框架**: Vitest（TypeScript）
-- **配置文件**: `tests/api/vitest.config.ts`
-- **全局 Setup**: `tests/api/vitest.global-setup.ts`（启动独立 Go 后端服务器）
+- **配置文件**: `tests/backend/vitest.config.ts`
+- **全局 Setup**: `tests/backend/vitest.global-setup.ts`（启动独立 Go 后端服务器）
 - **约束**: 不得使用 `e2e` 作为测试分类名；API surface 使用 `api` 分类
 
 ## 基础设施
