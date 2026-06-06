@@ -480,7 +480,7 @@ func TestReports_WeeklyPreview_ContainsSections(t *testing.T) {
 	assert.GreaterOrEqual(t, len(achievements), 1)
 }
 
-func TestReports_WeeklyPreview_NoActivity_Returns422(t *testing.T) {
+func TestReports_WeeklyPreview_NoActivity_Returns200Empty(t *testing.T) {
 	r, data, _ := setupLifecycleTest(t)
 	pmToken := loginAs(t, r, "userA", "passwordA")
 
@@ -490,8 +490,21 @@ func TestReports_WeeklyPreview_NoActivity_Returns422(t *testing.T) {
 	w := makeRequest(t, r, http.MethodGet,
 		fmt.Sprintf("/api/v1/teams/%d/reports/weekly/preview?weekStart=%s", data.teamABizKey, weekStart.Format("2006-01-02")),
 		"", pmToken)
-	// ErrNoData returns 422
-	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			WeekStart string                   `json:"weekStart"`
+			WeekEnd   string                   `json:"weekEnd"`
+			Sections  []map[string]interface{} `json:"sections"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, 0, resp.Code)
+	assert.Equal(t, "2025-01-06", resp.Data.WeekStart)
+	assert.Equal(t, "2025-01-12", resp.Data.WeekEnd)
+	assert.Empty(t, resp.Data.Sections)
 }
 
 // ========== Report Export Tests ==========

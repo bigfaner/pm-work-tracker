@@ -115,10 +115,6 @@ func (s *reportService) Preview(ctx context.Context, teamBizKey int64, weekStart
 		})
 	}
 
-	if len(sections) == 0 {
-		return nil, apperrors.ErrNoData
-	}
-
 	return &dto.ReportPreview{
 		WeekStart: weekStart.Format("2006-01-02"),
 		WeekEnd:   weekEnd.Format("2006-01-02"),
@@ -130,6 +126,9 @@ func (s *reportService) ExportMarkdown(ctx context.Context, teamBizKey int64, we
 	preview, err := s.Preview(ctx, teamBizKey, weekStart)
 	if err != nil {
 		return nil, err
+	}
+	if len(preview.Sections) == 0 {
+		return nil, apperrors.ErrNoData
 	}
 
 	return report.RenderMarkdown(preview, weekStart), nil
