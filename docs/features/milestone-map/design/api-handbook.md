@@ -31,6 +31,9 @@ related: design/tech-design.md
 |-------|------|----------|-------------|
 | mapName | string | Yes | 里程碑图名称，1-100 字符 |
 | mapDesc | string | No | 里程碑图描述 |
+| assigneeBizKey | int64 | Yes | 负责人 bizKey |
+| plannedStartDate | string | No | 计划开始时间 (YYYY-MM-DD) |
+| plannedEndDate | string | No | 计划完成时间 (YYYY-MM-DD) |
 
 #### Response (201)
 
@@ -40,6 +43,12 @@ related: design/tech-design.md
 | teamKey | string | 所属团队 bizKey |
 | mapName | string | 里程碑图名称 |
 | mapDesc | string | 描述 |
+| creatorKey | string | 创建者 bizKey |
+| creatorName | string | 创建者姓名 |
+| assigneeKey | string | 负责人 bizKey |
+| assigneeName | string | 负责人姓名 |
+| plannedStartDate | string | 计划开始时间 |
+| plannedEndDate | string | 计划完成时间 |
 | mapStatus | string | 状态码 |
 | statusName | string | 状态显示名 |
 | milestoneCount | number | 里程碑数量（0） |
@@ -68,7 +77,7 @@ related: design/tech-design.md
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | name | string | No | 按名称模糊搜索 |
-| assigneeKey | string | No | 按负责人（创建者）筛选，bizKey |
+| assigneeKey | string | No | 按负责人筛选，bizKey |
 | status | string | No | 按状态筛选：planning/reviewed/ready/executing/completed |
 | page | number | No | 页码，默认 1 |
 | pageSize | number | No | 每页数量，默认 20 |
@@ -116,6 +125,9 @@ related: design/tech-design.md
 |-------|------|----------|-------------|
 | mapName | string | No | 里程碑图名称，1-100 字符 |
 | mapDesc | string | No | 描述 |
+| assigneeBizKey | *int64 | No | 负责人 bizKey |
+| plannedStartDate | *string | No | 计划开始时间 |
+| plannedEndDate | *string | No | 计划完成时间 |
 
 所有字段可选，仅更新传入的字段。
 
@@ -150,6 +162,7 @@ related: design/tech-design.md
 
 | Status | Code | Description |
 |--------|------|-------------|
+| 400 | INVALID_PARAMS | 里程碑图状态不允许删除（仅 planning 可删除） |
 | 404 | NOT_FOUND | 里程碑图不存在 |
 
 ---
@@ -205,6 +218,7 @@ related: design/tech-design.md
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | milestoneName | string | Yes | 里程碑名称，1-100 字符 |
+| milestoneDesc | string | No | 描述 |
 | expectedEndDate | string | Yes | 计划完成时间，ISO 8601 日期 |
 
 #### Response (201)
@@ -215,6 +229,7 @@ related: design/tech-design.md
 | teamKey | string | 所属团队 bizKey |
 | milestoneMapKey | string | 所属里程碑图 bizKey |
 | milestoneName | string | 里程碑名称 |
+| milestoneDesc | string | 描述 |
 | expectedEndDate | string | 计划完成时间 |
 | milestoneStatus | string | 状态码 |
 | statusName | string | 状态显示名 |
@@ -301,6 +316,7 @@ Milestone 详情，含关联 MI 列表摘要。
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | milestoneName | string | No | 里程碑名称 |
+| milestoneDesc | *string | No | 描述 |
 | expectedEndDate | string | No | 计划完成时间 |
 
 #### Response (200)
@@ -330,6 +346,13 @@ Milestone 详情，含关联 MI 列表摘要。
 ```
 
 **副作用**: 同一事务内解绑所有关联 MI（milestone_key 置空）。
+
+#### Error Responses
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | INVALID_PARAMS | 里程碑状态不允许删除（仅 not_started/cancelled 可删除） |
+| 404 | NOT_FOUND | 里程碑不存在 |
 
 ---
 

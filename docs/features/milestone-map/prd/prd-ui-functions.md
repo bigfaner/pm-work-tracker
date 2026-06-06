@@ -73,9 +73,9 @@ feature: "里程碑图"
 
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
-| 里程碑图名称 | string | milestone_map.name | 卡片标题；支持名称搜索筛选 |
-| 负责人（PM） | string | milestone_map 创建者 | 支持负责人下拉筛选 |
-| 里程碑图状态 | enum | milestone_map.status | 规划中/已评审/待实施/实施中/已完成；支持状态筛选 |
+| 里程碑图名称 | string | milestone_map.map_name | 卡片标题；支持名称搜索筛选 |
+| 负责人（PM） | string | milestone_map.assignee_key | 支持负责人下拉筛选 |
+| 里程碑图状态 | enum | milestone_map.map_status | 规划中/已评审/待实施/实施中/已完成；支持状态筛选 |
 | 里程碑数量 | int | 计算值 | 关联里程碑计数 |
 | 事项数量 | int | 计算值 | 所有关联 MI 计数 |
 | 整体进度 | decimal | 计算值 | 所有关联 MI completion 的平均值 |
@@ -86,21 +86,21 @@ feature: "里程碑图"
 
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
-| 里程碑图名称 | string | milestone_map.name | 信息卡标题 |
-| 状态 | enum | milestone_map.status | 信息卡标题旁 Badge |
-| 负责人 | string | milestone_map 创建者 | 信息卡显示 |
+| 里程碑图名称 | string | milestone_map.map_name | 信息卡标题 |
+| 状态 | enum | milestone_map.map_status | 信息卡标题旁 Badge |
+| 负责人 | string | milestone_map.assignee_key | 信息卡显示 |
 | 计划开始时间 | date | milestone_map.planned_start_date | 信息卡显示 |
 | 计划完成时间 | date | milestone_map.planned_end_date | 信息卡显示 |
 | 整体进度 | decimal | 计算值 | 信息卡显示进度条+百分比 |
-| 描述 | string | milestone_map.description | 信息卡显示，最多三行溢出截断，鼠标悬浮 Tooltip 展示完整内容 |
+| 描述 | string | milestone_map.map_desc | 信息卡显示，最多三行溢出截断，鼠标悬浮 Tooltip 展示完整内容 |
 
 **时间线视图（时间轴）：**
 
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
-| 里程碑名称 | string | milestone.name | 节点上显示；支持名称搜索筛选 |
+| 里程碑名称 | string | milestone.milestone_name | 节点上显示；支持名称搜索筛选 |
 | 计划完成时间 | date | milestone.expected_end_date | 决定时间轴位置 |
-| 状态 | enum | milestone.status | not_started/in_progress/completed/cancelled；支持状态筛选 |
+| 状态 | enum | milestone.milestone_status | not_started/in_progress/completed/cancelled；支持状态筛选 |
 | 完成度 | decimal | 计算值 | 关联 MI completion 的平均值，空里程碑为 0 |
 | 关联 MI 数量 | int | 计算值 | 悬停时显示 |
 | MI 标题/编号/状态/完成度 | various | main_item.* | MI 条目上显示 |
@@ -158,9 +158,9 @@ feature: "里程碑图"
 
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
-| 名称 | string | milestone.name | 必填，1-100 字符 |
-| 计划完成时间 | date | milestone.planned_completion_date | 必填，日期选择器 |
-| 描述 | string | milestone.description | 可选，多行文本 |
+| 名称 | string | milestone.milestone_name | 必填，1-100 字符 |
+| 计划完成时间 | date | milestone.expected_end_date | 必填，日期选择器 |
+| 描述 | string | milestone.milestone_desc | 可选，多行文本 |
 
 ### States
 
@@ -206,11 +206,11 @@ feature: "里程碑图"
 
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
-| 名称 | string | milestone.name | 面板标题 |
-| 计划完成时间 | date | milestone.planned_completion_date | 同行显示 |
-| 状态 | enum | milestone.status | Badge 显示，点击弹出下拉 |
+| 名称 | string | milestone.milestone_name | 面板标题 |
+| 计划完成时间 | date | milestone.expected_end_date | 同行显示 |
+| 状态 | enum | milestone.milestone_status | Badge 显示，点击弹出下拉 |
 | 完成度 | decimal | 计算值 | 进度条 + 百分比 |
-| 描述 | string | milestone.description | 面板内显示 |
+| 描述 | string | milestone.milestone_desc | 面板内显示 |
 | 关联 MI 列表 | list | main_items where milestone_key = this | 编号+标题+状态+完成度+解绑按钮 |
 
 ### States
@@ -415,11 +415,11 @@ feature: "里程碑图"
 
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
-| 名称 | string | milestone_map.name | 必填，1-100 字符 |
-| 负责人 | string | milestone_map 创建者 | 必填，团队成员下拉选择 |
+| 名称 | string | milestone_map.map_name | 必填，1-100 字符 |
+| 负责人 | string | milestone_map.assignee_key | 必填，团队成员下拉选择 |
 | 计划开始时间 | date | milestone_map.planned_start_date | 可选，日期选择器 |
 | 计划完成时间 | date | milestone_map.planned_end_date | 可选，日期选择器 |
-| 描述 | string | milestone_map.description | 可选 |
+| 描述 | string | milestone_map.map_desc | 可选 |
 
 ### States
 
@@ -445,8 +445,8 @@ feature: "里程碑图"
 | Rule ID | Rule | Enforced At |
 |---------|------|-------------|
 | BR-1 | 里程碑（Milestone）不可切换至终态（`completed`/`cancelled`），除非其下所有 MI 均已处于终态（`completed`/`cancelled`） | UF-3 状态切换 |
-| BR-2 | 里程碑图（Milestone Map）不可切换至终态（`completed`/`cancelled`），除非其下所有里程碑均已处于终态 | UF-1 信息卡状态切换 |
-| BR-3 | MI 不可移动至其所属里程碑之外的里程碑（即 MI 的里程碑归属变更不受里程碑状态约束，但 MI 自身状态不受里程碑状态约束） | UF-5 里程碑选择器 |
+| BR-2 | 里程碑图（Milestone Map）不可切换至终态（`completed`），除非其下所有里程碑均已处于终态 | UF-1 信息卡状态切换 |
+| BR-3 | 处于终态的 MI 不可变更 milestone_key；处于终态（cancelled）的里程碑不可接收新 MI | UF-5 里程碑选择器 |
 | BR-4 | 删除约束：仅 `planning` 状态的里程碑图可删除（UF-1）；仅 `not_started` 和 `cancelled` 状态的里程碑可删除（UF-3） | UF-1、UF-3 删除操作 |
 
 ---

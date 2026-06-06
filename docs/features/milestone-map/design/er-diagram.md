@@ -18,9 +18,12 @@ erDiagram
         BIGINT biz_key UK
         BIGINT team_key FK
         BIGINT creator_key FK
+        BIGINT assignee_key FK
         VARCHAR_100 map_name
         VARCHAR_2000 map_desc
         VARCHAR_20 map_status
+        DATETIME planned_start_date
+        DATETIME planned_end_date
     }
 
     pmw_milestones {
@@ -29,6 +32,7 @@ erDiagram
         BIGINT team_key FK
         BIGINT milestone_map_key FK
         VARCHAR_100 milestone_name
+        VARCHAR_2000 milestone_desc
         DATETIME expected_end_date
         VARCHAR_20 milestone_status
     }
@@ -52,9 +56,12 @@ erDiagram
 | deleted_time | DATETIME | NOT NULL, DEFAULT '1970-01-01 08:00:00' | 软删时间 |
 | team_key | BIGINT | NOT NULL | 所属团队 biz_key |
 | creator_key | BIGINT | NOT NULL | 创建者 biz_key |
+| assignee_key | BIGINT | NOT NULL | 负责人 biz_key |
 | map_name | VARCHAR(100) | NOT NULL | 里程碑图名称 |
 | map_desc | VARCHAR(2000) | NOT NULL, DEFAULT '' | 里程碑图描述 |
 | map_status | VARCHAR(20) | NOT NULL, DEFAULT 'planning' | 状态：planning/reviewed/ready/executing/completed |
+| planned_start_date | DATETIME | DEFAULT NULL | 计划开始时间 |
+| planned_end_date | DATETIME | DEFAULT NULL | 计划结束时间 |
 
 ### pmw_milestones [NEW]
 
@@ -69,6 +76,7 @@ erDiagram
 | team_key | BIGINT | NOT NULL | 所属团队 biz_key（冗余，继承自 milestone_map） |
 | milestone_map_key | BIGINT | NOT NULL | 所属里程碑图 biz_key |
 | milestone_name | VARCHAR(100) | NOT NULL | 里程碑名称 |
+| milestone_desc | VARCHAR(2000) | NOT NULL, DEFAULT '' | 里程碑描述 |
 | expected_end_date | DATETIME | DEFAULT NULL | 计划完成时间 |
 | milestone_status | VARCHAR(20) | NOT NULL, DEFAULT 'not_started' | 状态：not_started/in_progress/completed/cancelled |
 
@@ -85,6 +93,7 @@ erDiagram
 | Index Name | Columns | Type | Description |
 |------------|---------|------|-------------|
 | uk_milestone_maps_biz_key | biz_key | UNIQUE | 业务键唯一查找 |
+| idx_milestone_maps_assignee_key | assignee_key | B-tree | 按负责人查找 |
 | idx_milestone_maps_team_status | team_key, map_status | B-tree | 按团队+状态筛选 |
 | idx_milestone_maps_deleted_flag | deleted_flag | B-tree | 软删除过滤 |
 

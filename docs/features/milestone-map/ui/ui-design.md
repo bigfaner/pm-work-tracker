@@ -87,19 +87,19 @@ const businessItems = [
 
 ```ts
 // 主要函数
-createMilestoneMap(data: { mapName: string; mapDesc?: string; ownerKey?: string; plannedStartDate?: string; plannedEndDate?: string })
+createMilestoneMap(data: { mapName: string; mapDesc?: string; assigneeBizKey: string; plannedStartDate?: string; plannedEndDate?: string })
 listMilestoneMaps(params?: { name?: string; assigneeKey?: string; status?: string; page?: number; pageSize?: number })
 getMilestoneMap(mapId: string)
-updateMilestoneMap(mapId: string, data: { mapName?: string; mapDesc?: string; ownerKey?: string; plannedStartDate?: string; plannedEndDate?: string })
+updateMilestoneMap(mapId: string, data: { mapName?: string; mapDesc?: string; assigneeBizKey: string; plannedStartDate?: string; plannedEndDate?: string })
 deleteMilestoneMap(mapId: string)
 changeMilestoneMapStatus(mapId: string, status: string)
 getMilestoneMapAvailableTransitions(mapId: string)
 
-createMilestone(mapId: string, data: { milestoneName: string; expectedEndDate: string; description?: string })
+createMilestone(mapId: string, data: { milestoneName: string; expectedEndDate: string; milestoneDesc?: string })
 listMilestonesByMap(mapId: string)
 listMilestonesByTeam(params?: { name?: string; status?: string; excludeCancelled?: boolean })
 getMilestone(milestoneId: string)
-updateMilestone(milestoneId: string, data: { milestoneName?: string; expectedEndDate?: string; description?: string })
+updateMilestone(milestoneId: string, data: { milestoneName?: string; expectedEndDate?: string; milestoneDesc?: string })
 deleteMilestone(milestoneId: string)
 changeMilestoneStatus(milestoneId: string, status: string)
 getMilestoneAvailableTransitions(milestoneId: string)
@@ -118,8 +118,8 @@ interface MilestoneMap {
   teamKey: string
   creatorKey: string
   creatorName: string
-  ownerKey: string
-  ownerName: string
+  assigneeKey: string
+  assigneeName: string
   mapName: string
   mapDesc: string
   mapStatus: string
@@ -139,7 +139,7 @@ interface Milestone {
   teamKey: string
   milestoneMapKey: string
   milestoneName: string
-  description: string
+  milestoneDesc: string
   expectedEndDate: string | null
   milestoneStatus: string
   statusName: string
