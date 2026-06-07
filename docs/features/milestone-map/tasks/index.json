@@ -425,7 +425,7 @@
         "3.6",
         "2.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.7-frontend-pages-routing.md",
       "record": "records/3.7-frontend-pages-routing.md",
       "surface-key": "frontend",

@@ -1,95 +1,177 @@
-import { useState, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTeamStore } from '@/store/team'
+import {
+  updateMilestoneMapApi,
+  updateMilestoneApi,
+} from '@/api/milestones'
+import { listMembersApi } from '@/api/teams'
 import MilestoneTimeline from './milestones/MilestoneTimeline'
-import CreateMilestoneDialog, {
-  type MilestoneFormState,
-} from './milestones/CreateMilestoneDialog'
 import CreateMilestoneMapDialog, {
   type MilestoneMapFormState,
 } from './milestones/CreateMilestoneMapDialog'
-import type { Milestone, MilestoneMap } from '@/types'
+import CreateMilestoneDialog, {
+  type MilestoneFormState,
+} from './milestones/CreateMilestoneDialog'
+import type { MilestoneMap, Milestone } from '@/types'
+
+const EMPTY_MAP_FORM: MilestoneMapFormState = {
+  mapName: '',
+  assigneeKey: '',
+  planStartDate: '',
+  expectedEndDate: '',
+  mapDesc: '',
+}
+
+const EMPTY_MILESTONE_FORM: MilestoneFormState = {
+  milestoneName: '',
+  expectedEndDate: '',
+  milestoneDesc: '',
+}
 
 export default function MilestoneDetailPage() {
   const { mapId } = useParams<{ mapId: string }>()
+  const teamId = useTeamStore((s) => s.currentTeamId)
+  const qc = useQueryClient()
 
-  // Edit milestone dialog state
-  const [editMilestoneDialogOpen, setEditMilestoneDialogOpen] = useState(false)
-  const [editMilestone, setEditMilestone] = useState<Milestone | null>(null)
+  // Edit map dialog
+  const [editMapOpen, setEditMapOpen] = useState(false)
+  const [editMapTarget, setEditMapTarget] = useState<MilestoneMap | null>(null)
+  const [editMapForm, setEditMapForm] =
+    useState<MilestoneMapFormState>(EMPTY_MAP_FORM)
+
+  // Edit milestone dialog
+  const [editMilestoneOpen, setEditMilestoneOpen] = useState(false)
+  const [editMilestoneTarget, setEditMilestoneTarget] =
+    useState<Milestone | null>(null)
   const [editMilestoneForm, setEditMilestoneForm] =
-    useState<MilestoneFormState>({
-      milestoneName: '',
-      expectedEndDate: '',
-      milestoneDesc: '',
-    })
+    useState<MilestoneFormState>(EMPTY_MILESTONE_FORM)
 
-  // Edit map dialog state
-  const [editMapDialogOpen, setEditMapDialogOpen] = useState(false)
-  const [editMap, setEditMap] = useState<MilestoneMap | null>(null)
-  const [editMapForm, setEditMapForm] = useState<MilestoneMapFormState>({
-    mapName: '',
-    assigneeKey: '',
-    planStartDate: '',
-    expectedEndDate: '',
-    mapDesc: '',
+  // Members for map edit dialog
+  const { data: membersData } = useQuery({
+    queryKey: ['members', teamId],
+    queryFn: () => listMembersApi(teamId!),
+    enabled: !!teamId,
   })
 
-  const handleEditMilestone = useCallback((milestone: Milestone) => {
-    setEditMilestone(milestone)
-    setEditMilestoneForm({
-      milestoneName: milestone.milestoneName,
-      expectedEndDate: milestone.expectedEndDate ?? '',
-      milestoneDesc: milestone.milestoneDesc ?? '',
-    })
-    setEditMilestoneDialogOpen(true)
-  }, [])
+  const members = (membersData || []).map(
+    (m: { userKey: string; displayName: string }) => ({
+      userKey: m.userKey,
+      displayName: m.displayName,
+    }),
+  )
 
-  const handleEditMap = useCallback((map: MilestoneMap) => {
-    setEditMap(map)
-    setEditMapForm({
-      mapName: map.mapName,
-      assigneeKey: map.assigneeKey,
-      planStartDate: map.planStartDate ?? '',
-      expectedEndDate: map.expectedEndDate ?? '',
-      mapDesc: map.mapDesc ?? '',
-    })
-    setEditMapDialogOpen(true)
-  }, [])
+  // Populate map edit form when target changes
+  useEffect(() => {
+    if (editMapTarget) {
+      setEditMapForm({
+        mapName: editMapTarget.mapName,
+        assigneeKey: editMapTarget.assigneeKey,
+        planStartDate: editMapTarget.planStartDate ?? '',
+        expectedEndDate: editMapTarget.expectedEndDate ?? '',
+        mapDesc: editMapTarget.mapDesc ?? '',
+      })
+    }
+  }, [editMapTarget])
+
+  // Populate milestone edit form when target changes
+  useEffect(() => {
+    if (editMilestoneTarget) {
+      setEditMilestoneForm({
+        milestoneName: editMilestoneTarget.milestoneName,
+        expectedEndDate: editMilestoneTarget.expectedEndDate ?? '',
+        milestoneDesc: editMilestoneTarget.milestoneDesc ?? '',
+      })
+    }
+  }, [editMilestoneTarget])
+
+  // Update map mutation
+  const updateMapMutation = useMutation({
+    mutationFn: (form: MilestoneMapFormState) =>
+      updateMilestoneMapApi(teamId!, mapId!, {
+        mapName: form.mapName.trim(),
+        assigneeBizKey: form.assigneeKey,
+        ...(form.planStartDate && { planStartDate: form.planStartDate }),
+        ...(form.expectedEndDate && { expectedEndDate: form.expectedEndDate }),
+        ...(form.mapDesc && { mapDesc: form.mapDesc }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['milestoneMap', teamId, mapId] })
+      qc.invalidateQueries({ queryKey: ['milestoneMaps', teamId] })
+      setEditMapOpen(false)
+      setEditMapTarget(null)
+    },
+  })
+
+  // Update milestone mutation
+  const updateMilestoneMutation = useMutation({
+    mutationFn: (form: MilestoneFormState) =>
+      updateMilestoneApi(teamId!, editMilestoneTarget!.bizKey, {
+        milestoneName: form.milestoneName.trim(),
+        ...(form.expectedEndDate && { expectedEndDate: form.expectedEndDate }),
+        ...(form.milestoneDesc && { milestoneDesc: form.milestoneDesc }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['milestones', teamId, mapId] })
+      qc.invalidateQueries({ queryKey: ['milestone', teamId] })
+      setEditMilestoneOpen(false)
+      setEditMilestoneTarget(null)
+    },
+  })
+
+  // Callbacks for MilestoneTimeline
+  const handleEditMap = (map: MilestoneMap) => {
+    setEditMapTarget(map)
+    setEditMapOpen(true)
+  }
+
+  const handleEditMilestone = (milestone: Milestone) => {
+    setEditMilestoneTarget(milestone)
+    setEditMilestoneOpen(true)
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleQuickAdd = useCallback((_m: Milestone) => {
-    // Will be connected to QuickAddMainItemDialog in a future task
-  }, [])
-
-  if (!mapId) return null
+  const handleQuickAdd = (_milestone: Milestone) => {
+    // UF-3a quick add dialog — placeholder until implemented
+  }
 
   return (
     <>
       <MilestoneTimeline
-        mapId={mapId}
+        mapId={mapId!}
         onEditMap={handleEditMap}
         onEditMilestone={handleEditMilestone}
         onQuickAdd={handleQuickAdd}
       />
-      {/* Edit milestone dialog placeholder - will be fully wired in integration */}
-      <CreateMilestoneDialog
-        open={editMilestoneDialogOpen}
-        onOpenChange={setEditMilestoneDialogOpen}
-        form={editMilestoneForm}
-        onFormChange={setEditMilestoneForm}
-        onSubmit={() => setEditMilestoneDialogOpen(false)}
-        isPending={false}
-        milestone={editMilestone ?? undefined}
-      />
-      {/* Edit map dialog placeholder */}
+
+      {/* Edit map dialog */}
       <CreateMilestoneMapDialog
-        open={editMapDialogOpen}
-        onOpenChange={setEditMapDialogOpen}
+        open={editMapOpen}
+        onOpenChange={(open) => {
+          setEditMapOpen(open)
+          if (!open) setEditMapTarget(null)
+        }}
         form={editMapForm}
         onFormChange={setEditMapForm}
-        members={[]}
-        onSubmit={() => setEditMapDialogOpen(false)}
-        isPending={false}
-        milestoneMap={editMap ?? undefined}
+        members={members}
+        onSubmit={() => updateMapMutation.mutate(editMapForm)}
+        isPending={updateMapMutation.isPending}
+        milestoneMap={editMapTarget ?? undefined}
+      />
+
+      {/* Edit milestone dialog */}
+      <CreateMilestoneDialog
+        open={editMilestoneOpen}
+        onOpenChange={(open) => {
+          setEditMilestoneOpen(open)
+          if (!open) setEditMilestoneTarget(null)
+        }}
+        form={editMilestoneForm}
+        onFormChange={setEditMilestoneForm}
+        onSubmit={() => updateMilestoneMutation.mutate(editMilestoneForm)}
+        isPending={updateMilestoneMutation.isPending}
+        milestone={editMilestoneTarget ?? undefined}
       />
     </>
   )
