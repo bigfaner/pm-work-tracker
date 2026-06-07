@@ -54,7 +54,7 @@
       "title": "Milestone status system, permissions, and error types",
       "priority": "P0",
       "estimatedTime": "2-3h",
-      "status": "in_progress",
+      "status": "completed",
       "file": "1.4-milestone-status-perms-errors.md",
       "record": "records/1.4-milestone-status-perms-errors.md",
       "surface-key": "backend",

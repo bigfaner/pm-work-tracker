@@ -56,6 +56,16 @@ var (
 	ErrUserDeleted          = &AppError{Code: "USER_DELETED", Status: 403, Message: "user account has been deleted"}
 	ErrTargetClosed         = &AppError{Code: "BAD_REQUEST", Status: 400, Message: "目标主事项已关闭"}
 	ErrSameMainItem         = &AppError{Code: "BAD_REQUEST", Status: 400, Message: "不能移动到同一主事项"}
+
+	// Milestone errors
+	ErrMapIsTerminal                  = &AppError{Code: "MAP_IS_TERMINAL", Status: 400, Message: "里程碑图处于终态"}
+	ErrDuplicateMilestoneName         = &AppError{Code: "DUPLICATE_NAME", Status: 409, Message: "同名里程碑已存在"}
+	ErrMilestoneHasNonTerminalItems   = &AppError{Code: "BAD_REQUEST", Status: 400, Message: "里程碑下存在未完成的事项"}
+	ErrMapHasNonTerminalMilestones    = &AppError{Code: "BAD_REQUEST", Status: 400, Message: "里程碑图下存在未完成的里程碑"}
+	ErrTerminalItemCannotMove         = &AppError{Code: "BAD_REQUEST", Status: 400, Message: "终态事项不可变更里程碑"}
+	ErrTerminalMilestoneCannotReceive = &AppError{Code: "BAD_REQUEST", Status: 400, Message: "终态里程碑不可接收事项"}
+	ErrMapCannotDelete                = &AppError{Code: "INVALID_PARAMS", Status: 400, Message: "当前状态不允许删除里程碑图"}
+	ErrMilestoneCannotDelete          = &AppError{Code: "INVALID_PARAMS", Status: 400, Message: "当前状态不允许删除里程碑"}
 )
 
 // MapNotFound maps gorm.ErrRecordNotFound and ErrNotFound to the provided domain error.

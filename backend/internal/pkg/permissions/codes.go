@@ -67,6 +67,15 @@ var Registry = []ResourcePermissions{
 		},
 	},
 	{
+		Resource: "milestone",
+		Permissions: []Permission{
+			{Code: "milestone:create", Description: "创建里程碑图和里程碑"},
+			{Code: "milestone:read", Description: "查看里程碑图和里程碑"},
+			{Code: "milestone:update", Description: "编辑里程碑图/里程碑信息及状态切换"},
+			{Code: "milestone:delete", Description: "删除里程碑图和里程碑"},
+		},
+	},
+	{
 		Resource: "view",
 		Permissions: []Permission{
 			{Code: "view:weekly", Description: "查看周视图"},

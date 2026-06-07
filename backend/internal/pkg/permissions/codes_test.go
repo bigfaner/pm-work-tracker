@@ -7,7 +7,7 @@ import (
 func TestRegistryContainsAllResources(t *testing.T) {
 	wantResources := []string{
 		"team", "main_item", "sub_item", "progress",
-		"item_pool", "view", "report", "user",
+		"item_pool", "milestone", "view", "report", "user",
 	}
 	if len(Registry) != len(wantResources) {
 		t.Fatalf("Registry has %d resources, want %d", len(Registry), len(wantResources))
@@ -26,6 +26,7 @@ func TestRegistryResourceCodeCounts(t *testing.T) {
 		"sub_item":  6,
 		"progress":  3,
 		"item_pool": 2,
+		"milestone": 4,
 		"view":      3,
 		"report":    1,
 		"user":      3,
@@ -44,7 +45,7 @@ func TestRegistryResourceCodeCounts(t *testing.T) {
 
 func TestAllCodesReturnsExpectedCount(t *testing.T) {
 	codes := AllCodes()
-	wantCount := 31 // 7+6+6+3+2+3+1+3
+	wantCount := 35 // 7+6+6+3+2+4+3+1+3
 	if len(codes) != wantCount {
 		t.Fatalf("AllCodes() returned %d codes, want %d", len(codes), wantCount)
 	}
@@ -58,6 +59,7 @@ func TestAllCodesContainsSpecificCodes(t *testing.T) {
 		"sub_item:create", "sub_item:read", "sub_item:update", "sub_item:assign", "sub_item:change_status", "sub_item:delete",
 		"progress:create", "progress:read", "progress:update",
 		"item_pool:submit", "item_pool:review",
+		"milestone:create", "milestone:read", "milestone:update", "milestone:delete",
 		"view:weekly", "view:gantt", "view:table",
 		"report:export",
 		"user:read", "user:update", "user:manage_role",
@@ -71,8 +73,8 @@ func TestAllCodesContainsSpecificCodes(t *testing.T) {
 
 func TestAllCodeStringsReturnsAllCodes(t *testing.T) {
 	codes := AllCodeStrings()
-	if len(codes) != 31 {
-		t.Fatalf("AllCodeStrings() returned %d codes, want 31", len(codes))
+	if len(codes) != 35 {
+		t.Fatalf("AllCodeStrings() returned %d codes, want 35", len(codes))
 	}
 	// Verify each code is also in AllCodes()
 	allCodesMap := AllCodes()
@@ -105,7 +107,8 @@ func TestValidateCodeValidCodes(t *testing.T) {
 	validCodes := []string{
 		"team:create", "team:read", "team:update", "team:delete",
 		"main_item:archive", "sub_item:assign", "progress:update",
-		"item_pool:review", "view:gantt", "report:export", "user:manage_role",
+		"item_pool:review", "milestone:create", "milestone:read",
+		"view:gantt", "report:export", "user:manage_role",
 	}
 	for _, code := range validCodes {
 		if !ValidateCode(code) {
