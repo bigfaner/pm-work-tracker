@@ -16,6 +16,7 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | arch-button-icon-convention.md | Building action buttons — icon+text pattern |
 | arch-e2e-graduation-staging.md | Graduating e2e tests — directory reorganization |
 | arch-task-executor-missing-e2e-step.md | Task executor flow — missing e2e verification step |
+| arch-quality-gate-surface-scoping.md | Quality gate — must scope verification to task's surface-key, not all surfaces |
 | arch-task-failure-recovery-loop.md | Task executor encounters test failures — must block + spawn fix tasks |
 | arch-ui-integration-gap.md | Component task breakdown — must include page wiring task |
 
@@ -47,8 +48,10 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | gotcha-subagent-partial-commits.md | Subagents leave 75+ files uncommitted after /run-tasks |
 | gotcha-interface-blast-radius-dispatcher.md | Adding methods to shared interfaces — large blast radius appears as "stuck" |
 | gotcha-mock-repo-skips-whitelist.md | Mocked repo Update skips field whitelist — 422 in prod, green in tests |
+| gotcha-claim-feature-vs-pipeline.md | forge task claim — no priority ordering between feature tasks and test pipeline tasks |
 | gotcha-claim-in-progress-priority.md | forge task claim prioritizes in_progress over pending — blocks dispatch loop |
 | gotcha-forge-surfaces-path-matching.md | forge surfaces <path> needs surface key prefix — `.` or `docs/` won't match |
+| gotcha-task-process-state-reset.md | Resetting task state — must delete tasks/process/state.json, not just index.json |
 | gotcha-task-claim-priority-skip.md | forge task claim skips unblocked tasks — jumps to unrelated pipeline tasks |
 | gotcha-tech-design-decision-archiving.md | Tech design must record naming/structural conventions |
 
