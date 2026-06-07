@@ -303,6 +303,50 @@ export interface AppendProgressReq {
   lesson?: string
 }
 
+// MilestoneMap API
+export interface CreateMilestoneMapReq {
+  mapName: string
+  mapDesc?: string
+  assigneeBizKey: string
+  planStartDate?: string
+  expectedEndDate?: string
+}
+
+export interface UpdateMilestoneMapReq {
+  mapName?: string
+  mapDesc?: string
+  assigneeBizKey?: string
+  planStartDate?: string
+  expectedEndDate?: string
+}
+
+export interface MilestoneMapFilter {
+  name?: string
+  assigneeKey?: string
+  status?: string
+  page?: number
+  pageSize?: number
+}
+
+// Milestone API
+export interface CreateMilestoneReq {
+  milestoneName: string
+  milestoneDesc?: string
+  expectedEndDate: string
+}
+
+export interface UpdateMilestoneReq {
+  milestoneName?: string
+  milestoneDesc?: string
+  expectedEndDate?: string
+}
+
+export interface MilestoneListFilter {
+  name?: string
+  status?: string
+  excludeCancelled?: boolean
+}
+
 // ItemPool
 export interface UpdateItemPoolReq {
   title?: string
@@ -344,6 +388,43 @@ export interface ItemPoolFilter {
 export interface AssignItemPoolResp {
   mainItemBizKey: string
   subItemBizKey: string
+}
+
+// MilestoneMap
+export interface MilestoneMap {
+  bizKey: string
+  teamKey: string
+  creatorKey: string
+  creatorName: string
+  assigneeKey: string
+  assigneeName: string
+  mapName: string
+  mapDesc: string
+  mapStatus: string
+  statusName: string
+  planStartDate: string | null
+  expectedEndDate: string | null
+  milestoneCount: number
+  itemCount: number
+  overallProgress: number
+  createTime: string
+  dbUpdateTime: string
+}
+
+// Milestone
+export interface Milestone {
+  bizKey: string
+  teamKey: string
+  milestoneMapKey: string
+  milestoneName: string
+  milestoneDesc: string
+  expectedEndDate: string | null
+  milestoneStatus: string
+  statusName: string
+  completion: number
+  relatedMICount: number
+  createTime: string
+  dbUpdateTime: string
 }
 
 // Views
