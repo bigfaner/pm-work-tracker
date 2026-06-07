@@ -577,7 +577,7 @@
       "title": "Fix: Journey eval failures — missing mandatory outcomes and traceability",
       "priority": "P0",
       "estimatedTime": "30min",
-      "status": "pending",
+      "status": "completed",
       "file": "doc-fix-1.md",
       "record": "records/doc-fix-1.md",
       "sourceTaskID": "T-eval-journey",
@@ -605,7 +605,7 @@
       "dependencies": [
         "T-test-gen-journeys"
       ],
-      "status": "blocked",
+      "status": "pending",
       "file": "eval-journey.md",
       "record": "records/eval-journey.md",
       "mainSession": true,
