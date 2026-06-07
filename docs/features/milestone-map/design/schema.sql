@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS pmw_milestone_maps (
     assignee_key    BIGINT          NOT NULL                      COMMENT '负责人 biz_key',
     map_name        VARCHAR(100)    NOT NULL                      COMMENT '里程碑图名称',
     map_desc        VARCHAR(2000)   NOT NULL DEFAULT ''           COMMENT '里程碑图描述',
-    map_status      VARCHAR(20)     NOT NULL DEFAULT 'planning'   COMMENT '状态：planning=规划中，reviewed=已评审，ready=待实施，executing=实施中，completed=已完成',
+    map_status      VARCHAR(20)     NOT NULL DEFAULT 'planning'   COMMENT '状态：planning=规划中，reviewed=已评审，ready=待实施，executing=实施中，completed=已完成，cancelled=已取消',
     plan_start_date DATETIME                                   COMMENT '计划开始时间',
     expected_end_date   DATETIME                                   COMMENT '计划完成时间',
     PRIMARY KEY (id),
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS pmw_milestones (
 
 -- [MODIFIED] pmw_main_items: add milestone_key column
 -- ALTER TABLE pmw_main_items
---     ADD COLUMN milestone_key BIGINT DEFAULT NULL COMMENT '所属里程碑 biz_key，NULL 表示未分配',
+--     ADD COLUMN milestone_key BIGINT COMMENT '所属里程碑 biz_key，NULL 表示未分配',
 --     ADD KEY idx_main_items_milestone_key (milestone_key);
 
 -- ============================================================
@@ -99,5 +99,5 @@ CREATE UNIQUE INDEX IF NOT EXISTS uk_milestones_map_name_deleted ON pmw_mileston
 CREATE INDEX IF NOT EXISTS idx_milestones_team_status ON pmw_milestones(team_key, milestone_status);
 
 -- [MODIFIED] pmw_main_items: add milestone_key column
--- ALTER TABLE pmw_main_items ADD COLUMN milestone_key INTEGER DEFAULT NULL;
+-- ALTER TABLE pmw_main_items ADD COLUMN milestone_key INTEGER;
 -- CREATE INDEX IF NOT EXISTS idx_main_items_milestone_key ON pmw_main_items(milestone_key);

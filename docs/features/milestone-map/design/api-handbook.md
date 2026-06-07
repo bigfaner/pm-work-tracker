@@ -78,7 +78,7 @@ related: design/tech-design.md
 |-------|------|----------|-------------|
 | name | string | No | 按名称模糊搜索 |
 | assigneeKey | string | No | 按负责人筛选，bizKey |
-| status | string | No | 按状态筛选：planning/reviewed/ready/executing/completed |
+| status | string | No | 按状态筛选：planning/reviewed/ready/executing/completed/cancelled |
 | page | number | No | 页码，默认 1 |
 | pageSize | number | No | 每页数量，默认 20 |
 
@@ -163,7 +163,7 @@ related: design/tech-design.md
 
 | Status | Code | Description |
 |--------|------|-------------|
-| 400 | INVALID_PARAMS | 里程碑图状态不允许删除（仅 planning 可删除） |
+| 400 | INVALID_PARAMS | 里程碑图状态不允许删除（仅 planning/reviewed/ready 可删除） |
 | 404 | NOT_FOUND | 里程碑图不存在 |
 
 ---
@@ -184,6 +184,8 @@ related: design/tech-design.md
 
 更新后的 MilestoneMap。
 
+**副作用**: 切换至 cancelled 时，级联取消所有非终态里程碑并自动解绑所有关联 MI（BR-6）。
+
 #### Error Responses
 
 | Status | Code | Description |
@@ -202,7 +204,7 @@ related: design/tech-design.md
 #### Response (200)
 
 ```json
-["reviewed"]
+{"transitions": ["reviewed", "cancelled"]}
 ```
 
 ---
@@ -245,7 +247,9 @@ related: design/tech-design.md
 | Status | Code | Description |
 |--------|------|-------------|
 | 400 | INVALID_PARAMS | 名称/日期校验失败 |
+| 400 | MAP_IS_TERMINAL | 里程碑图处于终态（completed/cancelled），不可创建里程碑 |
 | 404 | NOT_FOUND | 所属里程碑图不存在 |
+| 409 | DUPLICATE_NAME | 同一里程碑图下已存在同名里程碑 |
 
 ---
 
@@ -393,7 +397,7 @@ Milestone 详情，含关联 MI 列表摘要。
 #### Response (200)
 
 ```json
-["in_progress", "cancelled"]
+{"transitions": ["in_progress", "cancelled"]}
 ```
 
 ---
@@ -409,6 +413,7 @@ Milestone 详情，含关联 MI 列表摘要。
 | `ready` | 待实施 | No |
 | `executing` | 实施中 | No |
 | `completed` | 已完成 | Yes |
+| `cancelled` | 已取消 | Yes |
 
 ### MilestoneStatus
 
@@ -416,7 +421,7 @@ Milestone 详情，含关联 MI 列表摘要。
 |------|---------|----------|
 | `not_started` | 未开始 | No |
 | `in_progress` | 进行中 | No |
-| `completed` | 已完成 | No |
+| `completed` | 已完成 | Yes |
 | `cancelled` | 已取消 | Yes |
 
 ## Error Codes
@@ -424,6 +429,8 @@ Milestone 详情，含关联 MI 列表摘要。
 | Code | HTTP Status | Description |
 |------|-------------|-------------|
 | INVALID_PARAMS | 400 | 请求参数校验失败 |
+| MAP_IS_TERMINAL | 400 | 里程碑图处于终态，不可创建/修改里程碑 |
+| DUPLICATE_NAME | 409 | 同一里程碑图下已存在同名里程碑 |
 | INVALID_STATUS | 422 | 状态转换不合法 |
 | NOT_FOUND | 404 | 资源不存在或已删除 |
 | CONFLICT | 409 | 并发冲突（里程碑编辑） |

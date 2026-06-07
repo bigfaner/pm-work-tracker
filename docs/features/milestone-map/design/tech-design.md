@@ -187,7 +187,7 @@ MilestoneKey     *int64     `gorm:"index" json:"milestoneKey"`  // NEW
 
 | Model | Key Fields | Notes |
 |-------|------------|-------|
-| MilestoneMap | map_name, map_desc, map_status, team_key, creator_key, assignee_key, plan_start_date, expected_end_date | 5 态：planning→reviewed→ready→executing→completed |
+| MilestoneMap | map_name, map_desc, map_status, team_key, creator_key, assignee_key, plan_start_date, expected_end_date | 6 态：planning→reviewed→ready→executing→completed/cancelled |
 | Milestone | milestone_name, milestone_desc, expected_end_date, milestone_status, milestone_map_key, team_key | 4 态：not_started→in_progress→completed/cancelled |
 | MainItem (modified) | +milestone_key | 可空，引用 pmw_milestones.biz_key |
 
@@ -205,12 +205,13 @@ var MilestoneMapStatuses = map[string]StatusDef{
 	"ready":     {Code: "ready", Name: "待实施", Terminal: false},
 	"executing": {Code: "executing", Name: "实施中", Terminal: false},
 	"completed": {Code: "completed", Name: "已完成", Terminal: true},
+	"cancelled": {Code: "cancelled", Name: "已取消", Terminal: true},
 }
 
 var MilestoneStatuses = map[string]StatusDef{
 	"not_started": {Code: "not_started", Name: "未开始", Terminal: false},
 	"in_progress": {Code: "in_progress", Name: "进行中", Terminal: false},
-	"completed":   {Code: "completed", Name: "已完成", Terminal: false},
+	"completed":   {Code: "completed", Name: "已完成", Terminal: true},
 	"cancelled":   {Code: "cancelled", Name: "已取消", Terminal: true},
 }
 
@@ -231,22 +232,87 @@ func GetMilestoneStatus(code string) (StatusDef, bool) {
 // pkg/status/milestone_status.go (continued)
 
 var MilestoneMapTransitions = map[string][]string{
-	"planning":  {"reviewed"},
-	"reviewed":  {"ready", "planning"},
-	"ready":     {"executing", "reviewed"},
-	"executing": {"completed", "ready"},
-	// "completed" is terminal — no entries
+	"planning":  {"reviewed", "cancelled"},
+	"reviewed":  {"ready", "planning", "cancelled"},
+	"ready":     {"executing", "reviewed", "cancelled"},
+	"executing": {"completed", "ready", "cancelled"},
+	// "completed and "cancelled" are terminal — no entries
 }
 
 var MilestoneTransitions = map[string][]string{
 	"not_started": {"in_progress", "cancelled"},
 	"in_progress": {"completed", "cancelled"},
-	"completed":   {"cancelled"},
+	"completed":   {"cancelled", "in_progress"},
 	// "cancelled" is terminal — no entries
 }
 ```
 
 复用现有 `IsValidTransition(transitions, from, to)` 和 `GetAvailableTransitions(transitions, current)` 函数。
+
+### Available Transitions（服务层）
+
+参照 MainItem 的 `AvailableTransitions` 模式：先获取纯转换列表，再根据业务规则过滤不可达状态。
+
+```go
+// MilestoneMapService.AvailableTransitions
+func (s *milestoneMapService) AvailableTransitions(ctx context.Context, teamBizKey int64, mapID uint) ([]string, error) {
+    m, err := s.mapRepo.FindByID(ctx, mapID)
+    // ... verify team membership ...
+
+    transitions := status.GetAvailableTransitions(status.MilestoneMapTransitions, m.MapStatus)
+
+    // BR-2: 过滤 completed — 需所有里程碑处于终态
+    if slices.Contains(transitions, "completed") {
+        milestones, _ := s.milestoneRepo.ListByMap(ctx, m.BizKey)
+        allTerminal := true
+        for _, ms := range milestones {
+            if !status.MilestoneStatuses[ms.MilestoneStatus].Terminal {
+                allTerminal = false
+                break
+            }
+        }
+        if !allTerminal {
+            transitions = slices.DeleteFunc(transitions, func(t string) bool { return t == "completed" })
+        }
+    }
+    return transitions, nil
+}
+
+// MilestoneService.AvailableTransitions
+func (s *milestoneService) AvailableTransitions(ctx context.Context, teamBizKey int64, milestoneID uint) ([]string, error) {
+    ms, err := s.milestoneRepo.FindByID(ctx, milestoneID)
+    // ... verify team membership ...
+
+    // BR-5: 父级里程碑图处于终态时，无可用转换
+    m, _ := s.mapRepo.FindByID(ctx, ms.MilestoneMapKey)
+    if status.MilestoneMapStatuses[m.MapStatus].Terminal {
+        return []string{}, nil
+    }
+
+    transitions := status.GetAvailableTransitions(status.MilestoneTransitions, ms.MilestoneStatus)
+
+    // BR-1: 过滤 completed — 需所有关联 MI 处于终态
+    if slices.Contains(transitions, "completed") {
+        items, _ := s.mainItemRepo.FindByMilestoneKey(ctx, ms.BizKey)
+        allTerminal := true
+        for _, item := range items {
+            if !status.IsMainTerminal(item.ItemStatus) {
+                allTerminal = false
+                break
+            }
+        }
+        if !allTerminal {
+            transitions = slices.DeleteFunc(transitions, func(t string) bool { return t == "completed" })
+        }
+    }
+    return transitions, nil
+}
+```
+
+| 实体 | 纯转换来源 | 服务层过滤规则 |
+|------|-----------|---------------|
+| MilestoneMap | `MilestoneMapTransitions` | BR-2: 未满足完成条件时过滤 `completed` |
+| Milestone | `MilestoneTransitions` | BR-5: 父级终态时返回空；BR-1: 未满足完成条件时过滤 `completed` |
 
 ## Permission System
 
@@ -321,6 +387,24 @@ type MilestoneRepo interface {
 }
 ```
 
+### MainItemRepo (MODIFIED)
+
+```go
+// repository/main_item_repo.go — 新增方法
+type MainItemRepo interface {
+    // ... existing methods ...
+
+    // NEW: 按里程碑 BizKey 查找关联的主事项
+    FindByMilestoneKey(ctx context.Context, milestoneBizKey int64) ([]model.MainItem, error)
+    // NEW: 按里程碑 BizKey 统计关联的主事项数量
+    CountByMilestoneKey(ctx context.Context, milestoneBizKey int64) (int64, error)
+    // NEW: 将指定里程碑下所有 MI 的 milestone_key 置空（cancelled 自动解绑）
+    ClearMilestoneKeyByMilestone(ctx context.Context, milestoneBizKey int64) error
+    // NEW: 将指定里程碑图下所有里程碑关联的 MI milestone_key 批量置空（map 删除级联）
+    ClearMilestoneKeyByMap(ctx context.Context, milestoneBizKeys []int64) error
+}
+```
+
 ### MilestoneMapService
 
 ```go
@@ -381,8 +465,8 @@ type MilestoneMapCreateReq struct {
 	MapName          string `json:"mapName" binding:"required,max=100"`
 	MapDesc          string `json:"mapDesc"`
 	AssigneeBizKey   int64  `json:"assigneeBizKey" binding:"required"`
-	PlanStartDate string `json:"planStartDate"`
-	ExpectedEndDate   string `json:"expectedEndDate"`
+	PlanStartDate *string `json:"planStartDate"`
+	ExpectedEndDate   *string `json:"expectedEndDate"`
 }
 
 type MilestoneMapUpdateReq struct {
@@ -401,8 +485,8 @@ type MilestoneMapFilter struct {
 
 type MilestoneCreateReq struct {
 	MilestoneName   string  `json:"milestoneName" binding:"required,max=100"`
-	ExpectedEndDate *string `json:"expectedEndDate" binding:"required"`
 	MilestoneDesc   string  `json:"milestoneDesc"`
+	ExpectedEndDate string  `json:"expectedEndDate" binding:"required"`
 }
 
 type MilestoneUpdateReq struct {
@@ -519,7 +603,7 @@ MainItemService.List 返回结果后，在 service 或 handler 层执行 enrichm
 1. 收集所有非空 `MilestoneKey` 对应的 bizKey
 2. 调用 `MilestoneRepo.FindBatchByBizKeys(ctx, bizKeys)` 获取 `map[int64]*model.Milestone`
 3. 设置 `voItem.MilestoneName = milestone.MilestoneName`
-4. 里程碑已软删除时，`MilestoneName` 设为 `"--"`
+4. 里程碑已软删除时，`MilestoneName` 设为 `"—"`
 
 ## Router Wiring
 
@@ -584,14 +668,14 @@ Handler 遵循现有模式（参考 `item_pool_handler.go`）：
 | mapName | VARCHAR(100) NOT NULL | string | string | string | 必填，1-100 字符，支持模糊搜索 |
 | mapDesc | VARCHAR(2000) | string | string | string | 可选 |
 | mapStatus | VARCHAR(20) NOT NULL DEFAULT 'planning' | string | string | string | 必须是有效状态码 |
-| planStartDate | DATE DEFAULT NULL | *time.Time | *string (FormatTimePtr) | string \| null | 可选，不得晚于 expectedEndDate |
-| expectedEndDate | DATE DEFAULT NULL | *time.Time | *string (FormatTimePtr) | string \| null | 可选，不得早于 planStartDate |
+| planStartDate | DATETIME | *time.Time | *string (FormatTimePtr) | string \| null | 可选，不得晚于 expectedEndDate |
+| expectedEndDate | DATETIME | *time.Time | *string (FormatTimePtr) | string \| null | 可选，不得早于 planStartDate |
 | milestoneMapKey | INTEGER NOT NULL | int64 | string (FormatID) | string | 必须指向存在的里程碑图 |
 | milestoneName | VARCHAR(100) NOT NULL | string | string | string | 必填，1-100 字符 |
 | milestoneDesc | VARCHAR(2000) | string | string | string | 可选 |
-| expectedEndDate | DATE | *time.Time | *string (FormatTimePtr) | string \| null | 必填 |
+| expectedEndDate | DATETIME | *time.Time | *string (FormatTimePtr) | string \| null | 必填 |
 | milestoneStatus | VARCHAR(20) NOT NULL DEFAULT 'not_started' | string | string | string | 必须是有效状态码 |
-| milestoneKey (MainItem) | INTEGER DEFAULT NULL | *int64 | *string (FormatIDPtr) | string \| null | 可选，必须指向存在的里程碑 |
+| milestoneKey (MainItem) | INTEGER | *int64 | *string (FormatIDPtr) | string \| null | 可选，必须指向存在的里程碑 |
 | completion (computed) | — | float64 | number | number | 0-100，GET 时计算 |
 | overallProgress (computed) | — | float64 | number | number | 0-100，GET 时计算 |
 
@@ -626,8 +710,9 @@ Handler 遵循现有模式（参考 `item_pool_handler.go`）：
 
 ```go
 func (s *Service) UpdateMilestoneStatus(ctx context.Context, milestoneID uint, newStatus string) error {
+    milestone, _ := s.milestoneRepo.FindByID(ctx, milestoneID)
     if newStatus == "completed" {
-        items, _ := s.itemRepo.FindByMilestoneKey(ctx, milestoneID)
+        items, _ := s.itemRepo.FindByMilestoneKey(ctx, milestone.BizKey)
         for _, item := range items {
             if !MainItemStatuses[item.ItemStatus].Terminal {
                 return ErrMilestoneHasNonTerminalItems
@@ -636,7 +721,7 @@ func (s *Service) UpdateMilestoneStatus(ctx context.Context, milestoneID uint, n
     }
     if newStatus == "cancelled" {
         // auto-unbind all related MIs in transaction
-        _ = s.itemRepo.ClearMilestoneKeyByMilestone(ctx, milestoneID)
+        _ = s.itemRepo.ClearMilestoneKeyByMilestone(ctx, milestone.BizKey)
     }
     // proceed with status update
 }
@@ -644,20 +729,31 @@ func (s *Service) UpdateMilestoneStatus(ctx context.Context, milestoneID uint, n
 
 #### BR-2: 里程碑图终态前置条件
 
-里程碑图只有在所有里程碑均处于终态时，才允许被标记为终态（`completed`）。
+里程碑图只有在所有里程碑均处于终态时，才允许被标记为终态（`completed`）。切换至 `cancelled` 时级联取消所有非终态里程碑并自动解绑所有关联 MI。
 
-1. **目标状态为 completed 时校验**：查询该里程碑图下所有 `Milestone`，若存在非终态里程碑（`not_started`/`in_progress`/`completed` 三者中 `completed` 为非终态，`cancelled` 为终态），返回 `400 Bad Request`
-2. **空里程碑图可直接终态**：无关联里程碑的里程碑图可自由切换为 `completed`
-3. **非终态→非终态不校验**：其他状态转换（如 `planning` → `reviewed`）不触发此校验
-4. **回退转换不校验**：如 `executing` → `ready` 不触发此校验
+1. **目标状态为 completed 时校验**：查询该里程碑图下所有 `Milestone`，若存在非终态里程碑（仅 `not_started`/`in_progress` 为非终态，`completed`/`cancelled` 为终态），返回 `400 Bad Request`
+2. **目标状态为 cancelled 时级联**：切换至 `cancelled` 时，在事务内将所有非终态里程碑级联为 `cancelled`（触发 BR-1 的自动解绑），并清除所有关联 MI 的 milestone_key
+3. **空里程碑图可直接终态**：无关联里程碑的里程碑图可自由切换为 `completed`
+4. **非终态→非终态不校验**：其他状态转换（如 `planning` → `reviewed`）不触发此校验
+5. **回退转换不校验**：如 `executing` → `ready` 不触发此校验
 
 ```go
 func (s *Service) UpdateMilestoneMapStatus(ctx context.Context, mapID uint, newStatus string) error {
-    if MilestoneMapStatuses[newStatus].Terminal {
-        milestones, _ := s.milestoneRepo.FindByMapKey(ctx, mapID)
+    milestoneMap, _ := s.mapRepo.FindByID(ctx, mapID)
+    if newStatus == "completed" {
+        milestones, _ := s.milestoneRepo.ListByMap(ctx, milestoneMap.BizKey)
         for _, ms := range milestones {
             if !MilestoneStatuses[ms.MilestoneStatus].Terminal {
                 return ErrMapHasNonTerminalMilestones
+            }
+        }
+    }
+    if newStatus == "cancelled" {
+        // cascade: cancel all non-terminal milestones (triggers BR-1 unbind)
+        milestones, _ := s.milestoneRepo.ListByMap(ctx, milestoneMap.BizKey)
+        for _, ms := range milestones {
+            if !MilestoneStatuses[ms.MilestoneStatus].Terminal {
+                _ = s.UpdateMilestoneStatus(ctx, ms.ID, "cancelled")
             }
         }
     }
@@ -694,22 +790,24 @@ func (s *Service) UpdateMainItemMilestone(ctx context.Context, itemID uint, mile
 ```
 主事项 (MI)                    里程碑 (MS)              里程碑图 (Map)
 ─────────────────────────────────────────────────────────────────────────
-MI 终态 → 不可移动            MS 终态 → 不可接收 MI    Map 终态 → 不可添加 MS
-MI 全部终态 ← MS 转 completed  MS 全部终态 ← Map 可转终态
+MI 终态 → 不可变更 milestone_key    MS 终态 → 不可接收 MI    Map 终态 → 不可添加 MS
+MI 全部终态 ← MS 转 completed       MS 全部终态 ← Map 可转终态
 MS 转 cancelled → 自动解绑 MI（不受 MI 状态限制）
+Map 转 cancelled → 级联取消所有 MS → 自动解绑所有 MI
+Map 终态 → MS 状态不可变更；MS 终态 → MI milestone_key 不可变更
 ```
 
-层级关系：Map → MS → MI。MS 转 `completed` 要求子层全终态；MS 转 `cancelled` 自动解绑子层不受限制；Map 转终态要求子层全终态；父层终态后拒绝子层变动。
+层级关系：Map → MS → MI。MS 转 `completed` 要求子层全终态；MS 转 `cancelled` 自动解绑子层不受限制；Map 转 `cancelled` 级联取消所有 MS 并解绑所有 MI；Map 转终态要求子层全终态；父层终态后拒绝子层变动。
 
 #### BR-4: 删除约束
 
-**里程碑图**：仅 `planning`（规划中）状态的里程碑图允许删除。其他状态（`reviewed`/`ready`/`executing`/`completed`）拒绝删除，返回 `400 Bad Request`。
+**里程碑图**：仅 `planning`（规划中）、`reviewed`（已评审）、`ready`（待实施）状态的里程碑图允许删除。处于 `executing`（实施中）、`completed`（已完成）、`cancelled`（已取消）状态的里程碑图拒绝删除，返回 `400 Bad Request`。
 
 ```go
 func (s *Service) DeleteMilestoneMap(ctx context.Context, mapID uint) error {
     m, _ := s.mapRepo.FindByID(ctx, mapID)
-    if m.MapStatus != "planning" {
-        return ErrMapCannotDeleteNonPlanning
+    if m.MapStatus == "executing" || m.MapStatus == "completed" || m.MapStatus == "cancelled" {
+        return ErrMapCannotDelete
     }
     // proceed with delete
 }
@@ -724,6 +822,35 @@ func (s *Service) DeleteMilestone(ctx context.Context, milestoneID uint) error {
         return ErrMilestoneCannotDelete
     }
     // proceed with delete
+}
+```
+
+#### BR-5: 父层终态向下约束
+
+父层实体处于终态时，子层不可变更状态或创建新子实体。
+
+1. **Map 终态 → 禁止创建/修改 Milestone**：`MilestoneMap.MapStatus` 为 `completed` 或 `cancelled` 时，拒绝创建新里程碑和修改里程碑状态，返回 `400 Bad Request`
+2. **Map 终态 → 禁止 MI 绑定/解绑**：父层 Map 处于终态时，其下 Milestone 关联的 MI 不可变更 `milestone_key`（与 BR-3 终态 MI 约束叠加）
+3. **MS 终态 → 禁止 MI milestone_key 变更**：`Milestone.MilestoneStatus` 为 `completed` 或 `cancelled` 时，关联 MI 不可变更 `milestone_key`，返回 `400 Bad Request`
+
+```go
+// MilestoneService.Create — guard
+func (s *Service) CreateMilestone(ctx context.Context, ...) error {
+    milestoneMap, _ := s.mapRepo.FindByID(ctx, mapID)
+    if MilestoneMapStatuses[milestoneMap.MapStatus].Terminal {
+        return ErrMapIsTerminal
+    }
+    // proceed with create
+}
+
+// MilestoneService.UpdateStatus — guard
+func (s *Service) UpdateMilestoneStatus(ctx context.Context, ...) error {
+    milestone, _ := s.milestoneRepo.FindByID(ctx, milestoneID)
+    milestoneMap, _ := s.mapRepo.FindByBizKey(ctx, milestone.MilestoneMapKey)
+    if MilestoneMapStatuses[milestoneMap.MapStatus].Terminal {
+        return ErrMapIsTerminal
+    }
+    // proceed with status update (BR-1 checks)
 }
 ```
 
@@ -763,7 +890,7 @@ func (s *Service) DeleteMilestone(ctx context.Context, milestoneID uint) error {
 
 1. 创建里程碑图：名称校验（空/超长/正常）→ 状态默认 planning → 返回正确 VO
 2. 创建里程碑：名称校验 → 日期校验 → 关联到正确的里程碑图
-3. 状态转换：MilestoneMap 5 态合法/非法转换 → Milestone 4 态合法/非法转换
+3. 状态转换：MilestoneMap 6 态合法/非法转换 → Milestone 4 态合法/非法转换
 4. 完成度计算：空里程碑=0 → 1 个 MI=MI.completion → 多个 MI=平均值
 5. 删除里程碑：软删除 + 事务内解绑关联 MI
 6. 删除里程碑图：级联软删除所有里程碑 + 解绑所有 MI

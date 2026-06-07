@@ -44,7 +44,7 @@ feature: "里程碑图"
 
 - **Mode**: new-page
 - **Target Page**: /milestones
-- **Position**: 独立页面，主导航"事项清单"和"甘特图"之间
+- **Position**: 独立页面，侧边栏"待办事项"和"每周进展"之间
 
 ### Description
 
@@ -75,7 +75,7 @@ feature: "里程碑图"
 |-------|------|--------|-------|
 | 里程碑图名称 | string | milestone_map.map_name | 卡片标题；支持名称搜索筛选 |
 | 负责人（PM） | string | milestone_map.assignee_key | 支持负责人下拉筛选 |
-| 里程碑图状态 | enum | milestone_map.map_status | 规划中/已评审/待实施/实施中/已完成；支持状态筛选 |
+| 里程碑图状态 | enum | milestone_map.map_status | 规划中/已评审/待实施/实施中/已完成/已取消；支持状态筛选 |
 | 里程碑数量 | int | 计算值 | 关联里程碑计数 |
 | 事项数量 | int | 计算值 | 所有关联 MI 计数 |
 | 整体进度 | decimal | 计算值 | 所有关联 MI completion 的平均值 |
@@ -122,6 +122,7 @@ feature: "里程碑图"
 |-------|---------|---------|
 | Loading | 骨架屏 | 进入时间线 |
 | Populated | 时间线+里程碑节点+MI 条目 | 有里程碑数据 |
+| Empty | "暂无里程碑"空状态+创建按钮 | 里程碑图内无里程碑 |
 | No Permission | 403 提示页 | 用户缺少 milestone:read 权限 |
 | Error | 错误提示+重试按钮 | API 请求失败 |
 
@@ -131,7 +132,7 @@ feature: "里程碑图"
 - 列表视图筛选：名称搜索为客户端模糊匹配；负责人下拉选项为团队成员列表；状态筛选值必须是有效状态枚举值或 `all`
 - 时间线视图筛选：名称搜索为客户端模糊匹配；状态筛选值必须是有效状态枚举值或 `all`
 - 里程碑节点不可重叠，节点间必须保持最小间距
-- 删除里程碑图：仅 `planning` 状态的里程碑图可被删除；点击详情标题区右上角的删除按钮后弹出确认弹窗，用户确认后执行删除并返回列表视图
+- 删除里程碑图：仅 `planning`/`reviewed`/`ready` 状态的里程碑图可被删除；点击详情标题区右上角的删除按钮后弹出确认弹窗，用户确认后执行删除并返回列表视图
 
 ---
 
@@ -226,7 +227,7 @@ feature: "里程碑图"
 - 状态切换：点击状态 Badge 弹出下拉菜单，仅显示合法转换选项（不可用的状态以灰色+不可点击显示）：
   - `not_started` → `in_progress` ✓ / `cancelled` ✓
   - `in_progress` → `completed` ✓ / `cancelled` ✓
-  - `completed` → `cancelled` ✓
+  - `completed` → `cancelled` ✓ / `in_progress` ✓
   - `cancelled` → 任何状态 ✗（无下拉选项）
 - 删除：仅 `not_started` 和 `cancelled` 状态的里程碑可被删除；点击删除按钮后弹出确认弹窗（非 alert），用户确认后执行删除，取消则关闭弹窗不做操作
 - 解绑：点击 MI 行右侧 × 按钮即解除绑定，显示撤销 toast
@@ -386,7 +387,7 @@ feature: "里程碑图"
 |-------|---------|---------|
 | Assigned | 里程碑名称 | MI 已绑定里程碑 |
 | Unassigned | "-" | MI 未绑定里程碑 |
-| Deleted Milestone | "--" | 里程碑已软删除 |
+| Deleted Milestone | "—" | 里程碑已软删除 |
 
 ### Validation Rules
 
@@ -450,8 +451,10 @@ feature: "里程碑图"
 |---------|------|-------------|
 | BR-1 | 里程碑（Milestone）不可切换至 `completed` 状态，除非其下所有 MI 均已处于终态。切换至 `cancelled` 时自动解绑所有关联 MI，不受 MI 状态限制 | UF-3 状态切换 |
 | BR-2 | 里程碑图（Milestone Map）不可切换至终态（`completed`），除非其下所有里程碑均已处于终态 | UF-1 信息卡状态切换 |
-| BR-3 | 处于终态的 MI 不可变更 milestone_key；处于终态（cancelled）的里程碑不可接收新 MI | UF-5 里程碑选择器 |
-| BR-4 | 删除约束：仅 `planning` 状态的里程碑图可删除（UF-1）；仅 `not_started` 和 `cancelled` 状态的里程碑可删除（UF-3） | UF-1、UF-3 删除操作 |
+| BR-3 | 处于终态的 MI 不可变更 milestone_key（包括解绑）；处于终态（cancelled）的里程碑不可接收新 MI | UF-5 里程碑选择器 |
+| BR-4 | 删除约束：仅 `planning`/`reviewed`/`ready` 状态的里程碑图可删除（UF-1）；仅 `not_started` 和 `cancelled` 状态的里程碑可删除（UF-3） | UF-1、UF-3 删除操作 |
+| BR-5 | 处于终态（completed/cancelled）的里程碑图下不可创建/修改里程碑，不可变更关联 MI 的 milestone_key；处于终态（completed/cancelled）的里程碑下不可变更关联 MI 的 milestone_key | UF-2、UF-3、UF-5 |
+| BR-6 | 里程碑图取消时，级联取消所有非终态里程碑并自动解绑所有关联 MI | UF-1 状态切换 |
 
 ---
 

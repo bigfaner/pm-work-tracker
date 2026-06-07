@@ -199,7 +199,7 @@ frontend/src/pages/
 ```
 
 - 页面标题区：h1 "里程碑图"（18px font-semibold）+ 右侧操作按钮
-- 筛选栏：按名称搜索（`Input`，客户端模糊匹配）+ 负责人下拉（`Select`，团队成员列表）+ 状态下拉（`Select`，全部/规划中/已评审/待实施/实施中/已完成），从左到右依次排列
+- 筛选栏：按名称搜索（`Input`，客户端模糊匹配）+ 负责人下拉（`Select`，团队成员列表）+ 状态下拉（`Select`，全部/规划中/已评审/待实施/实施中/已完成/已取消），从左到右依次排列
 - 卡片网格：`grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))]` gap-4
 - 每张卡片四行布局：第一行名称+`StatusBadge`；第二行里程碑数量+事项数量+负责人（`justify-content: space-between` 左右对齐）；第三行计划时间跨度（左）+"整体进度"+`ProgressBar`+百分比（右）；底部节点缩略图（状态色点+连线）
 - 虚线创建卡片：`border-dashed border-border`，居中显示"+"图标和文字
@@ -217,6 +217,7 @@ frontend/src/pages/
 | ready (待实施) | warning | 橙色 |
 | executing (实施中) | info | 蓝色 |
 | completed (已完成) | success | 绿色 |
+| cancelled (已取消) | error | 灰色删除线 |
 
 **Milestone 状态：**
 
@@ -289,7 +290,7 @@ frontend/src/pages/
 
 - 面包屑：`text-secondary`，可点击"里程碑图"返回列表页
 - **详情标题区**（卡片外部）：名称 + 可点击的 `StatusBadge`（左侧，点击弹出状态切换下拉，复用 `StatusTransitionDropdown`），编辑/删除按钮（右上角，位于卡片外部）
-  - 删除按钮仅当 mapStatus === `planning` 时显示
+  - 删除按钮仅当 mapStatus 为 `planning`/`reviewed`/`ready` 时显示
 - **基本信息卡片**：白色卡片区域（`detail-section`），包含：
   - 元数据行（`justify-content: space-between` 左右对齐）：负责人、计划开始时间、计划完成时间、整体进度
   - 分隔线（`border-top`）
@@ -362,7 +363,7 @@ x = (milestone.expectedEndDate - originDate) / totalDays * containerWidth
 | 状态筛选 | 过滤里程碑节点 | 即时筛选 |
 | 点击标题区状态 Badge | `StatusTransitionDropdown` 弹出可用转换 | 复用现有组件，不可用状态灰色不可点击 |
 | 点击标题区"编辑" | 打开编辑里程碑图弹窗（UF-7） | — |
-| 点击标题区"删除" | 打开 `ConfirmDialog` | 仅 mapStatus === `planning` 时可见 |
+| 点击标题区"删除" | 打开 `ConfirmDialog` | 仅 mapStatus 为 `planning`/`reviewed`/`ready` 时可见 |
 | 点击面包屑"里程碑图" | 返回列表页 | 路由跳转至 `/milestones` |
 | 拖拽 MI 条目到另一里程碑 | 调用 API 更新 milestone_key | 拖拽中 opacity-50 + 目标高亮；完成时显示撤销 toast（5s） |
 

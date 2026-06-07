@@ -59,7 +59,7 @@ erDiagram
 | assignee_key | BIGINT | NOT NULL | 负责人 biz_key |
 | map_name | VARCHAR(100) | NOT NULL | 里程碑图名称 |
 | map_desc | VARCHAR(2000) | NOT NULL, DEFAULT '' | 里程碑图描述 |
-| map_status | VARCHAR(20) | NOT NULL, DEFAULT 'planning' | 状态：planning/reviewed/ready/executing/completed |
+| map_status | VARCHAR(20) | NOT NULL, DEFAULT 'planning' | 状态：planning/reviewed/ready/executing/completed/cancelled |
 | plan_start_date | DATETIME | | 计划开始时间 |
 | expected_end_date | DATETIME | | 计划完成时间 |
 
@@ -84,7 +84,7 @@ erDiagram
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| milestone_key | BIGINT | DEFAULT NULL | 所属里程碑 biz_key，NULL 表示未分配 |
+| milestone_key | BIGINT | | 所属里程碑 biz_key，NULL 表示未分配 |
 
 ## Index Design
 

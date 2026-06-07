@@ -19,7 +19,7 @@ db-schema: "yes"
 ### What (Target)
 
 新增「里程碑图」（MilestoneMap）和「里程碑」（Milestone）两个层级实体：
-- MilestoneMap 作为里程碑图的容器，归属团队，拥有五态状态机（规划中/已评审/待实施/实施中/已完成）
+- MilestoneMap 作为里程碑图的容器，归属团队，拥有六态状态机（规划中/已评审/待实施/实施中/已完成/已取消）
 - Milestone 作为阶段节点，归属于某个 MilestoneMap，拥有四态状态机（not_started/in_progress/completed/cancelled）
 - 一个里程碑绑定多个 MainItem（多对一关系）
 - 独立的时间线图页面，两级视图：里程碑图列表 → 点击进入时间线
@@ -54,7 +54,7 @@ db-schema: "yes"
 - [ ] 里程碑图列表页面 + 时间线可视化页面（/milestones，含缩放）
 - [ ] 现有页面集成：事项清单增加里程碑筛选、主事项编辑增加里程碑选择器、表格视图增加里程碑列
 - [ ] 完成度自动计算（关联 MI 完成度的简单平均值）
-- [ ] 里程碑图五态状态机（规划中/已评审/待实施/实施中/已完成）
+- [ ] 里程碑图六态状态机（规划中/已评审/待实施/实施中/已完成/已取消）
 - [ ] 里程碑四态状态机（not_started/in_progress/completed/cancelled）
 - [ ] 软删除 + 事务内解绑关联 MI
 - [ ] 数据库迁移（SQLite + MySQL 双 schema）
@@ -65,6 +65,7 @@ db-schema: "yes"
 - 甘特图集成（现有甘特图不显示里程碑标记）
 - 状态变更历史记录（类似 StatusHistory）
 - 里程碑级别的进度记录（类似 ProgressRecord）
+- 里程碑自动完成（状态变更均为 PM 手动触发）
 
 ## Flow Description
 
@@ -74,8 +75,28 @@ db-schema: "yes"
 
 1. **创建**：PM 在里程碑图列表页面创建里程碑图，填写名称和描述，初始状态为"规划中"
 2. **添加里程碑**：PM 在里程碑图内创建里程碑节点，每个节点包含名称和计划完成时间
-3. **状态推进**：PM 根据项目进展推进里程碑图状态：规划中 → 已评审 → 待实施 → 实施中 → 已完成
-4. **完成**：所有里程碑均完成后，里程碑图可标记为"已完成"
+3. **状态推进**：PM 根据项目进展推进里程碑图状态：规划中 → 已评审 → 待实施 → 实施中 → 已完成；任意非终态均可取消
+4. **完成**：PM 手动标记为"已完成"（需所有里程碑处于终态）
+
+#### 状态值映射
+
+| 中文名 | 枚举值 (DB/API) | 终态 |
+|--------|-----------------|------|
+| 规划中 | `planning` | 否 |
+| 已评审 | `reviewed` | 否 |
+| 待实施 | `ready` | 否 |
+| 实施中 | `executing` | 否 |
+| 已完成 | `completed` | 是 |
+| 已取消 | `cancelled` | 是 |
+
+| 中文名 | 枚举值 (DB/API) | 终态 |
+|--------|-----------------|------|
+| 未开始 | `not_started` | 否 |
+| 进行中 | `in_progress` | 否 |
+| 已完成 | `completed` | 是 |
+| 已取消 | `cancelled` | 是 |
+
+> MainItem 终态定义：`completed` 和 `closed` 为终态（参见现有 status-machine 配置）。
 
 #### 里程碑图状态机转换规则
 
@@ -88,16 +109,22 @@ db-schema: "yes"
 | 待实施 | 已评审 | PM 手动回退 |
 | 实施中 | 已完成 | PM 手动标记 |
 | 实施中 | 待实施 | PM 手动回退 |
+| 规划中 | 已取消 | PM 手动取消 |
+| 已评审 | 已取消 | PM 手动取消 |
+| 待实施 | 已取消 | PM 手动取消 |
+| 实施中 | 已取消 | PM 手动取消 |
 | 已完成 | — | 终态，不可回退 |
+| 已取消 | — | 终态，不可恢复 |
 
 #### 里程碑（Milestone）生命周期
 
 1. **创建**：PM 在时间线页面或通过 API 创建里程碑，填写名称和计划完成时间，初始状态为 `not_started`
 2. **绑定事项**：PM 通过时间线拖拽或在主事项编辑页选择里程碑，将 MainItem 关联到里程碑
-3. **启动**：PM 手动将里程碑状态切换为 `in_progress`，或第一个关联 MI 进入 progressing 时提示切换
+3. **启动**：PM 手动将里程碑状态切换为 `in_progress`
 4. **跟踪**：系统自动计算完成度（关联 MI 完成度平均值），PM 在时间线图查看阶段进展
-5. **完成**：PM 手动标记为 `completed`，或所有关联 MI 均为 completed/closed 时可自动完成
-6. **取消**：任意状态下 PM 可将里程碑标记为 `cancelled`，关联 MI 自动解绑
+5. **完成**：PM 手动标记为 `completed`（需所有关联 MI 处于终态）
+6. **重新开启**：已完成的里程碑可由 PM 手动重新开启为 `in_progress`
+7. **取消**：任意状态下 PM 可将里程碑标记为 `cancelled`，关联 MI 自动解绑
 
 #### 里程碑-MainItem 关联流程
 
@@ -112,9 +139,10 @@ db-schema: "yes"
 |----------|----------|----------|
 | not_started | in_progress | PM 手动切换 |
 | not_started | cancelled | PM 手动取消 |
-| in_progress | completed | PM 手动标记 / 所有关联 MI 完成 |
+| in_progress | completed | PM 手动标记（需所有关联 MI 处于终态） |
 | in_progress | cancelled | PM 手动取消 |
 | completed | cancelled | PM 手动取消 |
+| completed | in_progress | PM 重新开启 |
 | cancelled | — | 终态，不可恢复 |
 
 ### Business Flow Diagram
@@ -138,13 +166,14 @@ flowchart TD
     NotStarted -->|PM 取消| Cancelled[状态: cancelled]
 
     InProgress --> BindMI
-    InProgress --> AllDone{所有关联 MI\n均为 completed?}
+    InProgress --> AllDone{PM 手动标记\n所有关联 MI 处于终态?}
     AllDone -->|是| Completed[状态: completed]
     AllDone -->|否| InProgress
     InProgress -->|PM 手动标记| Completed
     InProgress -->|PM 取消| Cancelled
 
     Completed -->|PM 取消| Cancelled
+    Completed -->|PM 重新开启| InProgress
 
     Cancelled --> UnbindAll[事务内解绑所有 MI]
     UnbindAll --> End([结束])
@@ -167,7 +196,7 @@ flowchart TD
 
 | # | Project | Module | Change Point | Updated Logic |
 |------|----------|----------|------------|----------------|
-| 1 | backend | MilestoneMap model | 新增 pmw_milestone_maps 表 | 名称、描述、五态状态、团队归属 |
+| 1 | backend | MilestoneMap model | 新增 pmw_milestone_maps 表 | 名称、描述、六态状态（planning/reviewed/ready/executing/completed/cancelled）、团队归属、负责人、计划开始/完成时间 |
 | 2 | backend | Milestone model | 新增 pmw_milestones 表 | 归属 pmw_milestone_maps，四态状态 |
 | 3 | backend | MainItem model | 新增 milestone_key 字段 | 可空 BIGINT，引用 pmw_milestones.biz_key |
 | 4 | backend | MainItem API | 更新/查询接口支持 milestone_key | create/update 接受 milestone_key，list/detail 返回该字段 |
