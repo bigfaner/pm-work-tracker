@@ -32,8 +32,8 @@ related: design/tech-design.md
 | mapName | string | Yes | 里程碑图名称，1-100 字符 |
 | mapDesc | string | No | 里程碑图描述 |
 | assigneeBizKey | int64 | Yes | 负责人 bizKey |
-| plannedStartDate | string | No | 计划开始时间 (YYYY-MM-DD) |
-| plannedEndDate | string | No | 计划完成时间 (YYYY-MM-DD) |
+| planStartDate | string | No | 计划开始时间 (YYYY-MM-DD) |
+| expectedEndDate | string | No | 计划完成时间 (YYYY-MM-DD) |
 
 #### Response (201)
 
@@ -47,8 +47,8 @@ related: design/tech-design.md
 | creatorName | string | 创建者姓名 |
 | assigneeKey | string | 负责人 bizKey |
 | assigneeName | string | 负责人姓名 |
-| plannedStartDate | string | 计划开始时间 |
-| plannedEndDate | string | 计划完成时间 |
+| planStartDate | string | 计划开始时间 |
+| expectedEndDate | string | 计划完成时间 |
 | mapStatus | string | 状态码 |
 | statusName | string | 状态显示名 |
 | milestoneCount | number | 里程碑数量（0） |
@@ -126,8 +126,8 @@ related: design/tech-design.md
 | mapName | string | No | 里程碑图名称，1-100 字符 |
 | mapDesc | string | No | 描述 |
 | assigneeBizKey | *int64 | No | 负责人 bizKey |
-| plannedStartDate | *string | No | 计划开始时间 |
-| plannedEndDate | *string | No | 计划完成时间 |
+| planStartDate | *string | No | 计划开始时间 |
+| expectedEndDate | *string | No | 计划完成时间 |
 
 所有字段可选，仅更新传入的字段。
 

@@ -23,6 +23,7 @@ description: "Convention index — keyword-to-file mapping for on-demand loading
 | api, endpoint, route, handler, service | api-boundary.md, backend-helpers.md, error-codes.md |
 | database, schema, migration, table, column | data-model.md, db-dialect.md, soft-delete.md |
 | delete, remove, soft-delete, archive | soft-delete.md, user-management.md |
+| index, unique-key, composite, naming, datetime | data-model.md |
 | config, yaml, env, config.yaml | config-management.md, config-struct.md |
 | frontend, ui, component, page, react | frontend-architecture.md, frontend-components.md, frontend-ux.md |
 | test, lint, quality, coverage | testing/index.md, testing/unit.md, lint-enforcement.md, development-workflow.md |

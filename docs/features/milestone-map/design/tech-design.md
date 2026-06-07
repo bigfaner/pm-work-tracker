@@ -144,12 +144,12 @@ type MilestoneMap struct {
 	BaseModel
 	TeamKey          int64      `gorm:"not null;index:idx_milestone_maps_team_status" json:"teamKey"`
 	CreatorKey       int64      `gorm:"not null" json:"creatorKey"`
-	AssigneeKey      int64      `gorm:"not null;index" json:"assigneeKey"`
+	AssigneeKey      int64      `gorm:"not null" json:"assigneeKey"`
 	MapName          string     `gorm:"type:varchar(100);not null" json:"mapName"`
 	MapDesc          string     `gorm:"type:varchar(2000);not null;default:''" json:"mapDesc"`
 	MapStatus        string     `gorm:"type:varchar(20);not null;default:'planning';index:idx_milestone_maps_team_status" json:"mapStatus"`
-	PlannedStartDate *time.Time `gorm:"type:date" json:"plannedStartDate"`
-	PlannedEndDate   *time.Time `gorm:"type:date" json:"plannedEndDate"`
+	PlanStartDate *time.Time `json:"planStartDate"`
+	ExpectedEndDate   *time.Time `json:"expectedEndDate"`
 }
 
 func (MilestoneMap) TableName() string { return "pmw_milestone_maps" }
@@ -166,10 +166,10 @@ import "time"
 type Milestone struct {
 	BaseModel
 	TeamKey          int64      `gorm:"not null;index:idx_milestones_team_status" json:"teamKey"`
-	MilestoneMapKey  int64      `gorm:"not null;index" json:"milestoneMapKey"`
+	MilestoneMapKey  int64      `gorm:"not null" json:"milestoneMapKey"`
 	MilestoneName    string     `gorm:"type:varchar(100);not null" json:"milestoneName"`
 	MilestoneDesc    string     `gorm:"type:varchar(2000);not null;default:''" json:"milestoneDesc"`
-	ExpectedEndDate  *time.Time `gorm:"type:date" json:"expectedEndDate"`
+	ExpectedEndDate  *time.Time `json:"expectedEndDate"`
 	MilestoneStatus  string     `gorm:"type:varchar(20);not null;default:'not_started';index:idx_milestones_team_status" json:"milestoneStatus"`
 }
 
@@ -187,7 +187,7 @@ MilestoneKey     *int64     `gorm:"index" json:"milestoneKey"`  // NEW
 
 | Model | Key Fields | Notes |
 |-------|------------|-------|
-| MilestoneMap | map_name, map_desc, map_status, team_key, creator_key, assignee_key, planned_start_date, planned_end_date | 5 态：planning→reviewed→ready→executing→completed |
+| MilestoneMap | map_name, map_desc, map_status, team_key, creator_key, assignee_key, plan_start_date, expected_end_date | 5 态：planning→reviewed→ready→executing→completed |
 | Milestone | milestone_name, milestone_desc, expected_end_date, milestone_status, milestone_map_key, team_key | 4 态：not_started→in_progress→completed/cancelled |
 | MainItem (modified) | +milestone_key | 可空，引用 pmw_milestones.biz_key |
 
@@ -381,16 +381,16 @@ type MilestoneMapCreateReq struct {
 	MapName          string `json:"mapName" binding:"required,max=100"`
 	MapDesc          string `json:"mapDesc"`
 	AssigneeBizKey   int64  `json:"assigneeBizKey" binding:"required"`
-	PlannedStartDate string `json:"plannedStartDate"`
-	PlannedEndDate   string `json:"plannedEndDate"`
+	PlanStartDate string `json:"planStartDate"`
+	ExpectedEndDate   string `json:"expectedEndDate"`
 }
 
 type MilestoneMapUpdateReq struct {
 	MapName          *string `json:"mapName"`
 	MapDesc          *string `json:"mapDesc"`
 	AssigneeBizKey   *int64  `json:"assigneeBizKey"`
-	PlannedStartDate *string `json:"plannedStartDate"`
-	PlannedEndDate   *string `json:"plannedEndDate"`
+	PlanStartDate *string `json:"planStartDate"`
+	ExpectedEndDate   *string `json:"expectedEndDate"`
 }
 
 type MilestoneMapFilter struct {
@@ -476,8 +476,8 @@ type MilestoneMapVO struct {
 	MapDesc         string  `json:"mapDesc"`
 	MapStatus       string  `json:"mapStatus"`
 	StatusName      string  `json:"statusName"`
-	PlannedStartDate *string `json:"plannedStartDate"`
-	PlannedEndDate   *string `json:"plannedEndDate"`
+	PlanStartDate *string `json:"planStartDate"`
+	ExpectedEndDate   *string `json:"expectedEndDate"`
 	MilestoneCount  int     `json:"milestoneCount"`
 	ItemCount       int     `json:"itemCount"`
 	OverallProgress float64 `json:"overallProgress"`
@@ -584,8 +584,8 @@ Handler 遵循现有模式（参考 `item_pool_handler.go`）：
 | mapName | VARCHAR(100) NOT NULL | string | string | string | 必填，1-100 字符，支持模糊搜索 |
 | mapDesc | VARCHAR(2000) | string | string | string | 可选 |
 | mapStatus | VARCHAR(20) NOT NULL DEFAULT 'planning' | string | string | string | 必须是有效状态码 |
-| plannedStartDate | DATE DEFAULT NULL | *time.Time | *string (FormatTimePtr) | string \| null | 可选，不得晚于 plannedEndDate |
-| plannedEndDate | DATE DEFAULT NULL | *time.Time | *string (FormatTimePtr) | string \| null | 可选，不得早于 plannedStartDate |
+| planStartDate | DATE DEFAULT NULL | *time.Time | *string (FormatTimePtr) | string \| null | 可选，不得晚于 expectedEndDate |
+| expectedEndDate | DATE DEFAULT NULL | *time.Time | *string (FormatTimePtr) | string \| null | 可选，不得早于 planStartDate |
 | milestoneMapKey | INTEGER NOT NULL | int64 | string (FormatID) | string | 必须指向存在的里程碑图 |
 | milestoneName | VARCHAR(100) NOT NULL | string | string | string | 必填，1-100 字符 |
 | milestoneDesc | VARCHAR(2000) | string | string | string | 可选 |

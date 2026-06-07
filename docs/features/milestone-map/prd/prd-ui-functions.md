@@ -79,8 +79,8 @@ feature: "里程碑图"
 | 里程碑数量 | int | 计算值 | 关联里程碑计数 |
 | 事项数量 | int | 计算值 | 所有关联 MI 计数 |
 | 整体进度 | decimal | 计算值 | 所有关联 MI completion 的平均值 |
-| 计划开始时间 | date | milestone_map.planned_start_date | 卡片上显示日期跨度 |
-| 计划完成时间 | date | milestone_map.planned_end_date | 卡片上显示日期跨度 |
+| 计划开始时间 | date | milestone_map.plan_start_date | 卡片上显示日期跨度 |
+| 计划完成时间 | date | milestone_map.expected_end_date | 卡片上显示日期跨度 |
 
 **时间线视图（信息卡）：**
 
@@ -89,8 +89,8 @@ feature: "里程碑图"
 | 里程碑图名称 | string | milestone_map.map_name | 信息卡标题 |
 | 状态 | enum | milestone_map.map_status | 信息卡标题旁 Badge |
 | 负责人 | string | milestone_map.assignee_key | 信息卡显示 |
-| 计划开始时间 | date | milestone_map.planned_start_date | 信息卡显示 |
-| 计划完成时间 | date | milestone_map.planned_end_date | 信息卡显示 |
+| 计划开始时间 | date | milestone_map.plan_start_date | 信息卡显示 |
+| 计划完成时间 | date | milestone_map.expected_end_date | 信息卡显示 |
 | 整体进度 | decimal | 计算值 | 信息卡显示进度条+百分比 |
 | 描述 | string | milestone_map.map_desc | 信息卡显示，最多三行溢出截断，鼠标悬浮 Tooltip 展示完整内容 |
 
@@ -421,8 +421,8 @@ feature: "里程碑图"
 |-------|------|--------|-------|
 | 名称 | string | milestone_map.map_name | 必填，1-100 字符 |
 | 负责人 | string | milestone_map.assignee_key | 必填，团队成员下拉选择 |
-| 计划开始时间 | date | milestone_map.planned_start_date | 可选，日期选择器 |
-| 计划完成时间 | date | milestone_map.planned_end_date | 可选，日期选择器 |
+| 计划开始时间 | date | milestone_map.plan_start_date | 可选，日期选择器 |
+| 计划完成时间 | date | milestone_map.expected_end_date | 可选，日期选择器 |
 | 描述 | string | milestone_map.map_desc | 可选 |
 
 ### States

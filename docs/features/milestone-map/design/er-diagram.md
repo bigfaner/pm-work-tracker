@@ -22,8 +22,8 @@ erDiagram
         VARCHAR_100 map_name
         VARCHAR_2000 map_desc
         VARCHAR_20 map_status
-        DATE planned_start_date
-        DATE planned_end_date
+        DATETIME plan_start_date
+        DATETIME expected_end_date
     }
 
     pmw_milestones {
@@ -33,7 +33,7 @@ erDiagram
         BIGINT milestone_map_key FK
         VARCHAR_100 milestone_name
         VARCHAR_2000 milestone_desc
-        DATE expected_end_date
+        DATETIME expected_end_date
         VARCHAR_20 milestone_status
     }
 
@@ -60,8 +60,8 @@ erDiagram
 | map_name | VARCHAR(100) | NOT NULL | 里程碑图名称 |
 | map_desc | VARCHAR(2000) | NOT NULL, DEFAULT '' | 里程碑图描述 |
 | map_status | VARCHAR(20) | NOT NULL, DEFAULT 'planning' | 状态：planning/reviewed/ready/executing/completed |
-| planned_start_date | DATE | DEFAULT NULL | 计划开始时间 |
-| planned_end_date | DATE | DEFAULT NULL | 计划结束时间 |
+| plan_start_date | DATETIME | | 计划开始时间 |
+| expected_end_date | DATETIME | | 计划完成时间 |
 
 ### pmw_milestones [NEW]
 
@@ -77,7 +77,7 @@ erDiagram
 | milestone_map_key | BIGINT | NOT NULL | 所属里程碑图 biz_key |
 | milestone_name | VARCHAR(100) | NOT NULL | 里程碑名称 |
 | milestone_desc | VARCHAR(2000) | NOT NULL, DEFAULT '' | 里程碑描述 |
-| expected_end_date | DATE | DEFAULT NULL | 计划完成时间 |
+| expected_end_date | DATETIME | | 计划完成时间 |
 | milestone_status | VARCHAR(20) | NOT NULL, DEFAULT 'not_started' | 状态：not_started/in_progress/completed/cancelled |
 
 ### pmw_main_items [MODIFIED]
@@ -92,8 +92,8 @@ erDiagram
 
 | Index Name | Columns | Type | Description |
 |------------|---------|------|-------------|
-| uk_milestone_maps_biz_key | biz_key | UNIQUE | 业务键唯一查找 |
-| idx_milestone_maps_assignee_key | assignee_key | B-tree | 按负责人查找 |
+| uk_biz_key | biz_key | UNIQUE | 业务键唯一查找 |
+| uk_milestone_maps_team_name_deleted | team_key, map_name, deleted_flag, deleted_time | UNIQUE | 团队内名称唯一（支持重复软删） |
 | idx_milestone_maps_team_status | team_key, map_status | B-tree | 按团队+状态筛选 |
 | idx_milestone_maps_deleted_flag | deleted_flag | B-tree | 软删除过滤 |
 
@@ -101,9 +101,8 @@ erDiagram
 
 | Index Name | Columns | Type | Description |
 |------------|---------|------|-------------|
-| uk_milestones_biz_key | biz_key | UNIQUE | 业务键唯一查找 |
-| idx_milestones_milestone_map_key | milestone_map_key | B-tree | 按里程碑图查找里程碑 |
-| idx_milestones_team_key | team_key | B-tree | 按团队查找（UF-4/5/6） |
+| uk_biz_key | biz_key | UNIQUE | 业务键唯一查找 |
+| uk_milestones_map_name_deleted | milestone_map_key, milestone_name, deleted_flag, deleted_time | UNIQUE | 图内名称唯一（支持重复软删） |
 | idx_milestones_team_status | team_key, milestone_status | B-tree | 按团队+状态筛选 |
 | idx_milestones_deleted_flag | deleted_flag | B-tree | 软删除过滤 |
 

@@ -21,11 +21,11 @@ CREATE TABLE IF NOT EXISTS pmw_milestone_maps (
     map_name        VARCHAR(100)    NOT NULL                      COMMENT '里程碑图名称',
     map_desc        VARCHAR(2000)   NOT NULL DEFAULT ''           COMMENT '里程碑图描述',
     map_status      VARCHAR(20)     NOT NULL DEFAULT 'planning'   COMMENT '状态：planning=规划中，reviewed=已评审，ready=待实施，executing=实施中，completed=已完成',
-    planned_start_date DATE         DEFAULT NULL                  COMMENT '计划开始时间',
-    planned_end_date   DATE         DEFAULT NULL                  COMMENT '计划结束时间',
+    plan_start_date DATETIME                                   COMMENT '计划开始时间',
+    expected_end_date   DATETIME                                   COMMENT '计划完成时间',
     PRIMARY KEY (id),
-    UNIQUE KEY uk_milestone_maps_biz_key (biz_key),
-    KEY idx_milestone_maps_assignee_key (assignee_key),
+    UNIQUE KEY uk_biz_key (biz_key),
+    UNIQUE KEY uk_milestone_maps_team_name_deleted (team_key, map_name, deleted_flag, deleted_time),
     KEY idx_milestone_maps_team_status (team_key, map_status),
     KEY idx_milestone_maps_deleted_flag (deleted_flag)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='里程碑图表';
@@ -42,12 +42,11 @@ CREATE TABLE IF NOT EXISTS pmw_milestones (
     milestone_map_key       BIGINT          NOT NULL                      COMMENT '所属里程碑图 biz_key',
     milestone_name          VARCHAR(100)    NOT NULL                      COMMENT '里程碑名称',
     milestone_desc          VARCHAR(2000)   NOT NULL DEFAULT ''           COMMENT '里程碑描述',
-    expected_end_date       DATE                                          COMMENT '计划完成时间',
+    expected_end_date       DATETIME                                      COMMENT '计划完成时间',
     milestone_status        VARCHAR(20)     NOT NULL DEFAULT 'not_started' COMMENT '状态：not_started=未开始，in_progress=进行中，completed=已完成，cancelled=已取消',
     PRIMARY KEY (id),
-    UNIQUE KEY uk_milestones_biz_key (biz_key),
-    KEY idx_milestones_milestone_map_key (milestone_map_key),
-    KEY idx_milestones_team_key (team_key),
+    UNIQUE KEY uk_biz_key (biz_key),
+    UNIQUE KEY uk_milestones_map_name_deleted (milestone_map_key, milestone_name, deleted_flag, deleted_time),
     KEY idx_milestones_team_status (team_key, milestone_status),
     KEY idx_milestones_deleted_flag (deleted_flag)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='里程碑表';
@@ -75,11 +74,11 @@ CREATE TABLE IF NOT EXISTS pmw_milestone_maps (
     map_name        VARCHAR(100)  NOT NULL,
     map_desc        VARCHAR(2000) NOT NULL DEFAULT '',
     map_status      VARCHAR(20)   NOT NULL DEFAULT 'planning',
-    planned_start_date DATE      DEFAULT NULL,
-    planned_end_date   DATE      DEFAULT NULL
+    plan_start_date DATETIME,
+    expected_end_date   DATETIME
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uk_milestone_maps_biz_key ON pmw_milestone_maps(biz_key);
-CREATE INDEX IF NOT EXISTS idx_milestone_maps_assignee_key ON pmw_milestone_maps(assignee_key);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_milestone_maps_team_name_deleted ON pmw_milestone_maps(team_key, map_name, deleted_flag, deleted_time);
 CREATE INDEX IF NOT EXISTS idx_milestone_maps_team_status ON pmw_milestone_maps(team_key, map_status);
 CREATE INDEX IF NOT EXISTS idx_milestone_maps_deleted_flag ON pmw_milestone_maps(deleted_flag);
 
@@ -95,12 +94,11 @@ CREATE TABLE IF NOT EXISTS pmw_milestones (
     milestone_map_key       INTEGER       NOT NULL,
     milestone_name          VARCHAR(100)  NOT NULL,
     milestone_desc          VARCHAR(2000) NOT NULL DEFAULT '',
-    expected_end_date       DATE,
+    expected_end_date       DATETIME,
     milestone_status        VARCHAR(20)   NOT NULL DEFAULT 'not_started'
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uk_milestones_biz_key ON pmw_milestones(biz_key);
-CREATE INDEX IF NOT EXISTS idx_milestones_milestone_map_key ON pmw_milestones(milestone_map_key);
-CREATE INDEX IF NOT EXISTS idx_milestones_team_key ON pmw_milestones(team_key);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_milestones_map_name_deleted ON pmw_milestones(milestone_map_key, milestone_name, deleted_flag, deleted_time);
 CREATE INDEX IF NOT EXISTS idx_milestones_team_status ON pmw_milestones(team_key, milestone_status);
 CREATE INDEX IF NOT EXISTS idx_milestones_deleted_flag ON pmw_milestones(deleted_flag);
 

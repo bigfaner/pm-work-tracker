@@ -43,6 +43,7 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | gotcha-no-subagent-for-sequential-work.md | Subagents for stateful sequential work — lost auth/context |
 | gotcha-pipe-tail-buffers-test-output.md | Playwright output buffering — appears hung for 50+ min |
 | gotcha-schema-alignment-cascading-test-failures.md | Schema changes cascade to unrelated test files |
+| gotcha-schema-design-without-reference.md | Designing new table DDL without reading existing schema conventions |
 | gotcha-subagent-partial-commits.md | Subagents leave 75+ files uncommitted after /run-tasks |
 | gotcha-interface-blast-radius-dispatcher.md | Adding methods to shared interfaces — large blast radius appears as "stuck" |
 | gotcha-mock-repo-skips-whitelist.md | Mocked repo Update skips field whitelist — 422 in prod, green in tests |
@@ -84,7 +85,7 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 
 | Task | Lessons |
 |------|---------|
-| New entity / schema design | arch-bizkey-vs-internal-id, gotcha-bizkey-vs-id-confusion, key-field-design-analysis |
+| New entity / schema design | arch-bizkey-vs-internal-id, gotcha-bizkey-vs-id-confusion, key-field-design-analysis, gotcha-schema-design-without-reference |
 | Task breakdown | arch-ui-integration-gap, pattern-phase-gate-tasks, gotcha-tech-design-decision-archiving |
 | E2E test generation | gotcha-e2e-script-generation, debug-e2e-zero-tests, debug-e2e-beforeall-cascade |
 | E2E test graduation | arch-e2e-graduation-staging, tool-e2e-graduation-structure |

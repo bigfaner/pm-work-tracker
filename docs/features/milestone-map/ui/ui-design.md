@@ -87,10 +87,10 @@ const businessItems = [
 
 ```ts
 // 主要函数
-createMilestoneMap(data: { mapName: string; mapDesc?: string; assigneeBizKey: string; plannedStartDate?: string; plannedEndDate?: string })
+createMilestoneMap(data: { mapName: string; mapDesc?: string; assigneeBizKey: string; planStartDate?: string; expectedEndDate?: string })
 listMilestoneMaps(params?: { name?: string; assigneeKey?: string; status?: string; page?: number; pageSize?: number })
 getMilestoneMap(mapId: string)
-updateMilestoneMap(mapId: string, data: { mapName?: string; mapDesc?: string; assigneeBizKey: string; plannedStartDate?: string; plannedEndDate?: string })
+updateMilestoneMap(mapId: string, data: { mapName?: string; mapDesc?: string; assigneeBizKey: string; planStartDate?: string; expectedEndDate?: string })
 deleteMilestoneMap(mapId: string)
 changeMilestoneMapStatus(mapId: string, status: string)
 getMilestoneMapAvailableTransitions(mapId: string)
@@ -124,8 +124,8 @@ interface MilestoneMap {
   mapDesc: string
   mapStatus: string
   statusName: string
-  plannedStartDate: string | null
-  plannedEndDate: string | null
+  planStartDate: string | null
+  expectedEndDate: string | null
   milestoneCount: number
   itemCount: number
   overallProgress: number

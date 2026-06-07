@@ -205,3 +205,67 @@ MainItem uses a `Code` field (e.g. `"MI-0001"`) as a human-readable business key
 _Source: feature/pm-work-tracker_
 
 Every repository method querying team-scoped data accepts `teamID uint` as a required parameter and applies `.Where("team_id = ?", teamID)` unconditionally. The `teamID` always comes from middleware-injected context, never from user-supplied request body or query params. Enforced by `TeamScopeMiddleware`.
+
+## DM-012: Index Naming and Strategy
+
+**Rule**: Follow established index naming and structure conventions from existing tables.
+
+**Naming**:
+
+| Index Type | MySQL Pattern | SQLite Pattern | Example |
+|------------|---------------|----------------|---------|
+| BizKey unique | `uk_biz_key` | `uk_<table>_biz_key` | `uk_biz_key (biz_key)` |
+| Business unique with soft-delete | `uk_<desc>_deleted` | `uk_<table>_<desc>_deleted` | `uk_teams_code_deleted (team_code, deleted_flag, deleted_time)` |
+| Non-unique composite | `idx_<table>_<desc>` | `idx_<table>_<desc>` | `idx_main_items_team_status (team_key, item_status)` |
+| Deleted flag filter | `idx_<table>_deleted_flag` | `idx_<table>_deleted_flag` | `idx_main_items_deleted_flag (deleted_flag)` |
+
+**Why**: MySQL uses shorter UK names (`uk_biz_key`) since indexes are table-scoped in DDL. SQLite CREATE INDEX requires explicit table name, so the `<table>_` prefix avoids ambiguity across tables.
+
+**Strategy — prefer composite over standalone indexes**:
+
+1. Use composite indexes `(col_a, col_b)` where possible. A composite index covers queries on its leftmost prefix, so `idx_t_status (team_key, status)` also serves `WHERE team_key = ?` queries.
+2. Business unique indexes with `(deleted_flag, deleted_time)` trailing columns double as composite indexes for their leading columns. Example: `uk_milestone_maps_team_name_deleted (team_key, map_name, deleted_flag, deleted_time)` covers `WHERE team_key = ? AND map_name = ?` lookups.
+3. Keep a standalone `idx_<table>_deleted_flag (deleted_flag)` for soft-delete filtering.
+4. Do NOT create standalone single-column indexes when a composite index already covers that column as its leading prefix.
+
+**Source**: /learn entry 2026-06-07 (milestone-map schema alignment)
+
+## DM-013: Date Column Type
+
+**Rule**: All date/time columns use `DATETIME` type, not `DATE`. Do not specify `DEFAULT NULL` on nullable columns.
+
+**Why**: Existing tables use `DATETIME` consistently (e.g., `plan_start_date DATETIME`, `expected_end_date DATETIME`). Mixing `DATE` and `DATETIME` across tables creates inconsistency. MySQL nullable columns default to NULL implicitly — `DEFAULT NULL` is redundant.
+
+**Example**:
+```sql
+-- Correct
+plan_start_date DATETIME COMMENT '计划开始日期'
+expected_end_date  DATETIME COMMENT '预计结束日期'
+
+-- Wrong
+planned_start_date DATE DEFAULT NULL
+planned_end_date  DATE
+```
+
+**Source**: /learn entry 2026-06-07 (milestone-map schema alignment)
+
+## DM-014: Schema Design Reference-First
+
+**Rule**: Before writing any new table DDL, read the existing schema files to apply established conventions.
+
+**Required reading**:
+1. `backend/migrations/MySql-schema.sql`
+2. `backend/migrations/SQLite-schema.sql`
+
+**Checklist** (derive from existing tables, not from memory):
+- UK naming: `uk_biz_key` (MySQL) / `uk_<table>_biz_key` (SQLite)
+- Business unique: `uk_<desc>_deleted (..., deleted_flag, deleted_time)` pattern
+- Date columns: `DATETIME`, no `DEFAULT NULL`
+- Index naming: `idx_<table>_<desc>`
+- Composite indexes over standalone where possible
+- Nullable FK columns: type only, no `DEFAULT NULL`
+- Every column has COMMENT (MySQL)
+
+**Why**: Design-time schemas in `docs/features/<slug>/design/schema.sql` are often written without referencing runtime migrations, leading to naming and type drift. The reference-first rule prevents cascading rework when the schema reaches implementation.
+
+**Source**: /learn entry 2026-06-07 (milestone-map schema alignment)
