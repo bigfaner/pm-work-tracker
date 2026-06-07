@@ -154,6 +154,7 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 		Role:         NewRoleHandler(&StubRoleSvc{}),
 		Permission:   NewPermissionHandler(&StubRoleSvc{}),
 		MilestoneMap: NewMilestoneMapHandler(&StubMilestoneMapSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMilestone{}, &StubRouterRepoMainItem{}),
+		Milestone:    NewMilestoneHandler(&StubMilestoneSvc{}, &StubRouterRepoMainItem{}),
 	}, db
 }
 

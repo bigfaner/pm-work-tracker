@@ -247,3 +247,24 @@ func TestNewMilestoneMapHandler_SucceedsWithValidDeps(t *testing.T) {
 		t.Fatal("expected non-nil handler")
 	}
 }
+
+// ========== MilestoneHandler ==========
+
+func TestNewMilestoneHandler_PanicsOnNilService(t *testing.T) {
+	assertPanicMessage(t, "MilestoneHandler/nil-svc", func() {
+		NewMilestoneHandler(nil, &StubRouterRepoMainItem{})
+	}, "milestone_handler: milestoneService must not be nil")
+}
+
+func TestNewMilestoneHandler_PanicsOnNilMainItemRepo(t *testing.T) {
+	assertPanicMessage(t, "MilestoneHandler/nil-mainItemRepo", func() {
+		NewMilestoneHandler(&StubMilestoneSvc{}, nil)
+	}, "milestone_handler: mainItemRepo must not be nil")
+}
+
+func TestNewMilestoneHandler_SucceedsWithValidDeps(t *testing.T) {
+	h := NewMilestoneHandler(&StubMilestoneSvc{}, &StubRouterRepoMainItem{})
+	if h == nil {
+		t.Fatal("expected non-nil handler")
+	}
+}

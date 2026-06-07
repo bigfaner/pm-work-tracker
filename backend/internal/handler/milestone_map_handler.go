@@ -148,6 +148,8 @@ func (h *MilestoneMapHandler) Update(c *gin.Context) {
 }
 
 // Delete handles DELETE /api/v1/teams/:teamId/milestone-maps/:mapId
+//
+//nolint:dupl // handler pattern is structurally identical to MilestoneHandler.Delete by convention
 func (h *MilestoneMapHandler) Delete(c *gin.Context) {
 	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "mapId")
 	if !ok {
@@ -202,6 +204,8 @@ func (h *MilestoneMapHandler) ChangeStatus(c *gin.Context) {
 }
 
 // AvailableTransitions handles GET /api/v1/teams/:teamId/milestone-maps/:mapId/available-transitions
+//
+//nolint:dupl // handler pattern is structurally identical to MilestoneHandler.AvailableTransitions by convention
 func (h *MilestoneMapHandler) AvailableTransitions(c *gin.Context) {
 	bizKey, ok := pkgHandler.ParseBizKeyParam(c, "mapId")
 	if !ok {

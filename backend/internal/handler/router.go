@@ -34,6 +34,7 @@ type Dependencies struct {
 	Role         *RoleHandler
 	Permission   *PermissionHandler
 	MilestoneMap *MilestoneMapHandler
+	Milestone    *MilestoneHandler
 }
 
 // perm is a shorthand for creating a RequirePermission middleware with the deps' RoleRepo.
@@ -157,6 +158,18 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 	teamsGroup.PUT("/milestone-maps/:mapId/status", deps.perm("milestone:update"), deps.MilestoneMap.ChangeStatus)
 	teamsGroup.GET("/milestone-maps/:mapId/available-transitions", deps.perm("milestone:read"), deps.MilestoneMap.AvailableTransitions)
 	teamsGroup.DELETE("/milestone-maps/:mapId", deps.perm("milestone:delete"), deps.MilestoneMap.Delete)
+
+	// Milestones (nested under milestone-map)
+	teamsGroup.POST("/milestone-maps/:mapId/milestones", deps.perm("milestone:create"), deps.Milestone.Create)
+	teamsGroup.GET("/milestone-maps/:mapId/milestones", deps.perm("milestone:read"), deps.Milestone.ListByMap)
+
+	// Milestones (direct access)
+	teamsGroup.GET("/milestones", deps.perm("milestone:read"), deps.Milestone.ListByTeam)
+	teamsGroup.GET("/milestones/:milestoneId", deps.perm("milestone:read"), deps.Milestone.Get)
+	teamsGroup.PUT("/milestones/:milestoneId", deps.perm("milestone:update"), deps.Milestone.Update)
+	teamsGroup.PUT("/milestones/:milestoneId/status", deps.perm("milestone:update"), deps.Milestone.ChangeStatus)
+	teamsGroup.GET("/milestones/:milestoneId/available-transitions", deps.perm("milestone:read"), deps.Milestone.AvailableTransitions)
+	teamsGroup.DELETE("/milestones/:milestoneId", deps.perm("milestone:delete"), deps.Milestone.Delete)
 
 	// Views
 	teamsGroup.GET("/views/weekly", deps.perm("view:weekly"), deps.View.Weekly)

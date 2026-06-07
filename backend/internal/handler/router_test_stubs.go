@@ -666,3 +666,53 @@ func (s *StubMilestoneMapSvc) AvailableTransitions(_ context.Context, _ int64, _
 }
 
 var _ service.MilestoneMapService = (*StubMilestoneMapSvc)(nil)
+
+// StubMilestoneSvc is a stub implementation of service.MilestoneService for testing.
+type StubMilestoneSvc struct{}
+
+// Create is a stub for service.MilestoneService.Create.
+func (s *StubMilestoneSvc) Create(_ context.Context, _, _ int64, _ dto.MilestoneCreateReq) (*model.Milestone, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// Update is a stub for service.MilestoneService.Update.
+func (s *StubMilestoneSvc) Update(_ context.Context, _ int64, _ uint, _ dto.MilestoneUpdateReq) error {
+	return fmt.Errorf("stub: not implemented")
+}
+
+// Get is a stub for service.MilestoneService.Get.
+func (s *StubMilestoneSvc) Get(_ context.Context, _ uint) (*model.Milestone, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// GetByBizKey is a stub for service.MilestoneService.GetByBizKey.
+func (s *StubMilestoneSvc) GetByBizKey(_ context.Context, _ int64) (*model.Milestone, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// ListByMap is a stub for service.MilestoneService.ListByMap.
+func (s *StubMilestoneSvc) ListByMap(_ context.Context, _ int64) ([]model.Milestone, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// ListByTeam is a stub for service.MilestoneService.ListByTeam.
+func (s *StubMilestoneSvc) ListByTeam(_ context.Context, _ int64, _ dto.MilestoneTeamFilter) ([]model.Milestone, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// Delete is a stub for service.MilestoneService.Delete.
+func (s *StubMilestoneSvc) Delete(_ context.Context, _ int64, _ uint) error {
+	return fmt.Errorf("stub: not implemented")
+}
+
+// ChangeStatus is a stub for service.MilestoneService.ChangeStatus.
+func (s *StubMilestoneSvc) ChangeStatus(_ context.Context, _ int64, _ uint, _ string) (*model.Milestone, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// AvailableTransitions is a stub for service.MilestoneService.AvailableTransitions.
+func (s *StubMilestoneSvc) AvailableTransitions(_ context.Context, _ int64, _ uint) ([]string, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+var _ service.MilestoneService = (*StubMilestoneSvc)(nil)
