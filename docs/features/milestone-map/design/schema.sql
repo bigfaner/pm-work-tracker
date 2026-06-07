@@ -26,8 +26,7 @@ CREATE TABLE IF NOT EXISTS pmw_milestone_maps (
     PRIMARY KEY (id),
     UNIQUE KEY uk_biz_key (biz_key),
     UNIQUE KEY uk_milestone_maps_team_name_deleted (team_key, map_name, deleted_flag, deleted_time),
-    KEY idx_milestone_maps_team_status (team_key, map_status),
-    KEY idx_milestone_maps_deleted_flag (deleted_flag)
+    KEY idx_milestone_maps_team_status (team_key, map_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='里程碑图表';
 
 -- [NEW] pmw_milestones
@@ -47,8 +46,7 @@ CREATE TABLE IF NOT EXISTS pmw_milestones (
     PRIMARY KEY (id),
     UNIQUE KEY uk_biz_key (biz_key),
     UNIQUE KEY uk_milestones_map_name_deleted (milestone_map_key, milestone_name, deleted_flag, deleted_time),
-    KEY idx_milestones_team_status (team_key, milestone_status),
-    KEY idx_milestones_deleted_flag (deleted_flag)
+    KEY idx_milestones_team_status (team_key, milestone_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='里程碑表';
 
 -- [MODIFIED] pmw_main_items: add milestone_key column
@@ -80,7 +78,6 @@ CREATE TABLE IF NOT EXISTS pmw_milestone_maps (
 CREATE UNIQUE INDEX IF NOT EXISTS uk_milestone_maps_biz_key ON pmw_milestone_maps(biz_key);
 CREATE UNIQUE INDEX IF NOT EXISTS uk_milestone_maps_team_name_deleted ON pmw_milestone_maps(team_key, map_name, deleted_flag, deleted_time);
 CREATE INDEX IF NOT EXISTS idx_milestone_maps_team_status ON pmw_milestone_maps(team_key, map_status);
-CREATE INDEX IF NOT EXISTS idx_milestone_maps_deleted_flag ON pmw_milestone_maps(deleted_flag);
 
 -- [NEW] pmw_milestones
 CREATE TABLE IF NOT EXISTS pmw_milestones (
@@ -100,7 +97,6 @@ CREATE TABLE IF NOT EXISTS pmw_milestones (
 CREATE UNIQUE INDEX IF NOT EXISTS uk_milestones_biz_key ON pmw_milestones(biz_key);
 CREATE UNIQUE INDEX IF NOT EXISTS uk_milestones_map_name_deleted ON pmw_milestones(milestone_map_key, milestone_name, deleted_flag, deleted_time);
 CREATE INDEX IF NOT EXISTS idx_milestones_team_status ON pmw_milestones(team_key, milestone_status);
-CREATE INDEX IF NOT EXISTS idx_milestones_deleted_flag ON pmw_milestones(deleted_flag);
 
 -- [MODIFIED] pmw_main_items: add milestone_key column
 -- ALTER TABLE pmw_main_items ADD COLUMN milestone_key INTEGER DEFAULT NULL;

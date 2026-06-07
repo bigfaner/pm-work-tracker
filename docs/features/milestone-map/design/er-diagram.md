@@ -95,7 +95,6 @@ erDiagram
 | uk_biz_key | biz_key | UNIQUE | 业务键唯一查找 |
 | uk_milestone_maps_team_name_deleted | team_key, map_name, deleted_flag, deleted_time | UNIQUE | 团队内名称唯一（支持重复软删） |
 | idx_milestone_maps_team_status | team_key, map_status | B-tree | 按团队+状态筛选 |
-| idx_milestone_maps_deleted_flag | deleted_flag | B-tree | 软删除过滤 |
 
 ### pmw_milestones
 
@@ -104,7 +103,6 @@ erDiagram
 | uk_biz_key | biz_key | UNIQUE | 业务键唯一查找 |
 | uk_milestones_map_name_deleted | milestone_map_key, milestone_name, deleted_flag, deleted_time | UNIQUE | 图内名称唯一（支持重复软删） |
 | idx_milestones_team_status | team_key, milestone_status | B-tree | 按团队+状态筛选 |
-| idx_milestones_deleted_flag | deleted_flag | B-tree | 软删除过滤 |
 
 ### pmw_main_items (additions)
 

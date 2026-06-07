@@ -217,7 +217,6 @@ Every repository method querying team-scoped data accepts `teamID uint` as a req
 | BizKey unique | `uk_biz_key` | `uk_<table>_biz_key` | `uk_biz_key (biz_key)` |
 | Business unique with soft-delete | `uk_<desc>_deleted` | `uk_<table>_<desc>_deleted` | `uk_teams_code_deleted (team_code, deleted_flag, deleted_time)` |
 | Non-unique composite | `idx_<table>_<desc>` | `idx_<table>_<desc>` | `idx_main_items_team_status (team_key, item_status)` |
-| Deleted flag filter | `idx_<table>_deleted_flag` | `idx_<table>_deleted_flag` | `idx_main_items_deleted_flag (deleted_flag)` |
 
 **Why**: MySQL uses shorter UK names (`uk_biz_key`) since indexes are table-scoped in DDL. SQLite CREATE INDEX requires explicit table name, so the `<table>_` prefix avoids ambiguity across tables.
 
@@ -225,7 +224,7 @@ Every repository method querying team-scoped data accepts `teamID uint` as a req
 
 1. Use composite indexes `(col_a, col_b)` where possible. A composite index covers queries on its leftmost prefix, so `idx_t_status (team_key, status)` also serves `WHERE team_key = ?` queries.
 2. Business unique indexes with `(deleted_flag, deleted_time)` trailing columns double as composite indexes for their leading columns. Example: `uk_milestone_maps_team_name_deleted (team_key, map_name, deleted_flag, deleted_time)` covers `WHERE team_key = ? AND map_name = ?` lookups.
-3. Keep a standalone `idx_<table>_deleted_flag (deleted_flag)` for soft-delete filtering.
+3. Do NOT create standalone `idx_<table>_deleted_flag (deleted_flag)` — low cardinality (0/1), MySQL 优化器通常跳过；所有实际查询已通过 UK 前缀或复合索引覆盖，deleted_flag 作为附加过滤条件即可。
 4. Do NOT create standalone single-column indexes when a composite index already covers that column as its leading prefix.
 
 **Source**: /learn entry 2026-06-07 (milestone-map schema alignment)
