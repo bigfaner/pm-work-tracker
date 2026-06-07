@@ -407,7 +407,7 @@
         "3.4",
         "2.gate"
       ],
-      "status": "pending",
+      "status": "blocked",
       "file": "3.6-frontend-timeline.md",
       "record": "records/3.6-frontend-timeline.md",
       "surface-key": "frontend",
