@@ -335,7 +335,7 @@
         "3.1",
         "2.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.2-frontend-map-dialog.md",
       "record": "records/3.2-frontend-map-dialog.md",
       "surface-key": "frontend",
@@ -352,7 +352,7 @@
         "3.1",
         "2.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.3-frontend-dialog.md",
       "record": "records/3.3-frontend-dialog.md",
       "surface-key": "frontend",
@@ -370,7 +370,7 @@
         "3.3",
         "2.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "3.4-frontend-detail-panel.md",
       "record": "records/3.4-frontend-detail-panel.md",
       "surface-key": "frontend",

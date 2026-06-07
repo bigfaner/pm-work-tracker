@@ -97,6 +97,8 @@ export interface MainItem {
   itemStatus: string
   statusName?: string
   completion: number
+  milestoneKey?: string | null
+  milestoneName?: string
   createTime: string
   dbUpdateTime: string
   matchType?: 'direct' | 'indirect'
@@ -244,6 +246,7 @@ export interface CreateMainItemReq {
   assigneeKey: string
   startDate: string
   expectedEndDate: string
+  milestoneKey?: string
 }
 
 export interface UpdateMainItemReq {
@@ -254,6 +257,7 @@ export interface UpdateMainItemReq {
   startDate?: string | null
   expectedEndDate?: string | null
   actualEndDate?: string | null
+  milestoneKey?: string | null
 }
 
 export interface MainItemFilter {
@@ -261,6 +265,7 @@ export interface MainItemFilter {
   status?: string | string[]
   assigneeKey?: string
   archived?: boolean
+  milestoneKey?: string
   page?: number
   pageSize?: number
 }
