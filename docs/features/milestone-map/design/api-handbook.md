@@ -141,6 +141,7 @@ related: design/tech-design.md
 |--------|------|-------------|
 | 400 | INVALID_PARAMS | 名称校验失败 |
 | 404 | NOT_FOUND | 里程碑图不存在 |
+| 409 | CONFLICT | 数据已被其他人修改，请刷新后重试 |
 
 ---
 
@@ -187,6 +188,7 @@ related: design/tech-design.md
 
 | Status | Code | Description |
 |--------|------|-------------|
+| 400 | BAD_REQUEST | 里程碑图下存在未完成的里程碑，无法标记为已完成（BR-2） |
 | 422 | INVALID_STATUS | 无效的状态转换 |
 
 ---
@@ -372,7 +374,13 @@ Milestone 详情，含关联 MI 列表摘要。
 
 更新后的 Milestone。
 
-**特殊行为**: 切换为 `cancelled` 时，自动解绑所有关联 MI。
+#### Error Responses
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | BAD_REQUEST | 里程碑下存在未完成的事项，无法标记为已完成（BR-1） |
+| - | Side Effect | 切换至 cancelled 时，自动解绑所有关联 MI |
+| 422 | INVALID_STATUS | 无效的状态转换 |
 
 ---
 

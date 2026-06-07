@@ -169,7 +169,7 @@ flowchart TD
 |------|----------|----------|------------|----------------|
 | 1 | backend | MilestoneMap model | 新增 pmw_milestone_maps 表 | 名称、描述、五态状态、团队归属 |
 | 2 | backend | Milestone model | 新增 pmw_milestones 表 | 归属 pmw_milestone_maps，四态状态 |
-| 3 | backend | MainItem model | 新增 milestone_key 字段 | 可空字符串，引用 pmw_milestones.biz_key |
+| 3 | backend | MainItem model | 新增 milestone_key 字段 | 可空 BIGINT，引用 pmw_milestones.biz_key |
 | 4 | backend | MainItem API | 更新/查询接口支持 milestone_key | create/update 接受 milestone_key，list/detail 返回该字段 |
 | 5 | backend | RBAC | 新增 4 个权限码 | milestone:create/update/delete/read |
 | 6 | backend | database | SQLite + MySQL schema | 新增 pmw_milestone_maps 和 pmw_milestones 表，pmw_main_items 加列 |

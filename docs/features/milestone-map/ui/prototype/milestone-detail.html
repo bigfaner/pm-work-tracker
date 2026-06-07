@@ -544,11 +544,11 @@
             <span class="detail-meta-value">张三</span>
           </div>
           <div class="detail-meta-item">
-            <span class="detail-meta-label">计划开始</span>
+            <span class="detail-meta-label">计划开始时间</span>
             <span class="detail-meta-value">2026-05-01</span>
           </div>
           <div class="detail-meta-item">
-            <span class="detail-meta-label">计划完成</span>
+            <span class="detail-meta-label">计划完成时间</span>
             <span class="detail-meta-value">2026-12-31</span>
           </div>
           <div class="detail-meta-item">
@@ -577,6 +577,8 @@
               <button class="stf-tag stf-tag-cancelled" onclick="toggleTag(this)">已取消</button>
             </div>
           </div>
+          <button class="btn btn-secondary btn-sm">重置</button>
+          <button class="btn btn-secondary btn-sm" title="刷新">&#8635; 刷新</button>
         </div>
         <button class="btn btn-primary btn-sm" onclick="openModal('create-modal')">+ 创建里程碑</button>
       </div>
@@ -687,18 +689,10 @@
       <button class="panel-close" onclick="closePanel('detail-panel','panel-overlay')">&times;</button>
     </div>
     <div class="panel-body">
-      <!-- Description -->
-      <div style="margin-bottom: 16px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">
-        <div style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 4px;">描述</div>
-        <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">完成产品 MVP 版本的核心功能开发与验证</div>
-      </div>
-      <!-- Meta: date + status + edit -->
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-        <div>
-          <div style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 2px;">计划完成时间</div>
-          <div style="font-size: 14px; font-weight: 500; color: var(--text-primary);">2026-06-30</div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 12px;">
+      <!-- Description row 1: label + status + edit -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+        <span style="font-size: 12px; color: var(--text-tertiary);">描述</span>
+        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
           <div class="dropdown" style="display:inline-block;">
             <button class="dropdown-trigger" style="padding:0; border:none; background:none; cursor:pointer;" onclick="toggleDropdown('milestone-status-dd')">
               <span class="badge badge-accent" style="cursor:pointer;">进行中 ▾</span>
@@ -713,11 +707,18 @@
           <button class="btn btn-secondary btn-sm" onclick="openModal('edit-modal')">编辑</button>
         </div>
       </div>
-      <!-- Completion -->
+      <!-- Description row 2: text (full width) -->
+      <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical;" title="完成产品 MVP 版本的核心功能开发与验证">完成产品 MVP 版本的核心功能开发与验证</div>
+      <!-- Meta: date -->
       <div style="margin-bottom: 20px;">
-        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
-          <span style="color: var(--text-secondary);">完成度</span>
-          <span style="font-weight: 600; color: var(--accent);">80%</span>
+        <div style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 2px;">计划完成时间</div>
+        <div style="font-size: 14px; font-weight: 500; color: var(--text-primary);">2026-06-30</div>
+      </div>
+      <!-- Progress -->
+      <div style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
+          <span style="color: var(--text-tertiary);">进度</span>
+          <span style="color: var(--text-tertiary);">80%</span>
         </div>
         <div class="node-progress" style="height: 6px;">
           <div class="node-progress-fill" style="width: 80%"></div>
@@ -793,7 +794,7 @@
         </div>
         <div class="input-group">
           <label>描述</label>
-          <textarea class="input-field" style="height: 80px; padding: 8px 12px; resize: vertical;">产品首个可用版本，覆盖核心业务流程。包含需求分析、架构设计、UI 设计、API 开发等关键里程碑。</textarea>
+          <textarea class="input-field" style="height: 160px; padding: 8px 12px; resize: vertical;">产品首个可用版本，覆盖核心业务流程。包含需求分析、架构设计、UI 设计、API 开发等关键里程碑。</textarea>
         </div>
       </div>
       <div class="modal-footer">

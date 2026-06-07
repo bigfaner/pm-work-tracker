@@ -143,7 +143,7 @@ import "time"
 type MilestoneMap struct {
 	BaseModel
 	TeamKey          int64      `gorm:"not null;index:idx_milestone_maps_team_status" json:"teamKey"`
-	CreatorKey       int64      `gorm:"not null;index" json:"creatorKey"`
+	CreatorKey       int64      `gorm:"not null" json:"creatorKey"`
 	AssigneeKey      int64      `gorm:"not null;index" json:"assigneeKey"`
 	MapName          string     `gorm:"type:varchar(100);not null" json:"mapName"`
 	MapDesc          string     `gorm:"type:varchar(2000);not null;default:''" json:"mapDesc"`
@@ -169,7 +169,7 @@ type Milestone struct {
 	MilestoneMapKey  int64      `gorm:"not null;index" json:"milestoneMapKey"`
 	MilestoneName    string     `gorm:"type:varchar(100);not null" json:"milestoneName"`
 	MilestoneDesc    string     `gorm:"type:varchar(2000);not null;default:''" json:"milestoneDesc"`
-	ExpectedEndDate  *time.Time `json:"expectedEndDate"`
+	ExpectedEndDate  *time.Time `gorm:"type:date" json:"expectedEndDate"`
 	MilestoneStatus  string     `gorm:"type:varchar(20);not null;default:'not_started';index:idx_milestones_team_status" json:"milestoneStatus"`
 }
 
@@ -315,7 +315,7 @@ type MilestoneRepo interface {
 	FindBatchByBizKeys(ctx context.Context, bizKeys []int64) (map[int64]*model.Milestone, error)
 	Update(ctx context.Context, m *model.Milestone, fields map[string]interface{}) error
 	ListByMap(ctx context.Context, milestoneMapBizKey int64) ([]model.Milestone, error)
-	ListByTeam(ctx context.Context, teamBizKey int64, excludeCancelled bool) ([]model.Milestone, error)
+	ListByTeam(ctx context.Context, teamBizKey int64, filter dto.MilestoneTeamFilter) ([]model.Milestone, error)
 	SoftDelete(ctx context.Context, id uint) error
 	SoftDeleteByMap(ctx context.Context, milestoneMapID uint) error
 }
@@ -347,7 +347,7 @@ type MilestoneService interface {
 	Get(ctx context.Context, milestoneID uint) (*model.Milestone, error)
 	GetByBizKey(ctx context.Context, bizKey int64) (*model.Milestone, error)
 	ListByMap(ctx context.Context, milestoneMapBizKey int64) ([]model.Milestone, error)
-	ListByTeam(ctx context.Context, teamBizKey int64, excludeCancelled bool) ([]model.Milestone, error)
+	ListByTeam(ctx context.Context, teamBizKey int64, filter dto.MilestoneTeamFilter) ([]model.Milestone, error)
 	Delete(ctx context.Context, teamBizKey int64, milestoneID uint) error
 	ChangeStatus(ctx context.Context, teamBizKey int64, milestoneID uint, newStatus string) (*model.Milestone, error)
 	AvailableTransitions(ctx context.Context, milestoneID uint) ([]string, error)
@@ -410,6 +410,12 @@ type MilestoneUpdateReq struct {
 	ExpectedEndDate *string  `json:"expectedEndDate"`
 	MilestoneDesc   *string  `json:"milestoneDesc"`
 }
+
+type MilestoneTeamFilter struct {
+	Name             *string `form:"name"`
+	Status           *string `form:"status"`
+	ExcludeCancelled *bool   `form:"excludeCancelled"`
+}
 ```
 
 ### MainItem DTOs (MODIFIED)
@@ -470,8 +476,8 @@ type MilestoneMapVO struct {
 	MapDesc         string  `json:"mapDesc"`
 	MapStatus       string  `json:"mapStatus"`
 	StatusName      string  `json:"statusName"`
-	PlannedStartDate string `json:"plannedStartDate"`
-	PlannedEndDate   string `json:"plannedEndDate"`
+	PlannedStartDate *string `json:"plannedStartDate"`
+	PlannedEndDate   *string `json:"plannedEndDate"`
 	MilestoneCount  int     `json:"milestoneCount"`
 	ItemCount       int     `json:"itemCount"`
 	OverallProgress float64 `json:"overallProgress"`
@@ -583,7 +589,7 @@ Handler 遵循现有模式（参考 `item_pool_handler.go`）：
 | milestoneMapKey | INTEGER NOT NULL | int64 | string (FormatID) | string | 必须指向存在的里程碑图 |
 | milestoneName | VARCHAR(100) NOT NULL | string | string | string | 必填，1-100 字符 |
 | milestoneDesc | VARCHAR(2000) | string | string | string | 可选 |
-| expectedEndDate | DATETIME | *time.Time | *string (FormatTimePtr) | string \| null | 必填 |
+| expectedEndDate | DATE | *time.Time | *string (FormatTimePtr) | string \| null | 必填 |
 | milestoneStatus | VARCHAR(20) NOT NULL DEFAULT 'not_started' | string | string | string | 必须是有效状态码 |
 | milestoneKey (MainItem) | INTEGER DEFAULT NULL | *int64 | *string (FormatIDPtr) | string \| null | 可选，必须指向存在的里程碑 |
 | completion (computed) | — | float64 | number | number | 0-100，GET 时计算 |
@@ -611,21 +617,26 @@ Handler 遵循现有模式（参考 `item_pool_handler.go`）：
 
 #### BR-1: 里程碑终态前置条件
 
-里程碑只有在所有关联主事项均处于终态时，才允许被标记为终态（`completed` 或 `cancelled`）。
+里程碑只有在所有关联主事项均处于终态时，才允许被标记为 `completed`。切换至 `cancelled` 时自动解绑所有关联主事项，不受主事项状态限制。
 
-1. **目标状态为终态时校验**：当 `UpdateReq.MilestoneStatus` 为终态（`completed`/`cancelled`）时，查询该里程碑下所有关联 `MainItem`，若存在非终态主事项，返回 `400 Bad Request`
-2. **空里程碑可直接终态**：无关联主事项的里程碑可自由切换为终态
-3. **非终态→非终态不校验**：其他状态转换（如 `not_started` → `in_progress`）不触发此校验
+1. **目标状态为 completed 时校验**：当 `UpdateReq.MilestoneStatus` 为 `completed` 时，查询该里程碑下所有关联 `MainItem`，若存在非终态主事项，返回 `400 Bad Request`
+2. **目标状态为 cancelled 时自动解绑**：切换至 `cancelled` 时，在事务内将所有关联 `MainItem` 的 `milestone_key` 置空，无需校验主事项状态
+3. **空里程碑可直接终态**：无关联主事项的里程碑可自由切换为 `completed`
+4. **非终态→非终态不校验**：其他状态转换（如 `not_started` → `in_progress`）不触发此校验
 
 ```go
 func (s *Service) UpdateMilestoneStatus(ctx context.Context, milestoneID uint, newStatus string) error {
-    if MilestoneStatuses[newStatus].Terminal {
+    if newStatus == "completed" {
         items, _ := s.itemRepo.FindByMilestoneKey(ctx, milestoneID)
         for _, item := range items {
             if !MainItemStatuses[item.ItemStatus].Terminal {
                 return ErrMilestoneHasNonTerminalItems
             }
         }
+    }
+    if newStatus == "cancelled" {
+        // auto-unbind all related MIs in transaction
+        _ = s.itemRepo.ClearMilestoneKeyByMilestone(ctx, milestoneID)
     }
     // proceed with status update
 }
@@ -681,13 +692,14 @@ func (s *Service) UpdateMainItemMilestone(ctx context.Context, itemID uint, mile
 #### 联动总结
 
 ```
-主事项 (MI)                里程碑 (MS)              里程碑图 (Map)
-────────────────────────────────────────────────────────────────────
-MI 终态 → 不可移动        MS 终态 → 不可接收 MI    Map 终态 → 不可添加 MS
-MI 全部终态 ← MS 可转终态  MS 全部终态 ← Map 可转终态
+主事项 (MI)                    里程碑 (MS)              里程碑图 (Map)
+─────────────────────────────────────────────────────────────────────────
+MI 终态 → 不可移动            MS 终态 → 不可接收 MI    Map 终态 → 不可添加 MS
+MI 全部终态 ← MS 转 completed  MS 全部终态 ← Map 可转终态
+MS 转 cancelled → 自动解绑 MI（不受 MI 状态限制）
 ```
 
-层级关系：Map → MS → MI。子层全终态是父层转终态的前提；父层终态后拒绝子层变动。
+层级关系：Map → MS → MI。MS 转 `completed` 要求子层全终态；MS 转 `cancelled` 自动解绑子层不受限制；Map 转终态要求子层全终态；父层终态后拒绝子层变动。
 
 #### BR-4: 删除约束
 

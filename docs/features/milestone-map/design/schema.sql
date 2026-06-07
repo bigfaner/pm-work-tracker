@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS pmw_milestone_maps (
     map_name        VARCHAR(100)    NOT NULL                      COMMENT '里程碑图名称',
     map_desc        VARCHAR(2000)   NOT NULL DEFAULT ''           COMMENT '里程碑图描述',
     map_status      VARCHAR(20)     NOT NULL DEFAULT 'planning'   COMMENT '状态：planning=规划中，reviewed=已评审，ready=待实施，executing=实施中，completed=已完成',
-    planned_start_date DATETIME     DEFAULT NULL                  COMMENT '计划开始时间',
-    planned_end_date   DATETIME     DEFAULT NULL                  COMMENT '计划结束时间',
+    planned_start_date DATE         DEFAULT NULL                  COMMENT '计划开始时间',
+    planned_end_date   DATE         DEFAULT NULL                  COMMENT '计划结束时间',
     PRIMARY KEY (id),
     UNIQUE KEY uk_milestone_maps_biz_key (biz_key),
     KEY idx_milestone_maps_assignee_key (assignee_key),
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS pmw_milestones (
     milestone_map_key       BIGINT          NOT NULL                      COMMENT '所属里程碑图 biz_key',
     milestone_name          VARCHAR(100)    NOT NULL                      COMMENT '里程碑名称',
     milestone_desc          VARCHAR(2000)   NOT NULL DEFAULT ''           COMMENT '里程碑描述',
-    expected_end_date       DATETIME                                      COMMENT '计划完成时间',
+    expected_end_date       DATE                                          COMMENT '计划完成时间',
     milestone_status        VARCHAR(20)     NOT NULL DEFAULT 'not_started' COMMENT '状态：not_started=未开始，in_progress=进行中，completed=已完成，cancelled=已取消',
     PRIMARY KEY (id),
     UNIQUE KEY uk_milestones_biz_key (biz_key),
@@ -75,8 +75,8 @@ CREATE TABLE IF NOT EXISTS pmw_milestone_maps (
     map_name        VARCHAR(100)  NOT NULL,
     map_desc        VARCHAR(2000) NOT NULL DEFAULT '',
     map_status      VARCHAR(20)   NOT NULL DEFAULT 'planning',
-    planned_start_date DATETIME   DEFAULT NULL,
-    planned_end_date   DATETIME   DEFAULT NULL
+    planned_start_date DATE      DEFAULT NULL,
+    planned_end_date   DATE      DEFAULT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uk_milestone_maps_biz_key ON pmw_milestone_maps(biz_key);
 CREATE INDEX IF NOT EXISTS idx_milestone_maps_assignee_key ON pmw_milestone_maps(assignee_key);
@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS pmw_milestones (
     milestone_map_key       INTEGER       NOT NULL,
     milestone_name          VARCHAR(100)  NOT NULL,
     milestone_desc          VARCHAR(2000) NOT NULL DEFAULT '',
-    expected_end_date       DATETIME,
+    expected_end_date       DATE,
     milestone_status        VARCHAR(20)   NOT NULL DEFAULT 'not_started'
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uk_milestones_biz_key ON pmw_milestones(biz_key);

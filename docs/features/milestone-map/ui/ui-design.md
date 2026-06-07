@@ -206,13 +206,26 @@ frontend/src/pages/
 
 ### 状态 Badge 颜色映射
 
+需要在 `frontend/src/utils/status.ts` 中为里程碑状态新增 variant 条目。
+
+**MilestoneMap 状态：**
+
 | Status | StatusBadge variant | Display |
 |--------|---------------------|---------|
 | planning (规划中) | neutral | 灰色 |
 | reviewed (已评审) | warning | 黄色 |
 | ready (待实施) | warning | 橙色 |
-| executing (实施中) | success | 蓝色 |
+| executing (实施中) | info | 蓝色 |
 | completed (已完成) | success | 绿色 |
+
+**Milestone 状态：**
+
+| Status | StatusBadge variant | Display |
+|--------|---------------------|---------|
+| not_started (未开始) | neutral | 灰色 |
+| in_progress (进行中) | info | 蓝色 |
+| completed (已完成) | success | 绿色 |
+| cancelled (已取消) | error | 灰色删除线 |
 
 ### States
 
@@ -281,7 +294,7 @@ frontend/src/pages/
   - 元数据行（`justify-content: space-between` 左右对齐）：负责人、计划开始时间、计划完成时间、整体进度
   - 分隔线（`border-top`）
   - 描述文本（mapDesc，`line-clamp: 3` 最多三行溢出截断，悬停显示 `Tooltip` 展示完整内容）
-- 筛选行：搜索名称（`Input`，客户端模糊匹配）+ 状态下拉（`Select`），从左到右依次排列；同行右侧为"+ 创建里程碑"按钮和缩放按钮组（周/月/季）
+- 筛选行：搜索名称（`Input`，客户端模糊匹配）+ 状态筛选（`StatusTagFilter`，可多选 toggle）+ 重置按钮 + 刷新按钮，从左到右依次排列；同行右侧为"+ 创建里程碑"按钮和缩放按钮组（周/月/季）
 - 时间线区域：`overflow-x-auto`，min-height 400px
 
 **Timeline Layout Algorithm**：
@@ -444,12 +457,13 @@ x = (milestone.expectedEndDate - originDate) / totalDays * containerWidth
 │                                 │
 │ MVP 发布                        │  ← 名称
 │                                 │
-│ 描述：完成产品MVP版本的核心...   │  ← 描述（line-clamp 溢出截断）
+│ 描述            [进行中▾] [编辑] │  ← Row 1: label + status + edit
+│ 完成产品MVP版本的核心功能开...   │  ← Row 2: 描述文本 (line-clamp:6, tooltip)
 │                                 │
-│ 计划完成时间          [进行中▾] [编辑] │
+│ 计划完成时间                     │
 │ 2026-06-30                      │
 │                                 │
-│ 完成度  80%                     │
+│ 进度                     80%    │
 │ ████████████░░░░                │  ← ProgressBar
 │                                 │
 │ ── 关联事项 (3) ─────── [+ 添加] │
@@ -464,7 +478,8 @@ x = (milestone.expectedEndDate - originDate) / totalDays * containerWidth
 
 - Panel：fixed right-0 top-0 h-full w-[360px]，bg white，shadow，z-40
 - 滑入动画：translate-x 300ms ease-out
-- 描述字段：位于名称下方、日期/状态行上方，使用 `line-clamp-2` 处理溢出（`overflow: hidden`，`display: -webkit-box`，`-webkit-line-clamp: 2`，`-webkit-box-orient: vertical`）
+- 描述区域：两行布局——第一行"描述"标签（左，`text-tertiary` 12px）+ `StatusTransitionDropdown` + 编辑按钮（右，`flex-shrink: 0`）；第二行为描述文本（全宽，`line-clamp: 6` 最多六行溢出截断，`display: -webkit-box`，`-webkit-box-orient: vertical`，鼠标悬浮 `Tooltip` 展示完整内容）
+- 进度标签：`text-tertiary` 12px，显示"进度"而非"完成度"，与其它 label 样式一致
 - 状态切换：复用 `StatusTransitionDropdown` 组件
 - MI 行解绑：悬停显示 × 按钮，点击触发解绑 API + 撤销 toast
 
@@ -646,9 +661,9 @@ MI 条目：
 │  │ 请输入里程碑图名称    │   │
 │  └─────────────────────┘   │
 │                             │
-│  负责人                     │
+│  负责人 *                   │
 │  ┌─────────────────────┐   │
-│  │ 选择负责人（可选）    │   │  ← MemberSelect
+│  │ 选择负责人 *          │   │  ← MemberSelect
 │  └─────────────────────┘   │
 │                             │
 │  计划开始时间               │
@@ -672,8 +687,9 @@ MI 条目：
 ```
 
 - 使用 `Dialog` 组件，sm 尺寸（400px）
-- 负责人：复用 `MemberSelect` 组件，可选填
+- 负责人：复用 `MemberSelect` 组件，必填
 - 计划开始/完成时间：使用 `Popover` + 项目现有日期选择模式
+- 描述字段：`Textarea`，高度 160px，`resize: vertical`
 
 ### States
 

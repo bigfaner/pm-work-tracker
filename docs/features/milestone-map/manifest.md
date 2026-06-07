@@ -12,7 +12,7 @@ status: tasks
 | Document | Path | Summary |
 |----------|------|---------|
 | PRD Spec | prd/prd-spec.md | 新增 MilestoneMap（五态）+ Milestone（四态）两个层级实体，里程碑图 CRUD、里程碑 CRUD、完成度自动计算、两级视图页面(/milestones)、现有 3 个页面集成里程碑维度 |
-| User Stories | prd/prd-user-stories.md | 11 个故事覆盖 PM/团队成员/管理层三个角色的里程碑图管理、里程碑管理、事项分配、时间线查看、表格集成 |
+| User Stories | prd/prd-user-stories.md | 14 个故事（~100 条 AC）覆盖 PM/团队成员/管理层三个角色的里程碑图 CRUD、里程碑 CRUD、状态切换（含 BR-1~4 校验）、详情面板管理、列表/时间线查看（含空态/错误态/骨架屏）、拖拽换绑、3 个现有页面集成、权限只读控制、确认弹窗/撤销 toast/并发冲突等交互细节 |
 | UI Functions | prd/prd-ui-functions.md | 8 个 UI Function：里程碑图两级视图(UF-1)、创建/编辑里程碑弹窗(UF-2)、详情面板(UF-3)、快速添加事项(UF-3a)、事项清单筛选(UF-4)、主事项编辑选择器(UF-5)、表格列(UF-6)、创建/编辑里程碑图弹窗(UF-7) |
 | UI Design | ui/ui-design.md | 里程碑图列表组件+时间线视图+详情面板（Badge状态切换+行内解绑+完整表单快速添加）+其他集成组件。基于项目 DESIGN.md 设计系统 |
 | Prototype | ui/prototype/ | HTML 原型（milestones.html 含两级视图，items.html 含里程碑筛选，item-detail.html 含选择器，table.html 含里程碑列） |

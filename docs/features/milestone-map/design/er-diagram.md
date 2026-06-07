@@ -22,8 +22,8 @@ erDiagram
         VARCHAR_100 map_name
         VARCHAR_2000 map_desc
         VARCHAR_20 map_status
-        DATETIME planned_start_date
-        DATETIME planned_end_date
+        DATE planned_start_date
+        DATE planned_end_date
     }
 
     pmw_milestones {
@@ -33,7 +33,7 @@ erDiagram
         BIGINT milestone_map_key FK
         VARCHAR_100 milestone_name
         VARCHAR_2000 milestone_desc
-        DATETIME expected_end_date
+        DATE expected_end_date
         VARCHAR_20 milestone_status
     }
 
@@ -60,8 +60,8 @@ erDiagram
 | map_name | VARCHAR(100) | NOT NULL | 里程碑图名称 |
 | map_desc | VARCHAR(2000) | NOT NULL, DEFAULT '' | 里程碑图描述 |
 | map_status | VARCHAR(20) | NOT NULL, DEFAULT 'planning' | 状态：planning/reviewed/ready/executing/completed |
-| planned_start_date | DATETIME | DEFAULT NULL | 计划开始时间 |
-| planned_end_date | DATETIME | DEFAULT NULL | 计划结束时间 |
+| planned_start_date | DATE | DEFAULT NULL | 计划开始时间 |
+| planned_end_date | DATE | DEFAULT NULL | 计划结束时间 |
 
 ### pmw_milestones [NEW]
 
@@ -77,7 +77,7 @@ erDiagram
 | milestone_map_key | BIGINT | NOT NULL | 所属里程碑图 biz_key |
 | milestone_name | VARCHAR(100) | NOT NULL | 里程碑名称 |
 | milestone_desc | VARCHAR(2000) | NOT NULL, DEFAULT '' | 里程碑描述 |
-| expected_end_date | DATETIME | DEFAULT NULL | 计划完成时间 |
+| expected_end_date | DATE | DEFAULT NULL | 计划完成时间 |
 | milestone_status | VARCHAR(20) | NOT NULL, DEFAULT 'not_started' | 状态：not_started/in_progress/completed/cancelled |
 
 ### pmw_main_items [MODIFIED]
