@@ -71,3 +71,38 @@ func TestNewSubItemSummaryVOs_CodePropagated(t *testing.T) {
 	assert.Equal(t, "TEAM1-00001-01", result[0].Code)
 	assert.Equal(t, "TEAM1-00001-02", result[1].Code)
 }
+
+func TestNewMainItemVO_MilestoneKey_Nil(t *testing.T) {
+	now := time.Now()
+	item := &model.MainItem{
+		BaseModel:    model.BaseModel{ID: 1, BizKey: 100, CreateTime: now, DbUpdateTime: now},
+		TeamKey:      1,
+		ProposerKey:  1,
+		ItemStatus:   "pending",
+		MilestoneKey: nil,
+	}
+
+	result := NewMainItemVO(item)
+
+	assert.Nil(t, result.MilestoneKey)
+	assert.Equal(t, "", result.MilestoneName)
+}
+
+func TestNewMainItemVO_MilestoneKey_Set(t *testing.T) {
+	now := time.Now()
+	msKey := int64(500001)
+	item := &model.MainItem{
+		BaseModel:    model.BaseModel{ID: 1, BizKey: 100, CreateTime: now, DbUpdateTime: now},
+		TeamKey:      1,
+		ProposerKey:  1,
+		ItemStatus:   "pending",
+		MilestoneKey: &msKey,
+	}
+
+	result := NewMainItemVO(item)
+
+	require.NotNil(t, result.MilestoneKey)
+	assert.Equal(t, "500001", *result.MilestoneKey)
+	// MilestoneName is enrichment — not set by NewMainItemVO
+	assert.Equal(t, "", result.MilestoneName)
+}
