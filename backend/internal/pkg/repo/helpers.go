@@ -14,16 +14,18 @@ import (
 
 // acceptedFields maps model table names to their updatable field whitelist.
 var acceptedFields = map[string]map[string]bool{
-	model.MainItem{}.TableName(): {"title": true, "priority": true, "item_status": true, "assignee_key": true, "completion_pct": true, "actual_end_date": true, "archived_at": true, "item_desc": true, "is_key_item": true, "plan_start_date": true, "expected_end_date": true},
-	model.SubItem{}.TableName():  {"title": true, "item_status": true, "priority": true, "assignee_key": true, "completion_pct": true, "actual_end_date": true, "item_desc": true, "plan_start_date": true, "expected_end_date": true, "main_item_key": true, "item_code": true},
-	model.User{}.TableName():     {"display_name": true},
-	model.ItemPool{}.TableName(): {"pool_status": true, "assigned_main_key": true, "assigned_sub_key": true, "assignee_key": true, "reject_reason": true, "reviewed_at": true, "reviewer_key": true, "title": true, "background": true, "expected_output": true},
+	model.MainItem{}.TableName():     {"title": true, "priority": true, "item_status": true, "assignee_key": true, "completion_pct": true, "actual_end_date": true, "archived_at": true, "item_desc": true, "is_key_item": true, "plan_start_date": true, "expected_end_date": true},
+	model.SubItem{}.TableName():      {"title": true, "item_status": true, "priority": true, "assignee_key": true, "completion_pct": true, "actual_end_date": true, "item_desc": true, "plan_start_date": true, "expected_end_date": true, "main_item_key": true, "item_code": true},
+	model.User{}.TableName():         {"display_name": true},
+	model.ItemPool{}.TableName():     {"pool_status": true, "assigned_main_key": true, "assigned_sub_key": true, "assignee_key": true, "reject_reason": true, "reviewed_at": true, "reviewer_key": true, "title": true, "background": true, "expected_output": true},
+	model.MilestoneMap{}.TableName(): {"map_name": true, "map_desc": true, "map_status": true, "assignee_key": true, "plan_start_date": true, "expected_end_date": true},
 }
 
 // identifiable constrains T to model types that have an ID field.
 type identifiable interface {
 	model.MainItem | model.SubItem | model.User | model.Team | model.Role |
-		model.ProgressRecord | model.StatusHistory | model.ItemPool | model.TeamMember
+		model.ProgressRecord | model.StatusHistory | model.ItemPool | model.TeamMember |
+		model.MilestoneMap
 }
 
 // isSoftDeletable returns true for model types that embed BaseModel (have deleted_flag).
@@ -99,6 +101,8 @@ func getID[T identifiable](v *T) uint {
 	case *model.ItemPool:
 		return item.ID
 	case *model.TeamMember:
+		return item.ID
+	case *model.MilestoneMap:
 		return item.ID
 	default:
 		return 0
