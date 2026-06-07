@@ -4,6 +4,7 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
+  SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
@@ -18,6 +19,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import type { Milestone } from '@/types'
 
 export interface EditMainItemFormState {
   title: string
@@ -26,6 +28,7 @@ export interface EditMainItemFormState {
   startDate: string
   expectedEndDate: string
   description: string
+  milestoneKey: string
 }
 
 interface EditMainItemDialogProps {
@@ -36,9 +39,13 @@ interface EditMainItemDialogProps {
     updater: (prev: EditMainItemFormState) => EditMainItemFormState,
   ) => void
   members: { userKey: string, displayName: string }[]
+  milestones: Milestone[]
+  milestonesError: boolean
   onSubmit: () => void
   isPending: boolean
 }
+
+const UNASSIGNED = '__unassigned__'
 
 export default function EditMainItemDialog({
   open,
@@ -46,6 +53,8 @@ export default function EditMainItemDialog({
   form,
   onFormChange,
   members,
+  milestones,
+  milestonesError,
   onSubmit,
   isPending,
 }: EditMainItemDialogProps) {
@@ -99,6 +108,37 @@ export default function EditMainItemDialog({
                 }
               />
             </div>
+          </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-primary mb-1">
+              所属里程碑
+            </label>
+            <Select
+              value={form.milestoneKey || UNASSIGNED}
+              onValueChange={(v) =>
+                onFormChange((f) => ({
+                  ...f,
+                  milestoneKey: v === UNASSIGNED ? '' : v,
+                }))
+              }
+              disabled={milestonesError}
+            >
+              <SelectTrigger>
+                {milestonesError ? (
+                  <span className="text-tertiary">加载失败</span>
+                ) : (
+                  <SelectValue />
+                )}
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={UNASSIGNED}>未分配</SelectItem>
+                {milestones.map((ms) => (
+                  <SelectItem key={ms.bizKey} value={ms.bizKey}>
+                    {ms.milestoneName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div>

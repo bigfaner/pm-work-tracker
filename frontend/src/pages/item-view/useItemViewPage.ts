@@ -89,6 +89,7 @@ export function useItemViewPage(teamId: string | null) {
     startDate: '',
     expectedEndDate: '',
     description: '',
+    milestoneKey: '',
   })
 
   const [appendOpen, setAppendOpen] = useState(false)
@@ -459,6 +460,7 @@ export function useItemViewPage(teamId: string | null) {
       startDate: item.planStartDate || '',
       expectedEndDate: item.expectedEndDate || '',
       description: item.itemDesc || '',
+      milestoneKey: item.milestoneKey || '',
     })
     setEditOpen(true)
   }, [])
@@ -475,6 +477,9 @@ export function useItemViewPage(teamId: string | null) {
         expectedEndDate: editForm.expectedEndDate || null,
         actualEndDate: null,
         description: editForm.description,
+        ...(editForm.milestoneKey !== undefined && {
+          milestoneKey: editForm.milestoneKey || '',
+        }),
       },
     })
   }, [editForm, editTarget, updateMutation])

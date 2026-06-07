@@ -252,6 +252,8 @@ export default function ItemViewPage() {
             form={s.editForm}
             onFormChange={s.setEditForm}
             members={s.members}
+            milestones={s.milestones}
+            milestonesError={s.milestonesError}
             onSubmit={s.handleEdit}
             isPending={s.updateMutation.isPending}
           />

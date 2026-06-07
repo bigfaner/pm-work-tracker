@@ -6,6 +6,7 @@ import { getMainItemApi, updateMainItemApi, deleteMainItemApi } from '@/api/main
 import { createSubItemApi, updateSubItemApi } from '@/api/subItems'
 import { appendProgressApi } from '@/api/progress'
 import { listMembersApi } from '@/api/teams'
+import { listMilestonesByTeamApi } from '@/api/milestones'
 import type { SubItem } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -58,6 +59,7 @@ export default function MainItemDetailPage() {
     assigneeKey: '',
     expectedEndDate: '',
     description: '',
+    milestoneKey: '',
   })
   const [subForm, setSubForm] = useState<CreateSubItemFormState>({
     title: '',
@@ -107,6 +109,15 @@ export default function MainItemDetailPage() {
     enabled: !!teamId,
   })
 
+  const { data: milestonesData, isError: milestonesError } = useQuery({
+    queryKey: ['milestones-team', teamId],
+    queryFn: () =>
+      listMilestonesByTeamApi(teamId!, { excludeCancelled: true }).then(
+        (res) => res.items,
+      ),
+    enabled: !!teamId,
+  })
+
   const memberName = useMemberName(members)
 
   // Populate edit form when data loads
@@ -118,6 +129,7 @@ export default function MainItemDetailPage() {
         assigneeKey: item.assigneeKey || '',
         expectedEndDate: item.expectedEndDate || '',
         description: item.itemDesc || '',
+        milestoneKey: item.milestoneKey || '',
       })
     }
   }, [item])
@@ -217,6 +229,9 @@ export default function MainItemDetailPage() {
       assigneeKey: editForm.assigneeKey || null,
       expectedEndDate: editForm.expectedEndDate || null,
       description: editForm.description,
+      ...(editForm.milestoneKey !== undefined && {
+        milestoneKey: editForm.milestoneKey || '',
+      }),
     })
   }, [editForm, updateMutation])
 
@@ -430,6 +445,8 @@ export default function MainItemDetailPage() {
             form={editForm}
             onFormChange={setEditForm}
             members={members || []}
+            milestones={milestonesData || []}
+            milestonesError={milestonesError}
             onSubmit={handleEdit}
             isPending={updateMutation.isPending}
           />
