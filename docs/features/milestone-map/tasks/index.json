@@ -137,7 +137,7 @@
         "1.5",
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.2-milestone-repo.md",
       "record": "records/2.2-milestone-repo.md",
       "surface-key": "backend",

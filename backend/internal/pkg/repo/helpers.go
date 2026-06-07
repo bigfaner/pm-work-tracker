@@ -19,13 +19,14 @@ var acceptedFields = map[string]map[string]bool{
 	model.User{}.TableName():         {"display_name": true},
 	model.ItemPool{}.TableName():     {"pool_status": true, "assigned_main_key": true, "assigned_sub_key": true, "assignee_key": true, "reject_reason": true, "reviewed_at": true, "reviewer_key": true, "title": true, "background": true, "expected_output": true},
 	model.MilestoneMap{}.TableName(): {"map_name": true, "map_desc": true, "map_status": true, "assignee_key": true, "plan_start_date": true, "expected_end_date": true},
+	model.Milestone{}.TableName():    {"milestone_name": true, "milestone_desc": true, "milestone_status": true, "expected_end_date": true},
 }
 
 // identifiable constrains T to model types that have an ID field.
 type identifiable interface {
 	model.MainItem | model.SubItem | model.User | model.Team | model.Role |
 		model.ProgressRecord | model.StatusHistory | model.ItemPool | model.TeamMember |
-		model.MilestoneMap
+		model.MilestoneMap | model.Milestone
 }
 
 // isSoftDeletable returns true for model types that embed BaseModel (have deleted_flag).
@@ -103,6 +104,8 @@ func getID[T identifiable](v *T) uint {
 	case *model.TeamMember:
 		return item.ID
 	case *model.MilestoneMap:
+		return item.ID
+	case *model.Milestone:
 		return item.ID
 	default:
 		return 0
