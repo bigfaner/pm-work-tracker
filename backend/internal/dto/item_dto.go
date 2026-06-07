@@ -234,12 +234,13 @@ type ProgressRecordDTO struct {
 
 // TableFilter holds filter and sort parameters for the table view.
 type TableFilter struct {
-	Type        string   `form:"type" json:"type"`         // "main"|"sub"|"" (empty = both)
-	Priority    []string `form:"priority" json:"priority"` // ["P1","P2","P3"]
-	Status      []string `form:"status" json:"status"`
-	AssigneeKey *string  `form:"assigneeKey" json:"assigneeKey"`
-	SortBy      string   `form:"sortBy" json:"sortBy"`       // field name
-	SortOrder   string   `form:"sortOrder" json:"sortOrder"` // "asc"|"desc"
+	Type         string   `form:"type" json:"type"`         // "main"|"sub"|"" (empty = both)
+	Priority     []string `form:"priority" json:"priority"` // ["P1","P2","P3"]
+	Status       []string `form:"status" json:"status"`
+	AssigneeKey  *string  `form:"assigneeKey" json:"assigneeKey"`
+	MilestoneKey *string  `form:"milestoneKey" json:"milestoneKey"` // "all"|"unassigned"|bizKey
+	SortBy       string   `form:"sortBy" json:"sortBy"`             // field name
+	SortOrder    string   `form:"sortOrder" json:"sortOrder"`       // "asc"|"desc"
 }
 
 // TableRow represents a single row in the table view (main item or sub-item).
@@ -251,6 +252,8 @@ type TableRow struct {
 	Priority        string  `json:"priority"`
 	AssigneeID      *string `json:"assigneeKey"`
 	AssigneeName    string  `json:"assigneeName"`
+	MilestoneKey    *string `json:"milestoneKey"`
+	MilestoneName   string  `json:"milestoneName"`
 	Status          string  `json:"status"`
 	Completion      float64 `json:"completion"`
 	ExpectedEndDate *string `json:"expectedEndDate"`
