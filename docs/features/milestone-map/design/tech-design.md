@@ -284,7 +284,7 @@ func (s *milestoneService) AvailableTransitions(ctx context.Context, teamBizKey 
     // ... verify team membership ...
 
     // BR-5: 父级里程碑图处于终态时，无可用转换
-    m, _ := s.mapRepo.FindByID(ctx, ms.MilestoneMapKey)
+    m, _ := s.mapRepo.FindByBizKey(ctx, ms.MilestoneMapKey)
     if status.MilestoneMapStatuses[m.MapStatus].Terminal {
         return []string{}, nil
     }
@@ -384,6 +384,7 @@ type MilestoneRepo interface {
 	ListByTeam(ctx context.Context, teamBizKey int64, filter dto.MilestoneTeamFilter) ([]model.Milestone, error)
 	SoftDelete(ctx context.Context, id uint) error
 	SoftDeleteByMap(ctx context.Context, milestoneMapID uint) error
+	ExistsByNameAndMap(ctx context.Context, milestoneMapBizKey int64, name string, excludeID *uint) (bool, error)
 }
 ```
 
@@ -417,7 +418,7 @@ type MilestoneMapService interface {
 	List(ctx context.Context, teamBizKey int64, filter dto.MilestoneMapFilter, page dto.Pagination) (*dto.PageResult[model.MilestoneMap], error)
 	Delete(ctx context.Context, teamBizKey int64, mapID uint) error
 	ChangeStatus(ctx context.Context, teamBizKey int64, mapID uint, newStatus string) (*model.MilestoneMap, error)
-	AvailableTransitions(ctx context.Context, mapID uint) ([]string, error)
+	AvailableTransitions(ctx context.Context, teamBizKey int64, mapID uint) ([]string, error)
 }
 ```
 
@@ -434,7 +435,7 @@ type MilestoneService interface {
 	ListByTeam(ctx context.Context, teamBizKey int64, filter dto.MilestoneTeamFilter) ([]model.Milestone, error)
 	Delete(ctx context.Context, teamBizKey int64, milestoneID uint) error
 	ChangeStatus(ctx context.Context, teamBizKey int64, milestoneID uint, newStatus string) (*model.Milestone, error)
-	AvailableTransitions(ctx context.Context, milestoneID uint) ([]string, error)
+	AvailableTransitions(ctx context.Context, teamBizKey int64, milestoneID uint) ([]string, error)
 }
 ```
 
@@ -464,7 +465,7 @@ package dto
 type MilestoneMapCreateReq struct {
 	MapName          string `json:"mapName" binding:"required,max=100"`
 	MapDesc          string `json:"mapDesc"`
-	AssigneeBizKey   int64  `json:"assigneeBizKey" binding:"required"`
+	AssigneeBizKey   string  `json:"assigneeBizKey" binding:"required"`
 	PlanStartDate *string `json:"planStartDate"`
 	ExpectedEndDate   *string `json:"expectedEndDate"`
 }
@@ -472,7 +473,7 @@ type MilestoneMapCreateReq struct {
 type MilestoneMapUpdateReq struct {
 	MapName          *string `json:"mapName"`
 	MapDesc          *string `json:"mapDesc"`
-	AssigneeBizKey   *int64  `json:"assigneeBizKey"`
+	AssigneeBizKey   *string  `json:"assigneeBizKey"`
 	PlanStartDate *string `json:"planStartDate"`
 	ExpectedEndDate   *string `json:"expectedEndDate"`
 }
@@ -651,7 +652,7 @@ Handler 遵循现有模式（参考 `item_pool_handler.go`）：
 
 - 构造函数 panic-on-nil 校验
 - 使用 `middleware.GetTeamBizKey(c)` / `middleware.GetUserBizKey(c)` 获取上下文
-- 路由参数通过 `pkgHandler.ResolveBizKey(c, "mapId", resolver)` 解析
+- 路由参数通过 `pkgHandler.ParseBizKeyParam(c, "mapId")` 解析，与 MainItemHandler 一致
 - 请求绑定通过 `c.ShouldBindJSON(&req)` / `c.ShouldBindQuery(&filter)`
 - 分页通过 `dto.ApplyPaginationDefaults(page, pageSize)`
 - 响应通过 `apperrors.RespondOK(c, data)` / `apperrors.RespondError(c, err)`
@@ -749,13 +750,17 @@ func (s *Service) UpdateMilestoneMapStatus(ctx context.Context, mapID uint, newS
         }
     }
     if newStatus == "cancelled" {
-        // cascade: cancel all non-terminal milestones (triggers BR-1 unbind)
+        // cascade: cancel all non-terminal milestones + unbind all MIs (in transaction)
         milestones, _ := s.milestoneRepo.ListByMap(ctx, milestoneMap.BizKey)
         for _, ms := range milestones {
             if !MilestoneStatuses[ms.MilestoneStatus].Terminal {
-                _ = s.UpdateMilestoneStatus(ctx, ms.ID, "cancelled")
+                ms.MilestoneStatus = "cancelled"
+                _ = s.milestoneRepo.Update(ctx, &ms)
             }
         }
+        // unbind all MIs across all milestones in this map
+        bizKeys := collectBizKeys(milestones)
+        _ = s.itemRepo.ClearMilestoneKeyByMap(ctx, bizKeys)
     }
     // proceed with status update
 }
@@ -784,6 +789,8 @@ func (s *Service) UpdateMainItemMilestone(ctx context.Context, itemID uint, mile
     // proceed with update
 }
 ```
+
+**接入点**：在现有 `MainItemService.Update` 中，当 `req.MilestoneKey` 字段被传入时，调用上述校验逻辑。`MainItemService` 需新增 `MilestoneRepo` 依赖注入。
 
 #### 联动总结
 
@@ -836,9 +843,14 @@ func (s *Service) DeleteMilestone(ctx context.Context, milestoneID uint) error {
 ```go
 // MilestoneService.Create — guard
 func (s *Service) CreateMilestone(ctx context.Context, ...) error {
-    milestoneMap, _ := s.mapRepo.FindByID(ctx, mapID)
+    milestoneMap, _ := s.mapRepo.FindByBizKey(ctx, milestoneMapBizKey)
     if MilestoneMapStatuses[milestoneMap.MapStatus].Terminal {
         return ErrMapIsTerminal
+    }
+    // DUPLICATE_NAME check
+    exists, _ := s.milestoneRepo.ExistsByNameAndMap(ctx, milestoneMapBizKey, req.MilestoneName, nil)
+    if exists {
+        return ErrDuplicateMilestoneName
     }
     // proceed with create
 }
@@ -858,7 +870,7 @@ func (s *Service) UpdateMilestoneStatus(ctx context.Context, ...) error {
 
 - **Target**: `frontend/src/pages/TableViewPage.tsx`
 - **API Module**: `frontend/src/api/views.ts` — 表格数据已含 `milestoneName`
-- **Insertion**: 表格列定义中，"标题"列和"优先级"列之间新增"里程碑"列
+- **Insertion**: 表格列定义中，"标题"列之后、"优先级"列之前新增"里程碑"列
 - **Data**: `TableRow` DTO 新增 `MilestoneName` 字段
 
 ## Error Handling
@@ -871,9 +883,24 @@ func (s *Service) UpdateMilestoneStatus(ctx context.Context, ...) error {
 | Error Code | HTTP Status | Description |
 |------------|-------------|-------------|
 | INVALID_PARAMS | 400 | 名称/日期校验失败 |
+| MAP_IS_TERMINAL | 400 | 里程碑图处于终态，不可创建/修改里程碑 |
+| DUPLICATE_NAME | 409 | 同一里程碑图下已存在同名里程碑 |
 | NOT_FOUND | 404 | 里程碑图/里程碑不存在 |
 | INVALID_STATUS | 422 | 状态转换不合法 |
 | FORBIDDEN | 403 | 无权限 |
+
+新增 AppError 定义（在 `pkg/apperrors/` 中）：
+
+```go
+var ErrMapIsTerminal = NewBizError(400, "MAP_IS_TERMINAL", "里程碑图处于终态")
+var ErrDuplicateMilestoneName = NewBizError(409, "DUPLICATE_NAME", "同名里程碑已存在")
+var ErrMilestoneHasNonTerminalItems = NewBizError(400, "BAD_REQUEST", "里程碑下存在未完成的事项")
+var ErrMapHasNonTerminalMilestones = NewBizError(400, "BAD_REQUEST", "里程碑图下存在未完成的里程碑")
+var ErrTerminalItemCannotMove = NewBizError(400, "BAD_REQUEST", "终态事项不可变更里程碑")
+var ErrTerminalMilestoneCannotReceive = NewBizError(400, "BAD_REQUEST", "终态里程碑不可接收事项")
+var ErrMapCannotDelete = NewBizError(400, "INVALID_PARAMS", "当前状态不允许删除里程碑图")
+var ErrMilestoneCannotDelete = NewBizError(400, "INVALID_PARAMS", "当前状态不允许删除里程碑")
+```
 
 ## Testing Strategy
 

@@ -31,7 +31,7 @@ related: design/tech-design.md
 |-------|------|----------|-------------|
 | mapName | string | Yes | 里程碑图名称，1-100 字符 |
 | mapDesc | string | No | 里程碑图描述 |
-| assigneeBizKey | int64 | Yes | 负责人 bizKey |
+| assigneeBizKey | string | Yes | 负责人 bizKey |
 | planStartDate | string | No | 计划开始时间 (YYYY-MM-DD) |
 | expectedEndDate | string | No | 计划完成时间 (YYYY-MM-DD) |
 
@@ -125,7 +125,7 @@ related: design/tech-design.md
 |-------|------|----------|-------------|
 | mapName | string | No | 里程碑图名称，1-100 字符 |
 | mapDesc | string | No | 描述 |
-| assigneeBizKey | *int64 | No | 负责人 bizKey |
+| assigneeBizKey | *string | No | 负责人 bizKey |
 | planStartDate | *string | No | 计划开始时间 |
 | expectedEndDate | *string | No | 计划完成时间 |
 
@@ -141,7 +141,6 @@ related: design/tech-design.md
 |--------|------|-------------|
 | 400 | INVALID_PARAMS | 名称校验失败 |
 | 404 | NOT_FOUND | 里程碑图不存在 |
-| 409 | CONFLICT | 数据已被其他人修改，请刷新后重试 |
 
 ---
 
@@ -191,6 +190,7 @@ related: design/tech-design.md
 | Status | Code | Description |
 |--------|------|-------------|
 | 400 | BAD_REQUEST | 里程碑图下存在未完成的里程碑，无法标记为已完成（BR-2） |
+| 404 | NOT_FOUND | 里程碑图不存在 |
 | 422 | INVALID_STATUS | 无效的状态转换 |
 
 ---
@@ -334,8 +334,8 @@ Milestone 详情，含关联 MI 列表摘要。
 | Status | Code | Description |
 |--------|------|-------------|
 | 400 | INVALID_PARAMS | 名称校验失败 |
+| 400 | MAP_IS_TERMINAL | 里程碑图处于终态，不可修改里程碑 |
 | 404 | NOT_FOUND | 里程碑不存在 |
-| 409 | CONFLICT | 数据已被其他人修改 |
 
 ---
 
@@ -383,7 +383,9 @@ Milestone 详情，含关联 MI 列表摘要。
 | Status | Code | Description |
 |--------|------|-------------|
 | 400 | BAD_REQUEST | 里程碑下存在未完成的事项，无法标记为已完成（BR-1） |
+| 400 | MAP_IS_TERMINAL | 里程碑图处于终态，不可变更里程碑状态 |
 | - | Side Effect | 切换至 cancelled 时，自动解绑所有关联 MI |
+| 404 | NOT_FOUND | 里程碑不存在 |
 | 422 | INVALID_STATUS | 无效的状态转换 |
 
 ---
@@ -433,5 +435,4 @@ Milestone 详情，含关联 MI 列表摘要。
 | DUPLICATE_NAME | 409 | 同一里程碑图下已存在同名里程碑 |
 | INVALID_STATUS | 422 | 状态转换不合法 |
 | NOT_FOUND | 404 | 资源不存在或已删除 |
-| CONFLICT | 409 | 并发冲突（里程碑编辑） |
 | FORBIDDEN | 403 | 无权限 |

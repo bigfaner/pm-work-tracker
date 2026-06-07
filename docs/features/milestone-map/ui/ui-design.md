@@ -356,7 +356,7 @@ x = (milestone.expectedEndDate - originDate) / totalDays * containerWidth
 |---------|--------|----------|
 | 点击里程碑节点 | 打开详情面板（UF-3） | 节点高亮，右侧面板滑入 |
 | 悬停里程碑节点 | 显示 `Tooltip` | "X 个事项，Y 已完成" |
-| 点击"创建里程碑" | 弹出 `CreateMilestoneDialog`（UF-2） | — |
+| 点击"创建里程碑" | 弹出 `CreateMilestoneDialog`（UF-2） | 里程碑图终态时按钮隐藏（BR-5） |
 | 点击 MI 条目 | 跳转 `/items/:mainItemId` | 路由跳转 |
 | 点击缩放控件 | 重新计算时间刻度 | transition 200ms |
 | 名称搜索 | 客户端模糊匹配里程碑节点 | debounce 300ms，不匹配的节点隐藏 |
@@ -496,12 +496,12 @@ x = (milestone.expectedEndDate - originDate) / totalDays * containerWidth
 
 | Trigger | Action | Feedback |
 |---------|--------|----------|
-| 点击状态 Badge | `StatusTransitionDropdown` 弹出可用转换 | 复用现有组件 |
-| 点击编辑 | 打开编辑弹窗（UF-2） | — |
+| 点击状态 Badge | `StatusTransitionDropdown` 弹出可用转换 | 复用现有组件；父级 Map 终态时无下拉选项（BR-5） |
+| 点击编辑 | 打开编辑弹窗（UF-2） | 父级 Map 终态时按钮隐藏（BR-5） |
 | 点击删除 | 打开 `ConfirmDialog` | 仅 milestoneStatus === `not_started` 或 `cancelled` 时可见 |
 | 点击关联 MI 行 | 跳转 `/items/:mainItemId` | — |
-| 点击 MI 行 × 按钮 | 调用解绑 API | 行移除 + 撤销 toast |
-| 点击"+ 添加" | 弹出 `QuickAddMainItemDialog`（UF-3a） | — |
+| 点击 MI 行 × 按钮 | 调用解绑 API | 行移除 + 撤销 toast；终态 MI × 按钮隐藏（BR-3） |
+| 点击"+ 添加" | 弹出 `QuickAddMainItemDialog`（UF-3a） | 里程碑 cancelled 状态时按钮隐藏（BR-5） |
 | 点击 [×] / overlay | 关闭面板 | slide-out 动画 |
 
 ### Delete Confirmation
@@ -614,9 +614,9 @@ MI 条目：
 ### Layout Structure
 
 ```
-| ... | 标题 | 优先级 | 里程碑 | 负责人 | 进度 | 状态 | 预期完成 | ...
-| ... | 需求分析 | P1 | MVP发布 | 张三 | 60% | 进行中 | 06/30  | ...
-| ... | 数据设计 | P2 | -      | 张三 | 40% | 进行中 | 07/15  | ...
+| ... | 标题 | 里程碑 | 优先级 | 负责人 | 进度 | 状态 | 预期完成 | ...
+| ... | 需求分析 | MVP发布 | P1 | 张三 | 60% | 进行中 | 06/30  | ...
+| ... | 数据设计 | -      | P2 | 张三 | 40% | 进行中 | 07/15  | ...
 ```
 
 - 列宽 w-32
