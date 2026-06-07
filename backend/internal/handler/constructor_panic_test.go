@@ -214,3 +214,36 @@ func TestNewPermissionHandler_SucceedsWithValidDeps(t *testing.T) {
 		t.Fatal("expected non-nil handler")
 	}
 }
+
+// ========== MilestoneMapHandler ==========
+
+func TestNewMilestoneMapHandler_PanicsOnNilService(t *testing.T) {
+	assertPanicMessage(t, "MilestoneMapHandler/nil-svc", func() {
+		NewMilestoneMapHandler(nil, &StubRouterRepoUser{}, &StubRouterRepoMilestone{}, &StubRouterRepoMainItem{})
+	}, "milestone_map_handler: milestoneMapService must not be nil")
+}
+
+func TestNewMilestoneMapHandler_PanicsOnNilUserRepo(t *testing.T) {
+	assertPanicMessage(t, "MilestoneMapHandler/nil-userRepo", func() {
+		NewMilestoneMapHandler(&StubMilestoneMapSvc{}, nil, &StubRouterRepoMilestone{}, &StubRouterRepoMainItem{})
+	}, "milestone_map_handler: userRepo must not be nil")
+}
+
+func TestNewMilestoneMapHandler_PanicsOnNilMilestoneRepo(t *testing.T) {
+	assertPanicMessage(t, "MilestoneMapHandler/nil-milestoneRepo", func() {
+		NewMilestoneMapHandler(&StubMilestoneMapSvc{}, &StubRouterRepoUser{}, nil, &StubRouterRepoMainItem{})
+	}, "milestone_map_handler: milestoneRepo must not be nil")
+}
+
+func TestNewMilestoneMapHandler_PanicsOnNilMainItemRepo(t *testing.T) {
+	assertPanicMessage(t, "MilestoneMapHandler/nil-mainItemRepo", func() {
+		NewMilestoneMapHandler(&StubMilestoneMapSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMilestone{}, nil)
+	}, "milestone_map_handler: mainItemRepo must not be nil")
+}
+
+func TestNewMilestoneMapHandler_SucceedsWithValidDeps(t *testing.T) {
+	h := NewMilestoneMapHandler(&StubMilestoneMapSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMilestone{}, &StubRouterRepoMainItem{})
+	if h == nil {
+		t.Fatal("expected non-nil handler")
+	}
+}

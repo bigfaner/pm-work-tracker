@@ -18,21 +18,22 @@ import (
 // Dependencies holds all services and configuration needed by the router.
 // Handlers are wired here to avoid global state.
 type Dependencies struct {
-	Config     *config.Config
-	TeamRepo   repository.TeamRepo
-	UserRepo   repository.UserRepo
-	RoleRepo   repository.RoleRepo
-	Auth       *AuthHandler
-	Team       *TeamHandler
-	MainItem   *MainItemHandler
-	SubItem    *SubItemHandler
-	Progress   *ProgressHandler
-	ItemPool   *ItemPoolHandler
-	View       *ViewHandler
-	Report     *ReportHandler
-	Admin      *AdminHandler
-	Role       *RoleHandler
-	Permission *PermissionHandler
+	Config       *config.Config
+	TeamRepo     repository.TeamRepo
+	UserRepo     repository.UserRepo
+	RoleRepo     repository.RoleRepo
+	Auth         *AuthHandler
+	Team         *TeamHandler
+	MainItem     *MainItemHandler
+	SubItem      *SubItemHandler
+	Progress     *ProgressHandler
+	ItemPool     *ItemPoolHandler
+	View         *ViewHandler
+	Report       *ReportHandler
+	Admin        *AdminHandler
+	Role         *RoleHandler
+	Permission   *PermissionHandler
+	MilestoneMap *MilestoneMapHandler
 }
 
 // perm is a shorthand for creating a RequirePermission middleware with the deps' RoleRepo.
@@ -147,6 +148,15 @@ func SetupRouter(deps *Dependencies, fsys fs.FS) *gin.Engine {
 	teamsGroup.POST("/item-pool/:poolId/assign", deps.perm("item_pool:review"), deps.ItemPool.Assign)
 	teamsGroup.POST("/item-pool/:poolId/convert-to-main", deps.perm("item_pool:review"), deps.ItemPool.ConvertToMain)
 	teamsGroup.POST("/item-pool/:poolId/reject", deps.perm("item_pool:review"), deps.ItemPool.Reject)
+
+	// Milestone maps
+	teamsGroup.POST("/milestone-maps", deps.perm("milestone:create"), deps.MilestoneMap.Create)
+	teamsGroup.GET("/milestone-maps", deps.perm("milestone:read"), deps.MilestoneMap.List)
+	teamsGroup.GET("/milestone-maps/:mapId", deps.perm("milestone:read"), deps.MilestoneMap.Get)
+	teamsGroup.PUT("/milestone-maps/:mapId", deps.perm("milestone:update"), deps.MilestoneMap.Update)
+	teamsGroup.PUT("/milestone-maps/:mapId/status", deps.perm("milestone:update"), deps.MilestoneMap.ChangeStatus)
+	teamsGroup.GET("/milestone-maps/:mapId/available-transitions", deps.perm("milestone:read"), deps.MilestoneMap.AvailableTransitions)
+	teamsGroup.DELETE("/milestone-maps/:mapId", deps.perm("milestone:delete"), deps.MilestoneMap.Delete)
 
 	// Views
 	teamsGroup.GET("/views/weekly", deps.perm("view:weekly"), deps.View.Weekly)

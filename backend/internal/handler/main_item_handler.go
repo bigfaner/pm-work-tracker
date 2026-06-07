@@ -25,6 +25,8 @@ type MainItemHandler struct {
 }
 
 // NewMainItemHandler creates a new MainItemHandler with service and repo dependencies.
+//
+//nolint:dupl // constructor panic-on-nil pattern is identical across handlers by convention
 func NewMainItemHandler(svc service.MainItemService, userRepo repository.UserRepo, subItemRepo repository.SubItemRepo, milestoneRepo repository.MilestoneRepo) *MainItemHandler {
 	if svc == nil {
 		panic("main_item_handler: mainItemService must not be nil")

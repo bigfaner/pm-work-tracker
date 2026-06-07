@@ -621,3 +621,48 @@ func (s *StubProgressSvc) GetByBizKey(_ context.Context, _ int64) (*model.Progre
 }
 
 var _ service.ProgressService = (*StubProgressSvc)(nil)
+
+// StubMilestoneMapSvc is a stub implementation of service.MilestoneMapService for testing.
+type StubMilestoneMapSvc struct{}
+
+// Create is a stub for service.MilestoneMapService.Create.
+func (s *StubMilestoneMapSvc) Create(_ context.Context, _, _ int64, _ dto.MilestoneMapCreateReq) (*model.MilestoneMap, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// Update is a stub for service.MilestoneMapService.Update.
+func (s *StubMilestoneMapSvc) Update(_ context.Context, _ int64, _ uint, _ dto.MilestoneMapUpdateReq) error {
+	return fmt.Errorf("stub: not implemented")
+}
+
+// Get is a stub for service.MilestoneMapService.Get.
+func (s *StubMilestoneMapSvc) Get(_ context.Context, _ uint) (*model.MilestoneMap, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// GetByBizKey is a stub for service.MilestoneMapService.GetByBizKey.
+func (s *StubMilestoneMapSvc) GetByBizKey(_ context.Context, _ int64) (*model.MilestoneMap, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// List is a stub for service.MilestoneMapService.List.
+func (s *StubMilestoneMapSvc) List(_ context.Context, _ int64, _ dto.MilestoneMapFilter, _ dto.Pagination) (*dto.PageResult[model.MilestoneMap], error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// Delete is a stub for service.MilestoneMapService.Delete.
+func (s *StubMilestoneMapSvc) Delete(_ context.Context, _ int64, _ uint) error {
+	return fmt.Errorf("stub: not implemented")
+}
+
+// ChangeStatus is a stub for service.MilestoneMapService.ChangeStatus.
+func (s *StubMilestoneMapSvc) ChangeStatus(_ context.Context, _ int64, _ uint, _ string) (*model.MilestoneMap, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// AvailableTransitions is a stub for service.MilestoneMapService.AvailableTransitions.
+func (s *StubMilestoneMapSvc) AvailableTransitions(_ context.Context, _ int64, _ uint) ([]string, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+var _ service.MilestoneMapService = (*StubMilestoneMapSvc)(nil)

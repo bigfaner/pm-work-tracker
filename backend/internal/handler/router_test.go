@@ -58,6 +58,7 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 		"sub_item:update", "sub_item:change_status", "sub_item:assign", "sub_item:delete",
 		"progress:create", "progress:read", "progress:update",
 		"item_pool:submit", "item_pool:review",
+		"milestone:create", "milestone:read", "milestone:update", "milestone:delete",
 		"view:weekly", "view:gantt", "view:table",
 		"report:export", "user:read", "user:update", "user:manage_role",
 	}
@@ -137,21 +138,22 @@ func testDeps(t testing.TB) (*Dependencies, *gorm.DB) {
 	}
 
 	return &Dependencies{
-		Config:     cfg,
-		TeamRepo:   teamRepo,
-		UserRepo:   userRepo,
-		RoleRepo:   roleRepo,
-		Auth:       NewAuthHandler(&stubAuthService{}),
-		Team:       NewTeamHandler(&StubTeamSvc{}, &StubRouterRepoUser{}),
-		MainItem:   NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, &StubRouterRepoSubItem{}, &StubRouterRepoMilestone{}),
-		SubItem:    NewSubItemHandler(&StubSubItemSvc{}, &StubMainItemSvc{}),
-		Progress:   NewProgressHandler(&StubProgressSvc{}, &StubRouterRepoUser{}, &StubSubItemSvc{}),
-		ItemPool:   NewItemPoolHandler(&StubItemPoolSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMainItem{}),
-		View:       NewViewHandler(&StubViewSvc{}),
-		Report:     NewReportHandler(&StubReportSvc{}),
-		Admin:      NewAdminHandler(&StubAdminSvc{}),
-		Role:       NewRoleHandler(&StubRoleSvc{}),
-		Permission: NewPermissionHandler(&StubRoleSvc{}),
+		Config:       cfg,
+		TeamRepo:     teamRepo,
+		UserRepo:     userRepo,
+		RoleRepo:     roleRepo,
+		Auth:         NewAuthHandler(&stubAuthService{}),
+		Team:         NewTeamHandler(&StubTeamSvc{}, &StubRouterRepoUser{}),
+		MainItem:     NewMainItemHandler(&StubMainItemSvc{}, &StubRouterRepoUser{}, &StubRouterRepoSubItem{}, &StubRouterRepoMilestone{}),
+		SubItem:      NewSubItemHandler(&StubSubItemSvc{}, &StubMainItemSvc{}),
+		Progress:     NewProgressHandler(&StubProgressSvc{}, &StubRouterRepoUser{}, &StubSubItemSvc{}),
+		ItemPool:     NewItemPoolHandler(&StubItemPoolSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMainItem{}),
+		View:         NewViewHandler(&StubViewSvc{}),
+		Report:       NewReportHandler(&StubReportSvc{}),
+		Admin:        NewAdminHandler(&StubAdminSvc{}),
+		Role:         NewRoleHandler(&StubRoleSvc{}),
+		Permission:   NewPermissionHandler(&StubRoleSvc{}),
+		MilestoneMap: NewMilestoneMapHandler(&StubMilestoneMapSvc{}, &StubRouterRepoUser{}, &StubRouterRepoMilestone{}, &StubRouterRepoMainItem{}),
 	}, db
 }
 

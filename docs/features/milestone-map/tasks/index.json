@@ -230,7 +230,7 @@
         "1.5",
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.7-milestone-map-handler.md",
       "record": "records/2.7-milestone-map-handler.md",
       "surface-key": "backend",
