@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { badgeVariants } from '@/components/ui/badge'
+import { badgeVariants, type BadgeProps } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { getStatusVariant } from '@/lib/status'
 
@@ -34,9 +34,7 @@ export function StatusTagFilter({
       <div className="flex flex-wrap items-center gap-1.5">
         {options.map((opt) => {
         const isActive = selected.includes(opt.value)
-        const variant = `status-${getStatusVariant(opt.value)}` as Parameters<
-          typeof badgeVariants
-        >[0]['variant']
+        const variant = `status-${getStatusVariant(opt.value)}` as NonNullable<BadgeProps['variant']>
 
         return (
           <button

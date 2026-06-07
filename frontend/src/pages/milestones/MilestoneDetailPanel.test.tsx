@@ -30,6 +30,11 @@ vi.mock('@/components/ui/toast', () => ({
   useToast: vi.fn(() => ({ addToast: vi.fn() })),
 }))
 
+const mockNavigate = vi.fn()
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => mockNavigate,
+}))
+
 import { getMilestoneApi, deleteMilestoneApi } from '@/api/milestones'
 import { listMainItemsApi, updateMainItemApi } from '@/api/mainItems'
 
@@ -149,6 +154,7 @@ function renderPanel(
 describe('MilestoneDetailPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockNavigate.mockClear()
   })
 
   // AC-1: Panel slides in; closes on overlay click, Escape, or X button
@@ -483,5 +489,30 @@ describe('MilestoneDetailPanel', () => {
         { timeout: 1000 },
       )
     })
+  })
+
+  // AC-4: Click MI item navigates to /items/:mainItemId
+  it('navigates to MI detail when MI row is clicked', async () => {
+    const user = userEvent.setup()
+    renderPanel()
+    await waitFor(() => {
+      expect(screen.getByText('MI-0001')).toBeInTheDocument()
+    })
+    const miRow = screen.getByTestId('mi-drag-mi-1')
+    await user.click(miRow)
+    expect(mockNavigate).toHaveBeenCalledWith('/items/mi-1')
+  })
+
+  it('does not navigate when unbind X button is clicked', async () => {
+    vi.mocked(updateMainItemApi).mockResolvedValue({} as never)
+    const user = userEvent.setup()
+    renderPanel()
+    await waitFor(() => {
+      expect(screen.getByText('MI-0001')).toBeInTheDocument()
+    })
+    const unbindBtn = screen.getByLabelText('解绑事项 MI-0001')
+    await user.click(unbindBtn)
+    expect(mockNavigate).not.toHaveBeenCalled()
+    expect(updateMainItemApi).toHaveBeenCalled()
   })
 })

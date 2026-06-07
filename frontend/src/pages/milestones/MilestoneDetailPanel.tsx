@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Pencil, Plus, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -64,6 +65,7 @@ export default function MilestoneDetailPanel({
 }: MilestoneDetailPanelProps) {
   const teamId = useTeamStore((s) => s.currentTeamId) ?? ''
   const qc = useQueryClient()
+  const navigate = useNavigate()
   const { addToast } = useToast()
   const panelRef = useRef<HTMLDivElement>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -332,6 +334,7 @@ export default function MilestoneDetailPanel({
                                 }
                               }, 200)
                             }}
+                            onClick={() => navigate(`/items/${mi.bizKey}`)}
                             className={cn(
                               'group flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-bg-alt text-sm',
                               !isMITerminal
