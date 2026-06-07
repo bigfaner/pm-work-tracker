@@ -194,7 +194,7 @@
         "1.4",
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.5-milestone-service.md",
       "record": "records/2.5-milestone-service.md",
       "surface-key": "backend",
@@ -212,7 +212,7 @@
         "1.4",
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.6-mainitem-milestone-binding.md",
       "record": "records/2.6-mainitem-milestone-binding.md",
       "surface-key": "backend",

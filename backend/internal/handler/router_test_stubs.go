@@ -420,6 +420,57 @@ func (s *StubRouterRepoSubItem) NextSubCode(_ context.Context, _ int64) (string,
 
 var _ repository.SubItemRepo = (*StubRouterRepoSubItem)(nil)
 
+// StubRouterRepoMilestone is a stub implementation of repository.MilestoneRepo for testing.
+type StubRouterRepoMilestone struct{}
+
+// Create is a stub for repository.MilestoneRepo.Create.
+func (s *StubRouterRepoMilestone) Create(_ context.Context, _ *model.Milestone) error { return nil }
+
+// FindByID is a stub for repository.MilestoneRepo.FindByID.
+func (s *StubRouterRepoMilestone) FindByID(_ context.Context, _ uint) (*model.Milestone, error) {
+	return nil, nil
+}
+
+// FindByBizKey is a stub for repository.MilestoneRepo.FindByBizKey.
+func (s *StubRouterRepoMilestone) FindByBizKey(_ context.Context, _ int64) (*model.Milestone, error) {
+	return nil, nil
+}
+
+// FindBatchByBizKeys is a stub for repository.MilestoneRepo.FindBatchByBizKeys.
+func (s *StubRouterRepoMilestone) FindBatchByBizKeys(_ context.Context, _ []int64) (map[int64]*model.Milestone, error) {
+	return nil, nil
+}
+
+// Update is a stub for repository.MilestoneRepo.Update.
+func (s *StubRouterRepoMilestone) Update(_ context.Context, _ *model.Milestone, _ map[string]interface{}) error {
+	return nil
+}
+
+// ListByMap is a stub for repository.MilestoneRepo.ListByMap.
+func (s *StubRouterRepoMilestone) ListByMap(_ context.Context, _ int64) ([]model.Milestone, error) {
+	return nil, nil
+}
+
+// ListByTeam is a stub for repository.MilestoneRepo.ListByTeam.
+func (s *StubRouterRepoMilestone) ListByTeam(_ context.Context, _ int64, _ dto.MilestoneTeamFilter) ([]model.Milestone, error) {
+	return nil, nil
+}
+
+// SoftDelete is a stub for repository.MilestoneRepo.SoftDelete.
+func (s *StubRouterRepoMilestone) SoftDelete(_ context.Context, _ uint) error { return nil }
+
+// SoftDeleteByMap is a stub for repository.MilestoneRepo.SoftDeleteByMap.
+func (s *StubRouterRepoMilestone) SoftDeleteByMap(_ context.Context, _ int64) error {
+	return nil
+}
+
+// ExistsByNameAndMap is a stub for repository.MilestoneRepo.ExistsByNameAndMap.
+func (s *StubRouterRepoMilestone) ExistsByNameAndMap(_ context.Context, _ int64, _ string, _ *uint) (bool, error) {
+	return false, nil
+}
+
+var _ repository.MilestoneRepo = (*StubRouterRepoMilestone)(nil)
+
 // StubRouterRepoMainItem is a stub implementation of repository.MainItemRepo for testing.
 type StubRouterRepoMainItem struct{}
 

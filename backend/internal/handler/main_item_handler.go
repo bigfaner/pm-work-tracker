@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/middleware"
+	"pm-work-tracker/backend/internal/pkg"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	pkgHandler "pm-work-tracker/backend/internal/pkg/handler"
 	"pm-work-tracker/backend/internal/repository"
@@ -16,13 +18,14 @@ import (
 
 // MainItemHandler handles main item endpoints.
 type MainItemHandler struct {
-	svc         service.MainItemService
-	subItemRepo repository.SubItemRepo
-	userRepo    repository.UserRepo
+	svc           service.MainItemService
+	subItemRepo   repository.SubItemRepo
+	userRepo      repository.UserRepo
+	milestoneRepo repository.MilestoneRepo
 }
 
 // NewMainItemHandler creates a new MainItemHandler with service and repo dependencies.
-func NewMainItemHandler(svc service.MainItemService, userRepo repository.UserRepo, subItemRepo repository.SubItemRepo) *MainItemHandler {
+func NewMainItemHandler(svc service.MainItemService, userRepo repository.UserRepo, subItemRepo repository.SubItemRepo, milestoneRepo repository.MilestoneRepo) *MainItemHandler {
 	if svc == nil {
 		panic("main_item_handler: mainItemService must not be nil")
 	}
@@ -32,7 +35,10 @@ func NewMainItemHandler(svc service.MainItemService, userRepo repository.UserRep
 	if subItemRepo == nil {
 		panic("main_item_handler: subItemRepo must not be nil")
 	}
-	return &MainItemHandler{svc: svc, userRepo: userRepo, subItemRepo: subItemRepo}
+	if milestoneRepo == nil {
+		panic("main_item_handler: milestoneRepo must not be nil")
+	}
+	return &MainItemHandler{svc: svc, userRepo: userRepo, subItemRepo: subItemRepo, milestoneRepo: milestoneRepo}
 }
 
 // Create handles POST /api/v1/teams/:teamId/main-items
@@ -89,6 +95,7 @@ func (h *MainItemHandler) List(c *gin.Context) {
 		}
 		voItems = append(voItems, itemVO)
 	}
+	h.enrichMilestoneNames(c.Request.Context(), voItems)
 	apperrors.RespondOK(c, gin.H{
 		"items": voItems,
 		"total": result.Total,
@@ -111,6 +118,9 @@ func (h *MainItemHandler) Get(c *gin.Context) {
 	}
 
 	itemVO := vo.NewMainItemVO(item)
+
+	// Enrich milestone name
+	h.enrichMilestoneNames(c.Request.Context(), []vo.MainItemVO{itemVO})
 
 	// Fetch subItems summary
 	subItems, _ := h.subItemRepo.ListByMainItem(c.Request.Context(), item.BizKey)
@@ -172,7 +182,9 @@ func (h *MainItemHandler) Update(c *gin.Context) {
 		return
 	}
 
-	apperrors.RespondOK(c, vo.NewMainItemVO(updated))
+	updatedVO := vo.NewMainItemVO(updated)
+	h.enrichMilestoneNames(c.Request.Context(), []vo.MainItemVO{updatedVO})
+	apperrors.RespondOK(c, updatedVO)
 }
 
 // Archive handles POST /api/v1/teams/:teamId/main-items/:itemId/archive
@@ -272,4 +284,36 @@ func (h *MainItemHandler) AvailableTransitions(c *gin.Context) {
 	}
 
 	apperrors.RespondOK(c, gin.H{"transitions": transitions})
+}
+
+// enrichMilestoneNames batch-loads milestone names for a list of MainItemVOs.
+// Collects non-null MilestoneKey values, calls FindBatchByBizKeys, and sets
+// MilestoneName on each VO. Soft-deleted milestones get MilestoneName = "—".
+func (h *MainItemHandler) enrichMilestoneNames(ctx context.Context, items []vo.MainItemVO) {
+	// Collect non-null milestone bizKeys
+	var bizKeys []int64
+	for i := range items {
+		if items[i].MilestoneKey != nil && *items[i].MilestoneKey != "" {
+			if key, err := pkg.ParseID(*items[i].MilestoneKey); err == nil {
+				bizKeys = append(bizKeys, key)
+			}
+		}
+	}
+	if len(bizKeys) == 0 || h.milestoneRepo == nil {
+		return
+	}
+
+	msMap, _ := h.milestoneRepo.FindBatchByBizKeys(ctx, bizKeys)
+	for i := range items {
+		if items[i].MilestoneKey != nil && *items[i].MilestoneKey != "" {
+			if key, err := pkg.ParseID(*items[i].MilestoneKey); err == nil {
+				if ms, ok := msMap[key]; ok {
+					items[i].MilestoneName = ms.MilestoneName
+				} else {
+					// Not found in batch result = soft-deleted
+					items[i].MilestoneName = "—"
+				}
+			}
+		}
+	}
 }
