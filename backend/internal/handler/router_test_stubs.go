@@ -484,6 +484,26 @@ func (s *StubRouterRepoMainItem) CascadeSoftDelete(_ context.Context, _ uint, _ 
 	return nil
 }
 
+// FindByMilestoneKey is a stub for repository.MainItemRepo.FindByMilestoneKey.
+func (s *StubRouterRepoMainItem) FindByMilestoneKey(_ context.Context, _ int64) ([]model.MainItem, error) {
+	return nil, nil
+}
+
+// CountByMilestoneKey is a stub for repository.MainItemRepo.CountByMilestoneKey.
+func (s *StubRouterRepoMainItem) CountByMilestoneKey(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
+
+// ClearMilestoneKeyByMilestone is a stub for repository.MainItemRepo.ClearMilestoneKeyByMilestone.
+func (s *StubRouterRepoMainItem) ClearMilestoneKeyByMilestone(_ context.Context, _ int64) error {
+	return nil
+}
+
+// ClearMilestoneKeyByMap is a stub for repository.MainItemRepo.ClearMilestoneKeyByMap.
+func (s *StubRouterRepoMainItem) ClearMilestoneKeyByMap(_ context.Context, _ []int64) error {
+	return nil
+}
+
 var _ repository.MainItemRepo = (*StubRouterRepoMainItem)(nil)
 
 // StubReportSvc is a stub ReportService for test wiring.

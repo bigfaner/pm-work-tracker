@@ -125,6 +125,19 @@ func (m *mockMainItemRepo) CascadeSoftDelete(_ context.Context, mainItemID uint,
 	return m.cascadeSoftDeleteErr
 }
 
+func (m *mockMainItemRepo) FindByMilestoneKey(_ context.Context, _ int64) ([]model.MainItem, error) {
+	return nil, nil
+}
+func (m *mockMainItemRepo) CountByMilestoneKey(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
+func (m *mockMainItemRepo) ClearMilestoneKeyByMilestone(_ context.Context, _ int64) error {
+	return nil
+}
+func (m *mockMainItemRepo) ClearMilestoneKeyByMap(_ context.Context, _ []int64) error {
+	return nil
+}
+
 type mockSubItemRepo struct {
 	subItems     []*model.SubItem
 	teamSubItems []model.SubItem

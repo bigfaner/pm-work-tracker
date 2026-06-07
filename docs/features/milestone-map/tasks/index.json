@@ -155,7 +155,7 @@
         "1.5",
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.3-mainitem-milestone-repo.md",
       "record": "records/2.3-mainitem-milestone-repo.md",
       "breaking": true,

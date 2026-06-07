@@ -176,3 +176,34 @@ func (r *mainItemRepo) CascadeSoftDelete(ctx context.Context, mainItemID uint, s
 		return nil
 	})
 }
+
+func (r *mainItemRepo) FindByMilestoneKey(ctx context.Context, milestoneBizKey int64) ([]model.MainItem, error) {
+	var items []model.MainItem
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).
+		Where("milestone_key = ?", milestoneBizKey).
+		Find(&items).Error
+	return items, err
+}
+
+func (r *mainItemRepo) CountByMilestoneKey(ctx context.Context, milestoneBizKey int64) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Scopes(NotDeleted).Model(&model.MainItem{}).
+		Where("milestone_key = ?", milestoneBizKey).
+		Count(&count).Error
+	return count, err
+}
+
+func (r *mainItemRepo) ClearMilestoneKeyByMilestone(ctx context.Context, milestoneBizKey int64) error {
+	return r.db.WithContext(ctx).Model(&model.MainItem{}).
+		Where("milestone_key = ? AND deleted_flag = 0", milestoneBizKey).
+		Update("milestone_key", nil).Error
+}
+
+func (r *mainItemRepo) ClearMilestoneKeyByMap(ctx context.Context, milestoneBizKeys []int64) error {
+	if len(milestoneBizKeys) == 0 {
+		return nil
+	}
+	return r.db.WithContext(ctx).Model(&model.MainItem{}).
+		Where("milestone_key IN ? AND deleted_flag = 0", milestoneBizKeys).
+		Update("milestone_key", nil).Error
+}

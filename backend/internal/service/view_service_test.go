@@ -92,6 +92,18 @@ func (m *mockViewMainItemRepo) SoftDelete(_ context.Context, _ uint) error { ret
 func (m *mockViewMainItemRepo) CascadeSoftDelete(_ context.Context, _ uint, _ []uint, _ []model.StatusHistory) error {
 	return nil
 }
+func (m *mockViewMainItemRepo) FindByMilestoneKey(_ context.Context, _ int64) ([]model.MainItem, error) {
+	return nil, nil
+}
+func (m *mockViewMainItemRepo) CountByMilestoneKey(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
+func (m *mockViewMainItemRepo) ClearMilestoneKeyByMilestone(_ context.Context, _ int64) error {
+	return nil
+}
+func (m *mockViewMainItemRepo) ClearMilestoneKeyByMap(_ context.Context, _ []int64) error {
+	return nil
+}
 
 type mockViewSubItemRepo struct {
 	items   []model.SubItem

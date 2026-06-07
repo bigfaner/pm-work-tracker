@@ -22,4 +22,8 @@ type MainItemRepo interface {
 	NextCode(ctx context.Context, teamBizKey int64) (string, error)
 	CountByTeam(ctx context.Context, teamBizKey int64) (int64, error)
 	ListNonArchivedByTeam(ctx context.Context, teamBizKey int64) ([]model.MainItem, error)
+	FindByMilestoneKey(ctx context.Context, milestoneBizKey int64) ([]model.MainItem, error)
+	CountByMilestoneKey(ctx context.Context, milestoneBizKey int64) (int64, error)
+	ClearMilestoneKeyByMilestone(ctx context.Context, milestoneBizKey int64) error
+	ClearMilestoneKeyByMap(ctx context.Context, milestoneBizKeys []int64) error
 }
