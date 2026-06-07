@@ -10,7 +10,7 @@
       "title": "Schema: create pmw_milestone_maps and pmw_milestones tables",
       "priority": "P0",
       "estimatedTime": "1-2h",
-      "status": "pending",
+      "status": "completed",
       "file": "1.1-schema-new-tables.md",
       "record": "records/1.1-schema-new-tables.md",
       "surface-key": "backend",
