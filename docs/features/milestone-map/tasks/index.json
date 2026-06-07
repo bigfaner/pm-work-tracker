@@ -407,7 +407,7 @@
         "3.4",
         "2.gate"
       ],
-      "status": "blocked",
+      "status": "pending",
       "file": "3.6-frontend-timeline.md",
       "record": "records/3.6-frontend-timeline.md",
       "surface-key": "frontend",
@@ -557,7 +557,6 @@
       "status": "pending",
       "file": "clean-code.md",
       "record": "records/clean-code.md",
-      "breaking": true,
       "type": "code-quality.simplify"
     },
     "consolidate-specs": {
@@ -571,7 +570,6 @@
       "status": "pending",
       "file": "consolidate-specs.md",
       "record": "records/consolidate-specs.md",
-      "breaking": true,
       "type": "doc.consolidate"
     },
     "eval-contract": {
@@ -585,7 +583,6 @@
       "status": "pending",
       "file": "eval-contract.md",
       "record": "records/eval-contract.md",
-      "breaking": true,
       "mainSession": true,
       "type": "eval.contract"
     },
@@ -600,7 +597,6 @@
       "status": "pending",
       "file": "eval-journey.md",
       "record": "records/eval-journey.md",
-      "breaking": true,
       "mainSession": true,
       "type": "eval.journey"
     },
@@ -616,6 +612,18 @@
       "sourceTaskID": "2.3",
       "type": "coding.fix"
     },
+    "fix-2": {
+      "id": "fix-2",
+      "title": "Fix: MilestoneTimeline drag-and-drop MI rebinding (AC-5)",
+      "priority": "P0",
+      "estimatedTime": "30min",
+      "status": "completed",
+      "file": "fix-2.md",
+      "record": "records/fix-2.md",
+      "breaking": true,
+      "sourceTaskID": "3.6",
+      "type": "coding.fix"
+    },
     "gen-contracts": {
       "id": "T-test-gen-contracts",
       "title": "Generate Test Contracts",
@@ -627,7 +635,6 @@
       "status": "pending",
       "file": "gen-contracts.md",
       "record": "records/gen-contracts.md",
-      "breaking": true,
       "type": "test.gen-contracts"
     },
     "gen-journeys": {
@@ -637,12 +644,36 @@
       "estimatedTime": "20-30min",
       "dependencies": [
         "T-review-doc",
-        "T-clean-code"
+        "3.6",
+        "fix-2",
+        "1.1",
+        "1.2",
+        "4.2",
+        "fix-1",
+        "1.4",
+        "2.1",
+        "2.2",
+        "3.4",
+        "3.7",
+        "2.4",
+        "2.6",
+        "2.9",
+        "3.1",
+        "4.1",
+        "2.7",
+        "2.8",
+        "3.2",
+        "3.3",
+        "2.3",
+        "2.5",
+        "3.5",
+        "4.3",
+        "1.3",
+        "1.5"
       ],
       "status": "pending",
       "file": "gen-journeys.md",
       "record": "records/gen-journeys.md",
-      "breaking": true,
       "type": "test.gen-journeys"
     },
     "gen-test-scripts-backend": {
@@ -656,7 +687,6 @@
       "status": "pending",
       "file": "gen-test-scripts-backend.md",
       "record": "records/gen-test-scripts-backend.md",
-      "breaking": true,
       "surface-key": "backend",
       "surface-type": "api",
       "type": "test.gen-scripts"
@@ -672,7 +702,6 @@
       "status": "pending",
       "file": "gen-test-scripts-frontend.md",
       "record": "records/gen-test-scripts-frontend.md",
-      "breaking": true,
       "surface-key": "frontend",
       "surface-type": "web",
       "type": "test.gen-scripts"
@@ -689,7 +718,6 @@
       "status": "completed",
       "file": "review-doc.md",
       "record": "records/review-doc.md",
-      "breaking": true,
       "type": "doc.review"
     },
     "run-test-backend": {
@@ -704,7 +732,6 @@
       "status": "pending",
       "file": "run-test-backend.md",
       "record": "records/run-test-backend.md",
-      "breaking": true,
       "surface-key": "backend",
       "surface-type": "api",
       "type": "test.run"
@@ -720,7 +747,6 @@
       "status": "pending",
       "file": "run-test-frontend.md",
       "record": "records/run-test-frontend.md",
-      "breaking": true,
       "surface-key": "frontend",
       "surface-type": "web",
       "type": "test.run"
@@ -736,7 +762,6 @@
       "status": "pending",
       "file": "validate-code.md",
       "record": "records/validate-code.md",
-      "breaking": true,
       "type": "validation.code"
     },
     "validate-ux": {
@@ -750,7 +775,6 @@
       "status": "pending",
       "file": "validate-ux.md",
       "record": "records/validate-ux.md",
-      "breaking": true,
       "mainSession": true,
       "type": "validation.ux"
     }

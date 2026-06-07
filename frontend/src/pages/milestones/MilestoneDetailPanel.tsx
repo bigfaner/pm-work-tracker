@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Pencil, Plus, Trash2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import {
   Tooltip,
   TooltipContent,
@@ -313,7 +314,31 @@ export default function MilestoneDetailPanel({
                         return (
                           <div
                             key={mi.bizKey}
-                            className="group flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-bg-alt cursor-pointer text-sm"
+                            draggable={!isMITerminal}
+                            onDragStart={() => {
+                              ;(window as unknown as Record<string, unknown>).__dragMI = {
+                                miBizKey: mi.bizKey,
+                                miCode: mi.code,
+                                sourceMilestoneKey: milestoneId!,
+                              }
+                            }}
+                            onDragEnd={() => {
+                              // Clean up after drag ends (whether drop or cancel)
+                              setTimeout(() => {
+                                if (
+                                  (window as unknown as Record<string, unknown>).__dragMI
+                                ) {
+                                  delete (window as unknown as Record<string, unknown>).__dragMI
+                                }
+                              }, 200)
+                            }}
+                            className={cn(
+                              'group flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-bg-alt text-sm',
+                              !isMITerminal
+                                ? 'cursor-grab active:cursor-grabbing active:opacity-50'
+                                : 'cursor-pointer',
+                            )}
+                            data-testid={`mi-drag-${mi.bizKey}`}
                           >
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5">

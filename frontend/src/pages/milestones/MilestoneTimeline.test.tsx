@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -22,6 +22,18 @@ vi.mock('@/api/mainItems', () => ({
   updateMainItemApi: vi.fn(),
 }))
 
+// Suppress console.error for DnD-related warnings in test env
+const originalConsoleError = console.error
+beforeAll(() => {
+  console.error = (...args: unknown[]) => {
+    if (typeof args[0] === 'string' && args[0].includes('onDragStart')) return
+    originalConsoleError(...args)
+  }
+})
+afterAll(() => {
+  console.error = originalConsoleError
+})
+
 vi.mock('@/store/team', () => ({
   useTeamStore: vi.fn(
     (selector: (s: { currentTeamId: string | null }) => unknown) =>
@@ -38,7 +50,8 @@ vi.mock('@/hooks/usePermission', () => ({
 }))
 
 import { listMilestonesByMapApi, getMilestoneMapApi } from '@/api/milestones'
-import { listMainItemsApi } from '@/api/mainItems'
+import { listMainItemsApi, updateMainItemApi } from '@/api/mainItems'
+import { setDragMI } from './MilestoneTimeline'
 
 const mockMap: MilestoneMap = {
   bizKey: 'map-1',
@@ -384,6 +397,123 @@ describe('MilestoneTimeline', () => {
     renderTimeline()
     await waitFor(() => {
       expect(screen.getByTestId('tick-marks')).toBeInTheDocument()
+    })
+  })
+
+  // AC-5: Drag-and-drop MI rebinding
+  describe('AC-5: Drag-and-drop MI rebinding', () => {
+    it('shows target highlight when dragging MI over a different milestone node', async () => {
+      renderTimeline()
+      await waitFor(() => {
+        expect(screen.getByTestId('milestone-node-ms-2')).toBeInTheDocument()
+      })
+
+      // Simulate drag data set (as if MI was dragged from detail panel)
+      setDragMI({
+        miBizKey: 'mi-1',
+        miCode: 'MI-0001',
+        sourceMilestoneKey: 'ms-1',
+      })
+
+      const nodeMs2 = screen.getByTestId('milestone-node-ms-2')
+      // Fire dragOver event using testing-library fireEvent (triggers React handlers)
+      fireEvent.dragOver(nodeMs2, {
+        dataTransfer: { dropEffect: 'none' },
+      })
+
+      // Node should show highlight state (ring-primary-200 class)
+      expect(nodeMs2.className).toContain('ring-primary-200')
+    })
+
+    it('calls updateMainItemApi with correct milestoneKey on drop', async () => {
+      vi.mocked(updateMainItemApi).mockResolvedValue({
+        bizKey: 'mi-1',
+        teamKey: 'team-1',
+        code: 'MI-0001',
+        title: '需求分析',
+        priority: 'P1',
+        proposerKey: 'user-1',
+        assigneeKey: 'user-1',
+        planStartDate: '2026-01-01',
+        expectedEndDate: '2026-03-01',
+        actualEndDate: null,
+        itemStatus: 'progressing',
+        statusName: '进行中',
+        completion: 60,
+        milestoneKey: 'ms-2',
+        createTime: '2026-01-01',
+        dbUpdateTime: '2026-01-01',
+      })
+
+      renderTimeline()
+      await waitFor(() => {
+        expect(screen.getByTestId('milestone-node-ms-2')).toBeInTheDocument()
+      })
+
+      // Set drag data
+      setDragMI({
+        miBizKey: 'mi-1',
+        miCode: 'MI-0001',
+        sourceMilestoneKey: 'ms-1',
+      })
+
+      const nodeMs2 = screen.getByTestId('milestone-node-ms-2')
+      // Fire drop event using testing-library fireEvent
+      fireEvent.drop(nodeMs2)
+
+      await waitFor(() => {
+        expect(updateMainItemApi).toHaveBeenCalledWith(
+          'team-1',
+          'mi-1',
+          { milestoneKey: 'ms-2' },
+        )
+      })
+    })
+
+    it('does not call API when dropping on same milestone', async () => {
+      renderTimeline()
+      await waitFor(() => {
+        expect(screen.getByTestId('milestone-node-ms-1')).toBeInTheDocument()
+      })
+
+      // Set drag data with same source as target
+      setDragMI({
+        miBizKey: 'mi-1',
+        miCode: 'MI-0001',
+        sourceMilestoneKey: 'ms-1',
+      })
+
+      const nodeMs1 = screen.getByTestId('milestone-node-ms-1')
+      fireEvent.drop(nodeMs1)
+
+      // Should NOT call the API
+      expect(updateMainItemApi).not.toHaveBeenCalled()
+    })
+
+    it('clears drag-over highlight on drag leave', async () => {
+      renderTimeline()
+      await waitFor(() => {
+        expect(screen.getByTestId('milestone-node-ms-2')).toBeInTheDocument()
+      })
+
+      // Set drag state and trigger dragOver first
+      setDragMI({
+        miBizKey: 'mi-1',
+        miCode: 'MI-0001',
+        sourceMilestoneKey: 'ms-1',
+      })
+
+      const nodeMs2 = screen.getByTestId('milestone-node-ms-2')
+      fireEvent.dragOver(nodeMs2, {
+        dataTransfer: { dropEffect: 'none' },
+      })
+      expect(nodeMs2.className).toContain('ring-primary-200')
+
+      // Now fire dragLeave
+      fireEvent.dragLeave(nodeMs2)
+
+      // Highlight should be gone
+      expect(nodeMs2.className).not.toContain('ring-primary-200')
     })
   })
 })

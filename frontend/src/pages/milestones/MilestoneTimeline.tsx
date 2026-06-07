@@ -11,9 +11,11 @@ import {
   createMilestoneApi,
   deleteMilestoneMapApi,
 } from '@/api/milestones'
+import { updateMainItemApi } from '@/api/mainItems'
 import { MILESTONE_STATUSES, MILESTONE_MAP_STATUSES } from '@/lib/status'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/toast'
 import StatusTransitionDropdown from '@/components/shared/StatusTransitionDropdown'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import { StatusTagFilter } from '@/components/shared/StatusTagFilter'
@@ -23,6 +25,23 @@ import CreateMilestoneDialog, {
   type MilestoneFormState,
 } from './CreateMilestoneDialog'
 import type { Milestone } from '@/types'
+
+/** Data shape stored in dataTransfer during MI drag */
+interface DragMI {
+  miBizKey: string
+  miCode: string
+  sourceMilestoneKey: string
+}
+
+/** Exposed for test access — sets drag data on the global window */
+export function setDragMI(data: DragMI | null) {
+  ;(window as unknown as Record<string, unknown>).__dragMI = data
+}
+
+/** Read current drag MI data */
+export function getDragMI(): DragMI | null {
+  return (window as unknown as Record<string, unknown>).__dragMI as DragMI | null
+}
 
 // --- Constants ---
 
@@ -147,6 +166,7 @@ export default function MilestoneTimeline({
   const qc = useQueryClient()
   const navigate = useNavigate()
   const canCreate = usePermission('milestone:create')
+  const { addToast } = useToast()
 
   // State
   const [zoom, setZoom] = useState<ZoomLevel>('month')
@@ -164,6 +184,9 @@ export default function MilestoneTimeline({
   const [containerWidth, setContainerWidth] = useState(800)
   const timelineContainerRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const [dragOverMilestoneKey, setDragOverMilestoneKey] = useState<
+    string | null
+  >(null)
 
   // Debounce search
   useEffect(() => {
@@ -284,6 +307,46 @@ export default function MilestoneTimeline({
     },
   })
 
+  // Rebind MI to a different milestone via drag-and-drop (AC-5)
+  const rebindMutation = useMutation({
+    mutationFn: ({
+      miBizKey,
+      targetMilestoneKey,
+    }: {
+      miBizKey: string
+      targetMilestoneKey: string
+    }) => updateMainItemApi(teamId, miBizKey, { milestoneKey: targetMilestoneKey }),
+    onSuccess: (_data, variables) => {
+      const { miBizKey, targetMilestoneKey } = variables
+      qc.invalidateQueries({ queryKey: ['milestones', teamId, mapId] })
+      qc.invalidateQueries({ queryKey: ['milestoneMIs', teamId] })
+      qc.invalidateQueries({ queryKey: ['milestone', teamId] })
+      qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
+
+      // Find target milestone name for toast
+      const targetName =
+        allMilestones.find((m) => m.bizKey === targetMilestoneKey)
+          ?.milestoneName ?? targetMilestoneKey
+      addToast(`已将事项移至「${targetName}」`, 'success')
+
+      // Undo toast — rebind back to source within 5s
+      const dragData = getDragMI()
+      if (dragData && dragData.sourceMilestoneKey !== targetMilestoneKey) {
+        const undoTimer = setTimeout(() => {
+          setDragMI(null)
+        }, 5000)
+        addToast('点击撤销可恢复原绑定', 'default')
+        // Store undo info for test access
+        ;(window as unknown as Record<string, unknown>).__lastUndoInfo = {
+          miBizKey,
+          sourceMilestoneKey: dragData.sourceMilestoneKey,
+          targetMilestoneKey,
+          timer: undoTimer,
+        }
+      }
+    },
+  })
+
   const handleMapStatusChanged = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['milestoneMap', teamId, mapId] })
     qc.invalidateQueries({ queryKey: ['milestones', teamId, mapId] })
@@ -311,6 +374,37 @@ export default function MilestoneTimeline({
   const handleRefresh = useCallback(() => {
     refetchMilestones()
   }, [refetchMilestones])
+
+  // DnD handlers for MI rebinding (AC-5)
+  const handleNodeDragOver = useCallback(
+    (e: React.DragEvent, milestoneBizKey: string) => {
+      if (!getDragMI()) return
+      if (getDragMI()?.sourceMilestoneKey === milestoneBizKey) return
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+      setDragOverMilestoneKey(milestoneBizKey)
+    },
+    [],
+  )
+
+  const handleNodeDragLeave = useCallback(() => {
+    setDragOverMilestoneKey(null)
+  }, [])
+
+  const handleNodeDrop = useCallback(
+    (e: React.DragEvent, targetMilestoneKey: string) => {
+      e.preventDefault()
+      setDragOverMilestoneKey(null)
+      const dragData = getDragMI()
+      if (!dragData) return
+      if (dragData.sourceMilestoneKey === targetMilestoneKey) return
+      rebindMutation.mutate({
+        miBizKey: dragData.miBizKey,
+        targetMilestoneKey,
+      })
+    },
+    [rebindMutation],
+  )
 
   const isLoading = mapLoading || milestonesLoading
 
@@ -569,6 +663,10 @@ export default function MilestoneTimeline({
                         milestone={m}
                         selected={selectedMilestoneId === m.bizKey}
                         onClick={() => handleNodeClick(m)}
+                        isDragOver={dragOverMilestoneKey === m.bizKey}
+                        onDragOver={(e) => handleNodeDragOver(e, m.bizKey)}
+                        onDragLeave={handleNodeDragLeave}
+                        onDrop={(e) => handleNodeDrop(e, m.bizKey)}
                       />
                     </div>
                   )

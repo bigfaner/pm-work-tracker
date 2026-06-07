@@ -123,4 +123,50 @@ describe('MilestoneNode', () => {
     const node = screen.getByTestId('milestone-node-ms-1')
     expect(node.className).toContain('w-40')
   })
+
+  // DnD: isDragOver highlight
+  it('shows drag-over highlight when isDragOver is true', () => {
+    render(
+      <MilestoneNode
+        milestone={makeMilestone()}
+        isDragOver={true}
+      />,
+    )
+    const node = screen.getByTestId('milestone-node-ms-1')
+    expect(node.className).toContain('ring-primary-200')
+    expect(node.className).toContain('bg-primary-50')
+  })
+
+  it('does not show drag-over highlight when isDragOver is false', () => {
+    renderNode()
+    const node = screen.getByTestId('milestone-node-ms-1')
+    expect(node.className).not.toContain('ring-primary-200')
+    expect(node.className).not.toContain('bg-primary-50')
+  })
+
+  it('calls onDragOver when provided', () => {
+    const onDragOver = vi.fn()
+    render(
+      <MilestoneNode
+        milestone={makeMilestone()}
+        onDragOver={onDragOver}
+      />,
+    )
+    const node = screen.getByTestId('milestone-node-ms-1')
+    node.dispatchEvent(new Event('dragover', { bubbles: true }))
+    expect(onDragOver).toHaveBeenCalled()
+  })
+
+  it('calls onDrop when provided', () => {
+    const onDrop = vi.fn()
+    render(
+      <MilestoneNode
+        milestone={makeMilestone()}
+        onDrop={onDrop}
+      />,
+    )
+    const node = screen.getByTestId('milestone-node-ms-1')
+    node.dispatchEvent(new Event('drop', { bubbles: true }))
+    expect(onDrop).toHaveBeenCalled()
+  })
 })

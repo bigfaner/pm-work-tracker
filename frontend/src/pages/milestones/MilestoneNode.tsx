@@ -7,6 +7,10 @@ interface MilestoneNodeProps {
   selected?: boolean;
   onClick?: () => void;
   style?: React.CSSProperties;
+  isDragOver?: boolean;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDragLeave?: () => void;
+  onDrop?: (e: React.DragEvent) => void;
 }
 
 /** Map milestone status to status dot color class */
@@ -28,6 +32,10 @@ export default function MilestoneNode({
   selected = false,
   onClick,
   style,
+  isDragOver = false,
+  onDragOver,
+  onDragLeave,
+  onDrop,
 }: MilestoneNodeProps) {
   const isCancelled = milestone.milestoneStatus === 'cancelled'
 
@@ -41,11 +49,18 @@ export default function MilestoneNode({
       onKeyDown={(e) => {
         if (e.key === 'Enter') onClick?.()
       }}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
       style={style}
       className={cn(
         'w-40 rounded-xl border border-border bg-white p-3.5 cursor-pointer transition-all duration-200',
         isCancelled && 'opacity-50',
-        selected ? 'border-primary ring-2 ring-primary-100' : 'hover:bg-bg-alt',
+        isDragOver
+          ? 'border-primary ring-2 ring-primary-200 bg-primary-50'
+          : selected
+            ? 'border-primary ring-2 ring-primary-100'
+            : 'hover:bg-bg-alt',
       )}
     >
       {/* Row 1: Status dot + Name + Completion % */}

@@ -429,4 +429,59 @@ describe('MilestoneDetailPanel', () => {
     renderPanel()
     expect(document.querySelector('.animate-pulse')).toBeInTheDocument()
   })
+
+  // DnD: MI rows are draggable for non-terminal items
+  describe('MI drag support', () => {
+    it('non-terminal MI row is draggable and has grab cursor', async () => {
+      renderPanel()
+      await waitFor(() => {
+        expect(screen.getByTestId('mi-drag-mi-1')).toBeInTheDocument()
+      })
+      const miRow = screen.getByTestId('mi-drag-mi-1')
+      expect(miRow.getAttribute('draggable')).toBe('true')
+      expect(miRow.className).toContain('cursor-grab')
+    })
+
+    it('terminal MI row (completed) is not draggable', async () => {
+      renderPanel()
+      await waitFor(() => {
+        expect(screen.getByTestId('mi-drag-mi-2')).toBeInTheDocument()
+      })
+      const miRow = screen.getByTestId('mi-drag-mi-2')
+      expect(miRow.getAttribute('draggable')).toBe('false')
+    })
+
+    it('sets window.__dragMI on dragStart', async () => {
+      renderPanel()
+      await waitFor(() => {
+        expect(screen.getByTestId('mi-drag-mi-1')).toBeInTheDocument()
+      })
+      const miRow = screen.getByTestId('mi-drag-mi-1')
+      fireEvent.dragStart(miRow)
+      expect((window as unknown as Record<string, unknown>).__dragMI).toEqual({
+        miBizKey: 'mi-1',
+        miCode: 'MI-0001',
+        sourceMilestoneKey: 'ms-1',
+      })
+    })
+
+    it('clears window.__dragMI after dragEnd', async () => {
+      renderPanel()
+      await waitFor(() => {
+        expect(screen.getByTestId('mi-drag-mi-1')).toBeInTheDocument()
+      })
+      const miRow = screen.getByTestId('mi-drag-mi-1')
+      fireEvent.dragStart(miRow)
+      expect((window as unknown as Record<string, unknown>).__dragMI).toBeTruthy()
+
+      fireEvent.dragEnd(miRow)
+      // Wait for the 200ms setTimeout to clear the drag data
+      await waitFor(
+        () => {
+          expect((window as unknown as Record<string, unknown>).__dragMI).toBeUndefined()
+        },
+        { timeout: 1000 },
+      )
+    })
+  })
 })
