@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, ChevronsUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { getTableViewApi, exportTableCsvApi } from '@/api/views'
@@ -59,6 +59,10 @@ export default function TableViewPage() {
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [milestoneFilter, setMilestoneFilter] = useState<string>('')
 
+  // Sort state
+  const [sortBy, setSortBy] = useState<string>('')
+  const [sortOrder, setSortOrder] = useState<string>('')
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
@@ -91,6 +95,8 @@ export default function TableViewPage() {
     if (statusFilter) filter.status = statusFilter
     if (assigneeFilter) filter.assigneeKey = assigneeFilter
     if (milestoneFilter) filter.milestoneKey = milestoneFilter
+    if (sortBy) filter.sortBy = sortBy
+    if (sortOrder) filter.sortOrder = sortOrder
     return filter
   }, [
     typeFilter,
@@ -98,6 +104,8 @@ export default function TableViewPage() {
     statusFilter,
     assigneeFilter,
     milestoneFilter,
+    sortBy,
+    sortOrder,
     currentPage,
     pageSize,
   ])
@@ -151,6 +159,21 @@ export default function TableViewPage() {
     setMilestoneFilter(v === '_all' ? '' : v)
     setCurrentPage(1)
   }, [])
+  const handleSortToggle = useCallback((field: string) => {
+    if (sortBy !== field) {
+      setSortBy(field)
+      setSortOrder('asc')
+    } else if (sortOrder === 'asc') {
+      setSortOrder('desc')
+    } else if (sortOrder === 'desc') {
+      setSortBy('')
+      setSortOrder('')
+    } else {
+      setSortBy(field)
+      setSortOrder('asc')
+    }
+    setCurrentPage(1)
+  }, [sortBy, sortOrder])
   const handlePageSizeChange = useCallback((size: number) => {
     setPageSize(size)
     setCurrentPage(1)
@@ -162,6 +185,8 @@ export default function TableViewPage() {
     setAssigneeFilter('')
     setStatusFilter('')
     setMilestoneFilter('')
+    setSortBy('')
+    setSortOrder('')
     setCurrentPage(1)
   }, [])
 
@@ -366,7 +391,23 @@ export default function TableViewPage() {
                       <TableHead>类型</TableHead>
                       <TableHead>编号</TableHead>
                       <TableHead>标题</TableHead>
-                      <TableHead className="w-32">里程碑</TableHead>
+                      <TableHead className="w-32">
+                        <button
+                          data-testid="sort-milestoneName"
+                          data-sort-order={sortBy === 'milestoneName' ? sortOrder : 'none'}
+                          className="inline-flex items-center gap-1 hover:text-primary-600"
+                          onClick={() => handleSortToggle('milestoneName')}
+                        >
+                          里程碑
+                          {sortBy !== 'milestoneName' || !sortOrder ? (
+                            <ChevronsUpDown className="w-3 h-3 text-tertiary" />
+                          ) : sortOrder === 'asc' ? (
+                            <ArrowUp className="w-3 h-3" />
+                          ) : (
+                            <ArrowDown className="w-3 h-3" />
+                          )}
+                        </button>
+                      </TableHead>
                       <TableHead>优先级</TableHead>
                       <TableHead>负责人</TableHead>
                       <TableHead>进度</TableHead>

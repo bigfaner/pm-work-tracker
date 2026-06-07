@@ -606,4 +606,98 @@ describe('TableViewPage', () => {
     renderPage()
     expect(screen.getByText('加载中...')).toBeInTheDocument()
   })
+
+  // --- Milestone column sorting (AC-2) ---
+
+  it('renders sortable milestone column header with sort indicator', async () => {
+    renderPage()
+    await waitFor(() => {
+      const sortHeader = screen.getByTestId('sort-milestoneName')
+      expect(sortHeader).toBeInTheDocument()
+      expect(sortHeader).toHaveTextContent('里程碑')
+    })
+  })
+
+  it('clicking milestone header toggles sort: none → asc → desc → none', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByTestId('sort-milestoneName')).toBeInTheDocument()
+    })
+
+    // Initial state: no sort
+    expect(screen.getByTestId('sort-milestoneName').dataset.sortOrder).toBe('none')
+
+    // First click: asc
+    await user.click(screen.getByTestId('sort-milestoneName'))
+    await waitFor(() => {
+      expect(screen.getByTestId('sort-milestoneName').dataset.sortOrder).toBe('asc')
+    })
+
+    // Second click: desc
+    await user.click(screen.getByTestId('sort-milestoneName'))
+    await waitFor(() => {
+      expect(screen.getByTestId('sort-milestoneName').dataset.sortOrder).toBe('desc')
+    })
+
+    // Third click: back to none
+    await user.click(screen.getByTestId('sort-milestoneName'))
+    await waitFor(() => {
+      expect(screen.getByTestId('sort-milestoneName').dataset.sortOrder).toBe('none')
+    })
+  })
+
+  it('sends sortBy and sortOrder params to API when milestone sort is active', async () => {
+    let capturedParams: URLSearchParams | null = null
+    server.use(
+      http.get('/v1/teams/:teamId/views/table', ({ request }) => {
+        const url = new URL(request.url)
+        capturedParams = url.searchParams
+        return HttpResponse.json({
+          code: 0,
+          data: { items: seedRows, total: seedRows.length, page: 1, size: 50 },
+        })
+      }),
+      http.get('/v1/teams/:teamId/members', () => {
+        return HttpResponse.json({ code: 0, data: [] })
+      }),
+      http.get('/v1/teams/:teamId/milestones', () => {
+        return HttpResponse.json({ code: 0, data: { items: [], total: 0 } })
+      }),
+    )
+
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByTestId('sort-milestoneName')).toBeInTheDocument()
+    })
+
+    // Click to sort asc
+    await user.click(screen.getByTestId('sort-milestoneName'))
+    await waitFor(() => {
+      expect(capturedParams).not.toBeNull()
+    })
+    expect(capturedParams!.get('sortBy')).toBe('milestoneName')
+    expect(capturedParams!.get('sortOrder')).toBe('asc')
+  })
+
+  it('resets sort when reset button is clicked', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByTestId('sort-milestoneName')).toBeInTheDocument()
+    })
+
+    // Click to sort asc
+    await user.click(screen.getByTestId('sort-milestoneName'))
+    await waitFor(() => {
+      expect(screen.getByTestId('sort-milestoneName').dataset.sortOrder).toBe('asc')
+    })
+
+    // Click reset
+    await user.click(screen.getByText('重置'))
+    await waitFor(() => {
+      expect(screen.getByTestId('sort-milestoneName').dataset.sortOrder).toBe('none')
+    })
+  })
 })
