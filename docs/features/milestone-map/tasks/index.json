@@ -248,7 +248,7 @@
         "1.5",
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.8-milestone-handler.md",
       "record": "records/2.8-milestone-handler.md",
       "surface-key": "backend",
@@ -266,7 +266,7 @@
         "2.8",
         "1.gate"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.9-milestone-router.md",
       "record": "records/2.9-milestone-router.md",
       "surface-key": "backend",
@@ -304,7 +304,7 @@
         "2.8",
         "2.9"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "2.summary.md",
       "record": "records/2.summary.md",
       "type": "doc.summary"
