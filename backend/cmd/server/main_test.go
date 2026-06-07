@@ -66,13 +66,13 @@ logging:
 }
 
 func TestRun_FailsWhenAssetsInvalid(t *testing.T) {
-	// dist/index.html is embedded, so ValidateAssets passes. The next early-exit
-	// is the schema migration: the temp config dir has no migrations/ folder, so
-	// run() returns a "migration error: ..." before starting the server.
+	// devMode=false triggers ValidateAssets first. The embedded FS has no
+	// dist/index.html in test builds, so run() returns a startup error before
+	// reaching config loading or schema migration.
 	path := writeTestConfig(t)
 	err := run(path, false)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "migration error:")
+	assert.Contains(t, err.Error(), "startup:")
 }
 
 func TestRun_LoadsConfigFromFile(t *testing.T) {

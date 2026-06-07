@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS pmw_main_items (
     delay_count       INT             NOT NULL DEFAULT 0            COMMENT '延期次数',
     archived_at       DATETIME                                      COMMENT '归档时间，NULL 表示未归档',
     sub_item_seq      INT             NOT NULL DEFAULT 0            COMMENT '子事项序号计数器，用于生成子事项编号',
+    milestone_key     BIGINT                                        COMMENT '所属里程碑 biz_key，NULL 表示未分配',
     PRIMARY KEY (id),
     UNIQUE KEY uk_biz_key (biz_key),
     UNIQUE KEY uk_main_items_team_code_deleted (team_key, item_code, deleted_flag, deleted_time),
@@ -91,7 +92,8 @@ CREATE TABLE IF NOT EXISTS pmw_main_items (
     KEY idx_main_items_expected_end_date (expected_end_date),
     KEY idx_main_items_team_status (team_key, item_status),
     KEY idx_main_items_team_priority (team_key, priority),
-    KEY idx_main_items_deleted_flag (deleted_flag)
+    KEY idx_main_items_deleted_flag (deleted_flag),
+    KEY idx_main_items_milestone_key (milestone_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='主事项表';
 
 -- pmw_sub_items

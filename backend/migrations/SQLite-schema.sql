@@ -79,7 +79,8 @@ CREATE TABLE IF NOT EXISTS pmw_main_items (
     is_key_item       INTEGER       NOT NULL DEFAULT 0,  -- 是否关键事项：0=否，1=是
     delay_count       INTEGER       NOT NULL DEFAULT 0,  -- 延期次数
     archived_at       DATETIME,                          -- 归档时间，NULL 表示未归档
-    sub_item_seq      INTEGER       NOT NULL DEFAULT 0   -- 子事项序号计数器，用于生成子事项编号
+    sub_item_seq      INTEGER       NOT NULL DEFAULT 0,  -- 子事项序号计数器，用于生成子事项编号
+    milestone_key     INTEGER                            -- 所属里程碑 biz_key，NULL 表示未分配
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uk_main_items_biz_key ON pmw_main_items(biz_key);
 CREATE UNIQUE INDEX IF NOT EXISTS uk_main_items_team_code_deleted ON pmw_main_items(team_key, item_code, deleted_flag, deleted_time);
@@ -89,6 +90,7 @@ CREATE INDEX IF NOT EXISTS idx_main_items_expected_end_date ON pmw_main_items(ex
 CREATE INDEX IF NOT EXISTS idx_main_items_team_status ON pmw_main_items(team_key, item_status);
 CREATE INDEX IF NOT EXISTS idx_main_items_team_priority ON pmw_main_items(team_key, priority);
 CREATE INDEX IF NOT EXISTS idx_main_items_deleted_flag ON pmw_main_items(deleted_flag);
+CREATE INDEX IF NOT EXISTS idx_main_items_milestone_key ON pmw_main_items(milestone_key);
 
 -- pmw_sub_items
 CREATE TABLE IF NOT EXISTS pmw_sub_items (

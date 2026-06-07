@@ -21,6 +21,7 @@ type MainItem struct {
 	DelayCount      int        `gorm:"not null;default:0" json:"delayCount"`
 	ArchivedAt      *time.Time `json:"archivedAt"`
 	SubItemSeq      uint       `gorm:"not null;default:0" json:"subItemSeq"`
+	MilestoneKey    *int64     `gorm:"index:idx_main_items_milestone_key" json:"milestoneKey"`
 }
 
 // TableName returns the database table name for MainItem.

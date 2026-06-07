@@ -23,7 +23,7 @@
       "title": "Schema: ALTER pmw_main_items add milestone_key column",
       "priority": "P0",
       "estimatedTime": "1-2h",
-      "status": "pending",
+      "status": "completed",
       "file": "1.2-schema-alter-mainitems.md",
       "record": "records/1.2-schema-alter-mainitems.md",
       "breaking": true,
