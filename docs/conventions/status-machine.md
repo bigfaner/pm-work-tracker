@@ -62,6 +62,57 @@ Any transition not listed above is invalid and returns `INVALID_STATUS` (422).
 
 `assigned` and `rejected` are terminal. Assignment is atomic (single DB transaction).
 
+## MilestoneMap -- 6 States
+
+_Source: feature/milestone-map_
+
+| Code | Display | Terminal |
+|------|---------|----------|
+| `planning` | 规划中 | No |
+| `reviewed` | 已评审 | No |
+| `ready` | 待实施 | No |
+| `executing` | 实施中 | No |
+| `completed` | 已完成 | Yes |
+| `cancelled` | 已取消 | Yes |
+
+### MilestoneMap Transition Matrix
+
+| From | To |
+|------|----|
+| `planning` | `reviewed`, `cancelled` |
+| `reviewed` | `ready`, `planning`, `cancelled` |
+| `ready` | `executing`, `reviewed`, `cancelled` |
+| `executing` | `completed`, `ready`, `cancelled` |
+
+Terminal states (`completed`, `cancelled`) have no outgoing transitions.
+
+Business rule filter: transition to `completed` is only available when all Milestones in the map are terminal (BR-2).
+
+## Milestone -- 4 States
+
+_Source: feature/milestone-map_
+
+| Code | Display | Terminal |
+|------|---------|----------|
+| `not_started` | 未开始 | No |
+| `in_progress` | 进行中 | No |
+| `completed` | 已完成 | Yes |
+| `cancelled` | 已取消 | Yes |
+
+### Milestone Transition Matrix
+
+| From | To |
+|------|----|
+| `not_started` | `in_progress`, `cancelled` |
+| `in_progress` | `completed`, `cancelled` |
+| `completed` | `cancelled`, `in_progress` |
+
+`cancelled` is terminal with no outgoing transitions.
+
+Business rule filters:
+- Transition to `completed` only available when all related MainItems are terminal (BR-1).
+- No transitions available when parent MilestoneMap is terminal (BR-5).
+
 ## Auto-P1 Rule (Aspirational)
 
 PRD specifies: when DelayCount >= 2, upgrade SubItem priority to P1 and set IsKeyItem=true. **Not yet implemented** in service code. The `DelayCount` and `IsKeyItem` fields exist in the model but are not read or incremented by any service method.

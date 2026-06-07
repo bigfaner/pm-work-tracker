@@ -674,7 +674,7 @@
         "1.1",
         "1.2"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "review-doc.md",
       "record": "records/review-doc.md",
       "breaking": true,

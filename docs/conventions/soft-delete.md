@@ -16,7 +16,7 @@ Rules for implementing soft-delete across all repository layers. Every new repo 
 
 | Category | Entities | Reason |
 |----------|----------|--------|
-| Soft-deletable | User, Team, MainItem, SubItem, ItemPool, Role, TeamMember | Embed BaseModel; can be logically removed without data loss |
+| Soft-deletable | User, Team, MainItem, SubItem, ItemPool, Role, TeamMember, MilestoneMap, Milestone | Embed BaseModel; can be logically removed without data loss |
 | Non-soft-deletable | ProgressRecord, StatusHistory, DecisionLog | Append-only tables; no biz_key, no deleted_flag. Records are never removed. |
 
 **Why**: ProgressRecord and StatusHistory are audit/append-only tables -- deleting records would break historical integrity. TeamMember is soft-deletable because members can be removed from a team but the relationship record must be preserved for auditing and re-add scenarios.
@@ -152,3 +152,29 @@ The `item_status` field is NOT modified during deletion -- only `deleted_flag` a
 **Why**: Ensures data consistency by preventing orphaned sub-items. Single transaction guarantees atomicity. Audit trail in `status_histories` provides deletion traceability without modifying the item's status field.
 
 **Source**: feature/system-ux-optimization BIZ-003, BIZ-004
+
+## SD-007: Cascade Soft-Delete for MilestoneMap
+
+**Rule**: Deleting a MilestoneMap soft-deletes all its Milestones within a single database transaction. The transaction also clears `milestone_key` on all related MainItems (sets to NULL). This cascade bypasses individual Milestone deletion constraints (only `not_started`/`cancelled` Milestones can be deleted individually, but map-level deletion ignores this).
+
+**Transaction sequence**:
+1. List all Milestones under the MilestoneMap
+2. Batch clear `milestone_key` on all MainItems associated with those Milestones
+3. Batch `SoftDelete` all Milestones
+4. `SoftDelete` the MilestoneMap
+
+**Why**: Prevents orphaned Milestones and dangling `milestone_key` references. Single transaction guarantees atomicity.
+
+**Source**: feature/milestone-map BR-4, BR-6
+
+## SD-008: Milestone Soft-Delete Unbinds Related Items
+
+**Rule**: Deleting a Milestone sets all related MainItems' `milestone_key` to NULL within the same transaction.
+
+**Transaction sequence**:
+1. Clear `milestone_key` on all MainItems where `milestone_key = milestone.BizKey`
+2. `SoftDelete` the Milestone
+
+**Why**: Prevents dangling foreign key references to deleted Milestones.
+
+**Source**: feature/milestone-map BR-4
