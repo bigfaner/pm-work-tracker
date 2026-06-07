@@ -105,6 +105,32 @@ export default function ItemViewPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Select
+              value={s.milestoneFilter || '_all'}
+              onValueChange={(v) =>
+                s.setMilestoneFilter(
+                  v === '_all' ? '' : v === '_unassigned' ? 'unassigned' : v,
+                )
+              }
+              disabled={s.milestonesError}
+            >
+              <SelectTrigger className="w-35" data-testid="milestone-filter">
+                {s.milestonesError ? (
+                  <span className="text-tertiary">加载失败</span>
+                ) : (
+                  <SelectValue placeholder="里程碑：全部" />
+                )}
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">里程碑：全部</SelectItem>
+                <SelectItem value="_unassigned">未分配</SelectItem>
+                {s.milestones.map((ms) => (
+                  <SelectItem key={ms.bizKey} value={ms.bizKey}>
+                    {ms.milestoneName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <StatusTagFilter
               options={STATUS_OPTIONS.map((st) => ({
                 value: st,

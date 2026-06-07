@@ -18,6 +18,7 @@ import {
 } from '@/api/subItems'
 import { appendProgressApi } from '@/api/progress'
 import { listMembersApi } from '@/api/teams'
+import { listMilestonesByTeamApi } from '@/api/milestones'
 import { MainItem, SubItem } from '@/types'
 import { formatDate } from '@/lib/format'
 import { useMemberName } from '@/hooks/useMemberName'
@@ -43,6 +44,7 @@ export function useItemViewPage(teamId: string | null) {
   const [searchText, setSearchText] = useState('')
   const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [assigneeFilter, setAssigneeFilter] = useState<string>('')
+  const [milestoneFilter, setMilestoneFilter] = useState<string>('')
 
   // Summary view: infinite scroll
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -117,8 +119,8 @@ export function useItemViewPage(teamId: string | null) {
   // Move sub-item
   const [moveSubOpen, setMoveSubOpen] = useState(false)
   const [moveSubItem, setMoveSubItemData] = useState<{
-    bizKey: string
-    mainItemBizKey: string
+    bizKey: string;
+    mainItemBizKey: string;
   } | null>(null)
 
   const openMoveSubDialog = useCallback(
@@ -137,6 +139,15 @@ export function useItemViewPage(teamId: string | null) {
     enabled: !!teamId,
   })
 
+  const { data: milestonesData, isError: milestonesError } = useQuery({
+    queryKey: ['milestones-team', teamId],
+    queryFn: () =>
+      listMilestonesByTeamApi(teamId!, { excludeCancelled: true }).then(
+        (res) => res.items,
+      ),
+    enabled: !!teamId,
+  })
+
   const {
     data: itemsInfiniteData,
     isLoading,
@@ -145,13 +156,20 @@ export function useItemViewPage(teamId: string | null) {
     fetchNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['mainItems', teamId, statusFilter, assigneeFilter],
+    queryKey: [
+      'mainItems',
+      teamId,
+      statusFilter,
+      assigneeFilter,
+      milestoneFilter,
+    ],
     queryFn: ({ pageParam }) =>
       listMainItemsApi(teamId!, {
         page: pageParam as number,
         pageSize: DEFAULT_PAGE_SIZE,
         ...(statusFilter.length > 0 && { status: statusFilter }),
         ...(assigneeFilter && { assigneeKey: assigneeFilter }),
+        ...(milestoneFilter && { milestoneKey: milestoneFilter }),
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
@@ -254,12 +272,12 @@ export function useItemViewPage(teamId: string | null) {
 
   const createMutation = useMutation({
     mutationFn: (req: {
-      title: string
-      description?: string
-      priority: string
-      assigneeKey: string
-      startDate: string
-      expectedEndDate: string
+      title: string;
+      description?: string;
+      priority: string;
+      assigneeKey: string;
+      startDate: string;
+      expectedEndDate: string;
     }) => createMainItemApi(teamId!, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -277,13 +295,13 @@ export function useItemViewPage(teamId: string | null) {
 
   const createSubMutation = useMutation({
     mutationFn: (req: {
-      mainItemKey: string
-      title: string
-      priority: string
-      assigneeKey: string
-      startDate: string
-      expectedEndDate: string
-      description?: string
+      mainItemKey: string;
+      title: string;
+      priority: string;
+      assigneeKey: string;
+      startDate: string;
+      expectedEndDate: string;
+      description?: string;
     }) => createSubItemApi(teamId!, req.mainItemKey, req),
     onSuccess: (_, req) => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -302,16 +320,16 @@ export function useItemViewPage(teamId: string | null) {
 
   const updateMutation = useMutation({
     mutationFn: (req: {
-      itemId: string
+      itemId: string;
       data: {
-        title: string
-        priority: string
-        assigneeKey: string | null
-        startDate?: string | null
-        expectedEndDate: string | null
-        actualEndDate: string | null
-        description: string
-      }
+        title: string;
+        priority: string;
+        assigneeKey: string | null;
+        startDate?: string | null;
+        expectedEndDate: string | null;
+        actualEndDate: string | null;
+        description: string;
+      };
     }) => updateMainItemApi(teamId!, req.itemId, req.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -324,16 +342,16 @@ export function useItemViewPage(teamId: string | null) {
 
   const updateSubMutation = useMutation({
     mutationFn: (req: {
-      subId: string
-      mainItemKey: string
+      subId: string;
+      mainItemKey: string;
       data: {
-        title: string
-        priority: string
-        assigneeKey?: string
-        startDate?: string
-        expectedEndDate?: string
-        description?: string
-      }
+        title: string;
+        priority: string;
+        assigneeKey?: string;
+        startDate?: string;
+        expectedEndDate?: string;
+        description?: string;
+      };
     }) => updateSubItemApi(teamId!, req.subId, req.data),
     onSuccess: async (_, req) => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -345,8 +363,8 @@ export function useItemViewPage(teamId: string | null) {
 
   const appendMutation = useMutation({
     mutationFn: (req: {
-      subItemId: string
-      data: { completion: number, achievement?: string, blocker?: string }
+      subItemId: string;
+      data: { completion: number; achievement?: string; blocker?: string };
     }) => appendProgressApi(teamId!, req.subItemId, req.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -382,6 +400,7 @@ export function useItemViewPage(teamId: string | null) {
     setSearchText('')
     setStatusFilter([])
     setAssigneeFilter('')
+    setMilestoneFilter('')
   }, [])
 
   const handleRefresh = useCallback(() => {
@@ -543,6 +562,8 @@ export function useItemViewPage(teamId: string | null) {
     setStatusFilter,
     assigneeFilter,
     setAssigneeFilter,
+    milestoneFilter,
+    setMilestoneFilter,
     sentinelRef,
     currentPage,
     setCurrentPage,
@@ -551,6 +572,8 @@ export function useItemViewPage(teamId: string | null) {
 
     // Data
     members,
+    milestones: milestonesData || [],
+    milestonesError,
     filteredItems,
     isLoading,
     isFetching,

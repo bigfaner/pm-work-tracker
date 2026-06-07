@@ -54,6 +54,7 @@ func (r *mainItemRepo) List(ctx context.Context, teamBizKey int64, filter dto.Ma
 	}
 
 	query = applyItemFilter(query, filter.Statuses, filter.Priority, filter.AssigneeKey, filter.IsKeyItem)
+	query = applyMilestoneKeyFilter(query, filter.MilestoneKey)
 
 	var total int64
 	if err := query.Model(&model.MainItem{}).Count(&total).Error; err != nil {

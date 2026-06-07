@@ -623,7 +623,8 @@ describe('ItemViewPage', () => {
     // Click the first status badge (in the table, not the filter bar) to open dropdown
     const badges = screen.getAllByText('进行中')
     const triggerBadges = badges.filter(
-      (el) => el.closest('button') !== null && !el.closest('button')!.dataset.testid,
+      (el) =>
+        el.closest('button') !== null && !el.closest('button')!.dataset.testid,
     )
     await user.click(triggerBadges[0])
 
@@ -669,13 +670,16 @@ describe('ItemViewPage', () => {
     const badges = screen.getAllByText('进行中')
     // Find the one inside a button in the table (status dropdown trigger), not filter tag
     const badgeInButton = badges.find(
-      (el) => el.closest('button') !== null && !el.closest('button')!.dataset.testid,
+      (el) =>
+        el.closest('button') !== null && !el.closest('button')!.dataset.testid,
     )
     await user.click(badgeInButton!)
 
     await waitFor(() => {
       // "阻塞中" should appear in the dropdown menu (role menuitem)
-      expect(screen.getByRole('menuitem', { name: '阻塞中' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('menuitem', { name: '阻塞中' }),
+      ).toBeInTheDocument()
     })
     await user.click(screen.getByRole('menuitem', { name: '阻塞中' }))
 
@@ -704,7 +708,8 @@ describe('ItemViewPage', () => {
 
     const badges = screen.getAllByText('进行中')
     const triggerBadges = badges.filter(
-      (el) => el.closest('button') !== null && !el.closest('button')!.dataset.testid,
+      (el) =>
+        el.closest('button') !== null && !el.closest('button')!.dataset.testid,
     )
     await user.click(triggerBadges[0])
 
@@ -1122,7 +1127,9 @@ describe('ItemViewPage', () => {
         expect(screen.getByText('Alpha Task')).toBeInTheDocument()
       })
       // Should have clickable status filter tags
-      expect(screen.getByTestId('status-filter-progressing')).toBeInTheDocument()
+      expect(
+        screen.getByTestId('status-filter-progressing'),
+      ).toBeInTheDocument()
       expect(screen.getByTestId('status-filter-pending')).toBeInTheDocument()
       expect(screen.getByTestId('status-filter-completed')).toBeInTheDocument()
     })
@@ -1336,6 +1343,275 @@ describe('ItemViewPage', () => {
         expect(screen.getByText('Beta Task')).toBeInTheDocument()
         expect(screen.getByText('Gamma Task')).toBeInTheDocument()
       })
+    })
+  })
+
+  // --- Milestone filter (UF-4) ---
+
+  describe('milestone filter', () => {
+    const milestoneItems = [
+      {
+        bizKey: '1',
+        teamKey: '1',
+        code: 'MI-0001',
+        title: 'Item with Milestone',
+        priority: 'P1',
+        proposerKey: 'U001',
+        assigneeKey: 'U001',
+        planStartDate: '2026-04-01',
+        expectedEndDate: '2026-04-15',
+        actualEndDate: null,
+        itemStatus: 'progressing',
+        completion: 65,
+        createTime: '2026-04-01T00:00:00Z',
+        dbUpdateTime: '2026-04-01T00:00:00Z',
+        milestoneKey: '500001',
+        milestoneName: 'MVP发布',
+        subItems: [],
+      },
+      {
+        bizKey: '2',
+        teamKey: '1',
+        code: 'MI-0002',
+        title: 'Item without Milestone',
+        priority: 'P2',
+        proposerKey: 'U001',
+        assigneeKey: 'U002',
+        planStartDate: '2026-04-15',
+        expectedEndDate: '2026-04-25',
+        actualEndDate: null,
+        itemStatus: 'progressing',
+        completion: 40,
+        createTime: '2026-04-15T00:00:00Z',
+        dbUpdateTime: '2026-04-15T00:00:00Z',
+        milestoneKey: null,
+        milestoneName: '',
+        subItems: [],
+      },
+    ]
+
+    const seedMilestones = [
+      {
+        bizKey: '500001',
+        teamKey: '1',
+        milestoneMapKey: '400001',
+        milestoneName: 'MVP发布',
+        milestoneDesc: '',
+        expectedEndDate: '2026-06-30',
+        milestoneStatus: 'in_progress',
+        statusName: '进行中',
+        completion: 50,
+        relatedMICount: 1,
+        createTime: '2026-01-01T00:00:00Z',
+        dbUpdateTime: '2026-01-01T00:00:00Z',
+      },
+      {
+        bizKey: '500002',
+        teamKey: '1',
+        milestoneMapKey: '400001',
+        milestoneName: '二期迭代',
+        milestoneDesc: '',
+        expectedEndDate: '2026-12-31',
+        milestoneStatus: 'not_started',
+        statusName: '未开始',
+        completion: 0,
+        relatedMICount: 0,
+        createTime: '2026-01-01T00:00:00Z',
+        dbUpdateTime: '2026-01-01T00:00:00Z',
+      },
+    ]
+
+    function setupMilestoneHandlers() {
+      server.use(
+        http.get('/v1/teams/:teamId/main-items', ({ request }) => {
+          const url = new URL(request.url)
+          const milestoneKey = url.searchParams.get('milestoneKey')
+          let items = milestoneItems
+          if (milestoneKey === 'unassigned') {
+            items = items.filter((i) => !i.milestoneKey)
+          } else if (milestoneKey) {
+            items = items.filter((i) => i.milestoneKey === milestoneKey)
+          }
+          return HttpResponse.json({
+            code: 0,
+            data: { items, total: items.length, page: 1, pageSize: 20 },
+          })
+        }),
+        http.get('/v1/teams/:teamId/milestones', () => {
+          return HttpResponse.json({
+            code: 0,
+            data: { items: seedMilestones, total: seedMilestones.length },
+          })
+        }),
+      )
+    }
+
+    it('renders milestone filter dropdown with options from API', async () => {
+      setupMilestoneHandlers()
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Item with Milestone')).toBeInTheDocument()
+      })
+
+      // Open the milestone filter dropdown
+      const milestoneSelect = screen.getByTestId('milestone-filter')
+      await user.click(milestoneSelect)
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('option', { name: '里程碑：全部' }),
+        ).toBeInTheDocument()
+        expect(
+          screen.getByRole('option', { name: '未分配' }),
+        ).toBeInTheDocument()
+        expect(
+          screen.getByRole('option', { name: 'MVP发布' }),
+        ).toBeInTheDocument()
+        expect(
+          screen.getByRole('option', { name: '二期迭代' }),
+        ).toBeInTheDocument()
+      })
+    })
+
+    it('displays milestone name Badge on items with milestoneKey', async () => {
+      setupMilestoneHandlers()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Item with Milestone')).toBeInTheDocument()
+      })
+      // Item with milestone should show milestone name badge
+      expect(screen.getByText('MVP发布')).toBeInTheDocument()
+    })
+
+    it('does not show milestone badge on items without milestoneKey', async () => {
+      setupMilestoneHandlers()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Item without Milestone')).toBeInTheDocument()
+      })
+      // The "MVP发布" badge appears once (from the first item)
+      // The second item should NOT have a milestone badge
+      // We verify by checking there's exactly one MVP发布 badge
+      const badges = screen.getAllByText('MVP发布')
+      expect(badges.length).toBe(1)
+    })
+
+    it('filters items when selecting a specific milestone', async () => {
+      setupMilestoneHandlers()
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Item with Milestone')).toBeInTheDocument()
+        expect(screen.getByText('Item without Milestone')).toBeInTheDocument()
+      })
+
+      // Select MVP发布 milestone
+      const milestoneSelect = screen.getByTestId('milestone-filter')
+      await user.click(milestoneSelect)
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('option', { name: 'MVP发布' }),
+        ).toBeInTheDocument()
+      })
+      await user.click(screen.getByRole('option', { name: 'MVP发布' }))
+
+      await waitFor(() => {
+        expect(screen.getByText('Item with Milestone')).toBeInTheDocument()
+        expect(
+          screen.queryByText('Item without Milestone'),
+        ).not.toBeInTheDocument()
+      })
+    })
+
+    it('filters items for unassigned when selecting "未分配"', async () => {
+      setupMilestoneHandlers()
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Item with Milestone')).toBeInTheDocument()
+        expect(screen.getByText('Item without Milestone')).toBeInTheDocument()
+      })
+
+      // Select "未分配"
+      const milestoneSelect = screen.getByTestId('milestone-filter')
+      await user.click(milestoneSelect)
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('option', { name: '未分配' }),
+        ).toBeInTheDocument()
+      })
+      await user.click(screen.getByRole('option', { name: '未分配' }))
+
+      await waitFor(() => {
+        expect(
+          screen.queryByText('Item with Milestone'),
+        ).not.toBeInTheDocument()
+        expect(screen.getByText('Item without Milestone')).toBeInTheDocument()
+      })
+    })
+
+    it('resets milestone filter when clicking reset', async () => {
+      setupMilestoneHandlers()
+      const user = userEvent.setup()
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Item with Milestone')).toBeInTheDocument()
+      })
+
+      // Select a milestone first
+      const milestoneSelect = screen.getByTestId('milestone-filter')
+      await user.click(milestoneSelect)
+      await waitFor(() => {
+        expect(
+          screen.getByRole('option', { name: 'MVP发布' }),
+        ).toBeInTheDocument()
+      })
+      await user.click(screen.getByRole('option', { name: 'MVP发布' }))
+
+      await waitFor(() => {
+        expect(
+          screen.queryByText('Item without Milestone'),
+        ).not.toBeInTheDocument()
+      })
+
+      // Click reset
+      await user.click(screen.getByText('重置'))
+
+      await waitFor(() => {
+        expect(screen.getByText('Item with Milestone')).toBeInTheDocument()
+        expect(screen.getByText('Item without Milestone')).toBeInTheDocument()
+      })
+    })
+
+    it('shows error state when milestone API fails', async () => {
+      server.use(
+        http.get('/v1/teams/:teamId/main-items', () => {
+          return HttpResponse.json({
+            code: 0,
+            data: { items: milestoneItems, total: 2, page: 1, pageSize: 20 },
+          })
+        }),
+        http.get('/v1/teams/:teamId/milestones', () => {
+          return HttpResponse.json(
+            { code: 'INTERNAL_ERROR', message: 'internal error' },
+            { status: 500 },
+          )
+        }),
+      )
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText('Item with Milestone')).toBeInTheDocument()
+      })
+
+      // Milestone filter should show error text in trigger and be disabled
+      await waitFor(() => {
+        expect(screen.getByText('加载失败')).toBeInTheDocument()
+      })
+      const milestoneSelect = screen.getByTestId('milestone-filter')
+      expect(milestoneSelect).toBeDisabled()
     })
   })
 })

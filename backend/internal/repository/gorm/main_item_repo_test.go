@@ -337,7 +337,40 @@ func TestMainItemRepo_List_FilterByAssignee_InvalidString(t *testing.T) {
 	assert.Equal(t, int64(0), result.Total, "invalid assigneeKey should return zero results (fail-closed)")
 }
 
-// --- FindByIDs ---
+func TestMainItemRepo_List_FilterByMilestoneKey(t *testing.T) {
+	db := setupMainItemTestDB(t)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
+	ctx := context.Background()
+
+	u, team := seedMainItemTeam(t, db)
+	msBizKey := int64(500001)
+
+	// Item assigned to milestone
+	item1 := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00001", "With Milestone", "P1", "pending")
+	require.NoError(t, db.Model(item1).Update("milestone_key", msBizKey).Error)
+
+	// Item without milestone
+	createMainItem(t, db, team.BizKey, u.ID, "FEAT-00002", "No Milestone", "P2", "pending")
+
+	// Filter by milestone bizKey
+	msKeyStr := "500001"
+	filtered, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{MilestoneKey: &msKeyStr}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), filtered.Total)
+	assert.Equal(t, "With Milestone", filtered.Items[0].Title)
+
+	// Filter by "unassigned" returns items with nil milestone_key
+	unassignedKey := "unassigned"
+	unassigned, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{MilestoneKey: &unassignedKey}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), unassigned.Total)
+	assert.Equal(t, "No Milestone", unassigned.Items[0].Title)
+
+	// No filter returns all items
+	all, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), all.Total)
+}
 
 func TestMainItemRepo_FindByIDs(t *testing.T) {
 	db := setupMainItemTestDB(t)

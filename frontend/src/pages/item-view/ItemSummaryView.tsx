@@ -29,10 +29,10 @@ function CodeBadge({
   title,
   className,
 }: {
-  label: string
-  path: string
-  title: string
-  className?: string
+  label: string;
+  path: string;
+  title: string;
+  className?: string;
 }) {
   return (
     <TooltipProvider delayDuration={300}>
@@ -57,25 +57,25 @@ function CodeBadge({
 }
 
 interface SummaryViewProps {
-  items: (MainItem & { subItems?: SubItem[] })[]
-  expandedCards: Set<string>
-  onToggleExpand: (id: string) => void
-  subItemsMap: Record<string, SubItem[]>
-  memberName: (id: string | null) => string
-  formatDate: (date: string | null) => string
-  hasMore: boolean
-  sentinelRef: React.RefObject<HTMLDivElement>
-  teamId: string
-  onRefresh: () => void
-  onAddSubItem: (mainItemId: string, mainItemTitle: string) => void
-  onEditMainItem: (item: MainItem) => void
+  items: (MainItem & { subItems?: SubItem[] })[];
+  expandedCards: Set<string>;
+  onToggleExpand: (id: string) => void;
+  subItemsMap: Record<string, SubItem[]>;
+  memberName: (id: string | null) => string;
+  formatDate: (date: string | null) => string;
+  hasMore: boolean;
+  sentinelRef: React.RefObject<HTMLDivElement>;
+  teamId: string;
+  onRefresh: () => void;
+  onAddSubItem: (mainItemId: string, mainItemTitle: string) => void;
+  onEditMainItem: (item: MainItem) => void;
   onAppendProgress: (
     subItemId: string,
     subItemTitle: string,
     subItemCompletion: number,
-  ) => void
-  onEditSubItem: (sub: SubItem, mainItemBizKey: string) => void
-  onMoveSubItem?: (sub: SubItem, mainItemBizKey: string) => void
+  ) => void;
+  onEditSubItem: (sub: SubItem, mainItemBizKey: string) => void;
+  onMoveSubItem?: (sub: SubItem, mainItemBizKey: string) => void;
 }
 
 export default function ItemSummaryView({
@@ -163,6 +163,16 @@ export default function ItemSummaryView({
                   )}
               </div>
 
+              {/* Milestone Badge */}
+              {item.milestoneName && (
+                <Badge
+                  variant="default"
+                  className="rounded-full text-xs shrink-0"
+                >
+                  {item.milestoneName}
+                </Badge>
+              )}
+
               {/* Assignee */}
               <span className="text-[13px] text-secondary whitespace-nowrap">
                 {memberName(item.assigneeKey)}
@@ -236,109 +246,86 @@ export default function ItemSummaryView({
                       : item.matchedSubItemIds.includes(sub.bizKey),
                   )
                   .map((sub) => (
-                  <div
-                    key={sub.bizKey}
-                    className="flex items-center gap-2 py-2 border-b border-border/50 last:border-b-0"
-                  >
-                    <CodeBadge
-                      label={sub.code.split('-').pop()!}
-                      path={`/items/${item.bizKey}/sub/${sub.bizKey}`}
-                      title={sub.title}
-                      className="text-[11px] text-tertiary bg-bg-alt px-1.5 py-0.5 rounded hover:bg-primary-100 hover:text-primary-600"
-                    />
-                    <PriorityBadge
-                      priority={sub.priority}
-                      className="text-[10px]"
-                    />
-                    <Link
-                      to={`/items/${item.bizKey}/sub/${sub.bizKey}`}
-                      className="text-[13px] font-medium text-primary-600 hover:text-primary-700 hover:underline truncate"
-                    >
-                      {sub.title}
-                    </Link>
-                    <span className="text-[11px] text-tertiary whitespace-nowrap">
-                      {sub.planStartDate && sub.expectedEndDate
-                        ? `计划周期 ${formatDate(sub.planStartDate)} ~ ${formatDate(sub.expectedEndDate)}`
-                        : '-'}
-                    </span>
-                    {isOverdue(
-                      sub.expectedEndDate ?? undefined,
-                      sub.itemStatus,
-                      new Date(),
-                    ) && <Badge variant="error">延期</Badge>}
-                    {SUB_ITEM_STATUSES[
-                      sub.itemStatus as keyof typeof SUB_ITEM_STATUSES
-                    ]?.terminal &&
-                      sub.actualEndDate && (
-                        <span className="text-[11px] text-tertiary whitespace-nowrap">
-                          结束于 {formatDate(sub.actualEndDate)}
-                        </span>
-                      )}
-                    <span className="ml-auto text-[13px] text-secondary">
-                      {memberName(sub.assigneeKey)}
-                    </span>
-                    <div className="w-16 shrink-0">
-                      <ProgressBar
-                        value={sub.completion}
-                        size="sm"
-                        showPercentage
-                      />
-                    </div>
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <StatusTransitionDropdown
-                        currentStatus={sub.itemStatus}
-                        itemType="sub"
-                        teamId={teamId}
-                        itemId={sub.bizKey}
-                        parentItemId={item.bizKey}
-                        onStatusChanged={onRefresh}
-                      />
-                    </div>
                     <div
-                      className="flex gap-0.5"
-                      onClick={(e) => e.stopPropagation()}
+                      key={sub.bizKey}
+                      className="flex items-center gap-2 py-2 border-b border-border/50 last:border-b-0"
                     >
-                      <PermissionGuard code="sub_item:update">
-                        <Button
-                          variant="ghost"
+                      <CodeBadge
+                        label={sub.code.split('-').pop()!}
+                        path={`/items/${item.bizKey}/sub/${sub.bizKey}`}
+                        title={sub.title}
+                        className="text-[11px] text-tertiary bg-bg-alt px-1.5 py-0.5 rounded hover:bg-primary-100 hover:text-primary-600"
+                      />
+                      <PriorityBadge
+                        priority={sub.priority}
+                        className="text-[10px]"
+                      />
+                      <Link
+                        to={`/items/${item.bizKey}/sub/${sub.bizKey}`}
+                        className="text-[13px] font-medium text-primary-600 hover:text-primary-700 hover:underline truncate"
+                      >
+                        {sub.title}
+                      </Link>
+                      <span className="text-[11px] text-tertiary whitespace-nowrap">
+                        {sub.planStartDate && sub.expectedEndDate
+                          ? `计划周期 ${formatDate(sub.planStartDate)} ~ ${formatDate(sub.expectedEndDate)}`
+                          : '-'}
+                      </span>
+                      {isOverdue(
+                        sub.expectedEndDate ?? undefined,
+                        sub.itemStatus,
+                        new Date(),
+                      ) && <Badge variant="error">延期</Badge>}
+                      {SUB_ITEM_STATUSES[
+                        sub.itemStatus as keyof typeof SUB_ITEM_STATUSES
+                      ]?.terminal &&
+                        sub.actualEndDate && (
+                          <span className="text-[11px] text-tertiary whitespace-nowrap">
+                            结束于 {formatDate(sub.actualEndDate)}
+                          </span>
+                        )}
+                      <span className="ml-auto text-[13px] text-secondary">
+                        {memberName(sub.assigneeKey)}
+                      </span>
+                      <div className="w-16 shrink-0">
+                        <ProgressBar
+                          value={sub.completion}
                           size="sm"
-                          className="text-[11px] h-6 px-1.5 text-primary-600"
-                          data-testid={`edit-sub-${sub.bizKey}`}
-                          disabled={
-                            !!SUB_ITEM_STATUSES[
-                              sub.itemStatus as keyof typeof SUB_ITEM_STATUSES
-                            ]?.terminal
-                          }
-                          onClick={() => onEditSubItem(sub, item.bizKey)}
-                        >
-                          <Pencil size={12} />
-                          编辑
-                        </Button>
-                      </PermissionGuard>
-                      <PermissionGuard code="progress:update">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-[11px] h-6 px-1.5 text-primary-600"
-                          disabled={
-                            !!SUB_ITEM_STATUSES[
-                              sub.itemStatus as keyof typeof SUB_ITEM_STATUSES
-                            ]?.terminal
-                          }
-                          onClick={() =>
-                            onAppendProgress(
-                              sub.bizKey,
-                              sub.title,
-                              sub.completion,
-                            )
-                          }
-                        >
-                          <Plus size={12} />
-                          追加进度
-                        </Button>
-                      </PermissionGuard>
-                      {onMoveSubItem && (
+                          showPercentage
+                        />
+                      </div>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <StatusTransitionDropdown
+                          currentStatus={sub.itemStatus}
+                          itemType="sub"
+                          teamId={teamId}
+                          itemId={sub.bizKey}
+                          parentItemId={item.bizKey}
+                          onStatusChanged={onRefresh}
+                        />
+                      </div>
+                      <div
+                        className="flex gap-0.5"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <PermissionGuard code="sub_item:update">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-[11px] h-6 px-1.5 text-primary-600"
+                            data-testid={`edit-sub-${sub.bizKey}`}
+                            disabled={
+                              !!SUB_ITEM_STATUSES[
+                                sub.itemStatus as keyof typeof SUB_ITEM_STATUSES
+                              ]?.terminal
+                            }
+                            onClick={() => onEditSubItem(sub, item.bizKey)}
+                          >
+                            <Pencil size={12} />
+                            编辑
+                          </Button>
+                        </PermissionGuard>
+                        <PermissionGuard code="progress:update">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -348,29 +335,52 @@ export default function ItemSummaryView({
                                 sub.itemStatus as keyof typeof SUB_ITEM_STATUSES
                               ]?.terminal
                             }
-                            onClick={() => onMoveSubItem(sub, item.bizKey)}
+                            onClick={() =>
+                              onAppendProgress(
+                                sub.bizKey,
+                                sub.title,
+                                sub.completion,
+                              )
+                            }
                           >
-                            <svg
-                              width="12"
-                              height="12"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
-                              />
-                            </svg>
-                            移动
+                            <Plus size={12} />
+                            追加进度
                           </Button>
                         </PermissionGuard>
-                      )}
+                        {onMoveSubItem && (
+                          <PermissionGuard code="sub_item:update">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-[11px] h-6 px-1.5 text-primary-600"
+                              disabled={
+                                !!SUB_ITEM_STATUSES[
+                                  sub.itemStatus as keyof typeof SUB_ITEM_STATUSES
+                                ]?.terminal
+                              }
+                              onClick={() => onMoveSubItem(sub, item.bizKey)}
+                            >
+                              <svg
+                                width="12"
+                                height="12"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                                />
+                              </svg>
+                              移动
+                            </Button>
+                          </PermissionGuard>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             )}
           </div>

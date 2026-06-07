@@ -30,3 +30,21 @@ func applyItemFilter(query *gormlib.DB, statuses []string, priority string, assi
 	}
 	return query
 }
+
+// applyMilestoneKeyFilter applies a milestone_key filter to a GORM query.
+// A non-nil, non-empty value filters by the parsed bizKey.
+// The special value "unassigned" filters for NULL milestone_key.
+func applyMilestoneKeyFilter(query *gormlib.DB, milestoneKey *string) *gormlib.DB {
+	if milestoneKey == nil || *milestoneKey == "" {
+		return query
+	}
+	if *milestoneKey == "unassigned" {
+		return query.Where("milestone_key IS NULL")
+	}
+	mk, err := strconv.ParseInt(*milestoneKey, 10, 64)
+	if err != nil {
+		// Invalid milestoneKey: return empty result
+		return query.Where("1 = 0")
+	}
+	return query.Where("milestone_key = ?", mk)
+}
