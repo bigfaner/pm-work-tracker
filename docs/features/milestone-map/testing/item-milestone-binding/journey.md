@@ -45,7 +45,7 @@ PM uses the MainItem edit dialog to bind a MainItem to a milestone, change its m
 
 **User Action**: PM selects a milestone from the dropdown and saves.
 
-**Expected Result**: MI is bound to the selected milestone. The milestone's completion percentage is recalculated.
+**Expected Result**: MI is bound to the selected milestone. The milestone's completion percentage is recalculated. <!-- fact: prd-spec — bind sets milestone_key, triggers completion recalc -->
 
 ### Step 3: Rebind MI to a different milestone
 <!-- surface: web -->
@@ -54,7 +54,7 @@ PM uses the MainItem edit dialog to bind a MainItem to a milestone, change its m
 
 **User Action**: PM selects milestone B from the dropdown and saves. <!-- fact: prd-spec — rebind updates milestone_key, auto-unbinds from old -->
 
-**Expected Result**: MI is rebound to milestone B (auto-unbound from A). Both milestones A and B have their completion percentages recalculated.
+**Expected Result**: MI is rebound to milestone B (auto-unbound from A). Both milestones A and B have their completion percentages recalculated. <!-- fact: prd-spec — rebind updates milestone_key, auto-unbinds from old -->
 
 ### Step 4: Unbind MI from milestone
 <!-- surface: web -->
@@ -63,7 +63,7 @@ PM uses the MainItem edit dialog to bind a MainItem to a milestone, change its m
 
 **User Action**: PM selects "Unassigned" from the dropdown and saves. <!-- fact: prd-spec — unbind sets milestone_key to null -->
 
-**Expected Result**: MI is unbound from the milestone. The original milestone's completion percentage is recalculated.
+**Expected Result**: MI is unbound from the milestone. The original milestone's completion percentage is recalculated. <!-- fact: prd-spec — unbind sets milestone_key to null -->
 
 ### Step 5: Save with no changes
 <!-- surface: web -->
@@ -117,9 +117,9 @@ PM uses the MainItem edit dialog to bind a MainItem to a milestone, change its m
 
 **Precondition**: A milestone in "cancelled" status exists (though it should not appear in the dropdown). <!-- fact: prd-spec — cancelled milestones cannot receive new MIs -->
 
-**User Action**: PM attempts to bind to a cancelled milestone (e.g., via direct API call).
+**User Action**: PM attempts to select and bind to a cancelled milestone.
 
-**Expected Result**: Binding is rejected.
+**Expected Result**: Binding is rejected. <!-- fact: prd-spec — cancelled milestones cannot receive new MainItems -->
 
 ### Step 3b: Rebind -- original milestone completion recalculated
 <!-- surface: web -->
@@ -139,14 +139,23 @@ PM uses the MainItem edit dialog to bind a MainItem to a milestone, change its m
 
 **Expected Result**: The milestone's completion percentage is recalculated excluding the unbound MI.
 
-### Step 5b: Invalid bizKey in filter
+### Step 2e: Save fails with server validation error
 <!-- surface: web -->
 
-**Precondition**: An invalid bizKey is passed to the milestone filter.
+**Precondition**: Edit dialog is open with a milestone selected, but the backend rejects the save (e.g., the milestone was deleted by another user while the dialog was open). <!-- source: inferred — derived from Web surface `validation-error` mandatory outcome -->
 
-**User Action**: Filter is triggered with an invalid value.
+**User Action**: PM saves the milestone assignment.
 
-**Expected Result**: Filter falls back to "All" without producing an error.
+**Expected Result**: An error message is displayed indicating the selected milestone is no longer available. The dialog stays open and the MI retains its original assignment.
+
+### Step 5b: Milestone filter with no matching results
+<!-- surface: web -->
+
+**Precondition**: No milestones match the current filter criteria.
+
+**User Action**: PM applies a filter combination that matches no milestones.
+
+**Expected Result**: Filter resets to show all milestones without producing an error.
 
 ### Step E1: Session expired during save (Web)
 <!-- surface: web -->

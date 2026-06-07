@@ -36,7 +36,7 @@ PM navigates the milestone map list view and timeline view to observe progress, 
 
 **User Action**: PM navigates to /milestones. <!-- fact: prd-spec Story 9 — list page -->
 
-**Expected Result**: Page loads showing all milestone map cards. Each card displays: name and status badge, milestone count, item count, owner, plan date range, overall progress, and milestone node thumbnails. A loading placeholder appears during data fetch.
+**Expected Result**: Page loads showing all milestone map cards. Each card displays: name and status badge, milestone count, item count, owner, plan date range, overall progress, and milestone node thumbnails. A loading placeholder appears during data fetch. <!-- fact: prd-spec Story 9 — list page card content -->
 
 ### Step 2: Hover card for highlight
 <!-- surface: web -->
@@ -50,7 +50,7 @@ PM navigates the milestone map list view and timeline view to observe progress, 
 
 **User Action**: PM clicks a milestone map card. <!-- fact: prd-spec — timeline view -->
 
-**Expected Result**: Route navigates to the map detail. Timeline view loads with breadcrumb, detail title area (name, status badge, edit/delete controls), basic info card (owner, plan dates, progress, description), filter bar (search, status filter, reset, refresh, create button, zoom controls), and horizontal timeline.
+**Expected Result**: Route navigates to the map detail. Timeline view loads with breadcrumb, detail title area (name, status badge, edit/delete controls), basic info card (owner, plan dates, progress, description), filter bar (search, status filter, reset, refresh, create button, zoom controls), and horizontal timeline. <!-- fact: prd-spec — timeline view components -->
 
 ### Step 4: Interact with timeline nodes
 <!-- surface: web -->
@@ -160,11 +160,11 @@ PM navigates the milestone map list view and timeline view to observe progress, 
 ### Step 3b: Timeline loading state
 <!-- surface: web -->
 
-**Precondition**: PM enters a milestone map timeline view.
+**Precondition**: PM navigates to a milestone map timeline view and the data has not yet loaded.
 
-**User Action**: Data is loading.
+**User Action**: PM views the timeline area while data is being fetched.
 
-**Expected Result**: Loading placeholder is shown during loading.
+**Expected Result**: A loading placeholder is shown during data fetch. The placeholder is replaced with actual content once data arrives.
 
 ### Step 3c: Timeline empty state
 <!-- surface: web -->
@@ -211,6 +211,15 @@ PM navigates the milestone map list view and timeline view to observe progress, 
 
 **Expected Result**: Delete action is not displayed.
 
+### Step 3g: Access denied without milestone:read permission
+<!-- surface: web -->
+
+**Precondition**: User does not have milestone:read permission. <!-- fact: prd-spec — milestone:read required -->
+
+**User Action**: User attempts to navigate to /milestones.
+
+**Expected Result**: Page displays a forbidden access message.
+
 ### Step E1: Session expired during navigation (Web)
 <!-- surface: web -->
 
@@ -218,9 +227,11 @@ PM navigates the milestone map list view and timeline view to observe progress, 
 
 **User Action**: PM attempts to load a new page or interact with the timeline.
 
-**Expected Result**: The user is redirected to the login page. After re-authenticating, the last successfully loaded page is shown.
+**Expected Result**: The user is redirected to the login page. After re-authenticating, the user must re-navigate to the desired page.
 
 ## Journey Invariants
+
+<!-- Note on validation-error: This journey covers read-only visualization (search, filters, zoom). The only user inputs are search keywords and filter selections from predefined options, none of which have free-text validation constraints. The validation-error mandatory outcome is not applicable to this journey's scope. -->
 
 - List view always shows a loading placeholder during data fetch, never a blank page.
 - Timeline node positions are determined by plan completion date and do not change when zoom scale changes.

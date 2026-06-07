@@ -35,7 +35,7 @@ Team members and management with only milestone:read permission access the miles
 
 **User Action**: User navigates to /milestones list page. <!-- fact: prd-spec Story 14 — read-only access -->
 
-**Expected Result**: Full card list and filter functionality are visible. The create button and dashed create card are NOT displayed.
+**Expected Result**: Full card list and filter functionality are visible. The create button and dashed create card are NOT displayed. <!-- fact: prd-spec — RBAC controls visibility, milestone:create required for create buttons -->
 
 ### Step 2: View empty state without create button
 <!-- surface: web -->
@@ -44,21 +44,21 @@ Team members and management with only milestone:read permission access the miles
 
 **User Action**: User views the list page.
 
-**Expected Result**: Empty state shows "No milestone maps" message but does NOT show the create button.
+**Expected Result**: Empty state shows "No milestone maps" message but does NOT show the create button. <!-- fact: prd-spec — create button requires milestone:create permission -->
 
 ### Step 3: Navigate to timeline view without edit controls
 <!-- surface: web -->
 
 **User Action**: User clicks a milestone map card to enter the timeline view. <!-- fact: prd-spec — timeline view for read-only -->
 
-**Expected Result**: Timeline renders fully (breadcrumb, title, info card, filter bar, timeline). The detail title area does NOT show edit or delete controls. The create milestone button is not displayed.
+**Expected Result**: Timeline renders fully (breadcrumb, title, info card, filter bar, timeline). The detail title area does NOT show edit or delete controls. The create milestone button is not displayed. <!-- fact: prd-spec — edit/delete require milestone:update/delete permissions -->
 
 ### Step 4: Open milestone detail panel in read-only mode
 <!-- surface: web -->
 
 **User Action**: User clicks a milestone node on the timeline. <!-- fact: prd-spec — read-only panel -->
 
-**Expected Result**: Detail panel opens showing all read-only information (name, description, status badge, plan date, progress, associated MI list). The edit control, delete control, and add control are NOT shown. The status badge is NOT interactive. MI rows do NOT show unbind controls.
+**Expected Result**: Detail panel opens showing all read-only information (name, description, status badge, plan date, progress, associated MI list). The edit control, delete control, and add control are NOT shown. The status badge is NOT interactive. MI rows do NOT show unbind controls. <!-- fact: prd-spec — read-only panel hides all mutation controls -->
 
 ### Step 5: View tooltip and hover interactions
 <!-- surface: web -->
@@ -137,9 +137,11 @@ Team members and management with only milestone:read permission access the miles
 
 **User Action**: User attempts to navigate to a new page or interact with the timeline.
 
-**Expected Result**: The user is redirected to the login page. After re-authenticating, the last successfully loaded page is shown.
+**Expected Result**: The user is redirected to the login page. After re-authenticating, the user must re-navigate to the desired page.
 
 ## Journey Invariants
+
+<!-- Note on validation-error: This journey covers read-only access only. No forms or mutation controls are available to the user, so validation-error outcomes are not applicable. -->
 
 - Users without milestone:create never see create buttons. <!-- fact: prd-spec — RBAC controls visibility -->
 - Users without milestone:update never see edit controls, interactive status badges, or MI unbind controls.

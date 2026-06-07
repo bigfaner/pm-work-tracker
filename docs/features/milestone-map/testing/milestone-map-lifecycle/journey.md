@@ -27,6 +27,7 @@ PM creates a milestone map, edits its information, transitions it through status
 - User has milestone:create, milestone:update, and milestone:delete permissions
 - At least one team exists in the system
 - The milestone map list page (/milestones) is accessible
+- At least one MainItem exists in the team (for milestone binding in later steps) <!-- fact: prd-spec — milestones bind to MainItems -->
 
 ## Happy Path
 
@@ -35,14 +36,14 @@ PM creates a milestone map, edits its information, transitions it through status
 
 **User Action**: PM opens the create dialog from the list page, fills in name (1-100 chars), owner, optional plan dates and description, then submits. <!-- fact: prd-spec Story 1 — initial status is planning -->
 
-**Expected Result**: Milestone map is created with status "planning", the dialog closes, and the list refreshes showing the new entry with correct name, status badge, and owner info.
+**Expected Result**: Milestone map is created with status "planning", the dialog closes, and the list refreshes showing the new entry with correct name, status badge, and owner info. <!-- fact: prd-spec — initial status is planning -->
 
 ### Step 2: Edit milestone map information
 <!-- surface: web -->
 
 **User Action**: PM navigates to the milestone map detail page, opens the edit function, modifies the name and description, then saves. <!-- fact: prd-spec Story 2 -->
 
-**Expected Result**: Changes are saved immediately, the edit dialog closes, and the detail page refreshes to show updated information.
+**Expected Result**: Changes are saved immediately, the edit dialog closes, and the detail page refreshes to show updated information. <!-- fact: prd-spec Story 2 — update returns updated data -->
 
 ### Step 3: Transition status from planning to reviewed
 <!-- surface: web -->
@@ -72,6 +73,15 @@ PM creates a milestone map, edits its information, transitions it through status
 
 **Expected Result**: Status changes from "executing" to "completed". This is a terminal state -- no further transitions are available.
 
+### Step 6d: Transition to cancelled from non-terminal state
+<!-- surface: web -->
+
+**Precondition**: The milestone map is in "executing" status and has milestones with associated MainItems. <!-- fact: prd-spec — any non-terminal state can transition to cancelled -->
+
+**User Action**: PM selects the "Cancelled" status option.
+
+**Expected Result**: Status changes to "cancelled". All milestones under this map are cancelled in cascade, and all associated MainItems are unbound within the same transaction. This is a terminal state -- no further transitions are available. <!-- fact: prd-spec — cancelled is terminal, cascade behaviour -->
+
 ### Step 7: Rollback status from reviewed back to planning
 <!-- surface: web -->
 
@@ -84,7 +94,7 @@ PM creates a milestone map, edits its information, transitions it through status
 
 **User Action**: PM triggers the delete action on a milestone map that is in "planning" status and confirms. <!-- fact: prd-spec Story 3 — soft delete with cascade -->
 
-**Expected Result**: The milestone map and all its milestones are soft-deleted in a single transaction. All associated MainItems are unbound. The page redirects back to the list view.
+**Expected Result**: The milestone map and all its milestones are soft-deleted in a single transaction. All associated MainItems are unbound. The page redirects back to the list view. <!-- fact: prd-spec — soft delete with cascade -->
 
 ## Edge Cases
 
@@ -176,7 +186,7 @@ PM creates a milestone map, edits its information, transitions it through status
 
 **User Action**: PM attempts to transition the status to "Completed".
 
-**Expected Result**: Status change is rejected with an error message indicating not all milestones are in terminal states.
+**Expected Result**: Status change is rejected with an error message indicating not all milestones are in terminal states. <!-- fact: prd-spec — completed transition guard -->
 
 ### Step 8b: Delete non-deletable milestone map
 <!-- surface: web -->
@@ -185,7 +195,7 @@ PM creates a milestone map, edits its information, transitions it through status
 
 **User Action**: PM views the detail page.
 
-**Expected Result**: The delete action is not displayed. Only milestone maps in planning, reviewed, or ready status can be deleted.
+**Expected Result**: The delete action is not displayed. Only milestone maps in planning, reviewed, or ready status can be deleted. <!-- fact: prd-spec Story 3 — deletable statuses are planning, reviewed, ready -->
 
 ### Step 8c: Delete without permission
 <!-- surface: web -->
@@ -221,7 +231,7 @@ PM creates a milestone map, edits its information, transitions it through status
 
 **User Action**: PM uses the status filter to select "In Progress".
 
-**Expected Result**: Only milestone maps with "executing" status are shown in the list.
+**Expected Result**: Only milestone maps with "executing" status are shown in the list. <!-- fact: prd-spec — list page supports status filter -->
 
 ### Step 4c: Filter milestone maps by owner
 <!-- surface: web -->
@@ -230,7 +240,7 @@ PM creates a milestone map, edits its information, transitions it through status
 
 **User Action**: PM uses the owner filter to select a specific team member.
 
-**Expected Result**: Only milestone maps owned by that member are shown.
+**Expected Result**: Only milestone maps owned by that member are shown. <!-- fact: prd-spec — list page supports owner filter -->
 
 ### Step 4d: Search milestone maps by name
 <!-- surface: web -->
@@ -239,7 +249,7 @@ PM creates a milestone map, edits its information, transitions it through status
 
 **User Action**: PM types a keyword in the name search box.
 
-**Expected Result**: Only milestone maps whose names contain the keyword are shown.
+**Expected Result**: Only milestone maps whose names contain the keyword are shown. <!-- fact: prd-spec — list page supports name search -->
 
 ### Step 6c: Completed status is terminal
 <!-- surface: web -->
@@ -285,6 +295,24 @@ PM creates a milestone map, edits its information, transitions it through status
 **User Action**: An unauthenticated request is sent to any MilestoneMap endpoint.
 
 **Expected Result**: The API returns an authentication error; no data is returned or modified.
+
+### Step E3: API not-found response (API)
+<!-- surface: api -->
+
+**Precondition**: A request targets a non-existent milestone map ID. <!-- source: inferred — derived from API surface `not-found` mandatory outcome -->
+
+**User Action**: An authenticated request is sent to GET /api/milestone-maps/{non-existent-id}.
+
+**Expected Result**: The API returns a 404 not-found error with an appropriate message.
+
+### Step E4: API validation-error on create (API)
+<!-- surface: api -->
+
+**Precondition**: An authenticated request is prepared with invalid data. <!-- source: inferred — derived from API surface `validation-error` mandatory outcome -->
+
+**User Action**: A POST request is sent to /api/milestone-maps with an empty name field.
+
+**Expected Result**: The API returns a validation error response indicating the name field is required. No milestone map is created.
 
 ## Journey Invariants
 

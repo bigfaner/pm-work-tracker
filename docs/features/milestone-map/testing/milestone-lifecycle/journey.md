@@ -35,14 +35,14 @@ PM creates a milestone within a milestone map's timeline, edits its information,
 
 **User Action**: PM opens the create milestone function in the timeline view, fills in name (1-100 chars), plan completion date (required), and optional description, then confirms. <!-- fact: prd-spec Story 5 — initial status is not_started -->
 
-**Expected Result**: Milestone is created with status "not_started" and completion 0. The dialog closes and the timeline refreshes showing the new node at the correct date position.
+**Expected Result**: Milestone is created with status "not_started" and completion 0. The dialog closes and the timeline refreshes showing the new node at the correct date position. <!-- fact: prd-spec — initial status is not_started, completion 0 -->
 
 ### Step 2: Edit milestone information
 <!-- surface: web -->
 
 **User Action**: PM opens the milestone detail panel, triggers the edit function, modifies the name and plan completion date, then saves. <!-- fact: prd-spec Story 6 -->
 
-**Expected Result**: Changes are saved, the dialog closes, the panel and timeline refresh. The node position on the timeline is recalculated based on the new date.
+**Expected Result**: Changes are saved, the dialog closes, the panel and timeline refresh. The node position on the timeline is recalculated based on the new date. <!-- fact: prd-spec Story 6 — update changes reflect on timeline -->
 
 ### Step 3: Transition status from not_started to in_progress
 <!-- surface: web -->
@@ -56,21 +56,21 @@ PM creates a milestone within a milestone map's timeline, edits its information,
 
 **User Action**: PM selects the "Completed" status option. All associated MainItems are in terminal states (completed/closed). <!-- fact: prd-spec — in_progress → completed requires all MIs in terminal states -->
 
-**Expected Result**: Status changes to "completed". Completion percentage reflects the associated MI average.
+**Expected Result**: Status changes to "completed". Completion percentage reflects the associated MI average. <!-- fact: prd-spec — completed sets completion to MI average -->
 
 ### Step 5: Transition status from completed back to cancelled
 <!-- surface: web -->
 
 **User Action**: PM selects the "Cancelled" status option on a completed milestone. <!-- fact: prd-spec Milestone state machine — completed → cancelled -->
 
-**Expected Result**: Status changes to "cancelled". All associated MainItems are auto-unbound in the same transaction. This is a terminal state with no further transitions.
+**Expected Result**: Status changes to "cancelled". All associated MainItems are auto-unbound in the same transaction. This is a terminal state with no further transitions. <!-- fact: prd-spec — cancelled is terminal, auto-unbind on cancel -->
 
 ### Step 6: Delete milestone in not_started status
 <!-- surface: web -->
 
 **User Action**: PM triggers the "Delete Milestone" action for a not_started milestone and confirms. <!-- fact: prd-spec Story 7 — soft delete -->
 
-**Expected Result**: The milestone is soft-deleted. Associated MainItems are unbound within the same transaction. The panel closes and timeline refreshes.
+**Expected Result**: The milestone is soft-deleted. Associated MainItems are unbound within the same transaction. The panel closes and timeline refreshes. <!-- fact: prd-spec Story 7 — soft delete with cascade unbind -->
 
 ## Edge Cases
 
@@ -162,7 +162,7 @@ PM creates a milestone within a milestone map's timeline, edits its information,
 
 **User Action**: PM attempts to transition to "Completed".
 
-**Expected Result**: Status change is rejected with an error indicating not all items are in terminal states.
+**Expected Result**: Status change is rejected with an error indicating not all items are in terminal states. <!-- fact: prd-spec — completed requires all MIs in terminal states -->
 
 ### Step 4b: Transition not_started to cancelled with cascade
 <!-- surface: web -->
@@ -171,7 +171,7 @@ PM creates a milestone within a milestone map's timeline, edits its information,
 
 **User Action**: PM selects the "Cancelled" status option.
 
-**Expected Result**: Status changes to "cancelled". All associated MainItems are auto-unbound within the same transaction. The detail panel shows an empty associated items list.
+**Expected Result**: Status changes to "cancelled". All associated MainItems are auto-unbound within the same transaction. The detail panel shows an empty associated items list. <!-- fact: prd-spec — cancel cascade unbinds all MIs -->
 
 ### Step 4c: Transition in_progress to cancelled with cascade
 <!-- surface: web -->
@@ -198,7 +198,7 @@ PM creates a milestone within a milestone map's timeline, edits its information,
 
 **User Action**: PM tries to bind a MainItem to this cancelled milestone.
 
-**Expected Result**: Binding is rejected with an appropriate error message.
+**Expected Result**: Binding is rejected with an appropriate error message. <!-- fact: prd-spec — cancelled milestones cannot receive new MainItems -->
 
 ### Step 5d: Cancelled milestone panel appearance
 <!-- surface: web -->
@@ -272,6 +272,33 @@ PM creates a milestone within a milestone map's timeline, edits its information,
 
 **Expected Result**: The API returns an authentication error; no data is returned or modified.
 
+### Step E3: API not-found response (API)
+<!-- surface: api -->
+
+**Precondition**: A request targets a non-existent milestone ID. <!-- source: inferred — derived from API surface `not-found` mandatory outcome -->
+
+**User Action**: An authenticated request is sent to GET /api/milestones/{non-existent-id}.
+
+**Expected Result**: The API returns a 404 not-found error with an appropriate message.
+
+### Step E4: API duplicate name on create (API)
+<!-- surface: api -->
+
+**Precondition**: A milestone with the same name already exists in the same map. <!-- fact: prd-spec — milestone name uniqueness within map -->
+
+**User Action**: An authenticated POST request is sent to create a milestone with the duplicate name.
+
+**Expected Result**: The API returns a 409 conflict error indicating the name already exists within the map.
+
+### Step E5: Create milestone under terminal parent map (API)
+<!-- surface: api -->
+
+**Precondition**: The parent MilestoneMap is in a terminal state (completed or cancelled). <!-- fact: prd-spec — BR-5 terminal map blocks child Milestone create/update -->
+
+**User Action**: An authenticated POST request is sent to create a milestone under this map.
+
+**Expected Result**: The API returns an error indicating the parent map is in a terminal state and cannot receive new milestones.
+
 ## Journey Invariants
 
 - Cancellation of a milestone (from any non-terminal state) automatically unbinds all associated MainItems within the same transaction. <!-- fact: prd-spec — cancel cascade -->
@@ -279,6 +306,6 @@ PM creates a milestone within a milestone map's timeline, edits its information,
 - Cancelled milestones cannot receive new MainItem bindings. <!-- fact: prd-spec — cancelled binding restriction -->
 - Delete is only available for milestones in "not_started" or "cancelled" status; the action is hidden for "in_progress" and "completed". <!-- fact: prd-spec Story 7 -->
 - "cancelled" is a terminal state: no status transitions are available. <!-- fact: prd-spec Milestone state machine -->
-- Status machine: not_started -> in_progress -> completed (with rollback to cancelled from any non-terminal state); completed -> cancelled (manual cancel); completed -> in_progress (reopen); cancelled is terminal. <!-- fact: prd-spec Milestone state machine -->
+- Status machine: not_started -> in_progress -> completed; rollback to cancelled from any non-terminal state; completed -> cancelled (manual cancel); completed -> in_progress (reopen); cancelled is terminal. <!-- fact: prd-spec Milestone state machine -->
 - All mutation operations require their respective RBAC permissions.
 - Create/update forms display loading state and prevent further interaction during submission.
