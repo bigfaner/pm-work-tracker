@@ -1,0 +1,744 @@
+{
+  "feature": "milestone-map",
+  "prd": "prd/prd-spec.md",
+  "design": "design/tech-design.md",
+  "proposal": "docs/proposals/milestone-map/proposal.md",
+  "created": "2026-06-07",
+  "tasks": {
+    "1.1-schema-new-tables": {
+      "id": "1.1",
+      "title": "Schema: create pmw_milestone_maps and pmw_milestones tables",
+      "priority": "P0",
+      "estimatedTime": "1-2h",
+      "status": "pending",
+      "file": "1.1-schema-new-tables.md",
+      "record": "records/1.1-schema-new-tables.md",
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "medium"
+    },
+    "1.2-schema-alter-mainitems": {
+      "id": "1.2",
+      "title": "Schema: ALTER pmw_main_items add milestone_key column",
+      "priority": "P0",
+      "estimatedTime": "1-2h",
+      "status": "pending",
+      "file": "1.2-schema-alter-mainitems.md",
+      "record": "records/1.2-schema-alter-mainitems.md",
+      "breaking": true,
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "medium"
+    },
+    "1.3-milestone-models": {
+      "id": "1.3",
+      "title": "MilestoneMap and Milestone data models + MainItem modification",
+      "priority": "P0",
+      "estimatedTime": "2-3h",
+      "dependencies": [
+        "1.1",
+        "1.2"
+      ],
+      "status": "pending",
+      "file": "1.3-milestone-models.md",
+      "record": "records/1.3-milestone-models.md",
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "1.4-milestone-status-perms-errors": {
+      "id": "1.4",
+      "title": "Milestone status system, permissions, and error types",
+      "priority": "P0",
+      "estimatedTime": "2-3h",
+      "status": "pending",
+      "file": "1.4-milestone-status-perms-errors.md",
+      "record": "records/1.4-milestone-status-perms-errors.md",
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "1.5-milestone-dto-vo": {
+      "id": "1.5",
+      "title": "Milestone DTOs, VOs, and MainItem extension",
+      "priority": "P0",
+      "estimatedTime": "2-3h",
+      "dependencies": [
+        "1.3"
+      ],
+      "status": "pending",
+      "file": "1.5-milestone-dto-vo.md",
+      "record": "records/1.5-milestone-dto-vo.md",
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "1.gate": {
+      "id": "1.gate",
+      "title": "Phase 1 Gate",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "1.summary"
+      ],
+      "status": "pending",
+      "file": "1.gate.md",
+      "record": "records/1.gate.md",
+      "breaking": true,
+      "type": "gate"
+    },
+    "1.summary": {
+      "id": "1.summary",
+      "title": "Phase 1 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "1.1",
+        "1.2",
+        "1.3",
+        "1.4",
+        "1.5"
+      ],
+      "status": "pending",
+      "file": "1.summary.md",
+      "record": "records/1.summary.md",
+      "type": "doc.summary"
+    },
+    "2.1-milestone-map-repo": {
+      "id": "2.1",
+      "title": "MilestoneMap repository (interface + GORM implementation)",
+      "priority": "P0",
+      "estimatedTime": "3-4h",
+      "dependencies": [
+        "1.3",
+        "1.5",
+        "1.gate"
+      ],
+      "status": "pending",
+      "file": "2.1-milestone-map-repo.md",
+      "record": "records/2.1-milestone-map-repo.md",
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "2.2-milestone-repo": {
+      "id": "2.2",
+      "title": "Milestone repository (interface + GORM implementation)",
+      "priority": "P0",
+      "estimatedTime": "3-4h",
+      "dependencies": [
+        "1.3",
+        "1.5",
+        "1.gate"
+      ],
+      "status": "pending",
+      "file": "2.2-milestone-repo.md",
+      "record": "records/2.2-milestone-repo.md",
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "2.3-mainitem-milestone-repo": {
+      "id": "2.3",
+      "title": "MainItem repository milestone methods",
+      "priority": "P0",
+      "estimatedTime": "2-3h",
+      "dependencies": [
+        "1.3",
+        "1.5",
+        "1.gate"
+      ],
+      "status": "pending",
+      "file": "2.3-mainitem-milestone-repo.md",
+      "record": "records/2.3-mainitem-milestone-repo.md",
+      "breaking": true,
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "medium"
+    },
+    "2.4-milestone-map-service": {
+      "id": "2.4",
+      "title": "MilestoneMap service (CRUD + status transitions + completion)",
+      "priority": "P0",
+      "estimatedTime": "3-4h",
+      "dependencies": [
+        "2.1",
+        "2.2",
+        "1.4",
+        "1.gate"
+      ],
+      "status": "pending",
+      "file": "2.4-milestone-map-service.md",
+      "record": "records/2.4-milestone-map-service.md",
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "2.5-milestone-service": {
+      "id": "2.5",
+      "title": "Milestone service (CRUD + status transitions + BR-1/BR-5)",
+      "priority": "P0",
+      "estimatedTime": "3-4h",
+      "dependencies": [
+        "2.2",
+        "2.3",
+        "1.4",
+        "1.gate"
+      ],
+      "status": "pending",
+      "file": "2.5-milestone-service.md",
+      "record": "records/2.5-milestone-service.md",
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "2.6-mainitem-milestone-binding": {
+      "id": "2.6",
+      "title": "MainItem milestone binding logic and VO enrichment",
+      "priority": "P0",
+      "estimatedTime": "3-4h",
+      "dependencies": [
+        "2.3",
+        "1.4",
+        "1.gate"
+      ],
+      "status": "pending",
+      "file": "2.6-mainitem-milestone-binding.md",
+      "record": "records/2.6-mainitem-milestone-binding.md",
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "2.7-milestone-map-handler": {
+      "id": "2.7",
+      "title": "MilestoneMap handler (API endpoints)",
+      "priority": "P1",
+      "estimatedTime": "3-4h",
+      "dependencies": [
+        "2.4",
+        "1.5",
+        "1.gate"
+      ],
+      "status": "pending",
+      "file": "2.7-milestone-map-handler.md",
+      "record": "records/2.7-milestone-map-handler.md",
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "2.8-milestone-handler": {
+      "id": "2.8",
+      "title": "Milestone handler (API endpoints)",
+      "priority": "P1",
+      "estimatedTime": "3-4h",
+      "dependencies": [
+        "2.5",
+        "1.5",
+        "1.gate"
+      ],
+      "status": "pending",
+      "file": "2.8-milestone-handler.md",
+      "record": "records/2.8-milestone-handler.md",
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "2.9-milestone-router": {
+      "id": "2.9",
+      "title": "Router wiring and dependency injection",
+      "priority": "P1",
+      "estimatedTime": "1-2h",
+      "dependencies": [
+        "2.7",
+        "2.8",
+        "1.gate"
+      ],
+      "status": "pending",
+      "file": "2.9-milestone-router.md",
+      "record": "records/2.9-milestone-router.md",
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "medium"
+    },
+    "2.gate": {
+      "id": "2.gate",
+      "title": "Phase 2 Gate",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "2.summary"
+      ],
+      "status": "pending",
+      "file": "2.gate.md",
+      "record": "records/2.gate.md",
+      "breaking": true,
+      "type": "gate"
+    },
+    "2.summary": {
+      "id": "2.summary",
+      "title": "Phase 2 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "2.1",
+        "2.2",
+        "2.3",
+        "2.4",
+        "2.5",
+        "2.6",
+        "2.7",
+        "2.8",
+        "2.9"
+      ],
+      "status": "pending",
+      "file": "2.summary.md",
+      "record": "records/2.summary.md",
+      "type": "doc.summary"
+    },
+    "3.1-frontend-api-types": {
+      "id": "3.1",
+      "title": "Frontend API module, types, and status utilities",
+      "priority": "P1",
+      "estimatedTime": "2-3h",
+      "dependencies": [
+        "1.5",
+        "2.gate"
+      ],
+      "status": "pending",
+      "file": "3.1-frontend-api-types.md",
+      "record": "records/3.1-frontend-api-types.md",
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "coding.feature",
+      "complexity": "medium"
+    },
+    "3.2-frontend-map-dialog": {
+      "id": "3.2",
+      "title": "Create/Edit MilestoneMap dialog component (UF-7)",
+      "priority": "P1",
+      "estimatedTime": "2-3h",
+      "dependencies": [
+        "3.1",
+        "2.gate"
+      ],
+      "status": "pending",
+      "file": "3.2-frontend-map-dialog.md",
+      "record": "records/3.2-frontend-map-dialog.md",
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "3.3-frontend-dialog": {
+      "id": "3.3",
+      "title": "Create/Edit Milestone dialog component (UF-2)",
+      "priority": "P1",
+      "estimatedTime": "2-3h",
+      "dependencies": [
+        "3.1",
+        "2.gate"
+      ],
+      "status": "pending",
+      "file": "3.3-frontend-dialog.md",
+      "record": "records/3.3-frontend-dialog.md",
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "coding.feature",
+      "complexity": "medium"
+    },
+    "3.4-frontend-detail-panel": {
+      "id": "3.4",
+      "title": "Milestone detail panel component (UF-3 + UF-3a)",
+      "priority": "P1",
+      "estimatedTime": "3-4h",
+      "dependencies": [
+        "3.1",
+        "3.3",
+        "2.gate"
+      ],
+      "status": "pending",
+      "file": "3.4-frontend-detail-panel.md",
+      "record": "records/3.4-frontend-detail-panel.md",
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "3.5-frontend-list-view": {
+      "id": "3.5",
+      "title": "MilestoneMap list view and card components (UF-1 level 1)",
+      "priority": "P1",
+      "estimatedTime": "3-4h",
+      "dependencies": [
+        "3.1",
+        "3.2",
+        "2.gate"
+      ],
+      "status": "pending",
+      "file": "3.5-frontend-list-view.md",
+      "record": "records/3.5-frontend-list-view.md",
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "3.6-frontend-timeline": {
+      "id": "3.6",
+      "title": "Timeline view and node components (UF-1 level 2)",
+      "priority": "P1",
+      "estimatedTime": "3-4h",
+      "dependencies": [
+        "3.1",
+        "3.3",
+        "3.4",
+        "2.gate"
+      ],
+      "status": "pending",
+      "file": "3.6-frontend-timeline.md",
+      "record": "records/3.6-frontend-timeline.md",
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "3.7-frontend-pages-routing": {
+      "id": "3.7",
+      "title": "Page assembly, routing, and sidebar navigation",
+      "priority": "P1",
+      "estimatedTime": "1-2h",
+      "dependencies": [
+        "3.5",
+        "3.6",
+        "2.gate"
+      ],
+      "status": "pending",
+      "file": "3.7-frontend-pages-routing.md",
+      "record": "records/3.7-frontend-pages-routing.md",
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "coding.feature",
+      "complexity": "medium"
+    },
+    "3.gate": {
+      "id": "3.gate",
+      "title": "Phase 3 Gate",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "3.summary"
+      ],
+      "status": "pending",
+      "file": "3.gate.md",
+      "record": "records/3.gate.md",
+      "breaking": true,
+      "type": "gate"
+    },
+    "3.summary": {
+      "id": "3.summary",
+      "title": "Phase 3 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "3.1",
+        "3.2",
+        "3.3",
+        "3.4",
+        "3.5",
+        "3.6",
+        "3.7"
+      ],
+      "status": "pending",
+      "file": "3.summary.md",
+      "record": "records/3.summary.md",
+      "type": "doc.summary"
+    },
+    "4.1-frontend-item-filter": {
+      "id": "4.1",
+      "title": "Item view page milestone filter (UF-4)",
+      "priority": "P1",
+      "estimatedTime": "2-3h",
+      "dependencies": [
+        "3.1",
+        "3.gate"
+      ],
+      "status": "pending",
+      "file": "4.1-frontend-item-filter.md",
+      "record": "records/4.1-frontend-item-filter.md",
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "coding.feature",
+      "complexity": "high"
+    },
+    "4.2-frontend-item-selector": {
+      "id": "4.2",
+      "title": "Edit main item dialog milestone selector (UF-5)",
+      "priority": "P1",
+      "estimatedTime": "2-3h",
+      "dependencies": [
+        "3.1",
+        "3.gate"
+      ],
+      "status": "pending",
+      "file": "4.2-frontend-item-selector.md",
+      "record": "records/4.2-frontend-item-selector.md",
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "coding.feature",
+      "complexity": "medium"
+    },
+    "4.3-frontend-table-column": {
+      "id": "4.3",
+      "title": "Table view milestone column (UF-6)",
+      "priority": "P1",
+      "estimatedTime": "2-3h",
+      "dependencies": [
+        "3.1",
+        "3.gate"
+      ],
+      "status": "pending",
+      "file": "4.3-frontend-table-column.md",
+      "record": "records/4.3-frontend-table-column.md",
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "coding.feature",
+      "complexity": "medium"
+    },
+    "4.gate": {
+      "id": "4.gate",
+      "title": "Phase 4 Gate",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "4.summary"
+      ],
+      "status": "pending",
+      "file": "4.gate.md",
+      "record": "records/4.gate.md",
+      "breaking": true,
+      "type": "gate"
+    },
+    "4.summary": {
+      "id": "4.summary",
+      "title": "Phase 4 Summary",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "4.1",
+        "4.2",
+        "4.3"
+      ],
+      "status": "pending",
+      "file": "4.summary.md",
+      "record": "records/4.summary.md",
+      "type": "doc.summary"
+    },
+    "clean-code": {
+      "id": "T-clean-code",
+      "title": "Simplify and Clean Code",
+      "priority": "P2",
+      "estimatedTime": "20min",
+      "dependencies": [
+        "4.gate"
+      ],
+      "status": "pending",
+      "file": "clean-code.md",
+      "record": "records/clean-code.md",
+      "breaking": true,
+      "type": "code-quality.simplify"
+    },
+    "consolidate-specs": {
+      "id": "T-specs-consolidate",
+      "title": "Consolidate Specs",
+      "priority": "P2",
+      "estimatedTime": "20min",
+      "dependencies": [
+        "T-test-run-frontend"
+      ],
+      "status": "pending",
+      "file": "consolidate-specs.md",
+      "record": "records/consolidate-specs.md",
+      "breaking": true,
+      "type": "doc.consolidate"
+    },
+    "eval-contract": {
+      "id": "T-eval-contract",
+      "title": "Evaluate Contract Quality",
+      "priority": "P1",
+      "estimatedTime": "20-30min",
+      "dependencies": [
+        "T-test-gen-contracts"
+      ],
+      "status": "pending",
+      "file": "eval-contract.md",
+      "record": "records/eval-contract.md",
+      "breaking": true,
+      "mainSession": true,
+      "type": "eval.contract"
+    },
+    "eval-journey": {
+      "id": "T-eval-journey",
+      "title": "Evaluate Journey Quality",
+      "priority": "P1",
+      "estimatedTime": "20-30min",
+      "dependencies": [
+        "T-test-gen-journeys"
+      ],
+      "status": "pending",
+      "file": "eval-journey.md",
+      "record": "records/eval-journey.md",
+      "breaking": true,
+      "mainSession": true,
+      "type": "eval.journey"
+    },
+    "gen-contracts": {
+      "id": "T-test-gen-contracts",
+      "title": "Generate Test Contracts",
+      "priority": "P1",
+      "estimatedTime": "30-45min",
+      "dependencies": [
+        "T-eval-journey"
+      ],
+      "status": "pending",
+      "file": "gen-contracts.md",
+      "record": "records/gen-contracts.md",
+      "breaking": true,
+      "type": "test.gen-contracts"
+    },
+    "gen-journeys": {
+      "id": "T-test-gen-journeys",
+      "title": "Generate Test Journeys",
+      "priority": "P1",
+      "estimatedTime": "20-30min",
+      "dependencies": [
+        "T-clean-code"
+      ],
+      "status": "pending",
+      "file": "gen-journeys.md",
+      "record": "records/gen-journeys.md",
+      "breaking": true,
+      "type": "test.gen-journeys"
+    },
+    "gen-test-scripts-backend": {
+      "id": "T-test-gen-scripts-backend",
+      "title": "Generate API Functional Test Scripts",
+      "priority": "P1",
+      "estimatedTime": "1-2h",
+      "dependencies": [
+        "T-eval-contract"
+      ],
+      "status": "pending",
+      "file": "gen-test-scripts-backend.md",
+      "record": "records/gen-test-scripts-backend.md",
+      "breaking": true,
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "test.gen-scripts"
+    },
+    "gen-test-scripts-frontend": {
+      "id": "T-test-gen-scripts-frontend",
+      "title": "Generate Web E2E Test Scripts",
+      "priority": "P1",
+      "estimatedTime": "1-2h",
+      "dependencies": [
+        "T-test-gen-scripts-backend"
+      ],
+      "status": "pending",
+      "file": "gen-test-scripts-frontend.md",
+      "record": "records/gen-test-scripts-frontend.md",
+      "breaking": true,
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "test.gen-scripts"
+    },
+    "run-test-backend": {
+      "id": "T-test-run-backend",
+      "title": "Run API Functional Test",
+      "priority": "P1",
+      "estimatedTime": "30min-1h",
+      "dependencies": [
+        "T-test-gen-scripts-backend",
+        "T-test-gen-scripts-frontend"
+      ],
+      "status": "pending",
+      "file": "run-test-backend.md",
+      "record": "records/run-test-backend.md",
+      "breaking": true,
+      "surface-key": "backend",
+      "surface-type": "api",
+      "type": "test.run"
+    },
+    "run-test-frontend": {
+      "id": "T-test-run-frontend",
+      "title": "Run Web E2E Test",
+      "priority": "P1",
+      "estimatedTime": "30min-1h",
+      "dependencies": [
+        "T-test-run-backend"
+      ],
+      "status": "pending",
+      "file": "run-test-frontend.md",
+      "record": "records/run-test-frontend.md",
+      "breaking": true,
+      "surface-key": "frontend",
+      "surface-type": "web",
+      "type": "test.run"
+    },
+    "validate-code": {
+      "id": "T-validate-code",
+      "title": "Validate Code Quality",
+      "priority": "P2",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "T-test-run-frontend"
+      ],
+      "status": "pending",
+      "file": "validate-code.md",
+      "record": "records/validate-code.md",
+      "breaking": true,
+      "type": "validation.code"
+    },
+    "validate-ux": {
+      "id": "T-validate-ux",
+      "title": "Validate User Experience",
+      "priority": "P2",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "T-test-run-frontend"
+      ],
+      "status": "pending",
+      "file": "validate-ux.md",
+      "record": "records/validate-ux.md",
+      "breaking": true,
+      "mainSession": true,
+      "type": "validation.ux"
+    }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "suspended",
+    "skipped",
+    "rejected"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
+}
