@@ -283,23 +283,23 @@ describe('MilestoneTimeline', () => {
   })
 
   // AC-2: Zoom controls
-  it('renders zoom controls (week/month/quarter)', async () => {
+  it('renders zoom controls (compact/standard/relaxed)', async () => {
     renderTimeline()
     await waitFor(() => {
       expect(screen.getByTestId('milestone-node-ms-1')).toBeInTheDocument()
     })
-    expect(screen.getByTestId('zoom-week')).toBeInTheDocument()
-    expect(screen.getByTestId('zoom-month')).toBeInTheDocument()
-    expect(screen.getByTestId('zoom-quarter')).toBeInTheDocument()
+    expect(screen.getByTestId('zoom-compact')).toBeInTheDocument()
+    expect(screen.getByTestId('zoom-standard')).toBeInTheDocument()
+    expect(screen.getByTestId('zoom-relaxed')).toBeInTheDocument()
   })
 
-  it('defaults to month zoom', async () => {
+  it('defaults to standard zoom', async () => {
     renderTimeline()
     await waitFor(() => {
       expect(screen.getByTestId('milestone-node-ms-1')).toBeInTheDocument()
     })
-    const monthBtn = screen.getByTestId('zoom-month')
-    expect(monthBtn.className).toContain('text-primary')
+    const standardBtn = screen.getByTestId('zoom-standard')
+    expect(standardBtn.className).toContain('text-primary')
   })
 
   // AC-3: Name search with debounce

@@ -257,9 +257,9 @@ describe('MilestoneDetailPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Alpha Release')).toBeInTheDocument()
     })
-    expect(screen.getByTestId('zoom-week')).toBeInTheDocument()
-    expect(screen.getByTestId('zoom-month')).toBeInTheDocument()
-    expect(screen.getByTestId('zoom-quarter')).toBeInTheDocument()
+    expect(screen.getByTestId('zoom-compact')).toBeInTheDocument()
+    expect(screen.getByTestId('zoom-standard')).toBeInTheDocument()
+    expect(screen.getByTestId('zoom-relaxed')).toBeInTheDocument()
   })
 
   it('shows loading state initially', () => {

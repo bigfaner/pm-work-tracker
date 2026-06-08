@@ -47,22 +47,10 @@ export function getDragMI(): DragMI | null {
 
 const DEBOUNCE_MS = 300
 const NODE_WIDTH = 160 // w-40 = 160px
-const NODE_GAP = 24
-const NODE_UNIT = NODE_WIDTH + NODE_GAP // 184px per node
-const MIN_TOTAL_DAYS = 30
 const ZOOM_CONFIGS = {
-  week: {
-    interval: 7,
-    formatLabel: (d: dayjs.Dayjs) => `${d.month() + 1}/${d.date()}`,
-  },
-  month: {
-    interval: 30,
-    formatLabel: (d: dayjs.Dayjs) => `${d.month() + 1}月`,
-  },
-  quarter: {
-    interval: 90,
-    formatLabel: (d: dayjs.Dayjs) => `Q${Math.ceil((d.month() + 1) / 3)}`,
-  },
+  compact: { gap: 8, label: '紧凑' },
+  standard: { gap: 24, label: '标准' },
+  relaxed: { gap: 48, label: '宽松' },
 } as const
 
 type ZoomLevel = keyof typeof ZOOM_CONFIGS;
@@ -96,59 +84,34 @@ interface NodePosition {
 
 function calculateNodePositions(
   milestones: Milestone[],
-  containerWidth: number,
-): { positions: NodePosition[], originDate: dayjs.Dayjs, totalDays: number, contentWidth: number } {
+  gap: number,
+): { positions: NodePosition[], contentWidth: number } {
   if (milestones.length === 0) {
-    return { positions: [], originDate: dayjs(), totalDays: MIN_TOTAL_DAYS, contentWidth: containerWidth }
+    return { positions: [], contentWidth: 0 }
   }
 
-  // Filter milestones with valid dates
-  const dated = milestones.filter((m) => m.expectedEndDate)
-  if (dated.length === 0) {
-    // No dates: spread evenly
-    const positions = milestones.map((m, i) => ({
-      bizKey: m.bizKey,
-      x: i * NODE_UNIT + 40,
-      milestone: m,
-    }))
-    return { positions, originDate: dayjs(), totalDays: MIN_TOTAL_DAYS, contentWidth: milestones.length * NODE_UNIT + 80 }
-  }
-
-  const dates = dated.map((m) => dayjs(m.expectedEndDate))
-  const earliest = dates.reduce((a, b) => (a.isBefore(b) ? a : b))
-  const latest = dates.reduce((a, b) => (a.isAfter(b) ? a : b))
-
-  // Extend by 15 days on each side for padding
-  const originDate = earliest.subtract(15, 'day')
-  const endDate = latest.add(15, 'day')
-  let totalDays = endDate.diff(originDate, 'day')
-  totalDays = Math.max(totalDays, MIN_TOTAL_DAYS)
-
-  const positions = milestones.map((m) => {
-    let x: number
-    if (m.expectedEndDate) {
-      const days = dayjs(m.expectedEndDate).diff(originDate, 'day')
-      x = (days / totalDays) * containerWidth
-    } else {
-      // No date: place at end
-      x = containerWidth
+  // Sort by date (earliest first, no-date at end)
+  const sorted = [...milestones].sort((a, b) => {
+    if (a.expectedEndDate && b.expectedEndDate) {
+      return a.expectedEndDate.localeCompare(b.expectedEndDate)
     }
-    return { bizKey: m.bizKey, x, milestone: m }
+    if (a.expectedEndDate) return -1
+    if (b.expectedEndDate) return 1
+    return 0
   })
 
-  // Collision resolution: sort by x, enforce minimum spacing
-  const sorted = [...positions].sort((a, b) => a.x - b.x)
-  for (let i = 1; i < sorted.length; i++) {
-    const minX = sorted[i - 1].x + NODE_UNIT
-    if (sorted[i].x < minX) {
-      sorted[i].x = minX
-    }
-  }
+  const nodeUnit = NODE_WIDTH + gap
+  const positions = sorted.map((m, i) => ({
+    bizKey: m.bizKey,
+    x: i * nodeUnit + NODE_WIDTH / 2,
+    milestone: m,
+  }))
 
-  const maxX = sorted.length > 0 ? sorted[sorted.length - 1].x + NODE_UNIT / 2 : 0
-  const contentWidth = Math.max(maxX, containerWidth)
+  const contentWidth = positions.length > 0
+    ? positions[positions.length - 1].x + NODE_WIDTH / 2
+    : 0
 
-  return { positions: sorted, originDate, totalDays, contentWidth }
+  return { positions, contentWidth }
 }
 
 // --- Skeleton ---
@@ -181,7 +144,7 @@ export default function MilestoneTimeline({
   const { addToast } = useToast()
 
   // State
-  const [zoom, setZoom] = useState<ZoomLevel>('month')
+  const [zoom, setZoom] = useState<ZoomLevel>('standard')
   const [searchText, setSearchText] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string[]>([])
@@ -280,31 +243,19 @@ export default function MilestoneTimeline({
   }, [allMilestones, debouncedSearch, statusFilter])
 
   // Node positions
-  const baseMinWidth = Math.max(allMilestones.length * NODE_UNIT, containerWidth)
-  const { positions, originDate, totalDays, contentWidth } = calculateNodePositions(
-    allMilestones,
-    baseMinWidth - 80, // 40px padding on each side
-  )
-  const minWidth = Math.max(contentWidth + 80, baseMinWidth)
+  const config = ZOOM_CONFIGS[zoom]
+  const { positions, contentWidth } = calculateNodePositions(allMilestones, config.gap)
+  const minWidth = Math.max(contentWidth + 80, containerWidth)
 
-  // Tick marks
+  // Tick marks: one per milestone, aligned with node center
   const tickMarks = useMemo(() => {
-    if (allMilestones.length === 0) return []
-    const config = ZOOM_CONFIGS[zoom]
-    const ticks: { x: number, label: string }[] = []
-    const end = originDate.add(totalDays, 'day')
-
-    for (
-      let d = originDate;
-      d.isBefore(end) || d.isSame(end, 'day');
-      d = d.add(config.interval, 'day')
-    ) {
-      const days = d.diff(originDate, 'day')
-      const x = (days / totalDays) * (minWidth - 80) + 40
-      ticks.push({ x, label: config.formatLabel(d) })
-    }
-    return ticks
-  }, [originDate, totalDays, minWidth, zoom, allMilestones.length])
+    return positions.map((pos) => {
+      const label = pos.milestone.expectedEndDate
+        ? (() => { const d = dayjs(pos.milestone.expectedEndDate); return `${d.month() + 1}/${d.date()}` })()
+        : '未设置'
+      return { x: pos.x, label }
+    })
+  }, [positions])
 
   // Map terminal state check
   const isMapTerminal = mapData
@@ -628,9 +579,9 @@ export default function MilestoneTimeline({
         >
           {/* Zoom controls */}
           <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 rounded-md border border-border bg-white px-2 py-1">
-            <span className="text-xs text-tertiary">刻度</span>
+            <span className="text-xs text-tertiary">间距</span>
             <div className="flex">
-              {(['week', 'month', 'quarter'] as const).map((level) => (
+              {(['compact', 'standard', 'relaxed'] as const).map((level) => (
                 <button
                   key={level}
                   data-testid={`zoom-${level}`}
@@ -641,7 +592,7 @@ export default function MilestoneTimeline({
                       : 'text-tertiary hover:text-primary'
                   }`}
                 >
-                  {level === 'week' ? '周' : level === 'month' ? '月' : '季'}
+                  {ZOOM_CONFIGS[level].label}
                 </button>
               ))}
             </div>
