@@ -178,10 +178,17 @@ export default function MilestoneDetailPanel({
         ref={panelRef}
         role="dialog"
         aria-label={`里程碑详情: ${milestone?.milestoneName ?? ''}`}
-        className="fixed right-0 top-0 z-40 h-full w-[360px] bg-white shadow-lg transition-transform duration-300 ease-out translate-x-0 flex flex-col"
+        className="fixed right-0 top-0 z-40 h-full w-[540px] bg-white shadow-lg transition-transform duration-300 ease-out translate-x-0 flex flex-col"
       >
-        {/* Close button */}
-        <div className="flex items-center justify-between px-5 pt-4 pb-2">
+        {/* Header: title + close button */}
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border">
+          <h2
+            className={`text-lg font-semibold ${
+              isCancelled ? 'text-tertiary line-through' : 'text-primary'
+            }`}
+          >
+            {isLoading ? '' : milestone?.milestoneName ?? ''}
+          </h2>
           <button
             onClick={onClose}
             className="text-tertiary hover:text-primary transition-colors"
@@ -193,7 +200,7 @@ export default function MilestoneDetailPanel({
 
         <div className="flex-1 overflow-y-auto px-5 pb-6">
           {isLoading ? (
-            <div className="space-y-4 animate-pulse">
+            <div className="space-y-4 animate-pulse pt-4">
               <div className="h-6 bg-bg-alt rounded w-2/3" />
               <div className="h-4 bg-bg-alt rounded w-1/2" />
               <div className="h-4 bg-bg-alt rounded w-full" />
@@ -201,17 +208,10 @@ export default function MilestoneDetailPanel({
             </div>
           ) : milestone ? (
             <>
-              {/* Name */}
-              <h2
-                className={`text-lg font-semibold mb-4 ${
-                  isCancelled ? 'text-tertiary line-through' : 'text-primary'
-                }`}
-              >
-                {milestone.milestoneName}
-              </h2>
+              {/* Content starts below the header */}
 
               {/* Description area: row 1 = label + status + edit; row 2 = text */}
-              <div className="mb-4">
+              <div className="mb-4 pt-4">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-tertiary">描述</span>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -225,12 +225,12 @@ export default function MilestoneDetailPanel({
                     />
                     {!isTerminal && (
                       <Button
-                        variant="ghost"
+                        variant="secondary"
                         size="sm"
                         onClick={handleEditClick}
-                        aria-label="编辑里程碑"
                       >
                         <Pencil className="h-4 w-4" />
+                        编辑
                       </Button>
                     )}
                   </div>
@@ -254,7 +254,7 @@ export default function MilestoneDetailPanel({
                     </TooltipTrigger>
                     <TooltipContent
                       side="left"
-                      className="max-w-[280px] whitespace-pre-wrap"
+                      className="max-w-sm !overflow-visible whitespace-normal break-words"
                     >
                       {milestone.milestoneDesc}
                     </TooltipContent>
@@ -295,10 +295,9 @@ export default function MilestoneDetailPanel({
                       关联事项 ({relatedMIs.length})
                     </span>
                     <Button
-                      variant="ghost"
+                      variant="secondary"
                       size="sm"
                       onClick={handleQuickAddClick}
-                      className="text-xs text-primary-700 hover:text-primary"
                     >
                       <Plus className="h-3.5 w-3.5 mr-1" />
                       添加

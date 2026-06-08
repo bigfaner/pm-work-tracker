@@ -12,6 +12,13 @@ function formatDate(dateStr: string | null): string {
   return dateStr.slice(0, 10)
 }
 
+function dotColor(status: string) {
+  if (status === 'completed') return 'bg-success'
+  if (status === 'in_progress') return 'bg-success'
+  if (status === 'cancelled') return 'bg-gray-400 opacity-50'
+  return 'bg-gray-400'
+}
+
 export default function MilestoneMapCard({ map }: MilestoneMapCardProps) {
   const startLabel = formatDate(map.planStartDate)
   const endLabel = formatDate(map.expectedEndDate)
@@ -61,41 +68,62 @@ export default function MilestoneMapCard({ map }: MilestoneMapCardProps) {
         </div>
       </div>
 
-      {/* Row 4: Milestone node thumbnail — status-colored dots connected by lines */}
+      {/* Row 4: Milestone node thumbnail — name ● ── ● ── ● name */}
       {map.milestoneSummary && map.milestoneSummary.length > 0 ? (
-        <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border">
-          <span className="text-xs text-tertiary whitespace-nowrap shrink-0">
+        <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border overflow-hidden">
+          <span className="text-xs text-tertiary truncate max-w-[60px] shrink-0">
             {map.milestoneSummary[0].name}
           </span>
-          {map.milestoneSummary.map((ms, i) => (
-            <span key={ms.bizKey} className="contents">
-              <span
-                data-testid="milestone-dot"
-                className={`w-2 h-2 rounded-full shrink-0 ${
-                  ms.status === 'completed'
-                    ? 'bg-success'
-                    : ms.status === 'in_progress'
-                      ? 'bg-info'
-                      : ms.status === 'cancelled'
-                        ? 'bg-gray-300 opacity-50'
-                        : 'bg-gray-300'
-                }`}
-              />
-              {i < map.milestoneSummary.length - 1 && (
-                <span
-                  data-testid="milestone-line"
-                  className="flex-1 h-px bg-border min-w-2"
-                />
-              )}
-            </span>
-          ))}
-          <span className="text-xs text-tertiary whitespace-nowrap shrink-0">
-            {map.milestoneSummary[map.milestoneSummary.length - 1].name}
-          </span>
+          {buildThumbnailElements(map.milestoneSummary)}
         </div>
       ) : map.milestoneCount === 0 ? (
         <span className="text-xs text-tertiary">暂无里程碑</span>
       ) : null}
     </Link>
   )
+}
+
+function buildThumbnailElements(summary: MilestoneMap['milestoneSummary']) {
+  const elements: React.ReactNode[] = []
+
+  // First dot
+  elements.push(
+    <span
+      key="dot-0"
+      data-testid="milestone-dot"
+      className={`w-2 h-2 rounded-full shrink-0 ${dotColor(summary[0].status)}`}
+    />,
+  )
+
+  // Middle dots with connecting lines
+  for (let i = 1; i < summary.length; i++) {
+    elements.push(
+      <span
+        key={`line-${i}`}
+        data-testid="milestone-line"
+        className="flex-1 h-0.5 bg-border min-w-4"
+      />,
+    )
+    elements.push(
+      <span
+        key={`dot-${i}`}
+        data-testid="milestone-dot"
+        className={`w-2 h-2 rounded-full shrink-0 ${dotColor(summary[i].status)}`}
+      />,
+    )
+  }
+
+  // Last milestone name (only when > 1 milestone)
+  if (summary.length > 1) {
+    elements.push(
+      <span
+        key="last-name"
+        className="text-xs text-tertiary truncate max-w-[60px] shrink-0"
+      >
+        {summary[summary.length - 1].name}
+      </span>,
+    )
+  }
+
+  return elements
 }

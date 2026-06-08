@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
 import StatusTransitionDropdown from '@/components/shared/StatusTransitionDropdown'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { StatusTagFilter } from '@/components/shared/StatusTagFilter'
 import MilestoneNode from './MilestoneNode'
 import MilestoneDetailPanel from './MilestoneDetailPanel'
@@ -46,7 +47,7 @@ export function getDragMI(): DragMI | null {
 // --- Constants ---
 
 const DEBOUNCE_MS = 300
-const NODE_WIDTH = 160 // w-40 = 160px
+const NODE_WIDTH = 240 // w-60 = 240px
 const ZOOM_CONFIGS = {
   compact: { gap: 8, label: '紧凑' },
   standard: { gap: 24, label: '标准' },
@@ -139,15 +140,16 @@ function calculateNodePositions(
     }
   }
 
-  // Fall back: even spacing
+  // Fall back: even spacing across container width
+  const count = sorted.length
+  const startX = NODE_WIDTH / 2
+  const endX = Math.max(containerWidth - NODE_WIDTH / 2, startX + nodeUnit * (count - 1))
   const positions = sorted.map((m, i) => ({
     bizKey: m.bizKey,
-    x: i * nodeUnit + NODE_WIDTH / 2,
+    x: count === 1 ? startX : startX + i * ((endX - startX) / (count - 1)),
     milestone: m,
   }))
-  const contentWidth = positions.length > 0
-    ? positions[positions.length - 1].x + NODE_WIDTH / 2
-    : 0
+  const contentWidth = Math.max(containerWidth, endX + NODE_WIDTH / 2)
   return { positions, contentWidth }
 }
 
@@ -195,6 +197,9 @@ export default function MilestoneTimeline({
   const [deleteMapConfirmOpen, setDeleteMapConfirmOpen] = useState(false)
   const [containerWidth, setContainerWidth] = useState(800)
   const timelineContainerRef = useRef<HTMLDivElement>(null)
+  const scrollTrackRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
   const [dragOverMilestoneKey, setDragOverMilestoneKey] = useState<
     string | null
@@ -212,18 +217,31 @@ export default function MilestoneTimeline({
     }
   }, [searchText])
 
-  // Measure container width
+  // Scroll tracking helpers (defined before useEffect that uses them)
+  const updateScrollState = useCallback(() => {
+    const el = scrollTrackRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 4)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+  }, [])
+
+  const scrollBy = useCallback((direction: 'left' | 'right') => {
+    const el = scrollTrackRef.current
+    if (!el) return
+    el.scrollBy({ left: direction === 'left' ? -300 : 300, behavior: 'smooth' })
+  }, [])
+
+  // Measure container width + update scroll state on resize
   useEffect(() => {
     const el = timelineContainerRef.current
     if (!el) return
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width)
-      }
+    const observer = new ResizeObserver(() => {
+      setContainerWidth(el.clientWidth)
+      requestAnimationFrame(() => updateScrollState())
     })
     observer.observe(el)
     return () => observer.disconnect()
-  }, [])
+  }, [updateScrollState])
 
   // Data fetching
   const { data: mapData, isLoading: mapLoading } = useQuery({
@@ -244,6 +262,19 @@ export default function MilestoneTimeline({
   })
 
   const allMilestones: Milestone[] = milestonesData?.items ?? []
+
+  // Track scroll for arrow buttons
+  useEffect(() => {
+    const el = scrollTrackRef.current
+    if (!el) return
+    // Use rAF to ensure DOM has reflowed after layout changes
+    const raf = requestAnimationFrame(() => updateScrollState())
+    el.addEventListener('scroll', updateScrollState, { passive: true })
+    return () => {
+      cancelAnimationFrame(raf)
+      el.removeEventListener('scroll', updateScrollState)
+    }
+  }, [updateScrollState, allMilestones, zoom])
 
   // Fetch all MIs for this map (grouped by milestoneKey client-side)
   const { data: miData } = useQuery({
@@ -279,10 +310,12 @@ export default function MilestoneTimeline({
     return items
   }, [allMilestones, debouncedSearch, statusFilter])
 
-  // Node positions
+  // Node positions — based on filtered milestones so timeline re-renders on filter
   const config = ZOOM_CONFIGS[zoom]
-  const { positions, contentWidth } = calculateNodePositions(allMilestones, config.gap, containerWidth)
-  const minWidth = Math.max(contentWidth + 80, containerWidth)
+  const paddingH = 40
+  const usableWidth = Math.max(containerWidth - paddingH * 2, NODE_WIDTH)
+  const { positions, contentWidth } = calculateNodePositions(filteredMilestones, config.gap, usableWidth)
+  const minWidth = Math.max(contentWidth + paddingH * 2, containerWidth)
 
   // Tick marks: one per milestone, aligned with node center
   const tickMarks = useMemo(() => {
@@ -610,10 +643,11 @@ export default function MilestoneTimeline({
       ) : (
         <div
           className="relative border border-border rounded-xl bg-white"
+          style={{ height: 'calc(100vh - 320px)', minHeight: 360, maxHeight: 560 }}
           ref={timelineContainerRef}
         >
-          {/* Zoom controls */}
-          <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 rounded-md border border-border bg-white px-2 py-1">
+          {/* Zoom controls — fully transparent, inside container top-right */}
+          <div className="absolute top-1 right-3 z-10 flex items-center gap-1.5 rounded-md px-2 py-1 bg-transparent">
             <span className="text-xs text-tertiary">间距</span>
             <div className="flex">
               {(['compact', 'standard', 'relaxed'] as const).map((level) => (
@@ -633,8 +667,32 @@ export default function MilestoneTimeline({
             </div>
           </div>
 
+          {/* Scroll arrow buttons */}
+          {canScrollLeft && (
+            <button
+              data-testid="scroll-left"
+              onClick={() => scrollBy('left')}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-14 h-14 flex items-center justify-center rounded-full bg-white/80 shadow cursor-pointer"
+            >
+              <svg width="40" height="40" viewBox="0 0 20 20" fill="none">
+                <path d="M12 4L6 10L12 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-tertiary" />
+              </svg>
+            </button>
+          )}
+          {canScrollRight && (
+            <button
+              data-testid="scroll-right"
+              onClick={() => scrollBy('right')}
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-14 h-14 flex items-center justify-center rounded-full bg-white/80 shadow cursor-pointer"
+            >
+              <svg width="40" height="40" viewBox="0 0 20 20" fill="none">
+                <path d="M8 4L14 10L8 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-tertiary" />
+              </svg>
+            </button>
+          )}
+
           {/* Scrollable timeline track */}
-          <div className="overflow-x-auto" style={{ minHeight: 400 }}>
+          <div className="overflow-x-auto h-full" ref={scrollTrackRef}>
             <div
               className="relative"
               style={{
@@ -642,13 +700,16 @@ export default function MilestoneTimeline({
                 padding: '28px 40px 40px',
               }}
             >
-              {/* Tick marks: dots + date labels + connectors to nodes */}
+              {/* Tick marks: date labels + dots + connectors to nodes */}
               <div
                 data-testid="tick-marks"
-                className="relative border-b-2 border-border"
-                style={{ height: 40, marginBottom: 8 }}
+                className="relative overflow-visible"
+                style={{ height: 48, marginBottom: 0 }}
               >
-                {/* Date labels */}
+                {/* Timeline line: full width edge to edge */}
+                <div className="absolute left-0 right-0 border-b-2 border-border" style={{ top: 24 }} />
+
+                {/* Date above dot, then dot on the line */}
                 {tickMarks.map((tick, i) => (
                   <div
                     key={i}
@@ -658,15 +719,15 @@ export default function MilestoneTimeline({
                       transform: 'translateX(-50%)',
                     }}
                   >
-                    <svg width="8" height="8" className="shrink-0">
-                      <circle cx="4" cy="4" r="3" data-testid="tick-dot" className="fill-border-dark" />
-                    </svg>
-                    <span className="text-[11px] text-tertiary mt-1 whitespace-nowrap">
+                    <span className="text-[11px] text-tertiary whitespace-nowrap leading-4">
                       {tick.label}
                     </span>
+                    <svg width="16" height="16" className="shrink-0">
+                      <circle cx="8" cy="8" r="6" data-testid="tick-dot" className="fill-border-dark" />
+                    </svg>
                   </div>
                 ))}
-                {/* Connector lines from dots to node top */}
+                {/* Connector lines from dot bottom to node top border */}
                 {tickMarks.map((tick) => (
                   <div
                     key={`conn-${tick.bizKey}`}
@@ -674,20 +735,20 @@ export default function MilestoneTimeline({
                     className="absolute left-0 w-px bg-border-dark"
                     style={{
                       left: tick.x,
-                      top: 40,
-                      height: 8,
+                      top: 32,
+                      height: 24,
                     }}
                   />
                 ))}
               </div>
 
               {/* Milestone nodes layer */}
-              <div className="relative" style={{ minHeight: 110 }}>
+              <div className="relative" style={{ minHeight: 160 }}>
                 {/* Arrows between consecutive nodes */}
                 {positions.length > 1 && (
                   <svg
                     className="absolute top-0 left-0 w-full pointer-events-none"
-                    style={{ height: 110, overflow: 'visible' }}
+                    style={{ height: 160, overflow: 'visible' }}
                   >
                     <defs>
                       <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
@@ -704,9 +765,9 @@ export default function MilestoneTimeline({
                           key={`arrow-${pos.bizKey}`}
                           data-testid="timeline-arrow"
                           x1={startX}
-                          y1={40}
+                          y1={80}
                           x2={endX}
-                          y2={40}
+                          y2={80}
                           className="stroke-tertiary"
                           strokeWidth={1}
                           markerEnd="url(#arrowhead)"
@@ -784,12 +845,16 @@ export default function MilestoneTimeline({
                           className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs cursor-pointer hover:bg-bg-alt"
                           style={{ marginBottom: 3 }}
                         >
-                          <span className="text-accent font-medium shrink-0">
-                            {mi.code}
-                          </span>
-                          <span className="text-primary truncate">
-                            {mi.title}
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-primary truncate">
+                                {mi.title}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="max-w-sm !overflow-visible whitespace-normal break-words">
+                              {mi.title}
+                            </TooltipContent>
+                          </Tooltip>
                           <span className="text-tertiary text-[11px] shrink-0">
                             {Math.round(mi.completion)}%
                           </span>

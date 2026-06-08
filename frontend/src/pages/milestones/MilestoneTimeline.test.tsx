@@ -443,8 +443,8 @@ describe('MilestoneTimeline', () => {
     const left1 = parseFloat(node1.style.left)
     const left2 = parseFloat(node2.style.left)
 
-    // Node width is 160px (w-40); left edges must differ by at least 160px
-    expect(Math.abs(left1 - left2)).toBeGreaterThanOrEqual(160)
+    // Node width is 240px (w-60); left edges must differ by at least 240px
+    expect(Math.abs(left1 - left2)).toBeGreaterThanOrEqual(240)
   })
 
   // bug: nodes should spread proportionally across width for sparse dates
@@ -518,11 +518,10 @@ describe('MilestoneTimeline', () => {
     await waitFor(() => {
       expect(screen.getByTestId('milestone-node-ms-1')).toBeInTheDocument()
     })
-    // MI items belonging to ms-1 should be visible in the MI layer
-    expect(screen.getByText('MI-0001')).toBeInTheDocument()
+    // MI items belonging to ms-1 should be visible in the MI layer (titles only, no codes)
     expect(screen.getByText('需求分析')).toBeInTheDocument()
-    expect(screen.getByText('MI-0003')).toBeInTheDocument()
-    expect(screen.getByText('MI-0005')).toBeInTheDocument()
+    expect(screen.getByText('UI设计')).toBeInTheDocument()
+    expect(screen.getByText('API开发')).toBeInTheDocument()
   })
 
   // AC-5: Drag-and-drop MI rebinding

@@ -113,11 +113,17 @@ describe('MilestoneNode', () => {
     expect(node.className).toContain('opacity-50')
   })
 
-  // Size: w-40
-  it('has w-40 width class', () => {
+  // Size: w-60 h-40
+  it('has w-60 width class', () => {
     renderNode()
     const node = screen.getByTestId('milestone-node-ms-1')
-    expect(node.className).toContain('w-40')
+    expect(node.className).toContain('w-60')
+  })
+
+  it('has h-40 fixed height class', () => {
+    renderNode()
+    const node = screen.getByTestId('milestone-node-ms-1')
+    expect(node.className).toContain('h-40')
   })
 
   // DnD: isDragOver highlight

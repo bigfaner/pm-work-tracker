@@ -41,7 +41,7 @@ export default function MilestoneNode({
       onDrop={onDrop}
       style={style}
       className={cn(
-        'w-40 rounded-xl border border-border bg-white p-3.5 cursor-pointer transition-all duration-200',
+        'w-60 h-40 rounded-xl border border-border bg-white p-4 cursor-pointer transition-all duration-200 flex flex-col',
         isCancelled && 'opacity-50',
         isDragOver
           ? 'border-primary ring-2 ring-primary-200 bg-primary-50'
@@ -61,23 +61,15 @@ export default function MilestoneNode({
         />
       </div>
 
-      {/* Row 2: Description (truncated, tooltip for full text) */}
+      {/* Row 2: Description (wraps naturally, tooltip for overflow) */}
       {milestone.milestoneDesc ? (
         <Tooltip>
           <TooltipTrigger asChild>
-            <p
-              className="text-xs text-secondary"
-              style={{
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-              }}
-            >
+            <p className="text-xs text-secondary mt-1.5 flex-1 min-h-0 overflow-hidden break-words">
               {milestone.milestoneDesc}
             </p>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="max-w-xs">
+          <TooltipContent side="bottom" className="max-w-sm !overflow-visible whitespace-normal break-words">
             {milestone.milestoneDesc}
           </TooltipContent>
         </Tooltip>

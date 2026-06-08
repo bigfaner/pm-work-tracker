@@ -175,11 +175,11 @@ describe('MilestoneDetailPanel', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('renders panel with w-[360px] when open', () => {
+  it('renders panel with w-[540px] when open', () => {
     renderPanel()
     const dialog = screen.getByRole('dialog')
     expect(dialog).toBeInTheDocument()
-    expect(dialog.className).toContain('w-[360px]')
+    expect(dialog.className).toContain('w-[540px]')
   })
 
   it('closes on overlay click', async () => {

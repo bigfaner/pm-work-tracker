@@ -88,10 +88,10 @@ describe('MilestoneMapCard', () => {
     expect(dots).toHaveLength(4)
     // completed → green (success)
     expect(dots[0]).toHaveClass('bg-success')
-    // in_progress → blue (info)
-    expect(dots[1]).toHaveClass('bg-info')
-    // not_started → gray
-    expect(dots[2]).toHaveClass('bg-gray-300')
+    // in_progress → blue (success)
+    expect(dots[1]).toHaveClass('bg-success')
+    // not_started → gray (darker than line)
+    expect(dots[2]).toHaveClass('bg-gray-400')
   })
 
   it('renders connecting lines between dots in row 4', () => {
@@ -104,6 +104,19 @@ describe('MilestoneMapCard', () => {
   it('shows "暂无里程碑" when milestoneCount is 0', () => {
     renderCard(makeMap({ milestoneCount: 0, milestoneSummary: [] }))
     expect(screen.getByText('暂无里程碑')).toBeInTheDocument()
+  })
+
+  it('does not repeat milestone name when only one milestone', () => {
+    renderCard(
+      makeMap({
+        milestoneCount: 1,
+        milestoneSummary: [
+          { bizKey: 'ms-1', name: '唯一里程碑', status: 'in_progress', progress: 50 },
+        ],
+      }),
+    )
+    const names = screen.getAllByText('唯一里程碑')
+    expect(names).toHaveLength(1)
   })
 
   // AC-4: Card click navigates to /milestones/:mapId
