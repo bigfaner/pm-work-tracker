@@ -736,7 +736,7 @@
       "dependencies": [
         "T-test-gen-scripts-backend"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "gen-test-scripts-frontend.md",
       "record": "records/gen-test-scripts-frontend.md",
       "surface-key": "frontend",
