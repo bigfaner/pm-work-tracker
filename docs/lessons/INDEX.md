@@ -57,6 +57,8 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | gotcha-eval-iterative-vs-failure.md | Eval tasks are iterative — don't count progress toward threshold as "failure" |
 | gotcha-validation-ux-misses-visual-gaps.md | validation-ux validates code structure not rendered output — misses layout, positioning, interaction bugs |
 | gotcha-e2e-empty-seed-data-passes.md | E2E/API tests pass with zero child entities — tests validate structure not workflow completeness |
+| gotcha-radix-provider-missing.md | Radix components (Tooltip) crash at runtime without Provider wrapper — invisible to compile and unit tests |
+| gotcha-date-input-double-icon.md | Fixing hidden native picker without removing decorative icon workaround creates double icon |
 
 ### pattern- — Reusable Patterns
 
@@ -103,5 +105,5 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | Writing tech design | gotcha-design-tech-skip-askuserquestion, gotcha-tech-design-decision-archiving |
 | Using eval skills | gotcha-eval-prd-use-zcode-agents, gotcha-eval-iterative-vs-failure |
 | Hook configuration | gotcha-hook-unbounded-test-timeout, hook-stop-e2e-blocking |
-| Frontend component work | arch-button-icon-convention, weekly-view-bug-fixes |
+| Frontend component work | arch-button-icon-convention, weekly-view-bug-fixes, gotcha-radix-provider-missing, gotcha-date-input-double-icon |
 | Debugging test issues | tool-bash-retry-loop, gotcha-pipe-tail-buffers-test-output, frontend-test-command |
