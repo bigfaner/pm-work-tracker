@@ -1,6 +1,6 @@
 ---
 feature: "milestone-map"
-status: tasks
+status: completed
 ---
 
 # Feature: milestone-map
