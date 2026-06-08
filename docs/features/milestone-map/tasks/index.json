@@ -811,7 +811,7 @@
       "dependencies": [
         "T-test-run-frontend"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "validate-ux.md",
       "record": "records/validate-ux.md",
       "mainSession": true,
