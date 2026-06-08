@@ -446,7 +446,7 @@ export default function MilestoneTimeline({
           </h1>
           <StatusTransitionDropdown
             currentStatus={mapData?.mapStatus ?? ''}
-            itemType="main"
+            itemType="milestone-map"
             teamId={teamId}
             itemId={mapId}
             onStatusChanged={handleMapStatusChanged}

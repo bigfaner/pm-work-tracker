@@ -217,7 +217,7 @@ export default function MilestoneDetailPanel({
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <StatusTransitionDropdown
                       currentStatus={milestone.milestoneStatus}
-                      itemType="main"
+                      itemType="milestone"
                       teamId={teamId}
                       itemId={milestoneId!}
                       onStatusChanged={handleStatusChanged}

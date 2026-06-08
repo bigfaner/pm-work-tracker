@@ -20,6 +20,8 @@ import {
   getStatusName,
   MAIN_TERMINAL_STATUSES,
   SUB_TERMINAL_STATUSES,
+  MILESTONE_MAP_STATUSES,
+  MILESTONE_STATUSES,
 } from '@/lib/status'
 import {
   getMainItemTransitionsApi,
@@ -29,12 +31,18 @@ import {
   getSubItemTransitionsApi,
   changeSubItemStatusApi,
 } from '@/api/subItems'
+import {
+  getMilestoneMapTransitionsApi,
+  changeMilestoneMapStatusApi,
+  getMilestoneTransitionsApi,
+  changeMilestoneStatusApi,
+} from '@/api/milestones'
 import { X } from 'lucide-react'
 import { isAxiosError } from 'axios'
 
 export interface StatusTransitionDropdownProps {
   currentStatus: string
-  itemType: 'main' | 'sub'
+  itemType: 'main' | 'sub' | 'milestone-map' | 'milestone'
   teamId: string
   itemId: string
   onStatusChanged: () => void
@@ -62,17 +70,24 @@ export default function StatusTransitionDropdown({
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const terminalStatuses =
-    itemType === 'main' ? MAIN_TERMINAL_STATUSES : SUB_TERMINAL_STATUSES
-
-  const queryKey =
     itemType === 'main'
-      ? ['mainItemTransitions', teamId, itemId]
-      : ['subItemTransitions', teamId, itemId]
+      ? MAIN_TERMINAL_STATUSES
+      : itemType === 'sub'
+        ? SUB_TERMINAL_STATUSES
+        : itemType === 'milestone-map'
+          ? Object.entries(MILESTONE_MAP_STATUSES).filter(([, v]) => v.terminal).map(([k]) => k)
+          : Object.entries(MILESTONE_STATUSES).filter(([, v]) => v.terminal).map(([k]) => k)
+
+  const queryKey = [`${itemType}Transitions`, teamId, itemId]
 
   const fetchTransitions =
     itemType === 'main'
       ? () => getMainItemTransitionsApi(teamId, itemId)
-      : () => getSubItemTransitionsApi(teamId, itemId)
+      : itemType === 'sub'
+        ? () => getSubItemTransitionsApi(teamId, itemId)
+        : itemType === 'milestone-map'
+          ? () => getMilestoneMapTransitionsApi(teamId, itemId)
+          : () => getMilestoneTransitionsApi(teamId, itemId)
 
   const {
     data: transitions = [],
@@ -93,8 +108,12 @@ export default function StatusTransitionDropdown({
   const changeStatus = async (status: string): Promise<void> => {
     if (itemType === 'main') {
       await changeMainItemStatusApi(teamId, itemId, { status })
-    } else {
+    } else if (itemType === 'sub') {
       await changeSubItemStatusApi(teamId, itemId, { status })
+    } else if (itemType === 'milestone-map') {
+      await changeMilestoneMapStatusApi(teamId, itemId, { status })
+    } else {
+      await changeMilestoneStatusApi(teamId, itemId, { status })
     }
   }
 
@@ -105,10 +124,16 @@ export default function StatusTransitionDropdown({
       if (itemType === 'main') {
         qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
         qc.invalidateQueries({ queryKey: ['mainItem', teamId, itemId] })
-      } else {
+      } else if (itemType === 'sub') {
         qc.invalidateQueries({
           queryKey: ['subItems', teamId, parentItemId || itemId],
         })
+      } else if (itemType === 'milestone-map') {
+        qc.invalidateQueries({ queryKey: ['milestoneMaps', teamId] })
+        qc.invalidateQueries({ queryKey: ['milestoneMap', teamId, itemId] })
+      } else {
+        qc.invalidateQueries({ queryKey: ['milestones', teamId] })
+        qc.invalidateQueries({ queryKey: ['milestone', teamId, itemId] })
       }
       qc.invalidateQueries({ queryKey })
       setOpen(false)

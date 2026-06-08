@@ -16,6 +16,13 @@ vi.mock('@/api/subItems', () => ({
   changeSubItemStatusApi: vi.fn(),
 }))
 
+vi.mock('@/api/milestones', () => ({
+  getMilestoneMapTransitionsApi: vi.fn(),
+  changeMilestoneMapStatusApi: vi.fn(),
+  getMilestoneTransitionsApi: vi.fn(),
+  changeMilestoneStatusApi: vi.fn(),
+}))
+
 import {
   getMainItemTransitionsApi,
   changeMainItemStatusApi,
@@ -24,6 +31,12 @@ import {
   getSubItemTransitionsApi,
   changeSubItemStatusApi,
 } from '@/api/subItems'
+import {
+  getMilestoneMapTransitionsApi,
+  changeMilestoneMapStatusApi,
+  getMilestoneTransitionsApi,
+  changeMilestoneStatusApi,
+} from '@/api/milestones'
 
 function renderWithQueryClient(ui: React.ReactElement) {
   const qc = new QueryClient({
@@ -490,6 +503,101 @@ describe('StatusTransitionDropdown', () => {
       await user.click(screen.getByText('进行中'))
       await waitFor(() => {
         expect(queryAlert(container)).not.toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('milestone-map type', () => {
+    it('bug: fetches milestone-map transitions, not main-item transitions', async () => {
+      vi.mocked(getMilestoneMapTransitionsApi).mockResolvedValue([
+        'reviewed',
+        'cancelled',
+      ])
+      const user = userEvent.setup()
+      renderWithQueryClient(
+        <StatusTransitionDropdown
+          currentStatus="planning"
+          itemType="milestone-map"
+          teamId="t1"
+          itemId="map1"
+          onStatusChanged={() => {}}
+        />,
+      )
+      await user.click(screen.getByText('规划中'))
+      await waitFor(() => {
+        expect(getMilestoneMapTransitionsApi).toHaveBeenCalledWith('t1', 'map1')
+      })
+      // Should NOT call main-item API
+      expect(getMainItemTransitionsApi).not.toHaveBeenCalled()
+    })
+
+    it('calls changeMilestoneMapStatusApi for milestone-map type', async () => {
+      vi.mocked(getMilestoneMapTransitionsApi).mockResolvedValue(['reviewed'])
+      vi.mocked(changeMilestoneMapStatusApi).mockResolvedValue({} as any)
+      const user = userEvent.setup()
+      renderWithQueryClient(
+        <StatusTransitionDropdown
+          currentStatus="planning"
+          itemType="milestone-map"
+          teamId="t1"
+          itemId="map1"
+          onStatusChanged={() => {}}
+        />,
+      )
+      await user.click(screen.getByText('规划中'))
+      await waitFor(() => screen.getByText('已评审'))
+      await user.click(screen.getByText('已评审'))
+      await waitFor(() => {
+        expect(changeMilestoneMapStatusApi).toHaveBeenCalledWith('t1', 'map1', {
+          status: 'reviewed',
+        })
+      })
+    })
+  })
+
+  describe('milestone type', () => {
+    it('bug: fetches milestone transitions, not main-item transitions', async () => {
+      vi.mocked(getMilestoneTransitionsApi).mockResolvedValue([
+        'in_progress',
+        'cancelled',
+      ])
+      const user = userEvent.setup()
+      renderWithQueryClient(
+        <StatusTransitionDropdown
+          currentStatus="not_started"
+          itemType="milestone"
+          teamId="t1"
+          itemId="ms1"
+          onStatusChanged={() => {}}
+        />,
+      )
+      await user.click(screen.getByText('未开始'))
+      await waitFor(() => {
+        expect(getMilestoneTransitionsApi).toHaveBeenCalledWith('t1', 'ms1')
+      })
+      expect(getMainItemTransitionsApi).not.toHaveBeenCalled()
+    })
+
+    it('calls changeMilestoneStatusApi for milestone type', async () => {
+      vi.mocked(getMilestoneTransitionsApi).mockResolvedValue(['in_progress'])
+      vi.mocked(changeMilestoneStatusApi).mockResolvedValue({} as any)
+      const user = userEvent.setup()
+      renderWithQueryClient(
+        <StatusTransitionDropdown
+          currentStatus="not_started"
+          itemType="milestone"
+          teamId="t1"
+          itemId="ms1"
+          onStatusChanged={() => {}}
+        />,
+      )
+      await user.click(screen.getByText('未开始'))
+      await waitFor(() => screen.getByText('进行中'))
+      await user.click(screen.getByText('进行中'))
+      await waitFor(() => {
+        expect(changeMilestoneStatusApi).toHaveBeenCalledWith('t1', 'ms1', {
+          status: 'in_progress',
+        })
       })
     })
   })
