@@ -768,7 +768,7 @@
         "T-test-gen-scripts-backend",
         "T-test-gen-scripts-frontend"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "run-test-backend.md",
       "record": "records/run-test-backend.md",
       "surface-key": "backend",

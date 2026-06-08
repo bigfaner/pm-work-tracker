@@ -105,6 +105,8 @@ func run(configPath string, devMode bool) error {
 	milestoneRepo := gormrepo.NewGormMilestoneRepo(db)
 	milestoneMapRepo := gormrepo.NewGormMilestoneMapRepo(db)
 	mainItemSvc = service.WithMilestoneRepos(mainItemSvc, milestoneRepo, milestoneMapRepo)
+	milestoneMapSvc := service.NewMilestoneMapService(milestoneMapRepo, milestoneRepo, mainItemRepo, db)
+	milestoneSvc := service.NewMilestoneService(milestoneRepo, milestoneMapRepo, mainItemRepo, db)
 	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc, statusHistorySvc)
 	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc, statusHistorySvc)
 	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, db)
@@ -128,8 +130,10 @@ func run(configPath string, devMode bool) error {
 		View:       handler.NewViewHandler(viewSvc),
 		Report:     handler.NewReportHandler(reportSvc),
 		Admin:      handler.NewAdminHandler(adminSvc),
-		Role:       handler.NewRoleHandler(roleSvc),
-		Permission: handler.NewPermissionHandler(roleSvc),
+		Role:         handler.NewRoleHandler(roleSvc),
+		Permission:   handler.NewPermissionHandler(roleSvc),
+		MilestoneMap: handler.NewMilestoneMapHandler(milestoneMapSvc, userRepo, milestoneRepo, mainItemRepo),
+		Milestone:    handler.NewMilestoneHandler(milestoneSvc, mainItemRepo),
 	}
 
 	// 7. Setup router
