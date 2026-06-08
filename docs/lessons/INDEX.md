@@ -54,6 +54,7 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | gotcha-task-process-state-reset.md | Resetting task state — must delete tasks/process/state.json, not just index.json |
 | gotcha-task-claim-priority-skip.md | forge task claim skips unblocked tasks — jumps to unrelated pipeline tasks |
 | gotcha-tech-design-decision-archiving.md | Tech design must record naming/structural conventions |
+| gotcha-eval-iterative-vs-failure.md | Eval tasks are iterative — don't count progress toward threshold as "failure" |
 
 ### pattern- — Reusable Patterns
 
@@ -97,7 +98,7 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | Schema migration | gotcha-schema-alignment-cascading-test-failures |
 | Adding interface methods | gotcha-interface-blast-radius-dispatcher |
 | Writing tech design | gotcha-design-tech-skip-askuserquestion, gotcha-tech-design-decision-archiving |
-| Using eval skills | gotcha-eval-prd-use-zcode-agents |
+| Using eval skills | gotcha-eval-prd-use-zcode-agents, gotcha-eval-iterative-vs-failure |
 | Hook configuration | gotcha-hook-unbounded-test-timeout, hook-stop-e2e-blocking |
 | Frontend component work | arch-button-icon-convention, weekly-view-bug-fixes |
 | Debugging test issues | tool-bash-retry-loop, gotcha-pipe-tail-buffers-test-output, frontend-test-command |
