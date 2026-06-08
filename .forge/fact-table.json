@@ -358,5 +358,338 @@
     "value": "SoftDelete sets deleted_flag; queries use NotDeleted() scope; data is never permanently removed; source: repository pattern",
     "confidence": "inferred",
     "updated_at": "2026-06-04T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MILESTONE_MAP_CREATE",
+    "source": "static",
+    "subject": "MilestoneMap create endpoint",
+    "kind": "signature",
+    "value": "POST /api/v1/teams/:teamId/milestone-maps (perm: milestone:create); body: {mapName(1-100,required), mapDesc, assigneeBizKey(required), planStartDate, expectedEndDate}; initial status: planning",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MILESTONE_MAP_LIST",
+    "source": "static",
+    "subject": "MilestoneMap list endpoint",
+    "kind": "signature",
+    "value": "GET /api/v1/teams/:teamId/milestone-maps (perm: milestone:read); filter: name, assigneeKey, status; returns items, total, page, size",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MILESTONE_MAP_GET",
+    "source": "static",
+    "subject": "MilestoneMap get endpoint",
+    "kind": "signature",
+    "value": "GET /api/v1/teams/:teamId/milestone-maps/:mapId (perm: milestone:read); returns enriched VO with milestoneCount, itemCount, overallProgress",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MILESTONE_MAP_UPDATE",
+    "source": "static",
+    "subject": "MilestoneMap update endpoint",
+    "kind": "signature",
+    "value": "PUT /api/v1/teams/:teamId/milestone-maps/:mapId (perm: milestone:update); body: {mapName, mapDesc, assigneeBizKey, planStartDate, expectedEndDate}; validates date range; returns updated VO",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MILESTONE_MAP_DELETE",
+    "source": "static",
+    "subject": "MilestoneMap delete endpoint with cascade",
+    "kind": "signature",
+    "value": "DELETE /api/v1/teams/:teamId/milestone-maps/:mapId (perm: milestone:delete); cascade: soft-delete all milestones + clear MI milestone_keys in single transaction; only planning/reviewed/ready deletable",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MILESTONE_MAP_STATUS",
+    "source": "static",
+    "subject": "MilestoneMap status change endpoint",
+    "kind": "signature",
+    "value": "PUT /api/v1/teams/:teamId/milestone-maps/:mapId/status (perm: milestone:update); body: {status: string}; validates transitions; cancelled cascades to milestones+MIs",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MILESTONE_MAP_TRANSITIONS",
+    "source": "static",
+    "subject": "MilestoneMap available transitions endpoint",
+    "kind": "signature",
+    "value": "GET /api/v1/teams/:teamId/milestone-maps/:mapId/available-transitions (perm: milestone:read); returns filtered transitions based on current status and milestone terminal check",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MILESTONE_CREATE",
+    "source": "static",
+    "subject": "Milestone create endpoint",
+    "kind": "signature",
+    "value": "POST /api/v1/teams/:teamId/milestone-maps/:mapId/milestones (perm: milestone:create); body: {milestoneName(1-100,required), milestoneDesc, expectedEndDate(required)}; parent map must not be terminal; initial status: not_started",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MILESTONE_LIST_BY_MAP",
+    "source": "static",
+    "subject": "Milestone list by map endpoint",
+    "kind": "signature",
+    "value": "GET /api/v1/teams/:teamId/milestone-maps/:mapId/milestones (perm: milestone:read); returns items with computed completion and relatedMICount",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MILESTONE_LIST_BY_TEAM",
+    "source": "static",
+    "subject": "Milestone list by team endpoint",
+    "kind": "signature",
+    "value": "GET /api/v1/teams/:teamId/milestones (perm: milestone:read); filter: name, status, excludeCancelled; returns items with completion and relatedMICount",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MILESTONE_GET",
+    "source": "static",
+    "subject": "Milestone get endpoint",
+    "kind": "signature",
+    "value": "GET /api/v1/teams/:teamId/milestones/:milestoneId (perm: milestone:read); returns enriched VO with completion and relatedMICount",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MILESTONE_UPDATE",
+    "source": "static",
+    "subject": "Milestone update endpoint",
+    "kind": "signature",
+    "value": "PUT /api/v1/teams/:teamId/milestones/:milestoneId (perm: milestone:update); body: {milestoneName, expectedEndDate, milestoneDesc}; parent map must not be terminal for name/date changes; duplicate name check",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MILESTONE_DELETE",
+    "source": "static",
+    "subject": "Milestone delete endpoint",
+    "kind": "signature",
+    "value": "DELETE /api/v1/teams/:teamId/milestones/:milestoneId (perm: milestone:delete); cascade: clear MI milestone_keys in transaction; only not_started/cancelled deletable",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MILESTONE_STATUS",
+    "source": "static",
+    "subject": "Milestone status change endpoint",
+    "kind": "signature",
+    "value": "PUT /api/v1/teams/:teamId/milestones/:milestoneId/status (perm: milestone:update); body: {status: string}; validates transitions; cancelled auto-unbinds all MIs; completed requires all MIs terminal; parent map must not be terminal",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ROUTE_MILESTONE_TRANSITIONS",
+    "source": "static",
+    "subject": "Milestone available transitions endpoint",
+    "kind": "signature",
+    "value": "GET /api/v1/teams/:teamId/milestones/:milestoneId/available-transitions (perm: milestone:read); returns filtered transitions; parent map terminal => empty list; filters completed if MIs not all terminal",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "MILESTONE_MAP_STATE_MACHINE",
+    "source": "static",
+    "subject": "MilestoneMap status state machine and transitions",
+    "kind": "precondition",
+    "value": "planning -> {reviewed, cancelled}; reviewed -> {ready, planning, cancelled}; ready -> {executing, reviewed, cancelled}; executing -> {completed, ready, cancelled}; completed/cancelled are terminal; source: backend/internal/pkg/status/milestone_status.go",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "MILESTONE_STATE_MACHINE",
+    "source": "static",
+    "subject": "Milestone status state machine and transitions",
+    "kind": "precondition",
+    "value": "not_started -> {in_progress, cancelled}; in_progress -> {completed, cancelled}; completed -> {cancelled, in_progress}; cancelled is terminal; source: backend/internal/pkg/status/milestone_status.go",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_MAP_IS_TERMINAL",
+    "source": "static",
+    "subject": "Parent map is terminal error",
+    "kind": "error_code",
+    "value": "{\"code\":\"MAP_IS_TERMINAL\",\"message\":\"里程碑图处于终态\"} with HTTP 400",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_DUPLICATE_MILESTONE_NAME",
+    "source": "static",
+    "subject": "Duplicate milestone name within map error",
+    "kind": "error_code",
+    "value": "{\"code\":\"DUPLICATE_NAME\",\"message\":\"同名里程碑已存在\"} with HTTP 409",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_MILESTONE_HAS_NON_TERMINAL_ITEMS",
+    "source": "static",
+    "subject": "Milestone has non-terminal items error",
+    "kind": "error_code",
+    "value": "{\"code\":\"BAD_REQUEST\",\"message\":\"里程碑下存在未完成的事项\"} with HTTP 400",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_MAP_HAS_NON_TERMINAL_MILESTONES",
+    "source": "static",
+    "subject": "Map has non-terminal milestones error",
+    "kind": "error_code",
+    "value": "{\"code\":\"BAD_REQUEST\",\"message\":\"里程碑图下存在未完成的里程碑\"} with HTTP 400",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_TERMINAL_MILESTONE_CANNOT_RECEIVE",
+    "source": "static",
+    "subject": "Terminal milestone cannot receive items error",
+    "kind": "error_code",
+    "value": "{\"code\":\"BAD_REQUEST\",\"message\":\"终态里程碑不可接收事项\"} with HTTP 400",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_MAP_CANNOT_DELETE",
+    "source": "static",
+    "subject": "Map cannot delete in current status error",
+    "kind": "error_code",
+    "value": "{\"code\":\"INVALID_PARAMS\",\"message\":\"当前状态不允许删除里程碑图\"} with HTTP 400",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "ERROR_MILESTONE_CANNOT_DELETE",
+    "source": "static",
+    "subject": "Milestone cannot delete in current status error",
+    "kind": "error_code",
+    "value": "{\"code\":\"INVALID_PARAMS\",\"message\":\"当前状态不允许删除里程碑\"} with HTTP 400",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "MILESTONE_MAP_DELETE_CASCADE",
+    "source": "static",
+    "subject": "MilestoneMap delete cascades in single transaction",
+    "kind": "side_effect",
+    "value": "Delete soft-deletes all milestones under the map, clears milestone_key on all related MIs, then soft-deletes the map; source: backend/internal/service/milestone_map_service.go:193-219",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "MILESTONE_MAP_CANCEL_CASCADE",
+    "source": "static",
+    "subject": "MilestoneMap cancel cascades milestones and unbinds MIs",
+    "kind": "side_effect",
+    "value": "Cancelled status cancels all non-terminal milestones and unbinds all MIs in single transaction; source: backend/internal/service/milestone_map_service.go:250-284",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "MILESTONE_CANCEL_UNBIND_MIS",
+    "source": "static",
+    "subject": "Milestone cancellation auto-unbinds all associated MainItems",
+    "kind": "side_effect",
+    "value": "ClearMilestoneKeyByMilestone called to set milestone_key to null for all MIs; source: backend/internal/service/milestone_service.go:234-242",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "MILESTONE_MAP_DELETE_STATUS_CHECK",
+    "source": "static",
+    "subject": "MilestoneMap delete only allows planning/reviewed/ready",
+    "kind": "precondition",
+    "value": "BR-4: only planning, reviewed, ready can be deleted; executing/completed/cancelled rejected; source: backend/internal/service/milestone_map_service.go:188",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "MILESTONE_DELETE_STATUS_CHECK",
+    "source": "static",
+    "subject": "Milestone delete only allows not_started/cancelled",
+    "kind": "precondition",
+    "value": "BR-4: only not_started and cancelled can be deleted; in_progress/completed rejected; source: backend/internal/service/milestone_service.go:184",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "MILESTONE_MAP_COMPLETED_GUARD",
+    "source": "static",
+    "subject": "MilestoneMap completed requires all milestones terminal",
+    "kind": "precondition",
+    "value": "BR-2: all milestones under the map must be in terminal states (completed/cancelled) to transition map to completed; source: backend/internal/service/milestone_map_service.go:237-247",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "MILESTONE_COMPLETED_GUARD",
+    "source": "static",
+    "subject": "Milestone completed requires all MIs terminal",
+    "kind": "precondition",
+    "value": "BR-1: all associated MainItems must be in terminal states (completed/closed) to transition milestone to completed; source: backend/internal/service/milestone_service.go:221-231",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "MILESTONE_MAP_TERMINAL_BLOCKS_CHILD",
+    "source": "static",
+    "subject": "Terminal parent map blocks milestone create/update",
+    "kind": "precondition",
+    "value": "BR-5: parent MilestoneMap must not be terminal for milestone create and status-relevant updates; source: backend/internal/service/milestone_service.go:61-63,110-117",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "MILESTONE_COMPLETION_CALC",
+    "source": "static",
+    "subject": "Milestone completion is average of associated MI completions",
+    "kind": "output_format",
+    "value": "Completion = sum(MI.Completion) / count(associated MIs); 0 for empty milestone; computed on read via buildMilestoneVO; source: backend/internal/handler/milestone_handler.go:258-266",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "MILESTONE_MAP_VO_FIELDS",
+    "source": "static",
+    "subject": "MilestoneMap VO enriched fields",
+    "kind": "output_format",
+    "value": "VO includes: bizKey, teamKey, creatorKey, creatorName, assigneeKey, assigneeName, mapName, mapDesc, mapStatus, statusName, planStartDate, expectedEndDate, milestoneCount, itemCount, overallProgress; source: backend/internal/vo/milestone_vo.go",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "MILESTONE_VO_FIELDS",
+    "source": "static",
+    "subject": "Milestone VO enriched fields",
+    "kind": "output_format",
+    "value": "VO includes: bizKey, teamKey, milestoneMapKey, milestoneName, milestoneDesc, expectedEndDate, milestoneStatus, statusName, completion, relatedMICount; source: backend/internal/vo/milestone_vo.go",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "MI_MILESTONE_KEY_FIELD",
+    "source": "static",
+    "subject": "MainItem has nullable milestone_key for milestone binding",
+    "kind": "signature",
+    "value": "MilestoneKey *int64 field on MainItem model; null means unassigned; set via bind, cleared via unbind; source: backend/internal/model/main_item.go:24",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
+  },
+  {
+    "fact_id": "MILESTONE_NAME_UNIQUENESS",
+    "source": "static",
+    "subject": "Milestone name must be unique within a map",
+    "kind": "precondition",
+    "value": "ExistsByNameAndMap checks for duplicate milestone names within the same map (excluding self on update); source: backend/internal/service/milestone_service.go:66-72,123-129",
+    "confidence": "inferred",
+    "updated_at": "2026-06-08T00:00:00Z"
   }
 ]
