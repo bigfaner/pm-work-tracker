@@ -97,9 +97,9 @@ interface NodePosition {
 function calculateNodePositions(
   milestones: Milestone[],
   containerWidth: number,
-): { positions: NodePosition[], originDate: dayjs.Dayjs, totalDays: number } {
+): { positions: NodePosition[], originDate: dayjs.Dayjs, totalDays: number, contentWidth: number } {
   if (milestones.length === 0) {
-    return { positions: [], originDate: dayjs(), totalDays: MIN_TOTAL_DAYS }
+    return { positions: [], originDate: dayjs(), totalDays: MIN_TOTAL_DAYS, contentWidth: containerWidth }
   }
 
   // Filter milestones with valid dates
@@ -111,7 +111,7 @@ function calculateNodePositions(
       x: i * NODE_UNIT + 40,
       milestone: m,
     }))
-    return { positions, originDate: dayjs(), totalDays: MIN_TOTAL_DAYS }
+    return { positions, originDate: dayjs(), totalDays: MIN_TOTAL_DAYS, contentWidth: milestones.length * NODE_UNIT + 80 }
   }
 
   const dates = dated.map((m) => dayjs(m.expectedEndDate))
@@ -136,7 +136,19 @@ function calculateNodePositions(
     return { bizKey: m.bizKey, x, milestone: m }
   })
 
-  return { positions, originDate, totalDays }
+  // Collision resolution: sort by x, enforce minimum spacing
+  const sorted = [...positions].sort((a, b) => a.x - b.x)
+  for (let i = 1; i < sorted.length; i++) {
+    const minX = sorted[i - 1].x + NODE_UNIT
+    if (sorted[i].x < minX) {
+      sorted[i].x = minX
+    }
+  }
+
+  const maxX = sorted.length > 0 ? sorted[sorted.length - 1].x + NODE_UNIT / 2 : 0
+  const contentWidth = Math.max(maxX, containerWidth)
+
+  return { positions: sorted, originDate, totalDays, contentWidth }
 }
 
 // --- Skeleton ---
@@ -268,11 +280,12 @@ export default function MilestoneTimeline({
   }, [allMilestones, debouncedSearch, statusFilter])
 
   // Node positions
-  const minWidth = Math.max(allMilestones.length * NODE_UNIT, containerWidth)
-  const { positions, originDate, totalDays } = calculateNodePositions(
+  const baseMinWidth = Math.max(allMilestones.length * NODE_UNIT, containerWidth)
+  const { positions, originDate, totalDays, contentWidth } = calculateNodePositions(
     allMilestones,
-    minWidth - 80, // 40px padding on each side
+    baseMinWidth - 80, // 40px padding on each side
   )
+  const minWidth = Math.max(contentWidth + 80, baseMinWidth)
 
   // Tick marks
   const tickMarks = useMemo(() => {

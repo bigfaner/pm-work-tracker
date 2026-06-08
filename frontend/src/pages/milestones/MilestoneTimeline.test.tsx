@@ -400,6 +400,55 @@ describe('MilestoneTimeline', () => {
     expect(document.querySelector('.animate-pulse')).toBeInTheDocument()
   })
 
+  // bug: nodes with same/close dates must not overlap
+  it('bug: nodes with same date should not overlap', async () => {
+    const sameDateMilestones: Milestone[] = [
+      { ...mockMilestones[0], expectedEndDate: '2026-06-30' },
+      { ...mockMilestones[1], expectedEndDate: '2026-06-30' },
+      { ...mockMilestones[2], expectedEndDate: '2026-10-01' },
+    ]
+
+    vi.mocked(getMilestoneMapApi).mockResolvedValue(mockMap)
+    vi.mocked(listMilestonesByMapApi).mockResolvedValue({
+      items: sameDateMilestones,
+      total: sameDateMilestones.length,
+    })
+    vi.mocked(listMainItemsApi).mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      size: 200,
+    })
+
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <TooltipProvider>
+          <MemoryRouter>
+            <MilestoneTimeline
+              mapId="map-1"
+              onEditMap={vi.fn()}
+              onEditMilestone={vi.fn()}
+              onQuickAdd={vi.fn()}
+            />
+          </MemoryRouter>
+        </TooltipProvider>
+      </QueryClientProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('milestone-node-ms-1')).toBeInTheDocument()
+    })
+
+    const node1 = screen.getByTestId('milestone-node-ms-1').parentElement!
+    const node2 = screen.getByTestId('milestone-node-ms-2').parentElement!
+
+    const left1 = parseFloat(node1.style.left)
+    const left2 = parseFloat(node2.style.left)
+
+    // Node width is 160px (w-40); left edges must differ by at least 160px
+    expect(Math.abs(left1 - left2)).toBeGreaterThanOrEqual(160)
+  })
+
   // Tick marks render
   it('renders tick marks container', async () => {
     renderTimeline()
