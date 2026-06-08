@@ -721,7 +721,7 @@
       "dependencies": [
         "T-eval-contract"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "gen-test-scripts-backend.md",
       "record": "records/gen-test-scripts-backend.md",
       "surface-key": "backend",
