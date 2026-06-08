@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { useTeamStore } from '@/store/team'
 import { useAuthStore } from '@/store/auth'
+import { ToastProvider } from '@/components/ui/toast'
 import MilestoneMapList from './MilestoneMapList'
 import type { MilestoneMap, TeamMemberResp } from '@/types'
 
@@ -110,7 +111,9 @@ function renderList() {
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <MilestoneMapList />
+        <ToastProvider>
+          <MilestoneMapList />
+        </ToastProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   )
@@ -236,9 +239,7 @@ describe('MilestoneMapList', () => {
     })
 
     const user = userEvent.setup()
-    await user.click(screen.getByTestId('status-filter'))
-    const listbox = await screen.findByRole('listbox')
-    await user.click(within(listbox).getByText('实施中'))
+    await user.click(screen.getByTestId('status-filter-executing'))
 
     await waitFor(() => {
       expect(screen.getByText('Map A')).toBeInTheDocument()

@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { Plus, RefreshCw } from 'lucide-react'
+import { useToast } from '@/components/ui/toast'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { listMilestoneMapsApi, createMilestoneMapApi } from '@/api/milestones'
@@ -16,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { StatusTagFilter } from '@/components/shared/StatusTagFilter'
 import MilestoneMapCard from './MilestoneMapCard'
 import CreateMilestoneMapDialog, {
   type MilestoneMapFormState,
@@ -65,6 +67,7 @@ function SkeletonCard() {
 export default function MilestoneMapList() {
   const teamId = useTeamStore((s) => s.currentTeamId)
   const qc = useQueryClient()
+  const { addToast } = useToast()
 
   // Permission
   const canCreate = usePermission('milestone:create')
@@ -73,7 +76,7 @@ export default function MilestoneMapList() {
   const [searchText, setSearchText] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [assigneeFilter, setAssigneeFilter] = useState<string>('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<string[]>([])
 
   // Dialog state
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -137,8 +140,8 @@ export default function MilestoneMapList() {
     if (assigneeFilter) {
       items = items.filter((m) => m.assigneeKey === assigneeFilter)
     }
-    if (statusFilter) {
-      items = items.filter((m) => m.mapStatus === statusFilter)
+    if (statusFilter.length > 0) {
+      items = items.filter((m) => statusFilter.includes(m.mapStatus))
     }
     return items
   }, [allMaps, debouncedSearch, assigneeFilter, statusFilter])
@@ -149,7 +152,7 @@ export default function MilestoneMapList() {
     setSearchText('')
     setDebouncedSearch('')
     setAssigneeFilter('')
-    setStatusFilter('')
+    setStatusFilter([])
   }, [])
 
   // --- Create mutation ---
@@ -188,16 +191,6 @@ export default function MilestoneMapList() {
               创建里程碑图
             </Button>
           )}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            data-testid="refresh-btn"
-          >
-            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
-            刷新
-          </Button>
         </div>
       </div>
 
@@ -226,24 +219,27 @@ export default function MilestoneMapList() {
             ))}
           </SelectContent>
         </Select>
-        <Select
-          value={statusFilter}
-          onValueChange={(v) => setStatusFilter(v === '_all' ? '' : v)}
-        >
-          <SelectTrigger className="w-35" data-testid="status-filter">
-            <SelectValue placeholder="状态：全部" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="_all">状态：全部</SelectItem>
-            {MILESTONE_MAP_STATUS_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <StatusTagFilter
+          options={MILESTONE_MAP_STATUS_OPTIONS}
+          selected={statusFilter}
+          onChange={setStatusFilter}
+          label="状态"
+        />
         <Button variant="secondary" size="sm" onClick={resetFilters}>
           重置
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            refetch()
+            addToast('已刷新里程碑图列表', 'success')
+          }}
+          disabled={isFetching}
+          data-testid="refresh-btn"
+        >
+          <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+          刷新
         </Button>
       </div>
 
