@@ -38,3 +38,12 @@ status: tasks
 | Story 11 (MI 绑定/解绑) | BR-3, BR-5 | — | — | 2.6 |
 | Story 14 (只读权限) | Permission System | — | — | 1.4, 3.5, 3.6 |
 | NFR: Schema (dual dialect) | Schema SQL | — | — | 1.1, 1.2 |
+
+## Consolidated Specs
+
+| Spec ID | Target File | Description |
+|---------|-------------|-------------|
+| TECH-MS-001 | docs/conventions/performance-targets.md | Milestone page/API performance targets |
+| TECH-MS-002 | docs/conventions/data-model.md (DM-015) | Milestone completion real-time calculation |
+| TECH-MS-003 | docs/conventions/data-model.md (DM-007) | Entity hierarchy extension with milestone binding |
+| BIZ-milestone-001..006 | docs/business-rules/milestone-state-constraints.md | State constraints (pre-existing) |

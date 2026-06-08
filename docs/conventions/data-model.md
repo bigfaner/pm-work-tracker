@@ -139,18 +139,21 @@ Completion float64 `gorm:"type:decimal(5,2);not null" json:"completion"`
 
 ## DM-007: Core Entity Hierarchy
 
-_Source: feature/pm-work-tracker_
+_Source: feature/pm-work-tracker, feature/milestone-map_
 
 ```
-MainItem → SubItem → ProgressRecord
-                ↑
-ItemPool ───────┘ (assign creates SubItem atomically)
+MilestoneMap → Milestone → MainItem → SubItem → ProgressRecord
+                 (via milestone_key)      ↑
+                            ItemPool ─────┘ (assign creates SubItem atomically)
 ```
 
-- A **MainItem** belongs to one Team and contains zero or more SubItems.
+- A **MilestoneMap** belongs to one Team and contains zero or more Milestones.
+- A **Milestone** belongs to one MilestoneMap and binds zero or more MainItems (via `main_items.milestone_key` referencing `milestones.biz_key`).
+- A **MainItem** belongs to one Team, contains zero or more SubItems, and can be bound to at most one Milestone (many-to-one via nullable `milestone_key`).
 - A **SubItem** belongs to one MainItem and has zero or more ProgressRecords.
 - A **ProgressRecord** belongs to one SubItem and is append-only.
 - An **ItemPool** entry, when assigned, atomically creates a SubItem under a MainItem (single DB transaction in `ItemPoolService.Assign`).
+- **Milestone binding**: `milestone_key` is a nullable BIGINT column on `pmw_main_items` with an index but no DDL foreign key constraint.
 
 ## DM-008: Completion Calculation (Weighted Average)
 
@@ -268,3 +271,18 @@ planned_end_date  DATE
 **Why**: Design-time schemas in `docs/features/<slug>/design/schema.sql` are often written without referencing runtime migrations, leading to naming and type drift. The reference-first rule prevents cascading rework when the schema reaches implementation.
 
 **Source**: /learn entry 2026-06-07 (milestone-map schema alignment)
+
+## DM-015: Milestone Completion Calculation (Real-Time)
+
+_Source: feature/milestone-map_
+
+Milestone completion is calculated at GET time, not persisted:
+
+- **Milestone completion**: simple average of all related MainItems' `completion` values. Empty milestone (no related MainItems) returns 0.
+- **MilestoneMap overall progress**: simple average of all related MainItems' `completion` across all milestones in the map. Empty map returns 0.
+- **Calculation trigger**: on every GET request (real-time, no caching, no persistence).
+- **Related MI count**: also computed at GET time.
+
+**Why real-time**: Data volume per map is small (< 200 MI). Persisting would require updating milestone completion on every MI status/completion change, adding write-path complexity without meaningful performance benefit.
+
+**Distinction from DM-008**: MainItem completion uses weighted average of SubItems (DM-008). Milestone completion uses simple average of MainItems. The milestone layer adds a second aggregation tier on top of the existing SubItem->MainItem rollup.

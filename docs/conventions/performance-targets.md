@@ -49,3 +49,12 @@ source: feature/pm-work-tracker
 - **Login endpoint rate limited to 10 requests per minute per IP.**
 - Enforced via Gin rate-limit middleware on `/api/v1/auth/login`.
 - Context: Security mitigation against brute-force attacks.
+
+## Milestone Pages and APIs
+
+_Source: feature/milestone-map_
+
+- **MilestoneMap list page render < 300ms** (10 milestone map cards).
+- **Timeline page initial render < 500ms** (20 milestones + 200 MainItems).
+- **Milestone list API response < 200ms** (standard CRUD).
+- **Pagination threshold: 200 MainItems**. Enable paged loading grouped by milestone when count exceeds this threshold.
