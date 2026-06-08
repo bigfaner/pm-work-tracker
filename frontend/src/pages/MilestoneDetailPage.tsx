@@ -168,6 +168,7 @@ export default function MilestoneDetailPage() {
       qc.invalidateQueries({ queryKey: ['milestones', teamId, mapId] })
       qc.invalidateQueries({ queryKey: ['milestoneMIs', teamId] })
       qc.invalidateQueries({ queryKey: ['milestoneMap', teamId, mapId] })
+      qc.invalidateQueries({ queryKey: ['milestone', teamId] })
       setQuickAddOpen(false)
       setQuickAddTarget(null)
       setQuickAddForm({

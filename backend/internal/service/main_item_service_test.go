@@ -244,6 +244,36 @@ func TestMainItemCreate_RepoCreateError(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+func TestMainItemCreate_SetsMilestoneKey(t *testing.T) {
+	mainRepo := &mockMainItemRepo{nextCodeVal: "MI-0001"}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	msKey := "1234567890"
+	item, err := svc.Create(context.Background(), int64(1), 10, dto.MainItemCreateReq{
+		Title:        "Feature with milestone",
+		Priority:     "P1",
+		MilestoneKey: &msKey,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, item.MilestoneKey, "MilestoneKey should be set when provided in create request")
+	parsedKey, _ := pkg.ParseID(msKey)
+	assert.Equal(t, parsedKey, *item.MilestoneKey)
+}
+
+func TestMainItemCreate_NoMilestoneKey_Nil(t *testing.T) {
+	mainRepo := &mockMainItemRepo{nextCodeVal: "MI-0001"}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	item, err := svc.Create(context.Background(), int64(1), 10, dto.MainItemCreateReq{
+		Title:    "Feature without milestone",
+		Priority: "P1",
+	})
+	require.NoError(t, err)
+	assert.Nil(t, item.MilestoneKey, "MilestoneKey should be nil when not provided")
+}
+
 // Tests: Update
 // ---------------------------------------------------------------------------
 

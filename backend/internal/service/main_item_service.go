@@ -148,6 +148,13 @@ func (s *mainItemService) Create(ctx context.Context, teamBizKey, pmBizKey int64
 		}(),
 		IsKeyItem:  req.IsKeyItem,
 		ItemStatus: "pending",
+		MilestoneKey: func() *int64 {
+			if req.MilestoneKey != nil && *req.MilestoneKey != "" {
+				v, _ := pkg.ParseID(*req.MilestoneKey)
+				return &v
+			}
+			return nil
+		}(),
 	}
 
 	if req.StartDate != nil {
