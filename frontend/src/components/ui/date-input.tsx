@@ -6,6 +6,14 @@ type DateInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'>;
 
 const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
   ({ className, ...props }, forwardedRef) => {
+    const handleClick = (e: React.MouseEvent<HTMLInputElement>) => {
+      const input = e.currentTarget
+      if (input.showPicker) {
+        input.showPicker()
+      }
+      props.onClick?.(e)
+    }
+
     return (
       <div
         className={cn(
@@ -19,6 +27,7 @@ const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
           ref={forwardedRef}
           className="h-full w-full cursor-pointer bg-transparent pl-3 pr-10 text-[13px] text-primary outline-none [&::-webkit-calendar-picker-indicator]:hidden disabled:cursor-not-allowed disabled:opacity-50"
           {...props}
+          onClick={handleClick}
         />
         <Calendar className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-tertiary" />
       </div>
