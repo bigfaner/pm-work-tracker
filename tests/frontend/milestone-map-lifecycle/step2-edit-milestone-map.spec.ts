@@ -90,11 +90,12 @@ test.describe('milestone-map-lifecycle / Step 2: Edit milestone map information'
   test('TC-MML-S2-003: Edit with invalid date range shows validation error', async ({ page }) => {
     await page.getByRole('button', { name: '编辑' }).click();
 
-    await expect(page.getByRole('dialog')).toBeVisible();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
 
-    // Set invalid date range
-    await page.getByPlaceholder(/计划开始时间|开始/).first().fill('2026-12-31');
-    await page.getByPlaceholder(/计划完成时间|结束/).last().fill('2026-01-01');
+    // Set invalid date range (DateInput renders <input type="date">)
+    await dialog.locator('label', { hasText: '计划开始时间' }).locator('..').locator('input[type="date"]').fill('2026-12-31');
+    await dialog.locator('label', { hasText: '计划完成时间' }).locator('..').locator('input[type="date"]').fill('2026-01-01');
 
     await expect(page.getByText(/计划完成时间不得早于计划开始时间/)).toBeVisible();
   });

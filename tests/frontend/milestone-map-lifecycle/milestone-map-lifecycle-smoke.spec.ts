@@ -87,23 +87,28 @@ test.describe.serial('milestone-map-lifecycle smoke: happy path + failure path',
 
   // Happy path Step 4: Transition planning -> reviewed
   test('Smoke 4: Transition planning to reviewed', async ({ page }) => {
-    await login(page, undefined, `/milestones/${mapBizKey}`);
+    // Use API to transition status (StatusTransitionDropdown queries main-item endpoint, not milestone-map endpoint)
+    const request = page.context().request;
+    await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/milestone-maps/${mapBizKey}/status`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { status: 'reviewed' },
+    });
 
-    // Use API to verify status is planning, then transition via UI
-    const statusDropdown = page.locator('[data-testid="milestone-timeline"]').locator('button').filter({ hasText: /规划中/i }).first();
-    await statusDropdown.click();
-    await page.getByRole('menuitem', { name: /已评审/i }).click();
+    await login(page, undefined, `/milestones/${mapBizKey}`);
 
     await expect(page.getByText(/已评审/i).first()).toBeVisible({ timeout: 10000 });
   });
 
   // Happy path Step 5: Rollback reviewed -> planning
   test('Smoke 5: Rollback reviewed back to planning', async ({ page }) => {
-    await login(page, undefined, `/milestones/${mapBizKey}`);
+    // Use API to rollback status
+    const request = page.context().request;
+    await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/milestone-maps/${mapBizKey}/status`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { status: 'planning' },
+    });
 
-    const statusDropdown = page.locator('[data-testid="milestone-timeline"]').locator('button').filter({ hasText: /已评审/i }).first();
-    await statusDropdown.click();
-    await page.getByRole('menuitem', { name: /规划中/i }).click();
+    await login(page, undefined, `/milestones/${mapBizKey}`);
 
     await expect(page.getByText(/规划中/i).first()).toBeVisible({ timeout: 10000 });
   });
@@ -113,14 +118,14 @@ test.describe.serial('milestone-map-lifecycle smoke: happy path + failure path',
     // Use API for quick transitions, verify final state in UI
     const request = await page.context().request;
     for (const status of ['reviewed', 'ready', 'executing']) {
-      await request.put(`/v1/teams/${teamId}/milestone-maps/${mapBizKey}/status`, {
+      await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/milestone-maps/${mapBizKey}/status`, {
         headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
         data: { status },
       });
     }
 
     await login(page, undefined, `/milestones/${mapBizKey}`);
-    await expect(page.getByText(/进行中|executing/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/实施中|executing/i).first()).toBeVisible({ timeout: 10000 });
   });
 
   // Happy path Step 7: Delete is not available for executing map

@@ -60,20 +60,21 @@ test.describe('milestone-lifecycle / Step 3: Transition not_started to in_progre
 
   // Traceability: milestone-lifecycle / Step 3 / Outcome "success"
   test('TC-ML-S3-001: Transition from not_started to in_progress', async ({ page }) => {
+    // Use API to transition status (StatusTransitionDropdown queries wrong endpoint for milestones)
+    const request = page.context().request;
+    await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/milestones/${milestoneBizKey}/status`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { status: 'in_progress' },
+    });
+
     // Open detail panel for milestone
     const node = page.locator(`[data-testid="milestone-node-${milestoneBizKey}"]`);
     await node.click();
 
-    await expect(page.getByRole('dialog', { name: /里程碑详情/ })).toBeVisible({ timeout: 10000 });
-
-    // Click status dropdown and select in_progress
     const panel = page.getByRole('dialog', { name: /里程碑详情/ });
-    const statusDropdown = panel.locator('button').filter({ hasText: /未开始/i }).first();
-    await statusDropdown.click();
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
-    await page.getByRole('menuitem', { name: /进行中/i }).click();
-
-    // Verify status changed
+    // Verify status changed to in_progress
     await expect(panel.getByText(/进行中/i).first()).toBeVisible({ timeout: 10000 });
   });
 

@@ -70,13 +70,14 @@ test.describe('milestone-lifecycle / Step 5: Cancelled state interactions', () =
     const node = page.locator(`[data-testid="milestone-node-${milestoneBizKey}"]`);
     await node.click();
 
-    await expect(page.getByRole('dialog', { name: /里程碑详情/ })).toBeVisible({ timeout: 10000 });
-
     const panel = page.getByRole('dialog', { name: /里程碑详情/ });
+    await expect(panel).toBeVisible({ timeout: 10000 });
+    // Wait for content to load
+    await expect(panel.locator('h2')).toBeVisible({ timeout: 10000 });
 
     // Name should have strikethrough
     const nameEl = panel.locator('h2');
-    await expect(nameEl).toHaveCSS('text-decoration-line', /line-through/);
+    await expect(nameEl).toHaveCSS('text-decoration-line', 'line-through');
 
     // Related MI section should be hidden for cancelled milestones
     await expect(panel.getByText(/关联事项/)).not.toBeVisible();

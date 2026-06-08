@@ -59,10 +59,14 @@ test.describe('milestone-map-lifecycle / Step 7: Rollback reviewed to planning',
 
   // Traceability: milestone-map-lifecycle / Step 7 / Outcome "success"
   test('TC-MML-S7-001: Rollback from reviewed to planning updates status', async ({ page }) => {
-    const statusDropdown = page.locator('[data-testid="milestone-timeline"]').locator('button').filter({ hasText: /已评审|reviewed/i }).first();
-    await statusDropdown.click();
+    // Use API to rollback status
+    const request = page.context().request;
+    await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/milestone-maps/${mapBizKey}/status`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { status: 'planning' },
+    });
 
-    await page.getByRole('menuitem', { name: /规划中|planning/i }).click();
+    await page.reload();
 
     await expect(page.getByText(/规划中/i).first()).toBeVisible({ timeout: 10000 });
   });

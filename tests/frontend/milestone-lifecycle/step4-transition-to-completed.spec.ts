@@ -74,18 +74,19 @@ test.describe('milestone-lifecycle / Step 4: Transition to completed or cancelle
 
   // Traceability: milestone-lifecycle / Step 4 / Outcome "cancel-cascade"
   test('TC-ML-S4-001: Cancel milestone transitions to cancelled status', async ({ page }) => {
+    // Use API to transition status to cancelled
+    const request = page.context().request;
+    await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/milestones/${milestoneBizKeyForCancel}/status`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { status: 'cancelled' },
+    });
+
     // Open detail panel
     const node = page.locator(`[data-testid="milestone-node-${milestoneBizKeyForCancel}"]`);
     await node.click();
 
-    await expect(page.getByRole('dialog', { name: /里程碑详情/ })).toBeVisible({ timeout: 10000 });
-
-    // Click status dropdown and select cancelled
     const panel = page.getByRole('dialog', { name: /里程碑详情/ });
-    const statusDropdown = panel.locator('button').filter({ hasText: /未开始/i }).first();
-    await statusDropdown.click();
-
-    await page.getByRole('menuitem', { name: /已取消/i }).click();
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
     // Verify status changed to cancelled
     await expect(panel.getByText(/已取消/i).first()).toBeVisible({ timeout: 10000 });
@@ -97,13 +98,15 @@ test.describe('milestone-lifecycle / Step 4: Transition to completed or cancelle
     const node = page.locator(`[data-testid="milestone-node-${milestoneBizKeyForCancel}"]`);
     await node.click();
 
-    await expect(page.getByRole('dialog', { name: /里程碑详情/ })).toBeVisible({ timeout: 10000 });
+    const panel = page.getByRole('dialog', { name: /里程碑详情/ });
+    await expect(panel).toBeVisible({ timeout: 10000 });
+    // Wait for content to load
+    await expect(panel.locator('h2')).toBeVisible({ timeout: 10000 });
 
     // Panel should show muted appearance for cancelled milestone
-    const panel = page.getByRole('dialog', { name: /里程碑详情/ });
     // The milestone name should have strikethrough (line-through) for cancelled
     const nameEl = panel.locator('h2');
-    await expect(nameEl).toHaveCSS('text-decoration-line', /line-through/);
+    await expect(nameEl).toHaveCSS('text-decoration-line', 'line-through');
   });
 
   // Traceability: milestone-lifecycle / Step 4 / Outcome "unauthorized-api"

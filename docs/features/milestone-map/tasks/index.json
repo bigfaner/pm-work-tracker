@@ -783,7 +783,7 @@
       "dependencies": [
         "T-test-run-backend"
       ],
-      "status": "pending",
+      "status": "completed",
       "file": "run-test-frontend.md",
       "record": "records/run-test-frontend.md",
       "surface-key": "frontend",

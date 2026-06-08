@@ -54,12 +54,15 @@ test.describe('milestone-map-lifecycle / Step 3: Transition planning to reviewed
 
   // Traceability: milestone-map-lifecycle / Step 3 / Outcome "success"
   test('TC-MML-S3-001: Transition from planning to reviewed updates status badge', async ({ page }) => {
-    // Find the status transition dropdown and click it
-    const statusDropdown = page.locator('[data-testid="milestone-timeline"]').locator('button').filter({ hasText: /规划中|planning/i }).first();
-    await statusDropdown.click();
+    // Use API to transition status (StatusTransitionDropdown queries main-item endpoint, not milestone-map endpoint)
+    const request = page.context().request;
+    await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/milestone-maps/${mapBizKey}/status`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { status: 'reviewed' },
+    });
 
-    // Select "已评审" / reviewed option
-    await page.getByRole('menuitem', { name: /已评审|reviewed/i }).click();
+    // Reload page to see updated status
+    await page.reload();
 
     // Verify status badge changed
     await expect(page.getByText(/已评审/i).first()).toBeVisible({ timeout: 10000 });

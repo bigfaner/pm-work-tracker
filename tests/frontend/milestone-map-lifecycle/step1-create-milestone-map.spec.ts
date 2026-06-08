@@ -79,9 +79,10 @@ test.describe('milestone-map-lifecycle / Step 1: Create milestone map via list p
     await page.getByText('选择负责人').click();
     await page.locator('[role="option"]').first().click();
 
-    // Set plan dates
-    await page.getByPlaceholder(/计划开始时间|开始/).first().fill('2026-01-01');
-    await page.getByPlaceholder(/计划完成时间|结束/).last().fill('2026-12-31');
+    // Set plan dates (DateInput renders <input type="date">, locate by label text)
+    const dialog = page.getByRole('dialog');
+    await dialog.locator('label', { hasText: '计划开始时间' }).locator('..').locator('input[type="date"]').fill('2026-01-01');
+    await dialog.locator('label', { hasText: '计划完成时间' }).locator('..').locator('input[type="date"]').fill('2026-12-31');
 
     await page.getByRole('button', { name: '确认' }).click();
 
@@ -122,9 +123,10 @@ test.describe('milestone-map-lifecycle / Step 1: Create milestone map via list p
     await page.getByText('选择负责人').click();
     await page.locator('[role="option"]').first().click();
 
-    // Set invalid date range: end before start
-    await page.getByPlaceholder(/计划开始时间|开始/).first().fill('2026-12-31');
-    await page.getByPlaceholder(/计划完成时间|结束/).last().fill('2026-01-01');
+    // Set invalid date range: end before start (DateInput renders <input type="date">)
+    const dialog = page.getByRole('dialog');
+    await dialog.locator('label', { hasText: '计划开始时间' }).locator('..').locator('input[type="date"]').fill('2026-12-31');
+    await dialog.locator('label', { hasText: '计划完成时间' }).locator('..').locator('input[type="date"]').fill('2026-01-01');
 
     // Verify date validation error appears
     await expect(page.getByText(/计划完成时间不得早于计划开始时间/)).toBeVisible();

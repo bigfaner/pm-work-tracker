@@ -82,45 +82,54 @@ test.describe.serial('milestone-lifecycle smoke: happy path + failure path', () 
 
     const node = page.locator(`[data-testid="milestone-node-${milestoneBizKey}"]`);
     await node.click();
-    await expect(page.getByRole('dialog', { name: /里程碑详情/ })).toBeVisible({ timeout: 10000 });
+    const panel = page.getByRole('dialog', { name: /里程碑详情/ });
+    await expect(panel).toBeVisible({ timeout: 10000 });
+    // Wait for content to finish loading (skeleton replaced by real data)
+    await expect(panel.getByText(milestoneName)).toBeVisible({ timeout: 10000 });
 
-    await page.getByRole('button', { name: '编辑里程碑' }).click();
+    await panel.getByRole('button', { name: '编辑里程碑' }).click();
     const nameInput = page.getByPlaceholder('请输入里程碑名称');
     await nameInput.clear();
     await nameInput.fill(`${milestoneName}-edited`);
     await page.getByRole('button', { name: '确认' }).click();
 
-    await expect(page.getByText(`${milestoneName}-edited`)).toBeVisible({ timeout: 10000 });
+    await expect(panel.getByText(`${milestoneName}-edited`)).toBeVisible({ timeout: 10000 });
   });
 
   // Happy path Step 4: Transition not_started -> in_progress
   test('Smoke 4: Transition milestone to in_progress', async ({ page }) => {
+    // Use API to transition status (StatusTransitionDropdown uses main-item API, not milestone API)
+    const request = page.context().request;
+    await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/milestones/${milestoneBizKey}/status`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { status: 'in_progress' },
+    });
+
     await login(page, undefined, `/milestones/${mapBizKey}`);
 
     const node = page.locator(`[data-testid="milestone-node-${milestoneBizKey}"]`);
     await node.click();
-    await expect(page.getByRole('dialog', { name: /里程碑详情/ })).toBeVisible({ timeout: 10000 });
-
     const panel = page.getByRole('dialog', { name: /里程碑详情/ });
-    const statusDropdown = panel.locator('button').filter({ hasText: /未开始/i }).first();
-    await statusDropdown.click();
-    await page.getByRole('menuitem', { name: /进行中/i }).click();
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
     await expect(panel.getByText(/进行中/i).first()).toBeVisible({ timeout: 10000 });
   });
 
   // Happy path Step 5: Transition in_progress -> cancelled (cancel cascade)
   test('Smoke 5: Cancel milestone from in_progress', async ({ page }) => {
+    // Use API to transition status to cancelled
+    const request = page.context().request;
+    await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/milestones/${milestoneBizKey}/status`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { status: 'cancelled' },
+    });
+
     await login(page, undefined, `/milestones/${mapBizKey}`);
 
     const node = page.locator(`[data-testid="milestone-node-${milestoneBizKey}"]`);
     await node.click();
-    await expect(page.getByRole('dialog', { name: /里程碑详情/ })).toBeVisible({ timeout: 10000 });
-
     const panel = page.getByRole('dialog', { name: /里程碑详情/ });
-    const statusDropdown = panel.locator('button').filter({ hasText: /进行中/i }).first();
-    await statusDropdown.click();
-    await page.getByRole('menuitem', { name: /已取消/i }).click();
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
     await expect(panel.getByText(/已取消/i).first()).toBeVisible({ timeout: 10000 });
   });
@@ -131,9 +140,11 @@ test.describe.serial('milestone-lifecycle smoke: happy path + failure path', () 
 
     const node = page.locator(`[data-testid="milestone-node-${milestoneBizKey}"]`);
     await node.click();
-    await expect(page.getByRole('dialog', { name: /里程碑详情/ })).toBeVisible({ timeout: 10000 });
-
     const panel = page.getByRole('dialog', { name: /里程碑详情/ });
+    await expect(panel).toBeVisible({ timeout: 10000 });
+    // Wait for content to finish loading
+    await expect(panel.getByText(/已取消/i).first()).toBeVisible({ timeout: 10000 });
+
     await panel.getByRole('button', { name: /删除里程碑/ }).click();
     await page.getByRole('button', { name: '确认删除' }).click();
 

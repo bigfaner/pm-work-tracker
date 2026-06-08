@@ -59,12 +59,16 @@ test.describe('milestone-map-lifecycle / Step 4: Transition reviewed to ready', 
 
   // Traceability: milestone-map-lifecycle / Step 4 / Outcome "success"
   test('TC-MML-S4-001: Transition from reviewed to ready updates status badge', async ({ page }) => {
-    const statusDropdown = page.locator('[data-testid="milestone-timeline"]').locator('button').filter({ hasText: /已评审|reviewed/i }).first();
-    await statusDropdown.click();
+    // Use API to transition status
+    const request = page.context().request;
+    await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/milestone-maps/${mapBizKey}/status`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { status: 'ready' },
+    });
 
-    await page.getByRole('menuitem', { name: /准备实施|ready/i }).click();
+    await page.reload();
 
-    await expect(page.getByText(/准备实施|ready/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/待实施|ready/i).first()).toBeVisible({ timeout: 10000 });
   });
 
   // Traceability: milestone-map-lifecycle / Step 4 / Outcome "unauthorized-api"

@@ -61,7 +61,8 @@ test.describe('milestone-lifecycle / Step 1: Create milestone in timeline view',
 
     // Fill form
     await page.getByPlaceholder('请输入里程碑名称').fill(milestoneName);
-    await page.getByPlaceholder(/计划完成时间/).fill('2026-06-30');
+    // DateInput renders <input type="date"> with aria-label
+    await page.getByLabel('计划完成时间').fill('2026-06-30');
 
     // Submit
     await page.getByRole('button', { name: '确认' }).click();
@@ -76,7 +77,7 @@ test.describe('milestone-lifecycle / Step 1: Create milestone in timeline view',
     await page.locator('[data-testid="create-milestone-btn"]').click();
 
     // Fill only date, leave name empty
-    await page.getByPlaceholder(/计划完成时间/).fill('2026-06-30');
+    await page.getByLabel('计划完成时间').fill('2026-06-30');
 
     // Submit should be disabled
     await expect(page.getByRole('button', { name: '确认' })).toBeDisabled();

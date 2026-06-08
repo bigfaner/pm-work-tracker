@@ -66,11 +66,14 @@ test.describe('milestone-lifecycle / Step 2: Edit milestone information', () => 
     const node = page.locator(`[data-testid="milestone-node-${milestoneBizKey}"]`);
     await node.click();
 
-    // Wait for detail panel to open
-    await expect(page.getByRole('dialog', { name: /里程碑详情/ })).toBeVisible({ timeout: 10000 });
+    // Wait for detail panel to open and content to load
+    const panel = page.getByRole('dialog', { name: /里程碑详情/ });
+    await expect(panel).toBeVisible({ timeout: 10000 });
+    // Wait for content to finish loading (skeleton replaced by real data)
+    await expect(panel.locator('h2')).toBeVisible({ timeout: 10000 });
 
     // Click edit button in the panel
-    await page.getByRole('button', { name: '编辑里程碑' }).click();
+    await panel.getByRole('button', { name: '编辑里程碑' }).click();
 
     // Edit name in dialog
     const nameInput = page.getByPlaceholder('请输入里程碑名称');
@@ -80,16 +83,19 @@ test.describe('milestone-lifecycle / Step 2: Edit milestone information', () => 
     await page.getByRole('button', { name: '确认' }).click();
 
     // Verify updated name in panel
-    await expect(page.getByText(`e2e-edited-ml-${runId}`)).toBeVisible({ timeout: 10000 });
+    await expect(panel.getByText(`e2e-edited-ml-${runId}`)).toBeVisible({ timeout: 10000 });
   });
 
   // Traceability: milestone-lifecycle / Step 2 / Outcome "no-changes"
   test('TC-ML-S2-002: Edit with no changes closes dialog', async ({ page }) => {
     const node = page.locator(`[data-testid="milestone-node-${milestoneBizKey}"]`);
     await node.click();
-    await expect(page.getByRole('dialog', { name: /里程碑详情/ })).toBeVisible({ timeout: 10000 });
+    const panel = page.getByRole('dialog', { name: /里程碑详情/ });
+    await expect(panel).toBeVisible({ timeout: 10000 });
+    // Wait for content to finish loading
+    await expect(panel.locator('h2')).toBeVisible({ timeout: 10000 });
 
-    await page.getByRole('button', { name: '编辑里程碑' }).click();
+    await panel.getByRole('button', { name: '编辑里程碑' }).click();
 
     // Dialog opens, click confirm without changes
     await page.getByRole('button', { name: '确认' }).click();

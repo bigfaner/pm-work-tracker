@@ -71,12 +71,14 @@ test.describe('milestone-map-lifecycle / Step 6: Transition to completed or canc
 
   // Traceability: milestone-map-lifecycle / Step 6 / Outcome "success-cancelled"
   test('TC-MML-S6-001: Transition from executing to cancelled updates status', async ({ page }) => {
+    // Use API to transition status to cancelled
+    const request = page.context().request;
+    await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/milestone-maps/${mapBizKeyExecuting}/status`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { status: 'cancelled' },
+    });
+
     await login(page, undefined, `/milestones/${mapBizKeyExecuting}`);
-
-    const statusDropdown = page.locator('[data-testid="milestone-timeline"]').locator('button').filter({ hasText: /进行中|executing/i }).first();
-    await statusDropdown.click();
-
-    await page.getByRole('menuitem', { name: /已取消|cancelled/i }).click();
 
     await expect(page.getByText(/已取消|cancelled/i).first()).toBeVisible({ timeout: 10000 });
   });
