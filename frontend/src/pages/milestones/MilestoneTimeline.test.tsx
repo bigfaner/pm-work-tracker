@@ -252,15 +252,14 @@ describe('MilestoneTimeline', () => {
     expect(screen.getByTestId('milestone-node-ms-4')).toBeInTheDocument()
   })
 
-  it('renders node details: name, date, MI count, completion', async () => {
+  it('renders node details: name and status in cards', async () => {
     renderTimeline()
     await waitFor(() => {
       expect(screen.getByText('MVP 发布')).toBeInTheDocument()
     })
-    expect(screen.getByText('2026-06-30')).toBeInTheDocument()
-    expect(screen.getByText('3 个事项')).toBeInTheDocument()
-    // Multiple elements may contain "80%" (node completion + MI items)
-    expect(screen.getAllByText('80%').length).toBeGreaterThanOrEqual(1)
+    // Status badge is inside the node card
+    const node = screen.getByTestId('milestone-node-ms-1')
+    expect(node).toHaveTextContent('进行中')
   })
 
   it('renders breadcrumb with link back to list', async () => {
@@ -316,9 +315,8 @@ describe('MilestoneTimeline', () => {
     await waitFor(() => {
       expect(screen.getByTestId('milestone-node-ms-1')).toBeInTheDocument()
     })
-    // StatusTagFilter renders tag buttons for each status
-    expect(screen.getByText('未开始')).toBeInTheDocument()
-    expect(screen.getByText('进行中')).toBeInTheDocument()
+    // StatusTagFilter renders tag buttons
+    expect(screen.getByTestId('status-filter-cancelled')).toBeInTheDocument()
   })
 
   it('renders reset and refresh buttons', async () => {
@@ -480,6 +478,38 @@ describe('MilestoneTimeline', () => {
     await waitFor(() => {
       expect(screen.getByTestId('tick-marks')).toBeInTheDocument()
     })
+  })
+
+  // bug: tick date format should be yyyy-MM-dd
+  it('bug: tick marks show dates in yyyy-MM-dd format', async () => {
+    renderTimeline()
+    await waitFor(() => {
+      expect(screen.getByTestId('milestone-node-ms-1')).toBeInTheDocument()
+    })
+    const tickContainer = screen.getByTestId('tick-marks')
+    expect(tickContainer).toHaveTextContent('2026-06-30')
+    expect(tickContainer).toHaveTextContent('2026-08-15')
+  })
+
+  // bug: tick marks use dots instead of vertical lines
+  it('bug: tick marks render dots, not vertical lines', async () => {
+    renderTimeline()
+    await waitFor(() => {
+      expect(screen.getByTestId('milestone-node-ms-1')).toBeInTheDocument()
+    })
+    // Dots rendered via SVG circle
+    const dots = document.querySelectorAll('[data-testid="tick-dot"]')
+    expect(dots.length).toBeGreaterThanOrEqual(3)
+  })
+
+  // bug: connector lines from dots to nodes
+  it('bug: renders connector lines from dots to node top', async () => {
+    renderTimeline()
+    await waitFor(() => {
+      expect(screen.getByTestId('milestone-node-ms-1')).toBeInTheDocument()
+    })
+    const connectors = document.querySelectorAll('[data-testid="tick-connector"]')
+    expect(connectors.length).toBeGreaterThanOrEqual(3)
   })
 
   // MI layer: items displayed below milestone nodes

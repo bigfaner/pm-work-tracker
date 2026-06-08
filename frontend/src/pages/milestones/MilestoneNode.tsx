@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
-import ProgressBar from '@/components/shared/ProgressBar'
+import StatusBadge from '@/components/shared/StatusBadge'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { Milestone } from '@/types'
 
 interface MilestoneNodeProps {
@@ -11,20 +12,6 @@ interface MilestoneNodeProps {
   onDragOver?: (e: React.DragEvent) => void
   onDragLeave?: () => void
   onDrop?: (e: React.DragEvent) => void
-}
-
-/** Map milestone status to status dot color class */
-function getStatusDotClass(status: string): string {
-  switch (status) {
-    case 'in_progress':
-      return 'text-primary'
-    case 'completed':
-      return 'text-success'
-    case 'not_started':
-    case 'cancelled':
-    default:
-      return 'text-tertiary'
-  }
 }
 
 export default function MilestoneNode({
@@ -63,34 +50,38 @@ export default function MilestoneNode({
             : 'hover:bg-bg-alt',
       )}
     >
-      {/* Row 1: Status dot + Name + Completion % */}
+      {/* Row 1: Name + Status badge */}
       <div className="flex items-center gap-1.5 mb-1.5">
-        <span
-          className={cn(
-            'inline-block w-2 h-2 rounded-full bg-current shrink-0',
-            getStatusDotClass(milestone.milestoneStatus),
-          )}
-        />
         <span className="text-sm font-semibold text-primary truncate flex-1">
           {milestone.milestoneName}
         </span>
-        <span className="text-xs text-secondary font-medium shrink-0">
-          {Math.round(milestone.completion)}%
-        </span>
+        <StatusBadge
+          status={milestone.milestoneStatus}
+          statusName={milestone.statusName}
+        />
       </div>
 
-      {/* Row 2: Date */}
-      <div className="text-xs text-tertiary mb-1">
-        {milestone.expectedEndDate ?? '未设置'}
-      </div>
-
-      {/* Row 3: MI count */}
-      <div className="text-xs text-tertiary mb-2">
-        {milestone.relatedMICount} 个事项
-      </div>
-
-      {/* Row 4: Progress bar */}
-      <ProgressBar value={milestone.completion} size="sm" />
+      {/* Row 2: Description (truncated, tooltip for full text) */}
+      {milestone.milestoneDesc ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <p
+              className="text-xs text-secondary"
+              style={{
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+              }}
+            >
+              {milestone.milestoneDesc}
+            </p>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-xs">
+            {milestone.milestoneDesc}
+          </TooltipContent>
+        </Tooltip>
+      ) : null}
     </div>
   )
 }

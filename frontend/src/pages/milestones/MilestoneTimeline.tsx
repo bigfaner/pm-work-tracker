@@ -287,10 +287,8 @@ export default function MilestoneTimeline({
   // Tick marks: one per milestone, aligned with node center
   const tickMarks = useMemo(() => {
     return positions.map((pos) => {
-      const label = pos.milestone.expectedEndDate
-        ? (() => { const d = dayjs(pos.milestone.expectedEndDate); return `${d.month() + 1}/${d.date()}` })()
-        : '未设置'
-      return { x: pos.x, label }
+      const label = pos.milestone.expectedEndDate ?? '未设置'
+      return { x: pos.x, label, bizKey: pos.bizKey }
     })
   }, [positions])
 
@@ -644,12 +642,13 @@ export default function MilestoneTimeline({
                 padding: '28px 40px 40px',
               }}
             >
-              {/* Tick marks */}
+              {/* Tick marks: dots + date labels + connectors to nodes */}
               <div
                 data-testid="tick-marks"
                 className="relative border-b-2 border-border"
                 style={{ height: 40, marginBottom: 8 }}
               >
+                {/* Date labels */}
                 {tickMarks.map((tick, i) => (
                   <div
                     key={i}
@@ -659,17 +658,36 @@ export default function MilestoneTimeline({
                       transform: 'translateX(-50%)',
                     }}
                   >
-                    <div className="w-px h-4 bg-border-dark" />
+                    <svg width="8" height="8" className="shrink-0">
+                      <circle cx="4" cy="4" r="3" data-testid="tick-dot" className="fill-border-dark" />
+                    </svg>
                     <span className="text-[11px] text-tertiary mt-1 whitespace-nowrap">
                       {tick.label}
                     </span>
                   </div>
                 ))}
-                {/* Arrows between consecutive milestones */}
+                {/* Connector lines from dots to node top */}
+                {tickMarks.map((tick) => (
+                  <div
+                    key={`conn-${tick.bizKey}`}
+                    data-testid="tick-connector"
+                    className="absolute left-0 w-px bg-border-dark"
+                    style={{
+                      left: tick.x,
+                      top: 40,
+                      height: 8,
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Milestone nodes layer */}
+              <div className="relative" style={{ minHeight: 110 }}>
+                {/* Arrows between consecutive nodes */}
                 {positions.length > 1 && (
                   <svg
-                    className="absolute bottom-[-1px] left-0 w-full pointer-events-none"
-                    style={{ height: 10, overflow: 'visible' }}
+                    className="absolute top-0 left-0 w-full pointer-events-none"
+                    style={{ height: 110, overflow: 'visible' }}
                   >
                     <defs>
                       <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
@@ -678,17 +696,17 @@ export default function MilestoneTimeline({
                     </defs>
                     {positions.slice(0, -1).map((pos, i) => {
                       const next = positions[i + 1]
-                      const startX = pos.x + NODE_WIDTH / 2 + 4
-                      const endX = next.x - NODE_WIDTH / 2 - 4
+                      const startX = pos.x + NODE_WIDTH / 2 + 2
+                      const endX = next.x - NODE_WIDTH / 2 - 2
                       if (endX <= startX + 8) return null
                       return (
                         <line
                           key={`arrow-${pos.bizKey}`}
                           data-testid="timeline-arrow"
                           x1={startX}
-                          y1={4}
+                          y1={40}
                           x2={endX}
-                          y2={4}
+                          y2={40}
                           className="stroke-tertiary"
                           strokeWidth={1}
                           markerEnd="url(#arrowhead)"
@@ -697,10 +715,6 @@ export default function MilestoneTimeline({
                     })}
                   </svg>
                 )}
-              </div>
-
-              {/* Milestone nodes layer */}
-              <div className="relative" style={{ minHeight: 110 }}>
                 {filteredMilestones.map((m) => {
                   const pos = positions.find((p) => p.bizKey === m.bizKey)
                   if (!pos) return null

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import MilestoneNode from './MilestoneNode'
 import type { Milestone } from '@/types'
 
@@ -25,58 +26,49 @@ function makeMilestone(overrides: Partial<Milestone> = {}): Milestone {
 function renderNode(milestone: Milestone = makeMilestone()) {
   const onClick = vi.fn()
   const result = render(
-    <MilestoneNode milestone={milestone} onClick={onClick} />,
+    <TooltipProvider>
+      <MilestoneNode milestone={milestone} onClick={onClick} />
+    </TooltipProvider>,
   )
   return { onClick, ...result }
 }
 
 describe('MilestoneNode', () => {
-  // AC-1: Node renders with status dot, name, completion %, date, MI count
+  // Card shows name + status badge + description (no dot, date, MI count)
   it('renders milestone name', () => {
     renderNode()
     expect(screen.getByText('MVP 发布')).toBeInTheDocument()
   })
 
-  it('renders completion percentage', () => {
+  it('renders status badge', () => {
     renderNode()
-    expect(screen.getByText('80%')).toBeInTheDocument()
+    expect(screen.getByText('进行中')).toBeInTheDocument()
   })
 
-  it('renders expected end date', () => {
+  it('renders description', () => {
     renderNode()
-    expect(screen.getByText('2026-06-30')).toBeInTheDocument()
+    expect(screen.getByText('完成产品MVP')).toBeInTheDocument()
   })
 
-  it('renders MI count', () => {
+  it('does not render date in card', () => {
     renderNode()
-    expect(screen.getByText('3 个事项')).toBeInTheDocument()
+    expect(screen.queryByText('2026-06-30')).not.toBeInTheDocument()
   })
 
-  it('renders status dot for in_progress', () => {
+  it('does not render MI count in card', () => {
+    renderNode()
+    expect(screen.queryByText('3 个事项')).not.toBeInTheDocument()
+  })
+
+  it('does not render status dot', () => {
     const { container } = renderNode()
     const dot = container.querySelector('.text-primary.bg-current')
-    expect(dot).toBeInTheDocument()
+    expect(dot).not.toBeInTheDocument()
   })
 
-  it('renders status dot for not_started with text-tertiary', () => {
-    const { container } = renderNode(
-      makeMilestone({ milestoneStatus: 'not_started' }),
-    )
-    const dot = container.querySelector('.text-tertiary.bg-current')
-    expect(dot).toBeInTheDocument()
-  })
-
-  it('renders status dot for completed with text-success', () => {
-    const { container } = renderNode(
-      makeMilestone({ milestoneStatus: 'completed' }),
-    )
-    const dot = container.querySelector('.text-success.bg-current')
-    expect(dot).toBeInTheDocument()
-  })
-
-  it('renders "未设置" when expectedEndDate is null', () => {
-    renderNode(makeMilestone({ expectedEndDate: null }))
-    expect(screen.getByText('未设置')).toBeInTheDocument()
+  it('does not render completion percentage', () => {
+    renderNode()
+    expect(screen.queryByText('80%')).not.toBeInTheDocument()
   })
 
   // Click behavior
@@ -98,7 +90,11 @@ describe('MilestoneNode', () => {
 
   // Selected state
   it('shows selected styling when selected', () => {
-    render(<MilestoneNode milestone={makeMilestone()} selected={true} />)
+    render(
+      <TooltipProvider>
+        <MilestoneNode milestone={makeMilestone()} selected={true} />
+      </TooltipProvider>,
+    )
     const node = screen.getByTestId('milestone-node-ms-1')
     expect(node.className).toContain('border-primary')
     expect(node.className).toContain('ring-2')
@@ -127,10 +123,12 @@ describe('MilestoneNode', () => {
   // DnD: isDragOver highlight
   it('shows drag-over highlight when isDragOver is true', () => {
     render(
-      <MilestoneNode
-        milestone={makeMilestone()}
-        isDragOver={true}
-      />,
+      <TooltipProvider>
+        <MilestoneNode
+          milestone={makeMilestone()}
+          isDragOver={true}
+        />
+      </TooltipProvider>,
     )
     const node = screen.getByTestId('milestone-node-ms-1')
     expect(node.className).toContain('ring-primary-200')
@@ -147,10 +145,12 @@ describe('MilestoneNode', () => {
   it('calls onDragOver when provided', () => {
     const onDragOver = vi.fn()
     render(
-      <MilestoneNode
-        milestone={makeMilestone()}
-        onDragOver={onDragOver}
-      />,
+      <TooltipProvider>
+        <MilestoneNode
+          milestone={makeMilestone()}
+          onDragOver={onDragOver}
+        />
+      </TooltipProvider>,
     )
     const node = screen.getByTestId('milestone-node-ms-1')
     node.dispatchEvent(new Event('dragover', { bubbles: true }))
@@ -160,10 +160,12 @@ describe('MilestoneNode', () => {
   it('calls onDrop when provided', () => {
     const onDrop = vi.fn()
     render(
-      <MilestoneNode
-        milestone={makeMilestone()}
-        onDrop={onDrop}
-      />,
+      <TooltipProvider>
+        <MilestoneNode
+          milestone={makeMilestone()}
+          onDrop={onDrop}
+        />
+      </TooltipProvider>,
     )
     const node = screen.getByTestId('milestone-node-ms-1')
     node.dispatchEvent(new Event('drop', { bubbles: true }))
