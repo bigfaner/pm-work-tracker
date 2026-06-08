@@ -21,6 +21,12 @@ function makeMap(overrides: Partial<MilestoneMap> = {}): MilestoneMap {
     milestoneCount: 4,
     itemCount: 12,
     overallProgress: 60,
+    milestoneSummary: [
+      { bizKey: 'ms-1', name: 'M1 需求确认', status: 'completed', progress: 100 },
+      { bizKey: 'ms-2', name: 'M2 开发', status: 'in_progress', progress: 60 },
+      { bizKey: 'ms-3', name: 'M3 测试', status: 'not_started', progress: 0 },
+      { bizKey: 'ms-4', name: 'M4 上线', status: 'not_started', progress: 0 },
+    ],
     createTime: '2026-01-01T00:00:00Z',
     dbUpdateTime: '2026-01-01T00:00:00Z',
     ...overrides,
@@ -61,18 +67,20 @@ describe('MilestoneMapCard', () => {
   it('renders overall progress with percentage', () => {
     renderCard()
     expect(screen.getByText('整体进度')).toBeInTheDocument()
-    expect(screen.getByText('60%')).toBeInTheDocument()
+    // Multiple elements may contain "60%" (overall + milestone summary)
+    expect(screen.getAllByText('60%').length).toBeGreaterThanOrEqual(1)
   })
 
-  it('renders milestone node thumbnail dots in row 4', () => {
-    const { container } = renderCard()
-    // 4 milestones -> 4 dots
-    const dots = container.querySelectorAll('.rounded-full.bg-primary-300')
-    expect(dots.length).toBe(4)
+  it('renders milestone summary nodes in row 4', () => {
+    renderCard()
+    expect(screen.getByText('M1 需求确认')).toBeInTheDocument()
+    expect(screen.getByText('M2 开发')).toBeInTheDocument()
+    expect(screen.getByText('M3 测试')).toBeInTheDocument()
+    expect(screen.getByText('M4 上线')).toBeInTheDocument()
   })
 
   it('shows "暂无里程碑" when milestoneCount is 0', () => {
-    renderCard(makeMap({ milestoneCount: 0 }))
+    renderCard(makeMap({ milestoneCount: 0, milestoneSummary: [] }))
     expect(screen.getByText('暂无里程碑')).toBeInTheDocument()
   })
 

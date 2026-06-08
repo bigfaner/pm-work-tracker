@@ -66,6 +66,7 @@ export function useItemViewPage(teamId: string | null) {
     assigneeKey: '',
     startDate: today(),
     expectedEndDate: '',
+    milestoneKey: '',
   })
 
   const [createSubOpen, setCreateSubOpen] = useState(false)
@@ -279,6 +280,7 @@ export function useItemViewPage(teamId: string | null) {
       assigneeKey: string
       startDate: string
       expectedEndDate: string
+      milestoneKey?: string
     }) => createMainItemApi(teamId!, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -290,6 +292,7 @@ export function useItemViewPage(teamId: string | null) {
         assigneeKey: '',
         startDate: today(),
         expectedEndDate: '',
+        milestoneKey: '',
       })
     },
   })
@@ -425,6 +428,7 @@ export function useItemViewPage(teamId: string | null) {
       assigneeKey: createForm.assigneeKey,
       startDate: createForm.startDate,
       expectedEndDate: createForm.expectedEndDate,
+      ...(createForm.milestoneKey && { milestoneKey: createForm.milestoneKey }),
     })
   }, [createForm, createMutation])
 

@@ -62,19 +62,32 @@ export default function MilestoneMapCard({ map }: MilestoneMapCardProps) {
         </div>
       </div>
 
-      {/* Row 4: Milestone node thumbnail */}
-      <div className="flex items-center gap-0.5">
-        {Array.from({ length: map.milestoneCount }, (_, i) => (
-          <span key={i} className="flex items-center">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary-300" />
-            {i < map.milestoneCount - 1 && (
-              <span className="w-3 h-px bg-border" />
+      {/* Row 4: Milestone node summary */}
+      <div className="flex flex-wrap gap-1.5">
+        {map.milestoneSummary && map.milestoneSummary.length > 0
+          ? map.milestoneSummary.map((ms) => (
+              <span
+                key={ms.bizKey}
+                className="inline-flex items-center gap-1 rounded-md bg-bg-alt px-1.5 py-0.5 text-xs text-secondary"
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    ms.status === 'completed'
+                      ? 'bg-success'
+                      : ms.status === 'in_progress'
+                        ? 'bg-warning'
+                        : 'bg-gray-300'
+                  }`}
+                />
+                <span className="truncate max-w-[80px]">{ms.name}</span>
+                <span className="text-tertiary">
+                  {Math.round(ms.progress)}%
+                </span>
+              </span>
+            ))
+          : map.milestoneCount === 0 && (
+              <span className="text-xs text-tertiary">暂无里程碑</span>
             )}
-          </span>
-        ))}
-        {map.milestoneCount === 0 && (
-          <span className="text-xs text-tertiary">暂无里程碑</span>
-        )}
       </div>
     </Link>
   )

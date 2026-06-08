@@ -69,6 +69,12 @@ const mockMap: MilestoneMap = {
   milestoneCount: 4,
   itemCount: 3,
   overallProgress: 60,
+  milestoneSummary: [
+    { bizKey: 'ms-1', name: '需求确认', status: 'completed', progress: 100 },
+    { bizKey: 'ms-2', name: '开发', status: 'in_progress', progress: 60 },
+    { bizKey: 'ms-3', name: '测试', status: 'not_started', progress: 0 },
+    { bizKey: 'ms-4', name: '上线', status: 'not_started', progress: 0 },
+  ],
   createTime: '2026-01-01',
   dbUpdateTime: '2026-01-01',
 }

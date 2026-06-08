@@ -75,6 +75,12 @@ function makeMap(overrides: Partial<MilestoneMap> = {}): MilestoneMap {
     milestoneCount: 4,
     itemCount: 12,
     overallProgress: 60,
+    milestoneSummary: [
+      { bizKey: 'ms-1', name: 'M1 需求确认', status: 'completed', progress: 100 },
+      { bizKey: 'ms-2', name: 'M2 开发', status: 'in_progress', progress: 60 },
+      { bizKey: 'ms-3', name: 'M3 测试', status: 'not_started', progress: 0 },
+      { bizKey: 'ms-4', name: 'M4 上线', status: 'not_started', progress: 0 },
+    ],
     createTime: '2026-01-01T00:00:00Z',
     dbUpdateTime: '2026-01-01T00:00:00Z',
     ...overrides,

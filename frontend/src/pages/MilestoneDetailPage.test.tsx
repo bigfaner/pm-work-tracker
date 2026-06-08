@@ -63,6 +63,10 @@ const mockMap = {
   milestoneCount: 2,
   itemCount: 2,
   overallProgress: 40,
+  milestoneSummary: [
+    { bizKey: 'ms-1', name: 'Phase 1', status: 'completed', progress: 100 },
+    { bizKey: 'ms-2', name: 'Phase 2', status: 'not_started', progress: 0 },
+  ],
   createTime: '2026-01-01',
   dbUpdateTime: '2026-01-01',
 }

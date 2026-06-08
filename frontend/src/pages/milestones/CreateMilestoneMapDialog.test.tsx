@@ -111,6 +111,7 @@ describe('CreateMilestoneMapDialog', () => {
         milestoneCount: 0,
         itemCount: 0,
         overallProgress: 0,
+        milestoneSummary: [],
         createTime: '2026-01-01',
         dbUpdateTime: '2026-01-01',
       },

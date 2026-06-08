@@ -233,6 +233,7 @@ export default function ItemViewPage() {
             members={s.members}
             onSubmit={s.handleCreate}
             isPending={s.createMutation.isPending}
+            milestones={s.milestones}
           />
 
           <CreateSubItemDialog

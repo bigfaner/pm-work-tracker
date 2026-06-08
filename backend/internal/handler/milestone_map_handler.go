@@ -10,6 +10,7 @@ import (
 	"pm-work-tracker/backend/internal/model"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	pkgHandler "pm-work-tracker/backend/internal/pkg/handler"
+	"pm-work-tracker/backend/internal/pkg"
 	"pm-work-tracker/backend/internal/repository"
 	"pm-work-tracker/backend/internal/service"
 	"pm-work-tracker/backend/internal/vo"
@@ -259,26 +260,43 @@ func buildMilestoneMapVO(m *model.MilestoneMap, userRepo repository.UserRepo, mi
 		}
 	}
 
-	// Enrich computed fields: milestone count, item count, overall progress
+	// Enrich computed fields: milestone count, item count, overall progress, summary
 	milestones, err := milestoneRepo.ListByMap(ctx, m.BizKey)
 	if err == nil {
 		v.MilestoneCount = len(milestones)
 		var totalCompletion float64
 		var itemCount float64
+		v.MilestoneSummary = make([]vo.MilestoneSummaryEntry, 0, len(milestones))
 		for _, ms := range milestones {
-			items, err := mainItemRepo.FindByMilestoneKey(ctx, ms.BizKey)
-			if err != nil || len(items) == 0 {
+			items, msErr := mainItemRepo.FindByMilestoneKey(ctx, ms.BizKey)
+			if msErr != nil || len(items) == 0 {
+				v.MilestoneSummary = append(v.MilestoneSummary, vo.MilestoneSummaryEntry{
+					BizKey:   pkg.FormatID(ms.BizKey),
+					Name:     ms.MilestoneName,
+					Status:   ms.MilestoneStatus,
+					Progress: 0,
+				})
 				continue
 			}
+			var msCompletion float64
 			for _, item := range items {
 				totalCompletion += item.Completion
+				msCompletion += item.Completion
 				itemCount++
 			}
+			v.MilestoneSummary = append(v.MilestoneSummary, vo.MilestoneSummaryEntry{
+				BizKey:   pkg.FormatID(ms.BizKey),
+				Name:     ms.MilestoneName,
+				Status:   ms.MilestoneStatus,
+				Progress: msCompletion / float64(len(items)),
+			})
 		}
 		v.ItemCount = int(itemCount)
 		if itemCount > 0 {
 			v.OverallProgress = totalCompletion / itemCount
 		}
+	} else {
+		v.MilestoneSummary = []vo.MilestoneSummaryEntry{}
 	}
 
 	return v

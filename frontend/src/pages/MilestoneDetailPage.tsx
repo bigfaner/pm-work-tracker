@@ -6,7 +6,10 @@ import {
   updateMilestoneMapApi,
   updateMilestoneApi,
 } from '@/api/milestones'
+import { createMainItemApi } from '@/api/mainItems'
 import { listMembersApi } from '@/api/teams'
+import { useToast } from '@/components/ui/toast'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import MilestoneTimeline from './milestones/MilestoneTimeline'
 import CreateMilestoneMapDialog, {
   type MilestoneMapFormState,
@@ -14,6 +17,9 @@ import CreateMilestoneMapDialog, {
 import CreateMilestoneDialog, {
   type MilestoneFormState,
 } from './milestones/CreateMilestoneDialog'
+import CreateMainItemDialog, {
+  type CreateMainItemFormState,
+} from './item-view/CreateMainItemDialog'
 import type { MilestoneMap, Milestone } from '@/types'
 
 const EMPTY_MAP_FORM: MilestoneMapFormState = {
@@ -34,6 +40,7 @@ export default function MilestoneDetailPage() {
   const { mapId } = useParams<{ mapId: string }>()
   const teamId = useTeamStore((s) => s.currentTeamId)
   const qc = useQueryClient()
+  const { addToast } = useToast()
 
   // Edit map dialog
   const [editMapOpen, setEditMapOpen] = useState(false)
@@ -47,6 +54,19 @@ export default function MilestoneDetailPage() {
     useState<Milestone | null>(null)
   const [editMilestoneForm, setEditMilestoneForm] =
     useState<MilestoneFormState>(EMPTY_MILESTONE_FORM)
+
+  // Quick-add main item dialog
+  const [quickAddOpen, setQuickAddOpen] = useState(false)
+  const [quickAddTarget, setQuickAddTarget] = useState<Milestone | null>(null)
+  const [quickAddForm, setQuickAddForm] = useState<CreateMainItemFormState>({
+    title: '',
+    description: '',
+    priority: 'P2',
+    assigneeKey: '',
+    startDate: new Date().toISOString().slice(0, 10),
+    expectedEndDate: '',
+    milestoneKey: '',
+  })
 
   // Members for map edit dialog
   const { data: membersData } = useQuery({
@@ -131,13 +151,46 @@ export default function MilestoneDetailPage() {
     setEditMilestoneOpen(true)
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleQuickAdd = (_milestone: Milestone) => {
-    // UF-3a quick add dialog — placeholder until implemented
+  // Quick-add main item to milestone
+  const quickAddMutation = useMutation({
+    mutationFn: (form: CreateMainItemFormState) =>
+      createMainItemApi(teamId!, {
+        title: form.title.trim(),
+        description: form.description,
+        priority: form.priority,
+        assigneeKey: form.assigneeKey,
+        startDate: form.startDate,
+        expectedEndDate: form.expectedEndDate,
+        milestoneKey: form.milestoneKey,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
+      qc.invalidateQueries({ queryKey: ['milestones', teamId, mapId] })
+      qc.invalidateQueries({ queryKey: ['milestoneMIs', teamId] })
+      qc.invalidateQueries({ queryKey: ['milestoneMap', teamId, mapId] })
+      setQuickAddOpen(false)
+      setQuickAddTarget(null)
+      setQuickAddForm({
+        title: '',
+        description: '',
+        priority: 'P2',
+        assigneeKey: '',
+        startDate: new Date().toISOString().slice(0, 10),
+        expectedEndDate: '',
+        milestoneKey: '',
+      })
+      addToast('事项已创建并绑定到里程碑', 'success')
+    },
+  })
+
+  const handleQuickAdd = (milestone: Milestone) => {
+    setQuickAddTarget(milestone)
+    setQuickAddForm((f) => ({ ...f, milestoneKey: milestone.bizKey }))
+    setQuickAddOpen(true)
   }
 
   return (
-    <>
+    <TooltipProvider>
       <MilestoneTimeline
         mapId={mapId!}
         onEditMap={handleEditMap}
@@ -173,6 +226,20 @@ export default function MilestoneDetailPage() {
         isPending={updateMilestoneMutation.isPending}
         milestone={editMilestoneTarget ?? undefined}
       />
-    </>
+
+      {/* Quick-add main item dialog */}
+      <CreateMainItemDialog
+        open={quickAddOpen}
+        onOpenChange={(open) => {
+          setQuickAddOpen(open)
+          if (!open) setQuickAddTarget(null)
+        }}
+        form={quickAddForm}
+        onFormChange={setQuickAddForm}
+        members={members}
+        onSubmit={() => quickAddMutation.mutate(quickAddForm)}
+        isPending={quickAddMutation.isPending}
+      />
+    </TooltipProvider>
   )
 }

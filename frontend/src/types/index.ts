@@ -396,6 +396,13 @@ export interface AssignItemPoolResp {
 }
 
 // MilestoneMap
+export interface MilestoneSummaryEntry {
+  bizKey: string
+  name: string
+  status: string
+  progress: number
+}
+
 export interface MilestoneMap {
   bizKey: string
   teamKey: string
@@ -412,6 +419,7 @@ export interface MilestoneMap {
   milestoneCount: number
   itemCount: number
   overallProgress: number
+  milestoneSummary: MilestoneSummaryEntry[]
   createTime: string
   dbUpdateTime: string
 }

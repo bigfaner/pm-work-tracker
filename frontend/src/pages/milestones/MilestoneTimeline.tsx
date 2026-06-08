@@ -480,7 +480,7 @@ export default function MilestoneTimeline({
           <div>
             <span className="text-xs text-tertiary block mb-1">负责人</span>
             <span className="text-sm font-medium text-primary">
-              {mapData?.assigneeName ?? '-'}
+              {mapData?.assigneeName || '-'}
             </span>
           </div>
           <div>

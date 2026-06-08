@@ -11,23 +11,32 @@ import (
 
 // MilestoneMapVO is the frontend-facing view object for a milestone map.
 type MilestoneMapVO struct {
-	BizKey          string  `json:"bizKey"`
-	TeamKey         string  `json:"teamKey"`
-	CreatorKey      string  `json:"creatorKey"`
-	CreatorName     string  `json:"creatorName"`
-	AssigneeKey     string  `json:"assigneeKey"`
-	AssigneeName    string  `json:"assigneeName"`
-	MapName         string  `json:"mapName"`
-	MapDesc         string  `json:"mapDesc"`
-	MapStatus       string  `json:"mapStatus"`
-	StatusName      string  `json:"statusName"`
-	PlanStartDate   *string `json:"planStartDate"`
-	ExpectedEndDate *string `json:"expectedEndDate"`
-	MilestoneCount  int     `json:"milestoneCount"`
-	ItemCount       int     `json:"itemCount"`
-	OverallProgress float64 `json:"overallProgress"`
-	CreateTime      string  `json:"createTime"`
-	DbUpdateTime    string  `json:"dbUpdateTime"`
+	BizKey            string                  `json:"bizKey"`
+	TeamKey           string                  `json:"teamKey"`
+	CreatorKey        string                  `json:"creatorKey"`
+	CreatorName       string                  `json:"creatorName"`
+	AssigneeKey       string                  `json:"assigneeKey"`
+	AssigneeName      string                  `json:"assigneeName"`
+	MapName           string                  `json:"mapName"`
+	MapDesc           string                  `json:"mapDesc"`
+	MapStatus         string                  `json:"mapStatus"`
+	StatusName        string                  `json:"statusName"`
+	PlanStartDate     *string                 `json:"planStartDate"`
+	ExpectedEndDate   *string                 `json:"expectedEndDate"`
+	MilestoneCount    int                     `json:"milestoneCount"`
+	ItemCount         int                     `json:"itemCount"`
+	OverallProgress   float64                 `json:"overallProgress"`
+	MilestoneSummary  []MilestoneSummaryEntry `json:"milestoneSummary"`
+	CreateTime        string                  `json:"createTime"`
+	DbUpdateTime      string                  `json:"dbUpdateTime"`
+}
+
+// MilestoneSummaryEntry is a lightweight summary of a milestone for card display.
+type MilestoneSummaryEntry struct {
+	BizKey    string  `json:"bizKey"`
+	Name      string  `json:"name"`
+	Status    string  `json:"status"`
+	Progress  float64 `json:"progress"`
 }
 
 // MilestoneVO is the frontend-facing view object for a milestone.
