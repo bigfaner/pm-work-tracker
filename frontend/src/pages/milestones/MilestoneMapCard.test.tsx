@@ -53,9 +53,10 @@ describe('MilestoneMapCard', () => {
     expect(screen.getByText('实施中')).toBeInTheDocument()
   })
 
-  it('renders milestone and item counts with assignee in row 2', () => {
+  it('renders milestone count, item count, and assignee as separate items in row 2', () => {
     renderCard()
-    expect(screen.getByText('4 个里程碑 · 12 个事项')).toBeInTheDocument()
+    expect(screen.getByText('4 个里程碑')).toBeInTheDocument()
+    expect(screen.getByText('12 个事项')).toBeInTheDocument()
     expect(screen.getByText('张三')).toBeInTheDocument()
   })
 
@@ -71,12 +72,33 @@ describe('MilestoneMapCard', () => {
     expect(screen.getAllByText('60%').length).toBeGreaterThanOrEqual(1)
   })
 
-  it('renders milestone summary nodes in row 4', () => {
+  it('renders dot-and-line thumbnail with first and last milestone names in row 4', () => {
     renderCard()
+    // First and last milestone names should be visible
     expect(screen.getByText('M1 需求确认')).toBeInTheDocument()
-    expect(screen.getByText('M2 开发')).toBeInTheDocument()
-    expect(screen.getByText('M3 测试')).toBeInTheDocument()
     expect(screen.getByText('M4 上线')).toBeInTheDocument()
+    // Middle milestone names should NOT be rendered (only dots)
+    expect(screen.queryByText('M2 开发')).not.toBeInTheDocument()
+    expect(screen.queryByText('M3 测试')).not.toBeInTheDocument()
+  })
+
+  it('renders status-colored dots in row 4', () => {
+    renderCard()
+    const dots = screen.getAllByTestId('milestone-dot')
+    expect(dots).toHaveLength(4)
+    // completed → green (success)
+    expect(dots[0]).toHaveClass('bg-success')
+    // in_progress → blue (info)
+    expect(dots[1]).toHaveClass('bg-info')
+    // not_started → gray
+    expect(dots[2]).toHaveClass('bg-gray-300')
+  })
+
+  it('renders connecting lines between dots in row 4', () => {
+    renderCard()
+    const lines = screen.getAllByTestId('milestone-line')
+    // 4 milestones → 3 connecting lines
+    expect(lines).toHaveLength(3)
   })
 
   it('shows "暂无里程碑" when milestoneCount is 0', () => {

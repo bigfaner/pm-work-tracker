@@ -40,9 +40,8 @@ export default function MilestoneMapCard({ map }: MilestoneMapCardProps) {
 
       {/* Row 2: Milestone count + item count + assignee (space-between) */}
       <div className="flex items-center justify-between text-xs text-secondary mb-2">
-        <span>
-          {map.milestoneCount} 个里程碑 · {map.itemCount} 个事项
-        </span>
+        <span>{map.milestoneCount} 个里程碑</span>
+        <span>{map.itemCount} 个事项</span>
         <span>{map.assigneeName}</span>
       </div>
 
@@ -62,33 +61,41 @@ export default function MilestoneMapCard({ map }: MilestoneMapCardProps) {
         </div>
       </div>
 
-      {/* Row 4: Milestone node summary */}
-      <div className="flex flex-wrap gap-1.5">
-        {map.milestoneSummary && map.milestoneSummary.length > 0
-          ? map.milestoneSummary.map((ms) => (
+      {/* Row 4: Milestone node thumbnail — status-colored dots connected by lines */}
+      {map.milestoneSummary && map.milestoneSummary.length > 0 ? (
+        <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border">
+          <span className="text-xs text-tertiary whitespace-nowrap shrink-0">
+            {map.milestoneSummary[0].name}
+          </span>
+          {map.milestoneSummary.map((ms, i) => (
+            <span key={ms.bizKey} className="contents">
               <span
-                key={ms.bizKey}
-                className="inline-flex items-center gap-1 rounded-md bg-bg-alt px-1.5 py-0.5 text-xs text-secondary"
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    ms.status === 'completed'
-                      ? 'bg-success'
-                      : ms.status === 'in_progress'
-                        ? 'bg-warning'
+                data-testid="milestone-dot"
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  ms.status === 'completed'
+                    ? 'bg-success'
+                    : ms.status === 'in_progress'
+                      ? 'bg-info'
+                      : ms.status === 'cancelled'
+                        ? 'bg-gray-300 opacity-50'
                         : 'bg-gray-300'
-                  }`}
+                }`}
+              />
+              {i < map.milestoneSummary.length - 1 && (
+                <span
+                  data-testid="milestone-line"
+                  className="flex-1 h-px bg-border min-w-2"
                 />
-                <span className="truncate max-w-[80px]">{ms.name}</span>
-                <span className="text-tertiary">
-                  {Math.round(ms.progress)}%
-                </span>
-              </span>
-            ))
-          : map.milestoneCount === 0 && (
-              <span className="text-xs text-tertiary">暂无里程碑</span>
-            )}
-      </div>
+              )}
+            </span>
+          ))}
+          <span className="text-xs text-tertiary whitespace-nowrap shrink-0">
+            {map.milestoneSummary[map.milestoneSummary.length - 1].name}
+          </span>
+        </div>
+      ) : map.milestoneCount === 0 ? (
+        <span className="text-xs text-tertiary">暂无里程碑</span>
+      ) : null}
     </Link>
   )
 }
