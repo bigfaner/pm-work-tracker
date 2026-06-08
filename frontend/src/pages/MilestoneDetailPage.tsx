@@ -56,7 +56,7 @@ export default function MilestoneDetailPage() {
   })
 
   const members = (membersData || []).map(
-    (m: { userKey: string; displayName: string }) => ({
+    (m: { userKey: string, displayName: string }) => ({
       userKey: m.userKey,
       displayName: m.displayName,
     }),

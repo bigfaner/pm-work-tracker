@@ -4,7 +4,7 @@ import ProgressBar from '@/components/shared/ProgressBar'
 import type { MilestoneMap } from '@/types'
 
 interface MilestoneMapCardProps {
-  map: MilestoneMap;
+  map: MilestoneMap
 }
 
 function formatDate(dateStr: string | null): string {

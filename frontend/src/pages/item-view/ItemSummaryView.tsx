@@ -29,10 +29,10 @@ function CodeBadge({
   title,
   className,
 }: {
-  label: string;
-  path: string;
-  title: string;
-  className?: string;
+  label: string
+  path: string
+  title: string
+  className?: string
 }) {
   return (
     <TooltipProvider delayDuration={300}>
@@ -57,25 +57,25 @@ function CodeBadge({
 }
 
 interface SummaryViewProps {
-  items: (MainItem & { subItems?: SubItem[] })[];
-  expandedCards: Set<string>;
-  onToggleExpand: (id: string) => void;
-  subItemsMap: Record<string, SubItem[]>;
-  memberName: (id: string | null) => string;
-  formatDate: (date: string | null) => string;
-  hasMore: boolean;
-  sentinelRef: React.RefObject<HTMLDivElement>;
-  teamId: string;
-  onRefresh: () => void;
-  onAddSubItem: (mainItemId: string, mainItemTitle: string) => void;
-  onEditMainItem: (item: MainItem) => void;
+  items: (MainItem & { subItems?: SubItem[] })[]
+  expandedCards: Set<string>
+  onToggleExpand: (id: string) => void
+  subItemsMap: Record<string, SubItem[]>
+  memberName: (id: string | null) => string
+  formatDate: (date: string | null) => string
+  hasMore: boolean
+  sentinelRef: React.RefObject<HTMLDivElement>
+  teamId: string
+  onRefresh: () => void
+  onAddSubItem: (mainItemId: string, mainItemTitle: string) => void
+  onEditMainItem: (item: MainItem) => void
   onAppendProgress: (
     subItemId: string,
     subItemTitle: string,
     subItemCompletion: number,
-  ) => void;
-  onEditSubItem: (sub: SubItem, mainItemBizKey: string) => void;
-  onMoveSubItem?: (sub: SubItem, mainItemBizKey: string) => void;
+  ) => void
+  onEditSubItem: (sub: SubItem, mainItemBizKey: string) => void
+  onMoveSubItem?: (sub: SubItem, mainItemBizKey: string) => void
 }
 
 export default function ItemSummaryView({

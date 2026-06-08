@@ -80,24 +80,24 @@ const EMPTY_MILESTONE_FORM: MilestoneFormState = {
 // --- Interfaces ---
 
 interface MilestoneTimelineProps {
-  mapId: string;
-  onEditMap: (map: import('@/types').MilestoneMap) => void;
-  onEditMilestone: (milestone: Milestone) => void;
-  onQuickAdd: (milestone: Milestone) => void;
+  mapId: string
+  onEditMap: (map: import('@/types').MilestoneMap) => void
+  onEditMilestone: (milestone: Milestone) => void
+  onQuickAdd: (milestone: Milestone) => void
 }
 
 // --- Helper: calculate node position ---
 
 interface NodePosition {
-  bizKey: string;
-  x: number;
-  milestone: Milestone;
+  bizKey: string
+  x: number
+  milestone: Milestone
 }
 
 function calculateNodePositions(
   milestones: Milestone[],
   containerWidth: number,
-): { positions: NodePosition[]; originDate: dayjs.Dayjs; totalDays: number } {
+): { positions: NodePosition[], originDate: dayjs.Dayjs, totalDays: number } {
   if (milestones.length === 0) {
     return { positions: [], originDate: dayjs(), totalDays: MIN_TOTAL_DAYS }
   }
@@ -257,7 +257,7 @@ export default function MilestoneTimeline({
   const tickMarks = useMemo(() => {
     if (allMilestones.length === 0) return []
     const config = ZOOM_CONFIGS[zoom]
-    const ticks: { x: number; label: string }[] = []
+    const ticks: { x: number, label: string }[] = []
     const end = originDate.add(totalDays, 'day')
 
     for (

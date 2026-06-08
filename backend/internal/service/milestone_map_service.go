@@ -324,29 +324,3 @@ func (s *milestoneMapService) AvailableTransitions(ctx context.Context, teamBizK
 
 	return transitions, nil
 }
-
-// calcOverallProgress computes average MI completion across all milestones in the map.
-func (s *milestoneMapService) calcOverallProgress(ctx context.Context, milestoneMapBizKey int64) float64 {
-	milestones, err := s.milestoneRepo.ListByMap(ctx, milestoneMapBizKey)
-	if err != nil || len(milestones) == 0 {
-		return 0
-	}
-
-	var totalCompletion float64
-	var count float64
-	for _, ms := range milestones {
-		items, err := s.mainItemRepo.FindByMilestoneKey(ctx, ms.BizKey)
-		if err != nil || len(items) == 0 {
-			continue
-		}
-		for _, item := range items {
-			totalCompletion += item.Completion
-			count++
-		}
-	}
-
-	if count == 0 {
-		return 0
-	}
-	return totalCompletion / count
-}

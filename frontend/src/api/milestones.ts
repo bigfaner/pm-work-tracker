@@ -100,8 +100,8 @@ export function createMilestoneApi(
 export function listMilestonesByMapApi(
   teamBizKey: string,
   mapId: string,
-): Promise<{ items: Milestone[]; total: number }> {
-  return client.get<never, { items: Milestone[]; total: number }>(
+): Promise<{ items: Milestone[], total: number }> {
+  return client.get<never, { items: Milestone[], total: number }>(
     `/teams/${teamBizKey}/milestone-maps/${mapId}/milestones`,
   )
 }
@@ -109,8 +109,8 @@ export function listMilestonesByMapApi(
 export function listMilestonesByTeamApi(
   teamBizKey: string,
   filter?: MilestoneListFilter,
-): Promise<{ items: Milestone[]; total: number }> {
-  return client.get<never, { items: Milestone[]; total: number }>(
+): Promise<{ items: Milestone[], total: number }> {
+  return client.get<never, { items: Milestone[], total: number }>(
     `/teams/${teamBizKey}/milestones`,
     { params: filter },
   )

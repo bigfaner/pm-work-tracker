@@ -317,6 +317,3 @@ func (s *milestoneService) countRelatedMIs(ctx context.Context, milestoneBizKey 
 	}
 	return count
 }
-
-// ensure milestoneService exposes calcCompletion and countRelatedMIs for test access.
-var _ = (*milestoneService)(nil)

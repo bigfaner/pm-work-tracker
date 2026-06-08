@@ -120,8 +120,8 @@ export function useItemViewPage(teamId: string | null) {
   // Move sub-item
   const [moveSubOpen, setMoveSubOpen] = useState(false)
   const [moveSubItem, setMoveSubItemData] = useState<{
-    bizKey: string;
-    mainItemBizKey: string;
+    bizKey: string
+    mainItemBizKey: string
   } | null>(null)
 
   const openMoveSubDialog = useCallback(
@@ -273,12 +273,12 @@ export function useItemViewPage(teamId: string | null) {
 
   const createMutation = useMutation({
     mutationFn: (req: {
-      title: string;
-      description?: string;
-      priority: string;
-      assigneeKey: string;
-      startDate: string;
-      expectedEndDate: string;
+      title: string
+      description?: string
+      priority: string
+      assigneeKey: string
+      startDate: string
+      expectedEndDate: string
     }) => createMainItemApi(teamId!, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -296,13 +296,13 @@ export function useItemViewPage(teamId: string | null) {
 
   const createSubMutation = useMutation({
     mutationFn: (req: {
-      mainItemKey: string;
-      title: string;
-      priority: string;
-      assigneeKey: string;
-      startDate: string;
-      expectedEndDate: string;
-      description?: string;
+      mainItemKey: string
+      title: string
+      priority: string
+      assigneeKey: string
+      startDate: string
+      expectedEndDate: string
+      description?: string
     }) => createSubItemApi(teamId!, req.mainItemKey, req),
     onSuccess: (_, req) => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -321,16 +321,16 @@ export function useItemViewPage(teamId: string | null) {
 
   const updateMutation = useMutation({
     mutationFn: (req: {
-      itemId: string;
+      itemId: string
       data: {
-        title: string;
-        priority: string;
-        assigneeKey: string | null;
-        startDate?: string | null;
-        expectedEndDate: string | null;
-        actualEndDate: string | null;
-        description: string;
-      };
+        title: string
+        priority: string
+        assigneeKey: string | null
+        startDate?: string | null
+        expectedEndDate: string | null
+        actualEndDate: string | null
+        description: string
+      }
     }) => updateMainItemApi(teamId!, req.itemId, req.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -343,16 +343,16 @@ export function useItemViewPage(teamId: string | null) {
 
   const updateSubMutation = useMutation({
     mutationFn: (req: {
-      subId: string;
-      mainItemKey: string;
+      subId: string
+      mainItemKey: string
       data: {
-        title: string;
-        priority: string;
-        assigneeKey?: string;
-        startDate?: string;
-        expectedEndDate?: string;
-        description?: string;
-      };
+        title: string
+        priority: string
+        assigneeKey?: string
+        startDate?: string
+        expectedEndDate?: string
+        description?: string
+      }
     }) => updateSubItemApi(teamId!, req.subId, req.data),
     onSuccess: async (_, req) => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -364,8 +364,8 @@ export function useItemViewPage(teamId: string | null) {
 
   const appendMutation = useMutation({
     mutationFn: (req: {
-      subItemId: string;
-      data: { completion: number; achievement?: string; blocker?: string };
+      subItemId: string
+      data: { completion: number, achievement?: string, blocker?: string }
     }) => appendProgressApi(teamId!, req.subItemId, req.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })

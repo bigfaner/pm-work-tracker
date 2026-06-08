@@ -208,7 +208,7 @@ export default function TableViewPage() {
     return `/items/${row.bizKey}`
   }
 
-  const getMilestoneDisplay = (row: TableRow): { text: string; className: string } => {
+  const getMilestoneDisplay = (row: TableRow): { text: string, className: string } => {
     if (!row.milestoneKey && !row.milestoneName) {
       return { text: '-', className: 'text-tertiary' }
     }

@@ -3,14 +3,14 @@ import ProgressBar from '@/components/shared/ProgressBar'
 import type { Milestone } from '@/types'
 
 interface MilestoneNodeProps {
-  milestone: Milestone;
-  selected?: boolean;
-  onClick?: () => void;
-  style?: React.CSSProperties;
-  isDragOver?: boolean;
-  onDragOver?: (e: React.DragEvent) => void;
-  onDragLeave?: () => void;
-  onDrop?: (e: React.DragEvent) => void;
+  milestone: Milestone
+  selected?: boolean
+  onClick?: () => void
+  style?: React.CSSProperties
+  isDragOver?: boolean
+  onDragOver?: (e: React.DragEvent) => void
+  onDragLeave?: () => void
+  onDrop?: (e: React.DragEvent) => void
 }
 
 /** Map milestone status to status dot color class */

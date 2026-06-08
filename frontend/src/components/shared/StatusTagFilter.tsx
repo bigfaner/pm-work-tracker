@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import { getStatusVariant } from '@/lib/status'
 
 interface StatusTagFilterProps {
-  options: { value: string; label: string }[]
+  options: { value: string, label: string }[]
   selected: string[]
   onChange: (selected: string[]) => void
   label?: string

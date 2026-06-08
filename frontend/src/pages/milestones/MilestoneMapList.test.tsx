@@ -96,7 +96,7 @@ function setAuth(permissions: string[] = ['milestone:create']) {
   })
 }
 
-function setupMocks(mapsResponse: { items: MilestoneMap[]; total: number }) {
+function setupMocks(mapsResponse: { items: MilestoneMap[], total: number }) {
   vi.mocked(listMembersApi).mockResolvedValue(seedMembers)
   vi.mocked(listMilestoneMapsApi).mockResolvedValue({
     ...mapsResponse,

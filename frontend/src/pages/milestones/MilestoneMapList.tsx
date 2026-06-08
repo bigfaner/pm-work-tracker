@@ -116,7 +116,7 @@ export default function MilestoneMapList() {
   const members = useMemo(
     () =>
       (membersData || []).map(
-        (m: { userKey: string; displayName: string }) => ({
+        (m: { userKey: string, displayName: string }) => ({
           userKey: m.userKey,
           displayName: m.displayName,
         }),

@@ -28,7 +28,7 @@ interface CreateMilestoneMapDialogProps {
   onFormChange: (
     updater: (prev: MilestoneMapFormState) => MilestoneMapFormState,
   ) => void
-  members: { userKey: string; displayName: string }[]
+  members: { userKey: string, displayName: string }[]
   onSubmit: () => void
   isPending: boolean
   /** Provide to switch to edit mode with pre-filled title */

@@ -22,25 +22,25 @@ import type { Milestone, MainItem } from '@/types'
 
 /** Related MI displayed in the panel */
 interface RelatedMI {
-  bizKey: string;
-  code: string;
-  title: string;
-  completion: number;
-  itemStatus: string;
+  bizKey: string
+  code: string
+  title: string
+  completion: number
+  itemStatus: string
 }
 
 interface MilestoneDetailPanelProps {
-  open: boolean;
-  onClose: () => void;
-  milestoneId: string | null;
+  open: boolean
+  onClose: () => void
+  milestoneId: string | null
   /** Called to open the edit milestone dialog */
-  onEdit: (milestone: Milestone) => void;
+  onEdit: (milestone: Milestone) => void
   /** Called to open the quick-add main item dialog */
-  onQuickAdd: (milestone: Milestone) => void;
+  onQuickAdd: (milestone: Milestone) => void
   /** Called after the milestone is deleted */
-  onDeleted?: () => void;
+  onDeleted?: () => void
   /** Trigger element ref for returning focus on close */
-  triggerRef?: React.RefObject<HTMLElement | null>;
+  triggerRef?: React.RefObject<HTMLElement | null>
 }
 
 /** Statuses that allow deletion per BR-4 */
