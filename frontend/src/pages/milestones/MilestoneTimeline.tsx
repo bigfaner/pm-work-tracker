@@ -11,7 +11,7 @@ import {
   createMilestoneApi,
   deleteMilestoneMapApi,
 } from '@/api/milestones'
-import { updateMainItemApi } from '@/api/mainItems'
+import { listMainItemsApi, updateMainItemApi } from '@/api/mainItems'
 import { MILESTONE_STATUSES, MILESTONE_MAP_STATUSES } from '@/lib/status'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -232,6 +232,27 @@ export default function MilestoneTimeline({
   })
 
   const allMilestones: Milestone[] = milestonesData?.items ?? []
+
+  // Fetch all MIs for this map (grouped by milestoneKey client-side)
+  const { data: miData } = useQuery({
+    queryKey: ['mapMIs', teamId, mapId],
+    queryFn: () =>
+      listMainItemsApi(teamId, { pageSize: 200 }).then((res) => res.items),
+    enabled: !!teamId && !!mapId,
+  })
+
+  // Group MIs by milestoneKey
+  const misByMilestone = useMemo(() => {
+    const map: Record<string, NonNullable<typeof miData>> = {}
+    if (!miData) return map
+    for (const mi of miData) {
+      if (mi.milestoneKey) {
+        if (!map[mi.milestoneKey]) map[mi.milestoneKey] = []
+        map[mi.milestoneKey]!.push(mi)
+      }
+    }
+    return map
+  }, [miData])
 
   // Client-side filtering
   const filteredMilestones = useMemo(() => {
@@ -668,6 +689,65 @@ export default function MilestoneTimeline({
                         onDragLeave={handleNodeDragLeave}
                         onDrop={(e) => handleNodeDrop(e, m.bizKey)}
                       />
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* MI layer: items below each milestone */}
+              <div className="relative" data-testid="mi-layer">
+                {filteredMilestones.map((m) => {
+                  const pos = positions.find((p) => p.bizKey === m.bizKey)
+                  if (!pos) return null
+                  const items = misByMilestone[m.bizKey]
+                  if (!items || items.length === 0) return null
+                  return (
+                    <div
+                      key={`mi-${m.bizKey}`}
+                      className="absolute top-0"
+                      style={{
+                        left: pos.x - NODE_WIDTH / 2,
+                        width: NODE_WIDTH,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 1,
+                          height: 16,
+                          borderLeft: '1px dashed var(--text-tertiary)',
+                          margin: '0 auto 8px',
+                        }}
+                      />
+                      {items.map((mi) => (
+                        <div
+                          key={mi.bizKey}
+                          data-testid={`mi-item-${mi.bizKey}`}
+                          draggable
+                          onDragStart={() => {
+                            setDragMI({
+                              miBizKey: mi.bizKey,
+                              miCode: mi.code,
+                              sourceMilestoneKey: m.bizKey,
+                            })
+                          }}
+                          onDragEnd={() => {
+                            setTimeout(() => setDragMI(null), 200)
+                          }}
+                          onClick={() => navigate(`/items/${mi.bizKey}`)}
+                          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs cursor-pointer hover:bg-bg-alt"
+                          style={{ marginBottom: 3 }}
+                        >
+                          <span className="text-accent font-medium shrink-0">
+                            {mi.code}
+                          </span>
+                          <span className="text-primary truncate">
+                            {mi.title}
+                          </span>
+                          <span className="text-tertiary text-[11px] shrink-0">
+                            {Math.round(mi.completion)}%
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   )
                 })}

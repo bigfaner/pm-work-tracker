@@ -259,7 +259,8 @@ describe('MilestoneTimeline', () => {
     })
     expect(screen.getByText('2026-06-30')).toBeInTheDocument()
     expect(screen.getByText('3 个事项')).toBeInTheDocument()
-    expect(screen.getByText('80%')).toBeInTheDocument()
+    // Multiple elements may contain "80%" (node completion + MI items)
+    expect(screen.getAllByText('80%').length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders breadcrumb with link back to list', async () => {
@@ -353,7 +354,8 @@ describe('MilestoneTimeline', () => {
     })
     expect(screen.getByText('2026-05-01')).toBeInTheDocument()
     expect(screen.getByText('2026-12-31')).toBeInTheDocument()
-    expect(screen.getByText('60%')).toBeInTheDocument()
+    // Multiple elements may contain "60%" (overall progress + MI items)
+    expect(screen.getAllByText('60%').length).toBeGreaterThanOrEqual(1)
   })
 
   // Empty state
@@ -404,6 +406,19 @@ describe('MilestoneTimeline', () => {
     await waitFor(() => {
       expect(screen.getByTestId('tick-marks')).toBeInTheDocument()
     })
+  })
+
+  // MI layer: items displayed below milestone nodes
+  it('renders MI items below milestone nodes in MI layer', async () => {
+    renderTimeline()
+    await waitFor(() => {
+      expect(screen.getByTestId('milestone-node-ms-1')).toBeInTheDocument()
+    })
+    // MI items belonging to ms-1 should be visible in the MI layer
+    expect(screen.getByText('MI-0001')).toBeInTheDocument()
+    expect(screen.getByText('需求分析')).toBeInTheDocument()
+    expect(screen.getByText('MI-0003')).toBeInTheDocument()
+    expect(screen.getByText('MI-0005')).toBeInTheDocument()
   })
 
   // AC-5: Drag-and-drop MI rebinding
