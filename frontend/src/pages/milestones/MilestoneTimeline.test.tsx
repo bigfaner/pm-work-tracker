@@ -449,6 +449,31 @@ describe('MilestoneTimeline', () => {
     expect(Math.abs(left1 - left2)).toBeGreaterThanOrEqual(160)
   })
 
+  // bug: nodes should spread proportionally across width for sparse dates
+  it('bug: spreads nodes proportionally by date across container width', async () => {
+    renderTimeline()
+    await waitFor(() => {
+      expect(screen.getByTestId('milestone-node-ms-4')).toBeInTheDocument()
+    })
+
+    // mockMilestones span Jun 30 → Nov 15 (wide range)
+    // With proportional layout on default 800px container, last node left ≈ 640
+    // With even spacing (4 × 184px), last node left ≈ 552
+    const lastNode = screen.getByTestId('milestone-node-ms-4').parentElement!
+    const lastLeft = parseFloat(lastNode.style.left)
+    expect(lastLeft).toBeGreaterThan(580)
+  })
+
+  // bug: arrows should connect consecutive milestones
+  it('bug: renders arrows between consecutive milestones', async () => {
+    renderTimeline()
+    await waitFor(() => {
+      expect(screen.getByTestId('milestone-node-ms-1')).toBeInTheDocument()
+    })
+    const arrows = document.querySelectorAll('[data-testid="timeline-arrow"]')
+    expect(arrows.length).toBeGreaterThanOrEqual(1)
+  })
+
   // Tick marks render
   it('renders tick marks container', async () => {
     renderTimeline()

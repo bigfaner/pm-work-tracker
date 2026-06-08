@@ -85,6 +85,7 @@ interface NodePosition {
 function calculateNodePositions(
   milestones: Milestone[],
   gap: number,
+  containerWidth: number,
 ): { positions: NodePosition[], contentWidth: number } {
   if (milestones.length === 0) {
     return { positions: [], contentWidth: 0 }
@@ -101,16 +102,52 @@ function calculateNodePositions(
   })
 
   const nodeUnit = NODE_WIDTH + gap
+  const dated = sorted.filter((m) => m.expectedEndDate)
+
+  // Try date-proportional layout if ≥2 dated milestones with different dates
+  if (dated.length >= 2) {
+    const dates = dated.map((m) => dayjs(m.expectedEndDate!))
+    const earliest = dates.reduce((a, b) => (a.isBefore(b) ? a : b))
+    const latest = dates.reduce((a, b) => (a.isAfter(b) ? a : b))
+    const totalDays = latest.diff(earliest, 'day')
+
+    if (totalDays > 0 && containerWidth > 0) {
+      const spanWidth = containerWidth - NODE_WIDTH
+      const propXs = sorted.map((m) => {
+        if (!m.expectedEndDate) return containerWidth - NODE_WIDTH / 2
+        const days = dayjs(m.expectedEndDate).diff(earliest, 'day')
+        return (days / totalDays) * spanWidth + NODE_WIDTH / 2
+      })
+
+      // Check for overlaps
+      let hasOverlap = false
+      for (let i = 1; i < propXs.length; i++) {
+        if (propXs[i] - propXs[i - 1] < nodeUnit) {
+          hasOverlap = true
+          break
+        }
+      }
+
+      if (!hasOverlap) {
+        const positions = sorted.map((m, i) => ({
+          bizKey: m.bizKey,
+          x: propXs[i],
+          milestone: m,
+        }))
+        return { positions, contentWidth: containerWidth }
+      }
+    }
+  }
+
+  // Fall back: even spacing
   const positions = sorted.map((m, i) => ({
     bizKey: m.bizKey,
     x: i * nodeUnit + NODE_WIDTH / 2,
     milestone: m,
   }))
-
   const contentWidth = positions.length > 0
     ? positions[positions.length - 1].x + NODE_WIDTH / 2
     : 0
-
   return { positions, contentWidth }
 }
 
@@ -244,7 +281,7 @@ export default function MilestoneTimeline({
 
   // Node positions
   const config = ZOOM_CONFIGS[zoom]
-  const { positions, contentWidth } = calculateNodePositions(allMilestones, config.gap)
+  const { positions, contentWidth } = calculateNodePositions(allMilestones, config.gap, containerWidth)
   const minWidth = Math.max(contentWidth + 80, containerWidth)
 
   // Tick marks: one per milestone, aligned with node center
@@ -628,6 +665,38 @@ export default function MilestoneTimeline({
                     </span>
                   </div>
                 ))}
+                {/* Arrows between consecutive milestones */}
+                {positions.length > 1 && (
+                  <svg
+                    className="absolute bottom-[-1px] left-0 w-full pointer-events-none"
+                    style={{ height: 10, overflow: 'visible' }}
+                  >
+                    <defs>
+                      <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+                        <polygon points="0 0, 6 2, 0 4" className="fill-tertiary" />
+                      </marker>
+                    </defs>
+                    {positions.slice(0, -1).map((pos, i) => {
+                      const next = positions[i + 1]
+                      const startX = pos.x + NODE_WIDTH / 2 + 4
+                      const endX = next.x - NODE_WIDTH / 2 - 4
+                      if (endX <= startX + 8) return null
+                      return (
+                        <line
+                          key={`arrow-${pos.bizKey}`}
+                          data-testid="timeline-arrow"
+                          x1={startX}
+                          y1={4}
+                          x2={endX}
+                          y2={4}
+                          className="stroke-tertiary"
+                          strokeWidth={1}
+                          markerEnd="url(#arrowhead)"
+                        />
+                      )
+                    })}
+                  </svg>
+                )}
               </div>
 
               {/* Milestone nodes layer */}
