@@ -45,6 +45,16 @@ test.describe('milestone-map-lifecycle / Step 2: Edit milestone map information'
     const mapData = parseApiData(await mapRes.json());
     mapBizKey = extractBizKey(mapData) ?? '';
 
+    // Seed 2 milestones so the map has content during editing
+    await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKey}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `e2e-edit-s2-ms1-${runId}`, expectedEndDate: '2026-06-30' },
+    });
+    await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKey}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `e2e-edit-s2-ms2-${runId}`, expectedEndDate: '2026-12-31' },
+    });
+
     await request.dispose();
   });
 

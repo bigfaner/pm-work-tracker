@@ -29,6 +29,19 @@ describe('milestone-map-lifecycle / Step 3: planning -> reviewed', () => {
       body: JSON.stringify({ mapName: `mml-s3-map-${runId}`, assigneeBizKey: '1' }),
     });
     mapBizKey = extractBizKey(parseApiBody(mapRes.body))!;
+
+    // Seed milestones (not_started and in_progress for diversity)
+    await authCurl('POST', `/v1/teams/${teamBizKey}/milestone-maps/${mapBizKey}/milestones`, {
+      body: JSON.stringify({ milestoneName: `mml-s3-ms1-${runId}`, expectedEndDate: '2026-06-30' }),
+    });
+    const ms2Res = await authCurl('POST', `/v1/teams/${teamBizKey}/milestone-maps/${mapBizKey}/milestones`, {
+      body: JSON.stringify({ milestoneName: `mml-s3-ms2-${runId}`, expectedEndDate: '2026-12-31' }),
+    });
+    const ms2BizKey = extractBizKey(parseApiBody(ms2Res.body))!;
+    // Transition one milestone to in_progress
+    await authCurl('PUT', `/v1/teams/${teamBizKey}/milestones/${ms2BizKey}/status`, {
+      body: JSON.stringify({ status: 'in_progress' }),
+    });
   });
 
   // Traceability: milestone-map-lifecycle / Step 3 / Outcome "success"

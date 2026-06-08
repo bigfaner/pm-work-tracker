@@ -45,6 +45,22 @@ test.describe('milestone-map-lifecycle / Step 6: Transition to completed or canc
     });
     mapBizKeyExecuting = extractBizKey(parseApiData(await mapRes1.json())) ?? '';
 
+    // Seed 2 milestones in executing map
+    await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKeyExecuting}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `e2e-s6-exec-ms1-${runId}`, expectedEndDate: '2026-06-30' },
+    });
+    const ms2Res = await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKeyExecuting}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `e2e-s6-exec-ms2-${runId}`, expectedEndDate: '2026-12-31' },
+    });
+    const ms2BizKey = extractBizKey(parseApiData(await ms2Res.json())) ?? '';
+    // Transition one milestone to in_progress for diversity
+    await request.put(`/v1/teams/${teamId}/milestones/${ms2BizKey}/status`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { status: 'in_progress' },
+    });
+
     for (const status of ['reviewed', 'ready', 'executing']) {
       await request.put(`/v1/teams/${teamId}/milestone-maps/${mapBizKeyExecuting}/status`, {
         headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
@@ -58,6 +74,16 @@ test.describe('milestone-map-lifecycle / Step 6: Transition to completed or canc
       data: { mapName: `e2e-s6-comp-${runId}`, assigneeBizKey: '1' },
     });
     mapBizKeyCompleted = extractBizKey(parseApiData(await mapRes2.json())) ?? '';
+
+    // Seed 2 milestones in completed map
+    await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKeyCompleted}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `e2e-s6-comp-ms1-${runId}`, expectedEndDate: '2026-06-30' },
+    });
+    await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKeyCompleted}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `e2e-s6-comp-ms2-${runId}`, expectedEndDate: '2026-12-31' },
+    });
 
     for (const status of ['reviewed', 'ready', 'executing', 'completed']) {
       await request.put(`/v1/teams/${teamId}/milestone-maps/${mapBizKeyCompleted}/status`, {

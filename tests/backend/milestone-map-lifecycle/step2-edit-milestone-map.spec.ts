@@ -29,6 +29,14 @@ describe('milestone-map-lifecycle / Step 2: Edit milestone map', () => {
       body: JSON.stringify({ mapName: `mml-s2-map-${runId}`, assigneeBizKey: '1' }),
     });
     mapBizKey = extractBizKey(parseApiBody(mapRes.body))!;
+
+    // Seed 2 milestones so the map has content
+    await authCurl('POST', `/v1/teams/${teamBizKey}/milestone-maps/${mapBizKey}/milestones`, {
+      body: JSON.stringify({ milestoneName: `mml-s2-ms1-${runId}`, expectedEndDate: '2026-06-30' }),
+    });
+    await authCurl('POST', `/v1/teams/${teamBizKey}/milestone-maps/${mapBizKey}/milestones`, {
+      body: JSON.stringify({ milestoneName: `mml-s2-ms2-${runId}`, expectedEndDate: '2026-12-31' }),
+    });
   });
 
   // Traceability: milestone-map-lifecycle / Step 2 / Outcome "success"

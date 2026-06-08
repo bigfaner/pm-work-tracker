@@ -29,6 +29,19 @@ describe('milestone-map-lifecycle / Step 7: Rollback reviewed -> planning', () =
       body: JSON.stringify({ mapName: `mml-s7-map-${runId}`, assigneeBizKey: '1' }),
     });
     mapBizKey = extractBizKey(parseApiBody(mapRes.body))!;
+
+    // Seed 2 milestones (diverse statuses)
+    await authCurl('POST', `/v1/teams/${teamBizKey}/milestone-maps/${mapBizKey}/milestones`, {
+      body: JSON.stringify({ milestoneName: `mml-s7-ms1-${runId}`, expectedEndDate: '2026-06-30' }),
+    });
+    const ms2Res = await authCurl('POST', `/v1/teams/${teamBizKey}/milestone-maps/${mapBizKey}/milestones`, {
+      body: JSON.stringify({ milestoneName: `mml-s7-ms2-${runId}`, expectedEndDate: '2026-12-31' }),
+    });
+    const ms2BizKey = extractBizKey(parseApiBody(ms2Res.body))!;
+    await authCurl('PUT', `/v1/teams/${teamBizKey}/milestones/${ms2BizKey}/status`, {
+      body: JSON.stringify({ status: 'in_progress' }),
+    });
+
     await authCurl('PUT', `/v1/teams/${teamBizKey}/milestone-maps/${mapBizKey}/status`, {
       body: JSON.stringify({ status: 'reviewed' }),
     });

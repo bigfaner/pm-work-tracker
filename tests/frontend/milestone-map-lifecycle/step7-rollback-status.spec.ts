@@ -45,6 +45,22 @@ test.describe('milestone-map-lifecycle / Step 7: Rollback reviewed to planning',
     const mapData = parseApiData(await mapRes.json());
     mapBizKey = extractBizKey(mapData) ?? '';
 
+    // Seed 2 milestones with diverse statuses
+    await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKey}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `e2e-s7-ms1-${runId}`, expectedEndDate: '2026-06-30' },
+    });
+    const ms2Res = await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKey}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `e2e-s7-ms2-${runId}`, expectedEndDate: '2026-12-31' },
+    });
+    const ms2BizKey = extractBizKey(parseApiData(await ms2Res.json())) ?? '';
+    // Transition one to in_progress
+    await request.put(`/v1/teams/${teamId}/milestones/${ms2BizKey}/status`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { status: 'in_progress' },
+    });
+
     await request.put(`/v1/teams/${teamId}/milestone-maps/${mapBizKey}/status`, {
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
       data: { status: 'reviewed' },

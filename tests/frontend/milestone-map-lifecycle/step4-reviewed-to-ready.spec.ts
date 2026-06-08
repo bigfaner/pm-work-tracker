@@ -45,6 +45,16 @@ test.describe('milestone-map-lifecycle / Step 4: Transition reviewed to ready', 
     const mapData = parseApiData(await mapRes.json());
     mapBizKey = extractBizKey(mapData) ?? '';
 
+    // Seed 2 milestones before transitioning map status
+    await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKey}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `e2e-s4-ms1-${runId}`, expectedEndDate: '2026-06-30' },
+    });
+    await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKey}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `e2e-s4-ms2-${runId}`, expectedEndDate: '2026-12-31' },
+    });
+
     await request.put(`/v1/teams/${teamId}/milestone-maps/${mapBizKey}/status`, {
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
       data: { status: 'reviewed' },

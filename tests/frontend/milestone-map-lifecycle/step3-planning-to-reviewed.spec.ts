@@ -45,6 +45,22 @@ test.describe('milestone-map-lifecycle / Step 3: Transition planning to reviewed
     const mapData = parseApiData(await mapRes.json());
     mapBizKey = extractBizKey(mapData) ?? '';
 
+    // Seed 2 milestones (not_started and in_progress)
+    await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKey}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `e2e-s3-ms1-${runId}`, expectedEndDate: '2026-06-30' },
+    });
+    const ms2Res = await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKey}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `e2e-s3-ms2-${runId}`, expectedEndDate: '2026-12-31' },
+    });
+    const ms2BizKey = extractBizKey(parseApiData(await ms2Res.json())) ?? '';
+    // Transition one to in_progress for diversity
+    await request.put(`/v1/teams/${teamId}/milestones/${ms2BizKey}/status`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { status: 'in_progress' },
+    });
+
     await request.dispose();
   });
 

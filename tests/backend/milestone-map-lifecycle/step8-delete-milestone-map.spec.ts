@@ -25,11 +25,19 @@ describe('milestone-map-lifecycle / Step 8: Delete milestone map', () => {
   });
 
   // Traceability: milestone-map-lifecycle / Step 8 / Outcome "success"
-  test('TC-MML-S8-001: Delete milestone map in planning status returns 200', async () => {
+  test('TC-MML-S8-001: Delete milestone map in planning status with milestones returns 200', async () => {
     const mapRes = await authCurl('POST', `/v1/teams/${teamBizKey}/milestone-maps`, {
       body: JSON.stringify({ mapName: `mml-s8-del-${runId}`, assigneeBizKey: '1' }),
     });
     const mapBizKey = extractBizKey(parseApiBody(mapRes.body))!;
+
+    // Seed 2 milestones into this map
+    await authCurl('POST', `/v1/teams/${teamBizKey}/milestone-maps/${mapBizKey}/milestones`, {
+      body: JSON.stringify({ milestoneName: `mml-s8-del-ms1-${runId}`, expectedEndDate: '2026-06-30' }),
+    });
+    await authCurl('POST', `/v1/teams/${teamBizKey}/milestone-maps/${mapBizKey}/milestones`, {
+      body: JSON.stringify({ milestoneName: `mml-s8-del-ms2-${runId}`, expectedEndDate: '2026-12-31' }),
+    });
 
     const res = await authCurl('DELETE', `/v1/teams/${teamBizKey}/milestone-maps/${mapBizKey}`);
 
@@ -43,11 +51,16 @@ describe('milestone-map-lifecycle / Step 8: Delete milestone map', () => {
   });
 
   // Traceability: milestone-map-lifecycle / Step 8 / Outcome "success" - delete in reviewed status
-  test('TC-MML-S8-002: Delete milestone map in reviewed status returns 200', async () => {
+  test('TC-MML-S8-002: Delete milestone map in reviewed status with milestones returns 200', async () => {
     const mapRes = await authCurl('POST', `/v1/teams/${teamBizKey}/milestone-maps`, {
       body: JSON.stringify({ mapName: `mml-s8-delrev-${runId}`, assigneeBizKey: '1' }),
     });
     const mapBizKey = extractBizKey(parseApiBody(mapRes.body))!;
+
+    // Seed milestone before transitioning to reviewed
+    await authCurl('POST', `/v1/teams/${teamBizKey}/milestone-maps/${mapBizKey}/milestones`, {
+      body: JSON.stringify({ milestoneName: `mml-s8-delrev-ms-${runId}`, expectedEndDate: '2026-12-31' }),
+    });
 
     // Transition to reviewed
     await authCurl('PUT', `/v1/teams/${teamBizKey}/milestone-maps/${mapBizKey}/status`, {

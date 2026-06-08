@@ -38,19 +38,35 @@ test.describe('milestone-map-lifecycle / Step 8: Delete milestone map', () => {
     if (teamsData.length === 0) throw new Error('beforeAll: no teams found');
     teamId = String(teamsData[0].bizKey);
 
-    // Create map in planning status (deletable)
+    // Create map in planning status (deletable) with milestones
     const mapRes1 = await request.post(`/v1/teams/${teamId}/milestone-maps`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: { mapName: `e2e-s8-del-${runId}`, assigneeBizKey: '1' },
     });
     mapBizKeyPlanning = extractBizKey(parseApiData(await mapRes1.json())) ?? '';
 
-    // Create map in executing status (non-deletable)
+    // Seed 2 milestones in the planning map
+    await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKeyPlanning}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `e2e-s8-del-ms1-${runId}`, expectedEndDate: '2026-06-30' },
+    });
+    await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKeyPlanning}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `e2e-s8-del-ms2-${runId}`, expectedEndDate: '2026-12-31' },
+    });
+
+    // Create map in executing status (non-deletable) with milestones
     const mapRes2 = await request.post(`/v1/teams/${teamId}/milestone-maps`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: { mapName: `e2e-s8-exec-${runId}`, assigneeBizKey: '1' },
     });
     mapBizKeyExecuting = extractBizKey(parseApiData(await mapRes2.json())) ?? '';
+
+    // Seed milestone in the executing map
+    await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKeyExecuting}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `e2e-s8-exec-ms-${runId}`, expectedEndDate: '2026-12-31' },
+    });
 
     for (const status of ['reviewed', 'ready', 'executing']) {
       await request.put(`/v1/teams/${teamId}/milestone-maps/${mapBizKeyExecuting}/status`, {

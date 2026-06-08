@@ -29,6 +29,15 @@ describe('milestone-map-lifecycle / Step 5: ready -> executing', () => {
       body: JSON.stringify({ mapName: `mml-s5-map-${runId}`, assigneeBizKey: '1' }),
     });
     mapBizKey = extractBizKey(parseApiBody(mapRes.body))!;
+
+    // Seed 2 milestones before advancing map status
+    await authCurl('POST', `/v1/teams/${teamBizKey}/milestone-maps/${mapBizKey}/milestones`, {
+      body: JSON.stringify({ milestoneName: `mml-s5-ms1-${runId}`, expectedEndDate: '2026-06-30' }),
+    });
+    await authCurl('POST', `/v1/teams/${teamBizKey}/milestone-maps/${mapBizKey}/milestones`, {
+      body: JSON.stringify({ milestoneName: `mml-s5-ms2-${runId}`, expectedEndDate: '2026-12-31' }),
+    });
+
     // planning -> reviewed -> ready
     await authCurl('PUT', `/v1/teams/${teamBizKey}/milestone-maps/${mapBizKey}/status`, {
       body: JSON.stringify({ status: 'reviewed' }),

@@ -46,6 +46,40 @@ test.describe.serial('milestone-map-lifecycle smoke: happy path + failure path',
     const mapData = parseApiData(await mapRes.json());
     mapBizKey = extractBizKey(mapData) ?? '';
 
+    // Seed 3 milestones with diverse statuses
+    const ms1Res = await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKey}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `${mapName}-ms1`, expectedEndDate: '2026-06-30' },
+    });
+    const ms1BizKey = extractBizKey(parseApiData(await ms1Res.json())) ?? '';
+
+    const ms2Res = await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKey}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `${mapName}-ms2`, expectedEndDate: '2026-09-30' },
+    });
+    const ms2BizKey = extractBizKey(parseApiData(await ms2Res.json())) ?? '';
+
+    const ms3Res = await request.post(`/v1/teams/${teamId}/milestone-maps/${mapBizKey}/milestones`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: { milestoneName: `${mapName}-ms3`, expectedEndDate: '2026-12-31' },
+    });
+    const _ms3BizKey = extractBizKey(parseApiData(await ms3Res.json())) ?? '';
+
+    // Transition ms1 to in_progress for diverse statuses
+    await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/milestones/${ms1BizKey}/status`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { status: 'in_progress' },
+    });
+    // Transition ms2 to completed
+    await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/milestones/${ms2BizKey}/status`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { status: 'in_progress' },
+    });
+    await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/milestones/${ms2BizKey}/status`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { status: 'completed' },
+    });
+
     await request.dispose();
   });
 
@@ -58,8 +92,8 @@ test.describe.serial('milestone-map-lifecycle smoke: happy path + failure path',
     await expect(card.getByText('规划中')).toBeVisible();
   });
 
-  // Happy path Step 2: Navigate to detail page
-  test('Smoke 2: Navigate to map detail page', async ({ page }) => {
+  // Happy path Step 2: Navigate to detail page and verify milestones in timeline
+  test('Smoke 2: Navigate to map detail page and see milestones in timeline', async ({ page }) => {
     await login(page, undefined, '/milestones');
 
     const card = page.locator(`[data-testid^="milestone-map-card-"]`).filter({ hasText: mapName });
@@ -67,6 +101,11 @@ test.describe.serial('milestone-map-lifecycle smoke: happy path + failure path',
 
     await expect(page).toHaveURL(new RegExp(`/milestones/${mapBizKey}`), { timeout: 10000 });
     await expect(page.locator('[data-testid="milestone-timeline"]')).toBeVisible();
+
+    // Verify seeded milestones appear in timeline
+    await expect(page.locator('[data-testid^="milestone-node-"]').filter({ hasText: `${mapName}-ms1` })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-testid^="milestone-node-"]').filter({ hasText: `${mapName}-ms2` })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-testid^="milestone-node-"]').filter({ hasText: `${mapName}-ms3` })).toBeVisible({ timeout: 10000 });
   });
 
   // Happy path Step 3: Edit map name
