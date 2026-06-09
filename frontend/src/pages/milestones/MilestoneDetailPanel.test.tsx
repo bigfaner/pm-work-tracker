@@ -125,6 +125,7 @@ function renderPanel(
   const onClose = vi.fn()
   const onEdit = vi.fn()
   const onQuickAdd = vi.fn()
+  const onBindExisting = vi.fn()
   const onDeleted = vi.fn()
 
   vi.mocked(getMilestoneApi).mockResolvedValue(
@@ -141,6 +142,7 @@ function renderPanel(
           milestoneId="ms-1"
           onEdit={onEdit}
           onQuickAdd={onQuickAdd}
+          onBindExisting={onBindExisting}
           onDeleted={onDeleted}
           {...overrides}
         />
@@ -148,7 +150,7 @@ function renderPanel(
     </QueryClientProvider>,
   )
 
-  return { onClose, onEdit, onQuickAdd, onDeleted, ...result }
+  return { onClose, onEdit, onQuickAdd, onBindExisting, onDeleted, ...result }
 }
 
 describe('MilestoneDetailPanel', () => {
@@ -307,22 +309,33 @@ describe('MilestoneDetailPanel', () => {
     })
   })
 
-  // AC-5: Quick add
-  it('renders + 添加 button', async () => {
+  // AC-5: Quick add + bind existing
+  it('renders 新建事项 and 关联已有事项 buttons', async () => {
     renderPanel()
     await waitFor(() => {
-      expect(screen.getByText('添加')).toBeInTheDocument()
+      expect(screen.getByText('新建事项')).toBeInTheDocument()
+      expect(screen.getByText('关联已有事项')).toBeInTheDocument()
     })
   })
 
-  it('calls onQuickAdd when + 添加 is clicked', async () => {
+  it('calls onQuickAdd when 新建事项 is clicked', async () => {
     const user = userEvent.setup()
     const { onQuickAdd } = renderPanel()
     await waitFor(() => {
-      expect(screen.getByText('添加')).toBeInTheDocument()
+      expect(screen.getByText('新建事项')).toBeInTheDocument()
     })
-    await user.click(screen.getByText('添加'))
+    await user.click(screen.getByText('新建事项'))
     expect(onQuickAdd).toHaveBeenCalledWith(mockMilestone)
+  })
+
+  it('calls onBindExisting when 关联已有事项 is clicked', async () => {
+    const user = userEvent.setup()
+    const { onBindExisting } = renderPanel()
+    await waitFor(() => {
+      expect(screen.getByText('关联已有事项')).toBeInTheDocument()
+    })
+    await user.click(screen.getByText('关联已有事项'))
+    expect(onBindExisting).toHaveBeenCalledWith(mockMilestone)
   })
 
   // AC-6: Delete button visible only for not_started/cancelled
@@ -389,7 +402,7 @@ describe('MilestoneDetailPanel', () => {
     })
   })
 
-  // Cancelled milestone: grey styling, no MI list, no + 添加
+  // Cancelled milestone: grey styling, no MI list, no buttons
   it('shows cancelled styling and hides MI list when cancelled', async () => {
     renderPanel(undefined, {
       ...mockMilestone,
@@ -405,8 +418,9 @@ describe('MilestoneDetailPanel', () => {
     expect(name.className).toContain('line-through')
     // MI list should be hidden
     expect(screen.queryByText(/关联事项/)).not.toBeInTheDocument()
-    // + 添加 should be hidden
-    expect(screen.queryByText('添加')).not.toBeInTheDocument()
+    // Buttons should be hidden
+    expect(screen.queryByText('新建事项')).not.toBeInTheDocument()
+    expect(screen.queryByText('关联已有事项')).not.toBeInTheDocument()
   })
 
   // Terminal milestone: no edit button, status dropdown disabled

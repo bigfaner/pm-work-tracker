@@ -210,6 +210,7 @@ function renderTimeline() {
   const onEditMap = vi.fn()
   const onEditMilestone = vi.fn()
   const onQuickAdd = vi.fn()
+  const onBindExisting = vi.fn()
 
   vi.mocked(getMilestoneMapApi).mockResolvedValue(mockMap)
   vi.mocked(listMilestonesByMapApi).mockResolvedValue({
@@ -227,13 +228,14 @@ function renderTimeline() {
             onEditMap={onEditMap}
             onEditMilestone={onEditMilestone}
             onQuickAdd={onQuickAdd}
+            onBindExisting={onBindExisting}
           />
         </MemoryRouter>
       </TooltipProvider>
     </QueryClientProvider>,
   )
 
-  return { onEditMap, onEditMilestone, onQuickAdd, ...result }
+  return { onEditMap, onEditMilestone, onQuickAdd, onBindExisting, ...result }
 }
 
 describe('MilestoneTimeline', () => {
@@ -380,6 +382,7 @@ describe('MilestoneTimeline', () => {
               onEditMap={vi.fn()}
               onEditMilestone={vi.fn()}
               onQuickAdd={vi.fn()}
+              onBindExisting={vi.fn()}
             />
           </MemoryRouter>
         </TooltipProvider>
@@ -427,6 +430,7 @@ describe('MilestoneTimeline', () => {
               onEditMap={vi.fn()}
               onEditMilestone={vi.fn()}
               onQuickAdd={vi.fn()}
+              onBindExisting={vi.fn()}
             />
           </MemoryRouter>
         </TooltipProvider>

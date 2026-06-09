@@ -20,6 +20,7 @@ import CreateMilestoneDialog, {
 import CreateMainItemDialog, {
   type CreateMainItemFormState,
 } from './item-view/CreateMainItemDialog'
+import BindExistingMIDialog from './milestones/BindExistingMIDialog'
 import type { MilestoneMap, Milestone } from '@/types'
 
 const EMPTY_MAP_FORM: MilestoneMapFormState = {
@@ -67,6 +68,10 @@ export default function MilestoneDetailPage() {
     expectedEndDate: '',
     milestoneKey: '',
   })
+
+  // Bind existing MI dialog
+  const [bindExistingOpen, setBindExistingOpen] = useState(false)
+  const [bindExistingTarget, setBindExistingTarget] = useState<Milestone | null>(null)
 
   // Members for map edit dialog
   const { data: membersData } = useQuery({
@@ -190,6 +195,11 @@ export default function MilestoneDetailPage() {
     setQuickAddOpen(true)
   }
 
+  const handleBindExisting = (milestone: Milestone) => {
+    setBindExistingTarget(milestone)
+    setBindExistingOpen(true)
+  }
+
   return (
     <TooltipProvider>
       <MilestoneTimeline
@@ -197,6 +207,7 @@ export default function MilestoneDetailPage() {
         onEditMap={handleEditMap}
         onEditMilestone={handleEditMilestone}
         onQuickAdd={handleQuickAdd}
+        onBindExisting={handleBindExisting}
       />
 
       {/* Edit map dialog */}
@@ -240,6 +251,18 @@ export default function MilestoneDetailPage() {
         members={members}
         onSubmit={() => quickAddMutation.mutate(quickAddForm)}
         isPending={quickAddMutation.isPending}
+      />
+
+      {/* Bind existing MI dialog */}
+      <BindExistingMIDialog
+        open={bindExistingOpen}
+        onOpenChange={(open) => {
+          setBindExistingOpen(open)
+          if (!open) setBindExistingTarget(null)
+        }}
+        teamId={teamId!}
+        milestoneBizKey={bindExistingTarget?.bizKey ?? ''}
+        milestoneName={bindExistingTarget?.milestoneName ?? ''}
       />
     </TooltipProvider>
   )

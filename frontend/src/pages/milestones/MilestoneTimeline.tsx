@@ -73,6 +73,7 @@ interface MilestoneTimelineProps {
   onEditMap: (map: import('@/types').MilestoneMap) => void
   onEditMilestone: (milestone: Milestone) => void
   onQuickAdd: (milestone: Milestone) => void
+  onBindExisting: (milestone: Milestone) => void
 }
 
 // --- Helper: calculate node position ---
@@ -175,6 +176,7 @@ export default function MilestoneTimeline({
   onEditMap,
   onEditMilestone,
   onQuickAdd,
+  onBindExisting,
 }: MilestoneTimelineProps) {
   const teamId = useTeamStore((s) => s.currentTeamId) ?? ''
   const qc = useQueryClient()
@@ -887,6 +889,7 @@ export default function MilestoneTimeline({
           milestoneId={selectedMilestoneId}
           onEdit={onEditMilestone}
           onQuickAdd={onQuickAdd}
+          onBindExisting={onBindExisting}
           onDeleted={() => {
             setDetailPanelOpen(false)
             refetchMilestones()

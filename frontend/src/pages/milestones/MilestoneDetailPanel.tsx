@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Pencil, Plus, Trash2 } from 'lucide-react'
+import { X, Pencil, Plus, Link2, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   Tooltip,
@@ -37,6 +37,8 @@ interface MilestoneDetailPanelProps {
   onEdit: (milestone: Milestone) => void
   /** Called to open the quick-add main item dialog */
   onQuickAdd: (milestone: Milestone) => void
+  /** Called to open the bind-existing MI dialog */
+  onBindExisting: (milestone: Milestone) => void
   /** Called after the milestone is deleted */
   onDeleted?: () => void
   /** Trigger element ref for returning focus on close */
@@ -60,6 +62,7 @@ export default function MilestoneDetailPanel({
   milestoneId,
   onEdit,
   onQuickAdd,
+  onBindExisting,
   onDeleted,
   triggerRef,
 }: MilestoneDetailPanelProps) {
@@ -160,6 +163,10 @@ export default function MilestoneDetailPanel({
   const handleQuickAddClick = useCallback(() => {
     if (milestone) onQuickAdd(milestone)
   }, [milestone, onQuickAdd])
+
+  const handleBindExistingClick = useCallback(() => {
+    if (milestone) onBindExisting(milestone)
+  }, [milestone, onBindExisting])
 
   // Don't render anything when closed (no overlay)
   if (!open) return null
@@ -294,14 +301,24 @@ export default function MilestoneDetailPanel({
                     <span className="text-xs text-tertiary">
                       关联事项 ({relatedMIs.length})
                     </span>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={handleQuickAddClick}
-                    >
-                      <Plus className="h-3.5 w-3.5 mr-1" />
-                      添加
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleQuickAddClick}
+                      >
+                        <Plus className="h-3.5 w-3.5 mr-1" />
+                        新建事项
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleBindExistingClick}
+                      >
+                        <Link2 className="h-3.5 w-3.5 mr-1" />
+                        关联已有事项
+                      </Button>
+                    </div>
                   </div>
 
                   {relatedMIs.length === 0 ? (
