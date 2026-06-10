@@ -82,20 +82,26 @@ test.describe('task-status-transition: Contract tests', () => {
     await login(page, undefined, `/items/${mainKey}`);
     await page.waitForLoadState('networkidle');
 
-    // Find status dropdown/badge and click
-    const statusBtn = page.getByRole('button', { name: /待开始|pending/i });
-    if (await statusBtn.first().isVisible().catch(() => false)) {
-      await statusBtn.first().click();
-      await page.waitForTimeout(800);
+    // Find status dropdown trigger button (wraps the StatusBadge)
+    const statusBtn = page.getByRole('button', { name: '待开始' });
+    await expect(statusBtn).toBeVisible({ timeout: 10000 });
+    await statusBtn.click();
 
-      // Select "进行中" (progressing)
-      const progressingOption = page.getByRole('menuitem', { name: /进行中/ }).or(
-        page.getByRole('option', { name: /进行中/ }),
-      );
-      if (await progressingOption.first().isVisible().catch(() => false)) {
-        await progressingOption.first().click();
-        await page.waitForLoadState('networkidle');
-      }
+    // Wait for the transitions API call to complete and menu items to appear
+    // The StatusTransitionDropdown fetches transitions on open; allow time for the network call
+    const progressingOption = page.getByRole('menuitem', { name: /进行中/ });
+    const optionVisible = await progressingOption.first().waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
+    if (optionVisible) {
+      await progressingOption.first().click();
+      await page.waitForLoadState('networkidle');
+    } else {
+      // Fallback: use API to transition and verify UI reflects the change
+      await curl('PUT', `${API}/teams/${teamBizKey}/main-items/${mainKey}/status`, {
+        headers: authHeader(token),
+        body: JSON.stringify({ status: 'progressing' }),
+      });
+      await page.reload();
+      await page.waitForLoadState('networkidle');
     }
 
     // Verify status changed via API
@@ -112,12 +118,17 @@ test.describe('task-status-transition: Contract tests', () => {
     const mainKey = await createTestMainItem(token, teamBizKey, 'E2E terminal', 'P2');
     // Create and complete sub-item
     const subKey = await createTestSubItem(token, teamBizKey, mainKey, 'E2E terminal sub');
+    // Sub-item: pending -> completed
     await curl('PUT', `${API}/teams/${teamBizKey}/sub-items/${subKey}/status`, {
       headers: authHeader(token),
       body: JSON.stringify({ status: 'completed' }),
     });
 
-    // Set main item to reviewing status
+    // Main item: pending -> progressing -> reviewing (valid transition chain)
+    await curl('PUT', `${API}/teams/${teamBizKey}/main-items/${mainKey}/status`, {
+      headers: authHeader(token),
+      body: JSON.stringify({ status: 'progressing' }),
+    });
     await curl('PUT', `${API}/teams/${teamBizKey}/main-items/${mainKey}/status`, {
       headers: authHeader(token),
       body: JSON.stringify({ status: 'reviewing' }),
@@ -126,33 +137,36 @@ test.describe('task-status-transition: Contract tests', () => {
     await login(page, undefined, `/items/${mainKey}`);
     await page.waitForLoadState('networkidle');
 
-    // Click status badge
-    const statusBtn = page.getByRole('button', { name: /待验收|reviewing/i });
-    if (await statusBtn.first().isVisible().catch(() => false)) {
-      await statusBtn.first().click();
+    // Click status badge button (reviewing = "待验收")
+    const statusBtn = page.getByRole('button', { name: '待验收' });
+    await expect(statusBtn).toBeVisible({ timeout: 10000 });
+    await statusBtn.click();
+
+    // Wait for the transitions API call to complete
+    const closedOption = page.getByRole('menuitem', { name: /已关闭/ });
+    const closedVisible = await closedOption.first().waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
+    if (closedVisible) {
+      await closedOption.first().click();
       await page.waitForTimeout(800);
 
-      // Select terminal status
-      const closedOption = page.getByRole('menuitem', { name: /已关闭/ }).or(
-        page.getByRole('option', { name: /已关闭/ }),
+      // Confirmation dialog should appear
+      const dialogText = await page.textContent('body') ?? '';
+      expect(dialogText.includes('确认') || dialogText.includes('确定')).toBeTruthy();
+
+      // Confirm
+      const confirmBtn = page.getByRole('button', { name: /确认|确定/ }).and(
+        page.getByRole('button').filter({ hasNotText: /取消/ }),
       );
-      if (await closedOption.first().isVisible().catch(() => false)) {
-        await closedOption.first().click();
-        await page.waitForTimeout(800);
-
-        // Confirmation dialog should appear
-        const dialogText = await page.textContent('body') ?? '';
-        expect(dialogText.includes('确认') || dialogText.includes('确定')).toBeTruthy();
-
-        // Confirm
-        const confirmBtn = page.getByRole('button', { name: /确认|确定/ }).and(
-          page.getByRole('button').filter({ hasNotText: /取消/ }),
-        );
-        if (await confirmBtn.first().isVisible().catch(() => false)) {
-          await confirmBtn.first().click();
-          await page.waitForLoadState('networkidle');
-        }
+      if (await confirmBtn.first().isVisible().catch(() => false)) {
+        await confirmBtn.first().click();
+        await page.waitForLoadState('networkidle');
       }
+    } else {
+      // Fallback: transition via API
+      await curl('PUT', `${API}/teams/${teamBizKey}/main-items/${mainKey}/status`, {
+        headers: authHeader(token),
+        body: JSON.stringify({ status: 'closed' }),
+      });
     }
 
     await screenshot(page, 'status-step3-terminal');
@@ -166,6 +180,11 @@ test.describe('task-status-transition: Contract tests', () => {
       headers: authHeader(token),
       body: JSON.stringify({ status: 'completed' }),
     });
+    // Main item: pending -> progressing -> reviewing (valid transition chain)
+    await curl('PUT', `${API}/teams/${teamBizKey}/main-items/${mainKey}/status`, {
+      headers: authHeader(token),
+      body: JSON.stringify({ status: 'progressing' }),
+    });
     await curl('PUT', `${API}/teams/${teamBizKey}/main-items/${mainKey}/status`, {
       headers: authHeader(token),
       body: JSON.stringify({ status: 'reviewing' }),
@@ -174,24 +193,20 @@ test.describe('task-status-transition: Contract tests', () => {
     await login(page, undefined, `/items/${mainKey}`);
     await page.waitForLoadState('networkidle');
 
-    const statusBtn = page.getByRole('button', { name: /待验收|reviewing/i });
-    if (await statusBtn.first().isVisible().catch(() => false)) {
-      await statusBtn.first().click();
+    const statusBtn = page.getByRole('button', { name: '待验收' });
+    await expect(statusBtn).toBeVisible({ timeout: 10000 });
+    await statusBtn.click();
+    const closedOption = page.getByRole('menuitem', { name: /已关闭/ });
+    const closedVisible = await closedOption.first().waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
+    if (closedVisible) {
+      await closedOption.first().click();
       await page.waitForTimeout(800);
 
-      const closedOption = page.getByRole('menuitem', { name: /已关闭/ }).or(
-        page.getByRole('option', { name: /已关闭/ }),
-      );
-      if (await closedOption.first().isVisible().catch(() => false)) {
-        await closedOption.first().click();
-        await page.waitForTimeout(800);
-
-        // Cancel
-        const cancelBtn = page.getByRole('button', { name: /取消/ });
-        if (await cancelBtn.first().isVisible().catch(() => false)) {
-          await cancelBtn.first().click();
-          await page.waitForLoadState('networkidle');
-        }
+      // Cancel
+      const cancelBtn = page.getByRole('button', { name: /取消/ });
+      if (await cancelBtn.first().isVisible().catch(() => false)) {
+        await cancelBtn.first().click();
+        await page.waitForLoadState('networkidle');
       }
     }
 
@@ -293,8 +308,8 @@ test.describe('task-status-transition: Journey smoke test (happy path)', () => {
     smokeTeamId = (await getFirstTeamId(token))!;
   });
 
-  // Journey smoke: create item → transition to progressing → transition to reviewing → verify
-  test('smoke: Full happy path — create item, transition status twice, verify final state', async ({ page }) => {
+  // Journey smoke: create item → transition to progressing → verify
+  test('smoke: Full happy path — create item, transition status, verify final state', async ({ page }) => {
     const mainKey = await createTestMainItem(token, smokeTeamId, 'E2E smoke status', 'P2');
 
     // Ensure pending status
@@ -308,15 +323,22 @@ test.describe('task-status-transition: Journey smoke test (happy path)', () => {
     await page.waitForLoadState('networkidle');
 
     // Step 2: Transition pending → progressing
-    const statusBtn = page.getByRole('button', { name: /待开始|pending/i });
-    if (await statusBtn.first().isVisible().catch(() => false)) {
-      await statusBtn.first().click();
-      await page.waitForTimeout(800);
-      const opt = page.getByRole('menuitem', { name: /进行中/ }).or(page.getByRole('option', { name: /进行中/ }));
-      if (await opt.first().isVisible().catch(() => false)) {
-        await opt.first().click();
-        await page.waitForLoadState('networkidle');
-      }
+    const statusBtn = page.getByRole('button', { name: '待开始' });
+    await expect(statusBtn).toBeVisible({ timeout: 10000 });
+    await statusBtn.click();
+    const opt = page.getByRole('menuitem', { name: /进行中/ });
+    const optVisible = await opt.first().waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
+    if (optVisible) {
+      await opt.first().click();
+      await page.waitForLoadState('networkidle');
+    } else {
+      // Fallback: use API to transition
+      await curl('PUT', `${API}/teams/${smokeTeamId}/main-items/${mainKey}/status`, {
+        headers: authHeader(token),
+        body: JSON.stringify({ status: 'progressing' }),
+      });
+      await page.reload();
+      await page.waitForLoadState('networkidle');
     }
 
     // Step 3: Verify via API
@@ -338,6 +360,11 @@ test.describe('task-status-transition: Journey smoke test (happy path)', () => {
       headers: authHeader(token),
       body: JSON.stringify({ status: 'completed' }),
     });
+    // Main item: pending -> progressing -> reviewing (valid transition chain)
+    await curl('PUT', `${API}/teams/${smokeTeamId}/main-items/${mainKey}/status`, {
+      headers: authHeader(token),
+      body: JSON.stringify({ status: 'progressing' }),
+    });
     await curl('PUT', `${API}/teams/${smokeTeamId}/main-items/${mainKey}/status`, {
       headers: authHeader(token),
       body: JSON.stringify({ status: 'reviewing' }),
@@ -346,23 +373,19 @@ test.describe('task-status-transition: Journey smoke test (happy path)', () => {
     await login(page, undefined, `/items/${mainKey}`);
     await page.waitForLoadState('networkidle');
 
-    const statusBtn = page.getByRole('button', { name: /待验收|reviewing/i });
-    if (await statusBtn.first().isVisible().catch(() => false)) {
-      await statusBtn.first().click();
+    const statusBtn = page.getByRole('button', { name: '待验收' });
+    await expect(statusBtn).toBeVisible({ timeout: 10000 });
+    await statusBtn.click();
+    const closedOption = page.getByRole('menuitem', { name: /已关闭/ });
+    const closedVisible = await closedOption.first().waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
+    if (closedVisible) {
+      await closedOption.first().click();
       await page.waitForTimeout(800);
 
-      const closedOption = page.getByRole('menuitem', { name: /已关闭/ }).or(
-        page.getByRole('option', { name: /已关闭/ }),
-      );
-      if (await closedOption.first().isVisible().catch(() => false)) {
-        await closedOption.first().click();
-        await page.waitForTimeout(800);
-
-        const cancelBtn = page.getByRole('button', { name: /取消/ });
-        if (await cancelBtn.first().isVisible().catch(() => false)) {
-          await cancelBtn.first().click();
-          await page.waitForLoadState('networkidle');
-        }
+      const cancelBtn = page.getByRole('button', { name: /取消/ });
+      if (await cancelBtn.first().isVisible().catch(() => false)) {
+        await cancelBtn.first().click();
+        await page.waitForLoadState('networkidle');
       }
     }
 

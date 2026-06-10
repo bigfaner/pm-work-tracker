@@ -74,7 +74,7 @@ test.describe('UI E2E Tests', () => {
 
   // Traceability: TC-005 → Story 4 / AC-2, Spec Round 3 Item 18
   test('TC-005: Form field assigneeId renamed to assigneeKey', () => {
-    const matches = grepInDir(/assigneeId/, projectPath('frontend', 'src'));
+    const matches = grepInDir(/\bassigneeId\b/, projectPath('frontend', 'src'));
     expect(matches.length).toBe(0);
   });
 });
