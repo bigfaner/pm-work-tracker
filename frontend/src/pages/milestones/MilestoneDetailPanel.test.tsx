@@ -30,6 +30,10 @@ vi.mock('@/components/ui/toast', () => ({
   useToast: vi.fn(() => ({ addToast: vi.fn() })),
 }))
 
+vi.mock('@/hooks/usePermission', () => ({
+  usePermission: vi.fn(() => true),
+}))
+
 const mockNavigate = vi.fn()
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
@@ -170,6 +174,7 @@ describe('MilestoneDetailPanel', () => {
             milestoneId="ms-1"
             onEdit={vi.fn()}
             onQuickAdd={vi.fn()}
+            onBindExisting={vi.fn()}
           />
         </TooltipProvider>
       </QueryClientProvider>,

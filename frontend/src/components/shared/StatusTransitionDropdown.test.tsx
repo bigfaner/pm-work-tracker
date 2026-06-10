@@ -533,6 +533,7 @@ describe('StatusTransitionDropdown', () => {
 
     it('calls changeMilestoneMapStatusApi for milestone-map type', async () => {
       vi.mocked(getMilestoneMapTransitionsApi).mockResolvedValue(['reviewed'])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(changeMilestoneMapStatusApi).mockResolvedValue({} as any)
       const user = userEvent.setup()
       renderWithQueryClient(
@@ -580,6 +581,7 @@ describe('StatusTransitionDropdown', () => {
 
     it('calls changeMilestoneStatusApi for milestone type', async () => {
       vi.mocked(getMilestoneTransitionsApi).mockResolvedValue(['in_progress'])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(changeMilestoneStatusApi).mockResolvedValue({} as any)
       const user = userEvent.setup()
       renderWithQueryClient(
