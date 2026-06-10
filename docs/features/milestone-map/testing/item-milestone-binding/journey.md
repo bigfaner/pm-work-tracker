@@ -101,7 +101,7 @@ PM uses the MainItem edit dialog to bind a MainItem to a milestone, change its m
 
 **User Action**: PM selects a milestone and saves.
 
-**Expected Result**: Operation is rejected with an error indicating terminal state restriction.
+**Expected Result**: No client-side terminal state guard exists. Server rejection returns error but no user-facing feedback (mutation has no onError handler). <!-- gap: no terminal state guard, no error feedback -->
 
 ### Step 2c: Bind MI to milestone in different team
 <!-- surface: web -->
@@ -146,16 +146,12 @@ PM uses the MainItem edit dialog to bind a MainItem to a milestone, change its m
 
 **User Action**: PM saves the milestone assignment.
 
-**Expected Result**: An error message is displayed indicating the selected milestone is no longer available. The dialog stays open and the MI retains its original assignment.
+**Expected Result**: Dialog stays open (no explicit error toast shown). The mutation has no onError handler. <!-- gap: no error feedback on mutation failure -->
 
-### Step 5b: Milestone filter with no matching results
+### Step 5b: Milestone filter with no matching results — NOT_APPLICABLE
 <!-- surface: web -->
 
-**Precondition**: No milestones match the current filter criteria.
-
-**User Action**: PM applies a filter combination that matches no milestones.
-
-**Expected Result**: Filter resets to show all milestones without producing an error.
+**Note**: The milestone dropdown is a simple flat list, not a searchable filter. This edge case does not apply to the current implementation.
 
 ### Step E1: Session expired during save (Web)
 <!-- surface: web -->

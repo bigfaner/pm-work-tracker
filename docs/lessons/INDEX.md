@@ -19,6 +19,7 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | arch-quality-gate-surface-scoping.md | Quality gate — must scope verification to task's surface-key, not all surfaces |
 | arch-task-failure-recovery-loop.md | Task executor encounters test failures — must block + spawn fix tasks |
 | arch-ui-integration-gap.md | Component task breakdown — must include page wiring task |
+| arch-web-only-journey-coverage-gap.md | gen-contracts skips web-only journeys → zero E2E scripts for 71% of journeys |
 
 ### debug- — Debugging Techniques
 
@@ -95,7 +96,7 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 |------|---------|
 | New entity / schema design | arch-bizkey-vs-internal-id, gotcha-bizkey-vs-id-confusion, key-field-design-analysis, gotcha-schema-design-without-reference |
 | Task breakdown | arch-ui-integration-gap, pattern-phase-gate-tasks, gotcha-tech-design-decision-archiving |
-| E2E test generation | gotcha-e2e-script-generation, debug-e2e-zero-tests, debug-e2e-beforeall-cascade, gotcha-e2e-empty-seed-data-passes |
+| E2E test generation | gotcha-e2e-script-generation, debug-e2e-zero-tests, debug-e2e-beforeall-cascade, gotcha-e2e-empty-seed-data-passes, arch-web-only-journey-coverage-gap |
 | Validation / UX verification | gotcha-validation-ux-misses-visual-gaps, gotcha-e2e-empty-seed-data-passes |
 | E2E test graduation | arch-e2e-graduation-staging, tool-e2e-graduation-structure |
 | Running /run-tasks | gotcha-subagent-partial-commits, gotcha-ac-self-report-without-verification, arch-task-failure-recovery-loop, gotcha-continue-replay-fresh-agent, gotcha-claim-in-progress-priority, gotcha-task-claim-priority-skip |

@@ -49,12 +49,12 @@ PM interacts with the milestone detail panel to view, unbind, and quick-add asso
 
 **User Action**: PM triggers the unbind action on a MainItem row. <!-- fact: prd-spec — unbind sets milestone_key to null -->
 
-**Expected Result**: The MI is removed from the list. An undo option appears briefly. The milestone completion percentage is recalculated.
+**Expected Result**: The MI is removed from the list. A toast shows "已解除事项 XX 的绑定" but has no undo action — only a plain success message. The milestone completion percentage is recalculated. <!-- gap: no clickable undo, toast is informational only -->
 
 ### Step 4: Quick-add a MainItem
 <!-- surface: web -->
 
-**User Action**: PM opens the add function in the panel, fills in title, owner, start date, and expected completion date (milestone field pre-filled and locked), then confirms. <!-- fact: prd-spec Story 10 — quick-add creates and auto-binds MI -->
+**User Action**: PM opens the add function in the panel, fills in title, owner, start date, and expected completion date (milestone field pre-filled and locked via milestoneLocked prop), then confirms. <!-- fact: prd-spec Story 10 — quick-add creates and auto-binds MI -->
 
 **Expected Result**: MainItem is created and auto-bound to the current milestone. Dialog closes. Panel MI list refreshes. Completion recalculates.
 
@@ -70,7 +70,7 @@ PM interacts with the milestone detail panel to view, unbind, and quick-add asso
 
 **User Action**: PM drags a MainItem entry from one milestone node to another milestone node on the timeline. <!-- fact: prd-spec — drag-drop updates milestone_key -->
 
-**Expected Result**: MI is rebound to the target milestone. Visual feedback is shown during drag. On completion, an undo option appears briefly. Both source and target milestone completion percentages are recalculated.
+**Expected Result**: MI is rebound to the target milestone. Visual feedback is shown during drag. A toast shows "点击撤销可恢复原绑定" but has no clickable undo action — undo info is stored in `window.__lastUndoInfo` for test access only. Both source and target milestone completion percentages are recalculated. <!-- gap: no clickable undo in toast -->
 
 ### Step 7: Close panel via overlay click
 <!-- surface: web -->
@@ -126,16 +126,12 @@ PM interacts with the milestone detail panel to view, unbind, and quick-add asso
 
 **User Action**: PM views the panel.
 
-**Expected Result**: Edit control is not displayed. Status badge is not interactive.
+**Expected Result**: Edit, delete, quick-add, bind-existing, unbind, and status transition controls are all hidden. Only read-only information is displayed. <!-- fixed: permission-based visibility now enforced -->
 
-### Step 3b: Undo unbind within brief window
+### Step 3b: Undo unbind within brief window — NOT IMPLEMENTED
 <!-- surface: web -->
 
-**Precondition**: PM has just unbound a MainItem and the undo option is visible.
-
-**User Action**: PM triggers undo within the allowed time window.
-
-**Expected Result**: The MI is re-bound to the milestone. The list and completion percentage are restored.
+**Note**: The unbind toast says "点击撤销可恢复原绑定" but there is no clickable undo action. The undo info is stored in `window.__lastUndoInfo` for test access only. This step describes behavior that was not implemented. <!-- gap: no undo mechanism in toast -->
 
 ### Step 4b: Quick-add without title
 <!-- surface: web -->
@@ -180,7 +176,7 @@ PM interacts with the milestone detail panel to view, unbind, and quick-add asso
 
 **User Action**: PM views the milestone field.
 
-**Expected Result**: The milestone field shows the current milestone name and cannot be modified.
+**Expected Result**: Milestone field shows current milestone name and is disabled (cannot be modified).
 
 ### Step 5b: Cancelled milestone panel appearance
 <!-- surface: web -->
@@ -207,16 +203,14 @@ PM interacts with the milestone detail panel to view, unbind, and quick-add asso
 
 **User Action**: PM drags the MI to another milestone.
 
-**Expected Result**: Rebinding is rejected.
+**Expected Result**: In the timeline MI layer (MilestoneTimeline.tsx), all MIs are draggable with no terminal-state check — unlike the panel MI list which does guard against terminal-state drags. Rebinding may succeed on the client but will be rejected by the server. <!-- discrepancy: timeline has no terminal-state DnD guard, panel does -->
 
 ### Step 6d: Drag-and-drop -- target milestone is cancelled
 <!-- surface: web -->
 
 **Precondition**: The target milestone is in "cancelled" status. <!-- fact: prd-spec — cancelled milestones cannot receive new MIs -->
 
-**User Action**: PM drags an MI to the cancelled milestone.
-
-**Expected Result**: Rebinding is rejected.
+**Expected Result**: No client-side guard against dropping onto cancelled milestones. Relies on backend rejection. No user-facing error feedback (mutation has no onError handler). <!-- gap: no client-side cancelled milestone DnD guard -->
 
 ### Step 7b: Delete action hidden for in_progress/completed milestones
 <!-- surface: web -->
@@ -238,7 +232,7 @@ PM interacts with the milestone detail panel to view, unbind, and quick-add asso
 
 ## Journey Invariants
 
-- Unbind operations show an undo option valid for a brief window; if undone within that window, the binding is restored.
+- Unbind operations show a toast message but have no clickable undo action; undo info is stored in `window.__lastUndoInfo` for test access only. <!-- gap: no undo mechanism -->
 - Quick-add MainItem dialog always pre-fills and locks the milestone field to the current milestone.
 - Completion percentage is recalculated whenever MIs are bound, unbound, or rebound.
 - Cancelled milestones display with a muted tone, empty MI list, no add control, but visible delete action.

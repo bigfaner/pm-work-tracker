@@ -57,7 +57,7 @@ PM navigates the milestone map list view and timeline view to observe progress, 
 
 **User Action**: PM hovers over a milestone node on the timeline.
 
-**Expected Result**: Tooltip appears showing item summary. Node provides visual highlight feedback.
+**Expected Result**: Tooltip shows milestone description text. Node provides visual highlight feedback.
 
 ### Step 5: Filter timeline by name search
 <!-- surface: web -->
@@ -83,9 +83,9 @@ PM navigates the milestone map list view and timeline view to observe progress, 
 ### Step 8: Zoom timeline scale
 <!-- surface: web -->
 
-**User Action**: PM uses zoom controls to switch between week/month/quarter view. <!-- fact: prd-spec — timeline zoom levels -->
+**User Action**: PM uses zoom controls to switch between compact/standard/relaxed spacing modes (紧凑/标准/宽松). <!-- note: zoom controls spacing modes, not time scales -->
 
-**Expected Result**: Timeline scale labels change accordingly. Milestone node positions remain consistent across zoom levels.
+**Expected Result**: Timeline spacing between nodes changes accordingly. Milestone node positions remain consistent across zoom levels.
 
 ### Step 9: Navigate back to list view
 <!-- surface: web -->
@@ -191,7 +191,7 @@ PM navigates the milestone map list view and timeline view to observe progress, 
 
 **User Action**: PM hovers over the description text.
 
-**Expected Result**: Tooltip displays the full description content.
+**Expected Result**: Description text is truncated at 3 lines via CSS line-clamp. No tooltip for overflow. <!-- gap: no tooltip wrapping for truncated descriptions -->
 
 ### Step 8b: Horizontal scroll for dense timeline
 <!-- surface: web -->

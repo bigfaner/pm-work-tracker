@@ -668,6 +668,16 @@
       "sourceTaskID": "4.3",
       "type": "coding.fix"
     },
+    "fix-4": {
+      "id": "fix-4",
+      "title": "fix lint: just lint failure in quality gate",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "status": "completed",
+      "file": "fix-4.md",
+      "record": "records/fix-4.md",
+      "type": "coding.cleanup"
+    },
     "gen-contracts": {
       "id": "T-test-gen-contracts",
       "title": "Generate Test Contracts",

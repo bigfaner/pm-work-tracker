@@ -51,14 +51,14 @@ Team members and management with only milestone:read permission access the miles
 
 **User Action**: User clicks a milestone map card to enter the timeline view. <!-- fact: prd-spec — timeline view for read-only -->
 
-**Expected Result**: Timeline renders fully (breadcrumb, title, info card, filter bar, timeline). The detail title area does NOT show edit or delete controls. The create milestone button is not displayed. <!-- fact: prd-spec — edit/delete require milestone:update/delete permissions -->
+**Expected Result**: Timeline renders fully (breadcrumb, title, info card, filter bar, timeline). Edit button is hidden without milestone:update permission. Delete button is hidden without milestone:delete permission. StatusTransitionDropdown is hidden without milestone:update permission. The create milestone button is not displayed. <!-- fixed: permission-based visibility now enforced -->
 
 ### Step 4: Open milestone detail panel in read-only mode
 <!-- surface: web -->
 
 **User Action**: User clicks a milestone node on the timeline. <!-- fact: prd-spec — read-only panel -->
 
-**Expected Result**: Detail panel opens showing all read-only information (name, description, status badge, plan date, progress, associated MI list). The edit control, delete control, and add control are NOT shown. The status badge is NOT interactive. MI rows do NOT show unbind controls. <!-- fact: prd-spec — read-only panel hides all mutation controls -->
+**Expected Result**: Detail panel opens showing all read-only information (name, description, status badge, plan date, progress, associated MI list). Edit button is hidden without milestone:update permission. Delete button is hidden without milestone:delete permission. StatusTransitionDropdown is hidden without milestone:update permission. Quick-add button and bind-existing button are hidden without milestone:update. MI rows do NOT show unbind controls without milestone:update. <!-- fixed: permission-based visibility now enforced -->
 
 ### Step 5: View tooltip and hover interactions
 <!-- surface: web -->
@@ -92,7 +92,7 @@ Team members and management with only milestone:read permission access the miles
 
 **User Action**: User attempts to access /milestones.
 
-**Expected Result**: Page displays a forbidden access message.
+**Expected Result**: Page displays a forbidden access message. <!-- known gap: no page-level permission gate on milestone pages; this behavior is not yet implemented -->
 
 ### Step 3b: Timeline view read-only info displays correctly
 <!-- surface: web -->

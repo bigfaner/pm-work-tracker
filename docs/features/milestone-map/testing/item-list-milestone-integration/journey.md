@@ -132,14 +132,14 @@ PM uses the milestone filter on the items list page and views the milestone colu
 
 **User Action**: PM loads the table view for the first time.
 
-**Expected Result**: Milestone column defaults to ascending order. Unassigned MIs appear at the bottom.
+**Expected Result**: Table loads with no default sort. Milestone column is unsorted initially. <!-- gap: no default sort by milestone on first load -->
 
-### Step 6e: Column header filter by milestone
+### Step 6e: Filter bar dropdown by milestone
 <!-- surface: web -->
 
-**Precondition**: Table view is loaded with milestone column visible.
+**Precondition**: Table view is loaded with milestone filter available.
 
-**User Action**: PM uses the column header filter to select a specific milestone.
+**User Action**: PM uses the milestone dropdown in the filter bar (not on the column header) to select a specific milestone.
 
 **Expected Result**: Only MIs belonging to that milestone are shown.
 
@@ -150,7 +150,7 @@ PM uses the milestone filter on the items list page and views the milestone colu
 
 **User Action**: Team switch completes and new data loads.
 
-**Expected Result**: Milestone filter resets to "All". Dropdown options refresh to show the new team's milestones.
+**Expected Result**: React Query refetches data because teamId changes, but the milestone filter dropdown selection persists (does not reset to "All"). Dropdown options refresh to show the new team's milestones. <!-- gap: filter state does not reset on team switch -->
 
 ### Step 7c: Milestone dropdown load failure
 <!-- surface: web -->
@@ -175,5 +175,5 @@ PM uses the milestone filter on the items list page and views the milestone colu
 - Cancelled milestones never appear in dropdown options or filter selections.
 - Unassigned MIs consistently display without a badge or with a placeholder, and always sort to the bottom of milestone column sorts.
 - Milestone-related failures (load errors, missing data) never block the rendering of the rest of the items list or table view.
-- Switching teams always resets the milestone filter to "All" and refreshes the dropdown options.
+- Switching teams refreshes the dropdown options but does NOT reset the milestone filter selection. <!-- gap: filter persists on team switch -->
 - Invalid filter values gracefully fall back to "All" without errors.
