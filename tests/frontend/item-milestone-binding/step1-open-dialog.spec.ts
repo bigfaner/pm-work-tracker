@@ -73,32 +73,39 @@ test.describe('item-milestone-binding / Step 1: Open edit dialog and milestone s
 
   // Step 1: Open edit dialog shows milestone selector
   test('TC-IMB-S1-001: Edit dialog shows milestone dropdown with current assignment', async ({ page }) => {
-    await page.getByText(`e2e-imb-s1-mi-${runId}`).first().click();
+    const miCard = page.getByText(`e2e-imb-s1-mi-${runId}`).first();
+    await miCard.waitFor({ state: 'visible', timeout: 10000 });
+    await miCard.scrollIntoViewIfNeeded();
+    await miCard.click();
     await page.waitForTimeout(1000);
 
-    await page.getByRole('button', { name: /编辑|edit/i }).first().click();
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
+    await page.getByRole('button', { name: /^编辑$/ }).first().click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible({ timeout: 10000 });
 
-    // Milestone selector should be present
-    await expect(page.getByText(/里程碑|milestone/i)).toBeVisible();
+    // Milestone selector should be present — scoped to dialog to avoid matching sidebar nav
+    await expect(dialog.getByText('所属里程碑')).toBeVisible();
   });
 
   // Step 1b: No milestones in team - dropdown only shows "Unassigned"
   test('TC-IMB-S1-002: Milestone dropdown only shows Unassigned when team has no milestones', async ({ page }) => {
     // Use API to verify milestone map and milestones exist, but create a new MI
     // to test the dropdown behavior. Since we have milestones, verify they appear.
-    await page.getByText(`e2e-imb-s1-mi-${runId}`).first().click();
+    const miCard = page.getByText(`e2e-imb-s1-mi-${runId}`).first();
+    await miCard.waitFor({ state: 'visible', timeout: 10000 });
+    await miCard.scrollIntoViewIfNeeded();
+    await miCard.click();
     await page.waitForTimeout(1000);
-    await page.getByRole('button', { name: /编辑|edit/i }).first().click();
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
-
-    // Click the milestone dropdown to open it
+    await page.getByRole('button', { name: /^编辑$/ }).first().click();
     const dialog = page.getByRole('dialog');
-    const milestoneTrigger = dialog.locator('[class*="trigger"], button').filter({ hasText: /未分配|unassigned|e2e-imb/i }).first();
-    await milestoneTrigger.click();
+    await expect(dialog).toBeVisible({ timeout: 10000 });
+
+    // Click the milestone combobox to open the dropdown
+    const milestoneCombobox = dialog.getByRole('combobox').nth(2);
+    await milestoneCombobox.click();
 
     // Should see the milestone option and Unassigned option
-    await expect(page.getByText(`e2e-imb-s1-ms-${runId}`)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('option', { name: `e2e-imb-s1-ms-${runId}` })).toBeVisible({ timeout: 5000 });
   });
 
   // Step 1c: Cancelled milestones excluded from dropdown
@@ -120,18 +127,21 @@ test.describe('item-milestone-binding / Step 1: Open edit dialog and milestone s
     }
 
     // Open edit dialog
-    await page.getByText(`e2e-imb-s1-mi-${runId}`).first().click();
+    const miCard = page.getByText(`e2e-imb-s1-mi-${runId}`).first();
+    await miCard.waitFor({ state: 'visible', timeout: 10000 });
+    await miCard.scrollIntoViewIfNeeded();
+    await miCard.click();
     await page.waitForTimeout(1000);
-    await page.getByRole('button', { name: /编辑|edit/i }).first().click();
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
+    await page.getByRole('button', { name: /^编辑$/ }).first().click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible({ timeout: 10000 });
 
     // Open dropdown
-    const dialog = page.getByRole('dialog');
-    const milestoneTrigger = dialog.locator('[class*="trigger"], button').filter({ hasText: /未分配|unassigned|e2e-imb/i }).first();
-    await milestoneTrigger.click();
+    const milestoneCombobox = dialog.getByRole('combobox').nth(2);
+    await milestoneCombobox.click();
 
     // Cancelled milestone should NOT appear
-    await expect(page.getByText(`e2e-imb-s1-cancelled-${runId}`)).not.toBeVisible();
+    await expect(page.getByRole('option', { name: `e2e-imb-s1-cancelled-${runId}` })).not.toBeVisible();
   });
 
   // Unauthorized API test

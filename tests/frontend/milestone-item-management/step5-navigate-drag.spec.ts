@@ -94,12 +94,13 @@ test.describe('milestone-item-management / Steps 5-7: Navigate, drag-drop, panel
 
   // Step 5: Navigate to MI detail from panel
   test('TC-MIM-S5-001: Click MI in panel navigates to MI detail page', async ({ page }) => {
-    const node = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-s5-ms1-${runId}` });
+    const node = page.locator(`[data-testid="milestone-node-${ms1BizKey}"]`);
     await node.click();
-    await page.waitForTimeout(1500);
+    const panel = page.getByRole('dialog');
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
-    // Click on MI number/title link
-    const miLink = page.getByText(`e2e-mim-s5-mi-${runId}`).first();
+    // Click on MI title link within panel
+    const miLink = panel.getByText(`e2e-mim-s5-mi-${runId}`).first();
     await miLink.click();
 
     // Should navigate to MI detail
@@ -108,26 +109,36 @@ test.describe('milestone-item-management / Steps 5-7: Navigate, drag-drop, panel
 
   // Step 6: Drag-drop MI rebinding
   test('TC-MIM-S6-001: Drag MI from ms1 to ms2 rebinds it', async ({ page }) => {
-    // Verify MI is on ms1
+    // Verify MI is on ms1 in the timeline MI layer
     const miItem = page.locator(`[data-testid="mi-item-${miBizKey}"]`);
-    await miItem.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+    await miItem.waitFor({ state: 'visible', timeout: 10000 });
 
-    if (await miItem.isVisible()) {
-      const targetNode = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-s5-ms2-${runId}` });
-      await targetNode.waitFor({ state: 'visible', timeout: 10000 });
+    const targetNode = page.locator(`[data-testid="milestone-node-${ms2BizKey}"]`);
+    await targetNode.waitFor({ state: 'visible', timeout: 10000 });
 
-      // Perform drag
-      await miItem.dragTo(targetNode);
-      await page.waitForTimeout(2000);
+    // Perform drag using manual mouse events for better HTML5 drag support
+    const miBox = await miItem.boundingBox();
+    const targetBox = await targetNode.boundingBox();
 
-      // Verify via API that MI is now bound to ms2
-      const request = page.context().request;
-      const verifyRes = await request.get(`http://127.0.0.1:8080/v1/teams/${teamId}/main-items/${miBizKey}`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-      const verifyData = parseApiData(await verifyRes.json());
-      expect(String(verifyData.milestoneKey)).toBe(ms2BizKey);
+    if (miBox && targetBox) {
+      await page.mouse.move(miBox.x + miBox.width / 2, miBox.y + miBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, { steps: 5 });
+      await page.mouse.up();
+    } else {
+      // Fallback to Playwright dragTo
+      await miItem.dragTo(targetNode, { force: true });
     }
+
+    await page.waitForTimeout(2000);
+
+    // Verify via API that MI is now bound to ms2
+    const request = page.context().request;
+    const verifyRes = await request.get(`http://127.0.0.1:8080/v1/teams/${teamId}/main-items/${miBizKey}`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const verifyData = parseApiData(await verifyRes.json());
+    expect(String(verifyData.milestoneKey)).toBe(ms2BizKey);
   });
 
   // Step 5b: Cancelled milestone panel
@@ -153,18 +164,19 @@ test.describe('milestone-item-management / Steps 5-7: Navigate, drag-drop, panel
     await page.waitForTimeout(2000);
 
     // Find and click cancelled milestone node
-    const cancelledNode = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-s5-cancelled-${runId}` });
+    const cancelledNode = page.locator(`[data-testid="milestone-node-${cancelledMsKey}"]`);
     if (await cancelledNode.isVisible()) {
       await cancelledNode.click();
-      await page.waitForTimeout(1500);
+      const panel = page.getByRole('dialog');
+      await expect(panel).toBeVisible({ timeout: 10000 });
 
       // Panel should show cancelled status
-      await expect(page.getByText(/已取消|cancelled/i)).toBeVisible({ timeout: 5000 });
+      await expect(panel.getByText(/已取消|cancelled/i)).toBeVisible({ timeout: 5000 });
 
-      // Add button should not be visible for cancelled milestone
-      const addBtn = page.getByRole('button', { name: /添加|新增|add/i });
-      // The add button may or may not be visible depending on implementation
-      // but per spec, add control is not shown for cancelled milestones
+      // Add button should not be visible for cancelled milestone (panel omits MI section entirely)
+      const addBtn = panel.getByRole('button', { name: /新建事项/ });
+      // The add button should not be visible for cancelled milestones
+      await expect(addBtn).not.toBeVisible();
     }
   });
 
@@ -178,14 +190,15 @@ test.describe('milestone-item-management / Steps 5-7: Navigate, drag-drop, panel
     });
 
     await page.goto(`http://127.0.0.1:8080/milestones/${mapBizKey}`);
-    await page.waitForTimeout(2000);
-
-    const node = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-s5-ms1-${runId}` });
+    // Wait for the milestone node to appear in the timeline (it may take time to load)
+    const node = page.locator(`[data-testid="milestone-node-${ms1BizKey}"]`);
+    await node.waitFor({ state: 'visible', timeout: 15000 });
     await node.click();
-    await page.waitForTimeout(1500);
+    const panel = page.getByRole('dialog');
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
     // Delete button should not be visible for in_progress milestone
-    const deleteBtn = page.getByRole('button', { name: /删除|delete/i });
+    const deleteBtn = panel.getByRole('button', { name: /删除里程碑/ });
     await expect(deleteBtn).not.toBeVisible();
 
     // Reset: transition back to not_started

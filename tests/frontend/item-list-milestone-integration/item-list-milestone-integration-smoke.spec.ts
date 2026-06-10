@@ -100,7 +100,8 @@ test.describe.serial('item-list-milestone-integration smoke: filter, badges, tab
     const milestoneFilter = page.locator('[data-testid="milestone-filter"]');
     if (await milestoneFilter.isVisible()) {
       await milestoneFilter.click();
-      await page.getByText(`e2e-ili-ms-${runId}`).click();
+      // Scope to the open listbox to avoid matching badge text on item cards
+      await page.getByRole('listbox').getByText(`e2e-ili-ms-${runId}`).click();
       await page.waitForTimeout(1000);
 
       // Only bound MI should be visible
@@ -116,7 +117,8 @@ test.describe.serial('item-list-milestone-integration smoke: filter, badges, tab
     const milestoneFilter = page.locator('[data-testid="milestone-filter"]');
     if (await milestoneFilter.isVisible()) {
       await milestoneFilter.click();
-      await page.getByText(/未分配|unassigned/i).click();
+      // Scope to the open listbox to avoid matching page text
+      await page.getByRole('listbox').getByText(/未分配|unassigned/i).click();
       await page.waitForTimeout(1000);
 
       await expect(page.getByText(`e2e-ili-unbound-mi-${runId}`)).toBeVisible({ timeout: 5000 });
@@ -131,7 +133,8 @@ test.describe.serial('item-list-milestone-integration smoke: filter, badges, tab
     const milestoneFilter = page.locator('[data-testid="milestone-filter"]');
     if (await milestoneFilter.isVisible()) {
       await milestoneFilter.click();
-      await page.getByText(/全部|all/i).first().click();
+      // Scope to the open listbox to avoid matching page text
+      await page.getByRole('listbox').getByText(/全部|all/i).first().click();
       await page.waitForTimeout(1000);
 
       await expect(page.getByText(`e2e-ili-bound-mi-${runId}`)).toBeVisible({ timeout: 5000 });

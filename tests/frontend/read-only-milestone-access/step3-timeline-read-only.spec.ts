@@ -90,9 +90,9 @@ test.describe('read-only-milestone-access / Steps 3-6: Read-only timeline, panel
 
   // Step 3b: Read-only info displays correctly
   test('TC-RO-S3-002: Timeline info card shows name, status, progress', async ({ page }) => {
-    // Basic info card should be visible
-    await expect(page.getByText(`e2e-ro-s3-map-${runId}`)).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/规划中/i)).toBeVisible();
+    // Basic info card should be visible (scope to h1 to avoid matching breadcrumb)
+    await expect(page.locator('h1').filter({ hasText: `e2e-ro-s3-map-${runId}` })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/规划中/i).first()).toBeVisible();
   });
 
   // Step 4: Open panel in read-only mode
@@ -101,11 +101,11 @@ test.describe('read-only-milestone-access / Steps 3-6: Read-only timeline, panel
     await node.click();
     await page.waitForTimeout(1500);
 
-    // Panel should show milestone info
-    await expect(page.getByText(`e2e-ro-s3-ms-${runId}`)).toBeVisible({ timeout: 10000 });
+    // Panel should show milestone info (scope to dialog to avoid matching timeline node)
+    await expect(page.getByRole('dialog').getByText(`e2e-ro-s3-ms-${runId}`)).toBeVisible({ timeout: 10000 });
 
-    // Verify MI in panel list
-    await expect(page.getByText(`e2e-ro-s3-mi-${runId}`)).toBeVisible();
+    // Verify MI in panel list (scope to dialog)
+    await expect(page.getByRole('dialog').getByText(`e2e-ro-s3-mi-${runId}`)).toBeVisible();
   });
 
   // Step 5b: Timeline filters work in read-only mode
@@ -142,8 +142,8 @@ test.describe('read-only-milestone-access / Steps 3-6: Read-only timeline, panel
     await node.click();
     await page.waitForTimeout(1500);
 
-    // Click MI link
-    const miLink = page.getByText(`e2e-ro-s3-mi-${runId}`).first();
+    // Click MI link (scope to dialog to avoid matching other elements)
+    const miLink = page.getByRole('dialog').getByText(`e2e-ro-s3-mi-${runId}`);
     await miLink.click();
     await page.waitForURL(/\/items\//, { timeout: 10000 });
   });

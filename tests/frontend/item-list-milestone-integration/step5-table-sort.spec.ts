@@ -94,8 +94,8 @@ test.describe('item-list-milestone-integration / Steps 5-8: Badges, table, sorti
     const boundMi = page.getByText(`e2e-ili-s5-bound-${runId}`);
     await expect(boundMi).toBeVisible({ timeout: 10000 });
 
-    // Milestone badge should be visible near the MI
-    await expect(page.getByText(`e2e-ili-s5-ms-${runId}`)).toBeVisible();
+    // Milestone badge should be visible near the MI (use .first() to avoid strict mode if text appears in multiple places)
+    await expect(page.getByText(`e2e-ili-s5-ms-${runId}`).first()).toBeVisible();
   });
 
   // Step 5: Unbound MI does not show badge

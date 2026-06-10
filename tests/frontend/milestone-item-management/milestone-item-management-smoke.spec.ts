@@ -101,49 +101,51 @@ test.describe.serial('milestone-item-management smoke: happy path through panel 
     await login(page, undefined, `/milestones/${mapBizKey}`);
 
     // Click on ms1 node
-    const node = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-ms1-${runId}` });
+    const node = page.locator(`[data-testid="milestone-node-${ms1BizKey}"]`);
     await node.click();
 
     // Verify panel opens with key information
-    await expect(page.getByText(`e2e-mim-ms1-${runId}`)).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/进度|progress/i)).toBeVisible();
+    const panel = page.getByRole('dialog');
+    await expect(panel).toBeVisible({ timeout: 10000 });
+    await expect(panel.getByText(`e2e-mim-ms1-${runId}`)).toBeVisible();
+    await expect(panel.getByText(/进度/)).toBeVisible();
   });
 
   // Step 2: View associated MI list with hover unbind
   test('Smoke 2: Panel shows MI list with hover unbind control', async ({ page }) => {
     await login(page, undefined, `/milestones/${mapBizKey}`);
 
-    const node = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-ms1-${runId}` });
+    const node = page.locator(`[data-testid="milestone-node-${ms1BizKey}"]`);
     await node.click();
-    await page.waitForTimeout(1000);
+    const panel = page.getByRole('dialog');
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
-    // Verify MI entries are visible
-    await expect(page.getByText(`e2e-mim-mi1-${runId}`)).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(`e2e-mim-mi2-${runId}`)).toBeVisible();
+    // Verify MI entries are visible in panel
+    await expect(panel.getByText(`e2e-mim-mi1-${runId}`)).toBeVisible({ timeout: 10000 });
+    await expect(panel.getByText(`e2e-mim-mi2-${runId}`)).toBeVisible();
   });
 
   // Step 3: Unbind a MainItem
   test('Smoke 3: Unbind MI removes it from panel list', async ({ page }) => {
     await login(page, undefined, `/milestones/${mapBizKey}`);
 
-    const node = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-ms1-${runId}` });
+    const node = page.locator(`[data-testid="milestone-node-${ms1BizKey}"]`);
     await node.click();
-    await page.waitForTimeout(1000);
+    const panel = page.getByRole('dialog');
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
     // Hover over MI row to reveal unbind control
-    const miRow = page.locator(`[data-testid="mi-drag-${mi1BizKey}"]`);
-    if (await miRow.isVisible()) {
-      await miRow.hover();
-      // Look for unbind button/icon
-      const unbindBtn = miRow.getByRole('button', { name: /解绑|unbind/i });
-      if (await unbindBtn.isVisible()) {
-        await unbindBtn.click();
-        await page.waitForTimeout(1000);
+    const miRow = panel.locator(`[data-testid="mi-drag-${mi1BizKey}"]`);
+    await miRow.waitFor({ state: 'visible', timeout: 10000 });
+    await miRow.hover();
+    // Look for unbind button/icon (aria-label="解绑事项 {code}")
+    const unbindBtn = miRow.getByRole('button', { name: /解绑事项/i });
+    await expect(unbindBtn).toBeVisible({ timeout: 5000 });
+    await unbindBtn.click();
+    await page.waitForTimeout(1000);
 
-        // Verify toast message
-        await expect(page.getByText(/已解除|unbind/i)).toBeVisible({ timeout: 5000 });
-      }
-    }
+    // Verify toast message: "已解除事项 {code} 的绑定"
+    await expect(page.getByText(/已解除事项.*的绑定/)).toBeVisible({ timeout: 5000 });
 
     // Verify via API
     const request = page.context().request;
@@ -158,19 +160,20 @@ test.describe.serial('milestone-item-management smoke: happy path through panel 
   test('Smoke 4: Quick-add MI in panel creates and auto-binds', async ({ page }) => {
     await login(page, undefined, `/milestones/${mapBizKey}`);
 
-    const node = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-ms1-${runId}` });
+    const node = page.locator(`[data-testid="milestone-node-${ms1BizKey}"]`);
     await node.click();
-    await page.waitForTimeout(1000);
+    const panel = page.getByRole('dialog');
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
-    // Click add/quick-add button in panel
-    const addBtn = page.getByRole('button', { name: /添加|新增|quick-add|add/i }).first();
+    // Click quick-add button in panel (button text is "新建事项")
+    const addBtn = panel.getByRole('button', { name: /新建事项/ });
     await addBtn.click();
     await page.waitForTimeout(500);
 
     // Fill in quick-add form
-    const dialog = page.getByRole('dialog');
-    if (await dialog.isVisible()) {
-      await dialog.getByPlaceholder(/请输入.*标题|title/i).fill(`e2e-mim-quickadd-${runId}`);
+    const dialog = page.getByRole('dialog').last();
+    await expect(dialog).toBeVisible({ timeout: 5000 });
+    await dialog.getByPlaceholder(/请输入.*标题|title/i).fill(`e2e-mim-quickadd-${runId}`);
 
       // Owner - select first option
       const ownerTrigger = dialog.getByText(/选择负责人|assignee/i);
@@ -194,21 +197,23 @@ test.describe.serial('milestone-item-management smoke: happy path through panel 
       // Submit
       await dialog.getByRole('button', { name: /确认|submit/i }).click();
       await page.waitForTimeout(2000);
-    }
   });
 
   // Step 7: Close panel via overlay click
   test('Smoke 7: Click overlay closes panel', async ({ page }) => {
     await login(page, undefined, `/milestones/${mapBizKey}`);
 
-    const node = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-ms1-${runId}` });
+    const node = page.locator(`[data-testid="milestone-node-${ms1BizKey}"]`);
     await node.click();
-    await page.waitForTimeout(1000);
+    const panel = page.getByRole('dialog');
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
     // Click outside the panel (on the overlay/backdrop)
-    const overlay = page.locator('.fixed.inset-0, [class*="overlay"], [class*="backdrop"]').first();
-    if (await overlay.isVisible()) {
-      await overlay.click({ position: { x: 5, y: 5 } });
-    }
+    const overlay = page.locator('div.fixed.inset-0.bg-black\\/20');
+    await expect(overlay).toBeVisible();
+    await overlay.click({ position: { x: 5, y: 5 } });
+
+    // Panel should close
+    await expect(panel).not.toBeVisible({ timeout: 5000 });
   });
 });

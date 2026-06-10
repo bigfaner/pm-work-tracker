@@ -59,19 +59,19 @@ test.describe('milestone-item-management / Step 4: Quick-add MainItem in panel',
 
   // Step 4: Quick-add creates and auto-binds MI
   test('TC-MIM-S4-001: Quick-add MI creates and auto-binds to milestone', async ({ page }) => {
-    const node = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-s4-ms-${runId}` });
+    const node = page.locator(`[data-testid="milestone-node-${msBizKey}"]`);
     await node.click();
-    await page.waitForTimeout(1500);
+    const panel = page.getByRole('dialog');
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
     // Click quick-add button
-    const addBtn = page.getByRole('button', { name: /添加|新增|add/i }).first();
+    const addBtn = panel.getByRole('button', { name: /新建事项/ });
     await addBtn.click();
-    await page.waitForTimeout(500);
 
-    // Fill form in dialog
-    const dialog = page.getByRole('dialog');
-    if (await dialog.isVisible()) {
-      await dialog.getByPlaceholder(/请输入.*标题|title/i).fill(`e2e-mim-s4-quickadd-${runId}`);
+    // Fill form in dialog (the quick-add dialog is the second dialog)
+    const dialog = page.getByRole('dialog').last();
+    await expect(dialog).toBeVisible({ timeout: 5000 });
+    await dialog.getByPlaceholder(/请输入.*标题|title/i).fill(`e2e-mim-s4-quickadd-${runId}`);
 
       // Select owner
       const ownerTrigger = dialog.getByText(/选择负责人|assignee/i);
@@ -95,93 +95,91 @@ test.describe('milestone-item-management / Step 4: Quick-add MainItem in panel',
       await page.waitForTimeout(2000);
 
       // Verify MI appears in panel list
-      await expect(page.getByText(`e2e-mim-s4-quickadd-${runId}`)).toBeVisible({ timeout: 10000 });
-    }
+      await expect(panel.getByText(`e2e-mim-s4-quickadd-${runId}`)).toBeVisible({ timeout: 10000 });
   });
 
   // Step 4b: Quick-add without title - validation error
   test('TC-MIM-S4-002: Quick-add without title shows validation error', async ({ page }) => {
-    const node = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-s4-ms-${runId}` });
+    const node = page.locator(`[data-testid="milestone-node-${msBizKey}"]`);
     await node.click();
-    await page.waitForTimeout(1500);
+    const panel = page.getByRole('dialog');
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
-    const addBtn = page.getByRole('button', { name: /添加|新增|add/i }).first();
+    const addBtn = panel.getByRole('button', { name: /新建事项/ });
     await addBtn.click();
-    await page.waitForTimeout(500);
 
-    const dialog = page.getByRole('dialog');
-    if (await dialog.isVisible()) {
-      // Leave title empty, fill other fields
-      const ownerTrigger = dialog.getByText(/选择负责人|assignee/i);
-      if (await ownerTrigger.isVisible()) {
-        await ownerTrigger.click();
-        await page.locator('[role="option"]').first().click();
-      }
+    const dialog = page.getByRole('dialog').last();
+    await expect(dialog).toBeVisible({ timeout: 5000 });
 
-      // Submit should be disabled
-      const submitBtn = dialog.getByRole('button', { name: /确认|submit/i });
-      await expect(submitBtn).toBeDisabled();
+    // Leave title empty, fill other fields
+    const ownerTrigger = dialog.getByText(/选择负责人|assignee/i);
+    if (await ownerTrigger.isVisible()) {
+      await ownerTrigger.click();
+      await page.locator('[role="option"]').first().click();
     }
+
+    // Submit should be disabled
+    const submitBtn = dialog.getByRole('button', { name: /确认|submit/i });
+    await expect(submitBtn).toBeDisabled();
   });
 
   // Step 4f: Milestone field is locked (pre-filled and disabled)
   test('TC-MIM-S4-003: Quick-add milestone field is pre-filled and disabled', async ({ page }) => {
-    const node = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-s4-ms-${runId}` });
+    const node = page.locator(`[data-testid="milestone-node-${msBizKey}"]`);
     await node.click();
-    await page.waitForTimeout(1500);
+    const panel = page.getByRole('dialog');
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
-    const addBtn = page.getByRole('button', { name: /添加|新增|add/i }).first();
+    const addBtn = panel.getByRole('button', { name: /新建事项/ });
     await addBtn.click();
-    await page.waitForTimeout(500);
 
-    const dialog = page.getByRole('dialog');
-    if (await dialog.isVisible()) {
-      // Milestone field should show the current milestone name and be disabled
-      const milestoneField = dialog.locator('input, select, [class*="disabled"], [disabled]').filter({ hasText: /e2e-mim-s4-ms/i });
-      if (await milestoneField.isVisible()) {
-        await expect(milestoneField).toBeDisabled();
-      }
+    const dialog = page.getByRole('dialog').last();
+    await expect(dialog).toBeVisible({ timeout: 5000 });
+
+    // Milestone field should show the current milestone name and be disabled
+    const milestoneField = dialog.locator('input, select, [class*="disabled"], [disabled]').filter({ hasText: /e2e-mim-s4-ms/i });
+    if (await milestoneField.isVisible()) {
+      await expect(milestoneField).toBeDisabled();
     }
   });
 
   // Step 4e: Quick-add loading state
   test('TC-MIM-S4-004: Quick-add shows loading state during submission', async ({ page }) => {
-    const node = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-s4-ms-${runId}` });
+    const node = page.locator(`[data-testid="milestone-node-${msBizKey}"]`);
     await node.click();
-    await page.waitForTimeout(1500);
+    const panel = page.getByRole('dialog');
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
-    const addBtn = page.getByRole('button', { name: /添加|新增|add/i }).first();
+    const addBtn = panel.getByRole('button', { name: /新建事项/ });
     await addBtn.click();
-    await page.waitForTimeout(500);
 
-    const dialog = page.getByRole('dialog');
-    if (await dialog.isVisible()) {
-      await dialog.getByPlaceholder(/请输入.*标题|title/i).fill(`e2e-mim-s4-loading-${runId}`);
+    const dialog = page.getByRole('dialog').last();
+    await expect(dialog).toBeVisible({ timeout: 5000 });
+    await dialog.getByPlaceholder(/请输入.*标题|title/i).fill(`e2e-mim-s4-loading-${runId}`);
 
-      const ownerTrigger = dialog.getByText(/选择负责人|assignee/i);
-      if (await ownerTrigger.isVisible()) {
-        await ownerTrigger.click();
-        await page.locator('[role="option"]').first().click();
-      }
-
-      const startInput = dialog.locator('label', { hasText: /开始时间/i }).locator('..').locator('input[type="date"]');
-      if (await startInput.isVisible()) {
-        await startInput.fill('2026-04-01');
-      }
-      const endInput = dialog.locator('label', { hasText: /完成时间|结束时间/i }).locator('..').locator('input[type="date"]');
-      if (await endInput.isVisible()) {
-        await endInput.fill('2026-12-31');
-      }
-
-      // Click submit and check for loading state
-      const submitBtn = dialog.getByRole('button', { name: /确认|submit/i });
-      await submitBtn.click();
-
-      // Button should show loading state briefly
-      const isLoading = await submitBtn.getAttribute('data-loading') ?? await submitBtn.locator('[class*="loading"], [class*="spinner"]').count();
-      // Loading state is transient, just verify the dialog eventually closes
-      await page.waitForTimeout(3000);
+    const ownerTrigger = dialog.getByText(/选择负责人|assignee/i);
+    if (await ownerTrigger.isVisible()) {
+      await ownerTrigger.click();
+      await page.locator('[role="option"]').first().click();
     }
+
+    const startInput = dialog.locator('label', { hasText: /开始时间/i }).locator('..').locator('input[type="date"]');
+    if (await startInput.isVisible()) {
+      await startInput.fill('2026-04-01');
+    }
+    const endInput = dialog.locator('label', { hasText: /完成时间|结束时间/i }).locator('..').locator('input[type="date"]');
+    if (await endInput.isVisible()) {
+      await endInput.fill('2026-12-31');
+    }
+
+    // Click submit and check for loading state
+    const submitBtn = dialog.getByRole('button', { name: /确认|submit/i });
+    await submitBtn.click();
+
+    // Button should show loading state briefly
+    const isLoading = await submitBtn.getAttribute('data-loading') ?? await submitBtn.locator('[class*="loading"], [class*="spinner"]').count();
+    // Loading state is transient, just verify the dialog eventually closes
+    await page.waitForTimeout(3000);
   });
 
   // Unauthorized API test

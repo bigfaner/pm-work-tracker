@@ -73,7 +73,7 @@ test.describe('milestone-lifecycle / Step 2: Edit milestone information', () => 
     await expect(panel.locator('h2')).toBeVisible({ timeout: 10000 });
 
     // Click edit button in the panel
-    await panel.getByRole('button', { name: '编辑里程碑' }).click();
+    await panel.getByRole('button', { name: '编辑' }).click();
 
     // Edit name in dialog
     const nameInput = page.getByPlaceholder('请输入里程碑名称');
@@ -95,12 +95,12 @@ test.describe('milestone-lifecycle / Step 2: Edit milestone information', () => 
     // Wait for content to finish loading
     await expect(panel.locator('h2')).toBeVisible({ timeout: 10000 });
 
-    await panel.getByRole('button', { name: '编辑里程碑' }).click();
+    await panel.getByRole('button', { name: '编辑' }).click();
 
     // Dialog opens, click confirm without changes
     await page.getByRole('button', { name: '确认' }).click();
 
-    // Dialog should close
+    // Dialog should close — the edit milestone dialog title is '编辑里程碑'
     const editDialogTitle = page.getByRole('dialog').getByText('编辑里程碑');
     await expect(editDialogTitle).not.toBeVisible({ timeout: 5000 });
   });

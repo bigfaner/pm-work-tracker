@@ -181,8 +181,8 @@ test.describe.serial('milestone-map-visualization smoke: list -> timeline -> fil
   test('Smoke 7: Breadcrumb navigates back to list', async ({ page }) => {
     await login(page, undefined, `/milestones/${mapBizKey}`);
 
-    // Click breadcrumb
-    await page.getByText(/里程碑图|milestone map/i).first().click();
+    // Click breadcrumb link (scope to breadcrumb nav to avoid matching page title)
+    await page.locator('nav[aria-label="breadcrumb"]').getByText(/里程碑图|milestone map/i).click();
     await expect(page).toHaveURL(/\/milestones$/, { timeout: 10000 });
   });
 

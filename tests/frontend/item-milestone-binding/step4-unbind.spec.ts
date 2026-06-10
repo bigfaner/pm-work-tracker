@@ -78,16 +78,18 @@ test.describe('item-milestone-binding / Steps 4-5: Unbind and save unchanged', (
 
   // Step 4: Unbind MI from milestone
   test('TC-IMB-S4-001: Unbind MI from milestone clears milestone_key', async ({ page }) => {
-    await page.getByText(`e2e-imb-s4-mi-${runId}`).first().click();
-    await page.waitForTimeout(1000);
-    await page.getByRole('button', { name: /编辑|edit/i }).first().click();
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
-
+    await page.goto(`${baseUrl}/items/${miBizKey}`);
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: /^编辑$/ }).first().click();
     const dialog = page.getByRole('dialog');
-    const milestoneTrigger = dialog.locator('[class*="trigger"], button').filter({ hasText: /e2e-imb-s4-ms/i }).first();
-    await milestoneTrigger.click();
-    await page.getByText(/未分配|unassigned/i).click();
-    await dialog.getByRole('button', { name: /确认|保存|submit/i }).click();
+    await expect(dialog).toBeVisible({ timeout: 10000 });
+
+    // Click combobox (shows current milestone name), then select "未分配"
+    const milestoneCombobox = dialog.getByRole('combobox').nth(2);
+    await milestoneCombobox.click();
+    await page.getByRole('option', { name: '未分配' }).click();
+
+    await dialog.getByRole('button', { name: '确认' }).click();
 
     // Verify unbind
     await page.waitForTimeout(1000);
@@ -127,8 +129,8 @@ test.describe('item-milestone-binding / Steps 4-5: Unbind and save unchanged', (
     });
     const msAfter = parseApiData(await msAfterRes.json());
 
-    // Completion percentage should have changed (itemCount decreased)
-    expect(msAfter.itemCount ?? msAfter.miCount).toBeLessThan(msBefore.itemCount ?? msBefore.miCount ?? 1);
+    // Completion percentage should have changed (relatedMICount decreased)
+    expect(msAfter.relatedMICount).toBeLessThan(msBefore.relatedMICount ?? 1);
 
     // Re-bind for subsequent tests
     await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/main-items/${miBizKey}`, {
@@ -139,14 +141,14 @@ test.describe('item-milestone-binding / Steps 4-5: Unbind and save unchanged', (
 
   // Step 5: Save with no changes preserves assignment
   test('TC-IMB-S5-001: Save without changes preserves milestone assignment', async ({ page }) => {
-    await page.getByText(`e2e-imb-s4-mi-${runId}`).first().click();
-    await page.waitForTimeout(1000);
-    await page.getByRole('button', { name: /编辑|edit/i }).first().click();
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
+    await page.goto(`${baseUrl}/items/${miBizKey}`);
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: /^编辑$/ }).first().click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible({ timeout: 10000 });
 
     // Save without modifying
-    const dialog = page.getByRole('dialog');
-    await dialog.getByRole('button', { name: /确认|保存|submit/i }).click();
+    await dialog.getByRole('button', { name: '确认' }).click();
 
     // Verify milestone still bound
     await page.waitForTimeout(1000);

@@ -67,54 +67,57 @@ test.describe('milestone-item-management / Step 1: Open and close milestone deta
 
   // Step 1: Open panel shows all required fields
   test('TC-MIM-S1-001: Panel opens with name, description, status, progress, MI list', async ({ page }) => {
-    const node = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-s1-ms-${runId}` });
+    const node = page.locator(`[data-testid="milestone-node-${msBizKey}"]`);
     await node.click();
 
     // Verify panel content
-    await expect(page.getByText(`e2e-mim-s1-ms-${runId}`)).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/进度|progress|%/i)).toBeVisible();
+    const panel = page.getByRole('dialog');
+    await expect(panel).toBeVisible({ timeout: 10000 });
+    await expect(panel.getByText(`e2e-mim-s1-ms-${runId}`)).toBeVisible();
+    await expect(panel.getByText(/进度/)).toBeVisible();
   });
 
   // Step 1d: Close panel via Escape key
   test('TC-MIM-S1-002: Pressing Escape closes the panel', async ({ page }) => {
-    const node = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-s1-ms-${runId}` });
+    const node = page.locator(`[data-testid="milestone-node-${msBizKey}"]`);
     await node.click();
-    await expect(page.getByText(`e2e-mim-s1-ms-${runId}`)).toBeVisible({ timeout: 10000 });
+    const panel = page.getByRole('dialog');
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
     // Press Escape
     await page.keyboard.press('Escape');
 
     // Panel should close
-    await page.waitForTimeout(500);
-    // The milestone name should no longer be in a panel context (panel closed)
+    await expect(panel).not.toBeVisible({ timeout: 5000 });
   });
 
   // Step 1e: Close panel via close control
   test('TC-MIM-S1-003: Click close button closes the panel', async ({ page }) => {
-    const node = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-s1-ms-${runId}` });
+    const node = page.locator(`[data-testid="milestone-node-${msBizKey}"]`);
     await node.click();
-    await expect(page.getByText(`e2e-mim-s1-ms-${runId}`)).toBeVisible({ timeout: 10000 });
+    const panel = page.getByRole('dialog');
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
-    // Click close button (X or close control)
-    const closeBtn = page.getByRole('button', { name: /close|关闭|×/i }).or(
-      page.locator('[class*="close"], [aria-label="Close"]').first(),
-    );
-    if (await closeBtn.isVisible()) {
-      await closeBtn.click();
-    }
+    // Click close button (aria-label="关闭面板")
+    const closeBtn = panel.getByRole('button', { name: /关闭面板/ });
+    await closeBtn.click();
+
+    // Panel should close
+    await expect(panel).not.toBeVisible({ timeout: 5000 });
   });
 
   // Step 1f: No edit permission - controls hidden
   test('TC-MIM-S1-004: Without milestone:update permission, mutation controls are hidden', async ({ page }) => {
-    const node = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-s1-ms-${runId}` });
+    const node = page.locator(`[data-testid="milestone-node-${msBizKey}"]`);
     await node.click();
-    await expect(page.getByText(`e2e-mim-s1-ms-${runId}`)).toBeVisible({ timeout: 10000 });
+    const panel = page.getByRole('dialog');
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
     // Verify delete button is hidden (only visible for not_started/cancelled milestones)
     // Since this is not_started, the delete button visibility depends on status
     // The edit controls depend on milestone:update permission
     // Our test user is superadmin so has all permissions - this test verifies UI structure
-    await expect(page.getByText(`e2e-mim-s1-ms-${runId}`)).toBeVisible();
+    await expect(panel.getByText(`e2e-mim-s1-ms-${runId}`)).toBeVisible();
   });
 
   // Unauthorized API test

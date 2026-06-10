@@ -80,37 +80,33 @@ test.describe('milestone-item-management / Step 3: Unbind MainItem from panel', 
       });
     }
     await login(page, undefined, `/milestones/${mapBizKey}`);
+    // Wait for the page to fully load
+    await page.waitForTimeout(1000);
   });
 
   // Step 3: Unbind MI via panel
   test('TC-MIM-S3-001: Unbind MI removes it from panel list', async ({ page }) => {
-    const node = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-s3-ms-${runId}` });
+    const node = page.locator(`[data-testid="milestone-node-${msBizKey}"]`);
     await node.click();
-    await page.waitForTimeout(1500);
+    const panel = page.getByRole('dialog');
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
-    // Find the MI row
-    const miRow = page.locator(`[data-testid="mi-drag-${miBizKey}"]`);
-    await miRow.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+    // Find the MI row within the panel
+    const miRow = panel.locator(`[data-testid="mi-drag-${miBizKey}"]`);
+    await miRow.waitFor({ state: 'visible', timeout: 10000 });
+    await miRow.hover();
 
-    if (await miRow.isVisible()) {
-      await miRow.hover();
+    // Find unbind button (aria-label="解绑事项 {code}")
+    const unbindBtn = miRow.getByRole('button', { name: /解绑事项/i });
+    await expect(unbindBtn).toBeVisible({ timeout: 5000 });
+    await unbindBtn.click();
+    await page.waitForTimeout(1000);
 
-      // Find unbind button
-      const unbindBtn = miRow.getByRole('button', { name: /解绑|unbind/i }).or(
-        miRow.locator('[class*="unbind"], [title*="unbind"], [aria-label*="unbind"]').first(),
-      );
+    // Verify toast: "已解除事项 {code} 的绑定"
+    await expect(page.getByText(/已解除事项.*的绑定/)).toBeVisible({ timeout: 5000 });
 
-      if (await unbindBtn.isVisible()) {
-        await unbindBtn.click();
-        await page.waitForTimeout(1000);
-
-        // Verify toast
-        await expect(page.getByText(/已解除.*绑定|unbind/i)).toBeVisible({ timeout: 5000 });
-
-        // Verify MI removed from list
-        await expect(miRow).not.toBeVisible({ timeout: 5000 });
-      }
-    }
+    // Verify MI removed from panel list
+    await expect(miRow).not.toBeVisible({ timeout: 5000 });
 
     // Verify via API
     const request = page.context().request;
@@ -121,30 +117,28 @@ test.describe('milestone-item-management / Step 3: Unbind MainItem from panel', 
     expect(verifyData.milestoneKey).toBeFalsy();
   });
 
-  // Step 3b: Undo info stored in window.__lastUndoInfo
-  test('TC-MIM-S3-002: Unbind stores undo info but no clickable undo in toast', async ({ page }) => {
-    const node = page.locator(`[data-testid^="milestone-node-"]`).filter({ hasText: `e2e-mim-s3-ms-${runId}` });
+  // Step 3b: Undo info is not stored in window.__lastUndoInfo (toast is informational only)
+  test('TC-MIM-S3-002: Unbind toast is informational only, no undo info stored', async ({ page }) => {
+    const node = page.locator(`[data-testid="milestone-node-${msBizKey}"]`);
     await node.click();
-    await page.waitForTimeout(1500);
+    const panel = page.getByRole('dialog');
+    await expect(panel).toBeVisible({ timeout: 10000 });
 
-    const miRow = page.locator(`[data-testid="mi-drag-${miBizKey}"]`);
-    await miRow.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+    const miRow = panel.locator(`[data-testid="mi-drag-${miBizKey}"]`);
+    await miRow.waitFor({ state: 'visible', timeout: 10000 });
+    await miRow.hover();
 
-    if (await miRow.isVisible()) {
-      await miRow.hover();
-      const unbindBtn = miRow.getByRole('button', { name: /解绑|unbind/i }).or(
-        miRow.locator('[class*="unbind"]').first(),
-      );
-      if (await unbindBtn.isVisible()) {
-        await unbindBtn.click();
-        await page.waitForTimeout(1000);
+    const unbindBtn = miRow.getByRole('button', { name: /解绑事项/i });
+    await expect(unbindBtn).toBeVisible({ timeout: 5000 });
+    await unbindBtn.click();
+    await page.waitForTimeout(1000);
 
-        // Check window.__lastUndoInfo exists (for test access)
-        const undoInfo = await page.evaluate(() => (window as any).__lastUndoInfo);
-        // Undo info should exist but toast has no clickable undo
-        // This test validates the gap: undo info is stored but not exposed in UI
-      }
-    }
+    // Verify toast appears (informational only)
+    await expect(page.getByText(/已解除事项.*的绑定/)).toBeVisible({ timeout: 5000 });
+
+    // Verify window.__lastUndoInfo does NOT exist (no undo info is stored)
+    const undoInfo = await page.evaluate(() => (window as any).__lastUndoInfo);
+    expect(undoInfo).toBeFalsy();
   });
 
   // Unauthorized API test

@@ -87,7 +87,7 @@ test.describe.serial('milestone-lifecycle smoke: happy path + failure path', () 
     // Wait for content to finish loading (skeleton replaced by real data)
     await expect(panel.getByText(milestoneName)).toBeVisible({ timeout: 10000 });
 
-    await panel.getByRole('button', { name: '编辑里程碑' }).click();
+    await panel.getByRole('button', { name: '编辑' }).click();
     const nameInput = page.getByPlaceholder('请输入里程碑名称');
     await nameInput.clear();
     await nameInput.fill(`${milestoneName}-edited`);

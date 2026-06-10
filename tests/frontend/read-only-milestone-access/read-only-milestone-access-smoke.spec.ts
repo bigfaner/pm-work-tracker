@@ -108,8 +108,8 @@ test.describe.serial('read-only-milestone-access smoke: read-only user views mil
     await node.click();
     await page.waitForTimeout(1500);
 
-    // Verify panel shows milestone info
-    await expect(page.getByText(`e2e-ro-smoke-ms-${runId}`)).toBeVisible({ timeout: 10000 });
+    // Verify panel shows milestone info (scope to dialog to avoid matching timeline node label)
+    await expect(page.getByRole('dialog').getByText(`e2e-ro-smoke-ms-${runId}`)).toBeVisible({ timeout: 10000 });
   });
 
   // Step 5: Hover interactions work

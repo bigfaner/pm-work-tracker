@@ -80,20 +80,22 @@ test.describe.serial('item-milestone-binding smoke: happy path through bind/rebi
   test('Smoke 1: Open edit dialog shows milestone selector', async ({ page }) => {
     await login(page, undefined, '/items');
 
-    // Find the MI and open its edit dialog
-    const miCard = page.locator(`[data-testid^="mi-card-"], [data-testid^="main-item-"]`).filter({ hasText: `e2e-imb-mi-${runId}` });
-    // Fallback: use text search if no specific data-testid
-    await page.getByText(`e2e-imb-mi-${runId}`).first().click();
+    // Find the MI card and click to expand it
+    const miCard1 = page.getByText(`e2e-imb-mi-${runId}`).first();
+    await miCard1.waitFor({ state: 'visible', timeout: 10000 });
+    await miCard1.scrollIntoViewIfNeeded();
+    await miCard1.click();
 
-    // Wait for item detail or edit mode
+    // Wait for card to expand and sub-items to load
     await page.waitForTimeout(1000);
 
-    // Click edit button
-    await page.getByRole('button', { name: /编辑|edit/i }).first().click();
+    // Click edit button inside the expanded card
+    await page.getByRole('button', { name: /^编辑$/ }).first().click();
 
-    // Verify dialog opens with milestone dropdown
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/里程碑|milestone/i)).toBeVisible();
+    // Verify dialog opens with milestone dropdown — scoped to dialog to avoid sidebar nav
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible({ timeout: 10000 });
+    await expect(dialog.getByText('所属里程碑')).toBeVisible();
   });
 
   // Step 2: Bind unassigned MI to milestone
@@ -108,20 +110,27 @@ test.describe.serial('item-milestone-binding smoke: happy path through bind/rebi
     const miData = parseApiData(await miRes.json());
     expect(miData.milestoneKey).toBeFalsy();
 
-    // Navigate to the item and open edit dialog
-    await page.goto(`http://127.0.0.1:8080/items`);
-    await page.getByText(`e2e-imb-mi-${runId}`).first().click();
-    await page.waitForTimeout(1000);
-    await page.getByRole('button', { name: /编辑|edit/i }).first().click();
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
-
-    // Select milestone from dropdown
+    // The login function already navigated to /items
+    // Wait for the item list to load
+    await page.waitForLoadState('networkidle');
+    const itemText = page.getByText(`e2e-imb-mi-${runId}`).first();
+    await itemText.waitFor({ state: 'visible', timeout: 10000 });
+    await itemText.scrollIntoViewIfNeeded();
+    await itemText.click();
+    await page.waitForURL(/\/items\//, { timeout: 10000 });
+    await page.getByRole('button', { name: /^编辑$/ }).first().click();
     const dialog = page.getByRole('dialog');
-    await dialog.getByText(/未分配|unassigned/i).click();
-    await page.getByText(`e2e-imb-ms1-${runId}`).click();
+    await expect(dialog).toBeVisible({ timeout: 10000 });
 
-    // Submit
-    await dialog.getByRole('button', { name: /确认|保存|submit/i }).click();
+    // Select milestone from Radix Select dropdown
+    // The SelectTrigger has role="combobox" and shows "未分配" when unassigned
+    const milestoneCombobox = dialog.getByRole('combobox').nth(2);
+    await milestoneCombobox.click();
+    // Wait for the listbox to appear, then click the milestone option
+    await page.getByRole('option', { name: `e2e-imb-ms1-${runId}` }).click();
+
+    // Submit (button label is "确认" in ItemViewPage EditMainItemDialog)
+    await dialog.getByRole('button', { name: '确认' }).click();
 
     // Verify binding via API
     await page.waitForTimeout(1000);
@@ -136,16 +145,18 @@ test.describe.serial('item-milestone-binding smoke: happy path through bind/rebi
   test('Smoke 3: Rebind MI to different milestone', async ({ page }) => {
     await login(page, undefined, '/items');
 
-    await page.getByText(`e2e-imb-mi-${runId}`).first().click();
-    await page.waitForTimeout(1000);
-    await page.getByRole('button', { name: /编辑|edit/i }).first().click();
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
-
+    await page.goto(`${baseUrl}/items/${miBizKey}`);
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: /^编辑$/ }).first().click();
     const dialog = page.getByRole('dialog');
-    // Change to ms2
-    await dialog.getByText(`e2e-imb-ms1-${runId}`).click();
-    await page.getByText(`e2e-imb-ms2-${runId}`).click();
-    await dialog.getByRole('button', { name: /确认|保存|submit/i }).click();
+    await expect(dialog).toBeVisible({ timeout: 10000 });
+
+    // Change to ms2 — click the combobox (shows current ms1 name), then select ms2
+    const milestoneCombobox = dialog.getByRole('combobox').nth(2);
+    await milestoneCombobox.click();
+    await page.getByRole('option', { name: `e2e-imb-ms2-${runId}` }).click();
+
+    await dialog.getByRole('button', { name: '确认' }).click();
 
     // Verify rebind via API
     await page.waitForTimeout(1000);
@@ -161,16 +172,18 @@ test.describe.serial('item-milestone-binding smoke: happy path through bind/rebi
   test('Smoke 4: Unbind MI from milestone', async ({ page }) => {
     await login(page, undefined, '/items');
 
-    await page.getByText(`e2e-imb-mi-${runId}`).first().click();
-    await page.waitForTimeout(1000);
-    await page.getByRole('button', { name: /编辑|edit/i }).first().click();
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
-
+    await page.goto(`${baseUrl}/items/${miBizKey}`);
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: /^编辑$/ }).first().click();
     const dialog = page.getByRole('dialog');
-    // Select "Unassigned"
-    await dialog.getByText(`e2e-imb-ms2-${runId}`).click();
-    await page.getByText(/未分配|unassigned/i).click();
-    await dialog.getByRole('button', { name: /确认|保存|submit/i }).click();
+    await expect(dialog).toBeVisible({ timeout: 10000 });
+
+    // Select "未分配" from the combobox
+    const milestoneCombobox = dialog.getByRole('combobox').nth(2);
+    await milestoneCombobox.click();
+    await page.getByRole('option', { name: '未分配' }).click();
+
+    await dialog.getByRole('button', { name: '确认' }).click();
 
     // Verify unbind via API
     await page.waitForTimeout(1000);
@@ -193,14 +206,13 @@ test.describe.serial('item-milestone-binding smoke: happy path through bind/rebi
 
     await login(page, undefined, '/items');
 
-    await page.getByText(`e2e-imb-mi-${runId}`).first().click();
-    await page.waitForTimeout(1000);
-    await page.getByRole('button', { name: /编辑|edit/i }).first().click();
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
-
-    // Save without changing milestone
+    await page.goto(`${baseUrl}/items/${miBizKey}`);
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: /^编辑$/ }).first().click();
     const dialog = page.getByRole('dialog');
-    await dialog.getByRole('button', { name: /确认|保存|submit/i }).click();
+    await expect(dialog).toBeVisible({ timeout: 10000 });
+    // Save without changing milestone
+    await dialog.getByRole('button', { name: '确认' }).click();
 
     // Verify still bound to ms1
     await page.waitForTimeout(1000);

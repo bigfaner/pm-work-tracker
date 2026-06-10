@@ -89,7 +89,8 @@ test.describe('item-list-milestone-integration / Steps 1-4: Milestone filter', (
     const milestoneFilter = page.locator('[data-testid="milestone-filter"]');
     if (await milestoneFilter.isVisible()) {
       await milestoneFilter.click();
-      await page.getByText(`e2e-ili-s1-ms-${runId}`).click();
+      // Scope to the open listbox to avoid matching badge text on item cards
+      await page.getByRole('listbox').getByText(`e2e-ili-s1-ms-${runId}`).click();
       await page.waitForTimeout(1000);
 
       await expect(page.getByText(`e2e-ili-s1-mi-${runId}`)).toBeVisible({ timeout: 5000 });
@@ -101,7 +102,8 @@ test.describe('item-list-milestone-integration / Steps 1-4: Milestone filter', (
     const milestoneFilter = page.locator('[data-testid="milestone-filter"]');
     if (await milestoneFilter.isVisible()) {
       await milestoneFilter.click();
-      await page.getByText(/未分配|unassigned/i).click();
+      // Scope to the open listbox to avoid matching page text
+      await page.getByRole('listbox').getByText(/未分配|unassigned/i).click();
       await page.waitForTimeout(1000);
 
       // Bound MI should not be visible
@@ -130,7 +132,8 @@ test.describe('item-list-milestone-integration / Steps 1-4: Milestone filter', (
     const milestoneFilter = page.locator('[data-testid="milestone-filter"]');
     if (await milestoneFilter.isVisible()) {
       await milestoneFilter.click();
-      await expect(page.getByText(`e2e-ili-s1-cancelled-${runId}`)).not.toBeVisible();
+      // Scope to the open listbox to avoid false matches
+      await expect(page.getByRole('listbox').getByText(`e2e-ili-s1-cancelled-${runId}`)).not.toBeVisible();
     }
   });
 
