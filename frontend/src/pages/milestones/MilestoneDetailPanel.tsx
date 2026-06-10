@@ -18,6 +18,7 @@ import { useTeamStore } from '@/store/team'
 import { getMilestoneApi, deleteMilestoneApi } from '@/api/milestones'
 import { listMainItemsApi, updateMainItemApi } from '@/api/mainItems'
 import { MILESTONE_STATUSES } from '@/lib/status'
+import { usePermission } from '@/hooks/usePermission'
 import type { Milestone, MainItem } from '@/types'
 
 /** Related MI displayed in the panel */
@@ -70,6 +71,8 @@ export default function MilestoneDetailPanel({
   const qc = useQueryClient()
   const navigate = useNavigate()
   const { addToast } = useToast()
+  const canUpdate = usePermission('milestone:update')
+  const canDeletePerm = usePermission('milestone:delete')
   const panelRef = useRef<HTMLDivElement>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
@@ -222,15 +225,17 @@ export default function MilestoneDetailPanel({
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-tertiary">描述</span>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <StatusTransitionDropdown
-                      currentStatus={milestone.milestoneStatus}
-                      itemType="milestone"
-                      teamId={teamId}
-                      itemId={milestoneId!}
-                      onStatusChanged={handleStatusChanged}
-                      disabled={isTerminal}
-                    />
-                    {!isTerminal && (
+                    {canUpdate && (
+                      <StatusTransitionDropdown
+                        currentStatus={milestone.milestoneStatus}
+                        itemType="milestone"
+                        teamId={teamId}
+                        itemId={milestoneId!}
+                        onStatusChanged={handleStatusChanged}
+                        disabled={isTerminal}
+                      />
+                    )}
+                    {!isTerminal && canUpdate && (
                       <Button
                         variant="secondary"
                         size="sm"
@@ -302,22 +307,26 @@ export default function MilestoneDetailPanel({
                       关联事项 ({relatedMIs.length})
                     </span>
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleQuickAddClick}
-                      >
-                        <Plus className="h-3.5 w-3.5 mr-1" />
-                        新建事项
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleBindExistingClick}
-                      >
-                        <Link2 className="h-3.5 w-3.5 mr-1" />
-                        关联已有事项
-                      </Button>
+                      {canUpdate && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleQuickAddClick}
+                        >
+                          <Plus className="h-3.5 w-3.5 mr-1" />
+                          新建事项
+                        </Button>
+                      )}
+                      {canUpdate && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleBindExistingClick}
+                        >
+                          <Link2 className="h-3.5 w-3.5 mr-1" />
+                          关联已有事项
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -384,7 +393,7 @@ export default function MilestoneDetailPanel({
                                 />
                               </div>
                             </div>
-                            {!isMITerminal && (
+                            {!isMITerminal && canUpdate && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
@@ -405,7 +414,7 @@ export default function MilestoneDetailPanel({
               )}
 
               {/* Danger zone: delete */}
-              {canDelete && (
+              {canDelete && canDeletePerm && (
                 <div className="pt-4 border-t border-border">
                   <span className="text-xs text-tertiary block mb-2">
                     危险操作

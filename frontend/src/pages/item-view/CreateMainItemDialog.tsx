@@ -42,6 +42,8 @@ interface CreateMainItemDialogProps {
   isPending: boolean
   /** Optional milestone list for milestone selector */
   milestones?: { bizKey: string, milestoneName: string }[]
+  /** When true, the milestone selector is disabled (quick-add mode) */
+  milestoneLocked?: boolean
 }
 
 export default function CreateMainItemDialog({
@@ -53,6 +55,7 @@ export default function CreateMainItemDialog({
   onSubmit,
   isPending,
   milestones,
+  milestoneLocked,
 }: CreateMainItemDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -147,6 +150,7 @@ export default function CreateMainItemDialog({
                     milestoneKey: v === '__none__' ? '' : v,
                   }))
                 }
+                disabled={milestoneLocked}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="选择里程碑（可选）" />

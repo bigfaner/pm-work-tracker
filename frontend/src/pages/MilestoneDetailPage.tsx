@@ -251,6 +251,7 @@ export default function MilestoneDetailPage() {
         members={members}
         onSubmit={() => quickAddMutation.mutate(quickAddForm)}
         isPending={quickAddMutation.isPending}
+        milestoneLocked={!!quickAddTarget}
       />
 
       {/* Bind existing MI dialog */}

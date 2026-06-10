@@ -182,6 +182,8 @@ export default function MilestoneTimeline({
   const qc = useQueryClient()
   const navigate = useNavigate()
   const canCreate = usePermission('milestone:create')
+  const canUpdate = usePermission('milestone:update')
+  const canDeletePerm = usePermission('milestone:delete')
   const { addToast } = useToast()
 
   // State
@@ -499,24 +501,28 @@ export default function MilestoneTimeline({
           <h1 className="text-lg font-semibold text-primary">
             {mapData?.mapName}
           </h1>
-          <StatusTransitionDropdown
-            currentStatus={mapData?.mapStatus ?? ''}
-            itemType="milestone-map"
-            teamId={teamId}
-            itemId={mapId}
-            onStatusChanged={handleMapStatusChanged}
-            disabled={isMapTerminal}
-          />
+          {canUpdate && (
+            <StatusTransitionDropdown
+              currentStatus={mapData?.mapStatus ?? ''}
+              itemType="milestone-map"
+              teamId={teamId}
+              itemId={mapId}
+              onStatusChanged={handleMapStatusChanged}
+              disabled={isMapTerminal}
+            />
+          )}
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => onEditMap(mapData!)}
-          >
-            编辑
-          </Button>
-          {canDeleteMap && (
+          {canUpdate && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onEditMap(mapData!)}
+            >
+              编辑
+            </Button>
+          )}
+          {canDeleteMap && canDeletePerm && (
             <Button
               variant="danger"
               size="sm"
