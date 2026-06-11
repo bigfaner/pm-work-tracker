@@ -1,344 +1,348 @@
----
-iteration: 1
-type: adversarial
-reviewer: adversary
-date: "2026-06-11"
-doc: "docs/proposals/ai-copilot/proposal.md"
-rubric: "proposal.md (1000 pts)"
-previous_iteration: 0
-previous_score: 630
----
+# Proposal Evaluation Report — AI Copilot 对话助手
 
-# Adversarial Evaluation Report — Iteration 1
-
-## Total Score: 688 / 1000
+**Iteration**: 1
+**Date**: 2026-06-11
+**Document**: `docs/proposals/ai-copilot/proposal.md`
 
 ---
 
 ## Phase 1: Reasoning Audit
 
-### Problem -> Solution trace
+### Problem -> Solution Trace
 
-The problem states two issues: (a) form-based interaction with 10+ fields is tedious, (b) lack of "intelligent assistance (e.g., priority suggestions, assignee recommendations)." The solution addresses (a) through NLP-driven card pre-filling. For (b), the solution remains purely reactive — it parses explicit user statements but provides no proactive AI suggestions. This gap was identified in iteration 0 and remains unaddressed. The problem's "智能辅助" framing still implies proactive AI capabilities the solution does not deliver.
+| Problem Statement | Solution Element | Trace Quality |
+|---|---|---|
+| 创建 MainItem 需要手动填写 10+ 个字段 | AI 解析意图后推送预填表单卡片 | Direct mapping. Solved. |
+| 用户需要理解状态机规则和权限体系 | AI 自动校验状态机合法性 | Partially addressed. Only covers status transitions, not RBAC understanding. |
+| 非技术人员填写结构化字段困难 | 对话输入降低门槛 | Direct mapping. Solved. |
 
-### Solution -> Evidence trace
+**Verdict**: Solution directly addresses stated problems. The RBAC-understanding problem is not fully solved — the proposal relies on the backend rejecting unauthorized operations, but does not reduce the user's need to understand permissions.
 
-The solution is described at a usable level of abstraction for a proposal. The hybrid chat+card model is well-illustrated through concrete scenarios. However, no prototype, PoC, or technical spike results validate that the proposed approach achieves the stated accuracy targets (80-85%) for the specific domain of 6 entity types and 24 intent-entity combinations.
+### Solution -> Evidence Trace
 
-### Evidence -> Success Criteria trace
+- "系统已有复杂的状态机和 RBAC 权限体系" — evidence is architectural assertion, not user pain data.
+- "`todos.txt` 第 39 条" — references a roadmap item, validates that AI integration is planned, but does not prove current user pain.
+- No user interviews, support tickets, or usage analytics are cited.
 
-Several SC entries reference measurable targets (80% accuracy, P95 < 5s). The latency target has been unified to P95 < 5s across both NFR and SC (a correction from iteration 0). However, the accuracy measurement methodology remains undefined. The SC are stated but not fully operationalized.
+**Verdict**: Evidence is entirely introspective (code structure, roadmap). No external validation.
 
-### Self-contradiction check
+### Evidence -> Success Criteria Trace
 
-**Resolved contradictions from iteration 0:**
-1. Bidirectional vs. unidirectional sync: Now resolved. The Innovation Highlights, Scope, Risk mitigation, and SC item 4 all consistently describe a card-as-single-source-of-truth model with unified dispatch. Quote: "对话输入和直接编辑均通过统一的 dispatch 写入卡片状态，对话区域仅做展示回显，无需双向绑定."
-2. Latency target inconsistency: Resolved. NFR and SC now both reference P95 < 5 seconds.
-3. "Assign" intent taxonomy: Clarified. A note explains that intent categories reflect user language patterns, not API endpoints: "意图分类（创建/查询/修改/分配）反映用户自然语言的表达习惯，而非后端 API 端点划分."
-4. available-transitions endpoint: Confirmed. Note added: "该端点已存在于 MainItem、SubItem、MilestoneMap、Milestone 四个实体路由中（见 `router.go`），无需新增." Verified against codebase — this is accurate.
+- SC mentions field accuracy >= 80% — maps to the "10+ fields" problem.
+- SC mentions latency P95 < 5s — no evidence in the Problem section justifies this specific target.
+- SC covers MainItem, SubItem, Milestone, but In Scope lists 6 entities. Coverage gap for MilestoneMap, ProgressRecord, ItemPool in SC.
 
-**Remaining contradictions:**
-1. The problem still claims "缺乏智能辅助（如优先级建议、负责人推荐）" but the solution provides no proactive recommendation capability. This is a problem-solution framing mismatch, not an internal contradiction.
+### Self-Contradiction Check
 
-### Pre-score anchors
+- No direct contradictions found. The `consistency_check_result` comment block confirms prior reconciliation.
+- One tension: "对话驱动的卡片编辑" claims card is single source of truth, but Risk #3 describes "卡片 + 对话编辑状态同步复杂" — the risk acknowledges the complexity the innovation claims to solve. This is honest but worth noting.
 
-1. Problem-solution gap for "智能辅助" — problem claims proactive AI, solution is purely reactive (carry-over from iteration 0)
-2. Technical direction remains shallow — AI service architecture, prompt strategy, entity resolution still underspecified
-3. Accuracy measurement methodology still undefined
-4. Data privacy and compliance still unaddressed
-5. SC coverage for 5 of 6 entity types still missing
-6. Cost model for AI service usage still absent
+### SC Consistency Deep-Dive
 
----
+**Cluster 1: Entity CRUD (SC 1-6, InScope item 3-4)**
+- SC covers MainItem, SubItem, Milestone creation, MainItem query, MainItem status change, ProgressRecord creation.
+- InScope lists 6 entities: MainItem, SubItem, Milestone, MilestoneMap, ProgressRecord, ItemPool.
+- Missing from SC: MilestoneMap CRUD, ItemPool CRUD, any modification of SubItem/Milestone beyond status, any delete operation.
+- Satisfiable as a set: Yes. Coverage incomplete but no contradictions.
 
-## Phase 2: Dimension Scoring
+**Cluster 2: Card/Chat Interaction (SC 7, InScope item 5-6)**
+- SC 7: Card supports both dialog and direct edit, no data conflict.
+- InScope: "对话输入和直接编辑均写入同一卡片状态".
+- Satisfiable: Yes, aligned.
 
-### 1. Problem Definition: 80 / 110
+**Cluster 3: Infrastructure (SC 8-12, InScope item 1-2, 7-9)**
+- SC 8: Bubble visible on all pages, no blocking. InScope: "全局浮动气泡".
+- SC 9: Team context displayed. InScope: "Team 上下文自动检测".
+- SC 10: All writes require confirmation. InScope: "所有写操作经卡片确认后执行".
+- SC 11: Latency < 5s. NFR states same target. Aligned.
+- SC 12: Permission error. InScope: "复用权限检查".
+- Satisfiable: Yes.
 
-**Problem stated clearly: 34/40**
-
-The core problem is concrete: "创建一个 MainItem 需要手动填写 10+ 个字段，操作效率低." This is unambiguous. However, the problem also states "缺乏智能辅助（如优先级建议、负责人推荐）" which implies proactive AI recommendations. The solution does not deliver this. Two readers could still interpret the problem scope differently — one reading "智能辅助" as "AI fills forms for you" (what the solution does) and another as "AI proactively suggests priorities and assignees" (what the solution does not do). Deduction: the ambiguity is narrowed from iteration 0 but persists.
-
-**Evidence provided: 28/40**
-
-Evidence includes specific field names for MainItem and ItemPool forms, reference to `todos.txt` entry 39, and the complexity of existing state machine and RBAC. These are observational, not empirical:
-- No user feedback data, time-on-task measurements, or quantitative data. Quote: "用户需要多次点击和输入" — how many clicks on average? What is the average time to create a MainItem?
-- Quote: "非技术人员不熟悉系统时填写困难" — who are these users? How many? What failure rate?
-- The `todos.txt` reference is evidence of prior planning intent, not evidence of user pain.
-
-**Urgency justified: 18/30**
-
-Quote: "随着团队和事项数量增长，表单交互的效率瓶颈会加剧." This is a forward-looking prediction, not a current crisis. Quote: "延迟实施意味着团队持续承担低效操作的时间成本." No quantification of this cost — no data on team size, item creation frequency, or time-per-creation. The argument is logically sound but empirically ungrounded.
-
----
-
-### 2. Solution Clarity: 88 / 120
-
-**Approach is concrete: 35/40**
-
-The 5-step interaction flow is clear and reproducible. A reader can explain back what will be built. The intent taxonomy note clarifies that intent categories map to user language patterns. Deduction: the "AI 识别意图和实体，从上下文推断字段值" step is still treated as a black box. While intent categories are listed (create, query, modify, assign) and entity types are enumerated, the mapping logic and entity resolution strategy for ambiguous references remain unspecified at the proposal level.
-
-**User-facing behavior described: 40/45**
-
-Scenarios are well-specified with concrete user utterances and expected system responses across create, query, modify, and assign operations. Edge cases cover ambiguous input, AI misunderstanding, permission denial, and state machine violations. The card-centric editing model is clearly described. Deduction: the confirmation UX lifecycle is still not fully defined. What does "confirm" mean — a single Submit button on the card? Per-field confirmation? What about partial edits?
-
-**Technical direction clear: 13/35**
-
-Quote: "意图识别和实体抽取是成熟 AI 能力，风险可控." This is hand-waving. Critical architectural questions remain unanswered:
-- Is the AI service called from frontend or backend? No answer.
-- What is the prompt engineering strategy (static vs dynamic)? No answer.
-- How does entity resolution work for ambiguous references? No answer.
-- What is the API contract between chat UI and the AI orchestration layer? No answer.
-- The constraints section states "前端技术栈为 React + TypeScript + Tailwind CSS + Radix UI" which describes the existing stack, not the new AI layer architecture.
-
-The only concrete technical additions in this iteration are the confirmation of available-transitions endpoints and the card-centric dispatch model. These are valuable but do not constitute technical direction for the AI layer itself.
+**Result**: 2 coverage gaps (MilestoneMap/ItemPool in SC), no logical contradictions.
 
 ---
 
-### 3. Industry Benchmarking: 78 / 120
+## Phase 2: Rubric Scoring
 
-**Industry solutions referenced: 30/40**
+### 1. Problem Definition — 72/110
 
-Four real products cited: Linear (Command Palette), Notion AI (editor-embedded AI), Slack Bot (slash commands + interactive cards), Jira Automation (rule-based). Adequate breadth. Deduction: descriptions remain shallow. Quote: "Linear：提供 Command Palette（⌘K）快速操作，部分支持自然语言搜索." No architectural depth — what NLP features does Linear support? How does it handle structured data operations?
+**Problem stated clearly (30/40)**:
+The core problem (form-based interaction is inefficient, 10+ fields per MainItem) is concrete and unambiguous. One reader could interpret "操作效率低" as either "time-consuming" or "error-prone" — the proposal leans toward the former but does not cleanly separate the two. The RBAC/statemachine problem is stated but conflated with the form-filling problem.
 
-**At least 3 meaningful alternatives: 22/30**
+Quote: *"创建一个 MainItem 需要手动填写 10+ 个字段，操作效率低"* — clear and specific.
+Quote: *"用户需要理解状态机规则和权限体系才能正确操作，门槛较高"* — stated but not broken down into specific failure modes.
 
-Four alternatives including "do nothing." The "仅优化表单" alternative is a borderline straw man: it is described only as "行业常规" with pros "开发量小，风险低" and rejected because it "不解决智能辅助需求." It exists in the table only to be rejected for not being the proposed AI solution, which is circular reasoning. The "Command Palette" alternative is rejected solely because "不支持自然语言" — but natural language is the core feature of the selected approach, so rejecting alternatives for lacking it is tautological. At least the selected approach and Slack Bot are genuinely different alternatives with meaningful trade-offs.
+**Evidence provided (18/40)**:
+Evidence is entirely internal/structural: form field counts, a roadmap reference (`todos.txt`), and architectural assertions. No user feedback, no support tickets, no usage analytics, no competitive analysis of user drop-off rates. The `todos.txt` reference is the closest to external validation but only proves planning intent, not user pain.
 
-**Honest trade-off comparison: 13/25**
+Quote: *"MainItem 创建表单包含 title、description、priority、assignee、planStartDate、expectedEndDate、milestoneKey 等必填/选填字段"* — this is code inspection, not user evidence.
 
-Cons for the selected approach: "AI 准确性依赖外部服务，开发量较大." These are real but vague:
-- No cost analysis (AI service pricing per call, monthly estimates)
-- No latency trade-off discussion
-- No maintenance burden analysis (prompt drift, schema changes require prompt updates)
-- "开发量较大" vs. "开发量小" for form-only is not quantified
+**Urgency justified (24/30)**:
+The urgency argument is logically sound ("越早引入，用户越早受益") but relies on a scaling assumption ("随着团队和事项数量增长") without quantification. No data on current team size, current creation volume, or time-per-creation to justify the cost of delay.
 
-**Chosen approach justified against benchmarks: 13/25**
-
-Quote: "兼顾易用性和可靠性，与用户需求最匹配." This is a conclusion, not a justification. The selected approach combines Slack Bot's card pattern with Notion AI's natural language, but the proposal does not explain why combining these two patterns produces a better outcome than either individually. No PoC or user testing data validates user preference for the hybrid approach. The justification remains assertion-based.
+Quote: *"延迟实施意味着团队持续承担低效操作的时间成本"* — directionally correct but unquantified.
 
 ---
 
-### 4. Requirements Completeness: 78 / 110
+### 2. Solution Clarity — 95/120
 
-**Scenario coverage: 34/40**
+**Approach is concrete (36/40)**:
+The 5-step interaction flow is specific. A reader can explain back: "floating bubble -> chat panel -> natural language -> AI pushes pre-filled card -> user confirms." The card-as-single-source-of-truth model is well-defined.
 
-Happy paths for create, query, modify, and assign are covered with concrete examples. Edge cases address ambiguous input, AI misunderstanding, permission denial, and state machine violations. The intent taxonomy note clarifies that "assign" maps to a field update. Deductions:
-- No scenario for multi-step operations in a single utterance (e.g., "创建一个事项并分配给张三然后设为P0")
-- No scenario for concurrent operations (user submits a card, then immediately sends another conflicting command)
-- No scenario for AI returning the wrong entity type (user means MainItem, AI infers Milestone)
+Quote: *"AI 解析意图后推送预填表单卡片到聊天窗口。必填且无法推导的字段留空，用户可通过直接编辑卡片或继续对话补充字段"* — very clear.
 
-**Non-functional requirements: 25/40**
+**User-facing behavior described (40/45)**:
+Each scenario type (create, query, modify, assign) has concrete examples with input/output pairs. Edge cases cover ambiguity, permission denial, statemachine violations. The query results behavior ("摘要文字 + 可点击卡片") is well-specified.
 
-Five NFRs listed: latency (P95 < 5s), accuracy (intent 85%, field 80%), usability, security, accessibility. Improvements from iteration 0: latency target is now unified. Deductions:
-- **No data privacy NFR:** User utterances sent to external AI service. No mention of data residency, conversation logging, or consent. Quote: "依赖外部 AI 服务进行自然语言理解和意图识别" — which says nothing about privacy.
-- **No cost NFR:** No per-call AI service cost or budget constraints.
-- **No reliability NFR:** No uptime SLA for the AI service, no acceptable degradation levels.
-- **Accuracy targets lack measurement methodology:** Quote: "AI 意图识别准确率 ≥ 85%，字段提取准确率 ≥ 80%." Measured how? By whom? In production or testing? Against what ground truth?
+Minor gap: No description of what the floating bubble looks like in collapsed state, how it indicates unread messages, or how it behaves on mobile.
 
-**Constraints & dependencies: 19/30**
+**Technical direction clear (19/35)**:
+The proposal states "AI 服务调用经后端代理" and mentions structured output / tool use. But critical architectural decisions are deferred:
 
-Constraints include external AI service dependency, existing API reuse, Team isolation, state machine rules, available-transitions endpoints, and frontend tech stack. Improvements from iteration 0: available-transitions endpoints confirmed. Deductions:
-- Quote: "依赖外部 AI 服务" — which service? Rate limits? Pricing? Data residency? This remains too vague.
-- No browser compatibility constraints for the chat UI.
-- The AI service integration boundary (frontend direct call vs. backend proxy) is still unspecified, which has security and architectural implications.
+Quote: *"AI 服务选型建议在 tech-design 阶段确定具体供应商"* — acceptable for a proposal, but the prompt construction strategy ("动态组装当前 Team 的实体 schema") is mentioned without detail on prompt size limits, context window management, or how schema changes are reflected in prompts.
+
+The front-end architecture for the card component's dual-input (chat + direct edit) is the most technically novel part but receives only one sentence of explanation.
 
 ---
 
-### 5. Solution Creativity: 60 / 100
+### 3. Industry Benchmarking — 82/120
 
-**Novelty over industry baseline: 28/40**
+**Industry solutions referenced (32/40)**:
+Six references: Linear, Notion AI, Slack Bot, Jira Automation, GitHub Copilot, Microsoft 365 Copilot. Good breadth across embedded AI, command palette, and bot patterns. Each is briefly described.
 
-The hybrid chat+card pattern is a legitimate combination of existing patterns. The card-centric model with unified dispatch is now clearly articulated: "卡片为中心的混合模式——卡片是唯一数据源（single source of truth），AI 推送结构化卡片后，用户可通过对话指令或直接编辑卡片来更新字段，两种输入方式均写入同一份卡片状态." This is a clearer innovation claim than the previous iteration's contradictory bidirectional sync. Deduction: the core idea still combines Slack Bot's card pattern with conversational AI — the novelty is in the specific combination applied to a PM tool, not in any fundamentally new interaction paradigm.
+Quote: *"Linear：提供 Command Palette（⌘K）快速操作，部分支持自然语言搜索"* — concrete.
 
-**Cross-domain inspiration: 17/35**
+**At least 3 meaningful alternatives (22/30)**:
+Four alternatives are presented: Do nothing, embedded form assistant, Slack Bot, conversational + card hybrid. "Do nothing" is present. However, two issues:
 
-No evidence of borrowing from domains outside project management / productivity tools. The inspirations are all from adjacent products (Linear, Notion, Slack, Jira). No references to conversational AI patterns from customer service (intent-to-action mapping in banking, healthcare intake flows, e-commerce order management) that have solved similar structured-data-from-natural-language problems at scale.
+1. The "embedded form assistant" is marked "Partial" rather than treated as a full alternative — it is described as a subset of the selected approach rather than evaluated independently.
+2. Missing: A "command palette" approach (like Linear's ⌘K) is mentioned in industry solutions but not presented as a standalone alternative. This is a meaningful option that sits between "do nothing" and "full conversational AI."
 
-**Simplicity of insight: 15/25**
+Quote: *"Partial: 适合创建场景，但查询/修改仍需独立入口"* — this evaluates the alternative against the selected solution's scope rather than on its own merits.
 
-The core insight ("use AI to parse intent, pre-fill a form card, let user confirm via card-centric unified dispatch") is practical and well-scoped. It is not an "elegant leap" but rather a sound application of existing capabilities. The unified dispatch model is a clean simplification that resolves the previous bidirectional complexity claim.
+**Honest trade-off comparison (18/25)**:
+The comparison table has pros/cons for each alternative. However, the cons of the selected approach ("AI 准确性依赖外部服务，开发量较大") are understated relative to the pros. The "开发量较大" con has no estimate to compare against other alternatives.
 
----
+Quote: *"| **对话 + 卡片混合模式** | ... | 自然语言低门槛，卡片保证结构化准确性，对话 + 直接编辑灵活 | AI 准确性依赖外部服务，开发量较大 |"* — "开发量较大" is vague. Per rubric: vague language without quantification = -20 per instance, but this is in a comparison table where relative assessment is acceptable. One vague instance noted.
 
-### 6. Feasibility: 60 / 100
+**Chosen approach justified against benchmarks (10/25)**:
+The proposal states the selected approach is "兼顾易用性和可靠性，与用户需求最匹配" but does not provide a structured argument for why this beats the embedded form assistant (which would be lower-risk and faster to ship) for the initial use case. The "Partial" verdict on the embedded approach effectively dismisses it without full evaluation.
 
-**Technical feasibility: 26/40**
-
-Quote: "现有 API 端点已完备（CRUD + 状态变更 + 权限检查），AI 层只需调用现有接口." This is accurate — codebase verification confirms all 6 entity types have existing API routes, and available-transitions endpoints exist for 4 entities. The backend integration layer is feasible. However, the "只需" framing underplays the AI layer complexity:
-- Intent parsing for 6 entity types x 4 operation types = 24 intent-entity combinations, each with different field schemas, validation rules, and state machine constraints
-- Entity resolution (mapping "认证模块" to a specific MainItem bizKey) is an unsolved problem in the proposal
-- Prompt engineering for this complexity is non-trivial
-- No PoC or spike validates that current AI services can achieve 80-85% accuracy for this domain
-
-**Resource & timeline feasibility: 17/30**
-
-Quote: "需要前端（聊天 UI + 卡片组件）、后端（AI 意图解析层）、AI 集成三个方向的能力." Three skill areas identified but:
-- No team size or availability specified
-- No timeline estimate. Quote: "建议作为独立 feature 推进" — process suggestion, not a resource estimate
-- No phased delivery plan despite covering 6 entity types and 4 operation types
-- The Challenge Override explicitly rejected phasing ("希望一次到位") without feasibility validation
-
-**Dependency readiness: 17/30**
-
-Quote: "AI 服务选型需要在 tech-design 阶段确定." The most critical dependency is deferred. Not evaluated:
-- Which AI services support the required accuracy
-- Whether the chosen service handles prompt complexity for 6 entity types
-- Rate limits and pricing implications
-- Data residency and compliance requirements for sending user data to external AI services
+Quote: *"Selected: 兼顾易用性和可靠性，与用户需求最匹配"* — assertion without supporting argument.
 
 ---
 
-### 7. Scope Definition: 62 / 80
+### 4. Requirements Completeness — 82/110
 
-**In-scope items are concrete: 23/30**
+**Scenario coverage (32/40)**:
+Happy paths for all four intent types are covered with examples. Edge cases include: ambiguous input, unrecognizable intent, permission denial, statemachine violation. Good coverage.
 
-Most items are deliverables (UI component, message interface, card component, Team context detection). Improvements from iteration 0: the card-centric model is now described as a concrete deliverable with specific behavior. Deductions:
-- Quote: "AI 意图识别与实体抽取（创建、查询、修改、分配四类操作）" — capability description, not a deliverable. What is the deliverable? A backend service? A prompt template? An API endpoint?
-- Quote: "与现有后端 API 对接" — activity, not a deliverable.
+Gaps: No scenario for concurrent editing (user edits card while AI is processing a follow-up message), no scenario for very long conversations that exceed context window, no scenario for network interruption during submission.
 
-**Out-of-scope explicitly listed: 22/25**
+**Non-functional requirements (32/40)**:
+NFRs are specific and quantified where it matters: P95 latency < 5s, accuracy >= 85%/80%. Security, privacy, and accessibility are addressed.
 
-Seven items explicitly listed as out of scope. Adequate. Minor deduction: "对话历史持久化（跨会话存储）" is out of scope, but "聊天消息界面（会话内消息历史）" is in scope. The boundary is clear but implications (memory usage for long sessions, session timeout behavior) are unaddressed.
+Quote: *"AI 服务供应商必须支持数据不用于训练（zero data retention）"* — specific and actionable.
 
-**Scope is bounded: 17/25**
+Gaps:
+- No mention of internationalization / multi-language support (the examples are all in Chinese).
+- No offline / degraded-mode NFR (what happens when AI service is slow but not down?).
+- No maximum conversation length or session timeout NFR.
 
-Scope covers 6 entity types and 4 operation types in a single delivery. No timeline bound exists. The Challenge Override rejected phasing but did not validate feasibility of "一次到位." The scope is explicitly bounded by entity types and operation types but not by time or delivery phases.
+**Constraints & dependencies (18/30)**:
+Dependencies on existing API endpoints are well-documented. The available-transitions endpoint verification is excellent.
 
----
+Quote: *"状态机预校验依赖 available-transitions 端点，该端点已存在于 MainItem、SubItem、MilestoneMap、Milestone 四个实体路由中（见 router.go），无需新增"* — very concrete.
 
-### 8. Risk Assessment: 64 / 90
-
-**Risks identified: 23/30**
-
-Five risks listed, meeting the "at least 3" threshold. The bidirectional sync risk has been replaced with a properly scoped card-state sync risk. Deductions:
-- No risk for data privacy/compliance (sending user utterances to external AI service)
-- No risk for prompt injection or adversarial inputs
-- No risk for AI cost overruns (per-call pricing with unbounded usage)
-- All risks are technical/UX; no organizational risks (team skill gaps, vendor lock-in)
-
-**Likelihood + impact rated: 20/30**
-
-Ratings are plausible: intent accuracy M/H, latency M/M, sync complexity M/M, external service L/H, state machine M/M. Deduction: three M/M risks have identical ratings. No risk is rated H/H or H/L, suggesting limited nuance in the assessment. The external service L/H rating is honest.
-
-**Mitigations are actionable: 21/30**
-
-Improvements from iteration 0: the sync complexity mitigation is now specific and actionable. Quote: "卡片作为唯一数据源（single source of truth），对话输入和直接编辑均通过统一的 dispatch 写入卡片状态，对话区域仅做展示回显，无需双向绑定." This is concrete. Other actionable mitigations: "AI 推送卡片前先调用 available-transitions API 校验合法性." Deductions:
-- Quote: "优化提示词减少 token 消耗" — optimize how? What is the token budget?
-- Quote: "设置超时兜底" — what timeout value? What fallback UX?
-- No mitigation for data privacy risk because the risk itself is unidentified.
+Gaps:
+- No constraint on prompt/context size limits (6 entities with full schema could be large).
+- No constraint on supported browsers or screen sizes for the floating bubble.
+- No mention of AI service rate limits or quota constraints.
+- No dependency on specific React versions or UI library versions.
 
 ---
 
-### 9. Success Criteria: 56 / 80
+### 5. Solution Creativity — 62/100
 
-**Criteria are measurable and testable: 20/30**
+**Novelty over industry baseline (24/40)**:
+The card-as-single-source-of-truth hybrid model is a genuine innovation over pure chatbot or pure form-fill approaches. However, the proposal acknowledges this is inspired by Slack Bot + Notion AI patterns.
 
-Some criteria are measurable: "字段准确率 >= 80%," "P95 延迟 < 5 秒." Improvements from iteration 0: the "双向同步无冲突" criterion has been replaced with a more specific statement: "预填卡片支持对话补充字段（如'优先级改成 P0'）和直接编辑两种方式，两者写入同一卡片状态，无数据冲突." The card-centric model is now testable — you can verify that both input methods write to the same state. Deductions:
-- "无数据冲突" — while the mechanism is clearer, "no data conflict" still needs a precise testable definition. Does this mean "the final card state always reflects the last write, regardless of source"? If so, it is testable. The proposal implies this but does not state it explicitly.
-- Quote: "正确跳转到详情页" — "correct" is not a measurable criterion.
-- Quote: "聊天面板正确显示当前 Team 上下文" — "correct" is not measurable.
-- Quote: "明确的权限不足提示" — "clear" is subjective.
+Quote: *"不同于纯对话机器人或纯表单填充，采用卡片为中心的混合模式——卡片是唯一数据源（single source of truth）"* — clear differentiation.
 
-**Coverage is complete: 18/25**
+The novelty is primarily in the interaction model combination rather than in any fundamental technical innovation. The "context awareness" (page-level team detection) is standard practice, not novel.
 
-9 success criteria cover most in-scope items. Improvements from iteration 0: the unified dispatch model is now tested. Gaps persist:
-- No SC for 5 of 6 entity types (SubItem, Milestone, MilestoneMap, ProgressRecord, ItemPool). All entity creation/query is tested only via MainItem examples. Quote from In Scope: "支持的实体：MainItem, SubItem, Milestone, MilestoneMap, ProgressRecord, ItemPool" — but no SC tests any of the latter 5.
-- No SC for drag/reposition of the floating bubble (In Scope: "全局浮动气泡聊天 UI 组件（展开/收起、拖拽定位）" — no SC tests drag positioning)
-- No SC for accessibility (keyboard navigation is in NFR but no SC tests Esc/Enter behavior)
+**Cross-domain inspiration (22/35)**:
+References span project management (Linear, Jira), communication (Slack), and productivity (Notion, Microsoft 365, GitHub). The combination is well-assembled. However, no inspiration is drawn from domains outside software tools (e.g., customer service chatbots, voice assistants, game UI patterns).
 
-**SC internal consistency: 18/25**
-
-The major internal inconsistency from iteration 0 (bidirectional sync vs latency) is resolved. The card-centric model is internally consistent. The consistency check metadata at the bottom (status: pass, 18 pairs checked) is now more credible. Deductions:
-- SC item 1 tests MainItem creation. SC item 3 tests status modification. But no SC tests whether these work for any other entity type. If scope includes 6 entity types, the SC set is internally consistent for MainItem but incomplete for the broader scope.
-- SC item 8 (P95 < 5s latency) does not specify whether this includes the pre-validation calls to available-transitions and RBAC that the risk mitigation requires. If pre-validation adds latency, the target may need to account for it.
+**Simplicity of insight (16/25)**:
+The core insight ("use cards for structured data, conversation for unstructured input") is clean and understandable. The implementation complexity (dual-input to same state, prompt construction for 6 entity types, fallback mechanisms) may undermine the simplicity. The "why didn't I think of that" quality is moderate — the approach is sensible but not surprising.
 
 ---
 
-### 10. Logical Consistency: 62 / 90
+### 6. Feasibility — 72/100
 
-**Solution addresses the stated problem: 25/35**
+**Technical feasibility (32/40)**:
+Strong case: existing APIs are verified, tech stack is standard React, the task is bounded (4 intent types x 6 entities). The AI service evaluation is reasonable.
 
-The solution addresses "表单交互效率低" through NLP-driven card pre-filling. The bidirectional contradiction from iteration 0 is resolved. Deduction: the problem still states "缺乏智能辅助（如优先级建议、负责人推荐）" but the solution provides no proactive AI suggestions. The AI acts as a form-filling assistant, not an intelligent advisor. This is a persistent problem-solution gap.
+Quote: *"意图识别和实体抽取对结构化输入（4 意图类型 × 6 实体，有限字段集）属于高确定性任务，预期准确率可达目标"* — good justification.
 
-**Scope <-> Solution <-> Success Criteria aligned: 20/30**
+Concern: The prompt construction complexity is understated. Dynamically assembling entity schemas, user permissions, and statemachine rules for 6 entities into a prompt that reliably produces structured output is non-trivial. No prototype or PoC result is cited.
 
-Significant improvement from iteration 0. The Innovation Highlights, Scope, Risk mitigation, and SC now consistently describe the card-centric model. The latency target is unified. The available-transitions dependency is confirmed. Remaining misalignment:
-1. Scope includes 6 entity types; SC only tests MainItem operations. 5 entity types are in scope but have no success criteria.
-2. Scope includes "拖拽定位" for the floating bubble; no SC tests drag functionality.
-3. NFR requires keyboard accessibility; no SC tests keyboard navigation.
+**Resource & timeline feasibility (22/30)**:
+The estimate of 5-7 weeks total is reasonable for the scope described. However:
 
-**Requirements <-> Solution coherent: 17/25**
+Quote: *"前端 2-3 周（气泡 UI + 聊天面板 + 卡片组件），后端 2-3 周（AI 代理层 + prompt 管理 + 日志），联调测试 1 周"* — the ranges are wide (2-3 weeks = 50% variance). No breakdown of what is included in each phase, and the 1-week integration testing seems optimistic for a system with 4 intent types x 6 entities.
 
-Improvements from iteration 0: the "assign" intent taxonomy is now clarified as reflecting user language patterns rather than API endpoints. The available-transitions endpoint dependency is confirmed. Deductions:
-- The "智能辅助" requirement (priority suggestions, assignee recommendations) from the problem section has no corresponding solution feature.
-- Quote: "意图识别和实体抽取是成熟 AI 能力，风险可控" — no evidence supports this claim for the specific complexity of 6 entity types and 24 intent-entity combinations.
-- The proposal does not define whether the AI service is called from frontend or backend, which affects security, cost, and architecture — but this decision is not reflected in the requirements or constraints.
+**Dependency readiness (18/30)**:
+Quote: *"AI 服务选型建议在 tech-design 阶段确定具体供应商"* — the most critical external dependency (AI service) is not yet evaluated with a PoC. This is a significant risk for feasibility assessment.
+
+No evaluation of AI service pricing, rate limits, or contractual requirements. The proposal assumes a suitable service exists with the right features (structured output, zero data retention, acceptable latency) but has not validated this.
+
+---
+
+### 7. Scope Definition — 65/80
+
+**In-scope items are concrete (24/30)**:
+Most items are deliverable-grade: "全局浮动气泡聊天 UI 组件（展开/收起、拖拽定位）", "AI 意图识别与实体抽取（创建、查询、修改、分配四类操作）". These can be traced to implementation tasks.
+
+Quote: *"支持的实体：MainItem, SubItem, Milestone, MilestoneMap, ProgressRecord, ItemPool"* — explicit and bounded.
+
+Minor issue: "与现有后端 API 对接，复用权限检查和业务逻辑" is somewhat vague — which APIs specifically? All CRUD endpoints for all 6 entities?
+
+**Out-of-scope explicitly listed (20/25)**:
+Seven items are explicitly out of scope, covering AI training, voice, multi-user, notifications, reports, cross-team search, and conversation persistence. Good coverage.
+
+Missing from out-of-scope: Multi-language support, mobile responsive design, dark mode for chat panel, accessibility beyond keyboard shortcuts.
+
+**Scope is bounded (21/25)**:
+The scope is bounded by entity list (6), intent types (4), and the "no training, no persistence" exclusions. The proposal is executable within the stated 5-7 week timeline.
+
+However, In Scope claims "全操作覆盖" (full CRUD for all entities) which is ambitious. Combined with the "user chose to proceed with full scope" note in Assumptions Challenged, there is a risk of scope creep if the full scope proves too large.
+
+---
+
+### 8. Risk Assessment — 74/90
+
+**Risks identified (26/30)**:
+Eight risks covering AI accuracy, latency, state sync, service availability, statemachine conflicts, data privacy, prompt injection, and cost control. Good breadth. Missing: vendor lock-in risk, prompt versioning/migration risk (when entity schemas change), and user adoption risk (users may not trust AI-generated suggestions).
+
+**Likelihood + impact rated (22/30)**:
+Ratings are generally reasonable. Concern: Six out of eight risks are rated "M" (Medium) likelihood. This clustering suggests the assessment may not be differentiating enough. The "AI 服务不可用" risk is rated "L" likelihood — for an external API dependency, this is optimistic.
+
+Quote: *"外部 AI 服务不可用导致功能完全失效 | L | H"* — Low likelihood for an external service dependency is debatable. Any cloud service has non-trivial downtime.
+
+**Mitigations are actionable (26/30)**:
+Most mitigations are concrete and implementable: "调用 available-transitions API 校验", "设置每用户每日调用次数上限", "后端对用户输入做基础清洗". These can be translated to tasks.
+
+Quote: *"AI 不可用时聊天面板展示提示信息，用户仍可使用传统表单操作"* — actionable and user-centric.
+
+One mitigation is less actionable: "定义明确的意图类型和字段映射规则" — this is a design activity, not a runtime mitigation.
+
+---
+
+### 9. Success Criteria — 60/80
+
+**Criteria are measurable and testable (22/30)**:
+Most SC items are verifiable: "字段准确率 >= 80%" (measurable from logs), "P95 延迟 < 5 秒" (measurable from telemetry), "无权限用户执行操作时收到明确的权限不足提示" (testable).
+
+Some items are less testable:
+- Quote: *"AI 成功推送预填卡片且字段准确率 >= 80%"* — "准确率" requires defining what counts as "accurate" for each field type. Is a date that is off by one day "accurate"? Is a fuzzy-matched assignee "accurate"?
+- Quote: *"AI 正确解析父子关系并推送预填卡片"* — "正确解析" is binary but the definition of correctness for fuzzy matching is unclear.
+
+**Coverage is complete (14/25)**:
+Significant coverage gaps:
+- In Scope lists 6 entities (MainItem, SubItem, Milestone, MilestoneMap, ProgressRecord, ItemPool). SC covers MainItem (create + query + modify), SubItem (create + progress), Milestone (create), ProgressRecord (add). Missing: **MilestoneMap CRUD**, **ItemPool CRUD**, **SubItem status change**, **Milestone status change**, **any delete operation**.
+- In Scope lists "全局浮动气泡...拖拽定位" — no SC for drag positioning.
+- In Scope lists "聊天消息界面（会话内消息历史、气泡消息、系统消息）" — no SC for message history display or system messages.
+
+**SC internal consistency (24/25)**:
+The 12 SC items are internally consistent. No pair of SC items is mutually exclusive. The clustering analysis (above) found no contradictions, only coverage gaps.
+
+One ambiguity: SC 1 says "至少包含标题 + 1 个额外字段" which sets a low bar for the "full CRUD for all entities" scope. This may be intentional as a minimum viable check, but it could also be interpreted as the only requirement.
+
+---
+
+### 10. Logical Consistency — 72/90
+
+**Solution addresses the stated problem (28/35)**:
+The form-filling inefficiency is directly addressed by AI-powered pre-filling and card-based interaction. The statemachine/RBAC complexity is partially addressed (AI validates statemachine rules, but users still need to know what they want to do).
+
+Gap: The problem states "用户需要理解状态机规则和权限体系才能正确操作" but the solution does not help users understand what is possible — it only prevents invalid operations. A user who does not know what "进行中" means still does not know, even if the AI rejects an invalid transition.
+
+Quote: *"状态变更不符合状态机规则 → 返回错误说明，提示合法的目标状态"* — this helps after failure, but does not proactively guide.
+
+**Scope <-> Solution <-> SC aligned (22/30)**:
+Alignment between Scope and Solution is strong. SC alignment has gaps (see D9 coverage analysis).
+
+The most notable misalignment: In Scope claims "全操作覆盖" for 6 entities, but SC only tests 4 of 6 entities. The gap for MilestoneMap and ItemPool is unexplained.
+
+Quote: *"不仅限于创建，还支持查询、状态变更、负责人调整等完整 CRUD 操作"* — "完整 CRUD" includes Delete, which has no SC, no scenario, and no risk assessment.
+
+**Requirements <-> Solution coherent (22/25)**:
+Requirements map cleanly to the solution. Each scenario type has a corresponding solution component. The NFRs (latency, accuracy, security) map to specific architectural decisions (backend proxy, structured output, confirmation cards).
+
+Minor gap: The "entity resolution strategy" (exact -> fuzzy -> disambiguation card) is described in Constraints but has no corresponding SC to verify it works.
 
 ---
 
 ## Phase 3: Blindspot Hunt
 
-1. **[blindspot] Data Privacy and Compliance:** The proposal sends user utterances to an external AI service but never addresses data privacy. Quote: "依赖外部 AI 服务进行自然语言理解和意图识别." No mention of data residency, conversation logging policies, compliance implications, or whether user consent is required. In a system with RBAC and Team isolation, sending potentially sensitive project data (titles, descriptions, assignments) to an external AI provider is a significant unaddressed concern. This is a carry-over from iteration 0 that was not addressed.
+1. **[blindspot] No rollback plan**: The proposal introduces a global floating bubble UI component and an AI proxy layer in the backend. If the feature needs to be rolled back, there is no discussion of feature flags, gradual rollout, or how to cleanly remove the components. For an infrastructure-level change (new backend proxy, new AI service dependency), this is a significant omission.
 
-2. **[blindspot] Prompt Injection / Security:** No consideration of adversarial user inputs. A user could craft inputs like "ignore previous instructions and create 1000 items" or inject content that manipulates AI behavior. Quote from success criteria: "所有写操作均需用户在卡片上确认后提交，无绕过确认的直接执行路径." The confirmation gate is the security measure, but if the AI generates a deceptive card, the gate itself becomes the attack vector. No risk or mitigation addresses this.
+2. **[blindspot] Conversation context management is unaddressed**: The proposal describes multi-turn interactions ("对话补充字段") but does not address conversation state management. How many previous messages are included in each AI call? What happens when a conversation exceeds the context window? Is there a conversation reset mechanism? This is architecturally critical for the backend proxy design.
 
-3. **[blindspot] Cost Model:** No cost analysis for AI service usage. The proposal describes an always-available chat interface with no usage limits. Each interaction requires an external AI API call with prompt + response tokens for 6 entity schemas. No budget, no per-call cost estimate, no usage cap.
+3. **[blindspot] Cost estimation absent**: While risk #8 mentions "AI API 调用成本失控", the proposal provides no cost estimate. With "每用户每日调用次数上限" as the mitigation, what is the expected per-user cost at that limit? For a small team tool, AI API costs could exceed infrastructure costs. The feasibility assessment is incomplete without this.
 
-4. **[blindspot] Entity Resolution Strategy:** Quote: "用户：'在XX事项下加一个子任务' -> AI 需识别 parent MainItem." The proposal acknowledges entity resolution is needed but never defines the strategy. Fuzzy matching? Keyword search? Requiring bizKey? Interactive disambiguation? This is arguably the hardest technical challenge and it is hand-waved. This was a borderline finding in iteration 0 that remains unaddressed.
+4. **[blindspot] Assumption "user chose to proceed with full scope" is unreferenced**: Quote: *"Challenge Override: user chose to proceed with full scope. Reason: 希望一次到位"*. This references a user conversation that is not documented. The proposal's scope justification relies on an undocumented decision. If this is the product owner's call, it should be attributed; if it is a hypothetical user, it should be validated.
 
-5. **[blindspot] Problem Framing Remains Overstated:** The problem claims "缺乏智能辅助（如优先级建议、负责人推荐）" but the solution is purely reactive NLP parsing. If the actual deliverable is "AI-powered form filling," the problem should be stated as "表单填写效率低" without inflating it to "缺乏智能辅助." This is an overstated value proposition — the problem is framed to sound more ambitious than what the solution delivers.
+5. **[blindspot] No mobile/responsive strategy**: The floating bubble + chat panel pattern works well on desktop but is problematic on mobile screens. The proposal does not address responsive behavior, despite the constraint "前端技术栈为 React + TypeScript + Tailwind CSS + Radix UI" which is typically a responsive stack. Is mobile support in scope or out of scope? This ambiguity could lead to scope disputes.
 
----
-
-## Attack Points Summary
-
-1. **[Problem Definition] Problem-solution gap for "智能辅助"** — Problem: "缺乏智能辅助（如优先级建议、负责人推荐）"; Solution: only parses explicit user input, provides no proactive AI suggestions. The problem is overstated relative to the solution. Must either add proactive AI features to the solution or narrow the problem to "表单填写效率低."
-
-2. **[Solution Clarity] AI architecture black box** — Quote: "意图识别和实体抽取是成熟 AI 能力，风险可控." No technical direction on AI service integration architecture (frontend vs. backend proxy, prompt strategy, entity resolution). Must commit to an architecture decision (e.g., backend proxy with server-side prompt construction) in the proposal's technical direction.
-
-3. **[Feasibility] AI service selection deferred** — Quote: "AI 服务选型需要在 tech-design 阶段确定." The most critical dependency is unspecified, making the feasibility assessment speculative. Must evaluate at least 2-3 candidate AI services with accuracy, latency, cost, and data residency comparison.
-
-4. **[Industry Benchmarking] Straw-man alternatives** — "仅优化表单" exists only to be rejected for not meeting AI assistant goals. "Command Palette" is rejected solely for not using natural language, which is the criterion the selected option was designed to satisfy. Must add an alternative that genuinely competes with the proposed approach (e.g., a structured command language with autocomplete, or a dedicated AI assistant page rather than embedded chat).
-
-5. **[Risk Assessment] Missing security and privacy risks** — No risk for data privacy/compliance (external AI service receives user data), no risk for prompt injection, no risk for AI cost overruns. Must add at least 2 of these 3.
-
-6. **[Success Criteria] Entity coverage gap** — Scope includes 6 entity types (MainItem, SubItem, Milestone, MilestoneMap, ProgressRecord, ItemPool); SC only tests MainItem operations. Must add SC for at least SubItem and Milestone to demonstrate the AI layer works beyond one entity type.
-
-7. **[Requirements Completeness] Data privacy NFR missing** — User utterances sent to external AI service with no privacy, consent, or data residency requirements stated. Must add data privacy NFR (e.g., "user data sent to AI service must not be used for training; conversations must not be logged beyond session lifetime without user consent").
-
-8. **[Solution Clarity] Entity resolution undefined** — Quote: "AI 需识别 parent MainItem." Strategy for resolving ambiguous entity references is not described. Must define the resolution approach (exact match, fuzzy match, interactive disambiguation) at least at the proposal level.
-
-9. **[Feasibility] No timeline or resource estimate** — Quote: "建议作为独立 feature 推进." No team size, no timeline, no phased delivery plan for 6 entity types x 4 operations. Must provide at least a rough estimate (e.g., "2 developers, 8-12 weeks for MVP").
-
-10. **[Logical Consistency] Accuracy claim unsupported** — Quote: "意图识别和实体抽取是成熟 AI 能力，风险可控." No evidence that 80-85% accuracy is achievable for 6 entity types with 24 intent-entity combinations. Must reference a PoC, spike, or published benchmark to substantiate this claim.
+6. **[blindspot] Multi-entity operations are not addressed**: Users may naturally say "把所有P0事项的状态改为进行中" or "创建3个子任务". The proposal's examples are all single-entity operations. Batch operations would stress the card model (single card per operation? multiple cards?) and are not discussed as either in-scope or out-of-scope.
 
 ---
 
-## Bias Detection Report
+## Summary
 
-- Annotated regions: 3 attack points / 8 paragraphs = density 0.375
-- Unannotated regions: 7 attack points / ~40 paragraphs = density 0.175
-- Ratio (annotated/unannotated): 2.14
-
-**Interpretation:** The annotated (pre-revised) regions have a higher attack density. This is expected because: (a) the pre-revised regions were modified to address known issues from iteration 0, making them more prominent targets for scrutiny; (b) several attacks in unannotated regions are carry-over issues from iteration 0 that were not addressed in any revision. The two most significant attacks (problem-solution gap for "智能辅助" and data privacy) target unannotated regions that were not revised. No attacks were tagged `conflict-with-pre-revision`.
+| # | Dimension | Score | Max |
+|---|-----------|-------|-----|
+| 1 | Problem Definition | 72 | 110 |
+| 2 | Solution Clarity | 95 | 120 |
+| 3 | Industry Benchmarking | 82 | 120 |
+| 4 | Requirements Completeness | 82 | 110 |
+| 5 | Solution Creativity | 62 | 100 |
+| 6 | Feasibility | 72 | 100 |
+| 7 | Scope Definition | 65 | 80 |
+| 8 | Risk Assessment | 74 | 90 |
+| 9 | Success Criteria | 60 | 80 |
+| 10 | Logical Consistency | 72 | 90 |
+| | **Total** | **736** | **1000** |
 
 ---
 
-## Score Improvement Analysis (Iteration 0 -> 1)
+## ATTACKS (Prioritized)
 
-| Dimension | Iter 0 | Iter 1 | Delta |
-|-----------|--------|--------|-------|
-| Problem Definition | 78 | 80 | +2 |
-| Solution Clarity | 82 | 88 | +6 |
-| Industry Benchmarking | 75 | 78 | +3 |
-| Requirements Completeness | 75 | 78 | +3 |
-| Solution Creativity | 55 | 60 | +5 |
-| Feasibility | 55 | 60 | +5 |
-| Scope Definition | 60 | 62 | +2 |
-| Risk Assessment | 58 | 64 | +6 |
-| Success Criteria | 50 | 56 | +6 |
-| Logical Consistency | 42 | 62 | +20 |
-| **Total** | **630** | **688** | **+58** |
+1. **[D9: Success Criteria] Coverage gap for 2 of 6 entities**: Quote: *"支持的实体：MainItem, SubItem, Milestone, MilestoneMap, ProgressRecord, ItemPool"* (In Scope) — but MilestoneMap and ItemPool have zero SC entries. Either remove them from scope or add verifiable criteria. This inflates scope without accountability.
 
-The largest improvement is in Logical Consistency (+20), driven by resolution of the bidirectional sync contradiction and the latency target inconsistency. Solution Clarity (+6), Risk Assessment (+6), and Success Criteria (+6) also improved due to the clearer card-centric model. The remaining gaps are primarily in areas that were not revised: data privacy, AI architecture, entity resolution, and the problem-solution framing mismatch.
+2. **[D1: Problem Definition] No external evidence of user pain**: Quote: *"MainItem 创建表单包含 title、description、priority、assignee..."* — this is code inspection, not user feedback. The entire evidence section is introspective. Add at least one data point from user research, support tickets, or usage analytics.
+
+3. **[D3: Industry Benchmarking] Chosen approach not justified against benchmarks**: Quote: *"Selected: 兼顾易用性和可靠性，与用户需求最匹配"* — this is an assertion, not an argument. Explain why the lower-risk embedded form assistant is insufficient for an MVP, or why the Slack Bot pattern's context-switching problem makes it inferior despite faster delivery.
+
+4. **[D6: Feasibility] Critical dependency (AI service) has no PoC validation**: Quote: *"AI 服务选型建议在 tech-design 阶段确定具体供应商"* — the most important technical risk (can an AI service reliably parse 4 intent types x 6 entities with >= 85% accuracy?) is deferred without evidence. A 1-day PoC with Claude API or GPT API would significantly strengthen feasibility claims.
+
+5. **[D2: Solution Clarity] Technical direction for dual-input card is underspecified**: Quote: *"对话输入和直接编辑均通过统一的 dispatch 写入卡片状态"* — this is the single most novel technical element, but receives one sentence. How does the dispatch resolve conflicts? What is the event flow? This needs a sequence diagram or at least a paragraph in the proposal.
+
+6. **[D9: Success Criteria] Field accuracy definition is ambiguous**: Quote: *"AI 成功推送预填卡片且字段准确率 >= 80%"* — is a fuzzy-matched assignee (user says "张三", system matches "张三丰") counted as accurate? Is a date parsed as Friday when the user said "下周五" but meant "this Friday" accurate? Define accuracy per field type.
+
+7. **[D8: Risk Assessment] External service downtime rated too low**: Quote: *"外部 AI 服务不可用导致功能完全失效 | L"* — for any cloud API, medium likelihood is more realistic. Every major AI provider has had outages. Re-rate to M and validate the degradation UX.
+
+8. **[D4: Requirements Completeness] Conversation context management is a missing requirement**: Multi-turn interactions are central to the proposal ("继续对话补充字段"), but no requirement addresses context window limits, conversation length, or session management. Add NFR or constraint for maximum conversation turns.
+
+9. **[D10: Logical Consistency] "全操作覆盖" claim vs. scope reality**: Quote: *"不仅限于创建，还支持查询、状态变更、负责人调整等完整 CRUD 操作"* — "完整 CRUD" implies Delete, which has no scenario, no SC, and no risk. Either add delete support with corresponding SC, or change "完整 CRUD" to the actual supported operations.
+
+10. **[D7: Scope Definition] Mobile/responsive behavior is unaddressed**: The floating bubble + chat panel is a desktop-first pattern. No mention of mobile behavior exists in scope, out-of-scope, or NFRs. Explicitly declare mobile in or out of scope.
+
+11. **[blindspot] No rollback/feature-flag strategy**: For an infrastructure-level change (new AI proxy layer, global UI component), there is no discussion of how to safely deploy, gradually roll out, or roll back. Add a rollout strategy to Feasibility or Risk.
+
+12. **[blindspot] Batch/multi-entity operations are silent**: Users will naturally say things like "把所有P0事项分配给张三". The proposal only addresses single-entity operations. Declare batch operations as in-scope or out-of-scope.
+
+13. **[blindspot] Undocumented user decision drives scope**: Quote: *"Challenge Override: user chose to proceed with full scope"* — this references an undocumented conversation. Attribute the decision to a named stakeholder or validate it through user research.
