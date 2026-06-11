@@ -1,6 +1,6 @@
 {
   "baseUrl": "http://localhost:5173",
-  "updatedAt": "2026-04-25T00:00:00+08:00",
+  "updatedAt": "2026-06-11T00:00:00+08:00",
   "layout": {
     "name": "AppLayout",
     "wraps": [
@@ -11,6 +11,8 @@
       "/gantt",
       "/table",
       "/item-pool",
+      "/milestones",
+      "/milestones/:mapId",
       "/report",
       "/teams",
       "/teams/:teamId",
@@ -22,6 +24,7 @@
       { "id": "L-002", "role": "combobox", "name": "团队选择器" },
       { "id": "L-003", "role": "link", "name": "事项清单" },
       { "id": "L-004", "role": "link", "name": "待办事项" },
+      { "id": "L-012", "role": "link", "name": "里程碑图" },
       { "id": "L-005", "role": "link", "name": "每周进展" },
       { "id": "L-006", "role": "link", "name": "整体进度" },
       { "id": "L-007", "role": "link", "name": "周报导出" },
@@ -226,6 +229,75 @@
             { "id": "E-107", "role": "button", "name": "取消" },
             { "id": "E-108", "role": "button", "name": "提交" },
             { "id": "E-109", "role": "button", "name": "Close" }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/milestones",
+      "title": "里程碑图",
+      "elements": [
+        { "id": "E-198", "role": "heading", "name": "里程碑图", "level": 1 },
+        { "id": "E-199", "role": "textbox", "name": "搜索名称...", "placeholder": "搜索名称..." },
+        { "id": "E-200", "role": "combobox", "name": "负责人：全部" },
+        { "id": "E-201", "role": "button", "name": "规划中" },
+        { "id": "E-202", "role": "button", "name": "已评审" },
+        { "id": "E-203", "role": "button", "name": "待实施" },
+        { "id": "E-204", "role": "button", "name": "实施中" },
+        { "id": "E-205", "role": "button", "name": "已完成" },
+        { "id": "E-206", "role": "button", "name": "已取消" },
+        { "id": "E-207", "role": "button", "name": "重置" },
+        { "id": "E-208", "role": "button", "name": "刷新" }
+      ],
+      "states": []
+    },
+    {
+      "route": "/milestones/:mapId",
+      "title": "里程碑图详情",
+      "elements": [
+        { "id": "E-209", "role": "navigation", "name": "Breadcrumb" },
+        { "id": "E-210", "role": "button", "name": "编辑" },
+        { "id": "E-211", "role": "button", "name": "删除" },
+        { "id": "E-212", "role": "textbox", "name": "搜索里程碑...", "placeholder": "搜索里程碑..." },
+        { "id": "E-213", "role": "button", "name": "重置" },
+        { "id": "E-214", "role": "button", "name": "刷新" },
+        { "id": "E-215", "role": "button", "name": "紧凑" },
+        { "id": "E-216", "role": "button", "name": "标准" },
+        { "id": "E-217", "role": "button", "name": "宽松" }
+      ],
+      "states": [
+        {
+          "name": "编辑里程碑图 modal",
+          "trigger": "E-210",
+          "elements": [
+            { "id": "E-218", "role": "heading", "name": "编辑里程碑图", "level": 2 },
+            { "id": "E-219", "role": "textbox", "name": "请输入里程碑图名称", "placeholder": "请输入里程碑图名称" },
+            { "id": "E-220", "role": "combobox", "name": "选择负责人", "label": "负责人" },
+            { "id": "E-221", "role": "textbox", "name": "计划开始时间" },
+            { "id": "E-222", "role": "textbox", "name": "计划完成时间" },
+            { "id": "E-223", "role": "textbox", "name": "请输入描述（可选）", "placeholder": "请输入描述（可选）" },
+            { "id": "E-224", "role": "button", "name": "取消" },
+            { "id": "E-225", "role": "button", "name": "确认" }
+          ]
+        },
+        {
+          "name": "删除里程碑图确认 modal",
+          "trigger": "E-211",
+          "elements": [
+            { "id": "E-226", "role": "button", "name": "确认" },
+            { "id": "E-227", "role": "button", "name": "取消" }
+          ]
+        },
+        {
+          "name": "创建里程碑 modal",
+          "trigger": "E-214",
+          "elements": [
+            { "id": "E-228", "role": "heading", "name": "创建里程碑", "level": 2 },
+            { "id": "E-229", "role": "textbox", "name": "请输入里程碑名称", "placeholder": "请输入里程碑名称" },
+            { "id": "E-230", "role": "textbox", "name": "预期完成时间" },
+            { "id": "E-231", "role": "textbox", "name": "请输入描述（可选）", "placeholder": "请输入描述（可选）" },
+            { "id": "E-232", "role": "button", "name": "取消" },
+            { "id": "E-233", "role": "button", "name": "确认" }
           ]
         }
       ]
