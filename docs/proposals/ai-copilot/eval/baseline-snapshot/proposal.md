@@ -9,7 +9,7 @@ intent: "new-feature"
 
 ## Problem
 
-项目管理系统当前完全依赖表单交互（弹窗、下拉框、日期选择器），创建一个 MainItem 需要手动填写 10+ 个字段，操作效率低。用户需要理解状态机规则和权限体系才能正确操作，门槛较高。
+项目管理系统当前完全依赖表单交互（弹窗、下拉框、日期选择器），创建一个 MainItem 需要手动填写 10+ 个字段，操作效率低且缺乏智能辅助（如优先级建议、负责人推荐）。
 
 ### Evidence
 
@@ -35,17 +35,13 @@ intent: "new-feature"
 
 ### Innovation Highlights
 
-
-- **对话驱动的卡片编辑**：不同于纯对话机器人或纯表单填充，采用卡片为中心的混合模式——卡片是唯一数据源（single source of truth），AI 推送结构化卡片后，用户可通过对话指令或直接编辑卡片来更新字段，两种输入方式均写入同一份卡片状态
+- **对话 + 卡片双向编辑**：不同于纯对话机器人或纯表单填充，采用混合模式——AI 推送结构化卡片，用户可以对话补充字段也可以直接编辑卡片，卡片实时同步更新
 - **上下文感知**：自动获取当前页面的 Team 上下文，减少用户输入
 - **全操作覆盖**：不仅限于创建，还支持查询、状态变更、负责人调整等完整 CRUD 操作
 
 ## Requirements Analysis
 
 ### Key Scenarios
-
-
-> **注：** 意图分类（创建/查询/修改/分配）反映用户自然语言的表达习惯，而非后端 API 端点划分。其中"分配"映射到实体的 assignee 字段更新（调用对应实体的 update 端点），并非独立 API 操作。
 
 **创建场景：**
 - 用户："创建一个 P1 事项，标题是完成用户认证模块，分配给张三，下周五截止" → AI 推送预填卡片，字段：title=完成用户认证模块, priority=P1, assignee=张三, expectedEndDate=下周五对应日期, milestoneKey=留空
@@ -72,24 +68,18 @@ intent: "new-feature"
 
 ### Non-Functional Requirements
 
-
-- **响应延迟**：AI 响应（从用户发送到卡片推送）P95 延迟 < 5 秒
-- **准确性**：AI 意图识别准确率 ≥ 85%，字段提取准确率 ≥ 80%（基于生产日志的 confirm/edit/abandon 比率持续测量）
+- **响应延迟**：AI 响应（从用户发送到卡片推送）应在 3 秒内完成
+- **准确性**：AI 意图识别准确率 ≥ 85%，字段提取准确率 ≥ 80%
 - **可用性**：聊天面板不应阻塞主页面操作，支持收起/展开切换
 - **安全性**：所有写操作必须经过用户确认，遵循现有 RBAC 权限体系
-- **数据隐私**：用户消息经后端代理转发至 AI 服务，不直接暴露 API 密钥；AI 服务供应商必须支持数据不用于训练（zero data retention）；禁止将密码等敏感字段内容发送至 AI 服务
 - **无障碍**：聊天面板支持键盘操作（Esc 关闭、Enter 发送）
 
 ### Constraints & Dependencies
 
 - 依赖外部 AI 服务进行自然语言理解和意图识别
-- AI 服务调用必须经后端代理（backend proxy），前端不直接调用 AI 服务，以保护 API 密钥并支持服务端 prompt 构造和日志记录
 - 所有操作仍通过现有 API 端点执行，不绕过业务逻辑和权限检查
 - 系统是 Team 隔离的，所有操作必须在有效 Team 上下文中进行
 - 状态变更必须符合现有状态机规则（`docs/conventions/status-machine.md`）
-- 实体解析策略：精确匹配（bizKey）→ 模糊匹配（标题关键词在 Team 范围内）→ 歧义消解卡片（多个候选时推送选择列表供用户选择）
-
-- 状态机预校验依赖 available-transitions 端点，该端点已存在于 MainItem、SubItem、MilestoneMap、Milestone 四个实体路由中（见 `router.go`），无需新增
 - 前端技术栈为 React + TypeScript + Tailwind CSS + Radix UI
 
 ## Alternatives & Industry Benchmarking
@@ -100,17 +90,15 @@ intent: "new-feature"
 - **Notion AI**：在编辑器内嵌入 AI 辅助写作和总结，但不支持结构化数据操作
 - **Slack Bot 模式**：通过 Slash 命令 + 交互式卡片完成结构化操作
 - **Jira Automation**：基于规则的自动化，非对话式
-- **GitHub Copilot / Microsoft 365 Copilot**：将 AI 能力嵌入已有工作流中（编辑器、Office 应用），用户无需切换上下文即可获得 AI 辅助
 
 ### Comparison Table
 
 | Approach | Source | Pros | Cons | Verdict |
 |----------|--------|------|------|---------|
-| Do nothing | — | 零开发成本 | 表单痛点持续 | Rejected: 核心痛点未解决 |
-| 内嵌式 AI 助手（如 Copilot 模式） | GitHub Copilot / MS 365 | 用户无需学习新交互，AI 在现有表单中提供智能填充建议 | 改造现有表单组件工作量大，无法覆盖查询和修改场景 | Partial: 适合创建场景，但查询/修改仍需独立入口 |
-| Slack Bot 独立入口 | Slack / Teams Bot | 成熟模式，开发成本低 | 用户需要切换到 Bot 界面，与项目管理上下文脱节 | Rejected: 脱离工作上下文，增加操作跳转 |
-
-| **对话 + 卡片混合模式** | Slack Bot + Notion AI | 自然语言低门槛，卡片保证结构化准确性，对话 + 直接编辑灵活 | AI 准确性依赖外部服务，开发量较大 | **Selected: 兼顾易用性和可靠性，与用户需求最匹配** |
+| Do nothing | — | 零开发成本 | 表单痛点持续，无智能辅助 | Rejected: 核心痛点未解决 |
+| 仅优化表单 | 行业常规 | 开发量小，风险低 | 不解决智能辅助需求，仍是手动操作 | Rejected: 未满足智能辅助决策需求 |
+| Command Palette (⌘K) | Linear | 键盘友好，快速 | 不支持自然语言，学习成本高 | Rejected: 不符合 AI Native 交互目标 |
+| **对话 + 卡片混合模式** | Slack Bot + Notion AI | 自然语言低门槛，卡片保证结构化准确性，双向编辑灵活 | AI 准确性依赖外部服务，开发量较大 | **Selected: 兼顾易用性和可靠性，与用户需求最匹配** |
 
 ## Feasibility Assessment
 
@@ -118,22 +106,17 @@ intent: "new-feature"
 
 - 现有 API 端点已完备（CRUD + 状态变更 + 权限检查），AI 层只需调用现有接口
 - 前端 React 组件架构清晰，可新增浮动气泡和聊天面板组件
-- AI 服务调用经后端代理，后端负责 prompt 构造（动态组装当前 Team 的实体 schema、用户权限范围、状态机规则）、AI 服务调用、结果解析和预校验
-- 候选 AI 服务评估：
-  - Claude API（Anthropic）：支持 structured output / tool use，可定义 intent schema，zero data retention 可配置，已验证在同类型项目管理工具中达到 90%+ 意图识别准确率
-  - OpenAI GPT API：function calling 能力成熟，社区实践丰富，但数据隐私需额外确认
-  - 本地/私有化部署（如 Ollama + Qwen）：完全无数据外泄风险，但准确率和延迟可能不满足 NFR
-- 意图识别和实体抽取对结构化输入（4 意图类型 × 6 实体，有限字段集）属于高确定性任务，预期准确率可达目标
+- 意图识别和实体抽取是成熟 AI 能力，风险可控
 
 ### Resource & Timeline
 
-- 需要前端（聊天 UI + 卡片组件）、后端（AI 代理层 + prompt 管理）两个方向的能力
-- 作为一个完整新功能，建议作为独立 feature 推进，预估工作量：前端 2-3 周（气泡 UI + 聊天面板 + 卡片组件），后端 2-3 周（AI 代理层 + prompt 管理 + 日志），联调测试 1 周
+- 需要前端（聊天 UI + 卡片组件）、后端（AI 意图解析层）、AI 集成三个方向的能力
+- 作为一个完整新功能，工作量较大，建议作为独立 feature 推进
 
 ### Dependency Readiness
 
 - 现有 API 和业务逻辑完全就绪，无需等待上游
-- AI 服务选型建议在 tech-design 阶段确定具体供应商，但架构模式（后端代理 + structured output）已确定
+- AI 服务选型需要在 tech-design 阶段确定
 
 ## Assumptions Challenged
 
@@ -151,8 +134,7 @@ intent: "new-feature"
 - 聊天消息界面（会话内消息历史、气泡消息、系统消息）
 - AI 意图识别与实体抽取（创建、查询、修改、分配四类操作）
 - 支持的实体：MainItem, SubItem, Milestone, MilestoneMap, ProgressRecord, ItemPool
-
-- 预填表单卡片组件（对话输入和直接编辑均写入同一卡片状态，卡片为唯一数据源）
+- 预填表单卡片组件（支持对话 + 直接编辑双向同步）
 - Team 上下文自动检测（跟随当前页面）并明确展示给用户
 - 所有写操作经卡片确认后执行
 - 查询结果：摘要文字 + 可点击卡片（点击跳转详情页）
@@ -174,23 +156,16 @@ intent: "new-feature"
 |------|-----------|--------|------------|
 | AI 意图识别准确率不足，频繁误解用户意图 | M | H | 定义明确的意图类型和字段映射规则，对于低置信度结果返回引导性回复而非猜测；建立 fallback 机制引导用户使用传统表单 |
 | AI 响应延迟过高影响体验 | M | M | 优化提示词减少 token 消耗；流式返回卡片骨架先展示，字段填充后更新；设置超时兜底 |
-| 卡片 + 对话编辑状态同步复杂 | M | M | 卡片作为唯一数据源（single source of truth），对话输入和直接编辑均通过统一的 dispatch 写入卡片状态，对话区域仅做展示回显，无需双向绑定 |
+| 卡片 + 对话双向编辑状态同步复杂 | M | M | 设计明确的单向数据流：对话修改 → 更新卡片状态；卡片编辑 → 同步到对话显示。避免双向绑定的复杂性 |
 | 外部 AI 服务不可用导致功能完全失效 | L | H | 设计降级策略：AI 不可用时聊天面板展示提示信息，用户仍可使用传统表单操作 |
 | 状态机规则与 AI 推理冲突 | M | M | AI 推送卡片前先调用 available-transitions API 校验合法性，不合法操作直接拒绝并提示 |
-| 用户数据隐私泄露 | M | H | 选择支持 zero data retention 的 AI 服务供应商；后端代理层过滤敏感字段（密码、token）；禁止将原始用户消息持久化存储 |
-| 提示注入/对抗性输入 | M | M | 后端对用户输入做基础清洗（移除系统指令关键词）；AI 返回结果经后端校验后才渲染卡片；限制单次输入最大长度 |
-| AI API 调用成本失控 | M | M | 设置每用户每日调用次数上限；监控异常调用量并告警；对高频用户降级为关键词匹配模式 |
 
 ## Success Criteria
 
 - [ ] 用户可通过自然语言创建 MainItem（至少包含标题 + 1 个额外字段），AI 成功推送预填卡片且字段准确率 ≥ 80%
-- [ ] 用户可通过自然语言创建 SubItem（指定父 MainItem），AI 正确解析父子关系并推送预填卡片
-- [ ] 用户可通过自然语言创建 Milestone（指定所属 MilestoneMap），AI 正确关联父级并推送预填卡片
 - [ ] 用户可通过自然语言查询事项列表（如"我的 P0 事项"），系统返回摘要 + 可点击卡片，点击后正确跳转到详情页
 - [ ] 用户可通过自然语言修改事项状态，系统校验状态机合法性并推送确认卡片
-- [ ] 用户可通过自然语言为事项添加进度记录，系统推送包含 subItemKey、completion、achievement 字段的确认卡片
-
-- [ ] 预填卡片支持对话补充字段（如"优先级改成 P0"）和直接编辑两种方式，两者写入同一卡片状态，无数据冲突
+- [ ] 预填卡片支持对话补充字段（如"优先级改成 P0"）和直接编辑两种方式，双向同步无冲突
 - [ ] 全局浮动气泡在所有页面可见，展开/收起不阻塞主页面操作
 - [ ] 聊天面板正确显示当前 Team 上下文，所有操作在正确的 Team 范围内执行
 - [ ] 所有写操作均需用户在卡片上确认后提交，无绕过确认的直接执行路径
@@ -202,11 +177,6 @@ consistency_check_result:
   status: pass
   pairs_checked: 18
   conflicts_found: 0
-  revision_notes:
-    - attack-1: resolved bidirectional sync contradiction, unified to card-centric model
-    - attack-2: unified latency target to P95 < 5s across NFR and SC
-    - attack-3: clarified intent taxonomy reflects user language patterns not API endpoints
-    - attack-4: confirmed available-transitions endpoints exist in router.go
 -->
 
 ## Next Steps
