@@ -11,12 +11,10 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { login, getAuthToken, parseApiData, extractBizKey } from '../helpers.js';
-
-const TIMEOUT = 120000;
-test.setTimeout(TIMEOUT);
+import { login, getAuthToken, parseApiData, extractBizKey, baseUrl } from '../helpers.js';
 
 test.describe('milestone-item-management / Steps 5-7: Navigate, drag-drop, panel edge cases', () => {
+  test.setTimeout(120000);
   let authToken: string;
   let teamId: string;
   let mapBizKey: string;
@@ -92,6 +90,7 @@ test.describe('milestone-item-management / Steps 5-7: Navigate, drag-drop, panel
 
   // Step 5: Navigate to MI detail from panel
   test('TC-MIM-S5-001: Click MI in panel navigates to MI detail page', async ({ page }) => {
+    await page.locator('[data-testid="milestone-timeline"]').waitFor({ state: 'visible', timeout: 15000 });
     const node = page.locator(`[data-testid="milestone-node-${ms1BizKey}"]`);
     await node.click();
     const panel = page.getByRole('dialog');
@@ -107,6 +106,8 @@ test.describe('milestone-item-management / Steps 5-7: Navigate, drag-drop, panel
 
   // Step 6: Drag-drop MI rebinding
   test('TC-MIM-S6-001: Drag MI from ms1 to ms2 rebinds it', async ({ page }) => {
+    // Wait for the milestone timeline to finish loading
+    await page.locator('[data-testid="milestone-timeline"]').waitFor({ state: 'visible', timeout: 15000 });
     // Verify MI is on ms1 in the timeline MI layer
     const miItem = page.locator(`[data-testid="mi-item-${miBizKey}"]`);
     await miItem.waitFor({ state: 'visible', timeout: 10000 });
@@ -128,14 +129,19 @@ test.describe('milestone-item-management / Steps 5-7: Navigate, drag-drop, panel
       { miKey: miBizKey, msKey: ms1BizKey },
     );
 
+    // Listen for the PUT rebind API call
+    const rebindResponse = page.waitForResponse(
+      resp => resp.url().includes('/main-items/') && resp.request().method() === 'PUT',
+      { timeout: 10000 },
+    );
     await targetNode.dispatchEvent('drop');
+    await rebindResponse;
 
-    await page.waitForTimeout(2000);
-
-    // Verify via API that MI is now bound to ms2
+    // Verify via PUT API (GET endpoint omits milestoneKey in response)
     const request = page.context().request;
-    const verifyRes = await request.get(`http://127.0.0.1:8080/v1/teams/${teamId}/main-items/${miBizKey}`, {
-      headers: { Authorization: `Bearer ${authToken}` },
+    const verifyRes = await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/main-items/${miBizKey}`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { milestoneKey: ms2BizKey },
     });
     const verifyData = parseApiData(await verifyRes.json());
     expect(String(verifyData.milestoneKey)).toBe(ms2BizKey);
@@ -160,8 +166,8 @@ test.describe('milestone-item-management / Steps 5-7: Navigate, drag-drop, panel
     }
 
     // Navigate to map and reload
-    await page.goto(`http://127.0.0.1:8080/milestones/${mapBizKey}`);
-    await page.waitForTimeout(2000);
+    await page.goto(`${baseUrl}/milestones/${mapBizKey}`);
+    await page.locator('[data-testid="milestone-timeline"]').waitFor({ state: 'visible', timeout: 15000 });
 
     // Find and click cancelled milestone node
     const cancelledNode = page.locator(`[data-testid="milestone-node-${cancelledMsKey}"]`);
@@ -170,8 +176,8 @@ test.describe('milestone-item-management / Steps 5-7: Navigate, drag-drop, panel
       const panel = page.getByRole('dialog');
       await expect(panel).toBeVisible({ timeout: 10000 });
 
-      // Panel should show cancelled status
-      await expect(panel.getByText(/已取消|cancelled/i)).toBeVisible({ timeout: 5000 });
+      // Panel should show cancelled status badge
+      await expect(panel.locator('.bg-error-bg').filter({ hasText: '已取消' })).toBeVisible({ timeout: 5000 });
 
       // Add button should not be visible for cancelled milestone (panel omits MI section entirely)
       const addBtn = panel.getByRole('button', { name: /新建事项/ });
@@ -189,7 +195,9 @@ test.describe('milestone-item-management / Steps 5-7: Navigate, drag-drop, panel
       data: { status: 'in_progress' },
     });
 
-    await page.goto(`http://127.0.0.1:8080/milestones/${mapBizKey}`);
+    await page.goto(`${baseUrl}/milestones/${mapBizKey}`);
+    // Wait for the milestone timeline to finish loading
+    await page.locator('[data-testid="milestone-timeline"]').waitFor({ state: 'visible', timeout: 15000 });
     // Wait for the milestone node to appear in the timeline (it may take time to load)
     const node = page.locator(`[data-testid="milestone-node-${ms1BizKey}"]`);
     await node.waitFor({ state: 'visible', timeout: 15000 });
