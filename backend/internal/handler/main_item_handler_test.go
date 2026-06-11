@@ -217,7 +217,7 @@ func depsWithMainItemSvc(t *testing.T, svc *mockMainItemService, userRepo reposi
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(1); return &v }()}}
-	deps.MainItem = NewMainItemHandler(svc, userRepo, subItemRepo)
+	deps.MainItem = NewMainItemHandler(svc, userRepo, subItemRepo, &StubRouterRepoMilestone{})
 	return deps
 }
 
@@ -226,7 +226,7 @@ func depsWithMemberRoleMainItem(t *testing.T, svc *mockMainItemService, userRepo
 	t.Helper()
 	deps, _ := testDeps(t)
 	deps.TeamRepo = &mockTeamRepo{member: &model.TeamMember{RoleKey: func() *int64 { v := int64(2); return &v }()}}
-	deps.MainItem = NewMainItemHandler(svc, userRepo, subItemRepo)
+	deps.MainItem = NewMainItemHandler(svc, userRepo, subItemRepo, &StubRouterRepoMilestone{})
 	return deps
 }
 

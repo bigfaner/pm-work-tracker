@@ -1,6 +1,6 @@
 ---
 feature: "milestone-map"
-status: tasks
+status: completed
 ---
 
 # Feature: milestone-map
@@ -25,11 +25,25 @@ status: tasks
 
 | PRD Section | Design Section | UI Component | Placement | Tasks |
 |-------------|----------------|--------------|-----------|-------|
-| UF-1 里程碑图两级视图 | Component: 里程碑图列表视图 + 时间线视图 | MilestoneMapListPage + TimelineView | new-page:/milestones | 1.1, 1.2, 2.1, 2.2, 3.1, 3.2 |
-| UF-2 创建/编辑里程碑弹窗 | Component: 创建/编辑里程碑弹窗 | MilestoneDialog | existing-page:/milestones | 2.2, 3.3 |
-| UF-3 详情面板 | Component: 里程碑详情面板 | MilestoneDetailPanel | existing-page:/milestones | 2.2, 3.3 |
-| UF-3a 快速添加事项 | Component: Quick Add MainItem Dialog | QuickAddDialog（复用 CreateMainItemDialog） | existing-page:/milestones | 2.3, 3.3 |
-| UF-4 事项清单筛选 | Component: 事项清单页里程碑筛选 | MilestoneFilter | existing-page:/items | 2.2, 3.4 |
-| UF-5 编辑选择器 | Component: 主事项编辑弹窗里程碑选择器 | MilestoneSelector | existing-page:/items/:mainItemId | 2.3, 3.5 |
-| UF-6 表格列 | Component: 表格视图里程碑列 | MilestoneColumn | existing-page:/table | 2.3, 3.6 |
-| UF-7 创建/编辑里程碑图弹窗 | Component: 创建/编辑里程碑图弹窗 | MilestoneMapDialog | existing-page:/milestones | 2.1, 3.2 |
+| UF-1 里程碑图两级视图 | Data Models, Interfaces, Services, Handlers | MilestoneMapList + TimelineView | new-page:/milestones | 1.1–1.5, 2.1–2.5, 2.7–2.9, 3.1, 3.5–3.7 |
+| UF-2 创建/编辑里程碑弹窗 | DTO Definitions, Handler Pattern | CreateMilestoneDialog | existing-page:/milestones | 3.3 |
+| UF-3 里程碑详情面板 | Business Rules BR-1/BR-3/BR-4/BR-5 | MilestoneDetailPanel | existing-page:/milestones | 3.4 |
+| UF-3a 快速添加事项 | Integration Spec, MainItem DTO | QuickAddDialog（复用 CreateMainItemDialog） | existing-page:/milestones | 3.4 |
+| UF-4 事项清单筛选 | Integration: MilestoneFilter → ItemViewPage | MilestoneFilter | existing-page:/items | 2.6, 4.1 |
+| UF-5 编辑选择器 | Integration: MilestoneSelector → EditMainItemDialog | MilestoneSelector | existing-page:/items/:mainItemId | 2.6, 4.2 |
+| UF-6 表格列 | Integration: MilestoneColumn → TableViewPage | MilestoneColumn | existing-page:/table | 2.6, 4.3 |
+| UF-7 创建/编辑里程碑图弹窗 | DTO Definitions, Handler Pattern | CreateMilestoneMapDialog | existing-page:/milestones | 3.2 |
+| Story 1–4 (MilestoneMap CRUD+status) | MilestoneMapService, Handler, Router | — | — | 2.4, 2.7, 2.9 |
+| Story 5–8 (Milestone CRUD+status) | MilestoneService, Handler | — | — | 2.5, 2.8 |
+| Story 11 (MI 绑定/解绑) | BR-3, BR-5 | — | — | 2.6 |
+| Story 14 (只读权限) | Permission System | — | — | 1.4, 3.5, 3.6 |
+| NFR: Schema (dual dialect) | Schema SQL | — | — | 1.1, 1.2 |
+
+## Consolidated Specs
+
+| Spec ID | Target File | Description |
+|---------|-------------|-------------|
+| TECH-MS-001 | docs/conventions/performance-targets.md | Milestone page/API performance targets |
+| TECH-MS-002 | docs/conventions/data-model.md (DM-015) | Milestone completion real-time calculation |
+| TECH-MS-003 | docs/conventions/data-model.md (DM-007) | Entity hierarchy extension with milestone binding |
+| BIZ-milestone-001..006 | docs/business-rules/milestone-state-constraints.md | State constraints (pre-existing) |

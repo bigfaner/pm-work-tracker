@@ -56,6 +56,33 @@ func TestPredefinedErrors(t *testing.T) {
 	}
 }
 
+func TestMilestoneErrors(t *testing.T) {
+	tests := []struct {
+		name    string
+		err     *AppError
+		code    string
+		status  int
+		message string
+	}{
+		{"MapIsTerminal", ErrMapIsTerminal, "MAP_IS_TERMINAL", 400, "里程碑图处于终态"},
+		{"DuplicateMilestoneName", ErrDuplicateMilestoneName, "DUPLICATE_NAME", 409, "同名里程碑已存在"},
+		{"MilestoneHasNonTerminalItems", ErrMilestoneHasNonTerminalItems, "BAD_REQUEST", 400, "里程碑下存在未完成的事项"},
+		{"MapHasNonTerminalMilestones", ErrMapHasNonTerminalMilestones, "BAD_REQUEST", 400, "里程碑图下存在未完成的里程碑"},
+		{"TerminalItemCannotMove", ErrTerminalItemCannotMove, "BAD_REQUEST", 400, "终态事项不可变更里程碑"},
+		{"TerminalMilestoneCannotReceive", ErrTerminalMilestoneCannotReceive, "BAD_REQUEST", 400, "终态里程碑不可接收事项"},
+		{"MapCannotDelete", ErrMapCannotDelete, "INVALID_PARAMS", 400, "当前状态不允许删除里程碑图"},
+		{"MilestoneCannotDelete", ErrMilestoneCannotDelete, "INVALID_PARAMS", 400, "当前状态不允许删除里程碑"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.code, tt.err.Code)
+			assert.Equal(t, tt.status, tt.err.Status)
+			assert.Equal(t, tt.message, tt.err.Message)
+		})
+	}
+}
+
 func TestRespondError_WithAppError(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)

@@ -1,10 +1,11 @@
 import { useState, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, ChevronsUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useTeamStore } from '@/store/team'
 import { getTableViewApi, exportTableCsvApi } from '@/api/views'
 import { listMembersApi } from '@/api/teams'
+import { listMilestonesByTeamApi } from '@/api/milestones'
 import { formatDate } from '@/lib/format'
 import type { TableRow, TableFilter } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -56,6 +57,11 @@ export default function TableViewPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>('')
   const [assigneeFilter, setAssigneeFilter] = useState<string>('')
   const [statusFilter, setStatusFilter] = useState<string>('')
+  const [milestoneFilter, setMilestoneFilter] = useState<string>('')
+
+  // Sort state
+  const [sortBy, setSortBy] = useState<string>('')
+  const [sortOrder, setSortOrder] = useState<string>('')
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -69,7 +75,14 @@ export default function TableViewPage() {
     enabled: !!teamId,
   })
 
+  const { data: milestonesData } = useQuery({
+    queryKey: ['milestones', teamId],
+    queryFn: () => listMilestonesByTeamApi(teamId!, { excludeCancelled: true }),
+    enabled: !!teamId,
+  })
+
   const members = membersData || []
+  const milestones = milestonesData?.items || []
 
   // Build server-side filter
   const serverFilter: TableFilter = useMemo(() => {
@@ -81,12 +94,18 @@ export default function TableViewPage() {
     if (priorityFilter) filter.priority = priorityFilter
     if (statusFilter) filter.status = statusFilter
     if (assigneeFilter) filter.assigneeKey = assigneeFilter
+    if (milestoneFilter) filter.milestoneKey = milestoneFilter
+    if (sortBy) filter.sortBy = sortBy
+    if (sortOrder) filter.sortOrder = sortOrder
     return filter
   }, [
     typeFilter,
     priorityFilter,
     statusFilter,
     assigneeFilter,
+    milestoneFilter,
+    sortBy,
+    sortOrder,
     currentPage,
     pageSize,
   ])
@@ -136,6 +155,25 @@ export default function TableViewPage() {
     setStatusFilter(v === '_all' ? '' : v)
     setCurrentPage(1)
   }, [])
+  const handleMilestoneChange = useCallback((v: string) => {
+    setMilestoneFilter(v === '_all' ? '' : v)
+    setCurrentPage(1)
+  }, [])
+  const handleSortToggle = useCallback((field: string) => {
+    if (sortBy !== field) {
+      setSortBy(field)
+      setSortOrder('asc')
+    } else if (sortOrder === 'asc') {
+      setSortOrder('desc')
+    } else if (sortOrder === 'desc') {
+      setSortBy('')
+      setSortOrder('')
+    } else {
+      setSortBy(field)
+      setSortOrder('asc')
+    }
+    setCurrentPage(1)
+  }, [sortBy, sortOrder])
   const handlePageSizeChange = useCallback((size: number) => {
     setPageSize(size)
     setCurrentPage(1)
@@ -146,6 +184,9 @@ export default function TableViewPage() {
     setPriorityFilter('')
     setAssigneeFilter('')
     setStatusFilter('')
+    setMilestoneFilter('')
+    setSortBy('')
+    setSortOrder('')
     setCurrentPage(1)
   }, [])
 
@@ -167,6 +208,19 @@ export default function TableViewPage() {
     return `/items/${row.bizKey}`
   }
 
+  const getMilestoneDisplay = (row: TableRow): { text: string, className: string } => {
+    if (!row.milestoneKey && !row.milestoneName) {
+      return { text: '-', className: 'text-tertiary' }
+    }
+    if (row.milestoneName === '—' || row.milestoneName === '-') {
+      return { text: '—', className: 'text-tertiary' }
+    }
+    if (row.milestoneName) {
+      return { text: row.milestoneName, className: 'text-secondary' }
+    }
+    return { text: '-', className: 'text-tertiary' }
+  }
+
   // --- CSV export ---
 
   const handleExportCsv = async () => {
@@ -177,6 +231,7 @@ export default function TableViewPage() {
       if (priorityFilter) exportFilter.priority = priorityFilter
       if (statusFilter) exportFilter.status = statusFilter
       if (assigneeFilter) exportFilter.assigneeKey = assigneeFilter
+      if (milestoneFilter) exportFilter.milestoneKey = milestoneFilter
 
       const blob = await exportTableCsvApi(teamId, exportFilter)
       const url = URL.createObjectURL(blob)
@@ -265,6 +320,23 @@ export default function TableViewPage() {
               </SelectContent>
             </Select>
             <Select
+              value={milestoneFilter || '_all'}
+              onValueChange={handleMilestoneChange}
+            >
+              <SelectTrigger className="w-30" data-testid="milestone-filter">
+                <SelectValue placeholder="里程碑：全部" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">里程碑：全部</SelectItem>
+                <SelectItem value="unassigned">未分配</SelectItem>
+                {milestones.map((ms) => (
+                  <SelectItem key={ms.bizKey} value={ms.bizKey}>
+                    {ms.milestoneName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
               value={statusFilter || '_all'}
               onValueChange={handleStatusChange}
             >
@@ -319,6 +391,23 @@ export default function TableViewPage() {
                       <TableHead>类型</TableHead>
                       <TableHead>编号</TableHead>
                       <TableHead>标题</TableHead>
+                      <TableHead className="w-32">
+                        <button
+                          data-testid="sort-milestoneName"
+                          data-sort-order={sortBy === 'milestoneName' ? sortOrder : 'none'}
+                          className="inline-flex items-center gap-1 hover:text-primary-600"
+                          onClick={() => handleSortToggle('milestoneName')}
+                        >
+                          里程碑
+                          {sortBy !== 'milestoneName' || !sortOrder ? (
+                            <ChevronsUpDown className="w-3 h-3 text-tertiary" />
+                          ) : sortOrder === 'asc' ? (
+                            <ArrowUp className="w-3 h-3" />
+                          ) : (
+                            <ArrowDown className="w-3 h-3" />
+                          )}
+                        </button>
+                      </TableHead>
                       <TableHead>优先级</TableHead>
                       <TableHead>负责人</TableHead>
                       <TableHead>进度</TableHead>
@@ -328,70 +417,78 @@ export default function TableViewPage() {
                     </TableRowComp>
                   </TableHeader>
                   <TableBody>
-                    {filteredItems.map((row) => (
-                      <TableRowComp key={`${row.type}-${row.bizKey}`}>
-                        <TableCell>
-                          <span
-                            className={
-                              row.type === 'main'
-                                ? 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-blue-50 text-blue-700'
-                                : 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-bg-alt text-secondary'
-                            }
-                          >
-                            {row.type === 'main' ? '主事项' : '子事项'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-mono text-xs">{row.code}</span>
-                        </TableCell>
-                        <TableCell>
-                          <Link
-                            to={getItemLink(row)}
-                            className="font-medium text-primary-600 hover:text-primary-700 hover:underline"
-                          >
-                            {row.title}
-                          </Link>
-                        </TableCell>
-                        <TableCell>
-                          <PriorityBadge priority={row.priority} />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1.5">
-                            <UserAvatar name={row.assigneeName} size="sm" />
-                            <span className="text-[13px]">
-                              {row.assigneeName || '-'}
+                    {filteredItems.map((row) => {
+                      const milestoneDisplay = getMilestoneDisplay(row)
+                      return (
+                        <TableRowComp key={`${row.type}-${row.bizKey}`}>
+                          <TableCell>
+                            <span
+                              className={
+                                row.type === 'main'
+                                  ? 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-blue-50 text-blue-700'
+                                  : 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-bg-alt text-secondary'
+                              }
+                            >
+                              {row.type === 'main' ? '主事项' : '子事项'}
                             </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <ProgressBar
-                            value={row.completion}
-                            size="sm"
-                            showPercentage
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge status={row.itemStatus} />
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            data-testid={`expected-date-${row.bizKey}`}
-                            className={
-                              isItemOverdue(row.expectedEndDate, row.itemStatus)
-                                ? 'text-error text-xs'
-                                : 'text-xs'
-                            }
-                          >
-                            {formatDate(row.expectedEndDate)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-xs">
-                            {formatDate(row.actualEndDate)}
-                          </span>
-                        </TableCell>
-                      </TableRowComp>
-                    ))}
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-mono text-xs">{row.code}</span>
+                          </TableCell>
+                          <TableCell>
+                            <Link
+                              to={getItemLink(row)}
+                              className="font-medium text-primary-600 hover:text-primary-700 hover:underline"
+                            >
+                              {row.title}
+                            </Link>
+                          </TableCell>
+                          <TableCell>
+                            <span className={`text-[13px] ${milestoneDisplay.className}`}>
+                              {milestoneDisplay.text}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <PriorityBadge priority={row.priority} />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5">
+                              <UserAvatar name={row.assigneeName} size="sm" />
+                              <span className="text-[13px]">
+                                {row.assigneeName || '-'}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <ProgressBar
+                              value={row.completion}
+                              size="sm"
+                              showPercentage
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={row.itemStatus} />
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              data-testid={`expected-date-${row.bizKey}`}
+                              className={
+                                isItemOverdue(row.expectedEndDate, row.itemStatus)
+                                  ? 'text-error text-xs'
+                                  : 'text-xs'
+                              }
+                            >
+                              {formatDate(row.expectedEndDate)}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-xs">
+                              {formatDate(row.actualEndDate)}
+                            </span>
+                          </TableCell>
+                        </TableRowComp>
+                      )
+                    })}
                   </TableBody>
                 </Table>
               </div>

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -66,13 +67,22 @@ logging:
 }
 
 func TestRun_FailsWhenAssetsInvalid(t *testing.T) {
-	// dist/index.html is embedded, so ValidateAssets passes. The next early-exit
-	// is the schema migration: the temp config dir has no migrations/ folder, so
-	// run() returns a "migration error: ..." before starting the server.
+	// devMode=false triggers ValidateAssets first. When dist/index.html exists
+	// (local dev), ValidateAssets passes and run() falls through to schema
+	// migration. The temp config dir has no migrations/ folder, so run() returns
+	// a "migration error: ..." before starting the server.
 	path := writeTestConfig(t)
 	err := run(path, false)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "migration error:")
+	// The error may be from ValidateAssets ("startup:") or migration ("migration error:"),
+	// depending on whether dist/index.html is embedded.
+	errMsg := err.Error()
+	if !assert.True(t,
+		strings.Contains(errMsg, "startup:") || strings.Contains(errMsg, "migration error:"),
+		"expected startup or migration error, got: %v", err,
+	) {
+		t.Logf("actual error: %v", err)
+	}
 }
 
 func TestRun_LoadsConfigFromFile(t *testing.T) {
@@ -192,7 +202,7 @@ func TestRun_WiredRouterHealthCheck(t *testing.T) {
 		RoleRepo: gormrepo.NewGormRoleRepo(db),
 		Auth:     handler.NewAuthHandler(authSvc),
 		Team:     handler.NewTeamHandler(&handler.StubTeamSvc{}, &handler.StubRouterRepoUser{}),
-		MainItem: handler.NewMainItemHandler(&handler.StubMainItemSvc{}, &handler.StubRouterRepoUser{}, &handler.StubRouterRepoSubItem{}),
+		MainItem: handler.NewMainItemHandler(&handler.StubMainItemSvc{}, &handler.StubRouterRepoUser{}, &handler.StubRouterRepoSubItem{}, &handler.StubRouterRepoMilestone{}),
 		SubItem:  handler.NewSubItemHandler(&handler.StubSubItemSvc{}, &handler.StubMainItemSvc{}),
 		Progress: handler.NewProgressHandler(&handler.StubProgressSvc{}, &handler.StubRouterRepoUser{}, &handler.StubSubItemSvc{}),
 		ItemPool: handler.NewItemPoolHandler(&handler.StubItemPoolSvc{}, &handler.StubRouterRepoUser{}, &handler.StubRouterRepoMainItem{}),

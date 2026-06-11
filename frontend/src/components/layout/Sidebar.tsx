@@ -9,6 +9,7 @@ import {
   Users,
   LogOut,
   Shield,
+  Milestone,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useTeamStore } from '@/store/team'
@@ -24,6 +25,7 @@ import {
 const businessItems = [
   { key: '/items', label: '事项清单', icon: LayoutGrid },
   { key: '/item-pool', label: '待办事项', icon: Inbox },
+  { key: '/milestones', label: '里程碑图', icon: Milestone },
   { key: '/weekly', label: '每周进展', icon: Calendar },
   {
     key: '/gantt',

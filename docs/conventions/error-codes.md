@@ -49,6 +49,14 @@ All API error codes follow `UPPER_SNAKE_CASE`, mapped to specific HTTP status co
 | CANNOT_ASSIGN_PM_ROLE | 422 | Use transfer PM to change team PM |
 | BAD_REQUEST (ErrTargetClosed) | 400 | Cannot move sub-item to a closed/completed main item |
 | BAD_REQUEST (ErrSameMainItem) | 400 | Cannot move sub-item to its current parent main item |
+| MAP_IS_TERMINAL | 400 | MilestoneMap is terminal, cannot create/modify milestones |
+| DUPLICATE_NAME | 409 | Duplicate milestone name within same map |
+| BAD_REQUEST (ErrMilestoneHasNonTerminalItems) | 400 | Milestone has non-terminal items, cannot complete |
+| BAD_REQUEST (ErrMapHasNonTerminalMilestones) | 400 | Map has non-terminal milestones, cannot complete |
+| BAD_REQUEST (ErrTerminalItemCannotMove) | 400 | Terminal item cannot change milestone |
+| BAD_REQUEST (ErrTerminalMilestoneCannotReceive) | 400 | Terminal milestone cannot receive items |
+| BAD_REQUEST (ErrMapCannotDelete) | 400 | Map status does not allow deletion |
+| BAD_REQUEST (ErrMilestoneCannotDelete) | 400 | Milestone status does not allow deletion |
 
 ## Adding New Error Codes
 

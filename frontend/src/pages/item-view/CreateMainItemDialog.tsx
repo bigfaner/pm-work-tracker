@@ -4,6 +4,7 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
+  SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
@@ -26,6 +27,7 @@ export interface CreateMainItemFormState {
   assigneeKey: string
   startDate: string
   expectedEndDate: string
+  milestoneKey: string
 }
 
 interface CreateMainItemDialogProps {
@@ -38,6 +40,10 @@ interface CreateMainItemDialogProps {
   members: { userKey: string, displayName: string }[]
   onSubmit: () => void
   isPending: boolean
+  /** Optional milestone list for milestone selector */
+  milestones?: { bizKey: string, milestoneName: string }[]
+  /** When true, the milestone selector is disabled (quick-add mode) */
+  milestoneLocked?: boolean
 }
 
 export default function CreateMainItemDialog({
@@ -48,6 +54,8 @@ export default function CreateMainItemDialog({
   members,
   onSubmit,
   isPending,
+  milestones,
+  milestoneLocked,
 }: CreateMainItemDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -129,6 +137,35 @@ export default function CreateMainItemDialog({
               />
             </div>
           </div>
+          {milestones && milestones.length > 0 && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-primary mb-1">
+                绑定里程碑
+              </label>
+              <Select
+                value={form.milestoneKey || '__none__'}
+                onValueChange={(v) =>
+                  onFormChange((f) => ({
+                    ...f,
+                    milestoneKey: v === '__none__' ? '' : v,
+                  }))
+                }
+                disabled={milestoneLocked}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="选择里程碑（可选）" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">不绑定</SelectItem>
+                  {milestones.map((m) => (
+                    <SelectItem key={m.bizKey} value={m.bizKey}>
+                      {m.milestoneName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="mt-4">
             <label className="block text-sm font-medium text-primary mb-1">
               描述

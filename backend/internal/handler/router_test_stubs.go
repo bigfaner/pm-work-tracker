@@ -420,6 +420,57 @@ func (s *StubRouterRepoSubItem) NextSubCode(_ context.Context, _ int64) (string,
 
 var _ repository.SubItemRepo = (*StubRouterRepoSubItem)(nil)
 
+// StubRouterRepoMilestone is a stub implementation of repository.MilestoneRepo for testing.
+type StubRouterRepoMilestone struct{}
+
+// Create is a stub for repository.MilestoneRepo.Create.
+func (s *StubRouterRepoMilestone) Create(_ context.Context, _ *model.Milestone) error { return nil }
+
+// FindByID is a stub for repository.MilestoneRepo.FindByID.
+func (s *StubRouterRepoMilestone) FindByID(_ context.Context, _ uint) (*model.Milestone, error) {
+	return nil, nil
+}
+
+// FindByBizKey is a stub for repository.MilestoneRepo.FindByBizKey.
+func (s *StubRouterRepoMilestone) FindByBizKey(_ context.Context, _ int64) (*model.Milestone, error) {
+	return nil, nil
+}
+
+// FindBatchByBizKeys is a stub for repository.MilestoneRepo.FindBatchByBizKeys.
+func (s *StubRouterRepoMilestone) FindBatchByBizKeys(_ context.Context, _ []int64) (map[int64]*model.Milestone, error) {
+	return nil, nil
+}
+
+// Update is a stub for repository.MilestoneRepo.Update.
+func (s *StubRouterRepoMilestone) Update(_ context.Context, _ *model.Milestone, _ map[string]interface{}) error {
+	return nil
+}
+
+// ListByMap is a stub for repository.MilestoneRepo.ListByMap.
+func (s *StubRouterRepoMilestone) ListByMap(_ context.Context, _ int64) ([]model.Milestone, error) {
+	return nil, nil
+}
+
+// ListByTeam is a stub for repository.MilestoneRepo.ListByTeam.
+func (s *StubRouterRepoMilestone) ListByTeam(_ context.Context, _ int64, _ dto.MilestoneTeamFilter) ([]model.Milestone, error) {
+	return nil, nil
+}
+
+// SoftDelete is a stub for repository.MilestoneRepo.SoftDelete.
+func (s *StubRouterRepoMilestone) SoftDelete(_ context.Context, _ uint) error { return nil }
+
+// SoftDeleteByMap is a stub for repository.MilestoneRepo.SoftDeleteByMap.
+func (s *StubRouterRepoMilestone) SoftDeleteByMap(_ context.Context, _ int64) error {
+	return nil
+}
+
+// ExistsByNameAndMap is a stub for repository.MilestoneRepo.ExistsByNameAndMap.
+func (s *StubRouterRepoMilestone) ExistsByNameAndMap(_ context.Context, _ int64, _ string, _ *uint) (bool, error) {
+	return false, nil
+}
+
+var _ repository.MilestoneRepo = (*StubRouterRepoMilestone)(nil)
+
 // StubRouterRepoMainItem is a stub implementation of repository.MainItemRepo for testing.
 type StubRouterRepoMainItem struct{}
 
@@ -481,6 +532,26 @@ func (s *StubRouterRepoMainItem) SoftDelete(_ context.Context, _ uint) error { r
 
 // CascadeSoftDelete is a stub for repository.MainItemRepo.CascadeSoftDelete.
 func (s *StubRouterRepoMainItem) CascadeSoftDelete(_ context.Context, _ uint, _ []uint, _ []model.StatusHistory) error {
+	return nil
+}
+
+// FindByMilestoneKey is a stub for repository.MainItemRepo.FindByMilestoneKey.
+func (s *StubRouterRepoMainItem) FindByMilestoneKey(_ context.Context, _ int64) ([]model.MainItem, error) {
+	return nil, nil
+}
+
+// CountByMilestoneKey is a stub for repository.MainItemRepo.CountByMilestoneKey.
+func (s *StubRouterRepoMainItem) CountByMilestoneKey(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
+
+// ClearMilestoneKeyByMilestone is a stub for repository.MainItemRepo.ClearMilestoneKeyByMilestone.
+func (s *StubRouterRepoMainItem) ClearMilestoneKeyByMilestone(_ context.Context, _ int64) error {
+	return nil
+}
+
+// ClearMilestoneKeyByMap is a stub for repository.MainItemRepo.ClearMilestoneKeyByMap.
+func (s *StubRouterRepoMainItem) ClearMilestoneKeyByMap(_ context.Context, _ []int64) error {
 	return nil
 }
 
@@ -550,3 +621,98 @@ func (s *StubProgressSvc) GetByBizKey(_ context.Context, _ int64) (*model.Progre
 }
 
 var _ service.ProgressService = (*StubProgressSvc)(nil)
+
+// StubMilestoneMapSvc is a stub implementation of service.MilestoneMapService for testing.
+type StubMilestoneMapSvc struct{}
+
+// Create is a stub for service.MilestoneMapService.Create.
+func (s *StubMilestoneMapSvc) Create(_ context.Context, _, _ int64, _ dto.MilestoneMapCreateReq) (*model.MilestoneMap, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// Update is a stub for service.MilestoneMapService.Update.
+func (s *StubMilestoneMapSvc) Update(_ context.Context, _ int64, _ uint, _ dto.MilestoneMapUpdateReq) error {
+	return fmt.Errorf("stub: not implemented")
+}
+
+// Get is a stub for service.MilestoneMapService.Get.
+func (s *StubMilestoneMapSvc) Get(_ context.Context, _ uint) (*model.MilestoneMap, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// GetByBizKey is a stub for service.MilestoneMapService.GetByBizKey.
+func (s *StubMilestoneMapSvc) GetByBizKey(_ context.Context, _ int64) (*model.MilestoneMap, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// List is a stub for service.MilestoneMapService.List.
+func (s *StubMilestoneMapSvc) List(_ context.Context, _ int64, _ dto.MilestoneMapFilter, _ dto.Pagination) (*dto.PageResult[model.MilestoneMap], error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// Delete is a stub for service.MilestoneMapService.Delete.
+func (s *StubMilestoneMapSvc) Delete(_ context.Context, _ int64, _ uint) error {
+	return fmt.Errorf("stub: not implemented")
+}
+
+// ChangeStatus is a stub for service.MilestoneMapService.ChangeStatus.
+func (s *StubMilestoneMapSvc) ChangeStatus(_ context.Context, _ int64, _ uint, _ string) (*model.MilestoneMap, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// AvailableTransitions is a stub for service.MilestoneMapService.AvailableTransitions.
+func (s *StubMilestoneMapSvc) AvailableTransitions(_ context.Context, _ int64, _ uint) ([]string, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+var _ service.MilestoneMapService = (*StubMilestoneMapSvc)(nil)
+
+// StubMilestoneSvc is a stub implementation of service.MilestoneService for testing.
+type StubMilestoneSvc struct{}
+
+// Create is a stub for service.MilestoneService.Create.
+func (s *StubMilestoneSvc) Create(_ context.Context, _, _ int64, _ dto.MilestoneCreateReq) (*model.Milestone, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// Update is a stub for service.MilestoneService.Update.
+func (s *StubMilestoneSvc) Update(_ context.Context, _ int64, _ uint, _ dto.MilestoneUpdateReq) error {
+	return fmt.Errorf("stub: not implemented")
+}
+
+// Get is a stub for service.MilestoneService.Get.
+func (s *StubMilestoneSvc) Get(_ context.Context, _ uint) (*model.Milestone, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// GetByBizKey is a stub for service.MilestoneService.GetByBizKey.
+func (s *StubMilestoneSvc) GetByBizKey(_ context.Context, _ int64) (*model.Milestone, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// ListByMap is a stub for service.MilestoneService.ListByMap.
+func (s *StubMilestoneSvc) ListByMap(_ context.Context, _ int64) ([]model.Milestone, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// ListByTeam is a stub for service.MilestoneService.ListByTeam.
+func (s *StubMilestoneSvc) ListByTeam(_ context.Context, _ int64, _ dto.MilestoneTeamFilter) ([]model.Milestone, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// Delete is a stub for service.MilestoneService.Delete.
+func (s *StubMilestoneSvc) Delete(_ context.Context, _ int64, _ uint) error {
+	return fmt.Errorf("stub: not implemented")
+}
+
+// ChangeStatus is a stub for service.MilestoneService.ChangeStatus.
+func (s *StubMilestoneSvc) ChangeStatus(_ context.Context, _ int64, _ uint, _ string) (*model.Milestone, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+// AvailableTransitions is a stub for service.MilestoneService.AvailableTransitions.
+func (s *StubMilestoneSvc) AvailableTransitions(_ context.Context, _ int64, _ uint) ([]string, error) {
+	return nil, fmt.Errorf("stub: not implemented")
+}
+
+var _ service.MilestoneService = (*StubMilestoneSvc)(nil)

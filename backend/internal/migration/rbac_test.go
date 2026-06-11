@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg/permissions"
 	"pm-work-tracker/backend/internal/pkg/snowflake"
 )
 
@@ -105,10 +106,10 @@ func TestMigrateToRBAC_PresetRolesSeeded(t *testing.T) {
 	assert.True(t, superadmin.IsPreset)
 	assert.Equal(t, uint(1), superadmin.ID)
 
-	// superadmin should have all 31 permission codes
+	// superadmin should have all permission codes
 	count, err := CountPermissionsForRole(db, superadmin.BizKey)
 	require.NoError(t, err)
-	assert.Equal(t, int64(31), count, "superadmin should have all 31 permission codes")
+	assert.Equal(t, int64(permissions.TotalCodeCount()), count, "superadmin should have all permission codes")
 
 	// Check pm role
 	var pm model.Role
@@ -369,7 +370,7 @@ func TestMigrateToRBAC_SuperadminHasAllPermissionCodes(t *testing.T) {
 	require.NoError(t, db.Where("role_name = ?", "superadmin").First(&superadminRole).Error)
 	count, err := CountPermissionsForRole(db, superadminRole.BizKey)
 	require.NoError(t, err)
-	assert.Equal(t, int64(31), count, "superadmin should have all 31 permission codes in role_permissions")
+	assert.Equal(t, int64(permissions.TotalCodeCount()), count, "superadmin should have all permission codes in role_permissions")
 }
 
 func TestMigrateToRBAC_MemberHasExactCodes(t *testing.T) {

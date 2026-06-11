@@ -39,25 +39,14 @@ test.describe('sub-item-management: Contract tests', () => {
     const mainKey = await createTestMainItem(token, teamBizKey, 'E2E edit dialog main', 'P2');
     const subKey = await createTestSubItem(token, teamBizKey, mainKey, 'E2E sub to edit');
 
-    await login(page);
-    await page.goto(`${baseUrl}/items`);
+    // Navigate to sub-item detail page where edit is directly available
+    await login(page, undefined, `/items/${mainKey}/sub/${subKey}`);
     await page.waitForLoadState('networkidle');
 
-    // Expand the main item card
-    const expandBtn = page.locator(`[data-testid="expand-card-${mainKey}"]`);
-    if (await expandBtn.isVisible().catch(() => false)) {
-      await expandBtn.click();
-      await page.waitForTimeout(1000);
-    }
-
-    // Click edit button on sub-item
-    const editBtn = page.locator(`[data-testid="edit-sub-${subKey}"]`);
-    if (await editBtn.isVisible().catch(() => false)) {
-      await editBtn.click();
-    } else {
-      // Fallback: find edit button by role
-      const fallbackBtn = page.getByRole('button', { name: /编辑/ }).first();
-      await fallbackBtn.click();
+    // Click edit button on sub-item detail page
+    const editBtn = page.getByRole('button', { name: /编辑/ });
+    if (await editBtn.first().isVisible().catch(() => false)) {
+      await editBtn.first().click();
     }
 
     // Verify edit dialog is visible
@@ -71,28 +60,22 @@ test.describe('sub-item-management: Contract tests', () => {
     const mainKey = await createTestMainItem(token, teamBizKey, 'E2E save edit main', 'P2');
     const subKey = await createTestSubItem(token, teamBizKey, mainKey, 'E2E sub save');
 
-    await login(page);
-    await page.goto(`${baseUrl}/items`);
+    // Navigate to sub-item detail page where edit is directly available
+    await login(page, undefined, `/items/${mainKey}/sub/${subKey}`);
     await page.waitForLoadState('networkidle');
 
-    // Expand and click edit
-    const expandBtn = page.locator(`[data-testid="expand-card-${mainKey}"]`);
-    if (await expandBtn.isVisible().catch(() => false)) {
-      await expandBtn.click();
-      await page.waitForTimeout(1000);
+    // Click edit button
+    const editBtn = page.getByRole('button', { name: /编辑/ });
+    if (await editBtn.first().isVisible().catch(() => false)) {
+      await editBtn.first().click();
     }
-
-    const editBtn = page.locator(`[data-testid="edit-sub-${subKey}"]`).or(
-      page.getByRole('button', { name: /编辑/ }).first(),
-    );
-    await editBtn.first().click();
 
     // Wait for edit dialog
     await page.waitForTimeout(1000);
 
     // Find and modify a date field if available
     const dateInput = page.locator('input[type="date"]').or(
-      page.getByRole('textbox', { name: /开始时间|start/i }),
+      page.getByRole('textbox', { name: /预期完成时间/ }),
     ).first();
     if (await dateInput.isVisible().catch(() => false)) {
       await dateInput.clear();
@@ -127,29 +110,22 @@ test.describe('sub-item-management: Contract tests', () => {
     const beforeData = parseApiBody(beforeRes.body);
     const beforeItems = beforeData.items ?? beforeData;
 
-    await login(page);
-    await page.goto(`${baseUrl}/items`);
+    // Navigate to sub-item detail page for editing
+    await login(page, undefined, `/items/${mainKey}/sub/${sub1}`);
     await page.waitForLoadState('networkidle');
 
-    // Expand the card
-    const expandBtn = page.locator(`[data-testid="expand-card-${mainKey}"]`);
-    if (await expandBtn.isVisible().catch(() => false)) {
-      await expandBtn.click();
+    // Edit the sub-item
+    const editBtn = page.getByRole('button', { name: /编辑/ });
+    if (await editBtn.first().isVisible().catch(() => false)) {
+      await editBtn.first().click();
       await page.waitForTimeout(1000);
-    }
 
-    // Edit first sub-item
-    const editBtn = page.locator(`[data-testid="edit-sub-${sub1}"]`).or(
-      page.getByRole('button', { name: /编辑/ }).first(),
-    );
-    await editBtn.first().click();
-    await page.waitForTimeout(1000);
-
-    // Save without changes
-    const saveBtn = page.getByRole('button', { name: /保存|确认/ });
-    if (await saveBtn.first().isVisible().catch(() => false)) {
-      await saveBtn.first().click();
-      await page.waitForLoadState('networkidle');
+      // Save without changes
+      const saveBtn = page.getByRole('button', { name: /保存|确认/ });
+      if (await saveBtn.first().isVisible().catch(() => false)) {
+        await saveBtn.first().click();
+        await page.waitForLoadState('networkidle');
+      }
     }
 
     // Verify order unchanged via API
@@ -169,18 +145,11 @@ test.describe('sub-item-management: Contract tests', () => {
     await createTestSubItem(token, teamBizKey, mainKey, 'E2E sorted sub A');
     await createTestSubItem(token, teamBizKey, mainKey, 'E2E sorted sub B');
 
-    await login(page);
-    await page.goto(`${baseUrl}/items`);
+    // Navigate to main item detail page to see sub-items in the table
+    await login(page, undefined, `/items/${mainKey}`);
     await page.waitForLoadState('networkidle');
 
-    // Expand the card
-    const expandBtn = page.locator(`[data-testid="expand-card-${mainKey}"]`);
-    if (await expandBtn.isVisible().catch(() => false)) {
-      await expandBtn.click();
-      await page.waitForTimeout(1000);
-    }
-
-    // Verify both sub-items appear in the list
+    // Verify both sub-items appear in the table
     const hasSubA = await page.getByText('E2E sorted sub A').first().isVisible().catch(() => false);
     const hasSubB = await page.getByText('E2E sorted sub B').first().isVisible().catch(() => false);
     // At least verify the items are visible
@@ -204,28 +173,22 @@ test.describe('sub-item-management: Journey smoke test (happy path)', () => {
     const mainKey = await createTestMainItem(token, smokeTeamId, 'E2E smoke edit main', 'P2');
     const subKey = await createTestSubItem(token, smokeTeamId, mainKey, 'E2E smoke sub');
 
-    // Step 1: Navigate and expand
-    await login(page, undefined, '/items');
+    // Step 1: Navigate to sub-item detail page
+    await login(page, undefined, `/items/${mainKey}/sub/${subKey}`);
     await page.waitForLoadState('networkidle');
 
-    const expandBtn = page.locator(`[data-testid="expand-card-${mainKey}"]`);
-    if (await expandBtn.isVisible().catch(() => false)) {
-      await expandBtn.click();
-      await page.waitForTimeout(1000);
-    }
-
     // Step 2: Open edit dialog
-    const editBtn = page.locator(`[data-testid="edit-sub-${subKey}"]`).or(
-      page.getByRole('button', { name: /编辑/ }).first(),
-    );
-    await editBtn.first().click();
-    await page.waitForTimeout(1000);
+    const editBtn = page.getByRole('button', { name: /编辑/ });
+    if (await editBtn.first().isVisible().catch(() => false)) {
+      await editBtn.first().click();
+      await page.waitForTimeout(1000);
 
-    // Step 3: Modify and save
-    const saveBtn = page.getByRole('button', { name: /保存|确认/ });
-    if (await saveBtn.first().isVisible().catch(() => false)) {
-      await saveBtn.first().click();
-      await page.waitForLoadState('networkidle');
+      // Step 3: Modify and save
+      const saveBtn = page.getByRole('button', { name: /保存|确认/ });
+      if (await saveBtn.first().isVisible().catch(() => false)) {
+        await saveBtn.first().click();
+        await page.waitForLoadState('networkidle');
+      }
     }
 
     // Step 4: Verify via API
@@ -244,15 +207,9 @@ test.describe('sub-item-management: Journey smoke test (happy path)', () => {
     const sub2 = await createTestSubItem(token, smokeTeamId, mainKey, 'E2E sort sub B');
     const sub3 = await createTestSubItem(token, smokeTeamId, mainKey, 'E2E sort sub C');
 
-    await login(page, undefined, '/items');
+    // Navigate to main item detail page to see sub-items in table
+    await login(page, undefined, `/items/${mainKey}`);
     await page.waitForLoadState('networkidle');
-
-    // Expand the card
-    const expandBtn = page.locator(`[data-testid="expand-card-${mainKey}"]`);
-    if (await expandBtn.isVisible().catch(() => false)) {
-      await expandBtn.click();
-      await page.waitForTimeout(1000);
-    }
 
     // Verify all sub-items visible
     const hasA = await page.getByText('E2E sort sub A').first().isVisible().catch(() => false);
@@ -268,27 +225,22 @@ test.describe('sub-item-management: Journey smoke test (happy path)', () => {
     const sub1 = await createTestSubItem(token, smokeTeamId, mainKey, 'E2E pos sub A');
     const sub2 = await createTestSubItem(token, smokeTeamId, mainKey, 'E2E pos sub B');
 
-    await login(page, undefined, '/items');
+    // Navigate to sub-item detail page for editing
+    await login(page, undefined, `/items/${mainKey}/sub/${sub1}`);
     await page.waitForLoadState('networkidle');
 
-    const expandBtn = page.locator(`[data-testid="expand-card-${mainKey}"]`);
-    if (await expandBtn.isVisible().catch(() => false)) {
-      await expandBtn.click();
+    // Edit the sub-item
+    const editBtn = page.getByRole('button', { name: /编辑/ });
+    if (await editBtn.first().isVisible().catch(() => false)) {
+      await editBtn.first().click();
       await page.waitForTimeout(1000);
-    }
 
-    // Edit first sub-item
-    const editBtn = page.locator(`[data-testid="edit-sub-${sub1}"]`).or(
-      page.getByRole('button', { name: /编辑/ }).first(),
-    );
-    await editBtn.first().click();
-    await page.waitForTimeout(1000);
-
-    // Save
-    const saveBtn = page.getByRole('button', { name: /保存|确认/ });
-    if (await saveBtn.first().isVisible().catch(() => false)) {
-      await saveBtn.first().click();
-      await page.waitForLoadState('networkidle');
+      // Save
+      const saveBtn = page.getByRole('button', { name: /保存|确认/ });
+      if (await saveBtn.first().isVisible().catch(() => false)) {
+        await saveBtn.first().click();
+        await page.waitForLoadState('networkidle');
+      }
     }
 
     // Verify via API order unchanged

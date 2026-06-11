@@ -102,31 +102,38 @@ func run(configPath string, devMode bool) error {
 	statusHistoryRepo := gormrepo.NewGormStatusHistoryRepo(db)
 	statusHistorySvc := service.NewStatusHistoryService(statusHistoryRepo)
 	mainItemSvc := service.NewMainItemService(mainItemRepo, subItemRepo, statusHistorySvc)
+	milestoneRepo := gormrepo.NewGormMilestoneRepo(db)
+	milestoneMapRepo := gormrepo.NewGormMilestoneMapRepo(db)
+	mainItemSvc = service.WithMilestoneRepos(mainItemSvc, milestoneRepo, milestoneMapRepo)
+	milestoneMapSvc := service.NewMilestoneMapService(milestoneMapRepo, milestoneRepo, mainItemRepo, db)
+	milestoneSvc := service.NewMilestoneService(milestoneRepo, milestoneMapRepo, mainItemRepo, db)
 	subItemSvc := service.NewSubItemService(subItemRepo, mainItemSvc, statusHistorySvc)
 	progressSvc := service.NewProgressService(progressRepo, subItemRepo, mainItemSvc, statusHistorySvc)
 	itemPoolSvc := service.NewItemPoolService(itemPoolRepo, subItemRepo, mainItemRepo, db)
-	viewSvc := service.NewViewService(mainItemRepo, subItemRepo, progressRepo, statusHistoryRepo)
+	viewSvc := service.WithViewMilestoneRepo(service.NewViewService(mainItemRepo, subItemRepo, progressRepo, statusHistoryRepo), milestoneRepo)
 	reportSvc := service.NewReportService(mainItemRepo, subItemRepo, progressRepo)
 	adminSvc := service.NewAdminService(userRepo, teamRepo)
 	roleSvc := service.NewRoleService(roleRepo, userRepo, teamRepo)
 
 	// 6. Init handlers
 	deps := &handler.Dependencies{
-		Config:     cfg,
-		TeamRepo:   teamRepo,
-		UserRepo:   userRepo,
-		RoleRepo:   roleRepo,
-		Auth:       handler.NewAuthHandler(authSvc),
-		Team:       handler.NewTeamHandler(teamSvc, userRepo),
-		MainItem:   handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo),
-		SubItem:    handler.NewSubItemHandler(subItemSvc, mainItemSvc),
-		Progress:   handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
-		ItemPool:   handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
-		View:       handler.NewViewHandler(viewSvc),
-		Report:     handler.NewReportHandler(reportSvc),
-		Admin:      handler.NewAdminHandler(adminSvc),
-		Role:       handler.NewRoleHandler(roleSvc),
-		Permission: handler.NewPermissionHandler(roleSvc),
+		Config:       cfg,
+		TeamRepo:     teamRepo,
+		UserRepo:     userRepo,
+		RoleRepo:     roleRepo,
+		Auth:         handler.NewAuthHandler(authSvc),
+		Team:         handler.NewTeamHandler(teamSvc, userRepo),
+		MainItem:     handler.NewMainItemHandler(mainItemSvc, userRepo, subItemRepo, milestoneRepo),
+		SubItem:      handler.NewSubItemHandler(subItemSvc, mainItemSvc),
+		Progress:     handler.NewProgressHandler(progressSvc, userRepo, subItemSvc),
+		ItemPool:     handler.NewItemPoolHandler(itemPoolSvc, userRepo, mainItemRepo),
+		View:         handler.NewViewHandler(viewSvc),
+		Report:       handler.NewReportHandler(reportSvc),
+		Admin:        handler.NewAdminHandler(adminSvc),
+		Role:         handler.NewRoleHandler(roleSvc),
+		Permission:   handler.NewPermissionHandler(roleSvc),
+		MilestoneMap: handler.NewMilestoneMapHandler(milestoneMapSvc, userRepo, milestoneRepo, mainItemRepo),
+		Milestone:    handler.NewMilestoneHandler(milestoneSvc, mainItemRepo),
 	}
 
 	// 7. Setup router

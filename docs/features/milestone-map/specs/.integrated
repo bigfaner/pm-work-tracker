@@ -1,0 +1,25 @@
+---
+feature: milestone-map
+integrated_at: 2026-06-08
+mode: non-interactive (auto-specs)
+---
+
+# Integration Marker
+
+This file marks that milestone-map specs have been consolidated into project-level directories.
+
+## Integrated Items
+
+| ID | Type | Target File |
+|----|------|-------------|
+| TECH-MS-001 | tech-spec | docs/conventions/performance-targets.md |
+| TECH-MS-002 | tech-spec | docs/conventions/data-model.md (DM-015) |
+| TECH-MS-003 | tech-spec | docs/conventions/data-model.md (DM-007 update) |
+
+## Already Consolidated (no action)
+
+- BIZ-milestone-001 through BIZ-milestone-006 in docs/business-rules/milestone-state-constraints.md
+- MilestoneMap/Milestone status machines in docs/conventions/status-machine.md
+- milestone:* permission codes in docs/conventions/permission-codes.md
+- SD-007/SD-008 in docs/conventions/soft-delete.md
+- Milestone error codes in docs/conventions/error-codes.md

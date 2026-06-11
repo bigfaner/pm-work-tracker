@@ -12,6 +12,7 @@ import (
 
 	"pm-work-tracker/backend/internal/dto"
 	"pm-work-tracker/backend/internal/model"
+	"pm-work-tracker/backend/internal/pkg"
 	apperrors "pm-work-tracker/backend/internal/pkg/errors"
 	"pm-work-tracker/backend/internal/pkg/snowflake"
 )
@@ -125,6 +126,19 @@ func (m *mockMainItemRepo) CascadeSoftDelete(_ context.Context, mainItemID uint,
 	return m.cascadeSoftDeleteErr
 }
 
+func (m *mockMainItemRepo) FindByMilestoneKey(_ context.Context, _ int64) ([]model.MainItem, error) {
+	return nil, nil
+}
+func (m *mockMainItemRepo) CountByMilestoneKey(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
+func (m *mockMainItemRepo) ClearMilestoneKeyByMilestone(_ context.Context, _ int64) error {
+	return nil
+}
+func (m *mockMainItemRepo) ClearMilestoneKeyByMap(_ context.Context, _ []int64) error {
+	return nil
+}
+
 type mockSubItemRepo struct {
 	subItems     []*model.SubItem
 	teamSubItems []model.SubItem
@@ -230,6 +244,36 @@ func TestMainItemCreate_RepoCreateError(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+func TestMainItemCreate_SetsMilestoneKey(t *testing.T) {
+	mainRepo := &mockMainItemRepo{nextCodeVal: "MI-0001"}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	msKey := "1234567890"
+	item, err := svc.Create(context.Background(), int64(1), 10, dto.MainItemCreateReq{
+		Title:        "Feature with milestone",
+		Priority:     "P1",
+		MilestoneKey: &msKey,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, item.MilestoneKey, "MilestoneKey should be set when provided in create request")
+	parsedKey, _ := pkg.ParseID(msKey)
+	assert.Equal(t, parsedKey, *item.MilestoneKey)
+}
+
+func TestMainItemCreate_NoMilestoneKey_Nil(t *testing.T) {
+	mainRepo := &mockMainItemRepo{nextCodeVal: "MI-0001"}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	item, err := svc.Create(context.Background(), int64(1), 10, dto.MainItemCreateReq{
+		Title:    "Feature without milestone",
+		Priority: "P1",
+	})
+	require.NoError(t, err)
+	assert.Nil(t, item.MilestoneKey, "MilestoneKey should be nil when not provided")
+}
+
 // Tests: Update
 // ---------------------------------------------------------------------------
 
@@ -1737,4 +1781,244 @@ func TestList_TerminalSort_NoTerminal_Unchanged(t *testing.T) {
 	assert.Equal(t, int64(1), result.Items[0].BizKey)
 	assert.Equal(t, int64(2), result.Items[1].BizKey)
 	assert.Equal(t, int64(3), result.Items[2].BizKey)
+}
+
+// ---------------------------------------------------------------------------
+// Tests: Milestone Binding Validation (BR-3, BR-5)
+// ---------------------------------------------------------------------------
+
+//nolint:misspell // "cancelled" is a domain status value per PRD/API contract, not a misspelling.
+func TestUpdate_MilestoneBinding_TerminalItemCannotMove_BR3(t *testing.T) {
+	// BR-3: terminal MI (completed/closed) cannot change milestone_key
+	tests := []struct {
+		name   string
+		status string
+	}{
+		{"completed", "completed"},
+		{"closed", "closed"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msKey := int64(500)
+			existing := &model.MainItem{
+				BaseModel:  model.BaseModel{ID: 1},
+				TeamKey:    1,
+				ItemStatus: tt.status,
+			}
+			mainRepo := &mockMainItemRepo{item: existing}
+			subRepo := &mockSubItemRepo{}
+			msRepo := &mockMilestoneRepo{
+				item: &model.Milestone{MilestoneStatus: "not_started"},
+			}
+			mapRepo := &mockMilestoneMapRepo{}
+			svc := NewMainItemService(mainRepo, subRepo, nil)
+			svc = WithMilestoneRepos(svc, msRepo, mapRepo)
+
+			err := svc.Update(context.Background(), 1, 1, dto.MainItemUpdateReq{
+				MilestoneKey: ptrStr(pkg.FormatID(msKey)),
+			})
+			assert.ErrorIs(t, err, apperrors.ErrTerminalItemCannotMove)
+		})
+	}
+}
+
+//nolint:misspell // "cancelled" is a domain status value per PRD/API contract, not a misspelling.
+func TestUpdate_MilestoneBinding_TerminalMilestoneCannotReceive_BR3(t *testing.T) {
+	// BR-3: target milestone in terminal state (cancelled) cannot receive MI
+	tests := []struct {
+		name   string
+		status string
+	}{
+		{"cancelled milestone", "cancelled"},
+		{"completed milestone", "completed"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msKey := int64(500)
+			existing := &model.MainItem{
+				BaseModel:  model.BaseModel{ID: 1},
+				TeamKey:    1,
+				ItemStatus: "progressing",
+			}
+			mainRepo := &mockMainItemRepo{item: existing}
+			subRepo := &mockSubItemRepo{}
+			msRepo := &mockMilestoneRepo{
+				item: &model.Milestone{
+					BaseModel:       model.BaseModel{BizKey: msKey},
+					MilestoneStatus: tt.status,
+					MilestoneMapKey: 100,
+				},
+			}
+			mapRepo := &mockMilestoneMapRepo{
+				item: &model.MilestoneMap{MapStatus: "executing"},
+			}
+			svc := NewMainItemService(mainRepo, subRepo, nil)
+			svc = WithMilestoneRepos(svc, msRepo, mapRepo)
+
+			err := svc.Update(context.Background(), 1, 1, dto.MainItemUpdateReq{
+				MilestoneKey: ptrStr(pkg.FormatID(msKey)),
+			})
+			assert.ErrorIs(t, err, apperrors.ErrTerminalMilestoneCannotReceive)
+		})
+	}
+}
+
+//nolint:misspell // "cancelled" is a domain status value per PRD/API contract, not a misspelling.
+func TestUpdate_MilestoneBinding_ValidationOrder_BR3(t *testing.T) {
+	// BR-3: check MI status first, then target milestone
+	// When MI is terminal AND target milestone is terminal, should return ErrTerminalItemCannotMove
+	msKey := int64(500)
+	existing := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamKey:    1,
+		ItemStatus: "completed", // terminal MI
+	}
+	mainRepo := &mockMainItemRepo{item: existing}
+	subRepo := &mockSubItemRepo{}
+	msRepo := &mockMilestoneRepo{
+		item: &model.Milestone{
+			MilestoneStatus: "cancelled", // terminal milestone
+		},
+	}
+	mapRepo := &mockMilestoneMapRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc = WithMilestoneRepos(svc, msRepo, mapRepo)
+
+	err := svc.Update(context.Background(), 1, 1, dto.MainItemUpdateReq{
+		MilestoneKey: ptrStr(pkg.FormatID(msKey)),
+	})
+	// Should hit terminal MI check first
+	assert.ErrorIs(t, err, apperrors.ErrTerminalItemCannotMove)
+}
+
+//nolint:misspell // "cancelled" is a domain status value per PRD/API contract, not a misspelling.
+func TestUpdate_MilestoneBinding_ParentMapTerminal_BR5(t *testing.T) {
+	// BR-5: parent milestone map in terminal state prevents milestone_key changes
+	tests := []struct {
+		name      string
+		mapStatus string
+	}{
+		{"completed map", "completed"},
+		{"cancelled map", "cancelled"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msKey := int64(500)
+			existing := &model.MainItem{
+				BaseModel:  model.BaseModel{ID: 1},
+				TeamKey:    1,
+				ItemStatus: "progressing",
+			}
+			mainRepo := &mockMainItemRepo{item: existing}
+			subRepo := &mockSubItemRepo{}
+			msRepo := &mockMilestoneRepo{
+				item: &model.Milestone{
+					BaseModel:       model.BaseModel{BizKey: msKey},
+					MilestoneStatus: "in_progress", // non-terminal milestone
+					MilestoneMapKey: 100,
+				},
+			}
+			mapRepo := &mockMilestoneMapRepo{
+				item: &model.MilestoneMap{MapStatus: tt.mapStatus},
+			}
+			svc := NewMainItemService(mainRepo, subRepo, nil)
+			svc = WithMilestoneRepos(svc, msRepo, mapRepo)
+
+			err := svc.Update(context.Background(), 1, 1, dto.MainItemUpdateReq{
+				MilestoneKey: ptrStr(pkg.FormatID(msKey)),
+			})
+			assert.ErrorIs(t, err, apperrors.ErrMapIsTerminal)
+		})
+	}
+}
+
+func TestUpdate_MilestoneBinding_Success_BindToMilestone(t *testing.T) {
+	// Successful bind: non-terminal MI + non-terminal milestone + non-terminal map
+	msKey := int64(500)
+	existing := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamKey:    1,
+		ItemStatus: "progressing",
+	}
+	mainRepo := &mockMainItemRepo{item: existing}
+	subRepo := &mockSubItemRepo{}
+	msRepo := &mockMilestoneRepo{
+		item: &model.Milestone{
+			BaseModel:       model.BaseModel{BizKey: msKey},
+			MilestoneStatus: "in_progress",
+			MilestoneMapKey: 100,
+		},
+	}
+	mapRepo := &mockMilestoneMapRepo{
+		item: &model.MilestoneMap{MapStatus: "executing"},
+	}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc = WithMilestoneRepos(svc, msRepo, mapRepo)
+
+	err := svc.Update(context.Background(), 1, 1, dto.MainItemUpdateReq{
+		MilestoneKey: ptrStr(pkg.FormatID(msKey)),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, msKey, mainRepo.updatedFields["milestone_key"])
+}
+
+func TestUpdate_MilestoneBinding_Success_Unbind(t *testing.T) {
+	// Unbind: set milestone_key to empty string
+	existing := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamKey:    1,
+		ItemStatus: "progressing",
+	}
+	mainRepo := &mockMainItemRepo{item: existing}
+	subRepo := &mockSubItemRepo{}
+	msRepo := &mockMilestoneRepo{}
+	mapRepo := &mockMilestoneMapRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc = WithMilestoneRepos(svc, msRepo, mapRepo)
+
+	err := svc.Update(context.Background(), 1, 1, dto.MainItemUpdateReq{
+		MilestoneKey: ptrStr(""),
+	})
+	require.NoError(t, err)
+	assert.Nil(t, mainRepo.updatedFields["milestone_key"])
+}
+
+func TestUpdate_MilestoneBinding_NoMilestoneKey_NoValidation(t *testing.T) {
+	// When MilestoneKey is nil in the request, no milestone validation happens
+	// (existing behavior: just update other fields)
+	existing := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamKey:    1,
+		ItemStatus: "completed", // terminal, but MilestoneKey is nil so no validation
+	}
+	mainRepo := &mockMainItemRepo{item: existing}
+	subRepo := &mockSubItemRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+
+	err := svc.Update(context.Background(), 1, 1, dto.MainItemUpdateReq{
+		Title: ptrStr("New Title"),
+	})
+	// Should fail on ErrTerminalMainItem (existing guard), NOT milestone-related error
+	assert.ErrorIs(t, err, apperrors.ErrTerminalMainItem)
+}
+
+func TestUpdate_MilestoneBinding_TargetMilestoneNotFound(t *testing.T) {
+	// Target milestone not found -> should return not-found error
+	msKey := int64(500)
+	existing := &model.MainItem{
+		BaseModel:  model.BaseModel{ID: 1},
+		TeamKey:    1,
+		ItemStatus: "progressing",
+	}
+	mainRepo := &mockMainItemRepo{item: existing}
+	subRepo := &mockSubItemRepo{}
+	msRepo := &mockMilestoneRepo{findByBizErr: gorm.ErrRecordNotFound}
+	mapRepo := &mockMilestoneMapRepo{}
+	svc := NewMainItemService(mainRepo, subRepo, nil)
+	svc = WithMilestoneRepos(svc, msRepo, mapRepo)
+
+	err := svc.Update(context.Background(), 1, 1, dto.MainItemUpdateReq{
+		MilestoneKey: ptrStr(pkg.FormatID(msKey)),
+	})
+	assert.ErrorIs(t, err, apperrors.ErrNotFound)
 }

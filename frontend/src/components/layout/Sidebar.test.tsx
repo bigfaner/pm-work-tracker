@@ -130,14 +130,14 @@ describe('Sidebar', () => {
     expect(useAuthStore.getState().isAuthenticated).toBe(false)
   })
 
-  it('renders 5 standard nav items for regular user without view:gantt', () => {
+  it('renders 6 standard nav items for regular user without view:gantt', () => {
     renderWithRouter()
     const navLinks = screen.getAllByRole('link')
-    // 5 standard (no gantt): items, weekly, item-pool, report, teams
-    expect(navLinks.length).toBe(5)
+    // 6 standard (no gantt): items, weekly, item-pool, report, teams, milestones
+    expect(navLinks.length).toBe(6)
   })
 
-  it('renders 8 nav items (including user mgmt and roles) for user with all permissions', () => {
+  it('renders 9 nav items (including user mgmt and roles) for user with all permissions', () => {
     useAuthStore.getState().clearAuth()
     useAuthStore.getState().setAuth('token', superAdminUser)
     useAuthStore.getState().setPermissions({
@@ -145,6 +145,6 @@ describe('Sidebar', () => {
     })
     renderWithRouter()
     const navLinks = screen.getAllByRole('link')
-    expect(navLinks.length).toBe(8)
+    expect(navLinks.length).toBe(9)
   })
 })

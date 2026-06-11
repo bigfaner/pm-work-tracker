@@ -32,10 +32,11 @@ type viewService struct {
 	progressRepo      repository.ProgressRepo
 	statusHistoryRepo repository.StatusHistoryRepo
 	userRepo          repository.UserRepo
+	milestoneRepo     repository.MilestoneRepo
 }
 
-// NewViewService creates a new ViewService. userRepo is optional; when provided,
-// it enables assignee name resolution in table view and weekly comparison.
+// NewViewService creates a new ViewService. userRepo and milestoneRepo are optional; when provided,
+// they enable assignee name resolution and milestone enrichment in table view.
 func NewViewService(mainItemRepo repository.MainItemRepo, subItemRepo repository.SubItemRepo, progressRepo repository.ProgressRepo, statusHistoryRepo repository.StatusHistoryRepo, userRepo ...repository.UserRepo) ViewService {
 	var ur repository.UserRepo
 	if len(userRepo) > 0 {
@@ -48,6 +49,14 @@ func NewViewService(mainItemRepo repository.MainItemRepo, subItemRepo repository
 		statusHistoryRepo: statusHistoryRepo,
 		userRepo:          ur,
 	}
+}
+
+// WithViewMilestoneRepo attaches milestone repo to the view service.
+// Used for functional-option style DI when milestone features are enabled.
+func WithViewMilestoneRepo(svc ViewService, milestoneRepo repository.MilestoneRepo) ViewService {
+	s := svc.(*viewService)
+	s.milestoneRepo = milestoneRepo
+	return s
 }
 
 func (s *viewService) WeeklyComparison(ctx context.Context, teamBizKey int64, weekStart time.Time) (*dto.WeeklyViewResponse, error) {
@@ -715,6 +724,12 @@ func (s *viewService) TableView(ctx context.Context, teamBizKey int64, filter dt
 	// Resolve assignee names
 	resolveAssigneeNames(ctx, rows, s.userRepo)
 
+	// Enrich milestone names
+	resolveMilestoneNames(ctx, rows, s.milestoneRepo)
+
+	// Filter by milestone key
+	rows = filterByMilestone(rows, filter)
+
 	// Sort
 	sortTableRows(rows, filter)
 
@@ -832,6 +847,7 @@ func mainItemToRow(mi model.MainItem) dto.TableRow {
 		Title:           mi.Title,
 		Priority:        mi.Priority,
 		AssigneeID:      pkg.FormatIDPtr(mi.AssigneeKey),
+		MilestoneKey:    pkg.FormatIDPtr(mi.MilestoneKey),
 		Status:          mi.ItemStatus,
 		Completion:      mi.Completion,
 		ExpectedEndDate: dates.FormatTimePtr(mi.ExpectedEndDate),
@@ -920,6 +936,8 @@ func sortTableRows(rows []dto.TableRow, filter dto.TableFilter) {
 				pj = 99
 			}
 			return compareWithOrder(pi, pj, filter.SortOrder)
+		case "milestoneName":
+			return compareMilestoneNameWithOrder(rows[i].MilestoneName, rows[j].MilestoneName, filter.SortOrder)
 		default:
 			// Default sort: priority DESC, then expectedEndDate ASC
 			pi, oki := priorityOrder[rows[i].Priority]
@@ -1014,4 +1032,85 @@ func resolveAssigneeNames(ctx context.Context, rows []dto.TableRow, userRepo rep
 			}
 		}
 	}
+}
+
+// resolveMilestoneNames batch-loads milestone names for table rows.
+// Soft-deleted milestones produce MilestoneName = "—".
+func resolveMilestoneNames(ctx context.Context, rows []dto.TableRow, milestoneRepo repository.MilestoneRepo) {
+	if milestoneRepo == nil {
+		return
+	}
+	seen := make(map[int64]struct{})
+	var bizKeys []int64
+	for _, row := range rows {
+		if row.MilestoneKey != nil {
+			if id, err := pkg.ParseID(*row.MilestoneKey); err == nil {
+				if _, ok := seen[id]; !ok {
+					seen[id] = struct{}{}
+					bizKeys = append(bizKeys, id)
+				}
+			}
+		}
+	}
+	if len(bizKeys) == 0 {
+		return
+	}
+	milestones, err := milestoneRepo.FindBatchByBizKeys(ctx, bizKeys)
+	if err != nil {
+		return
+	}
+	for i := range rows {
+		if rows[i].MilestoneKey != nil {
+			if id, err := pkg.ParseID(*rows[i].MilestoneKey); err == nil {
+				if ms, ok := milestones[id]; ok {
+					rows[i].MilestoneName = ms.MilestoneName
+				} else {
+					rows[i].MilestoneName = "—"
+				}
+			}
+		}
+	}
+}
+
+// filterByMilestone filters rows by milestone key.
+// "unassigned" keeps rows with no milestone; any other value filters by exact match.
+func filterByMilestone(rows []dto.TableRow, filter dto.TableFilter) []dto.TableRow {
+	if filter.MilestoneKey == nil || *filter.MilestoneKey == "" || *filter.MilestoneKey == "all" {
+		return rows
+	}
+	filtered := make([]dto.TableRow, 0, len(rows))
+	if *filter.MilestoneKey == "unassigned" {
+		for _, row := range rows {
+			if row.MilestoneKey == nil {
+				filtered = append(filtered, row)
+			}
+		}
+	} else {
+		for _, row := range rows {
+			if row.MilestoneKey != nil && *row.MilestoneKey == *filter.MilestoneKey {
+				filtered = append(filtered, row)
+			}
+		}
+	}
+	return filtered
+}
+
+// compareMilestoneNameWithOrder compares milestone names for sorting.
+// Empty names (unassigned) always sort to the end regardless of order direction.
+func compareMilestoneNameWithOrder(a, b, order string) bool {
+	aEmpty := a == "" || a == "-"
+	bEmpty := b == "" || b == "-"
+	if aEmpty && bEmpty {
+		return false
+	}
+	if aEmpty {
+		return false // unassigned goes last
+	}
+	if bEmpty {
+		return true // unassigned goes last
+	}
+	if order == "desc" {
+		return a > b
+	}
+	return a < b
 }

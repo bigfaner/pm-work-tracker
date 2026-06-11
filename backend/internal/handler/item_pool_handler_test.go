@@ -1025,6 +1025,18 @@ func (t *trackingMainItemRepo) SoftDelete(_ context.Context, _ uint) error { ret
 func (t *trackingMainItemRepo) CascadeSoftDelete(_ context.Context, _ uint, _ []uint, _ []model.StatusHistory) error {
 	return nil
 }
+func (t *trackingMainItemRepo) FindByMilestoneKey(_ context.Context, _ int64) ([]model.MainItem, error) {
+	return nil, nil
+}
+func (t *trackingMainItemRepo) CountByMilestoneKey(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
+func (t *trackingMainItemRepo) ClearMilestoneKeyByMilestone(_ context.Context, _ int64) error {
+	return nil
+}
+func (t *trackingMainItemRepo) ClearMilestoneKeyByMap(_ context.Context, _ []int64) error {
+	return nil
+}
 
 // compile-time check
 var _ repository.MainItemRepo = (*trackingMainItemRepo)(nil)
@@ -1065,6 +1077,18 @@ func (m *mockMainItemRepoForPool) FindByBizKey(_ context.Context, _ int64) (*mod
 }
 func (m *mockMainItemRepoForPool) SoftDelete(_ context.Context, _ uint) error { return nil }
 func (m *mockMainItemRepoForPool) CascadeSoftDelete(_ context.Context, _ uint, _ []uint, _ []model.StatusHistory) error {
+	return nil
+}
+func (m *mockMainItemRepoForPool) FindByMilestoneKey(_ context.Context, _ int64) ([]model.MainItem, error) {
+	return nil, nil
+}
+func (m *mockMainItemRepoForPool) CountByMilestoneKey(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
+func (m *mockMainItemRepoForPool) ClearMilestoneKeyByMilestone(_ context.Context, _ int64) error {
+	return nil
+}
+func (m *mockMainItemRepoForPool) ClearMilestoneKeyByMap(_ context.Context, _ []int64) error {
 	return nil
 }
 

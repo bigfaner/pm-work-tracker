@@ -132,22 +132,19 @@ test.describe('item-deletion: Contract tests', () => {
 
     await login(page);
     await page.goto(`${baseUrl}/items/${mainKey}/sub/${subKey}`);
+    await page.waitForURL(/\/items\/.*\/sub\//, { timeout: 10000 });
     await page.waitForLoadState('networkidle');
 
-    // Find and click delete button on sub-item detail
-    const deleteBtn = page.getByRole('button', { name: /删除/ });
-    if (await deleteBtn.first().isVisible().catch(() => false)) {
-      await deleteBtn.first().click();
+    // Find and click delete button on sub-item detail page
+    await expect(page.getByRole('button', { name: /删除/ }).first()).toBeVisible({ timeout: 10000 });
+    await page.getByRole('button', { name: /删除/ }).first().click();
 
-      // Confirm
-      const confirmBtn = page.getByRole('button', { name: /确认|确定|删除/ }).and(
-        page.getByRole('button').filter({ hasNotText: /取消/ }),
-      );
-      if (await confirmBtn.first().isVisible().catch(() => false)) {
-        await confirmBtn.first().click();
-        await page.waitForLoadState('networkidle');
-      }
-    }
+    // Confirm in the dialog
+    const dialog = page.getByRole('dialog', { name: /删除子事项/ });
+    await expect(dialog).toBeVisible({ timeout: 5000 });
+    const deleteResponse = page.waitForResponse(resp => resp.url().includes('/sub-items/') && resp.request().method() === 'DELETE', { timeout: 10000 });
+    await dialog.getByRole('button', { name: '删除' }).click();
+    await deleteResponse;
 
     // Verify sub-item deleted via API
     const verifyRes = await curl('GET', `${API}/teams/${teamBizKey}/main-items/${mainKey}/sub-items`, {
@@ -170,17 +167,18 @@ test.describe('item-deletion: Contract tests', () => {
 
     await login(page);
     await page.goto(`${baseUrl}/items/${mainKey}/sub/${subKey}`);
+    await page.waitForURL(/\/items\/.*\/sub\//, { timeout: 10000 });
     await page.waitForLoadState('networkidle');
 
     // Find and click delete
     const deleteBtn = page.getByRole('button', { name: /删除/ });
     if (await deleteBtn.first().isVisible().catch(() => false)) {
       await deleteBtn.first().click();
-      const confirmBtn = page.getByRole('button', { name: /确认|确定|删除/ }).and(
-        page.getByRole('button').filter({ hasNotText: /取消/ }),
-      );
-      if (await confirmBtn.first().isVisible().catch(() => false)) {
-        await confirmBtn.first().click();
+
+      const dialog = page.locator('[role="dialog"]');
+      const confirmBtn = dialog.getByRole('button', { name: /删除/ });
+      if (await confirmBtn.isVisible().catch(() => false)) {
+        await confirmBtn.click();
         await page.waitForLoadState('networkidle');
       }
     }

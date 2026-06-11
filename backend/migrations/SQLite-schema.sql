@@ -79,7 +79,8 @@ CREATE TABLE IF NOT EXISTS pmw_main_items (
     is_key_item       INTEGER       NOT NULL DEFAULT 0,  -- 是否关键事项：0=否，1=是
     delay_count       INTEGER       NOT NULL DEFAULT 0,  -- 延期次数
     archived_at       DATETIME,                          -- 归档时间，NULL 表示未归档
-    sub_item_seq      INTEGER       NOT NULL DEFAULT 0   -- 子事项序号计数器，用于生成子事项编号
+    sub_item_seq      INTEGER       NOT NULL DEFAULT 0,  -- 子事项序号计数器，用于生成子事项编号
+    milestone_key     INTEGER                            -- 所属里程碑 biz_key，NULL 表示未分配
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uk_main_items_biz_key ON pmw_main_items(biz_key);
 CREATE UNIQUE INDEX IF NOT EXISTS uk_main_items_team_code_deleted ON pmw_main_items(team_key, item_code, deleted_flag, deleted_time);
@@ -89,6 +90,7 @@ CREATE INDEX IF NOT EXISTS idx_main_items_expected_end_date ON pmw_main_items(ex
 CREATE INDEX IF NOT EXISTS idx_main_items_team_status ON pmw_main_items(team_key, item_status);
 CREATE INDEX IF NOT EXISTS idx_main_items_team_priority ON pmw_main_items(team_key, priority);
 CREATE INDEX IF NOT EXISTS idx_main_items_deleted_flag ON pmw_main_items(deleted_flag);
+CREATE INDEX IF NOT EXISTS idx_main_items_milestone_key ON pmw_main_items(milestone_key);
 
 -- pmw_sub_items
 CREATE TABLE IF NOT EXISTS pmw_sub_items (
@@ -208,3 +210,43 @@ CREATE TABLE IF NOT EXISTS pmw_status_histories (
     create_time  DATETIME     NOT NULL DEFAULT (datetime('now')) -- 记录创建时间
 );
 CREATE INDEX IF NOT EXISTS idx_status_histories_item ON pmw_status_histories(item_type, item_key);
+
+-- pmw_milestone_maps
+CREATE TABLE IF NOT EXISTS pmw_milestone_maps (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT, -- 自增主键
+    biz_key         INTEGER       NOT NULL,            -- 业务唯一键
+    create_time     DATETIME      NOT NULL DEFAULT (datetime('now')), -- 创建时间
+    db_update_time  DATETIME      NOT NULL DEFAULT (datetime('now')), -- 数据库更新时间
+    deleted_flag    INTEGER       NOT NULL DEFAULT 0,  -- 软删标志：0=正常，1=已删除
+    deleted_time    DATETIME      NOT NULL DEFAULT '1970-01-01 08:00:00', -- 软删时间，未删除时为固定占位值
+    team_key        INTEGER       NOT NULL,            -- 所属团队 biz_key
+    creator_key     INTEGER       NOT NULL,            -- 创建者 biz_key
+    assignee_key    INTEGER       NOT NULL,            -- 负责人 biz_key
+    map_name        VARCHAR(100)  NOT NULL,            -- 里程碑图名称
+    map_desc        VARCHAR(2000) NOT NULL DEFAULT '', -- 里程碑图描述
+    map_status      VARCHAR(20)   NOT NULL DEFAULT 'planning', -- 状态：planning=规划中，reviewed=已评审，ready=待实施，executing=实施中，completed=已完成，cancelled=已取消
+    plan_start_date DATETIME,                          -- 计划开始时间
+    expected_end_date   DATETIME                           -- 计划完成时间
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_milestone_maps_biz_key ON pmw_milestone_maps(biz_key);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_milestone_maps_team_name_deleted ON pmw_milestone_maps(team_key, map_name, deleted_flag, deleted_time);
+CREATE INDEX IF NOT EXISTS idx_milestone_maps_team_status ON pmw_milestone_maps(team_key, map_status);
+
+-- pmw_milestones
+CREATE TABLE IF NOT EXISTS pmw_milestones (
+    id                      INTEGER PRIMARY KEY AUTOINCREMENT, -- 自增主键
+    biz_key                 INTEGER       NOT NULL,            -- 业务唯一键
+    create_time             DATETIME      NOT NULL DEFAULT (datetime('now')), -- 创建时间
+    db_update_time          DATETIME      NOT NULL DEFAULT (datetime('now')), -- 数据库更新时间
+    deleted_flag            INTEGER       NOT NULL DEFAULT 0,  -- 软删标志：0=正常，1=已删除
+    deleted_time            DATETIME      NOT NULL DEFAULT '1970-01-01 08:00:00', -- 软删时间，未删除时为固定占位值
+    team_key                INTEGER       NOT NULL,            -- 所属团队 biz_key
+    milestone_map_key       INTEGER       NOT NULL,            -- 所属里程碑图 biz_key
+    milestone_name          VARCHAR(100)  NOT NULL,            -- 里程碑名称
+    milestone_desc          VARCHAR(2000) NOT NULL DEFAULT '', -- 里程碑描述
+    expected_end_date       DATETIME,                          -- 计划完成时间
+    milestone_status        VARCHAR(20)   NOT NULL DEFAULT 'not_started' -- 状态：not_started=未开始，in_progress=进行中，completed=已完成，cancelled=已取消
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_milestones_biz_key ON pmw_milestones(biz_key);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_milestones_map_name_deleted ON pmw_milestones(milestone_map_key, milestone_name, deleted_flag, deleted_time);
+CREATE INDEX IF NOT EXISTS idx_milestones_team_status ON pmw_milestones(team_key, milestone_status);

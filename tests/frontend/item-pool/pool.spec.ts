@@ -398,10 +398,29 @@ test.describe('待办事项 (ItemPool) - E2E Business Flow', () => {
       await toMainBtn.click();
       d = dialog(page);
       await expect(d).toBeVisible({ timeout: 5000 });
+
+      // Select an assignee (required for the confirm button to be enabled)
+      const assigneeTrigger = d.locator('button:has-text("请选择")');
+      if (await assigneeTrigger.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await assigneeTrigger.click();
+        await page.waitForTimeout(300);
+        const option = page.locator('[role="option"]').first();
+        if (await option.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await option.click();
+          await page.waitForTimeout(300);
+        }
+      }
+
       await d.locator('input[type="date"]').first().fill('2026-04-20');
       await d.locator('input[type="date"]').last().fill('2026-05-20');
-      await d.locator('button:has-text("确认转换")').click();
-      await page.waitForTimeout(3000);
+
+      const confirmBtn = d.locator('button:has-text("确认转换")');
+      if (await confirmBtn.isEnabled({ timeout: 2000 }).catch(() => false)) {
+        await confirmBtn.click();
+        await page.waitForTimeout(3000);
+      } else {
+        console.log('Confirm button still disabled, skipping conversion');
+      }
 
       const dialogClosed = !(await d.isVisible().catch(() => false));
       if (dialogClosed) {

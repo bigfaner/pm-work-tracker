@@ -75,13 +75,13 @@ test.describe('sub-item-move: Contract tests', () => {
       await moveBtn.first().click();
       await page.waitForTimeout(1000);
 
-      // Select target in the dropdown
-      const selectTrigger = page.getByRole('combobox').or(page.locator('[data-testid]')).first();
+      // Select target using the SelectTrigger button (contains "选择目标主事项" placeholder)
+      const selectTrigger = page.locator('button').filter({ hasText: /选择目标|选择/ }).first();
       if (await selectTrigger.isVisible().catch(() => false)) {
-        await selectTrigger.click();
+        await selectTrigger.click({ force: true });
         await page.waitForTimeout(500);
 
-        // Select the target option
+        // Select the target option by text
         const targetOption = page.getByRole('option').filter({ hasText: /E2E move tgt B/ }).first();
         if (await targetOption.isVisible().catch(() => false)) {
           await targetOption.click();
@@ -170,9 +170,10 @@ test.describe('sub-item-move: Contract tests', () => {
       await page.waitForTimeout(1000);
 
       // The current parent should not be in the selector options
-      const selectTrigger = page.getByRole('combobox').first();
+      // Use SelectTrigger button instead of combobox role
+      const selectTrigger = page.locator('button').filter({ hasText: /选择目标|选择/ }).first();
       if (await selectTrigger.isVisible().catch(() => false)) {
-        await selectTrigger.click();
+        await selectTrigger.click({ force: true });
         await page.waitForTimeout(500);
 
         // Current parent should be excluded from options
@@ -213,10 +214,10 @@ test.describe('sub-item-move: Journey smoke test (happy path)', () => {
     await moveBtn.first().click();
     await page.waitForTimeout(1000);
 
-    // Step 2: Select target
-    const selectTrigger = page.getByRole('combobox').first();
+    // Step 2: Select target using SelectTrigger button
+    const selectTrigger = page.locator('button').filter({ hasText: /选择目标|选择/ }).first();
     if (await selectTrigger.isVisible().catch(() => false)) {
-      await selectTrigger.click();
+      await selectTrigger.click({ force: true });
       await page.waitForTimeout(500);
 
       const targetOption = page.getByRole('option').filter({ hasText: /E2E smoke tgt B/ }).first();

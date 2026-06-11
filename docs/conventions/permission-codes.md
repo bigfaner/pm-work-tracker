@@ -54,7 +54,7 @@ All permission codes follow `resource:action` format. Codes are defined in Go co
 
 **Why:** Codes couple to code logic (handler routing, middleware checks). Allowing runtime creation of new codes would create orphaned codes with no enforcement. PRD explicitly scopes out custom permission codes.
 
-### Complete Permission Code List (31 codes)
+### Complete Permission Code List (35 codes)
 
 | Resource | Code | Description |
 |----------|------|-------------|
@@ -85,6 +85,10 @@ All permission codes follow `resource:action` format. Codes are defined in Go co
 | view | `view:weekly` | 查看周视图 |
 | view | `view:gantt` | 查看甘特图 |
 | view | `view:table` | 查看表格视图 |
+| milestone | `milestone:create` | 创建里程碑图和里程碑 |
+| milestone | `milestone:read` | 查看里程碑图和里程碑 |
+| milestone | `milestone:update` | 编辑里程碑图/里程碑信息及状态切换 |
+| milestone | `milestone:delete` | 删除里程碑图和里程碑 |
 | report | `report:export` | 导出周报 |
 | user | `user:read` | 查看用户信息 |
 | user | `user:update` | 编辑用户信息 |

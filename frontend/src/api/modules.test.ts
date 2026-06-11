@@ -9,6 +9,7 @@ import * as itemPoolApi from './itemPool'
 import * as viewsApi from './views'
 import * as reportsApi from './reports'
 import * as adminApi from './admin'
+import * as milestonesApi from './milestones'
 
 vi.mock('./client', () => ({
   default: {
@@ -463,6 +464,152 @@ describe('API modules', () => {
       mockClient.delete.mockResolvedValue(undefined)
       await adminApi.deleteUserApi('user-1')
       expect(mockClient.delete).toHaveBeenCalledWith('/admin/users/user-1')
+    })
+  })
+
+  describe('milestones — MilestoneMap', () => {
+    it('createMilestoneMapApi should POST /teams/:teamBizKey/milestone-maps', async () => {
+      mockClient.post.mockResolvedValue({})
+      await milestonesApi.createMilestoneMapApi('team-bk', {
+        mapName: 'MVP',
+        assigneeBizKey: 'user-1',
+      })
+      expect(mockClient.post).toHaveBeenCalledWith(
+        '/teams/team-bk/milestone-maps',
+        { mapName: 'MVP', assigneeBizKey: 'user-1' },
+      )
+    })
+
+    it('listMilestoneMapsApi should GET /teams/:teamBizKey/milestone-maps with params', async () => {
+      mockClient.get.mockResolvedValue({ items: [], total: 0, page: 1, size: 20 })
+      await milestonesApi.listMilestoneMapsApi('team-bk', { status: 'executing' })
+      expect(mockClient.get).toHaveBeenCalledWith('/teams/team-bk/milestone-maps', {
+        params: { status: 'executing' },
+      })
+    })
+
+    it('getMilestoneMapApi should GET /teams/:teamBizKey/milestone-maps/:mapId', async () => {
+      mockClient.get.mockResolvedValue({})
+      await milestonesApi.getMilestoneMapApi('team-bk', 'map-1')
+      expect(mockClient.get).toHaveBeenCalledWith(
+        '/teams/team-bk/milestone-maps/map-1',
+      )
+    })
+
+    it('updateMilestoneMapApi should PUT /teams/:teamBizKey/milestone-maps/:mapId', async () => {
+      mockClient.put.mockResolvedValue({})
+      await milestonesApi.updateMilestoneMapApi('team-bk', 'map-1', {
+        mapName: 'Updated',
+      })
+      expect(mockClient.put).toHaveBeenCalledWith(
+        '/teams/team-bk/milestone-maps/map-1',
+        { mapName: 'Updated' },
+      )
+    })
+
+    it('deleteMilestoneMapApi should DELETE /teams/:teamBizKey/milestone-maps/:mapId', async () => {
+      mockClient.delete.mockResolvedValue({ message: 'deleted' })
+      await milestonesApi.deleteMilestoneMapApi('team-bk', 'map-1')
+      expect(mockClient.delete).toHaveBeenCalledWith(
+        '/teams/team-bk/milestone-maps/map-1',
+      )
+    })
+
+    it('changeMilestoneMapStatusApi should PUT /teams/:teamBizKey/milestone-maps/:mapId/status', async () => {
+      mockClient.put.mockResolvedValue({})
+      await milestonesApi.changeMilestoneMapStatusApi('team-bk', 'map-1', {
+        status: 'executing',
+      })
+      expect(mockClient.put).toHaveBeenCalledWith(
+        '/teams/team-bk/milestone-maps/map-1/status',
+        { status: 'executing' },
+      )
+    })
+
+    it('getMilestoneMapTransitionsApi should GET available-transitions and unwrap', async () => {
+      mockClient.get.mockResolvedValue({ transitions: ['reviewed', 'cancelled'] })
+      const result = await milestonesApi.getMilestoneMapTransitionsApi('team-bk', 'map-1')
+      expect(mockClient.get).toHaveBeenCalledWith(
+        '/teams/team-bk/milestone-maps/map-1/available-transitions',
+      )
+      expect(result).toEqual(['reviewed', 'cancelled'])
+    })
+  })
+
+  describe('milestones — Milestone', () => {
+    it('createMilestoneApi should POST /teams/:teamBizKey/milestone-maps/:mapId/milestones', async () => {
+      mockClient.post.mockResolvedValue({})
+      await milestonesApi.createMilestoneApi('team-bk', 'map-1', {
+        milestoneName: 'M1',
+        expectedEndDate: '2026-06-30',
+      })
+      expect(mockClient.post).toHaveBeenCalledWith(
+        '/teams/team-bk/milestone-maps/map-1/milestones',
+        { milestoneName: 'M1', expectedEndDate: '2026-06-30' },
+      )
+    })
+
+    it('listMilestonesByMapApi should GET milestones by map', async () => {
+      mockClient.get.mockResolvedValue({ items: [], total: 0 })
+      await milestonesApi.listMilestonesByMapApi('team-bk', 'map-1')
+      expect(mockClient.get).toHaveBeenCalledWith(
+        '/teams/team-bk/milestone-maps/map-1/milestones',
+      )
+    })
+
+    it('listMilestonesByTeamApi should GET /teams/:teamBizKey/milestones with params', async () => {
+      mockClient.get.mockResolvedValue({ items: [], total: 0 })
+      await milestonesApi.listMilestonesByTeamApi('team-bk', { excludeCancelled: true })
+      expect(mockClient.get).toHaveBeenCalledWith('/teams/team-bk/milestones', {
+        params: { excludeCancelled: true },
+      })
+    })
+
+    it('getMilestoneApi should GET /teams/:teamBizKey/milestones/:milestoneId', async () => {
+      mockClient.get.mockResolvedValue({})
+      await milestonesApi.getMilestoneApi('team-bk', 'ms-1')
+      expect(mockClient.get).toHaveBeenCalledWith(
+        '/teams/team-bk/milestones/ms-1',
+      )
+    })
+
+    it('updateMilestoneApi should PUT /teams/:teamBizKey/milestones/:milestoneId', async () => {
+      mockClient.put.mockResolvedValue({})
+      await milestonesApi.updateMilestoneApi('team-bk', 'ms-1', {
+        milestoneName: 'Updated',
+      })
+      expect(mockClient.put).toHaveBeenCalledWith(
+        '/teams/team-bk/milestones/ms-1',
+        { milestoneName: 'Updated' },
+      )
+    })
+
+    it('deleteMilestoneApi should DELETE /teams/:teamBizKey/milestones/:milestoneId', async () => {
+      mockClient.delete.mockResolvedValue({ message: 'deleted' })
+      await milestonesApi.deleteMilestoneApi('team-bk', 'ms-1')
+      expect(mockClient.delete).toHaveBeenCalledWith(
+        '/teams/team-bk/milestones/ms-1',
+      )
+    })
+
+    it('changeMilestoneStatusApi should PUT /teams/:teamBizKey/milestones/:milestoneId/status', async () => {
+      mockClient.put.mockResolvedValue({})
+      await milestonesApi.changeMilestoneStatusApi('team-bk', 'ms-1', {
+        status: 'in_progress',
+      })
+      expect(mockClient.put).toHaveBeenCalledWith(
+        '/teams/team-bk/milestones/ms-1/status',
+        { status: 'in_progress' },
+      )
+    })
+
+    it('getMilestoneTransitionsApi should GET available-transitions and unwrap', async () => {
+      mockClient.get.mockResolvedValue({ transitions: ['in_progress', 'cancelled'] })
+      const result = await milestonesApi.getMilestoneTransitionsApi('team-bk', 'ms-1')
+      expect(mockClient.get).toHaveBeenCalledWith(
+        '/teams/team-bk/milestones/ms-1/available-transitions',
+      )
+      expect(result).toEqual(['in_progress', 'cancelled'])
     })
   })
 })

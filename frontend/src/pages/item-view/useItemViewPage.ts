@@ -18,6 +18,7 @@ import {
 } from '@/api/subItems'
 import { appendProgressApi } from '@/api/progress'
 import { listMembersApi } from '@/api/teams'
+import { listMilestonesByTeamApi } from '@/api/milestones'
 import { MainItem, SubItem } from '@/types'
 import { formatDate } from '@/lib/format'
 import { useMemberName } from '@/hooks/useMemberName'
@@ -43,6 +44,7 @@ export function useItemViewPage(teamId: string | null) {
   const [searchText, setSearchText] = useState('')
   const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [assigneeFilter, setAssigneeFilter] = useState<string>('')
+  const [milestoneFilter, setMilestoneFilter] = useState<string>('')
 
   // Summary view: infinite scroll
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -64,6 +66,7 @@ export function useItemViewPage(teamId: string | null) {
     assigneeKey: '',
     startDate: today(),
     expectedEndDate: '',
+    milestoneKey: '',
   })
 
   const [createSubOpen, setCreateSubOpen] = useState(false)
@@ -87,6 +90,7 @@ export function useItemViewPage(teamId: string | null) {
     startDate: '',
     expectedEndDate: '',
     description: '',
+    milestoneKey: '',
   })
 
   const [appendOpen, setAppendOpen] = useState(false)
@@ -137,6 +141,15 @@ export function useItemViewPage(teamId: string | null) {
     enabled: !!teamId,
   })
 
+  const { data: milestonesData, isError: milestonesError } = useQuery({
+    queryKey: ['milestones-team', teamId],
+    queryFn: () =>
+      listMilestonesByTeamApi(teamId!, { excludeCancelled: true }).then(
+        (res) => res.items,
+      ),
+    enabled: !!teamId,
+  })
+
   const {
     data: itemsInfiniteData,
     isLoading,
@@ -145,13 +158,20 @@ export function useItemViewPage(teamId: string | null) {
     fetchNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['mainItems', teamId, statusFilter, assigneeFilter],
+    queryKey: [
+      'mainItems',
+      teamId,
+      statusFilter,
+      assigneeFilter,
+      milestoneFilter,
+    ],
     queryFn: ({ pageParam }) =>
       listMainItemsApi(teamId!, {
         page: pageParam as number,
         pageSize: DEFAULT_PAGE_SIZE,
         ...(statusFilter.length > 0 && { status: statusFilter }),
         ...(assigneeFilter && { assigneeKey: assigneeFilter }),
+        ...(milestoneFilter && { milestoneKey: milestoneFilter }),
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
@@ -260,6 +280,7 @@ export function useItemViewPage(teamId: string | null) {
       assigneeKey: string
       startDate: string
       expectedEndDate: string
+      milestoneKey?: string
     }) => createMainItemApi(teamId!, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mainItems', teamId] })
@@ -271,6 +292,7 @@ export function useItemViewPage(teamId: string | null) {
         assigneeKey: '',
         startDate: today(),
         expectedEndDate: '',
+        milestoneKey: '',
       })
     },
   })
@@ -382,6 +404,7 @@ export function useItemViewPage(teamId: string | null) {
     setSearchText('')
     setStatusFilter([])
     setAssigneeFilter('')
+    setMilestoneFilter('')
   }, [])
 
   const handleRefresh = useCallback(() => {
@@ -405,6 +428,7 @@ export function useItemViewPage(teamId: string | null) {
       assigneeKey: createForm.assigneeKey,
       startDate: createForm.startDate,
       expectedEndDate: createForm.expectedEndDate,
+      ...(createForm.milestoneKey && { milestoneKey: createForm.milestoneKey }),
     })
   }, [createForm, createMutation])
 
@@ -440,6 +464,7 @@ export function useItemViewPage(teamId: string | null) {
       startDate: item.planStartDate || '',
       expectedEndDate: item.expectedEndDate || '',
       description: item.itemDesc || '',
+      milestoneKey: item.milestoneKey || '',
     })
     setEditOpen(true)
   }, [])
@@ -456,6 +481,9 @@ export function useItemViewPage(teamId: string | null) {
         expectedEndDate: editForm.expectedEndDate || null,
         actualEndDate: null,
         description: editForm.description,
+        ...(editForm.milestoneKey !== undefined && {
+          milestoneKey: editForm.milestoneKey || '',
+        }),
       },
     })
   }, [editForm, editTarget, updateMutation])
@@ -543,6 +571,8 @@ export function useItemViewPage(teamId: string | null) {
     setStatusFilter,
     assigneeFilter,
     setAssigneeFilter,
+    milestoneFilter,
+    setMilestoneFilter,
     sentinelRef,
     currentPage,
     setCurrentPage,
@@ -551,6 +581,8 @@ export function useItemViewPage(teamId: string | null) {
 
     // Data
     members,
+    milestones: milestonesData || [],
+    milestonesError,
     filteredItems,
     isLoading,
     isFetching,

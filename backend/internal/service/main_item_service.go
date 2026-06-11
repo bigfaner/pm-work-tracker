@@ -107,11 +107,22 @@ type mainItemService struct {
 	mainItemRepo     repository.MainItemRepo
 	subItemRepo      repository.SubItemRepo
 	statusHistorySvc StatusHistoryService
+	milestoneRepo    repository.MilestoneRepo
+	milestoneMapRepo repository.MilestoneMapRepo
 }
 
 // NewMainItemService creates a new MainItemService.
 func NewMainItemService(mainItemRepo repository.MainItemRepo, subItemRepo repository.SubItemRepo, statusHistorySvc StatusHistoryService) MainItemService {
 	return &mainItemService{mainItemRepo: mainItemRepo, subItemRepo: subItemRepo, statusHistorySvc: statusHistorySvc}
+}
+
+// WithMilestoneRepos attaches milestone repos to the service.
+// Used for functional-option style DI when milestone features are enabled.
+func WithMilestoneRepos(svc MainItemService, msRepo repository.MilestoneRepo, mapRepo repository.MilestoneMapRepo) MainItemService {
+	s := svc.(*mainItemService)
+	s.milestoneRepo = msRepo
+	s.milestoneMapRepo = mapRepo
+	return s
 }
 
 func (s *mainItemService) Create(ctx context.Context, teamBizKey, pmBizKey int64, req dto.MainItemCreateReq) (*model.MainItem, error) {
@@ -137,6 +148,13 @@ func (s *mainItemService) Create(ctx context.Context, teamBizKey, pmBizKey int64
 		}(),
 		IsKeyItem:  req.IsKeyItem,
 		ItemStatus: "pending",
+		MilestoneKey: func() *int64 {
+			if req.MilestoneKey != nil && *req.MilestoneKey != "" {
+				v, _ := pkg.ParseID(*req.MilestoneKey)
+				return &v
+			}
+			return nil
+		}(),
 	}
 
 	if req.StartDate != nil {
@@ -167,11 +185,21 @@ func (s *mainItemService) Update(ctx context.Context, teamBizKey int64, itemID u
 	if item.TeamKey != teamBizKey {
 		return apperrors.ErrForbidden
 	}
+
+	fields := map[string]interface{}{}
+
+	// Milestone binding validation runs before the generic terminal check
+	// so that BR-3 returns the specific ErrTerminalItemCannotMove error.
+	if req.MilestoneKey != nil {
+		if err := s.validateMilestoneBinding(ctx, item, *req.MilestoneKey, fields); err != nil {
+			return err
+		}
+	}
+
+	// Generic terminal check for non-milestone fields
 	if status.IsMainTerminal(item.ItemStatus) {
 		return apperrors.ErrTerminalMainItem
 	}
-
-	fields := map[string]interface{}{}
 	if req.Title != nil {
 		fields["title"] = *req.Title
 	}
@@ -720,4 +748,50 @@ func sortTerminalItems(items []model.MainItem) {
 		}
 		return false // preserve original relative order within each group
 	})
+}
+
+// validateMilestoneBinding enforces BR-3 and BR-5 when MilestoneKey is modified.
+// It sets the "milestone_key" field in the fields map on success.
+func (s *mainItemService) validateMilestoneBinding(ctx context.Context, item *model.MainItem, milestoneKeyStr string, fields map[string]interface{}) error {
+	// Empty string means unbind — no validation needed, just clear the key
+	if milestoneKeyStr == "" {
+		fields["milestone_key"] = nil
+		return nil
+	}
+
+	// BR-3 check 1: terminal MI cannot change milestone_key
+	if status.IsMainTerminal(item.ItemStatus) {
+		return apperrors.ErrTerminalItemCannotMove
+	}
+
+	// Parse the target milestone bizKey
+	msBizKey, err := pkg.ParseID(milestoneKeyStr)
+	if err != nil {
+		return apperrors.ErrValidation
+	}
+
+	// Look up the target milestone
+	ms, err := s.milestoneRepo.FindByBizKey(ctx, msBizKey)
+	if err != nil {
+		return apperrors.MapNotFound(err, apperrors.ErrNotFound)
+	}
+
+	// BR-3 check 2: target milestone in terminal state cannot receive MI
+	if def, ok := status.GetMilestoneStatus(ms.MilestoneStatus); ok && def.Terminal {
+		return apperrors.ErrTerminalMilestoneCannotReceive
+	}
+
+	// BR-5: parent milestone map in terminal state prevents milestone_key changes
+	if s.milestoneMapRepo != nil {
+		mmap, err := s.milestoneMapRepo.FindByBizKey(ctx, ms.MilestoneMapKey)
+		if err != nil {
+			return apperrors.MapNotFound(err, apperrors.ErrNotFound)
+		}
+		if def, ok := status.GetMilestoneMapStatus(mmap.MapStatus); ok && def.Terminal {
+			return apperrors.ErrMapIsTerminal
+		}
+	}
+
+	fields["milestone_key"] = msBizKey
+	return nil
 }

@@ -17,6 +17,22 @@ export const SUB_ITEM_STATUSES = {
   closed: { name: '已关闭', variant: 'cancelled', terminal: true },
 } as const
 
+export const MILESTONE_MAP_STATUSES = {
+  planning: { name: '规划中', variant: 'planning', terminal: false },
+  reviewed: { name: '已评审', variant: 'on-hold', terminal: false },
+  ready: { name: '待实施', variant: 'pending', terminal: false },
+  executing: { name: '实施中', variant: 'in-progress', terminal: false },
+  completed: { name: '已完成', variant: 'completed', terminal: true },
+  cancelled: { name: '已取消', variant: 'cancelled', terminal: true },
+} as const
+
+export const MILESTONE_STATUSES = {
+  not_started: { name: '未开始', variant: 'planning', terminal: false },
+  in_progress: { name: '进行中', variant: 'in-progress', terminal: false },
+  completed: { name: '已完成', variant: 'completed', terminal: true },
+  cancelled: { name: '已取消', variant: 'cancelled', terminal: true },
+} as const
+
 /** Terminal status codes for main items */
 export const MAIN_TERMINAL_STATUSES = Object.entries(MAIN_ITEM_STATUSES)
   .filter(([, v]) => v.terminal)
@@ -30,19 +46,23 @@ export const SUB_TERMINAL_STATUSES = Object.entries(SUB_ITEM_STATUSES)
 /** English status codes for filter dropdowns (all main item statuses) */
 export const STATUS_OPTIONS = Object.keys(MAIN_ITEM_STATUSES)
 
-/** Lookup variant from either main or sub item status maps */
+/** Lookup variant from any status map */
 export function getStatusVariant(status: string): string {
   const def =
     (MAIN_ITEM_STATUSES as Record<string, { variant: string }>)[status] ||
-    (SUB_ITEM_STATUSES as Record<string, { variant: string }>)[status]
+    (SUB_ITEM_STATUSES as Record<string, { variant: string }>)[status] ||
+    (MILESTONE_MAP_STATUSES as Record<string, { variant: string }>)[status] ||
+    (MILESTONE_STATUSES as Record<string, { variant: string }>)[status]
   return def?.variant ?? 'default'
 }
 
-/** Lookup Chinese display name from either main or sub item status maps */
+/** Lookup Chinese display name from any status map */
 export function getStatusName(status: string): string | undefined {
   const def =
     (MAIN_ITEM_STATUSES as Record<string, { name: string }>)[status] ||
-    (SUB_ITEM_STATUSES as Record<string, { name: string }>)[status]
+    (SUB_ITEM_STATUSES as Record<string, { name: string }>)[status] ||
+    (MILESTONE_MAP_STATUSES as Record<string, { name: string }>)[status] ||
+    (MILESTONE_STATUSES as Record<string, { name: string }>)[status]
   return def?.name
 }
 
@@ -57,6 +77,10 @@ export function isOverdue(
     (MAIN_ITEM_STATUSES as Record<string, { terminal: boolean }>)[status]
       ?.terminal ||
     (SUB_ITEM_STATUSES as Record<string, { terminal: boolean }>)[status]
+      ?.terminal ||
+    (MILESTONE_MAP_STATUSES as Record<string, { terminal: boolean }>)[status]
+      ?.terminal ||
+    (MILESTONE_STATUSES as Record<string, { terminal: boolean }>)[status]
       ?.terminal
   if (isTerminal) return false
   // Compare date strings at day granularity to avoid time-of-day false positives

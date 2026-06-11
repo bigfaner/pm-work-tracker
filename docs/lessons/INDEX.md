@@ -16,8 +16,10 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | arch-button-icon-convention.md | Building action buttons — icon+text pattern |
 | arch-e2e-graduation-staging.md | Graduating e2e tests — directory reorganization |
 | arch-task-executor-missing-e2e-step.md | Task executor flow — missing e2e verification step |
+| arch-quality-gate-surface-scoping.md | Quality gate — must scope verification to task's surface-key, not all surfaces |
 | arch-task-failure-recovery-loop.md | Task executor encounters test failures — must block + spawn fix tasks |
 | arch-ui-integration-gap.md | Component task breakdown — must include page wiring task |
+| arch-web-only-journey-coverage-gap.md | gen-contracts skips web-only journeys → zero E2E scripts for 71% of journeys |
 
 ### debug- — Debugging Techniques
 
@@ -47,10 +49,19 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | gotcha-subagent-partial-commits.md | Subagents leave 75+ files uncommitted after /run-tasks |
 | gotcha-interface-blast-radius-dispatcher.md | Adding methods to shared interfaces — large blast radius appears as "stuck" |
 | gotcha-mock-repo-skips-whitelist.md | Mocked repo Update skips field whitelist — 422 in prod, green in tests |
+| gotcha-claim-feature-vs-pipeline.md | forge task claim — no priority ordering between feature tasks and test pipeline tasks |
 | gotcha-claim-in-progress-priority.md | forge task claim prioritizes in_progress over pending — blocks dispatch loop |
 | gotcha-forge-surfaces-path-matching.md | forge surfaces <path> needs surface key prefix — `.` or `docs/` won't match |
+| gotcha-task-process-state-reset.md | Resetting task state — must delete tasks/process/state.json, not just index.json |
 | gotcha-task-claim-priority-skip.md | forge task claim skips unblocked tasks — jumps to unrelated pipeline tasks |
 | gotcha-tech-design-decision-archiving.md | Tech design must record naming/structural conventions |
+| gotcha-eval-iterative-vs-failure.md | Eval tasks are iterative — don't count progress toward threshold as "failure" |
+| gotcha-validation-ux-misses-visual-gaps.md | validation-ux validates code structure not rendered output — misses layout, positioning, interaction bugs |
+| gotcha-e2e-empty-seed-data-passes.md | E2E/API tests pass with zero child entities — tests validate structure not workflow completeness |
+| gotcha-hardcoded-url-e2e.md | E2E page.goto fix — import baseUrl from helpers, never hardcode http://127.0.0.1:PORT |
+| gotcha-radix-provider-missing.md | Radix components (Tooltip) crash at runtime without Provider wrapper — invisible to compile and unit tests |
+| gotcha-date-input-double-icon.md | Fixing hidden native picker without removing decorative icon workaround creates double icon |
+| gotcha-task-dependency-prose-vs-frontmatter.md | Creating forge fix tasks — dependencies must be in frontmatter `dependencies` field, not prose |
 
 ### pattern- — Reusable Patterns
 
@@ -87,14 +98,15 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 |------|---------|
 | New entity / schema design | arch-bizkey-vs-internal-id, gotcha-bizkey-vs-id-confusion, key-field-design-analysis, gotcha-schema-design-without-reference |
 | Task breakdown | arch-ui-integration-gap, pattern-phase-gate-tasks, gotcha-tech-design-decision-archiving |
-| E2E test generation | gotcha-e2e-script-generation, debug-e2e-zero-tests, debug-e2e-beforeall-cascade |
+| E2E test generation | gotcha-e2e-script-generation, debug-e2e-zero-tests, debug-e2e-beforeall-cascade, gotcha-e2e-empty-seed-data-passes, arch-web-only-journey-coverage-gap, gotcha-hardcoded-url-e2e |
+| Validation / UX verification | gotcha-validation-ux-misses-visual-gaps, gotcha-e2e-empty-seed-data-passes |
 | E2E test graduation | arch-e2e-graduation-staging, tool-e2e-graduation-structure |
-| Running /run-tasks | gotcha-subagent-partial-commits, gotcha-ac-self-report-without-verification, arch-task-failure-recovery-loop, gotcha-continue-replay-fresh-agent, gotcha-claim-in-progress-priority, gotcha-task-claim-priority-skip |
+| Running /run-tasks | gotcha-subagent-partial-commits, gotcha-ac-self-report-without-verification, arch-task-failure-recovery-loop, gotcha-continue-replay-fresh-agent, gotcha-claim-in-progress-priority, gotcha-task-claim-priority-skip, gotcha-task-dependency-prose-vs-frontmatter |
 | Using subagents | gotcha-no-subagent-for-sequential-work, gotcha-agent-breaks-safety-net, gotcha-parallel-subagent-rate-limit |
 | Schema migration | gotcha-schema-alignment-cascading-test-failures |
 | Adding interface methods | gotcha-interface-blast-radius-dispatcher |
 | Writing tech design | gotcha-design-tech-skip-askuserquestion, gotcha-tech-design-decision-archiving |
-| Using eval skills | gotcha-eval-prd-use-zcode-agents |
+| Using eval skills | gotcha-eval-prd-use-zcode-agents, gotcha-eval-iterative-vs-failure |
 | Hook configuration | gotcha-hook-unbounded-test-timeout, hook-stop-e2e-blocking |
-| Frontend component work | arch-button-icon-convention, weekly-view-bug-fixes |
+| Frontend component work | arch-button-icon-convention, weekly-view-bug-fixes, gotcha-radix-provider-missing, gotcha-date-input-double-icon |
 | Debugging test issues | tool-bash-retry-loop, gotcha-pipe-tail-buffers-test-output, frontend-test-command |

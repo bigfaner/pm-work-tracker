@@ -97,6 +97,8 @@ export interface MainItem {
   itemStatus: string
   statusName?: string
   completion: number
+  milestoneKey?: string | null
+  milestoneName?: string
   createTime: string
   dbUpdateTime: string
   matchType?: 'direct' | 'indirect'
@@ -244,6 +246,7 @@ export interface CreateMainItemReq {
   assigneeKey: string
   startDate: string
   expectedEndDate: string
+  milestoneKey?: string
 }
 
 export interface UpdateMainItemReq {
@@ -254,6 +257,7 @@ export interface UpdateMainItemReq {
   startDate?: string | null
   expectedEndDate?: string | null
   actualEndDate?: string | null
+  milestoneKey?: string | null
 }
 
 export interface MainItemFilter {
@@ -261,6 +265,7 @@ export interface MainItemFilter {
   status?: string | string[]
   assigneeKey?: string
   archived?: boolean
+  milestoneKey?: string
   page?: number
   pageSize?: number
 }
@@ -301,6 +306,50 @@ export interface AppendProgressReq {
   achievement?: string
   blocker?: string
   lesson?: string
+}
+
+// MilestoneMap API
+export interface CreateMilestoneMapReq {
+  mapName: string
+  mapDesc?: string
+  assigneeBizKey: string
+  planStartDate?: string
+  expectedEndDate?: string
+}
+
+export interface UpdateMilestoneMapReq {
+  mapName?: string
+  mapDesc?: string
+  assigneeBizKey?: string
+  planStartDate?: string
+  expectedEndDate?: string
+}
+
+export interface MilestoneMapFilter {
+  name?: string
+  assigneeKey?: string
+  status?: string
+  page?: number
+  pageSize?: number
+}
+
+// Milestone API
+export interface CreateMilestoneReq {
+  milestoneName: string
+  milestoneDesc?: string
+  expectedEndDate: string
+}
+
+export interface UpdateMilestoneReq {
+  milestoneName?: string
+  milestoneDesc?: string
+  expectedEndDate?: string
+}
+
+export interface MilestoneListFilter {
+  name?: string
+  status?: string
+  excludeCancelled?: boolean
 }
 
 // ItemPool
@@ -346,6 +395,51 @@ export interface AssignItemPoolResp {
   subItemBizKey: string
 }
 
+// MilestoneMap
+export interface MilestoneSummaryEntry {
+  bizKey: string
+  name: string
+  status: string
+  progress: number
+}
+
+export interface MilestoneMap {
+  bizKey: string
+  teamKey: string
+  creatorKey: string
+  creatorName: string
+  assigneeKey: string
+  assigneeName: string
+  mapName: string
+  mapDesc: string
+  mapStatus: string
+  statusName: string
+  planStartDate: string | null
+  expectedEndDate: string | null
+  milestoneCount: number
+  itemCount: number
+  overallProgress: number
+  milestoneSummary: MilestoneSummaryEntry[]
+  createTime: string
+  dbUpdateTime: string
+}
+
+// Milestone
+export interface Milestone {
+  bizKey: string
+  teamKey: string
+  milestoneMapKey: string
+  milestoneName: string
+  milestoneDesc: string
+  expectedEndDate: string | null
+  milestoneStatus: string
+  statusName: string
+  completion: number
+  relatedMICount: number
+  createTime: string
+  dbUpdateTime: string
+}
+
 // Views
 export interface GanttViewResp {
   items: GanttMainItem[]
@@ -377,6 +471,7 @@ export interface TableFilter {
   priority?: string
   status?: string
   assigneeKey?: string
+  milestoneKey?: string
   sortBy?: string
   sortOrder?: string
   page?: number
@@ -391,6 +486,8 @@ export interface TableRow {
   priority: string
   assigneeKey: string | null
   assigneeName: string
+  milestoneKey?: string | null
+  milestoneName?: string
   itemStatus: string
   completion: number
   expectedEndDate: string | null

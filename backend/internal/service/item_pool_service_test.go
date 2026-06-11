@@ -173,6 +173,18 @@ func (m *mockMainItemRepoForPool) SoftDelete(_ context.Context, _ uint) error { 
 func (m *mockMainItemRepoForPool) CascadeSoftDelete(_ context.Context, _ uint, _ []uint, _ []model.StatusHistory) error {
 	return nil
 }
+func (m *mockMainItemRepoForPool) FindByMilestoneKey(_ context.Context, _ int64) ([]model.MainItem, error) {
+	return nil, nil
+}
+func (m *mockMainItemRepoForPool) CountByMilestoneKey(_ context.Context, _ int64) (int64, error) {
+	return 0, nil
+}
+func (m *mockMainItemRepoForPool) ClearMilestoneKeyByMilestone(_ context.Context, _ int64) error {
+	return nil
+}
+func (m *mockMainItemRepoForPool) ClearMilestoneKeyByMap(_ context.Context, _ []int64) error {
+	return nil
+}
 
 // mockDBTx captures transaction callback execution.
 type mockDBTx struct {

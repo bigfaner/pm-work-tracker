@@ -9,7 +9,7 @@ description: "Convention index — keyword-to-file mapping for on-demand loading
 | Scope | Files |
 |-------|-------|
 | **backend** | api-boundary, backend-helpers, config-management, config-struct, data-model, db-dialect, deployment, error-codes, item-codes, permission-codes, repo-helpers, security, soft-delete, status-machine, user-management |
-| **frontend** | button-icons, deployment, frontend-architecture, frontend-components, frontend-ux, permission-codes, weekly-view |
+| **frontend** | deployment, frontend-architecture, frontend-components, frontend-ux, permission-codes, weekly-view |
 | **global** | authorization, data-model, data-validation, deduplication-threshold, development-workflow, error-codes, lint-enforcement, naming, performance-targets, status-machine, testing/ |
 | **database** | data-model, db-dialect, item-codes, permission-codes, soft-delete |
 | **config** | config-management, config-struct |
@@ -37,12 +37,12 @@ description: "Convention index — keyword-to-file mapping for on-demand loading
 | helper, repository, generic, repo | repo-helpers.md, backend-helpers.md |
 | weekly, progress, delta, comparison | weekly-view.md |
 | color, theme, token, badge | frontend-components.md |
-| button, icon, lucide | button-icons.md |
 | pagination, defaults, offset | backend-helpers.md |
 | naming, camelcase, snake_case | naming.md, data-model.md |
 | performance, latency, timeout, speed | performance-targets.md |
 | empty-state, layout, desktop, responsive | frontend-ux.md |
 | deduplicate, extract, refactoring, threshold | deduplication-threshold.md |
+| milestone, milestone-map, timeline, completion, cascade | status-machine.md, soft-delete.md, data-model.md, performance-targets.md |
 
 ## Top-Level Reference
 

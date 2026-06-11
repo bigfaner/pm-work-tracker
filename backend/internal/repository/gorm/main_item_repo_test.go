@@ -337,7 +337,40 @@ func TestMainItemRepo_List_FilterByAssignee_InvalidString(t *testing.T) {
 	assert.Equal(t, int64(0), result.Total, "invalid assigneeKey should return zero results (fail-closed)")
 }
 
-// --- FindByIDs ---
+func TestMainItemRepo_List_FilterByMilestoneKey(t *testing.T) {
+	db := setupMainItemTestDB(t)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
+	ctx := context.Background()
+
+	u, team := seedMainItemTeam(t, db)
+	msBizKey := int64(500001)
+
+	// Item assigned to milestone
+	item1 := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00001", "With Milestone", "P1", "pending")
+	require.NoError(t, db.Model(item1).Update("milestone_key", msBizKey).Error)
+
+	// Item without milestone
+	createMainItem(t, db, team.BizKey, u.ID, "FEAT-00002", "No Milestone", "P2", "pending")
+
+	// Filter by milestone bizKey
+	msKeyStr := "500001"
+	filtered, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{MilestoneKey: &msKeyStr}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), filtered.Total)
+	assert.Equal(t, "With Milestone", filtered.Items[0].Title)
+
+	// Filter by "unassigned" returns items with nil milestone_key
+	unassignedKey := "unassigned"
+	unassigned, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{MilestoneKey: &unassignedKey}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), unassigned.Total)
+	assert.Equal(t, "No Milestone", unassigned.Items[0].Title)
+
+	// No filter returns all items
+	all, err := repo.List(ctx, team.BizKey, dto.MainItemFilter{}, dto.Pagination{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), all.Total)
+}
 
 func TestMainItemRepo_FindByIDs(t *testing.T) {
 	db := setupMainItemTestDB(t)
@@ -455,6 +488,194 @@ func TestMainItemRepo_SoftDelete(t *testing.T) {
 		for _, item := range items {
 			assert.NotEqual(t, "Status Deleted", item.Title, "soft-deleted item should not appear in ListByTeamAndStatus")
 		}
+	})
+}
+
+// --- FindByMilestoneKey ---
+
+func TestMainItemRepo_FindByMilestoneKey(t *testing.T) {
+	db := setupMainItemTestDB(t)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
+	ctx := context.Background()
+
+	u, team := seedMainItemTeam(t, db)
+
+	msBizKey := int64(9001)
+	otherMsBizKey := int64(9002)
+
+	// 3 items bound to milestone 9001
+	item1 := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00001", "MS Item 1", "P1", "pending")
+	require.NoError(t, db.Model(item1).Update("milestone_key", msBizKey).Error)
+	item2 := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00002", "MS Item 2", "P2", "progressing")
+	require.NoError(t, db.Model(item2).Update("milestone_key", msBizKey).Error)
+	item3 := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00003", "MS Item 3", "P1", "pending")
+	require.NoError(t, db.Model(item3).Update("milestone_key", msBizKey).Error)
+
+	// 1 item bound to a different milestone
+	item4 := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00004", "Other MS", "P1", "pending")
+	require.NoError(t, db.Model(item4).Update("milestone_key", otherMsBizKey).Error)
+
+	// 1 item with no milestone
+	createMainItem(t, db, team.BizKey, u.ID, "FEAT-00005", "No MS", "P1", "pending")
+
+	t.Run("returns_items_bound_to_milestone", func(t *testing.T) {
+		items, err := repo.FindByMilestoneKey(ctx, msBizKey)
+		require.NoError(t, err)
+		assert.Len(t, items, 3)
+		titles := map[string]bool{}
+		for _, it := range items {
+			titles[it.Title] = true
+		}
+		assert.True(t, titles["MS Item 1"])
+		assert.True(t, titles["MS Item 2"])
+		assert.True(t, titles["MS Item 3"])
+	})
+
+	t.Run("empty_result_for_nonexistent_milestone", func(t *testing.T) {
+		items, err := repo.FindByMilestoneKey(ctx, 99999)
+		require.NoError(t, err)
+		assert.Empty(t, items)
+	})
+
+	t.Run("excludes_soft_deleted", func(t *testing.T) {
+		require.NoError(t, db.Model(item1).Update("deleted_flag", 1).Error)
+		items, err := repo.FindByMilestoneKey(ctx, msBizKey)
+		require.NoError(t, err)
+		assert.Len(t, items, 2)
+	})
+}
+
+// --- CountByMilestoneKey ---
+
+func TestMainItemRepo_CountByMilestoneKey(t *testing.T) {
+	db := setupMainItemTestDB(t)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
+	ctx := context.Background()
+
+	u, team := seedMainItemTeam(t, db)
+
+	msBizKey := int64(9001)
+
+	item1 := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00001", "Count 1", "P1", "pending")
+	require.NoError(t, db.Model(item1).Update("milestone_key", msBizKey).Error)
+	item2 := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00002", "Count 2", "P2", "pending")
+	require.NoError(t, db.Model(item2).Update("milestone_key", msBizKey).Error)
+
+	t.Run("returns_correct_count", func(t *testing.T) {
+		count, err := repo.CountByMilestoneKey(ctx, msBizKey)
+		require.NoError(t, err)
+		assert.Equal(t, int64(2), count)
+	})
+
+	t.Run("zero_for_nonexistent_milestone", func(t *testing.T) {
+		count, err := repo.CountByMilestoneKey(ctx, 99999)
+		require.NoError(t, err)
+		assert.Equal(t, int64(0), count)
+	})
+
+	t.Run("excludes_soft_deleted", func(t *testing.T) {
+		require.NoError(t, db.Model(item1).Update("deleted_flag", 1).Error)
+		count, err := repo.CountByMilestoneKey(ctx, msBizKey)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), count)
+	})
+}
+
+// --- ClearMilestoneKeyByMilestone ---
+
+func TestMainItemRepo_ClearMilestoneKeyByMilestone(t *testing.T) {
+	db := setupMainItemTestDB(t)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
+	ctx := context.Background()
+
+	u, team := seedMainItemTeam(t, db)
+
+	msBizKey := int64(9001)
+	otherMsBizKey := int64(9002)
+
+	// 2 items bound to milestone 9001
+	item1 := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00001", "Clear 1", "P1", "pending")
+	require.NoError(t, db.Model(item1).Update("milestone_key", msBizKey).Error)
+	item2 := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00002", "Clear 2", "P2", "pending")
+	require.NoError(t, db.Model(item2).Update("milestone_key", msBizKey).Error)
+
+	// 1 item bound to different milestone — should NOT be cleared
+	item3 := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00003", "Keep", "P1", "pending")
+	require.NoError(t, db.Model(item3).Update("milestone_key", otherMsBizKey).Error)
+
+	t.Run("clears_milestone_key_for_specified_milestone_only", func(t *testing.T) {
+		err := repo.ClearMilestoneKeyByMilestone(ctx, msBizKey)
+		require.NoError(t, err)
+
+		// Verify items 1 and 2 have milestone_key = nil
+		var item1After model.MainItem
+		require.NoError(t, db.First(&item1After, item1.ID).Error)
+		assert.Nil(t, item1After.MilestoneKey)
+		var item2After model.MainItem
+		require.NoError(t, db.First(&item2After, item2.ID).Error)
+		assert.Nil(t, item2After.MilestoneKey)
+
+		// Verify item 3 still has its milestone_key
+		var item3After model.MainItem
+		require.NoError(t, db.First(&item3After, item3.ID).Error)
+		assert.NotNil(t, item3After.MilestoneKey)
+		assert.Equal(t, otherMsBizKey, *item3After.MilestoneKey)
+	})
+
+	t.Run("no_error_when_no_items_match", func(t *testing.T) {
+		err := repo.ClearMilestoneKeyByMilestone(ctx, 99999)
+		assert.NoError(t, err)
+	})
+}
+
+// --- ClearMilestoneKeyByMap ---
+
+func TestMainItemRepo_ClearMilestoneKeyByMap(t *testing.T) {
+	db := setupMainItemTestDB(t)
+	repo := gormrepo.NewGormMainItemRepo(db, dbutil.NewDialect(db))
+	ctx := context.Background()
+
+	u, team := seedMainItemTeam(t, db)
+
+	ms1 := int64(9001)
+	ms2 := int64(9002)
+	ms3 := int64(9003)
+
+	// 2 items bound to milestone 9001
+	item1 := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00001", "Batch 1", "P1", "pending")
+	require.NoError(t, db.Model(item1).Update("milestone_key", ms1).Error)
+	item2 := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00002", "Batch 2", "P2", "pending")
+	require.NoError(t, db.Model(item2).Update("milestone_key", ms1).Error)
+
+	// 1 item bound to milestone 9002
+	item3 := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00003", "Batch 3", "P1", "pending")
+	require.NoError(t, db.Model(item3).Update("milestone_key", ms2).Error)
+
+	// 1 item bound to milestone 9003 — NOT in the clear list
+	item4 := createMainItem(t, db, team.BizKey, u.ID, "FEAT-00004", "Keep", "P1", "pending")
+	require.NoError(t, db.Model(item4).Update("milestone_key", ms3).Error)
+
+	t.Run("batch_clears_milestone_keys_for_specified_milestones", func(t *testing.T) {
+		err := repo.ClearMilestoneKeyByMap(ctx, []int64{ms1, ms2})
+		require.NoError(t, err)
+
+		// Items 1-3 should have milestone_key = nil
+		for _, id := range []uint{item1.ID, item2.ID, item3.ID} {
+			var item model.MainItem
+			require.NoError(t, db.First(&item, id).Error)
+			assert.Nil(t, item.MilestoneKey, "item ID %d should have nil milestone_key", id)
+		}
+
+		// Item 4 should keep its milestone_key
+		var item4After model.MainItem
+		require.NoError(t, db.First(&item4After, item4.ID).Error)
+		assert.NotNil(t, item4After.MilestoneKey)
+		assert.Equal(t, ms3, *item4After.MilestoneKey)
+	})
+
+	t.Run("empty_bizkeys_no_error", func(t *testing.T) {
+		err := repo.ClearMilestoneKeyByMap(ctx, []int64{})
+		assert.NoError(t, err)
 	})
 }
 

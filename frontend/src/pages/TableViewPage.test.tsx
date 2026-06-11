@@ -69,6 +69,8 @@ const seedRows: TableRow[] = [
     priority: 'P1',
     assigneeKey: 'U001',
     assigneeName: '张明',
+    milestoneKey: '500001',
+    milestoneName: 'MVP发布',
     itemStatus: 'progressing',
     completion: 65,
     expectedEndDate: pastDays(30),
@@ -83,6 +85,8 @@ const seedRows: TableRow[] = [
     priority: 'P1',
     assigneeKey: 'U002',
     assigneeName: '李华',
+    milestoneKey: null,
+    milestoneName: undefined,
     itemStatus: 'completed',
     completion: 100,
     expectedEndDate: pastDays(20),
@@ -97,6 +101,8 @@ const seedRows: TableRow[] = [
     priority: 'P2',
     assigneeKey: 'U003',
     assigneeName: '王芳',
+    milestoneKey: '500002',
+    milestoneName: '二期迭代',
     itemStatus: 'progressing',
     completion: 80,
     expectedEndDate: pastDays(15),
@@ -111,6 +117,8 @@ const seedRows: TableRow[] = [
     priority: 'P2',
     assigneeKey: 'U004',
     assigneeName: '赵强',
+    milestoneKey: '500001',
+    milestoneName: 'MVP发布',
     itemStatus: 'progressing',
     completion: 40,
     expectedEndDate: futureDays(30),
@@ -125,6 +133,8 @@ const seedRows: TableRow[] = [
     priority: 'P2',
     assigneeKey: 'U004',
     assigneeName: '赵强',
+    milestoneKey: '500003',
+    milestoneName: '—',
     itemStatus: 'completed',
     completion: 100,
     expectedEndDate: pastDays(25),
@@ -157,6 +167,14 @@ function setupTableHandler(rows = seedRows) {
       const assigneeFilter = url.searchParams.get('assigneeKey')
       if (assigneeFilter) {
         filtered = filtered.filter((r) => r.assigneeKey === assigneeFilter)
+      }
+      const milestoneKeyFilter = url.searchParams.get('milestoneKey')
+      if (milestoneKeyFilter) {
+        if (milestoneKeyFilter === 'unassigned') {
+          filtered = filtered.filter((r) => !r.milestoneKey)
+        } else {
+          filtered = filtered.filter((r) => r.milestoneKey === milestoneKeyFilter)
+        }
       }
 
       const start = (page - 1) * pageSize
@@ -237,6 +255,44 @@ function setupTableHandler(rows = seedRows) {
         ],
       })
     }),
+    http.get('/v1/teams/:teamId/milestones', () => {
+      return HttpResponse.json({
+        code: 0,
+        data: {
+          items: [
+            {
+              bizKey: '500001',
+              teamKey: '1',
+              milestoneMapKey: '100001',
+              milestoneName: 'MVP发布',
+              milestoneDesc: '',
+              expectedEndDate: '2026-06-30',
+              milestoneStatus: 'in_progress',
+              statusName: '进行中',
+              completion: 60,
+              relatedMICount: 3,
+              createTime: '2026-01-01T00:00:00Z',
+              dbUpdateTime: '2026-01-01T00:00:00Z',
+            },
+            {
+              bizKey: '500002',
+              teamKey: '1',
+              milestoneMapKey: '100001',
+              milestoneName: '二期迭代',
+              milestoneDesc: '',
+              expectedEndDate: '2026-09-30',
+              milestoneStatus: 'not_started',
+              statusName: '未开始',
+              completion: 0,
+              relatedMICount: 1,
+              createTime: '2026-01-01T00:00:00Z',
+              dbUpdateTime: '2026-01-01T00:00:00Z',
+            },
+          ],
+          total: 2,
+        },
+      })
+    }),
   )
 }
 
@@ -286,6 +342,7 @@ describe('TableViewPage', () => {
       expect(screen.getByText('类型')).toBeInTheDocument()
       expect(screen.getByText('编号')).toBeInTheDocument()
       expect(screen.getByText('标题')).toBeInTheDocument()
+      expect(screen.getByText('里程碑')).toBeInTheDocument()
       expect(screen.getByText('优先级')).toBeInTheDocument()
       expect(screen.getByText('负责人')).toBeInTheDocument()
       expect(screen.getByText('进度')).toBeInTheDocument()
@@ -320,6 +377,68 @@ describe('TableViewPage', () => {
     await waitFor(() => {
       expect(screen.getByText('MI-0001')).toBeInTheDocument()
       expect(screen.getByText('SI-0002')).toBeInTheDocument()
+    })
+  })
+
+  // --- Milestone column rendering ---
+
+  it('renders milestone name for assigned items', async () => {
+    renderPage()
+    await waitFor(() => {
+      // MI-0001 has milestoneName 'MVP发布'
+      const milestoneCells = screen.getAllByText('MVP发布')
+      expect(milestoneCells.length).toBeGreaterThanOrEqual(1)
+    })
+  })
+
+  it('renders "-" for unassigned items', async () => {
+    renderPage()
+    await waitFor(() => {
+      // SI-0002 has no milestone
+      expect(screen.getByText('登录页开发')).toBeInTheDocument()
+    })
+    // The unassigned milestone cells show "-" with text-tertiary
+    // There should be at least one "-" for unassigned items
+    const dashCells = screen.getAllByText('-')
+    expect(dashCells.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('renders "—" for deleted milestone items', async () => {
+    renderPage()
+    await waitFor(() => {
+      // SI-0005 has milestoneName '—' (deleted milestone)
+      expect(screen.getByText('看板数据接口')).toBeInTheDocument()
+    })
+    const emDashCells = screen.getAllByText('—')
+    expect(emDashCells.length).toBeGreaterThanOrEqual(1)
+  })
+
+  // --- Milestone filter ---
+
+  it('renders milestone filter', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByTestId('milestone-filter')).toBeInTheDocument()
+    })
+  })
+
+  it('renders milestone filter options including 全部 and 未分配', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByTestId('milestone-filter')).toBeInTheDocument()
+    })
+
+    // Open the milestone filter dropdown
+    await user.click(screen.getByTestId('milestone-filter'))
+
+    await waitFor(() => {
+      // "里程碑：全部" appears both in trigger and dropdown
+      expect(screen.getAllByText('里程碑：全部').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getByText('未分配')).toBeInTheDocument()
+      // Milestone names appear in table rows and dropdown, use getAllByText
+      expect(screen.getAllByText('MVP发布').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText('二期迭代').length).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -486,5 +605,99 @@ describe('TableViewPage', () => {
   it('shows loading state', async () => {
     renderPage()
     expect(screen.getByText('加载中...')).toBeInTheDocument()
+  })
+
+  // --- Milestone column sorting (AC-2) ---
+
+  it('renders sortable milestone column header with sort indicator', async () => {
+    renderPage()
+    await waitFor(() => {
+      const sortHeader = screen.getByTestId('sort-milestoneName')
+      expect(sortHeader).toBeInTheDocument()
+      expect(sortHeader).toHaveTextContent('里程碑')
+    })
+  })
+
+  it('clicking milestone header toggles sort: none → asc → desc → none', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByTestId('sort-milestoneName')).toBeInTheDocument()
+    })
+
+    // Initial state: no sort
+    expect(screen.getByTestId('sort-milestoneName').dataset.sortOrder).toBe('none')
+
+    // First click: asc
+    await user.click(screen.getByTestId('sort-milestoneName'))
+    await waitFor(() => {
+      expect(screen.getByTestId('sort-milestoneName').dataset.sortOrder).toBe('asc')
+    })
+
+    // Second click: desc
+    await user.click(screen.getByTestId('sort-milestoneName'))
+    await waitFor(() => {
+      expect(screen.getByTestId('sort-milestoneName').dataset.sortOrder).toBe('desc')
+    })
+
+    // Third click: back to none
+    await user.click(screen.getByTestId('sort-milestoneName'))
+    await waitFor(() => {
+      expect(screen.getByTestId('sort-milestoneName').dataset.sortOrder).toBe('none')
+    })
+  })
+
+  it('sends sortBy and sortOrder params to API when milestone sort is active', async () => {
+    let capturedParams: URLSearchParams | null = null
+    server.use(
+      http.get('/v1/teams/:teamId/views/table', ({ request }) => {
+        const url = new URL(request.url)
+        capturedParams = url.searchParams
+        return HttpResponse.json({
+          code: 0,
+          data: { items: seedRows, total: seedRows.length, page: 1, size: 50 },
+        })
+      }),
+      http.get('/v1/teams/:teamId/members', () => {
+        return HttpResponse.json({ code: 0, data: [] })
+      }),
+      http.get('/v1/teams/:teamId/milestones', () => {
+        return HttpResponse.json({ code: 0, data: { items: [], total: 0 } })
+      }),
+    )
+
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByTestId('sort-milestoneName')).toBeInTheDocument()
+    })
+
+    // Click to sort asc
+    await user.click(screen.getByTestId('sort-milestoneName'))
+    await waitFor(() => {
+      expect(capturedParams).not.toBeNull()
+    })
+    expect(capturedParams!.get('sortBy')).toBe('milestoneName')
+    expect(capturedParams!.get('sortOrder')).toBe('asc')
+  })
+
+  it('resets sort when reset button is clicked', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByTestId('sort-milestoneName')).toBeInTheDocument()
+    })
+
+    // Click to sort asc
+    await user.click(screen.getByTestId('sort-milestoneName'))
+    await waitFor(() => {
+      expect(screen.getByTestId('sort-milestoneName').dataset.sortOrder).toBe('asc')
+    })
+
+    // Click reset
+    await user.click(screen.getByText('重置'))
+    await waitFor(() => {
+      expect(screen.getByTestId('sort-milestoneName').dataset.sortOrder).toBe('none')
+    })
   })
 })
