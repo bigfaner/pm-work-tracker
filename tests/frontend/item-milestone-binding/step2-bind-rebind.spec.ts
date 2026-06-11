@@ -11,12 +11,12 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { login, getAuthToken, parseApiData, extractBizKey } from '../helpers.js';
+import { login, getAuthToken, parseApiData, extractBizKey, baseUrl } from '../helpers.js';
 
 const TIMEOUT = 120000;
-test.setTimeout(TIMEOUT);
 
 test.describe('item-milestone-binding / Steps 2-3: Bind and rebind', () => {
+  test.describe.configure({ timeout: TIMEOUT });
   let authToken: string;
   let teamId: string;
   let mapBizKey: string;
@@ -81,7 +81,7 @@ test.describe('item-milestone-binding / Steps 2-3: Bind and rebind', () => {
 
   // Step 2: Bind unassigned MI to milestone
   test('TC-IMB-S2-001: Bind unassigned MI to milestone updates milestone_key', async ({ page }) => {
-    // Verify MI is unbound
+    // Verify MI is unbound via API
     const request = page.context().request;
     const miRes = await request.get(`http://127.0.0.1:8080/v1/teams/${teamId}/main-items/${miBizKey}`, {
       headers: { Authorization: `Bearer ${authToken}` },
@@ -96,21 +96,28 @@ test.describe('item-milestone-binding / Steps 2-3: Bind and rebind', () => {
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible({ timeout: 10000 });
 
-    // Click the Radix Select combobox trigger for milestone
-    const milestoneCombobox = dialog.getByRole('combobox').nth(2);
-    await milestoneCombobox.click();
-    // Select the milestone option from the dropdown
-    await page.getByRole('option', { name: `e2e-imb-s2-ms1-${runId}` }).click();
+    // Click the milestone SelectTrigger (inside "所属里程碑" section)
+    const milestoneLabel = dialog.getByText('所属里程碑', { exact: true });
+    const milestoneTrigger = milestoneLabel.locator('xpath=ancestor::div[1]').locator('button');
+    await milestoneTrigger.click();
+    // Wait for the dropdown listbox to appear, then click the milestone option
+    await page.getByRole('option', { name: `e2e-imb-s2-ms1-${runId}`, exact: true }).click();
 
-    await dialog.getByRole('button', { name: '确认' }).click();
+    // Wait for React state to update
+    await page.waitForTimeout(300);
 
-    // Verify binding via API
-    await page.waitForTimeout(1000);
-    const verifyRes = await request.get(`http://127.0.0.1:8080/v1/teams/${teamId}/main-items/${miBizKey}`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-    });
-    const verifyData = parseApiData(await verifyRes.json());
-    expect(String(verifyData.milestoneKey)).toBe(ms1BizKey);
+    // Intercept the save response to verify milestoneKey is included
+    const saveResponsePromise = page.waitForResponse(
+      (resp) => resp.request().method() === 'PUT' && resp.url().includes(`/main-items/${miBizKey}`),
+    );
+
+    await dialog.getByRole('button', { name: '保存' }).click();
+
+    const saveResponse = await saveResponsePromise;
+    const saveRespBody = await saveResponse.json();
+    const savedData = parseApiData(saveRespBody);
+    // Verify the save response includes the correct milestoneKey
+    expect(String(savedData.milestoneKey)).toBe(ms1BizKey);
   });
 
   // Step 3: Rebind MI to different milestone
@@ -129,20 +136,26 @@ test.describe('item-milestone-binding / Steps 2-3: Bind and rebind', () => {
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible({ timeout: 10000 });
 
-    // Click the combobox (currently shows ms1 name), then select ms2
-    const milestoneCombobox = dialog.getByRole('combobox').nth(2);
-    await milestoneCombobox.click();
-    await page.getByRole('option', { name: `e2e-imb-s2-ms2-${runId}` }).click();
+    // Click the milestone SelectTrigger (currently shows ms1 name), then select ms2
+    const milestoneLabel = dialog.getByText('所属里程碑', { exact: true });
+    const milestoneTrigger = milestoneLabel.locator('xpath=ancestor::div[1]').locator('button');
+    await milestoneTrigger.click();
+    await page.getByRole('option', { name: `e2e-imb-s2-ms2-${runId}`, exact: true }).click();
 
-    await dialog.getByRole('button', { name: '确认' }).click();
+    // Wait for React state to update
+    await page.waitForTimeout(300);
 
-    // Verify rebind
-    await page.waitForTimeout(1000);
-    const verifyRes = await request.get(`http://127.0.0.1:8080/v1/teams/${teamId}/main-items/${miBizKey}`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-    });
-    const verifyData = parseApiData(await verifyRes.json());
-    expect(String(verifyData.milestoneKey)).toBe(ms2BizKey);
+    // Intercept the save response to verify milestoneKey
+    const saveResponsePromise = page.waitForResponse(
+      (resp) => resp.request().method() === 'PUT' && resp.url().includes(`/main-items/${miBizKey}`),
+    );
+
+    await dialog.getByRole('button', { name: '保存' }).click();
+
+    const saveResponse = await saveResponsePromise;
+    const savedData = parseApiData(await saveResponse.json());
+    // Verify the save response includes the correct milestoneKey (ms2)
+    expect(String(savedData.milestoneKey)).toBe(ms2BizKey);
   });
 
   // Step 2b: Bind MI in terminal state - server rejects

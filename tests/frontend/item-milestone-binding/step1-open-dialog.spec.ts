@@ -9,12 +9,12 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { login, getAuthToken, parseApiData, extractBizKey } from '../helpers.js';
+import { login, getAuthToken, parseApiData, extractBizKey, baseUrl } from '../helpers.js';
 
 const TIMEOUT = 120000;
-test.setTimeout(TIMEOUT);
 
 test.describe('item-milestone-binding / Step 1: Open edit dialog and milestone selector', () => {
+  test.describe.configure({ timeout: TIMEOUT });
   let authToken: string;
   let teamId: string;
   let mapBizKey: string;
@@ -100,9 +100,11 @@ test.describe('item-milestone-binding / Step 1: Open edit dialog and milestone s
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible({ timeout: 10000 });
 
-    // Click the milestone combobox to open the dropdown
-    const milestoneCombobox = dialog.getByRole('combobox').nth(2);
-    await milestoneCombobox.click();
+    // Click the milestone SelectTrigger to open the dropdown
+    // Find the label "所属里程碑", navigate to its ancestor div, then the button inside it
+    const milestoneLabel = dialog.getByText('所属里程碑', { exact: true });
+    const milestoneTrigger = milestoneLabel.locator('xpath=ancestor::div[1]').locator('button');
+    await milestoneTrigger.click();
 
     // Should see the milestone option and Unassigned option
     await expect(page.getByRole('option', { name: `e2e-imb-s1-ms-${runId}` })).toBeVisible({ timeout: 5000 });
@@ -137,8 +139,9 @@ test.describe('item-milestone-binding / Step 1: Open edit dialog and milestone s
     await expect(dialog).toBeVisible({ timeout: 10000 });
 
     // Open dropdown
-    const milestoneCombobox = dialog.getByRole('combobox').nth(2);
-    await milestoneCombobox.click();
+    const milestoneLabel = dialog.getByText('所属里程碑', { exact: true });
+    const milestoneTrigger = milestoneLabel.locator('xpath=ancestor::div[1]').locator('button');
+    await milestoneTrigger.click();
 
     // Cancelled milestone should NOT appear
     await expect(page.getByRole('option', { name: `e2e-imb-s1-cancelled-${runId}` })).not.toBeVisible();

@@ -72,13 +72,11 @@ test.describe('milestone-item-management / Step 3: Unbind MainItem from panel', 
 
   test.beforeEach(async ({ page }) => {
     // Re-bind MI before each test
-    const request = page.context?.request;
-    if (request) {
-      await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/main-items/${miBizKey}`, {
-        headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-        data: { milestoneKey: msBizKey },
-      });
-    }
+    const request = page.context().request;
+    await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/main-items/${miBizKey}`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { milestoneKey: msBizKey },
+    });
     await login(page, undefined, `/milestones/${mapBizKey}`);
     // Wait for the page to fully load
     await page.waitForTimeout(1000);

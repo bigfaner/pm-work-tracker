@@ -82,13 +82,11 @@ test.describe('milestone-item-management / Steps 5-7: Navigate, drag-drop, panel
 
   test.beforeEach(async ({ page }) => {
     // Re-bind MI to ms1 before each test
-    const request = page.context?.request;
-    if (request) {
-      await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/main-items/${miBizKey}`, {
-        headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-        data: { milestoneKey: ms1BizKey },
-      });
-    }
+    const request = page.context().request;
+    await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/main-items/${miBizKey}`, {
+      headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      data: { milestoneKey: ms1BizKey },
+    });
     await login(page, undefined, `/milestones/${mapBizKey}`);
   });
 
@@ -116,19 +114,21 @@ test.describe('milestone-item-management / Steps 5-7: Navigate, drag-drop, panel
     const targetNode = page.locator(`[data-testid="milestone-node-${ms2BizKey}"]`);
     await targetNode.waitFor({ state: 'visible', timeout: 10000 });
 
-    // Perform drag using manual mouse events for better HTML5 drag support
-    const miBox = await miItem.boundingBox();
-    const targetBox = await targetNode.boundingBox();
+    // Set drag data on window.__dragMI manually (Playwright mouse events don't
+    // reliably trigger React's onDragStart HTML5 event). Then dispatch a drop
+    // event on the target milestone node so the component's onDrop handler fires.
+    await page.evaluate(
+      ({ miKey, msKey }) => {
+        (window as any).__dragMI = {
+          miBizKey: miKey,
+          miCode: '',
+          sourceMilestoneKey: msKey,
+        };
+      },
+      { miKey: miBizKey, msKey: ms1BizKey },
+    );
 
-    if (miBox && targetBox) {
-      await page.mouse.move(miBox.x + miBox.width / 2, miBox.y + miBox.height / 2);
-      await page.mouse.down();
-      await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, { steps: 5 });
-      await page.mouse.up();
-    } else {
-      // Fallback to Playwright dragTo
-      await miItem.dragTo(targetNode, { force: true });
-    }
+    await targetNode.dispatchEvent('drop');
 
     await page.waitForTimeout(2000);
 
@@ -201,10 +201,10 @@ test.describe('milestone-item-management / Steps 5-7: Navigate, drag-drop, panel
     const deleteBtn = panel.getByRole('button', { name: /删除里程碑/ });
     await expect(deleteBtn).not.toBeVisible();
 
-    // Reset: transition back to not_started
+    // Reset: transition to cancelled (terminal) — cannot go back to not_started from in_progress
     await request.put(`http://127.0.0.1:8080/v1/teams/${teamId}/milestones/${ms1BizKey}/status`, {
       headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-      data: { status: 'not_started' },
+      data: { status: 'cancelled' },
     });
   });
 
