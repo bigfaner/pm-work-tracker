@@ -5,6 +5,14 @@ type DateInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'>;
 
 const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
   ({ className, ...props }, forwardedRef) => {
+    const handleClick = (e: React.MouseEvent<HTMLInputElement>) => {
+      const input = e.currentTarget
+      if (input.showPicker) {
+        input.showPicker()
+      }
+      props.onClick?.(e)
+    }
+
     return (
       <div
         className={cn(
@@ -18,6 +26,7 @@ const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
           ref={forwardedRef}
           className="h-full w-full cursor-pointer bg-transparent px-3 text-[13px] text-primary outline-none disabled:cursor-not-allowed disabled:opacity-50"
           {...props}
+          onClick={handleClick}
         />
       </div>
     )

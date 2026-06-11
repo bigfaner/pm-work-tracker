@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { badgeVariants, type BadgeProps } from '@/components/ui/badge'
+import { type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 import { getStatusVariant } from '@/lib/status'
 
