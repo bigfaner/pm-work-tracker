@@ -58,8 +58,10 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 | gotcha-eval-iterative-vs-failure.md | Eval tasks are iterative — don't count progress toward threshold as "failure" |
 | gotcha-validation-ux-misses-visual-gaps.md | validation-ux validates code structure not rendered output — misses layout, positioning, interaction bugs |
 | gotcha-e2e-empty-seed-data-passes.md | E2E/API tests pass with zero child entities — tests validate structure not workflow completeness |
+| gotcha-hardcoded-url-e2e.md | E2E page.goto fix — import baseUrl from helpers, never hardcode http://127.0.0.1:PORT |
 | gotcha-radix-provider-missing.md | Radix components (Tooltip) crash at runtime without Provider wrapper — invisible to compile and unit tests |
 | gotcha-date-input-double-icon.md | Fixing hidden native picker without removing decorative icon workaround creates double icon |
+| gotcha-task-dependency-prose-vs-frontmatter.md | Creating forge fix tasks — dependencies must be in frontmatter `dependencies` field, not prose |
 
 ### pattern- — Reusable Patterns
 
@@ -96,10 +98,10 @@ Load relevant lessons BEFORE starting work in these areas. Lessons prevent recur
 |------|---------|
 | New entity / schema design | arch-bizkey-vs-internal-id, gotcha-bizkey-vs-id-confusion, key-field-design-analysis, gotcha-schema-design-without-reference |
 | Task breakdown | arch-ui-integration-gap, pattern-phase-gate-tasks, gotcha-tech-design-decision-archiving |
-| E2E test generation | gotcha-e2e-script-generation, debug-e2e-zero-tests, debug-e2e-beforeall-cascade, gotcha-e2e-empty-seed-data-passes, arch-web-only-journey-coverage-gap |
+| E2E test generation | gotcha-e2e-script-generation, debug-e2e-zero-tests, debug-e2e-beforeall-cascade, gotcha-e2e-empty-seed-data-passes, arch-web-only-journey-coverage-gap, gotcha-hardcoded-url-e2e |
 | Validation / UX verification | gotcha-validation-ux-misses-visual-gaps, gotcha-e2e-empty-seed-data-passes |
 | E2E test graduation | arch-e2e-graduation-staging, tool-e2e-graduation-structure |
-| Running /run-tasks | gotcha-subagent-partial-commits, gotcha-ac-self-report-without-verification, arch-task-failure-recovery-loop, gotcha-continue-replay-fresh-agent, gotcha-claim-in-progress-priority, gotcha-task-claim-priority-skip |
+| Running /run-tasks | gotcha-subagent-partial-commits, gotcha-ac-self-report-without-verification, arch-task-failure-recovery-loop, gotcha-continue-replay-fresh-agent, gotcha-claim-in-progress-priority, gotcha-task-claim-priority-skip, gotcha-task-dependency-prose-vs-frontmatter |
 | Using subagents | gotcha-no-subagent-for-sequential-work, gotcha-agent-breaks-safety-net, gotcha-parallel-subagent-rate-limit |
 | Schema migration | gotcha-schema-alignment-cascading-test-failures |
 | Adding interface methods | gotcha-interface-blast-radius-dispatcher |
