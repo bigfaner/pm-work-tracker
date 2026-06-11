@@ -26,7 +26,7 @@ auto:
     techDesign: true
 worktree:
   source-branch: main
-  copy-files:
+  includes:
     - backend/config.yaml
 eval:
   proposal:
