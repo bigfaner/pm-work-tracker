@@ -727,7 +727,7 @@
       "title": "E2E: milestone-item-management step5 drag/delete node timeout",
       "priority": "P0",
       "estimatedTime": "30min",
-      "status": "blocked",
+      "status": "completed",
       "file": "fix-8.md",
       "record": "records/fix-8.md",
       "breaking": true,
