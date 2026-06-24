@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Copilot 原型 — 导航</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="hub">
+    <h1>AI Copilot 对话助手 — UI 原型</h1>
+    <p class="lede">全局浮动 overlay，对话 + 卡片混合模式。本原型模拟既有「事项清单」宿主页 + Copilot overlay，演示 7 个组件的关键状态。</p>
+
+    <div class="note-box">
+      ⚠ 本功能为全局 overlay，不新建页面。原型用左下角「状态切换器」在面板内切换卡片状态，仅供评审；实际产品中 AI 按对话实时推送卡片。
+    </div>
+
+    <div class="hub-grid">
+      <a class="hub-card" href="demo.html">
+        <h3>交互演示（推荐入口）</h3>
+        <p>模拟宿主页 + 浮动气泡 + 聊天面板，含状态切换器覆盖全部组件状态。</p>
+        <div class="pillrow">
+          <span class="badge badge-accent">UF-1 气泡</span>
+          <span class="badge badge-accent">UF-2 面板</span>
+          <span class="badge badge-accent">全部状态</span>
+        </div>
+        <span class="btn btn-primary btn-sm">打开 demo.html</span>
+      </a>
+    </div>
+
+    <h2 style="font-size:16px;font-weight:600;margin:24px 0 12px">演示的状态清单（在 demo.html 左下角切换）</h2>
+    <div class="hub-grid">
+      <div class="hub-card"><h3>UF-7 首次引导</h3><p>能力说明 + 可点击示例指令 chips。</p><span class="badge badge-neutral">onboarding</span></div>
+      <div class="hub-card"><h3>UF-3 写卡片 · 预填</h3><p>AI 推断字段标注、必填空字段 warning 高亮、高影响操作确认行。</p><span class="badge badge-neutral">write-prefilled</span></div>
+      <div class="hub-card"><h3>UF-3 写卡片 · 校验失败</h3><p>状态机预校验不通过，validTransitions chips 列合法目标。</p><span class="badge badge-neutral">validation</span></div>
+      <div class="hub-card"><h3>UF-3 写卡片 · 成功+撤回</h3><p>蓝=成功对勾 + 实体跳转 + 5 分钟撤回倒计时（实时递减）。</p><span class="badge badge-neutral">success-undo</span></div>
+      <div class="hub-card"><h3>UF-3 写卡片 · 权限不足</h3><p>canSubmit=false，卡片体替换为权限提示，无提交控件。</p><span class="badge badge-neutral">permission</span></div>
+      <div class="hub-card"><h3>UF-3 diff 确认浮层</h3><p>对话补充增量变更，浮层展示 old→new，应用/丢弃。</p><span class="badge badge-neutral">diff-overlay</span></div>
+      <div class="hub-card"><h3>UF-4 查询结果</h3><p>摘要 + 直接/间接迷你卡片行 + 里程碑进度条。</p><span class="badge badge-neutral">query</span></div>
+      <div class="hub-card"><h3>UF-5 歧义消解</h3><p>多候选 radio 选择，选中后确认可用。</p><span class="badge badge-neutral">disambiguation</span></div>
+      <div class="hub-card"><h3>UF-6 超时/降级</h3><p>warning-bg 提示卡 + 传统表单快捷入口。</p><span class="badge badge-neutral">fallback</span></div>
+      <div class="hub-card"><h3>思考中 + 流式骨架</h3><p>三点跳动 + border-dashed 卡片骨架增量填充。</p><span class="badge badge-neutral">thinking</span></div>
+      <div class="hub-card"><h3>离开确认 Dialog</h3><p>未提交卡片导航守卫，sm=400px，焦点默认在「取消」。</p><span class="badge badge-neutral">leave dialog</span></div>
+    </div>
+
+    <h2 style="font-size:16px;font-weight:600;margin:24px 0 12px">设计系统</h2>
+    <p style="font-size:13px;color:var(--text-secondary);max-width:640px">
+      沿用项目 <code>DESIGN.md</code>：蓝主色 <code>#2563eb</code>、13px 密度正文、边框分隔卡片（rounded-xl）、蓝=成功、token 化（无硬编码 Tailwind 色类）、桌面优先、shadcn/ui 模式（Radix + Tailwind + cn()）。全部颜色/字号/圆角/阴影 token 见 <code>styles.css</code> 的 <code>:root</code>。
+    </p>
+  </div>
+</body>
+</html>

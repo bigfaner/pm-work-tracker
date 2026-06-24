@@ -48,37 +48,41 @@ Copilot 不创建新页面。唯一的跨页面跳转来自**查询结果卡片*
 
 - **Mode**: existing-page
 - **Target Page**: global — 所有已认证路由（`/items`、`/items/:mainItemId`、`/items/:mainItemId/sub/:subItemId`、`/weekly`、`/gantt`、`/table`、`/item-pool`、`/milestones`、`/milestones/:mapId`、`/report`、`/teams`、`/teams/:teamId`、`/users`、`/roles`），`/login` 不显示
-- **Position**: 屏幕固定位置（视口右下角，距右边缘 24px、距下边缘 24px），悬浮于页面内容之上，不遮挡主操作区
+- **Position**: 屏幕固定位置（视口右下角，距右边缘 24px、距下边缘 24px），`z-index: 50`，悬浮于页面内容之上，不遮挡主操作区
 
 ### Description
 
-常驻浮动气泡，是 Copilot 的唯一入口。点击展开聊天面板（UF-2）。首次出现时带徽章提示引导用户发现。
+常驻浮动气泡，是 Copilot 的唯一入口。点击展开聊天面板（UF-2），展开时气泡隐藏。首次出现带红点徽章引导发现。面板收起后会话后台继续，agent 返回消息或需确认时气泡显示脉冲活动徽章（activity-badge）提示用户回来。
 
 ### User Interaction Flow
 
-用户点击气泡 → 展开聊天面板（UF-2）；再次点击或按 Esc → 收起面板。会话内支持拖拽改变气泡位置，位置在当前会话内保持。
+用户点击气泡 → 展开聊天面板（UF-2），气泡隐藏、首次红点消除、焦点入输入区。会话内支持拖拽改变气泡位置（位移 <4px 视为点击）。面板展开期间无"点击气泡收起"（气泡已隐藏）；收起由 Esc 或点面板外区域触发（见 UF-2）。收起后若 agent 有新活动，气泡显示活动徽章，点击再次展开。
 
 ### Data Requirements
 
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
-| 未读/引导徽章 | boolean | 本地存储（首次标记） | 首次展示徽章，用户首次展开后消除 |
+| 首次引导徽章 | boolean | 本地存储（首次标记） | 首次展示红点，用户首次展开后消除 |
+| 活动徽章 | number（未读数） | 后端推送 | 面板收起期间累计的未读消息/待确认数；展开后清零 |
 | 气泡位置 | {x, y} | 会话内状态 | 拖拽后更新，会话内保持 |
 | feature flag 可见性 | boolean | 后端配置 | 关闭时气泡不渲染 |
+| AI 可用性 | boolean | 后端代理健康 | 不可用时降为禁用态 |
 
 ### States
 
 | State | Display | Trigger |
 |-------|---------|---------|
-| 默认 | 气泡图标 | 页面加载、feature flag 开启 |
-| 首次引导 | 气泡 + 徽章红点 | 用户首次访问、未展开过 |
-| AI 不可用 | 气泡 + 灰色/禁用态指示 | 后端代理报告 AI 服务不可用 |
-| 隐藏 | 不渲染 | feature flag 关闭 |
+| 默认 | accent 圆形气泡 + 消息图标 | 页面加载、feature flag 开启 |
+| 首次引导 | 气泡 + 右上红点 | 用户首次访问、未展开过 |
+| 后台活动（面板收起态） | 气泡右上活动徽章（error 红、带未读数、脉冲动画） | 面板收起期间 agent 返回消息或需确认；展开即消除 |
+| AI 不可用 | 灰色 icon、border-dark | 后端代理报告 AI 服务不可用 |
+| 隐藏 | 不渲染（display:none） | feature flag 关闭 |
 
 ### Validation Rules
 
 - feature flag 关闭时气泡完全不渲染（非仅隐藏）。
 - 气泡不得遮挡页面主操作按钮（需与现有页面元素做避让）。
+- 活动徽章在面板展开后立即清零。
 
 ---
 
@@ -88,41 +92,56 @@ Copilot 不创建新页面。唯一的跨页面跳转来自**查询结果卡片*
 
 - **Mode**: existing-page
 - **Target Page**: global — 同 UF-1 所有已认证路由
-- **Position**: 浮层展开为右侧抽屉（宽 420px，从视口右边缘滑入），不阻塞主页面操作（主页面仍可滚动/点击）
+- **Position**: 右侧抽屉，`position: fixed`，right:0/top:0/bottom:0，**默认宽 630px**，从视口右边缘滑入（translateX 200ms），shadow level-3，`z-index: 50`。**左边缘 6px 拖拽手柄可调节宽度（区间 420–960px），松手写入 sessionStorage，同会话恢复**。不阻塞主页面（主页可滚动/点击）。**无关闭按钮**——由 Esc 或点面板外区域收起。
 
 ### Description
 
-展开后的对话主界面，包含：消息历史区（用户消息、AI 回复、系统消息）、输入框、Team 上下文指示器、卡片渲染区。单会话最大 50 轮对话。
+展开后的对话主界面，含三段式头部 + 双视图内容区 + 双模式输入区。**头部**：Team 徽章（左）· 当前会话标题（中）· 开启新会话 + 历史会话按钮（右）。**双视图**：对话视图（消息历史 + Agent 过程追踪 UF-8 + 卡片 UF-3~UF-7 + 输入区）↔ 会话列表视图（历史会话，单活动会话，不并行多会话）。**双模式输入区**：文本模式（textarea）↔ 选项组模式（键盘选项组，承载所有确认操作，无二级弹窗）。单会话最大 50 轮。
 
 ### User Interaction Flow
 
-用户在输入框键入指令 → 点击发送或按 Enter → 消息追加到历史区 → 显示 AI 思考态 → AI 返回后渲染回复（文字 / 卡片 UF-3~UF-7）。用户可继续输入补充。Esc 收起面板。
+用户键入指令 → Enter/发送 → 消息追加 → 流式展示 Agent 过程追踪（UF-8）→ 渲染回复（文字/卡片）。需确认时输入区切换为选项组（↑↓/Enter/←/Esc）。点头部「历史」切到会话列表视图（标题变"历史会话"），选中会话切换活动会话；点「+」新建会话（已是新会话则不重复创建）。Esc 或点面板外区域收起（会话后台继续）。
 
 ### Data Requirements
 
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
-| 当前 Team 上下文 | Team 对象（bizKey + 名称） | 当前页面路由/全局状态 | 明确展示给用户，所有操作在此 Team 范围内 |
-| 消息历史 | List<{role, content, cardRef, ts}> | 会话内状态（不跨会话持久化） | 单会话上限 50 轮 |
-| 输入文本 | string | 用户输入 | 限制单次最大长度 500 字符，超出截断并提示 |
-| 发送状态 | enum(idle/thinking/streaming/error/timeout) | 后端代理响应 | 驱动加载/错误/超时态 |
+| 当前 Team 上下文 | Team {bizKey,name} | 页面路由/全局状态 | 头部 Team 徽章 |
+| 当前会话标题 | string | 首条指令摘要或"新会话" | 头部居中；列表视图时显示"历史会话" |
+| 会话列表 | Session[]{id,title,preview,time,msgCount,pending} | 本地/后端 | 会话列表视图 |
+| 消息历史 | List<{role,content,cardRef,ts}> | 会话内状态 | 单会话 ≤50 轮，不跨会话持久化 |
+| 输入文本 | string | 用户输入 | 限 1000 字符，超出截断 |
+| 输入模式 | enum(text/options) | 当前是否有待确认 | options 模式渲染键盘选项组 |
+| 待确认选项 | Option[]{label,action,hint} | 当前卡片决策 | 选项组内容 |
+| 发送状态 | enum(idle/thinking/streaming/error/timeout) | 后端代理 | 驱动加载/错误/超时态 |
+| 面板宽度 | number(px) | sessionStorage（copilotPanelW） | 420–960 |
 
 ### States
 
 | State | Display | Trigger |
 |-------|---------|---------|
-| 空（首次展开） | 欢迎语 + 首次引导卡片（UF-7） | 用户首次展开面板 |
-| 思考中 | 输入区禁用 + 加载指示 | 指令已发送，等待 AI |
-| 流式返回 | 卡片骨架先显示，字段增量填充 | AI 流式返回 |
-| 正常对话 | 完整消息历史 + 输入框可用 | AI 返回完成 |
-| 错误 | 错误文字 + 重试入口 | 后端代理返回错误 |
-| 超时 | 超时提示 + 降级入口（UF-6） | AI 超 10 秒未返回 |
+| 空（首次展开/新会话） | 欢迎语 + 首次引导卡片（UF-7） | 新会话 |
+| 思考中 | 输入区禁用 + 三点跳动 | 指令已发送，等 AI |
+| 流式返回 | Agent 过程追踪（UF-8）流式追加 | AI 流式返回（不支持流式则退化单条"思考中"） |
+| 正常对话 | 消息历史 + 输入区可用 | AI 返回完成 |
+| 选项组模式 | 输入区为键盘选项组（↑↓/Enter/←/Esc） | 存在待确认决策（提交/取消/撤回/diff/歧义/降级） |
+| 会话列表视图 | 历史会话列表，标题"历史会话" | 点头部「历史」 |
+| 发送阻断（Team 缺失） | 发送禁用 + inline notice | teamCtx 缺失 |
+| 发送阻断（轮次上限） | 发送禁用 + inline notice + 新建会话 | sessionRoundCount ≥50 |
+| 流式中断 | 半填充骨架丢弃 + 系统消息 + 重试 | 流式连接断开（仅 UF-3） |
+| Team 切换（in-flight） | in-flight 卡片冻结 + warning notice | 导航切 Team 且有 pending 卡片 |
+| 错误 | 系统消息红色 + 重试 | 后端代理错误 |
+| 超时 | 超时提示 + 降级入口（UF-6） | AI >10s 未返回 |
+| 收起 | translateX(100%) 隐藏 | Esc / 点面板外（会话后台继续） |
 
 ### Validation Rules
 
-- 单次输入超过 500 字符时截断至 500 字符并提示"已超出单次最大长度 500 字符，已截断"。
-- Team 上下文缺失时阻止发送并提示用户先进入具体 Team 页面。
-- 会话达 50 轮上限时阻止发送并提示用户开启新会话。
+- 单次输入超过 1000 字符截断并提示"已超出单次最大长度 1000 字符，已截断"；textarea min-h 120px、max-h 280px、按内容自动增高、到顶滚动。
+- 面板宽度可拖拽调节，区间 420–960px，会话内持久化。
+- Team 上下文缺失时阻止发送并提示先进入 Team 页面；会话达 50 轮阻止发送并提示新建。
+- 无关闭按钮；Esc 或点面板外区域收起（不中断会话）。
+- 选项组模式下 ← 返回文本输入，Esc 收起面板；点击选项直接选中并确认（不收起面板）。
+- 多卡片可共存，但 AI 请求串行（思考态全局唯一）；切换会话时前一会话待确认卡片与撤回窗口保留。
 
 ---
 
@@ -168,6 +187,8 @@ AI 推送卡片 → 用户直接编辑字段（onChange 更新卡片 state）或
 | 校验失败 | 错误说明 + `validTransitions` 合法目标状态列表 | available-transitions 返回不合法（仅状态变更类） |
 | 提交中 | 提交按钮禁用 + 加载 | 用户点击提交 |
 | 成功 | 成功反馈 + 实体跳转入口 + （分配/状态变更类）5 分钟撤回按钮 | API 返回成功 |
+| 权限不足 | 不渲染字段区与提交控件，卡片体替换为权限提示（lock 图标 + 文字） | canSubmit=false（RBAC 校验） |
+| 流式填充中断 | 丢弃半填充骨架卡，替换为系统消息 + 重试（沿用上一条指令） | 流式连接断开（仅 UF-3 增量流式） |
 | 失败 | 错误信息 + 重试（字段保留可编辑） | API 返回失败 |
 
 ### Validation Rules
@@ -183,6 +204,11 @@ AI 推送卡片 → 用户直接编辑字段（onChange 更新卡片 state）或
   - 撤回唯一性：每次操作仅允许一次撤回；撤回后不可经 Copilot 重做，需重新发起正向操作。
 - **并发写入合并语义**：用户直接编辑字段（onChange）与对话补充（异步 AI 增量变更）写入同一卡片 state 时，以**时间戳晚者胜出**（last-write-wins）合并；对话补充产生的增量变更在应用到卡片前先展示 diff 供用户确认，不静默覆盖正在被用户编辑的字段。
 - **失败重试语义**：失败后重试必须重新运行 available-transitions 预校验（若适用）；卡片保持可编辑态，所有字段值保留；后端写操作应为幂等或事务性，失败不产生半成品副作用。
+- **字段控件类型规则**（强制，禁止裸文本输入时间或关联值）：
+  - 日期/时间字段（planStartDate、expectedEndDate 等）→ **日期选择组件**（`<input type="date">` 或 DatePicker），禁止手敲日期字符串。
+  - 关联/引用字段（milestoneKey 里程碑、assignee 负责人、parent MainItem、teamKey 等）→ **Select 下拉组件**，选项来自当前 Team 范围内实体列表（后端预加载），禁止自由文本。
+  - 纯文本字段（title、description、achievement 等）→ Input/Textarea。
+- **diff 内联（无二级浮窗）**：对话补充产生的增量变更在**卡片体内**内联展示 diff 区（`.diff-inline`，accent-bg），确认动作由输入区选项组承载（应用/丢弃）；不弹二级浮窗，避免与离开确认 Dialog 的 z-index 叠压。
 
 ---
 
@@ -336,11 +362,53 @@ AI 超 10 秒未返回 → 展示超时提示 + "去手动操作"快捷入口；
 
 ---
 
+## UI Function 8: Agent 过程追踪
+
+### Placement
+
+- **Mode**: existing-page
+- **Target Page**: global — 渲染于 UF-2 聊天面板消息区内
+- **Position**: 用户指令与最终卡片（UF-3/4）之间，按后端流式事件增量渲染
+
+### Description
+
+借鉴 Claude Code 等成熟 agent，把 AI 的思考、计划、工具调用（tool_call）步骤流式展示给用户，降低"黑盒"感、建立信任、便于调试。最终卡片在过程结束后渲染于其下方。
+
+### User Interaction Flow
+
+用户发送指令 → 面板流式追加：思考 → 计划步骤 → 操作步骤（每步含状态 ✓/✗ 与耗时）→ 过程结束在其下方渲染最终卡片 → 用户可点击追踪头部折叠/展开（折叠态记忆于会话内）。
+
+### Data Requirements
+
+| Field | Type | Source | Notes |
+|-------|------|--------|-------|
+| 思考文本 | string | 流式事件 `thinking` | 斜体展示 |
+| 计划步骤 | string[] | 流式事件 `plan_step` | 编号列表 |
+| 操作步骤 | `{name,status,durationMs,detail}[]` | 流式事件 `tool_call` / `tool_result` | status: streaming/done/error |
+| 摘要 | `{tokens,durationMs,costUsd}` | 后端汇总 | 折叠态仍可见 |
+
+### States
+
+| State | Display | Trigger |
+|-------|---------|---------|
+| 流式中 | 步骤逐条追加，末步闪烁光标 | 后端流式事件 |
+| 已完成 | 全部 ✓，下方渲染最终卡片；**自动折叠**（思考+计划+操作执行完成即折叠为头部摘要，让最终卡片成为焦点） | 流式结束 |
+| 折叠 | 仅头部（步数 · 耗时） | 用户点击头部 |
+| 步骤失败 | 该步 ✗ error，中断后续，不渲染最终卡片改为引导 | 工具调用失败 |
+
+### Validation Rules
+
+- 首字节（思考出现）≤ 1s；计划可见 ≤ 2s；最终卡片 P95 < 5s。
+- AI 服务不支持流式时，退化为单条"AI 思考中…"系统消息 + 最终卡片。
+- 任一步骤失败 → 不渲染最终卡片，改为引导文字（如"匹配失败，请补充信息"）。
+
+---
+
 ## Page Composition
 
 | Page | Type | UI Functions | Position Notes |
 |------|------|-------------|----------------|
-| 所有已认证路由（global overlay） | existing | UF-1, UF-2, UF-3, UF-4, UF-5, UF-6, UF-7 | 浮动气泡 UF-1 常驻；UF-2~UF-7 在气泡展开后于面板内渲染 |
+| 所有已认证路由（global overlay） | existing | UF-1, UF-2, UF-3, UF-4, UF-5, UF-6, UF-7, UF-8 | 浮动气泡 UF-1 常驻；UF-2~UF-8 在气泡展开后于面板内渲染 |
 | `/login` | existing | （无） | 未认证页面不显示 Copilot |
 
 > 本功能不创建任何新页面（new-page 计数为 0）。所有 UI 均为挂载在现有页面之上的 overlay 组件。查询结果卡片（UF-4）与降级快捷入口（UF-6）跳转到的均为 sitemap 中已有路由。

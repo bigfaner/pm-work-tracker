@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Copilot 原型 — 交互演示</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-brand">PM Tracker</div>
+      <nav class="sidebar-nav">
+        <a class="nav-item active">事项清单</a>
+        <a class="nav-item">每周进展</a>
+        <a class="nav-item">整体进度</a>
+        <a class="nav-item">里程碑图</a>
+        <a class="nav-item">待办事项池</a>
+        <a class="nav-item">团队管理</a>
+      </nav>
+      <div class="sidebar-user"><div class="avatar">张</div><span>张三</span></div>
+    </aside>
+
+    <main class="main">
+      <h1 class="page-title">事项清单</h1>
+      <div class="toolbar">
+        <button class="btn btn-primary btn-sm">+ 新增主事项</button>
+        <input class="input" placeholder="搜索标题或编号..." style="max-width:240px">
+        <button class="btn btn-secondary btn-sm">状态：全部</button>
+        <button class="btn btn-secondary btn-sm">负责人：全部</button>
+        <button class="btn btn-ghost btn-sm">重置</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>编号</th><th>标题</th><th>优先级</th><th>负责人</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td>MI-0023</td><td>用户认证模块</td><td><span class="badge badge-error">P0</span></td><td>张三</td><td><span class="badge badge-success">进行中</span></td></tr>
+            <tr><td>MI-0024</td><td>订单导出功能</td><td><span class="badge badge-warning">P1</span></td><td>李四</td><td><span class="badge badge-neutral">待开始</span></td></tr>
+            <tr><td>MI-0025</td><td>权限体系重构</td><td><span class="badge badge-warning">P1</span></td><td>王五</td><td><span class="badge badge-success">进行中</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <!-- UF-1: Floating Bubble -->
+  <button id="copilotBubble" class="copilot-bubble" aria-label="AI 助手（展开/收起）" onclick="togglePanel()">
+    <span class="badge-dot" aria-hidden="true"></span>
+    <span class="activity-badge" aria-hidden="true"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+  </button>
+
+  <!-- UF-2: Chat Panel (resizable, default 630px) -->
+  <aside id="copilotPanel" class="copilot-panel" role="dialog" aria-label="AI 助手对话面板">
+    <div id="panelResizer" class="panel-resizer" aria-hidden="true" title="拖动调节宽度"></div>
+    <div class="panel-header">
+      <div class="header-left">
+        <span class="badge badge-accent team-badge" aria-live="polite">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          Team: 平台组
+        </span>
+      </div>
+      <div class="header-center">
+        <span class="session-title" id="sessionTitle" title="当前会话标题">新会话</span>
+      </div>
+      <div class="header-actions">
+        <button id="newSessionBtn" class="btn btn-icon btn-ghost" aria-label="开启新会话" title="开启新会话" onclick="newSession()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+        </button>
+        <button id="historyBtn" class="btn btn-icon btn-ghost" aria-label="历史会话" title="历史会话" onclick="toggleSessionList()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="chatView" class="chat-view">
+      <div id="messageList" class="message-list" role="log" aria-live="polite"></div>
+
+    <!-- Input area: dual mode (text ↔ options). No card popups; confirmations live here. -->
+    <div class="input-area">
+      <div id="truncationNotice" class="inline-notice hard" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        已超出单次最大长度 1000 字符，已截断
+      </div>
+
+      <div id="inputTextMode" class="input-text-mode">
+        <div class="textarea-wrap" style="position:relative">
+          <textarea id="chatInput" class="textarea" rows="1" placeholder="描述你想做的事…"></textarea>
+          <span id="charCount" class="char-count">0/1000</span>
+        </div>
+        <div class="send-row" style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:11px;color:var(--text-tertiary)">Enter 发送 · Shift+Enter 换行 · Esc 收起</span>
+          <button class="btn btn-primary btn-sm" onclick="sendMessage()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            发送
+          </button>
+        </div>
+      </div>
+
+      <div id="inputOptionsMode" class="input-options-mode" hidden>
+        <div class="options-hint"><kbd>↑</kbd><kbd>↓</kbd> 选择 · <kbd>Enter</kbd> 确认 · <kbd>←</kbd> 返回输入 · <kbd>Esc</kbd> 收起</div>
+        <div id="optionList" class="option-list"></div>
+      </div>
+    </div>
+    </div>
+
+    <div id="sessionListView" class="session-list-view" hidden>
+      <div id="sessionList" class="session-list"></div>
+    </div>
+  </aside>
+
+  <!-- Leave-confirm dialog (route guard only; not a card interaction) -->
+  <div id="leaveDialog" class="dialog-overlay" role="dialog" aria-label="离开确认">
+    <div class="dialog">
+      <h3>当前有未提交的操作，确定离开？</h3>
+      <p>离开将丢失未提交的卡片草稿。</p>
+      <div class="dialog-actions">
+        <button class="btn btn-ghost btn-sm" data-action="cancel" onclick="closeLeaveDialog()">取消</button>
+        <button class="btn btn-danger btn-sm" onclick="closeLeaveDialog()">确定离开</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prototype-only state switcher -->
+  <div class="state-switcher">
+    <div class="ss-title">原型状态切换</div>
+    <div class="ss-hint">仅用于评审。需确认时输入区变为选项组，用 ↑↓ + Enter 操作。</div>
+    <button data-state="onboarding" onclick="switchState('onboarding')">首次引导 (UF-7)</button>
+    <button data-state="write-prefilled" onclick="switchState('write-prefilled')">写卡片 · 预填 (UF-3)</button>
+    <button data-state="validation" onclick="switchState('validation')">写卡片 · 校验失败 (UF-3)</button>
+    <button data-state="success-undo" onclick="switchState('success-undo')">写卡片 · 成功+撤回 (UF-3)</button>
+    <button data-state="permission" onclick="switchState('permission')">写卡片 · 权限不足 (UF-3)</button>
+    <button data-state="diff-overlay" onclick="switchState('diff-overlay')">写卡片 · diff 确认 (UF-3)</button>
+    <button data-state="query" onclick="switchState('query')">查询结果 (UF-4)</button>
+    <button data-state="disambiguation" onclick="switchState('disambiguation')">歧义消解 (UF-5)</button>
+    <button data-state="fallback" onclick="switchState('fallback')">超时/降级 (UF-6)</button>
+    <button data-state="thinking" onclick="switchState('thinking')">思考中 + 流式骨架</button>
+    <button data-state="agent-trace" onclick="switchState('agent-trace')">Agent 过程（思考/计划/操作）</button>
+    <button onclick="showLeaveDialog()">离开确认 Dialog</button>
+    <button onclick="closePanel(); setTimeout(simulateBackgroundReturn, 1200)">收起 + 模拟后台返回</button>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    /* Page-specific card templates (demo mock content). Cards are info-only;
+       confirmations live in the input option group (keyboard-first). */
+    const TEMPLATES = {
+      onboarding: `
+        <div id="onboardingCard" class="msg ai"><div class="onboarding">
+          <div class="ob-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>我是 AI 助手，可以帮你：</div>
+          <ul class="ob-list">
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>创建（事项/子任务/里程碑/里程碑图/ItemPool）</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>查询（"我的 P0 事项"）</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>修改（状态/进度）</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>分配（负责人）</li>
+          </ul>
+          <div class="chips-row">
+            <button class="example-chip" onclick="fillExample('创建一个 P1 事项，标题完成用户认证模块，分配给张三，下周五截止')">创建一个 P1 事项…</button>
+            <button class="example-chip" onclick="fillExample('我的 P0 事项有哪些？')">我的 P0 事项有哪些？</button>
+            <button class="example-chip" onclick="fillExample('更新子任务完成度为 60%')">更新子任务完成度为 60%</button>
+          </div>
+        </div></div>`,
+
+      'write-prefilled': `
+        <div class="msg user"><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块，分配给张三，下周五截止</div><div class="ts">${nowTs()}</div></div>
+        <div class="msg ai"><div class="chat-card">
+          <div class="card-head"><span class="badge badge-accent">创建主事项</span></div>
+          <div class="confirm-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12c.55 0 1-.45 1-1V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6c0 .55.45 1 1 1"/></svg><span class="target-title">新事项：完成用户认证模块</span></div>
+          <div class="field"><label>标题</label><input class="input" value="完成用户认证模块"></div>
+          <div class="field derived"><label>优先级<span class="derived-tag">AI 推断</span></label><select class="select"><option>P1</option><option>P2</option><option>P3</option></select></div>
+          <div class="field derived"><label>负责人<span class="derived-tag">AI 推断</span></label><input class="input" value="张三"></div>
+          <div class="field"><label>预期截止<span class="req">*</span></label><input type="date" class="input"></div>
+          <div class="field required"><label>里程碑<span class="req">*</span></label>
+            <select class="select"><option value="">选择里程碑图</option><option>第一阶段（MM-0012）</option><option>第二阶段（MM-0018）</option></select></div>
+        </div></div>`,
+
+      validation: `
+        <div class="msg user"><div class="msg-bubble">把用户认证模块的状态改为已完成</div><div class="ts">${nowTs()}</div></div>
+        <div class="msg ai"><div class="chat-card">
+          <div class="card-head"><span class="badge badge-warning">状态变更 · 主事项</span></div>
+          <div class="confirm-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/></svg><span class="target-title">用户认证模块</span><span class="target-code">MI-0023</span></div>
+          <div class="field"><label>目标状态</label><input class="input" value="已完成" style="color:var(--text-secondary)"></div>
+          <div class="error-bar" role="alert">当前状态「进行中」不支持直接转为「已完成」。<br>合法目标状态：<div class="chips"><span class="chip">paused 暂停</span><span class="chip">cancelled 取消</span></div></div>
+        </div></div>`,
+
+      'success-undo': `
+        <div class="msg user"><div class="msg-bubble">把订单导出功能分配给李四</div><div class="ts">${nowTs()}</div></div>
+        <div class="msg ai" id="writeCardSuccess"><div class="chat-card">
+          <div class="card-head"><span class="badge badge-accent">分配 · 主事项</span></div>
+          <div class="confirm-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/></svg><span class="target-title">订单导出功能</span><span class="target-code">MI-0024</span></div>
+          <div class="card-footer" id="undoSlot" style="display:block">
+            <div class="success-row" style="width:100%">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              已分配给李四 <a class="link" href="#">查看 ›</a>
+              <button id="undoBtn" class="btn btn-ghost btn-sm undo-btn" style="color:var(--error-text);margin-left:auto" onclick="performUndo()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg><span class="undo-countdown">撤回 (05:00)</span></button>
+            </div>
+          </div>
+        </div></div>`,
+
+      permission: `
+        <div class="msg user"><div class="msg-bubble">把权限体系重构的状态改为已完成</div><div class="ts">${nowTs()}</div></div>
+        <div class="msg ai"><div class="chat-card">
+          <div class="card-head"><span class="badge badge-warning">状态变更 · 主事项</span></div>
+          <div class="confirm-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/></svg><span class="target-title">权限体系重构</span><span class="target-code">MI-0025</span></div>
+          <div class="permission-msg"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>你对该事项没有修改权限，请联系管理员或更换目标。</div>
+        </div></div>`,
+
+      'diff-overlay': `
+        <div class="msg user"><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块，分配给张三</div><div class="ts">${nowTs()}</div></div>
+        <div class="msg user"><div class="msg-bubble">优先级改成 P0</div><div class="ts">${nowTs()}</div></div>
+        <div class="msg ai"><div class="chat-card">
+          <div class="card-head"><span class="badge badge-accent">创建主事项</span></div>
+          <div class="confirm-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/></svg><span class="target-title">新事项：完成用户认证模块</span></div>
+          <div class="diff-inline">
+            <div class="diff-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>对话补充将更新以下字段（用下方选项应用或丢弃）：</div>
+            <div class="diff-row"><span class="fname">优先级</span><span class="old">P1</span> → <span class="new">P0</span></div>
+            <div class="diff-hint">提交前请在输入区确认（↑↓ 选择 · Enter 确认）</div>
+          </div>
+        </div></div>`,
+
+      query: `
+        <div class="msg user"><div class="msg-bubble">我的 P0 事项有哪些？</div><div class="ts">${nowTs()}</div></div>
+        <div class="msg ai"><div class="chat-card">
+          <div class="summary-line">你有 2 个 P0 事项（直接 + 间接匹配）</div>
+          <div class="result-row" onclick="alert('跳转 /items/MI-0023')"><div class="left"><span class="badge badge-error">P0</span><span class="r-title">用户认证模块</span><span class="r-code">MI-0023</span></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+          <div class="result-row" onclick="alert('跳转 /items/MI-0023/sub/...')"><div class="left"><span class="badge badge-neutral">间接</span><span class="r-title">接口联调（子任务，负责人=你）</span></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div></div>
+        <div class="msg ai"><div class="chat-card">
+          <div class="summary-line">里程碑图「第二阶段」进度</div>
+          <div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:60%"></div></div><span class="progress-label">3/5 子事项完成 · 60%</span></div>
+          <div class="result-row"><div class="left"><span class="r-title">第二阶段</span><span class="r-code">MM-0012</span></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div></div>`,
+
+      disambiguation: `
+        <div class="msg user"><div class="msg-bubble">把认证模块的状态改为进行中</div><div class="ts">${nowTs()}</div></div>
+        <div class="msg ai"><div class="chat-card">
+          <div class="summary-line">找到多个匹配，请在下方输入区选择目标：<span style="font-size:12px;color:var(--text-tertiary)">「认证模块」</span></div>
+          <div class="diff-hint">用 ↑↓ 选择候选 · Enter 确认</div>
+        </div></div>`,
+
+      fallback: `
+        <div class="msg user"><div class="msg-bubble">创建一个里程碑，叫第一阶段验收</div><div class="ts">${nowTs()}</div></div>
+        <div class="msg system error"><div class="msg-bubble">AI 响应超时（已等待 10 秒）</div></div>
+        <div class="msg ai"><div class="fallback-card">
+          <div class="fb-head"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>AI 响应超时</div>
+          <div class="fb-desc">已超过 10 秒未响应，请在下方输入区选择手动入口或重试。</div>
+        </div></div>`,
+
+      thinking: `
+        <div class="msg user"><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块</div><div class="ts">${nowTs()}</div></div>
+        <div class="msg system"><div class="msg-bubble"><span class="thinking-dots"><span></span><span></span><span></span></span>&nbsp;AI 思考中…</div></div>
+        <div class="msg ai"><div class="chat-card" style="border-style:dashed;background:transparent">
+          <div style="height:14px;background:var(--bg);border-radius:4px;width:40%"></div>
+          <div style="height:40px;background:var(--bg);border-radius:6px"></div>
+          <div style="height:40px;background:var(--bg);border-radius:6px;width:70%"></div>
+          <div style="height:40px;background:var(--bg);border-radius:6px;width:50%"></div>
+        </div></div>`,
+
+      'agent-trace': `
+        <div class="msg user"><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块，分配给张三，下周五截止</div><div class="ts">${nowTs()}</div></div>
+        <div class="msg ai"><div class="agent-trace" id="agentTrace">
+          <div class="at-header" onclick="toggleTrace(this.parentElement)">
+            <svg class="at-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            <span>Agent 思考过程</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--text-tertiary)">5 步 · 1.4s</span>
+          </div>
+          <div class="at-body">
+            <div class="at-section">
+              <span class="at-section-label">思考</span>
+              <div class="at-step thinking"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span class="at-text">用户要创建一个 P1 事项，我需要提取标题、优先级、负责人、截止日期，并在当前 Team 范围内匹配负责人与里程碑。</span></div>
+            </div>
+            <div class="at-section">
+              <span class="at-section-label">计划</span>
+              <div class="at-step plan"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span class="at-text">1. 解析意图 → 创建 MainItem</span></div>
+              <div class="at-step plan"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span class="at-text">2. 加载 Team「平台组」实体 schema</span></div>
+              <div class="at-step plan"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg><span class="at-text">3. 模糊匹配负责人「张三」</span></div>
+              <div class="at-step plan"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg><span class="at-text">4. 解析「下周五」→ 日期</span></div>
+              <div class="at-step plan"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg><span class="at-text">5. 推送预填卡片供确认</span></div>
+            </div>
+            <div class="at-section">
+              <span class="at-section-label">操作</span>
+              <div class="at-step action done"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span class="at-text">加载 Team「平台组」MainItem schema</span><span class="at-status">✓ 0.3s</span></div>
+              <div class="at-step action done"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span class="at-text">模糊匹配「张三」→ 命中 张三 (user_017)</span><span class="at-status">✓ 0.4s</span></div>
+              <div class="at-step action done"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span class="at-text">解析「下周五」→ 2026-07-03</span><span class="at-status">✓ 0.2s</span></div>
+            </div>
+          </div>
+          <div class="at-summary"><span>已完成 · 请在下方确认卡片</span><span>token 412 · $0.001</span></div>
+        </div></div>
+        <div class="msg ai"><div class="chat-card">
+          <div class="card-head"><span class="badge badge-accent">创建主事项</span></div>
+          <div class="confirm-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/></svg><span class="target-title">新事项：完成用户认证模块</span></div>
+          <div class="field"><label>标题</label><input class="input" value="完成用户认证模块"></div>
+          <div class="field derived"><label>优先级<span class="derived-tag">AI 推断</span></label><select class="select"><option>P1</option><option>P2</option><option>P3</option></select></div>
+          <div class="field derived"><label>负责人<span class="derived-tag">AI 推断</span></label><input class="input" value="张三"></div>
+          <div class="field"><label>预期截止<span class="req">*</span></label><input type="date" class="input" value="2026-07-03"></div>
+          <div class="field required"><label>里程碑<span class="req">*</span></label><select class="select"><option value="">选择里程碑图</option><option>第一阶段（MM-0012）</option><option>第二阶段（MM-0018）</option></select></div>
+        </div></div>`
+    };
+
+    /* Per-state input-area config: text mode, or options mode (keyboard option group).
+       This is the keyboard-first confirmation surface — replaces in-card popups. */
+    const DISAMBIG_CANDIDATES = [
+      {title:'用户认证模块', code:'MI-0023'},
+      {title:'认证服务重构', code:'MI-0031'},
+      {title:'权限认证迁移', code:'MI-0040'}
+    ];
+    const STATE_INPUT = {
+      'onboarding':      { mode:'text' },
+      'write-prefilled': { mode:'options', options:[
+        {label:'✓ 提交', action:'submit', hint:'Enter'},
+        {label:'✎ 编辑字段', action:'edit'},
+        {label:'✗ 取消', action:'cancel', hint:'Esc'} ] },
+      'agent-trace':     { mode:'options', options:[
+        {label:'✓ 提交', action:'submit', hint:'Enter'},
+        {label:'✎ 编辑字段', action:'edit'},
+        {label:'✗ 取消', action:'cancel', hint:'Esc'} ] },
+      'validation':      { mode:'options', options:[
+        {label:'✎ 修改目标状态', action:'edit'},
+        {label:'✗ 取消', action:'cancel'} ] },
+      'success-undo':    { mode:'options', options:[
+        {label:'↩ 撤回', action:'undo', hint:'5 分钟内'},
+        {label:'✓ 完成', action:'done'} ] },
+      'permission':      { mode:'options', options:[
+        {label:'↻ 换一个目标', action:'retry'},
+        {label:'✗ 取消', action:'cancel'} ] },
+      'diff-overlay':    { mode:'options', options:[
+        {label:'✓ 应用变更（优先级 P1 → P0）', action:'apply', hint:'Enter'},
+        {label:'✗ 丢弃变更', action:'discard', hint:'Esc'} ] },
+      'query':           { mode:'text' },
+      'disambiguation':  { mode:'options', candidates: DISAMBIG_CANDIDATES, options: DISAMBIG_CANDIDATES.map((c,i)=>({label:c.title+' · '+c.code, action:'pick:'+i})) },
+      'fallback':        { mode:'options', options:[
+        {label:'去 /milestones 手动新增', action:'manual'},
+        {label:'↻ 重试', action:'retry'} ] },
+      'thinking':        { mode:'text', disabled:true }
+    };
+
+    /* Session history (mock). Single active session in the panel; the list lets you
+       switch — no parallel multi-session (see ui-design.md 决策). */
+    let CURRENT_SESSION_ID = null;          // null = brand-new session, nothing active in list
+    let CURRENT_SESSION_IS_NEW = true;      // starts on a fresh empty session (new-session is then a no-op)
+    let CURRENT_SESSION_TITLE = '新会话';    // real title; header shows "历史会话" while list view is open
+    const SESSIONS = [
+      { id:'s1', title:'创建用户认证模块', preview:'创建一个 P1 事项，标题完成用户认证模块…', time:'今天 14:32', messageCount:6, pending:true,  inputState:'write-prefilled', transcript: TEMPLATES['write-prefilled'] },
+      { id:'s2', title:'查询 P0 事项',      preview:'我的 P0 事项有哪些？',                   time:'今天 11:05', messageCount:2, pending:false, inputState:'query',          transcript: TEMPLATES['query'] },
+      { id:'s3', title:'分配订单导出',      preview:'把订单导出功能分配给李四',                time:'昨天 18:40', messageCount:3, pending:true,  inputState:'success-undo',   transcript: TEMPLATES['success-undo'] },
+      { id:'s4', title:'里程碑进度',        preview:'里程碑图第二阶段的进度怎么样？',         time:'昨天 10:12', messageCount:2, pending:false, inputState:'query',          transcript: TEMPLATES['query'] },
+      { id:'s5', title:'子任务接口联调',    preview:'更新子任务完成度为 60%',                  time:'06-22',      messageCount:4, pending:false, inputState:'write-prefilled', transcript: TEMPLATES['write-prefilled'] }
+    ];
+  </script>
+</body>
+</html>
