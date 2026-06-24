@@ -9,7 +9,7 @@
 <body>
   <div class="hub">
     <h1>AI Copilot 对话助手 — UI 原型</h1>
-    <p class="lede">全局浮动 overlay，对话 + 卡片混合模式。本原型模拟既有「事项清单」宿主页 + Copilot overlay，演示 7 个组件的关键状态。</p>
+    <p class="lede">全局浮动 overlay，对话 + 卡片混合模式。本原型模拟既有「事项清单」宿主页 + Copilot overlay，演示 8 个组件的关键状态。</p>
 
     <div class="note-box">
       ⚠ 本功能为全局 overlay，不新建页面。原型用左下角「状态切换器」在面板内切换卡片状态，仅供评审；实际产品中 AI 按对话实时推送卡片。
@@ -32,14 +32,18 @@
     <div class="hub-grid">
       <div class="hub-card"><h3>UF-7 首次引导</h3><p>能力说明 + 可点击示例指令 chips。</p><span class="badge badge-neutral">onboarding</span></div>
       <div class="hub-card"><h3>UF-3 写卡片 · 预填</h3><p>AI 推断字段标注、必填空字段 warning 高亮、高影响操作确认行。</p><span class="badge badge-neutral">write-prefilled</span></div>
-      <div class="hub-card"><h3>UF-3 写卡片 · 校验失败</h3><p>状态机预校验不通过，validTransitions chips 列合法目标。</p><span class="badge badge-neutral">validation</span></div>
-      <div class="hub-card"><h3>UF-3 写卡片 · 成功+撤回</h3><p>蓝=成功对勾 + 实体跳转 + 5 分钟撤回倒计时（实时递减）。</p><span class="badge badge-neutral">success-undo</span></div>
+      <div class="hub-card"><h3>UF-3 写卡片 · 预校验失败</h3><p>状态机预校验不通过，validTransitions chips 列合法目标。</p><span class="badge badge-neutral">validation</span></div>
+      <div class="hub-card"><h3>UF-3 写卡片 · 提交失败</h3><p>后端字段校验错误就近展示 + 顶部错误条 + 当前 turn 标"重试 N 次"（历史回看不显示）。</p><span class="badge badge-neutral">submit-failed</span></div>
+      <div class="hub-card"><h3>UF-3 写卡片 · 已提交折叠 + 撤回 banner + AI 跟进</h3><p>表单折叠为单行 summary（点击展开只读字段）+ 撤回 banner 倒计时 + AI 跟进消息衔接下一轮。</p><span class="badge badge-neutral">success-undo</span></div>
+      <div class="hub-card"><h3>UF-3 写卡片 · 已丢弃</h3><p>表单折叠为"⊘ 已丢弃 · title"单行，保留在 transcript 避免孤儿用户输入。</p><span class="badge badge-neutral">discarded</span></div>
       <div class="hub-card"><h3>UF-3 写卡片 · 权限不足</h3><p>canSubmit=false，卡片体替换为权限提示，无提交控件。</p><span class="badge badge-neutral">permission</span></div>
-      <div class="hub-card"><h3>UF-3 diff 确认浮层</h3><p>对话补充增量变更，浮层展示 old→new，应用/丢弃。</p><span class="badge badge-neutral">diff-overlay</span></div>
+      <div class="hub-card"><h3>UF-3 diff 确认内联</h3><p>对话补充增量变更，内联展示 old→new（无二级浮窗），应用/丢弃由输入区选项组承载。</p><span class="badge badge-neutral">diff-overlay</span></div>
       <div class="hub-card"><h3>UF-4 查询结果</h3><p>摘要 + 直接/间接迷你卡片行 + 里程碑进度条。</p><span class="badge badge-neutral">query</span></div>
-      <div class="hub-card"><h3>UF-5 歧义消解</h3><p>多候选 radio 选择，选中后确认可用。</p><span class="badge badge-neutral">disambiguation</span></div>
+      <div class="hub-card"><h3>UF-5 歧义消解</h3><p>多候选在输入区选项组呈现，键盘 ↑↓+Enter 选择。</p><span class="badge badge-neutral">disambiguation</span></div>
       <div class="hub-card"><h3>UF-6 超时/降级</h3><p>warning-bg 提示卡 + 传统表单快捷入口。</p><span class="badge badge-neutral">fallback</span></div>
       <div class="hub-card"><h3>思考中 + 流式骨架</h3><p>三点跳动 + border-dashed 卡片骨架增量填充。</p><span class="badge badge-neutral">thinking</span></div>
+      <div class="hub-card"><h3>UF-8 Agent 过程 · 成功自动折叠</h3><p>流式思考 → 计划 → 操作，全部 ✓ 后约 600ms 自动折叠为头部摘要。</p><span class="badge badge-neutral">agent-trace</span></div>
+      <div class="hub-card"><h3>UF-8 Agent 过程 · 失败不折叠</h3><p>出现 ✗ 失败步骤时保持展开让错误可见，不渲染最终卡片改为引导。</p><span class="badge badge-neutral">trace-failed</span></div>
       <div class="hub-card"><h3>离开确认 Dialog</h3><p>未提交卡片导航守卫，sm=400px，焦点默认在「取消」。</p><span class="badge badge-neutral">leave dialog</span></div>
     </div>
 

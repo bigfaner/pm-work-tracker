@@ -164,7 +164,15 @@ function fillExample(text) {
   if (ob) ob.style.display = 'none';
 }
 
-/* ---- Undo countdown (UF-3 success) ---- */
+/* ---- Form fold/expand (UF-3 lifecycle: 已提交/已撤回/已丢弃 折叠态) ---- */
+function toggleFormFold(el) {
+  if (!el || !el.classList) return;
+  el.classList.toggle('expanded');
+  const body = el.nextElementSibling;
+  if (body && body.classList.contains('form-readonly-body')) body.hidden = !body.hidden;
+}
+
+/* ---- Undo countdown (UF-3 committed · reversible) ---- */
 let undoTimer = null, undoRemaining = 0;
 function startUndoCountdown(seconds) {
   undoRemaining = seconds;
@@ -185,15 +193,30 @@ function updateUndoLabel() {
   if (btn) btn.querySelector('.undo-countdown').textContent = '撤回 (' + mm + ':' + ss + ')';
 }
 function expireUndo() {
-  const slot = document.getElementById('undoSlot');
-  if (slot) slot.innerHTML = '<div class="success-row" style="color:var(--text-tertiary)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>撤回窗口已过期</div>';
+  const banner = document.getElementById('undoBanner');
+  if (banner) banner.classList.add('expired');
+  const opt = document.querySelector('.option[data-action="undo"] .opt-label');
+  if (opt) opt.textContent = '✗ 撤回窗口已过期';
 }
 function performUndo() {
   clearInterval(undoTimer);
-  const card = document.getElementById('writeCardSuccess');
-  if (card) {
-    const footer = card.querySelector('.card-footer');
-    if (footer) footer.innerHTML = '<div class="success-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg>已撤回</div>';
+  const banner = document.getElementById('undoBanner');
+  if (banner) banner.remove();
+  const folded = document.querySelector('#writeCardSuccess .form-folded.committed');
+  if (folded) {
+    folded.classList.remove('committed');
+    folded.classList.add('undone');
+    const icon = folded.querySelector('.ff-icon');
+    if (icon) icon.outerHTML = '<svg class="ff-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>';
+    const title = folded.querySelector('.ff-title');
+    if (title) title.textContent = '已撤回 · 订单导出功能';
+  }
+  const list = document.getElementById('messageList');
+  if (list) {
+    const m = document.createElement('div');
+    m.className = 'msg system';
+    m.innerHTML = '<div class="msg-bubble">已撤回：assignee 已由 李四 恢复为 张三</div>';
+    list.appendChild(m); list.scrollTop = list.scrollHeight;
   }
   setTextMode();
 }

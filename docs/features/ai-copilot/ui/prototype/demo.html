@@ -127,15 +127,18 @@
     <div class="ss-hint">仅用于评审。需确认时输入区变为选项组，用 ↑↓ + Enter 操作。</div>
     <button data-state="onboarding" onclick="switchState('onboarding')">首次引导 (UF-7)</button>
     <button data-state="write-prefilled" onclick="switchState('write-prefilled')">写卡片 · 预填 (UF-3)</button>
-    <button data-state="validation" onclick="switchState('validation')">写卡片 · 校验失败 (UF-3)</button>
-    <button data-state="success-undo" onclick="switchState('success-undo')">写卡片 · 成功+撤回 (UF-3)</button>
+    <button data-state="validation" onclick="switchState('validation')">写卡片 · 预校验失败 (UF-3)</button>
+    <button data-state="submit-failed" onclick="switchState('submit-failed')">写卡片 · 提交失败（字段级错误+重试计数）</button>
+    <button data-state="success-undo" onclick="switchState('success-undo')">写卡片 · 已提交折叠+撤回 banner+AI 跟进</button>
+    <button data-state="discarded" onclick="switchState('discarded')">写卡片 · 已丢弃（折叠单行）</button>
     <button data-state="permission" onclick="switchState('permission')">写卡片 · 权限不足 (UF-3)</button>
     <button data-state="diff-overlay" onclick="switchState('diff-overlay')">写卡片 · diff 确认 (UF-3)</button>
     <button data-state="query" onclick="switchState('query')">查询结果 (UF-4)</button>
     <button data-state="disambiguation" onclick="switchState('disambiguation')">歧义消解 (UF-5)</button>
     <button data-state="fallback" onclick="switchState('fallback')">超时/降级 (UF-6)</button>
     <button data-state="thinking" onclick="switchState('thinking')">思考中 + 流式骨架</button>
-    <button data-state="agent-trace" onclick="switchState('agent-trace')">Agent 过程（思考/计划/操作）</button>
+    <button data-state="agent-trace" onclick="switchState('agent-trace')">Agent 过程 · 成功自动折叠</button>
+    <button data-state="trace-failed" onclick="switchState('trace-failed')">Agent 过程 · 失败不折叠</button>
     <button onclick="showLeaveDialog()">离开确认 Dialog</button>
     <button onclick="closePanel(); setTimeout(simulateBackgroundReturn, 1200)">收起 + 模拟后台返回</button>
   </div>
@@ -185,17 +188,42 @@
 
       'success-undo': `
         <div class="msg user"><div class="msg-bubble">把订单导出功能分配给李四</div><div class="ts">${nowTs()}</div></div>
-        <div class="msg ai" id="writeCardSuccess"><div class="chat-card">
-          <div class="card-head"><span class="badge badge-accent">分配 · 主事项</span></div>
-          <div class="confirm-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/></svg><span class="target-title">订单导出功能</span><span class="target-code">MI-0024</span></div>
-          <div class="card-footer" id="undoSlot" style="display:block">
-            <div class="success-row" style="width:100%">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-              已分配给李四 <a class="link" href="#">查看 ›</a>
-              <button id="undoBtn" class="btn btn-ghost btn-sm undo-btn" style="color:var(--error-text);margin-left:auto" onclick="performUndo()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg><span class="undo-countdown">撤回 (05:00)</span></button>
+        <div class="msg ai"><div class="agent-trace collapsed">
+          <div class="at-header" onclick="toggleTrace(this.parentElement)">
+            <svg class="at-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            <span>Agent 思考过程</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--text-tertiary)">6 步 · 1.6s · 含 API 调用</span>
+          </div>
+          <div class="at-body">
+            <div class="at-section"><span class="at-section-label">操作</span>
+              <div class="at-step action done"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span class="at-text">加载 MainItem「订单导出功能」</span><span class="at-status">✓ 0.3s</span></div>
+              <div class="at-step action done"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span class="at-text">调用 MainItem 分配 API（assignee → 李四）</span><span class="at-status">✓ 0.5s</span></div>
             </div>
           </div>
-        </div></div>`,
+          <div class="at-summary"><span>已完成</span><span>token 380 · $0.001</span></div>
+        </div></div>
+        <div class="msg ai" id="writeCardSuccess">
+          <div class="form-folded committed" onclick="toggleFormFold(this)">
+            <svg class="ff-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <span class="ff-title">已提交 · 订单导出功能</span>
+            <svg class="ff-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="form-readonly-body" hidden>
+            <div class="ro-field"><span class="ro-label">操作</span><span class="ro-value">分配 · 主事项</span></div>
+            <div class="ro-field"><span class="ro-label">实体</span><span class="ro-value">订单导出功能 · MI-0024</span></div>
+            <div class="ro-field"><span class="ro-label">负责人</span><span class="ro-value">李四（由 张三 改为 李四）</span></div>
+            <div class="ro-field"><span class="ro-label">提交时间</span><span class="ro-value">${nowTs()}</span></div>
+          </div>
+          <div class="undo-banner" id="undoBanner">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>
+            <span class="ub-text">5 分钟内可撤回</span>
+            <button class="ub-btn" id="undoBtn" onclick="performUndo()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>
+              <span class="undo-countdown">撤回 (05:00)</span>
+            </button>
+          </div>
+        </div>
+        <div class="msg ai"><div class="msg-bubble">好，已把「订单导出功能」分配给李四。需要顺便调整优先级或截止日期吗？</div><div class="ts">${nowTs()}</div></div>`,
 
       permission: `
         <div class="msg user"><div class="msg-bubble">把权限体系重构的状态改为已完成</div><div class="ts">${nowTs()}</div></div>
@@ -294,7 +322,65 @@
           <div class="field derived"><label>负责人<span class="derived-tag">AI 推断</span></label><input class="input" value="张三"></div>
           <div class="field"><label>预期截止<span class="req">*</span></label><input type="date" class="input" value="2026-07-03"></div>
           <div class="field required"><label>里程碑<span class="req">*</span></label><select class="select"><option value="">选择里程碑图</option><option>第一阶段（MM-0012）</option><option>第二阶段（MM-0018）</option></select></div>
-        </div></div>`
+        </div></div>`,
+
+      'submit-failed': `
+        <div class="msg user"><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块，分配给张三，下周五截止</div><div class="ts">${nowTs()}</div></div>
+        <div class="msg ai"><div class="agent-trace">
+          <div class="at-header" onclick="toggleTrace(this.parentElement)">
+            <svg class="at-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            <span>Agent 思考过程</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--error-text)">✗ 含失败步骤（不折叠）</span>
+          </div>
+          <div class="at-body">
+            <div class="at-section"><span class="at-section-label">操作</span>
+              <div class="at-step action done"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span class="at-text">加载 Team schema</span><span class="at-status">✓ 0.3s</span></div>
+              <div class="at-step action error"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><span class="at-text">调用 MainItem 创建 API → 字段校验失败</span><span class="at-status">✗ 0.4s</span></div>
+            </div>
+          </div>
+          <div class="at-summary"><span style="color:var(--error-text)">提交失败 · 字段级错误已就近展示</span><span>token 412</span></div>
+        </div></div>
+        <div class="msg ai"><div class="chat-card">
+          <div class="card-head"><span class="badge badge-accent">创建主事项</span></div>
+          <div class="confirm-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/></svg><span class="target-title">新事项：完成用户认证模块</span></div>
+          <div class="error-bar" role="alert" style="display:flex;flex-direction:column;gap:4px">
+            <span>后端校验未通过（重试 1 次，已保留你已编辑的字段值）：</span>
+            <span class="retry-count">提示：重试次数仅在当前会话显示，历史会话回看时不显示</span>
+          </div>
+          <div class="field"><label>标题</label><input class="input" value="完成用户认证模块"></div>
+          <div class="field derived"><label>优先级<span class="derived-tag">AI 推断</span></label><select class="select"><option>P1</option><option>P2</option><option>P3</option></select></div>
+          <div class="field derived"><label>负责人<span class="derived-tag">AI 推断</span></label><input class="input" value="张三"></div>
+          <div class="field with-error"><label>预期截止<span class="req">*</span></label><input type="date" class="input" value="2026-07-03"><div class="field-error">截止日期不能早于计划开始日期（计划开始日期为 2026-07-10）</div></div>
+          <div class="field required"><label>里程碑<span class="req">*</span></label><select class="select"><option value="">选择里程碑图</option><option>第一阶段（MM-0012）</option><option>第二阶段（MM-0018）</option></select></div>
+        </div></div>`,
+
+      'discarded': `
+        <div class="msg user"><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块</div><div class="ts">${nowTs()}</div></div>
+        <div class="msg ai"><div class="form-folded discarded">
+          <svg class="ff-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+          <span class="ff-title">已丢弃 · 完成用户认证模块</span>
+        </div></div>`,
+
+      'trace-failed': `
+        <div class="msg user"><div class="msg-bubble">把认证模块的状态改为进行中</div><div class="ts">${nowTs()}</div></div>
+        <div class="msg ai"><div class="agent-trace">
+          <div class="at-header" onclick="toggleTrace(this.parentElement)">
+            <svg class="at-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            <span>Agent 思考过程</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--error-text)">✗ 含失败步骤（不折叠）</span>
+          </div>
+          <div class="at-body">
+            <div class="at-section"><span class="at-section-label">思考</span>
+              <div class="at-step thinking"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span class="at-text">用户要把"认证模块"状态改为进行中，需要先模糊匹配实体。</span></div>
+            </div>
+            <div class="at-section"><span class="at-section-label">操作</span>
+              <div class="at-step action done"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span class="at-text">模糊匹配「认证模块」→ 命中 1 个</span><span class="at-status">✓ 0.4s</span></div>
+              <div class="at-step action error"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><span class="at-text">加载目标实体 schema 失败：实体已被删除</span><span class="at-status">✗ 0.2s</span></div>
+            </div>
+          </div>
+          <div class="at-summary"><span style="color:var(--error-text)">执行失败 · 不渲染卡片</span><span>token 286</span></div>
+        </div></div>
+        <div class="msg system error"><div class="msg-bubble">该实体已不存在，请重新描述或使用传统表单</div></div>`
     };
 
     /* Per-state input-area config: text mode, or options mode (keyboard option group).
@@ -320,6 +406,15 @@
       'success-undo':    { mode:'options', options:[
         {label:'↩ 撤回', action:'undo', hint:'5 分钟内'},
         {label:'✓ 完成', action:'done'} ] },
+      'submit-failed':   { mode:'options', options:[
+        {label:'↻ 重试提交', action:'submit', hint:'Enter'},
+        {label:'✎ 继续编辑字段', action:'edit'},
+        {label:'⊘ 丢弃', action:'discard'} ] },
+      'discarded':       { mode:'text' },
+      'trace-failed':    { mode:'options', options:[
+        {label:'↻ 重试', action:'retry'},
+        {label:'去 /items 手动操作', action:'manual'},
+        {label:'✗ 取消', action:'cancel'} ] },
       'permission':      { mode:'options', options:[
         {label:'↻ 换一个目标', action:'retry'},
         {label:'✗ 取消', action:'cancel'} ] },

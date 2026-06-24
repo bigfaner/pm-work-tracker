@@ -361,6 +361,58 @@ tr:hover td { background: var(--bg); }
 .diff-row .new { color: var(--text-primary); font-weight: 500; }
 .diff-hint { font-size: 11px; color: var(--text-tertiary); }
 
+/* Form lifecycle: folded summary line (已提交 / 已撤回 / 已丢弃 终态) */
+.form-folded {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 10px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer;
+  max-width: 90%; box-shadow: var(--shadow-1); transition: background 120ms;
+}
+.form-folded:hover { background: var(--bg); }
+.form-folded .ff-icon { width: 16px; height: 16px; flex-shrink: 0; }
+.form-folded.committed .ff-icon { color: var(--success); }
+.form-folded.undone .ff-icon { color: var(--text-secondary); }
+.form-folded.discarded { opacity: 0.75; }
+.form-folded.discarded .ff-icon { color: var(--text-tertiary); }
+.form-folded .ff-title { font-size: 13px; font-weight: 500; color: var(--text-primary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.form-folded.discarded .ff-title { color: var(--text-tertiary); font-weight: 400; }
+.form-folded .ff-aux { font-size: 11px; color: var(--text-tertiary); }
+.form-folded .ff-caret { color: var(--text-tertiary); transition: transform 150ms; flex-shrink: 0; }
+.form-folded.expanded .ff-caret { transform: rotate(90deg); }
+.form-readonly-body {
+  background: var(--surface); border: 1px solid var(--border); border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;
+  max-width: 90%;
+}
+.form-readonly-body[hidden] { display: none; }
+.form-readonly-body .ro-field { display: flex; gap: 8px; font-size: 12px; align-items: baseline; }
+.form-readonly-body .ro-label { color: var(--text-tertiary); min-width: 72px; }
+.form-readonly-body .ro-value { color: var(--text-secondary); }
+
+/* Undo banner (warning-bg, floats below folded committed summary) */
+.undo-banner {
+  background: var(--warning-bg); border: 1px solid rgba(217,119,6,0.3);
+  border-radius: var(--radius-md); padding: 8px 12px;
+  display: flex; align-items: center; gap: 8px;
+  max-width: 90%; font-size: 13px;
+}
+.undo-banner svg { color: var(--warning); flex-shrink: 0; }
+.undo-banner .ub-text { color: var(--warning-text); flex: 1; }
+.undo-banner .ub-btn {
+  background: transparent; border: 1px solid rgba(153,27,27,0.3); color: var(--error-text);
+  padding: 4px 10px; border-radius: var(--radius-sm); font-size: 12px;
+  display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
+}
+.undo-banner .ub-btn:hover { background: var(--error-bg); }
+.undo-banner.expired { background: var(--bg); border-color: var(--border); }
+.undo-banner.expired .ub-text { color: var(--text-tertiary); }
+.undo-banner.expired .ub-btn { display: none; }
+
+/* Field-level error (submit failure — inline near field) */
+.field.with-error .input, .field.with-error .select { border-color: var(--error); box-shadow: 0 0 0 1px var(--error); }
+.field-error { font-size: 11px; color: var(--error-text); margin-top: 2px; }
+.retry-count { font-size: 11px; color: var(--text-tertiary); padding: 2px 0; }
+
 /* 8. Prototype state switcher (review affordance only) */
 .state-switcher {
   position: fixed; left: 16px; bottom: 16px; z-index: 60; background: var(--surface);

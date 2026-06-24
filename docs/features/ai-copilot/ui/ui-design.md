@@ -264,6 +264,13 @@ status: Draft
 
 ### Layout Structure
 
+卡片有两种**主形态**：
+
+- **展开态**（预填/编辑/校验失败/提交失败）：完整字段区可见，可编辑或带错误。
+- **折叠态**（已提交/已撤回/已丢弃）：折叠为单行 summary（含状态图标 + title），点击可展开只读字段区。**已提交/已撤回/已丢弃 三种终态默认折叠**，避免长 transcript 堆满已完成的 form。
+
+#### 展开态布局
+
 卡片（surface bg、border `#e2e8f0`、rounded-xl、shadow level-1、p-4，flex column gap-3）：
 
 > **渲染规则**：`canSubmit=false` 时仅渲染卡片头（操作徽章+实体确认行）与权限提示体，跳过字段区、校验错误条、卡片底（不渲染可提交控件）。`canSubmit` 由前端 RBAC 依据 targetEntity.bizKey + cardType 在卡片渲染前同步校验。
@@ -279,38 +286,69 @@ status: Draft
      - 纯文本字段（title、description、achievement 等）→ Input/Textarea。
    - 必填且无值字段：`data-required-highlight` → border-2 warning `#d97706` + 左侧 3px warning 竖条（`border-left: 3px solid #d97706`，紧贴字段控件左边沿，用 `::before` 伪元素绝对定位 `left:-3px; top:0; bottom:0`）+ label 后红色 `*`
    - 字段值：13px text-primary；derived（AI 推导）值带浅灰底 accent-bg 标注"AI 推断"
+   - **字段级错误就近展示**（提交失败时）：出错字段 border-2 error `#dc2626` + 字段下方 12px error-text 错误说明（`.field-error`）；与顶部错误条并存（顶部概述、字段级具体）
    - **高影响操作确认行**（update/assign/create 写操作，位于卡片头与字段区之间，独立成行）：accent-bg `#eff6ff`、rounded-md、px-3 py-2、flex items-center gap-2；实体标题 13px 500 text-primary（强权重），bizCode 12px text-tertiary（次权重，视觉分离）。例："`认证模块 · MI-0023`" → 标题"认证模块" 13px 500 text-primary + bizCode"MI-0023" 12px text-tertiary。提升二次确认可读性，避免误操作到错误实体。
-3. **校验错误条**（条件渲染）：bg error-bg `#fef2f2`、text error-text `#991b1b`、rounded-md、p-2、12px；含 `validTransitions` 合法目标状态列表（chips）
+3. **顶部错误条**（条件渲染，提交失败/校验失败）：bg error-bg `#fef2f2`、text error-text `#991b1b`、rounded-md、p-2、12px；提交失败时含当前 turn 的"重试 N 次"小字标注（历史会话回看此 turn 时不渲染该标注）；校验失败时含 `validTransitions` 合法目标状态列表（chips）
 4. **卡片底**（flex justify-end gap-2，border-t `#e2e8f0`，p-3，bg `#f8fafc`）：
    - 取消（Ghost）、提交（Primary，必填空时 disabled）
-   - 成功态：提交区替换为"已创建 ✓"（蓝色对勾，蓝=成功）+ 实体跳转链接 + （可逆操作）撤回按钮（Ghost，text-error，带倒计时 mm:ss）
+   - 提交中态：提交按钮转 spinner + 文字"提交中…"，字段全部锁定
+
+#### 折叠态布局（已提交 / 已撤回 / 已丢弃）
+
+折叠为单行 summary 行（`.form-folded`，surface bg、border `#e2e8f0`、rounded-lg、px-3 py-2、flex items-center gap-2、cursor pointer、hover bg-bg-alt）：
+
+- **状态图标**（左）：✓ 已提交（accent `#3b82f6`）/ ↩ 已撤回（text-secondary）/ ⊘ 已丢弃（text-tertiary）
+- **title 文本**：13px 500 text-primary（取自 form payload 的 title 字段，消息不可变即天然快照）
+- **辅助标注**（右）：
+  - 已提交 · 不可逆：12px text-tertiary"该操作不可撤回"
+  - 已提交 · 可逆：无标注（撤回 banner 在下方独立呈现）
+  - 已撤回 / 已丢弃：无标注
+- **展开箭头**（右）：`›` 图标，点击 summary 行展开只读字段区（含原 form 的全部字段值，13px text-secondary 只读）
+- **展开/折叠态**：记忆于会话内（同一用户回到该 turn 时保持上次选择）；历史会话回看时默认折叠
+
+> **数据策略**：折叠态 summary 不二次抽取 keyFields/diff 等结构化字段。表单消息本身不可变，就是当时提交的完整快照；上下文完整性由 transcript 自身维持。用户要核对完整提交值 → 点击展开只读字段区；要看当前实体最新状态 → 点击 bizCode 跳详情页。
+
+#### 撤回 banner（已提交 · 可逆 时浮于折叠态下方）
+
+独立浮于折叠态 summary 下方（不嵌入卡片内）的横条（`.undo-banner`，warning-bg `#fffbeb`、border warning `#d97706`/30、rounded-md、px-3 py-2、flex items-center gap-2）：
+
+- 左：↩ 图标（warning `#d97706`）+ 文字"5 分钟内可撤回"（13px 500 warning-text `#92400e`）
+- 右：撤回按钮（Ghost sm，text-error，带倒计时 mm:ss）+ 倒计时 label
+- 倒计时归零 → banner 转为"撤回窗口已过期"标注（error-text，按钮消失）
+- 用户点撤回 → banner 消失（视觉上"撤回已用掉"），新 turn 入账渲染为"↩ 已撤回"折叠态
 
 ### States
 
 | State | Visual | Behavior |
 |-------|--------|----------|
-| 预填展示 | 字段值 + 必填空字段 warning 高亮 + 目标实体确认区 | AI 推送完成 |
-| 编辑中 | 字段可编辑；onChange 更新卡片 state | 用户聚焦字段 |
-| 校验失败 | 错误条 + validTransitions chips | available-transitions 不合法（仅状态变更类） |
-| 提交中 | 提交按钮 disabled + 加载点 | 用户点提交 |
-| 成功 | 蓝色对勾"已创建"+ 跳转链接 +（可逆）撤回按钮+倒计时 | API 成功；undoDeadline = now+5min |
-| 不可逆成功 | 蓝色对勾 + 标注"该操作不可撤回"，无撤回按钮 | 转入 terminal 状态变更 |
-| 失败 | 错误信息（error-bg）+ 重试（字段保留可编辑） | API 失败 |
-| 撤回成功 | 卡片标注"已撤回"，撤回按钮消失 | 用户点撤回，反向操作成功 |
-| 撤回窗口过期 | 撤回按钮消失，标注"撤回窗口已过期" | undoDeadline 到达 |
-| 权限不足 | 不渲染字段区与提交按钮；卡片体替换为权限提示：13px text-secondary + lock 图标"你对目标实体没有{op}权限，请联系管理员或更换目标" | canSubmit=false（RBAC 校验） |
+| 预填展示 | 展开态：字段值 + 必填空字段 warning 高亮 + 目标实体确认区 | AI 推送完成 |
+| 编辑中 | 展开态：字段可编辑；onChange 更新卡片 state | 用户聚焦字段 |
+| 校验失败（提交前） | 展开态：顶部错误条 + validTransitions chips；表单保持可编辑 | available-transitions 不合法（仅状态变更类预校验阶段） |
+| 提交中 | 展开态：字段锁定 + 提交按钮转 spinner + trace（Component 8）末尾追加"⏳ 调用 X API…"步 | 用户点提交 |
+| 提交失败（后端校验） | 展开态：顶部错误条（含"重试 N 次"，历史回看不显示）+ 字段级错误就近展示（出错字段 border error + 字段下方说明）；已编辑字段值全保留 | API 返回参数错误 |
+| 已提交 · 可逆 | **折叠态**："✓ 已提交 · {title}"单行；下方浮撤回 banner（mm:ss 倒计时）；**AI 跟进一条自然语言消息**（作为独立 ai_text 消息，不在卡片内） | API 成功 + 可逆操作（分配 / 非 terminal 状态变更） |
+| 已提交 · 不可逆 | **折叠态**："✓ 已提交 · {title} · 该操作不可撤回"单行；无撤回 banner；AI 跟进消息 | API 成功 + terminal 状态变更 |
+| 撤回窗口过期 | 折叠态 summary 不变；撤回 banner 转为"撤回窗口已过期"标注（按钮消失） | undoDeadline 到达 |
+| 已撤回 | **折叠态**："↩ 已撤回 · {title}"单行（作为新 turn 入账，原已提交 turn 保留不改写） | 用户点撤回 + 反向操作成功 |
+| 已丢弃 | **折叠态**："⊘ 已丢弃 · {title}"单行（保留在 transcript 中避免孤儿用户输入） | 用户点取消/丢弃 |
+| 权限不足 | 卡片体替换为权限提示：13px text-secondary + lock 图标"你对目标实体没有{op}权限，请联系管理员或更换目标" | canSubmit=false（RBAC 校验） |
 | 流式填充中断 | 丢弃半填充骨架卡（不留半填字段），替换为系统消息"AI 响应中断，点击重试" + 重试 Ghost（沿用上一条指令重新生成卡片） | 流式连接中断（streamInterrupted=true） |
+
+> **折叠规则**：已提交 / 已撤回 / 已丢弃 三种终态默认折叠为单行 summary，点击 summary 行展开只读字段区。展开/折叠态记忆于会话内；历史会话回看时默认折叠。**不抽取 keyFields/diff 等结构化摘要**——表单消息本身不可变即天然快照。
+> **AI 跟进消息**：仅"已提交"态触发（成功后），AI 跟发一条普通 `ai_text` 消息衔接下一轮；失败、丢弃、撤回态不发跟进消息（错误条/折叠态 summary 已是反馈）。跟进消息由 AI 从自己已有的上下文（form payload、用户原指令）生成，不依赖额外结构化字段或快照。
 
 ### Interactions
 
 | Trigger | Action | Feedback |
 |---------|--------|----------|
 | 编辑字段 | onChange 更新卡片 state | 必填空字段补值后高亮消除 |
-| 继续对话补充 | 后端解析增量 → diff 确认 → 更新卡片 state | 展示 diff 浮层供确认，不静默覆盖 |
-| 点提交（必填全满） | 状态变更类先 available-transitions 预校验 → 通过则调 API | 切提交中态 |
-| 点撤回（窗口内） | 调后端反向操作（状态变更类先重校验） | 切撤回成功 / 撤回失败（提示 validTransitions） |
+| 继续对话补充 | 后端解析增量 → diff 内联区确认 → 更新卡片 state | 展示 diff 内联区（卡片体内）供确认，不静默覆盖，不弹浮层 |
+| 点提交（必填全满） | 字段锁定 + trace 末尾追加"⏳ 调用 X API…"步 + 状态变更类先 available-transitions 预校验 → 通过则调 API | 切提交中态 |
+| 提交成功 | 表单折叠为 summary 单行；AI 跟进一条 ai_text 消息；可逆操作附撤回 banner | 切已提交态（折叠） |
+| 提交失败 | 表单保持展开；字段级错误就近展示 + 顶部错误条概述；保留已编辑值；当前 turn 标"重试 N 次"（历史回看不显示） | 提交按钮恢复可点 |
+| 点击折叠态 summary 行 | 展开/折叠只读字段区 | 箭头旋转 150ms；展开/折叠态记忆于会话内 |
+| 点撤回（banner 内，窗口内） | 调后端反向操作（状态变更类先重校验） | banner 消失 + 新 turn "↩ 已撤回"折叠态入账；撤回失败时 banner 内提示 validTransitions，不产生新 turn |
 | 点重试（失败态） | 状态变更类先重跑 available-transitions 预校验 → 通过则重新调提交 API | 切提交中态；预校验失败回校验失败态并刷新 validTransitions |
-| 点跳转链接 | 跳转实体详情页 | 既有路由 |
 
 ### Data Binding
 
@@ -319,12 +357,15 @@ status: Draft
 | 操作徽章 | cardType {create/update/assign} | AI 意图 |
 | 实体确认区 | targetEntity {title,bizCode} | AI 实体抽取 |
 | 字段控件 | fieldSet Map<name,{value,required,derived}> | AI 抽取 + schema |
-| 错误条 | validationError + validTransitions[] | available-transitions |
-| 撤回按钮 | undoAvailable, undoDeadline, previousValue | 提交后状态 |
-| 撤回倒计时显示 | undoCountdown "mm:ss" | 客户端 ticker：由 undoDeadline 倒推（每秒 tick），deadline 到达触发「撤回窗口过期」 |
+| 顶部错误条 | validationError + validTransitions[] | available-transitions（预校验）/ 后端返回错误（提交失败） |
+| 字段级错误 | fieldErrors Map<name, message> | 后端返回的参数校验错误 |
+| 折叠态 summary | foldState {folded/expanded} + statusIcon + title | 表单状态机 + form payload 的 title 字段 |
+| 撤回 banner | undoAvailable, undoDeadline, previousValue | 提交后状态 |
+| 撤回倒计时显示 | undoCountdown "mm:ss" | 客户端 ticker：由 undoDeadline 倒推（每秒 tick），deadline 到达触发「撤回窗口已过期」标注 |
+| 重试计数 | retryCount number | 当前 turn 的失败重试次数（仅当前 turn 显示，历史回看不显示） |
 | 提交权限 | canSubmit boolean | 前端 RBAC（targetEntity.bizKey + cardType） |
 
-> **撤销态持久化**：`undoAvailable` / `undoDeadline` / `previousValue` 经 zustand `persist` middleware 写入 `sessionStorage`，key 为操作 id（`undo:{opId}`）。全局 overlay 在同会话页面导航时可能 unmount/remount，sessionStorage 保证 5 分钟撤回窗口在 remount 后仍可恢复（卡片重新挂载后由 opId 查表重建撤回按钮与倒计时）。会话结束（关闭标签页 / 登出）时 sessionStorage 随之清除，符合 PRD「同会话」语义。
+> **撤销态持久化**：`undoAvailable` / `undoDeadline` / `previousValue` 经 zustand `persist` middleware 写入 `sessionStorage`，key 为操作 id（`undo:{opId}`）。全局 overlay 在同会话页面导航时可能 unmount/remount，sessionStorage 保证 5 分钟撤回窗口在 remount 后仍可恢复（已提交折叠态重新挂载后由 opId 查表重建撤回 banner 与倒计时）。会话结束（关闭标签页 / 登出）时 sessionStorage 随之清除，符合 PRD「同会话」语义。
 
 #### diff 内联区（对话补充增量变更，无二级浮窗）
 
@@ -535,9 +576,9 @@ status: Draft
 | State | Visual | Behavior |
 |-------|--------|----------|
 | 流式中 | 步骤逐条追加，末步带闪烁光标（`.at-cursor`） | 后端流式事件驱动；首字节（思考出现）< 1s |
-| 已完成 | 全部步骤 done ✓，光标消失，下方渲染最终卡片 | **自动折叠**（思考+计划+操作执行完成即折叠为头部摘要），用户可点击重新展开 |
-| 折叠 | 仅显示头部（步数·耗时） | 用户点击头部切换；折叠态记忆于会话内 |
-| 步骤失败 | 该步 error ✗ + error-text | 中断后续步骤，引导用户（如"匹配失败，请补充信息"），不渲染最终卡片 |
+| 已完成（成功） | 全部步骤 done ✓，光标消失，下方渲染最终卡片 | **自动折叠**为头部摘要（约 600ms 延迟，让最终卡片成为视觉焦点），用户可点击重新展开 |
+| 步骤失败 | 该步 error ✗ + error-text | **不自动折叠**（保持展开让错误可见，错误可见性优先于简洁）；中断后续步骤，引导用户（如"匹配失败，请补充信息"），不渲染最终卡片 |
+| 折叠 | 仅显示头部（步数·耗时 / 或失败图标 + 错误摘要） | 用户点击头部切换；折叠态记忆于会话内；**历史会话打开时，过往 turn 的 trace 一律默认折叠**，避免长 transcript 一打开就刷屏 |
 
 ### Interactions
 
@@ -545,7 +586,9 @@ status: Draft
 |---------|--------|----------|
 | 点击头部 | 折叠/展开 | 箭头旋转 150ms |
 | 点击操作行（可选） | 展开该步详情（请求/响应摘要） | 内联展开 |
-| 流式完成 | 末步 done，光标消失 | 下方自动渲染最终卡片（UF-3/4） |
+| 流式成功完成 | 末步 done，光标消失 → 约 600ms 后**自动折叠**为头部摘要 | 下方自动渲染最终卡片（UF-3/4）；表单提交中态时同步追加 API 步并最终折叠 |
+| 流式出现失败步骤 | 失败步 ✗ + error-text；**保持展开**不自动折叠 | 中断后续，不渲染最终卡片改为引导文字 |
+| 历史会话打开 | 过往 turn 的 trace **默认折叠**为头部摘要 | 用户想看哪轮点哪轮 |
 
 ### Data Binding
 
@@ -557,7 +600,8 @@ status: Draft
 | 摘要 | trace.summary{tokens, durationMs, costUsd} | 后端汇总 |
 
 > **流式协议**：后端 AI 代理以 SSE/流式返回结构化事件序列 `thinking → plan_step* → tool_call/tool_result* → final_card`；前端按事件增量渲染 trace，最终卡片在 `final_card` 事件后渲染。**延迟目标**：首字节（思考出现）< 1s，计划可见 < 2s，最终卡片 P95 < 5s（见 PRD NFR）。
-> **透明 vs 噪声**：trace 流式期间展开（建立信任、可调试），**思考+计划+操作执行完成即自动折叠**为头部摘要（让最终卡片成为视觉焦点）；用户可点击重新展开；展开/折叠态记忆于会话内。失败步骤高亮，便于用户理解"为何没出卡片"。
+> **透明 vs 噪声（不对称折叠规则）**：trace 流式期间展开（建立信任、可调试）；**成功完成 → 约 600ms 后自动折叠**为头部摘要，让最终卡片成为视觉焦点；**出现失败步骤 → 保持展开不自动折叠**，错误可见性优先于简洁；用户手动展开/折叠态记忆于会话内；**历史会话打开时，过往 turn 的 trace 一律默认折叠**，用户想看哪轮点哪轮。失败步骤高亮，便于用户理解"为何没出卡片"。
+> **与表单卡片（Component 3）的衔接**：表单进入"提交中"态时，trace 末尾追加一行"⏳ 调用 {Entity} {Op} API…"步，与流式期间的 plan/tool_call 步同等展示；API 返回后状态图标迁移为 ✓（成功）/ ✗（失败）。该步计入 trace 的步数与耗时统计。表单提交成功后折叠时，trace 也按上述规则同步折叠（成功即折叠、失败保持展开）。
 > **降级**：AI 不支持流式时，trace 退化为单条"AI 思考中…"系统消息 + 最终卡片（即原 UF-2 思考态）。
 
 ---

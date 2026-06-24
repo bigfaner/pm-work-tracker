@@ -24,7 +24,16 @@ feature: "AI Copilot 对话助手"
 - Then 两种方式均更新同一份卡片状态，卡片始终为唯一数据源，对话区域仅回显
 - Given 卡片字段完整（无 `data-required-highlight` 字段为空）
 - When PM 点击提交
-- Then 系统调用现有 MainItem 创建 API 执行（创建操作不做 available-transitions 预校验），成功后聊天界面反馈创建结果
+- Then 字段锁定、提交按钮转 spinner、Agent 过程追踪（UF-8）末尾追加一行"⏳ 调用 MainItem 创建 API…"步；系统调用现有 MainItem 创建 API 执行（创建操作不做 available-transitions 预校验）
+- Given 上一步的 API 调用成功返回
+- When 后端返回成功
+- Then 表单折叠为单行"✓ 已提交 · 完成用户认证模块"（点击可展开只读字段查看完整提交值）；trace 末尾的 API 步状态迁移为 ✓；AI 跟进一条自然语言消息（如"好，已为你创建 P1 事项「完成用户认证模块」，分配给了张三，下周五截止。还需要加里程碑吗？"）；MainItem 创建属不可逆操作（无 terminal 状态转移），无撤回 banner
+- Given 用户在历史会话列表里点开本次会话
+- When 用户回看刚才那条已提交 turn
+- Then 表单保持折叠态 summary（默认折叠），trace 保持折叠态 summary（默认折叠）；用户可分别点击展开查看完整字段或思考/计划/操作过程
+- Given 用户点提交后后端校验失败（如必填字段后端二次校验不通过、或并发写入冲突）
+- When 后端返回参数错误
+- Then 表单保持展开（不折叠），出错字段红框 + 字段下方就近展示错误说明 + 顶部错误条概述；用户已编辑的字段值全部保留；当前 turn 顶部小字标注"重试 N 次"；提交按钮恢复可点用于重试
 - Given PM 输入"加个里程碑，叫第一阶段验收"
 - When 系统识别为 Milestone 创建意图
 - Then 推送 Milestone 创建卡片，关联当前 Team 的 MilestoneMap（若 Team 下仅一个 MilestoneMap 自动关联，多个则 milestoneKey 字段渲染为空且带 `data-required-highlight` 属性）
@@ -211,22 +220,22 @@ feature: "AI Copilot 对话助手"
 **Acceptance Criteria:**
 - Given 用户成功提交了一次可逆操作（分配，或非 terminal 状态变更），`undoAvailable = true`
 - When 系统返回成功反馈
-- Then 成功卡片显示目标实体 title + bizCode 二次确认已通过，并展示"撤回"按钮 + `undoDeadline`（提交时间 + 5 分钟）倒计时
-- Given 撤回按钮可见且未过期
+- Then 表单折叠为"✓ 已提交 · {title}"单行（点击可展开只读字段），目标实体 title + bizCode 二次确认已通过；**撤回 banner** 浮于折叠态 summary 下方（含 `undoDeadline` = 提交时间 + 5 分钟的 mm:ss 倒计时 + 撤回按钮）；AI 跟进一条自然语言消息衔接下一轮
+- Given 撤回 banner 可见且未过期
 - When 用户点击撤回
-- Then 系统调用后端反向操作：分配 → assignee 恢复为 `previousValue.assignee`；非 terminal 状态变更 → status 恢复为 `previousValue.status`；撤回成功后卡片更新为"已撤回"，撤回按钮消失
+- Then 系统调用后端反向操作：分配 → assignee 恢复为 `previousValue.assignee`；非 terminal 状态变更 → status 恢复为 `previousValue.status`；撤回成功后**作为新 turn 入账**，渲染为"↩ 已撤回 · {title}"折叠态；**原已提交 turn 的 summary 不改写**（保留"✓ 已提交"记录），但其撤回 banner 消失（视觉上"撤回已用掉"）
 - Given 撤回为状态变更类，恢复原状态前重新调用 available-transitions 校验，当前状态已不允许回到原状态
 - When 用户点击撤回
-- Then 撤回失败，卡片显示"当前状态无法回到原状态，合法目标状态为：{validTransitions}"，不执行反向操作
+- Then 撤回失败，撤回 banner 内显示"当前状态无法回到原状态，合法目标状态为：{validTransitions}"，不执行反向操作，不产生新 turn
 - Given 撤回窗口已过 `undoDeadline`（提交后 > 5 分钟）
-- When 用户查看原成功卡片
-- Then 撤回按钮已消失，卡片显示"撤回窗口已过期"
+- When 用户查看原已提交 turn
+- Then 撤回 banner 转为"撤回窗口已过期"标注；原已提交 turn 折叠态 summary 不变
 - Given 用户在撤回窗口内收起聊天面板或导航到同会话其他页面，随后重新展开/返回，且仍在 `undoDeadline` 之前
-- When 用户查看原成功卡片
-- Then 撤回按钮仍可用
+- When 用户查看原已提交 turn
+- Then 撤回 banner 仍可用
 - Given 用户关闭浏览器或登出（会话结束）后重新进入
 - When 查看该操作
-- Then 撤回已失效（跨会话持久化不在 v1 范围），卡片显示"撤回窗口已过期"
+- Then 撤回已失效（跨会话持久化不在 v1 范围），撤回 banner 转为"撤回窗口已过期"标注
 - Given 撤回窗口内 AI 服务不可用
 - When 用户点击撤回
 - Then 撤回仍成功执行（撤回调用现有实体 API 反向操作，不依赖 AI 服务）
@@ -235,7 +244,7 @@ feature: "AI Copilot 对话助手"
 - Then 不允许（每次操作仅一次撤回）；用户需重新发起正向操作
 - Given 用户提交的是不可逆操作（状态转入 terminal `completed` 或 `cancelled`），`undoAvailable = false`
 - When 系统返回成功反馈
-- Then 卡片明确标注"该操作不可撤回"，不展示撤回按钮
+- Then 折叠态 summary 标注"该操作不可撤回"，不展示撤回 banner
 
 ---
 
