@@ -134,6 +134,32 @@
   <script>
     /* Page-specific card templates (demo mock content). Cards are info-only;
        confirmations live in the input option group (keyboard-first). */
+
+    /* Mock 数据驱动 result-card 渲染（见 app.js ENTITY_SCHEMAS + renderEntityCard）。
+       真实实现时这些数据由后端查询 API 返回，前端按 entity-schemas 渲染。 */
+    const QUERY_DATA_P0 = [
+      { _entity: 'MainItem', _route: '/items/MI-0023',
+        title: '用户认证模块', code: 'MI-0023', priority: 'P0', status: 'in_progress',
+        assignee: '张三', expectedEndDate: '2026-07-03', milestoneKey: '第二阶段',
+        _progress: { percent: 75, completed: 3, total: 4 } },
+      { _entity: 'SubItem', _route: '/items/MI-0023/sub/SI-0408',
+        title: '接口联调', code: 'MI-0023 · SI-0408', status: 'in_progress', assignee: '你',
+        parent: '用户认证模块', expectedEndDate: '2026-06-30', completion: 60 },
+    ];
+    const MILESTONEMAP_DATA = {
+      _entity: 'MilestoneMap', _route: '/milestones/MM-0012',
+      title: '第二阶段', code: 'MM-0012', status: 'in_progress', team: '平台组',
+      expectedEndDate: '2026-08-15', milestoneCount: 5,
+      _progress: { percent: 60, completed: 3, total: 5 },
+    };
+    /* MainItem 预填表单 mock 数据（驱动 write-prefilled 状态的 form 渲染） */
+    const MAINITEM_PREFILL = {
+      title: '完成用户认证模块',
+      priority: 'P1',
+      assignee: '张三',
+      // expectedEndDate、milestoneKey 留空（required + data-required-highlight 高亮）
+    };
+
     const TEMPLATES = {
       onboarding: `
         <div id="onboardingCard" class="msg ai"><div class="ts">${nowTs()}</div><div class="onboarding">
@@ -156,12 +182,7 @@
         <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
           <div class="card-head"><span class="badge badge-accent">创建主事项</span></div>
           <div class="confirm-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12c.55 0 1-.45 1-1V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6c0 .55.45 1 1 1"/></svg><span class="target-title">新事项：完成用户认证模块</span></div>
-          <div class="field"><label>标题</label><input class="input" value="完成用户认证模块"></div>
-          <div class="field derived"><label>优先级<span class="derived-tag">AI 推断</span></label><select class="select"><option>P1</option><option>P2</option><option>P3</option></select></div>
-          <div class="field derived"><label>负责人<span class="derived-tag">AI 推断</span></label><input class="input" value="张三"></div>
-          <div class="field"><label>预期截止<span class="req">*</span></label><input type="date" class="input"></div>
-          <div class="field required"><label>里程碑<span class="req">*</span></label>
-            <select class="select"><option value="">选择里程碑图</option><option>第一阶段（MM-0012）</option><option>第二阶段（MM-0018）</option></select></div>
+          ${renderEntityCard('MainItem', 'form', MAINITEM_PREFILL)}
         </div></div>`,
 
       validation: `
@@ -229,13 +250,11 @@
         <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">我的 P0 事项有哪些？</div></div>
         <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
           <div class="summary-line">你有 2 个 P0 事项（直接 + 间接匹配）</div>
-          <div class="result-row" onclick="alert('跳转 /items/MI-0023')"><div class="left"><span class="badge badge-error">P0</span><span class="r-title">用户认证模块</span><span class="r-code">MI-0023</span></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
-          <div class="result-row" onclick="alert('跳转 /items/MI-0023/sub/...')"><div class="left"><span class="badge badge-neutral">间接</span><span class="r-title">接口联调（子任务，负责人=你）</span></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+          ${QUERY_DATA_P0.map(d => renderEntityCard(d._entity, 'result', d)).join('')}
         </div></div>
         <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
           <div class="summary-line">里程碑图「第二阶段」进度</div>
-          <div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:60%"></div></div><span class="progress-label">3/5 子事项完成 · 60%</span></div>
-          <div class="result-row"><div class="left"><span class="r-title">第二阶段</span><span class="r-code">MM-0012</span></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+          ${renderEntityCard('MilestoneMap', 'result', MILESTONEMAP_DATA)}
         </div></div>`,
 
       disambiguation: `
@@ -296,11 +315,7 @@
         <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
           <div class="card-head"><span class="badge badge-accent">创建主事项</span></div>
           <div class="confirm-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/></svg><span class="target-title">新事项：完成用户认证模块</span></div>
-          <div class="field"><label>标题</label><input class="input" value="完成用户认证模块"></div>
-          <div class="field derived"><label>优先级<span class="derived-tag">AI 推断</span></label><select class="select"><option>P1</option><option>P2</option><option>P3</option></select></div>
-          <div class="field derived"><label>负责人<span class="derived-tag">AI 推断</span></label><input class="input" value="张三"></div>
-          <div class="field"><label>预期截止<span class="req">*</span></label><input type="date" class="input" value="2026-07-03"></div>
-          <div class="field required"><label>里程碑<span class="req">*</span></label><select class="select"><option value="">选择里程碑图</option><option>第一阶段（MM-0012）</option><option>第二阶段（MM-0018）</option></select></div>
+          ${renderEntityCard('MainItem', 'form', { ...MAINITEM_PREFILL, expectedEndDate: '2026-07-03' })}
         </div></div>`,
 
       'submit-failed': `

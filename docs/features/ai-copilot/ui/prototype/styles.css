@@ -299,19 +299,36 @@ tr:hover td { background: var(--bg); }
 .permission-msg { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); padding: 8px 0; }
 .permission-msg svg { color: var(--text-tertiary); flex-shrink: 0; }
 
-/* Query result card (UF-4) */
+/* Query result card (UF-4) — 每条结果展示核心字段，用户无需跳转即可看必要内容 */
 .summary-line { font-size: 14px; font-weight: 500; color: var(--text-primary); }
 .progress-wrap { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .progress-track { flex: 1; height: 6px; background: var(--border); border-radius: var(--radius-full); overflow: hidden; }
 .progress-fill { height: 100%; background: var(--accent-light); border-radius: var(--radius-full); transition: width 300ms; }
 .progress-label { font-size: 12px; color: var(--text-secondary); }
-.result-row { display: flex; align-items: center; justify-content: space-between; padding: 8px; border-radius: var(--radius-md); cursor: pointer; }
-.result-row:hover { background: var(--bg); }
-.result-row .left { display: flex; align-items: center; gap: 8px; }
-.result-row .r-title { font-size: 13px; color: var(--text-primary); }
-.result-row .r-code { font-size: 12px; color: var(--text-tertiary); }
-.result-row svg { color: var(--text-tertiary); }
-.result-row:hover svg { color: var(--accent); }
+
+/* result-card：每个查询结果展示核心字段（不只摘要），点击可跳详情 */
+.result-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: 10px 12px; cursor: pointer;
+  display: flex; flex-direction: column; gap: 6px;
+  transition: border-color 120ms, background 120ms;
+}
+.result-card:hover { border-color: var(--accent); background: var(--bg); }
+.result-card .rc-head { display: flex; align-items: center; gap: 8px; }
+.result-card .rc-head .r-title { font-size: 13px; font-weight: 500; color: var(--text-primary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result-card .rc-head .r-code { font-size: 11px; color: var(--text-tertiary); }
+.result-card .rc-head .rc-chevron { color: var(--text-tertiary); flex-shrink: 0; }
+.result-card:hover .rc-chevron { color: var(--accent); }
+.result-card .rc-fields { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--text-secondary); }
+.result-card .rc-fields > span:not(.badge) { display: inline-flex; align-items: center; gap: 4px; }
+.result-card .rc-meta { font-size: 11px; color: var(--text-tertiary); display: flex; flex-wrap: wrap; gap: 6px; }
+.result-card .rc-meta .rc-meta-item { display: inline-flex; align-items: center; gap: 4px; }
+.result-card .rc-progress { display: flex; align-items: center; gap: 8px; }
+.result-card .rc-progress .progress-track { flex: 1; height: 4px; }
+.result-card .rc-progress .progress-label { font-size: 11px; color: var(--text-tertiary); white-space: nowrap; }
+.result-card .rc-text { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+.result-card .rc-text .rc-text-label { color: var(--text-tertiary); margin-right: 4px; }
+
 .truncate-tip { font-size: 12px; color: var(--text-tertiary); padding-top: 4px; }
 .empty-msg { font-size: 13px; color: var(--text-secondary); padding: 4px 0; }
 .empty-msg .suggest { display: block; color: var(--text-tertiary); font-size: 12px; margin-top: 4px; }

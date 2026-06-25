@@ -87,6 +87,48 @@ status: Draft
 
 ---
 
+## Schema 驱动渲染（UF-3 表单卡片 + UF-4 结果卡片共用）
+
+> 6 个实体（MainItem / SubItem / Milestone / MilestoneMap / ProgressRecord / ItemPool）的字段渲染统一由 [`../prd/entity-schemas.md`](../prd/entity-schemas.md) 中各实体的 schema 驱动。**同一份 schema 同时驱动 form 与 result 两种渲染模式**，避免双份字段定义导致错配。
+
+### Role → 槽位映射（result 模式）
+
+| Role | 槽位 | 控件（form） | 视觉 |
+|------|------|-------------|------|
+| `title` | head 行左 | Input | 13px 500 text-primary |
+| `code` | head 行右 | readonly | 11px text-tertiary |
+| `priority` | fields 行 | Select P1/P2/P3 | badge（error/warning/neutral） |
+| `status` | fields 行 | Select（实体特定状态集） | badge（success/neutral/warning） |
+| `assignee` | fields 行 | Select teamMembers | 👤 {name} |
+| `submitter` | fields 行 | Select currentUser（默认） | 👤 {name} |
+| `date` | meta 行 | DatePicker | 📅 {label} {yyyy/MM/dd} |
+| `parent` | meta 行 | Select parent entities | 📁 {label} {parent title} |
+| `team` | meta 行 | Select userTeams | 👥 {teamName} |
+| `progress` | progress 条 | Number 0–100 | progress bar + label |
+| `text` | text 块 | Textarea | 12px text-secondary（截断 1–2 行） |
+
+### 渲染器 API（前端）
+
+```ts
+renderEntityCard(entityType: EntityType, mode: 'form' | 'result', data: EntityData): string
+```
+
+- `entityType`：6 实体之一，查 `ENTITY_SCHEMAS` 表得 schema
+- `mode='form'`：遍历 `schema.fields` → 按 `control` 渲染输入控件 → required 加 `*` 高亮、derived 加"AI 推断"标记
+- `mode='result'`：遍历 `schema.result_slots` → 按 role 把字段塞进 head/fields/meta/progress/text 五个槽位 → 拼成 result-card
+
+### 新增实体的扩展流程
+
+1. 在 [`entity-schemas.md`](../prd/entity-schemas.md) 新增实体 schema 段
+2. 前端 `ENTITY_SCHEMAS` 加 entry（与文档一致）
+3. **渲染器零改动**——form/result 自动支持
+
+### 与业务逻辑的边界
+
+Schema 只管"长什么样、有哪些字段"；状态机转移、RBAC、跨字段校验仍由后端服务层负责，前端通过现有 API 复用。详见 [`entity-schemas.md` 与业务逻辑的边界](../prd/entity-schemas.md#与业务逻辑的边界)。
+
+---
+
 ## Component 1: 浮动气泡（Copilot 入口）
 
 ### Placement
@@ -268,12 +310,14 @@ status: Draft
 1. **卡片头**：flex between
    - 左：操作类型徽章（rounded-full px-2.5 py-0.5 text-xs）—— create=accent-bg/text accent-hover；update=warning-bg/text warning-text；assign=accent-bg/text accent-hover + 实体类型文字（如"创建主事项"）
    - 右：目标实体 title + bizCode 二次确认区（见下方「高影响操作确认行」）
-2. **字段区**：垂直堆叠字段行
+2. **字段区**：垂直堆叠字段行——字段集、控件类型、必填规则统一由 [`entity-schemas.md`](../prd/entity-schemas.md) 各实体 `fields` 驱动（参见本文档开头「Schema 驱动渲染」）
    - 每字段：label（14px 500 text-primary）+ 控件（h-10 rounded-md）+ 必填星号
-   - **字段控件类型规则**（强制，禁止裸文本输入时间或关联值）：
-     - 日期/时间字段（planStartDate、expectedEndDate 等）→ **日期选择组件**（`<input type="date">` 或 DatePicker），禁止手敲日期字符串。
-     - 关联/引用字段（milestoneKey 里程碑、assignee 负责人、parent MainItem、teamKey 等）→ **Select 下拉组件**，选项来自当前 Team 范围内的实体列表（后端预加载），禁止自由文本。
-     - 纯文本字段（title、description、achievement 等）→ Input/Textarea。
+   - **字段控件类型规则**（强制，禁止裸文本输入时间或关联值，由 schema 的 `control` 字段决定）：
+     - `role: date` 字段 → DatePicker，禁止手敲日期字符串
+     - `role: parent` / `assignee` / `submitter` / `team` / `priority` / `status` 字段 → Select 下拉，选项来自后端预加载的 Team 范围实体列表
+     - `role: title` / `text` 字段 → Input / Textarea
+     - `role: progress` 字段 → Number（0–100）
+     - `role: code` 字段 → readonly
    - 必填且无值字段：`data-required-highlight` → border-2 warning `#d97706` + 左侧 3px warning 竖条（`border-left: 3px solid #d97706`，紧贴字段控件左边沿，用 `::before` 伪元素绝对定位 `left:-3px; top:0; bottom:0`）+ label 后红色 `*`
    - 字段值：13px text-primary；derived（AI 推导）值带浅灰底 accent-bg 标注"AI 推断"
    - **字段级错误就近展示**（提交失败时）：出错字段 border-2 error `#dc2626` + 字段下方 12px error-text 错误说明（`.field-error`）；与顶部错误条并存（顶部概述、字段级具体）
@@ -361,20 +405,25 @@ status: Draft
 
 卡片容器（surface、border、rounded-xl、shadow-1、p-4、flex column gap-2）：
 
-1. **摘要行**：14px 500 text-primary（如"你有 3 个 P0 事项"）；进度查询附统计（completed/total + 蓝色进度条：track bg `#e2e8f0`、h-1.5（6px）、rounded-full、w-full；fill bg accent-light `#3b82f6`、width=`{percent}%`、transition-width 300ms）
-2. **结果列表**：垂直堆叠，每项为"迷你卡片行"（hover bg-bg-alt、rounded-lg、p-2、flex between）：
-   - 左：实体标题（13px text-primary）+ bizCode（12px text-tertiary）+ meta 徽章（priority/status badge）
-   - 右：chevron-right 图标（text-tertiary）
+1. **摘要行**：14px 500 text-primary（如"你有 3 个 P0 事项"）
+2. **结果列表**：垂直堆叠，每项为**内容丰富的 result-card**（surface bg、border `#e2e8f0`、rounded-md、p-10px/12px、cursor pointer、hover border-accent + bg-bg-alt、flex column gap-6px）。**核心字段直接展示在卡片内**，用户在面板内就能看到必要信息、无需跳转。**字段按 [`entity-schemas.md`](../prd/entity-schemas.md) 各实体 `result_slots` 渲染到 5 个槽位**（head/fields/meta/progress/text），渲染器与实体类型解耦：
+   - **头行（rc-head，slot=head）**：`title` role（13px 500 text-primary，超长省略号）+ `code` role（11px text-tertiary）+ chevron-right 图标（text-tertiary，hover 转 accent）
+   - **字段行（rc-fields，slot=fields）**：横排核心字段，含徽章 + 文本——`priority`（badge-error P0 / badge-warning P1 / badge-neutral P2/P3）、`status`（按状态语义映射 badge-success/neutral/warning）、`assignee` / `submitter`（`👤 {name}`）
+   - **元信息行（rc-meta，slot=meta）**：12px text-tertiary 横排——`date` role（`📅 {label} {date}`）、`parent` role（`📁 {label} {parent title}`）、`team` role（`👥 {teamName}`），按实体 schema 的 meta 列表选填
+   - **进度条（rc-progress，slot=progress，可选）**：`progress` role 字段渲染为 4px 细进度条 + 进度文字（如"75% · 3/4 子任务"）；source 为 direct / subitems / subitems_of_milestone / milestones，按 schema 声明
+   - **文本字段（rc-text，slot=text，可选）**：`text` role 字段（description / background / expectedOutput / achievement），12px text-secondary；超长截断为 1–2 行，完整内容跳详情页查看
 3. **截断提示**（条件）：超过 20 张时底部 text-tertiary 12px"结果过多，显示前 20 条，请缩小范围（指定标题/负责人）"
 4. **空态**：text-secondary 13px"未找到匹配事项"+ 建议（如"试试'我的 P1 事项'"）
+
+> **核心原则：内容自包含**。用户在面板内就能回答"这个事项是什么状态、谁负责、什么时候截止、进度如何"等基本问题。点击卡片跳详情页是"看完整字段/做写操作"的进阶路径，不再是看基本信息的必要步骤。
 
 ### States
 
 | State | Visual | Behavior |
 |-------|--------|----------|
-| 有结果 | 摘要 + 迷你卡片列表 | 查询命中 |
+| 有结果 | 摘要 + 内容丰富的 result-card 列表（每张展示核心字段） | 查询命中 |
 | 无结果 | "未找到匹配事项"+ 建议 | 查询未命中 |
-| 截断 | 前 20 条 + 截断提示 | 结果 >20 |
+| 截断 | 前 20 张 + 截断提示 | 结果 >20 |
 
 > **流式说明**：查询结果（UF-4）与歧义消解（UF-5）均**原子返回**（后端一次性返回完整结果，非增量流式），因此不适用 UF-3 的「流式填充中断」清理规则；UF-2 的「流式中断」态仅针对 UF-3 写卡片的骨架增量填充场景。
 
@@ -382,16 +431,20 @@ status: Draft
 
 | Trigger | Action | Feedback |
 |---------|--------|----------|
-| 点击迷你卡片行 | 跳转详情页（既有路由） | 导航 |
-| hover 行 | bg-bg-alt | chevron 变 accent |
+| 点击 result-card | 跳转详情页（既有路由） | 导航 |
+| hover 卡片 | border 转 accent、bg 转 bg-alt | chevron 转 accent |
 
 ### Data Binding
 
 | UI Element | Data Field | Source |
 |------------|-----------|--------|
 | 摘要 | summaryText | AI/后端 |
-| 迷你卡片行 | results[{bizKey,title,code,route,meta}] | 查询 API |
-| 进度统计 | progress{completed,total,percent} | 查询 API（里程碑场景） |
+| result-card 头行 | entity.title + entity.bizCode | 查询 API |
+| result-card 字段行 | entity.priority + entity.status + entity.assignee | 查询 API |
+| result-card 元信息行 | entity.{expectedEndDate,milestone,parent,...} | 查询 API（按实体类型 schema 选填） |
+| result-card 进度条 | progress{completed,total,percent} | 查询 API（MainItem/SubItem/Milestone/MilestoneMap） |
+| result-card 文本字段 | entity.{background,expectedOutput,...} | 查询 API（ItemPool 等） |
+| 跳转路由 | entity.route | 查询 API（既有路由） |
 
 ---
 

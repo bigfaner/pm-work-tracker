@@ -159,6 +159,313 @@ function nowTs() {
   return yyyy + '/' + MM + '/' + dd + ' ' + HH + ':' + mm;
 }
 
+/* ============================================================
+   Entity Schemas + Renderer
+   驱动 UF-3 表单卡片与 UF-4 结果卡片的字段渲染。
+   Schema 契约见 docs/features/ai-copilot/prd/entity-schemas.md。
+   - 一份 schema 同时驱动 form 与 result 两种模式
+   - 渲染器只认 role，不认 entity type；新增实体加 schema 即可
+   ============================================================ */
+
+const ENTITY_SCHEMAS = {
+  MainItem: {
+    label: '主事项',
+    fields: [
+      { name: 'title',           role: 'title',    control: 'input',     required: true,  label: '标题' },
+      { name: 'description',     role: 'text',     control: 'textarea',                   label: '描述' },
+      { name: 'priority',        role: 'priority', control: 'select',    options: ['P1','P2','P3'], required: true, label: '优先级', derived: true },
+      { name: 'status',          role: 'status',   control: 'select',    options: ['todo','in_progress','paused','completed','cancelled'], label: '状态' },
+      { name: 'assignee',        role: 'assignee', control: 'select',    source: 'teamMembers', label: '负责人', derived: true },
+      { name: 'planStartDate',   role: 'date',     control: 'datepicker',                  label: '计划开始' },
+      { name: 'expectedEndDate', role: 'date',     control: 'datepicker', required: true,   label: '预期截止' },
+      { name: 'milestoneKey',    role: 'parent',   control: 'select',    source: 'teamMilestones', required: true, label: '里程碑' },
+    ],
+    result_slots: {
+      head: ['title', 'code'],
+      fields: ['priority', 'status', 'assignee'],
+      meta: [
+        { field: 'expectedEndDate', icon: '📅', label: '截止' },
+        { field: 'milestoneKey',    icon: '🏁', label: '里程碑' },
+      ],
+      progress: { source: 'subitems', tpl: (d) => `${d.percent}% · ${d.completed}/${d.total} 子任务` },
+      text: ['description'],
+    },
+  },
+
+  SubItem: {
+    label: '子事项',
+    fields: [
+      { name: 'title',       role: 'title',    control: 'input',     required: true, label: '标题' },
+      { name: 'parent',      role: 'parent',   control: 'select',    source: 'teamMainItems', required: true, label: '父事项' },
+      { name: 'description', role: 'text',     control: 'textarea',                   label: '描述' },
+      { name: 'status',      role: 'status',   control: 'select',    options: ['todo','in_progress','paused','completed','cancelled'], label: '状态' },
+      { name: 'assignee',    role: 'assignee', control: 'select',    source: 'teamMembers', label: '负责人', derived: true },
+      { name: 'completion',  role: 'progress', control: 'number',    min: 0, max: 100, label: '完成度' },
+      { name: 'achievement', role: 'text',     control: 'textarea',                   label: '达成说明' },
+    ],
+    result_slots: {
+      head: ['title', 'code'],
+      fields: ['status', 'assignee'],
+      meta: [
+        { field: 'parent',          icon: '📁', label: '父事项' },
+        { field: 'expectedEndDate', icon: '📅', label: '截止' },
+      ],
+      progress: { source: 'direct', field: 'completion', tpl: (d) => `${d.value}%` },
+      text: ['achievement'],
+    },
+  },
+
+  Milestone: {
+    label: '里程碑',
+    fields: [
+      { name: 'title',           role: 'title',    control: 'input',     required: true, label: '标题' },
+      { name: 'parent',          role: 'parent',   control: 'select',    source: 'teamMilestoneMaps', required: true, label: '里程碑图' },
+      { name: 'status',          role: 'status',   control: 'select',    options: ['planned','in_progress','completed','cancelled'], label: '状态' },
+      { name: 'expectedEndDate', role: 'date',     control: 'datepicker',                  label: '预期截止' },
+      { name: 'description',     role: 'text',     control: 'textarea',                   label: '描述' },
+    ],
+    result_slots: {
+      head: ['title', 'code'],
+      fields: ['status'],
+      meta: [
+        { field: 'parent',          icon: '📁', label: '里程碑图' },
+        { field: 'expectedEndDate', icon: '📅', label: '截止' },
+      ],
+      progress: { source: 'subitems_of_milestone', tpl: (d) => `${d.percent}% · ${d.completed}/${d.total} 子事项` },
+      text: ['description'],
+    },
+  },
+
+  MilestoneMap: {
+    label: '里程碑图',
+    fields: [
+      { name: 'title',           role: 'title',    control: 'input',     required: true, label: '标题' },
+      { name: 'team',            role: 'team',     control: 'select',    source: 'userTeams', required: true, label: 'Team' },
+      { name: 'status',          role: 'status',   control: 'select',    options: ['planned','active','completed','cancelled'], label: '状态' },
+      { name: 'expectedEndDate', role: 'date',     control: 'datepicker',                  label: '预期截止' },
+      { name: 'description',     role: 'text',     control: 'textarea',                   label: '描述' },
+    ],
+    result_slots: {
+      head: ['title', 'code'],
+      fields: ['status', 'team'],
+      meta: [
+        { field: 'expectedEndDate', icon: '📅', label: '截止' },
+        { field: 'milestoneCount',  icon: '🏆', label: (v) => `${v} 个里程碑` },
+      ],
+      progress: { source: 'milestones', tpl: (d) => `${d.percent}% · ${d.completed}/${d.total} 里程碑` },
+      text: ['description'],
+    },
+  },
+
+  ProgressRecord: {
+    label: '进度记录',
+    fields: [
+      { name: 'subItem',    role: 'parent',   control: 'select',    source: 'teamSubItems', required: true, label: '子任务' },
+      { name: 'completion', role: 'progress', control: 'number',    min: 0, max: 100, required: true, label: '完成度' },
+      { name: 'achievement', role: 'text',    control: 'textarea',                   label: '达成说明' },
+      { name: 'createdAt',  role: 'date',     control: 'readonly',                   label: '记录时间' },
+    ],
+    result_slots: {
+      head: [{ field: 'title', value_from: 'subItem.title' }, 'code'],
+      fields: [],
+      meta: [{ field: 'createdAt', icon: '📅', label: '记录时间' }],
+      progress: { source: 'direct', field: 'completion', tpl: (d) => `${d.value}%` },
+      text: ['achievement'],
+    },
+  },
+
+  ItemPool: {
+    label: '待办事项池',
+    fields: [
+      { name: 'title',          role: 'title',     control: 'input',     required: true, label: '标题' },
+      { name: 'background',     role: 'text',      control: 'textarea',  required: true, label: '背景' },
+      { name: 'expectedOutput', role: 'text',      control: 'textarea',  required: true, label: '预期产出' },
+      { name: 'priority',       role: 'priority',  control: 'select',    options: ['P1','P2','P3'], label: '优先级' },
+      { name: 'submitter',      role: 'submitter', control: 'select',    source: 'currentUser', label: '提交人' },
+      { name: 'status',         role: 'status',    control: 'select',    options: ['pending','triaged','accepted','rejected'], label: '状态' },
+      { name: 'createdAt',      role: 'date',      control: 'readonly',                   label: '提交时间' },
+    ],
+    result_slots: {
+      head: ['title', 'code'],
+      fields: ['priority', 'status', 'submitter'],
+      meta: [{ field: 'createdAt', icon: '📅', label: '提交时间' }],
+      progress: null,
+      text: ['background', 'expectedOutput'],
+    },
+  },
+};
+
+/* status → badge class 映射（按状态语义） */
+const STATUS_BADGE = {
+  todo: ['待开始', 'badge-neutral'],
+  in_progress: ['进行中', 'badge-success'],
+  paused: ['暂停', 'badge-warning'],
+  completed: ['已完成', 'badge-success'],
+  cancelled: ['已取消', 'badge-neutral'],
+  planned: ['已规划', 'badge-neutral'],
+  active: ['进行中', 'badge-success'],
+  pending: ['待处理', 'badge-neutral'],
+  triaged: ['已分诊', 'badge-warning'],
+  accepted: ['已接受', 'badge-success'],
+  rejected: ['已拒绝', 'badge-neutral'],
+};
+/* priority → badge class 映射 */
+const PRIORITY_BADGE = {
+  P0: ['P0', 'badge-error'],
+  P1: ['P1', 'badge-warning'],
+  P2: ['P2', 'badge-neutral'],
+  P3: ['P3', 'badge-neutral'],
+};
+
+/* Mock 数据源（form select 选项）；真实实现由后端预加载 */
+const SOURCE_MOCK = {
+  teamMembers: ['张三', '李四', '王五'],
+  teamMilestones: ['第一阶段（MM-0012）', '第二阶段（MM-0018）'],
+  teamMainItems: ['用户认证模块（MI-0023）', '订单导出功能（MI-0024）'],
+  teamMilestoneMaps: ['第一阶段（MM-0012）', '第二阶段（MM-0018）'],
+  teamSubItems: ['接口联调（SI-0408）', 'API 设计（SI-0410）'],
+  userTeams: ['平台组', '业务组'],
+  currentUser: ['张三（你）'],
+};
+
+/* ---- 渲染入口 ---- */
+function renderEntityCard(entityType, mode, data) {
+  const schema = ENTITY_SCHEMAS[entityType];
+  if (!schema) return '';
+  if (mode === 'form') return renderFormFields(schema, data || {});
+  if (mode === 'result') return renderResultCard(schema, data || {});
+  return '';
+}
+
+/* ---- form 模式：渲染字段区（不含外层 chat-card 包装；调用方负责卡片头/底） ---- */
+function renderFormFields(schema, data) {
+  return schema.fields.map(f => renderFormField(f, data[f.name])).join('');
+}
+function renderFormField(field, value) {
+  const requiredMark = field.required ? '<span class="req">*</span>' : '';
+  const derivedTag = field.derived ? '<span class="derived-tag">AI 推断</span>' : '';
+  const labelHtml = `<label>${field.label}${requiredMark}${derivedTag}</label>`;
+  const cls = ['field'];
+  if (field.derived) cls.push('derived');
+  if (field.required) cls.push('required');
+  let control = '';
+  switch (field.control) {
+    case 'input':
+      control = `<input class="input" value="${value || ''}">`; break;
+    case 'textarea':
+      control = `<textarea class="textarea">${value || ''}</textarea>`; break;
+    case 'datepicker':
+      control = `<input type="date" class="input" value="${value || ''}">`; break;
+    case 'number':
+      control = `<input type="number" class="input" min="${field.min ?? 0}" max="${field.max ?? 100}" value="${value ?? ''}">`; break;
+    case 'readonly':
+      control = `<input class="input" value="${value || ''}" readonly>`; break;
+    case 'select':
+      const opts = (field.options || SOURCE_MOCK[field.source] || []).map(o =>
+        `<option${o === value ? ' selected' : ''}>${o}</option>`).join('');
+      control = `<select class="select">${opts}</select>`; break;
+    default:
+      control = `<input class="input" value="${value || ''}">`;
+  }
+  return `<div class="${cls.join(' ')}">${labelHtml}${control}</div>`;
+}
+
+/* ---- result 模式：渲染完整 result-card ---- */
+function renderResultCard(schema, data) {
+  const slots = schema.result_slots;
+  const head = renderResultHead(slots.head, data);
+  const fields = renderResultFields(slots.fields, data);
+  const meta = renderResultMeta(slots.meta, data);
+  const progress = renderResultProgress(slots.progress, data);
+  const text = renderResultText(slots.text, data);
+  const route = data._route || '';
+  return `<div class="result-card"${route ? ` onclick="alert('跳转 ${route}')"` : ''}>
+    ${head}${fields}${meta}${progress}${text}
+  </div>`;
+}
+function renderResultHead(headSlots, data) {
+  if (!headSlots || !headSlots.length) return '';
+  const parts = headSlots.map(s => {
+    if (typeof s === 'string') {
+      if (s === 'title') return `<span class="r-title">${data.title || ''}</span>`;
+      if (s === 'code')  return `<span class="r-code">${data.code || ''}</span>`;
+      return '';
+    }
+    // detailed: { field, value_from }
+    if (s.value_from) {
+      const path = s.value_from.split('.');
+      let v = data; for (const p of path) v = v?.[p];
+      return `<span class="r-title">${v || ''}</span>`;
+    }
+    return '';
+  });
+  return `<div class="rc-head">${parts.join('')}<svg class="rc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>`;
+}
+function renderResultFields(roleList, data) {
+  if (!roleList || !roleList.length) return '';
+  const parts = roleList.map(role => {
+    if (role === 'priority') {
+      const v = data.priority;
+      const [text, cls] = PRIORITY_BADGE[v] || [v, 'badge-neutral'];
+      return `<span class="badge ${cls}">${text}</span>`;
+    }
+    if (role === 'status') {
+      const v = data.status;
+      const [text, cls] = STATUS_BADGE[v] || [v, 'badge-neutral'];
+      return `<span class="badge ${cls}">${text}</span>`;
+    }
+    if (role === 'assignee' || role === 'submitter') {
+      return `<span>👤 ${data[role] || ''}</span>`;
+    }
+    if (role === 'team') {
+      return `<span>👥 ${data.team || ''}</span>`;
+    }
+    return '';
+  }).filter(Boolean);
+  if (!parts.length) return '';
+  return `<div class="rc-fields">${parts.join('')}</div>`;
+}
+function renderResultMeta(metaList, data) {
+  if (!metaList || !metaList.length) return '';
+  const parts = metaList.map(m => {
+    const v = data[m.field];
+    if (v == null || v === '') return '';
+    let label;
+    if (typeof m.label === 'function') label = m.label(v);
+    else label = `${m.label} ${v}`;
+    return `<span class="rc-meta-item">${m.icon} ${label}</span>`;
+  }).filter(Boolean);
+  if (!parts.length) return '';
+  return `<div class="rc-meta">${parts.join('')}</div>`;
+}
+function renderResultProgress(progSlot, data) {
+  if (!progSlot) return '';
+  let label = '';
+  let percent = 0;
+  if (progSlot.source === 'direct') {
+    const v = data[progSlot.field];
+    percent = typeof v === 'number' ? v : 0;
+    label = progSlot.tpl({ value: v });
+  } else {
+    // computed: data._progress = { percent, completed, total }
+    const p = data._progress;
+    if (!p) return '';
+    percent = p.percent;
+    label = progSlot.tpl(p);
+  }
+  return `<div class="rc-progress"><div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div><span class="progress-label">${label}</span></div>`;
+}
+function renderResultText(textFields, data) {
+  if (!textFields || !textFields.length) return '';
+  const parts = textFields.map(f => {
+    const v = data[f];
+    if (!v) return '';
+    return `<div class="rc-text"><span class="rc-text-label">${f}:</span> ${v}</div>`;
+  }).filter(Boolean);
+  if (!parts.length) return '';
+  return parts.join('');
+}
+
 /* ---- Onboarding example chips ---- */
 function fillExample(text) {
   const ta = document.getElementById('chatInput');

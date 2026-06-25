@@ -180,7 +180,7 @@ AI 推送卡片 → 用户直接编辑字段（onChange 更新卡片 state）或
 |-------|------|--------|-------|
 | 卡片类型 | enum(create/update/assign) | AI 意图 | 决定字段集 |
 | 目标实体 | enum(MainItem/SubItem/Milestone/MilestoneMap/ProgressRecord/ItemPool) | AI 实体抽取 | 决定 schema |
-| 字段集 | Map<fieldName, {value, required, derived}> | AI 抽取 + 实体 schema | required 且无值字段高亮 |
+| 字段集 | Map<fieldName, {value, required, derived}> | AI 抽取 + 实体 schema（见 [`entity-schemas.md`](./entity-schemas.md)） | required 且无值字段高亮；schema 同时驱动表单控件类型与结果展示槽位 |
 | 父实体引用 | bizKey | 页面上下文 / 模糊匹配 | SubItem 需 parent MainItem；Milestone 需 parent MilestoneMap |
 | 校验错误 | string | available-transitions 预校验 | 不合法时卡片内展示 |
 
@@ -206,10 +206,12 @@ AI 推送卡片 → 用户直接编辑字段（onChange 更新卡片 state）或
 - **错实体防护**：高影响写操作（分配/状态变更）提交前卡片必须显示目标实体的 title + bizCode 供用户二次确认（防止错实体）。提交即生效，**不提供撤回**——误操作需由用户重新发起反向操作（如再次分配、再次状态变更）纠正。
 - **并发写入合并语义**：用户直接编辑字段（onChange）与对话补充（异步 AI 增量变更）写入同一卡片 state 时，以**时间戳晚者胜出**（last-write-wins）合并；对话补充产生的增量变更在应用到卡片前先展示 diff 供用户确认，不静默覆盖正在被用户编辑的字段。
 - **失败重试语义**：失败后重试必须重新运行 available-transitions 预校验（若适用）；卡片保持可编辑态，所有字段值保留；后端写操作应为幂等或事务性，失败不产生半成品副作用。**后端返回的参数校验错误按字段级就近展示**（出错字段红框 + 字段下方错误说明），不仅依赖顶部错误条；多次重试只保留最后一次错误的字段级提示，避免错误堆积；当前 turn 顶部小字标注"重试 N 次"，**历史会话回看此 turn 时不显示重试次数**（保留 transcript 简洁）。
-- **字段控件类型规则**（强制，禁止裸文本输入时间或关联值）：
-  - 日期/时间字段（planStartDate、expectedEndDate 等）→ **日期选择组件**（`<input type="date">` 或 DatePicker），禁止手敲日期字符串。
-  - 关联/引用字段（milestoneKey 里程碑、assignee 负责人、parent MainItem、teamKey 等）→ **Select 下拉组件**，选项来自当前 Team 范围内实体列表（后端预加载），禁止自由文本。
-  - 纯文本字段（title、description、achievement 等）→ Input/Textarea。
+- **字段控件类型规则**（强制，禁止裸文本输入时间或关联值）：所有字段控件类型由 [`entity-schemas.md`](./entity-schemas.md) 中各实体 schema 的 `control` 声明决定（同一份 schema 同时驱动 form 与 result 渲染）。**核心约束**：
+  - `role: date` 字段 → DatePicker，禁止手敲日期字符串
+  - `role: parent` / `assignee` / `submitter` / `team` / `priority` / `status` 字段 → Select 下拉，选项来自后端预加载的 Team 范围实体列表
+  - `role: title` / `text` 字段 → Input / Textarea
+  - `role: progress` 字段 → Number 输入（0–100）
+  - `role: code` 字段 → readonly（自动生成）
 - **diff 内联（无二级浮窗）**：对话补充产生的增量变更在**卡片体内**内联展示 diff 区（`.diff-inline`，accent-bg），确认动作由输入区选项组承载（应用/丢弃）；不弹二级浮窗，保持卡片交互扁平。
 - **提交中 API 步回显**：用户点击提交后，trace（UF-8）末尾追加一行"⏳ 调用 {Entity} {Op} API…"步，API 返回后该步状态图标迁移为 ✓（成功）或 ✗（失败）；该步计入 trace 的步数与耗时统计，与流式期间的 plan/tool_call 步同等展示。
 - **已提交/已丢弃 form 默认折叠**：表单进入这两种终态后默认折叠为单行 summary（含状态图标 + title），点击 summary 行可展开只读字段区（含原 form 的全部字段值）；展开/折叠态记忆于会话内（同一用户再次回到该 turn 时保持上次选择）。**不抽取 keyFields/diff 等结构化摘要**——表单消息本身就是当时提交的完整快照（消息不可变），上下文完整性由 transcript 自身维持。
@@ -227,31 +229,45 @@ AI 推送卡片 → 用户直接编辑字段（onChange 更新卡片 state）或
 
 ### Description
 
-查询操作的返回结果：先展示摘要文字（如"你有 3 个 P0 事项"），再展示可点击的实体卡片列表，点击跳转到对应详情页。
+查询操作的返回结果：先展示摘要文字（如"你有 3 个 P0 事项"），再展示**内容丰富的实体卡片列表**——每张卡片直接展示该实体的核心字段（不只标题与编号），让用户**在聊天面板内就能看到必要信息**，无需跳转到详情页。
+
+**核心原则：内容自包含**。用户在面板里就能回答"这个事项是什么状态、谁负责、什么时候截止、进度如何"等基本问题。点击卡片仍可跳详情页，但跳转不再是看基本信息的必要操作。
 
 ### User Interaction Flow
 
-AI 返回查询结果 → 渲染摘要 + 卡片列表 → 用户点击某张卡片 → 跳转到该实体详情页（既有路由）。
+AI 返回查询结果 → 渲染摘要 + 内容丰富的卡片列表 → 用户在面板内浏览核心字段；如需更多细节或执行操作，点击卡片跳转到对应详情页（既有路由）。
 
 ### Data Requirements
 
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
 | 摘要文字 | string | AI/后端生成 | 如"你有 3 个 P0 事项" |
-| 实体卡片列表 | List<{bizKey, title, route, meta}> | 查询 API 结果 | 每张含跳转路由 |
-| 进度统计（可选） | {completed, total, percent} | 查询 API 结果 | 里程碑进度场景 |
+| 实体卡片列表 | List<EntityCard> | 查询 API 结果 | 每张含核心字段 + 跳转路由 |
+| 进度统计（可选） | {completed, total, percent} | 查询 API 结果 | 里程碑/MainItem/SubItem 进度场景 |
+
+**EntityCard 按实体类型携带的核心字段**（由 [`entity-schemas.md`](./entity-schemas.md) 中各实体 `result_slots` 决定渲染槽位）：
+
+| 实体类型 | head | fields | meta | progress | text |
+|---------|------|--------|------|----------|------|
+| MainItem | title, code | priority, status, assignee | expectedEndDate, milestoneKey | 子任务完成率 | description |
+| SubItem | title, code | status, assignee | parent, expectedEndDate | completion | achievement |
+| Milestone | title, code | status | parent, expectedEndDate | 子事项完成率 | description |
+| MilestoneMap | title, code | status, team | expectedEndDate, milestoneCount | 里程碑完成率 | description |
+| ProgressRecord | subItem.title, code | — | createdAt | completion | achievement |
+| ItemPool | title, code | priority, status, submitter | createdAt | — | background, expectedOutput |
 
 ### States
 
 | State | Display | Trigger |
 |-------|---------|---------|
-| 有结果 | 摘要 + 卡片列表 | 查询命中 |
+| 有结果 | 摘要 + 内容丰富的卡片列表（每张展示核心字段） | 查询命中 |
 | 无结果 | "未找到匹配事项" + 建议 | 查询未命中 |
 
 ### Validation Rules
 
 - 卡片跳转路由必须为 sitemap 已有路由（`/items/:mainItemId`、`/items/:mainItemId/sub/:subItemId`、`/milestones/:mapId`、`/item-pool`），不生成新路由。
 - 单次查询最多展示 20 张卡片；超过 20 张时仅展示前 20 张并提示"结果过多，请缩小查询范围（如指定标题关键词或负责人）"。
+- **字段展示规则**：每张卡片按 [`entity-schemas.md`](./entity-schemas.md) 中实体 `result_slots` 渲染——所有槽位（head/fields/meta/progress/text）的字段映射统一由 schema 驱动，渲染器与实体类型解耦。过长的文本字段（如 ItemPool 的 background/expectedOutput）在卡片内截断为 1–2 行，完整内容仍可点击跳详情页查看。卡片之间用边框分隔，hover 高亮整张卡片以提示可点击跳转。
 
 ---
 
