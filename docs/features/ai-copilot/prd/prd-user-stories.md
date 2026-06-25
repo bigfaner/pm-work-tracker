@@ -14,12 +14,24 @@ feature: "AI Copilot 对话助手"
 
 **Acceptance Criteria:**
 - Given PM 在任意已认证页面，浮动气泡可见（首次有徽章提示）
-- When PM 输入"创建一个 P1 事项，标题完成用户认证模块，分配给张三，下周五截止"并点击发送
-- Then 单次调用从发送到卡片推送响应时间 ≤ 5 秒；推送的预填卡片字段值精确等于：title=`完成用户认证模块`、priority=`P1`、assignee=张三（Team 成员模糊匹配命中）、expectedEndDate=下周五日期、milestoneKey 字段渲染为空且带 `data-required-highlight` 属性
+- When PM 输入"创建一个 P1 事项，标题完成用户认证模块，分配给张三"并点击发送
+- Then 单次调用从发送到意图回执响应时间 ≤ 5 秒；agent 先返回 Agent 过程追踪（UF-8）+ 意图回执文本消息（UF-9 阶段 1）；**不直接渲染表单卡片**
 - Given PM 已发送创建指令，后端正在处理
 - When AI 流式返回中间过程事件（思考/计划/工具调用）
-- Then 聊天面板在用户指令与最终卡片之间流式展示 Agent 过程追踪（UF-8）：思考首条 ≤1s 出现、计划 ≤2s 可见、操作步骤随真实工具调用实时追加（每步含状态 ✓/✗ 与耗时），过程结束后在其下方渲染预填卡片；用户可点击追踪头部折叠/展开
-- Given 预填卡片已推送
+- Then 聊天面板在用户指令与意图回执之间流式展示 Agent 过程追踪（UF-8）：思考首条 ≤1s 出现、计划 ≤2s 可见、操作步骤随真实工具调用实时追加（每步含状态 ✓/✗ 与耗时）；用户可点击追踪头部折叠/展开
+- Given Agent 过程追踪已完成
+- When trace 末步 done、约 600ms 自动折叠
+- Then 下方 append **意图回执文本消息**（普通 `.msg.ai .msg-bubble`，非卡片），内容示例："好的，我帮你创建一个 P1 主事项「完成用户认证模块」，分配给张三。"；**不渲染字段列表卡片、不展示 title/priority/assignee 字段值罗列**；输入区切换为选项组（理解正确 / 我要调整 / 取消）
+- Given 意图回执文本已展示
+- When PM 选"✓ 理解正确"
+- Then agent 检测到必填字段 expectedEndDate 与 milestoneKey 缺失，发**主动澄清文本消息**（UF-9 阶段 2）："还需要补充以下信息：\n• 预期截止日期是？\n• 归到哪个里程碑下？（第一阶段 / 第二阶段）"；输入区切回文本模式等待 PM 用自然语言回答
+- Given 主动澄清文本已展示
+- When PM 输入"下周五，第二阶段"并发送
+- Then agent 解析回答、更新 draft state（expectedEndDate=2026-07-03、milestoneKey=第二阶段），所有必填收齐；发"信息已收集完整，请核对表单："文本消息 + 渲染 UF-3 表单卡片：title=`完成用户认证模块`、priority=`P1`、assignee=`张三`（Team 成员模糊匹配命中）、expectedEndDate=`2026-07-03`、milestoneKey=`第二阶段`，**全部必填已填、无 `data-required-highlight` 属性**
+- Given 意图回执文本已展示
+- When PM 选"✎ 我要调整"
+- Then 输入区切回文本模式、textarea 聚焦、预填 PM 上一条指令**原文**（"创建一个 P1 事项，标题完成用户认证模块，分配给张三"，非 AI 改写）；PM 编辑后重发 → agent 重新解析 → 新意图回执 append 到消息流末尾（原意图回执保留作历史）
+- Given 预填卡片已推送（UF-9 流程已完成、UF-3 表单已渲染）
 - When PM 直接编辑卡片修正 assignee 字段，或继续对话输入"优先级改成 P0"
 - Then 两种方式均更新同一份卡片状态，卡片始终为唯一数据源，对话区域仅回显
 - Given 卡片字段完整（无 `data-required-highlight` 字段为空）
@@ -114,8 +126,11 @@ feature: "AI Copilot 对话助手"
 **Acceptance Criteria:**
 - Given ItemPool 提交者在 `/item-pool` 页面或任意页面打开 Copilot
 - When 提交者输入"我想申请做一个客户导出功能，背景是销售每周手动导出很耗时，预期产出是一个一键导出按钮"
-- Then 系统解析为 ItemPool 创建意图，推送预填卡片：title=客户导出功能、background=销售每周手动导出很耗时、expectedOutput=一键导出按钮
-- Given 预填卡片已推送，部分结构化字段 AI 无法推导
+- Then 系统解析为 ItemPool 创建意图，**先返回 Agent 过程追踪 + 意图回执文本消息（UF-9 阶段 1）**："好的，我帮你提交一个 ItemPool 申请「客户导出功能」。"；输入区切选项组（理解正确 / 我要调整 / 取消）
+- Given 意图回执文本已展示
+- When 提交者选"✓ 理解正确"
+- Then ItemPool 的 priority 非 required（schema 检查），但 background、expectedOutput 已在原话中给出，所有必填收齐；agent 发"信息已收集完整，请核对表单："文本消息 + 渲染 UF-3 表单卡片：title=`客户导出功能`、background=`销售每周手动导出很耗时`、expectedOutput=`一键导出按钮`（priority 字段为空，无 `data-required-highlight`）
+- Given 预填卡片已推送
 - When 提交者继续对话补充"优先级 P2"或直接编辑卡片
 - Then 两种方式均写入同一卡片状态
 - Given ItemPool 卡片字段完整且提交者有 `item_pool:create` 权限
@@ -210,5 +225,5 @@ feature: "AI Copilot 对话助手"
 - Ops:     create (S1,S2,S3,S4) | query (S3 — unified handler covers all 6 entities; MainItem/Milestone/ItemPool evidenced) | modify (S2) | assign (S3) | move (S2)
 - Entities: MainItem (S1,S3) | SubItem (S2) | Milestone (S1,S3) | MilestoneMap (S3) | ProgressRecord (S2) | ItemPool (S3,S4)
 - Full lifecycle (submit->success): MainItem (S1) | SubItem (S2) | Milestone (S1) | MilestoneMap (S3) | ProgressRecord (S2) | ItemPool (S4)
-- Edge:    disambiguation (S5) | timeout/fallback (S6) | state-machine guard (S2) | permission guard (S4) | input overflow (S7) | quota (S7) | malformed AI (S7) | concurrent edit (S7) | team-missing (S7) | 50-round cap (S7) | stale bizKey (S7) | Map-terminal block (S1) | sub-item move (S2) | confidence boundary 0.7/0.69/0.4/0.39 (S7)
+- Edge:    disambiguation (S5) | timeout/fallback (S6) | state-machine guard (S2) | permission guard (S4) | input overflow (S7) | quota (S7) | malformed AI (S7) | concurrent edit (S7) | team-missing (S7) | 50-round cap (S7) | stale bizKey (S7) | Map-terminal block (S1) | sub-item move (S2) | confidence boundary 0.7/0.69/0.4/0.39 (S7) | intent-echo + proactive QA pre-form UF-9 (S1,S4)
 -->

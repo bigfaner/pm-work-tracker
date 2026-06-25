@@ -114,7 +114,8 @@
     <div class="ss-title">原型状态切换</div>
     <div class="ss-hint">仅用于评审。需确认时输入区变为选项组，用 ↑↓ + Enter 操作。</div>
     <button data-state="onboarding" onclick="switchState('onboarding')">首次引导 / 新会话 (UF-7)</button>
-    <button data-state="write-prefilled" onclick="switchState('write-prefilled')">写卡片 · 预填 (UF-3)</button>
+    <button data-state="intent-echo" onclick="switchState('intent-echo')">意图回执（UF-9 文本）· 等待用户确认</button>
+    <button data-state="write-prefilled" onclick="switchState('write-prefilled')">写卡片 · 表单（已通过 UF-9 收齐信息）</button>
     <button data-state="validation" onclick="switchState('validation')">写卡片 · 预校验失败 (UF-3)</button>
     <button data-state="submit-failed" onclick="switchState('submit-failed')">写卡片 · 提交失败（字段级错误+重试计数）</button>
     <button data-state="committed" onclick="switchState('committed')">写卡片 · 已提交折叠+AI 跟进</button>
@@ -179,6 +180,14 @@
       assignee: '张三',
       // expectedEndDate、milestoneKey 留空（required + data-required-highlight 高亮）
     };
+    /* 新流程（UF-9 意图回执 + 主动澄清）演示用：所有必填字段已通过对话收齐 */
+    const MAINITEM_PREFILL_FULL = {
+      title: '完成用户认证模块',
+      priority: 'P1',
+      assignee: '张三',
+      expectedEndDate: '2026-07-03',
+      milestoneKey: '第二阶段（MM-0018）',
+    };
 
     const TEMPLATES = {
       onboarding: `
@@ -198,12 +207,49 @@
         </div></div>`,
 
       'write-prefilled': `
-        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块，分配给张三，下周五截止</div></div>
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块，分配给张三</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="agent-trace collapsed">
+          <div class="at-header" onclick="toggleTrace(this.parentElement)">
+            <svg class="at-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            <span>Agent 思考过程</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--text-tertiary)">5 步 · 1.4s</span>
+          </div>
+          <div class="at-body">
+            <div class="at-section"><span class="at-section-label">操作</span>
+              <div class="at-step action done"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span class="at-text">加载 Team「平台组」MainItem schema</span><span class="at-status">✓ 0.3s</span></div>
+              <div class="at-step action done"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span class="at-text">模糊匹配「张三」→ 命中 张三 (user_017)</span><span class="at-status">✓ 0.4s</span></div>
+            </div>
+          </div>
+          <div class="at-summary"><span>已完成 · 意图回执</span><span>token 412 · $0.001</span></div>
+        </div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="msg-bubble">好的，我帮你创建一个 P1 主事项「完成用户认证模块」，分配给张三。</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="msg-bubble">还需要补充以下信息：<br>• 预期截止日期是？<br>• 归到哪个里程碑下？（第一阶段 / 第二阶段）</div></div>
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">下周五，第二阶段</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="msg-bubble">收到，所有信息已收集完整。请核对表单：</div></div>
         <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
-          <div class="card-head"><span class="badge badge-accent">创建主事项</span></div>
+          <div class="card-head"><span class="badge badge-accent">创建主事项</span><span class="diff-hint" style="margin-left:auto">已通过意图回执 + 主动澄清（UF-9）</span></div>
           <div class="confirm-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12c.55 0 1-.45 1-1V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6c0 .55.45 1 1 1"/></svg><span class="target-title">新事项：完成用户认证模块</span></div>
-          ${renderEntityCard('MainItem', 'form', MAINITEM_PREFILL)}
+          ${renderEntityCard('MainItem', 'form', MAINITEM_PREFILL_FULL)}
         </div></div>`,
+
+      'intent-echo': `
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块，分配给张三</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="agent-trace collapsed">
+          <div class="at-header" onclick="toggleTrace(this.parentElement)">
+            <svg class="at-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            <span>Agent 思考过程</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--text-tertiary)">5 步 · 1.4s</span>
+          </div>
+          <div class="at-body">
+            <div class="at-section"><span class="at-section-label">操作</span>
+              <div class="at-step action done"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span class="at-text">加载 Team「平台组」MainItem schema</span><span class="at-status">✓ 0.3s</span></div>
+              <div class="at-step action done"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span class="at-text">模糊匹配「张三」→ 命中 张三 (user_017)</span><span class="at-status">✓ 0.4s</span></div>
+            </div>
+          </div>
+          <div class="at-summary"><span>已完成 · 意图回执</span><span>token 412 · $0.001</span></div>
+        </div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="msg-bubble">好的，我帮你创建一个 P1 主事项「完成用户认证模块」，分配给张三。</div></div>
+        <div class="msg system"><div class="msg-bubble" style="font-size:11px;color:var(--text-tertiary)">↑ 原型演示：点"理解正确"切换到 write-prefilled 看后续主动澄清与表单</div></div>`,
 
       validation: `
         <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">把用户认证模块的状态改为已完成</div></div>
@@ -425,6 +471,10 @@
     ];
     const STATE_INPUT = {
       'onboarding':      { mode:'text' },
+      'intent-echo':  { mode:'options', options:[
+        {label:'✓ 理解正确（继续主动澄清）', action:'confirm-intent', hint:'Enter'},
+        {label:'✎ 我要调整（聚焦输入框+预填原文）', action:'adjust'},
+        {label:'✗ 取消', action:'cancel', hint:'Esc'} ] },
       'write-prefilled': { mode:'options', options:[
         {label:'✓ 提交', action:'submit', hint:'Enter'},
         {label:'✎ 编辑字段', action:'edit'},

@@ -534,6 +534,20 @@ function triggerOption() {
 }
 function handleOptionAction(action) {
   // Generic handling for the demo; real product would dispatch to backend.
+  if (action === 'confirm-intent') {
+    // UF-9 理解正确 → 切到 write-prefilled 状态展示 UF-3 表单卡片
+    switchState('write-prefilled');
+    return;
+  }
+  if (action === 'adjust') {
+    // UF-9 我要调整 → 切回文本模式、聚焦输入框、预填用户上一条指令原文
+    setTextMode();
+    const list = document.getElementById('messageList');
+    const lastUser = list ? list.querySelector('.msg.user .msg-bubble') : null;
+    const ta = document.getElementById('chatInput');
+    if (lastUser && ta) { ta.value = lastUser.textContent; handleInput(); setTimeout(() => ta.focus(), 0); }
+    return;
+  }
   if (action === 'apply' || action === 'discard' || action === 'cancel' || action === 'done' || action === 'retry' || action === 'manual' || action === 'edit' || action === 'submit') {
     // demo: flash a system confirmation then return to text mode
     const list = document.getElementById('messageList');
