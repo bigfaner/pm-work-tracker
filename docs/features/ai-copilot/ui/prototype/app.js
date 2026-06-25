@@ -377,7 +377,7 @@ function renderResultCard(schema, data) {
   const fields = renderResultFields(slots.fields, data);
   const meta = renderResultMeta(slots.meta, data);
   const progress = renderResultProgress(slots.progress, data);
-  const text = renderResultText(slots.text, data);
+  const text = renderResultText(slots.text, schema.fields, data);
   const route = data._route || '';
   return `<div class="result-card"${route ? ` onclick="alert('跳转 ${route}')"` : ''}>
     ${head}${fields}${meta}${progress}${text}
@@ -455,12 +455,16 @@ function renderResultProgress(progSlot, data) {
   }
   return `<div class="rc-progress"><div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div><span class="progress-label">${label}</span></div>`;
 }
-function renderResultText(textFields, data) {
+function renderResultText(textFields, schemaFields, data) {
   if (!textFields || !textFields.length) return '';
+  const labelOf = (name) => {
+    const f = schemaFields.find(x => x.name === name);
+    return f ? f.label : name;
+  };
   const parts = textFields.map(f => {
     const v = data[f];
     if (!v) return '';
-    return `<div class="rc-text"><span class="rc-text-label">${f}:</span> ${v}</div>`;
+    return `<div class="rc-text"><span class="rc-text-label">${labelOf(f)}:</span> ${v}</div>`;
   }).filter(Boolean);
   if (!parts.length) return '';
   return parts.join('');

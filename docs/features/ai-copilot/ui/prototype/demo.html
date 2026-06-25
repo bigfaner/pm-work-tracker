@@ -121,7 +121,8 @@
     <button data-state="discarded" onclick="switchState('discarded')">写卡片 · 已丢弃（折叠单行）</button>
     <button data-state="permission" onclick="switchState('permission')">写卡片 · 权限不足 (UF-3)</button>
     <button data-state="diff-overlay" onclick="switchState('diff-overlay')">写卡片 · diff 确认 (UF-3)</button>
-    <button data-state="query" onclick="switchState('query')">查询结果 (UF-4)</button>
+    <button data-state="query" onclick="switchState('query')">查询结果 (UF-4) · MainItem/SubItem/MilestoneMap</button>
+    <button data-state="query-entities" onclick="switchState('query-entities')">查询结果 · ItemPool/Milestone/ProgressRecord</button>
     <button data-state="disambiguation" onclick="switchState('disambiguation')">歧义消解 (UF-5)</button>
     <button data-state="fallback" onclick="switchState('fallback')">超时/降级 (UF-6)</button>
     <button data-state="thinking" onclick="switchState('thinking')">思考中 + 流式骨架</button>
@@ -151,6 +152,25 @@
       title: '第二阶段', code: 'MM-0012', status: 'in_progress', team: '平台组',
       expectedEndDate: '2026-08-15', milestoneCount: 5,
       _progress: { percent: 60, completed: 3, total: 5 },
+    };
+    /* 多实体查询 mock：演示 schema 在 ItemPool / Milestone / ProgressRecord 三类实体的 result 渲染 */
+    const ITEMPOOL_DATA = {
+      _entity: 'ItemPool', _route: '/item-pool',
+      title: '客户导出功能', code: 'IP-0031', priority: 'P2', status: 'pending', submitter: '张三',
+      createdAt: '2026-06-20',
+      background: '销售团队每周需手动导出客户数据，耗时约 2 小时/人',
+      expectedOutput: '一键导出按钮，支持按筛选条件批量导出 Excel',
+    };
+    const MILESTONE_DATA = {
+      _entity: 'Milestone', _route: '/milestones/MM-0012',
+      title: '第一阶段验收', code: 'MS-0207', status: 'in_progress',
+      parent: '第二阶段', expectedEndDate: '2026-07-15',
+      _progress: { percent: 50, completed: 2, total: 4 },
+    };
+    const PROGRESSRECORD_DATA = {
+      _entity: 'ProgressRecord', _route: '/items/MI-0023/sub/SI-0408',
+      subItem: { title: '接口联调' }, code: 'PR-1043', completion: 60, createdAt: '2026-06-25',
+      achievement: '已完成 3/5 接口对接，剩余 2 个接口等后端联调',
     };
     /* MainItem 预填表单 mock 数据（驱动 write-prefilled 状态的 form 渲染） */
     const MAINITEM_PREFILL = {
@@ -257,6 +277,23 @@
           ${renderEntityCard('MilestoneMap', 'result', MILESTONEMAP_DATA)}
         </div></div>`,
 
+      'query-entities': `
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">我提交的 ItemPool 申请有哪些？</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
+          <div class="summary-line">你有 1 条待处理申请</div>
+          ${renderEntityCard('ItemPool', 'result', ITEMPOOL_DATA)}
+        </div></div>
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">接口联调最近一次进度更新是什么？</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
+          <div class="summary-line">最近一次进度更新（ProgressRecord）</div>
+          ${renderEntityCard('ProgressRecord', 'result', PROGRESSRECORD_DATA)}
+        </div></div>
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">第二阶段里程碑图下有哪些里程碑？</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
+          <div class="summary-line">找到 1 个进行中的里程碑</div>
+          ${renderEntityCard('Milestone', 'result', MILESTONE_DATA)}
+        </div></div>`,
+
       disambiguation: `
         <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">把认证模块的状态改为进行中</div></div>
         <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
@@ -328,11 +365,13 @@
           </div>
           <div class="at-body">
             <div class="at-section"><span class="at-section-label">操作</span>
-              <div class="at-step action done"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span class="at-text">加载 Team schema</span><span class="at-status">✓ 0.3s</span></div>
-              <div class="at-step action error"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><span class="at-text">调用 MainItem 创建 API → 字段校验失败</span><span class="at-status">✗ 0.4s</span></div>
+              <div class="at-step action done"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span class="at-text">加载 Team「平台组」MainItem schema</span><span class="at-status">✓ 0.3s</span></div>
+              <div class="at-step action done"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span class="at-text">模糊匹配「张三」→ 命中 张三 (user_017)</span><span class="at-status">✓ 0.4s</span></div>
+              <div class="at-step action done"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span class="at-text">解析「下周五」→ 2026-07-03</span><span class="at-status">✓ 0.2s</span></div>
+              <div class="at-step action error"><svg class="at-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><span class="at-text">调用 MainItem 创建 API → 字段校验失败（后端拒绝）</span><span class="at-status">✗ 0.4s</span></div>
             </div>
           </div>
-          <div class="at-summary"><span style="color:var(--error-text)">提交失败 · 字段级错误已就近展示</span><span>token 412</span></div>
+          <div class="at-summary"><span style="color:var(--error-text)">AI 推导成功 · 后端写拒绝（字段级错误）</span><span>token 412</span></div>
         </div></div>
         <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
           <div class="card-head"><span class="badge badge-accent">创建主事项</span></div>
@@ -414,6 +453,7 @@
         {label:'✓ 应用变更（优先级 P1 → P0）', action:'apply', hint:'Enter'},
         {label:'✗ 丢弃变更', action:'discard', hint:'Esc'} ] },
       'query':           { mode:'text' },
+      'query-entities':  { mode:'text' },
       'disambiguation':  { mode:'options', candidates: DISAMBIG_CANDIDATES, options: DISAMBIG_CANDIDATES.map((c,i)=>({label:c.title+' · '+c.code, action:'pick:'+i})) },
       'fallback':        { mode:'options', options:[
         {label:'去 /milestones 手动新增', action:'manual'},
