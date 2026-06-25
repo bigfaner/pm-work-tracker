@@ -109,18 +109,6 @@
     </div>
   </aside>
 
-  <!-- Leave-confirm dialog (route guard only; not a card interaction) -->
-  <div id="leaveDialog" class="dialog-overlay" role="dialog" aria-label="离开确认">
-    <div class="dialog">
-      <h3>当前有未提交的操作，确定离开？</h3>
-      <p>离开将丢失未提交的卡片草稿。</p>
-      <div class="dialog-actions">
-        <button class="btn btn-ghost btn-sm" data-action="cancel" onclick="closeLeaveDialog()">取消</button>
-        <button class="btn btn-danger btn-sm" onclick="closeLeaveDialog()">确定离开</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Prototype-only state switcher -->
   <div class="state-switcher">
     <div class="ss-title">原型状态切换</div>
@@ -139,7 +127,6 @@
     <button data-state="thinking" onclick="switchState('thinking')">思考中 + 流式骨架</button>
     <button data-state="agent-trace" onclick="switchState('agent-trace')">Agent 过程 · 成功自动折叠</button>
     <button data-state="trace-failed" onclick="switchState('trace-failed')">Agent 过程 · 失败不折叠</button>
-    <button onclick="showLeaveDialog()">离开确认 Dialog</button>
     <button onclick="closePanel(); setTimeout(simulateBackgroundReturn, 1200)">收起 + 模拟后台返回</button>
   </div>
 

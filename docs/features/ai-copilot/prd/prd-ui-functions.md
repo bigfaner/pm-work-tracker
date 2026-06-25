@@ -38,7 +38,7 @@ Copilot 不创建新页面。唯一的跨页面跳转来自**查询结果卡片*
 - Primary navigation is shared across pages（现有侧边栏不变）。
 - Copilot 浮动气泡在所有已认证页面可见，feature flag 关闭时整体隐藏。
 - 查询结果卡片跳转目标必须是 sitemap 中已存在的路由，不产生新路由。
-- 页面导航前若有未提交卡片（UF-3/UF-5），弹出离开确认提示。
+- 页面导航不弹离开确认 —— 未提交卡片草稿会丢失，但用户主动重新发起即可（不强制挽留）。
 
 ---
 
@@ -210,7 +210,7 @@ AI 推送卡片 → 用户直接编辑字段（onChange 更新卡片 state）或
   - 日期/时间字段（planStartDate、expectedEndDate 等）→ **日期选择组件**（`<input type="date">` 或 DatePicker），禁止手敲日期字符串。
   - 关联/引用字段（milestoneKey 里程碑、assignee 负责人、parent MainItem、teamKey 等）→ **Select 下拉组件**，选项来自当前 Team 范围内实体列表（后端预加载），禁止自由文本。
   - 纯文本字段（title、description、achievement 等）→ Input/Textarea。
-- **diff 内联（无二级浮窗）**：对话补充产生的增量变更在**卡片体内**内联展示 diff 区（`.diff-inline`，accent-bg），确认动作由输入区选项组承载（应用/丢弃）；不弹二级浮窗，避免与离开确认 Dialog 的 z-index 叠压。
+- **diff 内联（无二级浮窗）**：对话补充产生的增量变更在**卡片体内**内联展示 diff 区（`.diff-inline`，accent-bg），确认动作由输入区选项组承载（应用/丢弃）；不弹二级浮窗，保持卡片交互扁平。
 - **提交中 API 步回显**：用户点击提交后，trace（UF-8）末尾追加一行"⏳ 调用 {Entity} {Op} API…"步，API 返回后该步状态图标迁移为 ✓（成功）或 ✗（失败）；该步计入 trace 的步数与耗时统计，与流式期间的 plan/tool_call 步同等展示。
 - **已提交/已丢弃 form 默认折叠**：表单进入这两种终态后默认折叠为单行 summary（含状态图标 + title），点击 summary 行可展开只读字段区（含原 form 的全部字段值）；展开/折叠态记忆于会话内（同一用户再次回到该 turn 时保持上次选择）。**不抽取 keyFields/diff 等结构化摘要**——表单消息本身就是当时提交的完整快照（消息不可变），上下文完整性由 transcript 自身维持。
 - **AI 跟进消息触发**：表单提交成功（committed）后，AI 必须跟发一条普通的 `ai_text` 消息（自然语言），用一两句话陈述"做了什么"+ 引导下一轮（如"还需要加里程碑吗？"）；该消息由 AI 从自己已有的上下文（form payload、用户原指令）生成，不依赖额外结构化字段或快照。失败、丢弃态不发跟进消息（错误条/折叠态 summary 已是反馈）。

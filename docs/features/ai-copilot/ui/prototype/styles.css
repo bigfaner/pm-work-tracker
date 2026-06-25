@@ -343,14 +343,6 @@ tr:hover td { background: var(--bg); }
 .example-chip { border: 1px solid var(--border-dark); border-radius: var(--radius-full); padding: 4px 12px; font-size: 13px; cursor: pointer; background: var(--surface); }
 .example-chip:hover { background: var(--bg); border-color: var(--accent); }
 
-/* Leave-confirm dialog */
-.dialog-overlay { position: fixed; inset: 0; background: var(--overlay); z-index: 70; display: none; align-items: center; justify-content: center; }
-.dialog-overlay.open { display: flex; }
-.dialog { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-3); width: 400px; max-width: 90vw; padding: 16px; }
-.dialog h3 { font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 8px; }
-.dialog p { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; }
-.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
-
 /* diff inline section (UF-3 supplement — NO popup) */
 .diff-inline { background: var(--accent-bg); border: 1px solid var(--accent-ring); border-radius: var(--radius-md); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
 .diff-inline .diff-title { font-size: 13px; font-weight: 500; color: var(--accent-hover); display: flex; align-items: center; gap: 6px; }

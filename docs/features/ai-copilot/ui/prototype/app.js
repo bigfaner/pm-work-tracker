@@ -177,10 +177,6 @@ function toggleFormFold(el) {
   if (body && body.classList.contains('form-readonly-body')) body.hidden = !body.hidden;
 }
 
-/* ---- Leave-confirm dialog (route guard only) ---- */
-function showLeaveDialog() { const dlg = document.getElementById('leaveDialog'); if (dlg) dlg.classList.add('open'); const c = dlg && dlg.querySelector('[data-action="cancel"]'); if (c) setTimeout(()=>c.focus(),50); }
-function closeLeaveDialog() { const dlg = document.getElementById('leaveDialog'); if (dlg) dlg.classList.remove('open'); }
-
 /* ---- Input dual mode: text ↔ options ---- */
 let optIndex = 0, optList = [];
 function setTextMode() {
@@ -296,11 +292,6 @@ function applyStateInput(state) {
 
 /* ---- Keyboard wiring ---- */
 document.addEventListener('keydown', (e) => {
-  const dlg = document.getElementById('leaveDialog');
-  if (dlg && dlg.classList.contains('open')) {
-    if (e.key === 'Escape') { closeLeaveDialog(); }
-    return;
-  }
   const om = document.getElementById('inputOptionsMode');
   const inOptions = om && !om.hidden;
   if (inOptions) {
@@ -441,8 +432,6 @@ document.addEventListener('click', (e) => {
   if (bubble && bubble.contains(e.target)) return;          // the opening click
   const switcher = document.querySelector('.state-switcher');
   if (switcher && switcher.contains(e.target)) return;       // demo affordance
-  const dlg = document.getElementById('leaveDialog');
-  if (dlg && dlg.contains(e.target)) return;
   closePanel();
 });
 

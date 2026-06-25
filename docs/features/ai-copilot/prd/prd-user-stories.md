@@ -159,9 +159,6 @@ feature: "AI Copilot 对话助手"
 - Given AI 服务整体不可用
 - When 用户打开 Copilot 面板
 - Then 面板展示降级提示，说明 AI 暂不可用，用户可使用传统表单操作
-- Given 页面导航前存在未提交的卡片
-- When 用户尝试离开当前页面
-- Then 系统弹出确认提示"当前有未提交的操作，确定离开？"
 
 ---
 
@@ -184,9 +181,6 @@ feature: "AI Copilot 对话助手"
 - Given 用户正在直接编辑卡片字段，同时通过对话发送补充指令
 - When 两路写入同一字段
 - Then 系统以**时间戳晚者胜出**合并（最后写入胜出，last-write-wins），且对话补充产生的增量变更在应用到卡片前先展示 diff 供用户确认（不直接覆盖正在编辑的字段）
-- Given 用户展开聊天面板后未输入任何指令，直接点击页面其他位置或导航
-- When 卡片区无未提交卡片
-- Then 面板正常收起/导航，不弹离开确认（仅当存在 UF-3/UF-5 未提交卡片时才弹确认）
 - Given 用户当前不在任何 Team 上下文页面（如 `/users` 全局页面）
 - When 用户尝试在 Copilot 发送写操作指令
 - Then 发送被阻止，输入框上方提示"请先进入具体 Team 页面后再执行操作"
@@ -216,5 +210,5 @@ feature: "AI Copilot 对话助手"
 - Ops:     create (S1,S2,S3,S4) | query (S3 — unified handler covers all 6 entities; MainItem/Milestone/ItemPool evidenced) | modify (S2) | assign (S3) | move (S2)
 - Entities: MainItem (S1,S3) | SubItem (S2) | Milestone (S1,S3) | MilestoneMap (S3) | ProgressRecord (S2) | ItemPool (S3,S4)
 - Full lifecycle (submit->success): MainItem (S1) | SubItem (S2) | Milestone (S1) | MilestoneMap (S3) | ProgressRecord (S2) | ItemPool (S4)
-- Edge:    disambiguation (S5) | timeout/fallback (S6) | state-machine guard (S2) | permission guard (S4) | input overflow (S7) | quota (S7) | malformed AI (S7) | concurrent edit (S7) | abandoned card (S6) | team-missing (S7) | 50-round cap (S7) | stale bizKey (S7) | Map-terminal block (S1) | sub-item move (S2) | confidence boundary 0.7/0.69/0.4/0.39 (S7)
+- Edge:    disambiguation (S5) | timeout/fallback (S6) | state-machine guard (S2) | permission guard (S4) | input overflow (S7) | quota (S7) | malformed AI (S7) | concurrent edit (S7) | team-missing (S7) | 50-round cap (S7) | stale bizKey (S7) | Map-terminal block (S1) | sub-item move (S2) | confidence boundary 0.7/0.69/0.4/0.39 (S7)
 -->

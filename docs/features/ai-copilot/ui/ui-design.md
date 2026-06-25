@@ -218,7 +218,7 @@ status: Draft
 | Esc | 收起面板 | 焦点回气泡（无关闭按钮；Esc 或点面板外为收起入口） |
 | 点击面板外区域（主页面） | 收起面板（不中断会话） | 与 Esc 等价；会话后台继续，有新活动时气泡提示 |
 | 消息区滚动 | 自动滚到底（新消息追加时） | — |
-| 主页面导航（hasUncommittedCards=true） | 拦截路由变更，弹离开确认 Dialog | 见「离开确认 Dialog」规格 |
+| 主页面导航（含未提交卡片） | 直接放行，不弹离开确认 | 未提交卡片草稿会丢失，用户主动重新发起即可（不强制挽留） |
 
 ### Data Binding
 
@@ -232,19 +232,8 @@ status: Draft
 | Team 缺失阻断 | teamCtxMissing | 路由解析 teamBizKey 为空时 true |
 | 轮次计数 | sessionRoundCount | 当前会话已发送指令数（上限 50） |
 | 截断提示 | truncationNotice | inputText 被 500 截断时置 true，3s 自动复位 |
-| 未提交卡片存在 | hasUncommittedCards | 任一 UF-3 处于 预填/编辑中/校验失败/提交中，或 UF-5 处于 待选择/已选择未确认 时为 true |
 | 流式中断 | streamInterrupted | 流式连接断开时 true，触发骨架卡丢弃 |
 | 会话内 Team 切换 | teamChangedMidFlight {oldName,newName} | 检测 teamCtx.bizKey 变化且存在 in-flight/pending 卡片时填充 |
-
-#### 离开确认 Dialog（路由守卫）
-
-`max-w-sm`（400px，DESIGN.md sm 规格）、居中、overlay black/50、surface bg、rounded-xl、shadow level-3、p-4。
-
-- **标题**：14px 500 text-primary"当前有未提交的操作，确定离开？"
-- **说明**：13px text-secondary"离开将丢失未提交的卡片草稿。"
-- **按钮**（flex justify-end gap-2，mt-4）：取消（Ghost sm，恢复导航前状态）/ 确定离开（Danger sm，border error-text/40，放行导航并丢弃草稿）
-- **未提交判定**：`hasUncommittedCards=true` 即触发（见 Data Binding）
-- **焦点**：打开时焦点移入「取消」（防误点离开）；Esc 等同取消；Tab 顺序 取消→确定离开。
 
 #### 并发卡片策略
 
@@ -356,7 +345,7 @@ status: Draft
 - **外观**：`.diff-inline`，accent-bg `#eff6ff`、border accent-ring `#bfdbfe`、rounded-md、p-2.5，flex column gap-1.5。
 - **内容**：标题 13px 500 text accent-hover"对话补充将更新以下字段："+ 字段 diff 行（字段名 text-secondary · 旧值 text-tertiary 删除线 → 新值 text-primary 500）；底部 `.diff-hint` 12px text-tertiary"用下方输入区确认（↑↓ 选择 · Enter 确认）"。
 - **确认动作**：卡片内不放按钮（避免二级浮窗/按钮冗余）；输入区切到选项组模式，选项 =「应用变更」「丢弃」（`Esc`=丢弃）。应用则按 last-write-wins 合并入卡片 state，丢弃则保留卡片当前值。
-- **无浮层收益**：消除浮层与离开确认 Dialog 的 z-index 叠压问题；diff 随卡片滚动不脱离锚点；卡片交互保持扁平。
+- **无浮层收益**：不引入额外浮层；diff 随卡片滚动不脱离锚点；卡片交互保持扁平。
 
 ---
 
