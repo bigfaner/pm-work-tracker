@@ -14,7 +14,7 @@ status: design
 |----------|------|---------|
 | Proposal | ../../proposals/ai-copilot/proposal.md | 上游提案（已通过对抗评审 824/1000），定义对话+卡片混合模式与全操作覆盖 |
 | PRD Spec | prd/prd-spec.md | 全局浮动 AI Copilot，对话+卡片混合模式，覆盖创建/查询/修改/分配 × 6 实体，一次性全量交付 |
-| User Stories | prd/prd-user-stories.md | 8 个故事覆盖 PM/研发/TL/ItemPool 提交者 + 歧义消解、超时降级、边界异常、撤回；已过 3 轮 eval 达 901/1000 |
+| User Stories | prd/prd-user-stories.md | 7 个故事覆盖 PM/研发/TL/ItemPool 提交者 + 歧义消解、超时降级、边界异常；已过 3 轮 eval 达 901/1000 |
 | UI Functions | prd/prd-ui-functions.md | 7 个 UI 功能（浮动气泡/聊天面板/写卡片/查询卡片/歧义卡片/降级提示/首次引导），全局 overlay 无新页面 |
 | UI Design | ui/ui-design.md | 8 组件视觉与交互设计，沿用项目 DESIGN.md（蓝主色/13px/边框卡片），含无障碍、Agent 过程追踪与原型映射 |
 
@@ -25,7 +25,7 @@ status: design
 |---------------------------|---------------------|-------|
 | UF-1 浮动气泡 | Component 1: 浮动气泡 | fixed 右下角 24px，56px 圆形 accent，首次红点徽章 |
 | UF-2 聊天面板 | Component 2: 聊天面板 | 右侧抽屉 630px 可拖拽，三段式（头/消息区/输入区），双视图+双模式 |
-| UF-3 预填表单卡片 | Component 3: 预填表单卡片 | 写操作确认卡，含错实体防护 + 5 分钟撤回 |
+| UF-3 预填表单卡片 | Component 3: 预填表单卡片 | 写操作确认卡，含错实体防护；提交即生效 |
 | UF-4 查询结果卡片 | Component 4: 查询结果卡片 | 摘要 + 迷你卡片行，20 条截断 |
 | UF-5 歧义消解卡片 | Component 5: 歧义消解卡片 | radio 候选列表 |
 | UF-6 降级与超时提示 | Component 6: 降级与超时提示 | warning 提示卡 + 传统表单快捷入口 |

@@ -27,7 +27,7 @@ feature: "AI Copilot 对话助手"
 - Then 字段锁定、提交按钮转 spinner、Agent 过程追踪（UF-8）末尾追加一行"⏳ 调用 MainItem 创建 API…"步；系统调用现有 MainItem 创建 API 执行（创建操作不做 available-transitions 预校验）
 - Given 上一步的 API 调用成功返回
 - When 后端返回成功
-- Then 表单折叠为单行"✓ 已提交 · 完成用户认证模块"（点击可展开只读字段查看完整提交值）；trace 末尾的 API 步状态迁移为 ✓；AI 跟进一条自然语言消息（如"好，已为你创建 P1 事项「完成用户认证模块」，分配给了张三，下周五截止。还需要加里程碑吗？"）；MainItem 创建属不可逆操作（无 terminal 状态转移），无撤回 banner
+- Then 表单折叠为单行"✓ 已提交 · 完成用户认证模块"（点击可展开只读字段查看完整提交值）；trace 末尾的 API 步状态迁移为 ✓；AI 跟进一条自然语言消息（如"好，已为你创建 P1 事项「完成用户认证模块」，分配给了张三，下周五截止。还需要加里程碑吗？"）
 - Given 用户在历史会话列表里点开本次会话
 - When 用户回看刚才那条已提交 turn
 - Then 表单保持折叠态 summary（默认折叠），trace 保持折叠态 summary（默认折叠）；用户可分别点击展开查看完整字段或思考/计划/操作过程
@@ -211,47 +211,10 @@ feature: "AI Copilot 对话助手"
 
 ---
 
-## Story 8: 高影响写操作的撤回（跨角色）
-
-**As a** 任意角色用户
-**I want to** 在误操作分配或状态变更后，能在 5 分钟内一键撤回
-**So that** AI 选错实体或我误确认时，能快速回滚，避免错误固化
-
-**Acceptance Criteria:**
-- Given 用户成功提交了一次可逆操作（分配，或非 terminal 状态变更），`undoAvailable = true`
-- When 系统返回成功反馈
-- Then 表单折叠为"✓ 已提交 · {title}"单行（点击可展开只读字段），目标实体 title + bizCode 二次确认已通过；**撤回 banner** 浮于折叠态 summary 下方（含 `undoDeadline` = 提交时间 + 5 分钟的 mm:ss 倒计时 + 撤回按钮）；AI 跟进一条自然语言消息衔接下一轮
-- Given 撤回 banner 可见且未过期
-- When 用户点击撤回
-- Then 系统调用后端反向操作：分配 → assignee 恢复为 `previousValue.assignee`；非 terminal 状态变更 → status 恢复为 `previousValue.status`；撤回成功后**作为新 turn 入账**，渲染为"↩ 已撤回 · {title}"折叠态；**原已提交 turn 的 summary 不改写**（保留"✓ 已提交"记录），但其撤回 banner 消失（视觉上"撤回已用掉"）
-- Given 撤回为状态变更类，恢复原状态前重新调用 available-transitions 校验，当前状态已不允许回到原状态
-- When 用户点击撤回
-- Then 撤回失败，撤回 banner 内显示"当前状态无法回到原状态，合法目标状态为：{validTransitions}"，不执行反向操作，不产生新 turn
-- Given 撤回窗口已过 `undoDeadline`（提交后 > 5 分钟）
-- When 用户查看原已提交 turn
-- Then 撤回 banner 转为"撤回窗口已过期"标注；原已提交 turn 折叠态 summary 不变
-- Given 用户在撤回窗口内收起聊天面板或导航到同会话其他页面，随后重新展开/返回，且仍在 `undoDeadline` 之前
-- When 用户查看原已提交 turn
-- Then 撤回 banner 仍可用
-- Given 用户关闭浏览器或登出（会话结束）后重新进入
-- When 查看该操作
-- Then 撤回已失效（跨会话持久化不在 v1 范围），撤回 banner 转为"撤回窗口已过期"标注
-- Given 撤回窗口内 AI 服务不可用
-- When 用户点击撤回
-- Then 撤回仍成功执行（撤回调用现有实体 API 反向操作，不依赖 AI 服务）
-- Given 同一操作已被撤回
-- When 用户尝试对该操作再次撤回
-- Then 不允许（每次操作仅一次撤回）；用户需重新发起正向操作
-- Given 用户提交的是不可逆操作（状态转入 terminal `completed` 或 `cancelled`），`undoAvailable = false`
-- When 系统返回成功反馈
-- Then 折叠态 summary 标注"该操作不可撤回"，不展示撤回 banner
-
----
-
 <!-- Coverage matrix:
 - Roles:   PM (S1) | Dev (S2) | TL (S3) | ItemPool submitter (S4) | cross-role (S5, S6, S7, S8)
-- Ops:     create (S1,S2,S3,S4) | query (S3 — unified handler covers all 6 entities; MainItem/Milestone/ItemPool evidenced) | modify (S2) | assign (S3) | move (S2) | undo (S8)
+- Ops:     create (S1,S2,S3,S4) | query (S3 — unified handler covers all 6 entities; MainItem/Milestone/ItemPool evidenced) | modify (S2) | assign (S3) | move (S2)
 - Entities: MainItem (S1,S3) | SubItem (S2) | Milestone (S1,S3) | MilestoneMap (S3) | ProgressRecord (S2) | ItemPool (S3,S4)
 - Full lifecycle (submit->success): MainItem (S1) | SubItem (S2) | Milestone (S1) | MilestoneMap (S3) | ProgressRecord (S2) | ItemPool (S4)
-- Edge:    disambiguation (S5) | timeout/fallback (S6) | state-machine guard (S2) | permission guard (S4) | input overflow (S7) | quota (S7) | malformed AI (S7) | concurrent edit (S7) | abandoned card (S6) | team-missing (S7) | 50-round cap (S7) | stale bizKey (S7) | Map-terminal block (S1) | sub-item move (S2) | confidence boundary 0.7/0.69/0.4/0.39 (S7) | undo success/expiry/session-loss/AI-down/uniqueness/irreversible (S8)
+- Edge:    disambiguation (S5) | timeout/fallback (S6) | state-machine guard (S2) | permission guard (S4) | input overflow (S7) | quota (S7) | malformed AI (S7) | concurrent edit (S7) | abandoned card (S6) | team-missing (S7) | 50-round cap (S7) | stale bizKey (S7) | Map-terminal block (S1) | sub-item move (S2) | confidence boundary 0.7/0.69/0.4/0.39 (S7)
 -->

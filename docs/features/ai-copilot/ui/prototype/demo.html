@@ -90,7 +90,7 @@
         </div>
         <div class="send-row" style="display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:11px;color:var(--text-tertiary)">Enter 发送 · Shift+Enter 换行 · Esc 收起</span>
-          <button class="btn btn-primary btn-sm" onclick="sendMessage()">
+          <button id="sendBtn" class="btn btn-primary btn-sm" onclick="sendMessage()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             发送
           </button>
@@ -129,7 +129,7 @@
     <button data-state="write-prefilled" onclick="switchState('write-prefilled')">写卡片 · 预填 (UF-3)</button>
     <button data-state="validation" onclick="switchState('validation')">写卡片 · 预校验失败 (UF-3)</button>
     <button data-state="submit-failed" onclick="switchState('submit-failed')">写卡片 · 提交失败（字段级错误+重试计数）</button>
-    <button data-state="success-undo" onclick="switchState('success-undo')">写卡片 · 已提交折叠+撤回 banner+AI 跟进</button>
+    <button data-state="committed" onclick="switchState('committed')">写卡片 · 已提交折叠+AI 跟进</button>
     <button data-state="discarded" onclick="switchState('discarded')">写卡片 · 已丢弃（折叠单行）</button>
     <button data-state="permission" onclick="switchState('permission')">写卡片 · 权限不足 (UF-3)</button>
     <button data-state="diff-overlay" onclick="switchState('diff-overlay')">写卡片 · diff 确认 (UF-3)</button>
@@ -149,7 +149,7 @@
        confirmations live in the input option group (keyboard-first). */
     const TEMPLATES = {
       onboarding: `
-        <div id="onboardingCard" class="msg ai"><div class="onboarding">
+        <div id="onboardingCard" class="msg ai"><div class="ts">${nowTs()}</div><div class="onboarding">
           <div class="ob-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>我是 AI 助手，可以帮你：</div>
           <ul class="ob-list">
             <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>创建（事项/子任务/里程碑/里程碑图/ItemPool）</li>
@@ -165,8 +165,8 @@
         </div></div>`,
 
       'write-prefilled': `
-        <div class="msg user"><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块，分配给张三，下周五截止</div><div class="ts">${nowTs()}</div></div>
-        <div class="msg ai"><div class="chat-card">
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块，分配给张三，下周五截止</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
           <div class="card-head"><span class="badge badge-accent">创建主事项</span></div>
           <div class="confirm-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12c.55 0 1-.45 1-1V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6c0 .55.45 1 1 1"/></svg><span class="target-title">新事项：完成用户认证模块</span></div>
           <div class="field"><label>标题</label><input class="input" value="完成用户认证模块"></div>
@@ -178,17 +178,17 @@
         </div></div>`,
 
       validation: `
-        <div class="msg user"><div class="msg-bubble">把用户认证模块的状态改为已完成</div><div class="ts">${nowTs()}</div></div>
-        <div class="msg ai"><div class="chat-card">
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">把用户认证模块的状态改为已完成</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
           <div class="card-head"><span class="badge badge-warning">状态变更 · 主事项</span></div>
           <div class="confirm-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/></svg><span class="target-title">用户认证模块</span><span class="target-code">MI-0023</span></div>
           <div class="field"><label>目标状态</label><input class="input" value="已完成" style="color:var(--text-secondary)"></div>
           <div class="error-bar" role="alert">当前状态「进行中」不支持直接转为「已完成」。<br>合法目标状态：<div class="chips"><span class="chip">paused 暂停</span><span class="chip">cancelled 取消</span></div></div>
         </div></div>`,
 
-      'success-undo': `
-        <div class="msg user"><div class="msg-bubble">把订单导出功能分配给李四</div><div class="ts">${nowTs()}</div></div>
-        <div class="msg ai"><div class="agent-trace collapsed">
+      'committed': `
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">把订单导出功能分配给李四</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="agent-trace collapsed">
           <div class="at-header" onclick="toggleTrace(this.parentElement)">
             <svg class="at-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
             <span>Agent 思考过程</span>
@@ -202,7 +202,7 @@
           </div>
           <div class="at-summary"><span>已完成</span><span>token 380 · $0.001</span></div>
         </div></div>
-        <div class="msg ai" id="writeCardSuccess">
+        <div class="msg ai" id="writeCardSuccess"><div class="ts">${nowTs()}</div>
           <div class="form-folded committed" onclick="toggleFormFold(this)">
             <svg class="ff-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             <span class="ff-title">已提交 · 订单导出功能</span>
@@ -214,29 +214,21 @@
             <div class="ro-field"><span class="ro-label">负责人</span><span class="ro-value">李四（由 张三 改为 李四）</span></div>
             <div class="ro-field"><span class="ro-label">提交时间</span><span class="ro-value">${nowTs()}</span></div>
           </div>
-          <div class="undo-banner" id="undoBanner">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>
-            <span class="ub-text">5 分钟内可撤回</span>
-            <button class="ub-btn" id="undoBtn" onclick="performUndo()">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>
-              <span class="undo-countdown">撤回 (05:00)</span>
-            </button>
-          </div>
         </div>
-        <div class="msg ai"><div class="msg-bubble">好，已把「订单导出功能」分配给李四。需要顺便调整优先级或截止日期吗？</div><div class="ts">${nowTs()}</div></div>`,
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="msg-bubble">好，已把「订单导出功能」分配给李四。需要顺便调整优先级或截止日期吗？</div></div>`,
 
       permission: `
-        <div class="msg user"><div class="msg-bubble">把权限体系重构的状态改为已完成</div><div class="ts">${nowTs()}</div></div>
-        <div class="msg ai"><div class="chat-card">
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">把权限体系重构的状态改为已完成</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
           <div class="card-head"><span class="badge badge-warning">状态变更 · 主事项</span></div>
           <div class="confirm-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/></svg><span class="target-title">权限体系重构</span><span class="target-code">MI-0025</span></div>
           <div class="permission-msg"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>你对该事项没有修改权限，请联系管理员或更换目标。</div>
         </div></div>`,
 
       'diff-overlay': `
-        <div class="msg user"><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块，分配给张三</div><div class="ts">${nowTs()}</div></div>
-        <div class="msg user"><div class="msg-bubble">优先级改成 P0</div><div class="ts">${nowTs()}</div></div>
-        <div class="msg ai"><div class="chat-card">
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块，分配给张三</div></div>
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">优先级改成 P0</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
           <div class="card-head"><span class="badge badge-accent">创建主事项</span></div>
           <div class="confirm-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/></svg><span class="target-title">新事项：完成用户认证模块</span></div>
           <div class="diff-inline">
@@ -247,37 +239,37 @@
         </div></div>`,
 
       query: `
-        <div class="msg user"><div class="msg-bubble">我的 P0 事项有哪些？</div><div class="ts">${nowTs()}</div></div>
-        <div class="msg ai"><div class="chat-card">
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">我的 P0 事项有哪些？</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
           <div class="summary-line">你有 2 个 P0 事项（直接 + 间接匹配）</div>
           <div class="result-row" onclick="alert('跳转 /items/MI-0023')"><div class="left"><span class="badge badge-error">P0</span><span class="r-title">用户认证模块</span><span class="r-code">MI-0023</span></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
           <div class="result-row" onclick="alert('跳转 /items/MI-0023/sub/...')"><div class="left"><span class="badge badge-neutral">间接</span><span class="r-title">接口联调（子任务，负责人=你）</span></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
         </div></div>
-        <div class="msg ai"><div class="chat-card">
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
           <div class="summary-line">里程碑图「第二阶段」进度</div>
           <div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:60%"></div></div><span class="progress-label">3/5 子事项完成 · 60%</span></div>
           <div class="result-row"><div class="left"><span class="r-title">第二阶段</span><span class="r-code">MM-0012</span></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
         </div></div>`,
 
       disambiguation: `
-        <div class="msg user"><div class="msg-bubble">把认证模块的状态改为进行中</div><div class="ts">${nowTs()}</div></div>
-        <div class="msg ai"><div class="chat-card">
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">把认证模块的状态改为进行中</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
           <div class="summary-line">找到多个匹配，请在下方输入区选择目标：<span style="font-size:12px;color:var(--text-tertiary)">「认证模块」</span></div>
           <div class="diff-hint">用 ↑↓ 选择候选 · Enter 确认</div>
         </div></div>`,
 
       fallback: `
-        <div class="msg user"><div class="msg-bubble">创建一个里程碑，叫第一阶段验收</div><div class="ts">${nowTs()}</div></div>
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">创建一个里程碑，叫第一阶段验收</div></div>
         <div class="msg system error"><div class="msg-bubble">AI 响应超时（已等待 10 秒）</div></div>
-        <div class="msg ai"><div class="fallback-card">
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="fallback-card">
           <div class="fb-head"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>AI 响应超时</div>
           <div class="fb-desc">已超过 10 秒未响应，请在下方输入区选择手动入口或重试。</div>
         </div></div>`,
 
       thinking: `
-        <div class="msg user"><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块</div><div class="ts">${nowTs()}</div></div>
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块</div></div>
         <div class="msg system"><div class="msg-bubble"><span class="thinking-dots"><span></span><span></span><span></span></span>&nbsp;AI 思考中…</div></div>
-        <div class="msg ai"><div class="chat-card" style="border-style:dashed;background:transparent">
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card" style="border-style:dashed;background:transparent">
           <div style="height:14px;background:var(--bg);border-radius:4px;width:40%"></div>
           <div style="height:40px;background:var(--bg);border-radius:6px"></div>
           <div style="height:40px;background:var(--bg);border-radius:6px;width:70%"></div>
@@ -285,8 +277,8 @@
         </div></div>`,
 
       'agent-trace': `
-        <div class="msg user"><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块，分配给张三，下周五截止</div><div class="ts">${nowTs()}</div></div>
-        <div class="msg ai"><div class="agent-trace" id="agentTrace">
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块，分配给张三，下周五截止</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="agent-trace" id="agentTrace">
           <div class="at-header" onclick="toggleTrace(this.parentElement)">
             <svg class="at-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
             <span>Agent 思考过程</span>
@@ -314,7 +306,7 @@
           </div>
           <div class="at-summary"><span>已完成 · 请在下方确认卡片</span><span>token 412 · $0.001</span></div>
         </div></div>
-        <div class="msg ai"><div class="chat-card">
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
           <div class="card-head"><span class="badge badge-accent">创建主事项</span></div>
           <div class="confirm-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/></svg><span class="target-title">新事项：完成用户认证模块</span></div>
           <div class="field"><label>标题</label><input class="input" value="完成用户认证模块"></div>
@@ -325,8 +317,8 @@
         </div></div>`,
 
       'submit-failed': `
-        <div class="msg user"><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块，分配给张三，下周五截止</div><div class="ts">${nowTs()}</div></div>
-        <div class="msg ai"><div class="agent-trace">
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块，分配给张三，下周五截止</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="agent-trace">
           <div class="at-header" onclick="toggleTrace(this.parentElement)">
             <svg class="at-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
             <span>Agent 思考过程</span>
@@ -340,7 +332,7 @@
           </div>
           <div class="at-summary"><span style="color:var(--error-text)">提交失败 · 字段级错误已就近展示</span><span>token 412</span></div>
         </div></div>
-        <div class="msg ai"><div class="chat-card">
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="chat-card">
           <div class="card-head"><span class="badge badge-accent">创建主事项</span></div>
           <div class="confirm-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/></svg><span class="target-title">新事项：完成用户认证模块</span></div>
           <div class="error-bar" role="alert" style="display:flex;flex-direction:column;gap:4px">
@@ -355,15 +347,15 @@
         </div></div>`,
 
       'discarded': `
-        <div class="msg user"><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块</div><div class="ts">${nowTs()}</div></div>
-        <div class="msg ai"><div class="form-folded discarded">
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">创建一个 P1 事项，标题完成用户认证模块</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="form-folded discarded">
           <svg class="ff-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
           <span class="ff-title">已丢弃 · 完成用户认证模块</span>
         </div></div>`,
 
       'trace-failed': `
-        <div class="msg user"><div class="msg-bubble">把认证模块的状态改为进行中</div><div class="ts">${nowTs()}</div></div>
-        <div class="msg ai"><div class="agent-trace">
+        <div class="msg user"><div class="ts">${nowTs()}</div><div class="msg-bubble">把认证模块的状态改为进行中</div></div>
+        <div class="msg ai"><div class="ts">${nowTs()}</div><div class="agent-trace">
           <div class="at-header" onclick="toggleTrace(this.parentElement)">
             <svg class="at-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
             <span>Agent 思考过程</span>
@@ -403,9 +395,7 @@
       'validation':      { mode:'options', options:[
         {label:'✎ 修改目标状态', action:'edit'},
         {label:'✗ 取消', action:'cancel'} ] },
-      'success-undo':    { mode:'options', options:[
-        {label:'↩ 撤回', action:'undo', hint:'5 分钟内'},
-        {label:'✓ 完成', action:'done'} ] },
+      'committed':       { mode:'text' },
       'submit-failed':   { mode:'options', options:[
         {label:'↻ 重试提交', action:'submit', hint:'Enter'},
         {label:'✎ 继续编辑字段', action:'edit'},
@@ -437,7 +427,7 @@
     const SESSIONS = [
       { id:'s1', title:'创建用户认证模块', preview:'创建一个 P1 事项，标题完成用户认证模块…', time:'今天 14:32', messageCount:6, pending:true,  inputState:'write-prefilled', transcript: TEMPLATES['write-prefilled'] },
       { id:'s2', title:'查询 P0 事项',      preview:'我的 P0 事项有哪些？',                   time:'今天 11:05', messageCount:2, pending:false, inputState:'query',          transcript: TEMPLATES['query'] },
-      { id:'s3', title:'分配订单导出',      preview:'把订单导出功能分配给李四',                time:'昨天 18:40', messageCount:3, pending:true,  inputState:'success-undo',   transcript: TEMPLATES['success-undo'] },
+      { id:'s3', title:'分配订单导出',      preview:'把订单导出功能分配给李四',                time:'昨天 18:40', messageCount:3, pending:true,  inputState:'committed',      transcript: TEMPLATES['committed'] },
       { id:'s4', title:'里程碑进度',        preview:'里程碑图第二阶段的进度怎么样？',         time:'昨天 10:12', messageCount:2, pending:false, inputState:'query',          transcript: TEMPLATES['query'] },
       { id:'s5', title:'子任务接口联调',    preview:'更新子任务完成度为 60%',                  time:'06-22',      messageCount:4, pending:false, inputState:'write-prefilled', transcript: TEMPLATES['write-prefilled'] }
     ];

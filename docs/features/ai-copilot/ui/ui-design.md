@@ -160,7 +160,7 @@ status: Draft
    - 用户消息：右对齐，max-w 85%，气泡 bg accent `#2563eb`、白字、rounded-xl（右下角直角）、px-3 py-2、13px
    - AI 消息：左对齐，max-w 90%，卡片式（surface bg、border `#e2e8f0`、rounded-xl、px-3 py-2、13px text-primary）；AI 回复含卡片时渲染 UF-3/4/5/7
    - 系统消息：居中，text-tertiary 12px（如"AI 思考中…"、超时提示、降级提示）
-   - 时间戳：消息下方 text-tertiary 11px
+   - 时间戳：**每条消息（用户气泡、AI 文字、AI 卡片）上方**统一展示 `yyyy/MM/dd HH:mm` 格式时间戳，text-tertiary 11px、margin-bottom 4px；用户消息 ts 右对齐、AI 消息 ts 左对齐（与各自气泡对齐方向一致）
 3. **输入区**（border-t `#e2e8f0`，bg surface，p-3）：
    - textarea（文本模式）：`min-height: 120px`、`max-height: 280px`、**按内容自动增高**（`resize: none`，JS 按scrollHeight 在 120–280px 区间自适应）、达到 280px 后 `overflow-y: auto` 出现滚动条、rounded-md、border border-dark、px-3 py-2、13px、placeholder text-tertiary"描述你想做的事…"；focus border accent + ring accent-ring。**单次输入上限 1000 字符**，超出截断并提示。
    > **与全局约定一致**：`min-h 120px` 对齐 `frontend-components.md` TECH-frontend-001 的 `min-h-[120px]`（不再偏离）；上限 280px 为 Copilot 面板内的增高上限，超出滚动。
@@ -172,7 +172,7 @@ status: Draft
 输入区是 Copilot 的**唯一确认入口**——卡片本身不弹二级浮窗，所有"需要用户确认/选择"的操作都把输入区从「文本模式」切换为「选项组模式」，用户用键盘完成，无需鼠标：
 
 - **文本模式（默认）**：即上述 textarea，用户输入自然语言指令。
-- **选项组模式（有待确认时触发）**：textarea 隐藏，输入区渲染为选项列表（`.option-list`）。触发场景：写卡片待提交（提交/编辑字段/取消）、校验失败（修改/取消）、撤回窗口内（撤回/完成）、权限不足（换目标/取消）、对话补充 diff（应用/丢弃）、歧义消解（候选实体即选项）、超时降级（手动入口/重试）。
+- **选项组模式（有待确认时触发）**：textarea 隐藏，输入区渲染为选项列表（`.option-list`）。触发场景：写卡片待提交（提交/编辑字段/取消）、校验失败（修改/取消）、权限不足（换目标/取消）、对话补充 diff（应用/丢弃）、歧义消解（候选实体即选项）、超时降级（手动入口/重试）。
   - **键盘**：`↑`/`↓` 在选项间移动高亮（循环），`Enter` 确认当前高亮项，`←`（左方向键）返回文本输入模式，`Esc` 收起面板；选项过多时 `scrollIntoView({block:'nearest'})` 跟随。
   - **鼠标**：点击选项 = **直接选中并确认**该选项（事件 `stopPropagation`，不触发"面板外点击收起"，面板保持展开）。
   - **视觉**：每项 `.option` 14px 行高、border；高亮项 border-2 accent + accent-bg + text accent-hover；右侧 `kbd` 提示键位。
@@ -185,9 +185,9 @@ status: Draft
 
 - **对话视图（chat-view，默认）**：即上述消息区 + 输入区，展示当前活动会话。
 - **会话列表视图（session-list-view）**：展示历史会话列表，每项含会话标题、首条预览、时间、消息数、待确认标记；当前活动会话 accent-bg 高亮。**列表视图无独立标题栏**——打开列表视图时，**面板头中间标题切换为"历史会话"**（替代会话标题）；新建会话由头部右侧「+」图标按钮承担（不在列表内重复放按钮）。
-  - 点某会话 → 切换为活动会话（加载其消息、恢复待确认状态与撤回倒计时、更新头部会话标题），返回对话视图，标题恢复为该会话标题。
+  - 点某会话 → 切换为活动会话（加载其消息、恢复待确认状态、更新头部会话标题），返回对话视图，标题恢复为该会话标题。
   - 头部「+」新建会话：**若当前已是新空会话（无消息），不重复创建**，直接返回对话视图；否则创建空会话为活动会话，展示首次引导（UF-7）。
-- **多会话决策（不并行）**：面板同一时刻只有**一个活动会话**；**不支持同时打开多个会话**——并行多会话需多窗口/标签，与「单全局 overlay」模型冲突，且增加上下文切换负担。用户通过会话列表快速切换活动会话；切换时前一会话状态保留（待确认卡片、5 分钟撤回窗口继续计时）。
+- **多会话决策（不并行）**：面板同一时刻只有**一个活动会话**；**不支持同时打开多个会话**——并行多会话需多窗口/标签，与「单全局 overlay」模型冲突，且增加上下文切换负担。用户通过会话列表快速切换活动会话；切换时前一会话状态保留（待确认卡片）。
 - **会话标题生成**：新会话默认"新会话"；用户发送首条指令后，由首条指令摘要自动生成（截断 16 字，如"创建用户认证模块…"）；列表视图打开时头部中间临时显示"历史会话"，关闭后恢复会话标题；重命名不在 v1 范围。
 
 ### States
@@ -249,7 +249,8 @@ status: Draft
 #### 并发卡片策略
 
 - **多卡片共存**：消息流中可同时存在多张 UF-3/UF-5 卡片（用户可连续发起多个操作），每张卡片 state 独立、互不覆盖。
-- **AI 请求串行**：同一会话同一时刻仅允许一个 in-flight AI 请求（思考态全局唯一）；用户在思考态发送新指令时，新指令入队等待（输入区 inline 提示"上一条处理中…"），前一条返回后再处理下一条，避免并发 prompt 组装冲突与限流。
+- **AI 请求串行 + 用户串行发送**：同一会话同一时刻仅允许一个 in-flight AI 请求（思考态全局唯一）；用户在 AI 处理上一条指令期间（思考态/流式态）**不能发送新指令**——输入框与发送按钮同时禁用（`applyStateInput` 中 `cfg.disabled=true` 时两者都 disable），输入区上方 inline 提示"AI 处理中，请稍候…"；待上一轮 AI 返回后恢复可发送。**单次只能发送一条用户消息**，避免并发 prompt 组装冲突与上下文错乱（替代原"入队等待"模型）。
+- **Agent 多消息返回**：单次用户指令触发 AI 一轮响应，但该轮响应由**多条 AI 消息**组成（按顺序追加到消息流）：Agent 过程追踪（UF-8 思考/计划/操作）→ 最终卡片或文字响应（UF-3/4/5/6）→ AI 跟进消息（确认完成、引导下一轮）。多条 AI 消息共享同一 turn 上下文，构成"AI 在回答我"的整体呈现。
 - **写操作提交**：多张卡片的提交互不阻塞（用户可依次确认提交）；同一实体的并发写由后端乐观锁/版本号兜底（非 UI 层职责）。
 
 ---
@@ -267,7 +268,7 @@ status: Draft
 卡片有两种**主形态**：
 
 - **展开态**（预填/编辑/校验失败/提交失败）：完整字段区可见，可编辑或带错误。
-- **折叠态**（已提交/已撤回/已丢弃）：折叠为单行 summary（含状态图标 + title），点击可展开只读字段区。**已提交/已撤回/已丢弃 三种终态默认折叠**，避免长 transcript 堆满已完成的 form。
+- **折叠态**（已提交/已丢弃）：折叠为单行 summary（含状态图标 + title），点击可展开只读字段区。**已提交/已丢弃 两种终态默认折叠**，避免长 transcript 堆满已完成的 form。
 
 #### 展开态布局
 
@@ -293,29 +294,17 @@ status: Draft
    - 取消（Ghost）、提交（Primary，必填空时 disabled）
    - 提交中态：提交按钮转 spinner + 文字"提交中…"，字段全部锁定
 
-#### 折叠态布局（已提交 / 已撤回 / 已丢弃）
+#### 折叠态布局（已提交 / 已丢弃）
 
 折叠为单行 summary 行（`.form-folded`，surface bg、border `#e2e8f0`、rounded-lg、px-3 py-2、flex items-center gap-2、cursor pointer、hover bg-bg-alt）：
 
-- **状态图标**（左）：✓ 已提交（accent `#3b82f6`）/ ↩ 已撤回（text-secondary）/ ⊘ 已丢弃（text-tertiary）
+- **状态图标**（左）：✓ 已提交（accent `#3b82f6`）/ ⊘ 已丢弃（text-tertiary）
 - **title 文本**：13px 500 text-primary（取自 form payload 的 title 字段，消息不可变即天然快照）
-- **辅助标注**（右）：
-  - 已提交 · 不可逆：12px text-tertiary"该操作不可撤回"
-  - 已提交 · 可逆：无标注（撤回 banner 在下方独立呈现）
-  - 已撤回 / 已丢弃：无标注
+- **辅助标注**（右）：无标注（已提交与已丢弃都仅靠图标与 title 表达终态语义）
 - **展开箭头**（右）：`›` 图标，点击 summary 行展开只读字段区（含原 form 的全部字段值，13px text-secondary 只读）
 - **展开/折叠态**：记忆于会话内（同一用户回到该 turn 时保持上次选择）；历史会话回看时默认折叠
 
 > **数据策略**：折叠态 summary 不二次抽取 keyFields/diff 等结构化字段。表单消息本身不可变，就是当时提交的完整快照；上下文完整性由 transcript 自身维持。用户要核对完整提交值 → 点击展开只读字段区；要看当前实体最新状态 → 点击 bizCode 跳详情页。
-
-#### 撤回 banner（已提交 · 可逆 时浮于折叠态下方）
-
-独立浮于折叠态 summary 下方（不嵌入卡片内）的横条（`.undo-banner`，warning-bg `#fffbeb`、border warning `#d97706`/30、rounded-md、px-3 py-2、flex items-center gap-2）：
-
-- 左：↩ 图标（warning `#d97706`）+ 文字"5 分钟内可撤回"（13px 500 warning-text `#92400e`）
-- 右：撤回按钮（Ghost sm，text-error，带倒计时 mm:ss）+ 倒计时 label
-- 倒计时归零 → banner 转为"撤回窗口已过期"标注（error-text，按钮消失）
-- 用户点撤回 → banner 消失（视觉上"撤回已用掉"），新 turn 入账渲染为"↩ 已撤回"折叠态
 
 ### States
 
@@ -326,16 +315,13 @@ status: Draft
 | 校验失败（提交前） | 展开态：顶部错误条 + validTransitions chips；表单保持可编辑 | available-transitions 不合法（仅状态变更类预校验阶段） |
 | 提交中 | 展开态：字段锁定 + 提交按钮转 spinner + trace（Component 8）末尾追加"⏳ 调用 X API…"步 | 用户点提交 |
 | 提交失败（后端校验） | 展开态：顶部错误条（含"重试 N 次"，历史回看不显示）+ 字段级错误就近展示（出错字段 border error + 字段下方说明）；已编辑字段值全保留 | API 返回参数错误 |
-| 已提交 · 可逆 | **折叠态**："✓ 已提交 · {title}"单行；下方浮撤回 banner（mm:ss 倒计时）；**AI 跟进一条自然语言消息**（作为独立 ai_text 消息，不在卡片内） | API 成功 + 可逆操作（分配 / 非 terminal 状态变更） |
-| 已提交 · 不可逆 | **折叠态**："✓ 已提交 · {title} · 该操作不可撤回"单行；无撤回 banner；AI 跟进消息 | API 成功 + terminal 状态变更 |
-| 撤回窗口过期 | 折叠态 summary 不变；撤回 banner 转为"撤回窗口已过期"标注（按钮消失） | undoDeadline 到达 |
-| 已撤回 | **折叠态**："↩ 已撤回 · {title}"单行（作为新 turn 入账，原已提交 turn 保留不改写） | 用户点撤回 + 反向操作成功 |
+| 已提交 | **折叠态**："✓ 已提交 · {title}"单行；**AI 跟进一条自然语言消息**（作为独立 ai_text 消息，不在卡片内） | API 成功 |
 | 已丢弃 | **折叠态**："⊘ 已丢弃 · {title}"单行（保留在 transcript 中避免孤儿用户输入） | 用户点取消/丢弃 |
 | 权限不足 | 卡片体替换为权限提示：13px text-secondary + lock 图标"你对目标实体没有{op}权限，请联系管理员或更换目标" | canSubmit=false（RBAC 校验） |
 | 流式填充中断 | 丢弃半填充骨架卡（不留半填字段），替换为系统消息"AI 响应中断，点击重试" + 重试 Ghost（沿用上一条指令重新生成卡片） | 流式连接中断（streamInterrupted=true） |
 
-> **折叠规则**：已提交 / 已撤回 / 已丢弃 三种终态默认折叠为单行 summary，点击 summary 行展开只读字段区。展开/折叠态记忆于会话内；历史会话回看时默认折叠。**不抽取 keyFields/diff 等结构化摘要**——表单消息本身不可变即天然快照。
-> **AI 跟进消息**：仅"已提交"态触发（成功后），AI 跟发一条普通 `ai_text` 消息衔接下一轮；失败、丢弃、撤回态不发跟进消息（错误条/折叠态 summary 已是反馈）。跟进消息由 AI 从自己已有的上下文（form payload、用户原指令）生成，不依赖额外结构化字段或快照。
+> **折叠规则**：已提交 / 已丢弃 两种终态默认折叠为单行 summary，点击 summary 行展开只读字段区。展开/折叠态记忆于会话内；历史会话回看时默认折叠。**不抽取 keyFields/diff 等结构化摘要**——表单消息本身不可变即天然快照。
+> **AI 跟进消息**：仅"已提交"态触发（成功后），AI 跟发一条普通 `ai_text` 消息衔接下一轮；失败、丢弃态不发跟进消息（错误条/折叠态 summary 已是反馈）。跟进消息由 AI 从自己已有的上下文（form payload、用户原指令）生成，不依赖额外结构化字段或快照。
 
 ### Interactions
 
@@ -344,10 +330,9 @@ status: Draft
 | 编辑字段 | onChange 更新卡片 state | 必填空字段补值后高亮消除 |
 | 继续对话补充 | 后端解析增量 → diff 内联区确认 → 更新卡片 state | 展示 diff 内联区（卡片体内）供确认，不静默覆盖，不弹浮层 |
 | 点提交（必填全满） | 字段锁定 + trace 末尾追加"⏳ 调用 X API…"步 + 状态变更类先 available-transitions 预校验 → 通过则调 API | 切提交中态 |
-| 提交成功 | 表单折叠为 summary 单行；AI 跟进一条 ai_text 消息；可逆操作附撤回 banner | 切已提交态（折叠） |
+| 提交成功 | 表单折叠为 summary 单行；AI 跟进一条 ai_text 消息 | 切已提交态（折叠） |
 | 提交失败 | 表单保持展开；字段级错误就近展示 + 顶部错误条概述；保留已编辑值；当前 turn 标"重试 N 次"（历史回看不显示） | 提交按钮恢复可点 |
 | 点击折叠态 summary 行 | 展开/折叠只读字段区 | 箭头旋转 150ms；展开/折叠态记忆于会话内 |
-| 点撤回（banner 内，窗口内） | 调后端反向操作（状态变更类先重校验） | banner 消失 + 新 turn "↩ 已撤回"折叠态入账；撤回失败时 banner 内提示 validTransitions，不产生新 turn |
 | 点重试（失败态） | 状态变更类先重跑 available-transitions 预校验 → 通过则重新调提交 API | 切提交中态；预校验失败回校验失败态并刷新 validTransitions |
 
 ### Data Binding
@@ -360,12 +345,8 @@ status: Draft
 | 顶部错误条 | validationError + validTransitions[] | available-transitions（预校验）/ 后端返回错误（提交失败） |
 | 字段级错误 | fieldErrors Map<name, message> | 后端返回的参数校验错误 |
 | 折叠态 summary | foldState {folded/expanded} + statusIcon + title | 表单状态机 + form payload 的 title 字段 |
-| 撤回 banner | undoAvailable, undoDeadline, previousValue | 提交后状态 |
-| 撤回倒计时显示 | undoCountdown "mm:ss" | 客户端 ticker：由 undoDeadline 倒推（每秒 tick），deadline 到达触发「撤回窗口已过期」标注 |
 | 重试计数 | retryCount number | 当前 turn 的失败重试次数（仅当前 turn 显示，历史回看不显示） |
 | 提交权限 | canSubmit boolean | 前端 RBAC（targetEntity.bizKey + cardType） |
-
-> **撤销态持久化**：`undoAvailable` / `undoDeadline` / `previousValue` 经 zustand `persist` middleware 写入 `sessionStorage`，key 为操作 id（`undo:{opId}`）。全局 overlay 在同会话页面导航时可能 unmount/remount，sessionStorage 保证 5 分钟撤回窗口在 remount 后仍可恢复（已提交折叠态重新挂载后由 opId 查表重建撤回 banner 与倒计时）。会话结束（关闭标签页 / 登出）时 sessionStorage 随之清除，符合 PRD「同会话」语义。
 
 #### diff 内联区（对话补充增量变更，无二级浮窗）
 
@@ -611,9 +592,9 @@ status: Draft
 ## Accessibility（跨组件，参照 WCAG 2.1 AA）
 
 - **焦点管理**：展开面板焦点入输入框；Esc 焦点回气泡；卡片出现不抢断焦点，Tab 可达。
-- **键盘**：所有卡片操作（编辑、选择、提交、重试、撤回）键盘可完成，无键盘陷阱；Enter 发送、Shift+Enter 换行、Esc 收起。
+- **键盘**：所有卡片操作（编辑、选择、提交、重试）键盘可完成，无键盘陷阱；Enter 发送、Shift+Enter 换行、Esc 收起。
 - **ARIA**：消息历史 `role="log"` `aria-live="polite"`；气泡 `aria-label="AI 助手（展开/收起）"`；面板 `role="dialog"` `aria-label`；卡片 `aria-label` 描述类型；错误态 `role="alert"`；Team 徽章 `aria-live="polite"`。
-- **屏幕阅读器**：所有状态（思考/流式/错误/超时/成功/撤回）有 aria-live 播报；加载态有文字标签。
+- **屏幕阅读器**：所有状态（思考/流式/错误/超时/成功）有 aria-live 播报；加载态有文字标签。
 - **对比度**：正文 ≥4.5:1；大字（≥18.66px/500 常规，或 ≥14px/700 加粗，或 ≥24px）≥3:1。**14px/500 不属大字**。Component 6 警告标题与正文统一用 warning-text `#92400e`（≥4.5:1 on warning-bg `#fffbeb`），warning-title `#d97706` 仅用于图标（图形非文字，3:1 即可）。必填高亮用对比达标边框色，不仅靠颜色。
 - **动效兜底（reduced-motion）**：所有动画（面板滑入 translateX、三点跳动思考态、骨架流式填充、进度条 width 过渡、卡片状态切换）在 `@media (prefers-reduced-motion: reduce)` 下降级为瞬时切换（无位移/无跳动，仅颜色或可见性变化）；状态信息不依赖动效传达（思考态附"AI 思考中…"文字，不仅靠跳动点）。
 
@@ -630,4 +611,4 @@ status: Draft
 | `styles.css` | 共享 token + 组件类（复用 DESIGN.md） | 全部 |
 | `app.js` | 交互（展开/收起、发送、卡片状态切换、示例填充） | 全部 |
 
-各卡片状态（预填/编辑中/校验失败/成功/撤回/超时/降级/空/截断）均在原型中以可切换视图实现。
+各卡片状态（预填/编辑中/校验失败/成功/超时/降级/空/截断）均在原型中以可切换视图实现。

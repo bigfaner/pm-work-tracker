@@ -104,7 +104,7 @@ db-schema: "yes"
        - 是 → 提交前调用 available-transitions 端点预校验目标状态合法性。校验失败 → 返回错误说明（payload 含 `validTransitions` 数组列出合法目标状态），用户修正后重试。校验通过 → 用户点击提交。
        - 否（创建操作、ProgressRecord、ItemPool，或非状态变更类修改/分配）→ 不做预校验，直接提交并依赖后端 RBAC + 业务校验；失败由后端返回错误信息在卡片内展示。
      - 用户点击提交 → 字段锁定 + trace（UF-8）末尾追加"调用 X API"步 → 调用现有 API 端点执行 → 结果反馈到聊天界面：
-       - 成功 → 表单折叠为单行"✓ 已提交 · {title}"（点击可展开只读字段）+ AI 跟进自然语言消息衔接下一轮；可逆操作附 5 分钟撤回 banner。
+       - 成功 → 表单折叠为单行"✓ 已提交 · {title}"（点击可展开只读字段）+ AI 跟进自然语言消息衔接下一轮。
        - 失败（后端校验）→ 表单保持展开，字段级错误就近展示 + 顶部错误条；保留已编辑字段值供重试；当前 turn 显示"重试 N 次"（历史回看时不显示）。
    - 否（查询）→ 返回摘要文字 + 可点击卡片列表，点击跳转详情页。
 
@@ -149,7 +149,7 @@ flowchart TD
     M4 -->|否 创建/ProgressRecord/<br/>ItemPool/非状态变更| Confirm
     Confirm --> Exec[调用现有 API 执行<br/>trace 末尾追加"调用 X API"步<br/>后端 RBAC + 业务校验]
     Exec --> Feedback{结果?}
-    Feedback -->|成功| Fold[表单折叠为"✓ 已提交 · title"<br/>+ AI 跟进消息衔接下一轮<br/>可逆操作附 5 分钟撤回 banner]
+    Feedback -->|成功| Fold[表单折叠为"✓ 已提交 · title"<br/>+ AI 跟进消息衔接下一轮]
     Feedback -->|失败| FieldErr[表单保持展开<br/>字段级错误就近展示<br/>当前 turn 显示"重试 N 次"]
     FieldErr --> Edit
     Fold --> End3([结束])

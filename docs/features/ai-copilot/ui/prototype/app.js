@@ -62,7 +62,7 @@ function simulateBackgroundReturn() {
   if (!list) return;
   const m = document.createElement('div');
   m.className = 'msg ai';
-  m.innerHTML = '<div class="msg-bubble">已为你创建 P1 事项「完成用户认证模块」，需要你确认里程碑。</div><div class="ts">' + nowTs() + '</div>';
+  m.innerHTML = '<div class="ts">' + nowTs() + '</div><div class="msg-bubble">已为你创建 P1 事项「完成用户认证模块」，需要你确认里程碑。</div>';
   list.appendChild(m);
   if (panel && !panel.classList.contains('open')) {
     showBubbleActivity(1);   // panel closed → notify the bubble
@@ -143,7 +143,7 @@ function sendMessage() {
   }
   const msg = document.createElement('div');
   msg.className = 'msg user';
-  msg.innerHTML = '<div class="msg-bubble"></div><div class="ts">' + nowTs() + '</div>';
+  msg.innerHTML = '<div class="ts">' + nowTs() + '</div><div class="msg-bubble"></div>';
   msg.querySelector('.msg-bubble').textContent = ta.value;
   list.appendChild(msg);
   ta.value = ''; handleInput();
@@ -151,7 +151,12 @@ function sendMessage() {
 }
 function nowTs() {
   const d = new Date();
-  return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+  const yyyy = d.getFullYear();
+  const MM = (d.getMonth() + 1).toString().padStart(2, '0');
+  const dd = d.getDate().toString().padStart(2, '0');
+  const HH = d.getHours().toString().padStart(2, '0');
+  const mm = d.getMinutes().toString().padStart(2, '0');
+  return yyyy + '/' + MM + '/' + dd + ' ' + HH + ':' + mm;
 }
 
 /* ---- Onboarding example chips ---- */
@@ -164,61 +169,12 @@ function fillExample(text) {
   if (ob) ob.style.display = 'none';
 }
 
-/* ---- Form fold/expand (UF-3 lifecycle: 已提交/已撤回/已丢弃 折叠态) ---- */
+/* ---- Form fold/expand (UF-3 lifecycle: 已提交/已丢弃 折叠态) ---- */
 function toggleFormFold(el) {
   if (!el || !el.classList) return;
   el.classList.toggle('expanded');
   const body = el.nextElementSibling;
   if (body && body.classList.contains('form-readonly-body')) body.hidden = !body.hidden;
-}
-
-/* ---- Undo countdown (UF-3 committed · reversible) ---- */
-let undoTimer = null, undoRemaining = 0;
-function startUndoCountdown(seconds) {
-  undoRemaining = seconds;
-  updateUndoLabel();
-  clearInterval(undoTimer);
-  undoTimer = setInterval(() => {
-    undoRemaining--;
-    if (undoRemaining <= 0) { clearInterval(undoTimer); expireUndo(); refreshOptionsForState('success-undo'); }
-    else { updateUndoLabel(); }
-  }, 1000);
-}
-function updateUndoLabel() {
-  const mm = Math.floor(undoRemaining/60).toString().padStart(2,'0');
-  const ss = (undoRemaining%60).toString().padStart(2,'0');
-  const opt = document.querySelector('.option[data-action="undo"] .opt-label');
-  if (opt) opt.textContent = '↩ 撤回 (' + mm + ':' + ss + ')';
-  const btn = document.getElementById('undoBtn');
-  if (btn) btn.querySelector('.undo-countdown').textContent = '撤回 (' + mm + ':' + ss + ')';
-}
-function expireUndo() {
-  const banner = document.getElementById('undoBanner');
-  if (banner) banner.classList.add('expired');
-  const opt = document.querySelector('.option[data-action="undo"] .opt-label');
-  if (opt) opt.textContent = '✗ 撤回窗口已过期';
-}
-function performUndo() {
-  clearInterval(undoTimer);
-  const banner = document.getElementById('undoBanner');
-  if (banner) banner.remove();
-  const folded = document.querySelector('#writeCardSuccess .form-folded.committed');
-  if (folded) {
-    folded.classList.remove('committed');
-    folded.classList.add('undone');
-    const icon = folded.querySelector('.ff-icon');
-    if (icon) icon.outerHTML = '<svg class="ff-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>';
-    const title = folded.querySelector('.ff-title');
-    if (title) title.textContent = '已撤回 · 订单导出功能';
-  }
-  const list = document.getElementById('messageList');
-  if (list) {
-    const m = document.createElement('div');
-    m.className = 'msg system';
-    m.innerHTML = '<div class="msg-bubble">已撤回：assignee 已由 李四 恢复为 张三</div>';
-    list.appendChild(m); list.scrollTop = list.scrollHeight;
-  }
-  setTextMode();
 }
 
 /* ---- Leave-confirm dialog (route guard only) ---- */
@@ -271,7 +227,6 @@ function triggerOption() {
 }
 function handleOptionAction(action) {
   // Generic handling for the demo; real product would dispatch to backend.
-  if (action === 'undo') { performUndo(); return; }
   if (action === 'apply' || action === 'discard' || action === 'cancel' || action === 'done' || action === 'retry' || action === 'manual' || action === 'edit' || action === 'submit') {
     // demo: flash a system confirmation then return to text mode
     const list = document.getElementById('messageList');
@@ -323,7 +278,6 @@ function switchState(state) {
   if (active) active.classList.add('active');
   list.innerHTML = TEMPLATES[state] || '';
   list.scrollTop = 0;
-  if (state === 'success-undo') startUndoCountdown(300);
   if (state === 'agent-trace') playAgentTrace();
   applyStateInput(state);
 }
@@ -331,7 +285,13 @@ function applyStateInput(state) {
   const cfg = STATE_INPUT[state] || { mode: 'text' };
   CURRENT_CANDIDATES = cfg.candidates || null;
   if (cfg.mode === 'options') setOptionsMode(cfg.options);
-  else { setTextMode(); const ta = document.getElementById('chatInput'); if (ta && cfg.disabled) ta.disabled = true; else if (ta) ta.disabled = false; }
+  else {
+    setTextMode();
+    const ta = document.getElementById('chatInput');
+    if (ta) ta.disabled = !!cfg.disabled;
+    const sendBtn = document.getElementById('sendBtn');
+    if (sendBtn) sendBtn.disabled = !!cfg.disabled;   // AI 处理期间禁用发送，避免一次发多条
+  }
 }
 
 /* ---- Keyboard wiring ---- */
