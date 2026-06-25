@@ -518,6 +518,8 @@ status: Draft
 
 卡片（accent-bg `#eff6ff`、border accent-ring `#bfdbfe`、rounded-xl、p-4、flex column gap-3）：
 
+> **居中规则**：onboarding 卡片所在 `.msg.ai` 用 `align-self: center`、`max-width: 80%`、`align-items: stretch` 水平居中呈 hero 形态（与普通左对齐 AI 消息视觉区分，强调"欢迎/引导"语义）。**卡片内部内容（标题、能力列表、示例 chips）一律左对齐**，与普通 AI 消息内部排版一致。
+
 1. **图标+标题**：气泡图标（accent）+ 14px 500 text accent-hover"我是 AI 助手，可以帮你："
 2. **能力列表**：四行（flex、gap-2、13px text-primary），每行图标+文字：
    - 创建（事项/子任务/里程碑/里程碑图/ItemPool）
@@ -525,28 +527,28 @@ status: Draft
    - 修改（状态/进度）
    - 分配（负责人）
 3. **示例指令**（chips，可点击填入输入框）：rounded-full border border-dark px-3 py-1 13px，如"创建一个 P1 事项"、"我的 P0 事项有哪些？"、"更新子任务完成度为 60%"
-4. **关闭**：右上 Ghost X（收起引导卡片，本次会话不再展示）
+4. **关闭**：右上 Ghost X（收起引导卡片，本次会话内不再展示；新建会话或重新展开面板时再次出现）
 
 ### States
 
 | State | Visual | Behavior |
 |-------|--------|----------|
-| 首次展示 | 引导卡片 + 示例 chips | 用户首次展开、本地无标记 |
-| 已引导 | 不展示 | 本地标记已存在 |
+| 空会话展示 | 完整能力卡片（intro + 能力列表 + 示例 chips） | 面板首次展开、或用户新建会话使消息区为空；首次展开与新会话**同一张卡片**，不做区分 |
+| 本会话内已收起 | 不展示 | 用户点 X 或开始输入；本会话内有效，新建会话或重新展开时再次展示 |
 
 ### Interactions
 
 | Trigger | Action | Feedback |
 |---------|--------|----------|
 | 点示例 chip | 填入输入框（不自动发送） | 焦点留输入框 |
-| 点 X / 开始输入 | 收起引导卡片 | 本地标记 hasSeenOnboarding=true |
+| 点 X / 开始输入 | 收起引导卡片 | 会话内状态置 dismissed=true（本会话内不再展示；新建会话或重新展开面板时重置） |
 
 ### Data Binding
 
 | UI Element | Data Field | Source |
 |------------|-----------|--------|
 | 能力/示例 | 静态文案 | — |
-| 已展示标记 | hasSeenOnboarding | 本地存储 |
+| 本会话内已收起 | dismissed | 会话内状态（不跨会话持久化） |
 
 ---
 

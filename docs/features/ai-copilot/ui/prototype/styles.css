@@ -334,7 +334,8 @@ tr:hover td { background: var(--bg); }
 .fallback-card .fb-head svg { color: var(--warning); }
 .fallback-card .fb-desc { font-size: 13px; color: var(--warning-text); }
 
-/* Onboarding (UF-7) */
+/* Onboarding (UF-7) — 能力卡片，首次展开与新建会话共用，水平居中呈 hero 形态 */
+.msg.ai:has(> .onboarding) { align-self: center; align-items: stretch; max-width: 80%; }
 .onboarding { background: var(--accent-bg); border: 1px solid var(--accent-ring); border-radius: var(--radius-lg); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 .onboarding .ob-title { font-size: 14px; font-weight: 500; color: var(--accent-hover); display: flex; align-items: center; gap: 8px; }
 .onboarding .ob-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
