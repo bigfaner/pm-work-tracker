@@ -206,7 +206,7 @@ feature: "AI Copilot 对话助手"
 ---
 
 <!-- Coverage matrix:
-- Roles:   PM (S1) | Dev (S2) | TL (S3) | ItemPool submitter (S4) | cross-role (S5, S6, S7, S8)
+- Roles:   PM (S1) | Dev (S2) | TL (S3) | ItemPool submitter (S4) | cross-role (S5, S6, S7)
 - Ops:     create (S1,S2,S3,S4) | query (S3 — unified handler covers all 6 entities; MainItem/Milestone/ItemPool evidenced) | modify (S2) | assign (S3) | move (S2)
 - Entities: MainItem (S1,S3) | SubItem (S2) | Milestone (S1,S3) | MilestoneMap (S3) | ProgressRecord (S2) | ItemPool (S3,S4)
 - Full lifecycle (submit->success): MainItem (S1) | SubItem (S2) | Milestone (S1) | MilestoneMap (S3) | ProgressRecord (S2) | ItemPool (S4)

@@ -15,7 +15,7 @@ status: design
 | Proposal | ../../proposals/ai-copilot/proposal.md | 上游提案（已通过对抗评审 824/1000），定义对话+卡片混合模式与全操作覆盖 |
 | PRD Spec | prd/prd-spec.md | 全局浮动 AI Copilot，对话+卡片混合模式，覆盖创建/查询/修改/分配 × 6 实体，一次性全量交付 |
 | User Stories | prd/prd-user-stories.md | 7 个故事覆盖 PM/研发/TL/ItemPool 提交者 + 歧义消解、超时降级、边界异常；已过 3 轮 eval 达 901/1000 |
-| UI Functions | prd/prd-ui-functions.md | 7 个 UI 功能（浮动气泡/聊天面板/写卡片/查询卡片/歧义卡片/降级提示/首次引导），全局 overlay 无新页面 |
+| UI Functions | prd/prd-ui-functions.md | 8 个 UI 功能（浮动气泡/聊天面板/写卡片/查询卡片/歧义卡片/降级提示/首次引导/Agent 过程追踪），全局 overlay 无新页面 |
 | Entity Schemas | prd/entity-schemas.md | 6 实体 × 11 role 的前端渲染契约；一份 schema 同时驱动 form 与 result 卡片；新增实体加 schema 即可，渲染器零改动 |
 | UI Design | ui/ui-design.md | 8 组件视觉与交互设计，沿用项目 DESIGN.md（蓝主色/13px/边框卡片），含无障碍、Agent 过程追踪与原型映射 |
 

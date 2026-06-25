@@ -644,13 +644,13 @@ Schema 只管"长什么样、有哪些字段"；状态机转移、RBAC、跨字�
 
 ## Prototype 映射
 
-原型文件结构（Step 8 生成于 `ui/prototype/`）：
+原型文件结构（位于 `ui/prototype/`）：
 
 | 文件 | 内容 | 对应组件 |
 |------|------|----------|
-| `index.html` | 入口 + 模拟主页面（侧边栏 + 内容区）+ 挂载浮动气泡 | UF-1 + 宿主页 |
-| `panel.html` / 同页 overlay | 聊天面板展开态（含消息流、各类卡片） | UF-2/3/4/5/6/7 |
+| `index.html` | 评审 hub：列出全部演示状态与设计系统说明，链接到 demo.html | 导航入口 |
+| `demo.html` | 模拟宿主页（侧边栏 + 内容区）+ 浮动气泡 + 聊天面板 + 全部卡片状态 + 左下角状态切换器（14 个 state） | UF-1/2/3/4/5/6/7/8 全部 |
 | `styles.css` | 共享 token + 组件类（复用 DESIGN.md） | 全部 |
-| `app.js` | 交互（展开/收起、发送、卡片状态切换、示例填充） | 全部 |
+| `app.js` | 交互（展开/收起、发送、卡片状态切换、Agent trace 流式、form 折叠、`ENTITY_SCHEMAS` + `renderEntityCard` 渲染器） | 全部 |
 
-各卡片状态（预填/编辑中/校验失败/成功/超时/降级/空/截断）均在原型中以可切换视图实现。
+`demo.html` 左下角的状态切换器覆盖 14 个 state：onboarding / write-prefilled / validation / submit-failed / committed / discarded / permission / diff-overlay / query / disambiguation / fallback / thinking / agent-trace / trace-failed。前 12 个对应 UF-3/4/5/6/7 的状态分支；agent-trace 与 trace-failed 对应 UF-8 的成功折叠 vs 失败不折叠两种行为。

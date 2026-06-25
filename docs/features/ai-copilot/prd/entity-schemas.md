@@ -23,6 +23,8 @@ feature: "AI Copilot 对话助手"
 | `title` | head 行左 | Input | 13px 500 text-primary | 全部（ProgressRecord 的 title 取自 subItem.title） |
 | `code` | head 行右 | readonly（自动生成） | 11px text-tertiary | 全部 |
 | `priority` | fields 行 | Select [P1,P2,P3] | badge（P0=error / P1=warning / P2,P3=neutral） | MainItem, ItemPool |
+
+> **P0 的特殊性**：表单可选优先级为 P1/P2/P3（用户创建时不可选 P0）；P0 仅出现在**查询结果展示**与 `PRIORITY_BADGE` badge 映射里，用于渲染历史/系统注入的 P0 数据（如 QUERY_DATA_P0 mock）。即"P0 可被查询展示，但不可经 Copilot 创建"。
 | `status` | fields 行 | Select（实体特定状态集） | badge（success/neutral/warning/error，按状态语义映射） | MainItem, SubItem, Milestone, MilestoneMap, ItemPool |
 | `assignee` | fields 行 | Select（团队成员） | 👤 {name} | MainItem, SubItem |
 | `submitter` | fields 行 | Select（默认当前用户，提交后 readonly） | 👤 {name} | ItemPool |
@@ -91,7 +93,7 @@ fields:
   - {name: assignee,        role: assignee, control: select,    source: teamMembers, label: "负责人", derived: true}
   - {name: planStartDate,   role: date,     control: datepicker,                  label: "计划开始"}
   - {name: expectedEndDate, role: date,     control: datepicker, required: true,   label: "预期截止"}
-  - {name: milestoneKey,    role: parent,   control: select,    source: teamMilestones, required: true, label: "里程碑", parent_label: "里程碑"}
+  - {name: milestoneKey,    role: parent,   control: select,    source: teamMilestones, required: true, label: "里程碑"}
 result_slots:
   head: [title, code]
   fields: [priority, status, assignee]
@@ -107,7 +109,7 @@ result_slots:
 ```yaml
 fields:
   - {name: title,         role: title,    control: input,     required: true, label: "标题"}
-  - {name: parent,        role: parent,   control: select,    source: teamMainItems, required: true, label: "父事项", parent_label: "父事项"}
+  - {name: parent,        role: parent,   control: select,    source: teamMainItems, required: true, label: "父事项"}
   - {name: description,   role: text,     control: textarea,                  label: "描述"}
   - {name: status,        role: status,   control: select,    options: [todo,in_progress,paused,completed,cancelled], label: "状态"}
   - {name: assignee,      role: assignee, control: select,    source: teamMembers, label: "负责人", derived: true}
@@ -128,7 +130,7 @@ result_slots:
 ```yaml
 fields:
   - {name: title,           role: title,    control: input,     required: true, label: "标题"}
-  - {name: parent,          role: parent,   control: select,    source: teamMilestoneMaps, required: true, label: "里程碑图", parent_label: "里程碑图"}
+  - {name: parent,          role: parent,   control: select,    source: teamMilestoneMaps, required: true, label: "里程碑图"}
   - {name: status,          role: status,   control: select,    options: [planned,in_progress,completed,cancelled], label: "状态"}
   - {name: expectedEndDate, role: date,     control: datepicker,                  label: "预期截止"}
   - {name: description,     role: text,     control: textarea,                   label: "描述"}
@@ -167,7 +169,7 @@ result_slots:
 
 ```yaml
 fields:
-  - {name: subItem,    role: parent,   control: select,    source: teamSubItems, required: true, label: "子任务", parent_label: "子任务"}
+  - {name: subItem,    role: parent,   control: select,    source: teamSubItems, required: true, label: "子任务"}
   - {name: completion, role: progress, control: number,    min: 0, max: 100, required: true, label: "完成度"}
   - {name: achievement, role: text,    control: textarea,                   label: "达成说明"}
   - {name: createdAt,  role: date,     control: readonly,                   label: "记录时间"}
@@ -190,7 +192,7 @@ fields:
   - {name: background,     role: text,      control: textarea,  required: true, label: "背景"}
   - {name: expectedOutput, role: text,      control: textarea,  required: true, label: "预期产出"}
   - {name: priority,       role: priority,  control: select,    options: [P1,P2,P3], label: "优先级"}
-  - {name: submitter,      role: submitter, control: select,    source: currentUser, default: currentUser, label: "提交人"}
+  - {name: submitter,      role: submitter, control: select,    source: currentUser, label: "提交人", default_note: "默认当前登录用户，提交后 readonly"}
   - {name: status,         role: status,    control: select,    options: [pending,triaged,accepted,rejected], label: "状态"}
   - {name: createdAt,      role: date,      control: readonly,                   label: "提交时间"}
 result_slots:
