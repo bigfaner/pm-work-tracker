@@ -306,7 +306,7 @@ tr:hover td { background: var(--bg); }
 .progress-fill { height: 100%; background: var(--accent-light); border-radius: var(--radius-full); transition: width 300ms; }
 .progress-label { font-size: 12px; color: var(--text-secondary); }
 
-/* result-card：每个查询结果展示核心字段（不只摘要），点击可跳详情 */
+/* result-card：每个查询结果展示核心字段（折叠态 8 字段 / 展开态追加 ~4 字段，独立 toggle，不互斥） */
 .result-card {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
   padding: 10px 12px; cursor: pointer;
@@ -314,11 +314,13 @@ tr:hover td { background: var(--bg); }
   transition: border-color 120ms, background 120ms;
 }
 .result-card:hover { border-color: var(--accent); background: var(--bg); }
+.result-card:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-ring); }
 .result-card .rc-head { display: flex; align-items: center; gap: 8px; }
 .result-card .rc-head .r-title { font-size: 13px; font-weight: 500; color: var(--text-primary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .result-card .rc-head .r-code { font-size: 11px; color: var(--text-tertiary); }
-.result-card .rc-head .rc-chevron { color: var(--text-tertiary); flex-shrink: 0; }
+.result-card .rc-head .rc-chevron { color: var(--text-tertiary); flex-shrink: 0; transition: transform 150ms; }
 .result-card:hover .rc-chevron { color: var(--accent); }
+.result-card.expanded .rc-chevron { transform: rotate(90deg); }
 .result-card .rc-fields { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--text-secondary); }
 .result-card .rc-fields > span:not(.badge) { display: inline-flex; align-items: center; gap: 4px; }
 .result-card .rc-meta { font-size: 11px; color: var(--text-tertiary); display: flex; flex-wrap: wrap; gap: 6px; }
@@ -326,8 +328,19 @@ tr:hover td { background: var(--bg); }
 .result-card .rc-progress { display: flex; align-items: center; gap: 8px; }
 .result-card .rc-progress .progress-track { flex: 1; height: 4px; }
 .result-card .rc-progress .progress-label { font-size: 11px; color: var(--text-tertiary); white-space: nowrap; }
-.result-card .rc-text { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
-.result-card .rc-text .rc-text-label { color: var(--text-tertiary); margin-right: 4px; }
+
+/* 展开态追加块（rc-extra）：默认 display:none，仅 .result-card.expanded 时可见
+   - 始终预渲染在 DOM 中，CSS 控制可见性（toggle 仅切换 class，不重渲染）
+   - border-top 分隔，让追加字段与核心字段视觉分层 */
+.result-card .rc-extra { display: none; flex-direction: column; gap: 4px; padding-top: 8px; margin-top: 2px; border-top: 1px solid var(--border); }
+.result-card.expanded .rc-extra { display: flex; }
+.result-card .rc-extra-row { display: flex; align-items: baseline; gap: 6px; font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+.result-card .rc-extra-row .rc-extra-icon { flex-shrink: 0; font-size: 12px; line-height: 1.5; }
+.result-card .rc-extra-row .rc-extra-label { color: var(--text-tertiary); flex-shrink: 0; min-width: 64px; }
+.result-card .rc-extra-row .rc-extra-value { color: var(--text-secondary); flex: 1; }
+/* 长文本行（描述/背景/预期产出）：2 行截断 */
+.result-card .rc-extra-row-text { align-items: flex-start; }
+.result-card .rc-extra-row-text .rc-extra-value { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 .truncate-tip { font-size: 12px; color: var(--text-tertiary); padding-top: 4px; }
 .empty-msg { font-size: 13px; color: var(--text-secondary); padding: 4px 0; }

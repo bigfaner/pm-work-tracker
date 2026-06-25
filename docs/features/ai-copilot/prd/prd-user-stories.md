@@ -95,16 +95,19 @@ feature: "AI Copilot 对话助手"
 **Acceptance Criteria:**
 - Given TL 在任意已认证页面
 - When TL 输入"我的 P0 事项有哪些？"
-- Then 系统按 BIZ-filter-001 规则返回**直接 + 间接**匹配：包含 assignee 字段为该 TL 的 MainItem（直接），以及 assignee 为该 TL 的 SubItem 所属的 MainItem（间接）；状态筛选（P0）与 assignee 筛选 AND 组合；返回摘要文字（含总数）+ 内容丰富的 result-card 列表（每张展示该事项的核心字段：标题/编号/优先级/状态/负责人/截止/里程碑/完成率，**用户在面板内即可看到必要信息，不必跳转**）；卡片点击仍可跳详情页
-- Given 查询结果卡片已展示
-- When TL 点击某张事项卡片
-- Then 跳转到该事项的详情页 `/items/:mainItemId`
+- Then 系统按 BIZ-filter-001 规则返回**直接 + 间接**匹配：包含 assignee 字段为该 TL 的 MainItem（直接），以及 assignee 为该 TL 的 SubItem 所属的 MainItem（间接）；状态筛选（P0）与 assignee 筛选 AND 组合；返回摘要文字（含总数）+ 折叠态 result-card 列表（每张展示核心 8 字段：标题/编号/优先级/状态/负责人/截止/里程碑/完成率，**用户在面板内即可看到必要信息，不必跳转**）；**卡片点击就地展开紧凑详情**（追加描述/创建人/子任务统计/最近状态变更等约 4 字段，共 ~12 字段），不跳转、不弹窗
+- Given 查询返回单条记录
+- When 系统识别为单记录查询
+- Then 该记录直接渲染为**展开态**（用户无需点击即可看到完整紧凑详情 ~12 字段）
+- Given 多记录查询结果卡片已展示（全折叠态）
+- When TL 点击某张事项卡片头行
+- Then 该卡片就地展开为紧凑详情（追加约 4 字段），不跳转、不弹窗；再次点击折叠回核心字段；**多张可同时展开（独立 toggle，不互斥）**；展开/折叠态在会话内记忆
 - Given TL 输入"里程碑图第二阶段的进度怎么样？"
 - When 系统识别为 Milestone 查询（经统一查询处理器，与 MainItem 查询同机制）
-- Then 返回摘要文字（含子事项完成率：completed/total/percent）+ 内容丰富的 Milestone 卡片（展示 Map 标题/编号/状态/Team/截止/进度条 + Milestone 列表的核心字段），点击跳转 `/milestones/:mapId`
+- Then 返回摘要文字（含子事项完成率：completed/total/percent）+ Milestone 卡片（折叠态展示 Map 标题/编号/状态/Team/截止/进度条 + Milestone 列表的核心字段；**单记录时自动展开**为紧凑详情，追加描述/创建人/子事项前 3 条/最近状态变更），不跳转、不弹窗
 - Given TL 输入"我提交的 ItemPool 申请有哪些？"
 - When 系统识别为 ItemPool 查询（经统一查询处理器，与 MainItem 查询同机制）
-- Then 返回摘要文字 + 内容丰富的 ItemPool 卡片列表（每张展示标题/编号/优先级/状态/提交人/背景/预期产出），点击跳转 `/item-pool`；查询支持全部 6 实体，MainItem 查询为本故事的参考 AC，其余实体走同一查询处理器
+- Then 返回摘要文字 + ItemPool 卡片列表（折叠态每张展示标题/编号/优先级/状态/提交人；点击展开追加 background/expectedOutput 全文/最近状态变更/triagedBy），不跳转、不弹窗；查询支持全部 6 实体，MainItem 查询为本故事的参考 AC，其余实体走同一查询处理器
 - Given TL 输入"创建一个里程碑图，叫第二阶段"
 - When 系统识别为 MilestoneMap 创建意图
 - Then 推送 MilestoneMap 创建卡片，Team 字段自动预填当前 Team 上下文

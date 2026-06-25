@@ -189,6 +189,12 @@ const ENTITY_SCHEMAS = {
       ],
       progress: { source: 'subitems', tpl: (d) => `${d.percent}% · ${d.completed}/${d.total} 子任务` },
       text: ['description'],
+      expanded: [
+        { icon: '📄', label: '描述',  field: 'description', truncate: true },
+        { icon: '👤', label: '创建',  tpl: (d) => `由 ${d.createdBy || '—'} 创建于 ${d.createdAt || '—'}` },
+        { icon: '✓',  label: '子任务', tpl: (d) => d._progress ? `${d._progress.completed}/${d._progress.total} 已完成 · 完成率 ${d._progress.percent}%` : '' },
+        { icon: '🔄', label: '最近变更', tpl: (d) => d._lastStatusChange ? `${d._lastStatusChange.time}: ${d._lastStatusChange.from} → ${d._lastStatusChange.to}` : '暂无变更' },
+      ],
     },
   },
 
@@ -212,6 +218,12 @@ const ENTITY_SCHEMAS = {
       ],
       progress: { source: 'direct', field: 'completion', tpl: (d) => `${d.value}%` },
       text: ['achievement'],
+      expanded: [
+        { icon: '📄', label: '描述',     field: 'description', truncate: true },
+        { icon: '👤', label: '创建',     tpl: (d) => `由 ${d.createdBy || '—'} 创建于 ${d.createdAt || '—'}` },
+        { icon: '📊', label: '最近进度', tpl: (d) => d._lastProgress ? `${d._lastProgress.time}: ${d._lastProgress.completion}% · ${d._lastProgress.achievement}` : '暂无进度记录' },
+        { icon: '🔄', label: '最近变更', tpl: (d) => d._lastStatusChange ? `${d._lastStatusChange.time}: ${d._lastStatusChange.from} → ${d._lastStatusChange.to}` : '暂无变更' },
+      ],
     },
   },
 
@@ -233,6 +245,12 @@ const ENTITY_SCHEMAS = {
       ],
       progress: { source: 'subitems_of_milestone', tpl: (d) => `${d.percent}% · ${d.completed}/${d.total} 子事项` },
       text: ['description'],
+      expanded: [
+        { icon: '📄', label: '描述',     field: 'description', truncate: true },
+        { icon: '👤', label: '创建',     tpl: (d) => `由 ${d.createdBy || '—'} 创建于 ${d.createdAt || '—'}` },
+        { icon: '📋', label: '子事项前 3 条', tpl: (d) => d._topChildren ? d._topChildren.map(c => `· ${c.title} (${c.status})`).join('<br>') : '暂无子事项' },
+        { icon: '🔄', label: '最近变更', tpl: (d) => d._lastStatusChange ? `${d._lastStatusChange.time}: ${d._lastStatusChange.from} → ${d._lastStatusChange.to}` : '暂无变更' },
+      ],
     },
   },
 
@@ -254,6 +272,12 @@ const ENTITY_SCHEMAS = {
       ],
       progress: { source: 'milestones', tpl: (d) => `${d.percent}% · ${d.completed}/${d.total} 里程碑` },
       text: ['description'],
+      expanded: [
+        { icon: '📄', label: '描述',     field: 'description', truncate: true },
+        { icon: '👤', label: '创建',     tpl: (d) => `由 ${d.createdBy || '—'} 创建于 ${d.createdAt || '—'}` },
+        { icon: '📋', label: '里程碑前 3 条', tpl: (d) => d._topMilestones ? d._topMilestones.map(m => `· ${m.title} (${m.status})`).join('<br>') : '暂无里程碑' },
+        { icon: '🔄', label: '最近变更', tpl: (d) => d._lastStatusChange ? `${d._lastStatusChange.time}: ${d._lastStatusChange.from} → ${d._lastStatusChange.to}` : '暂无变更' },
+      ],
     },
   },
 
@@ -271,6 +295,11 @@ const ENTITY_SCHEMAS = {
       meta: [{ field: 'createdAt', icon: '📅', label: '记录时间' }],
       progress: { source: 'direct', field: 'completion', tpl: (d) => `${d.value}%` },
       text: ['achievement'],
+      expanded: [
+        { icon: '📄', label: '达成说明', field: 'achievement', truncate: true },
+        { icon: '👤', label: '提交人',   field: 'createdBy' },
+        { icon: '📊', label: '上次进度', tpl: (d) => d._prevProgress ? `${d._prevProgress.time}: ${d._prevProgress.completion}%` : '首次进度记录' },
+      ],
     },
   },
 
@@ -291,6 +320,12 @@ const ENTITY_SCHEMAS = {
       meta: [{ field: 'createdAt', icon: '📅', label: '提交时间' }],
       progress: null,
       text: ['background', 'expectedOutput'],
+      expanded: [
+        { icon: '📄', label: '背景',     field: 'background', truncate: true },
+        { icon: '🎯', label: '预期产出', field: 'expectedOutput', truncate: true },
+        { icon: '🔄', label: '状态变更', tpl: (d) => d._lastStatusChange ? `${d._lastStatusChange.time}: ${d._lastStatusChange.from} → ${d._lastStatusChange.to}` : '暂无变更' },
+        { icon: '👤', label: '分诊人',   tpl: (d) => d.triagedBy ? `由 ${d.triagedBy} 分诊` : '尚未分诊' },
+      ],
     },
   },
 };
@@ -329,11 +364,11 @@ const SOURCE_MOCK = {
 };
 
 /* ---- 渲染入口 ---- */
-function renderEntityCard(entityType, mode, data) {
+function renderEntityCard(entityType, mode, data, opts = {}) {
   const schema = ENTITY_SCHEMAS[entityType];
   if (!schema) return '';
   if (mode === 'form') return renderFormFields(schema, data || {});
-  if (mode === 'result') return renderResultCard(schema, data || {});
+  if (mode === 'result') return renderResultCard(schema, data || {}, opts);
   return '';
 }
 
@@ -370,18 +405,41 @@ function renderFormField(field, value) {
   return `<div class="${cls.join(' ')}">${labelHtml}${control}</div>`;
 }
 
-/* ---- result 模式：渲染完整 result-card ---- */
-function renderResultCard(schema, data) {
-  const slots = schema.result_slots;
+/* ---- result 模式：渲染完整 result-card（折叠/展开双态） ----
+   - 折叠态（默认）：核心 8 字段（head/fields/meta/progress），不展示 text 长字段
+   - 展开态（opts.expanded 或 opts.single）：追加 rc-extra 块（描述/创建人/统计/最近变更）
+   - 展开态的 rc-extra 始终预渲染，CSS 控制可见性（display:none 默认 / .expanded 时 flex）
+   - toggleResultCard 仅切换 expanded class，无需重新渲染 */
+function renderResultCard(schema, data, opts = {}) {
+  const slots = schema.result_slots || {};
   const head = renderResultHead(slots.head, data);
   const fields = renderResultFields(slots.fields, data);
   const meta = renderResultMeta(slots.meta, data);
   const progress = renderResultProgress(slots.progress, data);
-  const text = renderResultText(slots.text, schema.fields, data);
-  const route = data._route || '';
-  return `<div class="result-card"${route ? ` onclick="alert('跳转 ${route}')"` : ''}>
-    ${head}${fields}${meta}${progress}${text}
+  const expandedHtml = renderResultExpanded(slots.expanded, data);
+  const expandedCls = (opts.expanded || opts.single) ? ' expanded' : '';
+  const toggleAttr = opts.single ? '' : ' onclick="toggleResultCard(this)" tabindex="0" role="button" aria-expanded="false"';
+  return `<div class="result-card${expandedCls}"${toggleAttr}>
+    ${head}${fields}${meta}${progress}${expandedHtml}
   </div>`;
+}
+function renderResultExpanded(expandedSlots, data) {
+  if (!expandedSlots || !expandedSlots.length) return '';
+  const parts = expandedSlots.map(slot => {
+    let value = '';
+    if (slot.tpl) value = slot.tpl(data) || '';
+    else if (slot.field) value = data[slot.field] || '';
+    if (value === '' || value == null) return '';
+    const rowCls = slot.truncate ? ' rc-extra-row-text' : '';
+    return `<div class="rc-extra-row${rowCls}"><span class="rc-extra-icon">${slot.icon || ''}</span><span class="rc-extra-label">${slot.label}</span><span class="rc-extra-value">${value}</span></div>`;
+  }).filter(Boolean);
+  if (!parts.length) return '';
+  return `<div class="rc-extra">${parts.join('')}</div>`;
+}
+function toggleResultCard(el) {
+  if (!el || !el.classList) return;
+  el.classList.toggle('expanded');
+  el.setAttribute('aria-expanded', el.classList.contains('expanded') ? 'true' : 'false');
 }
 function renderResultHead(headSlots, data) {
   if (!headSlots || !headSlots.length) return '';
@@ -454,20 +512,6 @@ function renderResultProgress(progSlot, data) {
     label = progSlot.tpl(p);
   }
   return `<div class="rc-progress"><div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div><span class="progress-label">${label}</span></div>`;
-}
-function renderResultText(textFields, schemaFields, data) {
-  if (!textFields || !textFields.length) return '';
-  const labelOf = (name) => {
-    const f = schemaFields.find(x => x.name === name);
-    return f ? f.label : name;
-  };
-  const parts = textFields.map(f => {
-    const v = data[f];
-    if (!v) return '';
-    return `<div class="rc-text"><span class="rc-text-label">${labelOf(f)}:</span> ${v}</div>`;
-  }).filter(Boolean);
-  if (!parts.length) return '';
-  return parts.join('');
 }
 
 /* ---- Onboarding example chips ---- */

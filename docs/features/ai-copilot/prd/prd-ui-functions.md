@@ -8,7 +8,7 @@ feature: "AI Copilot 对话助手"
 
 ## UI Scope
 
-AI Copilot 以**全局浮动 overlay** 形式嵌入现有 Web 应用，覆盖所有已认证页面（不含 `/login`）。包含一个常驻浮动气泡（入口）和展开后的聊天面板（对话区 + 多种卡片）。本功能**不新建任何页面**，所有 UI 均为挂载在现有页面之上的 overlay 组件；查询结果卡片点击后跳转到**已有的**详情页。
+AI Copilot 以**全局浮动 overlay** 形式嵌入现有 Web 应用，覆盖所有已认证页面（不含 `/login`）。包含一个常驻浮动气泡（入口）和展开后的聊天面板（对话区 + 多种卡片）。本功能**不新建任何页面**，所有 UI 均为挂载在现有页面之上的 overlay 组件；查询结果卡片**点击就地展开紧凑详情**（不跳转、不弹窗）。
 
 ## Navigation Architecture
 
@@ -24,20 +24,20 @@ AI Copilot 的浮动气泡**不属于**现有侧边栏主导航，而是独立�
 
 ### Secondary Pages (navigated from a parent page)
 
-Copilot 不创建新页面。唯一的跨页面跳转来自**查询结果卡片**（UF-4）点击后跳转到既有详情页：
+Copilot 不创建新页面。**UF-4 查询结果卡片不产生跨页跳转**（点击就地展开紧凑详情，不弹窗、不导航）；唯一保留的跨页跳转来自 UF-6 降级提示中的"去手动操作"快捷入口：
 
 | Page | Entry Point (UF# or action) | Return Target |
 |------|-----------------------------|---------------|
-| `/items/:mainItemId` 主事项详情 | UF-4 查询结果卡片点击 | 来源页面（浏览器返回） |
-| `/items/:mainItemId/sub/:subItemId` 子事项详情 | UF-4 查询结果卡片点击 | 来源页面（浏览器返回） |
-| `/milestones/:mapId` 里程碑图详情 | UF-4 查询结果卡片点击 | 来源页面（浏览器返回） |
-| `/item-pool` 待办事项 | UF-6 降级提示中的"去手动操作"快捷入口 | 来源页面 |
+| `/items` 事项清单 | UF-6 降级提示中的"去手动操作"（创建/查询类） | 来源页面 |
+| `/item-pool` 待办事项池 | UF-6 降级提示中的"去手动操作"（ItemPool 申请类） | 来源页面 |
+| `/milestones` 里程碑图 | UF-6 降级提示中的"去手动操作"（里程碑类） | 来源页面 |
 
 ### Navigation Rules
 
 - Primary navigation is shared across pages（现有侧边栏不变）。
 - Copilot 浮动气泡在所有已认证页面可见，feature flag 关闭时整体隐藏。
-- 查询结果卡片跳转目标必须是 sitemap 中已存在的路由，不产生新路由。
+- **UF-4 查询结果卡片不跳转、不弹窗**：点击卡片在面板内就地展开紧凑详情（独立 toggle），用户与对话上下文始终保持在同一面板内。
+- UF-6 降级快捷入口必须是 sitemap 中已存在的路由（`/items`、`/item-pool`、`/milestones`）。
 - 页面导航不弹离开确认 —— 未提交卡片草稿会丢失，但用户主动重新发起即可（不强制挽留）。
 
 ---
@@ -229,45 +229,68 @@ AI 推送卡片 → 用户直接编辑字段（onChange 更新卡片 state）或
 
 ### Description
 
-查询操作的返回结果：先展示摘要文字（如"你有 3 个 P0 事项"），再展示**内容丰富的实体卡片列表**——每张卡片直接展示该实体的核心字段（不只标题与编号），让用户**在聊天面板内就能看到必要信息**，无需跳转到详情页。
+查询操作的返回结果：先展示摘要文字（如"你有 3 个 P0 事项"），再展示**结果卡片**——每张卡片有两个态：**折叠态**展示核心 8 字段（标题/编号/优先级/状态/负责人/截止/里程碑/进度），**展开态**在折叠态基础上追加约 4 字段（描述全文/创建人+创建时间/子事项或里程碑进度/最近状态变更），共 ~12 字段。
 
-**核心原则：内容自包含**。用户在面板里就能回答"这个事项是什么状态、谁负责、什么时候截止、进度如何"等基本问题。点击卡片仍可跳详情页，但跳转不再是看基本信息的必要操作。
+**两个落地规则**：
+- **单记录返回 → 自动展开**：用户无需点击即可看到完整紧凑详情。
+- **多记录返回 → 全部折叠，点击就地展开**：用户对任意一张卡片点击其头行即可独立 toggle 展开/折叠（**非 accordion**，多张可同时展开），整个交互在面板内完成，**不跳转、不弹窗**。
+
+**核心原则：内容自包含 + 上下文不中断**。用户在面板内即可回答"这个事项是什么状态、谁负责、什么时候截止、进度如何、谁创建的、最近一次状态变更"等问题；对话上下文与多轮查询始终保持在同一面板内，不被跨页跳转打断。
 
 ### User Interaction Flow
 
-AI 返回查询结果 → 渲染摘要 + 内容丰富的卡片列表 → 用户在面板内浏览核心字段；如需更多细节或执行操作，点击卡片跳转到对应详情页（既有路由）。
+AI 返回查询结果 → 渲染摘要 + 卡片列表：
+- 单记录 → 直接渲染为展开态（用户无需操作）
+- 多记录 → 全部折叠，每张展示核心 8 字段；用户点击任意卡片头行 → 该卡片**就地展开**为紧凑详情（追加描述/创建人/进度统计/最近状态变更等约 4 字段）；再次点击 → 折叠回核心字段。**多张可同时展开（独立 toggle，不互斥）**；展开/折叠态在会话内记忆。
 
 ### Data Requirements
 
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
 | 摘要文字 | string | AI/后端生成 | 如"你有 3 个 P0 事项" |
-| 实体卡片列表 | List<EntityCard> | 查询 API 结果 | 每张含核心字段 + 跳转路由 |
-| 进度统计（可选） | {completed, total, percent} | 查询 API 结果 | 里程碑/MainItem/SubItem 进度场景 |
+| 实体卡片列表 | List<EntityCard> | 查询 API 结果 | 每张含核心字段 + 展开字段 |
+| 单记录标志 | boolean | 查询 API 结果 | true 时首张（唯一一张）卡片自动展开 |
 
-**EntityCard 按实体类型携带的核心字段**（由 [`entity-schemas.md`](./entity-schemas.md) 中各实体 `result_slots` 决定渲染槽位）：
+**EntityCard 折叠态字段**（核心 8 字段，由 [`entity-schemas.md`](./entity-schemas.md) 各实体 `result_slots` 渲染到 head/fields/meta/progress 槽位）：
 
-| 实体类型 | head | fields | meta | progress | text |
-|---------|------|--------|------|----------|------|
-| MainItem | title, code | priority, status, assignee | expectedEndDate, milestoneKey | 子任务完成率 | description |
-| SubItem | title, code | status, assignee | parent, expectedEndDate | completion | achievement |
-| Milestone | title, code | status | parent, expectedEndDate | 子事项完成率 | description |
-| MilestoneMap | title, code | status, team | expectedEndDate, milestoneCount | 里程碑完成率 | description |
-| ProgressRecord | subItem.title, code | — | createdAt | completion | achievement |
-| ItemPool | title, code | priority, status, submitter | createdAt | — | background, expectedOutput |
+| 实体类型 | head | fields | meta | progress |
+|---------|------|--------|------|----------|
+| MainItem | title, code | priority, status, assignee | expectedEndDate, milestoneKey | 子任务完成率 |
+| SubItem | title, code | status, assignee | parent, expectedEndDate | completion |
+| Milestone | title, code | status | parent, expectedEndDate | 子事项完成率 |
+| MilestoneMap | title, code | status, team | expectedEndDate, milestoneCount | 里程碑完成率 |
+| ProgressRecord | subItem.title, code | — | createdAt | completion |
+| ItemPool | title, code | priority, status, submitter | createdAt | — |
+
+**EntityCard 展开态追加字段**（约 4 字段，schema `result_slots.expanded` 驱动，按实体类型差异化）：
+
+| 实体类型 | 追加字段 |
+|---------|---------|
+| MainItem | description（全文）、createdBy + createdAt、子任务统计（completed/total）、最近状态变更（time: from → to） |
+| SubItem | description、createdBy + createdAt、最近 ProgressRecord（completion% + achievement 摘要）、最近状态变更 |
+| Milestone | description、createdBy + createdAt、子事项列表前 3 条（title + status）、最近状态变更 |
+| MilestoneMap | description、createdBy + createdAt、里程碑列表前 3 条（title + status）、最近状态变更 |
+| ProgressRecord | achievement（全文）、createdBy、所属子事项最近 1 条 ProgressRecord（对比上下文） |
+| ItemPool | background（全文）、expectedOutput（全文）、status flow（最近 1 次状态变更）、triagedBy（如已分诊） |
 
 ### States
 
 | State | Display | Trigger |
 |-------|---------|---------|
-| 有结果 | 摘要 + 内容丰富的卡片列表（每张展示核心字段） | 查询命中 |
+| 单记录 · 自动展开 | 摘要 + 单张展开态卡片（核心 8 字段 + 追加约 4 字段） | 查询命中且结果唯一 |
+| 多记录 · 全部折叠 | 摘要 + 折叠态卡片列表（每张核心 8 字段） | 查询命中且结果 ≥ 2 |
+| 多记录 · 部分展开 | 同上，被点击的卡片切换为展开态（多张可同时展开，独立 toggle） | 用户点击卡片头行 |
 | 无结果 | "未找到匹配事项" + 建议 | 查询未命中 |
+| 截断 | 前 20 张折叠卡 + 截断提示"结果过多，请缩小查询范围" | 结果 > 20 |
 
 ### Validation Rules
 
-- 卡片跳转路由必须为 sitemap 已有路由（`/items/:mainItemId`、`/items/:mainItemId/sub/:subItemId`、`/milestones/:mapId`、`/item-pool`），不生成新路由。
+- **不跳转、不弹窗**：UF-4 卡片不产生跨页导航，也不弹二级浮窗；点击仅在面板内 toggle 展开/折叠态。
+- **单记录自动展开**：查询结果唯一时，前端渲染器以 `expanded=true` 渲染首张（且唯一一张）卡片，省一次点击。
+- **多记录独立 toggle**：用户点击任意卡片头行 toggle 该卡片的展开 class，不影响其他卡片（非 accordion，多张可同时展开）；展开/折叠态在会话内记忆。
 - 单次查询最多展示 20 张卡片；超过 20 张时仅展示前 20 张并提示"结果过多，请缩小查询范围（如指定标题关键词或负责人）"。
-- **字段展示规则**：每张卡片按 [`entity-schemas.md`](./entity-schemas.md) 中实体 `result_slots` 渲染——所有槽位（head/fields/meta/progress/text）的字段映射统一由 schema 驱动，渲染器与实体类型解耦。过长的文本字段（如 ItemPool 的 background/expectedOutput）在卡片内截断为 1–2 行，完整内容仍可点击跳详情页查看。卡片之间用边框分隔，hover 高亮整张卡片以提示可点击跳转。
+- **字段展示规则**：每张卡片按 [`entity-schemas.md`](./entity-schemas.md) 中实体 `result_slots`（折叠态）+ `result_slots.expanded`（展开态追加）渲染——所有槽位字段映射统一由 schema 驱动，渲染器与实体类型解耦。过长的文本字段（如 ItemPool 的 background/expectedOutput）在折叠态不展示，仅在展开态以 1–2 行截断呈现。卡片之间用边框分隔，hover 高亮整张卡片提示可点击展开。
+- **可访问性**：卡片头行可键盘聚焦（`tabindex=0`），Enter / Space 触发展开/折叠；ARIA `aria-expanded` 反映当前态。
 
 ---
 
@@ -505,7 +528,7 @@ UF-3 表单卡片渲染时，所有必填字段已通过阶段 1-2 收齐，**�
 | 所有已认证路由（global overlay） | existing | UF-1, UF-2, UF-3, UF-4, UF-5, UF-6, UF-7, UF-8, UF-9 | 浮动气泡 UF-1 常驻；UF-2~UF-9 在气泡展开后于面板内渲染；UF-9（文本消息）位于 UF-8 之后、UF-3 表单卡片之前，由 1-3 条 AI 文本消息组成 |
 | `/login` | existing | （无） | 未认证页面不显示 Copilot |
 
-> 本功能不创建任何新页面（new-page 计数为 0）。所有 UI 均为挂载在现有页面之上的 overlay 组件。查询结果卡片（UF-4）与降级快捷入口（UF-6）跳转到的均为 sitemap 中已有路由。
+> 本功能不创建任何新页面（new-page 计数为 0）。所有 UI 均为挂载在现有页面之上的 overlay 组件。UF-4 查询结果卡片不产生跨页跳转（点击就地展开紧凑详情）；UF-6 降级快捷入口跳转到的均为 sitemap 中已有路由（`/items`、`/item-pool`、`/milestones`）。
 
 ---
 

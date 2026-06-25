@@ -406,24 +406,35 @@ Schema 只管"长什么样、有哪些字段"；状态机转移、RBAC、跨字�
 卡片容器（surface、border、rounded-xl、shadow-1、p-4、flex column gap-2）：
 
 1. **摘要行**：14px 500 text-primary（如"你有 3 个 P0 事项"）
-2. **结果列表**：垂直堆叠，每项为**内容丰富的 result-card**（surface bg、border `#e2e8f0`、rounded-md、p-10px/12px、cursor pointer、hover border-accent + bg-bg-alt、flex column gap-6px）。**核心字段直接展示在卡片内**，用户在面板内就能看到必要信息、无需跳转。**字段按 [`entity-schemas.md`](../prd/entity-schemas.md) 各实体 `result_slots` 渲染到 5 个槽位**（head/fields/meta/progress/text），渲染器与实体类型解耦：
-   - **头行（rc-head，slot=head）**：`title` role（13px 500 text-primary，超长省略号）+ `code` role（11px text-tertiary）+ chevron-right 图标（text-tertiary，hover 转 accent）
+2. **结果列表**：垂直堆叠，每项为**双态 result-card**（surface bg、border `#e2e8f0`、rounded-md、cursor pointer、hover border-accent + bg-bg-alt、flex column gap-6px）。两个态：
+   - **折叠态（默认 · 多记录）**：展示核心 8 字段
+   - **展开态（默认 · 单记录 / 用户点击触发 · 多记录）**：折叠态 8 字段 + 追加约 4 字段（共 ~12 字段）
+   
+   **字段按 [`entity-schemas.md`](../prd/entity-schemas.md) 各实体 `result_slots`（折叠）+ `result_slots.expanded`（展开追加）渲染**，渲染器与实体类型解耦。折叠态槽位：
+   - **头行（rc-head，slot=head，可点击 toggle）**：`title` role（13px 500 text-primary，超长省略号）+ `code` role（11px text-tertiary）+ chevron 图标（text-tertiary，hover 转 accent；展开态旋转 90°）
    - **字段行（rc-fields，slot=fields）**：横排核心字段，含徽章 + 文本——`priority`（badge-error P0 / badge-warning P1 / badge-neutral P2/P3）、`status`（按状态语义映射 badge-success/neutral/warning）、`assignee` / `submitter`（`👤 {name}`）
    - **元信息行（rc-meta，slot=meta）**：12px text-tertiary 横排——`date` role（`📅 {label} {date}`）、`parent` role（`📁 {label} {parent title}`）、`team` role（`👥 {teamName}`），按实体 schema 的 meta 列表选填
    - **进度条（rc-progress，slot=progress，可选）**：`progress` role 字段渲染为 4px 细进度条 + 进度文字（如"75% · 3/4 子任务"）；source 为 direct / subitems / subitems_of_milestone / milestones，按 schema 声明
-   - **文本字段（rc-text，slot=text，可选）**：`text` role 字段（description / background / expectedOutput / achievement），12px text-secondary；超长截断为 1–2 行，完整内容跳详情页查看
+   
+   **展开态追加块（rc-extra，border-top 分隔，p-top 8px，flex column gap-4px）**——仅 `.result-card.expanded` 时可见，追加字段按实体类型差异化（MainItem 示例 ~4 字段）：
+   - **描述全文**（description）：12px text-secondary，line-height 1.5，超长截断 2 行（ellipsis）
+   - **创建人 + 创建时间**：12px text-tertiary 横排"由 {createdBy} 创建于 {createdAt}"
+   - **子任务/里程碑统计**：12px text-secondary，如"3/5 已完成 · 最近 1 条 ProgressRecord: 60% 接口对接中"
+   - **最近状态变更**：12px text-tertiary，如"2026-06-20: in_progress → review"
 3. **截断提示**（条件）：超过 20 张时底部 text-tertiary 12px"结果过多，显示前 20 条，请缩小范围（指定标题/负责人）"
 4. **空态**：text-secondary 13px"未找到匹配事项"+ 建议（如"试试'我的 P1 事项'"）
 
-> **核心原则：内容自包含**。用户在面板内就能回答"这个事项是什么状态、谁负责、什么时候截止、进度如何"等基本问题。点击卡片跳详情页是"看完整字段/做写操作"的进阶路径，不再是看基本信息的必要步骤。
+> **核心原则：内容自包含 + 上下文不中断**。用户在面板内就能回答"这个事项是什么状态、谁负责、什么时候截止、进度如何、谁创建的、最近一次状态变更"等问题。**不再有跨页跳转**——单记录自动展开、多记录点击就地展开（独立 toggle，不互斥）。对话上下文与多轮查询始终保持在同一面板内。
 
 ### States
 
 | State | Visual | Behavior |
 |-------|--------|----------|
-| 有结果 | 摘要 + 内容丰富的 result-card 列表（每张展示核心字段） | 查询命中 |
+| 单记录 · 自动展开 | 摘要 + 单张 `.result-card.expanded`（核心 8 字段 + 追加 ~4 字段）；chevron 旋转 90° | 查询命中且结果唯一，渲染时直接 `expanded=true` |
+| 多记录 · 全部折叠 | 摘要 + 折叠态 result-card 列表（每张核心 8 字段）；chevron 朝右 | 查询命中且结果 ≥ 2 |
+| 多记录 · 部分展开 | 被点击的卡片切到 `.result-card.expanded`（多张可同时展开，独立 toggle）；chevron 旋转 90° | 用户点击卡片头行 |
 | 无结果 | "未找到匹配事项"+ 建议 | 查询未命中 |
-| 截断 | 前 20 张 + 截断提示 | 结果 >20 |
+| 截断 | 前 20 张折叠卡 + 截断提示 | 结果 >20 |
 
 > **流式说明**：查询结果（UF-4）与歧义消解（UF-5）均**原子返回**（后端一次性返回完整结果，非增量流式），因此不适用 UF-3 的「流式填充中断」清理规则；UF-2 的「流式中断」态仅针对 UF-3 写卡片的骨架增量填充场景。
 
@@ -431,8 +442,13 @@ Schema 只管"长什么样、有哪些字段"；状态机转移、RBAC、跨字�
 
 | Trigger | Action | Feedback |
 |---------|--------|----------|
-| 点击 result-card | 跳转详情页（既有路由） | 导航 |
+| 点击 result-card 头行（多记录折叠态） | 切换该卡片 `expanded` class（**独立 toggle，不互斥**，多张可同时展开） | chevron 旋转 90°（150ms）；追加块 `rc-extra` 显示/隐藏 |
+| 再次点击展开态卡片头行 | 折叠回核心字段 | chevron 旋转回 0°；追加块隐藏 |
+| 单记录卡片 | 无 toggle 行为（渲染即展开，chevron 仍旋转 90° 作为视觉一致性提示） | — |
 | hover 卡片 | border 转 accent、bg 转 bg-alt | chevron 转 accent |
+| 键盘聚焦头行（`tabindex=0`） + Enter/Space | 切换 expanded | 同点击 |
+
+> **不跳转、不弹窗**：UF-4 卡片不产生跨页导航、不弹二级浮窗。所有交互在面板内完成，保持对话上下文连续。
 
 ### Data Binding
 
@@ -443,8 +459,12 @@ Schema 只管"长什么样、有哪些字段"；状态机转移、RBAC、跨字�
 | result-card 字段行 | entity.priority + entity.status + entity.assignee | 查询 API |
 | result-card 元信息行 | entity.{expectedEndDate,milestone,parent,...} | 查询 API（按实体类型 schema 选填） |
 | result-card 进度条 | progress{completed,total,percent} | 查询 API（MainItem/SubItem/Milestone/MilestoneMap） |
-| result-card 文本字段 | entity.{background,expectedOutput,...} | 查询 API（ItemPool 等） |
-| 跳转路由 | entity.route | 查询 API（既有路由） |
+| result-card 展开追加（描述） | entity.description / background / expectedOutput / achievement | 查询 API（schema `result_slots.expanded`） |
+| result-card 展开追加（创建人/时间） | entity.{createdBy,createdAt} | 查询 API |
+| result-card 展开追加（子任务/里程碑统计） | entity._childrenStats 或 _milestoneStats | 查询 API（按实体类型） |
+| result-card 展开追加（最近状态变更） | entity._lastStatusChange {time,from,to} | 查询 API |
+| 单记录标志 | isSingleResult boolean | 查询 API（结果数 = 1 时 true） |
+| 展开态 class | expanded boolean | 用户点击 toggle / 单记录时自动 true |
 
 ---
 
@@ -707,8 +727,8 @@ Schema 只管"长什么样、有哪些字段"；状态机转移、RBAC、跨字�
 | 文件 | 内容 | 对应组件 |
 |------|------|----------|
 | `index.html` | 评审 hub：列出全部演示状态与设计系统说明，链接到 demo.html | 导航入口 |
-| `demo.html` | 模拟宿主页（侧边栏 + 内容区）+ 浮动气泡 + 聊天面板 + 全部卡片状态 + 左下角状态切换器（15 个 state） | UF-1/2/3/4/5/6/7/8/9 全部 |
+| `demo.html` | 模拟宿主页（侧边栏 + 内容区）+ 浮动气泡 + 聊天面板 + 全部卡片状态 + 左下角状态切换器（16 个 state） | UF-1/2/3/4/5/6/7/8/9 全部 |
 | `styles.css` | 共享 token + 组件类（复用 DESIGN.md） | 全部 |
-| `app.js` | 交互（展开/收起、发送、卡片状态切换、Agent trace 流式、form 折叠、`ENTITY_SCHEMAS` + `renderEntityCard` 渲染器） | 全部 |
+| `app.js` | 交互（展开/收起、发送、卡片状态切换、Agent trace 流式、form 折叠、result-card 折叠/展开 toggle、`ENTITY_SCHEMAS` + `renderEntityCard` 渲染器） | 全部 |
 
-`demo.html` 左下角的状态切换器覆盖 15 个 state：onboarding / **intent-echo（UF-9 意图回执文本，等待用户确认）** / write-prefilled（UF-9 收齐信息后的完整对话流 + UF-3 表单）/ validation / submit-failed / committed / discarded / permission / diff-overlay / query / query-entities / disambiguation / fallback / thinking / agent-trace / trace-failed。intent-echo 演示单条文本意图回执 + 选项组（理解正确切到 write-prefilled 看后续 Q&A 与表单 / 我要调整预填原文 / 取消）；write-prefilled 演示完整对话流（用户 msg → trace → 意图回执 → 主动澄清 → 用户回答 → "信息收齐" → 表单卡片）；其余 state 对应 UF-3/4/5/6/7/8 的状态分支。
+`demo.html` 左下角的状态切换器覆盖 16 个 state：onboarding / **intent-echo（UF-9 意图回执文本，等待用户确认）** / write-prefilled（UF-9 收齐信息后的完整对话流 + UF-3 表单）/ validation / submit-failed / committed / discarded / permission / diff-overlay / **query（UF-4 多记录折叠态，点击独立 toggle 展开）** / **query-single（UF-4 单记录自动展开紧凑详情）** / query-entities / disambiguation / fallback / thinking / agent-trace / trace-failed。intent-echo 演示单条文本意图回执 + 选项组；write-prefilled 演示完整对话流；query 演示多记录折叠卡片 + 点击就地展开（独立 toggle，不互斥）；query-single 演示单记录自动展开（追加描述/创建人/子任务统计/最近状态变更等约 4 字段）；其余 state 对应 UF-3/5/6/7/8 的状态分支。
