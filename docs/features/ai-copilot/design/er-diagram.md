@@ -103,7 +103,7 @@
 复合索引: (session_id, started_at), (user_biz_key, started_at)
 ```
 
-**Status 状态机**：
+**Status 状态机**（10 个状态）：
 
 ```
 planning                    ← 用户发指令，Planner 流式中
@@ -111,7 +111,8 @@ planning                    ← 用户发指令，Planner 流式中
 awaiting_confirm_intent     ← 意图消息已推送，等用户"理解正确"
     ├─ confirm → executing
     ├─ adjust → planning（重新调 Planner）
-    └─ cancel → cancelled
+    ├─ cancel → cancelled
+    └─ 用户新指令 → superseded
     ↓
 awaiting_clarify            ← 意图含 missing_info，等用户回答
     ↓ (回答)
@@ -125,8 +126,16 @@ executing                   ← 按 plan.intents 执行
     ↓ (所有 intent 完成)
     done
     ↓
-cancelled / failed          ← 异常分支
+cancelled / superseded / failed   ← 终态（4 个）
 ```
+
+**终态对比**：
+- `done`：正常完成
+- `cancelled`：用户主动取消
+- `superseded`：用户发了新指令，原 turn 被替代
+- `failed`：系统错误
+
+详细状态机与转换矩阵见 [`state-machines.md`](./state-machines.md)。
 
 **关键设计点**：
 - **不存 user_message**——用户原文由 messages 表存（type=text, role=user）

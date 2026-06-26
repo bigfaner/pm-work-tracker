@@ -84,7 +84,8 @@ CREATE TABLE copilot_turns (
     -- 状态机
     status              VARCHAR(32) NOT NULL DEFAULT 'planning',
     -- planning / awaiting_confirm_intent / awaiting_clarify
-    -- / executing / awaiting_commit / done / cancelled / failed
+    -- / executing / awaiting_commit / awaiting_select_candidate
+    -- / done / cancelled / superseded / failed
 
     -- 意图相关（加速重建）
     intent_message_id   VARCHAR(36),                  -- 关联的意图消息 biz_key

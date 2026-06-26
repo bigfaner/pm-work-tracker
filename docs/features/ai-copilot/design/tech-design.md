@@ -26,6 +26,7 @@ status: Draft
 | [interfaces.md](./interfaces.md) | 接口定义（Provider / ContextBuilder / Repository / Dispatcher） |
 | [sse-protocol.md](./sse-protocol.md) | SSE 事件协议（`text/event-stream` + 无前缀 JSON） |
 | [security.md](./security.md) | 安全策略 |
+| [state-machines.md](./state-machines.md) | 三层状态机与并发控制 |
 | [testing-strategy.md](./testing-strategy.md) | 测试策略 |
 | [er-diagram.md](./er-diagram.md) | ER 图 |
 | [schema.sql](./schema.sql) | 数据库 DDL |
