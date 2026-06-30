@@ -9,6 +9,8 @@ parent: tech-design.md
 > 返回 [`tech-design.md`](./tech-design.md)
 >
 > 注意：本协议使用 **SSE 的标准 MIME**（`text/event-stream`）+ **无前缀 JSON 内容**（不是标准 SSE 的 `data:` 前缀格式）。前端用 `fetch + ReadableStream` 解析。
+>
+> **哪些请求走 SSE、哪些走 JSON**：见 [`request-model.md`](./request-model.md) §1.5（核心规则：触发 LLM 调用 → SSE；纯 DB 操作 → JSON）。
 
 ## 1. 协议格式
 

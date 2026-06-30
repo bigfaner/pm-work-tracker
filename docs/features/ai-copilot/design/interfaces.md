@@ -336,18 +336,46 @@ type DispatchResult struct {
 
 ## 8. ToolRegistry 接口
 
+工具三分类（Read / Action / Emission）与具体工具清单见 [`agent-architecture.md`](./agent-architecture.md) §2。Emission 工具在 Agent 循环中的终止语义见 [`llm-integration.md`](./llm-integration.md) §2。
+
 ```go
 // internal/copilot/tools/tool_registry.go
+
+type ToolKind string
+
+const (
+    ToolKindRead     ToolKind = "read"
+    ToolKindAction   ToolKind = "action"
+    ToolKindEmission ToolKind = "emission"
+)
 
 type Tool interface {
     Name() string
     Description() string
     ParametersSchema() map[string]any
-    Execute(ctx context.Context, args map[string]any) (ToolResult, error)
+    Kind() ToolKind
+    Execute(ctx context.Context, args map[string]any, p ToolExecParams) (ToolResult, error)
 }
 
+// ToolExecParams 仅 Emission 工具使用 OutCh / Persist；
+// Read / Action 工具可忽略这两个字段。
+type ToolExecParams struct {
+    OutCh   chan<- sse.Event  // Emission 工具直接写专用事件
+    TurnID  string
+    StepID  string
+    Persist func(msg Message) (string, error)  // 持久化消息并返回 bizKey
+}
+
+type ToolResultStatus string
+
+const (
+    ToolStatusSuccess  ToolResultStatus = "success"  // append tool msg，继续循环
+    ToolStatusError    ToolResultStatus = "error"    // append tool msg（含错误），继续循环（让 LLM 修正）
+    ToolStatusTerminal ToolResultStatus = "terminal" // 不 append，终止 StreamRun
+)
+
 type ToolResult struct {
-    Status string         // success / error
+    Status ToolResultStatus
     Data   map[string]any
     Error  string
 }
@@ -360,12 +388,18 @@ func (r *ToolRegistry) Register(t Tool) {
     r.tools[t.Name()] = t
 }
 
-func (r *ToolRegistry) Execute(ctx context.Context, name string, args map[string]any) (ToolResult, error) {
+func (r *ToolRegistry) Lookup(name string) Tool {
+    return r.tools[name]
+}
+
+func (r *ToolRegistry) Execute(
+    ctx context.Context, name string, args map[string]any, p ToolExecParams,
+) (ToolResult, error) {
     t, ok := r.tools[name]
     if !ok {
         return ToolResult{}, fmt.Errorf("unknown tool: %s", name)
     }
-    return t.Execute(ctx, args)
+    return t.Execute(ctx, args, p)
 }
 ```
 

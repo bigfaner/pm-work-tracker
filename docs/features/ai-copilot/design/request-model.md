@@ -45,7 +45,7 @@ type RequestBody =
 ```
 
 响应：
-- 自由文本 / answer_clarify / confirm_intent / select_candidate → **SSE 流**（无前缀 JSON 内容）
+- 自由文本 / answer_clarify / adjust_intent / confirm_intent / select_candidate → **SSE 流**（无前缀 JSON 内容）
 - commit_card → **JSON**（不走 LLM，直接 entity service）
 - cancel → **JSON**（标记状态）
 
@@ -58,6 +58,52 @@ PATCH /api/v1/copilot/messages/:id
 ```
 
 不属于"用户向对话添加内容"，所以不合并到 POST /messages。
+
+### 1.5 响应模式决策
+
+**核心规则**：触发 LLM 调用 → **SSE 流**；纯 DB 操作或状态变更 → **JSON**。
+
+**为什么 LLM 必须流式**：
+- LLM 输出是 token-by-token（秒级延迟），用户需要 thinking / tool_call 进度反馈
+- 支持中途 cancel（`ctx.Done()` 贯穿 channel → Provider → GLM）
+- 不流式 → 用户盯着 spinner 10s，体验差
+
+**为什么无 LLM 用 JSON**：
+- 纯 DB 操作 <500ms，单一离散结果
+- 无渐进式披露价值
+- 客户端代码简单（无需流解析器）
+
+#### POST /sessions/:id/messages（按 type 分派）
+
+| Request Type | LLM 调用 | 响应模式 | 响应内容 |
+|--------------|---------|---------|---------|
+| `free_text` | Planner | **SSE** | thinking 流 → input_rewrite → card_message(intent) → turn_phase_done |
+| `answer_clarify` | Planner（重跑） | **SSE** | 同上（注入回答 + 历史） |
+| `adjust_intent` | Planner（重跑） | **SSE** | PATCH 旧意图 → thinking → 新 intent card_message |
+| `confirm_intent` | Executor（按 plan） | **SSE** | step_started × N → tool_call/tool_result → form/query_result card_message |
+| `select_candidate` | Executor（续跑） | **SSE** | 注入 bizKey → 后续 tool_call → card_message |
+| `commit_card` | ✗ | **JSON** | `{messageId, newState, createdEntity, followupMessageId, followupContent}` |
+| `cancel` | ✗ | **JSON** | `{cancelled: true, turnStatus: "cancelled"}` |
+
+#### 其他端点（全部 JSON）
+
+| 端点 | 用途 | LLM |
+|------|------|-----|
+| `POST /sessions` | 创建会话 | ✗ |
+| `GET /sessions` | 列出会话（分页） | ✗ |
+| `GET /sessions/:id` | 会话详情 | ✗ |
+| `DELETE /sessions/:id` | 软删除 | ✗ |
+| `GET /sessions/:id/messages` | 历史消息（分页） | ✗ |
+| `PATCH /messages/:id` | 卡片字段编辑 / 展开 / 应用 diff | ✗ |
+| `GET /health` | 健康探针 | ✗ |
+
+#### 边界情况
+
+1. **`commit_card` 的 followupContent**：当前为规则提取（"已为你创建 X（bizKey）"），非 LLM 生成 → JSON。若未来改 LLM 生成需切 SSE。
+2. **`select_candidate`**：给已停顿的 Executor 注入 bizKey 续跑——前一个 SSE 流已关闭，必须新起一个流。
+3. **多 intent 执行**：单个 `confirm_intent` 触发多个 Executor，全部串行在**一个 SSE 流**内（前端看到一个流，内部多段 step 序列）。
+4. **error 事件**：SSE 流中任何环节失败（Planner / Executor / Provider）→ emit `error` 事件后关闭流，turn 标记 `failed`。
+5. **客户端断开**：`c.Request.Context()` 取消时，所有下游 channel 关闭、goroutine 退出。已 persist 的 trace 和意图消息保留，用户刷新后仍可继续未完成的 turn。
 
 ## 2. TurnContext（与 goroutine 同生命周期）
 
@@ -317,11 +363,13 @@ Planner 推送 → state=awaiting_confirm
 |------|-------------|------|---------|------|
 | 自由文本 | `free_text` | 调 Planner + 推送意图消息 | Planner | SSE 流 |
 | 回答澄清 | `answer_clarify` | 重新调 Planner（注入回答） | Planner | SSE 流 |
+| 调整意图 | `adjust_intent` | PATCH 旧意图 state=adjusted + 重新调 Planner | Planner | SSE 流 |
 | 确认意图 | `confirm_intent` | 从意图消息重建 plan + 调 executor | Executor（按 plan） | SSE 流 |
-| 调整意图 | `adjust_intent` | 切文本模式重新输入（前端处理，可能不需后端） | — | JSON |
 | 选候选 | `select_candidate` | 注入 bizKey + 调 executor | Executor | SSE 流 |
 | 提交表单 | `commit_card` | 直接调 entity service | ❌ | JSON |
 | 取消 | `cancel` | PATCH 状态 | ❌ | JSON |
+
+> 响应模式决策规则与完整矩阵见 §1.5。
 
 ## 5. 路由实现
 

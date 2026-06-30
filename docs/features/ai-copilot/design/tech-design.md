@@ -24,6 +24,7 @@ status: Draft
 | [agent-architecture.md](./agent-architecture.md) | Planner & Executors Agent 架构 |
 | [request-model.md](./request-model.md) | 请求模型 + 路由分流（一个请求 = 一个 turn = 一个 plan） |
 | [interfaces.md](./interfaces.md) | 接口定义（Provider / ContextBuilder / Repository / Dispatcher） |
+| [llm-integration.md](./llm-integration.md) | LLM 接入与执行流程（端到端架构 + Agent 循环 + GLM 实现 + 重试） |
 | [sse-protocol.md](./sse-protocol.md) | SSE 事件协议（`text/event-stream` + 无前缀 JSON） |
 | [security.md](./security.md) | 安全策略 |
 | [state-machines.md](./state-machines.md) | 三层状态机与并发控制 |
@@ -105,7 +106,7 @@ status: Draft
 | 8 | 流式协议 | **SSE**（`text/event-stream` MIME + 无前缀 JSON 内容），泛型 `Event[T]` + kind 判别 | [sse-protocol.md](./sse-protocol.md) |
 | 9 | 后端状态 | **完全无状态**：TurnContext 与 goroutine 同生命周期 | [request-model.md](./request-model.md) §3 |
 | 10 | 意图确认 | **保留 UF-9 阶段 1**：意图消息推送后等用户"理解正确"确认，再执行 | [request-model.md](./request-model.md) §5 |
-| 11 | LLM Provider | **可插拔接口 + Factory**：首版接 GLM，配置驱动切换 | [interfaces.md](./interfaces.md) §1-3 |
+| 11 | LLM Provider | **可插拔接口 + Factory**：首版接 GLM，配置驱动切换 | [interfaces.md](./interfaces.md) §1-3，[llm-integration.md](./llm-integration.md) |
 | 12 | 卡片字段更新 | **PATCH /messages/:id**（独立端点，RESTful 习惯） | [api-handbook.md](./api-handbook.md) |
 | **13** | **数据模型** | **3 级层级 Session→Turn→Message** + 三层独立 status 状态机 + 消息单一来源 | [er-diagram.md](./er-diagram.md) |
 
@@ -547,11 +548,11 @@ feature_flags:
 
 | 阶段 | 内容 | 依赖 | 详细文档 |
 |------|------|------|---------|
-| M1 | Provider 接口 + GLM 实现 + Mock | 无 | [interfaces.md](./interfaces.md) §1-3 |
+| M1 | Provider 接口 + GLM 实现 + Mock | 无 | [interfaces.md](./interfaces.md) §1-3，[llm-integration.md](./llm-integration.md) §3-4，§6 |
 | M2 | 5 张表 + Repository + Migration | 无 | [schema.sql](./schema.sql) |
-| M3 | ContextBuilder + Schema 加载 + Token 计数 | M1 | [interfaces.md](./interfaces.md) §4-5 |
-| M4 | Planner Agent + input_rewrite + 工具实现 | M1, M3 | [agent-architecture.md](./agent-architecture.md) |
-| M5 | 4 个 Executor + 工具实现 | M1, M3 | [agent-architecture.md](./agent-architecture.md) |
+| M3 | ContextBuilder + Schema 加载 + Token 计数 | M1 | [interfaces.md](./interfaces.md) §4-5，[llm-integration.md](./llm-integration.md) §5 |
+| M4 | Planner Agent + input_rewrite + 工具实现 | M1, M3 | [agent-architecture.md](./agent-architecture.md)，[llm-integration.md](./llm-integration.md) §2 |
+| M5 | 4 个 Executor + 工具实现 | M1, M3 | [agent-architecture.md](./agent-architecture.md)，[llm-integration.md](./llm-integration.md) §2 |
 | M6 | Orchestrator + Routing + TurnContext | M4, M5 | [request-model.md](./request-model.md) |
 | M7 | Handler + SSE 流 + Event 类型 | M6 | [sse-protocol.md](./sse-protocol.md) |
 | M8 | Dispatcher（复用现有 entity service） | 无 | [interfaces.md](./interfaces.md) §7 |
