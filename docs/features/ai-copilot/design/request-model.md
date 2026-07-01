@@ -182,7 +182,8 @@ func (h *CopilotHandler) handleFreeText(c *gin.Context, req MessageRequest) {
     sessionID := c.Param("id")
     userBizKey := middleware.GetUserBizKey(c)
 
-    // 事务：创建 Turn + persist user msg
+    // 事务：创建 Turn + persist user msg + UPDATE session.current_turn_id
+    // 三者同事务（state-machines.md §6 TurnInFlightGuard 依赖 current_turn_id 非空）
     err := h.txManager.WithinTx(c, func(tx *gorm.DB) error {
         // 1. 创建 Turn 行
         h.turnRepo.Create(c, Turn{
@@ -201,6 +202,10 @@ func (h *CopilotHandler) handleFreeText(c *gin.Context, req MessageRequest) {
             Content: req.Content,
             Seq: h.msgRepo.NextSeq(c, sessionID),
         })
+
+        // 3. UPDATE session.current_turn_id（TurnInFlightGuard 与 supersession 逻辑依赖此字段）
+        // 若省略此调用，sess.CurrentTurnID 永远是 ''，guard 形同虚设、superseded 永不触发
+        h.sessionRepo.UpdateCurrentTurn(c, sessionID, turnID)
 
         return nil
     })
@@ -472,6 +477,8 @@ func (o *Orchestrator) ExecuteFromIntent(
 
 ### 5.3 HandleUserMessage 实现（Planner 推送意图消息）
 
+> intent persist 必须与 turn status UPDATE 同事务（tech-design.md §4.4）；persist 失败不再 best-effort。
+
 ```go
 func (o *Orchestrator) HandleUserMessage(
     ctx context.Context, turnCtx *TurnContext, eventCh chan<- sse.Event,
@@ -487,29 +494,58 @@ func (o *Orchestrator) HandleUserMessage(
         eventCh <- errorEvent(turnCtx, err)
         return err
     }
-    
+
     // 消费 Planner 流，聚合到 IntentPayload
     intentPayload := o.consumePlannerStream(ctx, plannerStream, turnCtx, eventCh)
-    
-    // persist 意图消息
-    intentMsg := o.msgRepo.Append(Message{
-        Role: RoleAI, Type: TypeIntent,
-        TurnID: turnCtx.TurnID,
-        Content: intentPayload.Text,
-        IntentPayload: marshal(intentPayload),
+
+    // 事务：persist intent 消息 + UPDATE turn status
+    // persist 失败 → 事务回滚 + emit error + return（不 emit card_message）
+    var intentMsgID string
+    var nextStatus TurnStatus
+    if len(intentPayload.MissingInfo) > 0 {
+        nextStatus = TurnStatusAwaitingClarify
+    } else {
+        nextStatus = TurnStatusAwaitingConfirmIntent
+    }
+
+    err = o.txManager.WithinTx(ctx, func(tx *gorm.DB) error {
+        msg, err := o.msgRepo.AppendTx(tx, Message{
+            Role: RoleAI, Type: TypeIntent,
+            TurnID: turnCtx.TurnID,
+            Content: intentPayload.Text,
+            IntentPayload: marshal(intentPayload),
+        })
+        if err != nil {
+            return err  // 事务回滚
+        }
+        intentMsgID = msg.BizKey
+
+        if err := o.turnRepo.UpdateStatusTx(tx, turnCtx.TurnID, nextStatus); err != nil {
+            return err
+        }
+        if err := o.turnRepo.UpdateIntentMessageIDTx(tx, turnCtx.TurnID, intentMsgID); err != nil {
+            return err
+        }
+        return nil
     })
-    
-    // 推送 card_message 事件（cardType=intent）
-    eventCh <- cardMessageEvent(turnCtx, "intent", intentPayload.State, intentPayload, intentMsg.BizKey)
-    
+    if err != nil {
+        // persist 失败：emit error + turn=failed，事务内 turn 已回滚到 planning
+        _ = o.turnRepo.UpdateStatus(ctx, turnCtx.TurnID, TurnStatusFailed)
+        eventCh <- errorEvent(turnCtx, fmt.Errorf("persist intent: %w", err))
+        return err
+    }
+
+    // 事务提交后才 emit card_message（此时 messageId 已确定非空）
+    eventCh <- cardMessageEvent(turnCtx, "intent", intentPayload.State, intentPayload, intentMsgID)
+
     // 推送 turn_phase_done
     var nextAction NextAction
     if len(intentPayload.MissingInfo) > 0 {
         nextAction = NextAction{Type: "await_clarify"}
     } else {
-        nextAction = NextAction{Type: "await_confirm_intent", MessageID: intentMsg.BizKey}
+        nextAction = NextAction{Type: "await_confirm_intent", MessageID: intentMsgID}
     }
-    
+
     eventCh <- turnPhaseDoneEvent(turnCtx, "planner", "success", nextAction)
     return nil
 }
@@ -518,6 +554,8 @@ func (o *Orchestrator) HandleUserMessage(
 ## 6. 完整时序示例
 
 ### 6.1 单意图写操作（完整流程）
+
+> **关键：写操作不进 LLM 流**。Executor 只通过 `emit_form_card` 推送**预填表单卡片**（`targetEntity.bizKey` 留空）；真实 DB 写由用户点提交后 `commit_card` Handler 同步调 Dispatcher → 现有 entity service。详见 [`agent-architecture.md`](./agent-architecture.md) §2、§8.2 与 [`security.md`](./security.md) §7.3。
 
 ```
 ─── 请求 1（turn_001，发指令）────────────────────────────────────────
@@ -548,43 +586,50 @@ POST /sessions/sess_xxx/messages
   - 构建 TurnContext（ConfirmedIntent = payload）
   - 启动 SSE 流
 
-SSE 流：
+SSE 流（Writer Executor 仅组装预填字段，不调任何写工具）：
 {"event":"step_started","turnId":"turn_001","stepId":"intent_1","intentMeta":{"id":"intent_1","label":"创建 MainItem","seq":1,"total":1},"data":{"kind":"step_started","intent":{...}}}
 
-{"event":"thinking","turnId":"turn_001","stepId":"intent_1","data":{"kind":"thinking","content":"开始执行 writer..."}}
+{"event":"thinking","turnId":"turn_001","stepId":"intent_1","data":{"kind":"thinking","content":"字段齐备，组装预填表单。"}}
 
-{"event":"tool_call","turnId":"turn_001","stepId":"intent_1","data":{"kind":"tool_call","callId":"call_001","toolName":"commit_create","arguments":{"entity_type":"main_item","fields":{...}}}}
-
-{"event":"tool_result","turnId":"turn_001","stepId":"intent_1","data":{"kind":"tool_result","callId":"call_001","status":"success","result":{"bizKey":"MI-0023"},"durationMs":300}}
-
-{"event":"card_message","turnId":"turn_001","stepId":"intent_1","messageId":"msg_003","data":{"kind":"card","cardType":"form","status":"prefilled","cardData":{"opType":"create","entityType":"main_item","targetEntity":{"bizKey":"MI-0023","title":"认证模块","bizCode":"MI-0023"},"fields":[...]}}
+{"event":"card_message","turnId":"turn_001","stepId":"intent_1","messageId":"msg_003","data":{"kind":"card","cardType":"form","status":"prefilled","cardData":{"opType":"create","entityType":"main_item","targetEntity":{"bizKey":"","title":""},"fields":[{"name":"title","value":"认证模块","required":true},{"name":"priority","value":"P1","required":true}]}}}
 
 {"event":"step_phase_done","turnId":"turn_001","stepId":"intent_1","data":{"kind":"step_phase_done","intentId":"intent_1","outcome":"awaiting_user_commit","nextAction":{"type":"await_commit","messageId":"msg_003"}}}
 
 {"event":"turn_phase_done","turnId":"turn_001","data":{"kind":"turn_phase_done","phaseType":"execute","outcome":"awaiting_user_action","nextAction":{"type":"await_commit","messageId":"msg_003"},"intentsTotal":1,"intentsDone":0}}
 
 → 流关闭
-→ 前端：展示 form card，等用户提交
+→ 前端：展示预填 form card（targetEntity.bizKey 为空，表示尚未创建实体），等用户提交
 
 ─── 请求 3（turn_001，提交表单）─────────────────────────────────────
 POST /sessions/sess_xxx/messages
-{ "type": "commit_card", "messageId": "msg_003" }
+{ "type": "commit_card", "messageId": "msg_003", "requestId": "req_uuid_v4" }
 
-→ 后端：
+→ 后端（handleCommitCard，事务内）：
   - 读取 msg_003 的 form card payload
-  - 调 entity service（不走 LLM）
-  - PATCH msg_003 state=submitted
-  - persist 跟进 text 消息
+  - 幂等检查：copilot_idempotency_keys WHERE request_id=req_uuid_v4
+      - 命中 → 返回上次结果（防网络重试，见 §7）
+      - 未命中 → 继续：
+  - INSERT copilot_idempotency_keys(request_id, message_id)
+  - 调 Dispatcher.Dispatch(FormCard{opType:create, entityType:main_item, Fields:[...]})
+      - Dispatcher → MainItemService.Create（复用既有 RBAC + bizKey + snowflake）
+      - 返回 bizKey=MI-0023
+  - UPDATE msg_003 status=submitted + cardData.targetEntity.bizKey=MI-0023
+  - persist 跟进 text 消息（msg_004）
 
 JSON 响应：
 {
   "messageId": "msg_003",
   "newState": "submitted",
-  "createdEntity": { "bizKey": "MI-0023", "title": "认证模块" },
+  "createdEntity": { "bizKey": "MI-0023", "title": "认证模块", "bizCode": "MI-0023" },
   "followupMessageId": "msg_004",
   "followupContent": "已为你创建 P1 事项「认证模块」（MI-0023）。"
 }
 ```
+
+**为什么写不在 LLM 流里**：
+1. PRD Flow step 7 要求"用户点击提交 → 调用现有 API 端点"——提交动作才触发写
+2. 用户放弃 form card（superseded / 网络断 / 浏览器关）时无孤儿实体（只留一条 `status=prefilled` 的 form card 消息，无 DB 实体副作用）
+3. LLM 流可中途失败，已 persist 的 intent/form 消息仍可恢复；但失败的 LLM 不该已写过半实体
 
 ### 6.2 主动澄清场景
 

@@ -199,6 +199,45 @@ CREATE INDEX idx_copilot_messages_deleted          ON copilot_messages(deleted_a
 -- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =============================================================================
+-- copilot_idempotency_keys
+-- =============================================================================
+-- commit_card 请求幂等表。防 LLM 重试 / 前端网络抖动重试导致重复创建实体。
+-- 客户端每次提交生成 requestId (UUID v4)；Dispatcher 在 entity service Create 前 INSERT 此表。
+
+-- SQLite
+CREATE TABLE copilot_idempotency_keys (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    request_id      VARCHAR(36) NOT NULL UNIQUE,    -- 客户端生成的 UUID v4
+    message_id      VARCHAR(36) NOT NULL,           -- 关联的 form card 消息
+    turn_id         VARCHAR(36) NOT NULL,
+    session_id      VARCHAR(36) NOT NULL,
+    user_biz_key    VARCHAR(36) NOT NULL,
+    result_biz_key  VARCHAR(36),                    -- entity service 返回的实体 bizKey（commit 成功后填）
+    status          VARCHAR(16) NOT NULL,           -- pending / committed / failed
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    committed_at    TIMESTAMP
+);
+
+CREATE UNIQUE INDEX idx_copilot_idempotency_request ON copilot_idempotency_keys(request_id);
+CREATE INDEX idx_copilot_idempotency_message        ON copilot_idempotency_keys(message_id);
+
+-- MySQL
+-- CREATE TABLE copilot_idempotency_keys (
+--     id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+--     request_id      VARCHAR(36) NOT NULL,
+--     message_id      VARCHAR(36) NOT NULL,
+--     turn_id         VARCHAR(36) NOT NULL,
+--     session_id      VARCHAR(36) NOT NULL,
+--     user_biz_key    VARCHAR(36) NOT NULL,
+--     result_biz_key  VARCHAR(36) NULL,
+--     status          VARCHAR(16) NOT NULL,
+--     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+--     committed_at    TIMESTAMP NULL,
+--     UNIQUE KEY uk_request (request_id),
+--     KEY idx_message (message_id)
+-- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =============================================================================
 -- copilot_agent_call_logs
 -- =============================================================================
 -- 每次 Agent 调用一条记录（Planner + Executors）。配额 + 成本 + 调试。

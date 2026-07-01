@@ -174,7 +174,8 @@ func (o *Orchestrator) ValidateAIOutput(output *AIOutput, env Environment) error
 
 - 每用户每日 AI 调用上限 50 次
 - 通过 `agent_call_logs` 表 COUNT 实现
-- 达上限后降级为关键词匹配模式（不走 LLM）
+- **配额检查在 SSE 流打开之前**执行（pre-flight）；超限返回 HTTP 429 + body `{code: ERR_COPILOT_QUOTA_EXCEEDED, recoverable: true, fallbackAction: "keyword_mode"}`，不写 SSE 头、不开流。前端按 fallbackAction 切关键词匹配模式（见 §7.5）。
+- **错误路径单一**：配额超限只有 HTTP 429 一条路径。SSE 流内的 `error` 事件绝不会是 `ERR_COPILOT_QUOTA_EXCEEDED`（sse-protocol.md §9 已对齐）。
 
 ```go
 // internal/copilot/service/quota.go
@@ -182,7 +183,8 @@ func (o *Orchestrator) ValidateAIOutput(output *AIOutput, env Environment) error
 func (s *QuotaService) CheckQuota(ctx context.Context, userBizKey string) error {
     count, err := s.callLogRepo.CountTodayByUser(ctx, userBizKey)
     if err != nil {
-        return err  // 数据库错误时 fail-open（继续调用）
+        // DB 错误时 fail-closed（见 §7.4），避免配额绕过
+        return ErrQuotaCheckFailed
     }
     if count >= s.dailyLimit {
         return ErrQuotaExceeded
@@ -214,26 +216,112 @@ type cacheEntry struct {
 
 func (c *FeatureFlagCache) IsEnabled(ctx context.Context, key, scopeType, scopeID string) bool {
     cacheKey := fmt.Sprintf("%s:%s:%s", key, scopeType, scopeID)
-    
+
     c.mu.RLock()
     if entry, ok := c.cache[cacheKey]; ok && time.Now().Before(entry.expiry) {
         c.mu.RUnlock()
         return entry.enabled
     }
     c.mu.RUnlock()
-    
+
     // 缓存未命中或过期，查 DB
     enabled, _ := c.repo.Get(ctx, key, scopeType, scopeID)
-    
+
     c.mu.Lock()
     c.cache[cacheKey] = cacheEntry{enabled: enabled, expiry: time.Now().Add(c.ttl)}
     c.mu.Unlock()
-    
+
     return enabled
 }
 ```
 
 **作用域优先级**：user > team > global（最细匹配优先）
+
+### 7.3 孤儿实体污染：威胁模型与缓解
+
+**威胁**：用户在 form card 推送后放弃（Turn superseded / 网络断 / 浏览器关 / 标签页关），若写发生在 LLM 流内（旧设计的 `commit_create` Action 工具），MainItem 已落库但用户从未确认提交 → 孤儿实体污染。
+
+**结构性缓解（本设计采用）**：写操作**不暴露给 LLM 工具**。所有 emit_* 仅写 SSE 事件 + persist `copilot_messages`（无 entity 副作用）。真实 DB 写唯一入口是 `commit_card` Handler：
+
+```
+LLM 流（可中途失败 / 用户可放弃）              commit_card Handler（用户显式提交才触发）
+─────────────────────────────────             ─────────────────────────────────────────
+emit_form_card → copilot_messages             POST /messages type=commit_card
+  status=prefilled, targetEntity.bizKey=""        ↓ (事务)
+  (无 entity 副作用)                              1. idempotency 检查 (request_id)
+                                                  2. Dispatcher → MainItemService.Create
+                                                  3. UPDATE msg.status=submitted, bizKey 回填
+                                                  4. persist followup text msg
+```
+
+**放弃场景下的 DB 状态**：仅留一条 `status=prefilled` 的 form card 消息，无 MainItem 落库。Cron 30 天清理过期会话时随消息级联删除。无孤儿实体。
+
+**剩余风险：mid-commit-card HTTP drop**：用户点了提交，Dispatcher 已调用 `MainItemService.Create` 并落库，但 HTTP 响应在返回途中丢失（连接断）。此时：
+- 实体已创建，前端不知道 bizKey
+- 缓解 1：`copilot_idempotency_keys` 表（schema.sql）—— 前端重试同一 `requestId`，Dispatcher 在 INSERT 时若 UNIQUE 冲突即直接返回上次的 `result_biz_key`，不重复创建
+- 缓解 2：前端对 commit_card 失败默认重试 1 次（同 requestId），重试仍失败则提示"网络异常，请刷新查看是否已创建"
+
+详见 [`request-model.md`](./request-model.md) §6.1 请求 3 + [`interfaces.md`](./interfaces.md) §7.1。
+
+### 7.4 配额检查的 fail-closed 策略
+
+`QuotaService.CheckQuota`（§7.1 代码）在 DB 错误时**fail-closed**（返回 `ErrQuotaCheckFailed`，HTTP 503 + `fallbackAction=use_form`）。理由：配额本身是反滥用控制，fail-open 等于"DB 出错时无限调用"，与控制目的相反。`use_form` 而非 `keyword_mode` 是因为关键词模式本身不依赖配额、DB 错误也不影响关键词模式可用性——但为了避免逻辑分裂，DB 错误统一走 use_form 让用户直接用传统表单。
+
+### 7.5 关键词匹配降级模式（PRD Story 7）
+
+PRD 要求配额超限时"已切换为关键词匹配模式，关键词匹配模式下不做意图识别，仅按关键词命中返回提示或拒绝"。本节定义该模式。
+
+**触发**：pre-flight 配额检查返回 `ErrQuotaExceeded`（§7.1）→ Handler 返回 HTTP 429 + body `{code, recoverable: true, fallbackAction: "keyword_mode"}`。前端不进 SSE 流，直接渲染 KeywordFallbackCard。
+
+**KeywordFallbackService（无 LLM 调用）**：
+
+```go
+// internal/copilot/service/keyword_fallback.go
+
+type KeywordFallbackService struct {
+    rules []KeywordRule
+}
+
+type KeywordRule struct {
+    Pattern     *regexp.Regexp // e.g. `(?i)创建|新建|添加`
+    EntityType  string         // main_item / sub_item / ...
+    OpType      string         // create / query / update / move
+    Hint        string         // 给用户的提示，含传统表单入口
+}
+
+// Match 返回命中规则；无命中返回 nil（前端展示"无法识别，请使用传统表单"）
+func (s *KeywordFallbackService) Match(input string) *KeywordRule
+```
+
+**规则集**（首批，可后续扩展）：
+
+| Pattern | EntityType | OpType | Hint |
+|---------|-----------|--------|------|
+| `(?i)创建\|新建\|添加` | main_item / sub_item | create | "配额已满，请使用 [创建 MainItem 表单](/teams/:teamId/main-items/new)" |
+| `(?i)查询\|查找\|我的` | * | query | "配额已满，请使用 [MainItem 列表筛选](/teams/:teamId/main-items)" |
+| `(?i)修改\|更新\|改为` | main_item | update | "配额已满，请在 [MainItem 详情页](/teams/:teamId/main-items) 直接编辑" |
+| `(?i)移动\|move` | sub_item | move | "配额已满，请在 SubItem 详情页使用移动功能" |
+| `(?i)完成\|关闭\|取消` | * | transition | "配额已满，请在实体详情页直接变更状态" |
+| （无命中） | — | — | "无法识别，请明天再试或使用传统表单" |
+
+**响应（HTTP 429 body）**：
+
+```json
+{
+  "code": "ERR_COPILOT_QUOTA_EXCEEDED",
+  "message": "今日 AI 调用已达上限（50 次），已切换为关键词匹配模式",
+  "recoverable": true,
+  "fallbackAction": "keyword_mode",
+  "keywordMatch": {
+    "matchedRule": { "entityType": "main_item", "opType": "create" },
+    "hint": "配额已满，请使用 [创建 MainItem 表单](...)"
+  }
+}
+```
+
+无命中时 `keywordMatch` 为 `null`，前端展示"无法识别，请重新描述或使用传统表单"。
+
+**为何不进 SSE 流**：关键词匹配是纯本地计算（< 5ms），无需流式；JSON 响应让前端一次性渲染降级卡片。
 
 ## 8. 数据隐私
 

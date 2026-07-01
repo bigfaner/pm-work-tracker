@@ -8,6 +8,30 @@ parent: tech-design.md
 
 > 返回 [`tech-design.md`](./tech-design.md)
 
+## 0. 与 AB-001 的偏离说明（bizKey 类型）
+
+项目规范 AB-001 要求"Service boundary uses int64 BizKey"。本 Copilot 模块**有意偏离**：所有 bizKey 在 Copilot 边界（Service / Repository / Schema / SSE payload）均为 **`string` (VARCHAR(36))**。
+
+**理由**：
+
+1. **来源不同**：现有模块的 bizKey 由 snowflake int64 生成；Copilot 模块的 bizKey 由 `copilot_messages`、`copilot_turns`、`copilot_sessions` 的独立 snowflake string 生成（与现有实体 bizKey 空间隔离，避免冲突）。
+2. **跨实体引用**：Copilot 引用的目标实体 bizKey 来自 6 个不同实体表（MainItem / SubItem / Milestone / ...），这些实体的 bizKey 在 Service 层虽为 int64，但在 SSE payload / 卡片 JSON 中需要以字符串形式呈现（前端无 int64 类型）。统一在 Copilot 边界用 string，避免重复转换。
+3. **既有边界不破坏**：Copilot 在**调用现有 entity service 时**遵守 AB-001——Dispatcher 内部把 Copilot 的 `targetBizKey string` 经 `ParseBizKeyParam` 转 `int64`，再传给 `MainItemService.FindByBizKey(ctx, bizKey int64)` 等。Copilot Repository / Handler 不直接调现有 entity service。
+
+**实现契约**：
+
+| 层 | bizKey 类型 | 说明 |
+|----|-----------|------|
+| Copilot HTTP Handler / Request URL | `string` (URL param) | `c.Param("id")`，不调 `ParseBizKeyParam` |
+| Copilot Service interface | `string` | `MessageRepository.GetByBizKey(ctx, bizKey string)` |
+| Copilot Repository / GORM | `string` (`gorm:"type:varchar(36)"`) | 与 schema.sql 对齐 |
+| Copilot SSE payload JSON | `string` | 前端 TS 一致 |
+| Dispatcher → 现有 entity service 边界 | `int64` | Dispatcher 内部 `id, _ := strconv.ParseInt(targetBizKey, 10, 64); mainItemSvc.FindByBizKey(ctx, id)` |
+
+**结论**：AB-001 在现有 entity service 边界仍 100% 遵守；Copilot 模块作为独立子树使用 string bizKey，转换发生在 Dispatcher 边界。这与 AB-001 的精神（"typed at boundary"）一致，只是类型选择不同。
+
+---
+
 ## 1. LLMProvider 接口（可插拔核心）
 
 ```go
@@ -309,34 +333,58 @@ type FeatureFlagRepository interface {
 }
 ```
 
-## 7. Dispatcher 接口（复用现有 entity service）
+## 7. Dispatcher 接口（复用现有 entity service，由 commit_card Handler 调用）
+
+Dispatcher 是 LLM 与 entity service 之间的边界，**仅由 `commit_card` Handler 路径同步调用**（不经 LLM 工具，见 [`request-model.md`](./request-model.md) §6.1 请求 3 + [`security.md`](./security.md) §7.3）。Executor 的 `emit_form_card` 仅组装字段、不调 Dispatcher。
 
 ```go
 // internal/copilot/service/dispatcher.go
 
 type Dispatcher interface {
-    // 按 form card payload 路由到现有 entity service
+    // 按 form card payload 路由到现有 entity service。
+    // 调用方：handleCommitCard Handler（POST /messages type=commit_card）
     Dispatch(ctx context.Context, fc FormCard) (*DispatchResult, error)
 }
 
+// FormCard = 持久化的 form card 消息反序列化结构
+type FormCard struct {
+    OpType       string       // create / update / move
+    EntityType   string       // main_item / sub_item / ...
+    TargetBizKey string       // update/move 必填（已存在实体）；create 留空
+    Fields       []FieldState // 用户编辑后的最终值
+}
+
 type DispatchResult struct {
-    BizKey  string  // 创建/更新的实体 bizKey
+    BizKey  string  // 创建/更新的实体 bizKey（commit 后回填到 followup 消息）
     Title   string
     Raw     any     // 原始返回值
 }
 
-// 实现路由表：
-// - opType=create, entityType=main_item → MainItemService.Create
-// - opType=create, entityType=sub_item → SubItemService.Create
-// - opType=update, entityType=main_item → MainItemService.Update
-// - opType=update, entityType=main_item, fields={assignee} → 同上（assignee 是字段）
-// - opType=move, entityType=sub_item → SubItemService.Move
+// 实现路由表（均复用现有 service，零改动）：
+// - opType=create, entityType=main_item   → MainItemService.Create
+// - opType=create, entityType=sub_item    → SubItemService.Create
+// - opType=create, entity_type=milestone  → MilestoneService.Create
+// - opType=update, entityType=main_item   → MainItemService.Update（assignee 是普通字段）
+// - opType=move,   entityType=sub_item    → SubItemService.Move
 // - ...
+//
+// Dispatcher 内部 idempotency：见 §7.1（commit_card 幂等）
+```
+
+### 7.1 commit_card 幂等性（防 LLM 重试 / 网络重试导致重复创建）
+
+`commit_card` 请求携带客户端生成的 `requestId`（UUID v4，前端在用户每次点提交时生成一次）。Dispatcher 在 entity service Create 路径上：
+
+1. 查 `copilot_idempotency_keys` 表（`request_id` UNIQUE）；命中则直接返回上次结果（含 bizKey），不再调 entity service。
+2. 未命中 → 事务内：INSERT idempotency row + 调 entity service Create + UPDATE form card status=submitted。
+3. 重复请求（同 requestId）在 step 1 即返回，保证不重复创建。
+
+> 此机制同时覆盖 LLM 失败重试（若未来 Executor 重引入 Action 工具）与前端网络抖动重试。schema 见 [`schema.sql`](./schema.sql) `copilot_idempotency_keys` 表。
 ```
 
 ## 8. ToolRegistry 接口
 
-工具三分类（Read / Action / Emission）与具体工具清单见 [`agent-architecture.md`](./agent-architecture.md) §2。Emission 工具在 Agent 循环中的终止语义见 [`llm-integration.md`](./llm-integration.md) §2。
+工具两分类（Read / Emission）与具体工具清单见 [`agent-architecture.md`](./agent-architecture.md) §2。Emission 工具在 Agent 循环中的终止语义见 [`llm-integration.md`](./llm-integration.md) §2。**无 Action 类**——写操作不经 LLM 工具，由 `commit_card` Handler 路径触发（见 [`request-model.md`](./request-model.md) §6.1 + [`security.md`](./security.md) §7.3）。
 
 ```go
 // internal/copilot/tools/tool_registry.go
@@ -345,7 +393,6 @@ type ToolKind string
 
 const (
     ToolKindRead     ToolKind = "read"
-    ToolKindAction   ToolKind = "action"
     ToolKindEmission ToolKind = "emission"
 )
 
@@ -358,7 +405,7 @@ type Tool interface {
 }
 
 // ToolExecParams 仅 Emission 工具使用 OutCh / Persist；
-// Read / Action 工具可忽略这两个字段。
+// Read 工具可忽略这两个字段。
 type ToolExecParams struct {
     OutCh   chan<- sse.Event  // Emission 工具直接写专用事件
     TurnID  string
@@ -501,5 +548,98 @@ type MessageRequest struct {
     MessageID       string `json:"messageId,omitempty"`       // select_candidate / commit_card / cancel
     CandidateBizKey string `json:"candidateBizKey,omitempty"` // select_candidate
     NewContent      string `json:"newContent,omitempty"`      // adjust_intent
+    RequestID       string `json:"requestId,omitempty"`       // commit_card only：客户端生成的幂等键（UUID v4）
 }
+```
+
+## 11. 内嵌 Struct 完整定义
+
+下列 struct 在 tech-design.md §3、request-model.md §3、sse-protocol.md §3 中被引用，统一在此定义。
+
+```go
+// internal/copilot/model/types.go
+
+// FieldState —— 单个字段的状态与值（IntentSpec.Fields / FormCardData.Fields 共用）
+type FieldState struct {
+    Name     string `json:"name"`               // schema 字段名（如 "title" / "assignee" / "priority"）
+    Value    any    `json:"value"`               // 字段值；类型由 entity-schemas 定义（string / int / []string / *time.Time）
+    Required bool   `json:"required"`            // 是否必填（来自 entity-schemas）
+    Derived  bool   `json:"derived,omitempty"`   // AI 推断的字段（vs 用户原文提取）—— UI 标注
+    Version  int64  `json:"version,omitempty"`   // 并发控制：每次 PATCH 递增（见 api-handbook.md §4）
+    EditedAt int64  `json:"editedAt,omitempty"`  // 最后编辑时间戳（ms）—— last-write-wins 判定
+}
+
+// EntityRef —— 实体引用（IntentSpec.TargetEntity / FormCardData.TargetEntity / DisambigCardData.Candidates）
+type EntityRef struct {
+    BizKey   string `json:"bizKey"`              // 实体 bizKey（form card 预填阶段为 ""，commit 后回填）
+    EntityType string `json:"entityType"`        // main_item / sub_item / milestone / ...
+    Title    string `json:"title,omitempty"`     // 显示用标题
+    BizCode  string `json:"bizCode,omitempty"`   // 业务编码（如 MI-0023）
+}
+
+// EntityRecord —— 查询结果单行（QueryResultCardData.Records）
+type EntityRecord struct {
+    BizKey    string         `json:"bizKey"`
+    EntityType string        `json:"entityType"`
+    Title     string         `json:"title"`
+    BizCode   string         `json:"bizCode,omitempty"`
+    Status    string         `json:"status,omitempty"`     // 实体当前状态（completed / in_progress / ...）
+    Fields    map[string]any `json:"fields,omitempty"`     // 完整字段（按 entity-schemas）
+    Expanded  bool           `json:"expanded"`             // UI 是否默认展开详情（reader 单记录=true，多记录=false）
+}
+
+// TracePayload —— type=trace 消息的 trace 字段结构
+type TracePayload struct {
+    Thinking string         `json:"thinking"`             // LLM thinking 文本聚合
+    Actions  []TraceAction  `json:"actions"`              // tool_call + tool_result 配对序列
+    StartedAt int64         `json:"startedAt"`
+    EndedAt   int64         `json:"endedAt,omitempty"`
+    Status   string         `json:"status"`               // streaming / done / failed
+}
+
+type TraceAction struct {
+    CallID     string         `json:"callId"`
+    ToolName   string         `json:"toolName"`
+    Arguments  map[string]any `json:"arguments"`
+    Result     map[string]any `json:"result,omitempty"`
+    Error      string         `json:"error,omitempty"`
+    Status     string         `json:"status"`              // success / error
+    StartedAt  int64          `json:"startedAt"`
+    DurationMs int            `json:"durationMs"`
+}
+
+// IntentMeta —— SSE 事件的 intent 上下文（Event.IntentMeta 字段，step 级事件携带）
+type IntentMeta struct {
+    ID    string `json:"id"`              // intent_1, intent_2
+    Label string `json:"label"`           // "创建 MainItem"
+    Seq   int    `json:"seq"`             // 在 turn 内的顺序（1-based）
+    Total int    `json:"total"`           // turn 内 intent 总数
+}
+
+// DiffOverlay —— 并发编辑冲突时的 diff 预览（FormCardData.DiffOverlay）
+type DiffOverlay struct {
+    FieldName      string `json:"fieldName"`          // 冲突字段名
+    YourValue      any    `json:"yourValue"`           // 用户本地编辑的值
+    OtherValue     any    `json:"otherValue"`          // 对话路径写入的值
+    OtherSource    string `json:"otherSource"`         // "dialog_adjust" / "intent_adjust"
+    OtherEditedAt  int64  `json:"otherEditedAt"`       // 对方写入时间戳（ms）
+    DiffPreview    string `json:"diffPreview"`         // 人类可读 diff（如 "-认证模块 +认证模块 v2"）
+}
+
+// FormErrors —— form card 校验错误（FormCardData.Errors）
+type FormErrors struct {
+    Validation        map[string]string `json:"validation,omitempty"`        // 字段级错误（fieldName → message）
+    ValidTransitions  []string          `json:"validTransitions,omitempty"`  // 状态变更预校验：合法目标列表
+    Permission        string            `json:"permission,omitempty"`        // RBAC 拒绝原因
+}
+
+// IntentPayload —— 意图消息的完整 payload（与 request-model.md §3.1 一致）
+type IntentPayload struct {
+    Text       string        `json:"text"`
+    Intents    []IntentSpec  `json:"intents"`
+    MissingInfo []MissingItem `json:"missingInfo,omitempty"`
+    State      string        `json:"state"`              // awaiting_confirm / info_complete / confirmed / adjusted / cancelled
+    Confidence float64       `json:"confidence"`         // 0.0–1.0（见 agent-architecture.md §3.4）
+}
+```
 ```

@@ -31,17 +31,18 @@ parent: tech-design.md
 | 类别 | 行为 | 流后处理 | 示例 |
 |------|------|---------|------|
 | **Read** | 纯查询，返回数据给 LLM | append `role=tool` 到 messages，继续循环 | `query_team_schema`, `fuzzy_match_member` |
-| **Action** | 变更状态，返回 bizKey / 操作结果 | append `role=tool` 到 messages，继续循环 | `commit_create`, `commit_update`, `move_sub_item` |
-| **Emission** | 结构化输出，写 SSE 事件到 outCh | **不 append，终止流**（StreamRun 结束） | `submit_rewrite`, `submit_intent`, `emit_form_card` |
+| **Emission** | 结构化输出，写 SSE 事件到 outCh（含预填表单 card）；**不触 DB 写** | **不 append，终止流**（StreamRun 结束） | `submit_rewrite`, `submit_intent`, `emit_form_card`, `emit_query_result`, `emit_disambig` |
+
+**关键：写操作不发任何"Action"工具**。Executor 只组装字段 + 调 `emit_form_card` 推送"预填表单卡片"（in-memory only）。真正的 DB 写发生在 `commit_card` Handler 路径，调用 Dispatcher → 现有 entity service（见 [`request-model.md`](./request-model.md) §6.1 与 [`security.md`](./security.md) §7.3）。这样保证"AI 不直接写库"在物理层面成立，且用户放弃提交时无孤儿实体。
 
 ### 2.1 Emission 工具语义
 
 - Emission 工具是 Agent 流的**终止信号**——一旦调用，Agent 不再继续 LLM 循环
 - 一个 Agent 必有且仅有"终止 emission"作为完成方式（除非超过 max_iterations 兜底失败）
-- Emission 工具直接把 args 渲染为对应 SSE 事件：
+- Emission 工具直接把 args 渲染为对应 SSE 事件，**所有 emit_* 工具仅写 SSE 事件 + persist 卡片消息到 copilot_messages**，绝不调用 entity service 的 Create/Update/Move：
   - `submit_rewrite` → `input_rewrite` 事件（仅 Planner，作为第 1 步）
   - `submit_intent` → `card_message(cardType=intent)` 事件（仅 Planner，终止）
-  - `emit_form_card` → `card_message(cardType=form)` 事件（Writer/Updater/Mover，终止）
+  - `emit_form_card` → `card_message(cardType=form, status=prefilled)` 事件（Writer/Updater/Mover，终止）；**targetEntity.bizKey 留空**（待 commit_card 阶段由 entity service 生成后回填）
   - `emit_query_result` → `card_message(cardType=query_result)` 事件（Reader，终止）
   - `emit_disambig` → `card_message(cardType=disambig)` 事件（任一 Executor，终止）
 
@@ -57,14 +58,13 @@ parent: tech-design.md
 | `query_entities` | Read | | | ✓ | | ✓ |
 | `validate_transition` | Read | | | | ✓ | |
 | `validate_source_target` | Read | | | | | ✓ |
-| `commit_create` | Action | | ✓ | | | |
-| `commit_update` | Action | | | | ✓ | |
-| `move_sub_item` | Action | | | | | ✓ |
 | `submit_rewrite` | Emission | ✓ | | | | |
 | `submit_intent` | Emission | ✓ | | | | |
 | `emit_form_card` | Emission | | ✓ | | ✓ | ✓ |
 | `emit_query_result` | Emission | | | ✓ | | |
 | `emit_disambig` | Emission | | ✓ | | ✓ | ✓ |
+
+**已删除 `commit_create` / `commit_update` / `move_sub_item` 工具**。真实 DB 写由 `commit_card` Handler 路径触发 Dispatcher（见 [`request-model.md`](./request-model.md) §6.1）。Updater/Mover 在推送 form card 前可调 Read 工具 `validate_transition` / `validate_source_target` 做预校验，结果写入 cardData.errors 但不阻断流（最终由用户在 form card 上调整后提交时再次校验）。
 
 ## 3. Planner Agent
 
@@ -72,7 +72,7 @@ parent: tech-design.md
 
 | Planner **要做** | Planner **不做** |
 |-----------------|-----------------|
-| 识别所有意图（含多意图） | 调用 commit_create / commit_update / move_sub_item |
+| 识别所有意图（含多意图） | 调用任何写工具（写操作无 Action 工具，见 §2） |
 | 必要时发意图回执 + 澄清问题 | 调用 query_entities（让 reader 做） |
 | 拆解为 step 计划 | 调用 validate_transition（让 updater 做） |
 | 标注每 step 用哪个 Executor | 渲染 form / query_result 卡片（让 Executor 做） |
@@ -142,6 +142,7 @@ submit_intent 参数 schema：
   - executor: writer / reader / updater / mover
 - missingInfo[]: 缺失字段（如有，每个含 intentIndex / field / question / hint）
 - state: awaiting_confirm 或 info_complete（澄清收齐后）
+- confidence: 0.0–1.0 浮点数（见 §3.4 置信度处理）
 
 ## 重要规则
 
@@ -175,14 +176,58 @@ plannerEmissionTools := []ToolDef{
 
 → Planner **没有写工具**（`commit_create` 等），也**没有 form/query_result emission**——物理隔离职责。
 
+### 3.4 置信度处理（PRD Story 7，4 个边界 AC）
+
+Planner 在 `submit_intent` 的 `confidence` 字段输出对意图识别的置信度（0.0–1.0）。Orchestrator 在 persist 意图消息**之前**按阈值分流：
+
+| confidence 区间 | 处理 | 前端表现 |
+|----------------|------|---------|
+| `≥ 0.7`（高置信） | persist 意图消息（state=awaiting_confirm） + emit `card_message(intent)` + emit `turn_phase_done(nextAction=await_confirm_intent)` | 展示意图确认卡片（PRD：直接推送预填候选意图，不返回候选列表） |
+| `0.4 ≤ x < 0.7`（中置信） | Orchestrator **不 persist 意图消息**；emit `card_message(cardType=candidate_list)` + 引导文字 + emit `turn_phase_done(nextAction=await_select_intent)` | 展示候选意图列表（每项含 label + 字段摘要），用户点选 → `POST /messages {type:select_intent, candidateIntentId}` → 转 `confirm_intent` 流程 |
+| `< 0.4`（低置信） | Orchestrator emit `text_message("无法理解，请重新描述")` + `turn_phase_done(nextAction=retry)`，列出支持的操作类型清单 | 展示失败提示 + 操作类型清单 |
+
+**边界 AC 对齐（PRD Story 7）**：
+
+| AC | confidence | 路径 |
+|----|-----------|------|
+| 0.7（高置信下界） | = 0.7 | 高置信处理 |
+| 0.69（中置信上界） | = 0.69 | 中置信处理 |
+| 0.4（中置信下界） | = 0.4 | 中置信处理 |
+| 0.39（低置信上界） | = 0.39 | 低置信处理 |
+
+阈值常量在 `internal/copilot/orchestrator/confidence.go`：
+
+```go
+const (
+    ConfidenceHighMin   = 0.7  // ≥ 0.7 走高置信
+    ConfidenceMiddleMin = 0.4  // ≥ 0.4 走中置信
+    // < 0.4 走低置信
+)
+```
+
+**candidate_list 卡片**（新增 cardType）：CardPayload 含 `candidates: [{id, label, opType, entityType, fieldsSummary}]`。用户点选后，Orchestrator 把该候选升级为正式 IntentSpec（生成 intent_message_id）并进入 `confirm_intent` 流程。state-machines.md §3 新增状态 `awaiting_select_intent`（介于 planning 与 awaiting_confirm_intent 之间）。
+
+**为什么中置信不直接进 confirm_intent**：中置信下用户尚未确认"是这个意图"，直接展示确认卡片会让用户误以为 AI 高置信理解了。candidate_list 强制用户从候选中选一个，避免误执行。
+
+**单测场景**（testing-strategy.md §3.1 补充）：
+
+| 输入 | confidence | 期望路径 |
+|------|-----------|---------|
+| "创建 P1 事项叫认证模块"（清晰） | 0.85 | 高置信 → intent card |
+| "改一下那个东西的状态"（含代词+省略） | 0.55 | 中置信 → candidate_list |
+| "asdfgh"（无意义） | 0.20 | 低置信 → "无法理解" |
+| 边界：模拟 confidence=0.7 / 0.69 / 0.4 / 0.39 | 各值 | 验证阈值分支正确 |
+
 ## 4. Executor Agents（按 op_type 抽象，4 个）
 
-| Executor | 处理范围 | Read 工具 | Action 工具 | Emission 工具（终止） |
-|----------|---------|----------|------------|----------------------|
-| **writer** | 6 实体的 create | `query_team_schema`, `fuzzy_match_member`, `fuzzy_match_milestone` | `commit_create` | `emit_form_card`, `emit_disambig` |
-| **reader** | 6 实体的 query | `query_team_schema` | `query_entities` | `emit_query_result` |
-| **updater** | 6 实体的 update / assignee / 状态变更 | `query_team_schema`, `fuzzy_match_*` | `commit_update`, `validate_transition` | `emit_form_card`, `emit_disambig` |
-| **mover** | SubItem.move | `query_entities` | `move_sub_item`, `validate_source_target` | `emit_form_card`, `emit_disambig` |
+| Executor | 处理范围 | Read 工具 | Emission 工具（终止） |
+|----------|---------|----------|----------------------|
+| **writer** | 6 实体的 create | `query_team_schema`, `fuzzy_match_member`, `fuzzy_match_milestone` | `emit_form_card`, `emit_disambig` |
+| **reader** | 6 实体的 query | `query_team_schema`, `query_entities` | `emit_query_result` |
+| **updater** | 6 实体的 update / assignee / 状态变更 | `query_team_schema`, `fuzzy_match_*`, `validate_transition` | `emit_form_card`, `emit_disambig` |
+| **mover** | SubItem.move | `query_entities`, `validate_source_target` | `emit_form_card`, `emit_disambig` |
+
+**Executor 无任何 Action/写工具**——所有 emit_form_card 仅生成预填表单（`status=prefilled, targetEntity.bizKey=""`）。真实 DB 写由用户点提交后 `commit_card` Handler 调 Dispatcher 触发现有 entity service（[`request-model.md`](./request-model.md) §6.1 请求 3）。`validate_transition` / `validate_source_target` 是 Read 工具，预校验结果填入 `cardData.errors` 供前端展示但不阻塞流。
 
 **为什么不按实体拆 6 个**：
 - 复用度高（字段抽取、模糊匹配、必填校验逻辑共享）
@@ -213,25 +258,25 @@ plannerEmissionTools := []ToolDef{
 - fuzzy_match_member(name) → 姓名转 user_bizkey（多候选时返回候选列表）
 - fuzzy_match_milestone(name) → 名称转 milestone_bizkey
 
-### Action
-- commit_create(entity_type, fields) → 调后端 API 创建，返回 bizKey
-
 ### Emission（终止流）
-- emit_form_card(cardData) → 推送表单卡片（含已创建实体的 bizKey）
+- emit_form_card(cardData) → 推送**预填表单卡片**（targetEntity.bizKey 留空，等用户提交后由 entity service 生成）
 - emit_disambig(candidates[]) → 多候选时让用户选
+
+**注意：你没有任何写工具。** 真正的 MainItemService.Create 由用户在 form card 上点"提交"后由后端 commit_card 路径触发，不在这条 LLM 流里。
 
 ## 流程
 
 1. 字段中如有姓名/里程碑引用，先调 fuzzy_match_* 转换为 bizKey
 2. 若 fuzzy_match_* 返回多候选 → 调 emit_disambig，终止流（等用户 select_candidate）
-3. bizKey 齐备后调 commit_create 创建实体，拿到新实体的 bizKey
-4. 调 emit_form_card 推送表单（cardData 包含 bizKey、字段、操作类型），流结束
+3. 字段齐备后调 emit_form_card 推送**预填表单卡片**（cardData 含 opType / entityType / fields，但 targetEntity.bizKey 为空字符串），流结束
+4. 用户在 UI 上确认/编辑后点提交 → 后端 commit_card Handler 调用 MainItemService.Create → bizKey 回填到 followup 消息
 
 ## 重要规则
 
 - 卡片 derived 字段标 derived=true
 - 创建操作不调 validate_transition（无源状态）
 - 卡片状态默认 prefilled，等待用户在 UI 上提交
+- **targetEntity.bizKey 必须留空**——此卡片是预填草稿，不是已创建实体的回显
 - **禁止在文本里输出 JSON 或 <message> 标签**
 ```
 
@@ -323,13 +368,16 @@ func (r *Registry) Executor(name string) (Agent, error) {
 | `validate_transition` | GET available-transitions endpoint | 复用现有端点 |
 | `validate_source_target` | 综合校验（源/目标非终态、同 Team、不同实体） | 新增 helper |
 
-### 8.2 Action 工具
+### 8.2 写操作（无 LLM 工具）
 
-| 工具 | 实现 | 说明 |
-|------|------|------|
-| `commit_create` | Dispatcher.DispatchCreate(entity_type, fields) | 调用现有 entity service |
-| `commit_update` | Dispatcher.DispatchUpdate(bizKey, fields) | 调用现有 update API |
-| `move_sub_item` | SubItemService.Move | 复用现有端点 |
+写操作（create / update / move）**不暴露给 LLM**。真实 DB 写路径：
+
+1. Executor 调 `emit_form_card`（Emission 工具）→ 推送预填表单 card（`status=prefilled`, `targetEntity.bizKey=""`）→ persist 到 `copilot_messages`
+2. 用户在 form card 上编辑/确认后点提交 → 前端发 `POST /messages {type: commit_card, messageId}`
+3. Handler `handleCommitCard` 读 form card payload → 调 Dispatcher → 调现有 entity service（`MainItemService.Create` 等）→ 事务内 UPDATE form card `status=submitted` + persist followup text msg
+4. entity service 返回 bizKey → 写入 followup 消息内容
+
+此设计保证"AI 不直接写库"在物理层面成立（详见 [`request-model.md`](./request-model.md) §6.1 请求 3 + [`security.md`](./security.md) §7.3）。LLM 失败 / 用户放弃提交时仅留一条 `status=prefilled` 的 form card 消息，无孤儿实体。
 
 ### 8.3 Emission 工具
 
@@ -337,7 +385,7 @@ func (r *Registry) Executor(name string) (Agent, error) {
 |------|---------|---------|
 | `submit_rewrite` | 解析 args → emit `input_rewrite` 事件 → 返回 success（继续循环） | `input_rewrite` |
 | `submit_intent` | 解析 args → Orchestrator 持久化意图消息 → emit `card_message(intent)` → 返回 terminal | `card_message(cardType=intent)` |
-| `emit_form_card` | 解析 args → Orchestrator 持久化 form 消息 → emit `card_message(form)` → 返回 terminal | `card_message(cardType=form)` |
+| `emit_form_card` | 解析 args → Orchestrator 持久化 form 消息（**targetEntity.bizKey 留空**）→ emit `card_message(form, status=prefilled)` → 返回 terminal | `card_message(cardType=form)` |
 | `emit_query_result` | 解析 args → 持久化 query_result 消息 → emit → 返回 terminal | `card_message(cardType=query_result)` |
 | `emit_disambig` | 解析 args → 持久化 disambig 消息 → emit → 返回 terminal | `card_message(cardType=disambig)` |
 

@@ -286,15 +286,15 @@ func (a *baseAgent) runLoop(
 
 ### 2.4 各 Agent 的 emission 调用顺序
 
-每个 Agent 必有 emission 工具作为完成方式：
+每个 Agent 必有 emission 工具作为完成方式。**无写工具**——所有 emit_form_card 仅生成预填表单（targetEntity.bizKey 留空），真实 DB 写由 `commit_card` Handler 触发：
 
 | Agent | 必调 emission 工具（按典型顺序） | 终止信号 | 备注 |
 |-------|------------------------------|---------|------|
 | Planner | 1. `submit_rewrite`（不终止） → 2. `submit_intent` | `submit_intent` | submit_rewrite 是第 1 步，之后还要 thinking + submit_intent |
-| Writer | `commit_create` → `emit_form_card` 或 `emit_disambig` | `emit_form_card` / `emit_disambig` | 多候选时先 emit_disambig 终止 |
+| Writer | （可选 Read: `fuzzy_match_*`） → `emit_form_card` 或 `emit_disambig` | `emit_form_card` / `emit_disambig` | 多候选时先 emit_disambig 终止；form card 仅含预填字段，bizKey 留空 |
 | Reader | `query_entities` → `emit_query_result` | `emit_query_result` | — |
-| Updater | `validate_transition` → `commit_update` → `emit_form_card` 或 `emit_disambig` | `emit_form_card` / `emit_disambig` | — |
-| Mover | `validate_source_target` → `move_sub_item` → `emit_form_card` 或 `emit_disambig` | `emit_form_card` / `emit_disambig` | — |
+| Updater | （可选 Read: `validate_transition`） → `emit_form_card` 或 `emit_disambig` | `emit_form_card` / `emit_disambig` | 预校验失败时把 errors 填入 cardData，但仍 emit_form_card 终止 |
+| Mover | （可选 Read: `validate_source_target`） → `emit_form_card` 或 `emit_disambig` | `emit_form_card` / `emit_disambig` | 同上 |
 
 **特殊：`submit_rewrite` 是唯一不终止的 emission 工具**。返回 `Status=success`，Agent 继续 LLM 循环。这样 Planner 能在单次 StreamRun 内串行完成 input_rewrite + thinking + submit_intent。
 
@@ -346,7 +346,7 @@ func (a *baseAgent) runLoop(
 }
 ```
 
-**关键点：tool_call 分片流式到达**——`function.arguments` 是 JSON 字符串的分片（如 `{"entity` → `_type":"main` → `_item",...}`），必须按 `index` 累积拼装。
+**关键点：tool_call 分片流式到达**——`function.arguments` 是 JSON 字符串的分片（如 `{"entity` → `_type":"main` → `_item",...}`），必须按 `index` 累积拼装。（注：示例中 `commit_create` 仅为 GLM SSE 分片格式演示；实际 Writer Executor 只持有 `emit_form_card` 等 Read/Emission 工具，见 [`agent-architecture.md`](./agent-architecture.md) §2.2。）
 
 ### 3.2 StreamChat 实现
 
@@ -771,10 +771,83 @@ if err != nil {
 |----|------|------|
 | HTTP 请求（Provider→GLM） | 30s | `cfg.copilot.provider.timeout` |
 | 单次 Agent 迭代（一次 LLM 调用） | 30s | 同上（共用） |
-| 单次 Agent StreamRun 总时长 | 4 分钟 | `8 iter × 30s`（隐式上限） |
-| Turn 总执行 | 无显式限制 | 由客户端断开 / max iterations 间接限制 |
+| 单次 Agent StreamRun 总时长 | 60s | **显式 wall-clock 上限**（不再是隐式 8×30s） |
+| Turn 总执行 | 120s | 由客户端断开 / wall-clock 双重限制 |
+
+**为什么 StreamRun 改为显式 60s**：原"8 iter × 30s = 4 分钟"是隐式上限，单个用户可钉住 goroutine + GLM 上游连接长达 4 分钟。20 用户 × 4 min = goroutine 爆炸风险。改为 60s wall-clock：足够覆盖典型 turn（Planner 2 调 + Executor 1–2 调，每调 ~5s），同时把资源占用上限降到 1/4。
 
 **客户端断开处理**：`c.Request.Context()` 取消时，所有下游 channel 关闭、goroutine 退出。已 persist 的 trace 和意图消息保留。
+
+### 6.5 并发限制（防 goroutine / 连接耗尽）
+
+单个 StreamRun 可钉住一个 goroutine + 一条 GLM 上游 HTTP 连接最长 60s。必须显式限制并发，否则恶意/异常用户可耗尽资源。
+
+| 限制 | 配置键 | 默认 | 实现位置 | 说明 |
+|------|-------|------|---------|------|
+| 单用户并发 SSE 流 | `cfg.copilot.concurrency.max_streams_per_user` | 1 | Handler middleware `UserStreamGuard` | 同一 user 同时只允许 1 个活跃 SSE 流；第 2 个返回 HTTP 429 + `ERR_COPILOT_USER_STREAM_BUSY` |
+| 全局 GLM 出站并发 | `cfg.copilot.concurrency.max_outbound_llm` | 10 | Provider 内 `chan struct{}` semaphore（capacity=10） | 全应用共享；超过则 StreamChat 阻塞排队（带 5s 超时 → 503） |
+| 全局 SSE 流并发 | `cfg.copilot.concurrency.max_global_streams` | 50 | Handler middleware `GlobalStreamGuard` | 全应用同时活跃 SSE 流上限；超限返回 503 |
+
+```go
+// internal/copilot/provider/glm_provider.go
+
+type GLMProvider struct {
+    // ... 其他字段
+    outboundSem chan struct{}  // capacity = max_outbound_llm（默认 10）
+}
+
+func (p *GLMProvider) StreamChat(ctx context.Context, params ProviderParams) (<-chan ProviderEvent, error) {
+    // 获取信号量（5s 超时）
+    select {
+    case p.outboundSem <- struct{}{}:
+        defer func() { <-p.outboundSem }()
+    case <-time.After(5 * time.Second):
+        return nil, ErrLLMOutboundBusy  // → HTTP 503
+    case <-ctx.Done():
+        return nil, ctx.Err()
+    }
+
+    // ... 原有逻辑
+}
+```
+
+```go
+// internal/copilot/handler/middleware.go
+
+func (h *CopilotHandler) UserStreamGuard(c *gin.Context) {
+    var req MessageRequest
+    if err := c.ShouldBindJSON(&req); err != nil { c.Next(); return }
+    if !triggersSSEStream(req.Type) { c.Next(); return }
+
+    userBizKey := middleware.GetUserBizKey(c)
+    if !h.streamLimiter.TryAcquire(userBizKey) {
+        c.JSON(http.StatusTooManyRequests, gin.H{
+            "code": "ERR_COPILOT_USER_STREAM_BUSY",
+            "message": "已有 AI 请求处理中，请等待完成或取消后再试",
+            "recoverable": true,
+        })
+        c.Abort()
+        return
+    }
+    // 流关闭时 Release（在 streamEvents defer 内）
+    c.Set("releaseStreamSlot", func() { h.streamLimiter.Release(userBizKey) })
+    c.Next()
+}
+```
+
+**StreamLimiter 实现**：`map[userBizKey]int`（计数）+ `sync.Mutex`；TryAcquire 在已有计数 ≥ 1 时返回 false。流结束（正常 / 异常 / ctx 取消）时 Release。
+
+**容量计算依据**：
+- 全局 10 并发 GLM 出站：GLM API 单 key QPS 限制 ~ 10（保守估算），且每流式调用平均占用 ~5s，10 并发 = 2 QPS 长期可持续。
+- 单用户 1 并发：避免一个用户开多个会话并行触发，把全局限额耗光。
+- 全局 50 SSE 流：预留 goroutine / 文件描述符余量；可通过压测调整。
+
+**新增错误码**（tech-design.md §4.1 补充）：
+
+| HTTP | code | 场景 |
+|------|------|------|
+| 429 | `ERR_COPILOT_USER_STREAM_BUSY` | 单用户已有活跃 SSE 流 |
+| 503 | `ERR_COPILOT_LLM_OUTBOUND_BUSY` | 全局 GLM 出站信号量耗尽（5s 排队超时） |
 
 ## 7. 端到端时序示例
 
@@ -835,45 +908,33 @@ Frontend            Handler          Orchestrator     Planner.Agent    Provider 
    │                   │                  │                 │<──delta × N──│<──SSE stream│
    │<──thinking × N────│<──thinking × N──│<──thinking × N──│              │             │
    │                   │                  │                 │<──tool_call──│             │
-   │                   │                  │                 │  (commit_create, Action)    │
-   │<──tool_call───────│<──tool_call─────│<──tool_call─────│              │             │
-   │                   │                  │                 │              │             │
-   │                   │                  │                 │  Execute(commit_create)     │
-   │                   │                  │                 │  → MainItemService.Create   │
-   │                   │                  │                 │  → returns bizKey=MI-0023   │
-   │<──tool_result─────│<──tool_result───│<──tool_result───│  → returns success（不终止）│
-   │                   │                  │                 │  append tool msg            │
-   │                   │                  │                 │              │             │
-   │                   │                  │                 │  ===== iter 2 (Writer) =====│
-   │                   │                  │                 │──StreamChat─>│──POST──────>│
-   │                   │                  │                 │<──delta × N──│<──SSE stream│
-   │                   │                  │                 │<──tool_call──│             │
    │                   │                  │                 │  (emit_form_card, Emission) │
    │                   │                  │                 │              │             │
    │                   │                  │                 │  Execute(emit_form_card)    │
    │                   │                  │                 │  → persist form msg         │
+   │                   │                  │                 │    (targetEntity.bizKey="") │
    │                   │                  │                 │  → writes card_message evt  │
    │<──card_message────│<──card_message──│<──card_message──│  → returns terminal         │
-   │   (form, MI-0023) │                  │                 │  break loop                 │
+   │   (form, 预填)    │                  │                 │  break loop                 │
    │<──step_phase_done─│<──step_phase_done<──step_phase_done│              │             │
    │<──turn_phase_done─│<──turn_phase_done<──turn_phase_done│              │             │
    │                   │                  │                 │              │             │
-   │──POST commit─────>│ (后续走 entity service，不经 LLM)   │              │             │
+   │──POST commit─────>│ (commit_card Handler 调 Dispatcher → MainItemService.Create, bizKey 在此阶段才生成)
 ```
 
 **事件流标注**：
 - Emission 工具（`submit_rewrite` / `submit_intent` / `emit_form_card`）的 `tool_call` / `tool_result` 事件被 Agent 抑制（不重复 emit）
-- Action 工具（`commit_create`）的 `tool_call` / `tool_result` 正常 emit，前端可见
+- **写工具不存在**——`commit_create` 已移除，DB 写由 commit_card Handler 同步路径触发（[`request-model.md`](./request-model.md) §6.1 请求 3）。Writer Executor 仅靠 `emit_form_card` 终止流，预填表单不写库
 
 ### 7.2 LLM 调用次数统计
 
 | 场景 | Planner 调用 | Executor 调用 | 总 LLM 调用 |
 |------|-------------|---------------|------------|
-| 单意图写（含 form card 中断） | 2（submit_rewrite + submit_intent） | 2（commit_create + emit_form_card） | 4 |
+| 单意图写（含 form card 中断） | 2（submit_rewrite + submit_intent） | 1（emit_form_card；可能含 1 次 fuzzy_match Read） | 3–4 |
 | 主动澄清（一轮问答） | 4（rewrite+intent × 2 轮） | 0（未到执行） | 4 |
 | 单意图查询 | 2（rewrite + intent） | 2（query_entities + emit_query_result） | 4 |
-| 多意图（2 个 intent） | 2 | 各 2 次 = 4 | 6 |
-| Tool 错误重试（1 次） | — | +1（LLM 自我修正） | +1 |
+| 多意图（2 个 intent） | 2 | writer 1 + reader 2 = 3 | 5 |
+| Tool 错误重试（1 次，仅 Read 工具可重试） | — | +1（LLM 自我修正） | +1 |
 
 **配额意义**：单 turn LLM 调用数有上限（`max_iterations × Agent 数`），便于配额管理与成本预估。
 

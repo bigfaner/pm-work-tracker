@@ -101,10 +101,11 @@ type CardPayload struct {
 }
 
 // CardType 枚举：
-// - intent: 意图消息（Planner 推送，含文本 + 结构化字段，等用户确认）
-// - form: 表单卡片（Executor 推送，等用户提交）
+// - intent: 意图消息（Planner 推送，含文本 + 结构化字段，等用户确认；仅高置信）
+// - candidate_list: 候选意图列表（Planner 中置信场景，等用户选意图；见 agent-architecture.md §3.4）
+// - form: 表单卡片（Executor 推送，等用户提交；targetEntity.bizKey 留空）
 // - query_result: 查询结果（Executor 推送）
-// - disambig: 歧义消解（Executor 推送，等用户选候选）
+// - disambig: 歧义消解（Executor 推送，等用户选候选实体）
 // - fallback: 降级提示（超时/不可用）
 
 // ─── 意图卡片数据（CardType=intent） ─────────────────────────
@@ -112,6 +113,21 @@ type IntentCardData struct {
     Text       string        `json:"text"`         // 自然语言意图回执
     Intents    []IntentSpec  `json:"intents"`      // 结构化意图规格
     MissingInfo []MissingItem `json:"missingInfo,omitempty"` // 主动澄清
+    Confidence float64       `json:"confidence,omitempty"` // 0.0–1.0，Orchestrator 按阈值分流（见 agent-architecture.md §3.4）
+}
+
+// ─── 候选意图列表卡片（CardType=candidate_list，中置信场景） ───
+type CandidateListCardData struct {
+    Text       string             `json:"text"`       // 引导文字（如"我不太确定你的意图，请选择："）
+    Candidates []CandidateIntent  `json:"candidates"` // 候选意图列表
+}
+
+type CandidateIntent struct {
+    ID            string `json:"id"`            // 临时 ID，用户点选后回传
+    Label         string `json:"label"`         // "创建 MainItem"
+    OpType        string `json:"opType"`
+    EntityType    string `json:"entityType"`
+    FieldsSummary string `json:"fieldsSummary"` // 字段摘要（如 "title=认证模块, priority=P1"）
 }
 
 type IntentSpec struct {
@@ -403,16 +419,12 @@ X-Accel-Buffering: no
 POST /api/v1/copilot/sessions/sess_xxx/messages
 { "type": "confirm_intent", "intentMessageId": "msg_002" }
 
-响应（SSE 流）：
+响应（SSE 流；Writer Executor 仅组装预填字段，不调任何写工具）：
 {"event":"step_started","turnId":"turn_001","timestamp":1734900009000,"stepId":"intent_1","intentMeta":{"id":"intent_1","label":"创建 MainItem","seq":1,"total":1},"data":{"kind":"step_started","intent":{"id":"intent_1","label":"创建 MainItem","seq":1,"total":1}}}
 
-{"event":"thinking","turnId":"turn_001","stepId":"intent_1","timestamp":1734900009200,"data":{"kind":"thinking","content":"开始执行 writer。"}}
+{"event":"thinking","turnId":"turn_001","stepId":"intent_1","timestamp":1734900009200,"data":{"kind":"thinking","content":"字段齐备，组装预填表单。"}}
 
-{"event":"tool_call","turnId":"turn_001","stepId":"intent_1","timestamp":1734900009500,"data":{"kind":"tool_call","callId":"call_001","toolName":"commit_create","arguments":{"entity_type":"main_item","fields":{"title":"认证模块","priority":"P1"}}}}
-
-{"event":"tool_result","turnId":"turn_001","stepId":"intent_1","timestamp":1734900009800,"data":{"kind":"tool_result","callId":"call_001","status":"success","result":{"bizKey":"MI-0023"},"durationMs":300}}
-
-{"event":"card_message","turnId":"turn_001","stepId":"intent_1","timestamp":1734900009900,"messageId":"msg_003","intentMeta":{"id":"intent_1","label":"创建 MainItem","seq":1,"total":1},"data":{"kind":"card","cardType":"form","status":"prefilled","cardData":{"opType":"create","entityType":"main_item","targetEntity":{"bizKey":"MI-0023","title":"认证模块","bizCode":"MI-0023"},"fields":[{"name":"title","value":"认证模块","required":true},{"name":"priority","value":"P1","required":true}]}}}
+{"event":"card_message","turnId":"turn_001","stepId":"intent_1","timestamp":1734900009900,"messageId":"msg_003","intentMeta":{"id":"intent_1","label":"创建 MainItem","seq":1,"total":1},"data":{"kind":"card","cardType":"form","status":"prefilled","cardData":{"opType":"create","entityType":"main_item","targetEntity":{"bizKey":"","title":""},"fields":[{"name":"title","value":"认证模块","required":true},{"name":"priority","value":"P1","required":true}]}}}
 
 {"event":"step_phase_done","turnId":"turn_001","stepId":"intent_1","timestamp":1734900010000,"data":{"kind":"step_phase_done","intentId":"intent_1","outcome":"awaiting_user_commit","nextAction":{"type":"await_commit","messageId":"msg_003","intentId":"intent_1"}}}
 
@@ -423,7 +435,7 @@ POST /api/v1/copilot/sessions/sess_xxx/messages
 
 ```
 POST /api/v1/copilot/sessions/sess_xxx/messages
-{ "type": "commit_card", "messageId": "msg_003" }
+{ "type": "commit_card", "messageId": "msg_003", "requestId": "req_uuid_v4" }
 
 HTTP 响应头：
 Content-Type: application/json
@@ -437,6 +449,8 @@ Content-Type: application/json
   "followupContent": "已为你创建 P1 事项「认证模块」（MI-0023）。"
 }
 ```
+
+> 真实 DB 写发生在此 commit_card 请求中（Dispatcher → MainItemService.Create），LLM 流已关闭。bizKey 在此阶段才生成。详见 [`request-model.md`](./request-model.md) §6.1。
 
 ## 6. 持久化时机与事件对应
 
@@ -499,8 +513,20 @@ func (h *CopilotHandler) streamEvents(c *gin.Context, eventCh <-chan sse.Event) 
 
 ## 9. 错误事件示例
 
+SSE 流内的 `error` 事件仅用于**流建立后**出现的错误（pre-flight 错误如配额超限走 HTTP 错误响应，不进 SSE 流，见 [`security.md`](./security.md) §7.1）。
+
+**示例 1：GLM 流中途超时（首字节已发，后续 > 10s 无响应）**
+
 ```
-{"event":"error","turnId":"turn_001","timestamp":1734900000000,"data":{"kind":"error","code":"ERR_COPILOT_QUOTA_EXCEEDED","message":"今日 AI 调用已达上限（50 次）","recoverable":true,"fallbackAction":"use_form"}}
+{"event":"error","turnId":"turn_001","timestamp":1734900000000,"data":{"kind":"error","code":"ERR_COPILOT_AI_TIMEOUT","message":"AI 服务响应超时","recoverable":true,"fallbackAction":"retry"}}
 ```
 
-错误事件后流立即关闭，前端展示降级卡片。
+**示例 2：GLM 流中途解析失败（emit 过部分事件后 JSON 畸形）**
+
+```
+{"event":"error","turnId":"turn_001","timestamp":1734900000000,"data":{"kind":"error","code":"ERR_COPILOT_PARSE_FAILED","message":"AI 输出无法解析","recoverable":false,"fallbackAction":"use_form"}}
+```
+
+**配额错误的边界（与 security.md §7.1 对齐）**：配额超限在 pre-flight 检查（HTTP 层，SSE 头未写），返回 HTTP 429 + JSON body `{code: ERR_COPILOT_QUOTA_EXCEEDED, fallbackAction: "keyword_mode"}`。**SSE 流内不会出现 `ERR_COPILOT_QUOTA_EXCEEDED` 错误事件**——配额在流打开前已 gating。唯一例外是"流建立后用户跨会话触发其他流耗尽配额"的极少数情况，此时本流仍允许完成（配额按 callLog 计入当日，不中断在途流）。
+
+错误事件后流立即关闭，前端展示降级卡片（retry / use_form）。

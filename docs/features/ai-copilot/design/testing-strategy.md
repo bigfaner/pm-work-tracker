@@ -177,16 +177,18 @@ func (r *RecorderProvider) StreamChat(ctx context.Context, p ProviderParams) (<-
 
 | 场景 | 验证点 |
 |------|-------|
-| writer 创建 MainItem | tool_call commit_create，form card 含正确字段 |
-| writer 含 assignee 模糊 | 先 fuzzy_match_member，再 commit_create |
+| writer 创建 MainItem | emit_form_card 推送预填表单（targetEntity.bizKey 为空），form card 含正确字段 |
+| writer 含 assignee 模糊 | 先 fuzzy_match_member，再 emit_form_card（assignee bizKey 已注入字段） |
 | reader 单记录 | query_result card 中 records[0].expanded=true |
 | reader 多记录 | records 全部 expanded=false |
 | reader 超过 20 条 | truncated=true |
-| updater 状态变更 | 先 validate_transition，通过后 commit_update |
-| updater 预校验失败 | card state=validation，errors.validTransitions 列出合法目标 |
-| updater 跨 Team 拒绝 | tool_result status=error |
-| mover 跨 Team | 拒绝（validate_source_target 失败） |
-| mover 源 terminal | 拒绝 |
+| updater 状态变更 | 先 validate_transition（Read），通过后 emit_form_card；commit_card 时 entity service 再次校验 |
+| updater 预校验失败 | cardData.errors.validTransitions 列出合法目标，仍 emit_form_card 终止 |
+| updater 跨 Team 拒绝 | tool_result status=error（validate_transition 返回跨 Team 错误） |
+| mover 跨 Team | 拒绝（validate_source_target 失败，errors 填入 cardData） |
+| mover 源 terminal | 拒绝（同上） |
+| commit_card 幂等 | 同 requestId 重试只创建一次实体（interfaces.md §7.1） |
+| commit_card 中途断网 | 重试同 requestId 返回上次 bizKey，无重复创建 |
 
 ### 3.3 Orchestrator 测试
 
@@ -271,8 +273,8 @@ describe('SSE parser', () => {
       '}}\n',
       '{"event":"text_message","data":{"kind":"text","content":"hello"}}\n',
     ]));
-    
-    jest.spyOn(global, 'fetch').mockResolvedValue(mockResponse);
+
+    vi.spyOn(global, 'fetch').mockResolvedValue(mockResponse as any);
     
     const events: SSEEvent[] = [];
     await postSSE('/test', {}).then(async () => {
@@ -438,7 +440,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.26'
+          go-version: '1.23'
       
       - name: Run unit tests
         working-directory: backend

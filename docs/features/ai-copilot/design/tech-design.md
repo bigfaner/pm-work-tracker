@@ -85,7 +85,7 @@ status: Draft
 
 ### 1.3 关键设计原则
 
-1. **AI 不直接写库**——AI 解析意图后调用现有实体 service 的 Create/Update/Transition，复用 RBAC + 状态机 + bizKey 体系
+1. **AI 不直接写库**——LLM 不持有任何写工具（无 `commit_create` 等）；Executor 仅推送预填表单卡片（`emit_form_card`，targetEntity.bizKey 留空），真实 DB 写由 `commit_card` Handler 同步路径触发 Dispatcher → 现有 entity service 的 Create/Update/Transition（复用 RBAC + 状态机 + bizKey 体系）。详见 [`agent-architecture.md`](./agent-architecture.md) §2、§8.2 与 [`security.md`](./security.md) §7.3。
 2. **Schema 单一来源**——后端把 [`entity-schemas.md`](../prd/entity-schemas.md) 编码为 Go 常量 + JSON，同时驱动 prompt 构造与前端渲染
 3. **3 级数据模型**——Session → Turn → Message 自然层级；三层独立 status 状态机；消息单一来源（统一在 messages 表）
 4. **后端完全无状态**——每个 HTTP 请求自包含，TurnContext 与 goroutine 同生命周期；跨请求重建从 turn 表读取
@@ -355,9 +355,14 @@ type Message struct {
 | `ERR_COPILOT_VALIDATION_FAILED` | ValidationFailedError | available-transitions 预校验失败 | 422 |
 | `ERR_COPILOT_PERMISSION_DENIED` | PermissionDeniedError | 用户对目标实体无权限 | 403 |
 | `ERR_COPILOT_ENTITY_NOT_FOUND` | EntityNotFoundError | AI 返回的 bizKey 实体已删除 | 404 |
-| `ERR_COPILOT_INPUT_TOO_LONG` | InputTooLongError | 输入 > 1000 字符（截断后继续） | — |
-| `ERR_COPILOT_TURN_CANCELLED` | TurnCancelledError | 用户取消 | — |
+| `ERR_COPILOT_INPUT_TOO_LONG` | InputTooLongError | 输入 > 1000 字符（截断后继续） | 200（继续） |
+| `ERR_COPILOT_TURN_CANCELLED` | TurnCancelledError | 用户取消 | 200（JSON `{cancelled: true}`） |
 | `ERR_COPILOT_SESSION_EXPIRED` | SessionExpiredError | 会话 > 30 天 | 410 |
+| `ERR_COPILOT_TURN_IN_FLIGHT` | TurnInFlightError | 当前 turn 在 LLM 处理中 | 409 |
+| `ERR_COPILOT_FIELD_CONFLICT` | FieldConflictError | 并发字段编辑冲突（diff 预览） | 409 |
+| `ERR_COPILOT_USER_STREAM_BUSY` | UserStreamBusyError | 单用户已有活跃 SSE 流 | 429 |
+| `ERR_COPILOT_LLM_OUTBOUND_BUSY` | LLMOutboundBusyError | 全局 GLM 出站信号量耗尽 | 503 |
+| `ERR_COPILOT_QUOTA_CHECK_FAILED` | QuotaCheckFailedError | 配额检查 DB 错误（fail-closed） | 503 |
 
 ### 4.2 错误传播策略
 
@@ -376,7 +381,8 @@ LLM Provider 错误
 **关键策略**：
 - **流中错误**：以 `error` 事件推送，前端展示降级卡片（UF-6）
 - **入口错误**：HTTP 错误响应（标准 apperrors 格式）
-- **持久化错误**：日志记录，但不阻塞流（best-effort persist）
+- **持久化错误（source-of-truth 消息：intent / form / user text）**：与 Turn 状态变更同事务，**失败即回滚 + emit error + turn=failed**（不再 best-effort；见 §4.4）
+- **持久化错误（trace 消息）**：日志记录，但不阻塞流（best-effort；trace 仅用于调试，非 source of truth）
 - **敏感字段过滤未触发**：fail-open（继续调用），但记录告警
 
 ### 4.3 流式中断处理
@@ -387,6 +393,23 @@ LLM Provider 错误
 | 服务端 panic | recover middleware 捕获，记录日志，关闭流 |
 | LLM API 中断 | Provider 返回 error event，Orchestrator 转发并关闭流 |
 | 后端 entity service 失败 | commit 端点返回错误，PATCH card state=failed |
+
+### 4.4 Source-of-truth 消息的事务性持久化
+
+下列消息是 source of truth，持久化必须与 Turn 状态变更在同一事务内：
+
+| 消息 | 角色 | 失败处理 |
+|------|------|---------|
+| user text msg（free_text / answer_clarify / adjust_intent） | 用户原文 | persist 失败 → 整个请求 500，Turn 不创建 |
+| intent msg（type=intent） | 意图消息，下游 plan 重建依据 | persist 失败 → 不 emit `card_message`，emit `error` + UPDATE turn status=failed，事务回滚 |
+| form card msg（type=card, cardType=form, status=prefilled） | 等用户提交的预填表单 | persist 失败 → 不 emit `card_message`，emit `error` + UPDATE turn status=failed，事务回滚 |
+| followup text msg（commit_card 成功后） | 反馈消息 | persist 失败 → 整个 commit_card 事务回滚（含 entity service 写） |
+
+**为什么 intent persist 不能 best-effort**：request-model.md §1.2 明确"意图消息是 source of truth"，下游 `confirm_intent` / `answer_clarify` / `adjust_intent` 全部依赖 `intentMessageId`。若 best-effort persist 失败、card_message 已 emit，前端会看到一条 `messageId=""` 的意图卡片，下一请求带空 ID → 404 → turn 永远卡在 `awaiting_confirm_intent`，只能等 cron 24h 后标 superseded。
+
+**唯一允许 best-effort 的消息**：`trace` 消息（type=trace）。trace 仅用于 UI 调试展示，不是 source of truth；persist 失败时 trace 文本聚合仍随 SSE 流给前端展示，DB 落库失败仅记日志。
+
+**实现**：Orchestrator.HandleUserMessage / ExecuteFromIntent 把 persist + UPDATE turn 包在 `txManager.WithinTx` 内（参考 request-model.md §2.2 handleFreeText 已有事务模式）；persist 返回 error 时事务回滚，goroutine 内 emit error 事件后 return。
 
 ---
 

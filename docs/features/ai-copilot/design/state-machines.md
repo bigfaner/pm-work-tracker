@@ -378,6 +378,8 @@ Session.status = active
 
 **核心规则**：用 `Session.current_turn_id` + `Turn.status` 联合判断。
 
+**不变量**：每个 `free_text` 请求必须在事务内调 `sessionRepo.UpdateCurrentTurn(sessionID, turnID)`，把 `current_turn_id` 指向新 Turn。`handleFreeText`（request-model.md §2.2）已实现此调用。若省略，guard 永远看到 `current_turn_id=''` → 拦截规则失效、superseded 永不触发。集成测试覆盖：`TestFreeText_UpdatesCurrentTurnID`（testing-strategy.md §3.4）。
+
 ```go
 func CanAcceptNewMessage(sessionID string) error {
     sess := sessionRepo.Get(sessionID)
