@@ -208,18 +208,17 @@ feature: "AI Copilot 对话助手"
 - Given AI 返回的 bizKey 对应实体已被删除（数据库查询返回不存在）
 - When 后端校验该引用
 - Then 返回提示"该实体已不存在，请重新描述或使用传统表单"，不推送可执行卡片
-- Given 用户输入一条指令，AI 识别置信度 = 0.7（高置信下界）
+- Given 用户输入一条清晰指令（如"创建 P1 事项叫认证模块"），AI 输出路由决策 decision = `confirm`
 - When 后端返回结果
-- Then 系统按高置信处理，直接推送预填卡片（不返回候选意图列表）
-- Given 用户输入一条指令，AI 识别置信度 = 0.69（中置信上界）
+- Then 系统直接推送预填意图卡片（不返回候选意图列表）
+- Given 用户输入一条模糊但可列候选的指令（如"改一下那个东西的状态"），AI 输出路由决策 decision = `show_candidates`
 - When 后端返回结果
-- Then 系统按中置信处理，返回引导文字 + 候选意图列表供用户选择/澄清，不直接推送预填卡片
-- Given 用户输入一条指令，AI 识别置信度 = 0.4（中置信下界）
+- Then 系统返回引导文字 + 候选意图列表供用户选择/澄清，不直接推送预填卡片
+- Given 用户输入无意义或超出能力的指令（如"asdfgh"），AI 输出路由决策 decision = `cannot_understand`
 - When 后端返回结果
-- Then 系统按中置信处理，返回引导文字 + 候选意图列表
-- Given 用户输入一条指令，AI 识别置信度 = 0.39（低置信上界）
-- When 后端返回结果
-- Then 系统按低置信处理，返回"无法理解，请重新描述" + 支持的操作类型，不推送卡片
+- Then 系统返回"无法理解，请重新描述" + 支持的操作类型，不推送卡片
+
+> 注：decision 是 AI 输出的离散路由枚举（confirm / show_candidates / cannot_understand），取代早期设计的浮点置信度阈值（0.7/0.69/0.4/0.39）。离散枚举无浮点边界值，每个枚举值即一条分支 AC。理由见 tech-design.md §1.5 PRD 偏离说明。
 
 ---
 
@@ -228,5 +227,5 @@ feature: "AI Copilot 对话助手"
 - Ops:     create (S1,S2,S3,S4) | query (S3 — unified handler covers all 6 entities; MainItem/Milestone/ItemPool evidenced) | modify (S2) | assign (S3) | move (S2)
 - Entities: MainItem (S1,S3) | SubItem (S2) | Milestone (S1,S3) | MilestoneMap (S3) | ProgressRecord (S2) | ItemPool (S3,S4)
 - Full lifecycle (submit->success): MainItem (S1) | SubItem (S2) | Milestone (S1) | MilestoneMap (S3) | ProgressRecord (S2) | ItemPool (S4)
-- Edge:    disambiguation (S5) | timeout/fallback (S6) | state-machine guard (S2) | permission guard (S4) | input overflow (S7) | quota (S7) | malformed AI (S7) | concurrent edit (S7) | team-missing (S7) | 50-round cap (S7) | stale bizKey (S7) | Map-terminal block (S1) | sub-item move (S2) | confidence boundary 0.7/0.69/0.4/0.39 (S7) | intent-echo + proactive QA pre-form UF-9 (S1,S4)
+- Edge:    disambiguation (S5) | timeout/fallback (S6) | state-machine guard (S2) | permission guard (S4) | input overflow (S7) | quota (S7) | malformed AI (S7) | concurrent edit (S7) | team-missing (S7) | 50-round cap (S7) | stale bizKey (S7) | Map-terminal block (S1) | sub-item move (S2) | intent routing decision enum: confirm/show_candidates/cannot_understand (S7) | intent-echo + proactive QA pre-form UF-9 (S1,S4)
 -->
