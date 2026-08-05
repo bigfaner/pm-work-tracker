@@ -1,4 +1,5 @@
-1、数据库表字段命名未遵循convention，使用了mysql的保留关键字。
+1、数据库表字段命名未遵循convention，使用了mysql的保留关键字。done
 2、累积流式响应的ai message，形成完整的消息体，最后持久化。
 3、根据https://my.feishu.cn/wiki/ODUWwcRCTiPsDGk3TmNcDLgJn1f优化意图识别
 4、各个executor agent的system prompt是动态组装的，依赖意图识别的结构化输出，其中要包含操作目标实体的API的Path。非Read操作，由前端根据Path查找API来执行。read 操作无须用户确认，后端根据path查找API
+5、数据库表设计是否满足最新的数据建模。
