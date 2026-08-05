@@ -689,7 +689,7 @@ type IdempotencyKey struct {
     SessionID    string     `gorm:"type:varchar(36);not null"`
     UserBizKey   string     `gorm:"type:varchar(36);not null"`
     ResultBizKey string     `gorm:"type:varchar(36)"`                  // entity service 返回的实体 bizKey（committed 后填）
-    Status       string     `gorm:"type:varchar(16);not null"`         // pending / committed / failed
+    Status       string     `gorm:"column:idem_status;type:varchar(16);not null"`         // pending / committed / failed
     CreatedAt    time.Time
     CommittedAt  *time.Time
 }

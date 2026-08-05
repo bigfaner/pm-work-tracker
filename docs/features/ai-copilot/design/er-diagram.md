@@ -42,7 +42,7 @@
 ### 设计原则
 
 1. **Session → Turn → Message 三级层级**——自然映射"用户操作 → 完整周期 → 单条产物"
-2. **三层都有独立 status 字段**——各自状态机，协调但独立
+2. **三层都有独立状态字段**——各自状态机，协调但独立。DB 列名按实体前缀避免 MySQL 关键字（`status`/`role`/`type`）：`session_status` / `turn_status` / `msg_status`（messages 另有 `msg_role` / `msg_type`） / `log_status`（agent_call_logs） / `idem_status`（idempotency_keys）。本文概念性 `X.status` 指对应状态字段
 3. **消息单一来源**——所有对话内容（含用户原文）只在 messages 表存储，turns 表不冗余 user_message
 4. **Turn 嵌入 summary**——合并原 turn_summaries 表，加速重建
 
@@ -59,9 +59,9 @@
 │ IDX user_id              BIGINT (→ users.id)        │
 │ IDX team_id              BIGINT (→ teams.id, NULL)  │
 │     team_name            VARCHAR(100)               │
-│     title                VARCHAR(100)               │
+│     session_title       VARCHAR(100)               │
 │ IDX current_turn_id     VARCHAR(36)                 │
-│ ★  status               VARCHAR(32) DEFAULT 'active'│
+│ ★  session_status       VARCHAR(32) DEFAULT 'active'│
 │ IDX last_active_at      TIMESTAMP                   │
 │ IDX expires_at          TIMESTAMP                   │
 │     created_at          TIMESTAMP                   │
@@ -86,10 +86,10 @@
 │ IDX session_id           VARCHAR(36) (→ sessions)   │
 │ IDX user_biz_key         VARCHAR(36)                │
 │                                                      │
-│ ★  status               VARCHAR(32) DEFAULT 'planning'│
+│ ★  turn_status          VARCHAR(32) DEFAULT 'planning'│
 │                                                      │
 │     user_query_short    VARCHAR(200)                │
-│     summary             VARCHAR(200)                │
+│     turn_summary        VARCHAR(200)                │
 │     intents_total       INT                         │
 │     intents_done        INT                         │
 │                                                      │
@@ -154,14 +154,14 @@ cancelled / superseded / failed   ← 终态（4 个）
 │ IDX session_id           VARCHAR(36) (→ sessions)   │
 │ FK  turn_id              VARCHAR(36) (→ turns)      │
 │ IDX intent_id            VARCHAR(36) (NULL)         │
-│     seq                  INT                        │
-│     role                 VARCHAR(16)                │
-│     type                 VARCHAR(16)                │
-│ ★  status               VARCHAR(32) DEFAULT 'sent'  │
-│     content              TEXT (NULL)                │
-│     trace                JSON (NULL)                │
+│     msg_seq              INT                        │
+│     msg_role             VARCHAR(16)                │
+│     msg_type             VARCHAR(16)                │
+│ ★  msg_status           VARCHAR(32) DEFAULT 'sent'  │
+│     msg_content          TEXT (NULL)                │
+│     msg_trace            JSON (NULL)                │
 │     card_type            VARCHAR(32) (NULL)         │
-│     card                 JSON (NULL)                │
+│     msg_card             JSON (NULL)                │
 │     intent_meta          JSON (NULL)                │
 │     created_at           TIMESTAMP                  │
 │     updated_at           TIMESTAMP                  │
@@ -170,9 +170,9 @@ cancelled / superseded / failed   ← 终态（4 个）
 复合索引: (session_id, turn_id, seq)
 ```
 
-**Status 多态枚举（按 type 解释）**：
+**msg_status 多态枚举（按 msg_type 解释）**：
 
-| type | role | status 取值 |
+| msg_type | msg_role | msg_status 取值 |
 |------|------|------------|
 | text | user | `sent`（始终） |
 | text | ai | `sent` |
@@ -205,13 +205,13 @@ cancelled / superseded / failed   ← 终态（4 个）
 │ IDX intent_id            VARCHAR(36) (NULL)         │
 │ IDX user_biz_key         VARCHAR(36)                │
 │     agent_role           VARCHAR(32)                │
-│     provider             VARCHAR(32)                │
-│     model                VARCHAR(64)                │
+│     llm_provider         VARCHAR(32)                │
+│     llm_model            VARCHAR(64)                │
 │     input_tokens         INT                        │
 │     output_tokens        INT                        │
 │     duration_ms          INT                        │
 │     cost_usd             DECIMAL(10,4)              │
-│ ★  status                VARCHAR(16)                │
+│ ★  log_status            VARCHAR(16)                │
 │     error_message        TEXT (NULL)                │
 │     input_rewrite_payload JSON (NULL)               │
 │     created_at           TIMESTAMP                  │
@@ -234,7 +234,7 @@ cancelled / superseded / failed   ← 终态（4 个）
 │     session_id           VARCHAR(36) (→ sessions)   │
 │     user_biz_key         VARCHAR(36)                │
 │     result_biz_key       VARCHAR(36) (NULL)         │
-│     status               VARCHAR(16)                │
+│     idem_status          VARCHAR(16)                │
 │     created_at           TIMESTAMP                  │
 │     committed_at         TIMESTAMP (NULL)           │
 └─────────────────────────────────────────────────────┘
@@ -253,10 +253,10 @@ cancelled / superseded / failed   ← 终态（4 个）
 ├─────────────────────────────────────────────────────┤
 │ PK  id                  BIGINT                      │
 │     flag_key             VARCHAR(64)                │
-│     enabled              BOOLEAN                    │
+│     flag_enabled         BOOLEAN                    │
 │     scope_type           VARCHAR(32)                │
 │     scope_id             VARCHAR(64)                │
-│     reason               VARCHAR(200)               │
+│     flag_reason          VARCHAR(200)               │
 │     created_at           TIMESTAMP                  │
 │     updated_at           TIMESTAMP                  │
 └─────────────────────────────────────────────────────┘
@@ -334,14 +334,14 @@ Session.status = active
 | 表 | 索引 | 用途 |
 |----|------|------|
 | copilot_sessions | `idx_user (user_id)` | 用户会话列表查询 |
-| copilot_sessions | `idx_status (status)` | 按状态过滤（如只看 active） |
+| copilot_sessions | `idx_session_status (session_status)` | 按状态过滤（如只看 active） |
 | copilot_sessions | `idx_expires (expires_at)` | cron 过期清理 |
 | copilot_turns | `idx_session_started (session_id, started_at)` | 会话内 turn 时间线 |
 | copilot_turns | `idx_user_started (user_biz_key, started_at)` | 用户级 turn 查询 |
-| copilot_turns | `idx_status (status)` | 按状态过滤（如 awaiting_commit） |
+| copilot_turns | `idx_turn_status (turn_status)` | 按状态过滤（如 awaiting_commit） |
 | copilot_messages | `idx_session_turn_seq (session_id, turn_id, seq)` | 按 turn 顺序查询消息 |
 | copilot_messages | `idx_intent (intent_id)` | 按 intent 聚合查询 |
-| copilot_messages | `idx_status (status)` | 按状态过滤（如 awaiting_confirm 的意图） |
+| copilot_messages | `idx_msg_status (msg_status)` | 按状态过滤（如 awaiting_confirm 的意图） |
 | copilot_agent_call_logs | `idx_user_date (user_biz_key, created_at)` | 每日配额检查 |
 | feature_flags | `idx_key_scope (flag_key, scope_type, scope_id)` | 精确匹配 |
 

@@ -298,9 +298,9 @@ type Session struct {
     UserID         uint        `gorm:"not null;index"`
     TeamID         *uint       `gorm:"index"`
     TeamName       string      `gorm:"type:varchar(100)"`
-    Title          string      `gorm:"type:varchar(100)"`
+    Title          string      `gorm:"column:session_title;type:varchar(100)"`
     CurrentTurnID  string      `gorm:"type:varchar(36);index"`
-    Status         SessionStatus `gorm:"type:varchar(32);default:active;index"` // active/archived/expired
+    Status         SessionStatus `gorm:"column:session_status;type:varchar(32);default:active;index"` // active/archived/expired
     LastActiveAt   time.Time   `gorm:"index"`
     ExpiresAt      time.Time   `gorm:"index"`
 }
@@ -311,9 +311,9 @@ type Turn struct {
     BizKey           string         `gorm:"type:varchar(36);uniqueIndex;not null"`
     SessionID        string         `gorm:"type:varchar(36);index;not null"`
     UserBizKey       string         `gorm:"type:varchar(36);index;not null"`
-    Status           TurnStatus     `gorm:"type:varchar(32);default:planning;index"`
+    Status           TurnStatus     `gorm:"column:turn_status;type:varchar(32);default:planning;index"`
     UserQueryShort   string         `gorm:"type:varchar(200)"`
-    Summary          string         `gorm:"type:varchar(200)"`
+    Summary          string         `gorm:"column:turn_summary;type:varchar(200)"`
     IntentsTotal     int            `gorm:"default:0"`
     IntentsDone      int            `gorm:"default:0"`
     IntentMessageID  *string        `gorm:"type:varchar(36);index"`
@@ -330,14 +330,14 @@ type Message struct {
     SessionID  string          `gorm:"type:varchar(36);index;not null"`
     TurnID     string          `gorm:"type:varchar(36);index;not null"` // FK to turns
     IntentID   *string         `gorm:"type:varchar(36);index"`
-    Seq        int             `gorm:"not null"`
-    Role       MsgRole         `gorm:"type:varchar(16);not null"`
-    Type       MsgType         `gorm:"type:varchar(16);not null"`
-    Status     MsgStatus       `gorm:"type:varchar(32);default:sent;index"` // 多态，按 type 解释
-    Content    string          `gorm:"type:text"`
-    Trace      *TracePayload   `gorm:"type:json"`
+    Seq        int             `gorm:"column:msg_seq;not null"`
+    Role       MsgRole         `gorm:"column:msg_role;type:varchar(16);not null"`
+    Type       MsgType         `gorm:"column:msg_type;type:varchar(16);not null"`
+    Status     MsgStatus       `gorm:"column:msg_status;type:varchar(32);default:sent;index"` // 多态，按 type 解释
+    Content    string          `gorm:"column:msg_content;type:text"`
+    Trace      *TracePayload   `gorm:"column:msg_trace;type:json"`
     CardType   *CardType       `gorm:"type:varchar(32)"`
-    Card       json.RawMessage `gorm:"type:json"`
+    Card       json.RawMessage `gorm:"column:msg_card;type:json"`
     IntentMeta *IntentMeta     `gorm:"type:json"`
 }
 ```
