@@ -95,14 +95,14 @@ type TextPayload struct {
 // ─── 卡片类（discriminated union） ────────────────
 type CardPayload struct {
     Kind      string          `json:"kind"`      // 永远 "card"
-    CardType  string          `json:"cardType"`  // intent / form / query_result / disambig / fallback
+    CardType  string          `json:"cardType"`  // intent / form / query_result / disambig / candidate_list / fallback
     Status    string          `json:"status"`    // 多态状态（按 cardType 解释，对齐 messages.status）
     CardData  json.RawMessage `json:"cardData"`
 }
 
 // CardType 枚举：
-// - intent: 意图消息（Planner 推送，含文本 + 结构化字段，等用户确认；仅高置信）
-// - candidate_list: 候选意图列表（Planner 中置信场景，等用户选意图；见 agent-architecture.md §3.4）
+// - intent: 意图消息（Planner 推送，含文本 + 结构化字段，等用户确认；decision=confirm 路径）
+// - candidate_list: 候选意图列表（Planner decision=show_candidates 路径，等用户选意图；见 agent-architecture.md §3.4）
 // - form: 表单卡片（Executor 推送，等用户提交；targetEntity.bizKey 留空）
 // - query_result: 查询结果（Executor 推送）
 // - disambig: 歧义消解（Executor 推送，等用户选候选实体）
@@ -113,10 +113,10 @@ type IntentCardData struct {
     Text       string        `json:"text"`         // 自然语言意图回执
     Intents    []IntentSpec  `json:"intents"`      // 结构化意图规格
     MissingInfo []MissingItem `json:"missingInfo,omitempty"` // 主动澄清
-    Confidence float64       `json:"confidence,omitempty"` // 0.0–1.0，Orchestrator 按阈值分流（见 agent-architecture.md §3.4）
+    Decision   string        `json:"decision,omitempty"` // Planner 路由决策（见 agent-architecture.md §3.4）；intent 卡片仅在 decision=confirm 时推送
 }
 
-// ─── 候选意图列表卡片（CardType=candidate_list，中置信场景） ───
+// ─── 候选意图列表卡片（CardType=candidate_list，Planner decision=show_candidates 路径） ───
 type CandidateListCardData struct {
     Text       string             `json:"text"`       // 引导文字（如"我不太确定你的意图，请选择："）
     Candidates []CandidateIntent  `json:"candidates"` // 候选意图列表
@@ -298,7 +298,7 @@ interface PayloadBase {
 type TextPayload = { kind: "text"; content: string; variant?: string };
 type CardPayload = {
   kind: "card";
-  cardType: "intent" | "form" | "query_result" | "disambig" | "fallback";
+  cardType: "intent" | "form" | "query_result" | "disambig" | "candidate_list" | "fallback";
   status: string;  // 与 DB messages.status 字段对齐
   cardData: unknown;
 };
@@ -317,6 +317,7 @@ function handleEvent(evt: SSEEvent<PayloadBase>) {
         case "form":        /* render form card */ break;
         case "query_result": /* render query result */ break;
         case "disambig":    /* render disambig */ break;
+        case "candidate_list": /* render candidate list + 切选候选模式 */ break;
         case "fallback":    /* render fallback */ break;
       }
       break;

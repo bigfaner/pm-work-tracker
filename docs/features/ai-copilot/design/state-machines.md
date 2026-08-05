@@ -20,11 +20,11 @@ parent: tech-design.md
               │
               ▼ 1:N
 ┌─────────────────────────────────────────────────────────────────┐
-│ Turn.status (中观，流程级) — 10 个状态                           │
+│ Turn.status (中观，流程级) — 11 个状态                           │
 │                                                                 │
 │   planning                                                      │
 │     ↓                                                           │
-│   awaiting_confirm_intent / awaiting_clarify                    │
+│   awaiting_select_intent / awaiting_confirm_intent / awaiting_clarify │
 │     ↓                                                           │
 │   executing                                                     │
 │     ↓                                                           │
@@ -43,6 +43,7 @@ parent: tech-design.md
 │   - intent: awaiting_confirm → confirmed/adjusted/cancelled     │
 │   - card/form: prefilled → submitting → submitted/failed        │
 │   - card/disambig: awaiting_select → selected/discarded         │
+│   - card/candidate_list: awaiting_select → selected/discarded   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -110,11 +111,12 @@ parent: tech-design.md
 
 ## 3. Turn 状态机（核心）
 
-### 状态枚举（10 个）
+### 状态枚举（11 个）
 
 | 状态 | 含义 | 是否终态 |
 |------|------|---------|
 | `planning` | Planner 流式中 | ❌ |
+| `awaiting_select_intent` | 等用户从候选意图列表选定（decision=show_candidates） | ❌ |
 | `awaiting_clarify` | 等用户回答 missing_info | ❌ |
 | `awaiting_confirm_intent` | 等用户"理解正确" | ❌ |
 | `executing` | executor 链执行中 | ❌ |
@@ -193,13 +195,18 @@ parent: tech-design.md
   ★ 任何非终态 + 1 小时无活动 ──▶ failed（cron 孤儿清理）
 ```
 
-### 转换矩阵（22 条规则）
+> **省略分支**：Planner 输出 `decision=show_candidates` 时 `planning → awaiting_select_intent`（用户 `select_intent` 后转 `awaiting_confirm_intent`，或 cancel）。图中省略以保持可读；权威规则见下方转换矩阵 #3a–#3c。
+
+### 转换矩阵（25 条规则）
 
 | # | 当前状态 | 触发 | 新状态 | 关联 Message 变化 |
 |---|---------|------|-------|------------------|
 | 1 | (创建) | 用户发指令（free_text） | `planning` | 创建 user text msg |
 | 2 | `planning` | Planner 完成（无 missing_info） | `awaiting_confirm_intent` | 创建 trace + intent msg；记录 turn.intent_message_id |
 | 3 | `planning` | Planner 完成（有 missing_info） | `awaiting_clarify` | 同上（intent msg 含 missingInfo） |
+| 3a | `planning` | Planner 输出 decision=show_candidates | `awaiting_select_intent` | 创建 trace + candidate_list card（status=awaiting_select） |
+| 3b | `awaiting_select_intent` | 用户选候选意图（select_intent） | `awaiting_confirm_intent` | candidate_list.status=selected；候选升级为 IntentSpec；记录 turn.intent_message_id |
+| 3c | `awaiting_select_intent` | 用户点"取消" | `cancelled` | candidate_list.status=discarded |
 | 4 | `planning` | Planner 流失败 / 超时 | `failed` | trace.status=failed；推送 fallback card |
 | 5 | `awaiting_clarify` | 用户回答（answer_clarify） | `planning` | 创建 user text msg；保留原 intent msg（awaiting_confirm） |
 | 6 | `awaiting_confirm_intent` | 用户点"理解正确" | `executing` | intent.status=`confirmed`；turn.confirmed_intent 填充 |
@@ -216,7 +223,7 @@ parent: tech-design.md
 | 17 | `awaiting_commit` | 用户取消 | `cancelled` | form.status=`discarded` |
 | 18 | `awaiting_select_candidate` | 用户选候选 | `executing` | disambig.status=`selected`；注入 bizKey 继续执行 |
 | 19 | `awaiting_select_candidate` | 用户取消 | `cancelled` | disambig.status=`discarded` |
-| **20** | **任何非终态** | **用户发新指令（free_text）** | **`superseded`** | **关联 message 状态变化：intent→cancelled / form→discarded / disambig→discarded** |
+| **20** | **任何非终态** | **用户发新指令（free_text）** | **`superseded`** | **关联 message 状态变化：intent→cancelled / form→discarded / disambig→discarded / candidate_list→discarded** |
 | 21 | `planning` / `executing` | cron 1 小时无活动 | `failed` | 孤儿 turn 清理；trace.status=failed |
 | 22 | `awaiting_*`（非终态） | cron 24 小时无活动 | `superseded` | 长时间等用户操作，自动放弃 |
 
@@ -333,6 +340,29 @@ parent: tech-design.md
       └──────────┘  └──────────┘
 ```
 
+### 4.6 candidate_list card 状态机（Planner decision=show_candidates）
+
+```
+            (Planner 推送)
+                  │
+                  ▼
+          ┌─────────────────┐
+          │ awaiting_select │
+          └────────┬────────┘
+                   │
+            ┌──────┼──────┐
+            │             │
+       用户选候选意图   用户取消/Turn superseded
+       (select_intent)
+            │             │
+            ▼             ▼
+      ┌──────────┐  ┌──────────┐
+      │ selected │  │discarded │
+      └──────────┘  └──────────┘
+```
+
+与 disambig（§4.5）同构，区别：candidate_list 的"选定"是选**意图**（`select_intent` → 升级为 IntentSpec → turn 转 `awaiting_confirm_intent`）；disambig 的"选定"是选**实体**（`select_candidate` → 注入 bizKey → 继续执行）。状态常量 `MsgStatusCandidateList*` 见 §10。
+
 ---
 
 ## 5. 三层状态协调
@@ -401,15 +431,16 @@ func CanAcceptNewMessage(sessionID string) error {
 
 ### 拦截矩阵（完整）
 
-| 当前 turn 状态 | free_text | answer_clarify | confirm_intent | select_candidate | commit_card | cancel |
-|--------------|-----------|----------------|----------------|------------------|-------------|--------|
-| `planning` | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ✅ 允许 |
-| `awaiting_clarify` | ⚠️ 允许（前 turn→superseded） | ✅ 允许 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ✅ 允许 |
-| `awaiting_confirm_intent` | ⚠️ 允许（前 turn→superseded） | ❌ 拦截 | ✅ 允许 | ❌ 拦截 | ❌ 拦截 | ✅ 允许 |
-| `executing` | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ✅ 允许 |
-| `awaiting_commit` | ⚠️ 允许（前 turn→superseded） | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ✅ 允许 | ✅ 允许 |
-| `awaiting_select_candidate` | ⚠️ 允许（前 turn→superseded） | ❌ 拦截 | ❌ 拦截 | ✅ 允许 | ❌ 拦截 | ✅ 允许 |
-| `done` / `cancelled` / `superseded` / `failed` | ✅ 允许 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 |
+| 当前 turn 状态 | free_text | answer_clarify | confirm_intent | select_intent | select_candidate | commit_card | cancel |
+|--------------|-----------|----------------|----------------|---------------|------------------|-------------|--------|
+| `planning` | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ✅ 允许 |
+| `awaiting_clarify` | ⚠️ 允许（前 turn→superseded） | ✅ 允许 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ✅ 允许 |
+| `awaiting_select_intent` | ⚠️ 允许（前 turn→superseded） | ❌ 拦截 | ❌ 拦截 | ✅ 允许 | ❌ 拦截 | ❌ 拦截 | ✅ 允许 |
+| `awaiting_confirm_intent` | ⚠️ 允许（前 turn→superseded） | ❌ 拦截 | ✅ 允许 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ✅ 允许 |
+| `executing` | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ✅ 允许 |
+| `awaiting_commit` | ⚠️ 允许（前 turn→superseded） | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ✅ 允许 | ✅ 允许 |
+| `awaiting_select_candidate` | ⚠️ 允许（前 turn→superseded） | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ✅ 允许 | ❌ 拦截 | ✅ 允许 |
+| `done` / `cancelled` / `superseded` / `failed` | ✅ 允许 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 | ❌ 拦截 |
 
 **通用规则**：
 - `cancel` 始终允许（用户可随时终止）
@@ -451,6 +482,8 @@ func markRelatedMessagesSuperseded(ctx, turnID) {
             msgRepo.UpdateStatus(m.BizKey, MsgStatusFormDiscarded)
         case m.Type == "card" && m.CardType == "disambig" && m.Status == "awaiting_select":
             msgRepo.UpdateStatus(m.BizKey, MsgStatusDisambigDiscarded)
+        case m.Type == "card" && m.CardType == "candidate_list" && m.Status == "awaiting_select":
+            msgRepo.UpdateStatus(m.BizKey, MsgStatusCandidateListDiscarded)
         }
     }
 }
@@ -475,7 +508,9 @@ UI design 已设计（Component 2 输入区双模式）：
 
 func (h *CopilotHandler) TurnInFlightGuard(c *gin.Context) {
     var req MessageRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
+    // 用 ShouldBindBodyWith 而非 ShouldBindJSON，避免消费 body 导致下游 handler EOF
+    // （见 llm-integration.md §6.5 UserStreamGuard 的说明）
+    if err := c.ShouldBindBodyWith(&req, binding.JSON); err != nil {
         c.Next()
         return
     }
@@ -724,6 +759,7 @@ T=10  （可选）persist fallback card
 | `planning` | 禁用 + "AI 思考中..." 提示 | — |
 | `awaiting_clarify` | 文本模式（等用户回答） | textarea |
 | `awaiting_confirm_intent` | 选项组（理解正确/调整/取消） | 第一个选项 |
+| `awaiting_select_intent` | 候选意图列表（点选一个） | 第一个候选 |
 | `executing` | 禁用 + "AI 执行中..." 提示 | — |
 | `awaiting_commit` | 默认文本模式（可发新指令） | textarea（但不强制） |
 | `awaiting_select_candidate` | 默认文本模式（可发新指令） | textarea（但不强制） |
@@ -743,14 +779,15 @@ GET /api/v1/copilot/sessions/:id
 
 ## 10. 状态枚举汇总
 
-### Turn 状态（10 个）
+### Turn 状态（11 个）
 
 ```go
 type TurnStatus string
 const (
-    TurnStatusPlanning               TurnStatus = "planning"
-    TurnStatusAwaitingClarify        TurnStatus = "awaiting_clarify"
-    TurnStatusAwaitingConfirmIntent  TurnStatus = "awaiting_confirm_intent"
+    TurnStatusPlanning                TurnStatus = "planning"
+    TurnStatusAwaitingSelectIntent    TurnStatus = "awaiting_select_intent"
+    TurnStatusAwaitingClarify         TurnStatus = "awaiting_clarify"
+    TurnStatusAwaitingConfirmIntent   TurnStatus = "awaiting_confirm_intent"
     TurnStatusExecuting              TurnStatus = "executing"
     TurnStatusAwaitingCommit         TurnStatus = "awaiting_commit"
     TurnStatusAwaitingSelectCandidate TurnStatus = "awaiting_select_candidate"
@@ -815,5 +852,10 @@ const (
     MsgStatusDisambigAwaiting MsgStatus = "awaiting_select"
     MsgStatusDisambigSelected MsgStatus = "selected"
     MsgStatusDisambigDiscarded MsgStatus = "discarded"
+
+    // candidate_list card（Planner decision=show_candidates）
+    MsgStatusCandidateListAwaiting  MsgStatus = "awaiting_select"
+    MsgStatusCandidateListSelected  MsgStatus = "selected"
+    MsgStatusCandidateListDiscarded MsgStatus = "discarded"
 )
 ```

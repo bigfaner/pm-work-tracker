@@ -35,17 +35,19 @@ POST /api/v1/copilot/sessions/:id/messages
 
 ```typescript
 type RequestBody =
-  | { type: "free_text"; content: string }                              // 自由文本指令
-  | { type: "answer_clarify"; answer: string; intentMessageId: string } // 回答澄清
+  | { type: "free_text"; content: string; pageContext?: PageContext }                                  // 自由文本指令（携页面上下文）
+  | { type: "answer_clarify"; answer: string; intentMessageId: string; pageContext?: PageContext }     // 回答澄清
   | { type: "confirm_intent"; intentMessageId: string }                 // 确认意图
-  | { type: "adjust_intent"; intentMessageId: string; newContent: string } // 调整意图
-  | { type: "select_candidate"; messageId: string; candidateBizKey: string } // 选候选
+  | { type: "adjust_intent"; intentMessageId: string; newContent: string; pageContext?: PageContext }  // 调整意图
+  | { type: "select_intent"; messageId: string; candidateIntentId: string } // 选候选意图（decision=show_candidates 后）
+  | { type: "select_candidate"; messageId: string; candidateBizKey: string } // 选候选实体（disambig 后）
   | { type: "commit_card"; messageId: string }                          // 提交表单
   | { type: "cancel"; messageId?: string }                              // 取消
 ```
 
 响应：
 - 自由文本 / answer_clarify / adjust_intent / confirm_intent / select_candidate → **SSE 流**（无前缀 JSON 内容）
+- select_intent → **JSON**（候选升级为 IntentSpec，不走 LLM）
 - commit_card → **JSON**（不走 LLM，直接 entity service）
 - cancel → **JSON**（标记状态）
 
@@ -83,6 +85,7 @@ PATCH /api/v1/copilot/messages/:id
 | `confirm_intent` | Executor（按 plan） | **SSE** | step_started × N → tool_call/tool_result → form/query_result card_message |
 | `select_candidate` | Executor（续跑） | **SSE** | 注入 bizKey → 后续 tool_call → card_message |
 | `commit_card` | ✗ | **JSON** | `{messageId, newState, createdEntity, followupMessageId, followupContent}` |
+| `select_intent` | ✗ | **JSON** | `{messageId, intentCardData, turnStatus: "awaiting_confirm_intent"}` |
 | `cancel` | ✗ | **JSON** | `{cancelled: true, turnStatus: "cancelled"}` |
 
 #### 其他端点（全部 JSON）
@@ -107,42 +110,30 @@ PATCH /api/v1/copilot/messages/:id
 
 ## 2. TurnContext（与 goroutine 同生命周期）
 
+> **权威定义**：TurnContext 即工作状态 `RequestState`（`type TurnContext = RequestState`），完整定义含 Environment / DraftState / MessageSnapshot / AgentCallAccumulator 的字段、provenance、StateLoader 重建见 [`state-model.md`](./state-model.md)。本节保留结构概览供请求流阅读。
+>
+> `h.buildEnv(c)` 已改为 `h.buildEnv(c, req)`（读 `req.PageContext` 注入 Environment），函数体见 [`state-model.md`](./state-model.md) §4.3。
+
 ### 2.1 结构定义
 
 ```go
 // internal/copilot/orchestrator/turn_context.go
-
-type TurnContext struct {
-    TurnID      string
-    SessionID   string
-
-    // Turn 状态（从 copilot_turns 表读取，加速重建）
-    Status          TurnStatus         // planning / awaiting_confirm_intent / executing / ...
-    ConfirmedIntent *IntentPayload     // 从 turn.confirmed_intent 读取
-    IntentMessageID *string            // 关联的意图消息
-
-    // 用户输入（自由文本场景）
-    UserMessage string
-
-    // 上下文
-    Environment Environment         // user / team / page / currentTime
-    History     []MessageSnapshot   // 从 messages 表读取的历史
-    DraftState  *DraftState         // clarify 累积的草稿
-
-    // Agent 调用历史（goroutine 内累积）
-    AgentCalls []AgentCallSnapshot
-
-    // 同步
-    mu sync.Mutex
-
-    StartedAt time.Time
-}
+// TurnContext 是 RequestState 的别名（权威定义见 state-model.md §3.1，勿在此重复声明以免漂移）。
+type TurnContext = RequestState
 ```
 
+**字段概览**（权威定义见 [`state-model.md`](./state-model.md) §3.1 `RequestState`）：
+- **标识**：TurnID / SessionID
+- **turn 状态**（Load 读入，Accumulate 可改，Flush 写回）：Status / ConfirmedIntent / IntentMessageID / Summary / IntentsDone
+- **用户输入**：UserMessage（free_text 场景）
+- **上下文**（只读）：Environment / History []MessageSnapshot / DraftState
+- **累加器**（Accumulate 填充，Flush 写回）：PendingMessages（含 trace 消息）/ Errors / Calls（*AgentCallAccumulator）
+
 **关键设计点**：
-- **Status 字段**：从 turn 表读取，Orchestrator 据此决定路由分支
-- **ConfirmedIntent**：从 turn.confirmed_intent 读取（用户确认后冗余存储）
-- **不再有 `Plan` 字段**——plan 是从 `ConfirmedIntent` 派生的临时状态
+- **Status 字段**：Load 从 turn 表读入，Orchestrator 据此决定路由分支；Accumulate 阶段可改（如 → executing），Flush 写回。
+- **ConfirmedIntent**：confirm_intent 时由 handler 写入 turnCtx，Flush 写回 turn.confirmed_intent。
+- **累加器是 Accumulate 阶段的产出收集处**——orchestrator/agent 把新消息/错误/调用元数据累积进 turnCtx，请求结束 Flush 单事务持久化（见 §5 intro）。
+- **不再有 `Plan` 字段**——plan 是从 `ConfirmedIntent` 派生的临时状态。
 
 ### 2.2 Handler 创建 TurnContext
 
@@ -151,7 +142,9 @@ type TurnContext struct {
 
 func (h *CopilotHandler) PostMessage(c *gin.Context) {
     var req MessageRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
+    // 用 ShouldBindBodyWith：上游 UserStreamGuard/TurnInFlightGuard 已用同方法缓存 body，
+    // 这里重读缓存即可（若中间件未跑过，ShouldBindBodyWith 也能首次绑定）
+    if err := c.ShouldBindBodyWith(&req, binding.JSON); err != nil {
         apperrors.RespondError(c, apperrors.ErrValidation)
         return
     }
@@ -166,6 +159,8 @@ func (h *CopilotHandler) PostMessage(c *gin.Context) {
         h.handleConfirmIntent(c, req)
     case "adjust_intent":
         h.handleAdjustIntent(c, req)
+    case "select_intent":
+        h.handleSelectIntent(c, req)   // 返回 JSON（候选升级为 IntentSpec，不走 LLM）
     case "select_candidate":
         h.handleSelectCandidate(c, req)
     case "commit_card":
@@ -216,8 +211,9 @@ func (h *CopilotHandler) handleFreeText(c *gin.Context, req MessageRequest) {
         SessionID:   sessionID,
         Status:      TurnStatusPlanning,
         UserMessage: req.Content,
-        Environment: h.buildEnv(c),
+        Environment: h.buildEnv(c, req),
         History:     h.msgRepo.ListBySession(c, sessionID, 50, 0),
+        Calls:       &AgentCallAccumulator{}, // 累加器初始化（Accumulate 阶段填充，Flush 写回）
         StartedAt:   time.Now(),
     }
 
@@ -226,7 +222,12 @@ func (h *CopilotHandler) handleFreeText(c *gin.Context, req MessageRequest) {
     eventCh := make(chan sse.Event, 64)
     go func() {
         defer close(eventCh)
-        h.orchestrator.HandleUserMessage(c.Request.Context(), turnCtx, eventCh)
+        if err := h.orchestrator.HandleUserMessage(c.Request.Context(), turnCtx, eventCh); err != nil {
+            turnCtx.appendError(ErrorContext{Phase: "planner", Message: err.Error()})
+        }
+        if err := h.stateApplier.Flush(c.Request.Context(), turnCtx); err != nil { // Load→Accumulate→Flush
+            eventCh <- sse.ErrorEvent(turnCtx.TurnID, fmt.Errorf("persist failed: %w", err)) // Flush 失败也通知前端
+        }
     }()
     h.streamEvents(c, eventCh)
 }
@@ -237,41 +238,36 @@ func (h *CopilotHandler) handleConfirmIntent(c *gin.Context, req MessageRequest)
     var intentPayload IntentPayload
     json.Unmarshal(intentMsg.Card, &intentPayload)
 
-    // 2. 从 turn 表读取 turn 状态
+    // 2. 从 turn 表读取 turn
     turn, _ := h.turnRepo.Get(c, intentMsg.TurnID)
 
-    // 3. 事务：UPDATE turn + PATCH 意图消息
-    h.txManager.WithinTx(c, func(tx *gorm.DB) error {
-        // 更新 turn: status=executing + confirmed_intent 冗余存储
-        h.turnRepo.UpdateStatus(c, turn.BizKey, TurnStatusExecuting)
-        h.turnRepo.UpdateConfirmedIntent(c, turn.BizKey, &intentPayload)
-        // PATCH 意图消息 status=confirmed
-        h.msgRepo.UpdateStatus(c, intentMsg.BizKey, MsgStatusIntentConfirmed)
-        return nil
-    })
+    // 3. PATCH 意图消息 status=confirmed（existing-row 更新，eager 例外——
+    //    Flush 只 INSERT PendingMessages + UPDATE turn，不更新既有消息 status，见 tech-design.md §4.4）
+    h.msgRepo.UpdateStatus(c, intentMsg.BizKey, MsgStatusIntentConfirmed)
 
-    // 4. 构建 TurnContext（从 turn 表读，无需扫描所有 messages）
-    turnCtx := &TurnContext{
-        TurnID:          turn.BizKey,
-        SessionID:       turn.SessionID,
-        Status:          TurnStatusExecuting,
-        ConfirmedIntent: &intentPayload,
-        IntentMessageID: &intentMsg.BizKey,
-        Environment:     h.buildEnv(c),
-        History:         h.msgRepo.ListByTurn(c, turn.BizKey, OrderBySeq),
-        StartedAt:       time.Now(),
-    }
+    // 4. Load 工作状态 + mutate（Status=executing + ConfirmedIntent；由 Flush 写回 turn 表）
+    turnCtx, _ := h.stateLoader.Load(c.Request.Context(), turn.SessionID, turn.BizKey, h.buildEnv(c, req))
+    turnCtx.Status = TurnStatusExecuting
+    turnCtx.ConfirmedIntent = &intentPayload
 
     // 5. 启动 SSE 流 + 执行
     h.startSSEStream(c)
     eventCh := make(chan sse.Event, 64)
     go func() {
         defer close(eventCh)
-        h.orchestrator.ExecuteFromIntent(c.Request.Context(), turnCtx, eventCh)
+        if err := h.orchestrator.ExecuteFromIntent(c.Request.Context(), turnCtx, eventCh); err != nil {
+            turnCtx.appendError(ErrorContext{Phase: "execute", Message: err.Error()})
+        }
+        if err := h.stateApplier.Flush(c.Request.Context(), turnCtx); err != nil { // Load→Accumulate→Flush
+            eventCh <- sse.ErrorEvent(turnCtx.TurnID, fmt.Errorf("persist failed: %w", err))
+        }
     }()
     h.streamEvents(c, eventCh)
 }
 ```
+
+> **其余 handler**（`handleAnswerClarify` / `handleAdjustIntent` / `handleSelectCandidate`）遵循与上述相同的 **SSE 模式**：`StateLoader.Load` → 对应 Orchestrator 方法（累积进 `turnCtx`）→ `stateApplier.Flush`（goroutine 内、流关闭前；捕获 orchestrator 返回 err 进 `appendError`，捕获 Flush err 发 final error 事件）。
+> **JSON 模式 handler**（`handleSelectIntent` / `handleCommitCard` / `handleCancel`）无 SSE 流：用 `StateApplier.ApplyTurnUpdate`（commit_card 另加 Dispatcher）在自己的事务内同步落库，不经 Flush。
 
 ## 3. 意图消息（type=intent）
 
@@ -293,6 +289,9 @@ type IntentPayload struct {
     
     // 状态：awaiting_confirm / confirmed / adjusted / cancelled
     State string `json:"state"`
+
+    // 路由决策（见 agent-architecture.md §3.4）：confirm / show_candidates / cannot_understand
+    Decision string `json:"decision,omitempty"`
 }
 
 type IntentSpec struct {
@@ -370,6 +369,7 @@ Planner 推送 → state=awaiting_confirm
 | 回答澄清 | `answer_clarify` | 重新调 Planner（注入回答） | Planner | SSE 流 |
 | 调整意图 | `adjust_intent` | PATCH 旧意图 state=adjusted + 重新调 Planner | Planner | SSE 流 |
 | 确认意图 | `confirm_intent` | 从意图消息重建 plan + 调 executor | Executor（按 plan） | SSE 流 |
+| 选候选意图 | `select_intent` | 候选升级为 IntentSpec + persist | ❌ | JSON |
 | 选候选 | `select_candidate` | 注入 bizKey + 调 executor | Executor | SSE 流 |
 | 提交表单 | `commit_card` | 直接调 entity service | ❌ | JSON |
 | 取消 | `cancel` | PATCH 状态 | ❌ | JSON |
@@ -378,19 +378,22 @@ Planner 推送 → state=awaiting_confirm
 
 ## 5. 路由实现
 
+> **Load → Accumulate → Flush**（见 [state-model.md](./state-model.md) §1）：Handler 先 `StateLoader.Load` 重建 `RequestState`（=`TurnContext`），传给下列 Orchestrator 方法；Orchestrator **只累积**新产出进 `turnCtx`（PendingMessages（含 trace 消息）/ Errors / Calls / DraftState / turn 字段），**不直接写库**；Handle* 方法返回后，**Handler 调 `StateApplier.Flush(turnCtx)` 单事务持久化**（在 SSE 流关闭前）。messageId 预生成（snowflake），SSE 事件先携带、Flush 时落库。
+
 ### 5.1 Orchestrator 接口
 
 ```go
 // internal/copilot/orchestrator/orchestrator.go
 
 type Orchestrator struct {
-    planner    agent.Agent
-    registry   *agent.Registry
-    ctxBuilder prompt.ContextBuilder
-    msgRepo    repository.MessageRepository
-    dispatcher service.Dispatcher
-    provider   llm.Provider
+    planner      agent.Agent
+    registry     *agent.Registry
+    ctxBuilder   prompt.ContextBuilder
+    stateApplier StateApplier            // Flush 由 handler 在方法返回后调（见 §2.2 goroutine）；同包，无需前缀
+    dispatcher   service.Dispatcher
+    provider     llm.Provider
 }
+// （Orchestrator 不再持有 msgRepo/turnRepo —— 写库集中在 StateApplier.Flush，取代散落 mid-request persist）
 
 // HandleUserMessage 处理自由文本（Planner 流 + 推送意图消息）
 func (o *Orchestrator) HandleUserMessage(
@@ -440,16 +443,8 @@ func (o *Orchestrator) ExecuteFromIntent(
             return err
         }
         
-        stream, err := executor.StreamRun(ctx, agent.AgentRunParams{
-            StepParams: map[string]any{
-                "op_type": spec.OpType,
-                "entity_type": spec.EntityType,
-                "fields": spec.Fields,
-                "target_entity": spec.TargetEntity,
-            },
-            Env: turnCtx.Environment,
-            History: turnCtx.History,
-        })
+        // 投影自 RequestState（ForExecutor）；Executor emission 累积进 turnCtx.PendingMessages
+        stream, err := executor.StreamRun(ctx, turnCtx.ForExecutor(spec, ""))
         if err != nil {
             eventCh <- errorEvent(turnCtx, err)
             return err
@@ -477,65 +472,40 @@ func (o *Orchestrator) ExecuteFromIntent(
 
 ### 5.3 HandleUserMessage 实现（Planner 推送意图消息）
 
-> intent persist 必须与 turn status UPDATE 同事务（tech-design.md §4.4）；persist 失败不再 best-effort。
+> **Accumulate，不 persist**：本方法把 intent 消息 + turn 字段变更累积进 `turnCtx`（RequestState），**不写库**；持久化由 Handler 在方法返回后调 `StateApplier.Flush(turnCtx)` 单事务完成（见 §5 intro 与 §2.2 goroutine）。messageId 预生成，SSE 事件先用。
 
 ```go
 func (o *Orchestrator) HandleUserMessage(
     ctx context.Context, turnCtx *TurnContext, eventCh chan<- sse.Event,
 ) error {
-    // 调 Planner
-    plannerStream, err := o.planner.StreamRun(ctx, agent.AgentRunParams{
-        UserMsg: turnCtx.UserMessage,
-        Env: turnCtx.Environment,
-        History: turnCtx.History,
-        DraftState: turnCtx.DraftState,
-    })
+    // 调 Planner（投影自 RequestState；thinking/tool 事件由 consumePlannerStream 聚合为 trace 消息进 PendingMessages，见 §5.4）
+    plannerStream, err := o.planner.StreamRun(ctx, turnCtx.ForPlanner(turnCtx.UserMessage))
     if err != nil {
+        turnCtx.appendError(ErrorContext{Phase: "planner", Message: err.Error()})
         eventCh <- errorEvent(turnCtx, err)
         return err
     }
 
-    // 消费 Planner 流，聚合到 IntentPayload
+    // 消费 Planner 流：事件实时 emit + 累积进 turnCtx（不写库）
     intentPayload := o.consumePlannerStream(ctx, plannerStream, turnCtx, eventCh)
 
-    // 事务：persist intent 消息 + UPDATE turn status
-    // persist 失败 → 事务回滚 + emit error + return（不 emit card_message）
-    var intentMsgID string
-    var nextStatus TurnStatus
-    if len(intentPayload.MissingInfo) > 0 {
-        nextStatus = TurnStatusAwaitingClarify
-    } else {
-        nextStatus = TurnStatusAwaitingConfirmIntent
-    }
-
-    err = o.txManager.WithinTx(ctx, func(tx *gorm.DB) error {
-        msg, err := o.msgRepo.AppendTx(tx, Message{
-            Role: RoleAI, Type: TypeIntent,
-            TurnID: turnCtx.TurnID,
-            Content: intentPayload.Text,
-            IntentPayload: marshal(intentPayload),
-        })
-        if err != nil {
-            return err  // 事务回滚
-        }
-        intentMsgID = msg.BizKey
-
-        if err := o.turnRepo.UpdateStatusTx(tx, turnCtx.TurnID, nextStatus); err != nil {
-            return err
-        }
-        if err := o.turnRepo.UpdateIntentMessageIDTx(tx, turnCtx.TurnID, intentMsgID); err != nil {
-            return err
-        }
-        return nil
+    // ── Accumulate：intent 消息 + turn 字段变更进 turnCtx（不 persist）──
+    intentMsgID := snowflake.Next() // 预生成：SSE 事件先用，Flush 时落库
+    turnCtx.PendingMessages = append(turnCtx.PendingMessages, Message{
+        BizKey:        intentMsgID,
+        Role:          RoleAI, Type: TypeIntent,
+        TurnID:        turnCtx.TurnID, SessionID: turnCtx.SessionID,
+        Content:       intentPayload.Text,
+        IntentPayload: marshal(intentPayload),
     })
-    if err != nil {
-        // persist 失败：emit error + turn=failed，事务内 turn 已回滚到 planning
-        _ = o.turnRepo.UpdateStatus(ctx, turnCtx.TurnID, TurnStatusFailed)
-        eventCh <- errorEvent(turnCtx, fmt.Errorf("persist intent: %w", err))
-        return err
+    turnCtx.IntentMessageID = &intentMsgID
+    if len(intentPayload.MissingInfo) > 0 {
+        turnCtx.Status = TurnStatusAwaitingClarify
+    } else {
+        turnCtx.Status = TurnStatusAwaitingConfirmIntent
     }
 
-    // 事务提交后才 emit card_message（此时 messageId 已确定非空）
+    // emit card_message（用预生成 messageId；Flush 在 Handler 端、流关闭前执行）
     eventCh <- cardMessageEvent(turnCtx, "intent", intentPayload.State, intentPayload, intentMsgID)
 
     // 推送 turn_phase_done
@@ -550,6 +520,87 @@ func (o *Orchestrator) HandleUserMessage(
     return nil
 }
 ```
+
+### 5.4 consume*Stream：trace 聚合与 PendingMessages 累积
+
+`consumePlannerStream` / `consumeExecutorStream` 消费 Agent 事件流，做三件事：① 转发事件给 `eventCh`（SSE）；② 聚合 thinking / tool_call / tool_result 进 per-call trace；③ 流结束时把聚合的 trace 作为 `Message{type=trace}` 累积进 `turnCtx.PendingMessages`（经 `stageMessage` 预生成 bizKey）。
+
+```go
+// internal/copilot/orchestrator/stream_consumer.go
+
+// consumePlannerStream —— 消费 Planner 流，返回解析出的 IntentPayload。
+// 流结束时聚合 trace 为一条 trace 消息累积进 PendingMessages（planner trace 无 intent_id）。
+func (o *Orchestrator) consumePlannerStream(
+    ctx context.Context, stream <-chan sse.Event,
+    turnCtx *TurnContext, eventCh chan<- sse.Event,
+) IntentPayload {
+    o.consumeAgentStream(ctx, stream, turnCtx, eventCh, nil /*planner trace 无 intent_id*/)
+    // ... 从 card_message(intent) 事件解析 IntentPayload
+    return intent
+}
+
+// consumeExecutorStream —— 消费 Executor 流，返回执行 outcome。trace 消息带 intent_id。
+func (o *Orchestrator) consumeExecutorStream(
+    ctx context.Context, stream <-chan sse.Event,
+    turnCtx *TurnContext, spec IntentSpec, eventCh chan<- sse.Event,
+) ExecOutcome {
+    intentID := spec.ID
+    o.consumeAgentStream(ctx, stream, turnCtx, eventCh, &intentID)
+    // ... 解析 outcome（NeedsUserInteraction / CardMessageID / NextActionType）
+    return outcome
+}
+
+// consumeAgentStream —— 共用聚合器：转发 SSE + 聚合 trace + 流结束追加 trace 消息
+func (o *Orchestrator) consumeAgentStream(
+    ctx context.Context, stream <-chan sse.Event,
+    turnCtx *TurnContext, eventCh chan<- sse.Event, intentID *string,
+) {
+    var thinking strings.Builder
+    var actions []TraceAction
+    startedAt := time.Now()
+    traceMsgID := snowflake.Next() // 预生成 trace messageId
+    failed := false
+
+    for ev := range stream {
+        eventCh <- ev // ① 转发给 SSE（thinking/tool_call/tool_result/card_message/error 等）
+        switch ev.Kind {
+        case "thinking":
+            thinking.WriteString(ev.Content)
+        case "tool_call":
+            actions = append(actions, TraceAction{
+                CallID: ev.CallID, ToolName: ev.ToolName,
+                Arguments: ev.Arguments, StartedAt: time.Now(),
+            })
+        case "tool_result":
+            pairToolResult(actions, ev) // 配对填入最后一条 action 的 Result/Error/Status/DurationMs
+        case "error":
+            failed = true
+            turnCtx.appendError(ErrorContext{Phase: "agent", Message: ev.Error.Error(), StepID: deref(intentID)})
+        }
+    }
+
+    // ③ 流结束：聚合 trace 为 Message{type=trace} 累积进 PendingMessages
+    turnCtx.stageMessage(Message{
+        BizKey:   traceMsgID,
+        Role:     RoleAI, Type: TypeTrace,
+        TurnID:   turnCtx.TurnID, SessionID: turnCtx.SessionID,
+        IntentID: intentID,
+        Trace: &TracePayload{
+            Thinking:  thinking.String(),
+            Actions:   actions,
+            StartedAt: startedAt, EndedAt: time.Now(),
+            Status: ternary(failed, "failed", "done"),
+        },
+    })
+}
+```
+
+**关键点**：
+- **trace 是 per-agent-call**：每个 Planner/Executor 调用产生一条 trace 消息（planner 的 `intent_id=nil`，executor 的 `intent_id=spec.ID`），全部累积进 `PendingMessages`，Flush 时统一落 `copilot_messages`。
+- **trace messageId 预生成**（`traceMsgID := snowflake.Next()`），未来若需 SSE 携带 trace freeze 事件可复用此 id（当前 trace 随其他 PendingMessages 在 Flush 落库，不在 SSE 单独发 freeze 事件）。
+- **错误路径**：Agent 流以 error 事件结束时，`consumeAgentStream` 仍聚合已收到的 trace（`Status="failed"`）追加进 PendingMessages，同时 `turnCtx.appendError` 记错误（Flush 据 `rs.Errors` 设 `turn.status=failed`，见 §5.3 与 llm-integration.md §2）。
+- **TracePayload / TraceAction** 复用既有定义（[interfaces.md](./interfaces.md) §11）。
+- 此设计消除了原先的 `RequestState.TraceBuffer` 字段（声明却无人写的幽灵累加器）——trace 不再是 turn 级 buffer，而是 per-call 消息进 PendingMessages。
 
 ## 6. 完整时序示例
 

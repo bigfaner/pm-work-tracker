@@ -182,6 +182,7 @@ cancelled / superseded / failed   ← 终态（4 个）
 | card (form) | ai | `prefilled` / `editing` / `validation` / `submitting` / `submitted` / `failed` / `discarded` / `permission` |
 | card (query_result) | ai | `sent` |
 | card (disambig) | ai | `awaiting_select` / `selected` / `discarded` |
+| card (candidate_list) | ai | `awaiting_select` / `selected` / `discarded` |
 | card (fallback) | ai | `sent` |
 
 **关键设计点**：
@@ -219,6 +220,30 @@ cancelled / superseded / failed   ← 终态（4 个）
 ```
 
 **Status 取值**：`success` / `failed` / `timeout`
+
+### copilot_idempotency_keys — commit_card 幂等表
+
+```
+┌─────────────────────────────────────────────────────┐
+│ copilot_idempotency_keys                            │
+├─────────────────────────────────────────────────────┤
+│ PK  id                  BIGINT                      │
+│ UQ  request_id           VARCHAR(36)                │
+│ IDX message_id           VARCHAR(36) (→ messages)   │
+│     turn_id              VARCHAR(36) (→ turns)      │
+│     session_id           VARCHAR(36) (→ sessions)   │
+│     user_biz_key         VARCHAR(36)                │
+│     result_biz_key       VARCHAR(36) (NULL)         │
+│     status               VARCHAR(16)                │
+│     created_at           TIMESTAMP                  │
+│     committed_at         TIMESTAMP (NULL)           │
+└─────────────────────────────────────────────────────┘
+复合索引: (request_id) UNIQUE
+```
+
+**Status 取值**：`pending` / `committed` / `failed`
+
+**作用**：`commit_card` 幂等保护——同 `request_id` 重复提交只创建一次实体（见 [interfaces.md](./interfaces.md) §7.1）。命中 `committed` 直接返回 `result_biz_key`，不再调 entity service。
 
 ### feature_flags — Feature Flag 表
 
@@ -271,6 +296,12 @@ cancelled / superseded / failed   ← 终态（4 个）
 - Message 记录"对话产物"（持久化到 messages 表）
 - AgentCallLog 记录"调用元数据"
 - 两者通过 `turn_id` + `step_id` 间接关联，无外键约束
+
+### Message ↔ IdempotencyKey（1:N）
+
+- 一个 form card 消息（`type=card, cardType=form`）可对应多条幂等行（每条 `commit_card` 请求一行）
+- 通过 `copilot_idempotency_keys.message_id` 关联到 `copilot_messages.biz_key`
+- 无 DB 外键约束（仅逻辑关联）
 
 ### FeatureFlag（独立）
 

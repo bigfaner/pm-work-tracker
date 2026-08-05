@@ -3,7 +3,7 @@
 -- Created: 2026-06-26
 --
 -- 3-tier data model: Session → Turn → Message
--- 5 new tables. Does NOT modify any existing tables.
+-- 6 new tables (含 copilot_idempotency_keys). Does NOT modify any existing tables.
 -- Run via internal/migration/runner.go auto-migrate.
 --
 -- Both SQLite and MySQL DDL kept in sync per project convention
@@ -145,7 +145,7 @@ CREATE TABLE copilot_messages (
     status       VARCHAR(32) NOT NULL DEFAULT 'sent',  -- 见下方状态枚举说明
     content      TEXT,                                  -- type=text/system（含 intent.text 冗余）
     trace        TEXT,                                  -- type=trace, JSON
-    card_type    VARCHAR(32),                           -- type=card: intent/form/query_result/disambig/fallback
+    card_type    VARCHAR(32),                           -- type=card: intent/form/query_result/disambig/candidate_list/fallback
     card         TEXT,                                  -- type=card, JSON (parsed by card_type)
     intent_meta  TEXT,                                  -- JSON: {label, seq, total}
     created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

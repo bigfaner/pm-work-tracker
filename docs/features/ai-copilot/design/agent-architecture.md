@@ -19,10 +19,10 @@ parent: tech-design.md
 - 每个 intent 的产出（trace + text + card）通过 `IntentID` 聚合
 - 不采用树形（避免嵌套渲染复杂度），仍是扁平消息列表 + intent 头部视觉分组
 
-**结构化输出强制 function calling**：
-- 所有结构化输出（intent / form card / query result / disambig / input_rewrite）**只能**通过工具调用产生
-- 文本通道仅用于 thinking（推理过程），禁止输出 `<message type="X">` 标签或裸 JSON
-- 这样 LLM 输出强类型、可程序调度、无需文本解析
+**结构化输出优先走 function calling（emission 工具），带自然结束兜底**：
+- 所有结构化输出（intent / form card / query result / disambig / input_rewrite）**首选**通过 emission 工具调用产生——强类型、可程序调度、无需文本解析
+- 文本通道仅用于 thinking（推理过程），system prompt 禁止输出 `<message type="X">` 标签或裸 JSON
+- **兜底（safety net）**：若 LLM 未遵守、一轮结束未调任何 emission 工具，Agent 会尝试按该 Agent 的 output schema 解析累积 content（见 [llm-integration.md](./llm-integration.md) §2.4）；解析失败才降级为纯文本回复。这样把"LLM 偶尔忘记调 emission 工具"的失败面从"一定丢结构化"降为"仅当 content 也不可解析时才丢"
 
 ## 2. 工具三分类（Read / Action / Emission）
 
@@ -37,8 +37,8 @@ parent: tech-design.md
 
 ### 2.1 Emission 工具语义
 
-- Emission 工具是 Agent 流的**终止信号**——一旦调用，Agent 不再继续 LLM 循环
-- 一个 Agent 必有且仅有"终止 emission"作为完成方式（除非超过 max_iterations 兜底失败）
+- Emission 工具是 Agent 产出的**首选通道**，调用即**终止**——一旦调用，Agent 不再继续 LLM 循环
+- Agent 有**三条结束路径**：(a) 调到 terminal emission 工具（首选，强类型产出）；(b) 一轮 LLM 结束未调任何工具（自然结束），此时 Agent 尝试按该 Agent 的 output schema 解析累积 content 作为兜底产出，解析失败才降级为纯文本（见 [llm-integration.md](./llm-integration.md) §2.4）；(c) 超过 max_iterations 兜底失败
 - Emission 工具直接把 args 渲染为对应 SSE 事件，**所有 emit_* 工具仅写 SSE 事件 + persist 卡片消息到 copilot_messages**，绝不调用 entity service 的 Create/Update/Move：
   - `submit_rewrite` → `input_rewrite` 事件（仅 Planner，作为第 1 步）
   - `submit_intent` → `card_message(cardType=intent)` 事件（仅 Planner，终止）
@@ -142,11 +142,12 @@ submit_intent 参数 schema：
   - executor: writer / reader / updater / mover
 - missingInfo[]: 缺失字段（如有，每个含 intentIndex / field / question / hint）
 - state: awaiting_confirm 或 info_complete（澄清收齐后）
-- confidence: 0.0–1.0 浮点数（见 §3.4 置信度处理）
+- decision: 路由决策枚举 confirm / show_candidates / cannot_understand（见 §3.4，Orchestrator 据此分流而非用浮点阈值）
 
 ## 重要规则
 
 - **结构化输出只走工具**——submit_rewrite 和 submit_intent 是必调工具
+- **抽取字段前必查 schema**——对每个识别到的 entityType，submit_intent 前必须先调 `query_team_schema(entity_type)` 获取字段名/类型/必填，据此抽取 `intents[].fields` 与 `missingInfo`。禁止在不知道 schema 的情况下盲抽字段（否则字段名与下游 Executor / entity-schemas 不一致）。ContextBuilder 不为 Planner 自动注入 schema（见 [interfaces.md](./interfaces.md) §5.3），故必须显式查询
 - **意图消息是 source of truth**——持久化到 messages 表，用户确认后从中重建 plan
 - 改写版本仅用于本次调用，不会持久化到对话历史；用户对话历史永远保留 original
 - 一次指令含多意图时，全部识别并列在 intents[]
@@ -160,7 +161,7 @@ submit_intent 参数 schema：
 ```go
 // Read tools（查询用）
 plannerReadTools := []ToolDef{
-    {Name: "query_team_schema",     Description: "查当前 Team 的实体 schema", Params: {"entity_type": "string"}},
+    {Name: "query_team_schema",     Description: "查当前 Team 的实体 schema（每个识别到的 entityType 必调，抽字段前先查）", Params: {"entity_type": "string"}},
     {Name: "query_team_members",    Description: "查 Team 成员列表",          Params: {"filter": "string"}},
     {Name: "query_team_milestones", Description: "查 Team 里程碑列表",        Params: {"filter": "string"}},
     {Name: "fuzzy_match_member",    Description: "姓名/工号模糊匹配成员",     Params: {"name": "string"}},
@@ -176,47 +177,50 @@ plannerEmissionTools := []ToolDef{
 
 → Planner **没有写工具**（`commit_create` 等），也**没有 form/query_result emission**——物理隔离职责。
 
-### 3.4 置信度处理（PRD Story 7，4 个边界 AC）
+### 3.4 路由决策（PRD Story 7，离散 decision 驱动）
 
-Planner 在 `submit_intent` 的 `confidence` 字段输出对意图识别的置信度（0.0–1.0）。Orchestrator 在 persist 意图消息**之前**按阈值分流：
+Planner 在 `submit_intent` 的 `decision` 字段输出一个**离散路由决策**（枚举），Orchestrator 在 persist 意图消息**之前**按 decision 分流：
 
-| confidence 区间 | 处理 | 前端表现 |
-|----------------|------|---------|
-| `≥ 0.7`（高置信） | persist 意图消息（state=awaiting_confirm） + emit `card_message(intent)` + emit `turn_phase_done(nextAction=await_confirm_intent)` | 展示意图确认卡片（PRD：直接推送预填候选意图，不返回候选列表） |
-| `0.4 ≤ x < 0.7`（中置信） | Orchestrator **不 persist 意图消息**；emit `card_message(cardType=candidate_list)` + 引导文字 + emit `turn_phase_done(nextAction=await_select_intent)` | 展示候选意图列表（每项含 label + 字段摘要），用户点选 → `POST /messages {type:select_intent, candidateIntentId}` → 转 `confirm_intent` 流程 |
-| `< 0.4`（低置信） | Orchestrator emit `text_message("无法理解，请重新描述")` + `turn_phase_done(nextAction=retry)`，列出支持的操作类型清单 | 展示失败提示 + 操作类型清单 |
+| decision | 处理 | 前端表现 |
+|----------|------|---------|
+| `confirm` | persist 意图消息（state=awaiting_confirm） + emit `card_message(intent)` + emit `turn_phase_done(nextAction=await_confirm_intent)` | 展示意图确认卡片（PRD：直接推送预填候选意图，不返回候选列表） |
+| `show_candidates` | Orchestrator **不 persist 意图消息**；emit `card_message(cardType=candidate_list)` + 引导文字 + emit `turn_phase_done(nextAction=await_select_intent)` | 展示候选意图列表（每项含 label + 字段摘要），用户点选 → `POST /messages {type:select_intent, candidateIntentId}` → 转 `confirm_intent` 流程 |
+| `cannot_understand` | Orchestrator emit `text_message("无法理解，请重新描述")` + `turn_phase_done(nextAction=retry)`，列出支持的操作类型清单 | 展示失败提示 + 操作类型清单 |
 
-**边界 AC 对齐（PRD Story 7）**：
+**为什么用离散 decision 而非浮点 confidence**：LLM 自报的 confidence 数值校准极差——同一模型内 confidence 与正确性常常弱相关甚至负相关，跨模型更不可比。用 0.7/0.4 等魔法阈值驱动路由既难写测试验证、换模型又要重调。让 LLM 直接判"我该确认 / 该列候选 / 没听懂"这种离散语义判断，比让它给一个校准度不可信的概率分数更可靠，也消除了阈值魔法数。这与 LangGraph 的 `Literal[...]` 条件边路由、Pydantic-AI 的 union 输出类型同源——路由决策应是离散字段，不是带阈值的浮点数。
 
-| AC | confidence | 路径 |
-|----|-----------|------|
-| 0.7（高置信下界） | = 0.7 | 高置信处理 |
-| 0.69（中置信上界） | = 0.69 | 中置信处理 |
-| 0.4（中置信下界） | = 0.4 | 中置信处理 |
-| 0.39（低置信上界） | = 0.39 | 低置信处理 |
+> `decision` 取代了早期设计的 `confidence: float64`（0.0–1.0 + 0.7/0.4 阈值）。PRD Story 7 原 AC 以 confidence 边界（0.7/0.69/0.4/0.39）表述，本设计相应改为 decision 枚举边界——见 [`tech-design.md`](./tech-design.md) §1.5 PRD 偏离说明。confidence 作为可选观测元信息保留在 `agent_call_logs`（调试用），不再驱动路由。
 
-阈值常量在 `internal/copilot/orchestrator/confidence.go`：
+**边界 AC 对齐（PRD Story 7，从 confidence 边界改为 decision 边界）**：
+
+| AC | decision | 路径 |
+|----|----------|------|
+| 清晰意图 | `confirm` | intent card |
+| 模糊但可列候选 | `show_candidates` | candidate_list |
+| 无意义 / 超出能力 | `cannot_understand` | "无法理解" + 操作清单 |
+
+决策枚举在 `internal/copilot/orchestrator/decision.go`：
 
 ```go
+type PlannerDecision string
 const (
-    ConfidenceHighMin   = 0.7  // ≥ 0.7 走高置信
-    ConfidenceMiddleMin = 0.4  // ≥ 0.4 走中置信
-    // < 0.4 走低置信
+    DecisionConfirm          PlannerDecision = "confirm"
+    DecisionShowCandidates   PlannerDecision = "show_candidates"
+    DecisionCannotUnderstand PlannerDecision = "cannot_understand"
 )
 ```
 
-**candidate_list 卡片**（新增 cardType）：CardPayload 含 `candidates: [{id, label, opType, entityType, fieldsSummary}]`。用户点选后，Orchestrator 把该候选升级为正式 IntentSpec（生成 intent_message_id）并进入 `confirm_intent` 流程。state-machines.md §3 新增状态 `awaiting_select_intent`（介于 planning 与 awaiting_confirm_intent 之间）。
+**candidate_list 卡片**（cardType）：CardPayload 含 `candidates: [{id, label, opType, entityType, fieldsSummary}]`。用户点选后，Orchestrator 把该候选升级为正式 IntentSpec（生成 intent_message_id）并进入 `confirm_intent` 流程。state-machines.md §3 新增状态 `awaiting_select_intent`（介于 planning 与 awaiting_confirm_intent 之间）。
 
-**为什么中置信不直接进 confirm_intent**：中置信下用户尚未确认"是这个意图"，直接展示确认卡片会让用户误以为 AI 高置信理解了。candidate_list 强制用户从候选中选一个，避免误执行。
+**为什么 show_candidates 不直接进 confirm_intent**：此决策下用户尚未确认"是这个意图"，直接展示确认卡片会让用户误以为 AI 已理解。candidate_list 强制用户从候选中选一个，避免误执行。
 
 **单测场景**（testing-strategy.md §3.1 补充）：
 
-| 输入 | confidence | 期望路径 |
-|------|-----------|---------|
-| "创建 P1 事项叫认证模块"（清晰） | 0.85 | 高置信 → intent card |
-| "改一下那个东西的状态"（含代词+省略） | 0.55 | 中置信 → candidate_list |
-| "asdfgh"（无意义） | 0.20 | 低置信 → "无法理解" |
-| 边界：模拟 confidence=0.7 / 0.69 / 0.4 / 0.39 | 各值 | 验证阈值分支正确 |
+| 输入 | decision | 期望路径 |
+|------|----------|---------|
+| "创建 P1 事项叫认证模块"（清晰） | `confirm` | intent card |
+| "改一下那个东西的状态"（含代词+省略） | `show_candidates` | candidate_list |
+| "asdfgh"（无意义） | `cannot_understand` | "无法理解" |
 
 ## 4. Executor Agents（按 op_type 抽象，4 个）
 
@@ -319,8 +323,21 @@ type AgentRunParams struct {
 
     // Executor 续跑（select_candidate 场景）
     InjectedBizKey string              // 选定候选后注入到 StepParams
+
+    // ── 累加器回调（由 RequestState 投影器 ForPlanner/ForExecutor 注入；Agent 不直接写库）──
+    Persist     func(msg Message) (string, error) // stage 消息 → rs.PendingMessages，返回预生成 bizKey
+    OnAgentCall func(log AgentCallLog)            // 累积 LLM 调用元数据 → rs.Calls
 }
 ```
+
+> **AgentRunParams 是 `RequestState` 的投影**（消除与 TurnContext 的字段漂移）。不要在调用点手写 `AgentRunParams{...}` 字面量，改用 `RequestState` 的构造器（定义见 [state-model.md](./state-model.md) §6）：
+>
+> ```go
+> func (rs *RequestState) ForPlanner(userMsg string) AgentRunParams                              // UserMsg + Env + History + Draft
+> func (rs *RequestState) ForExecutor(intent IntentSpec, injectedBizKey string) AgentRunParams  // StepParams + Env + History
+> ```
+>
+> [request-model.md](./request-model.md) §5.2/§5.3 的内联 `AgentRunParams{...}` 构造改为调这两个方法。
 
 ## 7. Agent Registry
 

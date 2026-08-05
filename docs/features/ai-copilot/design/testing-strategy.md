@@ -86,6 +86,33 @@ func (m *MockProvider) AssertCalled(t *testing.T, want ProviderParams) {
 }
 ```
 
+**回放完整工具调用序列**：`responses` 的值是 `[]ProviderEvent`，其中 `ProviderEventToolCall` 承载 emission / Read 工具调用——因此 MockProvider 不只能回放 Delta+Done，也能回放完整的 LLM↔Tool 交互序列。这是测试 Agent 循环（emission 终止、tool_call→tool_result 回灌、自然结束兜底解析）的关键能力，也是对标 Pydantic-AI `TestModel` / `FunctionModel` 的离线回放入口。
+
+示例：Planner 回放 `submit_rewrite`（不终止）→ `submit_intent`（终止）的完整序列，含 thinking delta 与两次 tool_call：
+
+```go
+provider.When("glm-4-plus:planner_create_main_item", []ProviderEvent{
+    {Type: ProviderEventDelta, Delta: "理解输入..."},
+    {Type: ProviderEventToolCall, ToolCall: &ProviderToolCall{
+        ID:       "call_1",
+        Name:     "submit_rewrite",
+        Arguments: `{"original":"创建 P1 事项叫认证模块","rewritten":"..."}`,
+    }},
+    // submit_rewrite 返回 success 不终止 → Agent 再调一次 LLM
+    {Type: ProviderEventDelta, Delta: "字段完整..."},
+    {Type: ProviderEventToolCall, ToolCall: &ProviderToolCall{
+        ID:       "call_2",
+        Name:     "submit_intent",
+        Arguments: `{"text":"好的...","intents":[...],"decision":"confirm"}`,
+    }},
+    {Type: ProviderEventDone, Usage: &ProviderUsage{InputTokens: 300, OutputTokens: 80}},
+})
+```
+
+> **多轮 LLM 调用**：单个 scenario 的 `[]ProviderEvent` 表示**一次** `StreamChat` 调用的完整流。Agent 循环内多轮 LLM 调用（如 Planner 的 rewrite 轮 + intent 轮）需要 MockProvider 按调用次数依次返回不同流——实现上把 `responses` 升级为 `map[scenario][]stream` + 内部调用计数器（`m.calls` 已记录调用，扩展为每次 `StreamChat` 弹出下一个流）。
+>
+> **Agent 循环必须覆盖的三条结束路径**（对应 [llm-integration.md](./llm-integration.md) §2.4）：① emission 工具正常终止；② Read 工具返回 error 回灌 LLM 自我修正；③ 自然结束（无 tool_call）触发 `tryRecoverOutput` 兜底解析。每条路径一个 scenario。
+
 ### 2.2 VCR 风格录像/回放（集成测试用）
 
 ```go
@@ -201,6 +228,8 @@ func (r *RecorderProvider) StreamChat(ctx context.Context, p ProviderParams) (<-
 | 流式中断 | ctx.Done() 触发，已 persist 消息保留 |
 | feature flag 关闭 | 返回 ERR_FEATURE_DISABLED |
 | 配额预检 | 用户当日已达 50 次时拒绝 |
+| AgentRunParams 投影 | ForPlanner 含 UserMsg+DraftState；ForExecutor 含 StepParams+InjectedBizKey；字段与 TurnContext 不漂移 |
+| Environment → prompt | turnCtx.Environment（含 pageContext）经 SerializeEnv 渲染进 system prompt |
 
 ### 3.4 Handler 测试
 
@@ -224,6 +253,19 @@ func (r *RecorderProvider) StreamChat(ctx context.Context, p ProviderParams) (<-
 | UpdateStatus | JSON 字段（card / intent / trace）状态更新正确 |
 | 软删除 | deleted_at 非空，查询过滤 |
 | 配额查询 | COUNT(DATE(created_at) = today) 正确 |
+
+### 3.6 State 层测试（StateLoader / StateApplier）
+
+| 场景 | 验证点 |
+|------|-------|
+| DraftState 从 messages 重建 | turn 内 answer_clarify 用户消息按序重放 → DraftState.Answers 正确；PendingMissing 取最新 intent 消息 |
+| DraftState 空重建 | 无 clarify 消息的 turn → DraftState 为零值/nil，不报错 |
+| Environment 组装（含 pageContext） | buildEnv(c, req) 从 middleware.GetUserBizKey + TeamScope + req.PageContext + 时间正确填充；PageContext=nil 时降级 |
+| RequestState 扁平字段加载 | Load 后 TurnID/SessionID/Status/ConfirmedIntent 从 session+turn 行正确拷贝 |
+| group-aware 裁剪 | 超预算时先丢最旧完整 intent 组，当前 turn 最新 1-2 组保留；单组过大走 FIFO 兜底 |
+| AgentCallAccumulator Drain | 请求内 Append 多次 → Drain 返回全部并清空；落库到 copilot_agent_call_logs |
+| StateApplier partial update | TurnDiff 只含 Status+Summary → 只 UPDATE 这两列，其他列不动 |
+| MessageSnapshot 投影 | snapshotFromMessage 保留 Content/Card/IntentID，丢弃 trace 等 bulky 字段 |
 
 ## 4. 前端测试
 

@@ -28,6 +28,7 @@ status: Draft
 | [sse-protocol.md](./sse-protocol.md) | SSE 事件协议（`text/event-stream` + 无前缀 JSON） |
 | [security.md](./security.md) | 安全策略 |
 | [state-machines.md](./state-machines.md) | 三层状态机与并发控制 |
+| [state-model.md](./state-model.md) | 会话状态分层与传递（SessionState/TurnState/RequestState + StateLoader/Applier + Environment/pageContext） |
 | [testing-strategy.md](./testing-strategy.md) | 测试策略 |
 | [er-diagram.md](./er-diagram.md) | ER 图 |
 | [schema.sql](./schema.sql) | 数据库 DDL |
@@ -69,7 +70,7 @@ status: Draft
 │       available-transitions endpoint (现有状态变更预校验)             │
 └─────────────────────────────────────────────────────────────────────┘
               │
-              ▼ 5 张新表（3 级数据模型：Session → Turn → Message）
+              ▼ 6 张新表（3 级数据模型：Session → Turn → Message + 日志/幂等/开关）
 ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────────────┐
 │ copilot_sessions │ │ copilot_turns    │ │ copilot_messages         │
 │ (会话元数据)      │ │ (turn 周期+摘要) │ │ (消息不可变快照)          │
@@ -77,10 +78,10 @@ status: Draft
 │   archived/...   │ │   awaiting_.../  │ │                          │
 └──────────────────┘ │   executing/...  │ └──────────────────────────┘
                      └──────────────────┘
-┌──────────────────────────┐ ┌────────────────────────────────────────┐
-│ copilot_agent_call_logs  │ │ feature_flags                           │
-│ (Agent 调用元数据)        │ │ (Copilot 灰度/熔断开关，30s 热读取缓存)  │
-└──────────────────────────┘ └────────────────────────────────────────┘
+┌──────────────────────────┐ ┌──────────────────────────┐ ┌────────────────────────────────────────┐
+│ copilot_agent_call_logs  │ │ copilot_idempotency_keys │ │ feature_flags                           │
+│ (Agent 调用元数据)        │ │ (commit_card 幂等)       │ │ (Copilot 灰度/熔断开关，30s 热读取缓存)  │
+└──────────────────────────┘ └──────────────────────────┘ └────────────────────────────────────────┘
 ```
 
 ### 1.3 关键设计原则
@@ -112,11 +113,12 @@ status: Draft
 
 ### 1.5 PRD 偏离说明
 
-本设计在一点上偏离 PRD：
+本设计在两点上偏离 PRD：
 
 | PRD 条款 | 偏离 | 理由 |
 |---------|------|------|
 | 单会话 50 轮上限 | 取消 | 改为 token 预算控制（决策 5） |
+| Story 7 意图识别 confidence 阈值（0.7/0.69/0.4/0.39） | 改为离散 `decision` 枚举（confirm / show_candidates / cannot_understand） | LLM 自报 confidence 校准不可靠，浮点阈值难验证且跨模型不可移植；离散决策对标 LangGraph `Literal` 路由与 Pydantic-AI union 输出。详见 [agent-architecture.md](./agent-architecture.md) §3.4。Story 7 边界 AC 相应由 confidence 数值改为 decision 枚举 |
 
 **UF-9 意图确认完整保留**：
 - 阶段 1 意图回执（文本 + 结构化确认体）作为 `type=intent` 消息推送
@@ -149,7 +151,10 @@ backend/internal/copilot/
 │   └── stream.go             # SSE 流辅助
 ├── orchestrator/             # 编排层（goroutine 内运行）
 │   ├── orchestrator.go
-│   ├── turn_context.go
+│   ├── turn_context.go       # TurnContext = RequestState 别名（见 state-model.md）
+│   ├── state_loader.go       # StateLoader：从 DB 重建 RequestState（含 DraftState 重建）
+│   ├── state_applier.go      # StateApplier：TurnDiff partial update
+│   ├── request_state_projectors.go  # ForPlanner / ForExecutor 投影
 │   └── summary.go            # 规则提取 turn 摘要
 ├── agent/                    # Agent 层
 │   ├── agent.go
@@ -394,22 +399,26 @@ LLM Provider 错误
 | LLM API 中断 | Provider 返回 error event，Orchestrator 转发并关闭流 |
 | 后端 entity service 失败 | commit 端点返回错误，PATCH card state=failed |
 
-### 4.4 Source-of-truth 消息的事务性持久化
+### 4.4 Source-of-truth 消息的事务性持久化（Load → Accumulate → Flush）
 
-下列消息是 source of truth，持久化必须与 Turn 状态变更在同一事务内：
+下列消息是 source of truth，必须可靠持久化。本设计采用 **Load → Accumulate → Flush**（见 [state-model.md](./state-model.md) §1）：请求过程中这些消息**只累积进 RequestState**（`rs.PendingMessages`，不写库），请求结束由 `StateApplier.Flush` **单事务**写回。
 
-| 消息 | 角色 | 失败处理 |
-|------|------|---------|
-| user text msg（free_text / answer_clarify / adjust_intent） | 用户原文 | persist 失败 → 整个请求 500，Turn 不创建 |
-| intent msg（type=intent） | 意图消息，下游 plan 重建依据 | persist 失败 → 不 emit `card_message`，emit `error` + UPDATE turn status=failed，事务回滚 |
-| form card msg（type=card, cardType=form, status=prefilled） | 等用户提交的预填表单 | persist 失败 → 不 emit `card_message`，emit `error` + UPDATE turn status=failed，事务回滚 |
-| followup text msg（commit_card 成功后） | 反馈消息 | persist 失败 → 整个 commit_card 事务回滚（含 entity service 写） |
+| 消息 | 角色 | Flush 失败处理 |
+|------|------|---------------|
+| user text msg（free_text / answer_clarify / adjust_intent） | 用户原文 | Flush 失败 → 整事务回滚，Turn 不创建（请求 500） |
+| intent msg（type=intent） | 意图消息，下游 plan 重建依据 | Flush 失败 → 整事务回滚（intent + turn 变更都不落库），turn 仍为 planning，客户端重发 |
+| form card msg（type=card, cardType=form, status=prefilled） | 等用户提交的预填表单 | 同上 |
+| followup text msg（commit_card 成功后） | 反馈消息 | commit_card 走独立事务（`StateApplier.ApplyTurnUpdate`），失败 → commit 事务回滚（含 entity service 写） |
 
-**为什么 intent persist 不能 best-effort**：request-model.md §1.2 明确"意图消息是 source of truth"，下游 `confirm_intent` / `answer_clarify` / `adjust_intent` 全部依赖 `intentMessageId`。若 best-effort persist 失败、card_message 已 emit，前端会看到一条 `messageId=""` 的意图卡片，下一请求带空 ID → 404 → turn 永远卡在 `awaiting_confirm_intent`，只能等 cron 24h 后标 superseded。
+**为什么不再需要"中途事务 + best-effort 担忧"**：早期设计担心"intent 已 emit `card_message` 但 persist 失败 → 前端看到 `messageId=''` 的卡片 → 下游 404 → turn 卡死在 `awaiting_confirm_intent`"。Load/Accumulate/Flush 从根上消除该问题——SSE 事件携带的 messageId 是**预生成**的（snowflake），**实际落库集中在请求结束的 Flush 单事务**：要么全 persist 要么全回滚，不存在"emit 了但没落库"的中间态。
 
-**唯一允许 best-effort 的消息**：`trace` 消息（type=trace）。trace 仅用于 UI 调试展示，不是 source of truth；persist 失败时 trace 文本聚合仍随 SSE 流给前端展示，DB 落库失败仅记日志。
+**trace 消息**：由 `consume*Stream`（见 [request-model.md](./request-model.md) §5.4）在每个 agent 调用结束时聚合为 `Message{type=trace}` 累积进 `rs.PendingMessages`，Flush 时与 source-of-truth 同事务落库（不再 best-effort——单事务成本可忽略，且 trace 与 intent/form 的 messageId 一致性更强）。
 
-**实现**：Orchestrator.HandleUserMessage / ExecuteFromIntent 把 persist + UPDATE turn 包在 `txManager.WithinTx` 内（参考 request-model.md §2.2 handleFreeText 已有事务模式）；persist 返回 error 时事务回滚，goroutine 内 emit error 事件后 return。
+**唯一不走 Flush 的路径**：`commit_card`——非 LLM 同步路径，JSON 响应依赖 entity service 写结果，必须即时落库（走 `StateApplier.ApplyTurnUpdate` 独立事务，不等 Flush）。其余所有 LLM 流产出（intent/form/trace/followup + turn 字段变更 + agent_call_logs）都集中在请求结束的 Flush。
+
+**crash 权衡**：Flush-at-end 意味着请求中途 crash（panic/OOM/超时）→ 该轮累积丢失（turn 仍为 planning/executing，cron 1h 标 failed，用户重发）。换取单事务原子性。可接受——failed turn 本就可重试，且消除了 stuck-turn 风险。
+
+**实现**：Handler 在 orchestrator 返回后调 `h.stateApplier.Flush(ctx, turnCtx)`（见 [request-model.md](./request-model.md) §2.2 goroutine、§5 intro）。Flush 内部单一事务：INSERT `rs.PendingMessages`（含 trace）+ INSERT `rs.Calls.Drain()` + UPDATE turn 字段 + touch session。
 
 ---
 
@@ -479,28 +488,29 @@ COPILOT_ENABLED=true  # 可选，覆盖 config.yaml
 
 ### 6.3 数据库迁移
 
-新增 5 张表，通过 `internal/migration/runner.go` 自动迁移：
+新增 6 张表，通过 `internal/migration/runner.go` 自动迁移：
 
 ```go
 func RunAutoMigrate(db *gorm.DB) error {
     // ... 现有 models ...
-    
-    // Copilot 新增（3 级数据模型 + 调用日志 + 开关）
+
+    // Copilot 新增（3 级数据模型 + 调用日志 + 幂等 + 开关）
     if err := db.AutoMigrate(
         &copilotmodel.Session{},
-        &copilotmodel.Turn{},       // turn 主表（含 summary 嵌入字段）
+        &copilotmodel.Turn{},            // turn 主表（含 summary 嵌入字段）
         &copilotmodel.Message{},
         &copilotmodel.AgentCallLog{},
+        &copilotmodel.IdempotencyKey{},  // commit_card 幂等（见 interfaces.md §7.1）
         &copilotmodel.FeatureFlag{},
     ); err != nil {
         return err
     }
-    
+
     return nil
 }
 ```
 
-**SQLite + MySQL 同步**：按 CLAUDE.md 约定，`backend/migrations/SQLite-schema.sql` 和 `MySql-schema.sql` 必须同步新增这 5 张表的 DDL。
+**SQLite + MySQL 同步**：按 CLAUDE.md 约定，`backend/migrations/SQLite-schema.sql` 和 `MySql-schema.sql` 必须同步新增这 6 张表的 DDL。
 
 ### 6.4 Seed 数据
 

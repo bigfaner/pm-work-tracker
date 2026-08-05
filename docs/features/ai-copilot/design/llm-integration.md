@@ -102,9 +102,13 @@ ctxBuilder.Build()  ← 仅一次（组装 system + history + user msg）
 │     - Error → emit error 事件，return                          │
 │                                                                │
 │  3. 判定：                                                     │
-│     ┌─ 无 tool_calls → LLM 未调 emission（异常 / 兜底）       │
-│     │   - 累积 content 作为 text_message 兜底 emit             │
-│     │   - 写 agent_call_log (usage, warning=no_emission)      │
+│     ┌─ 无 tool_calls → 自然结束（LLM 未调 emission 工具）     │
+│     │   - 先尝试按本 Agent output schema 解析累积 content     │
+│     │     成功 → 当作 emission 处理（emit 对应 card 事件 +    │
+│     │            persist），写 log(warning=no_emission_tool,  │
+│     │            recovered=parse_content)                     │
+│     │     失败 → 累积 content 作为 text_message 兜底 emit,    │
+│     │            写 log(warning=no_emission_tool)             │
 │     │   - return（结束 StreamRun）                             │
 │     │                                                          │
 │     └─ 有 tool_calls → 逐个执行                                │
@@ -168,12 +172,16 @@ func (a *baseAgent) runLoop(
 ) {
     messages := promptCtx.Messages  // [system, history..., user]
 
-    // Emission 工具通过此参数拿到 outCh 写事件 + 持久化回调
+    // Emission 工具通过此参数拿到 outCh 写事件 + 暂存回调。
+    // p.Persist / p.OnAgentCall 由 RequestState 投影器（ForPlanner/ForExecutor）注入闭包，
+    // 把产出【累积进 RequestState】（Persist → rs.PendingMessages 返回预生成 bizKey；
+    // logAgentCall → p.OnAgentCall → rs.Calls.Append）。Agent 内零 DB 写——
+    // 持久化在请求结束 StateApplier.Flush 单事务完成（见 state-model.md §3.3）。
     toolParams := tool.ToolExecParams{
         OutCh:   outCh,
         TurnID:  p.TurnID,
         StepID:  p.StepID,
-        Persist: a.makePersist(p),
+        Persist: p.Persist,   // stage Message → rs.PendingMessages，返回 bizKey（不写库）
     }
 
     for iter := 0; iter < maxAgentIterations; iter++ {
@@ -216,12 +224,18 @@ func (a *baseAgent) runLoop(
             }
         }
 
-        // 4. 无 tool_call = LLM 没调 emission（异常兜底）
+        // 4. 无 tool_call = 自然结束（LLM 未调 emission 工具）
+        //    先尝试按本 Agent 的 output schema 解析累积 content 作为兜底产出；
+        //    解析成功则当作 emission 处理，失败才降级为纯文本（见 §2.4）
         if len(toolCalls) == 0 {
-            if contentBuf.Len() > 0 {
-                outCh <- sse.TextMessageEvent(p.TurnID, p.StepID, contentBuf.String())
+            if recovered := a.tryRecoverOutput(ctx, contentBuf.String(), p, outCh); recovered {
+                a.logAgentCall(p, usage, "success", "no_emission_tool,recovered=parse_content")
+            } else {
+                if contentBuf.Len() > 0 {
+                    outCh <- sse.TextMessageEvent(p.TurnID, p.StepID, contentBuf.String())
+                }
+                a.logAgentCall(p, usage, "success", "no_emission_tool")
             }
-            a.logAgentCall(p, usage, "success", "no_emission_tool")
             return
         }
 
@@ -274,15 +288,34 @@ func (a *baseAgent) runLoop(
 }
 ```
 
+**`logAgentCall` 实现**——构建 `AgentCallLog` 并通过 `p.OnAgentCall` **累积进 `rs.Calls`**（不直接写库，Flush 时 Drain 落 `agent_call_logs`）：
+
+```go
+// logAgentCall —— Agent 调用元数据累加器（不写库）
+func (a *baseAgent) logAgentCall(p AgentRunParams, usage *provider.ProviderUsage, status, warning string) {
+    log := AgentCallLog{
+        SessionID: p.SessionID, TurnID: p.TurnID, StepID: p.StepID,
+        AgentRole: string(a.role), Provider: a.providerName(), Model: a.model,
+        Status: status, Warning: warning,
+    }
+    if usage != nil {
+        log.InputTokens, log.OutputTokens = usage.InputTokens, usage.OutputTokens
+    }
+    p.OnAgentCall(log) // → rs.Calls.Append（见 state-model.md §2.4）
+}
+```
+
 ### 2.3 关键不变量
 
 1. **Provider 调用次数 = 循环迭代次数**——每次循环恰好一次 `StreamChat`
-2. **结构化输出必经 emission 工具**——LLM 不输出文本 marker / 裸 JSON，所有结构化数据走工具 args
-3. **Emission 工具 = 终止信号**——返回 `Status=terminal` 时立即结束 StreamRun（除 `submit_rewrite`，它是中间步骤不终止）
+2. **结构化输出首选 emission 工具**——system prompt 要求 LLM 不输出文本 marker / 裸 JSON，结构化数据走工具 args；但 Agent 对"LLM 未遵守、自然结束无 tool call"的情况有兜底解析（见不变量 8 与 §2.4）
+3. **两条结束路径**——(a) emission 工具返回 `Status=terminal` 立即结束 StreamRun（首选，除 `submit_rewrite` 它是中间步骤不终止）；(b) 一轮无 tool_call 自然结束，按 output schema 兜底解析
 4. **Read / Action 工具先 emit 后执行**——前端能看到"调了什么"再看到"结果是什么"
 5. **Tool 错误不 break**——以 `role=tool, status=error` 回灌给 LLM，让 LLM 决定重试或放弃
 6. **迭代上限保护**——`maxAgentIterations=8`，超过即 fail（防止 LLM 无限调 tool 死循环）
 7. **ContextBuilder 只跑一次**——历史裁剪在循环外完成；循环内只在 messages 末尾追加 assistant + tool 消息
+8. **自然结束有兜底**——LLM 一轮未调任何工具时，`tryRecoverOutput` 按本 Agent output schema（Planner→IntentPayload，Writer/Mover→FormCardData，Reader→QueryResultCardData）解析累积 content；解析成功复用 emission 的 emit+stage 路径，失败才 text 兜底。此路径仅作 safety net，system prompt 仍优先要求走 emission 工具
+9. **Agent 循环不写库**——所有产出（emission 消息、trace、agent 调用元数据）经 `p.Persist` / `logAgentCall`（→`p.OnAgentCall`）**累积进 RequestState**，Agent 内零 DB 写；持久化集中在请求结束 `StateApplier.Flush` 单事务（见 state-model.md §1、§3.3）
 
 ### 2.4 各 Agent 的 emission 调用顺序
 
@@ -298,7 +331,11 @@ func (a *baseAgent) runLoop(
 
 **特殊：`submit_rewrite` 是唯一不终止的 emission 工具**。返回 `Status=success`，Agent 继续 LLM 循环。这样 Planner 能在单次 StreamRun 内串行完成 input_rewrite + thinking + submit_intent。
 
-**异常兜底**：若 LLM 流结束未调任何 emission 工具，Agent 把累积 content 作为 `text_message` 兜底 emit，写 agent_call_log 标记 `warning=no_emission_tool`。这种情况下用户看到的是纯文本回复，没有结构化卡片。
+**自然结束兜底（safety net）**：若 LLM 一轮结束未调任何 emission 工具，Agent 并非直接降级为纯文本，而是先调 `tryRecoverOutput` 按 output schema 解析累积 content：
+- **解析成功** → 复用对应 emission 工具的 emit + stage 路径（等同 LLM 调了该工具，消息进 `rs.PendingMessages`），`rs.Calls` 记 `warning=no_emission_tool, recovered=parse_content`。用户仍看到结构化卡片。
+- **解析失败** → 累积 content 作为 `text_message` 兜底 emit + stage，`rs.Calls` 记 `warning=no_emission_tool`。此时用户看到纯文本回复。
+
+各 Agent 的 output schema 对照：Planner→`IntentPayload`、Writer/Mover→`FormCardData`（或 `DisambigCardData`）、Reader→`QueryResultCardData`。此兜底仅针对 LLM 偶发不守 prompt 的情况；system prompt 仍明确要求结构化输出走 emission 工具，兜底不作为常规路径。
 
 ## 3. GLM Provider 实现
 
@@ -621,7 +658,7 @@ copilot:
 func (b *contextBuilder) Build(ctx context.Context, p BuildParams) (PromptContext, error) {
     // 1. 固定部分（按 Role 选模板）
     sysPrompt := b.systemPromptFor(p.Role)
-    env := serializeEnv(p.Env)  // user / team / page / currentTime
+    env := SerializeEnv(p.Env)  // 渲染 user/team/page/time 进 prompt（定义见 state-model.md §3.4）
     tools := b.toolsFor(p.Role)
     schema := b.maybeLoadSchema(p)  // 仅 Executor 加载 entity schema
 
@@ -634,13 +671,13 @@ func (b *contextBuilder) Build(ctx context.Context, p BuildParams) (PromptContex
     if historyBudget <= 0 {
         return PromptContext{}, errors.New("system prompt exceeds token budget")
     }
-    history := b.cropHistory(p.History, historyBudget)  // FIFO 丢弃最早
+    history := b.cropHistory(p.History, historyBudget)  // group-aware 裁剪（§5.4），FIFO 兜底
 
     // 3. 组装 messages
     var msgs []ProviderMsg
     msgs = append(msgs, ProviderMsg{Role: "system", Content: fixed})
     for _, m := range history {
-        msgs = append(msgs, toProviderMsg(m))
+        msgs = append(msgs, ToProviderMsg(m))  // MessageSnapshot → ProviderMsg（定义见 state-model.md §3.4）
     }
     if p.UserMsg != "" {
         msgs = append(msgs, ProviderMsg{Role: "user", Content: p.UserMsg})
@@ -661,32 +698,44 @@ func (b *contextBuilder) Build(ctx context.Context, p BuildParams) (PromptContex
 
 | Role | 加载 schema？ | 来源 |
 |------|--------------|------|
-| Planner | ✗ | Planner 只识别意图，不操作具体字段 |
+| Planner | ✗（不自动注入） | ContextBuilder 不为 Planner 预注入 schema；但 Planner 抽取 `intents[].fields` / `missingInfo` 前**必须**显式调 `query_team_schema(entity_type)` 工具获取字段定义（system prompt 硬规则，见 [agent-architecture.md](./agent-architecture.md) §3.2），否则字段名与下游 Executor 不一致 |
 | Writer / Updater | ✓ | `stepParams.entity_type` → schema_loader.Load |
 | Reader | ✓ | 同上（filter 字段需要对齐 schema） |
 | Mover | ✗ | SubItem.move 是固定结构，schema 内嵌在 prompt |
 
-**目的**：避免每次都把 6 个实体的 schema 全塞进 prompt（省 ~3000 tokens）。
+**目的**：避免每次都把 6 个实体的 schema 全塞进 prompt（省 ~3000 tokens）。Planner 不自动注入是因为它按需只为识别到的 entityType 查询、而非全量；但"不自动注入"不等于"可以不查"——见上表 Planner 行。
 
 ### 5.4 历史裁剪策略
 
 ```go
+// cropHistory —— group-aware 裁剪（对标 LangGraph add_messages 的 by-id 整体性：
+// 不拆散同一 intent 的消息组）。先丢最旧的完整组，保留当前 turn 的部分组；
+// 单组过大时退回组内 FIFO 兜底，保证总能收敛到预算内。
 func (b *contextBuilder) cropHistory(history []MessageSnapshot, budget int) []MessageSnapshot {
-    cropped := history
-    for {
-        tokens := b.provider.CountTokens(serialize(cropped))
-        if tokens <= budget || len(cropped) == 0 {
-            break
-        }
-        cropped = cropped[1:] // FIFO：丢最早
+    if b.provider.CountTokens(serialize(history)) <= budget {
+        return history
     }
-    return cropped
+    // 1. 按 IntentID 分组（IntentID=nil 的消息各自独立成组），保留首次出现顺序
+    groups := groupByIntent(history) // [][]MessageSnapshot
+
+    // 2. 从最旧的完整组开始丢，直到达标或只剩最新 1-2 组（保护当前 turn 上下文）
+    for len(groups) > 2 && b.provider.CountTokens(serialize(flatten(groups))) > budget {
+        groups = groups[1:]
+    }
+
+    // 3. 仍超预算 → 组内 FIFO 兜底（逐条丢最早，极端情况收敛到空）
+    flat := flatten(groups)
+    for len(flat) > 0 && b.provider.CountTokens(serialize(flat)) > budget {
+        flat = flat[1:]
+    }
+    return flat
 }
 ```
 
 **不变量**：
-- 当前 turn 的 user msg 永远保留（不在 history 内）
-- 丢弃粒度是整条 message（不拆分单条）
+- 当前 turn 的 user msg 永远保留（不在 history 内，由 Build 单独 append）
+- 默认丢弃粒度是**完整 intent 组**（组内语义不拆散）；兜底阶段才逐条丢
+- 当前 turn 的最新 1-2 组受保护（最后才丢）
 - 极端情况：history 全被丢弃，仅剩 system + user msg（短上下文也能跑）
 
 ## 6. 错误处理 & 超时 & 重试
@@ -814,9 +863,13 @@ func (p *GLMProvider) StreamChat(ctx context.Context, params ProviderParams) (<-
 ```go
 // internal/copilot/handler/middleware.go
 
+// 注意：中间件用 ShouldBindBodyWith（非 ShouldBindJSON）绑定——后者会消费 body，
+// 下游 handler（PostMessage / TurnInFlightGuard）再次绑定时 EOF。ShouldBindBodyWith
+// 把 body bytes 缓存到 context，后续无论 ShouldBindJSON 还是 ShouldBindBodyWith 都能重读。
+// 测试：TestUserStreamGuard_BodyReReadable 验证中间件绑定后 handler 仍能拿到完整 body。
 func (h *CopilotHandler) UserStreamGuard(c *gin.Context) {
     var req MessageRequest
-    if err := c.ShouldBindJSON(&req); err != nil { c.Next(); return }
+    if err := c.ShouldBindBodyWith(&req, binding.JSON); err != nil { c.Next(); return }
     if !triggersSSEStream(req.Type) { c.Next(); return }
 
     userBizKey := middleware.GetUserBizKey(c)

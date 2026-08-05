@@ -199,6 +199,7 @@ type BuildParams struct {
     StepParams map[string]any         // Executor 时填
     DraftState *DraftState
     Env        Environment
+    History    []MessageSnapshot       // 滑动窗口裁剪前的历史（Build 内裁剪）
     Role       AgentRole              // 决定 schema 注入策略
 }
 
@@ -233,7 +234,7 @@ type contextBuilder struct {
 func (b *contextBuilder) Build(ctx context.Context, p BuildParams) (PromptContext, error) {
     // 1. 估算固定部分 token（system prompt + env + tools）
     sysPrompt := b.systemPromptFor(p.Role)
-    env := serializeEnv(p.Env)
+    env := SerializeEnv(p.Env)  // 定义见 state-model.md §3.4
     tools := b.toolsFor(p.Role)
     
     fixedTokens := b.provider.CountTokens(sysPrompt + env + serializeTools(tools))
@@ -254,7 +255,7 @@ func (b *contextBuilder) Build(ctx context.Context, p BuildParams) (PromptContex
     var msgs []ProviderMsg
     msgs = append(msgs, ProviderMsg{Role: "system", Content: sysPrompt + env + schema})
     for _, m := range cropped {
-        msgs = append(msgs, toProviderMsg(m))
+        msgs = append(msgs, ToProviderMsg(m))  // 定义见 state-model.md §3.4
     }
     msgs = append(msgs, ProviderMsg{Role: "user", Content: p.UserMsg})
     
@@ -268,17 +269,9 @@ func (b *contextBuilder) Build(ctx context.Context, p BuildParams) (PromptContex
     }, nil
 }
 
-func (b *contextBuilder) cropHistory(history []MessageSnapshot, budget int) []MessageSnapshot {
-    cropped := history
-    for {
-        tokens := b.provider.CountTokens(serialize(cropped))
-        if tokens <= budget || len(cropped) == 0 {
-            break
-        }
-        cropped = cropped[1:]  // FIFO 丢弃最早
-    }
-    return cropped
-}
+// cropHistory 实现见 llm-integration.md §5.4（group-aware 裁剪 + FIFO 兜底）。
+// 此处不重复实现，避免两处漂移；接口契约：按 token 预算裁剪 history，
+// 优先丢最旧完整 intent 组、保护当前 turn 最新 1-2 组。
 ```
 
 ## 6. Message Repository 接口
@@ -331,7 +324,40 @@ type FeatureFlagRepository interface {
     Get(ctx context.Context, key string, scopeType, scopeID string) (bool, error)
     Set(ctx context.Context, key string, enabled bool, scopeType, scopeID string, reason string) error
 }
+
+type IdempotencyKeyRepository interface {
+    // GetByRequestID 命中返回上次结果（含 ResultBizKey + Status）；未命中返回 nil
+    GetByRequestID(ctx context.Context, requestID string) (*IdempotencyKey, error)
+    // InsertTx 事务内插入 pending 行（见 §7.1）
+    InsertTx(tx *gorm.DB, k IdempotencyKey) error
+    // UpdateCommittedTx 标记 committed + 填 ResultBizKey
+    UpdateCommittedTx(tx *gorm.DB, requestID, resultBizKey string) error
+}
 ```
+
+## 6.5 State 层接口（StateLoader / StateApplier）
+
+State 层把上述 Repository 组装成请求级 `RequestState`（工作状态）。完整定义（`RequestState` / `SessionState` / `TurnState` / `Environment` / `DraftState` / `MessageSnapshot` / `AgentCallAccumulator` / `TurnDiff`）见 [`state-model.md`](./state-model.md)。
+
+```go
+// internal/copilot/orchestrator/state_loader.go
+
+type StateLoader interface {
+    // Load 重建完整 RequestState：读 session + turn + messages，重建 DraftState，裁剪 History
+    Load(ctx context.Context, sessionID, turnID string, env Environment) (*RequestState, error)
+}
+
+// internal/copilot/orchestrator/state_applier.go
+
+type StateApplier interface {
+    // Flush —— 请求结束时单事务写回所有累加器（核心持久化路径，见 state-model.md §3.3）
+    Flush(ctx context.Context, rs *RequestState) error
+    // ApplyTurnUpdate 只写 diff 中非 nil 的字段（partial update；用于 commit_card 等同步路径）
+    ApplyTurnUpdate(ctx context.Context, turnID string, diff TurnDiff) error
+}
+```
+
+加载与更新均委托 §6 各 Repository（`SessionRepository` / `TurnRepository` / `MessageRepository`），**不新造数据访问层**。
 
 ## 7. Dispatcher 接口（复用现有 entity service，由 commit_card Handler 调用）
 
@@ -341,9 +367,18 @@ Dispatcher 是 LLM 与 entity service 之间的边界，**仅由 `commit_card` H
 // internal/copilot/service/dispatcher.go
 
 type Dispatcher interface {
-    // 按 form card payload 路由到现有 entity service。
+    // 按 form card payload 路由到现有 entity service，并在 Create 路径上做幂等保护（§7.1）。
     // 调用方：handleCommitCard Handler（POST /messages type=commit_card）
-    Dispatch(ctx context.Context, fc FormCard) (*DispatchResult, error)
+    Dispatch(ctx context.Context, req DispatchRequest) (*DispatchResult, error)
+}
+
+// DispatchRequest —— commit_card 的派发入参（含幂等上下文）
+type DispatchRequest struct {
+    FormCard  FormCard // form card payload
+    RequestID string   // 客户端生成的幂等键（UUID v4），来自 MessageRequest.RequestID
+    MessageID string   // form card 消息 id（关联 copilot_idempotency_keys.message_id）
+    TurnID    string
+    SessionID string
 }
 
 // FormCard = 持久化的 form card 消息反序列化结构
@@ -379,7 +414,7 @@ type DispatchResult struct {
 2. 未命中 → 事务内：INSERT idempotency row + 调 entity service Create + UPDATE form card status=submitted。
 3. 重复请求（同 requestId）在 step 1 即返回，保证不重复创建。
 
-> 此机制同时覆盖 LLM 失败重试（若未来 Executor 重引入 Action 工具）与前端网络抖动重试。schema 见 [`schema.sql`](./schema.sql) `copilot_idempotency_keys` 表。
+> 此机制同时覆盖 LLM 失败重试（若未来 Executor 重引入 Action 工具）与前端网络抖动重试。schema 见 [`schema.sql`](./schema.sql) `copilot_idempotency_keys` 表；Go model `IdempotencyKey` + `IdempotencyKeyRepository`（`GetByRequestID` / `InsertTx` / `UpdateCommittedTx`，见 §6 / §11）。Dispatcher 实现注入 `IdempotencyKeyRepository`，在 `Dispatch` 内完成查/插/更新；`handleCommitCard` 把 `MessageRequest.RequestID` 连同 messageId/turnID/sessionID 组装成 `DispatchRequest` 传入。
 ```
 
 ## 8. ToolRegistry 接口
@@ -499,8 +534,10 @@ func (o *Orchestrator) HandleCancel(
 
 type CopilotHandler struct {
     sessionRepo  repository.SessionRepository
-    turnRepo     repository.TurnRepository   // 新增
+    turnRepo     repository.TurnRepository
     msgRepo      repository.MessageRepository
+    stateLoader  orchestrator.StateLoader    // Load 工作状态（见 state-model.md §3.1）
+    stateApplier orchestrator.StateApplier   // Flush / ApplyTurnUpdate（见 state-model.md §3.3）
     orchestrator *orchestrator.Orchestrator
     dispatcher   service.Dispatcher
     flagCache    *service.FeatureFlagCache
@@ -541,14 +578,16 @@ func (h *CopilotHandler) Health(c *gin.Context)
 // internal/copilot/handler/copilot_handler.go
 
 type MessageRequest struct {
-    Type            string `json:"type"`            // 7 种类型之一
+    Type            string `json:"type"`            // 8 种类型之一
     Content         string `json:"content,omitempty"`         // free_text / adjust_intent
     Answer          string `json:"answer,omitempty"`          // answer_clarify
     IntentMessageID string `json:"intentMessageId,omitempty"` // confirm_intent / adjust_intent / answer_clarify
-    MessageID       string `json:"messageId,omitempty"`       // select_candidate / commit_card / cancel
-    CandidateBizKey string `json:"candidateBizKey,omitempty"` // select_candidate
+    MessageID       string `json:"messageId,omitempty"`       // select_intent / select_candidate / commit_card / cancel
+    CandidateBizKey string `json:"candidateBizKey,omitempty"` // select_candidate（实体候选 bizKey）
+    CandidateIntentID string `json:"candidateIntentId,omitempty"` // select_intent（候选意图 ID，见 state-machines.md §3 规则 3b）
     NewContent      string `json:"newContent,omitempty"`      // adjust_intent
     RequestID       string `json:"requestId,omitempty"`       // commit_card only：客户端生成的幂等键（UUID v4）
+    PageContext     *PageContext `json:"pageContext,omitempty"` // free_text/answer_clarify/adjust_intent：前端携当前页面上下文（见 state-model.md §4）
 }
 ```
 
@@ -639,7 +678,21 @@ type IntentPayload struct {
     Intents    []IntentSpec  `json:"intents"`
     MissingInfo []MissingItem `json:"missingInfo,omitempty"`
     State      string        `json:"state"`              // awaiting_confirm / info_complete / confirmed / adjusted / cancelled
-    Confidence float64       `json:"confidence"`         // 0.0–1.0（见 agent-architecture.md §3.4）
+    Decision   string        `json:"decision,omitempty"` // Planner 路由决策：confirm / show_candidates / cannot_understand（见 agent-architecture.md §3.4）
+}
+
+// IdempotencyKey —— commit_card 幂等行（schema.sql copilot_idempotency_keys；见 §7.1）
+type IdempotencyKey struct {
+    RequestID    string     `gorm:"type:varchar(36);uniqueIndex;not null"`
+    MessageID    string     `gorm:"type:varchar(36);index;not null"` // 关联的 form card 消息
+    TurnID       string     `gorm:"type:varchar(36);not null"`
+    SessionID    string     `gorm:"type:varchar(36);not null"`
+    UserBizKey   string     `gorm:"type:varchar(36);not null"`
+    ResultBizKey string     `gorm:"type:varchar(36)"`                  // entity service 返回的实体 bizKey（committed 后填）
+    Status       string     `gorm:"type:varchar(16);not null"`         // pending / committed / failed
+    CreatedAt    time.Time
+    CommittedAt  *time.Time
 }
 ```
-```
+
+> **State 相关类型**权威定义见 [`state-model.md`](./state-model.md)：`Environment` / `PageContext`（§2.1）、`DraftState`（§2.2）、`MessageSnapshot`（§2.3）、`AgentCallAccumulator`（§2.4）、`RequestState` / `SessionState` / `TurnState` / `TurnDiff`（§3）。本节只定义卡片/字段相关 struct；state 层 struct 统一在 state-model.md，避免重复定义。
