@@ -337,7 +337,7 @@ type Message struct {
     Content    string          `gorm:"column:msg_content;type:text"`
     Trace      *TracePayload   `gorm:"column:msg_trace;type:json"`
     CardType   *CardType       `gorm:"type:varchar(32)"`
-    Card       json.RawMessage `gorm:"column:msg_card;type:json"`
+    Card       json.RawMessage `gorm:"column:msg_card;type:json"` // type=card 的 card payload / type=intent 的 IntentPayload
     IntentMeta *IntentMeta     `gorm:"type:json"`
 }
 ```

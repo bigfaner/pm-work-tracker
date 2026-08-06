@@ -146,7 +146,7 @@ CREATE TABLE copilot_messages (
     msg_content  TEXT,                                  -- type=text/system（含 intent.text 冗余）
     msg_trace    TEXT,                                  -- type=trace, JSON
     card_type    VARCHAR(32),                           -- type=card: intent/form/query_result/disambig/candidate_list/fallback
-    msg_card     TEXT,                                  -- type=card, JSON (parsed by card_type)
+    msg_card     TEXT,                                  -- JSON：type=card 的 card payload（按 card_type 解释）/ type=intent 的 IntentPayload
     intent_meta  TEXT,                                  -- JSON: {label, seq, total}
     created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -166,7 +166,7 @@ CREATE TABLE copilot_messages (
 --   type=card (disambig): awaiting_select / selected / discarded
 --   type=card (fallback): sent
 
-CREATE INDEX idx_copilot_messages_session_turn_seq ON copilot_messages(session_id, turn_id, seq);
+CREATE INDEX idx_copilot_messages_session_turn_seq ON copilot_messages(session_id, turn_id, msg_seq);
 CREATE INDEX idx_copilot_messages_intent           ON copilot_messages(intent_id);
 CREATE INDEX idx_copilot_messages_msg_status       ON copilot_messages(msg_status);
 CREATE INDEX idx_copilot_messages_deleted          ON copilot_messages(deleted_at);
@@ -191,7 +191,7 @@ CREATE INDEX idx_copilot_messages_deleted          ON copilot_messages(deleted_a
 --     updated_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 --     deleted_at   TIMESTAMP NULL,
 --     UNIQUE KEY uk_biz_key (biz_key),
---     KEY idx_session_turn_seq (session_id, turn_id, seq),
+--     KEY idx_session_turn_seq (session_id, turn_id, msg_seq),
 --     KEY idx_intent (intent_id),
 --     KEY idx_msg_status (msg_status),
 --     KEY idx_deleted (deleted_at),
@@ -332,5 +332,5 @@ CREATE UNIQUE INDEX idx_feature_flags_unique ON feature_flags(flag_key, scope_ty
 -- Seed: default feature flag (Copilot globally disabled at startup)
 -- =============================================================================
 
-INSERT INTO feature_flags (flag_key, enabled, scope_type, scope_id, reason)
+INSERT INTO feature_flags (flag_key, flag_enabled, scope_type, scope_id, flag_reason)
 VALUES ('copilot.enabled', 0, 'global', '', 'Initial seed: globally disabled, enable per-team for gradual rollout');

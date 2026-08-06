@@ -167,7 +167,7 @@ cancelled / superseded / failed   ← 终态（4 个）
 │     updated_at           TIMESTAMP                  │
 │     deleted_at           TIMESTAMP (NULL)           │
 └─────────────────────────────────────────────────────┘
-复合索引: (session_id, turn_id, seq)
+复合索引: (session_id, turn_id, msg_seq)
 ```
 
 **msg_status 多态枚举（按 msg_type 解释）**：
@@ -339,7 +339,7 @@ Session.status = active
 | copilot_turns | `idx_session_started (session_id, started_at)` | 会话内 turn 时间线 |
 | copilot_turns | `idx_user_started (user_biz_key, started_at)` | 用户级 turn 查询 |
 | copilot_turns | `idx_turn_status (turn_status)` | 按状态过滤（如 awaiting_commit） |
-| copilot_messages | `idx_session_turn_seq (session_id, turn_id, seq)` | 按 turn 顺序查询消息 |
+| copilot_messages | `idx_session_turn_seq (session_id, turn_id, msg_seq)` | 按 turn 顺序查询消息 |
 | copilot_messages | `idx_intent (intent_id)` | 按 intent 聚合查询 |
 | copilot_messages | `idx_msg_status (msg_status)` | 按状态过滤（如 awaiting_confirm 的意图） |
 | copilot_agent_call_logs | `idx_user_date (user_biz_key, created_at)` | 每日配额检查 |
